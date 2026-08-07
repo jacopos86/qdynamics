@@ -1,0 +1,19 @@
+[project]
+name = "paper5-workspace"
+version = "0.1.0"
+description = "Repo-like workspace for Paper 5 research code and notes."
+requires-python = ">=3.10"
+dependencies = [
+  "cvxpy",
+  "matplotlib",
+  "numpy",
+  "scipy",
+]
+
+[project.scripts]
+paper5-purg-gate = "paper5.stability.purg_analysis:main"
+paper5-purg-sealed-score = "paper5.stability.purg_sealed_score:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", ".."]

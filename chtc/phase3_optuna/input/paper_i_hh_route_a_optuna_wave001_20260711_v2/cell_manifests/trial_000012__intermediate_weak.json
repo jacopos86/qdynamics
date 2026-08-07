@@ -1,0 +1,31 @@
+{
+  "cell_id": "trial_000012__intermediate_weak",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-11T17:45:50.955983+00:00",
+  "manifest_sha256": "88602b7aa341983d103ced6db7538bef6c72dfbd769320059e548ca528ef2e66",
+  "max_depth": 15,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000012/intermediate-weak",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": "all",
+    "batch_size_cap": 1,
+    "child_phase1_cap": "all",
+    "child_phase2_cap": 64,
+    "lambda_add": 0.75,
+    "macro_phase1_cap": 24,
+    "macro_phase2_cap": "all"
+  },
+  "policy_sha256": "30116c9114a85188459b61963e4acbe7b7b5154228816ad4c2b7474978e008f5",
+  "regime": "intermediate-weak",
+  "run_class": "diagnostic_pareto_search",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "trial_number": 12
+}

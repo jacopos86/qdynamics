@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+import csv
+import json
+import tarfile
+from pathlib import Path
+
+import pytest
+
+from chtc.phase3_optuna import prepare_paper_i_snake_sector_contract_sentinels as preparation
+from chtc.phase3_optuna import preflight_paper_i_snake_sector_contract_sentinels as preflight
+from chtc.phase3_optuna import run_paper_i_scaling_matrix_cell as runner
+
+
+@pytest.fixture(scope="module")
+def prepared(tmp_path_factory):
+    root = tmp_path_factory.mktemp("snake_sector_sentinels")
+    output_dir = root / preparation.BATCH_ID
+    submit_path = root / f"submit_{preparation.BATCH_ID}.sub"
+    manifest = preparation.prepare(output_dir=output_dir, submit_path=submit_path)
+    with (output_dir / "paper_i_snake_sector_contract_sentinel_records.tsv").open(
+        newline="", encoding="utf-8"
+    ) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    return manifest, output_dir, submit_path, rows
+
+
+def test_preparation_emits_exact_six_source_locked_diagnostics(prepared) -> None:
+    manifest, output_dir, _submit_path, rows = prepared
+    assert manifest["status"] == "prepared_not_submitted"
+    assert manifest["submission_authority"] == "prepared_only_not_submitted"
+    assert manifest["source_locked_sensitivity_claim"] is False
+    assert len(rows) == 6
+    expected = {item["case_id"]: item for item in preparation.SENTINELS}
+    assert {row["case_id"] for row in rows} == set(expected)
+    for row in rows:
+        item = expected[row["case_id"]]
+        runner.validate_record(row)
+        assert row["batch_id"] == preparation.BATCH_ID
+        assert row["run_class"] == "diagnostic"
+        assert row["method_key"] == "snake"
+        assert row["pool_contract"] == "full_meta_execution_sector_filtered"
+        assert row["static_meta_feature_profile"] == "safe_core_v1"
+        assert row["phase1_pruning"] == "off"
+        assert row["structural_rollback"] == "off"
+        assert row["cost_steering"] == "off"
+        assert row["optimizer_coordinate_contract"] == "logical_shared"
+        assert row["expected_horizon"] == str(item["horizon"])
+        assert row["request_cpus"] == str(item["cpus"])
+        assert row["request_memory_mb"] == str(item["memory_mb"])
+        assert row["request_disk_mb"] == str(item["disk_mb"])
+        assert float(row["exact_reference_energy"]) == float(item["exact_energy"])
+        assert Path(row["source_result_json_packaged"]).is_file()
+        assert Path(row["source_cell_manifest_packaged"]).is_file()
+    policy = json.loads(
+        (output_dir / "paper_i_snake_sector_contract_parent_only_policy.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert policy["static"]["phase1_prune_enabled"] is False
+    assert policy["static"]["phase2_enable_batching"] is False
+    assert policy["static"]["phase3_enable_batching"] is False
+    assert policy["static"]["static_meta_feature_profile"] == "safe_core_v1"
+
+
+def test_runner_uses_row_driven_sentinel_worker_counts(prepared, tmp_path: Path) -> None:
+    _manifest, _output_dir, _submit_path, rows = prepared
+    row = rows[0]
+    _env, overlay = runner.build_environment(row, tmp_path / "cell")
+    assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_PARALLEL_GRADIENT_WORKERS"] == "1"
+    assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_BEAM_PARENT_WORKERS"] == "1"
+    changed = dict(row)
+    changed["adapt_parallel_gradient_workers"] = "3"
+    changed["adapt_beam_parent_workers"] = "2"
+    changed["phase3_adapt_parallel_gradient_workers"] = "3"
+    changed["phase3_adapt_beam_parent_workers"] = "2"
+    with pytest.raises(ValueError, match="adapt_parallel_gradient_workers"):
+        runner.validate_record(changed)
+
+
+def test_submit_is_row_resourced_and_never_streams_logs(prepared) -> None:
+    _manifest, output_dir, submit_path, rows = prepared
+    text = submit_path.read_text(encoding="utf-8")
+    assert "stream_output = False" in text
+    assert "stream_error = False" in text
+    assert "request_cpus = $(cpus)" in text
+    assert "request_memory = $(memory_mb)MB" in text
+    assert "request_disk = $(disk_mb)MB" in text
+    queue = [
+        line.split("\t")
+        for line in (output_dir / "paper_i_snake_sector_contract_sentinel_queue.tsv")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert queue == [
+        [row["record_id"], row["request_cpus"], row["request_memory_mb"], row["request_disk_mb"]]
+        for row in rows
+    ]
+
+
+def test_code_bundle_locks_all_repaired_runtime_files(prepared) -> None:
+    manifest, _output_dir, _submit_path, _rows = prepared
+    lock = json.loads(Path(manifest["implementation_lock"]).read_text(encoding="utf-8"))
+    critical = {
+        row["path"] for row in lock["entries"] if row["critical_bundle_member"] is True
+    }
+    required = {
+        "pipelines/static_adapt/adapt_pipeline.py",
+        "pipelines/static_adapt/sector_invariants.py",
+        "pipelines/static_adapt/engine_support.py",
+        "pipelines/static_adapt/resume_scaffold.py",
+        "pipelines/static_adapt/joint_step_warm_start.py",
+        "pipelines/static_adapt/paper_i_runner.py",
+        "pipelines/static_adapt/cli_config.py",
+    }
+    assert required <= critical
+    with tarfile.open(Path(manifest["code_bundle"]["path"]), "r:gz") as archive:
+        assert required <= set(archive.getnames())
+
+
+def test_dedicated_preflight_passes_and_detects_resource_drift(prepared, tmp_path: Path) -> None:
+    _manifest, output_dir, submit_path, _rows = prepared
+    payload = preflight.build_preflight(input_dir=output_dir, submit_path=submit_path)
+    assert payload["ok"] is True
+    assert payload["record_count"] == 6
+    assert payload["blocking_reasons"] == []
+
+    tampered = tmp_path / "tampered.sub"
+    tampered.write_text(
+        submit_path.read_text(encoding="utf-8").replace(
+            "request_memory = $(memory_mb)MB", "request_memory = 1024MB"
+        ),
+        encoding="utf-8",
+    )
+    blocked = preflight.build_preflight(input_dir=output_dir, submit_path=tampered)
+    assert blocked["ok"] is False
+    assert "submit_contract_mismatch:request_memory" in blocked["blocking_reasons"]

@@ -1,0 +1,77 @@
+def tetris_disjoint_batch_select(
+    ranked_records: Sequence[Mapping[str, Any]],
+    *,
+    cfg: FullScoreConfig,
+    tie_break_score_key: str = "phase2_raw_score",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Hard support-disjoint phase-2 batch selector for benchmark TETRIS rows."""
+    ranked = sorted([dict(rec) for rec in ranked_records], key=lambda rec: _batch_sort_key(rec, tie_break_score_key))
+    mode = "tetris_disjoint_benchmark"
+    if not ranked:
+        return [], {
+            "selection_mode": mode,
+            "selected": False,
+            "reason": "empty_shortlist",
+            "shell_size": 0,
+            "selected_count": 0,
+            "rejected_overlap_count": 0,
+            "joint_gain": 0.0,
+            "additivity_defect": 0.0,
+            "selected_labels": [],
+            "selected_support_sets": [],
+        }
+    top_score = _batch_record_score(ranked[0], "full_v2_score")
+    shell = [
+        dict(rec)
+        for rec in ranked
+        if _batch_record_score(rec, "full_v2_score") > 0.0
+        and _batch_record_score(rec, "full_v2_score") >= float(cfg.batch_near_degenerate_ratio) * float(top_score)
+    ]
+    target_count = int(max(1, min(int(max(1, cfg.batch_target_size)), int(max(1, cfg.batch_size_cap)))))
+    if not shell:
+        selected = [dict(ranked[0])]
+        joint_gain = float(max(0.0, _batch_record_score(selected[0], "full_v2_score", 0.0)))
+        annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
+        support_sets = [sorted(int(x) for x in _support_set(rec.get("candidate_term"))) for rec in annotated]
+        return annotated, {
+            "selection_mode": mode,
+            "selected": False,
+            "reason": "nonpositive_shell",
+            "shell_size": 0,
+            "selected_count": 1,
+            "rejected_overlap_count": 0,
+            "joint_gain": float(joint_gain),
+            "additivity_defect": 0.0,
+            "selected_labels": [_batch_record_label(rec) for rec in annotated],
+            "selected_support_sets": support_sets,
+        }
+
+    selected: list[dict[str, Any]] = []
+    occupied_support: set[int] = set()
+    rejected_overlap_count = 0
+    for rec in shell:
+        support = _support_set(rec.get("candidate_term"))
+        if selected and bool(occupied_support & support):
+            rejected_overlap_count += 1
+            continue
+        selected.append(dict(rec))
+        occupied_support.update(int(x) for x in support)
+        if len(selected) >= target_count:
+            break
+    if not selected:
+        selected = [dict(shell[0])]
+    joint_gain = float(sum(max(0.0, _batch_record_score(rec, "full_v2_score", 0.0)) for rec in selected))
+    annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
+    support_sets = [sorted(int(x) for x in _support_set(rec.get("candidate_term"))) for rec in annotated]
+    return annotated, {
+        "selection_mode": mode,
+        "selected": bool(len(annotated) > 1),
+        "reason": "hard_disjoint_batch" if len(annotated) > 1 else "singleton_shell",
+        "shell_size": int(len(shell)),
+        "selected_count": int(len(annotated)),
+        "rejected_overlap_count": int(rejected_overlap_count),
+        "joint_gain": float(joint_gain),
+        "additivity_defect": 0.0,
+        "selected_labels": [_batch_record_label(rec) for rec in annotated],
+        "selected_support_sets": support_sets,
+    }

@@ -1,0 +1,48 @@
+{
+  "schema": "paper_i_hh_results_replacement_provenance_v2",
+  "date": "2026-07-21",
+  "protected_base": {
+    "path": "/Users/jakestrobel/.codex/attachments/a823478e-bf41-4b3a-80a9-58ec74120fb9/pasted-text.txt",
+    "sha256": "ea9a1bd7b7eb61b66b055bcaac95f1d6dd1290701f18975c3fb23ea65c2c7706"
+  },
+  "active_tex": {
+    "path": "MATH/paper_details/Paper_I.tex",
+    "sha256": "86968f5969b33cf8f9c46b1e032f99d09f6b18801ae73cba49203e547c321249"
+  },
+  "active_pdf": {
+    "path": "Paper_I.pdf",
+    "sha256": "0a1929b16094a60fe142269d8e60d82efeb828bb265f473c451b7fe57632d935",
+    "pages": 24
+  },
+  "results_support": {
+    "path": "MATH/paper_details/figures/paper_i_hh_first_hit_20260721/paper_i_hh_first_hit_results_support_20260721.json",
+    "sha256": "c0a7b0c133239617cef9270e7722368e42dfd3aaec49cbc2b634e5732b333494",
+    "target_abs_error": 0.0002,
+    "endpoint_policy": "first accepted prefix at or below target; explicit non-hit with terminal k=50 error and costs otherwise",
+    "public_methods": ["SNAKE", "Geo-M", "Append-S"]
+  },
+  "trajectory_figure": {
+    "path": "MATH/paper_details/figures/paper_i_hh_first_hit_20260721/paper_i_hh_first_hit_trajectories_20260721.pdf",
+    "sha256": "0f7f979737916ae5c70850bc33c2e94478fffc1aa0b3c31085ceb91d96451f83"
+  },
+  "target_prefix_costs": {
+    "path": "output/pdf/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715/target_energy_prefix_costs.json",
+    "sha256": "47890aa8f55cb3cc1498cb89945d2d9e705468d0305b8e235c78c89fcb5fc15b"
+  },
+  "replacement_scope": [
+    "abstract quantitative result summary",
+    "Hubbard--Holstein result framing and pool labels",
+    "public Append-Macro removal",
+    "fixed-accuracy trajectory figure and first-hit table",
+    "terminal k=50 costs for explicit non-hits",
+    "directly dependent result interpretation and discussion claims",
+    "reported-route Phase-III and trust-update rows"
+  ],
+  "non_result_compile_repairs": [
+    "escaped two literal ampersands in De-duped & Symm. Guard text"
+  ],
+  "visual_verification": {
+    "pages": [1, 10, 11, 12, 13],
+    "status": "pass"
+  }
+}

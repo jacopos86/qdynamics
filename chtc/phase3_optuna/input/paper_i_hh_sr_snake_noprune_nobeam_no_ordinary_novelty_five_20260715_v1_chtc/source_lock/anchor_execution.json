@@ -1,0 +1,30 @@
+{
+  "artifacts": {
+    "current_json": {
+      "exists": true,
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/current.json",
+      "sha256": "557305ffa35a12e6b55e659726edae107b6251ab3bc395414a2d29af53c1b7d5",
+      "size_bytes": 10528148
+    },
+    "estimator_call_ledger_json": {
+      "exists": true,
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/estimator_call_ledger.json",
+      "sha256": "4edbb7f0df321c36857d9442f678365528f673597542a82b325ff1b62ce66b09",
+      "size_bytes": 104756701
+    },
+    "result_json": {
+      "exists": true,
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+      "sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa",
+      "size_bytes": 177973440
+    }
+  },
+  "command_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/command.json",
+  "command_json_sha256": "87bff4c130d17c994e25dab49ac72d012c9beae97f6d89cd2edb857fc1806014",
+  "exit_code": 0,
+  "finished_utc": "2026-07-16T01:37:34.709021+00:00",
+  "pid": 40843,
+  "schema": "paper_i_hh_sr_local_ablation_execution_v1",
+  "started_utc": "2026-07-16T01:35:30.501298+00:00",
+  "status": "completed"
+}

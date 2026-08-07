@@ -1,0 +1,62 @@
+{
+  "activation_id": "paper_i_ra_adapt_always_factorial48_r50_20260730_v2_chtc_activation_v1",
+  "activation_manifest_file_sha256": "73aa699c4836b02e4988bf27386abc61b76c18b31e9cd369609c99b1dbb54d9c",
+  "activation_manifest_sha256": "69c4de0423da21c54774ea1a257ecc50d2b661aaff138803bbd0387937c02e1b",
+  "batch_name": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention",
+  "cluster_id": 9397643,
+  "direct_execution_count": 45,
+  "execution_thaw_authorized": false,
+  "factory_contract": {
+    "failed_rows_retained": true,
+    "initial_materialized_count": 0,
+    "initial_next_proc_id": 0,
+    "job_materialize_limit": 1,
+    "job_materialize_max_idle": 0,
+    "leave_in_queue": "(JobStatus == 4) && (ExitCode =!= 0)",
+    "live_factory_query_passed": true,
+    "successful_rows_reap": true,
+    "total_submit_procs": 45
+  },
+  "local_preflight": {
+    "builder_sha256": "1b6ecc66d3b8ba925a9a58456b93b4ec1ccfec322374a058b23964132c712511",
+    "builder_validation_status": "passed",
+    "condor_lifecycle_validation_status": "passed",
+    "focused_test_result": "14 passed",
+    "preservation_snapshot_sha256": "7d606f18d8343e988d0595654a4353e028e298ff2bbc6f579a8066616e83c4e6"
+  },
+  "operational_package_id": "paper_i_ra_adapt_always_factorial48_r50_20260730_v2_chtc",
+  "package_manifest_file_sha256": "4f30b4b7750372a5324fa7c2b56ea70a607e8909d5bba34176bb14631d1d6d41",
+  "package_manifest_sha256": "25f5a69da1c74c721e1e2061cd901b0465e49c32b5f328f4c64029d44f46a80a",
+  "parent_cluster_id": 9395481,
+  "parent_cluster_retired": false,
+  "paper_evidence_adopted": false,
+  "quota_after_submission": {
+    "hard_limit_mib": 51200,
+    "soft_quota_mib": 40960,
+    "used_mib": 34487
+  },
+  "remote_preflight": {
+    "condor_dry_run_job_count": 45,
+    "condor_dry_run_status": "passed",
+    "effective_job_materialize_max_idle": 0,
+    "effective_leave_in_queue": "(JobStatus == 4) && (ExitCode =!= 0)",
+    "matching_current_or_recent_batch_before_submit": false
+  },
+  "remote_repo_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "schema": "paper_i_checkpoint_retention_frozen_factory_submission_receipt_v1",
+  "sha256": "bb91c22c732d56b56a8d0908c370bea07e5c4362f8a0ef0d274d994691aa743d",
+  "source_archive_sha256": "584896ed11f4c0469e064d0b6279302798e477ef4b3f7bd44d8e646d7d17a8eb",
+  "staging": {
+    "bundle_sha256": "f19d1da9411f01d4300f0ba08fcb0915399a729024c16f3ced4608256f2fa141",
+    "bundle_size_bytes": 4901647,
+    "remote_file_closure_count": 140,
+    "remote_file_closure_sha256": "af9aff43470f20d0a96b8496d1316a55caa81649f773dc53e0f6b0a3b94fb534",
+    "remote_snapshot_file_sha256": "17b7c1657046c01e7686c98d1fec36a23ddbeb4b479aabf2eab3dd2bf913a973",
+    "remote_temporary_files_removed": true
+  },
+  "submission_host": "ap2001.chtc.wisc.edu",
+  "submission_output": "45 job(s) submitted to cluster 9397643.",
+  "submission_state": "submitted_frozen_no_rows_materialized",
+  "submitted_utc": "2026-07-30T18:08:17Z",
+  "unrelated_clusters_touched": false
+}

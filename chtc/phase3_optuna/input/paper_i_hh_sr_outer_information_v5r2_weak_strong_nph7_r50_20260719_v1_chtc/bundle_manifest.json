@@ -1,0 +1,105 @@
+{
+  "artifact_hashes": {
+    "README.md": {
+      "sha256": "0c77fec2b44717f3a25855f636486017d9c7475b24645a2faeaa072165430704",
+      "size_bytes": 3465
+    },
+    "authoritative_weak_strong_job_lock.json": {
+      "sha256": "33e22e62eb23f756d1a20d2597529a1085bbc695b8832e65212b2ae031bc36f7",
+      "size_bytes": 19996
+    },
+    "build_bundle.py": {
+      "sha256": "6c79df1521aea6dbad67248ccfd9306c565e6b1b95efbdbb9fa6a19b9f687b04",
+      "size_bytes": 15282
+    },
+    "evidence_validation.py": {
+      "sha256": "a3835c4aeff29e7ec42a49c6c3d9afad4696a8d2403314ad6f684022e791e7c3",
+      "size_bytes": 64094
+    },
+    "execute_source_locked_job.sh": {
+      "sha256": "525c13d49941e2fbe275d17f2715808c809e7f2a859955318194bb9f4f021be0",
+      "size_bytes": 6331
+    },
+    "jobs/control.json": {
+      "sha256": "2406be51042c4dd10cd381a7ba6881067ecbc8e897af3d30ee113a1ea07f4041",
+      "size_bytes": 21850
+    },
+    "jobs/reuse.json": {
+      "sha256": "da8948c0e019ba4170217fd000f8f5cbe217c12187b5d39ff41b92e35b6fa847",
+      "size_bytes": 22100
+    },
+    "normalized_manifests/control.json": {
+      "sha256": "6f35c50d73b1bcb398a968cefe6d99d6b901b03e61e4aae1bedad69b8713db05",
+      "size_bytes": 2759
+    },
+    "normalized_manifests/reuse.json": {
+      "sha256": "cfbe3534be6b74a26653701b2ae24849586d7e0ab06a08e26bc01d0d01940d62",
+      "size_bytes": 2806
+    },
+    "pair.dag": {
+      "sha256": "04056dcbac869c32b501aac0412caa78f88e9624c0a7deaccb946846f3448df7",
+      "size_bytes": 602
+    },
+    "pair_contract.py": {
+      "sha256": "2be6ee1476502c9ca5503033cadc4f86d415986d9061d8718ec82d1ac059819e",
+      "size_bytes": 50505
+    },
+    "post_control_gate.py": {
+      "sha256": "94f493cbc0f7f31bef0b8aa84f4ee30141022e145abc05988554240bd28ca431",
+      "size_bytes": 2022
+    },
+    "run_job.py": {
+      "sha256": "273ad9ac21992f593015e1a1b4da2d1c3676bbc487fcff8b21b6cd9c797eee01",
+      "size_bytes": 26019
+    },
+    "source_archive_inventory.json": {
+      "sha256": "0930670f74b0f828c4c8aabea87d419578e32f652cb2298dfd4d6bfc6a81a002",
+      "size_bytes": 146898
+    },
+    "source_lock_audit_v5r2.json": {
+      "sha256": "ed436bae8e36da693af28bb0c066e128f6fd697c9854f534c22d042aa85387e5",
+      "size_bytes": 6357
+    },
+    "source_locked_sensitivity_audit.json": {
+      "sha256": "985e788cde39561328460ba7cd72361da87f98aa1df61a671c01691456cce18a",
+      "size_bytes": 2292
+    },
+    "source_locked_v5r2.tar.gz": {
+      "sha256": "79c1f4b058d6f2ea7fb963975b63ee3e98358f9f463d128115b55fd99b4352d1",
+      "size_bytes": 3975998
+    },
+    "submission_gate.json": {
+      "sha256": "fd96e0dfe2c3d4c28c7fae6286692971f70eb5d60507835b65e650dc619d5393",
+      "size_bytes": 781
+    },
+    "submit_control.sub": {
+      "sha256": "88d934f266655544fe198c4b92241386edf9b2c8acf0f92adb1d37ab673e8557",
+      "size_bytes": 3539
+    },
+    "submit_reuse.sub": {
+      "sha256": "587f4b49b3734b638856d079c77830f2494743c9c6eb4cfa297aa2014a4e16e8",
+      "size_bytes": 3641
+    },
+    "test_bundle.py": {
+      "sha256": "8422a890b1c4105b6dd88d2f10059e69f2fdf35bf98d54ef34fc576bb24f5d19",
+      "size_bytes": 22361
+    },
+    "validate_fetched.py": {
+      "sha256": "36814d520a587f22efca9b7dac7d0fd9f6554456d1d6b89df2f03787e5999f84",
+      "size_bytes": 5831
+    },
+    "weak_strong_nph7_source_lock_audit.json": {
+      "sha256": "734d399553d1c17157e5006db41492886a74d0edfa58e03894f57ad2f461ec00",
+      "size_bytes": 1134
+    }
+  },
+  "bundle_digest": "e62bd9aa2e0ea9c28ff5af906aff4dc78f48e8666e770d0981a43709b68d691d",
+  "bundle_id": "paper_i_hh_sr_outer_information_v5r2_weak_strong_nph7_r50_20260719_v1_chtc",
+  "generated_utc": "2026-07-19T14:09:52.429383+00:00",
+  "pair_audit_sha256": "985e788cde39561328460ba7cd72361da87f98aa1df61a671c01691456cce18a",
+  "pair_id": "weak_strong_nph7_r50_control_then_outer_reuse_v1",
+  "schema": "paper_i_sr_outer_information_chtc_bundle_manifest_v1",
+  "source_archive_inventory_sha256": "0930670f74b0f828c4c8aabea87d419578e32f652cb2298dfd4d6bfc6a81a002",
+  "status": "built_local_gates_passed_remote_preflight_pending",
+  "submission_gate_sha256": "fd96e0dfe2c3d4c28c7fae6286692971f70eb5d60507835b65e650dc619d5393"
+}

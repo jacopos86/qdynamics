@@ -1,0 +1,34 @@
+from pipelines.static_adapt.sr_snake_escape_controller import (
+    SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_BEAM_CONTROLS_V1,
+    SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1,
+    SR_CONTROLLER_ABLATION_CONTRACT_OFF,
+)
+def test_only_beam_aware_controller_ablation_allows_inactive_beam() -> None:
+    assert not adapt_pipeline._sr_controller_ablation_allows_inactive_beam(
+        SR_CONTROLLER_ABLATION_CONTRACT_OFF
+    )
+    assert not adapt_pipeline._sr_controller_ablation_allows_inactive_beam(
+        SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1
+    )
+    assert adapt_pipeline._sr_controller_ablation_allows_inactive_beam(
+        SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_BEAM_CONTROLS_V1
+    )
+def test_controller_ablation_marker_does_not_allow_unrelated_route_mismatch() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_enable_batching:True!=False",
+        ],
+    }
+    with pytest.raises(ValueError, match="phase2_enable_batching"):
+        adapt_pipeline._validate_resolved_static_route_identity(
+            payload,
+            declared_route_id="route_a",
+            historical_singleton_overlay_active=True,
+            route_profile_conformance="registered_profile",
+            sr_controller_ablation_contract=(
+                SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1
+            ),
+            phase1_prune_enabled=True,
+            phase1_prune_mode="live",
+        )

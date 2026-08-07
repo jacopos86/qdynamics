@@ -1,0 +1,1988 @@
+{
+  "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/source_locked.tar.gz",
+  "archive_sha256": "f591f4a5296ac2ac8e3b255e41d1ffd8267c905feb0be9992ed5d0895c1c367b",
+  "archive_size_bytes": 1432504,
+  "critical_source_hashes": {
+    "pipelines/reporting/build_paper_i_selected_prefix_qiskit_sidecar.py": "bcb745d13dc9fabb663993948e867741e05cb0eb75b98b879067c9e0a5498cd6",
+    "pipelines/static_adapt/adapt_pipeline.py": "fa4173e13bbe74dfee24bcbde185ff7c2a4f249a0194e64ae69da0feb79f6703",
+    "pipelines/static_adapt/cli_config.py": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+    "pipelines/static_adapt/output_artifacts.py": "f51cc9d23a41bd34df522c15422ec73d44ff18932f88043d4fdbbea002246e1b",
+    "pipelines/static_adapt/resume_scaffold.py": "9e0c17d66730b4cb255c9ba8cd0a8eaadcb1ac1513ba49a74aa7d4648e1d0580",
+    "pipelines/static_adapt/run_control.py": "3faad1ee1033f043bc4db91c8f5ef973c627d692749691908c4971ad1e803c05"
+  },
+  "member_count": 330,
+  "members": [
+    {
+      "path": "._AGENTS.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "4471211fb7906b8a4579c174175ee20b325712abfd70edd75b47c4bb041f7a07",
+      "size_bytes": 30661,
+      "type": "file"
+    },
+    {
+      "path": "MATH/._AGENTS.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "MATH/AGENTS.md",
+      "sha256": "a8a8186c265221dc75457e94757c3ea1abb222655c25015e63152535d1937614",
+      "size_bytes": 19587,
+      "type": "file"
+    },
+    {
+      "path": "agent_guidance/._README.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "agent_guidance/README.md",
+      "sha256": "878a2be57877b630ca8f75b2a089e48861ad5076aace34ef7c9e85760e42a965",
+      "size_bytes": 3745,
+      "type": "file"
+    },
+    {
+      "path": "agent_guidance/skills/paper-i-run/._SKILL.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "agent_guidance/skills/paper-i-run/SKILL.md",
+      "sha256": "f8bf3f7439574cf07ff0d5ce318631203e2c680181e2284b174e6253a1b06e43",
+      "size_bytes": 90595,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/._static_adapt",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_a_funnel.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_a_funnel.py",
+      "sha256": "a23537621d3156c381b021483b59945f44a2af53741187f00cc0a7498125f246",
+      "size_bytes": 27762,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_identity.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_identity.py",
+      "sha256": "e812ebf9c0f225051abf174c91943191bc1a79c91aad14bd04971e6b1eb33d0d",
+      "size_bytes": 32164,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._paper_i_runner.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/paper_i_runner.py",
+      "sha256": "9cd189c81a641fbb4bdd27901cbf65f610a00954713061a7986eebce60888406",
+      "size_bytes": 39538,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._resume_scaffold.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/resume_scaffold.py",
+      "sha256": "9e0c17d66730b4cb255c9ba8cd0a8eaadcb1ac1513ba49a74aa7d4648e1d0580",
+      "size_bytes": 54957,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._runtime_split.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/runtime_split.py",
+      "sha256": "5aa99009ee16759ee947169950c4d7ee37541329afa5646c39088c3ce93178ac",
+      "size_bytes": 32670,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_debug.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_debug.py",
+      "sha256": "2e9032bbd3f01d957c9536d462638644db58c6439dee474db3bee4b5c2ddf4e3",
+      "size_bytes": 20817,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_exact_reference.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_exact_reference.py",
+      "sha256": "55e5e0ff4770fff68b22d6d102e8c6f5f8046d199a545b1b6f42be8287d0fd8c",
+      "size_bytes": 7297,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_a_shortlists.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_a_shortlists.py",
+      "sha256": "b483b300aec23f4ee759720f394606b33ee353ff090e330e3473d467ce52f710",
+      "size_bytes": 17032,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline_refactor_migration.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline_refactor_migration.md",
+      "sha256": "9be34a4cb593d356f37bc29c778a8933663b5fd47faa7c5676ad06bd3f6650d5",
+      "size_bytes": 10711,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._schur_warm_start.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/schur_warm_start.py",
+      "sha256": "81ed39e07a0148b27b070167a0cfa9d2bd5d24ade34bac25cc067ecd16341cef",
+      "size_bytes": 27484,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._cli_config.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/cli_config.py",
+      "sha256": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+      "size_bytes": 191609,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_measurement_proxy.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_measurement_proxy.py",
+      "sha256": "6089906a89e92d76e58c7e0ba02ffd433947fe8f3ea14b58a0406d82af52bca6",
+      "size_bytes": 103423,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline_legacy_20260322.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline_legacy_20260322.py",
+      "sha256": "ece9a4e9b5c0e7eeea0bd0fe56b62a77301e20e9128fccf03f5b6ed14eae7279",
+      "size_bytes": 13186,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._algebraic_metadata.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/algebraic_metadata.py",
+      "sha256": "d203f6fed0e059ac40e559ac92478aee84c9eb0c7fa8a9bf637a7b6a26f33d08",
+      "size_bytes": 56871,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_continuation_scoring_legacy_bridge.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_continuation_scoring_legacy_bridge.py",
+      "sha256": "a07657b5ba9f5bbe3e0e149a6eec14862df24b7426ef4b38336262975ef0bc72",
+      "size_bytes": 14688,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._paper_i_config.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/paper_i_config.py",
+      "sha256": "9f54e1fcd226e768061e974df4b5fba68841848406bad41caa9d3790e5ae54cb",
+      "size_bytes": 17211,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._builders",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "pipelines/static_adapt/._beam_refactor_migration.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/beam_refactor_migration.md",
+      "sha256": "3d0bfc34d67bc19537e8a06bd56f3426ea3e9f5e5030ff5377d15887d39dc23f",
+      "size_bytes": 4557,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._runtime_heartbeat.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/runtime_heartbeat.py",
+      "sha256": "18c48fa50bfab3be27fe9db7d5c6ec949a5c171271d08ea78c5a92a4d34a1c12",
+      "size_bytes": 9787,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._prune_ladder.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/prune_ladder.py",
+      "sha256": "0c450e1fbbab928e2b839c8cb9edad0a2c5f78dc0438bdc94b2103942fdc4a79",
+      "size_bytes": 11392,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_candidate_metadata.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_candidate_metadata.py",
+      "sha256": "17c211a2ed2441f5b03a86e004872299d33fbc42a147db163197f2fbd271920c",
+      "size_bytes": 15607,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_worker_limits.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_worker_limits.py",
+      "sha256": "368e927034cdd5bee5d5d30e0cfd25bf67dbebb3bb4dd8392f8bb3262cc69187",
+      "size_bytes": 3445,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_exact_query_geometry.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_exact_query_geometry.py",
+      "sha256": "9bef42312fde8a70fe981bf9df4279014f321031c3f3a7c4742f085319338af7",
+      "size_bytes": 13090,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._optimization",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "pipelines/static_adapt/._run_control.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/run_control.py",
+      "sha256": "3faad1ee1033f043bc4db91c8f5ef973c627d692749691908c4971ad1e803c05",
+      "size_bytes": 15373,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._formal_manifold_warm_start.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/formal_manifold_warm_start.py",
+      "sha256": "09bf359c12f215736a15f11de142210f7f71f436eec24fafdb9e2d11621ac8a0",
+      "size_bytes": 128478,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._prune_derivatives.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/prune_derivatives.py",
+      "sha256": "e81214643119bff8c13b48f9d893eb61ca24a4e3c74b302b67c8b2b2391323bd",
+      "size_bytes": 3672,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._prune_risk_dataset.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/prune_risk_dataset.py",
+      "sha256": "554ee2daa98c45022142e8fcb07bb97d4bc2887ab637e55ff9c2fbb56c5c601f",
+      "size_bytes": 54183,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline_route_alignment.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline_route_alignment.md",
+      "sha256": "92c5df2777b67681e4efed62b44225dd70e1a2cc541116955b1b3f4da08f456d",
+      "size_bytes": 9912,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._estimator_call_ledger.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/estimator_call_ledger.py",
+      "sha256": "c5ccb05c5d8e76ef9e883be4f1070b3ba93c907250aee9a910da1408240abda3",
+      "size_bytes": 34950,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_a_trust_region.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_a_trust_region.py",
+      "sha256": "564cf6c7ee80e89035ef0a489ec96980a1f86dd163e28f568f98a04970115e11",
+      "size_bytes": 30714,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/__init__.py",
+      "sha256": "6bce4296062a00df91ce16bfd77f7c12789f03bb22449556fd0982eb2ca9d7d7",
+      "size_bytes": 58,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._controller_telemetry.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/controller_telemetry.py",
+      "sha256": "f9167dc0e22827bfffdc723d3ddef11aeec44007e869cd3c5fca470f83b0db5d",
+      "size_bytes": 10111,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_candidate_record_cache.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_candidate_record_cache.py",
+      "sha256": "c33eefda653a3384b1241b06cfe2b9af29e2b1b97baf92c44e84d0523b92d1eb",
+      "size_bytes": 9111,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._batch_ordering.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/batch_ordering.py",
+      "sha256": "7462f57d8d8baba4e7e9714c55026a7b0e020eed899cc62bda012a98b1690365",
+      "size_bytes": 21646,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_adapt_backend_shortlist.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_adapt_backend_shortlist.py",
+      "sha256": "15cca68795848d92dc8d1f652a16aa6b90044e285d7be56079114eb1dc55ab35",
+      "size_bytes": 12109,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._plateau_acquisition.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/plateau_acquisition.py",
+      "sha256": "1eccb36f3abe67580068f9895ced8390f4bd15ae8f312de8c38e92318d31ee77",
+      "size_bytes": 30117,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_query_closure.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_query_closure.py",
+      "sha256": "5f911c18b9927b6ad291bb0058c29e222d6508f6af7b08b834d06b9a03488244",
+      "size_bytes": 88770,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_c_plateau.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_c_plateau.py",
+      "sha256": "aaa6fc7660d53e658c3efeab6872b66f6c5a5a0dce1a228ce758f06310d917d3",
+      "size_bytes": 37484,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._beam_search.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/beam_search.py",
+      "sha256": "42f0e57b7cc66b435b40c9cb4ccf1d66246a1ec3b3fa466a26c1bfe3b5a149c8",
+      "size_bytes": 38321,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._output_artifacts.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/output_artifacts.py",
+      "sha256": "f51cc9d23a41bd34df522c15422ec73d44ff18932f88043d4fdbbea002246e1b",
+      "size_bytes": 54203,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_pareto_tracking.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_pareto_tracking.py",
+      "sha256": "844eeb6a07871e385eb1524f612c98030b5867866b7b5260b28a7bb60c7b7d6d",
+      "size_bytes": 18606,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._compare_adapt_current_vs_legacy_20260322.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/compare_adapt_current_vs_legacy_20260322.py",
+      "sha256": "e353583b51242d0169b452c29f52c0116747edadd735c84878680c18b6369c36",
+      "size_bytes": 10436,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline.py",
+      "sha256": "fa4173e13bbe74dfee24bcbde185ff7c2a4f249a0194e64ae69da0feb79f6703",
+      "size_bytes": 1735637,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_geometry.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_geometry.py",
+      "sha256": "e61a7c102e3fc5f04b5a6c422362c559ab74b6a685aee142194a19fe627796ae",
+      "size_bytes": 13885,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._formal_manifold_pareto_campaign.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/formal_manifold_pareto_campaign.py",
+      "sha256": "618bbe179fd11914e1d35c9b5e38761ba6828e4b27d35a7cf2a848e2fc20be46",
+      "size_bytes": 41482,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._controller_phase_state.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/controller_phase_state.py",
+      "sha256": "b5bc45d2d3e40cefd891f21fe69a84f9d6e8b9cd24b53a8357997fb5176c81c3",
+      "size_bytes": 3832,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline_teaching_refactor_map.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline_teaching_refactor_map.md",
+      "sha256": "9cc98513df31c43e9db6b9d7ddbd4681a23d3e9242bdefdf4c19b74e2ff8546f",
+      "size_bytes": 22518,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._lane_routes.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/lane_routes.py",
+      "sha256": "3e1209e4cc23f9bada0d5723e1992e22a930e941b7c5245add8c3104e24aa0f5",
+      "size_bytes": 4966,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_a_child_padding.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_a_child_padding.py",
+      "sha256": "85ffb862e05cc5c2c3a866909ef365b5afd4904673baf0124e8ef47ab2b827ae",
+      "size_bytes": 22099,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hardware_resolution_profiles.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hardware_resolution_profiles.py",
+      "sha256": "11b5aba9e7b0480dacb1f5c3ffc1229c3c874706769303c15a252aff34ff1279",
+      "size_bytes": 12188,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._diagnostics",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/diagnostics",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "pipelines/static_adapt/._adapt_pipeline_refactor_plan.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline_refactor_plan.md",
+      "sha256": "e91b75ff7f7a9f8cecd91ac6cfa6ee1628047c890e935e23519b37d9b05e87d3",
+      "size_bytes": 11401,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._joint_step_warm_start.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/joint_step_warm_start.py",
+      "sha256": "2c4338deedcf47bf738c5a218a0aec7bcccbecaea84f0330b3d8728ef9b80e42",
+      "size_bytes": 14445,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._nested_windows.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/nested_windows.py",
+      "sha256": "e214bf1699900c06c27639a07b37a4999ef789cd9209614cb05bfccb1de5b750",
+      "size_bytes": 44357,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._checkpoint_telemetry.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/checkpoint_telemetry.py",
+      "sha256": "872c471672c054ae9bbefc8dc2f87720dd2dd5ba21635d277939a48b2d0e7f1f",
+      "size_bytes": 30176,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._optimizer_routes.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimizer_routes.py",
+      "sha256": "ec515f9d56ad38ebafec1174a7c6881e9e17854af38d2d37e5debfdd6445b452",
+      "size_bytes": 12425,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._prune_schur_payloads.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/prune_schur_payloads.py",
+      "sha256": "948d916427999ff3c7fa482d178819150e9c99631e9ea9889af05e0d20b199c5",
+      "size_bytes": 10939,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_prune_nighthawk.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_prune_nighthawk.py",
+      "sha256": "082738e965241da030803be64adf2e86fdc8e11a018c1373231df8503b2d9f8d",
+      "size_bytes": 55999,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_adapt_backend_single.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_adapt_backend_single.py",
+      "sha256": "744d3040c0d9d6549540310d14764c08741b63490d811388d4fb8f4c4905bdd5",
+      "size_bytes": 1821,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._route_a_schur_selector.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/route_a_schur_selector.py",
+      "sha256": "2ce75687f2bdda107c33de12a9347b93643b2cc9c695246f5d02b1d69a2e3c68",
+      "size_bytes": 25128,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_prune_marginal_analysis.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_prune_marginal_analysis.py",
+      "sha256": "34a0f5a904bc97cdc3f549ce42b33bcec9608ee473b8323af78f894a1ed1ba71",
+      "size_bytes": 18687,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._noise_routes.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/noise_routes.py",
+      "sha256": "c0688e774dee9f9a7ff054b1116cc60dd6c75274e871ee4f80618a8ff4a9f5b6",
+      "size_bytes": 23462,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._joint_linear_solve.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/joint_linear_solve.py",
+      "sha256": "5268750d68f3e6453278c97b196f05ba2c2a9ad417c4c58ca0524bad1e8132ef",
+      "size_bytes": 35534,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._phase_shortlists.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/phase_shortlists.py",
+      "sha256": "90572bb037c455093be913af7f3547a8b935b8ffe7e0af99bbd73be5bfc82481",
+      "size_bytes": 27065,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._formal_manifold_exact_backend.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/formal_manifold_exact_backend.py",
+      "sha256": "93e1b89b6c12e9e8a6ee7675db8662cf7cb0a227cbf6dabc5dc5e7dc0f0e7b59",
+      "size_bytes": 19541,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._hh_backend_compile_oracle.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/hh_backend_compile_oracle.py",
+      "sha256": "eed710d86da1b76ce99208af11e1a170f6567aa3a3454f4f73285566979e00f6",
+      "size_bytes": 53845,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._engine_support.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/engine_support.py",
+      "sha256": "17a6ae648c2c1d7233c4b155a08cfc0ca7b01de715c8115c577c090035b192bb",
+      "size_bytes": 53046,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._statevector_runtime.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/statevector_runtime.py",
+      "sha256": "7599d8962550dbda17a4251cea3bd1cf61c4a9d89be3db5bf736cbe4b6031be2",
+      "size_bytes": 10374,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._oracle_lifecycle.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/oracle_lifecycle.py",
+      "sha256": "16576123e2d3fc2a0fd6b3c12a93a9a5da76f461f5333e22d36ffd73a1950711",
+      "size_bytes": 27541,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/._selector_feature_metadata.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/selector_feature_metadata.py",
+      "sha256": "a696540ac84302a4d8e7af84e1369d38f9004d821b4d325bc0b8f2fdda6b81c6",
+      "size_bytes": 21703,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/diagnostics/._route_c_weak_regime_autopilot.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/diagnostics/route_c_weak_regime_autopilot.py",
+      "sha256": "1ae7046a93098de26affd0dbfde360f7de49d3d06975a55d40076329f508d037",
+      "size_bytes": 24019,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._phase3_policy_optuna.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/phase3_policy_optuna.py",
+      "sha256": "4bb42c57626b677712cbabc6247ce2ca30423a5c663c234b3dea146a12ca8521",
+      "size_bytes": 627126,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._hh_optuna_evidence_ledger.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/hh_optuna_evidence_ledger.py",
+      "sha256": "fae57c453c1eda631f64b8003f1e12ac1e5dbad87607832e46d7cd7004f9e9d2",
+      "size_bytes": 74189,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._hh_snake_interpretable_ml_analysis.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/hh_snake_interpretable_ml_analysis.py",
+      "sha256": "518302e22f26a99ed9af806aa56013d159208ac752c3f48aef0de9a3a17d2fd3",
+      "size_bytes": 16250,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/__init__.py",
+      "sha256": "93b41687f3bdde82f779b5a4d841ffac32e4e5bb2a3933ae68a2a05e3b562fa3",
+      "size_bytes": 1197,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._hh_snake_shallow_feature_extract.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/hh_snake_shallow_feature_extract.py",
+      "sha256": "dacdf2dea7af9dc7393930bacb6f52ab6c2499d06b0fa3232a1369566d5ca01a",
+      "size_bytes": 15484,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._phase3_robustness_gate.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/phase3_robustness_gate.py",
+      "sha256": "2edda356a2b037bd6c374a9dabe4ae7f8d47b5570aa4f2ffdee84bcef96b3101",
+      "size_bytes": 74673,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/._staged_adapt_optuna.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/optimization/staged_adapt_optuna.py",
+      "sha256": "6f2ee0316e8c953289f4de133349a3f01074645d16cbd7d458a37869ab2462aa",
+      "size_bytes": 68874,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._problem_setup.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/problem_setup.py",
+      "sha256": "1eb176888581858766b3cda5e072677374112e2ca2b3aedbb529d8073273780d",
+      "size_bytes": 45123,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._legal_subspace_filter.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/legal_subspace_filter.py",
+      "sha256": "ef703de200a231f65abcf2e6656b2d431447b0292ed7f298391984cca87c1bb1",
+      "size_bytes": 33769,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._lattice_hamiltonians.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/lattice_hamiltonians.py",
+      "sha256": "d0d3542723d437e3217af212aa997a694e3dce0d78ab9036ded0c8883b858fd8",
+      "size_bytes": 63160,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._primitive_pools.py",
+      "sha256": "14b82181101ed08427c6f40cd82ef0c12dfc88f1265b59e7467c4edd0ff5a86e",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/primitive_pools.py",
+      "sha256": "bf0eb024ab181becdea0833232f79400f62ba667d39435a5375ccb65e07cd172",
+      "size_bytes": 96529,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/.___init__.py",
+      "sha256": "14b82181101ed08427c6f40cd82ef0c12dfc88f1265b59e7467c4edd0ff5a86e",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/__init__.py",
+      "sha256": "4486de62bf2978629da59b66fd3dbaee1a51b0ff2a6b17f9b5dfb540d07f8580",
+      "size_bytes": 4221,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._hh_pool_presets.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/hh_pool_presets.py",
+      "sha256": "42b95a9b76814a119ed6d77d75702766de67d9a2c5b200ddcd3316077b258ef9",
+      "size_bytes": 65878,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._pool_resolution.py",
+      "sha256": "14b82181101ed08427c6f40cd82ef0c12dfc88f1265b59e7467c4edd0ff5a86e",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/pool_resolution.py",
+      "sha256": "9bb91d5ee0bb21e529413e0f40a1e72606d4d28db3392a32b2a7d8b470987793",
+      "size_bytes": 66774,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._problem_registry.py",
+      "sha256": "14b82181101ed08427c6f40cd82ef0c12dfc88f1265b59e7467c4edd0ff5a86e",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/problem_registry.py",
+      "sha256": "bd584ed10d8981147232506caea995193b6d7a05c023482c6cfa4c31f60e9bbf",
+      "size_bytes": 78872,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._child_pool_expansion.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/child_pool_expansion.py",
+      "sha256": "ad19736e3b91a5731b5486c2f7bbbff71cbc8579b4661b961ff55e0e683f8240",
+      "size_bytes": 16461,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/._shared_pauli_pool_contract.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/static_adapt/builders/shared_pauli_pool_contract.py",
+      "sha256": "60ddb35aa56898a56bc9e5640ef554da01195cd1335104b766b50dfdf2a1764d",
+      "size_bytes": 18902,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/._scaffold",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_motifs.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_motifs.py",
+      "sha256": "a37aaf025f1ee89fec5ff6bf653fb4419db7b495008ef00f240e65bef295bd01",
+      "size_bytes": 53704,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_fixed_manifold_loader.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_fixed_manifold_loader.py",
+      "sha256": "cc14ab14724f6266f1bbbd2bc24476ce76f1ad09f9c6cd62964c286d84c0ff78",
+      "size_bytes": 20073,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._imported_artifact_resolution.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/imported_artifact_resolution.py",
+      "sha256": "7d6dfa1bc91169a0168f23582110af5b41739414a8495ae5ae4445bee9cd39d9",
+      "size_bytes": 5154,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_stage_control.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_stage_control.py",
+      "sha256": "a7f384b70d664b773d929cf506613e9272be9843646126d1e4451c2df3c21d61",
+      "size_bytes": 32793,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_vqe_from_adapt_family.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_vqe_from_adapt_family.py",
+      "sha256": "35640eafb8c62d9cff5e6bb8e5216e4bc266c997b33ef6012eef3c1b229b293f",
+      "size_bytes": 94025,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/__init__.py",
+      "sha256": "ad2197b19ddfbb1f7bc3e1473b285650a22de23c00a094a55958ddb6c40cff18",
+      "size_bytes": 69,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_types.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_types.py",
+      "sha256": "a1b774ef3a0b774bf1e61309fcb92dbc0e5f36dc83a1c6ec744421e86c45027c",
+      "size_bytes": 31442,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._runtime_contract.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/runtime_contract.py",
+      "sha256": "db8823d12f9b353a6f27e525dfd857e1fae311f72cfb2b9f02e816feb176dc53",
+      "size_bytes": 536,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_rescue.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_rescue.py",
+      "sha256": "7efaf1d477e4042c5596d6ae5a8e555eda5d34d5d4392cfbd9dc645fe95b8b4c",
+      "size_bytes": 4601,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._promote_locked_imported_scaffold.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/promote_locked_imported_scaffold.py",
+      "sha256": "f6a801e67ad31463c81a0fccdbcabc5b1ae339449a1aef948ded13ec6d9b1ecd",
+      "size_bytes": 9788,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._qse_runtime_promotion.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/qse_runtime_promotion.py",
+      "sha256": "f1b03d374e9ed38ed8a5589b633bc12424971f1bdf6b36b3ef27f897791caf9d",
+      "size_bytes": 45905,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._adapt_circuit_cost.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/adapt_circuit_cost.py",
+      "sha256": "a0d33951649ced10f16ada067b983c577fbc33627898f0bbad87a037be905824",
+      "size_bytes": 39980,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._runtime_loader.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/runtime_loader.py",
+      "sha256": "94d4b8ef0f1627876492148b3250f9c2364cbebd781bbe87e7bec96a1cf6ddf0",
+      "size_bytes": 58647,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_symmetry.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_symmetry.py",
+      "sha256": "b48f477562b967e7ab996205f62f9e096bfabb4bb2991a8fdac50f3937766974",
+      "size_bytes": 3732,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_scoring.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_scoring.py",
+      "sha256": "e9400fd26b75815d8c23df01c31b134b4ccf703a0f3ca1b7ae48e13a7473e410",
+      "size_bytes": 437925,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_generators.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_generators.py",
+      "sha256": "3dc67cc8411e2bd5fbef60262473969d7e35ef1235c3512d491af80a39682c83",
+      "size_bytes": 57039,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_replay.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_replay.py",
+      "sha256": "ae0414cf3e31803022c3cfc7b654ec94b1e5d3c51182bb3a0096cb086ffc0369",
+      "size_bytes": 22180,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._handoff_state_bundle.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/handoff_state_bundle.py",
+      "sha256": "82ec7c0a2d1331e2b3c1223158560564bbf7b2d78860ecb901c6a219bfee9c9f",
+      "size_bytes": 9218,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._qse_root_refit.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/qse_root_refit.py",
+      "sha256": "134c16d69c4c3f1f7a66c8488e62d53cbde3327ff9f3d6ba3ac58a26d62eb74f",
+      "size_bytes": 47634,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/._hh_continuation_pruning.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/scaffold/hh_continuation_pruning.py",
+      "sha256": "1d0de2d536c177df25cf0efa9810bc93de4b8ee863cf1d235adc6f16be0bbaa9",
+      "size_bytes": 86159,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/reporting/._build_paper_i_selected_prefix_qiskit_sidecar.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "pipelines/reporting/build_paper_i_selected_prefix_qiskit_sidecar.py",
+      "sha256": "bcb745d13dc9fabb663993948e867741e05cb0eb75b98b879067c9e0a5498cd6",
+      "size_bytes": 48033,
+      "type": "file"
+    },
+    {
+      "path": "._src",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "src/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/__init__.py",
+      "sha256": "747ba863abe82bb9e9d40ee8473c35c72072ec22bdfca040738142296dbdb914",
+      "size_bytes": 21,
+      "type": "file"
+    },
+    {
+      "path": "src/._quantum",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "src/quantum/._coordinate_descent_optimizer.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/coordinate_descent_optimizer.py",
+      "sha256": "c6e8658ae3b8e226c9fd607dd092a43d637b6c4c1577d2f9065a7b7bb304ec9b",
+      "size_bytes": 9119,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._pauli_words.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/pauli_words.py",
+      "sha256": "cf25042e7089cc2390592e9ece62dbc2354f556bd587e540902039c77ab7b154",
+      "size_bytes": 145,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._pauli_polynomial_class.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/pauli_polynomial_class.py",
+      "sha256": "530238d10f4a26e8454f9b6fb1663dfc6ead776066ca6878acca7b3c2fa7a572",
+      "size_bytes": 7504,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._hartree_fock_reference_state.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/hartree_fock_reference_state.py",
+      "sha256": "7d81538f87462ba54643a9f375cfcd14d7c6c7228307a0c3606271cbf0b9c38c",
+      "size_bytes": 8589,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._chemistry",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "src/quantum/._hubbard_latex_python_pairs.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/hubbard_latex_python_pairs.py",
+      "sha256": "e248ce984bd8c8881c44d61430faa1ebc2b3a77d2e2a4f0783d44a257a4c0a03",
+      "size_bytes": 35010,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._pauli_letters_module.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/pauli_letters_module.py",
+      "sha256": "31bce8d23fa9f1d3282cdc6a5244ff2c084a23fb82d6e86cd392477e5ef4adc4",
+      "size_bytes": 1074,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._qnspsa_optimizer.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/qnspsa_optimizer.py",
+      "sha256": "a29b0cc1a831f55918444379e664c1fcd0699eb627dc41ddb6345eb73a5fc926",
+      "size_bytes": 15456,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._ansatz_parameterization.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/ansatz_parameterization.py",
+      "sha256": "18164d693c951523fd93b8816d6d81cf1a3a810e5f6a4685fa29e125822b3519",
+      "size_bytes": 11538,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._compiled_polynomial.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/compiled_polynomial.py",
+      "sha256": "888bdf9a6393fa760480b5cfb7287b66fee8202e6a694da840afaddf6ac538cc",
+      "size_bytes": 4627,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._qubitization_module.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/qubitization_module.py",
+      "sha256": "4fa92d4fbfbc451fe7708bda4664083ea5d104db5092f21be46c30de51f0def3",
+      "size_bytes": 2205,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._operator_pools",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools",
+      "size_bytes": 0,
+      "type": "directory"
+    },
+    {
+      "path": "src/quantum/._drives_time_potential.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/drives_time_potential.py",
+      "sha256": "d719834aa8231bc8e42e20bacbf4dc46c9560ebeaa33f567dae4425b658cc4fc",
+      "size_bytes": 14592,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._spsa_optimizer.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/spsa_optimizer.py",
+      "sha256": "9610464d3d254b8254aa0d4db2ad626af9d6bf136c56761ad1e561943fe501ce",
+      "size_bytes": 15424,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._ed_hubbard_holstein.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/ed_hubbard_holstein.py",
+      "sha256": "3312121cbe29e05fd16d3d52b828f59dfb87842c0d7d64d0e911a0d7c9d2e154",
+      "size_bytes": 19037,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._vqe_latex_python_pairs.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/vqe_latex_python_pairs.py",
+      "sha256": "5d6e750666adb49af2320f3698b69ffbad0b8ccf226c2ef677451a542f5df99b",
+      "size_bytes": 92697,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._compiled_ansatz.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/compiled_ansatz.py",
+      "sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "size_bytes": 31832,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._pauli_actions.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/pauli_actions.py",
+      "sha256": "de1685f785ecbb46dc681dff1246f4e9e6a68cbcfeb6bb7783f60a29fa2f46e1",
+      "size_bytes": 2404,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._AGENTS.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/AGENTS.md",
+      "sha256": "1e4e94e19642b07f86b16baab8f17097f28dcc745673be58b88777a6e43bcc52",
+      "size_bytes": 2121,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/._adapt_spsa_refit.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/adapt_spsa_refit.py",
+      "sha256": "c480974d0aa1c0802c4ba5c98c54b3b510ebd78dcd1b62960f22b10593b710e6",
+      "size_bytes": 9519,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/._hh_paop.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/hh_paop.py",
+      "sha256": "bc90910d59f890805086775a1384abbe547e5f022d6104ab104f1760f22ad372",
+      "size_bytes": 32516,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/._spin_boson.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/spin_boson.py",
+      "sha256": "fe58a17fe65922f2b073ab9a91ebb074c849fa12e27d9bcc352e10519f4a0353",
+      "size_bytes": 24238,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/__init__.py",
+      "sha256": "47c5c02208512dc8e347a48e9cf1664e08724830023a424720b8919178902cd5",
+      "size_bytes": 1843,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/._boson_chains.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/operator_pools/boson_chains.py",
+      "sha256": "d659db90ad5e58dfdede6acf852d465757cd0bc5ab7ab6fec0b36b6ac517359f",
+      "size_bytes": 31171,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._prune_vibronic_h2.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/prune_vibronic_h2.py",
+      "sha256": "39660d97e73aecdd7e1c6907a20ca97ee2f5cd259c9a108d8d81ff1ac18c0b5d",
+      "size_bytes": 14744,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._vibronic_h2_class_prune_result.json",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/vibronic_h2_class_prune_result.json",
+      "sha256": "5ab8e1cc5f64c578bcaa09220ea1f8f09ed7de8ba45e8e8f2776a51c5e999dfd",
+      "size_bytes": 1020328,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._h2o_sto3g_fast_result.json",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/h2o_sto3g_fast_result.json",
+      "sha256": "dba3ab8adab85116de86f9e2c7a320974302f771ab67667fce3ed3209e7db675",
+      "size_bytes": 100124,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._smoke_h2_vibronic_occ_pool_result.json",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/smoke_h2_vibronic_occ_pool_result.json",
+      "sha256": "95ebc424b0b6bd84a74ad6bd765e28256db14b624e3ed9b6d94c635b1df4eb96",
+      "size_bytes": 41814,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._smoke_h2.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/smoke_h2.py",
+      "sha256": "b6abc5fde61e8d96d2f2778eabc2aa37d81838b6aabfb38fe6666c7c7f55e52d",
+      "size_bytes": 3889,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/.___init__.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/__init__.py",
+      "sha256": "3e1f2dd2888c239095317ee2b96e5f5d9a0ad125e7aa349ad4210fff6e93b404",
+      "size_bytes": 1660,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._generate_h2o_linear_fd_fixture.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/generate_h2o_linear_fd_fixture.py",
+      "sha256": "94d50f596ab3dccf2dcd1317e94531db26179651477a129270a326af56fed5be",
+      "size_bytes": 98452,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._molecular_uccsd.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/molecular_uccsd.py",
+      "sha256": "8522e469009e09b06b628553bcdc98e7599b44d22dc0692bc9b798170db1265f",
+      "size_bytes": 883,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._README.md",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/README.md",
+      "sha256": "c13f1e6498b43636c57ae3d4bfebd766887fab113b8cdb011231d218b586dfac",
+      "size_bytes": 8971,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._vibronic_h2.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/vibronic_h2.py",
+      "sha256": "b42e25d4be3a8206e3efb20fbf2648d9e2a5d2035a42495fec06b8f0adc15621",
+      "size_bytes": 46835,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._vibronic_h2o_linear_fd.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/vibronic_h2o_linear_fd.py",
+      "sha256": "a5cb88a43b046d399b99ce495480fb4ff51bd0007df62e31d246d8fb85cc9e0b",
+      "size_bytes": 76135,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._smoke_h2_vibronic_phasecopy_result.json",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/smoke_h2_vibronic_phasecopy_result.json",
+      "sha256": "31a9c20eef409d3423329f9c5a9aaef0ff63617c3b6447a05b9aee03722a7117",
+      "size_bytes": 30154,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._molecular_hamiltonian.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/molecular_hamiltonian.py",
+      "sha256": "4f8a49bec0947b5e3032eb606af805fb08701aad6d18cf3a764c54d97d8bd7a8",
+      "size_bytes": 5893,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._prototype_molecule.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/prototype_molecule.py",
+      "sha256": "38bb29c86f8094fddb8b1589e38a1b3ef908011f6db9e407d85c29db318111e9",
+      "size_bytes": 6382,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._h2o_sto3g_result.json",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/h2o_sto3g_result.json",
+      "sha256": "2300a9edcf3a816dd8367819fa59958c9dc513bdd67ff4e9d7b620cc3a4f8d36",
+      "size_bytes": 118324,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._psi4_adapter.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/psi4_adapter.py",
+      "sha256": "de1e37eb84e501aefcfd47494bd2d435501b6de11250c8e0a1164a68cf5f14b0",
+      "size_bytes": 18527,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/._vibronic_h2o.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "src/quantum/chemistry/vibronic_h2o.py",
+      "sha256": "e618dc6b69a50df9c0ed3432f61230d4cf29b191e47ef25bc17068ed33271ca2",
+      "size_bytes": 29129,
+      "type": "file"
+    },
+    {
+      "path": "test/._test_static_adapt_historical_singleton_overlays.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "test/test_static_adapt_historical_singleton_overlays.py",
+      "sha256": "30fb40dfd7ad9bffbccc49349ce7462373468669e9dec100e624fff69076f898",
+      "size_bytes": 23526,
+      "type": "file"
+    },
+    {
+      "path": "test/._test_static_adapt_resume_scaffold.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "test/test_static_adapt_resume_scaffold.py",
+      "sha256": "7c5db7dc70e810d66f698a0d0f28ec393ca6e7f2aadc48f7301d67e9488bcc41",
+      "size_bytes": 28844,
+      "type": "file"
+    },
+    {
+      "path": "test/._test_static_adapt_run_control.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "test/test_static_adapt_run_control.py",
+      "sha256": "8ba842d46da5e311fb85e0a3c456be4d081d0f7ecf1e8163749abd533dc8a0c1",
+      "size_bytes": 15403,
+      "type": "file"
+    },
+    {
+      "path": "test/._test_static_adapt_paper_i_runner.py",
+      "sha256": "4ad216b54eeb698c3e6175cca4b06fcc9f1d488528f0d35d613eab6e90bab2e9",
+      "size_bytes": 163,
+      "type": "file"
+    },
+    {
+      "path": "test/test_static_adapt_paper_i_runner.py",
+      "sha256": "2db007163a0494d287a29d45ed859e1f8b671b2e4b2431634e83163354d3748a",
+      "size_bytes": 39221,
+      "type": "file"
+    }
+  ],
+  "schema": "paper_i_hh_sr_snake_source_archive_manifest_v1"
+}

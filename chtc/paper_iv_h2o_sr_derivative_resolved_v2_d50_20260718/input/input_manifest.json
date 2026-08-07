@@ -1,0 +1,49 @@
+{
+  "created_utc": "2026-07-24T20:19:23.956181+00:00",
+  "files": {
+    "command.json": {
+      "sha256": "61baf489320e15b05e340a4c5812fb11d31081d5c45676219a99f5823f0c991a",
+      "size_bytes": 30159
+    },
+    "command_preflight.json": {
+      "sha256": "351df2a9b3caea895952dabc659d5bd8e1cf8ed63bd4319bd76d24df14ee8d3a",
+      "size_bytes": 390
+    },
+    "h2o_fixture.json": {
+      "sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594",
+      "size_bytes": 3320124
+    },
+    "route_settings_diff_audit.json": {
+      "sha256": "fabd15cf86855ed46591c710f196fbc87856029c12cb6d22c285de3a49a6c135",
+      "size_bytes": 19148
+    },
+    "source_tree.tar.gz": {
+      "sha256": "8c9035d064717c5ab1e0c0a9f98987677fdc408f50c3718a9b43adad7c7cdf1d",
+      "size_bytes": 4014752
+    }
+  },
+  "record_id": "paper_iv_h2o_sr_derivative_resolved_v2_from_zero_d50_20260718_v1",
+  "route_contract_sha256": "8517b110f5fb5d7bb04d8419140246b170601623fd009a27c012f0543c3e3aa6",
+  "route_difference_audit_status": "pass",
+  "runtime_files": {
+    "run_apptainer.sh": {
+      "sha256": "e033ce208ab5c6199c0ff43e9c8f4c8e5fa2e02d0e63fe8e9594f9573d1133d9",
+      "size_bytes": 3362
+    },
+    "run_payload.py": {
+      "sha256": "caf61c40f74b57ff0732741288e6ad7ffde102fa491924c713439f2806b0320b",
+      "size_bytes": 9926
+    },
+    "runtime_preflight.py": {
+      "sha256": "425bc4dc9b9f30b4329e85f4a9a730926be52d977960075ade1c400e58543910",
+      "size_bytes": 5233
+    },
+    "validate_result.py": {
+      "sha256": "cf85d941b59f947832d501787b7b26f9e13b1dca1786755729d714b3db6d5a03",
+      "size_bytes": 5084
+    }
+  },
+  "schema": "paper_iv_h2o_sr_derivative_resolved_depth50_input_manifest_v1",
+  "starting_depth": 0,
+  "target_depth": 50
+}

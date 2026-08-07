@@ -1,0 +1,15 @@
+{
+  "accepted_powell_refit_whitening_active": true,
+  "anchor_reproduces_source": true,
+  "beam_active": false,
+  "changed_scientific_execution_fields_vs_parent": [
+    "phase3_response_coordinate_scope"
+  ],
+  "endpoint_overlap_measurement_active": false,
+  "endpoint_overlap_query_charge": 0,
+  "non_swept_settings_diff": [],
+  "phase3_supported_whitening_active": false,
+  "pruning_active": false,
+  "schema": "paper_i_sr_material_window_fanout_scientific_audit_v1",
+  "status": "pass"
+}

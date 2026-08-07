@@ -1,0 +1,48 @@
+{
+  "batch_name": "paper-i-hh-sr-ss-r45-20260714-v2",
+  "cluster_id": 8778975,
+  "generated_utc": "2026-07-14T14:38:40Z",
+  "initial_scheduler_state": {
+    "job_status": 1,
+    "meaning": "idle",
+    "proc_id": 0
+  },
+  "local_reproducible_bundle": {
+    "builder_sha256": "fd3bc01bf317dee25029e52a5d8ca053dd629440c8f2e0b505a147b4be70ec5c",
+    "source_archive_sha256": "c5e33896059f931e7ef2503de48785efa65f71aadf76142113f751072bf86490"
+  },
+  "remote_execution_bundle": {
+    "archive_addition_authority": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/src_sanitized.tar.gz",
+      "sha256": "df54ea579624f12e4efc640072c99d266da156159fe7b92d118c47fbf855b61f"
+    },
+    "archive_additions": {
+      "docs/reports/pdf_utils.py": "884d5b19dcdd01f34b6af8f2b2b9523140da5175ca7b2af8efe76c657800e72c",
+      "docs/reports/report_pages.py": "e0bd6a7f0cc7431698a334ff2d73eea572669c37c0b11b4e69eae7be662461b4",
+      "pipelines/contracts/problem.py": "3c08afbd43ab89864892efb3233b5660a8d2bdc407b438f5847425a51a742cf8",
+      "pipelines/contracts/scaffold.py": "8441cbaad1808c010900cf0f9171785d33f6401e8625147a94b27f7ca65aef4c",
+      "pipelines/contracts/static_provenance.py": "fc3f7922fbe237a29c663c32830a976c3e84b9d4efc087c126c3fc67d95b4955",
+      "pipelines/exact_bench/noise_oracle_defaults.py": "b2dd1139feaef4375a23d584466684cfe7587d57d9abddc0974817e0f3482371",
+      "pipelines/exact_bench/noise_oracle_runtime.py": "ad356344f6d63bba2a5bc897db33b98a592368a8b475d9eb08e866c3a827e658",
+      "pipelines/hardcoded/adapt_circuit_execution.py": "1b569d31a45f98522b615fba0bb5645a6fba8af63ecc338f1059f14623364a0e",
+      "pipelines/qiskit_backend_tools.py": "46fcfcce70479b5cad5346b456b689531d4f28fbc1200fe5ef22b5c68494c05b"
+    },
+    "base_source_archive_sha256": "f591f4a5296ac2ac8e3b255e41d1ffd8267c905feb0be9992ed5d0895c1c367b",
+    "execution_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "preflight_report_sha256": "4bf33576c01fbe81f992e8e88d1ae97dd78fda753732deae74d64b31727e3b92",
+    "scientific_settings_changed": false,
+    "source_archive_sha256": "f316594a9b72d7b617e3ffe08e4e750d37f2b91e1ec923ed7e5ec5ffb0b00a72",
+    "validation": {
+      "condor_dry_run": "passed",
+      "container_import_smoke": "passed",
+      "manifest_and_scientific_contract": "passed"
+    }
+  },
+  "schema": "paper_i_hh_sr_snake_remote_submission_receipt_v1",
+  "superseded_submission": {
+    "cluster_id": 8778362,
+    "exit_code": 1,
+    "failure": "ModuleNotFoundError before the scientific command started",
+    "scientific_execution_started": false
+  }
+}

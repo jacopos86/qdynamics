@@ -1,0 +1,84 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-unification-refactor-decisions-20260727.md",
+      "sha256": "a10b9ff1dbb210601972f44dc030cf9fceb35d5b95225404a722b397906cb8fe"
+    },
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-unification-implementation-spec-20260727.md",
+      "sha256": "5a43c07897a46703f88de6dfba745bcf8537b92c8fb1a5439d7265abe79977a5"
+    },
+    {
+      "path": "/Users/jakestrobel/Documents/Code math bijection./docs/paper-i-ra-adapt-refactor-readiness-20260727.md",
+      "sha256": "d11d805e01ff31f7ac3d82fab85119468873316acf5d0f268ff40564eb70fdec"
+    }
+  ],
+  "checks": [
+    {
+      "evidence_path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "id": "authoritative_input_hashes",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "id": "characterization_fixtures",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "id": "displayed_evidence_and_scheduler_preconditions",
+      "status": "passed"
+    },
+    {
+      "command": "test -f .gitnexusignore",
+      "id": "strict_gitnexus_ignore_surface_present",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "id": "gitnexus_final_index",
+      "observed": {
+        "candidate_count": 1592,
+        "forbidden_candidates": 0,
+        "self_referential_receipt_candidates": 0,
+        "index_state": "up_to_date",
+        "reachability_answer_count": 5
+      },
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "sha256": "c2aaff1778485a172b40858a315d663e1476e77e33c5bdd40cb9f5affbf91ee9"
+    },
+    {
+      "path": ".gitnexusignore",
+      "sha256": "4d4808e8f16a80c9129de7a9ccdf184aabff7f23a8ed01cf2aa2cf26c4de005a"
+    },
+    {
+      "path": "test/fixtures/ra_adapt_pool_inventory_3.json",
+      "sha256": "b00cd25950831ca292946529fa69165275a8f23bf48ce9788c4935b5d2e86615"
+    },
+    {
+      "path": "test/fixtures/ra_adapt_pool_inventory_7.json",
+      "sha256": "371ab504786f9adf449c3e4fd35f3205c7f80c5eac2b3160e93b9cc42193d8aa"
+    },
+    {
+      "path": "test/fixtures/ra_adapt_singleton_trajectory_nph3.json",
+      "sha256": "722ff9e3503c46a577d18ef9206b5914b8ad7a5b965a6510e42e69ed645ac220"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_lock_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "lock",
+  "state": "complete",
+  "state_reason": "The scientific lock, characterization fixtures, strict candidate-set proof, fresh index-only analysis, and five source-confirmed reachability answers are complete.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": null,
+    "superseded_receipts": [],
+    "successor_stage": "refactor"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

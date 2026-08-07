@@ -1,0 +1,47 @@
+{
+  "activation_id": "paper_i_ra_adapt_stationary_ra_always12_r50_20260729_v2_chtc_activation_v1",
+  "activation_manifest_sha256": "b6f00caf09750722bdab675239b58e5f0da37839e5704c4f46902f332c6dc04f",
+  "batch_name": "paper-i-ra-adapt-stationary-ra-always12-r50-20260729-v2",
+  "cluster_id": 9395155,
+  "direct_execution_count": 12,
+  "initial_scheduler_observation": {
+    "held_count": 0,
+    "idle_count": 12,
+    "job_status": 1,
+    "observed_utc": "2026-07-30T01:32:40Z",
+    "proc_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "package_id": "paper_i_ra_adapt_stationary_ra_always12_r50_20260729_v2_chtc",
+  "package_manifest_sha256": "467be866ac8abd01b109aefea69112aacb1b658da37c66eac92a4976d387fe9f",
+  "pre_submit_storage_cleanup": {
+    "authorization_scope": "user_authorized_sha256_identical_v7_remote_archives_only",
+    "deleted_archive_count": 17,
+    "deleted_archive_size_bytes": 9016692829,
+    "local_recovery_root": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v7_9392883_20260729",
+    "preserved_remote_only_archive_count": 3,
+    "quota_after_mib": 40170,
+    "quota_before_mib": 48770,
+    "remote_fetched_root": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched"
+  },
+  "remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_repo_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "schema": "paper_i_ra_always_commutation_reduced_chtc_submission_receipt_v1",
+  "sha256": "7105335ead98ef2ba869f4d6dff4143e0f31899cb231c2c94e57dd791e2f211e",
+  "source_archive_sha256": "1407947832291ab15ad91b0455058a6de689dac42cd1cb5282a76eeafbbc409d",
+  "submission_host": "ap2001.chtc.wisc.edu",
+  "submission_state": "submitted",
+  "submitted_utc": "2026-07-30T01:31:02Z"
+}

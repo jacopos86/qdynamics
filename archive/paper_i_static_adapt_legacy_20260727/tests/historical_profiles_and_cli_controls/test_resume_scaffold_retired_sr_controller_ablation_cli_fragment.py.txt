@@ -1,0 +1,2 @@
+            "--sr-controller-ablation-contract",
+            "novelty_prune_controls_v1",

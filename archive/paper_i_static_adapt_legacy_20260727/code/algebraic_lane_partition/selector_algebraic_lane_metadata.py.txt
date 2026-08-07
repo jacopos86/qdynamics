@@ -1,0 +1,159 @@
+# Inert source snapshot: retired post-split algebraic-lane selector metadata.
+#
+# Original sources:
+#   pipelines/static_adapt/selector_candidate_metadata.py
+#   pipelines/static_adapt/selector_feature_metadata.py
+#   pipelines/static_adapt/prune_schur_payloads.py
+#
+# Nested-window geometry, compile accounting, physical-family metadata, and
+# recoverability pruning remain live without this lane-policy gate.
+
+
+class _RetiredSelectorCandidateAlgebraicLanePartition:
+    algebraic_metadata_index: AlgebraicMetadataIndex | None
+    pool_generator_registry: Mapping[str, Mapping[str, Any]]
+    algebraic_lane_policy_active: bool
+    adapt_window_size: int
+
+    def ensure_algebraic_expansion_for_term(self, term: AnsatzTerm) -> bool:
+        index = self.algebraic_metadata_index
+        if index is None:
+            return False
+        label = str(getattr(term, "label", ""))
+        try:
+            index.resolve_key(label)
+            return True
+        except AlgebraicMetadataError:
+            pass
+        try:
+            single = build_exact_expansion_index(
+                pool=[term],
+                registry_by_label=self.pool_generator_registry,
+                require_exact=True,
+                allow_polynomial_source=True,
+            )
+        except AlgebraicMetadataError as exc:
+            if bool(self.algebraic_lane_policy_active):
+                raise RuntimeError(
+                    f"Exact algebraic expansion is missing for generator {label!r}."
+                ) from exc
+            return False
+        for key, expansion in single.expansions_by_key.items():
+            index.expansions_by_key[str(key)] = expansion
+        for key_label, keys in single.label_to_keys.items():
+            merged = list(index.label_to_keys.get(str(key_label), ()))
+            for key in keys:
+                if str(key) not in merged:
+                    merged.append(str(key))
+            index.label_to_keys[str(key_label)] = tuple(merged)
+        return True
+
+    def algebraic_context_terms(
+        self,
+        *,
+        selected_ops_now: Sequence[AnsatzTerm],
+        window_terms: Sequence[AnsatzTerm],
+    ) -> list[AnsatzTerm]:
+        out: list[AnsatzTerm] = []
+        seen: set[str] = set()
+        for term in list(window_terms):
+            label = str(getattr(term, "label", ""))
+            if label and label not in seen:
+                out.append(term)
+                seen.add(label)
+        recent_budget = max(1, int(self.adapt_window_size))
+        for term in list(selected_ops_now)[-recent_budget:]:
+            label = str(getattr(term, "label", ""))
+            if label and label not in seen:
+                out.append(term)
+                seen.add(label)
+        return out
+
+    def algebraic_payload_for_candidate(
+        self,
+        *,
+        candidate_term: AnsatzTerm,
+        selected_ops_now: Sequence[AnsatzTerm],
+        window_terms: Sequence[AnsatzTerm],
+    ) -> dict[str, Any]:
+        index = self.algebraic_metadata_index
+        if index is None:
+            return {
+                "algebraic_lane": LANE_MIX,
+                "algebraic_quality": "inactive",
+                "algebraic_context_counts": {
+                    "n_flat": 0,
+                    "n_curv": 0,
+                    "n_disj": 0,
+                    "n_approx": 0,
+                },
+                "algebraic_context_labels": [],
+            }
+        self.ensure_algebraic_expansion_for_term(candidate_term)
+        context_terms = self.algebraic_context_terms(
+            selected_ops_now=selected_ops_now,
+            window_terms=window_terms,
+        )
+        context_labels: list[str] = []
+        for term in context_terms:
+            self.ensure_algebraic_expansion_for_term(term)
+            label = str(getattr(term, "label", ""))
+            if label:
+                context_labels.append(label)
+        if not context_labels:
+            return {
+                "algebraic_lane": LANE_MIX,
+                "algebraic_quality": "exact",
+                "algebraic_context_counts": {
+                    "n_flat": 0,
+                    "n_curv": 0,
+                    "n_disj": 0,
+                    "n_approx": 0,
+                },
+                "algebraic_context_labels": [],
+            }
+        summary = index.summarize_local_context(
+            str(getattr(candidate_term, "label", "")),
+            context_labels,
+        )
+        return {
+            "algebraic_lane": str(summary.lane),
+            "algebraic_quality": str(summary.quality),
+            "algebraic_context_counts": {
+                "n_flat": int(summary.n_flat),
+                "n_curv": int(summary.n_curv),
+                "n_disj": int(summary.n_disj),
+                "n_approx": int(summary.n_approx),
+            },
+            "algebraic_context_labels": [
+                str(value) for value in summary.context_labels
+            ],
+        }
+
+
+def _retired_attach_selector_metadata_gate(context, feat_obj):
+    if not bool(context.algebraic_lane_policy_active):
+        if context.static_lane_route == STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE:
+            return (
+                candidate_feature_with_updates(feat_obj, physical_payload),
+                dict(physical_payload),
+            )
+        return feat_obj, {}
+
+
+def _retired_nested_window_validation_gate(context):
+    if not bool(context.algebraic_lane_policy_active):
+        return [], [], None, "policy_inactive"
+
+
+def _retired_compile_proxy_gate(context, refit_window):
+    if not bool(context.algebraic_lane_policy_active):
+        return int(len(refit_window))
+
+
+def _retired_prune_compensator_gate(
+    *,
+    algebraic_lane_policy_active,
+    recoverability_policy,
+):
+    return bool(algebraic_lane_policy_active and recoverability_policy)

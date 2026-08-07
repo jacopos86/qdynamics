@@ -1,0 +1,105 @@
+{
+  "anchor": {
+    "anchor_bundle": "paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc",
+    "anchor_reproduces_source": false,
+    "anchor_result_json": null,
+    "non_swept_settings_diff": []
+  },
+  "planned_rows": [
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "intermediate_strong",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    },
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "intermediate_weak",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    },
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "strong_strong_u8",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    },
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "strong_weak_u8",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    },
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "weak_strong",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    },
+    {
+      "changed_fields_vs_source": [
+        "adapt_insertion_mode"
+      ],
+      "non_swept_settings_diff": [],
+      "regime": "weak_weak",
+      "settings_hash": "74907fe72a90b17f06c774d3b32e63de0b26f6c29ca2732ac6f95dc2984e9ab1",
+      "value": "insertion_commutation_plateau_v1"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "bundle": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+    "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+    "profile_request": "sr_snake_macro_only_physical_lanes_v1"
+  },
+  "status": "pending_anchor",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "child_value": "insertion_commutation_plateau_v1",
+    "fields_added_by_current_defaults": [],
+    "horizon": 50,
+    "implementation_overlay": [
+      "pipelines/static_adapt/adapt_pipeline.py",
+      "pipelines/static_adapt/cli_config.py",
+      "pipelines/static_adapt/sr_snake_route_profile.py"
+    ],
+    "regimes": [
+      "intermediate_strong",
+      "intermediate_weak",
+      "strong_strong_u8",
+      "strong_weak_u8",
+      "weak_strong",
+      "weak_weak"
+    ],
+    "run_class": "diagnostic",
+    "runner_mode": "direct_source_profile",
+    "runtime_overlay_roots": [
+      "pipelines/static_adapt",
+      "pipelines/scaffold",
+      "src"
+    ],
+    "settings_changed": [
+      "adapt_insertion_mode"
+    ],
+    "source_value": "append_only",
+    "unresolved_source_fields": [],
+    "variable": "adapt_insertion_mode",
+    "wrapper_kind": null,
+    "wrapper_used": false
+  }
+}

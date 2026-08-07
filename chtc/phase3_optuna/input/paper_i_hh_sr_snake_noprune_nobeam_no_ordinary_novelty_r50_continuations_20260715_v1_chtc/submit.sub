@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/execute_source_locked_job.sh
+arguments = $(job_manifest) chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_locked.tar.gz 070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(regime_slug)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/run_job.py, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_archive_manifest.json, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_lock_and_settings_diff.json, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/bundle_manifest.json, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/preflight.json, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_lock/no_beam_resume_patch_manifest.json, chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_lock/no_beam_verified_resume.patch, $(source_record), $(resume_checkpoint), $(resume_ledger), $(resume_signed_prefix), $(job_manifest), chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_locked.tar.gz, chtc/phase3_optuna/image.sif
+transfer_output_files = raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/$(regime_slug)_transfer.tar.gz
+stream_output = False
+stream_error = False
+log = logs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc.$(Cluster).$(Process).log
+output = logs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc.$(Cluster).$(Process).out
+error = logs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = 259200
++JobBatchName = "paper-i-hh-sr-noprune-nobeam-nonovelty-r50-cont-20260715-v1"
+notification = Never
+queue regime_slug, job_manifest, source_record, resume_checkpoint, resume_ledger, resume_signed_prefix, memory_mb, disk_mb from chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/queue.tsv

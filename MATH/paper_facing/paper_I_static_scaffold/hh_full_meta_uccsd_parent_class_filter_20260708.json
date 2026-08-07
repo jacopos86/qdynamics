@@ -1,0 +1,9 @@
+{
+  "classifier_version": "hh_full_meta_v4",
+  "source_pool": "full_meta",
+  "source_problem": "hh",
+  "keep_classes": [
+    "uccsd_sing",
+    "uccsd_dbl"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "archive_only_smoke_receipt": {
+    "case_id": "hh_L4_nph1_scaling_weak_weak",
+    "completed_append_rounds": 1,
+    "diagnostic_result_path": "/tmp/append-l4nph1-weakweak-smoke-20260719/generic_static_single.json",
+    "diagnostic_result_sha256": "914eb73283eccbe965b7fb1d898274987d0125d8dd2948f73ef3ada025b8d7ca",
+    "energy_after": 2.3876275643042035,
+    "energy_before": 2.5,
+    "exact_fidelity": {
+      "S_alg_charged": false,
+      "reference_convention": "unique_ground_state_vector",
+      "reporting_only": true,
+      "value": 0.002234340410467857
+    },
+    "method": {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "optimizer": "powell",
+      "optimizer_maxiter": 200,
+      "seed": 7,
+      "shared_pauli_pool_max_subset_size": 1,
+      "shared_pauli_pool_mode": "projected_singleton_children_only_v1",
+      "shared_pauli_pool_symmetry_policy": "hard_guard"
+    },
+    "num_qubits": 12,
+    "optimizer_success": true,
+    "pool": {
+      "identity_or_null_count": 17,
+      "ordered_pool_hash": "426b86b6c0700e36f49adf9225a16174c3e3c450c79aa600b7e1a50aa3796df1",
+      "parent_count": 474,
+      "projected_singleton_child_count": 647,
+      "raw_pauli_term_count": 3712,
+      "symmetry_rejected_count": 3048
+    },
+    "qiskit": {
+      "compile_status": "ok",
+      "compiled_count_2q_total": 0,
+      "compiled_depth_2q_total": 0,
+      "compiled_depth_total": 25,
+      "validated": true
+    },
+    "runtime_limits": {
+      "exact_fidelity_max_qubits": 12,
+      "resource_qubit_cap": 12
+    },
+    "schema": "paper_i_hh_l4_nph1_append_archive_smoke_v1",
+    "sector": {
+      "boson_truncation_leak_flag": false,
+      "illegal_boson_probability": 0.0,
+      "legal_boson_probability": 1.0,
+      "n_down": 2,
+      "n_up": 2,
+      "sector_leak_flag": false,
+      "sector_probability": 1.0
+    },
+    "source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+    "status": "pass",
+    "stop_reason": "max_adapt_iterations"
+  },
+  "checks": {
+    "append_v4_source_contract_lock_count": 6,
+    "archive_only_l4_one_round_smoke": "pass; one completed Append round with both 12-qubit gates, exact fidelity, Qiskit compilation, and sector/padding checks",
+    "archive_only_powell_cap_and_projected_pool_regressions": "8 passed",
+    "archive_only_worker_import": "pass; source-defined cap classifier imported and exercised",
+    "bundle_contract_tests": "15 passed",
+    "normalized_manifest_count": 6,
+    "optimizer_failure_policy": "only finite non-increasing exact Powell maxiter caps accepted; every other failure rejected",
+    "same_cutoff_and_horizon_contract": "pass",
+    "worker_static_preflight": "py_compile, bash -n, and --help pass"
+  },
+  "generated_utc": "2026-07-19T19:52:08.220704+00:00",
+  "generic_static_adapt_variants_sha256": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d",
+  "operational_blockers": [],
+  "schema": "paper_i_hh_l4_nph1_append_preflight_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+  "status": "pass"
+}

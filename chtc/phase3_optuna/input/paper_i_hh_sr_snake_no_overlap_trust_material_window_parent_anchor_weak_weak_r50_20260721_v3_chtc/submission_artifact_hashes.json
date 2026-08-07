@@ -1,0 +1,109 @@
+{
+  "files": {
+    "README.md": {
+      "sha256": "37b7fb5e3c2d2171c93e2fbb1a767aa15b03633d76f9fd8b00019ef67c6fb0b8",
+      "size_bytes": 181
+    },
+    "anchor_bundle_receipt.json": {
+      "sha256": "cfc6a2ac990727e430d4e7358087ff722d5e7cf838bb6d15f98de317ea297da0",
+      "size_bytes": 3552
+    },
+    "archive_only_preflight.json": {
+      "sha256": "0712a6a88b651a012b67e4c935dc207125ef7742b03a15b6b786ece49f30b9c1",
+      "size_bytes": 367
+    },
+    "build_bundle.py": {
+      "sha256": "bb6994c5ec9810d697101ab562b6266952e4537eaa6ac6607494195e16dce069",
+      "size_bytes": 1200
+    },
+    "bundle_manifest.json": {
+      "sha256": "cfc6a2ac990727e430d4e7358087ff722d5e7cf838bb6d15f98de317ea297da0",
+      "size_bytes": 3552
+    },
+    "evidence_validation.py": {
+      "sha256": "dfe1045a316792c064cc95865623931d7076e802bacb6cf846977196accf9c40",
+      "size_bytes": 90105
+    },
+    "execute_source_locked_job.sh": {
+      "sha256": "614763334dceb44d2dba9aef1b8582501a9f024c255013e7ee4a7fad35ad8151",
+      "size_bytes": 2335
+    },
+    "jobs/weak_weak.json": {
+      "sha256": "bce6d4cba90333d03cc90ff3544ef3c3c151454bf7c20250fb2d05a75fe9e249",
+      "size_bytes": 85123
+    },
+    "material_window_threshold_source_audit.json": {
+      "sha256": "aff21bf4b993c1f3f0d098b81d0c86b90c533c9f5154b4dc29ba88a071398d8f",
+      "size_bytes": 2880
+    },
+    "normalized_manifests/weak_weak.json": {
+      "sha256": "510c2c2b4314850265a11c22ce8d3388acc38944a3e33d5f09c3beddf8f266e9",
+      "size_bytes": 83001
+    },
+    "physics_and_exact_reference_lock.json": {
+      "sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+      "size_bytes": 6687
+    },
+    "preflight.json": {
+      "sha256": "0712a6a88b651a012b67e4c935dc207125ef7742b03a15b6b786ece49f30b9c1",
+      "size_bytes": 367
+    },
+    "queue.tsv": {
+      "sha256": "1939efa9a969ddf6780df69e12ca8247ca862b1e28107e4b27d89af3074ca72a",
+      "size_bytes": 324
+    },
+    "remote_execution_gate.json": {
+      "sha256": "aa052b9a2b73cdd0ca6906f33d350a2df1b03008b5614f1c7afcf02c4a413b1c",
+      "size_bytes": 1019
+    },
+    "route_parity.json": {
+      "sha256": "8597a140ded9d301b783a20c1273d2ea3a9f3a909787d428d1aaaa9abde695f2",
+      "size_bytes": 410
+    },
+    "route_registration_repair.json": {
+      "sha256": "6f17eeaedde8869bf220310e7857be52b414fefa50284ce22d6fd55ce41bc4ed",
+      "size_bytes": 1053
+    },
+    "run_job.py": {
+      "sha256": "b5a6d05a03e4a60fd711444b27e507eacfb28c1be830fad55bcf2fa3bcc538aa",
+      "size_bytes": 41165
+    },
+    "scientific_settings_audit.json": {
+      "sha256": "07efe1fa7a369811fbefa09e6d7f3026a2b5d2aac65e669c4b106a9b7a837dfa",
+      "size_bytes": 197
+    },
+    "source_archive_manifest.json": {
+      "sha256": "58dd627dc4755e4e485b1ef1da80f6f9af78e1d9e0d4371461be232b8aab52f0",
+      "size_bytes": 98893
+    },
+    "source_locked.tar.gz": {
+      "sha256": "ced6b10d6bfbe4ae6a54495ff2ef4747a90036fa2027b0386555d016d5869a05",
+      "size_bytes": 3350770
+    },
+    "source_locked_sensitivity_audit.json": {
+      "sha256": "ce5b5a1007041476c5bed44a9816699f729694a495be49e744d3fe2832b06453",
+      "size_bytes": 37317
+    },
+    "source_revision_manifest.json": {
+      "sha256": "6dd77e414ddf82492182f17b82c119cf65e81af092fce58c1a8700e6354bdbb8",
+      "size_bytes": 33107
+    },
+    "submit.sub": {
+      "sha256": "7be870d0e4682ecd8968df7a75d9c79d61997d1cb5a201c7b2bdd47db221dcfd",
+      "size_bytes": 3505
+    },
+    "test_bundle.py": {
+      "sha256": "f3a8dd69a6f4e3bb59bc0678edd6471536b621d19f91b019aa79fd1e613290a0",
+      "size_bytes": 68
+    },
+    "test_no_overlap_evidence_validation.py": {
+      "sha256": "622c697de6231cd338f0377ed76771fa558bd2a547795ebe0fc1169a64902e46",
+      "size_bytes": 3074
+    },
+    "validate_fetched.py": {
+      "sha256": "8ef540ce3062d22386488d19f0300e7b58a6c72c4c2297c427a3b3c0da1b95b3",
+      "size_bytes": 26406
+    }
+  },
+  "schema": "paper_i_sr_material_window_anchor_submission_artifacts_v1"
+}

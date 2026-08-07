@@ -1,0 +1,81 @@
+
+
+-- Schedd: ap2001.chtc.wisc.edu : <128.105.68.112:9618?...
+The Requirements expression for job 9397760.000 is
+
+    (TARGET.PoolName == "CHTC") && ((((Target.OpSysMajorVer == 9) &&
+          (Target.OpSysName isnt "Debian") &&  !(Target.OSPool ?: false))) ||
+      (((Target.OSPool ?: false) &&
+          ((Target.OSGVO_OS_STRING ?: "") == "RHEL 9")))) && (TARGET.HasSIF) &&
+    (TARGET.Arch == "X86_64") && (TARGET.OpSys == "LINUX") &&
+    (versionGE(split(TARGET.CondorVersion)[1],"25.12.0") ||
+      (TARGET.Disk >= RequestDisk)) && (TARGET.Memory >= RequestMemory) &&
+    (TARGET.Cpus >= RequestCpus) && (TARGET.HasFileTransfer &&
+      versioncmp(split(TARGET.CondorVersion)[1],"8.9.7") >= 0)
+
+    [0]    : TARGET.PoolName == "CHTC"
+    [1]    : Target.OpSysMajorVer == 9
+    [2]    : Target.OpSysName isnt "Debian"
+    [3]    : [1] && [2]
+    [4]    :  !(Target.OSPool ?: false)
+    [5]    : [3] && [4]
+    [6]    : Target.OSPool ?: false
+    [7]    : Target.OSGVO_OS_STRING ?: ""
+    [8]    : [7] (Target.OSGVO_OS_STRING ?: "") == "RHEL 9"
+    [9]    : [6] && [8]
+    [10]   : [5] || [9]
+    [11]   : [0] && [10]
+    [12]   : TARGET.HasSIF
+    [13]   : [11] && [12]
+    [14]   : TARGET.Arch == "X86_64"
+    [15]   : [13] && [14]
+    [16]   : TARGET.OpSys == "LINUX"
+    [17]   : [15] && [16]
+    [18]   : versionGE(split(TARGET.CondorVersion)[1],"25.12.0")
+    [19]   : TARGET.Disk >= RequestDisk
+    [20]   : [18] || [19]
+    [21]   : [17] && [20]
+    [22]   : TARGET.Memory >= RequestMemory
+    [23]   : [21] && [22]
+    [24]   : TARGET.Cpus >= RequestCpus
+    [25]   : [23] && [24]
+    [26]   : TARGET.HasFileTransfer
+    [27]   : versioncmp(split(TARGET.CondorVersion)[1],"8.9.7") >= 0
+    [28]   : [26] && [27]
+    [29]   : [25] && [28]
+
+Job 9397760.000 defines the following attributes:
+
+    RequestCpus = 4
+    RequestDisk = 62914560 (kb)
+    RequestMemory = 57344 (mb)
+
+The Requirements expression for job 9397760.000 reduces to these conditions:
+
+         Slots      If    
+Step   Matched   Drained  Condition
+----- --------- --------- ---------
+[0]         384       171  TARGET.PoolName == "CHTC"
+[1]         325       153  Target.OpSysMajorVer == 9
+[11]        323       153  [0] && [1]
+[14]        380       169  TARGET.Arch == "X86_64"
+[15]        321       151  [11] && [14]
+[18]        372       168  versionGE(split(TARGET.CondorVersion)[1],"25.12.0")
+[19]        343       171  TARGET.Disk >= RequestDisk
+[22]        238       171  TARGET.Memory >= RequestMemory
+[23]        191       151  [15] && [22]
+[24]        360       171  TARGET.Cpus >= RequestCpus
+[25]        175       151  [23] && [24]
+[26]        386       171  TARGET.HasFileTransfer
+[27]        386       171  versioncmp(split(TARGET.CondorVersion)[1],"8.9.7") >= 0
+
+
+9397760.000:  Run analysis summary ignoring user priority.  Of 386 slots on 269 machines,
+     71 slots are rejected by your job's requirements
+    203 slots reject your job because of their own requirements
+      0 slots match and are willing to run your job
+    112 slots would match if drained
+
+No successful match recorded.
+Last failed match: Thu Jul 30 14:07:09 2026 from cm.chtc.wisc.edu
+Reason for last match failure: no match found

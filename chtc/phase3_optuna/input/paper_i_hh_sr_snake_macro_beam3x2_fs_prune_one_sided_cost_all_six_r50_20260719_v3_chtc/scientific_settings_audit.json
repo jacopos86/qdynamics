@@ -1,0 +1,46 @@
+{
+  "all_six_horizon": 50,
+  "batching_active": false,
+  "beam_contract": {
+    "children_per_parent": 2,
+    "expanded_child_cap_per_round": 6,
+    "lambda": 0.005,
+    "live_branches": 3,
+    "terminal_archive_mode": "legacy",
+    "terminated_keep": 3
+  },
+  "cost_policy": "family_robust_v1",
+  "infeasible_model_fallback_active": true,
+  "macro_candidate_contract": {
+    "candidate_representation": "intact_logical_parent_generator_v1",
+    "generated_pauli_children_active": false,
+    "physical_operator_lanes_active": true
+  },
+  "n_ph_by_regime": {
+    "intermediate_strong": 7,
+    "intermediate_weak": 3,
+    "strong_strong_u8": 7,
+    "strong_weak_u8": 3,
+    "weak_strong": 7,
+    "weak_weak": 3
+  },
+  "ordinary_novelty_multipliers_active": false,
+  "phase_live_hysteresis_enabled": false,
+  "profile_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+  "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_one_sided_cost_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_one_sided_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1",
+  "prune_contract": {
+    "acceptance_authority": "measured_delete_and_refit_v1",
+    "cost_weighting": "off",
+    "enabled": true,
+    "initial_radius": 0.125,
+    "metric_damping_active": false,
+    "mode": "live",
+    "response_scope": "full_active_logical_v1",
+    "terminal_prune_active": false,
+    "trust_constraint": "complete_affine_deletion_fs_v1"
+  },
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_scientific_settings_audit_v1",
+  "status": "pass",
+  "unexpected_executable_differences": []
+}

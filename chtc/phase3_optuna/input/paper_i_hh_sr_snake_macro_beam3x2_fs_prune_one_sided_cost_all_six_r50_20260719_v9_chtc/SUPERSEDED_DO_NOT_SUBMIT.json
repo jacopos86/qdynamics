@@ -1,0 +1,7 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v9_chtc",
+  "classification": "superseded_one_sided_validator_schema_repair_v1",
+  "scientific_setting_changes": [],
+  "scientific_source_archive_sha256_preserved": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+  "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v10_chtc"
+}

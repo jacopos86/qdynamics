@@ -1,0 +1,81 @@
+                        or formal_manifold_route_enabled
+                        or formal_manifold_route_enabled
+                        if formal_outer_information_profile_enabled
+                        and not formal_manifold_route_enabled
+                        if formal_manifold_selector_enabled
+                            and not formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                            and not formal_manifold_selector_enabled
+                            and not formal_manifold_selector_enabled
+                            if formal_manifold_selector_enabled
+                    and not formal_manifold_selector_enabled
+                    if not formal_outer_information_active_enabled:
+                    not formal_manifold_route_enabled
+                    and not formal_manifold_selector_enabled
+                        if formal_manifold_selector_enabled
+                            or formal_manifold_selector_enabled
+                    and not formal_manifold_selector_enabled
+                and not formal_manifold_selector_enabled
+                                    if formal_outer_information_active_enabled
+                                    if formal_outer_information_shadow_enabled
+                                    not formal_outer_information_profile_enabled
+                                    not formal_outer_information_profile_enabled
+                                    formal_outer_information_profile_enabled
+                                    if formal_outer_information_active_enabled
+                                    if formal_outer_information_shadow_enabled
+                        formal_outer_information_profile_enabled
+                        formal_manifold_route_enabled
+                        and not formal_outer_information_profile_enabled
+                formal_outer_information_profile_enabled
+                        formal_outer_information_shadow_enabled
+                        formal_outer_information_active_enabled
+                        formal_outer_information_active_enabled
+                            if formal_manifold_selector_enabled
+                        and not formal_manifold_selector_enabled
+                            formal_manifold_selector_enabled
+                                formal_singleton_refeed_selector_enabled
+                                formal_singleton_refeed_selector_enabled
+                                formal_outer_information_active_enabled
+                            and not formal_manifold_selector_enabled
+                            and not formal_singleton_refeed_selector_enabled
+                        and not formal_manifold_selector_enabled
+                        and not formal_manifold_selector_enabled
+                if not formal_manifold_selector_enabled:
+                        if formal_manifold_selector_enabled
+                                    formal_outer_information_exact_powell_metric_enabled
+                                        formal_outer_information_active_enabled
+                            formal_manifold_selector_enabled
+                            or formal_outer_information_exact_powell_metric_enabled
+                                                not formal_manifold_selector_enabled
+                            if not formal_manifold_selector_enabled:
+                        if not formal_manifold_selector_enabled:
+                            not formal_manifold_selector_enabled
+                            not formal_manifold_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                                    if formal_singleton_refeed_selector_enabled
+                            if formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                            and not formal_manifold_selector_enabled
+                                and not formal_outer_information_active_enabled
+                                not formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                                and not formal_manifold_selector_enabled
+                                    if formal_manifold_selector_enabled
+                    or formal_manifold_route_enabled
+                    or formal_outer_information_profile_enabled
+                            if formal_outer_information_active_enabled
+                    if formal_outer_information_profile_enabled
+                or formal_manifold_route_enabled
+                or formal_manifold_route_enabled
+                if formal_outer_information_profile_enabled
+                if formal_outer_information_profile_enabled
+                and not formal_manifold_route_enabled
+                if formal_outer_information_profile_enabled
+                and not formal_manifold_route_enabled

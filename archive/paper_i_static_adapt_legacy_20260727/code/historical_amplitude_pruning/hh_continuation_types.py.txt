@@ -1,0 +1,53 @@
+@dataclass(frozen=True)
+class ScaffoldCoordinateMetadata:
+    candidate_label: str
+    generator_id: str | None
+    admission_step: int
+    first_seen_step: int
+    selector_score: float
+    selector_burden: float
+    cooldown_remaining: int = 0
+    cumulative_abs_motion: float = 0.0
+    recent_abs_motion: float = 0.0
+    stagnation_score: float = 0.0
+    current_abs_theta: float = 0.0
+    previous_abs_theta: float = 0.0
+    peak_abs_theta: float = 0.0
+    amplitude_observation_count: int = 0
+
+
+@dataclass(frozen=True)
+class MaturePruneTrial:
+    selector_step: int
+    gate_open: bool
+    probe_indices: list[int]
+    selected_index: int | None
+    selected_label: str | None
+    frozen_regression: float | None
+    refit_energy: float | None
+    retained_gain: float | None
+    accepted: bool
+    rollback_reason: str | None = None
+    amplitude_witness_ok: bool = False
+    amplitude_witness_reason: str | None = None
+    amplitude_witness: dict[str, Any] | None = None
+class PruneDecision:
+    index: int
+    label: str
+    accepted: bool
+    energy_before: float
+    energy_after: float
+    regression: float
+    reason: str
+    safe_regression_ok: bool = True
+    retained_gain_ok: bool = True
+    regression_threshold: float | None = None
+    retained_gain: float | None = None
+    retained_gain_threshold: float | None = None
+    amplitude_witness_ok: bool = True
+    amplitude_witness_reason: str | None = None
+    amplitude_current_abs: float | None = None
+    amplitude_peak_abs: float | None = None
+    amplitude_drop_abs: float | None = None
+    amplitude_collapse_ratio: float | None = None
+    amplitude_observation_count: int | None = None

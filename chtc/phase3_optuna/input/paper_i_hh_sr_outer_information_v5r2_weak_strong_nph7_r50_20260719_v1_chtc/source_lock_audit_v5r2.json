@@ -1,0 +1,91 @@
+{
+  "schema": "paper_i_sr_outer_information_source_lock_audit_v1",
+  "generated_utc": "2026-07-19T13:10:00Z",
+  "status": "passed",
+  "scientific_objective": "Reuse transported old-old Fubini-Study metric and direct energy-Hessian information before Phase III while preserving the source-locked SR-SNAKE controller.",
+  "source_identity": {
+    "route_family": "singleton_response_snake",
+    "selector_profile": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_v1",
+    "sr_controller_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "phase2_batching": false,
+    "phase3_batching": false,
+    "phase2_novelty_policy": "fallback_only_v1",
+    "phase3_novelty_policy": "fallback_only_v1",
+    "pruning": false,
+    "beam": false,
+    "accepted_reoptimizer_owner": "source_locked_sr_supported_fs_powell_v1",
+    "accepted_response_scope": "full_active_plus_singleton_v1",
+    "structural_rollback": false,
+    "powell_maxiter": 200,
+    "seed": 7
+  },
+  "sole_algorithmic_perturbation": {
+    "route_profile": "sr_no_prune_symmetric_cost_outer_information_active_v1",
+    "description": "Prepare the transported endpoint prior after exact narrow Phase-II geometry and before full Phase-III scaffold construction; supply both old-old metric and Hessian priors, while candidate-active and candidate-self geometry remains exact.",
+    "candidate_cache_identity_bound_to_prior": true,
+    "planned_phase3_pairs_never_counted_as_upstream_measurements": true,
+    "exact_reanchor_policy": "Acquire missing exact old-old blocks once, deduplicate subsequent anchor consumers, and preserve accepted structure."
+  },
+  "repairs": [
+    {
+      "repair_id": "canonical_sr_novelty_fallback_exact_metric_v1",
+      "trigger_run_id": "20260719T122913Z-e3f030c2",
+      "trigger_round": 23,
+      "trigger_error": "authoritative_sr_phase3_cache_rejected:ValueError:authoritative_sr_phase3_candidate_identity_missing",
+      "root_cause": "The canonical all-energy-models-infeasible novelty fallback carries a reduced Phase-II geometry record rather than an authoritative full active-plus-singleton Phase-III observation.",
+      "action": "Suspend predictive outer reuse for only that transition, invalidate only the geometric hypothesis, preserve the authoritative SR admission, acquire the exact Powell metric with normal query charge, and allow the next exact Phase-III workspace to reanchor."
+    },
+    {
+      "repair_id": "canonical_sr_suppressed_eps_grad_singleton_exact_metric_v1",
+      "trigger_run_id": "20260719T125934Z-c91f6f34",
+      "trigger_round": 30,
+      "trigger_error": "Source-locked SR outer reuse requires exactly one authoritative singleton admission.",
+      "root_cause": "When the canonical SR gradient stop is deliberately suppressed and no Phase-II or Phase-III record exists, SR still admits exactly one Phase-I argmax. The overlay incorrectly treated the absent Phase-III record as an absent singleton transition.",
+      "action": "Recognize only the certified zero-record eps_grad_suppressed_continue singleton, preserve its already-admitted SR term and insertion position, invalidate only transported geometry, acquire and charge the exact Powell metric, and require later exact reanchoring.",
+      "scientific_settings_changed": false,
+      "selector_changed": false,
+      "optimizer_changed": false,
+      "numeric_geometry_fabricated": false,
+      "structural_rollback_performed": false,
+      "fail_closed_boundary": "Any other zero-record or multi-record transition, any different selection mode, or any non-singleton admitted structure still raises."
+    }
+  ],
+  "runtime": {
+    "frozen_tree": "raw_outputs/paper_i_hh_sr_outer_information_source_locked_weak_weak_20260719/source_lock/extracted_runtime_predictive_prephase3_metric_hessian_reuse_v5_20260719",
+    "archive": "raw_outputs/paper_i_hh_sr_outer_information_source_locked_weak_weak_20260719/source_lock/runtime_source_predictive_prephase3_metric_hessian_reuse_v5r2_suppressed_eps_grad_fallback_20260719.tar.gz",
+    "archive_sha256": "79c1f4b058d6f2ea7fb963975b63ee3e98358f9f463d128115b55fd99b4352d1",
+    "parent_archive_sha256": "abb892c35ffcbfcadc4eee5f24e81a863fa009e01e3b3bb567c67f38eff1d3aa",
+    "key_source_sha256": {
+      "pipelines/static_adapt/adapt_pipeline.py": "60587c784564307ec10ea89a7d8f2375a1acf82fab14d485023ec1c1ef69189a",
+      "pipelines/static_adapt/formal_manifold_outer_information.py": "b1b000fba8b3a6b615d820a3dfca5d00bb65be2fa40380d3e124a987771360be",
+      "pipelines/static_adapt/formal_manifold_sr_v3_outer_bridge.py": "fb8f18d159e19ce3b46fdabf7bcbab3a76611dadf65fbf027837ab7e551c2c5d",
+      "pipelines/scaffold/hh_continuation_scoring.py": "dce6fce48c555fa536e08873a1c5e5d58756a0e5a47bd04731cd90dc15e94010"
+    },
+    "key_test_sha256": {
+      "test/test_static_adapt_sr_outer_information_overlay_integration.py": "0a3756af1a5e25253f0352113fd5fd69a6a9fe2862b94a5821d394e51177fa42",
+      "test/test_static_adapt_formal_manifold_outer_active_integration.py": "2a3901d20c835ea00c8e12001ea8819f71e9d8d477a10f90dd2be667406d5371",
+      "test/test_static_adapt_formal_manifold_outer_information.py": "6e31d4045ac18bc74b55718bb6bb7d1bb32477977a26ac68215512fd353a64e8"
+    }
+  },
+  "tests": {
+    "command": "PYTHONPATH=. python -m pytest -q test/test_static_adapt_sr_outer_information_overlay_integration.py test/test_static_adapt_formal_manifold_outer_active_integration.py test/test_static_adapt_formal_manifold_outer_information.py",
+    "passed": 80,
+    "failed": 0,
+    "new_regressions": [
+      "test_sr_outer_growth_cache_absence_exact_fallback_is_narrow",
+      "test_sr_active_missing_fallback_phase3_growth_uses_exact_powell_and_continues",
+      "test_sr_outer_suppressed_eps_grad_singleton_exact_fallback_is_narrow"
+    ]
+  },
+  "query_and_state_contract": {
+    "uncertified_transition_uses_external_predicted_metric": false,
+    "uncertified_transition_exact_metric_is_charged": true,
+    "candidate_geometry_fabricated": false,
+    "accepted_sr_structure_preserved": true,
+    "transport_state_invalidated_without_structural_rollback": true,
+    "next_round_reanchor_required": true,
+    "suppressed_gradient_phase1_singleton_preserved": true,
+    "formal_query_accounting_complete_in_regression": true,
+    "nfev_reconciled_in_regression": true
+  }
+}

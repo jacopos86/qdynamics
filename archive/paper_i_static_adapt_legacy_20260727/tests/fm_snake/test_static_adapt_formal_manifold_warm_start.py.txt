@@ -1,0 +1,2456 @@
+from __future__ import annotations
+
+from dataclasses import fields, replace
+from typing import Mapping
+
+import numpy as np
+import pytest
+
+import pipelines.static_adapt.formal_manifold_warm_start as fm_warm
+from pipelines.static_adapt.estimator_call_ledger import (
+    EstimatorCallKey,
+    EstimatorCallLedger,
+    projective_state_fingerprint as estimator_state_fingerprint,
+)
+from pipelines.static_adapt.formal_manifold_warm_start import (
+    ExactEnergyEvaluation,
+    ExactGradientEvaluation,
+    ExactStateBackend,
+    ExactStateEvaluation,
+    FORMAL_CURVATURE_DIRECT_SR1,
+    FORMAL_CURVATURE_INVERSE_RBFGS,
+    FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+    FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+    FORMAL_MANIFOLD_ROUTE,
+    FORMAL_MANIFOLD_SR_NO_N2_PROFILE,
+    FORMAL_MANIFOLD_SR_SELECTOR_PROFILE,
+    FORMAL_MANIFOLD_SR_SOURCE_LOCKED_PROFILE,
+    FORMAL_MANIFOLD_WARM_START_OFF,
+    FormalManifoldBranchRuntime,
+    FormalManifoldConfig,
+    FormalManifoldRouteComposition,
+    FormalManifoldSession,
+    RankRule,
+    build_exact_frame,
+    density_tangent_cross_gram,
+    endpoint_procrustes,
+    grow_zero_coordinates,
+    guarded_direct_sr1,
+    normalize_reoptimization_route,
+    powell_damped_inverse_rbfgs,
+    qbroyd_inverse_update,
+    solve_direct_sr1_trust_step,
+    supported_whitened_transport,
+)
+from pipelines.static_adapt.formal_manifold_route_profile import (
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+    resolve_formal_manifold_route_profile,
+)
+from pipelines.static_adapt.formal_manifold_outer_information import (
+    OuterInformationConfig,
+    OuterInformationSession,
+    initialize_outer_information_state,
+)
+from pipelines.static_adapt.joint_linear_solve import JointLinearSolveConfig
+from pipelines.static_adapt.resume_scaffold import digest_jsonable
+from pipelines.static_adapt.selector_query_closure import (
+    EstimatorPrimitiveIdentity,
+    FormalAdmissionCurvatureReceipt,
+    FormalGrowthEvaluationHandle,
+    FormalGrowthGeometryReceipt,
+    GEOMETRY_ELEMENT_FULL_SYMMETRIC_GRAM,
+    QueryPrimitiveLedger,
+    QueryReceipt,
+    build_formal_admission_curvature_receipt,
+    projective_state_fingerprint,
+)
+from pipelines.static_adapt.selector_exact_query_geometry import (
+    build_retained_selector_anchor_from_formal_state,
+)
+
+
+def test_route_normalization_keeps_reoptimization_separate() -> None:
+    assert normalize_reoptimization_route(None) == FORMAL_MANIFOLD_WARM_START_OFF
+    assert normalize_reoptimization_route("legacy") == FORMAL_MANIFOLD_WARM_START_OFF
+    assert normalize_reoptimization_route(FORMAL_MANIFOLD_ROUTE) == FORMAL_MANIFOLD_ROUTE
+    with pytest.raises(ValueError):
+        normalize_reoptimization_route("route_d")
+
+
+def test_formal_config_mapping_roundtrip_exposes_only_typed_controls() -> None:
+    baseline = FormalManifoldConfig()
+    restored = FormalManifoldConfig.from_mapping(baseline.as_dict())
+    assert restored.as_dict() == baseline.as_dict()
+    direct = FormalManifoldConfig.from_mapping(
+        {
+            "curvature_branch": FORMAL_CURVATURE_DIRECT_SR1,
+            "initial_trust_radius": 0.15,
+            "supported_metric": {
+                **baseline.supported_metric.as_dict(),
+                "metric_regularization": 2.0e-9,
+            },
+        }
+    )
+    assert direct.curvature_branch == FORMAL_CURVATURE_DIRECT_SR1
+    assert direct.initial_trust_radius == pytest.approx(0.15)
+    assert direct.supported_metric.metric_regularization == pytest.approx(2.0e-9)
+    with pytest.raises(ValueError, match="unknown FormalManifoldConfig"):
+        FormalManifoldConfig.from_mapping({"invented_knob": True})
+
+
+def test_frame_and_density_geometry_are_gauge_invariant() -> None:
+    theta = 0.43
+    psi = np.asarray([np.cos(theta), np.sin(theta)], dtype=complex)
+    tangent = np.asarray([[-np.sin(theta)], [np.cos(theta)]], dtype=complex)
+    phase = np.exp(0.71j)
+    gauge_derivative = -0.37
+    psi_gauge = phase * psi
+    tangent_gauge = phase * (tangent + 1.0j * gauge_derivative * psi[:, None])
+
+    frame = build_exact_frame(psi, tangent)
+    frame_gauge = build_exact_frame(psi_gauge, tangent_gauge)
+
+    np.testing.assert_allclose(frame.gram_raw, frame_gauge.gram_raw, atol=1.0e-13)
+    cross = density_tangent_cross_gram(
+        psi_gauge,
+        frame_gauge.frame,
+        psi,
+        frame.frame,
+    )
+    np.testing.assert_allclose(cross, np.eye(1), atol=1.0e-13)
+
+
+def test_rank_zero_frame_is_well_typed() -> None:
+    psi = np.asarray([1.0, 0.0], dtype=complex)
+    raw_phase_tangent = np.asarray([[2.0j], [0.0]], dtype=complex)
+
+    frame = build_exact_frame(psi, raw_phase_tangent)
+
+    assert frame.rank == 0
+    assert frame.frame.shape == (2, 0)
+    assert frame.L.shape == (0, 1)
+    assert frame.Z.shape == (1, 0)
+    assert frame.M_R.shape == (0, 0)
+
+
+def test_zero_growth_builds_arbitrary_insertion_map_and_rejects_nonzero_growth() -> None:
+    growth = grow_zero_coordinates(
+        np.asarray([0.2, -0.4]),
+        ("old-a", "old-b"),
+        ("new-left", "old-a", "new-middle", "old-b"),
+        theta_plus=np.asarray([0.0, 0.2, 0.0, -0.4]),
+    )
+
+    assert growth.old_positions == (1, 3)
+    assert growth.admitted_positions == (0, 2)
+    np.testing.assert_allclose(growth.theta_plus, [0.0, 0.2, 0.0, -0.4])
+    with pytest.raises(ValueError, match="must be zero"):
+        grow_zero_coordinates(
+            np.asarray([0.2]),
+            ("old",),
+            ("new", "old"),
+            theta_plus=np.asarray([0.01, 0.2]),
+        )
+
+
+def test_endpoint_procrustes_is_isometric_and_detects_singular_alignment() -> None:
+    angle = 0.37
+    rotation = np.asarray(
+        [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    )
+    result = endpoint_procrustes(rotation.T)
+    np.testing.assert_allclose(result.Q.T @ result.Q, np.eye(2), atol=1.0e-13)
+    np.testing.assert_allclose(result.Q, rotation.T, atol=1.0e-13)
+    assert result.valid is True
+
+    singular = endpoint_procrustes(np.diag([1.0, 0.0]))
+    assert singular.valid is False
+    assert singular.sigma_min == 0.0
+
+
+def test_qbroyd_zero_gradient_is_the_declared_low_pass_decay() -> None:
+    metric_inverse = np.asarray([[2.0, 0.3], [0.3, 1.0]])
+    epsilon = 0.2
+
+    updated = qbroyd_inverse_update(metric_inverse, np.zeros(2), epsilon)
+
+    np.testing.assert_allclose(updated, metric_inverse / (1.0 - epsilon), atol=1e-14)
+    assert np.min(np.linalg.eigvalsh(updated)) > 0.0
+
+
+def test_powell_damping_repairs_nonpositive_curvature_and_satisfies_secant() -> None:
+    B = np.eye(2)
+    s = np.asarray([1.0, 0.2])
+    y = -s
+
+    update = powell_damped_inverse_rbfgs(B, s, y, eta=0.2)
+
+    assert update.applied is True
+    assert update.damped is True
+    assert update.curvature_raw < 0.0
+    assert update.curvature_used == pytest.approx(0.2 * float(s @ s))
+    np.testing.assert_allclose(update.B @ update.y_used, s, atol=1.0e-12)
+    assert np.min(np.linalg.eigvalsh(update.B)) > 0.0
+
+
+def test_direct_sr1_is_typed_guarded_and_permits_indefinite_curvature() -> None:
+    direct = np.diag([-2.0, 1.0])
+    s = np.asarray([1.0, 0.0])
+    y = np.asarray([-3.0, 0.0])
+
+    update = guarded_direct_sr1(direct, s, y)
+
+    assert update.applied is True
+    assert update.denominator < 0.0
+    np.testing.assert_allclose(update.A @ s, y, atol=1.0e-14)
+    assert float(np.min(np.linalg.eigvalsh(update.A))) < 0.0
+
+    guarded = guarded_direct_sr1(direct, s, direct @ s)
+    assert guarded.applied is False
+    assert guarded.reason == "sr1_denominator_guard"
+    np.testing.assert_array_equal(guarded.A, direct)
+
+
+def test_direct_sr1_uses_shared_supported_eigentrust_kernel() -> None:
+    result = solve_direct_sr1_trust_step(
+        np.diag([-2.0, 1.0]),
+        np.asarray([0.2, 0.0]),
+        trust_radius=0.3,
+        supported_metric=JointLinearSolveConfig(
+            rank_relative_tolerance=1.0e-12,
+            metric_regularization=0.0,
+        ),
+    )
+
+    assert result.feasible is True
+    assert result.predicted_reduction > 0.0
+    assert np.linalg.norm(result.joint_step) == pytest.approx(0.3, abs=2.0e-9)
+    assert min(result.telemetry["H_w_eigenvalues"]) < 0.0
+    assert result.telemetry["joint_linear_solve_policy_effective"].startswith(
+        "supported_metric_whitened"
+    )
+
+
+_H = np.asarray(
+    [
+        [1.0, 0.0, 0.0],
+        [0.0, -1.0, 0.3],
+        [0.0, 0.3, 0.2],
+    ],
+    dtype=float,
+)
+
+
+def _sphere_evaluation(theta: np.ndarray, *, grown: bool) -> ExactStateEvaluation:
+    a = float(theta[0])
+    b = float(theta[1]) if grown else 0.0
+    psi = np.asarray(
+        [np.cos(a), np.sin(a) * np.cos(b), np.sin(a) * np.sin(b)],
+        dtype=complex,
+    )
+    da = np.asarray(
+        [-np.sin(a), np.cos(a) * np.cos(b), np.cos(a) * np.sin(b)],
+        dtype=complex,
+    )
+    tangents = [da]
+    if grown:
+        db = np.asarray(
+            [0.0, -np.sin(a) * np.sin(b), np.sin(a) * np.cos(b)],
+            dtype=complex,
+        )
+        tangents.append(db)
+    tangent_matrix = np.column_stack(tangents)
+    hpsi = _H @ psi
+    energy = float(np.real(np.vdot(psi, hpsi)))
+    gradient = 2.0 * np.real(np.conjugate(tangent_matrix).T @ hpsi)
+    return ExactStateEvaluation(
+        energy=energy,
+        gradient=np.asarray(gradient, dtype=float),
+        statevector=psi,
+        tangents=tangent_matrix,
+        metadata={"fixture": "sphere"},
+    )
+
+
+def _sphere_backend(*, grown: bool) -> ExactStateBackend:
+    return ExactStateBackend(
+        evaluate_fn=lambda theta: _sphere_evaluation(theta, grown=grown),
+        coordinate_registry=("a", "b") if grown else ("a",),
+        manifold_id="sphere_fixture",
+        parameterization_mode="logical_shared",
+        metadata={"exact": True},
+    )
+
+
+def _instrumented_sparse_sphere_backend(
+    calls: dict[str, int], *, grown: bool = False
+) -> ExactStateBackend:
+    def full(theta: np.ndarray) -> ExactStateEvaluation:
+        calls["geometry"] += 1
+        return _sphere_evaluation(theta, grown=grown)
+
+    def energy(theta: np.ndarray) -> ExactEnergyEvaluation:
+        calls["energy"] += 1
+        item = _sphere_evaluation(theta, grown=grown)
+        return ExactEnergyEvaluation(
+            energy=item.energy,
+            statevector=item.statevector,
+            metadata={"typed_estimator_primitive": "energy"},
+        )
+
+    def gradient(theta: np.ndarray) -> ExactGradientEvaluation:
+        calls["gradient"] += 1
+        item = _sphere_evaluation(theta, grown=grown)
+        return ExactGradientEvaluation(
+            energy=item.energy,
+            gradient=item.gradient,
+            statevector=item.statevector,
+            metadata={
+                "typed_estimator_primitive": "coordinate_gradient",
+                "full_metric_formed": False,
+            },
+        )
+
+    return ExactStateBackend(
+        evaluate_fn=full,
+        energy_fn=energy,
+        gradient_fn=gradient,
+        coordinate_registry=("a", "b") if grown else ("a",),
+        manifold_id="sphere_sparse_fixture",
+        parameterization_mode="logical_shared",
+        metadata={"exact": True, "schema": "sphere_sparse_fixture_v1"},
+    )
+
+
+def _assert_state_equal(left: object, right: object) -> None:
+    assert type(left) is type(right)
+    for item in fields(left):
+        lhs = getattr(left, item.name)
+        rhs = getattr(right, item.name)
+        if isinstance(lhs, np.ndarray):
+            np.testing.assert_array_equal(lhs, rhs)
+        else:
+            assert lhs == rhs
+
+
+def test_formal_energy_observer_matches_backend_nfev_and_shared_identity_dedups() -> None:
+    observed: list[tuple[str, str]] = []
+    primitive_events: list[dict[str, object]] = []
+
+    def count_observer(statevector: np.ndarray, phase: str) -> None:
+        observed.append(
+            (estimator_state_fingerprint(statevector), str(phase))
+        )
+
+    def primitive_observer(event: Mapping[str, object]) -> Mapping[str, object]:
+        primitive_events.append(dict(event))
+        kind = str(event["primitive_kind"])
+        if kind == "coordinate_gradient":
+            count = int(np.asarray(event["point"], dtype=float).size)
+        else:
+            shape = tuple(int(value) for value in event["geometry_shape"])
+            count = (
+                shape[0] * (shape[0] + 1) // 2
+                if kind == "tangent_or_metric"
+                else shape[0] * shape[1]
+            )
+        return {
+            "schema": "formal_manifold_shared_estimator_bridge_receipt_v1",
+            "route_primitive_id": str(event["route_primitive_id"]),
+            "expected_scalar_count": int(count),
+            "observed_scalar_count": int(count),
+            "shared_primitive_occurrence_ids": [
+                f"shared-{len(primitive_events)}-{index}"
+                for index in range(count)
+            ],
+        }
+
+    result = FormalManifoldSession().propose(
+        _sphere_backend(grown=False),
+        [0.72],
+        maxiter=3,
+        energy_observer=count_observer,
+        estimator_primitive_observer=primitive_observer,
+    )
+    assert len(observed) == result.nfev
+    assert result.info["proposal_query_work"][
+        "shared_energy_observer_occurrence_count"
+    ] == result.nfev
+    assert result.info["proposal_query_work"][
+        "shared_energy_observer_occurrence_count_equal_nfev"
+    ] is True
+    primitive_work = result.info["proposal_query_work"]
+    assert primitive_work[
+        "shared_estimator_primitive_observer_enabled"
+    ] is True
+    assert primitive_work[
+        "shared_estimator_primitive_observer_records_reconciled"
+    ] is True
+    assert primitive_work[
+        "shared_estimator_bridge_receipts_reconciled"
+    ] is True
+    assert len(primitive_work["shared_estimator_bridge_receipts"]) == len(
+        primitive_events
+    )
+    assert len(primitive_events) == primitive_work[
+        "shared_estimator_primitive_observer_record_count_expected"
+    ]
+    assert {str(event["primitive_kind"]) for event in primitive_events} == {
+        "coordinate_gradient",
+        "tangent_or_metric",
+        "cross_state_tangent",
+    }
+    cross_event = next(
+        event
+        for event in primitive_events
+        if str(event["primitive_kind"]) == "cross_state_tangent"
+    )
+    cross_provenance = cross_event["primitive_provenance"]
+    assert isinstance(cross_provenance, Mapping)
+    assert str(cross_provenance["source_frame_id"])
+    assert str(cross_provenance["target_frame_id"])
+    assert str(cross_provenance["source_state_fingerprint"])
+    assert str(cross_provenance["target_state_fingerprint"])
+
+    ledger = EstimatorCallLedger()
+
+    def ledger_observer(statevector: np.ndarray, phase: str) -> None:
+        ledger.record_call(
+            EstimatorCallKey(
+                projective_state_fingerprint=estimator_state_fingerprint(
+                    statevector
+                ),
+                hamiltonian_fingerprint="sphere_hamiltonian_v1",
+                backend_fingerprint="exact_state_backend_v1",
+                precision_contract="exact_complex128_v1",
+                primitive_kind="hamiltonian_expectation",
+                observable_or_formula_identity="hamiltonian_expectation_v1",
+            ),
+            component="N_H_refit",
+            consumer_scope=f"formal_energy:{str(phase)}",
+        )
+
+    first = FormalManifoldSession().propose(
+        _sphere_backend(grown=False),
+        [0.72],
+        maxiter=0,
+        energy_observer=ledger_observer,
+    )
+    second = FormalManifoldSession().propose(
+        _sphere_backend(grown=False),
+        [0.72],
+        maxiter=0,
+        energy_observer=ledger_observer,
+    )
+    assert first.nfev == second.nfev == 1
+    assert ledger.summary()["S_unique"] == 1
+    occurrence_summary = ledger.occurrence_summary()
+    assert occurrence_summary["S_alg"] == 2
+    assert occurrence_summary["total_call_occurrences"] == 2
+    assert occurrence_summary["same_identity_reuse_occurrence_count"] == 1
+
+
+def test_sparse_qbroyd_requires_typed_endpoint_primitives() -> None:
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+    )
+    with pytest.raises(ValueError, match="distinct energy and gradient"):
+        FormalManifoldSession(config=config).propose(
+            _sphere_backend(grown=False), [0.72], maxiter=1
+        )
+
+
+def test_sparse_qbroyd_is_authoritative_between_budgeted_exact_anchors() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    primitive_events: list[dict[str, object]] = []
+
+    def primitive_observer(event: Mapping[str, object]) -> Mapping[str, object]:
+        primitive_events.append(dict(event))
+        kind = str(event["primitive_kind"])
+        dimension = int(np.asarray(event["point"], dtype=float).size)
+        if kind == "coordinate_gradient":
+            count = dimension
+        else:
+            shape = tuple(int(value) for value in event["geometry_shape"])
+            count = (
+                shape[0] * (shape[0] + 1) // 2
+                if kind == "tangent_or_metric"
+                else shape[0] * shape[1]
+            )
+        return {
+            "schema": "formal_manifold_shared_estimator_bridge_receipt_v1",
+            "route_primitive_id": str(event["route_primitive_id"]),
+            "expected_scalar_count": int(count),
+            "observed_scalar_count": int(count),
+            "shared_primitive_occurrence_ids": [
+                f"sparse-shared-{len(primitive_events)}-{index}"
+                for index in range(count)
+            ],
+        }
+
+    backend = _instrumented_sparse_sphere_backend(calls)
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        initial_trust_radius=0.05,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+    ledger = QueryPrimitiveLedger()
+
+    result = FormalManifoldSession(config=config).propose(
+        backend,
+        [0.72],
+        maxiter=8,
+        query_ledger=ledger,
+        estimator_primitive_observer=primitive_observer,
+    )
+
+    assert result.info["metric_mode"] == FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN
+    assert result.info["qbroyd_mode"] == "authoritative_between_exact_anchors_v1"
+    assert result.info["derived_anchor_spacing"] == 2
+    assert result.info["post_anchor_exact_grams_used"] <= 4
+    assert calls["geometry"] == 1 + result.info["post_anchor_exact_grams_used"]
+    assert calls["gradient"] >= 1
+    assert calls["energy"] >= result.info["accepted_inner_steps"]
+    skipped = [
+        row for row in result.info["steps"] if row["accepted"] and not row["metric_observed"]
+    ]
+    assert skipped
+    assert all(row["accepted_endpoint_primitives"] == "energy_gradient_only" for row in skipped)
+    assert all(
+        row["transport"]["provenance"]
+        == "predicted_Q_identity_not_exact_transport"
+        and row["transport"]["cross_state_query_charge"] == 0
+        for row in skipped
+    )
+    assert result.warm_state.metadata["metric_provenance"] == "exact_state_computed"
+    assert result.warm_state.qbroyd_age == 0
+    terminal_anchor_kinds = {
+        str(event["primitive_kind"])
+        for event in primitive_events
+        if str(event["phase"]) == "optimizer_terminal_exact_anchor"
+    }
+    if terminal_anchor_kinds:
+        assert terminal_anchor_kinds == {
+            "coordinate_gradient",
+            "tangent_or_metric",
+        }
+    summary = ledger.telemetry()
+    assert summary["N_G"] == calls["geometry"]
+    assert summary["N_grad"] >= 1
+    assert summary["N_E"] >= 1
+    geometry = summary["geometry_element_accounting"]
+    assert geometry["is_total_S_alg"] is False
+    assert geometry["full_symmetric_gram_elements"] == calls["geometry"]
+    assert geometry["cross_state_tangent_elements"] == summary["N_cross"]
+    assert geometry["total_geometry_elements"] == (
+        calls["geometry"] + summary["N_cross"]
+    )
+    result_geometry = result.info["optimizer_geometry_element_accounting"]
+    assert result_geometry["newly_measured_unique_geometry"] == geometry
+    assert result_geometry["ledger_total_geometry"] == geometry
+
+
+def test_fresh_two_coordinate_anchor_charges_three_unique_gram_elements() -> None:
+    ledger = QueryPrimitiveLedger()
+    result = FormalManifoldSession().propose(
+        _sphere_backend(grown=True),
+        [0.72, 0.0],
+        maxiter=0,
+        query_ledger=ledger,
+    )
+
+    accounting = result.info["optimizer_geometry_element_accounting"]
+    newly_measured = accounting["newly_measured_unique_geometry"]
+    assert newly_measured["full_symmetric_gram_elements"] == 3
+    assert newly_measured["cross_state_tangent_elements"] == 0
+    assert newly_measured["total_geometry_elements"] == 3
+    assert ledger.telemetry()["geometry_element_accounting"] == newly_measured
+
+
+def test_sparse_qbroyd_maxiter_100_uses_three_interior_and_one_terminal_gram() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        initial_trust_radius=1.0e-4,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+        max_rejections=100,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls),
+        [0.72],
+        maxiter=100,
+    )
+
+    assert result.info["accepted_inner_steps"] == 100
+    assert result.info["derived_anchor_spacing"] == 25
+    assert result.info["post_anchor_exact_grams_used"] == 4
+    assert calls["geometry"] == 5  # Initial/growth anchor plus four new anchors.
+    assert result.info["exact_anchor_schedule"] == [
+        {
+            "accepted_step": 25,
+            "reason": "budgeted_interior_schedule",
+            "post_anchor_gram_index": 1,
+        },
+        {
+            "accepted_step": 50,
+            "reason": "budgeted_interior_schedule",
+            "post_anchor_gram_index": 2,
+        },
+        {
+            "accepted_step": 75,
+            "reason": "budgeted_interior_schedule",
+            "post_anchor_gram_index": 3,
+        },
+        {
+            "accepted_step": 100,
+            "reason": "charged_terminal_validation_anchor",
+            "post_anchor_gram_index": 4,
+        },
+    ]
+
+
+def test_delayed_exact_refresh_uses_frame_anchor_state_not_latest_endpoint() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        initial_trust_radius=0.03,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls),
+        [0.72],
+        maxiter=12,
+    )
+
+    accepted = [row for row in result.info["steps"] if row["accepted"]]
+    assert len(accepted) >= 3
+    assert accepted[0]["metric_observed"] is False
+    assert accepted[1]["metric_observed"] is False
+    assert accepted[2]["metric_observed"] is True
+    anchor_fingerprint = accepted[0]["frame_anchor_state_fingerprint_before"]
+    assert accepted[1]["frame_anchor_state_fingerprint_before"] == anchor_fingerprint
+    assert accepted[1]["current_state_fingerprint_before"] != anchor_fingerprint
+    assert accepted[2]["transport"]["frame_anchor_state_fingerprint"] == (
+        anchor_fingerprint
+    )
+
+
+def test_sparse_qbroyd_on_off_share_budgeted_cadence_without_a_fifth_gram() -> None:
+    schedules: list[list[dict[str, object]]] = []
+    for epsilon in (0.15, 0.0):
+        calls = {"energy": 0, "gradient": 0, "geometry": 0}
+        ledger = QueryPrimitiveLedger()
+        config = FormalManifoldConfig(
+            metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+            transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+            post_anchor_exact_gram_budget=4,
+            qbroyd_epsilon0=epsilon,
+            initial_trust_radius=1.0e-4,
+            min_trust_radius=1.0e-12,
+            max_trust_radius=1.0e-4,
+            gradient_tol=1.0e-30,
+            step_tol=1.0e-30,
+            max_rejections=10,
+        )
+
+        result = FormalManifoldSession(config=config).propose(
+            _instrumented_sparse_sphere_backend(calls),
+            [0.72],
+            maxiter=100,
+            query_ledger=ledger,
+        )
+
+        assert result.info["accepted_inner_steps"] == 100
+        assert result.info["post_anchor_exact_grams_used"] == 4
+        assert result.info["terminal_validation_anchor_performed"] is True
+        assert calls == {"energy": 100, "gradient": 96, "geometry": 5}
+        assert ledger.telemetry()["N_G"] == 5
+        schedule = result.info["exact_anchor_schedule"]
+        assert [row["accepted_step"] for row in schedule] == [25, 50, 75, 100]
+        assert [row["post_anchor_gram_index"] for row in schedule] == [1, 2, 3, 4]
+        assert [row["reason"] for row in schedule] == [
+            "budgeted_interior_schedule",
+            "budgeted_interior_schedule",
+            "budgeted_interior_schedule",
+            "charged_terminal_validation_anchor",
+        ]
+        assert sum(row["metric_observed"] for row in result.info["steps"]) == 4
+        schedules.append(schedule)
+
+    assert schedules[0] == schedules[1]
+
+
+def test_sparse_qbroyd_rejected_armijo_trials_are_energy_only() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+
+    def full(theta: np.ndarray) -> ExactStateEvaluation:
+        calls["geometry"] += 1
+        return _sphere_evaluation(theta, grown=False)
+
+    def rejected_energy(theta: np.ndarray) -> ExactEnergyEvaluation:
+        calls["energy"] += 1
+        item = _sphere_evaluation(theta, grown=False)
+        return ExactEnergyEvaluation(
+            energy=item.energy + 10.0,
+            statevector=item.statevector,
+            metadata={"typed_estimator_primitive": "energy"},
+        )
+
+    def gradient(theta: np.ndarray) -> ExactGradientEvaluation:
+        calls["gradient"] += 1
+        item = _sphere_evaluation(theta, grown=False)
+        return ExactGradientEvaluation(
+            energy=item.energy,
+            gradient=item.gradient,
+            statevector=item.statevector,
+            metadata={
+                "typed_estimator_primitive": "coordinate_gradient",
+                "full_metric_formed": False,
+            },
+        )
+
+    backend = ExactStateBackend(
+        evaluate_fn=full,
+        energy_fn=rejected_energy,
+        gradient_fn=gradient,
+        coordinate_registry=("a",),
+        manifold_id="sphere_sparse_rejection_fixture",
+        parameterization_mode="logical_shared",
+    )
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        line_search_max_steps=3,
+        max_rejections=1,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+    ledger = QueryPrimitiveLedger()
+
+    result = FormalManifoldSession(config=config).propose(
+        backend,
+        [0.72],
+        maxiter=1,
+        query_ledger=ledger,
+    )
+
+    assert result.info["accepted_inner_steps"] == 0
+    assert calls == {"energy": 3, "gradient": 0, "geometry": 1}
+    assert len(result.info["steps"]) == 1
+    assert result.info["steps"][0]["accepted"] is False
+    assert result.info["steps"][0]["line_search_evaluations"] == 3
+    assert result.info["steps"][0]["trial_primitives"] == "energy_only"
+    assert result.info["steps"][0]["reason"] == "armijo_rejection"
+    telemetry = ledger.telemetry()
+    assert telemetry["N_E"] == 4
+    assert telemetry["N_grad"] == 1
+    assert telemetry["N_G"] == 1
+
+
+def test_terminal_exact_reconciliation_preserves_accepted_trust_radius() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        gradient_tol=0.2,
+        step_tol=1.0e-30,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls),
+        [0.72],
+        maxiter=12,
+    )
+
+    accepted = [row for row in result.info["steps"] if row["accepted"]]
+    assert accepted[-1]["metric_observed"] is False
+    assert result.info["terminal_validation_anchor_performed"] is True
+    assert result.warm_state.trust_radius == pytest.approx(
+        accepted[-1]["trust_radius"]
+    )
+
+
+def test_predicted_support_loss_consumes_budgeted_exact_refresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    monkeypatch.setattr(
+        fm_warm,
+        "qbroyd_inverse_update",
+        lambda _metric, _gradient, _epsilon, **_kwargs: np.diag(
+            [1.0, 1.0e12]
+        ),
+    )
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls, grown=True),
+        [0.72, 0.0],
+        maxiter=1,
+    )
+
+    assert result.info["exact_anchor_schedule"] == [
+        {
+            "accepted_step": 1,
+            "reason": "qbroyd_failure_event",
+            "post_anchor_gram_index": 1,
+        }
+    ]
+    assert calls["geometry"] == 2
+    assert result.warm_state.metadata["metric_provenance"] == (
+        "exact_state_computed"
+    )
+
+
+def test_unstable_exact_gap_never_enters_predicted_metric_state() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        rank_rule=RankRule(tau_gap=0.8),
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls, grown=True),
+        [0.72, 0.0],
+        maxiter=1,
+    )
+
+    assert result.info["steps"][0]["metric_observed"] is True
+    assert result.info["steps"][0]["metric_refresh_reason"] == (
+        "qbroyd_failure_event"
+    )
+    assert result.warm_state.gap_status == "unstable"
+
+
+def test_final_step_qbroyd_failure_still_satisfies_terminal_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    qbroyd_calls = 0
+    original = fm_warm.qbroyd_inverse_update
+
+    def fail_on_final_call(metric, gradient, epsilon, **kwargs):
+        nonlocal qbroyd_calls
+        qbroyd_calls += 1
+        if qbroyd_calls == 100:
+            raise FloatingPointError("forced final-step prediction failure")
+        return original(metric, gradient, epsilon, **kwargs)
+
+    monkeypatch.setattr(fm_warm, "qbroyd_inverse_update", fail_on_final_call)
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        initial_trust_radius=1.0e-4,
+        min_trust_radius=1.0e-12,
+        max_trust_radius=1.0e-4,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+        max_rejections=10,
+    )
+
+    result = FormalManifoldSession(config=config).propose(
+        _instrumented_sparse_sphere_backend(calls),
+        [0.72],
+        maxiter=100,
+    )
+
+    assert result.info["accepted_inner_steps"] == 100
+    assert result.info["post_anchor_exact_grams_used"] == 4
+    assert result.info["exact_anchor_schedule"][-1]["reason"] == (
+        "qbroyd_failure_event"
+    )
+    assert result.info["terminal_validation_anchor_performed"] is True
+    assert result.warm_state.qbroyd_age == 0
+    assert calls["geometry"] == 5
+
+
+def test_sparse_qbroyd_checkpoint_and_pending_rollback_preserve_frame_state() -> None:
+    calls = {"energy": 0, "gradient": 0, "geometry": 0}
+    backend = _instrumented_sparse_sphere_backend(calls)
+    config = FormalManifoldConfig(
+        metric_mode=FORMAL_METRIC_SPARSE_ANCHOR_QBROYDEN,
+        transport_policy=FORMAL_TRANSPORT_PREDICTED_FRAME_GAUGE,
+        post_anchor_exact_gram_budget=4,
+        initial_trust_radius=0.03,
+        gradient_tol=1.0e-30,
+        step_tol=1.0e-30,
+    )
+    session = FormalManifoldSession(config=config)
+    committed_result = session.propose(backend, [0.72], maxiter=8)
+    session.commit(committed_result)
+    committed = session.checkpoint()
+    payload = session.checkpoint_payload()
+    assert committed is not None and payload is not None
+
+    resumed = FormalManifoldSession(config=config)
+    assert resumed.restore_checkpoint_payload(payload, backend) == 1
+    restored = resumed.checkpoint()
+    assert restored is not None
+    for name in (
+        "theta",
+        "B",
+        "qbroyd_inverse_metric",
+        "statevector",
+        "frame_anchor_statevector",
+        "frame",
+    ):
+        np.testing.assert_allclose(
+            getattr(restored, name), getattr(committed, name), atol=0.0, rtol=0.0
+        )
+    assert restored.frame_id == committed.frame_id
+    assert restored.whitening_id == committed.whitening_id
+    assert restored.logical_range_id == committed.logical_range_id
+    assert restored.qbroyd_age == committed.qbroyd_age
+
+    session.propose(backend, committed.theta, maxiter=1)
+    session.rollback()
+    _assert_state_equal(committed, session.checkpoint())
+
+
+def test_committed_terminal_exact_anchor_reuses_outer_geometry_and_checkpoints() -> None:
+    backend = _sphere_backend(grown=False)
+    ledger = QueryPrimitiveLedger()
+    session = FormalManifoldSession()
+    scope = {
+        "branch_id": "single_frontier:0",
+        "ordered_scaffold_fingerprint": "sphere-scaffold-a",
+        "coordinate_registry_fingerprint": digest_jsonable(["a"]),
+        "parameterization_tie_map_fingerprint": "sphere-tie-map-a",
+        "hamiltonian_fingerprint": "exact_backend_hamiltonian_v1",
+    }
+    candidate = session.propose(
+        backend,
+        [0.72],
+        maxiter=0,
+        query_ledger=ledger,
+        outer_selector_scope=scope,
+    )
+    assert candidate.info["outer_exact_anchor"]["status"] == "available"
+    anchor_provenance = candidate.warm_state.outer_exact_anchor
+    assert anchor_provenance is not None
+    assert set(anchor_provenance.source_primitive_ids).issubset(
+        ledger.unique_primitive_ids
+    )
+    session.commit(candidate)
+    committed = session.checkpoint()
+    assert committed is not None and committed.outer_exact_anchor is not None
+
+    reuse = build_retained_selector_anchor_from_formal_state(
+        state=committed,
+        source_query_ledger=ledger,
+        psi_state=committed.statevector,
+        theta=committed.theta,
+        branch_id="single_frontier:0",
+        ordered_scaffold_fingerprint="sphere-scaffold-a",
+        coordinate_registry_fingerprint=digest_jsonable(["a"]),
+        parameterization_tie_map_fingerprint="sphere-tie-map-a",
+        hamiltonian_fingerprint="exact_backend_hamiltonian_v1",
+        active_coordinate_indices=(0,),
+    )
+    assert reuse.reusable is True
+    assert reuse.anchor is not None
+    np.testing.assert_allclose(
+        reuse.anchor.G_AA,
+        np.real(np.conjugate(committed.tangents).T @ committed.tangents),
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(reuse.anchor.b_A, committed.b, atol=0.0)
+    imported = QueryPrimitiveLedger()
+    assert reuse.geometry_reuse_receipt is not None
+    assert reuse.energy_reuse_receipt is not None
+    imported.consume_receipt(
+        reuse.geometry_reuse_receipt,
+        consumer_phase="outer_anchor_geometry_reuse",
+    )
+    imported.consume_receipt(
+        reuse.energy_reuse_receipt,
+        consumer_phase="outer_anchor_energy_reuse",
+    )
+    assert imported.unique_primitive_ids == frozenset(
+        anchor_provenance.source_primitive_ids
+    )
+
+    payload = session.checkpoint_payload()
+    assert payload is not None
+    assert payload["outer_exact_anchor"] == anchor_provenance.portable_payload()
+    restored = FormalManifoldSession()
+    assert restored.restore_checkpoint_payload(payload, backend) == 1
+    assert restored.state is not None
+    assert restored.state.outer_exact_anchor == anchor_provenance
+
+    session.propose(
+        backend,
+        committed.theta,
+        maxiter=0,
+        query_ledger=ledger,
+        outer_selector_scope=scope,
+    )
+    session.rollback()
+    assert session.state is not None
+    assert session.state.outer_exact_anchor == anchor_provenance
+
+
+@pytest.mark.parametrize(
+    ("field_name", "replacement", "reason"),
+    [
+        ("branch_id", "different-branch", "outer_anchor_scope_mismatch"),
+        (
+            "ordered_scaffold_fingerprint",
+            "different-scaffold",
+            "outer_anchor_scope_mismatch",
+        ),
+        (
+            "parameterization_tie_map_fingerprint",
+            "different-tie-map",
+            "outer_anchor_scope_mismatch",
+        ),
+        (
+            "hamiltonian_fingerprint",
+            "different-hamiltonian",
+            "outer_anchor_scope_mismatch",
+        ),
+    ],
+)
+def test_committed_outer_anchor_fails_closed_on_scope_drift(
+    field_name: str,
+    replacement: str,
+    reason: str,
+) -> None:
+    backend = _sphere_backend(grown=False)
+    ledger = QueryPrimitiveLedger()
+    session = FormalManifoldSession()
+    scope = {
+        "branch_id": "single_frontier:0",
+        "ordered_scaffold_fingerprint": "sphere-scaffold-a",
+        "coordinate_registry_fingerprint": digest_jsonable(["a"]),
+        "parameterization_tie_map_fingerprint": "sphere-tie-map-a",
+        "hamiltonian_fingerprint": "exact_backend_hamiltonian_v1",
+    }
+    result = session.propose(
+        backend,
+        [0.72],
+        maxiter=0,
+        query_ledger=ledger,
+        outer_selector_scope=scope,
+    )
+    session.commit(result)
+    assert session.state is not None
+    attempted = dict(scope)
+    attempted[field_name] = replacement
+    reuse = build_retained_selector_anchor_from_formal_state(
+        state=session.state,
+        source_query_ledger=ledger,
+        psi_state=session.state.statevector,
+        theta=session.state.theta,
+        branch_id=str(attempted["branch_id"]),
+        ordered_scaffold_fingerprint=str(
+            attempted["ordered_scaffold_fingerprint"]
+        ),
+        coordinate_registry_fingerprint=str(
+            attempted["coordinate_registry_fingerprint"]
+        ),
+        parameterization_tie_map_fingerprint=str(
+            attempted["parameterization_tie_map_fingerprint"]
+        ),
+        hamiltonian_fingerprint=str(
+            attempted["hamiltonian_fingerprint"]
+        ),
+        active_coordinate_indices=(0,),
+    )
+    assert reuse.reusable is False
+    assert reuse.reason == reason
+
+
+def _sphere_growth_receipt(theta_a: float) -> FormalGrowthGeometryReceipt:
+    evaluation = _sphere_evaluation(
+        np.asarray([float(theta_a), 0.0]), grown=True
+    )
+    frame = build_exact_frame(evaluation.statevector, evaluation.tangents)
+    retained_mask = np.asarray(
+        frame.whitening_telemetry["metric_retained_mask"], dtype=bool
+    )
+    return FormalGrowthGeometryReceipt(
+        state_fingerprint=projective_state_fingerprint(evaluation.statevector),
+        branch_id="single_frontier:0",
+        manifold_id="sphere_fixture",
+        ordered_scaffold_fingerprint="sphere-old-scaffold",
+        theta_fingerprint="sphere-old-theta",
+        old_coordinate_registry_fingerprint=digest_jsonable(["a"]),
+        new_coordinate_registry_fingerprint=digest_jsonable(["a", "b"]),
+        parameterization_tie_map_fingerprint="sphere-tie-map",
+        hamiltonian_fingerprint="sphere-hamiltonian",
+        candidate_keys=("sphere-b",),
+        candidate_generator_fingerprints=("sphere-b-generator",),
+        insertion_positions=(1,),
+        old_to_new_registry_mapping=(0,),
+        G_AA=np.asarray([[1.0]], dtype=float),
+        G_AB=np.asarray([[0.0]], dtype=float),
+        G_BB=np.asarray([[np.sin(float(theta_a)) ** 2]], dtype=float),
+        candidate_gradients=np.asarray([evaluation.gradient[1]], dtype=float),
+        rank_rule_fingerprint="sphere-shared-rank-rule",
+        retained_spectrum=np.asarray(frame.spectrum, dtype=float)[retained_mask],
+        metric_convention="raw_fubini_study_supported_metric_whitened_v1",
+        G_AA_provenance="exact_state_retained_anchor",
+        source_primitive_ids=("sphere-metric-primitive",),
+        query_free_derived_fields=("growth_supported_rank_and_spectrum",),
+        missing_or_regularized_fields=(
+            "metric_ridge_regularized_supported_coordinates",
+        ),
+        zero_new_coordinates=True,
+        old_gate_subsequence_unchanged=True,
+    )
+
+
+def _live_sphere_growth_receipt(
+    theta_a: float,
+    ledger: QueryPrimitiveLedger,
+    *,
+    branch_id: str = "single_frontier:0",
+) -> FormalGrowthGeometryReceipt:
+    receipt = replace(_sphere_growth_receipt(theta_a), branch_id=str(branch_id))
+    evaluation = _sphere_evaluation(
+        np.asarray([float(theta_a), 0.0], dtype=float), grown=True
+    )
+    common = {
+        "physical_state_fingerprint": receipt.state_fingerprint,
+        "branch_id": str(branch_id),
+        "ordered_scaffold_fingerprint": receipt.ordered_scaffold_fingerprint,
+        "theta_fingerprint": receipt.theta_fingerprint,
+        "coordinate_registry_fingerprint": (
+            receipt.new_coordinate_registry_fingerprint
+        ),
+        "candidate_generator_fingerprint": "",
+        "candidate_insertion_position": None,
+        "parameterization_tie_map_fingerprint": (
+            receipt.parameterization_tie_map_fingerprint
+        ),
+        "hamiltonian_fingerprint": receipt.hamiltonian_fingerprint,
+        "provider_backend_id": "sphere_exact_provider_v1",
+        "estimator_precision_contract": "deterministic_exact_state_v1",
+    }
+    primitives = tuple(
+        EstimatorPrimitiveIdentity(
+            primitive_kind=kind,
+            formula_primitive_identity=formula,
+            **common,
+        )
+        for kind, formula in (
+            ("energy", "formal_manifold_endpoint_energy_v1"),
+            (
+                "coordinate_gradient",
+                "formal_manifold_endpoint_coordinate_gradient_v1",
+            ),
+            ("tangent_or_metric", "formal_manifold_endpoint_full_geometry_v1"),
+        )
+    )
+    query_receipt = QueryReceipt.from_primitives(
+        requested=primitives,
+        returned_fields=("energy", "gradient", "tangents", "fubini_study_metric"),
+        provenance_by_field={
+            "energy": "selector_exact_state",
+            "gradient": "selector_exact_state",
+            "tangents": "selector_exact_state",
+            "fubini_study_metric": "selector_exact_state",
+        },
+        provider_kind="sphere_exact_provider_v1",
+        statevector_shortcut_used=True,
+    )
+    ledger.consume_receipt(query_receipt, consumer_phase="selector_growth")
+    metric_id = next(
+        primitive.primitive_id
+        for primitive in primitives
+        if primitive.primitive_kind == "tangent_or_metric"
+    )
+    ledger.record_geometry_element_accounting(
+        metric_id,
+        geometry_kind=GEOMETRY_ELEMENT_FULL_SYMMETRIC_GRAM,
+        row_dimension=2,
+        column_dimension=2,
+    )
+    source_ids = tuple(sorted(primitive.primitive_id for primitive in primitives))
+    energy_id = next(
+        primitive.primitive_id
+        for primitive in primitives
+        if primitive.primitive_kind == "energy"
+    )
+    handle = FormalGrowthEvaluationHandle(
+        state_fingerprint=receipt.state_fingerprint,
+        branch_id=str(branch_id),
+        candidate_keys=receipt.candidate_keys,
+        old_to_new_registry_mapping=receipt.old_to_new_registry_mapping,
+        candidate_positions=(1,),
+        source_primitive_ids=source_ids,
+        energy=float(evaluation.energy),
+        statevector=evaluation.statevector,
+        gradient=evaluation.gradient,
+        tangents=evaluation.tangents,
+        precharged_energy_primitive_id=energy_id,
+    )
+    return replace(
+        receipt,
+        source_primitive_ids=source_ids,
+        live_evaluation_handle=handle,
+    )
+
+
+def test_query_closed_live_growth_handle_reuses_zero_growth_full_geometry() -> None:
+    session = FormalManifoldSession()
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=2)
+    session.commit(initial)
+    parent = session.checkpoint()
+    assert parent is not None
+    ledger = QueryPrimitiveLedger()
+    receipt = _live_sphere_growth_receipt(float(parent.theta[0]), ledger)
+    calls = {"geometry": 0}
+
+    def evaluate(theta: np.ndarray) -> ExactStateEvaluation:
+        calls["geometry"] += 1
+        return _sphere_evaluation(theta, grown=True)
+
+    backend = ExactStateBackend(
+        evaluate_fn=evaluate,
+        coordinate_registry=("a", "b"),
+        manifold_id="sphere_fixture",
+        parameterization_mode="logical_shared",
+    )
+    result = session.propose(
+        backend,
+        [parent.theta[0], 0.0],
+        maxiter=0,
+        growth_receipt=receipt,
+        query_ledger=ledger,
+    )
+
+    assert calls == {"geometry": 0}
+    assert result.nfev == 0
+    assert result.info["initial_evaluation"] == {
+        "source": "query_closed_same_process_growth_handle",
+        "backend_evaluation_invoked": False,
+        "source_primitive_ids_reused": list(receipt.source_primitive_ids),
+        "precharged_energy_primitive_id": (
+            receipt.live_evaluation_handle.precharged_energy_primitive_id
+        ),
+        "full_geometry_query_charge": 0,
+    }
+    validation = result.info["transition"]["query_closure_growth_receipt"]
+    assert validation["same_process_live_geometry_reused"] is True
+    assert validation["incremental_query_charge"] == 0
+    assert result.info["optimizer_query_primitive_calls"] == {
+        "energy": 0,
+        "coordinate_gradient": 0,
+        "tangent_or_metric": 0,
+        "cross_state_tangent": 0,
+    }
+    geometry = result.info["optimizer_geometry_element_accounting"]
+    assert geometry["used_unique_geometry"]["full_symmetric_gram_elements"] == 3
+    assert geometry["newly_measured_unique_geometry"][
+        "total_geometry_elements"
+    ] == 0
+    assert geometry["ledger_total_geometry"]["full_symmetric_gram_elements"] == 3
+    assert len(geometry["reused_geometry_primitive_ids"]) == 1
+    portable = receipt.portable_payload()
+    assert "live_evaluation_handle" not in portable
+    assert "statevector" not in str(portable).lower()
+    assert "tangents" not in str(portable).lower()
+    session.rollback()
+
+
+def test_live_growth_handle_fails_closed_on_unknown_sources_and_bad_gram() -> None:
+    ledger = QueryPrimitiveLedger()
+    receipt = _live_sphere_growth_receipt(0.72, ledger)
+    assert receipt.live_evaluation_handle is not None
+    with pytest.raises(ValueError, match="tangent Gram"):
+        replace(
+            receipt,
+            live_evaluation_handle=replace(
+                receipt.live_evaluation_handle,
+                tangents=2.0 * receipt.live_evaluation_handle.tangents,
+            ),
+        )
+
+    session = FormalManifoldSession()
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=0)
+    session.commit(initial)
+    with pytest.raises(ValueError, match="unknown source primitives"):
+        session.propose(
+            _sphere_backend(grown=True),
+            [0.72, 0.0],
+            maxiter=0,
+            growth_receipt=receipt,
+            query_ledger=QueryPrimitiveLedger(),
+        )
+
+
+def _sphere_curvature_receipt(
+    growth_receipt: FormalGrowthGeometryReceipt,
+    theta_a: float,
+    *,
+    hessian: np.ndarray | None = None,
+) -> FormalAdmissionCurvatureReceipt:
+    evaluation = _sphere_evaluation(
+        np.asarray([float(theta_a), 0.0]), grown=True
+    )
+    raw_hessian = np.asarray(
+        [[2.5, -0.4], [-0.4, -1.2]]
+        if hessian is None
+        else hessian,
+        dtype=float,
+    )
+    return build_formal_admission_curvature_receipt(
+        growth_receipt=growth_receipt,
+        phase3_summary={
+            "schema": "historical_singleton_coordinate_model_v1",
+            "scope": "historical_phase3_whitening",
+            "authority": "historical_phase3_benefit_overlay_only",
+            "joint_batch_context_mode": "full_ansatz_v1",
+            "geometry_mode": "full_residual_gram_hessian_v1",
+            "joint_linear_solve_policy_effective": (
+                "supported_metric_whitened_eigh_v1"
+            ),
+            "supported_metric_whitening_policy": (
+                "supported_metric_whitened_eigh_v1"
+            ),
+            "feasible": True,
+            "reason": "supported_metric_whitened_eigh_solve",
+            "candidate_label": "b",
+            "candidate_pool_index": 7,
+            "position_id": 1,
+            "active_coordinate_identities": ["a"],
+            "batch_coordinate_identities": [
+                {
+                    "candidate_label": "b",
+                    "candidate_pool_index": 7,
+                    "position_id": 1,
+                    "global_child_identity": "",
+                }
+            ],
+            "G_AA_raw": growth_receipt.G_AA.tolist(),
+            "G_AB_raw": growth_receipt.G_AB.tolist(),
+            "G_BB_raw": growth_receipt.G_BB.tolist(),
+            "H_AA_raw": raw_hessian[:1, :1].tolist(),
+            "H_AB_raw": raw_hessian[:1, 1:].tolist(),
+            "H_BB_raw": raw_hessian[1:, 1:].tolist(),
+            "g_A": [-float(evaluation.gradient[0])],
+            "g_B": [-float(evaluation.gradient[1])],
+        },
+        ordinary_hessian_primitive_ids=("sphere-phase3-hessian",),
+    )
+
+
+def test_session_exact_growth_is_transactional_and_reuses_curvature() -> None:
+    config = FormalManifoldConfig(
+        rank_rule=RankRule(tau_abs=1.0e-13, tau_rel=1.0e-12, tau_gap=1.0e-10),
+        gradient_tol=1.0e-10,
+        initial_trust_radius=0.35,
+    )
+    session = FormalManifoldSession(config=config)
+    first = session.propose(_sphere_backend(grown=False), [0.72], maxiter=10)
+    assert first.fun <= _sphere_evaluation(np.asarray([0.72]), grown=False).energy
+    session.commit(first)
+    checkpoint = session.checkpoint()
+    assert checkpoint is not None
+
+    grown_x0 = np.asarray([checkpoint.theta[0], 0.0])
+    candidate = session.propose(
+        _sphere_backend(grown=True),
+        grown_x0,
+        maxiter=8,
+    )
+    assert candidate.info["transition"]["kind"] == "exact_zero_coordinate_growth"
+    assert candidate.info["transition"]["growth_exact_identity_verified"] is True
+    assert candidate.fun <= checkpoint.energy + 1.0e-12
+    assert session.summary()["pending"] is True
+
+    session.rollback()
+    restored = session.checkpoint()
+    assert restored is not None
+    _assert_state_equal(checkpoint, restored)
+
+    accepted = session.propose(_sphere_backend(grown=True), grown_x0, maxiter=8)
+    session.commit(accepted)
+    summary = session.summary()
+    assert summary["pending"] is False
+    assert summary["state"]["coordinate_count"] == 2
+    assert summary["state"]["rank"] == 2
+    assert summary["qbroyd_mode"] == "shadow_predictor_exact_refresh_v1"
+    committed = session.checkpoint()
+    assert committed is not None
+    np.testing.assert_allclose(
+        committed.qbroyd_inverse_metric,
+        committed.M_R,
+        atol=0.0,
+        rtol=0.0,
+    )
+    assert committed.qbroyd_age == 0
+
+
+def test_query_closed_growth_receipt_is_transactional_and_checkpointed() -> None:
+    session = FormalManifoldSession()
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=4)
+    session.commit(initial)
+    before = session.checkpoint()
+    assert before is not None
+    receipt = _sphere_growth_receipt(float(before.theta[0]))
+    grown_x0 = np.asarray([before.theta[0], 0.0], dtype=float)
+
+    proposal = session.propose(
+        _sphere_backend(grown=True),
+        grown_x0,
+        maxiter=2,
+        growth_receipt=receipt,
+    )
+    receipt_validation = proposal.info["transition"][
+        "query_closure_growth_receipt"
+    ]
+    assert receipt_validation["valid"] is True
+    assert receipt_validation["incremental_query_charge"] == 3
+    assert receipt_validation["same_process_live_geometry_reused"] is False
+    assert receipt_validation["receipt_fingerprint"] == (
+        receipt.receipt_fingerprint
+    )
+    assert proposal.warm_state.metadata["metric_provenance"] == (
+        "exact_state_computed"
+    )
+    assert proposal.warm_state.metadata[
+        "query_closure_growth_receipt_origin"
+    ]["receipt_fingerprint"] == receipt.receipt_fingerprint
+
+    session.rollback()
+    restored = session.checkpoint()
+    assert restored is not None
+    _assert_state_equal(before, restored)
+
+    accepted = session.propose(
+        _sphere_backend(grown=True),
+        grown_x0,
+        maxiter=2,
+        growth_receipt=receipt,
+    )
+    session.commit(accepted)
+    payload = session.checkpoint_payload()
+    assert payload is not None
+    assert payload["metadata"]["query_closure_growth_receipt_origin"][
+        "receipt_fingerprint"
+    ] == receipt.receipt_fingerprint
+    assert payload["whitening_id"] == payload["curvature_whitening_id"]
+    assert payload["frame_id"] == payload["curvature_frame_id"]
+
+
+def test_phase3_hessian_seeds_direct_curvature_in_supported_whitened_frame() -> None:
+    config = FormalManifoldConfig(
+        curvature_branch=FORMAL_CURVATURE_DIRECT_SR1,
+        qbroyd_epsilon0=0.0,
+        initial_trust_radius=0.25,
+    )
+    session = FormalManifoldSession(config=config)
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=0)
+    session.commit(initial)
+    before = session.checkpoint()
+    assert before is not None
+    growth = _sphere_growth_receipt(float(before.theta[0]))
+    curvature = _sphere_curvature_receipt(
+        growth, float(before.theta[0])
+    )
+    evaluation = _sphere_evaluation(
+        np.asarray([float(before.theta[0]), 0.0]), grown=True
+    )
+    frame = build_exact_frame(
+        evaluation.statevector,
+        evaluation.tangents,
+        gram_override=np.block(
+            [[growth.G_AA, growth.G_AB], [growth.G_AB.T, growth.G_BB]]
+        ),
+    )
+    raw_hessian = np.block(
+        [
+            [curvature.H_AA, curvature.H_AB],
+            [curvature.H_AB.T, curvature.H_BB],
+        ]
+    )
+    expected = frame.raw_orthonormalizer.T @ raw_hessian @ (
+        frame.raw_orthonormalizer
+    )
+
+    proposal = session.propose(
+        _sphere_backend(grown=True),
+        [before.theta[0], 0.0],
+        maxiter=0,
+        growth_receipt=growth,
+        curvature_receipt=curvature,
+    )
+
+    np.testing.assert_allclose(proposal.warm_state.A, expected, atol=1.0e-13)
+    assert proposal.warm_state.B.shape == (0, 0)
+    seed = proposal.info["transition"]["admission_curvature_receipt"]
+    assert seed["seed_applied"] is True
+    assert seed["projection"] == "A_R=R.T@H_raw@R"
+    assert seed["descent_gradient_sign_conversion"] == (
+        "fm_gradient=-sr_descent_gradient"
+    )
+    assert seed["qbroyd_epsilon0"] == 0.0
+    assert seed["qbroyd_or_qbang_overwrote_seed"] is False
+
+    session.rollback()
+    restored = session.checkpoint()
+    assert restored is not None
+    _assert_state_equal(before, restored)
+
+
+def test_phase3_hessian_seed_checkpoint_roundtrip_and_tamper_guard() -> None:
+    config = FormalManifoldConfig(
+        curvature_branch=FORMAL_CURVATURE_DIRECT_SR1,
+        qbroyd_epsilon0=0.0,
+    )
+    source = FormalManifoldSession(config=config)
+    initial = source.propose(_sphere_backend(grown=False), [0.69], maxiter=0)
+    source.commit(initial)
+    before = source.checkpoint()
+    assert before is not None
+    growth = _sphere_growth_receipt(float(before.theta[0]))
+    curvature = _sphere_curvature_receipt(growth, float(before.theta[0]))
+    seeded = source.propose(
+        _sphere_backend(grown=True),
+        [before.theta[0], 0.0],
+        maxiter=0,
+        growth_receipt=growth,
+        curvature_receipt=curvature,
+    )
+    source.commit(seeded)
+    payload = source.checkpoint_payload()
+    assert payload is not None
+    metadata = payload["metadata"]["formal_admission_curvature_receipt"]
+    assert metadata["receipt_fingerprint"] == curvature.receipt_fingerprint
+    assert metadata["seed_whitening_id"] == payload["whitening_id"]
+
+    resumed = FormalManifoldSession(config=config)
+    assert resumed.restore_checkpoint_payload(
+        payload, _sphere_backend(grown=True)
+    ) == 1
+    assert resumed.state is not None
+    np.testing.assert_allclose(resumed.state.A, source.state.A, atol=0.0, rtol=0.0)
+
+    tampered = dict(payload)
+    tampered_metadata = dict(payload["metadata"])
+    tampered_seed = dict(tampered_metadata["formal_admission_curvature_receipt"])
+    tampered_receipt = dict(tampered_seed["receipt"])
+    tampered_receipt["receipt_fingerprint"] = "wrong"
+    tampered_seed["receipt"] = tampered_receipt
+    tampered_metadata["formal_admission_curvature_receipt"] = tampered_seed
+    tampered["metadata"] = tampered_metadata
+    with pytest.raises(ValueError, match="curvature receipt fingerprint"):
+        FormalManifoldSession(config=config).restore_checkpoint_payload(
+            tampered, _sphere_backend(grown=True)
+        )
+
+
+def test_phase3_hessian_seed_becomes_transported_secant_lineage_after_step() -> None:
+    config = FormalManifoldConfig(
+        curvature_branch=FORMAL_CURVATURE_DIRECT_SR1,
+        qbroyd_epsilon0=0.0,
+        initial_trust_radius=0.05,
+    )
+    session = FormalManifoldSession(config=config)
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=0)
+    session.commit(initial)
+    before = session.checkpoint()
+    assert before is not None
+    growth = _sphere_growth_receipt(float(before.theta[0]))
+    curvature = _sphere_curvature_receipt(
+        growth,
+        float(before.theta[0]),
+        hessian=np.eye(2),
+    )
+
+    proposal = session.propose(
+        _sphere_backend(grown=True),
+        [before.theta[0], 0.0],
+        maxiter=1,
+        growth_receipt=growth,
+        curvature_receipt=curvature,
+    )
+
+    assert proposal.info["steps"] and proposal.info["steps"][0]["accepted"]
+    origin = proposal.warm_state.metadata[
+        "formal_admission_curvature_receipt_origin"
+    ]
+    assert origin["applies_to_current_endpoint"] is False
+    assert origin["scope"] == "accepted_zero_growth_curvature_seed_origin"
+    assert origin["current_curvature_lineage"] in {
+        "transported_then_secant_updated",
+        "transported_or_reset_after_seed",
+    }
+
+
+def _sphere_backend_with_candidate_gradient(value: float) -> ExactStateBackend:
+    def evaluate(theta: np.ndarray) -> ExactStateEvaluation:
+        base = _sphere_evaluation(theta, grown=True)
+        gradient = np.asarray(base.gradient, dtype=float).copy()
+        gradient[1] = float(value)
+        return ExactStateEvaluation(
+            energy=base.energy,
+            gradient=gradient,
+            statevector=base.statevector,
+            tangents=base.tangents,
+            metadata=base.metadata,
+        )
+
+    return ExactStateBackend(
+        evaluate_fn=evaluate,
+        coordinate_registry=("a", "b"),
+        manifold_id="sphere_fixture",
+        parameterization_mode="logical_shared",
+        metadata={"exact": True},
+    )
+
+
+def test_growth_receipt_candidate_differential_uses_scale_aware_floor() -> None:
+    session = FormalManifoldSession()
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=4)
+    session.commit(initial)
+    before = session.checkpoint()
+    assert before is not None
+    receipt_gradient = 4.8097367838333805e-11
+    exact_gradient = receipt_gradient + np.finfo(float).eps
+    receipt = replace(
+        _sphere_growth_receipt(float(before.theta[0])),
+        candidate_gradients=np.asarray([receipt_gradient], dtype=float),
+    )
+
+    proposal = session.propose(
+        _sphere_backend_with_candidate_gradient(exact_gradient),
+        np.asarray([before.theta[0], 0.0], dtype=float),
+        maxiter=1,
+        growth_receipt=receipt,
+    )
+
+    validation = proposal.info["transition"]["query_closure_growth_receipt"]
+    assert validation["candidate_gradient_absolute_error"] == pytest.approx(
+        np.finfo(float).eps
+    )
+    assert validation["candidate_gradient_scale"] == pytest.approx(exact_gradient)
+    assert validation["candidate_gradient_comparison_tolerance"] > validation[
+        "candidate_gradient_absolute_error"
+    ]
+
+
+def test_growth_receipt_candidate_differential_still_rejects_material_error() -> None:
+    session = FormalManifoldSession()
+    initial = session.propose(_sphere_backend(grown=False), [0.72], maxiter=4)
+    session.commit(initial)
+    before = session.checkpoint()
+    assert before is not None
+    receipt = replace(
+        _sphere_growth_receipt(float(before.theta[0])),
+        candidate_gradients=np.asarray([1.0e-10], dtype=float),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="growth geometry receipt candidate differential mismatch",
+    ):
+        session.propose(
+            _sphere_backend_with_candidate_gradient(0.0),
+            np.asarray([before.theta[0], 0.0], dtype=float),
+            maxiter=1,
+            growth_receipt=receipt,
+        )
+
+
+def test_session_reset_drops_structural_memory_but_records_reason() -> None:
+    session = FormalManifoldSession()
+    result = session.propose(_sphere_backend(grown=False), [0.6], maxiter=1)
+    session.commit(result)
+
+    session.reset("accepted_nonzero_prune")
+
+    summary = session.summary()
+    assert summary["state"]["active"] is False
+    assert summary["last_reset_reason"] == "accepted_nonzero_prune"
+    assert summary["reset_count"] == 1
+
+
+def test_growth_resets_curvature_when_supported_frame_is_not_isometric() -> None:
+    state = np.asarray([1.0, 0.0, 0.0, 0.0], dtype=complex)
+    old_tangents = np.asarray(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 0.1],
+            [0.0, 0.0],
+        ],
+        dtype=complex,
+    )
+    grown_tangents = np.asarray(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.1, 0.0],
+            [0.0, 0.0, 10.0],
+        ],
+        dtype=complex,
+    )
+
+    def _backend(
+        registry: tuple[str, ...], tangents: np.ndarray
+    ) -> ExactStateBackend:
+        return ExactStateBackend(
+            evaluate_fn=lambda theta: ExactStateEvaluation(
+                energy=0.0,
+                gradient=np.zeros(theta.size),
+                statevector=state,
+                tangents=tangents,
+            ),
+            coordinate_registry=registry,
+            manifold_id="support-change-growth-test",
+            parameterization_mode="logical_shared",
+        )
+
+    config = FormalManifoldConfig(
+        supported_metric=JointLinearSolveConfig(
+            rank_relative_tolerance=1.0e-3
+        )
+    )
+    session = FormalManifoldSession(config=config)
+    anchored = session.propose(
+        _backend(("a", "b"), old_tangents),
+        [0.0, 0.0],
+        maxiter=0,
+    )
+    session.commit(anchored)
+    assert anchored.warm_state.rank == 2
+
+    grown = session.propose(
+        _backend(("a", "b", "c"), grown_tangents),
+        [0.0, 0.0, 0.0],
+        maxiter=0,
+    )
+
+    transition = grown.info["transition"]
+    assert grown.warm_state.rank == 2
+    assert transition["kind"] == "exact_zero_coordinate_growth_frame_reset"
+    assert transition["growth_exact_identity_verified"] is True
+    assert transition["supported_frame_transport_valid"] is False
+    assert transition["supported_frame_reset_reason"] == (
+        "nonisometric_supported_frame_embedding"
+    )
+    assert transition["curvature_action"] == (
+        "incompatible_supported_frame_isotropic_reset"
+    )
+    np.testing.assert_allclose(grown.warm_state.B, np.eye(2), atol=1.0e-14)
+    assert grown.warm_state.qbroyd_age == 0
+    assert grown.warm_state.trust_radius == pytest.approx(
+        config.initial_trust_radius * config.trust_shrink
+    )
+
+
+def test_growth_rejects_rotated_inherited_tangent_map_even_when_gram_matches() -> None:
+    state = np.asarray([1.0, 0.0, 0.0], dtype=complex)
+    old_tangents = np.asarray(
+        [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=complex
+    )
+    rotated_tangents = np.asarray(
+        [[0.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0]],
+        dtype=complex,
+    )
+
+    def old_eval(_theta: np.ndarray) -> ExactStateEvaluation:
+        return ExactStateEvaluation(
+            energy=0.0,
+            gradient=np.zeros(2),
+            statevector=state,
+            tangents=old_tangents,
+        )
+
+    def grown_eval(_theta: np.ndarray) -> ExactStateEvaluation:
+        return ExactStateEvaluation(
+            energy=0.0,
+            gradient=np.zeros(3),
+            statevector=state,
+            tangents=rotated_tangents,
+        )
+
+    old_backend = ExactStateBackend(
+        evaluate_fn=old_eval,
+        coordinate_registry=("a", "b"),
+        manifold_id="rotated_growth_fixture",
+        parameterization_mode="logical_shared",
+    )
+    grown_backend = ExactStateBackend(
+        evaluate_fn=grown_eval,
+        coordinate_registry=("a", "b", "new"),
+        manifold_id="rotated_growth_fixture",
+        parameterization_mode="logical_shared",
+    )
+    session = FormalManifoldSession()
+    initial = session.propose(old_backend, [0.0, 0.0], maxiter=0)
+    session.commit(initial)
+
+    with pytest.raises(ValueError, match="density-tangent map identity"):
+        session.propose(grown_backend, [0.0, 0.0, 0.0], maxiter=0)
+
+
+def test_hard_metric_innovation_resets_curvature_and_skips_crossing_secant() -> None:
+    session = FormalManifoldSession(
+        config=FormalManifoldConfig(
+            metric_innovation_soft=0.0,
+            metric_innovation_hard=0.0,
+            initial_trust_radius=0.35,
+        )
+    )
+
+    result = session.propose(_sphere_backend(grown=False), [0.72], maxiter=1)
+
+    assert result.info["steps"]
+    step = result.info["steps"][0]
+    assert step["qbroyd_shadow"]["severity"] == "hard"
+    assert step["curvature_action"] == (
+        "hard_metric_innovation_reset_skip_crossing_secant"
+    )
+    assert step["rbfgs"] is None
+
+
+def test_commit_uses_session_snapshot_not_mutated_result_arrays() -> None:
+    session = FormalManifoldSession()
+    result = session.propose(_sphere_backend(grown=False), [0.6], maxiter=0)
+    expected_theta = result.warm_state.theta.copy()
+    result.warm_state.theta[:] = 123.0
+    result.warm_state.B[:] = 999.0
+
+    session.commit(result)
+
+    committed = session.checkpoint()
+    assert committed is not None
+    np.testing.assert_array_equal(committed.theta, expected_theta)
+    assert not np.all(committed.B == 999.0)
+
+
+def test_exact_growth_accepts_preserved_raw_mode_that_rank_rule_discards() -> None:
+    state = np.asarray([1.0, 0.0, 0.0], dtype=complex)
+    old_tangents = np.asarray(
+        [[0.0, 0.0], [1.0, 0.0], [0.0, 0.01]], dtype=complex
+    )
+    grown_tangents = np.column_stack(
+        [old_tangents, np.zeros(3, dtype=complex)]
+    )
+
+    def evaluation(tangents: np.ndarray) -> ExactStateEvaluation:
+        return ExactStateEvaluation(
+            energy=0.0,
+            gradient=np.zeros(tangents.shape[1]),
+            statevector=state,
+            tangents=tangents,
+        )
+
+    old_backend = ExactStateBackend(
+        evaluate_fn=lambda _theta: evaluation(old_tangents),
+        coordinate_registry=("large", "discarded"),
+        manifold_id="discarded_mode_fixture",
+        parameterization_mode="logical_shared",
+    )
+    grown_backend = ExactStateBackend(
+        evaluate_fn=lambda _theta: evaluation(grown_tangents),
+        coordinate_registry=("large", "discarded", "new-zero"),
+        manifold_id="discarded_mode_fixture",
+        parameterization_mode="logical_shared",
+    )
+    session = FormalManifoldSession(
+        config=FormalManifoldConfig(
+            rank_rule=RankRule(tau_gap=0.0),
+            supported_metric=JointLinearSolveConfig(
+                rank_relative_tolerance=1.0e-3
+            ),
+        )
+    )
+    first = session.propose(old_backend, [0.0, 0.0], maxiter=0)
+    session.commit(first)
+
+    grown = session.propose(grown_backend, [0.0, 0.0, 0.0], maxiter=0)
+
+    assert grown.info["transition"]["kind"] == "exact_zero_coordinate_growth"
+    assert grown.info["rank"] == 1
+
+
+def test_shared_whitening_parameter_rescaling_preserves_physical_update() -> None:
+    state = np.asarray([1.0, 0.0, 0.0], dtype=complex)
+    tangents = np.asarray(
+        [[0.0, 0.0], [1.0, 0.25], [0.0, 0.8]], dtype=complex
+    )
+    differential = np.asarray([0.4, -0.2])
+    scale = np.diag([3.0, 0.4])
+    config = JointLinearSolveConfig(
+        rank_relative_tolerance=1.0e-12,
+        metric_regularization=0.5,
+    )
+
+    original = build_exact_frame(state, tangents, supported_metric=config)
+    rescaled = build_exact_frame(
+        state,
+        tangents @ scale,
+        supported_metric=config,
+    )
+    p_original = -original.raw_orthonormalizer @ (
+        original.raw_orthonormalizer.T @ differential
+    )
+    differential_rescaled = scale.T @ differential
+    p_rescaled = -rescaled.raw_orthonormalizer @ (
+        rescaled.raw_orthonormalizer.T @ differential_rescaled
+    )
+
+    np.testing.assert_allclose(
+        tangents @ p_original,
+        tangents @ scale @ p_rescaled,
+        atol=1.0e-11,
+    )
+
+
+def test_whitened_transport_preserves_pairing_and_curvature_coordinates() -> None:
+    angle = 0.31
+    Q = np.asarray(
+        [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    )
+    C_old = np.diag([0.7, 0.9])
+    C_new = np.diag([0.8, 0.6])
+    transport = supported_whitened_transport(Q, C_old, C_new)
+    assert transport.valid is True
+    P = transport.P
+    x_old = np.asarray([0.2, -0.4])
+    g_old = np.asarray([0.5, 0.3])
+    B_old = np.asarray([[1.4, 0.2], [0.2, 0.9]])
+    x_new = P @ x_old
+    g_new = np.linalg.solve(P.T, g_old)
+    B_new = P @ B_old @ P.T
+
+    assert g_new @ x_new == pytest.approx(g_old @ x_old, abs=1.0e-13)
+    np.testing.assert_allclose(
+        B_new @ g_new,
+        P @ (B_old @ g_old),
+        atol=1.0e-13,
+    )
+    A_old = np.linalg.inv(B_old)
+    A_new = np.linalg.solve(P.T, A_old @ np.linalg.inv(P))
+    assert x_new @ A_new @ x_new == pytest.approx(
+        x_old @ A_old @ x_old,
+        abs=1.0e-13,
+    )
+
+
+def test_checkpoint_resume_preserves_whitening_and_rejects_config_drift() -> None:
+    config = FormalManifoldConfig(
+        supported_metric=JointLinearSolveConfig(
+            rank_relative_tolerance=1.0e-8,
+            metric_regularization=1.0e-7,
+        )
+    )
+    session = FormalManifoldSession(config=config)
+    result = session.propose(_sphere_backend(grown=False), [0.61], maxiter=1)
+    session.commit(result)
+    checkpoint = session.checkpoint()
+    assert checkpoint is not None
+
+    resumed = FormalManifoldSession(checkpoint, config=config)
+    restored = resumed.checkpoint()
+    assert restored is not None
+    _assert_state_equal(checkpoint, restored)
+    assert resumed.summary()["state"]["whitening_id"] == checkpoint.whitening_id
+
+    drifted = FormalManifoldConfig(
+        supported_metric=JointLinearSolveConfig(
+            rank_relative_tolerance=1.0e-8,
+            metric_regularization=2.0e-7,
+        )
+    )
+    with pytest.raises(ValueError, match="configuration"):
+        FormalManifoldSession(checkpoint, config=drifted)
+
+
+def test_json_checkpoint_rebuilds_matching_frame_and_curvature() -> None:
+    config = FormalManifoldConfig(
+        supported_metric=JointLinearSolveConfig(metric_regularization=1.0e-8)
+    )
+    source = FormalManifoldSession(config=config)
+    result = source.propose(_sphere_backend(grown=False), [0.58], maxiter=2)
+    source.commit(result)
+    payload = source.checkpoint_payload()
+    assert payload is not None
+    assert payload["no_statevector_serialized"] is True
+
+    restored = FormalManifoldSession(config=config)
+    assert restored.restore_checkpoint_payload(payload, _sphere_backend(grown=False)) == 1
+    left = source.checkpoint()
+    right = restored.checkpoint()
+    assert left is not None and right is not None
+    np.testing.assert_allclose(right.B, left.B, atol=0.0, rtol=0.0)
+    np.testing.assert_allclose(
+        right.qbroyd_inverse_metric,
+        left.qbroyd_inverse_metric,
+        atol=0.0,
+        rtol=0.0,
+    )
+    assert right.whitening_id == left.whitening_id
+
+    tampered = dict(payload)
+    tampered["whitening_id"] = "wrong"
+    with pytest.raises(ValueError, match="whitening provenance"):
+        FormalManifoldSession(config=config).restore_checkpoint_payload(
+            tampered, _sphere_backend(grown=False)
+        )
+
+
+def test_direct_sr1_session_checkpoint_growth_and_rollback_are_typed() -> None:
+    config = FormalManifoldConfig(
+        curvature_branch=FORMAL_CURVATURE_DIRECT_SR1,
+        initial_trust_radius=0.35,
+        gradient_tol=1.0e-10,
+    )
+    session = FormalManifoldSession(config=config)
+    result = session.propose(_sphere_backend(grown=False), [0.72], maxiter=3)
+
+    assert result.info["curvature_branch"] == FORMAL_CURVATURE_DIRECT_SR1
+    assert result.info["qbang_momentum_active"] is False
+    assert result.warm_state.curvature_branch == FORMAL_CURVATURE_DIRECT_SR1
+    assert result.warm_state.B.shape == (0, 0)
+    assert result.warm_state.A.shape == (result.warm_state.rank,) * 2
+    assert all(step["rbfgs"] is None for step in result.info["steps"])
+    for step in result.info["steps"]:
+        if step["accepted"]:
+            assert step["direct_trust_solve"]["feasible"] is True
+            assert step["direct_sr1"] is not None
+
+    session.commit(result)
+    checkpoint = session.checkpoint()
+    payload = session.checkpoint_payload()
+    assert checkpoint is not None and payload is not None
+    assert payload["curvature_branch"] == FORMAL_CURVATURE_DIRECT_SR1
+    assert payload["inverse_curvature"] is None
+    np.testing.assert_allclose(payload["direct_curvature"], checkpoint.A)
+
+    resumed = FormalManifoldSession(config=config)
+    assert resumed.restore_checkpoint_payload(
+        payload, _sphere_backend(grown=False)
+    ) == 1
+    assert resumed.state is not None
+    np.testing.assert_allclose(resumed.state.A, checkpoint.A, atol=0.0, rtol=0.0)
+    assert resumed.state.frame_id == checkpoint.frame_id
+    assert resumed.state.whitening_id == checkpoint.whitening_id
+
+    grown = session.propose(
+        _sphere_backend(grown=True),
+        [checkpoint.theta[0], 0.0],
+        maxiter=0,
+    )
+    assert grown.info["transition"]["kind"] == "exact_zero_coordinate_growth"
+    assert grown.warm_state.A.shape == (2, 2)
+    assert grown.warm_state.B.shape == (0, 0)
+    np.testing.assert_allclose(grown.warm_state.A, grown.warm_state.A.T)
+    session.rollback()
+    restored = session.checkpoint()
+    assert restored is not None
+    _assert_state_equal(checkpoint, restored)
+
+
+def test_direct_sr1_hard_metric_innovation_resets_and_skips_secant() -> None:
+    config = FormalManifoldConfig(
+        curvature_branch=FORMAL_CURVATURE_DIRECT_SR1,
+        metric_innovation_soft=0.0,
+        metric_innovation_hard=0.0,
+        initial_trust_radius=0.35,
+    )
+    result = FormalManifoldSession(config=config).propose(
+        _sphere_backend(grown=False), [0.72], maxiter=1
+    )
+
+    step = result.info["steps"][0]
+    assert step["qbroyd_shadow"]["severity"] == "hard"
+    assert step["curvature_action"] == (
+        "hard_metric_innovation_reset_skip_crossing_secant"
+    )
+    assert step["direct_sr1"] is None
+    np.testing.assert_allclose(result.warm_state.A, np.eye(1))
+    assert result.warm_state.B.shape == (0, 0)
+
+
+def test_curvature_branch_config_is_explicit_and_mutually_exclusive() -> None:
+    assert FormalManifoldConfig().curvature_branch == FORMAL_CURVATURE_INVERSE_RBFGS
+    with pytest.raises(ValueError, match="curvature_branch"):
+        FormalManifoldConfig(curvature_branch="both")
+
+    direct = FormalManifoldSession(
+        config=FormalManifoldConfig(curvature_branch=FORMAL_CURVATURE_DIRECT_SR1)
+    )
+    result = direct.propose(_sphere_backend(grown=False), [0.61], maxiter=0)
+    direct.commit(result)
+    with pytest.raises(ValueError, match="branch"):
+        FormalManifoldSession(direct.checkpoint(), config=FormalManifoldConfig())
+
+
+def test_checkpoint_rejects_same_metric_but_different_physical_frame() -> None:
+    state = np.asarray([1.0, 0.0, 0.0], dtype=complex)
+    frame_a = np.asarray(
+        [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=complex
+    )
+    frame_b = np.asarray(
+        [[0.0, 0.0], [0.0, -1.0], [1.0, 0.0]], dtype=complex
+    )
+
+    def backend_for(tangents: np.ndarray) -> ExactStateBackend:
+        return ExactStateBackend(
+            evaluate_fn=lambda _theta: ExactStateEvaluation(
+                energy=0.0,
+                gradient=np.zeros(2),
+                statevector=state,
+                tangents=tangents,
+            ),
+            coordinate_registry=("a", "b"),
+            manifold_id="same_metric_different_frame",
+            parameterization_mode="logical_shared",
+        )
+
+    source = FormalManifoldSession()
+    initial = source.propose(backend_for(frame_a), [0.0, 0.0], maxiter=0)
+    source.commit(initial)
+    payload = source.checkpoint_payload()
+    assert payload is not None
+
+    rebuilt_a = build_exact_frame(state, frame_a)
+    rebuilt_b = build_exact_frame(state, frame_b)
+    assert rebuilt_a.whitening_id == rebuilt_b.whitening_id
+    assert rebuilt_a.frame_id != rebuilt_b.frame_id
+    with pytest.raises(ValueError, match="physical-frame provenance"):
+        FormalManifoldSession().restore_checkpoint_payload(
+            payload, backend_for(frame_b)
+        )
+
+
+def test_formal_route_does_not_invoke_joint_response_selection_logic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pipelines.static_adapt.joint_linear_solve as joint_solver
+
+    def forbidden(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("JR joint response solve must not run inside FM reoptimization")
+
+    monkeypatch.setattr(joint_solver, "solve_joint_linear_model", forbidden)
+    session = FormalManifoldSession()
+    result = session.propose(_sphere_backend(grown=False), [0.55], maxiter=1)
+    assert result.info["route"] == FORMAL_MANIFOLD_ROUTE
+    assert result.info["supported_metric_whitening_policy"].startswith(
+        "supported_metric_whitened"
+    )
+
+
+def _fm_sr_no_n2_composition() -> FormalManifoldRouteComposition:
+    resolved = resolve_formal_manifold_route_profile(
+        FORMAL_MANIFOLD_SR_NO_N2_PROFILE
+    )
+    assert resolved is not None
+    return FormalManifoldRouteComposition.from_mapping(resolved.as_dict())
+
+
+def test_fm_sr_composition_separates_outer_and_structural_selector_identity() -> None:
+    composition = _fm_sr_no_n2_composition()
+    payload = composition.as_dict()
+
+    assert payload["route_profile"] == FORMAL_MANIFOLD_SR_NO_N2_PROFILE
+    assert payload["candidate_selector_profile"] == (
+        FORMAL_MANIFOLD_SR_SELECTOR_PROFILE
+    )
+    assert payload["singleton_response_selector"][
+        "phase2_novelty_multiplier_policy"
+    ] == "inactive_ordinary_route_v1"
+    assert payload["singleton_response_selector"][
+        "phase3_novelty_multiplier_policy"
+    ] == "inactive_ordinary_route_v1"
+    assert payload["singleton_response_selector"][
+        "structural_rollback_enabled"
+    ] is False
+
+    drifted = dict(payload)
+    drifted_selector = dict(drifted["singleton_response_selector"])
+    drifted_selector["historical_singleton_trust_region_update_policy"] = "fixed"
+    drifted["singleton_response_selector"] = drifted_selector
+    with pytest.raises(ValueError, match="selector mechanism disagrees"):
+        FormalManifoldRouteComposition.from_mapping(drifted)
+
+
+def test_source_locked_sr_composition_is_generically_resolved_and_immutable() -> None:
+    resolved = resolve_formal_manifold_route_profile(
+        FORMAL_MANIFOLD_SR_SOURCE_LOCKED_PROFILE
+    )
+    assert resolved is not None
+
+    composition = FormalManifoldRouteComposition.from_mapping(resolved.as_dict())
+    payload = composition.as_dict()
+    selector = payload["singleton_response_selector"]
+
+    assert payload["route_profile"] == FORMAL_MANIFOLD_SR_SOURCE_LOCKED_PROFILE
+    assert payload["candidate_selector_family"] == "singleton_response_snake"
+    assert payload["candidate_selector_profile"] == (
+        "supported_whitened_adaptive_trust_v1"
+    )
+    assert selector["historical_singleton_coordinate_solve_scope"] == (
+        "phase3_only_v1"
+    )
+    assert selector["phase2_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert selector["phase3_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert selector["phase2_novelty_multiplier_policy"] == (
+        "legacy_ablation_mode_v1"
+    )
+    assert selector["phase3_novelty_multiplier_policy"] == (
+        "legacy_ablation_mode_v1"
+    )
+    assert selector["additional_n3_multiplier_applied"] is True
+
+    drifted = dict(payload)
+    drifted_selector = dict(selector)
+    drifted_selector["phase3_gram_novelty_policy"] = "fallback_only_v1"
+    drifted["singleton_response_selector"] = drifted_selector
+    with pytest.raises(ValueError, match="selector mechanism disagrees"):
+        FormalManifoldRouteComposition.from_mapping(drifted)
+
+
+def test_session_fork_and_branch_runtime_are_non_aliasing() -> None:
+    composition = _fm_sr_no_n2_composition()
+    session = FormalManifoldSession(route_composition=composition)
+    accepted = session.propose(_sphere_backend(grown=False), [0.61], maxiter=1)
+    session.commit(accepted)
+    root = FormalManifoldBranchRuntime.root(
+        session=session,
+        branch_id="beam_branch:0",
+    )
+    left = root.fork(branch_id="beam_branch:1")
+    right = root.fork(branch_id="beam_branch:2")
+
+    assert left.session.state is not None
+    assert right.session.state is not None
+    assert root.session.state is not None
+    original = float(root.session.state.B[0, 0])
+    left.session.state.B[0, 0] += 0.75
+    assert float(root.session.state.B[0, 0]) == pytest.approx(original)
+    assert float(right.session.state.B[0, 0]) == pytest.approx(original)
+    assert left.behavioral_fingerprint_payload() != (
+        right.behavioral_fingerprint_payload()
+    )
+    assert left.query_ledger is not root.query_ledger
+    assert right.query_ledger is not root.query_ledger
+
+    pending = right.propose(_sphere_backend(grown=False), [0.61], maxiter=0)
+    with pytest.raises(RuntimeError, match="pending proposal"):
+        right.fork(branch_id="beam_branch:3")
+    right.rollback()
+    assert pending.warm_state is not None
+
+
+def test_branch_runtime_checkpoint_restores_identity_counters_and_curvature() -> None:
+    composition = _fm_sr_no_n2_composition()
+    session = FormalManifoldSession(route_composition=composition)
+    accepted = session.propose(_sphere_backend(grown=False), [0.58], maxiter=2)
+    session.commit(accepted)
+    runtime = FormalManifoldBranchRuntime.root(
+        session=session,
+        branch_id="beam_branch:0",
+    ).fork(branch_id="beam_branch:4")
+    rejected = runtime.propose(
+        _sphere_backend(grown=False),
+        runtime.session.state.theta if runtime.session.state is not None else [0.58],
+        maxiter=0,
+    )
+    before_rollback = runtime.session.checkpoint()
+    runtime.rollback()
+    after_rollback = runtime.session.checkpoint()
+    assert rejected.warm_state is not None
+    assert before_rollback is not None and after_rollback is not None
+    _assert_state_equal(before_rollback, after_rollback)
+
+    checkpoint = runtime.checkpoint_payload()
+    assert checkpoint["structural_rollback_supported"] is False
+    assert checkpoint["rollback_scope"] == "pending_proposal_only"
+    checkpoint_geometry = checkpoint["query_ledger"][
+        "geometry_element_accounting"
+    ]
+    assert checkpoint_geometry["is_total_S_alg"] is False
+    assert checkpoint_geometry["full_symmetric_gram_elements"] == 1
+    restore_observations: list[tuple[np.ndarray, str]] = []
+    restore_primitive_events: list[dict[str, object]] = []
+
+    def restore_primitive_observer(
+        event: Mapping[str, object],
+    ) -> Mapping[str, object]:
+        restore_primitive_events.append(dict(event))
+        kind = str(event["primitive_kind"])
+        dimension = int(np.asarray(event["point"], dtype=float).size)
+        count = dimension if kind == "coordinate_gradient" else (
+            dimension * (dimension + 1) // 2
+        )
+        return {
+            "schema": "formal_manifold_shared_estimator_bridge_receipt_v1",
+            "route_primitive_id": str(event["route_primitive_id"]),
+            "expected_scalar_count": int(count),
+            "observed_scalar_count": int(count),
+            "shared_primitive_occurrence_ids": [
+                f"restore-shared-{kind}-{index}"
+                for index in range(count)
+            ],
+        }
+
+    restored, validation_nfev = FormalManifoldBranchRuntime.restore_checkpoint_payload(
+        checkpoint,
+        backend=_sphere_backend(grown=False),
+        expected_route_composition=composition,
+        energy_observer=lambda state, phase: restore_observations.append(
+            (np.asarray(state, dtype=complex).copy(), str(phase))
+        ),
+        estimator_primitive_observer=restore_primitive_observer,
+    )
+    assert validation_nfev == 1
+    assert len(restore_observations) == 1
+    assert restore_observations[0][1] == "checkpoint_restore_validation"
+    assert {
+        str(event["primitive_kind"])
+        for event in restore_primitive_events
+    } == {"coordinate_gradient", "tangent_or_metric"}
+    assert restored.branch_id == "beam_branch:4"
+    assert restored.session.parent_branch_id == "beam_branch:0"
+    assert restored.session.summary()["rollback_count"] == 1
+    assert restored.session.state is not None
+    np.testing.assert_allclose(
+        restore_observations[0][0],
+        restored.session.state.statevector,
+        atol=0.0,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        restored.session.state.B,
+        runtime.session.state.B,
+        atol=0.0,
+        rtol=0.0,
+    )
+    restored_behavior = restored.behavioral_fingerprint_payload()
+    source_behavior = runtime.behavioral_fingerprint_payload()
+    assert restored_behavior.pop("query_ledger_sha256") != (
+        source_behavior.pop("query_ledger_sha256")
+    )
+    assert restored_behavior == source_behavior
+    restore_query_checkpoint = restored.query_ledger.checkpoint_payload()
+    assert len(
+        restore_query_checkpoint["ids_by_phase"][
+            "checkpoint_restore_validation"
+        ]
+    ) == 3
+
+    with pytest.raises(ValueError, match="config drifted"):
+        FormalManifoldBranchRuntime.restore_checkpoint_payload(
+            checkpoint,
+            backend=_sphere_backend(grown=False),
+            config=FormalManifoldConfig(initial_trust_radius=0.5),
+            expected_route_composition=composition,
+        )
+
+
+def test_branch_runtime_forks_and_restores_outer_information_without_aliasing() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1
+    )
+    assert profile is not None
+    composition = FormalManifoldRouteComposition(
+        route_family=profile.route_family,
+        route_profile=profile.route_profile,
+        candidate_selector_family=profile.candidate_selector_family,
+        candidate_selector_profile=profile.candidate_selector_profile,
+        adapt_reoptimization_route=profile.adapt_reoptimization_route,
+        singleton_response_selector=profile.as_dict(),
+    )
+    outer_config = OuterInformationConfig(metric_regularization=0.0)
+    outer = OuterInformationSession(config=outer_config)
+    outer.initialize(
+        initialize_outer_information_state(
+            physical_state_fingerprint="outer-anchor",
+            registry=("a", "b"),
+            theta=(0.1, -0.2),
+            raw_metric=np.asarray([[1.0, 0.1], [0.1, 0.8]], dtype=float),
+            raw_gradient=(0.3, -0.1),
+            config=outer_config,
+            source_primitive_ids=("metric-anchor-1",),
+            direct_curvature_raw=np.asarray(
+                [[1.5, 0.2], [0.2, 1.1]], dtype=float
+            ),
+        )
+    )
+    runtime = FormalManifoldBranchRuntime.root(
+        session=FormalManifoldSession(route_composition=composition),
+        outer_information_session=outer,
+        branch_id="beam_branch:0",
+    )
+    left = runtime.fork(branch_id="beam_branch:1")
+    right = runtime.fork(branch_id="beam_branch:2")
+    assert left.outer_information_session is not None
+    assert right.outer_information_session is not None
+    assert runtime.outer_information_session is not None
+
+    left.outer_information_session.invalidate_after_structural_change(
+        reason="accepted_prune",
+        accepted_registry=("a",),
+    )
+    assert left.outer_information_session.committed is None
+    assert right.outer_information_session.committed is not None
+    assert runtime.outer_information_session.committed is not None
+
+    checkpoint = right.checkpoint_payload()
+    restored, validation_nfev = (
+        FormalManifoldBranchRuntime.restore_checkpoint_payload(
+            checkpoint,
+            expected_route_composition=composition,
+        )
+    )
+    assert validation_nfev == 0
+    assert restored.outer_information_session is not None
+    assert restored.outer_information_session.checkpoint_payload() == (
+        right.outer_information_session.checkpoint_payload()
+    )
+    assert restored.behavioral_fingerprint_payload() == (
+        right.behavioral_fingerprint_payload()
+    )
+
+
+def test_outer_information_profile_cannot_invoke_legacy_fm_optimizer() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1
+    )
+    assert profile is not None
+    config = FormalManifoldConfig.from_mapping(
+        {
+            "metric_mode": profile.formal_metric_mode,
+            "transport_policy": profile.formal_transport_policy,
+            "post_anchor_exact_gram_budget": (
+                profile.formal_post_anchor_exact_gram_budget
+            ),
+            "qbroyd_epsilon0": profile.formal_qbroyd_epsilon0,
+            "line_search_max_steps": profile.formal_line_search_max_steps,
+        }
+    )
+    session = FormalManifoldSession(config=config)
+
+    with pytest.raises(RuntimeError, match="must not invoke"):
+        session.propose(_sphere_backend(grown=False), [0.1], maxiter=1)

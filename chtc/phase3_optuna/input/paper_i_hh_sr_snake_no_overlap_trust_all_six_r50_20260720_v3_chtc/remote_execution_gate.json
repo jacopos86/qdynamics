@@ -1,0 +1,28 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "passed": true,
+  "route_registration_repair": {
+    "completed_utc": "2026-07-20T22:48:10.298636+00:00",
+    "failed_predecessor_error": "unknown route profile",
+    "predecessor_bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v2_chtc",
+    "proof": {
+      "exact_remote_image_rows_passed": 6,
+      "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+      "route_digest_unchanged": true
+    },
+    "remote_preflight_completed_utc": "2026-07-20T22:59:01.680372+00:00",
+    "repair": "register the already defined no-overlap route in the complete runtime profile and accepted-Powell-chart allowlists",
+    "route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "schema": "paper_i_sr_no_overlap_route_registration_repair_v1",
+    "scientific_settings_changed": false,
+    "source_archive_sha256": "589c85f3bd33ea1fbc7115d3eb8273bb88ccb6e36f57f763d025095dbb43ffc1",
+    "status": "pass_exact_remote_image_validated_not_submitted",
+    "successor_bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc"
+  },
+  "schema": "paper_i_sr_no_overlap_trust_fanout_remote_gate_v1",
+  "source_archive_sha256": "589c85f3bd33ea1fbc7115d3eb8273bb88ccb6e36f57f763d025095dbb43ffc1",
+  "status": "pass_exact_remote_image_validated_not_submitted",
+  "submission_performed": false
+}

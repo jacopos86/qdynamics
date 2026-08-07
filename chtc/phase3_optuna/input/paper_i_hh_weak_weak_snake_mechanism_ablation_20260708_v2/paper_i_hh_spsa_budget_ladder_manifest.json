@@ -1,0 +1,79 @@
+{
+  "batch_id": "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2",
+  "expected_runnable_rows": 20,
+  "generated_utc": "2026-07-08T19:00:05.554632+00:00",
+  "max_runtime_s": 172800,
+  "record_count": 28,
+  "record_id_file": "chtc/phase3_optuna/input/paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2/paper_i_hh_spsa_budget_ladder_record_ids.txt",
+  "record_queue": "chtc/phase3_optuna/input/paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2/paper_i_hh_spsa_budget_ladder_record_queue.tsv",
+  "records_tsv": "chtc/phase3_optuna/input/paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "reference_or_blocked_record_count": 8,
+  "reference_or_blocked_record_ids": [
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__full_anchor_reference",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_batching_reference",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__greedy_cap3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__combinatorial_cap3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_shortlisting",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__full_anchor_reference",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_batching_reference",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_shortlisting"
+  ],
+  "request_cpus": 4,
+  "request_disk_mb": 61440,
+  "request_memory_mb": 32768,
+  "run_plan_md": "MATH/paper_facing/paper_I_static_scaffold/paper_i_hh_powell_weak_weak_snake_mechanism_ablation_chtc_plan_20260708.md",
+  "runnable_record_count": 20,
+  "runnable_record_ids": [
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_prune",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_cost_term",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_novelty",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__phase2_novelty_only_no_second_order",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__phase2_second_order_only_no_novelty",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__no_phase3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__phase1_only_macro_pool",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__phase1_only_singleton_pool",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__batch_cap3_combinatorial__full_geometry_window",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__greedy_cap3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__combinatorial_cap3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_prune",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_cost_term",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_novelty",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__phase2_novelty_only_no_second_order",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__phase2_second_order_only_no_novelty",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__no_phase3",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__phase1_only_macro_pool",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__phase1_only_singleton_pool",
+    "paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2__weak_weak__snake__physical_operator_lane__full_geometry_window"
+  ],
+  "schema": "paper_i_hh_weak_weak_snake_mechanism_ablation_manifest_v1",
+  "source_anchor_families": {
+    "batch_cap3_combinatorial": {
+      "source_command_json": "raw_outputs/paper_i_hh_powell_weak_weak_snake_batchcap3_ablation_20260707/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__combinatorial_cap3/run_command.json",
+      "source_command_sha256": "ca8b79809835f2b9a327c51e2c153ecbb8a6f138f2204c407b13d7b09e62c9a5",
+      "source_lock_manifest": "",
+      "source_lock_manifest_sha256": "",
+      "source_result": "raw_outputs/paper_i_hh_powell_weak_weak_snake_batchcap3_ablation_20260707/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__combinatorial_cap3/json/result.json",
+      "source_result_sha256": "bfc80890b7f1086b43dc9d6e82838273644a1bec5c14b584242ea0918c49b1aa"
+    },
+    "physical_operator_lane": {
+      "source_command_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/commands.json",
+      "source_command_sha256": "aaaef244b7f2a7dbe71bbc2a2062ab2b1855bf5e684d0c2cf768815bfb5d6238",
+      "source_lock_manifest": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/source_lock_manifest.json",
+      "source_lock_manifest_sha256": "efec56ddc81c65f8dbeaa1aa00129e24f57b62f2f79f923845a4d6193b987c76",
+      "source_result": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+      "source_result_sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb"
+    }
+  },
+  "source_transfer_input_count": 8,
+  "source_transfer_inputs": [
+    "raw_outputs/paper_i_hh_powell_weak_weak_snake_batchcap3_ablation_20260707/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__combinatorial_cap3/json/result.json",
+    "raw_outputs/paper_i_hh_powell_weak_weak_snake_batchcap3_ablation_20260707/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__combinatorial_cap3/run_command.json",
+    "output/pdf/paper_i_hh_physical_operator_lane_comparison_20260708/paper_i_hh_physical_operator_lane_comparison_20260708.pdf",
+    "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+    "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/commands.json",
+    "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/source_lock_manifest.json",
+    "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+    "raw_outputs/paper_i_hh_powell_weak_weak_snake_batchcap3_ablation_20260707/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__greedy_cap3/json/result.json"
+  ],
+  "submit_path": "chtc/phase3_optuna/submit_paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v2.sub"
+}

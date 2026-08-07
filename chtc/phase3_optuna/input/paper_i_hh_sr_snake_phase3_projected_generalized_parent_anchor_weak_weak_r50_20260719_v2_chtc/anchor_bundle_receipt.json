@@ -1,0 +1,14 @@
+{
+  "batch_name": "paper-i-hh-sr-phase3-projected-parent-anchor-ww-r50-20260719-v2",
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v2_chtc",
+  "fanout_authorized": false,
+  "job_count": 1,
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "projected_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_parent_anchor_bundle_v1",
+  "source_archive_manifest_sha256": "d2a461f7f18648cd7c50ef31a2056a0e3575428a64cb4ca4bc1e180157046962",
+  "source_archive_sha256": "c1354507f88a13cf364277460f64e30bf3d74207bfaae6cbc2684629cf4f4e3c",
+  "source_revision_manifest_sha256": "9619a496a16e82ff5626d5739f67a56fcf58fe0f826701663cc11b09acdce47e",
+  "submission_performed": false
+}

@@ -1,0 +1,151 @@
+{
+  "blocking_reasons": [],
+  "failed_record_count": 0,
+  "ok": true,
+  "record_count": 1,
+  "record_ids": [
+    "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__powellcap_finite_nonincreasing_v1__iter30"
+  ],
+  "records": [
+    {
+      "blocking_reasons": [],
+      "ok": true,
+      "paper_i_cutoff_floor": [],
+      "record_id": "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__powellcap_finite_nonincreasing_v1__iter30",
+      "records_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+      "schema": "generic_static_table_chtc_preflight_manifest_v1",
+      "source_artifacts": [
+        {
+          "exists": true,
+          "field": "code_bundle",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_code.tar.gz",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_code.tar.gz",
+          "sandbox_visible": true,
+          "sha256": "6f578afece852cafd09aee164658f3fefc6e30d0eba07f308b1c9e37a35ec7dc",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_code.tar.gz"
+        },
+        {
+          "exists": true,
+          "field": "implementation_lock",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_lock.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_lock.json",
+          "sandbox_visible": true,
+          "sha256": "c75b51a22230adc0520eb9fa9422a61c9704f40453831d4a575a038fba6cc426",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_lock.json"
+        },
+        {
+          "exists": true,
+          "field": "exact_energy_manifest",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/exact_energy_manifest.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/exact_energy_manifest.json",
+          "sandbox_visible": true,
+          "sha256": "5fff8c67abff10a229a1ecd82dc08a25bc211d723727a82257930447d920d296",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/exact_energy_manifest.json"
+        },
+        {
+          "exists": true,
+          "field": "implementation_repair_audit",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_repair_audit.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_repair_audit.json",
+          "sandbox_visible": true,
+          "sha256": "6e43df75cad3085158f7105cbe5b4670ff8c8045dba48eacc7958f0cbb47b39a",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_repair_audit.json"
+        },
+        {
+          "exists": true,
+          "field": "settings_diff_json",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/settings_diff.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/settings_diff.json",
+          "sandbox_visible": true,
+          "sha256": "95a7c8a662853e1362e36ebf1b7dade85145d5fc7a213cd5ac8d0aef347d6388",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/settings_diff.json"
+        },
+        {
+          "exists": true,
+          "field": "source_result_json_local",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_generic_static_single.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_generic_static_single.json",
+          "sandbox_visible": true,
+          "sha256": "00dca6c25128958ee7e7b5a9c85714098aaddb7b80dbd9fc011d78a4b6babdce",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_generic_static_single.json"
+        },
+        {
+          "exists": true,
+          "field": "source_cell_manifest_local",
+          "is_dir": false,
+          "repo_relative_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_cell_manifest.json",
+          "resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_cell_manifest.json",
+          "sandbox_visible": true,
+          "sha256": "340d419416ea173a868136d7bf1fff85ccdaa3d4cfc3dc29dc7d4ffa2f4d2297",
+          "value": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_cell_manifest.json"
+        }
+      ],
+      "status": "pass",
+      "submit_contract": {
+        "argument_records_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+        "arguments": "$(record_id) chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_records.tsv raw_outputs/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/$(record_id)",
+        "environment": {},
+        "executable": "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+        "job_batch_name": "paper-i-append-powell-cap-repair",
+        "max_runtime": "259200",
+        "preserve_relative_paths": "True",
+        "queue_record_id_file": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_record_queue.tsv",
+        "records_path": "",
+        "request_cpus": "$(cpus)",
+        "request_disk": "$(disk_mb)MB",
+        "request_memory": "$(memory_mb)MB",
+        "requirements": "TARGET.HasSIF",
+        "schema": "phase3_submit_contract_v1",
+        "should_transfer_files": "YES",
+        "submit_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/submit_paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1.sub",
+        "transfer_executable": "True",
+        "transfer_input_files": [
+          "chtc/phase3_optuna/image.sif",
+          "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+          "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1"
+        ],
+        "transfer_output_files": [
+          "raw_outputs/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/$(record_id)"
+        ],
+        "when_to_transfer_output": "ON_EXIT_OR_EVICT"
+      },
+      "table_i_case": {
+        "algorithm_id": "static_full_meta_append_adapt_vqe",
+        "case_id": "hubbard_L4_scaling_strong",
+        "family": "hubbard",
+        "hh_tableiii_regime": null,
+        "is_hh_tableiii_snake_exact_prefix_recovery": false,
+        "is_hh_tableiii_snake_shot_proxy_repair": false,
+        "is_paper_i_scaling_matrix": true,
+        "paper_i_cutoff_ladder_stage": null,
+        "paper_i_ladder_snake_policy": null,
+        "requires_deterministic_shot_proxy": null,
+        "run_class": "candidate",
+        "shots_per_pauli_term_proxy": null,
+        "spec": {
+          "benchmark_id": "hubbard_L4_scaling_strong",
+          "exact_reference_n_ph_max": null,
+          "family": "hubbard",
+          "suite_profile": "paper_i_scaling_matrix_20260710_v1"
+        },
+        "suite_profile": "paper_i_scaling_matrix_20260710_v1",
+        "table_label": null
+      },
+      "transfer_input_files": [
+        "chtc/phase3_optuna/image.sif",
+        "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+        "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1"
+      ]
+    }
+  ],
+  "records_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+  "schema": "phase3_chtc_submit_preflight_bundle_v1",
+  "status": "pass",
+  "submit_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/submit_paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1.sub"
+}

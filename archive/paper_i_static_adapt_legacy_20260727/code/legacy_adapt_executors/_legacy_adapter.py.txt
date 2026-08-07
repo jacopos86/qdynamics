@@ -1,0 +1,42 @@
+"""Private translation from the typed SR-SNAKE request to the legacy executor."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from pipelines.static_adapt.sr_snake._context import (
+    _ResolvedExecutionContext,
+)
+from pipelines.static_adapt.sr_snake._observation import (
+    _prepare_observation_destinations,
+    _project_observation_artifacts,
+)
+from pipelines.static_adapt.sr_snake.contracts import (
+    ObservationArtifactReceipt,
+)
+
+
+@dataclass(frozen=True)
+class _LegacyRun:
+    payload: dict[str, Any]
+    observation_artifacts: tuple[ObservationArtifactReceipt, ...]
+
+
+def run_legacy_sr_snake(
+    context: _ResolvedExecutionContext,
+) -> _LegacyRun:
+    """Execute an already-resolved context without translating it again."""
+
+    _prepare_observation_destinations(context)
+    payload, _statevector = context.numerical.legacy_executor(
+        **context.legacy_executor_kwargs()
+    )
+
+    return _LegacyRun(
+        payload=payload,
+        observation_artifacts=_project_observation_artifacts(context, payload),
+    )
+
+
+__all__: list[str] = []

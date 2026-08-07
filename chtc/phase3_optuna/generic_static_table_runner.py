@@ -17,6 +17,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from pipelines.exact_bench.paper_i_main_tables_spsa_profile import (  # noqa: E402
+    PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES,
+)
 from pipelines.static_adapt.runtime_heartbeat import (  # noqa: E402
     LiveHeartbeatRecorder,
     parse_ai_log_line,
@@ -27,17 +30,28 @@ _ENV_PREFIX_FIELDS = (
     "phase3_",
     "hardware_resolution_",
     "static_route_",
+    "selected_logical_",
+    "resource_",
     "benchmark_value_noise_",
     "benchmark_decision_noise_",
 )
 _DIRECT_ENV_FIELDS = {
     "phase2_novelty_mode": "PHASE3_POLICY_PHASE2_NOVELTY_MODE",
     "fixed_inner_optimizer": "PHASE3_POLICY_INNER_OPTIMIZER",
+    "generic_adapt_stop_policy": "GENERIC_STATIC_TABLE_GENERIC_ADAPT_STOP_POLICY",
+    "powell_maxiter_cap_policy": "GENERIC_STATIC_TABLE_POWELL_MAXITER_CAP_POLICY",
+    "generic_adapt_runtime_split_mode": "GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_MODE",
+    "generic_adapt_runtime_split_symmetry_policy": "GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_SYMMETRY_POLICY",
+    "generic_adapt_runtime_split_max_subset_size": "GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_MAX_SUBSET_SIZE",
     "same_cutoff_exact_gs_energy": "GENERIC_STATIC_TABLE_SAME_CUTOFF_EXACT_GS_ENERGY",
     "exact_reference_energy": "GENERIC_STATIC_TABLE_EXACT_REFERENCE_ENERGY",
     "exact_reference_n_ph_max": "GENERIC_STATIC_TABLE_EXACT_REFERENCE_N_PH_MAX",
     "primary_energy_metric": "GENERIC_STATIC_TABLE_PRIMARY_ENERGY_METRIC",
     "same_cutoff_error_role": "GENERIC_STATIC_TABLE_SAME_CUTOFF_ERROR_ROLE",
+    "shots_per_pauli_term_proxy": "GENERIC_STATIC_TABLE_SHOTS_PER_PAULI_TERM_PROXY",
+    "hea_reps": "GENERIC_STATIC_TABLE_HEA_REPS",
+    "hea_maxiter": "GENERIC_STATIC_TABLE_HEA_MAXITER",
+    **PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES,
 }
 
 
@@ -86,6 +100,15 @@ def _clear_stale_env(env: dict[str, str], row: Mapping[str, str]) -> None:
     env.pop("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", None)
     env.pop("STATIC_ROUTE_ID", None)
     env.pop("GENERIC_STATIC_TABLE_PHASE3_POLICY_JSON", None)
+    for name in (
+        "GENERIC_STATIC_TABLE_SELECTED_LOGICAL_ROUTE",
+        "GENERIC_STATIC_TABLE_SELECTED_LOGICAL_SOURCE_JSON",
+        "GENERIC_STATIC_TABLE_SELECTED_LOGICAL_TRANSFER_MODE",
+        "SELECTED_LOGICAL_ROUTE",
+        "SELECTED_LOGICAL_SOURCE_JSON",
+        "SELECTED_LOGICAL_TRANSFER_MODE",
+    ):
+        env.pop(name, None)
     for env_name in _DIRECT_ENV_FIELDS.values():
         env.pop(env_name, None)
     for field in row:

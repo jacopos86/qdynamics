@@ -1,0 +1,77 @@
+# Inert source snapshot: retired algebraic shortlist route branch.
+#
+# Original source:
+#   pipelines/static_adapt/lane_routes.py
+# Retained physical-family routing remains active in that module.
+
+STATIC_LANE_ROUTE_ALGEBRAIC = "algebraic"
+STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE = "physical_operator_type"
+STATIC_LANE_ROUTE_CHOICES = (
+    STATIC_LANE_ROUTE_ALGEBRAIC,
+    STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+)
+
+
+def normalize_static_lane_route(
+    value,
+    *,
+    default: str = STATIC_LANE_ROUTE_ALGEBRAIC,
+) -> str:
+    raw = (
+        str(default if value in {None, ""} else value)
+        .strip()
+        .lower()
+        .replace("-", "_")
+    )
+    aliases = {
+        "physical": STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        "operator_type": STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        "physical_operator": STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        "physical_operator_lanes": STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        "physical_operator_type_lanes": (
+            STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE
+        ),
+    }
+    route = aliases.get(raw, raw)
+    if route not in STATIC_LANE_ROUTE_CHOICES:
+        raise ValueError(
+            "static_lane_route must be one of "
+            f"{list(STATIC_LANE_ROUTE_CHOICES)}; got {value!r}."
+        )
+    return str(route)
+
+
+def _retired_resolve_static_shortlist_lane_spec(route_key):
+    if route_key == STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE:
+        return StaticShortlistLaneSpec(
+            route=STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+            lane_key="physical_operator_lane",
+            lanes=tuple(
+                str(x) for x in physical_operator_lanes_for_problem(problem)
+            ),
+            fallback_lane=str(HH_PHYSICAL_OPERATOR_LANE_OTHER),
+            health_key_prefix="physical_operator",
+        )
+    return StaticShortlistLaneSpec(
+        route=STATIC_LANE_ROUTE_ALGEBRAIC,
+        lane_key="algebraic_lane",
+        lanes=tuple(str(x) for x in LANES_PHASE1),
+        fallback_lane=str(LANE_MIX),
+        health_key_prefix="algebraic",
+    )
+
+
+def _retired_clamp_controller_cap_pair_for_lane_route(
+    *,
+    route,
+    cap_min: int,
+    cap_max: int,
+    effective_cap: int,
+) -> tuple[int, int]:
+    route_key = normalize_static_lane_route(route)
+    cap_min_val = int(cap_min)
+    cap_max_val = int(cap_max)
+    if route_key != STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE:
+        return int(cap_min_val), int(cap_max_val)
+    effective_cap_val = int(max(1, int(effective_cap)))
+    return int(effective_cap_val), int(effective_cap_val)

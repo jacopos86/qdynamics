@@ -1,0 +1,15 @@
+{
+  "archive_only_validate_rows_passed": 12,
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v6_chtc",
+  "bundle_tests_passed": 17,
+  "commands": {
+    "archive_only": "run_job.py --validate-only for all six job manifests",
+    "bundle": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v test_bundle.py test_beam_validation.py",
+    "focused": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q test/test_static_adapt_sr_v4_runtime.py test/test_static_adapt_macro_beam_prune_cost_profiles.py"
+  },
+  "independent_validator_fixture_tests_passed": 10,
+  "schema": "paper_i_sr_macro_beam_cost_v6_validation_receipt_v1",
+  "shared_archive_focused_tests_passed": 18,
+  "source_archive_sha256": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+  "status": "pass"
+}

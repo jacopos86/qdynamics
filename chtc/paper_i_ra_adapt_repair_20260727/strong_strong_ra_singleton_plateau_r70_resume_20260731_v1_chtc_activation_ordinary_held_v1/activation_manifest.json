@@ -1,0 +1,59 @@
+{
+  "schema": "paper_i_ra_adapt_ss_singleton_plateau_r70_activation_manifest_v1",
+  "status": "passed_one_row_ordinary_held_activation",
+  "execution_id": "core__strong_strong_u8__nph7__ra_singleton_plateau__r70",
+  "row_count": 1,
+  "initially_held": true,
+  "automatic_release": false,
+  "strong_weak_rows_included": false,
+  "source_horizon": 50,
+  "target_horizon": 70,
+  "candidate_representation": "single_pauli_word_v1",
+  "insertion_policy": "plateau_commutation",
+  "active_gradient_policy": "stationary_source_response_v1",
+  "resource_weighting_scope": "late_resource_weighting_v1",
+  "only_scientific_change": "maximum_controller_rounds_50_to_70",
+  "scientific_settings_sha256": "ff2737c13ce54b0b3ff9dda9ad7a747623c14c093fb4fe3ce9d27878c570c916",
+  "v2_scaffold_job": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_ra36_r70_continuation_20260731_v2_chtc/jobs/core__strong_strong_u8__nph7__ra_singleton_plateau__r70.json",
+    "sha256": "9a4b6a511fc9b454e1a1383e6a58bd5a315a6eaa01653e40a6d6be48cd0d3baa",
+    "canonical_sha256": "186e09f21d786a1c39311dabc7a659d16417fec41bc539eefda47f3356d1d938"
+  },
+  "execution_authority": {
+    "authorization_kind": "explicit_user_execution_authority",
+    "execution_authorized": true,
+    "submission_authorized_for_this_one_row": true,
+    "paper_evidence_adopted": false,
+    "authorized_utc": "2026-07-31T20:11:13Z"
+  },
+  "resources": {
+    "request_cpus": 4,
+    "request_memory_mb": 90112,
+    "request_disk_mb": 98304,
+    "max_runtime_seconds": 259200
+  },
+  "bindings": [
+    {"role":"execution_authorization","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/execution_authorization.json","sha256":"caca1a33b4e29fe3b3c18352a8ecf2b938c0a224a78d0ac8bfb1654c7fcee894","size_bytes":1482},
+    {"role":"attempt_archive_builder","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/build_attempt_archive.py","sha256":"0616c77678a249eaa9b9a989e21a8f1e495a73a6dc0670fe703d7d67085a4c53","size_bytes":6817},
+    {"role":"worker_wrapper","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/execute_authorized_job.sh","sha256":"d8fc6eaee97a3ea779dd3667068bcc781b4379c105164745a58aef11f3607b45","size_bytes":6367},
+    {"role":"submit_descriptor","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/submit.sub","sha256":"8301384408b6d2132fdf4211d88285ab5e551adf651f04d0822974618937d037","size_bytes":2388},
+    {"role":"activation_validator","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/validate_activation.py","sha256":"006b2bba5f49af852a763014f16dc15e04c89844ac2aa23da12ca07f8a59b0a1","size_bytes":4848},
+    {"role":"readme","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_resume_20260731_v1_chtc_activation_ordinary_held_v1/README.md","sha256":"904e1d8f9493df1701d3d16f0a837569e7e02d073c8ca8c6ee077c7a502c9870","size_bytes":578},
+    {"role":"runtime_control","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/collision_evidence_v2.json","sha256":"e1ea61ea8d6635f426e44e1dd678a706aa5d596bd64cc4ec8949edaf5c7e60d3","size_bytes":1687},
+    {"role":"source_manifest","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/effective_source_archives/stationary_core_v11_retention_v2/source_archive_manifest.json","sha256":"31f370eb9262a218689060f6bfb892b0c2f58d1828cbafec897ebb63b0e5b70f","size_bytes":59099},
+    {"role":"source_delta_receipt","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/effective_source_archives/stationary_core_v11_retention_v2/source_delta_receipt.json","sha256":"f45f51b2e162b75926304be03e181eedfd92ff8ad1515fe5e940aa330a9dacf7","size_bytes":1366},
+    {"role":"source_archive","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/effective_source_archives/stationary_core_v11_retention_v2/source_locked.tar.gz","sha256":"bb4481a7e19b0dba92baa4cf6975ddee3eb184d77a337c538dea8408c7cf4496","size_bytes":2419911},
+    {"role":"runtime_control","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/effective_source_archives_v2.json","sha256":"cea1a914ea94b478d3030be25637d7e39974c0ea06a67e76a295a67c4518ffda","size_bytes":4911},
+    {"role":"runtime_control","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/execution_plan_v2.json","sha256":"bb1c84eb72cd37ca5b3593533043e9b6f3eb05dba1a910c266c740a2feb48832","size_bytes":15349},
+    {"role":"job_spec","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/jobs_v2/core__strong_strong_u8__nph7__ra_singleton_plateau__r70.json","sha256":"6612335f1b36c3ec5685e54af743420ea2d76915db67428e801bdc28688f014a","size_bytes":51800},
+    {"role":"runtime_code","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/operational_overlay_v2_contract.py","sha256":"d5e0d772342489415d0b4c32c364d301e69d253dc1ea1068160b75c035eb1bfe","size_bytes":13165},
+    {"role":"runtime_control","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/operational_overlay_v2_manifest.json","sha256":"ec7d578c313b554a6b98e642a252088b820b341cfbbf59763f6ca137a61b1ef5","size_bytes":24904},
+    {"role":"runtime_code","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/package_contract.py","sha256":"419bdfbafb529e91d32a6901fe6a6e6ebf51f19e35cef58c3672de7f4baddae4","size_bytes":22677},
+    {"role":"resume_archive","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/resume_inputs/core__strong_strong_u8__nph7__ra_singleton_plateau__r70.tar.gz","sha256":"73d89d74f1630e5c40a2d63aef99edf5a69be15e038fd1a98374280ed930ac51","size_bytes":316134520},
+    {"role":"runtime_code","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/run_cell.py","sha256":"ec3224c0a9114639230d718e38ed5765d4a57c97e12ba4f55b706b05678587d5","size_bytes":34564},
+    {"role":"runtime_code","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/run_cell_v2.py","sha256":"ea2cf58eae76cf4939e39db2c58cff7458696c51c40b956b850ed5c852043ca7","size_bytes":26063},
+    {"role":"runtime_control","path":"chtc/paper_i_ra_adapt_repair_20260727/strong_strong_ra_singleton_plateau_r70_fastpath_v1_runtime/source_lock_audit_v2.json","sha256":"6a09bd51940050d26613a7c8c5c2710a3d8bb7557cd9908ab230f2cfb755e7c5","size_bytes":60199},
+    {"role":"image","path":"chtc/phase3_optuna/image.sif","sha256":"fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f","size_bytes":216371200}
+  ],
+  "sha256": "5665fa568437bc092b6656f2cbbecd449de7ff54e08d825da729b9a0039c7e00"
+}

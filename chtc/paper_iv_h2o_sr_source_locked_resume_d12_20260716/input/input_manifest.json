@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-07-16T16:35:44.079906+00:00",
+  "files": {
+    "checkpoint": {
+      "name": "h2o_depth12_current.json",
+      "sha256": "bfddcb9bf5620a690b3af1a73adb412bb2fc48647290a529a05e726c183628f2"
+    },
+    "command_full": {
+      "name": "command.full.json",
+      "sha256": "78a4d6c8bde1ffd8195c15089d907accc1022c680cadf45c19f18b2ea279db13"
+    },
+    "command_preflight": {
+      "name": "command.preflight.json",
+      "sha256": "1ddb8863d792cb70ebc5b56f36b48c1375bb53de3af717e2c759748f44fcb31e"
+    },
+    "fixture": {
+      "name": "h2o_fixture.json",
+      "sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594"
+    },
+    "source_archive": {
+      "name": "source_tree_no_beam_ablation_v1.tar.gz",
+      "sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6"
+    }
+  },
+  "record_id": "paper_iv_h2o_sr_source_locked_no_novelty_no_prune_no_beam_full_refit_resume_d12_to_d30_20260716_v1",
+  "remaining_admissions": 18,
+  "schema": "paper_iv_h2o_source_locked_chtc_input_manifest_v1",
+  "scientific_settings_changed_vs_stopped_run": [],
+  "start_depth": 12,
+  "target_depth": 30
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "paper_iv_h2o_sr_derivative_resolved_submission_v1",
+  "record_id": "paper_iv_h2o_sr_derivative_resolved_v2_from_zero_d50_20260718_v1",
+  "batch_name": "paper-iv-h2o-sr-derivative-resolved-v2-d50-20260718-v1",
+  "cluster_id": 9378923,
+  "job_count": 1,
+  "submitted_utc": "2026-07-24T20:20:54Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_state": {
+    "idle": 1,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "predecessor_failures": [
+    {
+      "cluster_id": 8887458,
+      "failure_class": "worker_executable_relocation_self_hash_path",
+      "scientific_work_started": false,
+      "removed_before_repair_submission": true
+    },
+    {
+      "cluster_id": 8973939,
+      "failure_class": "h2o_derivative_pool_controller_compatibility_omission",
+      "scientific_work_started": false,
+      "exit_code": 1
+    }
+  ],
+  "source_lock": {
+    "source_archive_sha256": "8c9035d064717c5ab1e0c0a9f98987677fdc408f50c3718a9b43adad7c7cdf1d",
+    "fixture_sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594",
+    "command_sha256": "61baf489320e15b05e340a4c5812fb11d31081d5c45676219a99f5823f0c991a",
+    "route_contract_sha256": "8517b110f5fb5d7bb04d8419140246b170601623fd009a27c012f0543c3e3aa6",
+    "route_difference_audit_sha256": "fabd15cf86855ed46591c710f196fbc87856029c12cb6d22c285de3a49a6c135"
+  },
+  "run_contract": {
+    "route_profile": "sr_snake_h2o_derivative_resolved_v2",
+    "adapt_pool": "full_meta_derivative_resolved_v2",
+    "starting_depth": 0,
+    "target_depth": 50,
+    "chemical_accuracy_stop_hartree": 0.0016,
+    "request_cpus": 8,
+    "request_memory_mb": 98304,
+    "request_disk_kb": 167772160,
+    "candidate_record_cache": "disk",
+    "periodic_checkpoint_transfer": true
+  },
+  "pre_submission_validation": {
+    "package_tests": "18_passed",
+    "controller_compatibility_regressions": "70_passed",
+    "package_hash_manifest": "passed_locally_and_on_chtc",
+    "apptainer_runtime_preflight": "passed",
+    "condor_dry_run": "passed",
+    "relocated_executable_self_hash_smoke": "passed",
+    "early_failure_transfer_path_smoke": "passed"
+  },
+  "submitted_artifact_hashes": {
+    "upload_archive": "81349793c1100ecf41d14b182a175bee068adc73faa986b81a9143dd970bb055",
+    "input_manifest_json": "e819f3f24cbe170837b49b7c744c145188ae66bdc44b501714fa1e2b7c58d1c8",
+    "submit_sub": "14d4c6ac06817e940e102e0602eb5976370d45d868960cc79be3ddecb8fc2aa3"
+  }
+}

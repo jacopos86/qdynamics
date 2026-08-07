@@ -1,0 +1,225 @@
+{
+  "candidate_or_ablation_tracker": {
+    "path": null,
+    "status": "missing_candidate_or_ablation_specific_pointer"
+  },
+  "known_values": {
+    "weak_weak": {
+      "S_alg": 44216,
+      "S_alg_components": {
+        "N_H_outer": 1,
+        "N_H_refit": 11371,
+        "N_grad": 3094,
+        "N_metric": 29750
+      },
+      "completed_result_anchor": {
+        "accepted_energies_sha256_through_first_hit": "0a0e5069927d81bb5f0e74bc6113ad9f816e4f24f85e63a8c0d5e00576007e3a",
+        "accepted_generator_ids_sha256_through_first_hit": "d17aafed2f1f54812457ec5a9362be62323ff3aeb72edabda50a6d899e7483a9",
+        "accepted_operators_sha256_through_first_hit": "02f3a035e7cdb3f25b53e2358be00002df822a8956ad3ae6c2c7bfe7781b321e",
+        "accepted_positions_through_first_hit": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "accepted_round_count_through_first_hit": 21,
+        "result_member_size_bytes": 738937301,
+        "round_1": {
+          "accepted_refit": {
+            "coordinate_chart": "supported_fs_whitened_fixed_v1",
+            "final_energy": 0.11721778146268136,
+            "full_ansatz": true,
+            "policy": "supported_fs_whitened_fixed_v1",
+            "supported_rank": 1,
+            "symmetric_metric_element_occurrences": 1
+          },
+          "checkpoint": {
+            "active_ansatz_depth": 1,
+            "checkpoint_sha256": "0eaf4ea304832b6bf82fc1bc9037b85373ae4d0e5d5abbf07111151f929f86ea",
+            "ledger_S_alg": 314,
+            "ledger_status": "complete",
+            "parameterization_mode": "per_pauli_term_v1",
+            "projective_state_fingerprint": "projective_state_v1:fc55530d2d1db785a40ade4b40392b9bf6926ab95c3f2295303cc4afdfa47e29",
+            "strict_replay_passed": true
+        },
+        "depth": 1,
+        "energy_after_opt": 0.11721778146268136,
+        "fixed_particle_sector": {
+          "n_dn": 1,
+          "n_up": 1
+        },
+        "generator_id": "gen:7a40715aea9539a4",
+          "phase3": {
+            "coordinate_indices": [
+              0
+            ],
+            "pre_support_count": 1,
+            "supported_rank": 1
+          },
+          "selected_op": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+          "selected_position": 0,
+          "trust": {
+            "endpoint_overlap_query_charge": 0,
+            "policy": "source_metric_inverse_sqrt_no_overlap_v1",
+            "source_metric_transaction_failure": "ValueError:Projected trust transaction is missing square G_AA_raw.",
+            "update_reason": "source_metric_transaction_failure_hold"
+          }
+        },
+        "round_21": {
+          "accepted_refit": {
+            "coordinate_chart": "supported_fs_whitened_fixed_v1",
+            "final_energy": -0.9183544101009906,
+            "full_ansatz": true,
+            "policy": "supported_fs_whitened_fixed_v1",
+            "supported_rank": 18,
+            "symmetric_metric_element_occurrences": 231
+          },
+          "checkpoint": {
+            "active_ansatz_depth": 21,
+            "checkpoint_sha256": "6f20dadb3513c8e55cd0019f9ce4fe4c89fa066e96d64c4f0416678b6faf1479",
+            "ledger_S_alg": 44216,
+            "ledger_status": "complete",
+            "parameterization_mode": "per_pauli_term_v1",
+            "projective_state_fingerprint": "projective_state_v1:35fe7099f359e055e92baaf7bd7f298bec7a2ea95ca05f999db1eedc9320607e",
+            "strict_replay_passed": true
+        },
+        "depth": 21,
+        "energy_after_opt": -0.9183544101009906,
+        "fixed_particle_sector": {
+          "n_dn": 1,
+          "n_up": 1
+        },
+        "generator_id": "gen:b59e15689179a8a0",
+          "phase3": {
+            "coordinate_indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20
+            ],
+            "pre_support_count": 21,
+            "supported_rank": 18
+          },
+          "selected_op": "hh_termwise_ham_quadrature_term(eeeyezee)",
+          "selected_position": 20,
+          "trust": {
+            "endpoint_overlap_query_charge": 0,
+            "policy": "source_metric_inverse_sqrt_no_overlap_v1",
+            "predicted_source_metric_displacement": 0.045623062861273725,
+            "realized_source_metric_displacement": 0.00979734507314463,
+            "source_metric_transaction_complete": true,
+            "supported_metric_inverse_sqrt_constructed": false,
+            "supported_metric_whitening_active": false,
+            "supported_rank": 18,
+            "update_reason": "radius_inactive_hold"
+          }
+        }
+      },
+      "error": 2.650989383079505e-05,
+      "first_hit_outer_iteration": 21,
+      "qiskit": {
+        "D2q": 60,
+        "Dc": 314,
+        "N2q": 74,
+        "compile_identity": "table_i_basis_gate_transpile_v1",
+        "optimization_level": 0,
+        "reference_state_included": true,
+        "seed_transpiler": 7
+      },
+      "runtime_postrun_closure_status": "pass",
+      "status": "hit"
+    }
+  },
+  "paper_i_problem": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.0,
+    "fixed_particle_sector": {
+      "n_dn": 1,
+      "n_up": 1
+    },
+    "g_ep": 0.353553390593,
+    "holstein_sector": "weak",
+    "lambda": 0.25,
+    "n_ph_reference": 3,
+    "n_ph_work": 3,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "hh",
+    "same_cutoff_reference": true,
+    "t": 1.0,
+    "target_controller_round": 50,
+    "u_over_t": 0.25
+  },
+  "route": {
+    "family": "singleton_response_snake",
+    "profile": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_v1",
+    "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
+    "profile_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "visible_support_route_id": "no_overlap_trust_projected_phase3_nph3_7"
+  },
+  "schema": "paper_i_sr_snake_issue7_provenance_anchor_v1",
+  "sources": {
+    "frozen_weak_weak_job": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc/jobs/weak_weak.json",
+      "sha256": "d7f84e0edd2c34d18edce0634199ea3908d4aaa6f97749abaf406ef0dc904045"
+    },
+    "normalized_weak_weak_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc/normalized_manifests/weak_weak.json",
+      "sha256": "1fbe2b656eb4ede0fe5fad65538ed9e786c4fa9db3f9cff370f511505a94fcda"
+    },
+    "qiskit_target_prefix_costs": {
+      "path": "output/pdf/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715/target_energy_prefix_costs.json",
+      "sha256": "c146314c4a08f7a982a55a53dbe1145780516eceb9eda39c0a413c61ab0abc04"
+    },
+    "runtime_postrun_s_alg_audit": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/paper_i_no_overlap_runtime_postrun_s_alg_audit.json",
+      "sha256": "2a8c3e39f3e20c48062e72160776e5c1fcdff929613e5700a73634c61de5a153"
+    },
+    "visible_results_support": {
+      "path": "MATH/paper_details/figures/paper_i_hh_first_hit_20260721/paper_i_hh_first_hit_results_support_20260721.json",
+      "sha256": "c0a65a440d457e3ff36fe2c963c18044d6816a24ffbf81201173a4eca6c666e7"
+    },
+    "weak_weak_result_archive": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.0__weak_weak_transfer.tar.gz",
+      "result_member": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc/weak_weak/json/result.json",
+      "result_member_sha256": "d52252041099621813e96a271264c30dd01edbd701c9190b295a629e89a0214d",
+      "sha256": "2fd2a69556298d0ff3d5d2478c9d58ba8958a82514a251f9b0c60bf34f4dc46e"
+    }
+  }
+}

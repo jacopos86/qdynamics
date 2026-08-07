@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Legacy checkpoint-runtime route defaults."""
+
+from __future__ import annotations
+
+ROUTE_VERSION = "math17a_projective_mclachlan_hybrid_v1"
+ROUTE_AUTHORITY = "MATH/Math.md#17A"
+ROUTE_LABEL = "projective_mclachlan_hybrid_checkpoint_controller"
+DRIVE_DEFAULTS_SOURCE = "neutral_opt_in_defaults"
+
+T_FINAL_DEFAULT = 8.0
+NUM_TIMES_DEFAULT = 161
+
+ENABLE_DRIVE_DEFAULT = False
+DRIVE_A_DEFAULT = 0.0
+DRIVE_OMEGA_DEFAULT = 1.0
+DRIVE_TBAR_DEFAULT = 1.0
+DRIVE_PHI_DEFAULT = 0.0
+DRIVE_PATTERN_DEFAULT = "staggered"
+DRIVE_TIME_SAMPLING_DEFAULT = "midpoint"
+DRIVE_T0_DEFAULT = 0.0
+EXACT_STEPS_MULTIPLIER_DEFAULT = 4
+
+__all__ = [
+    "ROUTE_VERSION",
+    "ROUTE_AUTHORITY",
+    "ROUTE_LABEL",
+    "DRIVE_DEFAULTS_SOURCE",
+    "T_FINAL_DEFAULT",
+    "NUM_TIMES_DEFAULT",
+    "ENABLE_DRIVE_DEFAULT",
+    "DRIVE_A_DEFAULT",
+    "DRIVE_OMEGA_DEFAULT",
+    "DRIVE_TBAR_DEFAULT",
+    "DRIVE_PHI_DEFAULT",
+    "DRIVE_PATTERN_DEFAULT",
+    "DRIVE_TIME_SAMPLING_DEFAULT",
+    "DRIVE_T0_DEFAULT",
+    "EXACT_STEPS_MULTIPLIER_DEFAULT",
+]

@@ -1,0 +1,106 @@
+\documentclass[10pt,landscape]{article}
+\usepackage[margin=0.35in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\LTpre}{3pt}
+\setlength{\LTpost}{3pt}
+\renewcommand{\arraystretch}{1.12}
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\ww}{weak-weak}
+\newcommand{\iw}{intermediate-weak}
+\newcommand{\sw}{strong-weak}
+\newcommand{\ws}{weak-strong}
+\newcommand{\is}{intermediate-strong}
+\newcommand{\ssg}{strong-strong}
+
+\begin{document}
+
+{\Large Paper-I Hubbard--Holstein SNAKE Native-SPSA-200 Settings Matrix}
+
+{\small
+Source support file:
+\code{MATH/paper_facing/paper_I_static_scaffold/paper_i_hh_native200_manuscript_update_20260619.json}.
+This note summarizes the current StaticAdapt Paper-I Hubbard--Holstein SNAKE settings block for appendix and referee-facing reproducibility planning.
+The table is support material, not a manuscript table promotion.
+}
+
+\vspace{3pt}
+
+\begin{tabular}{@{}p{2.25in}p{7.55in}@{}}
+\toprule
+Common fixed backbone &
+Pool: \code{full_meta}. Optimizer: native SPSA, maxiter 200, $(a,A,c,\alpha,\gamma)=(0.1,5,0.02,0.602,0.101)$.
+Phase II: collective-span novelty and batching enabled.
+Phase III: shortlist Pauli-child runtime split, reduced selector geometry, FakeMarrakesh graph-span backend cost. \\
+\midrule
+Main regime-specific knobs &
+\code{phase2_w_shot}, \code{phase2_rho}, prune fraction, batch tolerances, geometry/window sizes, and the strong-strong structural continuation from base depth 21. \\
+\midrule
+Appendix policy implication &
+The defensible manuscript framing is a shared SNAKE policy backbone plus a small number of regime-specific acquisition weights.  A common-ground sensitivity pass should first freeze the shared backbone and test whether fewer row-specific knobs preserve the displayed plateau-prefix Pareto behavior. \\
+\midrule
+Optimizer-fairness implication &
+If the HH block is presented as native-SPSA-200, SNAKE, Geo-ADAPT, and append-only ADAPT should either all use the same maxiter-200 optimizer contract across the six regimes, or the table/report must explicitly mark any mixed-budget rows as diagnostic rather than same-contract evidence. \\
+\bottomrule
+\end{tabular}
+
+\vspace{4pt}
+
+{\scriptsize
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.45in}
+>{\raggedright\arraybackslash}p{1.25in}
+>{\raggedright\arraybackslash}p{1.25in}
+>{\raggedright\arraybackslash}p{1.25in}
+>{\raggedright\arraybackslash}p{1.25in}
+>{\raggedright\arraybackslash}p{1.25in}
+>{\raggedright\arraybackslash}p{1.25in}@{}}
+\toprule
+Parameter & \ww & \iw & \sw & \ws & \is & \ssg \\
+\midrule
+\endfirsthead
+\toprule
+Parameter & \ww & \iw & \sw & \ws & \is & \ssg \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\code{U/t} & 0.25 & 1.25 & 8 & 0.25 & 1.25 & 8 \\
+\code{lambda} & 0.25 & 0.25 & 0.25 & 1.25 & 1.25 & 1.25 \\
+\code{n_ph_max} & 2 & 2 & 2 & 4 & 4 & 4 \\
+visible SNAKE depth & 8 & 9 & 6 & 11 & 12 & 21 \\
+source \code{abs_delta_e} & 5.20e-4 & 2.05e-4 & 1.00e-3 & 2.12e-2 & 9.01e-3 & 5.58e-5 \\
+\code{S_alg} & 19849 & 16873 & 16233 & 8545 & 15215 & 5907 \\
+\code{adapt_pool} & \code{full_meta} & \code{full_meta} & \code{full_meta} & \code{full_meta} & \code{full_meta} & \code{full_meta} \\
+optimizer & native SPSA, maxiter 200 & same & same & same & same & same \\
+\code{adapt_ref_base_depth} & 0 & 0 & 0 & 0 & 0 & 21 \\
+\code{adapt_max_depth} & 13 & 13 & 13 & 13 & 13 & 30 \\
+\code{adapt_window_size/topk} & 4/4 & 4/4 & 999999/999999 & 4/4 & 4/4 & 16/16 \\
+\code{phase1_shortlist_size} & 24 & 24 & 24 & 24 & 24 & 24 \\
+\code{phase1_prune_max_candidates} & 6 & 6 & 6 & 6 & 6 & 6 \\
+\code{phase1_prune_fraction} & 0.410 & 0.193 & 0.410 & 0.339 & 0.339 & 0.193 \\
+\code{phase2_rho} & 0.25 & 0.25 & 0.5 & 0.25 & 0.25 & 0.5 \\
+\code{phase2_lambda_H} & 1e-6 & 1e-6 & 1e-6 & 1e-6 & 1e-6 & 1e-6 \\
+\code{phase2_gamma_N} & 1.0 fixed & 1.0 fixed & 1.0 fixed & 1.0 fixed & 1.0 fixed & 1.0 fixed \\
+\code{phase2_shortlist size/fraction} & 12 / 0.25 & same & same & same & same & same \\
+\code{phase2_w_depth/group} & 0.2 / 0.15 & same & same & same & same & same \\
+\code{phase2_w optdim/reuse/life} & 0.1 / 0.1 / 0.05 & same & same & same & same & same \\
+\code{phase2_w_shot} & 0.08 & 0.04 & 0.15 & 0.02 & 0.02 & 0.08 \\
+\code{phase2_batch_target/cap} & 8 / 16 & 8 / 16 & 8 / 16 & 8 / 16 & 8 / 16 & 8 / 16 \\
+\code{phase2_batch_near/rank/add} & 0.998 / 1.37e-4 / 0.666 & 0.914 / 7.70e-7 / 0.0103 & 0.998 / 1.37e-4 / 0.666 & 0.98 / 1.91e-5 / 0.0999 & 0.98 / 1.91e-5 / 0.0999 & 0.914 / 7.70e-7 / 0.0103 \\
+\code{phase3_backend_cost_mode} & \code{marrakesh_graph_span_v1} & same & same & same & same & same \\
+\code{phase3_geometry_window_size} & 4 & 4 & 0 & 4 & 4 & 16 \\
+\end{longtable}
+}
+
+\vfill
+{\footnotesize
+Reviewer-facing caution: the regime-specific settings should be described as a compact acquisition-policy family, not as six unrelated policies.  The natural follow-up evidence is a common-ground sensitivity matrix: freeze the shared backbone, reduce the number of regime-specific knobs, and report plateau energy, compiled resources, and shot-count proxy.
+}
+
+\end{document}

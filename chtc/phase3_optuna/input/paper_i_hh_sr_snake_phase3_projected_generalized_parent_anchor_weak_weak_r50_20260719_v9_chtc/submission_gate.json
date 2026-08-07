@@ -1,0 +1,12 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v9_chtc",
+  "fanout_authorized": false,
+  "job_count": 1,
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "projected_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_anchor_submission_gate_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "status": "ready_for_remote_preflight",
+  "submission_performed": false
+}

@@ -1,0 +1,33 @@
+    p.add_argument(
+        "--phase2-gram-novelty-policy",
+        choices=list(_DEFERRED_GRAM_FALLBACK_POLICY_CHOICES),
+        default="off",
+        help=(
+            "Compatibility half of the deferred-Gram fallback authorization. "
+            "fallback_only_v1 never changes ordinary Phase-II ranking."
+        ),
+    )
+    p.add_argument(
+        "--phase3-gram-novelty-policy",
+        choices=list(_DEFERRED_GRAM_FALLBACK_POLICY_CHOICES),
+        default="off",
+        help=(
+            "Compatibility half of the deferred-Gram fallback authorization. "
+            "When both phase flags are fallback_only_v1, Gram residuals may "
+            "break an all-energy-models-infeasible stalemate only."
+        ),
+    )
+    p.add_argument(
+        "--sr-controller-ablation-contract",
+        choices=list(SR_CONTROLLER_ABLATION_CONTRACT_CHOICES),
+        default=SR_CONTROLLER_ABLATION_CONTRACT_OFF,
+        help=(
+            "Explicit run-level authorization marker for narrow SR controller "
+            "ablations. This field does not change scoring, pruning, or beam "
+            "capacity by itself. novelty_prune_controls_v1 permits only the "
+            "separately configured fallback-only Gram-novelty and live/disabled "
+            "prune differences; novelty_prune_beam_controls_v1 additionally "
+            "permits an explicitly configured one-branch, beam-disabled route."
+        ),
+    )
+

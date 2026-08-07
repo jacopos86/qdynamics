@@ -1,0 +1,108 @@
+{
+  "archive_only_validate_rows_passed": 6,
+  "archive_source_focused_tests_passed": 188,
+  "cross_arm_executable_diff": [
+    "phase3_hardware_cost_normalization_mode"
+  ],
+  "job_count": 6,
+  "live_source_focused_tests_passed": 190,
+  "profile_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+  "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_one_sided_cost_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_one_sided_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1",
+  "prune_trial_consumer_id_repair": {
+    "classification": "non_scientific_serialization_identity_and_validation_v1",
+    "exact_changes": [
+      "scope_prune_trial_consumer_id_by_parent_beam_branch_id",
+      "pass_estimator_call_context_branch_id_to_consumer_id_builder",
+      "serialize_existing_physical_lane_receipt_on_beam_history_rows",
+      "validate_controller_frontier_separately_from_selected_terminal_winner",
+      "close_materialized_branch_estimator_receipts_by_identity"
+    ],
+    "failed_cluster": 8894498,
+    "path": "pipelines/static_adapt/adapt_pipeline.py",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v3_chtc",
+    "predecessor_source_archive_sha256": "7c3ceaf5523f0c551e3c41c30e8f130f554935dba04fc6ec08ac9d48c1e4e3c9",
+    "profile_contract_sha256_preserved": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "schema": "paper_i_sr_macro_beam_plumbing_repair_v2",
+    "scientific_setting_changes": [],
+    "source_sha256_after": "32ff70e911e4136be9b8de15ff21f99b4c583eca1fe2bc6ba6eb5f3a5bad98c5",
+    "source_sha256_before": "f67bdae0706e7663a53f229882eb53f0dc202aeb54462194a8fb56774d76fb4b"
+  },
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_archive_only_preflight_v1",
+  "sibling_pair_archive_only_validate_rows_passed": 12,
+  "source_archive_sha256": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+  "status": "pending_validation",
+  "test_targets": [
+    "test/test_static_adapt_macro_beam_prune_cost_profiles.py",
+    "test/test_paper_i_main_fidelity_audit.py",
+    "test/test_static_adapt_guarded_singleton_pool_route.py",
+    "test/test_static_adapt_sr_prune_appendix_profile.py",
+    "test/test_static_adapt_sr_route_profile.py"
+  ],
+  "v6_archive_only_validate_rows_passed": 12,
+  "v6_bundle_tests_passed": 17,
+  "v6_fail_closed_review_status": "pass",
+  "v6_independent_validator_fixture_tests_passed": 10,
+  "v6_shared_archive_focused_tests_passed": 18,
+  "v6_test_targets": [
+    "test/test_static_adapt_sr_v4_runtime.py",
+    "test/test_static_adapt_macro_beam_prune_cost_profiles.py"
+  ],
+  "v9_archive_only_validate_rows_passed": 0,
+  "v9_bundle_tests_passed": 0,
+  "v9_frozen_archive_revalidations_passed": 0,
+  "v9_validator_repair_tests_passed": 0,
+  "validator_reporting_repair": {
+    "classification": "non_scientific_validator_and_reporting_only_v1",
+    "failed_clusters": [
+      8900509,
+      8900510
+    ],
+    "known_failure": "ValueError: normalized candidate setting drift: phase_live_hysteresis_enabled",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v6_chtc",
+    "profile_contract_sha256_preserved": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "replacement_gate": "immutable_normalized_command_plus_route_contract_plus_every_round_full_response_receipt_v1",
+    "root_cause": "resolved_route_fields_are_not_flattened_into_result_settings",
+    "schema": "paper_i_sr_macro_beam_cost_validator_reporting_repair_v3",
+    "scientific_rerun_required_after_passing_v9_revalidation": false,
+    "scientific_setting_changes": [],
+    "scientific_source_changes": [],
+    "source_archive_sha256_preserved": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+    "source_only_runtime_settings": {
+      "adapt_accepted_refit_coordinate_chart": "supported_fs_whitened_fixed_v1",
+      "adapt_beam_children_per_parent": 2,
+      "adapt_beam_lambda": 0.005,
+      "adapt_beam_live_branches": 3,
+      "adapt_beam_parent_workers": 1,
+      "adapt_beam_terminal_archive_mode": "legacy",
+      "adapt_beam_terminated_keep": 3,
+      "phase0_pilot_enabled": false,
+      "phase3_enable_batching": false,
+      "phase_live_hysteresis_enabled": false
+    },
+    "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v10_chtc"
+  },
+  "validator_reporting_repair_v10": {
+    "classification": "non_scientific_validator_and_reporting_only_v1",
+    "failed_cluster": 8900510,
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v9_chtc",
+    "profile_contract_sha256_preserved": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "repair_contract": {
+      "ledger": "validate_materialized_branch_and_selected_prefix_closure_v1",
+      "recoverable_frontier": "validate_signed_compact_checkpoint_refit_prune_history_v1",
+      "route_scope": "validate_immutable_normalized_route_contract_v1",
+      "selected_terminal": "validate_complete_selected_branch_history_v1"
+    },
+    "root_causes": [
+      "one_sided_runtime_cost_mode_is_family_robust_v1_not_descriptive_penalty_only_alias",
+      "selected_terminal_may_precede_distinct_signed_recoverable_frontier",
+      "current_checkpoint_history_is_intentionally_compact_not_full_selected_history"
+    ],
+    "schema": "paper_i_sr_macro_beam_cost_validator_reporting_repair_v4",
+    "scientific_rerun_required_after_passing_v10_revalidation": false,
+    "scientific_setting_changes": [],
+    "scientific_source_changes": [],
+    "source_archive_sha256_preserved": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+    "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v10_chtc"
+  }
+}

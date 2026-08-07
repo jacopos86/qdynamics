@@ -1,0 +1,528 @@
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\ifmmode\left[#1\right]\else\textsf{[#1]}\fi}}
+\newcommand{\tentative}[1]{\textcolor{red!70!black}{#1}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\GKBA}{\mathrm{GKBA}}
+\newcommand{\EOM}{\mathrm{EOM}}
+\newcommand{\Reop}{\operatorname{Re}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+
+\begin{document}
+
+\title{Regularized Equal-Time Electron--Phonon Dynamics for Quantum Simulation}
+
+\author{Jake Strobel}
+\author{Jacopo Simoni}
+\author{Gabriele Riva}
+\author{Yuan Ping}
+\affiliation{University of Wisconsin--Madison}
+
+\date{\today}
+
+\begin{abstract}
+We study whether the equal-time non-Markovian electron--phonon equations of motion introduced by Riva, Simoni, and Ping can be turned into a quantum-simulation target in the high-interaction regime. The working object is the coupled ODE system for the electronic one-body density matrix, phonon covariance, anomalous phonon covariance, coherent phonon amplitude, and electron--phonon correlation. This planning template fixes the source equations and records candidate solver routes, separated into near-term variational approaches and fault-tolerant approaches. No stability, complexity, or quantum-advantage result is claimed in this draft.
+\end{abstract}
+
+\maketitle
+
+\section{Objective}
+
+The target problem is the direct numerical solution of the equal-time electron--phonon ODEs on page 3 of Ref.~\cite{RivaSimoniPing2026}, followed by a controlled high-\(U\) regularization study. The first planning deliverable is a list of plausible classical, NISQ, and fault-tolerant routes, together with the diagnostics needed to decide which route is technically defensible for the tested \(L=2\) case.
+
+\section{Target ODE system}
+\label{sec:target_ode}
+
+The dynamical variables are the electronic one-body density matrix \(\rho_{12}\), the phonon covariance \(\delta\rho_{\mathbf q\mathbf q'}\), the anomalous phonon covariance \(\delta\bar\rho_{\mathbf q'\mathbf q}\), the electron--phonon correlation \(\delta\rho^{\mathbf q}_{12}\), and the coherent phonon amplitude \(B_{\mathbf q}\). We take the source system to be Eq.~(14a)--(14e), with the effective Hamiltonian in Eq.~(15), of Ref.~\cite{RivaSimoniPing2026}. The working algorithmic split is that Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} define the quantum-computer target, while Eq.~\eqref{eq:paper_v_B} is a classical coherent-field update coupled back through \(\tilde h(t)\).
+
+\begin{widetext}
+\begin{subequations}
+\label{eq:paper_v_source_eom}
+\begin{align}
+\dot{\rho}_{12}
+&=
+-\ii[\tilde h,\rho]_{12}
++\left[
+-\ii\sum_{\mathbf q}\sum_3
+\left(
+g_{13}^{\mathbf q-}\delta\rho_{32}^{\mathbf q}
++g_{31}^{\mathbf q+}{\delta\rho_{23}^{\mathbf q}}^{*}
+\right)
++\mathrm{H.c.}
+\right],
+\label{eq:paper_v_rho_electron}
+\\
+\delta\dot{\rho}_{\mathbf q\mathbf q'}
+&=
+-\ii(\omega_{\mathbf q}-\omega_{\mathbf q'})
+\delta\rho_{\mathbf q\mathbf q'}
+-\ii\sum_{12}
+\left(
+-g_{12}^{\mathbf q'-}\delta\rho_{21}^{\mathbf q}
++g_{12}^{\mathbf q+}{\delta\rho_{21}^{\mathbf q'}}^{*}
+\right),
+\label{eq:paper_v_delta_rho}
+\\
+\delta\dot{\bar\rho}_{\mathbf q'\mathbf q}
+&=
+-\ii(\omega_{\mathbf q'}+\omega_{\mathbf q})
+\delta\bar\rho_{\mathbf q'\mathbf q}
+-\ii\sum_{12}
+\left(
+g_{12}^{\mathbf q+}\delta\rho_{12}^{\mathbf q'}
++g_{12}^{\mathbf q'+}\delta\rho_{12}^{\mathbf q}
+\right),
+\label{eq:paper_v_delta_rho_bar}
+\\
+\delta\dot{\rho}_{12}^{\mathbf q}
+&=
+-\ii\left(
+[\tilde h,\delta\rho^{\mathbf q}]_{12}
++\omega_{\mathbf q}\delta\rho_{12}^{\mathbf q}
+\right)
+-\ii\sum_{\mathbf q'}\sum_{34}
+g_{34}^{\mathbf q'+}
+(\delta_{\mathbf q\mathbf q'}+\delta\rho_{\mathbf q\mathbf q'})
+(\delta_{14}-\rho_{14})\rho_{32}
+\nonumber\\
+&\quad
++\ii\sum_{\mathbf q'}\sum_{34}
+g_{34}^{\mathbf q'+}\delta\rho_{\mathbf q\mathbf q'}
+(\delta_{32}-\rho_{32})\rho_{14}
+-\ii\sum_{3\mathbf q'}
+g_{23}^{\mathbf q'-}\delta\bar\rho_{\mathbf q'\mathbf q}\rho_{31}
++\ii\sum_{3\mathbf q'}
+g_{32}^{\mathbf q'-}\delta\bar\rho_{\mathbf q'\mathbf q}\rho_{13},
+\label{eq:paper_v_delta_rho12q}
+\\
+\dot B_{\mathbf q}
+&=
+-\ii\left(
+\omega_{\mathbf q}B_{\mathbf q}
++\sum_{12}g_{12}^{\mathbf q+}\rho_{12}
+\right),
+\label{eq:paper_v_B}
+\\
+\tilde h_{12}(t)
+&=
+\varepsilon_1\delta_{12}
++\sum_{\mathbf q}g_{12}^{\mathbf q-}
+\left(B_{\mathbf q}+B_{-\mathbf q}^{*}\right)
++v_{12}^{\mathrm{ext}}(t).
+\label{eq:paper_v_htilde}
+\end{align}
+\end{subequations}
+\end{widetext}
+
+\section{Baseline information needed}
+\label{sec:baseline_needed}
+
+Let
+\begin{equation}
+u(t)=\operatorname{vec}
+\left(
+\rho,\delta\rho,\delta\bar\rho,\delta\rho^{\mathbf q}
+\right)
+\end{equation}
+denote the real-doubled vectorization of the quantum-target sector, Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q}. The coherent phonon \(B_{\mathbf q}(t)\) is kept as a classical auxiliary field. The coupled system can be viewed as
+\begin{equation}
+\dot u=F_Q(u,B,t),
+\qquad
+\dot B=F_B(u,B,t).
+\label{eq:paper_v_vector_ode}
+\end{equation}
+Before choosing a quantum algorithm, the classical \(L=2\) solve should determine the vector dimension of \(u\), sparsity, stiffness, nonlinear tensor contractions, invariant drift, and the precise high-\(U\) failure mode.
+
+\section{NISQ ideas}
+\label{sec:nisq_ideas}
+
+\begin{itemize}
+\item Variational ODE residual solver: represent \(u(t)\approx r(t)z(\bm\theta(t))\) with a normalized circuit state plus scale and minimize \(\|\dot u-F_Q(u,B,t)\|^2\) over parameter velocities, with \(B(t)\) supplied by a classical update.
+\item McLachlan-style projected dynamics: use tangent-space metric and force measurements to update \(\bm\theta(t)\), treating the ODE residual as the projected drift.
+\item pVQD-style time-step matching: choose \(\bm\theta_{k+1}\) so the circuit state matches an explicit or implicit Euler/RK step \(u_k+\Delta t\,F_Q(u_k,B_k,t_k)\).
+\item Variational linear-solver subroutine: use VQLS-like circuits only inside implicit time steps, Newton corrections, or regularized linearized updates.
+\item Tensor-factor variational ansatz: keep separate circuit or tensor factors for electronic density, phonon covariance, anomalous covariance, and electron--phonon correlation sectors; keep the coherent phonon field classical.
+\item Hybrid contraction path: compute nonlinear products in \(F_Q(x,B,t)\) classically from measured or reconstructed low-dimensional observables, then use quantum circuits only for the largest linear-algebra subproblem.
+\item Measurement-first diagnostic route: use the NISQ circuit only to estimate invariants, residual norms, and selected observables before claiming full trajectory propagation.
+\end{itemize}
+
+\section{McLachlan pathway}
+\label{sec:mclachlan_pathway}
+
+The direct NISQ propagation route is a McLachlan projection of the
+real-doubled ODE sector.  It does not replace the coupled ODE solve by a
+closed Hamiltonian simulation.  It chooses a variational manifold
+\(\mathcal M=\{x_{\bm\vartheta}\}\subset\mathbb R^N\) for the
+quantum-target vector \(x\), evaluates the drift \(F_Q(x_{\bm\vartheta},B,t)\)
+at the current classical field \(B(t)\), and projects that drift onto the
+tangent space of \(\mathcal M\).  With
+\begin{equation}
+J_{\bm\vartheta}
+=
+\left[
+\partial_{\vartheta_1}x_{\bm\vartheta}\ \cdots\
+\partial_{\vartheta_m}x_{\bm\vartheta}
+\right],
+\end{equation}
+the projected velocity is
+\begin{equation}
+\dot{\bm\vartheta}
+=
+\argmin_{\bm\nu}
+\left\|J_{\bm\vartheta}\bm\nu
+-F_Q(x_{\bm\vartheta},B,t)\right\|_2^2 ,
+\label{eq:paper_v_mclachlan_argmin}
+\end{equation}
+or
+\begin{equation}
+\left(J_{\bm\vartheta}^{T}J_{\bm\vartheta}+\Lambda\right)
+\dot{\bm\vartheta}
+=
+J_{\bm\vartheta}^{T}F_Q(x_{\bm\vartheta},B,t)
+\label{eq:paper_v_mclachlan_normal}
+\end{equation}
+with the same kind of thresholded or damped inverse used in regularized
+variational dynamics.
+
+For this system the useful ansatz should carry separate sector scales, since
+\(\rho\), \(\delta\rho\), \(\delta\bar\rho\), and
+\(\delta\rho^{\mathbf q}\) need not have comparable norms.  Let
+\begin{equation}
+x_{\bm\vartheta}
+=
+\sum_s r_s z_s(\bm\theta),
+\qquad
+z_s=\Pi_s z(\bm\theta),
+\end{equation}
+where
+\(s\in\{\rho,\delta\rho,\delta\bar\rho,\delta\rho^{\mathbf q}\}\) and
+\(\Pi_s\) are orthogonal sector projectors.  Define the sector norm and
+horizontal tangent by
+\begin{align}
+n_s&=\langle z_s,z_s\rangle_{\mathbb R},
+\\
+\bar T_{i,s}
+&=
+\Pi_s\partial_i z
+-
+\frac{
+\langle z_s,\Pi_s\partial_i z\rangle_{\mathbb R}
+}{n_s}\,z_s ,
+\qquad n_s>0 .
+\end{align}
+For \(F_s=\Pi_sF_Q(x_{\bm\vartheta},B,t)\), the residual is
+\begin{equation}
+\begin{aligned}
+R_Q
+&=
+\sum_s \dot r_s z_s
++
+\sum_i
+\left(\sum_s r_s\bar T_{i,s}\right)\dot\theta_i
+\\
+&\quad
+-F_Q(x_{\bm\vartheta},B,t).
+\end{aligned}
+\label{eq:paper_v_mclachlan_residual}
+\end{equation}
+The sector-gauge McLachlan equations are
+\begin{align}
+n_s\dot r_s&=\Phi_s,
+\qquad
+\Phi_s=\langle z_s,F_s\rangle_{\mathbb R},
+\label{eq:paper_v_sector_scale_eq}
+\\
+\left(
+\sum_s r_s^2\bar M^{(s)}+\Lambda
+\right)\dot{\bm\theta}
+&=
+\sum_s r_s\bar{\bm V}^{(s)},
+\label{eq:paper_v_sector_theta_eq}
+\end{align}
+with
+\begin{equation}
+\bar M_{ij}^{(s)}
+=
+\langle\bar T_{i,s},\bar T_{j,s}\rangle_{\mathbb R},
+\qquad
+\bar V_i^{(s)}
+=
+\langle\bar T_{i,s},F_s\rangle_{\mathbb R}.
+\end{equation}
+The scalar-scale equations in Sec.~\ref{sec:pedagogical_solver_map} are the
+one-sector special case.
+
+This is where the route differs from ordinary Hamiltonian variational
+dynamics.  The tangent metric and sector probabilities are natural QPU-facing
+objects.  The small normal-equation solve, the \(B_{\mathbf q}\) update, and
+the time integrator are classical.  The bottleneck is the force projection
+\(\bar V_i^{(s)}\), because with \(B(t)\) classical the target force has the
+schematic form
+\begin{equation}
+F_Q(x,B,t)
+=
+A(B,t)x+\mathcal Q(x,x;B,t)+\mathcal C(x,x,x;B,t),
+\label{eq:paper_v_force_polynomial}
+\end{equation}
+so
+\begin{equation}
+V_i
+=
+r\langle T_i,Az\rangle_{\mathbb R}
++r^2\langle T_i,\mathcal Q(z,z)\rangle_{\mathbb R}
++r^3\langle T_i,\mathcal C(z,z,z)\rangle_{\mathbb R}.
+\label{eq:paper_v_force_projection_layers}
+\end{equation}
+The first term resembles standard variational simulation.  The quadratic and
+cubic terms require an explicit access strategy for nonlinear products.
+
+The planning split is therefore four force-evaluation routes:
+\begin{enumerate}
+\item reconstruct \(x\) for \(L=2\), compute \(F_Q\) classically, and use the
+quantum circuit as a variational compression or residual diagnostic;
+\item measure only selected sparse or low-rank contractions when the coupling
+tensors make the projection \(\langle T_i,F_Q\rangle\) compact;
+\item estimate multilinear products with multiple circuit copies, which is
+conceptually direct but shot- and noise-sensitive on NISQ hardware;
+\item move to a fault-tolerant oracle or block encoding for \(F_Q\) or its
+Jacobian \(J_Q=\partial F_Q/\partial x\).
+\end{enumerate}
+Only the first route is immediately honest for the \(L=2\) dimer.  A scalable
+NISQ claim needs a non-tomographic method for the multilinear force projections
+in Eq.~\eqref{eq:paper_v_force_projection_layers}.
+
+The minimal \(L=2\) benchmark should initialize \((x_0,B_0)\), fit
+\((\bm r_0,\bm\theta_0)\) to \(x_0\), propagate
+\((\bm r,\bm\theta,B)\) by Eqs.~\eqref{eq:paper_v_sector_scale_eq} and
+\eqref{eq:paper_v_sector_theta_eq}, and compare the reconstructed trajectory
+against Radau/BDF/DOP853 classical references.  The required diagnostics are
+the ODE residual \(\|R_Q\|\), sector residuals \(\|\Pi_sR_Q\|\), trajectory
+errors for \(x\) and \(B\), \(\Tr\rho\), Hermiticity, positivity drift, and
+growth of \(\delta\rho^{\mathbf q}\).  The technical validation is projected
+variational propagation of the quantum-target sector with classical coherent
+feedback, not a quantum-advantage claim.
+
+\section{Fault-tolerant ideas}
+\label{sec:ft_ideas}
+
+\begin{itemize}
+\item Sparse ODE simulation after linearization: linearize the quantum-target sector of Eq.~\eqref{eq:paper_v_vector_ode} around a trajectory or fixed point and block-encode the resulting Jacobian, with \(B(t)\) treated as a classical control field.
+\item Carleman or Koopman lifting: embed the nonlinear polynomial ODE into a larger approximately linear system, then use fault-tolerant linear ODE or matrix-exponential tools.
+\item Quantum linear systems for implicit steps: solve \((I-\Delta t\,J_k)\delta y=b_k\) with a fault-tolerant QLSA inside Newton--Krylov or backward-Euler integration.
+\item LCU/QSP matrix functions: apply \(e^{A\Delta t}\), resolvents, or regularized propagators when a stable linear generator \(A\) is available.
+\item Amplitude estimation for observables: use FT amplitude estimation to reduce sampling cost for conserved quantities, spectra, or residual norms.
+\item Full Liouville-space embedding: encode the density/correlation vector from Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} directly and propagate with a block-encoded non-Hermitian or dilated generator when the truncation is linear.
+\item FT benchmark role: use fault-tolerant algorithms as an asymptotic comparison even if the first implementation remains classical or NISQ.
+\end{itemize}
+
+\section{Numerical plan}
+
+\paragraph*{Classical/quantum split.}
+Flatten the complex matrices in Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} into the quantum-target real state \(u(t)\) by storing real and imaginary parts separately. Propagate \(B_{\mathbf q}\) from Eq.~\eqref{eq:paper_v_B} as a classical auxiliary variable. The first smoke case should preserve the source-paper Holstein-dimer symmetry before adding high-\(U\) stress tests.
+
+\paragraph*{Invariants.}
+The minimum diagnostics are \(\Tr\rho\), Hermiticity of \(\rho\), positivity drift, total energy after the external pulse, norm growth of \(\delta\rho^{\mathbf q}_{12}\), and solver-step rejection counts.
+
+\paragraph*{Regularization slot.}
+\placeholder{Specify the high-\(U\) failure mode: density-matrix positivity loss, stiffness, correlation blow-up, energy drift, or self-consistency instability.}
+
+\paragraph*{Quantum encoding slot.}
+\placeholder{Choose after the classical \(L=2\) diagnostics identify the dominant bottleneck: state dimension, stiffness, nonlinearity, measurement burden, or invariant preservation.}
+
+\section{Immediate tasks}
+
+\begin{enumerate}
+\item Build the \(L=2\) finite-dimensional tensor layout for the quantum-target variables in Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} and the classical coherent field in Eq.~\eqref{eq:paper_v_B}.
+\item Implement the right-hand side with explicit shape, Hermiticity, and index-convention tests.
+\item Reproduce a coherent-dynamics baseline by solving Eqs.~\eqref{eq:paper_v_rho_electron} and~\eqref{eq:paper_v_B} with a classical ODE integrator.
+\item Add the full non-Markovian system and record the first high-\(U\) instability signature.
+\item Decide whether the first quantum route for Eqs.~\eqref{eq:paper_v_rho_electron}--\eqref{eq:paper_v_delta_rho12q} should be NISQ variational, NISQ measurement-assisted, FT linearized, or FT lifted-linear.
+\end{enumerate}
+
+\section{Pedagogical solver map}
+\label{sec:pedagogical_solver_map}
+
+The first useful simplification is to separate the object being propagated from
+the hardware representation used to propagate it.  The quantum-target state is
+not a wavefunction.  After real-doubling,
+\begin{equation}
+x(t)=\mathcal R\,\operatorname{vec}
+\left(
+\rho,\delta\rho,\delta\bar\rho,\delta\rho^{\mathbf q}
+\right)
+\in\mathbb R^N ,
+\end{equation}
+the target dynamics have the form
+\begin{equation}
+\dot x=F_Q(x,B,t),
+\qquad
+\dot B=F_B(x,B,t).
+\end{equation}
+The coherent phonon field \(B(t)\) remains a classical control variable.  It is
+updated from Eq.~\eqref{eq:paper_v_B} and re-enters the quantum-target sector
+through \(\tilde h(t)\).  A quantum algorithm for this draft is therefore a
+method for representing, projecting, linearizing, or estimating the
+\(x\)-sector, with \(B(t)\) supplied by a classical feedback loop.
+
+\paragraph*{Classical diagnostic layer.}
+Before a quantum route is meaningful, the \(L=2\) system should be solved as a
+classical coupled ODE for \((x,B)\).  The classical solve is not the final
+algorithmic claim; it identifies the numerical obstruction that the quantum
+method would need to address:
+\begin{equation}
+\left\{
+\dim x,\ \operatorname{nnz} J_Q,\ 
+\operatorname{spec} J_Q,\ 
+\kappa(I-\Delta t\,J_Q),\
+\Delta_{\rm phys}(t)
+\right\},
+\end{equation}
+where \(J_Q=\partial F_Q/\partial x\) and \(\Delta_{\rm phys}\) collects trace,
+Hermiticity, positivity, covariance-symmetry, energy, and correlation-growth
+defects.  If adaptive explicit solvers, stiff implicit solvers, and
+Jacobian-aware methods agree at matched tolerances, the first quantum claim
+should be about representation or observable estimation rather than speed.
+
+\paragraph*{NISQ residual layer.}
+A near-term variational route should be written as a residual projection, not
+as unitary Schrodinger evolution.  Let
+\begin{equation}
+x(t)\approx r(t)z(\bm\theta(t)),
+\qquad
+\|z(\bm\theta)\|_2=1 .
+\end{equation}
+The scale \(r(t)\) is required because the ODE state is not normalized.  The
+instantaneous defect is
+\begin{equation}
+R_Q=
+\dot r\,z
++r\sum_i\partial_i z\,\dot\theta_i
+-F_Q(rz,B,t),
+\end{equation}
+and the McLachlan-type update chooses \((\dot r,\dot{\bm\theta})\) by minimizing
+\(\|R_Q\|_2^2\).  In the common gauge
+\(\operatorname{Re}\langle z,\partial_i z\rangle=0\), this gives the schematic
+normal equations
+\begin{equation}
+\dot r=\operatorname{Re}\langle z,F_Q\rangle,
+\qquad
+r^2 M_{ij}\dot\theta_j
+=r V_i ,
+\end{equation}
+with
+\begin{equation}
+M_{ij}=\operatorname{Re}\langle\partial_i z|\partial_jz\rangle,
+\qquad
+V_i=\operatorname{Re}\langle\partial_i z|F_Q(rz,B,t)\rangle .
+\end{equation}
+This layer is plausible only if the metric, force vector, nonlinear products,
+and selected observables can be measured without reconstructing all of
+\(x(t)\).  The strongest near-term target is therefore residual and invariant
+estimation for selected observables, with full trajectory reconstruction left
+as a small-system diagnostic.
+
+\paragraph*{Fault-tolerant linearization layer.}
+Fault-tolerant ODE algorithms become natural after the nonlinear target is
+turned into a linear algebra problem.  Around a classical or variational
+trajectory \(\bar x(t)\),
+\begin{equation}
+x(t)=\bar x(t)+\xi(t)
+\end{equation}
+gives
+\begin{equation}
+\dot\xi
+=J_Q(\bar x(t),B(t),t)\xi+s(t)+O(\|\xi\|^2),
+\end{equation}
+where \(s(t)=F_Q(\bar x,B,t)-\dot{\bar x}\).  This form exposes the matrices
+that a block-encoding, quantum linear-system solver, or QSP/QSVT matrix-function
+routine would have to access.  A credible fault-tolerant claim must specify the
+oracle model for \(J_Q\), the condition number or amplification factor, and the
+observable extracted from the amplitude-encoded output.
+
+\paragraph*{Fault-tolerant lifting layer.}
+Because Eq.~\eqref{eq:paper_v_delta_rho12q} contains polynomial products of
+the quantum-target variables, one can also consider a Carleman-type lift.  If
+\begin{equation}
+\begin{aligned}
+F_Q(x,B,t)
+&=F_0(B,t)+A_1(B,t)x
+\\
+&\quad
++A_2(B,t)x^{\otimes2}
++A_3(B,t)x^{\otimes3},
+\end{aligned}
+\end{equation}
+then define
+\begin{equation}
+X_K=\left(x,\ x^{\otimes2},\ldots,x^{\otimes K}\right).
+\end{equation}
+The lifted system is approximately linear,
+\begin{equation}
+\dot X_K=\mathcal A_K(B,t)X_K+\tau_K ,
+\end{equation}
+where \(\tau_K\) is the truncation remainder.  This is the cleanest route from
+the nonlinear hierarchy to fault-tolerant linear-ODE machinery, but its cost is
+controlled by the lifted dimension, sparsity, dissipativity, truncation error,
+and output model.  It should remain a theory route until those quantities are
+bounded for the tested regimes.
+
+\paragraph*{Decision rule.}
+The working hierarchy is therefore:
+\begin{enumerate}
+\item characterize the classical \(L=2\) ODE and its physicality defects;
+\item test NISQ only as a residual, tangent-projection, or observable-estimation
+method for the \(x\)-sector with classical \(B(t)\);
+\item analyze fault-tolerant routes only after linearization, implicit-step
+linear solves, or controlled polynomial lifting;
+\item avoid claiming a full quantum solution of the coupled system unless
+Eq.~\eqref{eq:paper_v_B}, nonlinear-product access, and output extraction are
+all included in the cost model.
+\end{enumerate}
+
+\begin{thebibliography}{9}
+
+\bibitem{RivaSimoniPing2026}
+G. Riva, J. Simoni, and Y. Ping,
+``Open-quantum-system theory of non-Markovian electron--phonon dynamics,''
+arXiv:2606.22233 (2026).
+
+\bibitem{McLachlan1964}
+A. D. McLachlan,
+``A variational solution of the time-dependent Schrodinger equation,''
+Mol. Phys. \textbf{8}, 39 (1964).
+
+\bibitem{LiBenjamin2017}
+Y. Li and S. C. Benjamin,
+``Efficient variational quantum simulator incorporating active error minimization,''
+Phys. Rev. X \textbf{7}, 021050 (2017).
+
+\bibitem{Yuan2019}
+X. Yuan, S. Endo, Q. Zhao, Y. Li, and S. C. Benjamin,
+``Theory of variational quantum simulation,''
+Quantum \textbf{3}, 191 (2019).
+
+\end{thebibliography}
+
+\end{document}

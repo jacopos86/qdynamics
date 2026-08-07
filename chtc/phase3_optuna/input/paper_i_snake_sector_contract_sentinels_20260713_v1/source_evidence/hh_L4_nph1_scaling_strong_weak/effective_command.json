@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/usr/local/bin/python",
+    "-u",
+    "-m",
+    "pipelines.exact_bench.generic_static_benchmark",
+    "--run-single",
+    "--family",
+    "hh",
+    "--case-id",
+    "hh_L4_nph1_scaling_strong_weak",
+    "--algorithm-id",
+    "static_family_native_adapt_phase3",
+    "--output-dir",
+    "raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50/result"
+  ]
+}

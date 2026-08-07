@@ -1,0 +1,393 @@
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from chtc.phase3_optuna import hh_same_cutoff_overnight as overnight
+
+
+def _arg_value(args: tuple[str, ...], flag: str) -> str:
+    return args[args.index(flag) + 1]
+
+
+def _write_current_best(tmp_path: Path, lane: overnight.LaneConfig, result: dict, *, trial: int = 0) -> None:
+    paths = overnight.lane_paths(tmp_path, lane.lane_id)
+    paths["progress_dir"].mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "phase3_progress_current_v1",
+        "best_trial_number": trial,
+        "best_value": 0.0,
+        "best_user_attrs": {"results": {lane.benchmark_id: result}},
+    }
+    (paths["progress_dir"] / "current_best.json").write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _write_complete_event(tmp_path: Path, lane: overnight.LaneConfig, *, trial: int = 0, state: str = "COMPLETE") -> None:
+    paths = overnight.lane_paths(tmp_path, lane.lane_id)
+    paths["progress_dir"].mkdir(parents=True, exist_ok=True)
+    event = {"event": "trial_completed", "trial_number": trial, "state": state}
+    with (paths["progress_dir"] / "trial_events.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(event) + "\n")
+
+
+def _mark_running_owned(state: dict, tmp_path: Path, lane: overnight.LaneConfig, *, pid: int) -> None:
+    command = overnight.build_worker_command(lane=lane, run_root=tmp_path, n_trials=3, poll_seconds=0.1)
+    state["lanes"][lane.lane_id].update({"state": "running", "pid": pid, "command": command})
+    state.setdefault("owned_processes", {})[str(pid)] = {
+        "lane_id": lane.lane_id,
+        "pid": pid,
+        "command": command,
+        "run_root": str(tmp_path),
+    }
+
+
+def test_lane_specs_are_explicit_same_cutoff_hh_points() -> None:
+    weak = overnight.build_lane_spec(overnight.LANE_BY_ID["weak_weak"])
+    medium = overnight.build_lane_spec(overnight.LANE_BY_ID["medium"])
+
+    assert weak.benchmark_id == "hh_L2_nph2_same_cutoff_weak_weak"
+    assert medium.benchmark_id == "hh_L2_nph2_same_cutoff_medium"
+    assert weak.family == medium.family == "hh"
+    assert weak.exact_reference_n_ph_max == 2
+    assert medium.exact_reference_n_ph_max == 2
+    assert _arg_value(tuple(weak.base_pipeline_args), "--n-ph-max") == "2"
+    assert _arg_value(tuple(medium.base_pipeline_args), "--n-ph-max") == "2"
+    assert float(_arg_value(tuple(weak.base_pipeline_args), "--u")) == 0.25
+    assert float(_arg_value(tuple(weak.base_pipeline_args), "--g-ep")) == 0.3535533905932738
+    assert float(_arg_value(tuple(medium.base_pipeline_args), "--u")) == 0.75
+    assert float(_arg_value(tuple(medium.base_pipeline_args), "--g-ep")) == 0.6123724356957945
+    assert "same_cutoff" in weak.tags
+    assert "spsa_depthcheck" in weak.tags
+    assert "polychildren_deferred_first_fast_run" in weak.tags
+
+
+def test_lane_manifest_declares_diagnostic_spsa_depthcheck_and_zero_cost_weights(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    manifest = overnight._lane_manifest(lane, tmp_path, n_trials=5)
+
+    assert manifest["run_class"] == "diagnostic_candidate"
+    assert manifest["not_table_iii_evidence"] is True
+    assert manifest["cutoff_contract"] == {
+        "algorithm_n_ph": 2,
+        "reference_n_ph": 2,
+        "same_cutoff": True,
+        "higher_reference_error_role": "not_evaluated_in_this_search",
+    }
+    assert manifest["route"]["meta_feature_profile"] == "paper_i_production_v1"
+    assert manifest["route"]["route_base_pool_key"] == "full_meta"
+    assert manifest["route"]["adapt_allow_repeats"] is True
+    assert manifest["lane"]["inner_optimizer"] == "SPSA"
+    assert manifest["route"]["phase3_runtime_split_mode"] == "off"
+    assert manifest["route"]["allow_archival_phase3_runtime_split"] is False
+    assert manifest["route"]["phase3_runtime_split_selection_mode"] == "proxy_child_set_preselection"
+    assert manifest["route"]["phase3_runtime_split_max_subset_size"] == 3
+    assert manifest["route"]["phase3_batch_prefilter_mode"] == "off"
+    assert manifest["route"]["polychildren_status"] == "deferred_for_first_fast_spsa_depthcheck"
+    assert manifest["route"]["adapt_max_depth"] == 48
+    assert manifest["objective"]["energy_weight"] == 1.0
+    assert manifest["objective"]["count_2q_weight"] == 0.0
+    assert manifest["objective"]["depth_2q_weight"] == 0.0
+    assert manifest["objective"]["circuit_depth_weight"] == 0.0
+    assert manifest["objective"]["shot_weight"] == 0.0
+
+
+def test_worker_command_uses_worker_lane_and_spsa_depthcheck(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["medium"]
+    command = overnight.build_worker_command(lane=lane, run_root=tmp_path, n_trials=7, poll_seconds=0.25)
+
+    assert command[0] == sys.executable
+    assert "worker" in command
+    assert command[command.index("--lane") + 1] == "medium"
+    assert command[command.index("--run-root") + 1] == str(tmp_path)
+    assert command[command.index("--n-trials") + 1] == "7"
+    assert command[command.index("--inner-optimizer") + 1] == "SPSA"
+    assert command[command.index("--phase3-runtime-split-mode") + 1] == "off"
+    assert command[command.index("--adapt-max-depth") + 1] == "48"
+
+
+def test_launch_pending_lanes_uses_conservative_one_lane_even_when_two_allowed(monkeypatch, tmp_path: Path) -> None:
+    launched: list[list[str]] = []
+
+    class FakePopen:
+        def __init__(self, command, **_kwargs):
+            self.command = list(command)
+            self.pid = 4242 + len(launched)
+            launched.append(list(command))
+
+        def poll(self):
+            return None
+
+    monkeypatch.setattr(overnight.subprocess, "Popen", FakePopen)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    processes = {}
+
+    overnight._launch_pending_lanes(
+        state,
+        tmp_path,
+        processes,
+        max_local_processes=2,
+        n_trials=3,
+        poll_seconds=0.1,
+        inner_optimizer="SPSA",
+        phase3_runtime_split_mode="off",
+        adapt_max_depth=48,
+    )
+
+    assert list(processes) == ["weak_weak"]
+    assert state["lanes"]["weak_weak"]["state"] == "running"
+    assert state["lanes"]["medium"]["state"] == "pending"
+    assert state["concurrency_policy"]["mode"] == "conservative_one_lane_weak_first"
+    assert state["concurrency_policy"]["effective_lane_slots"] == 1
+    assert launched[0][launched[0].index("--lane") + 1] == "weak_weak"
+
+
+def test_scoreboard_extracts_current_best_hit(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    paths = overnight.lane_paths(tmp_path, lane.lane_id)
+    paths["progress_dir"].mkdir(parents=True)
+    result_json = tmp_path / "lanes" / lane.lane_id / "optuna" / "trial_0003" / "result.json"
+    payload = {
+        "schema": "phase3_progress_current_v1",
+        "best_trial_number": 3,
+        "best_value": 0.0,
+        "best_user_attrs": {
+            "results": {
+                lane.benchmark_id: {
+                    "success": True,
+                    "abs_delta_e": 1.5e-4,
+                    "abs_delta_e_same_cutoff": 1.5e-4,
+                    "abs_delta_e_reference": None,
+                    "depth_2q": 52,
+                    "circuit_depth": 2920,
+                    "result_json": str(result_json),
+                }
+            }
+        },
+    }
+    (paths["progress_dir"] / "current_best.json").write_text(json.dumps(payload), encoding="utf-8")
+    _write_complete_event(tmp_path, lane, trial=3)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    state["lanes"][lane.lane_id]["state"] = "running"
+
+    metrics = overnight.lane_metrics(tmp_path, lane)
+    rendered = overnight.render_scoreboard(tmp_path, state)
+
+    assert metrics["trial"] == 3
+    assert metrics["hit"] is True
+    assert "1.500e-04" in rendered
+    assert "52/2920" in rendered
+    assert "hit" in rendered
+    assert "n/a (same cutoff)" in rendered
+
+
+def test_scoreboard_reports_live_depth_checkpoint_before_completed_delta(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    paths = overnight.lane_paths(tmp_path, lane.lane_id)
+    paths["progress_dir"].mkdir(parents=True)
+    payload = {
+        "schema": "phase3_progress_current_v1",
+        "timestamp_utc": "2026-05-28T12:00:00Z",
+        "state": "benchmark_running",
+        "child_trial_number": 1,
+        "last_child_ai_log": {"event": "hardcoded_adapt_iter", "depth": 12, "max_depth": 48, "run_elapsed_s": 123.0},
+        "last_child_heartbeat": {
+            "status": "running",
+            "elapsed_s": 124.0,
+            "last_ai_log_event": "hardcoded_adapt_iter",
+            "progress": {"depth": 12, "max_depth": 48, "run_elapsed_s": 123.0, "delta_abs_current": 3.5e-3},
+        },
+    }
+    (paths["progress_dir"] / "current.json").write_text(json.dumps(payload), encoding="utf-8")
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    state["lanes"][lane.lane_id]["state"] = "running"
+
+    metrics = overnight.lane_metrics(tmp_path, lane)
+    rendered = overnight.render_scoreboard(tmp_path, state)
+
+    assert metrics["same_cutoff_delta_e"] is None
+    assert metrics["live_checkpoint"]["depth"] == 12
+    assert metrics["live_checkpoint"]["same_cutoff_delta_e_proxy"] == 3.5e-3
+    assert "trial 1; depth 12/48" in rendered
+    assert "live proxy 3.500e-03" in rendered
+    assert "Completed same-cutoff deltaE" in rendered
+
+
+def test_non_owned_hh_samplers_are_reported_not_stopped() -> None:
+    rows = [
+        {
+            "pid": "12345",
+            "command": "python -m pipelines.static_adapt.optimization.phase3_policy_optuna --families hh --benchmark-id hh_L2_nph2_old",
+        },
+        {"pid": "22222", "command": "python unrelated.py"},
+        {
+            "pid": "33333",
+            "command": "SkyComputerUseClient pasted text: python -m pipelines.static_adapt.optimization.phase3_policy_optuna --families hh --benchmark-id hh_L2_nph2_old",
+        },
+    ]
+
+    candidates = overnight.discover_non_owned_hh_samplers(rows, owned_pids=set())
+
+    assert len(candidates) == 1
+    assert candidates[0].pid == 12345
+    assert candidates[0].action == "left_running"
+    assert "not monitor-owned" in candidates[0].reason
+
+
+def test_background_restart_preserves_existing_lane_state(monkeypatch, tmp_path: Path) -> None:
+    class FakePopen:
+        def __init__(self, command, **_kwargs):
+            self.command = list(command)
+            self.pid = 77777
+
+    monkeypatch.setattr(overnight.subprocess, "Popen", FakePopen)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    state["lanes"]["weak_weak"].update({"state": "running", "pid": 12345})
+    overnight.save_state(tmp_path, state)
+
+    args = SimpleNamespace(
+        run_root=tmp_path,
+        max_local_processes=2,
+        monitor_seconds=60.0,
+        poll_seconds=0.1,
+        n_trials=3,
+        inner_optimizer="SPSA",
+        phase3_runtime_split_mode="off",
+        adapt_max_depth=48,
+    )
+    overnight.run_background(args)
+
+    reloaded = overnight.load_state(tmp_path)
+    assert reloaded is not None
+    assert reloaded["monitor_pid"] == 77777
+    assert reloaded["lanes"]["weak_weak"]["state"] == "running"
+    assert reloaded["lanes"]["weak_weak"]["pid"] == 12345
+    assert reloaded["lanes"]["medium"]["state"] == "pending"
+
+
+def test_no_kill_without_owned_processes_even_on_hit(monkeypatch, tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    _write_current_best(
+        tmp_path,
+        lane,
+        {"success": True, "abs_delta_e_same_cutoff": 1.0e-4, "result_json": str(tmp_path / "result.json")},
+    )
+    _write_complete_event(tmp_path, lane)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    state["lanes"][lane.lane_id].update(
+        {
+            "state": "running",
+            "pid": 55555,
+            "command": overnight.build_worker_command(lane=lane, run_root=tmp_path, n_trials=3, poll_seconds=0.1),
+        }
+    )
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(overnight.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+
+    overnight._poll_lanes(state, tmp_path, {})
+
+    assert killed == []
+    assert state["lanes"][lane.lane_id]["state"] == "running"
+    assert state["lanes"][lane.lane_id]["stop_pending_reason"] == "same_cutoff_hit"
+    assert state["stopped_jobs"][0]["status"] == "not_stopped_unverified_ownership"
+    assert state["blockers"][0]["reason"] == "ownership_not_proven_for_stop"
+
+
+def test_status_is_read_only_and_does_not_terminate(monkeypatch, tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    _write_current_best(tmp_path, lane, {"success": True, "abs_delta_e_same_cutoff": 1.0e-4})
+    _write_complete_event(tmp_path, lane)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    _mark_running_owned(state, tmp_path, lane, pid=55555)
+    overnight.save_state(tmp_path, state)
+
+    def fail_killpg(_pid: int, _sig: int) -> None:
+        raise AssertionError("status must not terminate")
+
+    monkeypatch.setattr(overnight.os, "killpg", fail_killpg)
+    monkeypatch.setattr(overnight, "_ps_process_rows", lambda: [])
+    monkeypatch.setattr(overnight, "write_scoreboard", lambda *_args, **_kwargs: None)
+
+    overnight.run_status(SimpleNamespace(run_root=tmp_path))
+
+    reloaded = overnight.load_state(tmp_path)
+    assert reloaded is not None
+    assert reloaded["lanes"][lane.lane_id]["state"] == "running"
+    assert reloaded["lanes"][lane.lane_id]["last_metrics"]["hit"] is True
+    assert reloaded["stopped_jobs"] == []
+
+
+def test_first_hit_stops_other_verified_owned_lanes(monkeypatch, tmp_path: Path) -> None:
+    weak = overnight.LANE_BY_ID["weak_weak"]
+    medium = overnight.LANE_BY_ID["medium"]
+    _write_current_best(tmp_path, weak, {"success": True, "abs_delta_e_same_cutoff": 1.0e-4}, trial=2)
+    _write_complete_event(tmp_path, weak, trial=2)
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=60)
+    _mark_running_owned(state, tmp_path, weak, pid=55555)
+    _mark_running_owned(state, tmp_path, medium, pid=66666)
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(overnight.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+
+    overnight._poll_lanes(state, tmp_path, {})
+
+    assert killed == [(55555, overnight.signal.SIGTERM), (66666, overnight.signal.SIGTERM)]
+    assert state["lanes"][weak.lane_id]["state"] == "hit"
+    assert state["lanes"][medium.lane_id]["state"] == "blocked"
+    assert state["lanes"][medium.lane_id]["stop_reason"] == "obsolete_after_hit"
+    assert state["stop_launching"] is True
+    assert [row["reason"] for row in state["stopped_jobs"]] == ["same_cutoff_hit", "obsolete_after_hit"]
+
+
+def test_timeout_policy_keeps_monitoring_and_records_blocker(tmp_path: Path) -> None:
+    state = overnight.initial_state(tmp_path, max_local_processes=2, monitor_seconds=1)
+
+    assert overnight._record_timeout_keep_monitoring_once(state) is True
+    assert overnight._record_timeout_keep_monitoring_once(state) is False
+
+    assert state["timeout_policy"]["action"] == "kept_monitoring"
+    assert [b["reason"] for b in state["blockers"]] == ["monitor_seconds_elapsed_keep_monitoring"]
+
+
+def test_failed_low_delta_is_not_a_hit(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    _write_current_best(tmp_path, lane, {"success": False, "abs_delta_e_same_cutoff": 1.0e-6})
+    _write_complete_event(tmp_path, lane)
+
+    metrics = overnight.lane_metrics(tmp_path, lane)
+
+    assert metrics["same_cutoff_delta_e"] == 1.0e-6
+    assert metrics["hit"] is False
+    assert "success_not_true" in metrics["hit_validation"]["reasons"]
+
+
+def test_energy_reference_fallback_can_validate_hit(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    _write_current_best(
+        tmp_path,
+        lane,
+        {"success": True, "energy": -1.00015, "same_cutoff_exact_gs_energy": -1.00000},
+    )
+    _write_complete_event(tmp_path, lane)
+
+    metrics = overnight.lane_metrics(tmp_path, lane)
+
+    assert metrics["hit"] is True
+    assert abs(metrics["same_cutoff_delta_e"] - 0.00015) < 1e-12
+    assert metrics["hit_validation"]["delta_source"] == "abs_energy_minus_same_cutoff_exact_gs_energy"
+
+
+def test_ambiguous_abs_delta_e_without_cutoff_proof_is_not_hit(tmp_path: Path) -> None:
+    lane = overnight.LANE_BY_ID["weak_weak"]
+    _write_current_best(tmp_path, lane, {"success": True, "abs_delta_e": 1.0e-6})
+    _write_complete_event(tmp_path, lane)
+
+    metrics = overnight.lane_metrics(tmp_path, lane)
+
+    assert metrics["hit"] is False
+    assert metrics["same_cutoff_delta_e"] is None
+    assert "ambiguous_abs_delta_e_without_same_cutoff_nph2_proof" in metrics["hit_validation"]["reasons"]

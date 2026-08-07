@@ -1,0 +1,20 @@
+universe = vanilla
+executable = chtc/generic_time_dynamics_table/run_task_apptainer.sh
+arguments = $(record_id) chtc/generic_time_dynamics_table/input/paper_ii_hh_append_prune_bias_20260601_v2/paper_ii_hh_append_prune_bias_records.tsv
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/generic_time_dynamics_table, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/paper-ii-hh-append-prune-bias-20260601-v2.$(Cluster).$(Process).log
+output = logs/paper-ii-hh-append-prune-bias-20260601-v2.$(Cluster).$(Process).out
+error = logs/paper-ii-hh-append-prune-bias-20260601-v2.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 12GB
+request_disk = 40GB
++MaxRuntime = 28800
++JobBatchName = "holstein-paper-ii-hh-append-prune-bias-20260601-v2"
+environment = "GENERIC_TD_TABLE_RECORDS_PATH=chtc/generic_time_dynamics_table/input/paper_ii_hh_append_prune_bias_20260601_v2/paper_ii_hh_append_prune_bias_records.tsv GENERIC_TD_CLASS_SETTINGS_MANIFEST=chtc/generic_time_dynamics_table/input/paper_ii_hh_append_prune_bias_20260601_v2/paper_ii_hh_append_prune_bias_class_settings.json GENERIC_TD_REQUIRE_LOCKED_CLASS_SETTINGS=0 GENERIC_TD_QISKIT_DYNAMICS_MODE=off GENERIC_TD_OUTPUT_ROOT=raw_outputs/paper_ii_hh_append_prune_bias_20260601_v2"
+queue record_id from chtc/generic_time_dynamics_table/input/paper_ii_hh_append_prune_bias_20260601_v2/paper_ii_hh_append_prune_bias_record_ids.txt

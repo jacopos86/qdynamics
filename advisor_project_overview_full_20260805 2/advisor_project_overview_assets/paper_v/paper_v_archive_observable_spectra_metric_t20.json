@@ -1,0 +1,225 @@
+{
+  "artifacts": {
+    "figure_pdf": "advisor_project_overview_assets/paper_v/paper_v_archive_observable_spectra_metric_t20.pdf",
+    "figure_png": "advisor_project_overview_assets/paper_v/paper_v_archive_observable_spectra_metric_t20.png"
+  },
+  "classification": "diagnostic_postprocessing",
+  "evidence_status": "paper_facing_analysis_of_existing_trajectories",
+  "late_window_metrics": {
+    "electron_phonon_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.3673529817805397,
+        "oscillation_rms_ratio_to_exact": 2.2067498474109697
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.3637355570584388,
+        "oscillation_rms_ratio_to_exact": 1.9422482583846994
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.3452587774526846,
+        "oscillation_rms_ratio_to_exact": 1.77153519639439
+      }
+    },
+    "electronic_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.6864385396554165,
+        "oscillation_rms_ratio_to_exact": 0.952273283684101
+      },
+      "exact": {
+        "dominant_angular_frequency": 2.327105669325773,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.6765904484366791,
+        "oscillation_rms_ratio_to_exact": 0.8786931804802458
+      },
+      "raw": {
+        "dominant_angular_frequency": 3.490658503988659,
+        "hellinger_distance": 0.39597091750840974,
+        "oscillation_rms_ratio_to_exact": 1.5858692041168394
+      }
+    },
+    "phonon_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.14628016160261936,
+        "oscillation_rms_ratio_to_exact": 2.8710841388475714
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.14221512956245272,
+        "oscillation_rms_ratio_to_exact": 2.5226634646027657
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.4607254917518598,
+        "oscillation_rms_ratio_to_exact": 2.027501254890353
+      }
+    },
+    "site_occupation": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.5868379781789099,
+        "oscillation_rms_ratio_to_exact": 0.8734792483631737
+      },
+      "exact": {
+        "dominant_angular_frequency": 2.327105669325773,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3878509448876288,
+        "hellinger_distance": 0.5516088799846947,
+        "oscillation_rms_ratio_to_exact": 0.8060939118124908
+      },
+      "raw": {
+        "dominant_angular_frequency": 2.327105669325773,
+        "hellinger_distance": 0.1701162575187951,
+        "oscillation_rms_ratio_to_exact": 1.522067639535111
+      }
+    }
+  },
+  "method": {
+    "late_window_check": [
+      4.0,
+      20.0
+    ],
+    "mean_subtracted": true,
+    "plot_maximum_angular_frequency": 4.0,
+    "power_normalization": "unit sum over positive frequencies",
+    "primary_interval": [
+      0.0,
+      20.0
+    ],
+    "sample_step": 0.2,
+    "spectral_distance": "Hellinger distance; zero is exact",
+    "window": "Hann",
+    "zero_frequency_excluded": true
+  },
+  "primary_metrics": {
+    "electron_phonon_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.34065938783207733,
+        "oscillation_rms_ratio_to_exact": 2.0350491356470437
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.33295972960925097,
+        "oscillation_rms_ratio_to_exact": 1.7900954696276854
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.25280031039079087,
+        "oscillation_rms_ratio_to_exact": 1.5137618481915922
+      }
+    },
+    "electronic_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.6377845344885712,
+        "oscillation_rms_ratio_to_exact": 1.1095577493576523
+      },
+      "exact": {
+        "dominant_angular_frequency": 2.177341443082035,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.6215362800676311,
+        "oscillation_rms_ratio_to_exact": 1.0719602035021025
+      },
+      "raw": {
+        "dominant_angular_frequency": 3.421536553414626,
+        "hellinger_distance": 0.45391992251237345,
+        "oscillation_rms_ratio_to_exact": 1.519614869812448
+      }
+    },
+    "phonon_energy": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.09340095752810662,
+        "oscillation_rms_ratio_to_exact": 2.364607487839907
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.08983327838939294,
+        "oscillation_rms_ratio_to_exact": 2.0511017651735464
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.4431010124308677,
+        "oscillation_rms_ratio_to_exact": 1.6359577315790474
+      }
+    },
+    "site_occupation": {
+      "euclidean": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.40631693226122684,
+        "oscillation_rms_ratio_to_exact": 0.9670739465741126
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "frobenius": {
+        "dominant_angular_frequency": 0.3110487775831478,
+        "hellinger_distance": 0.38486301928068894,
+        "oscillation_rms_ratio_to_exact": 0.8713755703193067
+      },
+      "raw": {
+        "dominant_angular_frequency": 2.4883902206651825,
+        "hellinger_distance": 0.2557372554415299,
+        "oscillation_rms_ratio_to_exact": 1.0485557135534405
+      }
+    }
+  },
+  "question": "How does the lifted-Frobenius correction change finite-horizon observable frequency content relative to the Euclidean correction, raw archive closure, and exact reference?",
+  "schema_version": 1,
+  "source_files": {
+    "euclidean": {
+      "path": "output/local_runs/paper_v_correction_metric_t20_euclidean_source_locked_20260803_v1/corrected_trajectory.npz",
+      "sha256": "2707e347034f5861ce9671a89f6ee14e34ed861d3a1d16d28ae36974242474a3"
+    },
+    "exact": {
+      "path": "output/local_runs/paper_v_archive_observable_trajectories_t1000_20260803_v1/exact_trajectory.npz",
+      "sha256": "4b26513e2e278c1d2f6276ceb8b0fa644639578291f7dcfa2c8c818e62c6e477"
+    },
+    "frobenius": {
+      "path": "output/local_runs/paper_v_correction_metric_t20_frobenius_source_locked_20260803_v1/corrected_trajectory.npz",
+      "sha256": "98de3fc2c7f6b449544a14bfc9e24091c3d8fa76f9e6a9b67c0c52e2eec8ac2e"
+    },
+    "raw": {
+      "path": "output/local_runs/paper_v_archive_observable_trajectories_t1000_20260803_v1/raw_trajectory.npz",
+      "sha256": "b19bde1243011eedc06dba1498f190c47da4128658f775b8314437f9444b276b"
+    }
+  }
+}

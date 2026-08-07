@@ -1,0 +1,62 @@
+{
+  "append_v4_source_contract_locks": {
+    "intermediate_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/intermediate_strong__append_v4_job.json",
+      "sha256": "a5a473600e7565a36d7a204b95ab4105df07d320771b7b207a3e0af7114384f7"
+    },
+    "intermediate_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/intermediate_weak__append_v4_job.json",
+      "sha256": "813ec3283d164e450dcefff8a6078a2001ceeda86d54625036e00217332800c8"
+    },
+    "strong_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/strong_strong__append_v4_job.json",
+      "sha256": "39b81179095c4c3b5b32212f4caddfea33137e56d7bf5305cfc1d68cca60e88a"
+    },
+    "strong_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/strong_weak__append_v4_job.json",
+      "sha256": "8547dbf00185fa43b4d0454608f111d5aa7649ac03c2da83819fc6b92c03afcd"
+    },
+    "weak_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/weak_strong__append_v4_job.json",
+      "sha256": "e62185820aa6f69d388c178a54eab17a5effeabdddc793d7936097b0c736c565"
+    },
+    "weak_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc/source_contract_locks/weak_weak__append_v4_job.json",
+      "sha256": "86fa6e97c34bd711d1dfcfb440e9489895197b67e08abb8f664ddaffafd1bdcd"
+    }
+  },
+  "authorized_exploratory_changes": [
+    "fresh output identity",
+    "Hamiltonian size L=4",
+    "same working/reference cutoff n_ph=1",
+    "six scaling-matrix case identifiers and their same-cutoff exact-reference locks",
+    "resource request raised to 32 GB RAM and 60 GB disk"
+  ],
+  "canonical_regime_coordinate_resolution": {
+    "note": "the existing scaling profile retains full-precision coordinates; the Append-v4 completion profile serialized those coordinates to 12 decimal places",
+    "source": "paper_i_scaling_matrix_20260710_v1",
+    "strong_holstein_g_ep": 0.7905694150420949,
+    "weak_holstein_g_ep": 0.3535533905932738
+  },
+  "generated_utc": "2026-07-19T19:33:40.840856+00:00",
+  "operational_repairs": [
+    "wrapper-only job-id validation repair: accept ASCII uppercase letters so the canonical hh_L4_nph1 identifiers reach the immutable Append-v4 source archive"
+  ],
+  "preserved_method_contract": {
+    "algorithm_id": "static_full_meta_append_adapt_vqe",
+    "insertion": "append",
+    "macro_and_projected_singleton_mixing": false,
+    "optimizer": "Powell",
+    "optimizer_maxiter": 200,
+    "parent_pool": "full_meta_unfiltered with HVA included",
+    "powell_maxiter_cap_policy": "accept_finite_nonincreasing_v1",
+    "selection": "full projected-singleton child candidate pool with replacement",
+    "shared_pauli_pool_max_subset_size": 1,
+    "shared_pauli_pool_mode": "projected_singleton_children_only_v1",
+    "shared_pauli_pool_symmetry_policy": "hard_guard"
+  },
+  "schema": "paper_i_hh_l4_nph1_append_settings_difference_audit_v1",
+  "source_contract_bundle_id": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+  "status": "pass",
+  "unapproved_drift": []
+}

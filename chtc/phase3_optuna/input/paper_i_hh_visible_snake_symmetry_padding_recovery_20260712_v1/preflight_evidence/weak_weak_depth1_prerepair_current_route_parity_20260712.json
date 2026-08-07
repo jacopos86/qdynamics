@@ -1,0 +1,549 @@
+{
+  "current_cold_vs_warm_cache_replay": {
+    "cache_transition_passed": true,
+    "classification": "cache warmth changes hit/miss performance telemetry, not current-source scientific outputs",
+    "cold": {
+      "full_log_phase2_row_count": 1,
+      "phase0": [
+        {
+          "selected_pair_count": 97,
+          "source": "disk",
+          "status": "stored"
+        }
+      ],
+      "phase2": {
+        "candidate_record_cache": {
+          "disk_hits": 0,
+          "memory_hits": 0,
+          "misses": 52,
+          "read_errors": 0,
+          "stores": 52,
+          "write_errors": 0
+        },
+        "candidate_record_cache_mode": "disk",
+        "runtime_split_child_set_parallel_scoring_count": 44
+      },
+      "pool_or_registry_hits": []
+    },
+    "passed": true,
+    "scientific_comparison_failures": [],
+    "scientific_summaries_equal": true,
+    "warm": {
+      "full_log_phase2_row_count": 1,
+      "phase0": [
+        {
+          "selected_pair_count": 97,
+          "source": "disk",
+          "status": "hit"
+        }
+      ],
+      "phase2": {
+        "candidate_record_cache": {
+          "disk_hits": 52,
+          "memory_hits": 0,
+          "misses": 0,
+          "read_errors": 0,
+          "stores": 0,
+          "write_errors": 0
+        },
+        "candidate_record_cache_mode": "disk",
+        "runtime_split_child_set_parallel_scoring_count": 44
+      },
+      "pool_or_registry_hits": [
+        {
+          "cache_level": "disk",
+          "cache_scope": "exact",
+          "event": "hardcoded_adapt_pool_cache_hit"
+        },
+        {
+          "cache_level": "disk",
+          "cache_scope": null,
+          "event": "hardcoded_adapt_generator_registry_cache_hit"
+        }
+      ]
+    }
+  },
+  "current_vs_verified_pre_repair_snapshot": {
+    "compared_fields": [
+      "resolved caps 8/4/4 and fraction 1/12",
+      "shortlist selection unit candidate_position_record",
+      "eight ranked candidate labels, generator IDs, position IDs, and score fields",
+      "selected generator, label, position, and pool indices",
+      "energy before, after, delta, and final energy",
+      "outer/active depth and nfev telemetry"
+    ],
+    "comparison_failures": [],
+    "current_enforcement_off_cold": {
+      "depth": {
+        "ansatz_depth": 1,
+        "history_depth": 1,
+        "history_depth_cumulative": 1,
+        "outer_history_rows": 1
+      },
+      "energy": {
+        "after": 0.11721778146268087,
+        "before": 1.25,
+        "delta": -1.132782218537319,
+        "final": 0.11721778146268086
+      },
+      "nfev": {
+        "nfev_opt": 33,
+        "nfev_step_total_delta": 33,
+        "nfev_total": 88
+      },
+      "selected": {
+        "generator_id": "gen:d97f0851d334318c",
+        "label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]",
+        "pool_indices": [
+          0
+        ],
+        "position": 0
+      },
+      "shortlist_controls": {
+        "aggressiveness_factor": 3,
+        "phase1_controller_cap_max_effective": 8,
+        "phase1_controller_cap_min_effective": 8,
+        "phase1_shortlist_size_base": 24,
+        "phase1_shortlist_size_effective": 8,
+        "phase2_controller_cap_max_effective": 4,
+        "phase2_controller_cap_min_effective": 4,
+        "phase2_shortlist_fraction_base": 0.25,
+        "phase2_shortlist_fraction_effective": 0.08333333333333333,
+        "phase2_shortlist_size_base": 12,
+        "phase2_shortlist_size_effective": 4,
+        "phase3_controller_cap_max_effective": 4,
+        "phase3_controller_cap_min_effective": 4,
+        "phase3_shortlist_size_effective": 4,
+        "phase_controller_cap_policy": "physical_route_fixed_to_effective_shortlist_caps_v1",
+        "route": "physical_operator_type",
+        "route_variant_id": "route_a_physical_operator_lanes_v2_uccsd_split"
+      },
+      "shortlist_selection_unit": "candidate_position_record",
+      "shortlisted_candidates_in_rank_order": [
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]",
+          "candidate_pool_index": 0,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:d97f0851d334318c",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+          "candidate_pool_index": 1,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:2a92511865c42319",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hh_fermionic_reusable::opp_spin_assist_current_nn_up(0,1)::child_set[0]",
+          "candidate_pool_index": 63,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:3580cea21944daac",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hh_fermionic_reusable::opp_spin_assist_current_nn_dn(0,1)::child_set[0]",
+          "candidate_pool_index": 67,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:6362bc2851765b54",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_otimes_paop_seq2p::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::phonon_delta_p(0,1)::step=motif::child_set[0]",
+          "candidate_pool_index": 94,
+          "cheap_score": 0.1455266952965,
+          "full_v2_score": 0.10424400565403924,
+          "generator_id": "gen:1e1208aa55136cb3",
+          "phase2_raw_score": 0.10424391119196293,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.10424400565403924,
+          "simple_score": 0.1455266952965
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[0]",
+          "candidate_pool_index": 40,
+          "cheap_score": 0.1455266952965,
+          "full_v2_score": 0.08378169448244452,
+          "generator_id": "gen:9ab3f59975b13383",
+          "phase2_raw_score": 0.08378139080344221,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.08378169448244452,
+          "simple_score": 0.1455266952965
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]",
+          "candidate_pool_index": 2,
+          "cheap_score": 0.0,
+          "full_v2_score": 0.0,
+          "generator_id": "gen:a7a2e969f87481ab",
+          "phase2_raw_score": 0.0,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.0,
+          "simple_score": 0.0
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hop_layer::child_set[0]",
+          "candidate_pool_index": 3,
+          "cheap_score": 0.0,
+          "full_v2_score": 0.0,
+          "generator_id": "gen:da27467f9cde1c52",
+          "phase2_raw_score": 0.0,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.0,
+          "simple_score": 0.0
+        }
+      ]
+    },
+    "enforcement_contract": {
+      "approved_enforcement_changes_disabled_for_parity": true,
+      "current_padding_policy": "unchecked_diagnostic_v1",
+      "current_symmetry_policy": "off",
+      "snapshot_symmetry_policy": "off"
+    },
+    "passed": true,
+    "snapshot": {
+      "depth": {
+        "ansatz_depth": 1,
+        "history_depth": 1,
+        "history_depth_cumulative": 1,
+        "outer_history_rows": 1
+      },
+      "energy": {
+        "after": 0.11721778146268087,
+        "before": 1.25,
+        "delta": -1.132782218537319,
+        "final": 0.11721778146268086
+      },
+      "nfev": {
+        "nfev_opt": 33,
+        "nfev_step_total_delta": 33,
+        "nfev_total": 88
+      },
+      "selected": {
+        "generator_id": "gen:d97f0851d334318c",
+        "label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]",
+        "pool_indices": [
+          0
+        ],
+        "position": 0
+      },
+      "shortlist_controls": {
+        "aggressiveness_factor": 3,
+        "phase1_controller_cap_max_effective": 8,
+        "phase1_controller_cap_min_effective": 8,
+        "phase1_shortlist_size_base": 24,
+        "phase1_shortlist_size_effective": 8,
+        "phase2_controller_cap_max_effective": 4,
+        "phase2_controller_cap_min_effective": 4,
+        "phase2_shortlist_fraction_base": 0.25,
+        "phase2_shortlist_fraction_effective": 0.08333333333333333,
+        "phase2_shortlist_size_base": 12,
+        "phase2_shortlist_size_effective": 4,
+        "phase3_controller_cap_max_effective": 4,
+        "phase3_controller_cap_min_effective": 4,
+        "phase3_shortlist_size_effective": 4,
+        "phase_controller_cap_policy": "physical_route_fixed_to_effective_shortlist_caps_v1",
+        "route": "physical_operator_type",
+        "route_variant_id": "route_a_physical_operator_lanes_v2_uccsd_split"
+      },
+      "shortlist_selection_unit": "candidate_position_record",
+      "shortlisted_candidates_in_rank_order": [
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]",
+          "candidate_pool_index": 0,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:d97f0851d334318c",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+          "candidate_pool_index": 1,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:2a92511865c42319",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hh_fermionic_reusable::opp_spin_assist_current_nn_up(0,1)::child_set[0]",
+          "candidate_pool_index": 63,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:3580cea21944daac",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hh_fermionic_reusable::opp_spin_assist_current_nn_dn(0,1)::child_set[0]",
+          "candidate_pool_index": 67,
+          "cheap_score": 0.46875,
+          "full_v2_score": 0.5,
+          "generator_id": "gen:6362bc2851765b54",
+          "phase2_raw_score": 0.49999900000300007,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.5,
+          "simple_score": 0.46875
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_otimes_paop_seq2p::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::phonon_delta_p(0,1)::step=motif::child_set[0]",
+          "candidate_pool_index": 94,
+          "cheap_score": 0.1455266952965,
+          "full_v2_score": 0.10424400565403924,
+          "generator_id": "gen:1e1208aa55136cb3",
+          "phase2_raw_score": 0.10424391119196293,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.10424400565403924,
+          "simple_score": 0.1455266952965
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[0]",
+          "candidate_pool_index": 40,
+          "cheap_score": 0.1455266952965,
+          "full_v2_score": 0.08378169448244452,
+          "generator_id": "gen:9ab3f59975b13383",
+          "phase2_raw_score": 0.08378139080344221,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.08378169448244452,
+          "simple_score": 0.1455266952965
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]",
+          "candidate_pool_index": 2,
+          "cheap_score": 0.0,
+          "full_v2_score": 0.0,
+          "generator_id": "gen:a7a2e969f87481ab",
+          "phase2_raw_score": 0.0,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.0,
+          "simple_score": 0.0
+        },
+        {
+          "append_position": 0,
+          "candidate_label": "hop_layer::child_set[0]",
+          "candidate_pool_index": 3,
+          "cheap_score": 0.0,
+          "full_v2_score": 0.0,
+          "generator_id": "gen:da27467f9cde1c52",
+          "phase2_raw_score": 0.0,
+          "position_id": 0,
+          "route_a_shortlist_identity": null,
+          "selector_score": 0.0,
+          "simple_score": 0.0
+        }
+      ]
+    }
+  },
+  "input_artifacts": {
+    "current_cold": {
+      "result.json": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.result.json",
+        "sha256": "a8840c68181a2c58d418c0861db8fcab17a85e03166f87c3aba7ce893eb8e62b",
+        "size_bytes": 2927181
+      },
+      "stderr.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      "stdout.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stdout.log",
+        "sha256": "e63719a1813f04fcdbce0dda2b51d1463b3171f21b3b0aeaf6a2cc700186c6ab",
+        "size_bytes": 107404
+      }
+    },
+    "current_warm": {
+      "result.json": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.result.json",
+        "sha256": "5fd0fb0afaabf909e5dd5c53458fa60bd6ad73be071e86eea8a1559a3f28b5db",
+        "size_bytes": 2927334
+      },
+      "stderr.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      "stdout.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stdout.log",
+        "sha256": "4467d17240c430b4162852055a96be0b8148486e653ddd7b97c87c4d49d89ea5",
+        "size_bytes": 63976
+      }
+    },
+    "july8_preserved": {
+      "result.json": {
+        "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+        "sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb",
+        "size_bytes": 27081796
+      },
+      "stdout.log": {
+        "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/logs/weak_weak.stdout.log",
+        "sha256": "9617ce2980d06fb1269867b81ea74700ececcb3926b5d8ccd2043618a518a0dc",
+        "size_bytes": 325957
+      }
+    },
+    "snapshot": {
+      "result.json": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.result.json",
+        "sha256": "f21ffed6b1bd7e9f78e0a94774e3237038dc5cddaccf58b390889d7e4ea915f8",
+        "size_bytes": 2233457
+      },
+      "stderr.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      "stdout.log": {
+        "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stdout.log",
+        "sha256": "85e4faada52f21c2fe15d53a798dd6b94a632994cc31b82edd98a339f7765cea",
+        "size_bytes": 106388
+      }
+    }
+  },
+  "passed": true,
+  "schema": "paper_i_hh_weak_weak_depth1_route_parity_v1",
+  "scope_conclusion": "Current enforcement-off code reproduces the verified pre-repair snapshot exactly at depth 1, including cold/warm cache invariance. Exact July-8 pipeline/cache identity remains unresolved.",
+  "snapshot_vs_preserved_july8_history0": {
+    "classification": "unresolved_historical_code_or_cache_provenance",
+    "core_phase_caps_match": true,
+    "energy_abs_deltas": {
+      "after": 0.0,
+      "before": 0.0,
+      "delta": 0.0,
+      "final": 1.3877787807814457e-17
+    },
+    "energy_match_within_tolerance": true,
+    "exact_blocker": "The verified pre-repair remote snapshot is not proven to be the exact July-8 pipelines/cache state: only 6/8 shortlist labels overlap, and July-8 had 46 candidate disk hits with 38 runtime child-set scores versus 52 misses and 44 scores in the clean snapshot.",
+    "full_normalized_policy_object_equality": "unavailable_in_july8_telemetry",
+    "july8_cache_and_child_scoring": {
+      "full_log_phase2_row_count": 87,
+      "phase0": [
+        {
+          "selected_pair_count": 97,
+          "source": "disk",
+          "status": "hit"
+        }
+      ],
+      "phase2": {
+        "candidate_record_cache": {
+          "disk_hits": 46,
+          "memory_hits": 0,
+          "misses": 0,
+          "read_errors": 0,
+          "stores": 0,
+          "write_errors": 0
+        },
+        "candidate_record_cache_mode": "disk",
+        "runtime_split_child_set_parallel_scoring_count": 38
+      },
+      "pool_or_registry_hits": [
+        {
+          "cache_level": "disk",
+          "cache_scope": "exact",
+          "event": "hardcoded_adapt_pool_cache_hit"
+        },
+        {
+          "cache_level": "disk",
+          "cache_scope": null,
+          "event": "hardcoded_adapt_generator_registry_cache_hit"
+        }
+      ]
+    },
+    "not_a_current_compatibility_gate": true,
+    "selected_winner_match": true,
+    "shortlisted_labels": {
+      "left_count": 8,
+      "left_only": [
+        "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::child_set[0]",
+        "hh_phonon::p(site=0)::child_set[0]"
+      ],
+      "ordered_equal": false,
+      "right_count": 8,
+      "right_only": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[0]",
+        "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]"
+      ],
+      "set_overlap_count": 6
+    },
+    "snapshot_clean_cache_and_child_scoring": {
+      "full_log_phase2_row_count": 1,
+      "phase0": [
+        {
+          "selected_pair_count": 97,
+          "source": "disk",
+          "status": "stored"
+        }
+      ],
+      "phase2": {
+        "candidate_record_cache": {
+          "disk_hits": 0,
+          "memory_hits": 0,
+          "misses": 52,
+          "read_errors": 0,
+          "stores": 52,
+          "write_errors": 0
+        },
+        "candidate_record_cache_mode": "disk",
+        "runtime_split_child_set_parallel_scoring_count": 44
+      },
+      "pool_or_registry_hits": []
+    }
+  },
+  "status": "passed",
+  "tolerances": {
+    "energy_abs": 1e-12,
+    "generic_float_abs": 1e-12
+  }
+}

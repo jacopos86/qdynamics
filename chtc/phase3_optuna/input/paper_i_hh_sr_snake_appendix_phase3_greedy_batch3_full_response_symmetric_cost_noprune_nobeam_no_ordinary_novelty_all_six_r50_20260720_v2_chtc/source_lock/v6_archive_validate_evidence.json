@@ -1,0 +1,35 @@
+{
+  "archive_sha256": "ef3fb0ec04b5fc0242fe6b640ec4dff57c857d440cf948fa40e2196078e939cd",
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v2_chtc",
+  "completed_utc": "2026-07-19T15:51:48Z",
+  "execution": "Each run_job.py --validate-only invocation imported pipelines from a fresh extraction of the v6 archive.",
+  "image_validation": "pending_remote_exact_archive_gate",
+  "rows": [
+    {
+      "job": "jobs/intermediate_strong.json",
+      "status": "pass"
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "status": "pass"
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "status": "pass"
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "status": "pass"
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "status": "pass"
+    },
+    {
+      "job": "jobs/weak_weak.json",
+      "status": "pass"
+    }
+  ],
+  "schema": "paper_i_hh_sr_phase3_batch3_v6_archive_validate_evidence_v1",
+  "status": "pass"
+}

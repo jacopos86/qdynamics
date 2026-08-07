@@ -1,0 +1,21 @@
+{
+  "remote_execution_gate": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/remote_execution_gate.json",
+  "remote_execution_gate_sha256": "547a551a226e1300e8453bf8e14195b2f4937d3eab05ff92e9fe2ff2faeef883",
+  "remote_execution_preflight": {
+    "fake_backend_instantiation_passed": true,
+    "fake_backend_qubits": 156,
+    "fake_backend_resolved": "fake_marrakesh",
+    "image_path": "chtc/phase3_optuna/image.sif",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "qiskit_import_passed": true,
+    "qiskit_version": "2.3.1"
+  },
+  "schema": "paper_i_hh_sr_snake_v4_remote_preflight_cleanup_receipt_v3",
+  "status": "pass",
+  "storage_cleanup": {
+    "remote_removed_paths": [],
+    "scope": "no_cleanup_authorized_or_required_by_bundle_builder",
+    "unrelated_remote_paths_modified": false
+  },
+  "submission_performed": false
+}

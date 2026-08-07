@@ -1,0 +1,36 @@
+# One-row Paper-I cumulative-relative strong--strong RA-plateau r50->r70.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = __ACTIVATION_REL__/execute_authorized_job.sh __ACTIVATION_REL__ __PACKAGE_REL__ chtc/phase3_optuna/image.sif transfer/__EXECUTION_ID____$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = True
+transfer_input_files = __PACKAGE_REL__, __ACTIVATION_REL__, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/__EXECUTION_ID____$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/__EXECUTION_ID____$(ClusterId)__$(ProcId).tar.gz=__RUNTIME_REL__/fetched/__EXECUTION_ID____cluster_$(ClusterId)__proc_$(ProcId).tar.gz"
+
+request_cpus = 4
+request_memory = 90112MB
+request_disk = 98304MB
++MaxRuntime = 259200
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "__BATCH_NAME__"
++HolsteinLifecycleMode = "ordinary_held_exact_proc_release_v1"
++HolsteinExecutionId = "__EXECUTION_ID__"
+hold = True
+periodic_release = False
+leave_in_queue = (JobStatus == 4) && (ExitCode =!= 0)
+
+log = __RUNTIME_REL__/logs/$(Cluster).$(Process)-__EXECUTION_ID__.log
+output = __RUNTIME_REL__/logs/$(Cluster).$(Process)-__EXECUTION_ID__.out
+error = __RUNTIME_REL__/logs/$(Cluster).$(Process)-__EXECUTION_ID__.err
+
+queue 1

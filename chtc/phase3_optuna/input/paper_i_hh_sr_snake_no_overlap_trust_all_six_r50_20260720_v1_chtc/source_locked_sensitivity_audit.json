@@ -1,0 +1,117 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": true,
+    "anchor_result_json": "raw_outputs/paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v9_chtc/weak_weak/json/result.json",
+    "anchor_result_sha256": "7ba3b3d95db548695010463896ab557b85dd2fd1e08e95bf254812b5c19ae278",
+    "anchor_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/retrieval_20260720T131959Z/8900512.0__weak_weak_transfer.tar.gz",
+    "anchor_transfer_archive_sha256": "5c777f0e08abfe402fa935e40da6c9ad0bd35fa6ef12e47f288f0eb3b1293465",
+    "anchor_validation_receipt": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/retrieval_20260720T131959Z/8900512.0__weak_weak_validation_receipt.json",
+    "anchor_validation_receipt_sha256": "9d228d8ccb8f268d0da1f647bfa27f9b55971480a58e42930c55593bc04d6547",
+    "controller_energy_history_exact_match": true,
+    "metric_abs_diff": 0.0,
+    "non_swept_settings_diff": [],
+    "operator_count": 50,
+    "operator_sequence_match": true,
+    "operator_sequence_sha256": "83445d7ef53bd858c3bcb4077b98511cac72313575b94a0442f4b7fc15a5f2a3",
+    "settings_exact_match": true,
+    "settings_sha256": "38621907f34f405d601d809ba743c88089404d12bfac724e4ac3393ef49c98e1",
+    "source_abs_delta_e": 2.9947037827326994e-07,
+    "source_terminal_energy": -0.9183806205244431,
+    "terminal_abs_delta_e": 2.9947037827326994e-07,
+    "terminal_energy": -0.9183806205244431,
+    "value": "supported_metric_whitened_eigh_v1"
+  },
+  "fanout_authorized": true,
+  "fanout_bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "fanout_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "fanout_source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "planned_rows": [
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_weak",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_weak",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_weak_u8",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_strong",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_strong",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_coordinate_solve_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_strong_u8",
+      "value": "supported_metric_projected_generalized_trust_v1"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SR-SNAKE Main",
+    "regime_or_case": "weak_weak",
+    "route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+    "route_or_profile_id": "sr_snake_no_prune_symmetric_cost_v1",
+    "source_bundle": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+    "source_cluster": 8887574,
+    "source_command_or_manifest": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/jobs/weak_weak.json",
+    "source_command_or_manifest_sha256": "f1bf2f8f9c67f2800c6e5bdbc18b1319081090b22c17d93664594b3df717f285",
+    "source_json": "raw_outputs/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/weak_weak/json/result.json",
+    "source_proc": 0,
+    "source_sha256": "8f394fe60582581dd6d9173e7c379cc63ce74468e5061c287448a5b8827dedb9",
+    "source_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/main_sr_8887574_completed_p0_1/8887574.0__weak_weak_transfer.tar.gz",
+    "source_transfer_archive_sha256": "4ca20f57067ac4d011a4479b225b8b69540d29d77e4310984e454d21e766a8a4",
+    "source_validation_receipt": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/main_sr_8887574_completed_p0_1/8887574.0__weak_weak_local_validation_receipt.json",
+    "source_validation_receipt_sha256": "8b0fb096b9705af17cf5d6c1142925edca07896e4239a3fcb46d35c467e30f1c",
+    "source_variable_value": "supported_metric_whitened_eigh_v1"
+  },
+  "status": "anchor_pass_fanout_authorized",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      "supported_metric_whitened_eigh_v1",
+      "supported_metric_projected_generalized_trust_v1"
+    ],
+    "run_class": "candidate",
+    "runner_mode": "direct_source_locked_replay",
+    "unresolved_source_fields": [],
+    "variable": "historical_singleton_coordinate_solve_policy",
+    "wrapper_used": false
+  }
+}

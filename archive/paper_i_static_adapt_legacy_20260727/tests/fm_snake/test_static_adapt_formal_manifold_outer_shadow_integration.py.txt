@@ -1,0 +1,618 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+from pipelines.contracts.problem import ProblemRequest
+from pipelines.contracts.static_provenance import HH_FULL_META_CLASSIFIER_VERSION
+from pipelines.static_adapt.builders.problem_registry import resolve_problem_context
+from pipelines.static_adapt.cli_config import (
+    _build_adapt_arg_parser,
+    _build_run_hardcoded_adapt_vqe_kwargs,
+)
+from pipelines.static_adapt.formal_manifold_route_profile import (
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+    FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+)
+from pipelines.static_adapt.formal_manifold_outer_information import (
+    OuterInformationSession,
+)
+from pipelines.static_adapt.formal_manifold_warm_start import FormalManifoldSession
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+    canonical_sr_snake_v3_contract,
+    canonical_sr_snake_v3_contract_sha256,
+)
+from src.quantum.hubbard_latex_python_pairs import (
+    build_hubbard_holstein_hamiltonian,
+)
+
+
+def _small_full_meta_filter(tmp_path: Path) -> Path:
+    path = tmp_path / "shadow_small_full_meta.json"
+    path.write_text(
+        json.dumps(
+            {
+                "keep_classes": ["uccsd_sing"],
+                "classifier_version": HH_FULL_META_CLASSIFIER_VERSION,
+                "source_pool": "full_meta",
+                "source_problem": "hh",
+                "source_num_sites": 2,
+                "source_n_ph_max": 2,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _shadow_kwargs(
+    tmp_path: Path,
+    *,
+    eps_grad: float = 1.0e-8,
+    shadow: bool = True,
+    admissions: int = 1,
+) -> tuple[dict[str, Any], Path]:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    route_args = (
+        [
+            "--adapt-reoptimization-route",
+            FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+            "--adapt-formal-manifold-route-profile",
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+        ]
+        if shadow
+        # FM shadow equivalence is intentionally against the frozen v3
+        # controller, not the advancing unqualified conventional alias.
+        else ["--sr-route-profile", "sr_snake_v3"]
+    )
+    args = parser.parse_args(
+        [
+            "--problem",
+            "hh",
+            "--L",
+            "2",
+            "--u",
+            "0.5",
+            "--g-ep",
+            "0.2",
+            "--omega0",
+            "1.0",
+            "--n-ph-max",
+            "2",
+            "--boundary",
+            "open",
+            "--skip-pdf",
+            *route_args,
+        ]
+    )
+    h_poly = build_hubbard_holstein_hamiltonian(
+        dims=2,
+        J=1.0,
+        U=0.5,
+        omega0=1.0,
+        g=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+    context = resolve_problem_context(
+        ProblemRequest(
+            problem_key="hh",
+            num_sites=2,
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=2,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+        ),
+        hamiltonian=h_poly,
+    )
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=h_poly,
+        resolved_problem_context=context,
+        cli_adapt_continuation_mode="phase3_v1",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    current_json = tmp_path / (
+        (
+            "outer_shadow_current"
+            if shadow
+            else "standalone_sr_v3_current"
+        )
+        + f"_r{int(admissions)}.json"
+    )
+    kwargs.update(
+        {
+            # Preserve the source-locked depth-30 SR-v3 contract and stop the
+            # diagnostic after its first accepted outer admission instead.
+            "adapt_segment_id": f"outer_shadow_integration_r{int(admissions)}",
+            "adapt_segment_max_new_admissions": int(admissions),
+            "adapt_pool_class_filter_json": _small_full_meta_filter(tmp_path),
+            "adapt_current_json": current_json,
+            "adapt_current_json_every_depth": 1,
+            "adapt_estimator_call_ledger_enabled": True,
+            "eps_grad": float(eps_grad),
+        }
+    )
+    return kwargs, current_json
+
+
+def _forbid_non_sr_or_legacy_fm_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
+
+    def _forbidden_selector(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "outer-information shadow invoked JR or formal combinatorial selection"
+        )
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "run_route_a_child_funnel",
+        "select_route_a_schur_proposals",
+        "select_combinatorial_query_closed_batch",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    def _forbidden_formal_propose(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "outer-information shadow invoked the legacy FM inner optimizer"
+        )
+
+    monkeypatch.setattr(
+        FormalManifoldSession,
+        "propose",
+        _forbidden_formal_propose,
+    )
+
+
+def test_shadow_profile_preserves_sr_v3_and_reuses_cached_phase3_geometry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    sr_kwargs, _ = _shadow_kwargs(tmp_path, shadow=False)
+    kwargs, current_json = _shadow_kwargs(tmp_path)
+
+    sr_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**sr_kwargs)
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["success"] is True
+    assert payload["route_family"] == "formal_manifold_snake"
+    assert payload["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1
+    )
+    assert payload["sr_route_profile_request"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert payload["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert payload["sr_route_profile_contract"] == canonical_sr_snake_v3_contract()
+    assert payload["sr_route_profile_contract_sha256"] == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+
+    composition = payload["formal_manifold_route_composition"]
+    assert composition["sr_controller_contract"] == canonical_sr_snake_v3_contract()
+    assert composition["sr_controller_contract_sha256"] == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    assert composition["accepted_reoptimizer_owner"] == (
+        "source_locked_sr_v3_supported_fs_powell_v1"
+    )
+    assert composition["outer_information_mode"] == "shadow_v1"
+    assert composition["structural_rollback_enabled"] is False
+
+    assert sr_payload["sr_route_profile_contract_sha256"] == payload[
+        "sr_route_profile_contract_sha256"
+    ]
+    assert len(sr_payload["history"]) == len(payload["history"]) == 1
+    sr_step = sr_payload["history"][0]
+    shadow_step = payload["history"][0]
+    for key in (
+        "selection_mode",
+        "selected_ops",
+        "selected_pool_indices",
+        "selected_positions",
+        "init_theta_values",
+        "nfev_opt",
+    ):
+        assert shadow_step[key] == sr_step[key], key
+    assert shadow_step["energy_after_opt"] == pytest.approx(
+        sr_step["energy_after_opt"], abs=1.0e-13, rel=0.0
+    )
+    assert shadow_step["accepted_refit"]["final_runtime_theta"] == pytest.approx(
+        sr_step["accepted_refit"]["final_runtime_theta"], abs=1.0e-13, rel=0.0
+    )
+
+    assert len(payload["history"]) == 1
+    step = payload["history"][0]
+    accepted_refit = step["accepted_refit"]
+    accepted_refit_config = accepted_refit["accepted_refit_invocation"]["config"]
+    assert accepted_refit_config == payload["accepted_refit"]
+    assert accepted_refit_config["scope"] == "full_ansatz_v1"
+    assert accepted_refit_config["coordinate_chart"] == (
+        "supported_fs_whitened_fixed_v1"
+    )
+    bridge = step["selected_feature_rows"][0]["formal_manifold_growth_bridge"]
+    assert bridge["singleton_response_selector_invoked"] is True
+    assert bridge["joint_response_selector_invoked"] is False
+    shadow_growth = bridge["outer_information_shadow_growth"]
+    assert shadow_growth["authoritative_sr_trajectory_affected"] is False
+    assert shadow_growth["incremental_quantum_query_charge"] == 0
+    assert shadow_growth["query_ledger_registration_performed"] is False
+    cached = bridge["cached_sr_v3_phase3_observation"]
+    cached_telemetry = bridge["cached_sr_v3_phase3_observation_telemetry"]
+    identity_binding = bridge["cached_sr_v3_identity_binding"]
+    assert cached is not None
+    assert cached_telemetry["query_ledger_registration_performed"] is False
+    assert cached_telemetry["incremental_quantum_query_charge_total"] == 0
+    assert identity_binding["numeric_geometry_modified"] is False
+    assert identity_binding["authoritative_sr_trajectory_affected"] is False
+
+    outer_closure = payload["formal_manifold_query_closure"]
+    assert outer_closure["query_accounting_scope"] == (
+        "sr_v3_authoritative_estimator_plus_query_free_outer_cache_v1"
+    )
+    assert outer_closure["all_executed"]["actual_operator_probe_count"] == 0
+    assert outer_closure["all_executed"]["unique_primitive_ids"] == []
+    assert payload["measurement_savings_claimed"] is False
+    assert payload["formal_manifold_query_accounting_scope"] == (
+        "source_locked_sr_authoritative_estimator_plus_query_free_outer_cache_v1"
+    )
+    assert payload["formal_manifold_query_accounting_complete"] is True
+    assert payload["nfev_reconciled"] is True
+    assert payload["estimator_energy_occurrence_nfev"] == payload[
+        "raw_optimizer_nfev"
+    ]
+    assert payload["nfev_winning_lineage"] + payload[
+        "nfev_discarded_operational_overhead"
+    ] == payload["raw_optimizer_nfev"]
+
+    outer_summary = payload["formal_manifold_outer_information"]
+    outer_checkpoint = payload["formal_manifold_outer_information_checkpoint"]
+    assert outer_summary["mode"] == "shadow_v1"
+    assert outer_summary["authoritative_sr_trajectory_affected"] is False
+    assert outer_summary["structural_rollback_enabled"] is False
+    assert outer_checkpoint["checkpoint_sha256"] == outer_summary[
+        "checkpoint_sha256"
+    ]
+    assert payload["formal_manifold_outer_information_resume_policy"] == (
+        "validated_graph_checkpoint_or_exact_reanchor_v1"
+    )
+
+    current = json.loads(current_json.read_text(encoding="utf-8"))
+    checkpoint_payload = current["adapt_vqe"]
+    runtime_checkpoint = checkpoint_payload["formal_manifold_runtime_checkpoint"]
+    checkpoint_outer = runtime_checkpoint["outer_information_checkpoint"]
+    assert checkpoint_outer["checkpoint_sha256"]
+    assert runtime_checkpoint["structural_rollback_supported"] is False
+
+
+def test_shadow_second_round_closes_prediction_without_route_or_query_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    sr_kwargs, _ = _shadow_kwargs(tmp_path, shadow=False, admissions=2)
+    shadow_kwargs, current_json = _shadow_kwargs(tmp_path, admissions=2)
+
+    sr_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**sr_kwargs)
+    shadow_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**shadow_kwargs)
+
+    assert len(sr_payload["history"]) == len(shadow_payload["history"]) == 2
+    for round_index, (sr_step, shadow_step) in enumerate(
+        zip(sr_payload["history"], shadow_payload["history"], strict=True),
+        start=1,
+    ):
+        for key in (
+            "selection_mode",
+            "selected_ops",
+            "selected_pool_indices",
+            "selected_positions",
+            "init_theta_values",
+            "nfev_opt",
+        ):
+            assert shadow_step[key] == sr_step[key], (round_index, key)
+        assert shadow_step["energy_after_opt"] == pytest.approx(
+            sr_step["energy_after_opt"], abs=1.0e-13, rel=0.0
+        )
+        assert shadow_step["accepted_refit"][
+            "final_runtime_theta"
+        ] == pytest.approx(
+            sr_step["accepted_refit"]["final_runtime_theta"],
+            abs=1.0e-13,
+            rel=0.0,
+        )
+
+    bridges = [
+        row["selected_feature_rows"][0]["formal_manifold_growth_bridge"]
+        for row in shadow_payload["history"]
+    ]
+    first_growth = bridges[0]["outer_information_shadow_growth"]
+    second_growth = bridges[1]["outer_information_shadow_growth"]
+    assert first_growth["closure"] is None
+    closure = second_growth["closure"]
+    assert closure["outcome"] == "continue"
+    assert closure["reason"] == "spanning_probe_pass"
+    assert closure["observation_spans_support"] is True
+    assert closure["full_endpoint_metric_acquired"] is False
+    assert closure["cross_state_tangent_data_acquired"] is False
+    assert closure["classical_quantum_query_charge"] == 0
+    assert second_growth["same_ray_extension"]["old_old_metric_reacquired"] is False
+    assert second_growth["incremental_quantum_query_charge"] == 0
+    assert second_growth["query_ledger_registration_performed"] is False
+
+    cache_ids = {
+        str(bridge["cached_sr_v3_phase3_observation"]["cache_provenance_id"])
+        for bridge in bridges
+    }
+    assert len(cache_ids) == 2
+    current = json.loads(current_json.read_text(encoding="utf-8"))
+    outer_checkpoint = current["adapt_vqe"][
+        "formal_manifold_runtime_checkpoint"
+    ]["outer_information_checkpoint"]
+    assert outer_checkpoint["stage"] == "refit_prediction"
+    for state_role in ("committed", "pending"):
+        state = outer_checkpoint[state_role]
+        assert state["source_primitive_ids"] == []
+        assert set(state["source_observation_ids"]) == cache_ids
+    assert outer_checkpoint["immutable_primitive_ids"] == []
+    assert set(outer_checkpoint["immutable_observation_ids"]) == cache_ids
+
+    formal_ledger = shadow_payload["formal_manifold_query_closure"][
+        "all_executed"
+    ]
+    assert formal_ledger["actual_operator_probe_count"] == 0
+    assert formal_ledger["unique_primitive_ids"] == []
+    assert all(int(formal_ledger[key]) == 0 for key in (
+        "N_E",
+        "N_grad",
+        "N_G",
+        "N_Q",
+        "N_Hv",
+        "N_cross",
+    ))
+
+
+def test_equal_rank_support_rotation_forces_query_free_cached_reanchor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    sr_kwargs, _ = _shadow_kwargs(tmp_path, shadow=False, admissions=2)
+    shadow_kwargs, _ = _shadow_kwargs(tmp_path, admissions=2)
+    sr_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**sr_kwargs)
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "supported_subspace_projector_defect",
+        lambda *_args, **_kwargs: 0.125,
+    )
+    shadow_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**shadow_kwargs)
+
+    assert [row["selected_ops"] for row in shadow_payload["history"]] == [
+        row["selected_ops"] for row in sr_payload["history"]
+    ]
+    assert [row["init_theta_values"] for row in shadow_payload["history"]] == [
+        row["init_theta_values"] for row in sr_payload["history"]
+    ]
+    for sr_row, shadow_row in zip(
+        sr_payload["history"], shadow_payload["history"], strict=True
+    ):
+        assert shadow_row["energy_after_opt"] == pytest.approx(
+            sr_row["energy_after_opt"], abs=1.0e-13, rel=0.0
+        )
+
+    bridge = shadow_payload["history"][1]["selected_feature_rows"][0][
+        "formal_manifold_growth_bridge"
+    ]
+    closure = bridge["outer_information_shadow_growth"]["closure"]
+    assert closure["outcome"] == "anchor"
+    assert closure["reason"] == "raw_metric_supported_subspace_rotated"
+    assert closure["support_projector_defect"] == pytest.approx(0.125)
+    assert bridge["outer_information_shadow_growth"][
+        "incremental_quantum_query_charge"
+    ] == 0
+    assert shadow_payload["formal_manifold_query_closure"]["all_executed"][
+        "unique_primitive_ids"
+    ] == []
+
+
+def test_shadow_profile_finite_angle_seed_is_not_zeroed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    # A deliberately huge stopping gradient forces the conventional SR-v3
+    # finite-angle scan while retaining the source-locked fallback itself.
+    kwargs, _ = _shadow_kwargs(tmp_path, eps_grad=1.0e6)
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["success"] is True
+    assert len(payload["history"]) == 1
+    step = payload["history"][0]
+    assert step["selection_mode"] == "finite_angle_fallback"
+    selected = step["selected_feature_rows"][0]
+    assert abs(float(selected["init_theta"])) == pytest.approx(0.1)
+    assert "formal_manifold_growth_init_theta" not in selected
+    fallback_bridge = selected["formal_manifold_finite_angle_fallback_bridge"]
+    assert fallback_bridge["exact_zero_growth"] is False
+    assert fallback_bridge["preserve_nonzero_sr_seed"] is True
+    assert fallback_bridge["outer_information_action"] == "invalidate_shadow_only"
+    trust_hold = step["route_a_trust_region_update"]
+    assert trust_hold["update_applied"] is False
+    assert trust_hold["radius_after"] == trust_hold["radius_before"]
+    assert trust_hold["nonzero_sr_seed_preserved"] is True
+    bridge = selected["formal_manifold_growth_bridge"]
+    shadow_growth = bridge["outer_information_shadow_growth"]
+    assert shadow_growth["reason"] == "nonzero_sr_fallback_admission"
+    assert shadow_growth["selector_seed_preserved"] is True
+    assert shadow_growth["authoritative_sr_trajectory_affected"] is False
+    assert shadow_growth["same_ray_extension_skipped"] is True
+    assert payload["history"][0]["batch_size"] == 1
+    assert len(payload["history"][0]["selected_ops"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("fault_site", "admissions"),
+    (
+        ("cached_observation_build", 1),
+        ("same_ray_growth_and_invalidation", 1),
+        ("prediction_closure", 2),
+        ("refit_prediction", 1),
+    ),
+)
+def test_shadow_internal_exceptions_fail_open_without_sr_v3_trajectory_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fault_site: str,
+    admissions: int,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    sr_kwargs, _ = _shadow_kwargs(
+        tmp_path,
+        shadow=False,
+        admissions=admissions,
+    )
+    shadow_kwargs, _ = _shadow_kwargs(
+        tmp_path,
+        admissions=admissions,
+    )
+    sr_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**sr_kwargs)
+
+    def _injected_failure(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError(f"injected_outer_shadow_failure:{fault_site}")
+
+    if fault_site == "cached_observation_build":
+        monkeypatch.setattr(
+            adapt_pipeline,
+            "build_sr_v3_outer_growth_observation",
+            _injected_failure,
+        )
+    elif fault_site == "same_ray_growth_and_invalidation":
+        monkeypatch.setattr(
+            OuterInformationSession,
+            "begin_same_ray_growth",
+            _injected_failure,
+        )
+        # The recovery path is shadow instrumentation too.  Prove that even a
+        # second exception while invalidating cannot escape into SR-v3.
+        monkeypatch.setattr(
+            OuterInformationSession,
+            "invalidate_after_structural_change",
+            _injected_failure,
+        )
+    elif fault_site == "prediction_closure":
+        monkeypatch.setattr(
+            OuterInformationSession,
+            "close_prediction",
+            _injected_failure,
+        )
+    elif fault_site == "refit_prediction":
+        monkeypatch.setattr(
+            OuterInformationSession,
+            "predict_refit",
+            _injected_failure,
+        )
+    else:  # pragma: no cover - parametrization is closed above.
+        raise AssertionError(f"unknown fault site {fault_site}")
+
+    shadow_payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        **shadow_kwargs
+    )
+
+    assert shadow_payload["success"] is True
+    assert len(sr_payload["history"]) == len(shadow_payload["history"])
+    for round_index, (sr_step, shadow_step) in enumerate(
+        zip(sr_payload["history"], shadow_payload["history"], strict=True),
+        start=1,
+    ):
+        for key in (
+            "selection_mode",
+            "selected_ops",
+            "selected_pool_indices",
+            "selected_positions",
+            "init_theta_values",
+            "nfev_opt",
+        ):
+            assert shadow_step[key] == sr_step[key], (round_index, key)
+        assert shadow_step["energy_after_opt"] == pytest.approx(
+            sr_step["energy_after_opt"], abs=1.0e-13, rel=0.0
+        )
+        assert shadow_step["accepted_refit"][
+            "final_runtime_theta"
+        ] == pytest.approx(
+            sr_step["accepted_refit"]["final_runtime_theta"],
+            abs=1.0e-13,
+            rel=0.0,
+        )
+
+    growth_failures = []
+    prediction_failures = []
+    for shadow_step in shadow_payload["history"]:
+        bridge = shadow_step["selected_feature_rows"][0][
+            "formal_manifold_growth_bridge"
+        ]
+        shadow_growth = bridge["outer_information_shadow_growth"]
+        if bool(shadow_growth.get("shadow_internal_error", False)):
+            growth_failures.append(shadow_growth)
+        prediction = shadow_step["formal_manifold_warm_start"][
+            "refit_prediction"
+        ]
+        if bool(prediction.get("shadow_internal_error", False)):
+            prediction_failures.append(prediction)
+
+    if fault_site == "refit_prediction":
+        assert len(prediction_failures) == 1
+        failure = prediction_failures[0]
+        assert failure["shadow_exception"]["phase"] == "refit_prediction"
+    else:
+        assert growth_failures
+        failure = growth_failures[-1]
+        expected_phase = (
+            "cached_observation_build"
+            if fault_site == "cached_observation_build"
+            else "cached_observation_closure_or_growth"
+        )
+        assert failure["shadow_exception"]["phase"] == expected_phase
+        if fault_site == "same_ray_growth_and_invalidation":
+            invalidation = failure["shadow_state_invalidation"]
+            assert invalidation["shadow_state_discard_completed"] is True
+            assert invalidation[
+                "replacement_unanchored_session_created"
+            ] is True
+            assert invalidation["invalidation_exception"]["type"] == (
+                "RuntimeError"
+            )
+
+    assert failure["authoritative_sr_trajectory_affected"] is False
+    assert failure["shadow_exception"][
+        "authoritative_sr_trajectory_affected"
+    ] is False
+    formal_ledger = shadow_payload["formal_manifold_query_closure"][
+        "all_executed"
+    ]
+    assert formal_ledger["actual_operator_probe_count"] == 0
+    assert formal_ledger["unique_primitive_ids"] == []

@@ -1,0 +1,56 @@
+{
+  "append_v4_source_contract_locks": {
+    "hh_L3_nph3_intermediate_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/source_contract_locks/hh_L3_nph3_intermediate_strong__append_v4_job.json",
+      "sha256": "a5a473600e7565a36d7a204b95ab4105df07d320771b7b207a3e0af7114384f7"
+    },
+    "hh_L3_nph3_strong_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/source_contract_locks/hh_L3_nph3_strong_strong__append_v4_job.json",
+      "sha256": "39b81179095c4c3b5b32212f4caddfea33137e56d7bf5305cfc1d68cca60e88a"
+    },
+    "hh_L3_nph3_weak_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/source_contract_locks/hh_L3_nph3_weak_strong__append_v4_job.json",
+      "sha256": "e62185820aa6f69d388c178a54eab17a5effeabdddc793d7936097b0c736c565"
+    },
+    "hubbard_L6_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/source_contract_locks/hubbard_L6_strong__append_v4_job.json",
+      "sha256": "8547dbf00185fa43b4d0454608f111d5aa7649ac03c2da83819fc6b92c03afcd"
+    },
+    "hubbard_L6_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/source_contract_locks/hubbard_L6_weak__append_v4_job.json",
+      "sha256": "86fa6e97c34bd711d1dfcfb440e9489895197b67e08abb8f664ddaffafd1bdcd"
+    }
+  },
+  "authorized_exploratory_changes": [
+    "fresh output identity",
+    "HH L=3,n_ph=3 strong-Holstein weak/intermediate/strong U rows",
+    "Hubbard L=6 weak/strong U rows",
+    "new diagnostic suite-profile case identifiers and exact-reference locks",
+    "resource requests of 32 GB RAM and 60 GB disk"
+  ],
+  "generated_utc": "2026-07-19T19:56:21.224015+00:00",
+  "operational_repairs": [
+    "overlay only the method-agnostic canonical case registry and its exact-reference/sector regression test",
+    "generalize the byte-derived worker validation from HH-only to HH/Hubbard manifests",
+    "raise and lock the generic resource/fidelity qubit caps to the declared 12-qubit cases",
+    "accept path-safe ASCII uppercase letters in canonical higher-L job identifiers",
+    "retain the Append-v4 generic algorithm source hash unchanged"
+  ],
+  "preserved_method_contract": {
+    "algorithm_id": "static_full_meta_append_adapt_vqe",
+    "insertion": "append",
+    "macro_and_projected_singleton_mixing": false,
+    "optimizer": "Powell",
+    "optimizer_maxiter": 200,
+    "parent_pool": "family-native full_meta; HH unfiltered with HVA included",
+    "powell_maxiter_cap_policy": "accept_finite_nonincreasing_v1",
+    "selection": "full projected-singleton child candidate pool with replacement",
+    "shared_pauli_pool_max_subset_size": 1,
+    "shared_pauli_pool_mode": "projected_singleton_children_only_v1",
+    "shared_pauli_pool_symmetry_policy": "hard_guard"
+  },
+  "schema": "paper_i_higher_l_append_settings_difference_audit_v1",
+  "source_contract_bundle_id": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+  "status": "pass",
+  "unapproved_drift": []
+}

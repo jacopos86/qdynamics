@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/time_dynamics_optuna/run_task_apptainer.sh
+arguments = $(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/time_dynamics_optuna/image.sif, chtc/time_dynamics_optuna/run_task_apptainer.sh, chtc/time_dynamics_optuna/run_task.sh, chtc/time_dynamics_optuna/run_task.py, chtc/time_dynamics_optuna/input/records.tsv, chtc/time_dynamics_optuna/input/seed_artifacts/$(record_id).json
+transfer_output_files = raw_outputs, logs
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_disk = 30GB
+request_memory = 12GB
++MaxRuntime = 43200
++JobBatchName = "holstein-td-optuna-dt321-full"
+log = logs/td-optuna-dt321-full.$(Cluster).$(Process).log
+output = logs/td-optuna-dt321-full.$(Cluster).$(Process).out
+error = logs/td-optuna-dt321-full.$(Cluster).$(Process).err
+queue record_id from chtc/time_dynamics_optuna/input/full_dt321_append_prune_records.txt

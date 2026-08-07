@@ -1,0 +1,34 @@
+# Execute-node validation and compact page-7 projection for completed nph=3 runs.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc/execute_projection.sh $(execution_id) $(regime) $(source_proc) $(archive_path) $(archive_sha256) $(archive_size_bytes) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc/source/source_locked.tar.gz chtc/phase3_optuna/image.sif chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc/ijson_pure_python.tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc/execute_projection.sh, chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc/ijson_pure_python.tar.gz, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc/source/source_locked.tar.gz, chtc/phase3_optuna/image.sif, $(archive_path), chtc/paper_i_ra_adapt_repair_20260727/validate_nph3_v3_attempt_archive.py, pipelines/reporting/add_paper_i_historical_mean_global_singleton_full6_page.py, pipelines/reporting/build_paper_i_historical_mean_global_singleton_ra_projection.py, pipelines/reporting/add_paper_i_append_r70_singleton_progress_page.py, pipelines/reporting/build_paper_i_ra_adapt_stationary_core_master_pdf.py, pipelines/reporting/build_paper_i_ra_vs_adapt_common_accuracy_cost_pdf.py, pipelines/reporting/paper_i_qiskit_cost_tuple.py, output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_append_singleton_r70_all6_adapter.json, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc/package_manifest.json, $(job_path), chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc_activation_ordinary_v1/activation_manifest.json, $(authorization_path)
+transfer_output_files = transfer/$(regime)__cluster_9400779__proc_$(source_proc).archive_validation.json, transfer/$(regime)__cluster_9400779__proc_$(source_proc).page7_projection.json
+transfer_output_remaps = "transfer/$(regime)__cluster_9400779__proc_$(source_proc).archive_validation.json=chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc_runtime/fetched/$(regime)__cluster_9400779__proc_$(source_proc).archive_validation.json; transfer/$(regime)__cluster_9400779__proc_$(source_proc).page7_projection.json=chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc_runtime/fetched/$(regime)__cluster_9400779__proc_$(source_proc).page7_projection.json"
+
+request_cpus = 4
+request_memory = 24GB
+request_disk = 20GB
++MaxRuntime = 21600
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-historical-mean-global-singleton-page7-projection-20260802-v2"
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(regime).log
+output = chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(regime).out
+error = chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(regime).err
+
+queue execution_id,regime,source_proc,archive_path,archive_sha256,archive_size_bytes,job_path,authorization_path from chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v2_chtc/queue.tsv

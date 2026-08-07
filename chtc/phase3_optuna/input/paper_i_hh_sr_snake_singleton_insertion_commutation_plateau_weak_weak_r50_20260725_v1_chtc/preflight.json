@@ -1,0 +1,24 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_weak_weak_r50_20260725_v1_chtc",
+  "checks": {
+    "focused_tests_passed": 9,
+    "outer_horizon": 50,
+    "profile_contract_sha256": "eecd11fccf8f34b5e89042fb75949b54546a297ea5fe4f9969ad91ec569ff08a",
+    "regime": "weak_weak",
+    "regime_count": 1,
+    "representation": "projected_singleton",
+    "requirements_has_sif": true,
+    "route_changes_only_insertion_mode": true,
+    "source_archive_sha256": "ab420f4791fbf4cff723a916c9ebd68fd6ef191a228e2b1b05dc86f78cad7c80",
+    "source_result_sha256": "d52252041099621813e96a271264c30dd01edbd701c9190b295a629e89a0214d",
+    "worker_archive_validate_only": true
+  },
+  "diagnostic_policy": {
+    "adapt_insertion_mode": "insertion_commutation_plateau_v1",
+    "first_round": "append_only",
+    "plateau_energy_decrease_threshold": 1e-08,
+    "trigger_source": "immediately_preceding_accepted_post_refit_energy_decrease"
+  },
+  "schema": "paper_i_hh_singleton_plateau_insertion_preflight_v1",
+  "status": "pass"
+}

@@ -1,0 +1,11 @@
+{
+  "archive_image_validate_only_row_count": 6,
+  "batch_name": "paper-i-hh-sr-material-window-fsprune-verify-six-r50-20260722-v1",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v1_chtc",
+  "checked_at_utc": "2026-07-22T12:17:39Z",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_host": "ap2001.chtc.wisc.edu",
+  "schema": "paper_i_exact_remote_archive_image_gate_v1",
+  "source_archive_sha256": "b7eff9260bc304fc56279e17f993c9465d51f30bd66f193c1afa9232f28a3b39",
+  "status": "pass"
+}

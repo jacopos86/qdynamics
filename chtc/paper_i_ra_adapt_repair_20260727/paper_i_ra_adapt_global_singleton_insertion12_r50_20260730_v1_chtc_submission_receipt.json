@@ -1,0 +1,61 @@
+{
+  "activation_id": "paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v1_chtc_activation_v1",
+  "activation_manifest_sha256": "3f259919839abd9c070e635b049fc7a7923f718dc09a3eccddcf28ce1d379d86",
+  "batch_name": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v1",
+  "cluster_id": 9395482,
+  "direct_execution_count": 12,
+  "factory_contract": {
+    "completed_jobs_retained_until_verified_removal": true,
+    "job_materialize_limit": 1,
+    "live_factory_query_passed": true,
+    "total_submit_procs": 12
+  },
+  "initial_scheduler_observation": {
+    "completed_count": 0,
+    "held_count": 0,
+    "idle_count": 1,
+    "materialized_count": 1,
+    "observed_utc": "2026-07-30T13:27:34Z",
+    "proc_ids": [
+      0
+    ],
+    "running_count": 0
+  },
+  "legacy_archive_recovery_receipt": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_preexisting_archive_recovery_20260730_receipt.json",
+    "sha256": "7c43d1214961aeb3f958eac54a6cb6d3f614e86b9a0aa99000335c6ccc90da61"
+  },
+  "package_id": "paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v1_chtc",
+  "package_manifest_sha256": "a7e8663e0b9daa3b7589652179e8e6ec6ebb7d4ad47925a294beed232b268940",
+  "remote_preflight": {
+    "expanded_classad_file": {
+      "ad_count": 12,
+      "file_sha256": "ee2f518497e9ca25d37d00f1a9465492473da0fba6686b64f7a5b9cd9ac6b57a",
+      "file_size_bytes": 31175,
+      "proc_ids": "0..11",
+      "validation_receipt_sha256": "2d29b6233c36147414dd87dda151f385cc1c76389009f19397191ed06f01e9f3"
+    },
+    "factory_classad_file": {
+      "cluster_ad_count": 1,
+      "file_sha256": "17392c381d6b1f0758194e077f62efcd541faf08a16e9da55a52b5a8fe5efcb2",
+      "file_size_bytes": 4704,
+      "validation_receipt_sha256": "3459b8bbfc6187e7987669215b507c529f4d7fac581bb75b2545c0253da81d58"
+    },
+    "status": "passed_dual_factory_and_expanded"
+  },
+  "remote_repo_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "resource_status": "provisional_not_demonstrated",
+  "schema": "paper_i_ra_adapt_bounded_factory_chtc_submission_receipt_v1",
+  "sha256": "b9fe8abd353834917c18703f7e24224d61c7614dd57877a7a54c0f4241325b1e",
+  "source_archive_sha256": "2705bc4c424b9d9e4b116d2e3fe061359c3704ba2f504ac113e35d15c23411ac",
+  "staging": {
+    "activation_patch_sha256": "ac5b2ccd5934a41fe250fe4ceb820b5c1c27261149f0606773e1b0774530fd55",
+    "submitted_final_archive_path": "/tmp/paper_i_ra_global_singleton_insertion12_r50_20260730_v1_submitted_final_stage.tgz",
+    "submitted_final_archive_sha256": "346b9ddcfc20fb7c3937169ba0a11f9054a2c656f40b2c40225b42ad95444dcb",
+    "submitted_final_archive_size_bytes": 2527044
+  },
+  "submission_host": "ap2001.chtc.wisc.edu",
+  "submission_output": "9395482.0 - 9395482.11",
+  "submission_state": "submitted_bounded_factory",
+  "submitted_utc": "2026-07-30T13:26:11Z"
+}

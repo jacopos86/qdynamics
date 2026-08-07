@@ -1,0 +1,21 @@
+{
+  "batch_target_or_order_policy_changed": false,
+  "completed_utc": "2026-07-20T22:08:42.707593+00:00",
+  "failed_predecessor_error": "Whitened historical singleton plan has the wrong coordinate schema.",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v12_chtc",
+  "proof": {
+    "archive_only_job_gates_passed": 6,
+    "exact_remote_image_gate": "pending",
+    "local_focused_tests_passed": 9,
+    "new_order_rescue_receipt_test_passed": true,
+    "source_topology_gate_passed": true
+  },
+  "repair": "restrict finite-step rescue fill to the authoritative full-response admission domain and restore its typed singleton receipt after every ordering/rescue transformation",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_phase3_batch3_order_rescue_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "selection_scores_changed": false,
+  "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+  "status": "pass_built_not_submitted_pending_exact_remote_image_gate",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+}

@@ -1,0 +1,817 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+
+import pytest
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+from pipelines.contracts.problem import ProblemRequest
+from pipelines.contracts.static_provenance import HH_FULL_META_CLASSIFIER_VERSION
+from pipelines.static_adapt.builders.problem_registry import resolve_problem_context
+from pipelines.static_adapt.cli_config import (
+    _build_adapt_arg_parser,
+    _build_run_hardcoded_adapt_vqe_kwargs,
+)
+from pipelines.static_adapt.formal_manifold_route_profile import (
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+    FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+)
+from pipelines.static_adapt.formal_manifold_outer_information import (
+    EXACT_OUTER_CONTROL_AUTHORITY_EACH_OUTER_V1,
+    EXACT_OUTER_CONTROL_MODEL_GUARD_EACH_OUTER_V2,
+    EXACT_OUTER_CONTROL_OFF,
+    EXACT_OUTER_CONTROL_SHADOW_EACH_OUTER_V1,
+    OuterInformationSession,
+)
+from pipelines.static_adapt.formal_manifold_warm_start import FormalManifoldSession
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+    canonical_sr_snake_v3_contract,
+    canonical_sr_snake_v3_contract_sha256,
+)
+from src.quantum.hubbard_latex_python_pairs import (
+    build_hubbard_holstein_hamiltonian,
+)
+
+
+def _small_full_meta_filter(tmp_path: Path) -> Path:
+    path = tmp_path / "active_small_full_meta.json"
+    path.write_text(
+        json.dumps(
+            {
+                "keep_classes": ["uccsd_sing"],
+                "classifier_version": HH_FULL_META_CLASSIFIER_VERSION,
+                "source_pool": "full_meta",
+                "source_problem": "hh",
+                "source_num_sites": 2,
+                "source_n_ph_max": 2,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _active_kwargs(
+    tmp_path: Path,
+    *,
+    admissions: int,
+    route_profile: str = FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1,
+    exact_control_mode: str = EXACT_OUTER_CONTROL_OFF,
+) -> tuple[dict[str, Any], Path]:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    args = parser.parse_args(
+        [
+            "--problem",
+            "hh",
+            "--L",
+            "2",
+            "--u",
+            "0.5",
+            "--g-ep",
+            "0.2",
+            "--omega0",
+            "1.0",
+            "--n-ph-max",
+            "2",
+            "--boundary",
+            "open",
+            "--skip-pdf",
+            "--adapt-reoptimization-route",
+            FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+            "--adapt-formal-manifold-route-profile",
+            str(route_profile),
+            "--adapt-formal-outer-exact-control-mode",
+            str(exact_control_mode),
+        ]
+    )
+    h_poly = build_hubbard_holstein_hamiltonian(
+        dims=2,
+        J=1.0,
+        U=0.5,
+        omega0=1.0,
+        g=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+    context = resolve_problem_context(
+        ProblemRequest(
+            problem_key="hh",
+            num_sites=2,
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=2,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+        ),
+        hamiltonian=h_poly,
+    )
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=h_poly,
+        resolved_problem_context=context,
+        cli_adapt_continuation_mode="phase3_v1",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    current_json = tmp_path / f"outer_active_current_r{int(admissions)}.json"
+    kwargs.update(
+        {
+            "adapt_segment_id": f"outer_active_integration_r{int(admissions)}",
+            "adapt_segment_max_new_admissions": int(admissions),
+            "adapt_pool_class_filter_json": _small_full_meta_filter(tmp_path),
+            "adapt_current_json": current_json,
+            "adapt_current_json_every_depth": 1,
+            "adapt_estimator_call_ledger_enabled": True,
+            "eps_grad": 1.0e-8,
+        }
+    )
+    return kwargs, current_json
+
+
+@pytest.mark.parametrize(
+    ("exact_control_mode", "mutated"),
+    [
+        (EXACT_OUTER_CONTROL_SHADOW_EACH_OUTER_V1, False),
+        (EXACT_OUTER_CONTROL_AUTHORITY_EACH_OUTER_V1, True),
+    ],
+)
+def test_exact_outer_control_compares_metric_frame_and_orientation_each_refit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    exact_control_mode: str,
+    mutated: bool,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    kwargs, current_json = _active_kwargs(
+        tmp_path,
+        admissions=1,
+        route_profile=(
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+        ),
+        exact_control_mode=exact_control_mode,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    summary = payload["formal_manifold_outer_information"]
+    assert summary["exact_outer_control_mode"] == exact_control_mode
+    controls = summary["exact_outer_control_history"]
+    assert len(controls) == 1
+    control = controls[0]
+    assert control["available"] is True
+    assert control["controller_state_mutated"] is mutated
+    diagnostic = control["diagnostic"]
+    assert diagnostic["exact_support_rank"] >= 1
+    assert diagnostic["raw_metric_relative_error_fro"] >= 0.0
+    assert diagnostic["orientation"]["available"] is True
+    assert diagnostic["gradient"]["available"] is True
+    assert control["query_accounting"][
+        "endpoint_metric_elements_charged"
+    ] >= 1
+    assert control["query_accounting"][
+        "cross_state_tangent_elements_charged"
+    ] >= 1
+    if mutated:
+        assert control["authority"] is not None
+        assert control["authority"][
+            "measured_cross_frame_registration_used"
+        ] is True
+        assert summary["transport_fully_certified"] is True
+    else:
+        assert control["authority"] is None
+        assert control["shadow_does_not_affect_controller"] is True
+
+
+def test_model_guard_exactly_rescores_finalists_and_certifies_powell_endpoint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    prior_sequence: list[bool] = []
+    original_evaluate = (
+        adapt_pipeline.evaluate_historical_singleton_coordinate_models
+    )
+
+    def _trace_evaluate(*args: Any, **call_kwargs: Any) -> Any:
+        prior_sequence.append(
+            call_kwargs.get("old_old_geometry_prior") is not None
+        )
+        return original_evaluate(*args, **call_kwargs)
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "evaluate_historical_singleton_coordinate_models",
+        _trace_evaluate,
+    )
+    kwargs, current_json = _active_kwargs(
+        tmp_path,
+        admissions=2,
+        route_profile=(
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+        ),
+        exact_control_mode=EXACT_OUTER_CONTROL_MODEL_GUARD_EACH_OUTER_V2,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["route_family"] == "formal_manifold_snake"
+    assert payload["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+    )
+    assert any(prior_sequence)
+    assert any(
+        prior_sequence[index] and not prior_sequence[index + 1]
+        for index in range(len(prior_sequence) - 1)
+    )
+    reuse = payload["formal_manifold_outer_information"][
+        "outer_information_active_reuse"
+    ]
+    assert reuse["exact_finalist_rescores"] >= 1
+    assert reuse["old_old_metric_elements_avoided"] == 0
+    assert reuse["old_old_curvature_elements_avoided"] == 0
+    controls = payload["formal_manifold_outer_information"][
+        "exact_outer_control_history"
+    ]
+    assert len(controls) == 2
+    for control in controls:
+        stationarity = control["diagnostic"]["stationarity"]
+        assert stationarity["policy"] == (
+            "exact_supported_gradient_after_powell_v1"
+        )
+        assert stationarity["supported_gradient_norm"] >= 0.0
+        assert control["controller_state_mutated"] is True
+        assert control["authority"]["curvature_transition_policy"] == (
+            "exact_secant_or_rank_reset_v2"
+        )
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    compact = checkpoint["adapt_vqe"]["history"][-1][
+        "formal_outer_exact_control"
+    ]
+    assert compact["diagnostic"]["stationarity"]["policy"] == (
+        "exact_supported_gradient_after_powell_v1"
+    )
+    assert compact["authority"]["curvature_transition_policy"] == (
+        "exact_secant_or_rank_reset_v2"
+    )
+
+
+def test_exact_shadow_still_acquires_geometry_when_prediction_is_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    captured: dict[str, Any] = {}
+
+    def _invalidate_instead_of_predict(
+        self: OuterInformationSession,
+        *,
+        physical_state_fingerprint: str,
+        theta: Any,
+    ) -> Any:
+        pending = self.pending
+        assert pending is not None
+        self.invalidate_after_structural_change(
+            reason="test_forced_prediction_unavailable",
+            accepted_registry=pending.registry,
+        )
+        captured["session"] = self
+        captured["checkpoint_after_invalidation"] = (
+            self.checkpoint_payload()
+        )
+        return SimpleNamespace(
+            telemetry={
+                "schema": "test_forced_prediction_unavailable_v1",
+                "prediction_skipped": True,
+            }
+        )
+
+    monkeypatch.setattr(
+        OuterInformationSession,
+        "predict_refit",
+        _invalidate_instead_of_predict,
+    )
+    kwargs, current_json = _active_kwargs(
+        tmp_path,
+        admissions=1,
+        route_profile=(
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+        ),
+        exact_control_mode=EXACT_OUTER_CONTROL_SHADOW_EACH_OUTER_V1,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    control = payload["formal_manifold_outer_information"][
+        "exact_outer_control_history"
+    ][0]
+    assert control["available"] is True
+    assert control["prediction_available"] is False
+    assert control["controller_state_mutated"] is False
+    assert captured["session"].checkpoint_payload() == captured[
+        "checkpoint_after_invalidation"
+    ]
+    assert control["reason"] == (
+        "no_pending_refit_prediction_exact_geometry_acquired"
+    )
+    diagnostic = control["diagnostic"]
+    assert diagnostic["exact_source_support_rank"] >= 1
+    assert diagnostic["exact_support_rank"] >= 1
+    assert diagnostic["exact_source_spectrum"]["raw_metric_sha256"]
+    assert diagnostic["exact_endpoint_spectrum"]["raw_metric_sha256"]
+    assert diagnostic["gradient"]["exact_available"] is True
+    assert diagnostic["gradient"]["comparison_available"] is False
+    assert diagnostic["gradient"]["exact_frame_gradient_norm"] >= 0.0
+    assert control["query_accounting"][
+        "source_metric_elements_charged"
+    ] >= 0
+    assert control["query_accounting"]["source_primitive_ids"]
+    assert control["query_accounting"][
+        "endpoint_metric_elements_charged"
+    ] >= 1
+    assert control["query_accounting"][
+        "cross_state_tangent_elements_charged"
+    ] >= 1
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    compact = checkpoint["adapt_vqe"]["history"][-1][
+        "formal_outer_exact_control"
+    ]
+    assert compact["available"] is True
+    assert compact["prediction_available"] is False
+    assert compact["diagnostic"]["exact_source_support_rank"] >= 1
+    assert compact["diagnostic"]["exact_endpoint_spectrum"][
+        "raw_metric_sha256"
+    ]
+    assert compact["query_accounting"][
+        "source_metric_elements_charged"
+    ] >= 0
+    assert compact["query_accounting"][
+        "source_primitive_id_inventory"
+    ]["count"] >= 1
+
+
+def test_active_fallback_only_no_prune_profile_runs_full_response_powell(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    kwargs, _ = _active_kwargs(
+        tmp_path,
+        admissions=1,
+        route_profile=(
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+        ),
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["success"] is True
+    assert payload["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+    )
+    composition = payload["formal_manifold_route_composition"]
+    assert composition["phase2_gram_novelty_policy"] == "fallback_only_v1"
+    assert composition["phase3_gram_novelty_policy"] == "fallback_only_v1"
+    assert composition["phase1_prune_enabled"] is False
+    assert payload["phase3_response_coordinate_scope"] == (
+        "full_active_plus_singleton_v1"
+    )
+    assert payload["adapt_inner_optimizer"] == "POWELL"
+    assert composition["sr_controller_overrides"] == {
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "phase1_prune_enabled": False,
+    }
+    outer_curvature = payload["formal_manifold_outer_information"][
+        "outer_curvature_model"
+    ]
+    assert outer_curvature["behavioral_role"] == "active_reuse"
+    assert outer_curvature["accepted_refit_optimizer"] == "POWELL"
+    assert outer_curvature["optimizer_local_curvature_recycling_active"] is False
+    assert outer_curvature["accepted_refit_optimizer_uses_outer_secant"] is False
+    warm_summary = payload["formal_manifold_warm_start"]
+    assert warm_summary["accepted_refit_optimizer"] == "POWELL"
+    assert warm_summary["optimizer_local_execution"] == {
+        "schema": "formal_manifold_optimizer_local_execution_v1",
+        "authoritative_optimizer": "POWELL",
+        "inverse_rbfgs_active": False,
+        "direct_sr1_active": False,
+        "armijo_backtracking_active": False,
+        "trust_globalization_active": False,
+        "qbroyd_active": False,
+        "qbang_active": False,
+        "formal_manifold_session_propose_active": False,
+        "reason": "accepted_refit_delegated_to_sr_v3_powell_v1",
+    }
+    assert warm_summary["outer_information_execution"] == {
+        "schema": "formal_manifold_outer_information_execution_v1",
+        "active_reuse": True,
+        "direct_hessian_transport_active": True,
+        "guarded_direct_sr1_outer_secant_active": True,
+        "optimizer_local_update": False,
+    }
+    assert warm_summary["config_execution_status"] == (
+        "dormant_optimizer_local_defaults_outer_information_profile_v1"
+    )
+    assert warm_summary["execution_ownership"][
+        "authoritative_accepted_reoptimizer"
+    ] == {
+        "owner": "source_locked_sr_v3_supported_fs_powell_v1",
+        "method": "POWELL",
+        "scope": "full_ansatz_v1",
+        "coordinate_chart": "supported_fs_whitened_fixed_v1",
+        "authoritative": True,
+    }
+    assert warm_summary["dormant_optimizer_local_config"] == {
+        "execution_status": "not_executed_outer_information_powell_v1",
+        "configured_curvature_branch": (
+            "inverse_rbfgs_raised_covariant_hessian_v1"
+        ),
+        "configured_qbroyd_epsilon0": 0.0,
+        "configured_armijo_c1": 1.0e-4,
+        "configured_line_search_max_steps": 15,
+    }
+
+
+def _forbid_non_sr_or_legacy_fm_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
+
+    def _forbidden_selector(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "outer-information active reuse invoked JR or formal batch selection"
+        )
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "run_route_a_child_funnel",
+        "select_route_a_schur_proposals",
+        "select_combinatorial_query_closed_batch",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    def _forbidden_formal_propose(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "outer-information active reuse invoked the legacy FM optimizer"
+        )
+
+    monkeypatch.setattr(FormalManifoldSession, "propose", _forbidden_formal_propose)
+
+
+def test_active_outer_closure_backend_evaluation_reconciles_with_nfev(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Outer closure reuses the accepted endpoint without another energy call."""
+
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    kwargs, _ = _active_kwargs(tmp_path, admissions=2)
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    shared_hamiltonian = payload["estimator_call_accounting"][
+        "executed_occurrence_accounting"
+    ]["all_hamiltonian_execution"]
+    scope_counts = shared_hamiltonian[
+        "occurrence_count_by_consumer_scope"
+    ]
+    assert int(
+        scope_counts.get(
+            "energy:formal_manifold_outer_information_closure", 0
+        )
+    ) == 0
+    assert payload["nfev_reconciled"] is True
+    assert int(payload["estimator_energy_occurrence_nfev"]) == int(
+        payload["nfev_total"]
+    )
+    assert payload["formal_manifold_query_accounting_complete"] is True
+
+
+def test_active_outer_reuse_is_authoritative_and_query_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise enough beam-on rounds to cross the Phase-II window boundary."""
+
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    kwargs, current_json = _active_kwargs(tmp_path, admissions=4)
+
+    historical_calls: list[dict[str, Any]] = []
+    original_evaluate = adapt_pipeline.evaluate_historical_singleton_coordinate_models
+
+    def _traced_evaluate(*args: Any, **call_kwargs: Any) -> Any:
+        evaluation = original_evaluate(*args, **call_kwargs)
+        historical_calls.append(
+            {
+                "prior": call_kwargs.get("old_old_geometry_prior"),
+                "telemetry": dict(evaluation.telemetry),
+                "workspace": dict(evaluation.workspace.build_telemetry()),
+            }
+        )
+        return evaluation
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "evaluate_historical_singleton_coordinate_models",
+        _traced_evaluate,
+    )
+
+    chart_calls: list[dict[str, Any]] = []
+    original_chart = adapt_pipeline.build_supported_fs_powell_chart
+
+    def _traced_chart(*args: Any, **call_kwargs: Any) -> Any:
+        chart = original_chart(*args, **call_kwargs)
+        chart_calls.append(
+            {
+                "receipt": call_kwargs.get("external_logical_fs_gram_receipt"),
+                "telemetry": dict(chart.base_telemetry),
+            }
+        )
+        return chart
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "build_supported_fs_powell_chart",
+        _traced_chart,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["success"] is True
+    assert payload["route_family"] == "formal_manifold_snake"
+    assert payload["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1
+    )
+    assert payload["sr_route_profile_request"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert payload["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert payload["sr_route_profile_contract"] == canonical_sr_snake_v3_contract()
+    assert payload["sr_route_profile_contract_sha256"] == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    composition = payload["formal_manifold_route_composition"]
+    assert composition["outer_information_mode"] == "active_reuse_v1"
+    assert composition["accepted_reoptimizer_owner"] == (
+        "source_locked_sr_v3_supported_fs_powell_v1"
+    )
+    assert len(payload["history"]) == 4
+
+    # Round one builds the authoritative empty/old-old anchor.  Subsequent
+    # Phase-III populations receive the branch-local transported prior.
+    assert historical_calls
+    assert historical_calls[0]["prior"] is None
+    assert historical_calls[1]["prior"] is not None
+    reused_calls = [row for row in historical_calls if row["prior"] is not None]
+    assert reused_calls
+    for row in reused_calls:
+        assert row["telemetry"]["old_old_geometry_reacquired"] is False
+        workspace = row["workspace"]
+        assert workspace["old_old_geometry_reacquired"] is False
+        assert workspace["old_old_geometry_prior"] is not None
+        assert workspace["old_old_geometry_source"] == (
+            "formal_manifold_outer_information_prior_v1"
+        )
+        measured = workspace["newly_measured_element_counts"]
+        assert measured["G_AA"] == measured["H_AA"] == 0
+        assert measured["G_AC"] > 0
+        assert measured["H_AC"] > 0
+        assert measured["G_CC_diagonal"] > 0
+        assert measured["H_CC_diagonal"] > 0
+
+    bridges = [
+        row["selected_feature_rows"][0]["formal_manifold_growth_bridge"]
+        for row in payload["history"]
+    ]
+    for bridge in bridges:
+        assert bridge["singleton_response_selector_invoked"] is True
+        assert bridge["joint_response_selector_invoked"] is False
+        growth = bridge["outer_information_shadow_growth"]
+        assert growth["mode"] == "active_reuse_v1"
+        assert growth["candidate_source_primitive_ids"]
+        assert growth["same_ray_extension"]["old_old_metric_reacquired"] is False
+    assert bridges[0]["outer_information_shadow_growth"][
+        "same_ray_extension"
+    ]["old_coordinate_count"] == 0
+    assert bridges[1]["outer_information_shadow_growth"][
+        "same_ray_extension"
+    ]["old_coordinate_count"] == 1
+    redundant_extensions = [
+        bridge["outer_information_shadow_growth"]["same_ray_extension"]
+        for bridge in bridges
+        if bridge["outer_information_shadow_growth"]["same_ray_extension"][
+            "candidate_coordinate_count"
+        ]
+        > 0
+        and bridge["outer_information_shadow_growth"]["same_ray_extension"][
+            "residual_supported_rank"
+        ]
+        == 0
+    ]
+    assert redundant_extensions
+    assert all(
+        extension["enlarged_supported_rank"]
+        == extension["old_supported_rank"]
+        for extension in redundant_extensions
+    )
+
+    # Powell must consume the already assembled winning Gram; its chart must
+    # not independently invoke the metric backend.
+    assert chart_calls
+    reused_chart_calls = [row for row in chart_calls if row["receipt"] is not None]
+    assert len(reused_chart_calls) >= len(payload["history"])
+    assert all(
+        row["telemetry"]["metric_input_status"] == "reused"
+        and row["telemetry"]["metric_backend_evaluation_performed"] is False
+        and row["telemetry"]["metric_element_count_acquired_for_chart"] == 0
+        for row in reused_chart_calls
+    )
+    for step in payload["history"]:
+        accepted = step["accepted_refit"]
+        assert accepted["metric_input_status"] == "reused"
+        assert accepted["metric_backend_evaluation_performed"] is False
+        assert accepted["external_logical_fs_gram_receipt"] is not None
+
+    query = payload["formal_manifold_query_closure"]
+    assert query["query_accounting_scope"] == (
+        "source_locked_sr_active_outer_reuse_estimator_v1"
+    )
+    stats = query["outer_information_active_reuse"]
+    assert stats["active_phase3_contexts"] > 0
+    assert stats["old_old_metric_elements_avoided"] > 0
+    assert stats["old_old_curvature_elements_avoided"] > 0
+    assert stats["old_old_metric_elements_already_acquired_upstream"] > 0
+    assert stats["old_old_curvature_elements_already_acquired_upstream"] > 0
+    assert stats["powell_metric_reuses"] > 0
+    assert query["outer_information_measurement_savings_claimed"] is True
+    assert payload["measurement_savings_claimed"] is True
+    assert payload["formal_manifold_query_accounting_complete"] is True, json.dumps(
+        {
+            "reason": payload.get(
+                "formal_manifold_query_accounting_incomplete_reason"
+            ),
+            "prune_nfev": [
+                {
+                    key: step.get("post_admission_prune", {}).get(key)
+                    for key in (
+                        "nfev_phase1_prune_delete_refit",
+                        "nfev_phase1_prune_frozen_energy_probes",
+                        "nfev_formal_frozen_prune_energy_probes",
+                    )
+                }
+                for step in payload["history"]
+            ],
+        },
+        sort_keys=True,
+    )
+    assert payload["nfev_reconciled"] is True
+    assert payload["estimator_energy_occurrence_nfev"] == payload["nfev_total"]
+    assert (
+        payload["nfev_winning_lineage"]
+        + payload["nfev_discarded_operational_overhead"]
+        == payload["nfev_total"]
+    )
+    assert query["outer_information_measurement_savings_claimed"] is bool(
+        stats["old_old_metric_elements_avoided"] > 0
+    )
+
+    outer_summary = payload["formal_manifold_outer_information"]
+    assert outer_summary["mode"] == "active_reuse_v1"
+    assert outer_summary["authoritative_sr_trajectory_affected"] is True
+    assert outer_summary["measurement_savings_enabled"] is True
+    assert outer_summary["measurement_savings_claimed"] is True
+    assert "shadow_geometry_policy" not in outer_summary
+
+    current = json.loads(current_json.read_text(encoding="utf-8"))
+    runtime = current["adapt_vqe"]["formal_manifold_runtime_checkpoint"]
+    outer = runtime["outer_information_checkpoint"]
+    assert outer["checkpoint_sha256"]
+    assert outer["stage"] == "refit_prediction"
+    assert outer["pending"]["source_primitive_ids"]
+    assert set(outer["pending"]["source_primitive_ids"]).issubset(
+        set(outer["immutable_primitive_ids"])
+    )
+    restored_outer = OuterInformationSession.from_checkpoint_payload(outer)
+    assert restored_outer.checkpoint_payload()["checkpoint_sha256"] == outer[
+        "checkpoint_sha256"
+    ]
+    provenance = [
+        record
+        for state_role in ("committed", "pending")
+        for record in (outer.get(state_role) or {}).get("provenance", [])
+    ]
+    curvature_certificates = [
+        dict(record.get("certificate", {}))
+        for record in provenance
+        if record.get("certificate", {}).get("provenance_role") == "curvature"
+    ]
+    assert any(
+        certificate.get("candidate_cross_new_curvature_acquired") is True
+        and certificate.get("old_old_curvature_reacquired") is False
+        for certificate in curvature_certificates
+    )
+    assert any(
+        certificate.get("representation")
+        == "raw_curvature_projected_to_supported_quotient"
+        and certificate.get("raw_metric_null_compatibility", {}).get(
+            "raw_null_curvature_action_discarded"
+        )
+        is True
+        for certificate in curvature_certificates
+    )
+    warm = payload["history"][-1]["formal_manifold_warm_start"]
+    assert warm["active_reuse_mode"] is True
+    assert warm["shadow_mode"] is False
+    assert warm["branch_runtime"]["outer_information"]["checkpoint_sha256"]
+
+
+def test_candidate_probe_null_innovation_reanchors_and_rescores_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _forbid_non_sr_or_legacy_fm_paths(monkeypatch)
+    kwargs, _current_json = _active_kwargs(tmp_path, admissions=2)
+
+    original_evaluate = (
+        adapt_pipeline.evaluate_historical_singleton_coordinate_models
+    )
+    calls: list[dict[str, Any]] = []
+    injected = False
+
+    def _inject_one_candidate_probe_innovation(
+        *args: Any, **call_kwargs: Any
+    ) -> Any:
+        nonlocal injected
+        evaluation = original_evaluate(*args, **call_kwargs)
+        prior = call_kwargs.get("old_old_geometry_prior")
+        row = {
+            "prior_supplied": prior is not None,
+            "old_old_reacquired": bool(
+                evaluation.telemetry.get(
+                    "old_old_geometry_reacquired", prior is None
+                )
+            ),
+        }
+        calls.append(row)
+        if prior is not None and not injected:
+            injected = True
+            telemetry = dict(evaluation.telemetry)
+            telemetry["infeasible_reason_counts"] = {
+                "raw_metric_null_gradient_incompatible": 1
+            }
+            return type(evaluation)(
+                records=evaluation.records,
+                telemetry=telemetry,
+                workspace=evaluation.workspace,
+            )
+        return evaluation
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "evaluate_historical_singleton_coordinate_models",
+        _inject_one_candidate_probe_innovation,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
+
+    assert payload["success"] is True
+    assert injected is True
+    assert any(row["prior_supplied"] for row in calls)
+    assert any(
+        not row["prior_supplied"]
+        for row in calls[1:]
+    )
+    query = payload["formal_manifold_query_closure"]
+    stats = query["outer_information_active_reuse"]
+    assert stats["candidate_null_support_reanchors"] == 1
+    assert stats["full_metric_reanchors"] >= 2
+    assert stats["exact_anchor_support_suspensions"] == 0
+    assert payload["formal_manifold_query_accounting_complete"] is True
+    assert all(
+        step["selected_feature_rows"][0]["formal_manifold_growth_bridge"][
+            "joint_response_selector_invoked"
+        ]
+        is False
+        for step in payload["history"]
+    )

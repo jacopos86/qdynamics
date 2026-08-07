@@ -1,0 +1,25 @@
+{
+  "schema": "paper_i_ra_adapt_global_singleton_phase3_qiskit_mixed_horizon_activation_request_v1",
+  "package_id": "paper_i_ra_adapt_global_singleton_phase3_qiskit_mixed_horizon_20260806_v1_chtc",
+  "campaign_id": "paper_i_ra_adapt_global_singleton_phase3_qiskit_mixed_horizon_v1",
+  "bundle_id": "ra_adapt_global_singleton_phase3_qiskit_mixed_horizon_v1",
+  "package_manifest_sha256": "5d1288b81a5973f9e18366350571541fafe283c56bf571ab21ed34d364bd6ba3",
+  "requested_execution_ids": [
+    "phase3_qiskit_candidate__weak_weak__nph3__ra_global_singleton_plateau_commutation",
+    "phase3_qiskit_candidate__intermediate_weak__nph3__ra_global_singleton_plateau_commutation",
+    "phase3_qiskit_candidate__strong_weak_u8__nph3__ra_global_singleton_plateau_commutation",
+    "phase3_qiskit_candidate__weak_strong__nph7__ra_global_singleton_plateau_commutation",
+    "phase3_qiskit_candidate__intermediate_strong__nph7__ra_global_singleton_plateau_commutation",
+    "phase3_qiskit_candidate__strong_strong_u8__nph7__ra_global_singleton_plateau_commutation"
+  ],
+  "scope": "prepare_six_cell_chtc_execution_and_submission_v1",
+  "authorization_kind": "explicit_user_execution_and_submission_authority",
+  "explicit_user_authority_recorded": true,
+  "authorization_source": "explicit_user_instruction_2026-08-06_you_should_have_launched_them",
+  "authorized_utc": "2026-08-07T01:19:14Z",
+  "execution_authorized": true,
+  "submission_authorized": true,
+  "paper_evidence_adoption_authorized": false,
+  "submitted": false,
+  "sha256": "694322e77a97fdfa7c6ce2e9ff5d0ede62c38e7062705a630181eeb188b6e643"
+}

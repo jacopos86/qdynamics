@@ -1,0 +1,25 @@
+{
+  "batch_name": "paper-i-historical-mean-global-singleton-page7-projection-20260802-v3",
+  "cluster_id": 9401094,
+  "direct_job_count": 1,
+  "execution_authorized": true,
+  "package_manifest_canonical_sha256": "1efa78806aeb4b71d7542424989b3ea67e8dd33bd38638fd3f1a614d158d6d3f",
+  "package_manifest_file_sha256": "92d0ca3c85916fdd92387af41ae18297e7737b751b2a4b65957196650d19b950",
+  "paper_evidence_adopted": false,
+  "resources": {
+    "request_cpus": 4,
+    "request_disk_mb": 20480,
+    "request_memory_mb": 24576
+  },
+  "schema": "paper_i_historical_mean_global_singleton_page7_projection_submission_receipt_v3",
+  "sha256": "75b03ed25ccc15040159b30eaa22bad842f29cff97173d5c8acbfffe597f59f3",
+  "source_archive": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc_runtime/fetched/historical_mean_global_singleton_v3_nph3_r50__weak_weak__nph3__ra_global_singleton_plateau__cluster_9400779__proc_0.tar.gz",
+    "sha256": "251d238d51363262e20a052ca7d5445abf0bb8e83ef1015674320336c881d204",
+    "size_bytes": 2113869425
+  },
+  "status": "submitted",
+  "submission_authorized": true,
+  "submitted_utc": "2026-08-03T00:05:00Z",
+  "submit_descriptor_sha256": "c92c327e749cedc3c0516b70fb5dea6ac432877015503610e3cde100202ff5d5"
+}

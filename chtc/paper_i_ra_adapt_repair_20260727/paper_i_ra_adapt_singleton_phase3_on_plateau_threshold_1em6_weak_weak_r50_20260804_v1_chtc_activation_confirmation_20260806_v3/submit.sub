@@ -1,0 +1,34 @@
+# Paper-I Phase-III-on-plateau RA r50 weak-weak tau=1e-6 confirmation.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_activation_confirmation_20260806_v3/execute_authorized_job.sh chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_activation_confirmation_20260806_v3 chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_sweep_weak_weak_r50_20260804_v1_local/threshold_1em6 $(job_path) $(job_file_sha256) $(authorization_path) $(authorization_file_sha256) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_sweep_weak_weak_r50_20260804_v1_local/threshold_1em6/source/source_locked.tar.gz e9e5a66e70284745f34a37b82ad739122ca1b246926181da2bbc46ffc7b662de chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_sweep_weak_weak_r50_20260804_v1_local/threshold_1em6, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_activation_confirmation_20260806_v3, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz=chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_runtime_confirmation_20260806_v3/fetched/$(execution_id)__cluster_$(ClusterId)__proc_$(ProcId).tar.gz"
+
+request_cpus = $(cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-ra-phase3-on-plateau-threshold-1em6-weak-weak-r50-confirmation-20260806-v3"
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_runtime_confirmation_20260806_v3/logs/$(Cluster).$(Process)__$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_runtime_confirmation_20260806_v3/logs/$(Cluster).$(Process)__$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_runtime_confirmation_20260806_v3/logs/$(Cluster).$(Process)__$(execution_id).err
+
+queue execution_id,job_path,job_file_sha256,authorization_path,authorization_file_sha256,cpus,memory_mb,disk_mb,max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_singleton_phase3_on_plateau_threshold_1em6_weak_weak_r50_20260804_v1_chtc_activation_confirmation_20260806_v3/queue.tsv

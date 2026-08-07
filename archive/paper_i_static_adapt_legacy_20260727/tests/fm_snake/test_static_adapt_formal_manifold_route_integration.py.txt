@@ -1,0 +1,619 @@
+from __future__ import annotations
+
+import hashlib
+import json
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+import pytest
+from pipelines.static_adapt.formal_manifold_warm_start import FORMAL_MANIFOLD_ROUTE
+from pipelines.static_adapt.estimator_call_ledger import EstimatorCallLedger
+from pipelines.static_adapt.resume_scaffold import load_static_resume_source
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_hamiltonian
+
+
+def test_formal_manifold_route_runs_two_accepted_depths_and_checkpoints(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    def _forbidden_joint_response(*args, **kwargs):
+        raise AssertionError("FM-SNAKE invoked Joint-Response selection logic")
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "RouteAJointResponseEvaluator",
+        _forbidden_joint_response,
+    )
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "run_route_a_child_funnel",
+        _forbidden_joint_response,
+    )
+    h_poly = build_hubbard_hamiltonian(
+        dims=2,
+        t=1.0,
+        U=4.0,
+        v=0.0,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=True,
+    )
+    current_json = tmp_path / "formal_manifold_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=2,
+        eps_grad=1.0e-8,
+        eps_energy=1.0e-12,
+        maxiter=8,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase2_enable_batching=False,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=True,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    assert payload["success"] is True
+    assert payload["adapt_reoptimization_route"] == FORMAL_MANIFOLD_ROUTE
+    estimator_accounting = payload["estimator_call_accounting"]
+    assert estimator_accounting["complete"] is True
+    assert estimator_accounting["exact_blockers"] == []
+    assert estimator_accounting["all_branch_search_work"]["N_grad"] > 0
+    assert estimator_accounting["all_branch_search_work"]["N_metric"] > 0
+    bridge_summary = estimator_accounting[
+        "formal_manifold_shared_estimator_bridge"
+    ]
+    assert bridge_summary["route_nonenergy_record_count"] > 0
+    assert bridge_summary["scalar_occurrences_reconciled"] is True
+    assert bridge_summary["expected_scalar_occurrence_count"] == (
+        bridge_summary["observed_scalar_occurrence_count"]
+    )
+    assert payload["exact_cross_route_s_alg_available"] is True
+    shared_occurrences = estimator_accounting[
+        "executed_occurrence_accounting"
+    ]
+    hamiltonian_occurrences = shared_occurrences[
+        "all_hamiltonian_execution"
+    ]
+    formal_occurrence_count = sum(
+        int(count)
+        for scope, count in hamiltonian_occurrences[
+            "occurrence_count_by_consumer_scope"
+        ].items()
+        if str(scope).startswith("energy:formal_manifold_")
+        or str(scope) == "energy:initial_state"
+    )
+    assert formal_occurrence_count == payload["nfev_total"]
+    assert hamiltonian_occurrences[
+        "same_identity_reuse_occurrence_count"
+    ] >= 1
+    assert all(
+        row["formal_manifold_warm_start"]["proposal_query_work"][
+            "shared_estimator_primitive_observer_enabled"
+        ]
+        is True
+        and row["formal_manifold_warm_start"]["proposal_query_work"][
+            "shared_estimator_primitive_observer_records_reconciled"
+        ]
+        is True
+        for row in payload["history"]
+    )
+    assert [
+        row["formal_manifold_warm_start"]["transition"]["kind"]
+        for row in payload["history"]
+    ] == [
+        "query_closed_initial_growth_anchor",
+        "exact_zero_coordinate_growth",
+    ]
+    assert all(
+        row["formal_manifold_warm_start"]["candidate_scoring_unchanged"] is False
+        for row in payload["history"]
+    )
+    assert all(
+        row["formal_manifold_warm_start"]["initial_evaluation"]["source"]
+        == "query_closed_same_process_growth_handle"
+        and row["formal_manifold_warm_start"]["initial_evaluation"][
+            "backend_evaluation_invoked"
+        ]
+        is False
+        and row["formal_manifold_warm_start"]["initial_evaluation"][
+            "full_geometry_query_charge"
+        ]
+        == 0
+        for row in payload["history"]
+    )
+    assert all(
+        row["formal_manifold_warm_start"]["transition"][
+            "query_closure_growth_receipt"
+        ]["same_process_live_geometry_reused"]
+        is True
+        and row["formal_manifold_warm_start"]["transition"][
+            "query_closure_growth_receipt"
+        ]["incremental_query_charge"]
+        == 0
+        for row in payload["history"]
+    )
+    query_closure = payload["formal_manifold_query_closure"]
+    assert query_closure["joint_response_selector_invoked"] is False
+    winning_query = query_closure["winning_branch"]
+    assert winning_query["N_grad"] > 0
+    assert winning_query["N_Q"] > 0
+    assert winning_query["phase1_to_phase2_reuse_count"] > 0
+    assert winning_query["phase2_to_batch_reuse_count"] > 0
+    assert winning_query["batch_to_growth_reuse_count"] > 0
+    assert winning_query["outer_anchor_geometry_reuse_count"] > 0
+    assert winning_query["outer_anchor_energy_reuse_count"] == 1
+    assert winning_query["outer_anchor_to_growth_reuse_count"] > 0
+    assert payload["formal_manifold_warm_start"]["commit_count"] == 2
+    assert payload["formal_manifold_warm_start"]["state"]["rank"] == 2
+    first_outer_anchor = payload["history"][0][
+        "formal_manifold_warm_start"
+    ]["outer_exact_anchor"]
+    assert first_outer_anchor["status"] == "available"
+    second_formal = payload["history"][1]["formal_manifold_warm_start"]
+    assert second_formal["initial_evaluation"][
+        "precharged_energy_primitive_id"
+    ] == first_outer_anchor["energy_primitive_id"]
+    assert second_formal["query_closure_growth_receipt"][
+        "G_AA_provenance"
+    ] == "committed_exact_terminal_metric_reuse_v1"
+    second_transition = second_formal["transition"]
+    assert second_transition["curvature_action"] == (
+        "old_physical_block_plus_isotropic_residual_prior"
+    )
+    assert second_transition["supported_frame_transport_valid"] is True
+    assert second_transition["whitening_before"] != second_transition[
+        "whitening_after"
+    ]
+    assert second_formal["qbroyd_age"] == 0
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    estimator_pointer = checkpoint["adapt_vqe"][
+        "estimator_call_ledger_checkpoint"
+    ]
+    assert estimator_pointer["status"] == "complete"
+    estimator_sidecar = current_json.with_name(estimator_pointer["path"])
+    assert hashlib.sha256(estimator_sidecar.read_bytes()).hexdigest() == (
+        estimator_pointer["sha256"]
+    )
+    estimator_checkpoint_payload = json.loads(
+        estimator_sidecar.read_text(encoding="utf-8")
+    )
+    restored_checkpoint_ledger = EstimatorCallLedger.from_payload(
+        estimator_checkpoint_payload["ledger"]
+    )
+    assert restored_checkpoint_ledger.to_payload()["ledger_fingerprint"] == (
+        estimator_pointer["ledger_fingerprint"]
+    )
+    assert checkpoint["settings"]["adapt_reoptimization_route"] == FORMAL_MANIFOLD_ROUTE
+    assert checkpoint["adapt_vqe"]["formal_manifold_resume_policy"] == (
+        "validated_whitening_curvature_restore_v1"
+    )
+    warm_checkpoint = checkpoint["adapt_vqe"][
+        "formal_manifold_warm_state_checkpoint"
+    ]
+    assert warm_checkpoint["whitening_id"] == warm_checkpoint[
+        "curvature_whitening_id"
+    ]
+    assert warm_checkpoint["whitening_id"] == warm_checkpoint[
+        "qbroyd_whitening_id"
+    ]
+    assert warm_checkpoint["frame_id"] == warm_checkpoint[
+        "curvature_frame_id"
+    ]
+    assert warm_checkpoint["logical_range_id"] == warm_checkpoint[
+        "qbroyd_logical_range_id"
+    ]
+    assert warm_checkpoint["no_statevector_serialized"] is True
+    assert checkpoint["adapt_vqe"]["formal_manifold_warm_start"]["state"][
+        "active"
+    ] is True
+    query_checkpoint = checkpoint["adapt_vqe"][
+        "formal_manifold_query_closure_checkpoint"
+    ]
+    assert query_checkpoint["schema"] == (
+        "formal_manifold_query_closure_checkpoint_v1"
+    )
+    assert query_checkpoint["winning_branch_ledger"]["kind_by_id"]
+    winning_ledger = query_checkpoint["winning_branch_ledger"]
+    assert set(
+        winning_ledger["ids_by_phase"]["outer_anchor_geometry_reuse"]
+    ) == set(first_outer_anchor["geometry_source_primitive_ids"])
+    assert winning_ledger["ids_by_phase"]["outer_anchor_energy_reuse"] == [
+        first_outer_anchor["energy_primitive_id"]
+    ]
+    assert set(first_outer_anchor["source_primitive_ids"]).issubset(
+        set(winning_ledger["reused_ids"])
+    )
+    assert warm_checkpoint["outer_exact_anchor"][
+        "physical_state_fingerprint"
+    ] == payload["formal_manifold_warm_start"]["state"][
+        "outer_exact_anchor"
+    ]["physical_state_fingerprint"]
+
+    resume_source = load_static_resume_source(current_json)
+    resumed, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-8,
+        eps_energy=1.0e-12,
+        maxiter=5,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase2_enable_batching=False,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+        adapt_resume_scaffold_json=current_json,
+        adapt_resume_source=resume_source,
+        adapt_resume_import_summary=resume_source.import_summary,
+        psi_ref_override=resume_source.runtime_input.psi_ref,
+        psi_ref_source="adapt_resume_scaffold_json",
+        psi_ref_handoff_state_kind="reference_state",
+        adapt_ref_base_depth=int(
+            resume_source.import_summary.get("source_ansatz_depth", 0)
+        ),
+        adapt_estimator_call_ledger_enabled=True,
+    )
+    assert resumed["resume_boundary_refit"]["executed"] is True
+    assert resumed["resume_boundary_refit"]["adapt_reoptimization_route"] == (
+        FORMAL_MANIFOLD_ROUTE
+    )
+    assert resumed["resume_boundary_refit"]["formal_manifold_warm_start"][
+        "route"
+    ] == FORMAL_MANIFOLD_ROUTE
+    resume_formal = resumed["resume_boundary_refit"][
+        "formal_manifold_warm_start"
+    ]
+    pool_match = resumed["adapt_resume_import"]["validation"]["pool_match"]
+    assert pool_match[
+        "pure_formal_manifold_checkpoint_generator_fingerprints_checked"
+    ] is True
+    rebind_count = pool_match["commuting_component_permutation_rebind_count"]
+    assert rebind_count in {0, 1}
+    rebind_records = pool_match[
+        "commuting_component_permutation_rebind_records"
+    ]
+    assert len(rebind_records) == rebind_count
+    if rebind_records:
+        rebind = rebind_records[0]
+        assert rebind["serialized_generator_fingerprint"] != rebind[
+            "checkpoint_generator_fingerprint"
+        ]
+        assert rebind["checkpoint_generator_fingerprint"] == rebind[
+            "rebound_pool_generator_fingerprint"
+        ]
+        assert rebind["runtime_theta_scale"] == 1.0
+    assert resume_formal["checkpoint_restore_policy"] == (
+        "validated_whitening_curvature_restore_v1"
+    )
+    assert resume_formal["checkpoint_restore_nfev"] == 1
+    assert resume_formal["outer_exact_anchor"]["status"] == "available"
+    assert resume_formal["transition"]["whitening_before"] == resume_formal[
+        "transition"
+    ]["whitening_after"]
+    assert resume_formal["adapter"]["coordinate_registry"] == warm_checkpoint[
+        "registry"
+    ]
+    assert resume_formal["adapter"]["coordinate_registry_override"] == (
+        warm_checkpoint["coordinate_registry_override"]
+    )
+    assert resumed["history"][0]["formal_manifold_warm_start"][
+        "initial_evaluation"
+    ]["precharged_energy_primitive_id"] == resume_formal[
+        "outer_exact_anchor"
+    ]["energy_primitive_id"]
+    source_query_ids = set(
+        query_checkpoint["winning_branch_ledger"]["kind_by_id"]
+    )
+    resumed_query_checkpoint = resumed[
+        "formal_manifold_query_closure_checkpoint"
+    ]
+    resumed_query_ids = set(
+        resumed_query_checkpoint["winning_branch_ledger"]["kind_by_id"]
+    )
+    assert source_query_ids.issubset(resumed_query_ids)
+    resumed_query = resumed["formal_manifold_query_closure"]
+    resumed_occurrence_ids = resumed_query[
+        "energy_evaluation_occurrence_ids"
+    ]
+    assert resumed["formal_manifold_query_accounting_complete"] is True
+    assert len(resumed_occurrence_ids) == int(resumed["nfev_total"])
+    assert set(resumed_occurrence_ids) == set(
+        resumed_query["all_executed"]["primitive_ids_by_category"]["N_E"]
+    )
+    assert int(resumed["nfev_winning_lineage"]) + int(
+        resumed["nfev_discarded_operational_overhead"]
+    ) == int(resumed["nfev_total"])
+    resume_proposal_ids = resume_formal["proposal_query_work"][
+        "energy_evaluation_occurrence_ids"
+    ]
+    assert len(resume_proposal_ids) == int(
+        resumed["resume_boundary_refit"]["nfev"]
+    ) - int(resume_formal["checkpoint_restore_nfev"])
+    assert set(resume_proposal_ids).issubset(set(resumed_occurrence_ids))
+    resumed_estimator_accounting = resumed["estimator_call_accounting"]
+    assert resumed_estimator_accounting["accounting_scope"] == (
+        "cumulative_rounds_1_to_final"
+    )
+    assert resumed_estimator_accounting["source_rounds_accounting_status"] == (
+        "restored_from_authenticated_completed_round_ledger"
+    )
+    assert resumed_estimator_accounting[
+        "source_estimator_call_ledger_provenance"
+    ]["restored_prefix_ledger_fingerprint"] == estimator_pointer[
+        "ledger_fingerprint"
+    ]
+
+
+@pytest.mark.parametrize("prune_mode", ["live", "final"])
+def test_formal_manifold_route_owns_prune_refits_and_resets_after_acceptance(
+    prune_mode,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    h_poly = build_hubbard_hamiltonian(
+        dims=2,
+        t=1.0,
+        U=4.0,
+        v=0.0,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=True,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=2,
+        eps_grad=1.0e-8,
+        eps_energy=1.0e-12,
+        maxiter=4,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase2_enable_batching=False,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+        phase1_prune_enabled=True,
+        phase1_prune_mode=prune_mode,
+        phase1_prune_checkpoint_period=1,
+        phase1_prune_maturity_threshold=0.0,
+        phase1_prune_snr_threshold=1.0e12,
+        phase1_prune_fraction=1.0,
+        phase1_prune_min_candidates=1,
+        phase1_prune_max_candidates=2,
+        phase1_prune_max_regression=1.0e6,
+        phase1_prune_retained_gain_ratio=0.0,
+        phase1_prune_protect_steps=0,
+        phase1_prune_stale_age=0,
+        phase1_prune_stagnation_threshold=0.0,
+        phase1_prune_small_theta_abs=10.0,
+        phase1_prune_small_theta_relative=0.0,
+    )
+
+    if prune_mode == "live":
+        prune = next(
+            row["post_admission_prune"]
+            for row in payload["history"]
+            if row["post_admission_prune"].get("formal_manifold_prune_trials")
+        )
+        expected_reset = "accepted_nonzero_prune_requires_exact_reanchor"
+    else:
+        prune = payload["prune_summary"]
+        expected_reset = "accepted_terminal_nonzero_prune_requires_exact_reanchor"
+    assert prune["accepted_count"] == 1
+    assert prune["formal_manifold_prune_trials"]
+    assert all(
+        trial["route"] == FORMAL_MANIFOLD_ROUTE
+        and trial["state_action"] == "speculative_proposal_rolled_back"
+        and int(trial["nfev"]) >= 1
+        and int(trial["nit"]) >= 0
+        for trial in prune["formal_manifold_prune_trials"]
+    )
+    trial_nfev = sum(
+        int(trial["nfev"])
+        for trial in prune["formal_manifold_prune_trials"]
+    )
+    assert prune["nfev_formal_manifold_prune_trials"] == trial_nfev
+    assert int(payload["nfev_total"]) >= trial_nfev
+    assert prune["nfev_formal_manifold_prune_reanchor"] == 1
+    reanchor = prune["formal_manifold_post_prune_reanchor"]
+    assert reanchor["state_action"] == "reset_then_exact_reanchor_committed"
+    assert reanchor["curvature_action"] == "isotropic_reset_on_pruned_frame"
+    assert reanchor["qbroyd_action"] == "reset_on_pruned_frame"
+    assert reanchor["query_receipt"]["primitive_ids_requested"]
+    assert payload["formal_manifold_warm_start"]["state"]["active"] is True
+    assert payload["formal_manifold_warm_start"]["last_reset_reason"] == expected_reset
+
+
+def test_formal_manifold_route_rejects_nonzero_finite_angle_growth_preflight(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    h_poly = build_hubbard_hamiltonian(
+        dims=2,
+        t=1.0,
+        U=4.0,
+        v=0.0,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=True,
+    )
+
+    with pytest.raises(ValueError, match="finite-angle fallback must be disabled"):
+        adapt_pipeline._run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hubbard",
+            adapt_pool="uccsd",
+            t=1.0,
+            u=4.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=0.0,
+            g_ep=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1.0e-8,
+            eps_energy=1.0e-12,
+            maxiter=2,
+            seed=7,
+            allow_repeats=False,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1.0e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="full",
+            adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        )
+
+
+def test_formal_manifold_benchmark_first_hit_precedes_prune_and_terminal_queries(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """The first accepted target hit is the exact scientific stopping boundary."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    current_json = tmp_path / "formal_manifold_first_hit_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=build_hubbard_hamiltonian(
+            dims=2,
+            t=1.0,
+            U=4.0,
+            v=0.0,
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=True,
+        ),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=3,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+        phase1_prune_checkpoint_period=1,
+        phase1_prune_maturity_threshold=0.0,
+        phase1_prune_snr_threshold=1.0e12,
+        phase1_prune_fraction=1.0,
+        phase1_prune_min_candidates=1,
+        phase1_prune_max_candidates=1,
+        phase1_prune_max_regression=1.0e6,
+        phase1_prune_retained_gain_ratio=0.0,
+        phase1_prune_protect_steps=0,
+        phase1_prune_stale_age=0,
+        phase1_prune_stagnation_threshold=0.0,
+        phase1_prune_small_theta_abs=10.0,
+        phase1_prune_small_theta_relative=0.0,
+        phase2_enable_batching=False,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=True,
+        benchmark_target_abs_delta_e=1.0e6,
+        benchmark_target_reference_energy=0.0,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    assert payload["stop_reason"] == "benchmark_abs_delta_e_target"
+    assert len(payload["history"]) == 1
+    first_hit = payload["history"][0]
+    assert first_hit["benchmark_target_abs_delta_current"] == pytest.approx(
+        abs(float(first_hit["energy_after_opt"]))
+    )
+    assert first_hit["benchmark_target_abs_delta_e"] == pytest.approx(1.0e6)
+    assert first_hit["benchmark_target_reference_energy"] == pytest.approx(0.0)
+
+    live_prune = first_hit["post_admission_prune"]
+    assert live_prune["executed"] is False
+    assert live_prune["permission_open"] is False
+    assert live_prune["permission_reason"] == "benchmark_target_hit_pre_prune"
+    assert int(live_prune["accepted_count"]) == 0
+
+    assert payload["final_full_refit"]["requested"] is True
+    assert payload["final_full_refit"]["executed"] is False
+    terminal_prune = payload["prune_summary"]
+    assert terminal_prune["terminal_pass_skipped_reason"] == (
+        "benchmark_abs_delta_e_target"
+    )
+    assert payload["exact_energy_from_final_state_source"] == (
+        "accepted_target_hit_exact_energy_reuse"
+    )
+    final_scope_counts = payload["estimator_call_accounting"][
+        "executed_occurrence_accounting"
+    ]["all_hamiltonian_execution"]["occurrence_count_by_consumer_scope"]
+    assert int(final_scope_counts.get("final_state_verification", 0)) == 0

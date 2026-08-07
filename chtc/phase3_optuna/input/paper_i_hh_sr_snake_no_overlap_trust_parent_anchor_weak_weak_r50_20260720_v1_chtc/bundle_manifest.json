@@ -1,0 +1,16 @@
+{
+  "batch_name": "paper-i-hh-sr-no-overlap-trust-parent-anchor-ww-r50-20260720-v1",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_parent_anchor_weak_weak_r50_20260720_v1_chtc",
+  "candidate_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "candidate_route_profile": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_v1",
+  "fanout_authorized": false,
+  "job_count": 1,
+  "parent_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "parent_route_profile": "supported_projected_generalized_adaptive_trust_full_response_symmetric_cost_no_prune_v1",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "schema": "paper_i_sr_no_overlap_trust_parent_anchor_bundle_v1",
+  "source_archive_manifest_sha256": "8050e9c0eb46d2eceb4377f4c556bb371cab3971ac4ecb60c948f302167b86ca",
+  "source_archive_sha256": "9f48b7ed5bd451090b93314d000bc23e80d937b629779d43dc5574cc9dc6635d",
+  "source_revision_manifest_sha256": "423c5ca8a27e9f4f6db0dbe45c0e09e6e6d0409863c4928db164f3c9ff33eecb",
+  "submission_performed": false
+}

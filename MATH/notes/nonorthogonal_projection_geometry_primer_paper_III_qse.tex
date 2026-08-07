@@ -1,0 +1,406 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.3em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+\newcommand{\R}{\mathbb R}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\nov}{\mathcal N}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+
+\title{Paper-III QSE Projection Geometry Primer\\[-1mm]
+\large Same Gram/Schur machinery, written only in QSE notation}
+\author{Local pedagogical note}
+\date{May 17, 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note rewrites the nonorthogonal projection primer entirely in Paper-III QSE notation. The recurring object is a selected excitation basis \(\Phi_{\mathcal A_\ell}\), a candidate excitation vector \(\phi_r\), the QSE overlap matrix \(S_\ell\), and the candidate overlap vector \(s_r\). QSE novelty is the quotient residual
+\[
+F_r-s_r^\top S_{\ell,\tau}^+s_r,
+\]
+while Phase-III spectral scoring compares the residualized candidate with the outside-span Ritz residual of a target root.
+\end{abstract}
+
+\section{The QSE projection question}
+
+\begin{intuitionbox}
+The selected QSE basis already spans a nonorthogonal excitation subspace. A candidate excitation record is useful when its vector \(\phi_r\) has a component that survives projection against the selected basis and when that surviving component helps the target Ritz roots.
+\end{intuitionbox}
+
+\begin{jargonbox}
+Paper III is Rayleigh--Ritz/Galerkin projection in a nonorthogonal excitation basis. The matrix \(S_\ell\) is the metric of the selected excitation subspace, \(M_\ell\) is the Hamiltonian projected into that subspace, and \(S_\ell^{-1}\)-type solves convert overlap data into basis coefficients. Candidate selection uses the same quotient residual:
+\[
+\|\bar\phi_r\|^2=F_r-s_r^\top S_{\ell,\tau}^+s_r.
+\]
+\end{jargonbox}
+
+At QSE construction step \(\ell\), let
+\begin{equation}
+\Phi_{\mathcal A_\ell}=[\phi_a]_{a\in\mathcal A_\ell},
+\qquad
+\phi_r=Q_{\mathfrak s,0}\Omega_r\ket{\psi_0}.
+\label{eq:p3_basis_candidate}
+\end{equation}
+The selected basis explains \(\phi_r\) by choosing coefficients \(\beta\):
+\begin{equation}
+\Phi_{\mathcal A_\ell}\beta=\sum_{a\in\mathcal A_\ell}\beta_a\phi_a\approx\phi_r.
+\label{eq:p3_synthesis}
+\end{equation}
+Choose \(\beta\) by least squares:
+\begin{equation}
+\beta_r^\star\in\arg\min_\beta
+\|\phi_r-\Phi_{\mathcal A_\ell}\beta\|^2.
+\label{eq:p3_ls}
+\end{equation}
+Expanding gives
+\begin{align}
+\|\phi_r-\Phi_{\mathcal A_\ell}\beta\|^2
+&=\langle\phi_r-\Phi_{\mathcal A_\ell}\beta,\,
+\phi_r-\Phi_{\mathcal A_\ell}\beta\rangle
+\notag\\
+&=F_r-2\beta^\top s_r+\beta^\top S_\ell\beta,
+\label{eq:p3_expand}\\
+(S_\ell)_{ab}&=\phi_a^\top\phi_b,
+\qquad
+(s_r)_a=\phi_a^\top\phi_r,
+\qquad
+F_r=\phi_r^\top\phi_r.
+\label{eq:p3_SsF}
+\end{align}
+The vector \(s_r\) records the candidate's overlaps against selected excitation vectors; it is analysis data. The solve through \(S_\ell\) converts those overlaps into coefficients in the nonorthogonal selected basis.
+Stationarity gives
+\begin{equation}
+S_\ell\beta_r^\star=s_r,
+\qquad
+\beta_r^\star=S_{\ell,\tau}^+s_r.
+\label{eq:p3_normal}
+\end{equation}
+The metric projector is
+\begin{equation}
+P_{\ell,\tau}=\Phi_{\mathcal A_\ell}S_{\ell,\tau}^+\Phi_{\mathcal A_\ell}^\top.
+\label{eq:p3_projector}
+\end{equation}
+The residualized candidate is
+\begin{equation}
+\bar\phi_r=(I-P_{\ell,\tau})\phi_r,
+\qquad
+\|\bar\phi_r\|^2=F_r-s_r^\top S_{\ell,\tau}^+s_r.
+\label{eq:p3_residualized_candidate}
+\end{equation}
+The normalized QSE novelty is
+\begin{equation}
+\boxed{
+\nov_{\rm QSE}(r;\ell)=1-\frac{s_r^\top S_{\ell,\tau}^+s_r}{F_r}.
+}
+\label{eq:p3_novelty}
+\end{equation}
+
+\section{Schur and quotient readings in QSE notation}
+
+Append the candidate vector to the selected excitation basis. The augmented overlap matrix is
+\begin{equation}
+\mathcal S_{\ell r}
+=
+\begin{pmatrix}
+\Phi_{\mathcal A_\ell}^\top\Phi_{\mathcal A_\ell}
+&\Phi_{\mathcal A_\ell}^\top\phi_r\\
+\phi_r^\top\Phi_{\mathcal A_\ell}
+&\phi_r^\top\phi_r
+\end{pmatrix}
+=
+\begin{pmatrix}
+S_\ell&s_r\\
+s_r^\top&F_r
+\end{pmatrix}.
+\label{eq:p3_augmented_overlap}
+\end{equation}
+When \(S_\ell\) is invertible, the candidate's Schur residual is
+\begin{equation}
+\mathcal S_{\ell r}/S_\ell
+=F_r-s_r^\top S_\ell^{-1}s_r.
+\label{eq:p3_schur_residual}
+\end{equation}
+With the supported inverse, the quotient-space version is
+\begin{equation}
+\begin{aligned}
+\phi_r\sim\phi_r'
+&\Longleftrightarrow
+\phi_r-\phi_r'\in\range(\Phi_{\mathcal A_\ell}),\\
+\|[\phi_r]\|^2
+&:=\min_\beta\|\phi_r-\Phi_{\mathcal A_\ell}\beta\|^2\\
+&=F_r-s_r^\top S_{\ell,\tau}^+s_r.
+\end{aligned}
+\label{eq:p3_quotient_residual}
+\end{equation}
+Thus QSE novelty asks how much of the candidate excitation vector remains after selected basis vectors have had their best coefficient-space explanation.
+
+\section{Supported QSE metric}
+
+Diagonalize the selected-basis overlap matrix:
+\begin{equation}
+S_\ell=V_\ell\diag(\sigma_{\ell,1},\ldots,\sigma_{\ell,m})V_\ell^\top.
+\label{eq:p3_eigs}
+\end{equation}
+The columns \(v_{\ell,a}\) are obtained from
+\begin{equation}
+S_\ell v_{\ell,a}=\sigma_{\ell,a}v_{\ell,a},
+\qquad \|v_{\ell,a}\|=1.
+\label{eq:p3_eigenproblem}
+\end{equation}
+Each \(v_{\ell,a}\) is a coefficient recipe for a selected-basis mixture:
+\begin{equation}
+\Phi_{\mathcal A_\ell}v_{\ell,a}=\sum_{b\in\mathcal A_\ell}(v_{\ell,a})_b\phi_b.
+\label{eq:p3_mode_synthesis}
+\end{equation}
+Its physical norm is
+\begin{equation}
+\|\Phi_{\mathcal A_\ell}v_{\ell,a}\|^2
+=v_{\ell,a}^\top S_\ell v_{\ell,a}=\sigma_{\ell,a}.
+\label{eq:p3_mode_length}
+\end{equation}
+The supported inverse is
+\begin{equation}
+S_{\ell,\tau}^+
+=V_\ell\diag\left(\frac{\mathbf 1[\sigma_{\ell,a}\ge\tau\sigma_{\ell,\max}]}{\sigma_{\ell,a}}\right)V_\ell^\top.
+\label{eq:p3_supported_inverse}
+\end{equation}
+
+\section{QSE roots are coefficient mixtures}
+
+Define the projected Hamiltonian and overlap matrices:
+\begin{equation}
+M_\ell=\Phi_{\mathcal A_\ell}^\top H\Phi_{\mathcal A_\ell},
+\qquad
+S_\ell=\Phi_{\mathcal A_\ell}^\top\Phi_{\mathcal A_\ell}.
+\label{eq:p3_MS}
+\end{equation}
+The QSE root \(\nu\) is synthesized as
+\begin{equation}
+\Psi_\nu^{(\ell)}=\Phi_{\mathcal A_\ell}c^{(\nu)}
+=\sum_{a\in\mathcal A_\ell}c_a^{(\nu)}\phi_a.
+\label{eq:p3_root}
+\end{equation}
+The coefficients solve
+\begin{equation}
+\boxed{M_\ell c^{(\nu)}=\epsilon_\nu S_\ell c^{(\nu)}.}
+\label{eq:p3_gep}
+\end{equation}
+The vector \(c^{(\nu)}\) is the coefficient recipe for the approximate root inside the selected nonorthogonal basis.
+
+The generalized eigenproblem comes from stationarity of the Rayleigh quotient
+\begin{equation}
+\epsilon(c)=\frac{c^\top M_\ell c}{c^\top S_\ell c}.
+\label{eq:p3_rayleigh}
+\end{equation}
+Differentiating under the normalization \(c^\top S_\ell c=1\) gives
+\begin{equation}
+\delta\left(c^\top M_\ell c-\epsilon\,c^\top S_\ell c\right)=0
+\quad\Longrightarrow\quad
+M_\ell c=\epsilon S_\ell c.
+\label{eq:p3_gep_derivation}
+\end{equation}
+The metric \(S_\ell\) appears because the basis vectors are nonorthogonal; coefficient dot products must be measured with the overlap metric.
+
+\section{Outside-span residual}
+
+The full eigen-equation error for root \(\nu\) is
+\begin{equation}
+y_\nu^{(\ell)}=(H-\epsilon_\nu)\Psi_\nu^{(\ell)}.
+\label{eq:p3_y}
+\end{equation}
+Project it outside the selected QSE span:
+\begin{equation}
+R_\nu^{(\ell)}=(I-P_{\ell,\tau})y_\nu^{(\ell)}
+=(I-P_{\ell,\tau})(H-\epsilon_\nu)\Phi_{\mathcal A_\ell}c^{(\nu)}.
+\label{eq:p3_residual}
+\end{equation}
+This is the outside-span part of the eigen-equation error. If \(H\Psi_\nu^{(\ell)}\) stays inside the selected QSE span and equals \(\epsilon_\nu\Psi_\nu^{(\ell)}\) there, then this residual is small.
+Residual capture compares \(\bar\phi_r\) to \(R_\nu^{(\ell)}\):
+\begin{equation}
+C_\nu^{\rm res}(r;\ell)
+=
+\frac{|\bar\phi_r^\top R_\nu^{(\ell)}|^2}
+{(\bar\phi_r^\top\bar\phi_r+\lambda_S)((R_\nu^{(\ell)})^\top R_\nu^{(\ell)}+\eps_R)}.
+\label{eq:p3_res_capture}
+\end{equation}
+
+\section{Two-dimensional Ritz gain}
+
+Normalize the surviving candidate direction:
+\begin{equation}
+u_r=\frac{\bar\phi_r}{\sqrt{\bar\phi_r^\top\bar\phi_r+\lambda_S}}.
+\label{eq:p3_ur}
+\end{equation}
+Define the root-candidate coupling and shifted separation:
+\begin{equation}
+\eta_{\nu r}=u_r^\top(H-\epsilon_\nu)\Psi_\nu^{(\ell)},
+\qquad
+\delta_{\nu r}=u_r^\top(H-\epsilon_\nu)u_r.
+\label{eq:p3_eta_delta}
+\end{equation}
+\(\eta_{\nu r}\) is the mixing between the current Ritz root and the residualized candidate direction. \(\delta_{\nu r}\) is the candidate's shifted Rayleigh energy relative to the current root.
+The shifted Hamiltonian in \(\spanop\{\Psi_\nu^{(\ell)},u_r\}\) is
+\begin{equation}
+\begin{pmatrix}
+0&\eta_{\nu r}\\
+\eta_{\nu r}^*&\delta_{\nu r}
+\end{pmatrix}.
+\label{eq:p3_2x2_block}
+\end{equation}
+The lower-branch improvement is
+\begin{equation}
+\boxed{
+G_{\nu r}^{2\times2}
+=\frac{\sqrt{\delta_{\nu r}^2+4|\eta_{\nu r}|^2}-\delta_{\nu r}}{2}
+\approx\frac{|\eta_{\nu r}|^2}{\delta_{\nu r}}.
+}
+\label{eq:p3_2x2_gain}
+\end{equation}
+Thus Phase III asks whether the candidate direction that survived basis projection also couples to the target root strongly enough to improve its Ritz energy.
+
+\appendix
+\section{Tiny QSE metric example}
+
+Let two selected excitation vectors be nearly equal:
+\begin{equation}
+\phi_1=\begin{pmatrix}1\\0\end{pmatrix},
+\qquad
+\phi_2=\begin{pmatrix}1\\\delta\end{pmatrix},
+\qquad 0<\delta\ll1.
+\end{equation}
+Then
+\begin{equation}
+S=\begin{pmatrix}1&1\\1&1+\delta^2\end{pmatrix},
+\qquad
+v_-\approx\frac1{\sqrt2}\begin{pmatrix}1\\-1\end{pmatrix},
+\qquad
+\sigma_-\approx\frac{\delta^2}{2}.
+\end{equation}
+The difference recipe \(v_-\) synthesizes a tiny physical vector, so support truncation removes it before solving the GEP.
+
+\section{Example: ordinary eigenproblem before QSE}
+
+For
+\begin{equation}
+A=
+\begin{pmatrix}
+2&0\\0&5
+\end{pmatrix},
+\qquad
+Av=\lambda v,
+\qquad
+v=\begin{pmatrix}x\\y\end{pmatrix},
+\end{equation}
+the equations are
+\begin{equation}
+2x=\lambda x,\qquad 5y=\lambda y.
+\end{equation}
+Thus the two roots are
+\begin{equation}
+\lambda_0=2,\quad v_0=(1,0)^\top,
+\qquad
+\lambda_1=5,\quad v_1=(0,1)^\top.
+\end{equation}
+QSE replaces \(A\) by the matrix pencil \((M_\ell,S_\ell)\), and the eigenvector \(c^{(\nu)}\) is the coefficient recipe for the approximate quantum state \(\Psi_\nu^{(\ell)}\).
+
+\section{Example: two-vector generalized eigenproblem}
+
+Let
+\begin{equation}
+S=
+\begin{pmatrix}
+1&1/2\\
+1/2&1
+\end{pmatrix},
+\qquad
+M=
+\begin{pmatrix}
+1&0\\
+0&3
+\end{pmatrix}.
+\end{equation}
+The generalized eigenproblem is
+\begin{equation}
+Mc=\epsilon Sc.
+\end{equation}
+Equivalently,
+\begin{equation}
+\det(M-\epsilon S)=0.
+\end{equation}
+Here
+\begin{equation}
+\det
+\begin{pmatrix}
+1-\epsilon&-\epsilon/2\\
+-\epsilon/2&3-\epsilon
+\end{pmatrix}
+=(1-\epsilon)(3-\epsilon)-\frac{\epsilon^2}{4}=0.
+\end{equation}
+The overlap metric changes the root equation because coefficient vectors are measured in a nonorthogonal basis.
+
+\section{Example: residual capture}
+
+Let a normalized residualized candidate and outside-span residual satisfy
+\begin{equation}
+\bar\phi_r^\top\bar\phi_r=1,\qquad
+(R_\nu^{(\ell)})^\top R_\nu^{(\ell)}=4,\qquad
+\bar\phi_r^\top R_\nu^{(\ell)}=1.
+\end{equation}
+Ignoring small stabilizers, the residual-capture score is
+\begin{equation}
+C_\nu^{\rm res}(r;\ell)=\frac{1^2}{1\cdot4}=\frac14.
+\end{equation}
+The candidate captures one quarter of the residual direction's squared normalized alignment.
+
+\section{Example: two-dimensional Ritz gain}
+
+Let
+\begin{equation}
+\eta_{\nu r}=0.3,\qquad
+\delta_{\nu r}=3.
+\end{equation}
+Then
+\begin{equation}
+G_{\nu r}^{2\times2}
+=\frac{\sqrt{3^2+4(0.3)^2}-3}{2}
+=\frac{\sqrt{9.36}-3}{2}
+\approx 0.0297.
+\end{equation}
+The perturbative estimate gives
+\begin{equation}
+\frac{|\eta_{\nu r}|^2}{\delta_{\nu r}}
+=\frac{0.09}{3}=0.03.
+\end{equation}
+The candidate produces a lower-branch Ritz improvement of about \(3\times10^{-2}\) in the same energy units.
+
+\end{document}

@@ -1,0 +1,10 @@
+{
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v10_chtc",
+  "repair": "align the bundle-side worker validator SOURCE_LOCK_STATE constant with the already serialized accepted-coordinate successor manifests",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_batch3_bundle_contract_closure_repair_v1",
+  "scientific_settings_changed": false,
+  "scientific_source_archive_changed": false,
+  "source_archive_sha256": "0fa7c0cc8b4fa0d54656e8da46d2cca19938e9c25e579e1ece2d52fbfc9c6f7b",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v13_chtc"
+}

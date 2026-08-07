@@ -1,0 +1,224 @@
+{
+  "changed_field_count": 35,
+  "changes": [
+    {
+      "after": null,
+      "before": [
+        "execution.max_controller_rounds:15->30",
+        "selector.joint_linear_solve_policy:source_implicit->supported_metric_whitened_eigh_v1",
+        "selector.trust_region_update_policy:fixed->displacement_calibrated_unbounded_v2",
+        "selector.exhaustion_retry_policy:stop->expand_all_then_force_singleton_v1"
+      ],
+      "path": "approved_changes_vs_wave11_legal_fixed_policy_v1"
+    },
+    {
+      "after": false,
+      "before": null,
+      "path": "beam.legacy_lambda_affects_decisions"
+    },
+    {
+      "after": true,
+      "before": null,
+      "path": "execution.fresh_start"
+    },
+    {
+      "after": 50,
+      "before": 30,
+      "path": "execution.max_controller_rounds"
+    },
+    {
+      "after": [
+        "winning_lineage_S_alg",
+        "discarded_branch_search_work_diagnostic_separate"
+      ],
+      "before": [
+        "winning_lineage_S_alg",
+        "all_expanded_branch_query_work_diagnostic"
+      ],
+      "path": "execution.query_accounting"
+    },
+    {
+      "after": null,
+      "before": true,
+      "path": "fresh_start"
+    },
+    {
+      "after": 200,
+      "before": null,
+      "path": "optimizer.maxfev"
+    },
+    {
+      "after": 10,
+      "before": 25,
+      "path": "policy.batch_search_pool_size"
+    },
+    {
+      "after": 32,
+      "before": 128,
+      "path": "policy.child_phase1_cap"
+    },
+    {
+      "after": 25,
+      "before": 64,
+      "path": "policy.child_phase2_cap"
+    },
+    {
+      "after": 32,
+      "before": 64,
+      "path": "policy.macro_phase1_cap"
+    },
+    {
+      "after": 24,
+      "before": 48,
+      "path": "policy.macro_phase2_cap"
+    },
+    {
+      "after": null,
+      "before": "exact_projected_grouped_v1",
+      "path": "route.child_padding_policy"
+    },
+    {
+      "after": "exact_projected_grouped_v1",
+      "before": null,
+      "path": "route.child_padding_policy_by_sector.strong_holstein"
+    },
+    {
+      "after": "nph2_exact_projected_grouped_v1",
+      "before": null,
+      "path": "route.child_padding_policy_by_sector.weak_holstein_nph2"
+    },
+    {
+      "after": "absent",
+      "before": null,
+      "path": "route.duplicate_cooldown_control"
+    },
+    {
+      "after": null,
+      "before": "one_round_exact_record_pre_child_phase1_v1",
+      "path": "route.duplicate_cooldown_policy"
+    },
+    {
+      "after": "child_12_joint_response_v2",
+      "before": "child_12_joint_schur_v1",
+      "path": "route.funnel_mode"
+    },
+    {
+      "after": "absent",
+      "before": null,
+      "path": "route.structural_rollback_control"
+    },
+    {
+      "after": "paper_i_hh_jr_l10_rollback_free_r50_contract_v1",
+      "before": "paper_i_hh_wave11_l25_adaptive_whitened_r30_contract_v1",
+      "path": "schema"
+    },
+    {
+      "after": "fresh_transferable_jr_l10_policy_all_six_L2_hh_regimes",
+      "before": "fresh_wave11_L25_policy_all_six_L2_hh_regimes_adaptive_whitened_r30",
+      "path": "scope"
+    },
+    {
+      "after": "joint_subset_gate_v1",
+      "before": "raw_ranked_legacy_v1",
+      "path": "selector.batch_search_feasibility_policy"
+    },
+    {
+      "after": 10,
+      "before": 25,
+      "path": "selector.batch_search_pool_size"
+    },
+    {
+      "after": null,
+      "before": "full_active_ansatz_plus_batch_v1",
+      "path": "selector.coordinate_scope"
+    },
+    {
+      "after": null,
+      "before": "expand_all_then_force_singleton_v1",
+      "path": "selector.exhaustion_retry_policy"
+    },
+    {
+      "after": null,
+      "before": true,
+      "path": "selector.exhaustion_retry_telemetry_required"
+    },
+    {
+      "after": "exact_applied_joint_step_guarded_v1",
+      "before": null,
+      "path": "selector.joint_step_warm_start_mode"
+    },
+    {
+      "after": "stop",
+      "before": null,
+      "path": "selector.selector_exhaustion_retry_policy"
+    },
+    {
+      "after": null,
+      "before": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave18_projected_normalized_m64_m48_c128_c64_b2_l25_uncapped_r7/plan.json",
+      "path": "source_records.legal_projection_reference_plan.path"
+    },
+    {
+      "after": null,
+      "before": "da862e5df53732d80bdf7594783bcfd0c2df7d916091428cf8e6d3da0d0c0e3a",
+      "path": "source_records.legal_projection_reference_plan.sha256"
+    },
+    {
+      "after": null,
+      "before": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave11_small_m64_m48_c128_c64_b2_l25_r15/current.json",
+      "path": "source_records.wave11_unchecked_checkpoint.path"
+    },
+    {
+      "after": null,
+      "before": "cdf0829f9ea351b3fd20bff7715e6b13d84ad2307ab676fa899f198ad73a8c85",
+      "path": "source_records.wave11_unchecked_checkpoint.sha256"
+    },
+    {
+      "after": "paper-i-hh-wave11-l25-adaptive-whitened-r30-20260712-v1",
+      "before": null,
+      "path": "supersedes_removed_cluster.batch_name"
+    },
+    {
+      "after": 8775666,
+      "before": null,
+      "path": "supersedes_removed_cluster.cluster_id"
+    },
+    {
+      "after": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/wave_manifest.json",
+      "before": null,
+      "path": "supersedes_removed_cluster.local_wave_manifest"
+    }
+  ],
+  "critical_contract": {
+    "batch_search_feasibility_policy": "joint_subset_gate_v1",
+    "duplicate_cooldown_control": "absent",
+    "fresh_start": true,
+    "funnel_mode": "child_12_joint_response_v2",
+    "joint_linear_solve_policy": "supported_metric_whitened_eigh_v1",
+    "joint_step_warm_start_mode": "exact_applied_joint_step_guarded_v1",
+    "max_controller_rounds": 50,
+    "policy": {
+      "batch_mode": "combinatorial",
+      "batch_search_pool_size": 10,
+      "batch_size_cap": 2,
+      "child_phase1_cap": 32,
+      "child_phase2_cap": 25,
+      "lambda_add": 0.0,
+      "macro_phase1_cap": 32,
+      "macro_phase2_cap": 24
+    },
+    "powell_maxfev": 200,
+    "powell_maxiter": 50,
+    "selector_exhaustion_retry_policy": "stop",
+    "structural_rollback_control": "absent",
+    "trust_region_update_policy": "displacement_calibrated_unbounded_v2"
+  },
+  "generated_utc": "2026-07-13T02:43:33.719434+00:00",
+  "manifest_sha256": "dc59bc0824e4ad42c512afb3aed6c0fbfd9e3896aab65daa585a153ee5f0dbe3",
+  "new_execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "new_scientific_contract_hash": "d4f06a3724c95499f0cd56983bfcf1f26e6fb1499cb5fa82d84bfa7ba76499e3",
+  "removed_cluster_id": 8775666,
+  "removed_wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/wave_manifest.json",
+  "removed_wave_manifest_sha256": "7540d2a1d9ea3f0704e87653d8923f63262f823c61e338db04d598285ceb9056",
+  "schema": "paper_i_hh_jr_l10_rollback_free_settings_diff_v1",
+  "status": "pass"
+}

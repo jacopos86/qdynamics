@@ -1,0 +1,32 @@
+{
+  "anchor": {
+    "artifact": "paper_i_hh_macro_common_accuracy_20260723.pdf",
+    "page": 4,
+    "regime": "weak_weak",
+    "representation": "projected_singleton",
+    "source_result_sha256": "d52252041099621813e96a271264c30dd01edbd701c9190b295a629e89a0214d"
+  },
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc",
+    "profile_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1"
+  },
+  "source_archive_reused_from": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc",
+  "source_archive_sha256": "ab420f4791fbf4cff723a916c9ebd68fd6ef191a228e2b1b05dc86f78cad7c80",
+  "status": "diagnostic_authorized_without_replay_anchor",
+  "sweep": {
+    "child_value": "insertion_commutation_plateau_v1",
+    "horizon": 50,
+    "plateau_energy_decrease_threshold": 1e-08,
+    "regimes": [
+      "weak_weak"
+    ],
+    "run_class": "diagnostic",
+    "settings_changed": [
+      "adapt_insertion_mode"
+    ],
+    "source_value": "append_only",
+    "variable": "adapt_insertion_mode"
+  }
+}

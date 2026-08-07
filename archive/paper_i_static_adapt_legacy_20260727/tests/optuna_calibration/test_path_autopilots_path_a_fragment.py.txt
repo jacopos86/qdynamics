@@ -1,0 +1,29 @@
+from pipelines.exact_bench import hh_path_a_autopilot
+def test_path_a_active_run_sessions_ignores_autopilot_session(monkeypatch) -> None:
+    monkeypatch.setattr(
+        hh_path_a_autopilot,
+        "_list_tmux_sessions",
+        lambda prefix: ["hh_path_a_autopilot_v1", "hh_path_a_live_run"],
+    )
+    assert hh_path_a_autopilot._active_run_sessions("hh_path_a") == ["hh_path_a_live_run"]
+
+
+def test_path_a_autopilot_once_waits_when_session_alive(tmp_path: Path, monkeypatch) -> None:
+    manifest_path = tmp_path / "hh_path_a_tmux_manifest.json"
+    manifest_path.write_text(json.dumps({"tmux_session_prefix": "hh_path_a", "optuna_args": []}), encoding="utf-8")
+    state_path = tmp_path / "state.json"
+
+    monkeypatch.setattr(hh_path_a_autopilot, "_list_tmux_sessions", lambda prefix: ["hh_path_a_existing"])
+
+    payload = hh_path_a_autopilot.run_autopilot_once(
+        manifest_path=manifest_path,
+        tag_prefix="hh_path_a_autorun",
+        state_path=state_path,
+    )
+
+    assert payload["status"] == "waiting_for_active_run"
+    assert state_path.exists()
+    saved = json.loads(state_path.read_text(encoding="utf-8"))
+    assert saved["active_sessions"] == ["hh_path_a_existing"]
+
+

@@ -1,0 +1,391 @@
+{
+  "batch_mode": "combinatorial",
+  "cell_count": 96,
+  "cell_ids_txt": "cell_ids.txt",
+  "cell_records_tsv": "cell_records.tsv",
+  "generated_utc": "2026-07-11T17:45:51.196836+00:00",
+  "manifest_sha256": "e280bb2f9bcc1eda66df1af596ecd77855f653f98af2c6b058eea0b3d43beb09",
+  "objective_directions": [
+    "minimize",
+    "minimize",
+    "minimize",
+    "minimize"
+  ],
+  "objective_names": [
+    "worst_regime_abs_delta_e",
+    "total_expanded_query_work",
+    "total_graph_count_2q_proxy",
+    "total_graph_depth_proxy"
+  ],
+  "result_root": "results",
+  "run_class": "diagnostic_pareto_search",
+  "schema": "paper_i_hh_route_a_optuna_wave_v1",
+  "scientific_contract": {
+    "accuracy_secondary_diagnostic": "arithmetic_mean_abs_delta_e",
+    "beam": {
+      "children_per_parent": 2,
+      "enabled": true,
+      "legacy_lambda_affects_decisions": false,
+      "live_branches": 3
+    },
+    "execution": {
+      "max_controller_rounds": 15,
+      "noise": "off",
+      "qiskit_costing": "post_run_finalists_only",
+      "state_backend": "compiled"
+    },
+    "num_sites": 2,
+    "objective_names": [
+      "worst_regime_abs_delta_e",
+      "total_expanded_query_work",
+      "total_graph_count_2q_proxy",
+      "total_graph_depth_proxy"
+    ],
+    "optimizer": {
+      "final_full_refit": true,
+      "full_insertion_position_search": true,
+      "full_refit_every": 1,
+      "maxfev": 200,
+      "maxiter": 50,
+      "name": "POWELL",
+      "reoptimization_policy": "full",
+      "seed": 7
+    },
+    "optuna_variables_only": [
+      "macro_phase1_cap",
+      "macro_phase2_cap",
+      "child_phase1_cap",
+      "child_phase2_cap",
+      "batch_search_pool_size",
+      "batch_size_cap",
+      "lambda_add"
+    ],
+    "pruning": {
+      "deletion_authority": "remove_refit_energy_safety",
+      "enabled": true,
+      "policy": "recoverability_ladder_v1"
+    },
+    "regimes": [
+      "weak-weak",
+      "intermediate-weak",
+      "strong-weak-u8",
+      "weak-strong",
+      "intermediate-strong",
+      "strong-strong-u8"
+    ],
+    "route": {
+      "allow_repeats": true,
+      "child_identity_normalization": "projective_normalized_pauli_polynomial_v1",
+      "child_identity_policy": "global_pauli_word_v1",
+      "child_phase3_enabled": false,
+      "child_stages": [
+        "child_phase1",
+        "child_phase2"
+      ],
+      "child_symmetry_policy": "hard_guard",
+      "duplicate_cooldown_policy": "one_round_exact_record_pre_child_phase1_v1",
+      "final_selection_authority": "joint_ansatz_plus_batch_schur",
+      "funnel_mode": "child_12_joint_schur_v1",
+      "macro_phase3_enabled": false,
+      "macro_stages": [
+        "macro_phase1",
+        "macro_phase2"
+      ],
+      "pauli_word_subset_sizes": [
+        1
+      ],
+      "phase0_enabled": false,
+      "route_id": "route_a"
+    },
+    "schema": "paper_i_hh_route_a_optuna_locked_contract_v1",
+    "scope": "one_policy_shared_unchanged_across_all_six_L2_hh_regimes",
+    "selector": {
+      "additivity_policy": "soft_penalty_v1",
+      "allowed_batch_modes": [
+        "combinatorial",
+        "greedy"
+      ],
+      "allowed_batch_size_cap": [
+        1,
+        2
+      ],
+      "allowed_lambda_add": [
+        0.1,
+        0.75
+      ],
+      "cost_enabled": true,
+      "cost_weights": {
+        "1q": 0.05,
+        "2q": 0.2,
+        "d": 0.2,
+        "shot": 0.15,
+        "theta": 0.05
+      },
+      "geometry_mode": "full_residual_gram_hessian_v1",
+      "joint_batch_context_mode": "full_ansatz_v1"
+    }
+  },
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_database": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route_a_optuna_v1/study.sqlite3",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "study_storage_policy": "planner_and_aggregator_only_workers_use_immutable_manifests",
+  "trial_count": 16,
+  "trials": [
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 1,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": 32,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": 12
+      },
+      "policy_sha256": "2cf6d276d0776f2914f56f68eabe674c57d25f65e079cad21bd8f10d5805ce82",
+      "trial_manifest": "trial_manifests/trial_000001.json",
+      "trial_number": 1
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 16,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 32,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "2ec97ffbd587d465cb02ea4d9b20f950a9e42e511d9a9c365c70f663799ff250",
+      "trial_manifest": "trial_manifests/trial_000002.json",
+      "trial_number": 2
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 64,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": 12
+      },
+      "policy_sha256": "317930954163ab81d604b93c0db21a7feca728d85a20a02426c3c9538893b9aa",
+      "trial_manifest": "trial_manifests/trial_000003.json",
+      "trial_number": 3
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 16,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "98db7db6a808d34c8781872ae1c041f2e545ae9fc02fe0b1fd421eaf965e653f",
+      "trial_manifest": "trial_manifests/trial_000004.json",
+      "trial_number": 4
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": "all",
+        "child_phase2_cap": 32,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "13025a7b4cb7c4fb9f64e214128511edaa45caf03a2ccad3280ad6c21378489b",
+      "trial_manifest": "trial_manifests/trial_000005.json",
+      "trial_number": 5
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": 32,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": "all",
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "8ff2fa1ceb95ff3e443384a3cade8e4b00452771c6514e75a40d3650685c3a0d",
+      "trial_manifest": "trial_manifests/trial_000006.json",
+      "trial_number": 6
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": "all",
+        "lambda_add": 0.75,
+        "macro_phase1_cap": "all",
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "89aabfbd8028d6da2375f4e2db899bb61d558d6ca17c19e0da5e875ed8445f69",
+      "trial_manifest": "trial_manifests/trial_000008.json",
+      "trial_number": 8
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 64,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "4670a541dc7a4e79f040230ae8f5151140be36c73d94281cafe5daecf81dd31c",
+      "trial_manifest": "trial_manifests/trial_000009.json",
+      "trial_number": 9
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": "all",
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "4f0745066f2644587e03919a1862046cda571f08148bc60e306c316e688a3b99",
+      "trial_manifest": "trial_manifests/trial_000010.json",
+      "trial_number": 10
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": "all",
+        "batch_size_cap": 1,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 64,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": 12
+      },
+      "policy_sha256": "62624a0b27da88828cc846d0d3765f7ddb70a012e25baaf63b54ab93c6e6ec92",
+      "trial_manifest": "trial_manifests/trial_000011.json",
+      "trial_number": 11
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": "all",
+        "batch_size_cap": 1,
+        "child_phase1_cap": "all",
+        "child_phase2_cap": 64,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "30116c9114a85188459b61963e4acbe7b7b5154228816ad4c2b7474978e008f5",
+      "trial_manifest": "trial_manifests/trial_000012.json",
+      "trial_number": 12
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": "all",
+        "child_phase2_cap": 64,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "46c66d0da2162cac951c828aee26dff94b919dc0e2dcdd0636c3a33df8f969fe",
+      "trial_manifest": "trial_manifests/trial_000013.json",
+      "trial_number": 13
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": 16,
+        "lambda_add": 0.1,
+        "macro_phase1_cap": 24,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "4223c2a8af5fbe168c8d97df9623a62c728115624c4ebb1b30d7d508fb62a1d6",
+      "trial_manifest": "trial_manifests/trial_000014.json",
+      "trial_number": 14
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 6,
+        "batch_size_cap": 2,
+        "child_phase1_cap": "all",
+        "child_phase2_cap": 32,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": "all",
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "7579d63382b4cca6f35bf835ee2cfbfa77916d32f273fbff4a1862a263a6cfaa",
+      "trial_manifest": "trial_manifests/trial_000015.json",
+      "trial_number": 15
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 1,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 32,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "2a4e886636e76db8e8ebfb155d4241f2ad6c68db54d277aa375518cf6e26ef3d",
+      "trial_manifest": "trial_manifests/trial_000016.json",
+      "trial_number": 16
+    },
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 1,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 64,
+        "lambda_add": 0.75,
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": "all"
+      },
+      "policy_sha256": "ff58afcbc164807e01db86a6f9efa51bba16eee5f9dd1cdc8cec20bda26231ae",
+      "trial_manifest": "trial_manifests/trial_000017.json",
+      "trial_number": 17
+    }
+  ]
+}

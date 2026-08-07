@@ -1,0 +1,38 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc",
+  "git_commit": "8a746d244a15e2cb16099a732e78e1110a8e59f2",
+  "git_tree": "6cb596ab953386a9c9a3b0698e7b1489e3b0f02e",
+  "implementation_repair": {
+    "failed_cluster": 9379376,
+    "failure": "supported_refit_nonappend_profile_ownership_missing",
+    "parent_bundle": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260724_v2_chtc",
+    "patched_file_sha256": "823f3e8243a28fd8523ec5f9493252ad07fe766a8a2070e4501a760250e4b5ba",
+    "proof_test": "test_static_adapt_projected_phase3_route_profile.py::test_commutation_reduced_insertion_profile_owns_nonappend_insertion_gate",
+    "runtime_files_changed": [
+      "pipelines/static_adapt/adapt_pipeline.py"
+    ],
+    "schema": "paper_i_source_locked_runtime_repair_v1",
+    "scientific_settings_changed": []
+  },
+  "max_depth": 50,
+  "paper_target": "Paper-I HH insertion trajectory/resource comparison review",
+  "parent_bundle": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260724_v2_chtc",
+  "profile_contract_sha256": "bfc4a66f81d0903a5b5b8f97fc97ec217d375c6eb4a05932ef78878c40e5a9f6",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1",
+  "profile_resolved": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_commutation_reduced_insertion_v1",
+  "regime_count": 6,
+  "run_class": "diagnostic",
+  "schema": "paper_i_hh_commutation_reduced_insertion_r50_bundle_v1",
+  "source_archive": {
+    "physics_reference_lock": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc/physics_and_exact_reference_lock.json",
+    "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+    "source_archive": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc/source_locked.tar.gz",
+    "source_archive_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc/source_archive_manifest.json",
+    "source_archive_manifest_sha256": "020bfeb7a203cb05e3bc17e219932d7900912d22b8bb08b69e87baf213a34cad",
+    "source_archive_sha256": "ab420f4791fbf4cff723a916c9ebd68fd6ef191a228e2b1b05dc86f78cad7c80",
+    "source_revision_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc/source_revision_manifest.json",
+    "source_revision_manifest_sha256": "65d86bcfeb0d3723705b3011d15724afd411f223e998c0454d9f5c7721e738d6"
+  },
+  "source_locked_sensitivity_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc/source_locked_sensitivity_audit.json",
+  "status": "ready_for_preflight"
+}

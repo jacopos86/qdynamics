@@ -1,0 +1,464 @@
+{
+  "builds": [
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_weak_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c4bb35d496600c6ac7f7d992b6d2107b2aace4906888ec268bd46bcea5dea923.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/0f02d557a5c9c0755000483a8d500981287e13a1bcb88538392416e626f1e445.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_intermediate_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/9862c27b710701b7024e64bdc48114c6633ff3b1387abe56c3b7279384c0b0dd.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/36cefec92e3f73cff41d4e06b3910b1d891b8aedf3fc5730c09864123005f74a.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_strong_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0f7e9c031c653f89c8e3797bc4e1ab0b8982203d00f2f7725a303f925f001e9e.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/59b984c62d356bd62560c6cee5212b5991a30ab612e400bbb13c04bd23a7c976.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_weak_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c3c29dbf2168a950f012fae77d1abfc339136d46e16475b4eccf37bc8825a202.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f9cc8b60ef5aca7e154be4d672e77a8bed9b9984bb63a06671e4b3f7601a09cb.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_intermediate_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0b72d0b6a1f0f466d4a4ecb5c20758232d4bc6c21c622def1cc4ff05c5e02aed.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/1f966b6c09c2c01d6c93d0e75055255555d07b767ba2132fa5de83b55a5d6e08.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_strong_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/e02ab44e3ec21126e2541b8f8e55b20238a8651ded1d7b6bc82bfcf25164bda5.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/c40faf248da4c31e0340b1dd774f1e34b8e6f049576d834a919d7abd55fc7cb7.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_weak_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/1139823f3de5fd7dc9308d419c7afa3f773b35fc100f4a8a8d959368b9638cae.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/41eafff952b6f0bfb48f0c6b1bd5e8469dec87411c28df4b17f680c0449b070d.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_intermediate_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/626a9d8c6d0f711a7021f630c61c7507f9e1cdad03e174699abd7d45811dd1fd.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/d796b3cd7ca7695b201dd43fd9aeeed08cdaf22a5824cb290306724526e76ee7.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_strong_weak",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/603b7a328aa7cd9f7734a98f246be12c871c8376b3bf57d55562b7c4cc8acbe5.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f12920d80311d558649e81011c5a4f32ee76fb4bccb6f11c932f58f4f4f436c6.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_weak_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/487023391443e4b432edf5afef34009e8a59a8275e1fa1b690f9446828ced9e9.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/2c4e760791629a46982039a66348432c093d56d1ed53493851b4400798e1da59.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_intermediate_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/269e7cd4415f22f3af3975d20db7815c1dcc61f62e680c518aa15bd47a0de472.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/5518c21ae405c25ca39622c6fa890e6d1211c4b6574747ef8b39d54d4aa106cd.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_strong_strong",
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/7675f2f5e7d5eee2b3c63a11a9b643f4d035eba29a48e1fc3d925b8999326f76.pickle",
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/257da23293a0282db8b8a45093e7b89daed0bce28ea0b5db29ab53feb73da667.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    }
+  ],
+  "case_count": 12,
+  "disk_hit_verification": [
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_weak_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c4bb35d496600c6ac7f7d992b6d2107b2aace4906888ec268bd46bcea5dea923.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/0f02d557a5c9c0755000483a8d500981287e13a1bcb88538392416e626f1e445.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_intermediate_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/9862c27b710701b7024e64bdc48114c6633ff3b1387abe56c3b7279384c0b0dd.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/36cefec92e3f73cff41d4e06b3910b1d891b8aedf3fc5730c09864123005f74a.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_strong_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0f7e9c031c653f89c8e3797bc4e1ab0b8982203d00f2f7725a303f925f001e9e.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/59b984c62d356bd62560c6cee5212b5991a30ab612e400bbb13c04bd23a7c976.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_weak_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c3c29dbf2168a950f012fae77d1abfc339136d46e16475b4eccf37bc8825a202.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f9cc8b60ef5aca7e154be4d672e77a8bed9b9984bb63a06671e4b3f7601a09cb.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_intermediate_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0b72d0b6a1f0f466d4a4ecb5c20758232d4bc6c21c622def1cc4ff05c5e02aed.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/1f966b6c09c2c01d6c93d0e75055255555d07b767ba2132fa5de83b55a5d6e08.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L3_nph2_scaling_strong_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/e02ab44e3ec21126e2541b8f8e55b20238a8651ded1d7b6bc82bfcf25164bda5.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/c40faf248da4c31e0340b1dd774f1e34b8e6f049576d834a919d7abd55fc7cb7.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 212
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_weak_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/1139823f3de5fd7dc9308d419c7afa3f773b35fc100f4a8a8d959368b9638cae.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/41eafff952b6f0bfb48f0c6b1bd5e8469dec87411c28df4b17f680c0449b070d.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_intermediate_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/626a9d8c6d0f711a7021f630c61c7507f9e1cdad03e174699abd7d45811dd1fd.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/d796b3cd7ca7695b201dd43fd9aeeed08cdaf22a5824cb290306724526e76ee7.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_strong_weak",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/603b7a328aa7cd9f7734a98f246be12c871c8376b3bf57d55562b7c4cc8acbe5.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f12920d80311d558649e81011c5a4f32ee76fb4bccb6f11c932f58f4f4f436c6.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_weak_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/487023391443e4b432edf5afef34009e8a59a8275e1fa1b690f9446828ced9e9.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/2c4e760791629a46982039a66348432c093d56d1ed53493851b4400798e1da59.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_intermediate_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/269e7cd4415f22f3af3975d20db7815c1dcc61f62e680c518aa15bd47a0de472.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/5518c21ae405c25ca39622c6fa890e6d1211c4b6574747ef8b39d54d4aa106cd.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    },
+    {
+      "cache_events": [
+        "hardcoded_adapt_pool_cache_hit",
+        "hardcoded_adapt_generator_registry_cache_hit"
+      ],
+      "case_id": "hh_L4_nph1_scaling_strong_strong",
+      "disk_hit_verified": true,
+      "generator_registry_cache_disk_hit_verified": true,
+      "generator_registry_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/7675f2f5e7d5eee2b3c63a11a9b643f4d035eba29a48e1fc3d925b8999326f76.pickle",
+      "pool_cache_disk_hit_verified": true,
+      "pool_cache_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/257da23293a0282db8b8a45093e7b89daed0bce28ea0b5db29ab53feb73da667.pickle",
+      "pool_key": "full_meta",
+      "pool_term_count": 474
+    }
+  ],
+  "generated_utc": "2026-07-11T04:10:22.846422+00:00",
+  "generator_registry_cache": {
+    "cache_dir": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1",
+    "file_count": 12,
+    "files": [
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0b72d0b6a1f0f466d4a4ecb5c20758232d4bc6c21c622def1cc4ff05c5e02aed.pickle",
+        "sha256": "ee9ef72941a399f5ea309640012ab1c735ad4a7942d7a71cdf6216284f7e39f9",
+        "size_bytes": 842321
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/0f7e9c031c653f89c8e3797bc4e1ab0b8982203d00f2f7725a303f925f001e9e.pickle",
+        "sha256": "62647e36ede4dccac95698d0ae8d0a265f3585253b5d131a00e25107bd54ce01",
+        "size_bytes": 841832
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/1139823f3de5fd7dc9308d419c7afa3f773b35fc100f4a8a8d959368b9638cae.pickle",
+        "sha256": "74425305f52c9bb24346f890d93a0484828a244ac5d693aff181d72409df667f",
+        "size_bytes": 708228
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/269e7cd4415f22f3af3975d20db7815c1dcc61f62e680c518aa15bd47a0de472.pickle",
+        "sha256": "687044641cf0e8ecab58124b4cf835367ae2066f4aeba804ae82610254673b8f",
+        "size_bytes": 708228
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/487023391443e4b432edf5afef34009e8a59a8275e1fa1b690f9446828ced9e9.pickle",
+        "sha256": "21f5e39683a34b9a0f24530deca31e743fb4ea086197929d89d94af7584163ef",
+        "size_bytes": 708228
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/603b7a328aa7cd9f7734a98f246be12c871c8376b3bf57d55562b7c4cc8acbe5.pickle",
+        "sha256": "79acc412478ead6d63883228e2450fb4f076b9f93a4c60fec88b69863058a2d1",
+        "size_bytes": 707967
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/626a9d8c6d0f711a7021f630c61c7507f9e1cdad03e174699abd7d45811dd1fd.pickle",
+        "sha256": "97ebe70c041686a98a67db216235e678bef416e227f363763f05399e87517e24",
+        "size_bytes": 708228
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/7675f2f5e7d5eee2b3c63a11a9b643f4d035eba29a48e1fc3d925b8999326f76.pickle",
+        "sha256": "7afa2795290237ae16223acc26df5bbd7a1da88caa4dd88baccfbf179f997016",
+        "size_bytes": 707967
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/9862c27b710701b7024e64bdc48114c6633ff3b1387abe56c3b7279384c0b0dd.pickle",
+        "sha256": "b5450e2ed835cdfc2a66850ed72767ca2d2529822c08dd7816f4d6e21da4f7f7",
+        "size_bytes": 842033
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c3c29dbf2168a950f012fae77d1abfc339136d46e16475b4eccf37bc8825a202.pickle",
+        "sha256": "35e15c16cb3cd3822ac13980c6b677f6ef41821d0ebc42005ef3057036aad89d",
+        "size_bytes": 842321
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/c4bb35d496600c6ac7f7d992b6d2107b2aace4906888ec268bd46bcea5dea923.pickle",
+        "sha256": "6ed6994b35836212ae3600e33ee5096c297065f4e29ae004bdb82ce6c86c0652",
+        "size_bytes": 842033
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1/e02ab44e3ec21126e2541b8f8e55b20238a8651ded1d7b6bc82bfcf25164bda5.pickle",
+        "sha256": "b807efba64c09bc5417dbd46ec442f3cd0bd96a086f87e7cec604e09e513a37e",
+        "size_bytes": 842120
+      }
+    ],
+    "mode": "disk",
+    "seed_cache": {
+      "copied_file_count": 70,
+      "requested": true,
+      "seed_cache_dir": "raw_outputs/cache/hh_generator_registry_cache_v1",
+      "seed_cache_file_count": 70,
+      "seed_cache_manifest_sha256": "7cde39a6d6c13d43e332e80468f03d1d9743411e7cffebc186cbd2dffa1a6bb2",
+      "status": "copied"
+    }
+  },
+  "pool_cache": {
+    "cache_dir": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1",
+    "file_count": 12,
+    "files": [
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/0f02d557a5c9c0755000483a8d500981287e13a1bcb88538392416e626f1e445.pickle",
+        "sha256": "4ac2a235bfdedf6acf1d038588e71fa4046b795ec12de3f754c300819b244dc8",
+        "size_bytes": 1974488
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/1f966b6c09c2c01d6c93d0e75055255555d07b767ba2132fa5de83b55a5d6e08.pickle",
+        "sha256": "c4da0737a82b62071838c7c7d22eb2292e79bf77b1bac46a644bd0cccc7cac72",
+        "size_bytes": 1974644
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/257da23293a0282db8b8a45093e7b89daed0bce28ea0b5db29ab53feb73da667.pickle",
+        "sha256": "e7b194aa814f6f41562a1ebb1c05c7ab52a109d4b5aa87f9e0ee1e18988a5e2c",
+        "size_bytes": 1291030
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/2c4e760791629a46982039a66348432c093d56d1ed53493851b4400798e1da59.pickle",
+        "sha256": "aeccba0d7dd4f314348569cba7442856ecc25435c9e889425dacc4a3e24a392b",
+        "size_bytes": 1291101
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/36cefec92e3f73cff41d4e06b3910b1d891b8aedf3fc5730c09864123005f74a.pickle",
+        "sha256": "624075d0ad392af0d537de04421574c009ae3c3fbf714dd3cade0c60c06679ea",
+        "size_bytes": 1974488
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/41eafff952b6f0bfb48f0c6b1bd5e8469dec87411c28df4b17f680c0449b070d.pickle",
+        "sha256": "185963de666083d12a1260bfcc0f7fa937184d08cf49e4fe1fca30793457ec8b",
+        "size_bytes": 1291101
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/5518c21ae405c25ca39622c6fa890e6d1211c4b6574747ef8b39d54d4aa106cd.pickle",
+        "sha256": "d049a8dc0d72d0df1a80cae6a01c50526a9fb97d033b2f6294b9883a90e2525c",
+        "size_bytes": 1291101
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/59b984c62d356bd62560c6cee5212b5991a30ab612e400bbb13c04bd23a7c976.pickle",
+        "sha256": "c71be4a689fe554aff60df4755d9444c2070245535b681030b4faae3048583c3",
+        "size_bytes": 1934072
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/c40faf248da4c31e0340b1dd774f1e34b8e6f049576d834a919d7abd55fc7cb7.pickle",
+        "sha256": "bdf12f3c70300430a5defc5447c90086644a586aa5d5d93ca1010a2c5bb8d072",
+        "size_bytes": 1934228
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/d796b3cd7ca7695b201dd43fd9aeeed08cdaf22a5824cb290306724526e76ee7.pickle",
+        "sha256": "82c73c860ec5c8c5b8725c4f446c39bb6ae55d6fc3b49122c0a603c73ce70ef0",
+        "size_bytes": 1291101
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f12920d80311d558649e81011c5a4f32ee76fb4bccb6f11c932f58f4f4f436c6.pickle",
+        "sha256": "1b58db52a72623fca7fc7c5f13f0b7a00b998b1ecea8d2b070b02d5eb8a03b1a",
+        "size_bytes": 1291030
+      },
+      {
+        "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1/f9cc8b60ef5aca7e154be4d672e77a8bed9b9984bb63a06671e4b3f7601a09cb.pickle",
+        "sha256": "fdc8c49e0abf4446e2f15d3b023bec1e955e11d53cea2b851782cf4c6ab14bd6",
+        "size_bytes": 1974644
+      }
+    ],
+    "mode": "disk",
+    "scope": "exact",
+    "seed_cache": {
+      "copied_file_count": 60,
+      "requested": true,
+      "seed_cache_dir": "raw_outputs/cache/hh_pool_cache_v1",
+      "seed_cache_file_count": 60,
+      "seed_cache_manifest_sha256": "5b6c6ad352b8290edab0d8761c4df3b9ef3a4eb3bab7a856b90bf98506db297f",
+      "status": "copied"
+    }
+  },
+  "pool_term_cap": 1024,
+  "schema": "paper_i_scaling_matrix_hh_dual_cache_prewarm_v1",
+  "status": "pass",
+  "suite_profile": "paper_i_scaling_matrix_20260710_v1",
+  "total_size_bytes": 28814534
+}

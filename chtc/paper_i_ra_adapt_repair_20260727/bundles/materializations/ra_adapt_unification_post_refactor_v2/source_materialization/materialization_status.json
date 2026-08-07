@@ -1,0 +1,49 @@
+{
+  "blocked_at_utc": "2026-07-28T01:37:09Z",
+  "blocker": {
+    "classification": "concurrent_additive_visible_provenance_drift",
+    "current_visible_provenance": {
+      "inode": 161452727,
+      "mtime": "2026-07-27T20:30:01-0500",
+      "sha256": "0153bbf8e1ea73c6c73bd559548d5e8b9e80b185effe9c4e8cd9ce6b7a1cae2e",
+      "size_bytes": 1888696
+    },
+    "e43_source_bytes_captured_in_materialization": false,
+    "locked_visible_provenance": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_provenance.json",
+      "sha256": "e43dcf724e5c3d6c689fdf53c3d84798d380a15892a249ea02c34fc904054a36"
+    },
+    "observed_additive_update": {
+      "cluster_id": 9381298,
+      "complete_regime_count": 6,
+      "generated_pdf_pages_after": 16,
+      "generated_pdf_pages_before": 15,
+      "insertion_policy": "always",
+      "page_number": 16,
+      "representation": "projected_singleton",
+      "top_level_key": "singleton_always_insertion_batch_page"
+    },
+    "safe_resume_condition": "An immutable byte-identical copy of the legitimate e43dcf724e5c3d6c689fdf53c3d84798d380a15892a249ea02c34fc904054a36 visible-provenance input is made available without overwriting or relabeling historical evidence."
+  },
+  "completed_before_blocker": {
+    "archive_sha256_verification": {
+      "passed": 14,
+      "total": 14
+    },
+    "archive_member_sha256_verification": {
+      "passed": 14,
+      "total": 14
+    },
+    "canonical_source_lock_validation": "passed_against_e43_point_in_time",
+    "logical_source_locks": 50,
+    "resolver_invocations": {
+      "failed": 0,
+      "passed": 50,
+      "permissive_flags_used": false,
+      "total": 50
+    }
+  },
+  "final_validation_receipt_emitted": false,
+  "schema": "ra_adapt_source_materialization_status_v1",
+  "status": "partial_blocked"
+}

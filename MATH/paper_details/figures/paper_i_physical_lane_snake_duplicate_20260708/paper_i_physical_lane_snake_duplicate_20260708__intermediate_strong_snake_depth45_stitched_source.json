@@ -1,0 +1,214 @@
+{
+  "generated_utc": "2026-07-08T21:26:32+00:00",
+  "method": "SNAKE",
+  "point_count": 46,
+  "point_policy": "stitched cumulative ADAPT-iteration curve from depth-30 source and completed local depth-45 continuation",
+  "points": [
+    {
+      "abs_delta_e": 1.0696627633242661,
+      "k": 0
+    },
+    {
+      "abs_delta_e": 1.0696627633242661,
+      "k": 1
+    },
+    {
+      "abs_delta_e": 0.24891040483134197,
+      "k": 2
+    },
+    {
+      "abs_delta_e": 0.15352857805131637,
+      "k": 3
+    },
+    {
+      "abs_delta_e": 0.12623995576643587,
+      "k": 4
+    },
+    {
+      "abs_delta_e": 0.09612411072943505,
+      "k": 5
+    },
+    {
+      "abs_delta_e": 0.0625972700801557,
+      "k": 6
+    },
+    {
+      "abs_delta_e": 0.028607080058832057,
+      "k": 7
+    },
+    {
+      "abs_delta_e": 0.02020970842048153,
+      "k": 8
+    },
+    {
+      "abs_delta_e": 0.014725813788644015,
+      "k": 9
+    },
+    {
+      "abs_delta_e": 0.012165983960948257,
+      "k": 10
+    },
+    {
+      "abs_delta_e": 0.011420594252656624,
+      "k": 11
+    },
+    {
+      "abs_delta_e": 0.011131363698562158,
+      "k": 12
+    },
+    {
+      "abs_delta_e": 0.01103484624648754,
+      "k": 13
+    },
+    {
+      "abs_delta_e": 0.010785814407025973,
+      "k": 14
+    },
+    {
+      "abs_delta_e": 0.010513357618360253,
+      "k": 15
+    },
+    {
+      "abs_delta_e": 0.008236522725137752,
+      "k": 16
+    },
+    {
+      "abs_delta_e": 0.008227514737741526,
+      "k": 17
+    },
+    {
+      "abs_delta_e": 0.008025612610500499,
+      "k": 18
+    },
+    {
+      "abs_delta_e": 0.007798489755466487,
+      "k": 19
+    },
+    {
+      "abs_delta_e": 0.007571138734381977,
+      "k": 20
+    },
+    {
+      "abs_delta_e": 0.007471483997422812,
+      "k": 21
+    },
+    {
+      "abs_delta_e": 0.007426912489980175,
+      "k": 22
+    },
+    {
+      "abs_delta_e": 0.007414115105125019,
+      "k": 23
+    },
+    {
+      "abs_delta_e": 0.0008808768248340648,
+      "k": 24
+    },
+    {
+      "abs_delta_e": 0.0008491821489101659,
+      "k": 25
+    },
+    {
+      "abs_delta_e": 0.0008364346623025432,
+      "k": 26
+    },
+    {
+      "abs_delta_e": 0.0007412112993341324,
+      "k": 27
+    },
+    {
+      "abs_delta_e": 0.0006870740365135797,
+      "k": 28
+    },
+    {
+      "abs_delta_e": 0.000661371168117153,
+      "k": 29
+    },
+    {
+      "abs_delta_e": 0.0002797720122607039,
+      "k": 30
+    },
+    {
+      "abs_delta_e": 0.00026283987113151497,
+      "k": 31
+    },
+    {
+      "abs_delta_e": 0.00014081938355570145,
+      "k": 32
+    },
+    {
+      "abs_delta_e": 0.00014018719352493214,
+      "k": 33
+    },
+    {
+      "abs_delta_e": 0.0001398291485312786,
+      "k": 34
+    },
+    {
+      "abs_delta_e": 0.00013952689964746856,
+      "k": 35
+    },
+    {
+      "abs_delta_e": 0.0001383882338583664,
+      "k": 36
+    },
+    {
+      "abs_delta_e": 0.00013780441684585476,
+      "k": 37
+    },
+    {
+      "abs_delta_e": 0.0001372975982814051,
+      "k": 38
+    },
+    {
+      "abs_delta_e": 0.0001370817881207742,
+      "k": 39
+    },
+    {
+      "abs_delta_e": 6.0889911868255986e-05,
+      "k": 40
+    },
+    {
+      "abs_delta_e": 5.979073363693299e-05,
+      "k": 41
+    },
+    {
+      "abs_delta_e": 5.791091377227442e-05,
+      "k": 42
+    },
+    {
+      "abs_delta_e": 5.766572479837251e-05,
+      "k": 43
+    },
+    {
+      "abs_delta_e": 5.7361504053332624e-05,
+      "k": 44
+    },
+    {
+      "abs_delta_e": 1.8105198894780017e-05,
+      "k": 45
+    }
+  ],
+  "regime": "intermediate-strong",
+  "schema": "paper_i_hh_intermediate_strong_depth45_stitched_curve_v1",
+  "sources": [
+    {
+      "final_refit_abs_delta_e": 0.0003826610046342438,
+      "history_len": 30,
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json",
+      "sha256": "9c49de416cf31831ee7be58f75faddfbf2e04ea0e5d4a0e03342b9da195da9ea",
+      "terminal_abs_delta_e": 0.0003826610046342438,
+      "terminal_x": 30
+    },
+    {
+      "final_refit_abs_delta_e": 1.8105198894780017e-05,
+      "history_len": 16,
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_depth45_continuation_20260708/intermediate_strong/json/result.json",
+      "sha256": "075109982d3293adf57f7b6954048491115d210a924279f44db6df1e019bea65",
+      "terminal_abs_delta_e": 1.8105198894780017e-05,
+      "terminal_x": 45
+    }
+  ],
+  "terminal_abs_delta_e": 1.8105198894780017e-05,
+  "terminal_k": 45
+}

@@ -1,0 +1,20 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_task_apptainer.sh
+arguments = $(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna, artifacts/agent_runs/20260425_phase3_historical_best_ledger_v1/historical_best_ledger.json
+transfer_output_files = raw_outputs, logs
+log = logs/phase3-global-spsa-three-lane-canonical-smoke.$(Cluster).$(Process).log
+output = logs/phase3-global-spsa-three-lane-canonical-smoke.$(Cluster).$(Process).out
+error = logs/phase3-global-spsa-three-lane-canonical-smoke.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 16GB
+request_disk = 122880MB
++MaxRuntime = 7200
++JobBatchName = "holstein-phase3-global-spsa-three-lane-canonical-smoke"
+environment = "PHASE3_RECORDS_PATH=chtc/phase3_optuna/input/global_spsa_three_lane_canonical_smoke_records.tsv"
+queue record_id from chtc/phase3_optuna/input/global_spsa_three_lane_canonical_smoke_record_ids.txt

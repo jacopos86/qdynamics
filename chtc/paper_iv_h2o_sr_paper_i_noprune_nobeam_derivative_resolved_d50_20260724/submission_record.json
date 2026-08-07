@@ -1,0 +1,101 @@
+{
+  "schema": "paper_iv_h2o_sr_paper_i_noprune_nobeam_submission_record_v2",
+  "recorded_utc": "2026-07-25T01:52:14Z",
+  "record_id": "paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_from_zero_d50_20260724_v2",
+  "run_class": "candidate_application_run",
+  "paper_target": "Paper IV molecular-vibronic H2O static SNAKE application",
+  "method": "singleton_response_snake",
+  "submission": {
+    "cluster_id": 9379290,
+    "proc_id": 0,
+    "batch_name": "paper-iv-h2o-sr-paper-i-noprune-nobeam-d50-20260724-v2",
+    "status_at_recording": "idle",
+    "job_status_code": 1,
+    "num_job_starts": 0,
+    "hold_reason": null,
+    "remote_root": "~/Holstein_phase3_optuna_chtc",
+    "submit_file": "chtc/paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_d50_20260724/submit.sub"
+  },
+  "route": {
+    "profile_request": "sr_snake_h2o_derivative_resolved_paper_i_v3",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_h2o_derivative_resolved_paper_i_v3",
+    "route_contract_sha256": "e7c61b587053c6db0258dccf4fa61793fe79a87c779c7bd184b925c074fa68d9",
+    "paper_i_parent_profile": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_v1",
+    "archived_paper_i_profile_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "effective_beam": {
+      "live_branches": 1,
+      "children_per_parent": 1,
+      "classification": "disabled_effective_1x1"
+    },
+    "phase1_prune_enabled": false,
+    "terminal_prune_active": false,
+    "phase2_batching_enabled": false,
+    "phase3_batching_enabled": false,
+    "phase2_gram_novelty_policy": "fallback_only_v1",
+    "phase3_gram_novelty_policy": "fallback_only_v1",
+    "phase3_novelty_ablation_mode": "off",
+    "phase3_response_coordinate_scope": "full_active_plus_singleton_v1",
+    "supported_coordinate_policy": "supported_metric_whitened_eigh_v1",
+    "inner_optimizer": "POWELL",
+    "accepted_refit_scope": "full_ansatz_v1"
+  },
+  "application_overlay": {
+    "problem": "molecular_vibronic_h2o_linear_fd",
+    "target_depth": 50,
+    "operator_pool": "full_meta_derivative_resolved_v2",
+    "child_padding_policy": "full_binary_code_space_v1",
+    "phase3_backend_cost_mode": "proxy",
+    "starting_depth": 0,
+    "chemical_accuracy_stop_abs_delta_e_ha": 0.0016
+  },
+  "source_lock": {
+    "input_manifest_sha256": "377a509a6d93cdcbe17e8c98fdaa829ebe592724b9f9bea5d4f2f2078dd256f0",
+    "source_archive_sha256": "5c95e902c624761b8b3c5bc3190fe1db42d7c05955afef5d0e292363e7c36f83",
+    "h2o_fixture_sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594",
+    "route_difference_audit": "chtc/paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_d50_20260724/input/route_settings_diff_audit.json",
+    "route_difference_audit_status": "pass",
+    "archived_paper_i_comparison_status": "pass"
+  },
+  "validation": {
+    "focused_pytest": {
+      "status": "pass",
+      "passed": 160,
+      "tests": [
+        "test/test_static_adapt_sr_route_profile.py",
+        "test/test_paper_iv_h2o_static_route.py"
+      ]
+    },
+    "extracted_source_runtime_preflight": "pass",
+    "synthetic_result_validator": "pass",
+    "remote_byte_hash_validation": "pass",
+    "condor_submit_dry_run": "pass"
+  },
+  "superseded_attempts": [
+    {
+      "cluster_id": 8887458,
+      "classification": "worker_executable_self_hash_path_failure"
+    },
+    {
+      "cluster_id": 8973939,
+      "classification": "h2o_whitened_singleton_compatibility_gate_failure"
+    },
+    {
+      "cluster_id": 9378923,
+      "classification": "wrong_scientific_route_metric_prune_and_beam",
+      "disposition": "removed_by_user_scope_before_start",
+      "num_job_starts": 0,
+      "job_status_code_after_removal": 3
+    },
+    {
+      "cluster_id": 9378925,
+      "classification": "runtime_profile_registration_plumbing_failure",
+      "disposition": "completed_with_exit_code_1_after_runtime_preflight_passed",
+      "num_job_starts": 1,
+      "job_status_code_after_completion": 4,
+      "exit_code": 1,
+      "time_execute_seconds": 21,
+      "error": "new H2O v3 route identity absent from complete-runtime whitelist",
+      "repair": "centralized complete-runtime profile registry and added regression"
+    }
+  ]
+}

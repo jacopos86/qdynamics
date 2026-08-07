@@ -1,0 +1,14 @@
+{
+  "accepted_refit_coordinate_chart": "supported_fs_whitened_fixed_v1",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+  "candidate_value": "source_metric_inverse_sqrt_no_overlap_v1",
+  "changed_execution_fields_vs_parent": [
+    "historical_singleton_trust_region_update_policy"
+  ],
+  "no_overlap_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "non_swept_settings_diff": [],
+  "parent_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "parent_value": "displacement_calibrated_unbounded_v2",
+  "schema": "paper_i_sr_no_overlap_trust_fanout_route_parity_v1",
+  "status": "pass"
+}

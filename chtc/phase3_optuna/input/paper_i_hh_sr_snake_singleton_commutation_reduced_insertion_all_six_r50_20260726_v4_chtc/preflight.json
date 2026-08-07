@@ -1,0 +1,18 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v4_chtc",
+  "checks": {
+    "changed_execution_fields": [
+      "adapt_insertion_mode"
+    ],
+    "child_profile_contract_sha256": "bfc4a66f81d0903a5b5b8f97fc97ec217d375c6eb4a05932ef78878c40e5a9f6",
+    "non_swept_settings_diff": [],
+    "outer_horizon": 50,
+    "parent_profile_contract_sha256": "eecd11fccf8f34b5e89042fb75949b54546a297ea5fe4f9969ad91ec569ff08a",
+    "regime_count": 6,
+    "requirements_has_sif": true,
+    "source_archive_reused_byte_for_byte": true,
+    "source_archive_sha256": "f32ddaa45e1281df670de6a16e77473aa267ec1f29e01069cb4e36a42a391a7b"
+  },
+  "schema": "paper_i_hh_always_insertion_from_plateau_preflight_v1",
+  "status": "pass"
+}

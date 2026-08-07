@@ -1,0 +1,65 @@
+{
+  "schema": "paper_i_six_regime_geo_visible_baseline_local_path_repair_v1",
+  "table_label": "fig:hh_main_results_composite",
+  "provenance_path_repair": {
+    "scientific_fields_changed": [],
+    "source": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_map.json",
+    "repair": "replace obsolete absolute Documents/iCloud source paths with existing hash-identical local baseline copies"
+  },
+  "regimes": {
+    "weak-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.0013117770378563431,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__geo__generic_static_single.json",
+          "source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45"
+        }
+      }
+    },
+    "intermediate-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.09893293320249796,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__geo__generic_static_single.json",
+          "source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255"
+        }
+      }
+    },
+    "strong-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 2.354651946201436e-06,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__geo__generic_static_single.json",
+          "source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab"
+        }
+      }
+    },
+    "weak-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.043646714159213396,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__geo__generic_static_single.json",
+          "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259"
+        }
+      }
+    },
+    "intermediate-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.02897791863102661,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__geo__generic_static_single.json",
+          "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e"
+        }
+      }
+    },
+    "strong-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 4.982206763848307e-05,
+          "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__geo__generic_static_single.json",
+          "source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63"
+        }
+      }
+    }
+  }
+}

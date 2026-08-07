@@ -1,0 +1,948 @@
+"""Query-free SR-v3 Phase-III to FM outer-growth adapter.
+
+The current SR-v3 selector already acquires a complete
+``full_active_plus_singleton`` coordinate model for its winning singleton.
+This module validates that authoritative cached model and freezes it as a
+same-ray observation for the Formal-Manifold outer-information recursion.
+
+No estimator or query-ledger object is imported here.  Matrix assembly, the
+descent-gradient sign conversion, fingerprinting, and construction of the
+outer-session argument bundle are classical operations with exactly zero
+incremental quantum-query charge.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import dataclass
+import hashlib
+import json
+import math
+from types import MappingProxyType
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+
+from pipelines.static_adapt.joint_linear_solve import (
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2,
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+from pipelines.static_adapt.selector_query_closure import (
+    FULL_ANSATZ_JOINT_CONTEXT,
+    FULL_RESIDUAL_GRAM_HESSIAN_GEOMETRY,
+    HISTORICAL_PHASE3_AUTHORITY,
+    HISTORICAL_PHASE3_WHITENING_SCOPE,
+    HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+)
+
+
+SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA = (
+    "formal_manifold_sr_v3_outer_growth_observation_v1"
+)
+SR_V3_OUTER_GROWTH_TELEMETRY_SCHEMA = (
+    "formal_manifold_sr_v3_outer_growth_telemetry_v1"
+)
+SR_V3_OUTER_CACHE_PROVENANCE_SCHEMA = (
+    "formal_manifold_sr_v3_outer_cache_provenance_v1"
+)
+FULL_ACTIVE_PLUS_SINGLETON_SCOPE = "full_active_plus_singleton_v1"
+SR_V3_CACHED_PHASE3_SOURCE = (
+    "authoritative_sr_v3_historical_phase3_cached_summary_v1"
+)
+
+_SUPPORTED_WHITENING_POLICIES = frozenset(
+    {
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2,
+    }
+)
+_QUERY_CATEGORIES = ("N_E", "N_grad", "N_G", "N_Q", "N_Hv", "N_cross")
+_ZERO_QUERY_CHARGE = {key: 0 for key in _QUERY_CATEGORIES}
+
+
+def _canonical_hash(schema: str, payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    digest = hashlib.sha256()
+    digest.update(str(schema).encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(encoded)
+    return digest.hexdigest()
+
+
+def _portable(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _portable(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_portable(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return np.asarray(value).tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return deepcopy(value)
+
+
+def _immutable(value: Any) -> Any:
+    portable = _portable(value)
+    if isinstance(portable, dict):
+        return MappingProxyType(
+            {key: _immutable(item) for key, item in portable.items()}
+        )
+    if isinstance(portable, list):
+        return tuple(_immutable(item) for item in portable)
+    return portable
+
+
+def _readonly(value: Any) -> np.ndarray:
+    result = np.asarray(value, dtype=float).copy()
+    result.setflags(write=False)
+    return result
+
+
+def _text(value: Any, *, field: str, allow_empty: bool = False) -> str:
+    result = str(value)
+    if not allow_empty and not result:
+        raise ValueError(f"{field} must be nonempty.")
+    return result
+
+
+def _strict_int(value: Any, *, field: str, minimum: int | None = None) -> int:
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(f"{field} must be an integer.")
+    try:
+        resolved = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be an integer.") from exc
+    if isinstance(value, (float, np.floating)) and not float(value).is_integer():
+        raise ValueError(f"{field} must be an integer.")
+    if minimum is not None and resolved < int(minimum):
+        raise ValueError(f"{field} must be at least {minimum}.")
+    return resolved
+
+
+def _finite_vector(value: Any, *, size: int, field: str) -> np.ndarray:
+    result = np.asarray(value, dtype=float)
+    if result.size == 0 and size == 0:
+        result = np.zeros((0,), dtype=float)
+    result = result.reshape(-1)
+    if result.shape != (size,):
+        raise ValueError(f"{field} must have shape {(size,)}.")
+    if not np.all(np.isfinite(result)):
+        raise ValueError(f"{field} must be finite.")
+    return _readonly(result)
+
+
+def _finite_matrix(
+    value: Any,
+    *,
+    shape: tuple[int, int],
+    field: str,
+    symmetric: bool,
+) -> np.ndarray:
+    result = np.asarray(value, dtype=float)
+    if result.size == 0 and int(np.prod(shape)) == 0:
+        result = np.zeros(shape, dtype=float)
+    if result.shape != shape:
+        raise ValueError(f"{field} must have shape {shape}.")
+    if not np.all(np.isfinite(result)):
+        raise ValueError(f"{field} must be finite.")
+    if symmetric and not np.allclose(
+        result, result.T, rtol=1.0e-10, atol=1.0e-12
+    ):
+        raise ValueError(f"{field} must be symmetric.")
+    if symmetric:
+        result = 0.5 * (result + result.T)
+    return _readonly(result)
+
+
+def _physical_fingerprint(value: Any) -> str:
+    result = _text(value, field="physical_state_fingerprint").lower()
+    if len(result) != 64 or any(character not in "0123456789abcdef" for character in result):
+        raise ValueError(
+            "physical_state_fingerprint must be a 64-character SHA-256 hex digest."
+        )
+    return result
+
+
+def _candidate_identity(value: Any) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError("batch_coordinate_identity must be a mapping.")
+    result = {
+        "candidate_label": _text(
+            value.get("candidate_label", ""), field="candidate_label"
+        ),
+        "candidate_pool_index": _strict_int(
+            value.get("candidate_pool_index"),
+            field="candidate_pool_index",
+            minimum=0,
+        ),
+        "position_id": _strict_int(
+            value.get("position_id"), field="position_id", minimum=0
+        ),
+        "global_child_identity": _text(
+            value.get("global_child_identity", ""),
+            field="global_child_identity",
+            allow_empty=True,
+        ),
+    }
+    return _immutable(result)
+
+
+def _source_summary_payload(
+    *,
+    policy: str,
+    whitening_provenance_id: str,
+    selector_reason: str,
+    active_coordinate_identities: tuple[str, ...],
+    candidate_coordinate_identity: Mapping[str, Any],
+    G_AA: np.ndarray,
+    G_AB: np.ndarray,
+    G_BB: np.ndarray,
+    H_AA: np.ndarray,
+    H_AB: np.ndarray,
+    H_BB: np.ndarray,
+    g_A: np.ndarray,
+    g_B: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "schema": HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+        "scope": HISTORICAL_PHASE3_WHITENING_SCOPE,
+        "authority": HISTORICAL_PHASE3_AUTHORITY,
+        "response_coordinate_scope": FULL_ACTIVE_PLUS_SINGLETON_SCOPE,
+        "joint_batch_context_mode": FULL_ANSATZ_JOINT_CONTEXT,
+        "geometry_mode": FULL_RESIDUAL_GRAM_HESSIAN_GEOMETRY,
+        "joint_linear_solve_policy_effective": str(policy),
+        "supported_metric_whitening_policy": str(policy),
+        "supported_metric_whitening_provenance_id": str(
+            whitening_provenance_id
+        ),
+        "feasible": True,
+        "reason": str(selector_reason),
+        "active_coordinate_identities": list(active_coordinate_identities),
+        "batch_coordinate_identities": [
+            _portable(candidate_coordinate_identity)
+        ],
+        "G_AA_raw": G_AA.tolist(),
+        "G_AB_raw": G_AB.tolist(),
+        "G_BB_raw": G_BB.tolist(),
+        "H_AA_raw": H_AA.tolist(),
+        "H_AB_raw": H_AB.tolist(),
+        "H_BB_raw": H_BB.tolist(),
+        "g_A": g_A.tolist(),
+        "g_B": g_B.tolist(),
+    }
+
+
+@dataclass(frozen=True)
+class SRV3OuterGrowthObservation:
+    """Frozen cached geometry for one exact zero-amplitude singleton growth."""
+
+    physical_state_fingerprint: str
+    registry: tuple[str, ...]
+    theta: np.ndarray
+    old_to_new_registry_mapping: tuple[int, ...]
+    candidate_positions: tuple[int, ...]
+    active_coordinate_identities: tuple[str, ...]
+    candidate_coordinate_identity: Mapping[str, Any]
+    G_AA: np.ndarray
+    G_AB: np.ndarray
+    G_BB: np.ndarray
+    H_AA: np.ndarray
+    H_AB: np.ndarray
+    H_BB: np.ndarray
+    descent_gradient_A: np.ndarray
+    descent_gradient_B: np.ndarray
+    raw_energy_gradient: np.ndarray
+    raw_metric: np.ndarray
+    raw_direct_curvature: np.ndarray
+    joint_linear_solve_policy: str
+    supported_metric_whitening_provenance_id: str
+    selector_reason: str
+    source_summary_fingerprint: str = ""
+    cache_provenance_id: str = ""
+    schema: str = SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA
+
+    def __post_init__(self) -> None:
+        if str(self.schema) != SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA:
+            raise ValueError("SR-v3 outer-growth observation schema mismatch.")
+        state_fingerprint = _physical_fingerprint(
+            self.physical_state_fingerprint
+        )
+        object.__setattr__(
+            self, "physical_state_fingerprint", state_fingerprint
+        )
+        registry = tuple(
+            _text(value, field="registry identity") for value in self.registry
+        )
+        if len(set(registry)) != len(registry):
+            raise ValueError("registry identities must be unique.")
+        active_identities = tuple(
+            _text(value, field="active coordinate identity")
+            for value in self.active_coordinate_identities
+        )
+        mapping = tuple(
+            _strict_int(value, field="old_to_new_registry_mapping", minimum=0)
+            for value in self.old_to_new_registry_mapping
+        )
+        candidate_positions = tuple(
+            _strict_int(value, field="candidate_position", minimum=0)
+            for value in self.candidate_positions
+        )
+        if len(candidate_positions) != 1:
+            raise ValueError("SR-v3 outer growth requires exactly one singleton.")
+        if len(registry) != len(active_identities) + 1:
+            raise ValueError(
+                "registry must contain the full active chart plus one singleton."
+            )
+        if len(mapping) != len(active_identities):
+            raise ValueError(
+                "old_to_new_registry_mapping must cover every active coordinate."
+            )
+        partition = (*mapping, *candidate_positions)
+        if len(set(partition)) != len(registry) or set(partition) != set(
+            range(len(registry))
+        ):
+            raise ValueError(
+                "active mapping and singleton position must partition the registry."
+            )
+        candidate_identity = _candidate_identity(
+            self.candidate_coordinate_identity
+        )
+        candidate_position = candidate_positions[0]
+        if int(candidate_identity["position_id"]) != candidate_position:
+            raise ValueError(
+                "candidate identity position disagrees with the registry partition."
+            )
+
+        active_count = len(active_identities)
+        theta = _finite_vector(self.theta, size=len(registry), field="theta")
+        if not math.isclose(
+            float(theta[candidate_position]), 0.0, rel_tol=0.0, abs_tol=1.0e-12
+        ):
+            raise ValueError(
+                "same-ray outer growth requires a zero singleton amplitude."
+            )
+        G_AA = _finite_matrix(
+            self.G_AA,
+            shape=(active_count, active_count),
+            field="G_AA",
+            symmetric=True,
+        )
+        G_AB = _finite_matrix(
+            self.G_AB,
+            shape=(active_count, 1),
+            field="G_AB",
+            symmetric=False,
+        )
+        G_BB = _finite_matrix(
+            self.G_BB, shape=(1, 1), field="G_BB", symmetric=True
+        )
+        H_AA = _finite_matrix(
+            self.H_AA,
+            shape=(active_count, active_count),
+            field="H_AA",
+            symmetric=True,
+        )
+        H_AB = _finite_matrix(
+            self.H_AB,
+            shape=(active_count, 1),
+            field="H_AB",
+            symmetric=False,
+        )
+        H_BB = _finite_matrix(
+            self.H_BB, shape=(1, 1), field="H_BB", symmetric=True
+        )
+        g_A = _finite_vector(
+            self.descent_gradient_A,
+            size=active_count,
+            field="descent_gradient_A",
+        )
+        g_B = _finite_vector(
+            self.descent_gradient_B, size=1, field="descent_gradient_B"
+        )
+        raw_gradient = _finite_vector(
+            self.raw_energy_gradient,
+            size=len(registry),
+            field="raw_energy_gradient",
+        )
+        raw_metric = _finite_matrix(
+            self.raw_metric,
+            shape=(len(registry), len(registry)),
+            field="raw_metric",
+            symmetric=True,
+        )
+        raw_curvature = _finite_matrix(
+            self.raw_direct_curvature,
+            shape=(len(registry), len(registry)),
+            field="raw_direct_curvature",
+            symmetric=True,
+        )
+
+        expected_metric = np.zeros_like(raw_metric)
+        expected_metric[np.ix_(mapping, mapping)] = G_AA
+        expected_metric[np.ix_(mapping, candidate_positions)] = G_AB
+        expected_metric[np.ix_(candidate_positions, mapping)] = G_AB.T
+        expected_metric[np.ix_(candidate_positions, candidate_positions)] = G_BB
+        expected_curvature = np.zeros_like(raw_curvature)
+        expected_curvature[np.ix_(mapping, mapping)] = H_AA
+        expected_curvature[np.ix_(mapping, candidate_positions)] = H_AB
+        expected_curvature[np.ix_(candidate_positions, mapping)] = H_AB.T
+        expected_curvature[
+            np.ix_(candidate_positions, candidate_positions)
+        ] = H_BB
+        expected_gradient = np.zeros(len(registry), dtype=float)
+        expected_gradient[list(mapping)] = -np.asarray(g_A, dtype=float)
+        expected_gradient[list(candidate_positions)] = -np.asarray(
+            g_B, dtype=float
+        )
+        if not np.array_equal(raw_metric, expected_metric):
+            raise ValueError("raw_metric does not match the cached Gram blocks.")
+        if not np.array_equal(raw_curvature, expected_curvature):
+            raise ValueError(
+                "raw_direct_curvature does not match the cached Hessian blocks."
+            )
+        if not np.array_equal(raw_gradient, expected_gradient):
+            raise ValueError(
+                "raw_energy_gradient must be the negative SR descent gradient."
+            )
+
+        policy = _text(
+            self.joint_linear_solve_policy,
+            field="joint_linear_solve_policy",
+        )
+        if policy not in _SUPPORTED_WHITENING_POLICIES:
+            raise ValueError(
+                "joint_linear_solve_policy must use supported-metric whitening."
+            )
+        whitening_id = _text(
+            self.supported_metric_whitening_provenance_id,
+            field="supported_metric_whitening_provenance_id",
+        )
+        reason = _text(self.selector_reason, field="selector_reason")
+
+        source_payload = _source_summary_payload(
+            policy=policy,
+            whitening_provenance_id=whitening_id,
+            selector_reason=reason,
+            active_coordinate_identities=active_identities,
+            candidate_coordinate_identity=candidate_identity,
+            G_AA=G_AA,
+            G_AB=G_AB,
+            G_BB=G_BB,
+            H_AA=H_AA,
+            H_AB=H_AB,
+            H_BB=H_BB,
+            g_A=g_A,
+            g_B=g_B,
+        )
+        source_fingerprint = _canonical_hash(
+            HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA, source_payload
+        )
+        supplied_source = str(self.source_summary_fingerprint)
+        if supplied_source and supplied_source != source_fingerprint:
+            raise ValueError("source summary fingerprint mismatch.")
+        provenance_payload = {
+            "source_summary_fingerprint": source_fingerprint,
+            "physical_state_fingerprint": state_fingerprint,
+            "registry": list(registry),
+            "theta": theta.tolist(),
+            "old_to_new_registry_mapping": list(mapping),
+            "candidate_positions": list(candidate_positions),
+            "active_coordinate_identities": list(active_identities),
+            "candidate_coordinate_identity": _portable(candidate_identity),
+            "supported_metric_whitening_provenance_id": whitening_id,
+            "incremental_quantum_query_charge": dict(_ZERO_QUERY_CHARGE),
+        }
+        cache_provenance_id = _canonical_hash(
+            SR_V3_OUTER_CACHE_PROVENANCE_SCHEMA, provenance_payload
+        )
+        supplied_provenance = str(self.cache_provenance_id)
+        if supplied_provenance and supplied_provenance != cache_provenance_id:
+            raise ValueError("cache provenance ID mismatch.")
+
+        object.__setattr__(self, "registry", registry)
+        object.__setattr__(self, "theta", theta)
+        object.__setattr__(self, "old_to_new_registry_mapping", mapping)
+        object.__setattr__(self, "candidate_positions", candidate_positions)
+        object.__setattr__(
+            self, "active_coordinate_identities", active_identities
+        )
+        object.__setattr__(
+            self, "candidate_coordinate_identity", candidate_identity
+        )
+        for name, value in (
+            ("G_AA", G_AA),
+            ("G_AB", G_AB),
+            ("G_BB", G_BB),
+            ("H_AA", H_AA),
+            ("H_AB", H_AB),
+            ("H_BB", H_BB),
+            ("descent_gradient_A", g_A),
+            ("descent_gradient_B", g_B),
+            ("raw_energy_gradient", raw_gradient),
+            ("raw_metric", raw_metric),
+            ("raw_direct_curvature", raw_curvature),
+        ):
+            object.__setattr__(self, name, value)
+        object.__setattr__(self, "joint_linear_solve_policy", policy)
+        object.__setattr__(
+            self,
+            "supported_metric_whitening_provenance_id",
+            whitening_id,
+        )
+        object.__setattr__(self, "selector_reason", reason)
+        object.__setattr__(
+            self, "source_summary_fingerprint", source_fingerprint
+        )
+        object.__setattr__(self, "cache_provenance_id", cache_provenance_id)
+
+    @property
+    def candidate_position(self) -> int:
+        return int(self.candidate_positions[0])
+
+    @property
+    def candidate_energy_gradient(self) -> np.ndarray:
+        return _readonly(self.raw_energy_gradient[list(self.candidate_positions)])
+
+    @property
+    def incremental_quantum_query_charge(self) -> Mapping[str, int]:
+        return MappingProxyType(dict(_ZERO_QUERY_CHARGE))
+
+    @property
+    def source_primitive_ids(self) -> tuple[str, ...]:
+        """No new quantum primitive is created by the cache conversion."""
+
+        return ()
+
+    def outer_information_growth_kwargs(self) -> dict[str, Any]:
+        """Return the query-free arguments consumed by ``begin_same_ray_growth``."""
+
+        return {
+            "registry": tuple(self.registry),
+            "theta": np.asarray(self.theta, dtype=float).copy(),
+            "active_candidate_gram": np.asarray(self.G_AB, dtype=float).copy(),
+            "candidate_candidate_gram": np.asarray(self.G_BB, dtype=float).copy(),
+            "candidate_gradient": np.asarray(
+                self.candidate_energy_gradient, dtype=float
+            ).copy(),
+            "old_to_new_registry_mapping": tuple(
+                self.old_to_new_registry_mapping
+            ),
+            "candidate_positions": tuple(self.candidate_positions),
+            "cache_observation_provenance_ids": (
+                self.cache_provenance_id,
+            ),
+            "cache_observation_provenance_role": (
+                "query_free_cached_sr_v3_phase3_observation"
+            ),
+            # Cache provenance is carried by this observation and must not be
+            # reclassified as a newly executed estimator primitive.
+            "source_primitive_ids": (),
+            "direct_curvature_raw": np.asarray(
+                self.raw_direct_curvature, dtype=float
+            ).copy(),
+        }
+
+    def outer_information_active_growth_kwargs(
+        self,
+        *,
+        source_primitive_ids: Sequence[str],
+    ) -> dict[str, Any]:
+        """Return mixed-provenance blocks for active outer reuse.
+
+        The old--old metric and direct curvature are already owned by the
+        committed outer state.  Only the winning candidate cross/new blocks
+        and its differential are acquired at the unchanged ray.  Keeping this
+        API distinct from :meth:`outer_information_growth_kwargs` prevents an
+        active prediction from being mislabeled as a query-free authoritative
+        full SR-v3 geometry observation.
+        """
+
+        primitive_ids = tuple(
+            sorted({str(value).strip() for value in source_primitive_ids})
+        )
+        if not primitive_ids or any(not value for value in primitive_ids):
+            raise ValueError(
+                "active growth requires nonempty primitive identifiers for the "
+                "acquired candidate blocks."
+            )
+        return {
+            "registry": tuple(self.registry),
+            "theta": np.asarray(self.theta, dtype=float).copy(),
+            "active_candidate_gram": np.asarray(self.G_AB, dtype=float).copy(),
+            "candidate_candidate_gram": np.asarray(self.G_BB, dtype=float).copy(),
+            "candidate_gradient": np.asarray(
+                self.candidate_energy_gradient, dtype=float
+            ).copy(),
+            "old_to_new_registry_mapping": tuple(
+                self.old_to_new_registry_mapping
+            ),
+            "candidate_positions": tuple(self.candidate_positions),
+            "cache_observation_provenance_ids": (
+                self.cache_provenance_id,
+            ),
+            "cache_observation_provenance_role": (
+                "active_outer_reuse_predicted_old_acquired_candidate_blocks"
+            ),
+            "source_primitive_ids": primitive_ids,
+            "direct_curvature_active_candidate": np.asarray(
+                self.H_AB, dtype=float
+            ).copy(),
+            "direct_curvature_candidate_candidate": np.asarray(
+                self.H_BB, dtype=float
+            ).copy(),
+        }
+
+    def portable_payload(self, *, include_fingerprint: bool = True) -> dict[str, Any]:
+        payload = {
+            "schema": self.schema,
+            "physical_state_fingerprint": self.physical_state_fingerprint,
+            "registry": list(self.registry),
+            "theta": self.theta.tolist(),
+            "old_to_new_registry_mapping": list(
+                self.old_to_new_registry_mapping
+            ),
+            "candidate_positions": list(self.candidate_positions),
+            "active_coordinate_identities": list(
+                self.active_coordinate_identities
+            ),
+            "candidate_coordinate_identity": _portable(
+                self.candidate_coordinate_identity
+            ),
+            "G_AA": self.G_AA.tolist(),
+            "G_AB": self.G_AB.tolist(),
+            "G_BB": self.G_BB.tolist(),
+            "H_AA": self.H_AA.tolist(),
+            "H_AB": self.H_AB.tolist(),
+            "H_BB": self.H_BB.tolist(),
+            "descent_gradient_A": self.descent_gradient_A.tolist(),
+            "descent_gradient_B": self.descent_gradient_B.tolist(),
+            "raw_energy_gradient": self.raw_energy_gradient.tolist(),
+            "raw_metric": self.raw_metric.tolist(),
+            "raw_direct_curvature": self.raw_direct_curvature.tolist(),
+            "joint_linear_solve_policy": self.joint_linear_solve_policy,
+            "supported_metric_whitening_provenance_id": (
+                self.supported_metric_whitening_provenance_id
+            ),
+            "selector_reason": self.selector_reason,
+            "source_summary_fingerprint": self.source_summary_fingerprint,
+            "cache_provenance_id": self.cache_provenance_id,
+            "incremental_quantum_query_charge": dict(_ZERO_QUERY_CHARGE),
+            "query_ledger_registration_performed": False,
+        }
+        if include_fingerprint:
+            payload["observation_fingerprint"] = self.observation_fingerprint
+        return payload
+
+    @property
+    def observation_fingerprint(self) -> str:
+        return _canonical_hash(
+            SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA,
+            self.portable_payload(include_fingerprint=False),
+        )
+
+    def portable_telemetry(self) -> dict[str, Any]:
+        payload = {
+            "schema": SR_V3_OUTER_GROWTH_TELEMETRY_SCHEMA,
+            "source": SR_V3_CACHED_PHASE3_SOURCE,
+            "source_summary_fingerprint": self.source_summary_fingerprint,
+            "cache_provenance_id": self.cache_provenance_id,
+            "observation_fingerprint": self.observation_fingerprint,
+            "physical_state_fingerprint": self.physical_state_fingerprint,
+            "registry_dimension": len(self.registry),
+            "active_coordinate_count": len(self.active_coordinate_identities),
+            "candidate_coordinate_count": 1,
+            "candidate_position": self.candidate_position,
+            "registry": list(self.registry),
+            "old_to_new_registry_mapping": list(
+                self.old_to_new_registry_mapping
+            ),
+            "active_coordinate_identities": list(
+                self.active_coordinate_identities
+            ),
+            "candidate_coordinate_identity": _portable(
+                self.candidate_coordinate_identity
+            ),
+            "cache_observation_provenance_role": (
+                "query_free_cached_sr_v3_phase3_observation"
+            ),
+            "response_coordinate_scope": FULL_ACTIVE_PLUS_SINGLETON_SCOPE,
+            "joint_batch_context_mode": FULL_ANSATZ_JOINT_CONTEXT,
+            "geometry_mode": FULL_RESIDUAL_GRAM_HESSIAN_GEOMETRY,
+            "joint_linear_solve_policy": self.joint_linear_solve_policy,
+            "supported_metric_whitening_provenance_id": (
+                self.supported_metric_whitening_provenance_id
+            ),
+            "gradient_sign_conversion": (
+                "raw_energy_gradient_equals_negative_sr_descent_gradient"
+            ),
+            "incremental_quantum_query_charge": dict(_ZERO_QUERY_CHARGE),
+            "incremental_quantum_query_charge_total": 0,
+            "query_ledger_registration_performed": False,
+            "classical_cache_conversion_only": True,
+        }
+        payload["telemetry_fingerprint"] = _canonical_hash(
+            SR_V3_OUTER_GROWTH_TELEMETRY_SCHEMA, payload
+        )
+        return payload
+
+    @property
+    def telemetry(self) -> Mapping[str, Any]:
+        return _immutable(self.portable_telemetry())
+
+    def validate_portable_telemetry(self, payload: Mapping[str, Any]) -> None:
+        supplied = dict(payload)
+        fingerprint = str(supplied.pop("telemetry_fingerprint", ""))
+        if not fingerprint:
+            raise ValueError("portable telemetry is missing its fingerprint.")
+        expected_fingerprint = _canonical_hash(
+            SR_V3_OUTER_GROWTH_TELEMETRY_SCHEMA, supplied
+        )
+        if fingerprint != expected_fingerprint:
+            raise ValueError("portable telemetry fingerprint mismatch.")
+        if {**supplied, "telemetry_fingerprint": fingerprint} != self.portable_telemetry():
+            raise ValueError("portable telemetry does not describe this observation.")
+
+    @classmethod
+    def from_portable_payload(
+        cls, payload: Mapping[str, Any]
+    ) -> "SRV3OuterGrowthObservation":
+        values = dict(payload)
+        supplied_fingerprint = str(values.pop("observation_fingerprint", ""))
+        if not supplied_fingerprint:
+            raise ValueError("portable observation is missing its fingerprint.")
+        charge = values.pop("incremental_quantum_query_charge", None)
+        if charge != _ZERO_QUERY_CHARGE:
+            raise ValueError("portable observation has nonzero or invalid query charge.")
+        ledger_registration = values.pop(
+            "query_ledger_registration_performed", None
+        )
+        if ledger_registration is not False:
+            raise ValueError(
+                "portable observation must certify no query-ledger registration."
+            )
+        observation = cls(**values)
+        if supplied_fingerprint != observation.observation_fingerprint:
+            raise ValueError("portable observation fingerprint mismatch.")
+        return observation
+
+
+def build_sr_v3_outer_growth_observation(
+    *,
+    phase3_summary: Mapping[str, Any],
+    registry: Sequence[str],
+    old_to_new_registry_mapping: Sequence[int],
+    theta: Sequence[float],
+    physical_state_fingerprint: str,
+    require_feasible_model: bool = True,
+) -> SRV3OuterGrowthObservation:
+    """Validate and freeze one cached authoritative SR-v3 singleton model.
+
+    Shadow registration requires an ordinarily feasible SR-v3 model.  Active
+    reuse may also consume the measured blocks of an admitted all-infeasible
+    fallback singleton: feasibility governs selector benefit, whereas the
+    finite raw Gram/Hessian blocks remain the authoritative same-ray geometry.
+    """
+
+    summary = dict(phase3_summary)
+    for field, expected in (
+        ("schema", HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA),
+        ("scope", HISTORICAL_PHASE3_WHITENING_SCOPE),
+        ("authority", HISTORICAL_PHASE3_AUTHORITY),
+        ("joint_batch_context_mode", FULL_ANSATZ_JOINT_CONTEXT),
+        ("geometry_mode", FULL_RESIDUAL_GRAM_HESSIAN_GEOMETRY),
+    ):
+        if str(summary.get(field, "")) != expected:
+            raise ValueError(f"phase3_summary {field} must be {expected}.")
+    response_scope = summary.get("phase3_response_coordinate_scope")
+    if response_scope is not None and str(response_scope) != (
+        FULL_ACTIVE_PLUS_SINGLETON_SCOPE
+    ):
+        raise ValueError(
+            "phase3_summary must use full_active_plus_singleton_v1 coordinates."
+        )
+    if bool(require_feasible_model) and not bool(
+        summary.get("feasible", False)
+    ):
+        raise ValueError("phase3_summary must be a feasible winning model.")
+    reason = _text(summary.get("reason", ""), field="phase3_summary reason")
+
+    policy = _text(
+        summary.get("joint_linear_solve_policy_effective", ""),
+        field="joint_linear_solve_policy_effective",
+    )
+    if policy not in _SUPPORTED_WHITENING_POLICIES:
+        raise ValueError(
+            "phase3_summary must use a supported-metric whitening policy."
+        )
+    recorded_policy = _text(
+        summary.get("supported_metric_whitening_policy", ""),
+        field="supported_metric_whitening_policy",
+    )
+    if recorded_policy != policy:
+        raise ValueError(
+            "phase3_summary whitening policy disagrees with its effective solve."
+        )
+    whitening_provenance_id = _text(
+        summary.get("supported_metric_whitening_provenance_id", ""),
+        field="supported_metric_whitening_provenance_id",
+    )
+
+    active_raw = summary.get("active_coordinate_identities")
+    candidate_raw = summary.get("batch_coordinate_identities")
+    if not isinstance(active_raw, Sequence) or isinstance(active_raw, (str, bytes)):
+        raise ValueError("phase3_summary active coordinate identities are missing.")
+    if not isinstance(candidate_raw, Sequence) or isinstance(
+        candidate_raw, (str, bytes)
+    ):
+        raise ValueError("phase3_summary batch coordinate identities are missing.")
+    active_identities = tuple(
+        _text(value, field="active coordinate identity") for value in active_raw
+    )
+    if len(candidate_raw) != 1:
+        raise ValueError("phase3_summary must contain exactly one singleton identity.")
+    candidate_identity = _candidate_identity(candidate_raw[0])
+    active_count = len(active_identities)
+    for count_field, expected in (
+        ("active_coordinate_count", active_count),
+        ("batch_coordinate_count", 1),
+        ("selected_count", 1),
+    ):
+        if count_field in summary and _strict_int(
+            summary[count_field], field=count_field, minimum=0
+        ) != expected:
+            raise ValueError(f"phase3_summary {count_field} is inconsistent.")
+    selected_labels = summary.get("selected_labels")
+    if selected_labels is not None and list(selected_labels) != [
+        str(candidate_identity["candidate_label"])
+    ]:
+        raise ValueError("phase3_summary selected_labels are inconsistent.")
+    for field in ("candidate_label", "candidate_pool_index", "position_id"):
+        if field in summary:
+            expected = candidate_identity[field]
+            supplied = (
+                str(summary[field])
+                if field == "candidate_label"
+                else _strict_int(summary[field], field=field, minimum=0)
+            )
+            if supplied != expected:
+                raise ValueError(f"phase3_summary {field} is inconsistent.")
+
+    mapping = tuple(
+        _strict_int(value, field="old_to_new_registry_mapping", minimum=0)
+        for value in old_to_new_registry_mapping
+    )
+    registry_tuple = tuple(str(value) for value in registry)
+    if len(registry_tuple) != active_count + 1:
+        raise ValueError(
+            "registry must contain the full active chart plus one singleton."
+        )
+    if len(mapping) != active_count or len(set(mapping)) != active_count:
+        raise ValueError(
+            "old_to_new_registry_mapping must map every active coordinate once."
+        )
+    if any(index >= len(registry_tuple) for index in mapping):
+        raise ValueError("old_to_new_registry_mapping contains an invalid position.")
+    complement = tuple(
+        sorted(set(range(len(registry_tuple))) - set(mapping))
+    )
+    if len(complement) != 1:
+        raise ValueError(
+            "old_to_new_registry_mapping must leave exactly one singleton position."
+        )
+
+    G_AA = _finite_matrix(
+        summary.get("G_AA_raw"),
+        shape=(active_count, active_count),
+        field="G_AA_raw",
+        symmetric=True,
+    )
+    G_AB = _finite_matrix(
+        summary.get("G_AB_raw"),
+        shape=(active_count, 1),
+        field="G_AB_raw",
+        symmetric=False,
+    )
+    G_BB = _finite_matrix(
+        summary.get("G_BB_raw"),
+        shape=(1, 1),
+        field="G_BB_raw",
+        symmetric=True,
+    )
+    H_AA = _finite_matrix(
+        summary.get("H_AA_raw"),
+        shape=(active_count, active_count),
+        field="H_AA_raw",
+        symmetric=True,
+    )
+    H_AB = _finite_matrix(
+        summary.get("H_AB_raw"),
+        shape=(active_count, 1),
+        field="H_AB_raw",
+        symmetric=False,
+    )
+    H_BB = _finite_matrix(
+        summary.get("H_BB_raw"),
+        shape=(1, 1),
+        field="H_BB_raw",
+        symmetric=True,
+    )
+    g_A = _finite_vector(
+        summary.get("g_A"), size=active_count, field="g_A"
+    )
+    g_B = _finite_vector(summary.get("g_B"), size=1, field="g_B")
+
+    dimension = active_count + 1
+    raw_metric = np.zeros((dimension, dimension), dtype=float)
+    raw_metric[np.ix_(mapping, mapping)] = G_AA
+    raw_metric[np.ix_(mapping, complement)] = G_AB
+    raw_metric[np.ix_(complement, mapping)] = G_AB.T
+    raw_metric[np.ix_(complement, complement)] = G_BB
+    raw_curvature = np.zeros((dimension, dimension), dtype=float)
+    raw_curvature[np.ix_(mapping, mapping)] = H_AA
+    raw_curvature[np.ix_(mapping, complement)] = H_AB
+    raw_curvature[np.ix_(complement, mapping)] = H_AB.T
+    raw_curvature[np.ix_(complement, complement)] = H_BB
+    raw_gradient = np.zeros(dimension, dtype=float)
+    raw_gradient[list(mapping)] = -np.asarray(g_A, dtype=float)
+    raw_gradient[list(complement)] = -np.asarray(g_B, dtype=float)
+
+    return SRV3OuterGrowthObservation(
+        physical_state_fingerprint=physical_state_fingerprint,
+        registry=registry_tuple,
+        theta=np.asarray(theta, dtype=float),
+        old_to_new_registry_mapping=mapping,
+        candidate_positions=complement,
+        active_coordinate_identities=active_identities,
+        candidate_coordinate_identity=candidate_identity,
+        G_AA=G_AA,
+        G_AB=G_AB,
+        G_BB=G_BB,
+        H_AA=H_AA,
+        H_AB=H_AB,
+        H_BB=H_BB,
+        descent_gradient_A=g_A,
+        descent_gradient_B=g_B,
+        raw_energy_gradient=raw_gradient,
+        raw_metric=raw_metric,
+        raw_direct_curvature=raw_curvature,
+        joint_linear_solve_policy=policy,
+        supported_metric_whitening_provenance_id=whitening_provenance_id,
+        selector_reason=reason,
+    )
+
+
+__all__ = [
+    "FULL_ACTIVE_PLUS_SINGLETON_SCOPE",
+    "SRV3OuterGrowthObservation",
+    "SR_V3_CACHED_PHASE3_SOURCE",
+    "SR_V3_OUTER_CACHE_PROVENANCE_SCHEMA",
+    "SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA",
+    "SR_V3_OUTER_GROWTH_TELEMETRY_SCHEMA",
+    "build_sr_v3_outer_growth_observation",
+]

@@ -1,0 +1,38 @@
+{
+  "additive_update": true,
+  "base_page_count": 11,
+  "final_page_count": 12,
+  "outputs": {
+    "final_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723.pdf",
+      "sha256": "031cc24863bdf0e49cb0971d582bae825a1532e9417f1f53bc2d166e48a37db8"
+    }
+  },
+  "schema": "paper_i_hh_singleton_plateau_page12_restoration_v1",
+  "sources": {
+    "backup_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_pre_singleton_plateau_page12_restore_20260727.pdf",
+      "sha256": "366c8189ddc273f74026a55250499e2ae02c724162b077de64d64aea29340991"
+    },
+    "page_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_plateau_insertion_batch_page12.pdf",
+      "sha256": "00bbe209f0e07e4c14235915f47dbf3f37b10469a10266ba7b33ad5229fc9ba0"
+    }
+  },
+  "validation": {
+    "preserved_page_content_sha256": [
+      "f8d70d1e7b4524c42490a6d014e67d954c2f9fe44f5edf70054a063564bc669b",
+      "f3252d099a51e01af3ec1bf13030f454c7ac439c373ea95e8ddbf0b2227934a2",
+      "746a0cb62fbda7e8a1d28596644e4aa8c0fe209fd3bf8a350c33ee3a2e83e9b8",
+      "f560a6b27b88fbaf57d8afd1f58f34c8856fbcd83b350120449dc2a8bcd4e595",
+      "ffd2bf324f160a635e00e383902b0717ee78c1d2310334ed331042bde78415ee",
+      "0dab23bf3df17d971858d140f399b46013599bf69604c23286a5fff4a60ed2ae",
+      "b97fd022c37da375f5216640ce4514f225ad944955d0e37d73b80caffdfa257e",
+      "e3c068ba27dc9fe8e71fe6891f9f620deb93e5e72645872583f18800d17db2dd",
+      "e7b87575b937a428ffc3e78e377770142e621872ab1db9f5e3ca7bcab1e8545b",
+      "7d14970c3a5d8c20e7bf720f3d350c0ed8edd4215935a6378decfe734cb1dbf9",
+      "1137f73eb8f3a94b038fd378d3de55b51b29ee90174f0e20c4516b2dd4163f1c"
+    ],
+    "restored_page_content_sha256": "1137f73eb8f3a94b038fd378d3de55b51b29ee90174f0e20c4516b2dd4163f1c"
+  }
+}

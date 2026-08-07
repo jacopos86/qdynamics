@@ -1,0 +1,56 @@
+{
+  "schema": "paper_i_hh_sr_snake_strong_strong_r45_chtc_submission_receipt_v1",
+  "recorded_utc": "2026-07-14T01:07:19Z",
+  "submission": {
+    "cluster_id": 8778362,
+    "proc_id": 0,
+    "job_batch_name": "paper-i-hh-sr-ss-r45-20260713-v1",
+    "submit_host": "ap2001",
+    "initial_condor_job_status_code": 1,
+    "initial_condor_job_status": "IDLE",
+    "initial_condor_q_record": "8778362 0 paper-i-hh-sr-ss-r45-20260713-v1 1 undefined",
+    "job_count": 1,
+    "remote_dry_run_passed": true,
+    "remote_duplicate_batch_check_passed": true
+  },
+  "remote_layout": {
+    "checkout_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "bundle_path": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc",
+    "output_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc/raw_outputs/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/strong_strong",
+    "compressed_result_transfer": "raw_outputs/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/strong_strong_transfer.tar.gz"
+  },
+  "source_lock": {
+    "source_archive_sha256": "f591f4a5296ac2ac8e3b255e41d1ffd8267c905feb0be9992ed5d0895c1c367b",
+    "source_command_sha256": "3bb011ad5a24c92c5b4f935b707453f53c45eede4e7e5146b41c0b2e88db8e9e",
+    "source_normalized_manifest_sha256": "e1f839913cff95a2326c4dff66941c919c85fa38cec9389fc9efc9461949c69f",
+    "adapt_pipeline_sha256": "fa4173e13bbe74dfee24bcbde185ff7c2a4f249a0194e64ae69da0feb79f6703",
+    "cli_config_sha256": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+    "container_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "uploaded_bundle_package_sha256": "7272552204c9a829d0051623b46c7d26f13cc194cd60ae33792da1477278f7ca"
+  },
+  "local_duplicate_prevention": {
+    "queue_supervisor_pid": 66647,
+    "queue_supervisor_state": "SIGSTOP-paused",
+    "reason": "prevent the pending local strong-strong job from launching after the same job was offloaded to CHTC",
+    "weak_strong_worker_pid": 66697,
+    "intermediate_strong_worker_pid": 66698,
+    "active_workers_modified": false,
+    "resume_supervisor_automatically": false
+  },
+  "resource_request": {
+    "cpus": 4,
+    "memory_mb": 32768,
+    "disk_mb": 61440,
+    "max_runtime_seconds": 259200
+  },
+  "transfer_policy": {
+    "mode": "single_compressed_archive_on_exit_or_evict",
+    "reason": "CHTC home quota was approximately 99.3 percent used and no staging allocation was available",
+    "uncompressed_result_tree_transferred_directly": false
+  },
+  "monitoring_policy": {
+    "continuous_polling": false,
+    "scheduled_check_interval_minutes": 30,
+    "automation_id": "check-paper-i-route-4-round45-queue"
+  }
+}

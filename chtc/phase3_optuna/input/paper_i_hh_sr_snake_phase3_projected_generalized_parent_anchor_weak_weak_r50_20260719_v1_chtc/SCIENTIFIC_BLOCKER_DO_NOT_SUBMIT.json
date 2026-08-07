@@ -1,0 +1,12 @@
+{
+  "schema": "paper_i_hh_sr_scientific_submission_blocker_v1",
+  "bundle_id": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+  "status": "do_not_submit",
+  "observed_selection_mode": "phase2_raw/eps_grad_suppressed_continue",
+  "observed_phase3_response_executed": false,
+  "observed_all_energy_models_infeasible_fallback_fired": false,
+  "required_route_contract": "full_active_plus_singleton_phase3_response_every_round",
+  "reason": "The frozen source can bypass Phase III through a Phase-II/raw-gradient suppressed-continuation path. Missing supported rank on those rounds is not an all-energy-models-infeasible novelty-fallback receipt and cannot be waived by validation-only plumbing.",
+  "required_decision": "Either change and rerun the scientific route so Phase III is live on every controller round, or explicitly redefine the route identity and evidence contract to permit Phase-II/suppressed-continuation rounds.",
+  "submission_performed": false
+}

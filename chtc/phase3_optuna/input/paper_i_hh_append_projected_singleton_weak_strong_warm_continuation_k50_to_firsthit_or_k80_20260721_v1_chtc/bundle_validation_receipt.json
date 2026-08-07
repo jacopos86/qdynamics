@@ -1,0 +1,20 @@
+{
+  "base_S_alg": 1276060.0,
+  "base_result_member_sha256": "38531e74e1beb25b11e497b1ed23cae0cca4c820327c19e1da21b2d8a5091a6e",
+  "base_transfer_archive_sha256": "e6be4d4418d116d05a668c2dbfda6a13523ae7893bb555e003883b64739ee467",
+  "bundle_id": "paper_i_hh_append_projected_singleton_weak_strong_warm_continuation_k50_to_firsthit_or_k80_20260721_v1_chtc",
+  "created_utc": "2026-07-21T21:23:38+00:00",
+  "job_manifest_sha256": "184eb28fcb29784e0143e4be2762bd4170f00bb093492ae6e3f3a61594c92124",
+  "max_total_iterations": 80,
+  "queue_rows": 1,
+  "remote_submission_performed": false,
+  "remote_upload_performed": false,
+  "requirements_false": true,
+  "schema": "paper_i_hh_append_warm_continuation_bundle_validation_v1",
+  "source_archive_sha256": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+  "source_prefix_identity_sha256": "190c782d30d695d938de5390953eb4b2d05494b572bbcdaef57b159fbd8166c7",
+  "status": "pass_local_only",
+  "target_error": 0.0002,
+  "unresolved_blocker": "exact remote-image preflight and review of the narrow stop-policy patch",
+  "warm_start_state_sha256": "bf01bfb76549df9aff7cd03fb187b8224ff5f9e920a320eb887db4ad6afd58b6"
+}

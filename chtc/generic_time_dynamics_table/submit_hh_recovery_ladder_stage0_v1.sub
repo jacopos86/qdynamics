@@ -1,0 +1,20 @@
+universe = vanilla
+executable = chtc/generic_time_dynamics_table/run_task_apptainer.sh
+arguments = $(record_id) chtc/generic_time_dynamics_table/input/hh_recovery_ladder_records_v1.tsv
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/generic_time_dynamics_table, chtc/time_dynamics_optuna, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/holstein-hh-recovery-ladder-stage0-v1.$(Cluster).$(Process).log
+output = logs/holstein-hh-recovery-ladder-stage0-v1.$(Cluster).$(Process).out
+error = logs/holstein-hh-recovery-ladder-stage0-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 12GB
+request_disk = 40GB
++MaxRuntime = 28800
++JobBatchName = "holstein-hh-recovery-ladder-stage0-v1"
+environment = "GENERIC_TD_TABLE_RECORDS_PATH=chtc/generic_time_dynamics_table/input/hh_recovery_ladder_records_v1.tsv"
+queue record_id from chtc/generic_time_dynamics_table/input/hh_recovery_ladder_stage0_record_ids_v1.txt

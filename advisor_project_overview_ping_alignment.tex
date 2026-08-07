@@ -1,0 +1,330 @@
+\documentclass[11pt]{article}
+
+\usepackage[left=0.82in,right=0.82in,top=0.72in,bottom=0.78in]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{programblue}{HTML}{183B56}
+\definecolor{programteal}{HTML}{176B6B}
+\definecolor{softblue}{HTML}{EDF4F8}
+\definecolor{softgray}{HTML}{F3F4F5}
+\definecolor{statusgreen}{HTML}{1F6A43}
+\definecolor{statusamber}{HTML}{8A5B00}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=programblue,
+  urlcolor=programteal
+}
+\setlist[itemize]{leftmargin=1.25em,itemsep=2pt,topsep=4pt}
+\setlist[enumerate]{leftmargin=1.45em,itemsep=3pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\renewcommand{\arraystretch}{1.14}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small First-principles open dynamics}
+\rhead{\small Repository overview}
+\cfoot{\small \thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\newcommand{\implemented}{\textcolor{statusgreen}{\textbf{Implemented and internally verified}}}
+\newcommand{\fixturevalidated}{\textcolor{statusamber}{\textbf{Fixture-validated}}}
+\newcommand{\proposed}{\textcolor{programblue}{\textbf{Proposed}}}
+\newcommand{\independent}{\textcolor{statusamber}{\textbf{Independent and unreviewed}}}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries\color{programblue}
+  Repository Alignment with the Ping Group's\\[2pt]
+  First-Principles Open-Dynamics Program}
+
+  \vspace{6pt}
+  {\large Scientific direction, implemented first slice, and collaboration gates}
+
+  \vspace{5pt}
+  {\small August 2026}
+\end{center}
+
+\vspace{4pt}
+\noindent\colorbox{softblue}{%
+  \parbox{0.965\linewidth}{%
+  \textbf{Decision.} I have reorganized the repository around a
+  source-anchored benchmark for equal-time non-Markovian electron--phonon
+  dynamics and a future first-principles interchange layer. Quantum algorithms
+  now enter as downstream, falsifiable selected-mode benchmarks: ADAPT-VQE for
+  stationary state preparation, adaptive McLachlan for explicit selected-mode
+  time evolution, and QSE for spectra or response subspaces. They are not
+  presented as replacements for first-principles density-matrix dynamics.}}
+
+\section*{1. Scientific center: equal-time non-Markovian electron--phonon dynamics}
+
+The immediate scientific anchor is the first-principles density-matrix program
+described by Simoni, Riva, and Ping: electronic and phonon structure;
+interaction matrix elements; and Markovian or non-Markovian density-matrix
+propagation.\footnote{J.~Simoni, G.~Riva, and Y.~Ping,
+\href{https://arxiv.org/html/2504.17936v2}{\emph{First-principles open quantum
+dynamics for solids based on density-matrix formalism}} (2025).}
+The new equal-time formulation evolves the electronic one-body density matrix
+\(\rho\), coherent phonon amplitudes \(B\), normal and anomalous phonon
+fluctuations \(N\) and \(A\), and connected electron--phonon correlations
+\(C\).\footnote{G.~Riva, J.~Simoni, and Y.~Ping,
+\href{https://arxiv.org/html/2606.22233v1}{\emph{Open-quantum-system theory of
+non-Markovian electron--phonon dynamics}} (2026).}
+
+The repository already contained two useful ends of a validation hierarchy:
+an explicit truncated Holstein-dimer propagator and an independent
+31-real-coordinate implementation of the complete two-site matrix variables.
+The first new integration layer now places solver outputs in the common object
+\[
+\mathcal T=\{t_j,\rho(t_j);\ B(t_j),N(t_j),A(t_j),C(t_j);\
+\text{method, units, conventions, provenance}\}.
+\]
+Only available moments are present. Missing collision or fluctuation physics is
+not represented by zeros.
+
+\textbf{Claim boundary.} The public v1 arXiv archive does not contain the
+supplement identified in the article as giving the spin-reduced dimer
+equations, and it contains no numerical dataset. I therefore describe this as
+a \emph{source-anchored independent invariant benchmark}, not a reproduction
+of the authors' implementation or curves. The representability and closure
+diagnoses are my independent work; Gabriele, Jacopo, and Professor Ping have
+not reviewed or endorsed them.
+
+\section*{2. Implemented first slice}
+
+\begin{tabular}{p{0.23\linewidth}p{0.47\linewidth}p{0.20\linewidth}}
+\toprule
+Object & Concrete behavior & Status \\
+\midrule
+Reduced trajectory & Required electronic 1-RDM and basis; optional coherent,
+normal, anomalous, and connected moments; explicit units and method identity.
+& \implemented \\
+\addlinespace
+Reference isolation & Exact trajectories are labeled reporting-only and expose
+neither wavefunctions nor Hamiltonians to adaptive decisions.
+& \implemented \\
+\addlinespace
+Diagnostics & Structural errors raise; Hermiticity, trace, eigenvalue, and
+phonon-symmetry failures are reported without clipping, projection, or sample
+deletion.
+& \implemented \\
+\addlinespace
+Dimer adapter & Field-wise reuse of the existing exact, coherent-only, and
+31-coordinate implementations on one sampled grid and common initial reduced
+moments.
+& \implemented \\
+\addlinespace
+Protocol record & Paper-stated parameters are stored separately from the
+repository's cutoff, integration, initialization, tolerance, and Fourier
+choices.
+& \fixturevalidated \\
+\bottomrule
+\end{tabular}
+
+The first implementation is covered by 12 focused tests. An additional 19
+unchanged tests verify the underlying matrix-coordinate parity and exact driven
+reference. This establishes an internally verified interoperability seam; it
+does not establish external or real-material validation.
+
+\begin{center}
+\fbox{\begin{minipage}{0.93\linewidth}
+\centering
+\textbf{Implemented comparison path}\\[4pt]
+truncated exact reference (offline only)\quad|\quad coherent-only dynamics
+\quad|\quad independent equal-time dynamics\\[3pt]
+\(\Downarrow\)\\[-1pt]
+common reduced moments, polarization, declared Hann spectrum, and physicality
+diagnostics
+\end{minipage}}
+\end{center}
+
+\section*{3. How the existing projects now serve this program}
+
+The earlier projects become capabilities within the open-dynamics program
+instead of separate claims competing for attention.
+
+\begin{tabular}{p{0.17\linewidth}p{0.28\linewidth}p{0.44\linewidth}}
+\toprule
+Capability & Scientific role & Direct group-facing use \\
+\midrule
+Resource-aware ADAPT-VQE & Stationary correlated-state construction by
+geometry- and cost-aware candidate-position selection. & Prepare a compact
+initial state for a selected electronic-plus-phonon active problem. It is not a
+dynamics method. \\
+\addlinespace
+Adaptive McLachlan & Real-time maintenance of a variational manifold with
+append, prune, and exchange updates. & Propagate an explicit selected-mode
+supersystem and emit the same reduced moments as the classical benchmark. \\
+\addlinespace
+QSE and response & Excited or response subspaces and spectral observables. &
+Supply response diagnostics or selected excited-state information; do not
+identify QSE automatically with full real-time propagation. \\
+\addlinespace
+Molecular vibronics & Psi4-derived water fixture and a matched PySCF
+electronic/harmonic cross-check. & Test the active-problem interface away from
+the analytic dimer. Electron--phonon derivatives and full dynamics still need
+separate validation. \\
+\addlinespace
+Representability analysis & Joint electronic--bosonic Gram diagnostics and
+offline closure comparisons. & Diagnose when an independently implemented
+reduced trajectory leaves necessary physicality cones; no claim about a defect
+in the published theory. \\
+\bottomrule
+\end{tabular}
+
+\section*{4. The quantum-computing question}
+
+The near-term quantum question is not whether a circuit can replace the full
+FPDMD workflow. It is whether a selected explicit electron--phonon subsystem
+can provide a controlled benchmark or closure diagnostic for non-Markovian
+dynamics. The proposed data flow is
+\[
+\text{material data}
+\longrightarrow \text{selected electrons and modes}
+\longrightarrow
+\begin{cases}
+\text{ADAPT-VQE initial state},\\
+\text{adaptive McLachlan trajectory},\\
+\text{QSE response information},
+\end{cases}
+\longrightarrow \mathcal T.
+\]
+The output is not merely an energy. It is the common set of measured
+electronic, phononic, and connected moments, along with circuit depth,
+measurement work, phonon truncation, and uncertainty.
+
+The classical baselines are explicit truncated evolution, coherent-only
+dynamics, and the equal-time non-Markovian model. Exact reference data remain
+unavailable to operator selection, generator admission, pruning, stopping, and
+regularization. A quantum lane should advance beyond exact-solvable fixtures
+only if shared moments agree within joint numerical and sampling uncertainty,
+improve on the coherent-only baseline at preregistered held-out points, and
+survive timestep and phonon-cutoff refinement. Passing this gate supports a
+larger benchmark; it is not evidence of quantum advantage.
+
+\section*{5. First-principles and group-native interfaces}
+
+\subsection*{5.1 Portable material bundle}
+
+The group's public FPDMD workflow is currently native to JDFTx and a modified
+FeynWann initializer that produces \texttt{ldbd\_data}.\footnote{
+\href{https://github.com/Ping-Group-UCSC/FPDMD_development}{Public FPDMD code}
+and the
+\href{https://github.com/Ping-Group-UCSC/Tutorials/blob/master/DMD-workflows/GaAs-DMD-example.md}{public GaAs workflow}.}
+The legacy binary directory is not a safe external contract: public code
+inspection shows native binary layouts whose shapes and interpretation depend
+on positional metadata and runtime choices. The first group-native interface
+should therefore be a producer-side portable FeynWann export, not a guessed
+binary parser.
+
+The proposed neutral bundle carries electronic energies and occupations,
+phonon frequencies and eigenvectors, full complex electron--phonon matrix
+elements, mesh weights, \(k+q\) maps, units, gauge/basis conventions, symmetry
+expansion, zero-point and finite-grid normalization, active windows, and
+software/input hashes. Quantum ESPRESSO, DFPT, Wannier90, and EPW can become
+alternate producers of the same contract. Full complex couplings require a
+version-pinned exporter; printed coupling magnitudes cannot support coherent
+phase-sensitive dynamics.
+
+\textbf{Go gate:} implement this bundle against a genuine small producer-side
+fixture with complete provenance. Until then the interface remains proposed
+and is not called FPDMD-, FeynWann-, QE-, or EPW-compatible.
+
+\subsection*{5.2 INQ and coherent real-time observables}
+
+Jacopo and collaborators' spin-noncollinear real-time TDDFT implementation in
+INQ supplies a natural coherent baseline and observable source.\footnote{
+J.~Simoni et al.,
+\href{https://arxiv.org/abs/2506.21908}{\emph{Spin non-Collinear Real-Time
+Time-Dependent Density-Functional Theory and Implementation in the Modern
+GPU-Accelerated INQ Code}} (2025).}
+A future adapter would ingest declared time grids, fields, current,
+polarization, spin, or magnetization traces into the common trajectory
+comparison. It would not be described as an open-system TDDFT or as the
+equal-time collision theory unless an environmental treatment is actually
+present.
+
+\textbf{Go gate:} add the adapter from a versioned, producer-generated trace
+with basis, field, unit, and observable conventions.
+
+\section*{6. Additional public workstreams: narrow future seams}
+
+These are possible later extensions of the same contracts, not commitments or
+claims of collaboration.
+
+\begin{tabular}{p{0.22\linewidth}p{0.25\linewidth}p{0.42\linewidth}}
+\toprule
+Public workstream & Publicly associated researchers & Narrow repository seam \\
+\midrule
+Exciton--phonon and radiative dynamics & Gabriele Riva, Jacopo Simoni, Chunhao
+Guo (\href{https://arxiv.org/abs/2504.18071}{source}) &
+Exciton-basis energies, dipoles, and exciton--phonon couplings feeding the same
+selected-mode and reduced-trajectory contracts. \\
+\addlinespace
+Magnon--phonon coupling & Wuzhang Fang, Jacopo Simoni, Yuan Ping
+(\href{https://arxiv.org/abs/2501.14239}{source}) & Magnon bands,
+phonon modes, and exchange-derivative couplings for a small avoided-crossing
+fixture before any open-magnon claim. \\
+\addlinespace
+Real-time photoresponse and chirality & Jacopo Simoni, Junting Yu, Shihao Tu,
+and public coauthors
+(\href{https://arxiv.org/abs/2601.01059}{photoresponse};
+\href{https://arxiv.org/abs/2504.11596}{chirality}) & Current,
+polarization, harmonic, and angular-momentum traces under explicit field and
+Fourier conventions. \\
+\addlinespace
+Spin defects and decoherence & Ping-group defect and transport workstreams &
+Ingest computed transition or relaxation data into a few-mode coherence model;
+do not recreate the group's specialized first-principles tools. \\
+\bottomrule
+\end{tabular}
+
+\section*{7. Near-term milestones and concrete discussion requests}
+
+\begin{enumerate}
+  \item \textbf{Completed now:} common reduced trajectories, source/repository
+  provenance separation, exact-reference isolation, the three-level dimer
+  adapter, common observables, and focused tests.
+  \item \textbf{Next validated fixture:} obtain one small, sanitized portable
+  export from FeynWann, or a pinned QE/EPW export with full complex couplings,
+  inputs, and hashes.
+  \item \textbf{First active problem:} agree on a small material, band window,
+  and one or two physically important phonon modes; establish convergence
+  against the unselected modes before attaching a residual bath.
+  \item \textbf{Quantum falsification study:} compile the same active problem
+  into ADAPT-VQE and adaptive McLachlan, emit common moments, and compare
+  offline under predeclared error and resource metrics.
+\end{enumerate}
+
+The most useful immediate discussion with Professor Ping and Jacopo would be:
+(i) whether the common dimer benchmark is a useful validation harness;
+(ii) which producer and smallest dataset should define the first portable
+material fixture; (iii) which selected phonon modes and observables would be
+scientifically meaningful; and (iv) whether the missing spin-reduced
+supplement or a reference trajectory can be made available for a true parity
+test.
+
+\section*{8. Status language for any future summary}
+
+\begingroup
+\small
+\setlength{\parskip}{2pt}
+\implemented: supported by named internal tests; no external validation is
+implied.\par
+\fixturevalidated: demonstrated only on the declared fixture and conventions.\par
+\independent: not reviewed, validated, or endorsed by the Ping group.\par
+\proposed: specification or experiment only.\par
+\textbf{Collaborator-validated}: a supplied artifact passes a predeclared test,
+and the collaborator approves that specific compatibility description.
+\endgroup
+
+\end{document}

@@ -1,0 +1,283 @@
+{
+  "build_asset_restores": [
+    {
+      "destination": "MATH/paper_details/figures/static_adapt_selector_flow_attached.png",
+      "destination_sha256": "2d33cb0ef97858486b43c543bca6d6df1d4f170743a8940cd76ab143a03177b0",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/static_adapt_selector_flow_attached.png",
+      "source_sha256": "2d33cb0ef97858486b43c543bca6d6df1d4f170743a8940cd76ab143a03177b0"
+    },
+    {
+      "destination": "MATH/paper_details/figures/paper_i_hubbard_weak_supportive_diagnostic_20260610.png",
+      "destination_sha256": "416d54fbae17e2bbecc6dd72b27ed49a56a5bf3bcd188170ac436458ed048647",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_weak_supportive_diagnostic_20260610.png",
+      "source_sha256": "416d54fbae17e2bbecc6dd72b27ed49a56a5bf3bcd188170ac436458ed048647"
+    },
+    {
+      "destination": "MATH/paper_details/figures/paper_i_beam_tree_example.png",
+      "destination_sha256": "cc49a177de0a2c083102b3b8b2ac4b93decb0ded80446163d2127819d89045e7",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_beam_tree_example.png",
+      "source_sha256": "cc49a177de0a2c083102b3b8b2ac4b93decb0ded80446163d2127819d89045e7"
+    },
+    {
+      "destination": "MATH/paper_details/figures/paper_i_hubbard_weak_u0p25_append_geo_snake_overlay_20260621.png",
+      "destination_sha256": "e5c377e69fc3bf9dc0e46919348cd92d0ceb261494056db766ac4f7d050dae86",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_weak_u0p25_append_geo_snake_overlay_20260621.png",
+      "source_sha256": "e5c377e69fc3bf9dc0e46919348cd92d0ceb261494056db766ac4f7d050dae86"
+    },
+    {
+      "destination": "MATH/paper_details/figures/hubbard_weak_full_noise_fixed_depth8_error_vs_iteration_20260613.pdf",
+      "destination_sha256": "a461b78977350cbf6eca61e60d855cb696d285596145f90cef5f8fe879fb3311",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/hubbard_weak_full_noise_fixed_depth8_error_vs_iteration_20260613.pdf",
+      "source_sha256": "a461b78977350cbf6eca61e60d855cb696d285596145f90cef5f8fe879fb3311"
+    },
+    {
+      "destination": "MATH/paper_details/figures/hubbard_strong_full_noise_fixed_depth8_error_vs_iteration_20260613.pdf",
+      "destination_sha256": "74b0e69af948d7cdfd3f5a38430400379d442e017aa016f32f144cfbb7f57470",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/hubbard_strong_full_noise_fixed_depth8_error_vs_iteration_20260613.pdf",
+      "source_sha256": "74b0e69af948d7cdfd3f5a38430400379d442e017aa016f32f144cfbb7f57470"
+    },
+    {
+      "destination": "MATH/paper_details/figures/hh_ed_cutoff_log_sensitivity_20260614.pdf",
+      "destination_sha256": "c9e9f0cb7d8baeebed238a490dbb65f7d9b1d46534ced996fea0a8ee69c4006a",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/MATH/paper_details/figures/hh_ed_cutoff_log_sensitivity_20260614.pdf",
+      "source_sha256": "c9e9f0cb7d8baeebed238a490dbb65f7d9b1d46534ced996fea0a8ee69c4006a"
+    },
+    {
+      "destination": "MATH/paper_details/output/pdf/paper_i_true_strong_replacement_20260613_hubbard_u8_strong.pdf",
+      "destination_sha256": "2eff5d26e02d18606379901d91c523bc31ff0e434f562579881b2f782163e9e0",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_true_strong_replacement_20260613_hubbard_u8_strong.pdf",
+      "source_sha256": "2eff5d26e02d18606379901d91c523bc31ff0e434f562579881b2f782163e9e0"
+    },
+    {
+      "destination": "MATH/paper_details/output/pdf/paper_i_data_analysis_spin_boson_weak_repeat_enabled_same_cutoff_error_vs_iteration_20260610.pdf",
+      "destination_sha256": "9579065ea5c05c8f16d0c80502aa190ba2731dc4a4df2507565a778acbca1cc4",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_data_analysis_spin_boson_weak_repeat_enabled_same_cutoff_error_vs_iteration_20260610.pdf",
+      "source_sha256": "9579065ea5c05c8f16d0c80502aa190ba2731dc4a4df2507565a778acbca1cc4"
+    },
+    {
+      "destination": "MATH/paper_details/output/pdf/paper_i_data_analysis_spin_boson_strong_repeat_enabled_same_cutoff_error_vs_iteration_20260610.pdf",
+      "destination_sha256": "79dc711aff5cfa42626a3e53add324034a4e53b37f7054404010d81478ecdddb",
+      "purpose": "build_enablement_only_non_hh_science_input",
+      "source": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_data_analysis_spin_boson_strong_repeat_enabled_same_cutoff_error_vs_iteration_20260610.pdf",
+      "source_sha256": "79dc711aff5cfa42626a3e53add324034a4e53b37f7054404010d81478ecdddb"
+    }
+  ],
+  "changed_snake_cells": {
+    "intermediate-strong": {
+      "D2q": 94,
+      "Dc": 468,
+      "N2q": 132,
+      "S_alg": 82687,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 0.0001937024882201488,
+      "d_pl": 28,
+      "fidelity_status": "unavailable",
+      "k_pl": 28,
+      "one_minus_f": null,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/intermediate_strong__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "4a678f07d75a6ffcc2a217549d7ebf082e8c76d5a98c673e02b2527a2173fa3d"
+    },
+    "intermediate-weak": {
+      "D2q": 36,
+      "Dc": 216,
+      "N2q": 42,
+      "S_alg": 9250,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 0.0001720721077778098,
+      "d_pl": 13,
+      "fidelity_status": "unavailable",
+      "k_pl": 13,
+      "one_minus_f": null,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/intermediate_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "d270becf1210f563191236ff513fdb8bfdcdbf4c9fc7d40231931334ecb344c4"
+    },
+    "strong-strong": {
+      "D2q": 31,
+      "Dc": 171,
+      "N2q": 42,
+      "S_alg": 6397,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 4.130878044228403e-05,
+      "d_pl": 11,
+      "fidelity_status": "unavailable",
+      "k_pl": 11,
+      "one_minus_f": null,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/strong_strong__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "dfabad48cd3401604d3cee5cab7b3432675617338a1c3fcd1a1933060ea512dd"
+    },
+    "strong-weak": {
+      "D2q": 56,
+      "Dc": 300,
+      "N2q": 66,
+      "S_alg": 11888,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 1.3933229825457971e-06,
+      "d_pl": 18,
+      "fidelity_status": "unavailable",
+      "k_pl": 18,
+      "one_minus_f": null,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/strong_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "3088875ddfa7992b561f4d4b51cf33fb82e635a578a3bcbd3b08a1e317bb69b6"
+    },
+    "weak-strong": {
+      "D2q": 106,
+      "Dc": 493,
+      "N2q": 134,
+      "S_alg": 103260,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 0.009041207759421077,
+      "d_pl": 30,
+      "fidelity_status": "computed_from_selected_prefix_fidelity",
+      "k_pl": 30,
+      "one_minus_f": 0.0035816844997489383,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/weak_strong__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "b6c32c2b1bc515f943650f62f2f360a5ad8ae11f639e1b70bf37b217f79a7b4d"
+    },
+    "weak-weak": {
+      "D2q": 33,
+      "Dc": 178,
+      "N2q": 42,
+      "S_alg": 8012,
+      "S_alg_source": "snake_algorithmic_work_from_payload(scope=display_prefix)",
+      "abs_delta_e": 0.00039160562082241057,
+      "d_pl": 12,
+      "fidelity_status": "unavailable",
+      "k_pl": 12,
+      "one_minus_f": null,
+      "qiskit_cost_source": "qiskit_local_snake_history_prefix_compile",
+      "result_json": "raw_outputs/paper_i_hh_powell_visible_batchroute_nobatch_20260706/weak_weak__snake__powell200__phase3_archival_subset1__beam0p005_metricprune__nobatch_fullv2/json/result.json",
+      "result_sha256": "ee696a09816d99c07cf4ca82e165848ea6cfee55eb7014ee45e2c2491ca45262"
+    }
+  },
+  "comparator_policy": "Geo/Append rows and trajectories retained from 20260702 POWELL pool-exposure support artifacts",
+  "duplicate_tex": "MATH/paper_details/static_adapt_paper_I_snake_nobatch_promoted_20260707.tex",
+  "fidelity_policy": "display 1-F only if selected-prefix fidelity is source-computable; otherwise --",
+  "optimizer": "POWELL",
+  "plot_files": {
+    "intermediate_strong": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__intermediate_strong.pdf",
+      "pdf_sha256": "0c3cb45e7a577f635131ae16d3eabb58a9af0e3a02565bf0ad9bab1d90ac101f",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__intermediate_strong.png",
+      "png_sha256": "34ca942f394dec788b876191b6aefddd620ca9fa9b55295663f56e89af56e7ef"
+    },
+    "intermediate_weak": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__intermediate_weak.pdf",
+      "pdf_sha256": "4b854ae931b71ef618423433fe926d956891e87d63b7beaffe541aff37b9bb35",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__intermediate_weak.png",
+      "png_sha256": "e7273fd2008a611dc9a1dbb367d48a2647e064fa8463a09625b03358853f57fd"
+    },
+    "strong_strong": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__strong_strong.pdf",
+      "pdf_sha256": "461c2be27ebd3c9ca79c5e2404614b28a1dadd15bb834cb7e3a61f19e2163803",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__strong_strong.png",
+      "png_sha256": "b21f5fd50dfa21ecec8f28546e7ff426ea504a87aae85d5fd73a546039b7eb19"
+    },
+    "strong_weak": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__strong_weak.pdf",
+      "pdf_sha256": "4dea776b8ea92bd822f06b62bbead7dbca43f696e53b8834a8b0bc61604f3ec5",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__strong_weak.png",
+      "png_sha256": "e99cbc377c9403352226bfdaa35208e43f4880a009c92c2d11a864f68ca05990"
+    },
+    "weak_strong": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__weak_strong.pdf",
+      "pdf_sha256": "409779d66bf309bc501e69220d720edb5261c641aac12f449cfe593da6c72b9f",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__weak_strong.png",
+      "png_sha256": "59ef2b53ada0943bdfcfffd2883ed553dcaf897217d4c4629c9a58dc12fcc865"
+    },
+    "weak_weak": {
+      "pdf": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__weak_weak.pdf",
+      "pdf_sha256": "bf1a290bdb23c216a80bbd3357f047a4d742f09e84cc8fc69192b4562990d5bf",
+      "png": "MATH/paper_details/figures/powell_snake_nobatch_promoted_20260707/paper_i_hh_snake_nobatch_promoted_20260707__weak_weak.png",
+      "png_sha256": "27cbc20956cd5907d1fd1502702b5c1b396e619c3e0e7bc4f2436fd0f67623c3"
+    }
+  },
+  "qiskit_circuit_scope": "ansatz_circuit_including_reference_state",
+  "qiskit_compile_convention": "table_i_basis_gate_transpile_v1",
+  "retained_comparator_source_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.csv",
+  "retained_comparator_source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.json",
+  "row_policy": "promote only latest local no-batch SNAKE rows; preserve existing Geo/Append cells",
+  "s_alg_policy": "row-facing winner-lineage/display-prefix S_alg; not S_beam_search_total",
+  "schema": "paper_i_hh_snake_nobatch_duplicate_promotion_v1",
+  "scope": "duplicate_only; SNAKE rows and HH plots updated; original manuscript untouched",
+  "snake_runtime_contract": {
+    "adapt_beam_children_per_parent": 2,
+    "adapt_beam_lambda": 0.005,
+    "adapt_beam_live_branches": 3,
+    "batching_enabled": false,
+    "metric_prune_route": true,
+    "pool": "full_meta_unfiltered_hva_included",
+    "runtime_split_max_subset_size": 1,
+    "runtime_split_mode": "shortlist_pauli_children_v1",
+    "runtime_split_selection": "archival_child_set_forward_v1"
+  },
+  "source_csv": "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707_provenance.csv",
+  "source_hashes": {
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.csv": "6409dd077cb4ab0fceaa15d62e7570a70549a49f1ed9989abcea6435767c521c",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.json": "eb18dc3e62d9db8654612232a4841895042f4794be236ff06d3533698bafc15f",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.pdf": "4fee45db46167eea19181fc5b8fc1e73f23240c25982e5bc766b0c21c8734a02",
+    "MATH/paper_details/static_adapt_paper_I.tex": "98ea34779d3fe58329590d7832d02ec0244358a81a66be55182a5913a0dfe54d",
+    "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707.pdf": "9a9babb4cb6caa9aaece4dc11139f0c1c4e8da0b7b012e71a87340b1923b39ed",
+    "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707_provenance.csv": "af9e9ad917da0538ab018e90dffa48ebfa637439d9f4a69ad1d36d0ea8fd7844",
+    "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707_provenance.json": "9b3128f5b0bfa8914491596516ea0d96cc91cb5d62cd125945b8227bed901427"
+  },
+  "source_json": "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707_provenance.json",
+  "source_pdf": "output/pdf/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707/paper_i_hh_powell_visible_batchroute_nobatch_vs_paper1_snake_20260707.pdf",
+  "source_tex": "MATH/paper_details/static_adapt_paper_I.tex",
+  "supersedes_for_snake_rows": [
+    "BEGIN_MACHINE_READABLE_HH_POWELL_POOL_EXPOSURE_MAIN_UPDATE_20260702",
+    "BEGIN_MACHINE_READABLE_HH_POWELL_POOL_EXPOSURE_SNAKE_RUNTIME_SPLIT_TRACE_20260705",
+    "older HH native200/Schur/SNAKE provenance blocks in the duplicate"
+  ],
+  "updated_date": "2026-07-07",
+  "validation": {
+    "non_snake_comparator_rows_identical_to_source_tex": {
+      "intermediate_strong": true,
+      "intermediate_weak": true,
+      "strong_strong": true,
+      "strong_weak": true,
+      "weak_strong": true,
+      "weak_weak": true
+    },
+    "rows": {
+      "intermediate_strong": {
+        "tex_row": "SNAKE & 28 & 1.937e-04 & -- & 132 & 94 & 468 & 82,687 \\\\",
+        "validated": true
+      },
+      "intermediate_weak": {
+        "tex_row": "SNAKE & 13 & 1.721e-04 & -- & 42 & 36 & 216 & 9,250 \\\\",
+        "validated": true
+      },
+      "strong_strong": {
+        "tex_row": "SNAKE & 11 & 4.131e-05 & -- & 42 & 31 & 171 & 6,397 \\\\",
+        "validated": true
+      },
+      "strong_weak": {
+        "tex_row": "SNAKE & 18 & 1.393e-06 & -- & 66 & 56 & 300 & 11,888 \\\\",
+        "validated": true
+      },
+      "weak_strong": {
+        "tex_row": "SNAKE & 30 & 9.041e-03 & 3.582e-03 & 134 & 106 & 493 & 103,260 \\\\",
+        "validated": true
+      },
+      "weak_weak": {
+        "tex_row": "SNAKE & 12 & 3.916e-04 & -- & 42 & 33 & 178 & 8,012 \\\\",
+        "validated": true
+      }
+    },
+    "source_tex_hash_unchanged": true
+  }
+}

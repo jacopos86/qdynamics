@@ -1,0 +1,208 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.15em}
+\setlist[itemize]{leftmargin=*,itemsep=0.15em,topsep=0.2em,parsep=0em,partopsep=0em}
+\newcommand{\sym}[2]{%
+  \noindent\begin{minipage}[t]{0.29\textwidth}\raggedright\textbf{\ensuremath{#1}}\end{minipage}%
+  \hfill
+  \begin{minipage}[t]{0.68\textwidth}\raggedright #2\end{minipage}\par\vspace{0.22em}}
+\begin{document}
+\small
+
+{\LARGE \textbf{17A Symbol Guide}}\par
+{\large Definitions in first-appearance order for Section 17A of the manuscript}\par
+
+\section*{Parameter Manifest}
+\begin{itemize}
+\item Model family/name: Hubbard-Holstein fixed-manifold McLachlan real-time dynamics, written symbolically for static or driven checkpoint-adaptive propagation.
+\item Ansatz type(s): ordered Pauli-generator exponential scaffold with checkpoint-local stay, append, and prune structural maps.
+\item Drive enabled: symbolic; both static and driven cases are represented through $H(t)=H_{\mathrm{stat}}+H_{\mathrm{drv}}(t)$.
+\item Core physical parameters: $t$, $U$, and $dv$ enter through the Hamiltonian coefficients and are not fixed numerically in this guide.
+\item Other run-defining parameters: checkpoint spacing, regularization, columnarity thresholds, append thresholds, prune thresholds, and Euler/RK4 policy thresholds remain symbolic. Forecast-horizon quantities are archived diagnostic parameters, not canonical route-defining controls.
+\end{itemize}
+
+\section*{How to read this handout}
+This guide names the symbols used in the hybrid 17A controller: checkpoint diagnostics, structural scaffold mutation, and continuous TDVP integration are separate objects. Generators and Hamiltonians are Hermitian, the reference and variational states are normalized, and $\hbar=1$. The Fubini--Study convention is $d_{\mathrm{FS}}(\psi,\phi):=\arccos|\langle\psi|\phi\rangle|$, with tangent metric $ds_{\mathrm{FS}}^2=d\theta^\top G(\theta)d\theta$.
+
+\subsection*{17A.1 Fixed-scaffold projective McLachlan geometry}
+
+\sym{\mathcal O_k}{The active ordered scaffold at checkpoint $k$. It is a block list, not a coordinate vector.}
+\sym{B_k}{The number of logical active scaffold blocks, $B_k:=|\mathcal O_k|$. Append and prune decisions act on these block labels.}
+\sym{m_{k,b}}{The number of real coordinates owned by block $b$ at checkpoint $k$. A block may carry one coordinate or a multi-coordinate parameter block.}
+\sym{N_k}{The flattened coordinate count, $N_k:=\sum_{b=1}^{B_k}m_{k,b}$. McLachlan matrices and velocity vectors have this coordinate dimension.}
+\sym{I_{b,k}}{The coordinate set owned by logical block $b$ at checkpoint $k$, with $I_{b,k}\subseteq\{1,\dots,N_k\}$.}
+\sym{\mu,\nu}{Flattened coordinate indices in $\{1,\dots,N_k\}$. These index tangent columns and entries of $G_k,f_k,K_k,\theta_k,\dot\theta_k$.}
+\sym{d,\mathcal H}{The Hilbert-space dimension and Hilbert space. Tangent and drift vectors live in $\mathcal H$, while coordinate velocities live in $\mathbb R^{N_k}$.}
+\sym{\theta_k}{The real coordinate vector attached to the current scaffold at checkpoint $k$.}
+\sym{|\psi_k\rangle}{The current variational state, $|\psi_k\rangle:=U(\theta_k;\mathcal O_k)|\psi_{\mathrm{ref}}\rangle$.}
+\sym{U(\theta_k;\mathcal O_k)}{The ordered scaffold unitary $\prod_{\mu=N_k}^{1}\exp(-i\theta_{k,\mu}A_{k,\mu})$.}
+\sym{A_{k,\mu}}{The primitive Hermitian generator associated with flattened coordinate $\mu$.}
+\sym{U_{k,>\mu},U_{k,<\mu}}{The ordered partial products after and before coordinate $\mu$ in the scaffold product.}
+\sym{\widetilde A_{k,\mu}}{The transported generator $U_{k,>\mu}A_{k,\mu}U_{k,>\mu}^{\dagger}$ acting at the current state.}
+\sym{\tau_{k,\mu}}{The raw tangent derivative,
+$\tau_{k,\mu}=-iU_{k,>\mu}A_{k,\mu}e^{-i\theta_{k,\mu}A_{k,\mu}}U_{k,<\mu}|\psi_{\mathrm{ref}}\rangle=-i\widetilde A_{k,\mu}|\psi_k\rangle$.}
+\sym{Q_{\psi_k}}{The horizontal projector $I-|\psi_k\rangle\langle\psi_k|$, which removes the global-phase direction.}
+\sym{\bar\tau_{k,\mu}}{The projected tangent $Q_{\psi_k}\tau_{k,\mu}=-i(\widetilde A_{k,\mu}-\langle\widetilde A_{k,\mu}\rangle_{\psi_k})|\psi_k\rangle$.}
+\sym{\bar T_k}{The horizontal tangent matrix with columns $\bar\tau_{k,\mu}$; it maps coordinate velocities to horizontal state motion.}
+\sym{H_k^\sharp}{The sampled checkpoint Hamiltonian $H(t_k+\sigma_k\Delta\tau_k)$ used for checkpoint diagnostics and cached scores.}
+\sym{\bar b_k}{The projected Schrodinger drift $Q_{\psi_k}(-iH_k^\sharp|\psi_k\rangle)=-i(H_k^\sharp-E_{\psi_k,k}^\sharp)|\psi_k\rangle$.}
+\sym{E_{\psi_k,k}^\sharp}{The sampled energy $\langle\psi_k|H_k^\sharp|\psi_k\rangle$.}
+\sym{G_k}{The real tangent metric $\Re(\bar T_k^\dagger\bar T_k)$ on flattened coordinates.}
+\sym{f_k}{The force vector $\Re(\bar T_k^\dagger\bar b_k)$.}
+\sym{\Lambda_k}{The positive-semidefinite regularizer added to the tangent metric. It has the same units as $G_k$ and is chosen smoothly enough not to inject artificial coordinate chatter.}
+\sym{K_k}{The regularized normal matrix $G_k+\Lambda_k$.}
+\sym{\mathfrak m_k(v)}{The regularized drift-fit objective $\|\bar T_kv-\bar b_k\|^2+v^\top\Lambda_kv$.}
+\sym{\dot\theta_k}{The checkpoint damped implementation velocity $K_{k,\tau}^{+}f_k$.}
+\sym{\dot\theta_k^{\mathrm{proj}}}{The unregularized projective velocity $G_{k,\tau}^{+}f_k$.}
+\sym{A_\tau^+}{The damped supported inverse after symmetrization, spectral cutoff, and optional positive-semidefinite projection of small measurement-induced negative modes. It is not an exact Moore--Penrose inverse unless explicitly stated. If no eigenvalue is retained, the solve returns zero velocity and flags unsupported.}
+\sym{\kappa_{\mathrm{eff}}(A)}{The effective supported condition number $s_{\max}(A)/\max\{s_{\min}^{\mathrm{supp}}(A),\varepsilon_\kappa\}$.}
+\sym{\operatorname{Var}_{\psi_k}(H_k^\sharp)}{The Hamiltonian variance $\|\bar b_k\|^2$, used as the natural scale for normalized miss and gain ratios.}
+
+\subsection*{17A.2 Driven sampling and moving-state TDVP right-hand side}
+
+\sym{H_{\mathrm{stat}},H_{\mathrm{drv}}(t)}{The static and explicitly driven Hamiltonian components.}
+\sym{\tau_k,\Delta\tau_k,t_k}{Checkpoint clock, interval width, and absolute physical time, with $t_k:=t_0+\tau_k$.}
+\sym{\sigma_k}{The left/midpoint/right sampling selector in $\{0,\tfrac12,1\}$.}
+\sym{H_{k+h}^\sharp}{The sampled forecast Hamiltonian $H(t_{k+h}+\sigma_{k+h}\Delta\tau_{k+h})$.}
+\sym{M_k^{\mathrm{ref}}}{The micro-step count for the benchmark reference path only.}
+\sym{|\psi_{k,m}^{\mathrm{ref}}\rangle}{The refined piecewise-constant benchmark/reference state. It is not a live controller input.}
+\sym{\bar T_{\mathcal O}(\theta)}{The moving-state projected tangent matrix for scaffold $\mathcal O$ at coordinate $\theta$.}
+\sym{\bar b_{\mathcal O}(\theta,t)}{The moving-state projected drift $Q_{\psi(\theta;\mathcal O)}(-iH(t)|\psi(\theta;\mathcal O)\rangle)$.}
+\sym{G_{\mathcal O}(\theta),f_{\mathcal O}(\theta,t),K_{\mathcal O}(\theta,t)}{The moving-state metric, force, and regularized normal matrix evaluated along the variational path.}
+\sym{F_{\mathcal O}^{\mathrm{phys}}(\theta,t)}{The intrinsic projective McLachlan velocity $G_{\mathcal O}(\theta)_\tau^+f_{\mathcal O}(\theta,t)$.}
+\sym{F_{\mathcal O}^{\mathrm{damp}}(\theta,t)}{The regularized controller velocity $K_{\mathcal O}(\theta,t)_\tau^+f_{\mathcal O}(\theta,t)$.}
+\sym{F_{\mathcal O}(\theta,t)}{The propagated live right-hand side, equal to $F_{\mathcal O}^{\mathrm{damp}}(\theta,t)$ unless explicitly stated otherwise. The unregularized residual remains the structural expressivity diagnostic.}
+
+\subsection*{17A.3 Miss and residual diagnostics}
+
+\sym{\epsilon_{\mathrm{expr},k}^2}{The clipped unregularized projective residual $\operatorname{Var}_{\psi_k}(H_k^\sharp)-f_k^\top G_{k,\tau}^+f_k$.}
+\sym{\rho_{\mathrm{expr},k}}{The normalized expressivity miss. This is the structural scaffold-inadequacy signal.}
+\sym{\bar r_{\mathrm{real},k}}{The regularized realized residual $\bar T_kK_{k,\tau}^{+}f_k-\bar b_k$.}
+\sym{\rho_{\mathrm{real},k}}{The normalized realized miss after regularization. It diagnoses damping, conditioning, and numerical stabilization.}
+\sym{\rho_{\mathrm{miss},k}}{The live miss shorthand, equal to $\rho_{\mathrm{expr},k}$ unless explicitly relabeled.}
+\sym{\rho_{\mathrm{num},k}}{The nonnegative excess $[\rho_{\mathrm{real},k}-\rho_{\mathrm{expr},k}]_+$, isolating numerical/damping loss.}
+
+\subsection*{17A.4 Checkpoint decision surfaces and integrator policy}
+
+\sym{\Pi_{k-1\to k}}{The block-ID transport map that copies surviving previous coordinates into their current slots and fills new coordinates with zero.}
+\sym{\dot\theta_{k-1\to k}^{\mathrm{acc}}}{The transported previous accepted velocity $\Pi_{k-1\to k}\dot\theta_{k-1}^{\mathrm{acc}}$.}
+\sym{\mathsf M_k}{The comparison/proposal metric, either $G_k$ on the supported subspace or the coordinate identity.}
+\sym{c_k^{\mathrm{dir}}}{The metric cosine between the current velocity and transported previous accepted velocity.}
+\sym{\eta_k^{\mathrm{rate}}}{The normalized metric distance between consecutive accepted velocities.}
+\sym{\mathfrak C_k}{The calmness gate based on direction continuity and rate variation.}
+\sym{F_k,v_k^{\mathrm{state}}}{The checkpoint RHS $F_{\mathcal O_k}(\theta_k,t_k+\sigma_k\Delta\tau_k)$ and its horizontal state velocity $\bar T_kF_k$.}
+\sym{\alpha_{b,k}^{\star}}{The best single-block least-squares coordinate fit of the full horizontal state velocity using only tangent columns $\bar T_k[:,I_{b,k}]$.}
+\sym{\pi_k^{\mathrm{col}}}{The largest single-block explained fraction of the full horizontal state velocity. This avoids false columnarity from nonorthogonal tangent-column cancellation.}
+\sym{\chi_k^{\mathrm{curv}}}{A state-space curvature probe comparing the horizontal Hilbert-space velocity at the checkpoint with the recomputed half-step horizontal velocity.}
+\sym{e_k^{\mathrm{Eul}}}{The embedded Euler error estimate $d_{\mathrm{FS}}(\psi_{\mathrm{one\ full\ Euler}},\psi_{\mathrm{two\ half\ Euler}})$.}
+\sym{\operatorname{Col}_k}{The columnarity indicator: one block explains the state velocity, state-space curvature is small, embedded Euler error is small, miss is small, and conditioning is acceptable.}
+\sym{\zeta_k^{\mathrm{int}}}{The telemetry tuple fed to the deterministic integrator policy, including $\operatorname{Col}_k$, $\pi_k^{\mathrm{col}}$, $\chi_k^{\mathrm{curv}}$, $e_k^{\mathrm{Eul}}$, miss, and conditioning.}
+\sym{\Pi_{\mathrm{int}}}{The deterministic integrator policy map. It returns Euler in columnar regimes and RK4 otherwise.}
+\sym{\iota_k^{\mathrm{pol}}}{The selected checkpoint integrator, $\mathrm{Euler}$ if $\operatorname{Col}_k=1$ and $\mathrm{RK4}$ if $\operatorname{Col}_k=0$.}
+\sym{\mathcal I_k^{\mathrm{int}}}{The singleton integration-rule set $\{\iota_k^{\mathrm{pol}}\}$; the live controller no longer searches over integrators.}
+\sym{\mathcal U_k^{\mathrm{stay}}}{The canonical stay action class $\{(\mathrm{stay},\iota_k^{\mathrm{pol}})\}$.}
+\sym{\mathcal U_k^{\mathrm{app}}}{The canonical append action class $\{(\mathrm{append},r):r\in\mathcal R_k^{\mathrm{conf}}\}$, or the empty set when no append record is confirmed. Nonzero append seeds are ablation variants, not live committed jumps.}
+
+\subsection*{17A.5 Position-aware append geometry}
+
+\sym{r=(m,p)}{An append record: candidate block $m$ inserted at ordered position $p$.}
+\sym{m_r,\eta,\vartheta}{The new-coordinate count, new-coordinate vector, and augmented coordinate vector $(\theta,\eta)$.}
+\sym{\widetilde A_{r,a}^{(p)}}{The position-aware transported append generator $U_{k,>p}^{+}A_{r,a}(U_{k,>p}^{+})^\dagger$.}
+\sym{\bar u_{r,a},\bar U_{r,k}}{The new append tangent column and matrix at zero initialization.}
+\sym{B_{r,k},C_{r,k},q_{r,k}}{The old-new coupling, new-new metric, and new-coordinate force blocks.}
+\sym{\dot\theta_{r,k}^{\mathrm{old}},\dot\eta_{r,k},\dot\vartheta_{r,k}^{\mathrm{aug}}}{The regularized McLachlan solve on the scaffold after candidate append $r$: old-coordinate velocity, new-block velocity, and their concatenation.}
+\sym{w_{r,k}^{G},S_{r,k}^{G},\Delta_{r,k}^{G}}{The unregularized structural Schur force, Schur block, and append gain.}
+\sym{\rho_{r,k}^{\mathrm{gain,expr}}}{The normalized structural append gain used for the append gate.}
+\sym{w_{r,k},S_{r,k},\Delta_{r,k}^{\mathrm{Schur}}}{The regularized numerical Schur force, Schur block, and commit/confirm gain.}
+\sym{\rho_{r,k}^{\mathrm{gain,num}}}{The normalized regularized numerical append gain.}
+\sym{\rho_{r,k}^{\mathrm{gain}}}{The default append-gain shorthand, equal to $\rho_{r,k}^{\mathrm{gain,expr}}$.}
+\sym{V_k,\Sigma_k,z_k,\Gamma_{r,k}}{The supported spectral factors and whitened objects used in compressed Schur confirmation. Here $z_k$ is the whitened force, not the integrator-policy telemetry.}
+\sym{J_r,\widetilde S_{r,k}(J_r),\widetilde\Delta_{r,k}(J_r)}{The retained mode set, compressed Schur block, and compressed append gain. The monotone-certificate interpretation assumes a fixed numerator and positive-semidefinite retained Schur blocks.}
+\sym{\Pi_{k-1\to k}^{(r)},\mathsf M_{r,k}}{The augmented block-ID transport into the appended coordinate layout and the augmented comparison metric, typically the supported augmented tangent metric with identity fallback.}
+\sym{\delta_{r,k}^{\mathrm{dir}},g_{r,k}^{\mathrm{new}},S_{r,k}^{\mathrm{conf}}}{The append direction penalty, estimated new measurement burden, and confirm score. The burden may count new expectation values, Pauli groups, shot cost, or acquisition time.}
+\sym{\mathcal R_k^{\mathrm{conf}}}{The confirmed append shortlist.}
+
+\subsection*{17A.6 Diagnostic stay proposals}
+
+\sym{I_k^{\mathrm{drv}}}{The coordinate block treated as drive-aligned for diagnostic same-scaffold proposals.}
+\sym{\mathcal B_k}{The finite blend-weight set used for diagnostic proposal construction.}
+\sym{v_k^{\mathrm{McL}},v_{k,\mathrm{drv}}^{\mathrm{cur}},v_{k,\mathrm{drv}}^{\mathrm{next}},v_{k,\beta}^{\mathrm{blend}}}{Diagnostic same-scaffold proposal velocities. They probe curvature and drive response but do not replace the committed TDVP flow.}
+\sym{\mathcal P_k^{\mathrm{stay}}}{The diagnostic stay proposal family.}
+\sym{s_k}{The product confidence index built from direction, rate, and miss confidence. It summarizes same-scaffold regime quality without becoming a committed displacement.}
+
+\subsection*{17A.7 Canonical append admission without secant forecast}
+
+\sym{\operatorname{Admit}_k(r)}{The canonical append admission predicate for candidate $r$, using only current-time high miss, normalized local append gain, and staged confirmation score.}
+\sym{\rho_{r,k}^{\mathrm{gain}}}{The normalized local append gain for candidate $r$.}
+\sym{S_{r,k}^{\mathrm{conf}}}{The staged confirmation score for candidate $r$, produced before commit by the Schur/authoritative recomputation pipeline.}
+\sym{\tau_{\mathrm{gain}},\tau_{\mathrm{conf}}}{The gain and confirmation thresholds in the canonical append gate.}
+
+\subsection*{17A.8 Retired secant-forecast slot}
+
+The former recursive forecast and live forecast score are archived in Appendix 17A-S. They are diagnostic/oracle-facing quantities only and do not define the QPU-facing controller, append gate, or default route.
+
+\subsection*{Appendix 17A-S.1 Archived recursive local-projective forecast}
+
+\sym{\delta_k^{\mathrm{sec}},v_k^{\mathrm{sec}}}{Archived controller-predicted one-step secant displacement and trust-clipped coordinate velocity. These are diagnostic proposal quantities, not committed Euler/RK4 velocities.}
+\sym{R_k}{The archived trust radius used to clip the secant diagnostic proposal.}
+\sym{(\mathcal O_k^{(u)},\theta_{k\mid k}^{(u)},\iota_u)}{The archived conditional forecast scaffold, initial coordinates, and seed integrator for action $u$. Stay starts from $(\mathcal O_k,\theta_k)$; append starts from $(\mathcal O_k^+(r),\theta_k\oplus_r0)$.}
+\sym{|\psi_{k+q\mid k}^{(u)}\rangle}{The archived predicted conditional rollout state at forecast depth $q$.}
+\sym{\bar T_{k+q\mid k}^{(u)},\bar b_{k+q\mid k}^{(u)},G_{k+q\mid k}^{(u)},f_{k+q\mid k}^{(u)},K_{k+q\mid k}^{(u)}}{The archived forecast-local geometry and drift recomputed on the predicted state.}
+\sym{\dot\theta_{k+q\mid k}^{(u)}}{The archived forecast-local McLachlan velocity.}
+\sym{\zeta_k^{\mathrm{int},r},\iota_k^{\mathrm{pol},r}}{The archived append-scaffold integrator telemetry and policy selected at the zero-initialized appended state.}
+\sym{\zeta_{k+q\mid k}^{\mathrm{int},(u)},\iota_{k+q\mid k}^{(u)}}{The archived recursively computed forecast integrator telemetry and chosen step rule, using the same state-space columnarity, curvature, and embedded Euler checks as the committed path.}
+\sym{\operatorname{Step}_{\iota}}{The one-step classical integrator map for the moving-state TDVP RHS, with explicit time-sampling argument $\sigma$ for Euler.}
+
+\subsection*{Appendix 17A-S.2 Archived live forecast score}
+
+\sym{N_k^{\mathrm{hor}}}{The archived forecast horizon length.}
+\sym{\omega_h,W_k}{Archived forecast weights and total mass $W_k=\sum_{h=1}^{N_k^{\mathrm{hor}}}\omega_h$.}
+\sym{\rho_{\mathrm{miss},k+h\mid k}^{(u)}}{The archived clipped forecast structural expressivity miss along action $u$'s self-predicted rollout.}
+\sym{\rho_{\mathrm{real},k+h\mid k}^{(u)}}{The archived realized forecast residual diagnostic after regularized solving.}
+\sym{\kappa_{k+h\mid k}^{(u)}}{The archived effective condition diagnostic $\kappa_{\mathrm{eff}}(K_{k+h\mid k}^{(u)})$.}
+\sym{d_{k+h\mid k}^{\mathrm{FS}}(u)}{The archived forecast Fubini--Study displacement. Euler uses one local speed; RK4 uses the same stage-weighted quadrature as the RK4 step.}
+\sym{v_{h,i}^{(u)},\theta_{h,i}^{(u)},t_{h,i},b_i}{Archived RK4 stage velocities, stage coordinates, stage times, and quadrature weights recorded during the forecast rollout.}
+\sym{\mathcal A_{\mathrm{Eh}}}{The archived time-independent observable set for Ehrenfest consistency checks.}
+\sym{R_{k+h}^{A}(u)}{The archived normalized residual between the forecast observable increment and the integrator-consistent Ehrenfest increment.}
+\sym{R_{k+h}^{E}(u)}{The archived normalized energy-channel residual comparing the forecast energy increment against the integrator-consistent $\partial_tH$ increment.}
+\sym{\mathcal J_k^{\mathrm{live}}(u)}{The archived oracle-free live forecast score. It is diagnostic only and must not be used as the canonical append gate.}
+\sym{u_{k,\mathrm{stay}}^\star,u_{k,\mathrm{app}}^\star,\mathcal J_k^{\mathrm{gap}}}{Archived stay/append forecast comparator quantities.}
+\subsection*{17A.9 Local prune law}
+
+\sym{b}{A persistent logical block identifier in the prune law.}
+\sym{I_{b,k}^{c}}{The complement of block $b$'s current coordinate set.}
+\sym{\mathcal P_{\mathrm{protect}}(k)}{The protected block set. Recent blocks are temporarily excluded from deletion.}
+\sym{\mathcal I_b^{\mathrm{stag}}(k)}{The recent history window used to score block stagnation.}
+\sym{m_{b,k}^{\mathrm{mov}},m_{b,k}^{\mathrm{fit}},\sigma_{b,k}^{\mathrm{stag}}}{The block motion score, fit-activity score, and mixed stagnation score.}
+\sym{\Gamma_k^{\mathrm{prune,perm}}}{The calm low-miss prune-permission gate, including $B_k\ge2$.}
+\sym{\mathcal D_k^{\mathrm{pr}}}{The eligible prune set; if empty, prune admission is zero and the controller falls back to stay.}
+\sym{L_{b,k}^{\mathrm{cache}}}{The cheap cached projective loss from deleting block $b$ using subblock geometry.}
+\sym{b_k^\star}{The best cached prune candidate, or $\varnothing$ when no candidate exists.}
+\sym{\mathcal O_k^{(-b)},\theta_k^{(-b)},|\psi_k^{(-b)}\rangle}{The deleted scaffold, deleted coordinates, and actual deleted-scaffold state.}
+\sym{\Delta_{\mathrm{ray},b,k}^{\mathrm{pr}}}{The phase-invariant projective state jump $d_{\mathrm{FS}}(\psi_k^{(-b)},\psi_k)$ used by prune acceptance.}
+\sym{\rho_{\mathrm{expr},k}^{(-b)},\Delta\rho_{b,k}^{\mathrm{pr}}}{The recomputed deleted-state expressivity miss and its increase over the current scaffold.}
+\sym{\bar r_{\mathcal O}(\theta,t)}{The live residual field $\bar T_{\mathcal O}(\theta)F_{\mathcal O}(\theta,t)-\bar b_{\mathcal O}(\theta,t)$.}
+\sym{\Delta J_{b,k}^{\mathrm{pr}}}{The rollback-probe integrated residual increase after deleting block $b$.}
+\sym{\operatorname{accept}_{\mathrm{prune}}(b)}{The full prune accept predicate: cached loss, block norm, projective ray jump, miss increase, and rollback residual must all be safe.}
+
+\subsection*{17A.10 Hybrid event map}
+
+\sym{\operatorname{Step}_{\mathrm{Euler}}}{The first-order moving-state TDVP step $\theta+\Delta\tau F_{\mathcal O}(\theta,t+\sigma\Delta\tau)$ with explicit sampling offset $\sigma$.}
+\sym{\operatorname{Step}_{\mathrm{RK4}}}{The four-stage moving-state TDVP step with classical RK4 coefficients.}
+\sym{v_i,a_{ij},c_i}{RK4 stage velocities, stage matrix coefficients, and stage times.}
+\sym{\mathsf S_{\mathrm{stay}},\mathsf S_{\mathrm{append}(r)},\mathsf S_{\mathrm{prune}(b)}}{The structural checkpoint maps: stay leaves state unchanged, append inserts zero coordinates, prune deletes a block and transports surviving coordinates.}
+\sym{\theta_k\oplus_r0,\Pi_{-b}\theta_k}{The append zero-initialization and prune coordinate projection.}
+\sym{\operatorname{lane}_k}{The lane selector: append in high miss with candidates, prune in calm low miss with candidates, otherwise stay.}
+\sym{\nu_k^\star}{The committed structural event at checkpoint $k$.}
+\sym{(\mathcal O_k^\nu,\theta_k^{\nu,+})}{The scaffold and coordinate vector immediately after the structural event and before interval propagation.}
+\sym{\iota_k^{\mathrm{pol},\nu}}{The deterministic integrator selected after the structural map.}
+\sym{(\mathcal O_{k+1},\theta_{k+1})}{The next checkpoint state after the selected scaffold is propagated by the chosen TDVP step.}
+\sym{\text{high-miss fail-safe}}{If $\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}}$ but append is unavailable or rejected, stay is not declared safe by default; the controller must shrink the step, expand scouts, increase confirm budget, increase damping, or flag the segment as underresolved.}
+
+\end{document}

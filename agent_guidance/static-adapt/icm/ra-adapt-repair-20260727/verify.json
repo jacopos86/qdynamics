@@ -1,0 +1,111 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/refactor.json",
+      "sha256": "7cf942cddf9b96d9a61c80908043a5edc2f88aed7b9cf09bce41366ac4e01df3"
+    },
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-unification-implementation-spec-20260727.md",
+      "sha256": "5a43c07897a46703f88de6dfba745bcf8537b92c8fb1a5439d7265abe79977a5"
+    }
+  ],
+  "checks": [
+    {
+      "command": "jq -e '.schema == \"paper_i_legacy_archive_manifest_v1\" and (.entries | length > 0)' archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "id": "archive_manifest_schema_and_entries",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "id": "manifested_family_movement_and_reachability_receipts",
+      "status": "passed"
+    },
+    {
+      "evidence_paths": [
+        "test/test_ra_adapt_facade.py",
+        "test/test_ra_adapt_append_facade.py",
+        "test/test_ra_adapt_insertion_derivatives_fd.py",
+        "test/test_ra_adapt_support_factorization.py",
+        "test/test_ra_adapt_trust_no_overlap.py",
+        "test/test_ra_adapt_pools_and_policies.py"
+      ],
+      "id": "scientific_contract_test_surfaces",
+      "status": "present"
+    },
+    {
+      "evidence_paths": [
+        "test/test_ra_adapt_retired_reachability.py",
+        "test/test_ra_adapt_agent_navigation.py",
+        "test/test_static_adapt_commutation_metadata.py",
+        "test/test_static_adapt_insertion_commutation_plateau.py",
+        "test/test_paper_i_sr_snake_resume_adapter.py"
+      ],
+      "id": "compatibility_and_reachability_test_surfaces",
+      "status": "present"
+    },
+    {
+      "id": "consolidated_focused_pytest_closeout",
+      "observed": {
+        "expanded_matrix": "870 passed, 10 skipped; three clustered lineage failures repaired",
+        "post_repair_all_ra_and_pruning": "94 passed",
+        "independent_lineage_cluster": "14 passed",
+        "navigation_and_retired_reachability": "18 passed",
+        "archive_navigation_and_adjacent_regressions": "101 passed"
+      },
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_ra_adapt_retired_reachability.py",
+      "evidence_path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "id": "all_retirement_families_zero_active_reachability",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_ra_adapt_agent_navigation.py test/test_ra_adapt_retired_reachability.py test/test_static_adapt_historical_route_identity.py test/test_static_adapt_sr_escape_cli.py",
+      "evidence_paths": [
+        "test/test_ra_adapt_agent_navigation.py",
+        "test/test_ra_adapt_retired_reachability.py",
+        "test/test_static_adapt_historical_route_identity.py",
+        "test/test_static_adapt_sr_escape_cli.py"
+      ],
+      "id": "focused_navigation_archive_and_compatibility_closeout",
+      "observed": "49 passed",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_static_adapt_resume_checkpoint_parameterization.py test/test_static_adapt_phase_all_live_contract.py test/test_static_adapt_accepted_refit.py test/test_static_adapt_full_reopt_duplicate_guard.py",
+      "evidence_paths": [
+        "test/test_static_adapt_resume_checkpoint_parameterization.py",
+        "test/test_static_adapt_phase_all_live_contract.py",
+        "test/test_static_adapt_accepted_refit.py",
+        "test/test_static_adapt_full_reopt_duplicate_guard.py"
+      ],
+      "id": "monolith_contraction_adjacent_regressions",
+      "observed": "52 passed",
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "sha256": "f4268ac7e588b1ceec635daf032dfaae2712d73b82b398f4e9019f8fc1159f25"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_verify_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "verify",
+  "state": "complete",
+  "state_reason": "Scientific contracts, historical singleton preservation, archive reachability, progressive-disclosure navigation, monolith-adjacent regressions, and the repaired lineage edge case are verified.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/refactor.json",
+      "receipt_id": "ra_adapt_repair_20260727_refactor_v1",
+      "sha256": "7cf942cddf9b96d9a61c80908043a5edc2f88aed7b9cf09bce41366ac4e01df3",
+      "stage": "refactor"
+    },
+    "superseded_receipts": [],
+    "successor_stage": "materialize-bundles"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

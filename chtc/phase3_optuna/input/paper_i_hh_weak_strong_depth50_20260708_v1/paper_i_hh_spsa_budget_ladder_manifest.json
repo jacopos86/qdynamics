@@ -1,0 +1,62 @@
+{
+  "batch_id": "paper_i_hh_weak_strong_depth50_20260708_v1",
+  "credential_policy": "no credentials serialized",
+  "generated_utc": "2026-07-08T18:08:25.304913+00:00",
+  "queue_path": "chtc/phase3_optuna/input/paper_i_hh_weak_strong_depth50_20260708_v1/paper_i_hh_spsa_budget_ladder_record_queue.tsv",
+  "record_count": 4,
+  "record_ids": [
+    "paper_i_hh_weak_strong_depth50_20260708_v1__weak_strong__snake__physical_operator_lane_x3_nobatch__powell200__depth50_continuation_from45",
+    "paper_i_hh_weak_strong_depth50_20260708_v1__weak_strong__geo__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_weak_strong_depth50_20260708_v1__weak_strong__append__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_weak_strong_depth50_20260708_v1__weak_strong__append__B_common_phase0_singleton_hard_guard__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry"
+  ],
+  "records_path": "chtc/phase3_optuna/input/paper_i_hh_weak_strong_depth50_20260708_v1/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "schema": "paper_i_hh_weak_strong_depth50_chtc_batch_manifest_v1",
+  "settings_policy": "comparators cloned from existing weak-strong Powell200 depth30 rows; SNAKE source-locked continuation from completed physical-lane x3 no-batch depth45 result; intended change is depth/output identity only",
+  "snake_base_depth30_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json",
+  "snake_base_depth30_sha256": "bd2bf3e23db23523edda9c716589cc3ad9899bb2e8ff1a1a783537f51120f9b0",
+  "snake_source_abs_delta_e": 0.0002110889640798419,
+  "snake_source_depth": 45,
+  "snake_source_energy": -1.1383681113951831,
+  "snake_source_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_depth45_continuation_20260708/weak_strong/json/result.json",
+  "snake_source_segment": {
+    "base_depth": 30,
+    "base_runtime_parameter_count": 30,
+    "boundary_refit_executed": true,
+    "compile_smoke": {
+      "backend_name": "FakeMarrakesh",
+      "compiled_count_2q": 198,
+      "compiled_depth": 529,
+      "compiled_size": 863,
+      "error": null,
+      "executed": true,
+      "output_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result_resume_compile_smoke.json",
+      "required": true,
+      "success": true
+    },
+    "final_depth": 45,
+    "final_runtime_parameter_count": 45,
+    "max_new_admissions": null,
+    "new_admission_records": 15,
+    "no_credentials_serialized": true,
+    "resume_enabled": true,
+    "resume_mode": "scaffold_v1",
+    "schema_version": "static_hh_adapt_segment_v1",
+    "segment_cap_truncated_batch": false,
+    "segment_id": "physical_lane_depth45_continuation_20260708_weak_strong",
+    "stop_reason": "max_depth",
+    "target_depth": 45,
+    "wallclock_cap_s": null
+  },
+  "snake_source_sha256": "28576bb1d07a4e2892bc462dafd0a813a193ce432e7894334e652c864de5f13a",
+  "submit_path": "chtc/phase3_optuna/submit_paper_i_hh_weak_strong_depth50_20260708_v1.sub",
+  "transfer_inputs": [
+    "pipelines",
+    "src",
+    "docs",
+    "chtc/phase3_optuna",
+    "agent_guidance/static-adapt/hh_full_meta_minus_hva_class_filter.json",
+    "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_depth45_continuation_20260708/weak_strong/json/result.json",
+    "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json"
+  ]
+}

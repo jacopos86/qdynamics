@@ -1,0 +1,72 @@
+{
+  "artifacts": [
+    {
+      "path": "build_bundle.py",
+      "sha256": "7bcf670867a2a3f4f248cafca694a35570ffe036d1433ab1acde9aa2ec78fc77",
+      "size_bytes": 40621
+    },
+    {
+      "path": "execute_source_locked_job.sh",
+      "sha256": "297cdddd67c15ac732cfff053b5c148245b061b1d560949bfa2fcac8b54d8ee9",
+      "size_bytes": 2332
+    },
+    {
+      "path": "jobs/append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80.json",
+      "sha256": "184eb28fcb29784e0143e4be2762bd4170f00bb093492ae6e3f3a61594c92124",
+      "size_bytes": 4711
+    },
+    {
+      "path": "normalized_manifests/append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80.json",
+      "sha256": "184eb28fcb29784e0143e4be2762bd4170f00bb093492ae6e3f3a61594c92124",
+      "size_bytes": 4711
+    },
+    {
+      "path": "queue.tsv",
+      "sha256": "0ada9f96a2290d7e6098e0b4d41d8642b167528c1ba283072e5593f9c43a61e9",
+      "size_bytes": 514
+    },
+    {
+      "path": "run_job.py",
+      "sha256": "6dee0fe9acfb29de340d76c879ed2a381bb605cf128b2bd76eaaf3436c7788fb",
+      "size_bytes": 22984
+    },
+    {
+      "path": "source_archive_manifest.json",
+      "sha256": "0fb87bcbaf5eac4a5bedaa9eb6ce36e6f8228984ad2938cbf5eaa3d77633d6b1",
+      "size_bytes": 76474
+    },
+    {
+      "path": "source_locked.tar.gz",
+      "sha256": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+      "size_bytes": 3356638
+    },
+    {
+      "path": "source_locked_sensitivity_audit.json",
+      "sha256": "45f6d775f058271ba2864416dec88508142860df12494f28d15d318fddf7a303",
+      "size_bytes": 5653
+    },
+    {
+      "path": "source_prefix_identity.json",
+      "sha256": "a3650b8660381830432aae6de08139b85d4c844d1c20b77d12010e59ce9a4931",
+      "size_bytes": 3291
+    },
+    {
+      "path": "submit.sub",
+      "sha256": "6578f3cf788d6d8cd84ef25623e929dd95d720eec36dc2bf37e5937f4d68c3f1",
+      "size_bytes": 3331
+    },
+    {
+      "path": "test_bundle.py",
+      "sha256": "0e755aaae946545666f78a23e1cc7f28de7ba4864f76f160067a5764fffedee0",
+      "size_bytes": 7385
+    },
+    {
+      "path": "warm_start_state.json",
+      "sha256": "bf01bfb76549df9aff7cd03fb187b8224ff5f9e920a320eb887db4ad6afd58b6",
+      "size_bytes": 100191
+    }
+  ],
+  "bundle_id": "paper_i_hh_append_projected_singleton_weak_strong_warm_continuation_k50_to_firsthit_or_k80_20260721_v1_chtc",
+  "created_utc": "2026-07-21T21:23:38+00:00",
+  "schema": "paper_i_hh_append_warm_continuation_artifact_hashes_v1"
+}

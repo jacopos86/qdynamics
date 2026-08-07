@@ -1,0 +1,116 @@
+\documentclass[10pt]{article}
+
+\usepackage[left=0.58in,right=0.58in,top=0.50in,bottom=0.50in]{geometry}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{memoBlue}{HTML}{173F5F}
+\definecolor{memoTeal}{HTML}{217C73}
+\definecolor{memoOrange}{HTML}{C95F3A}
+\definecolor{memoSoft}{HTML}{EEF5F7}
+\definecolor{memoWarm}{HTML}{FFF4EC}
+
+\hypersetup{colorlinks=true,urlcolor=memoTeal,linkcolor=memoBlue}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlist[itemize]{leftmargin=1.2em,itemsep=1.5pt,topsep=2pt}
+
+\newcommand{\runroot}{../output/local_runs/ping_group_closure_evidence_20260802_v2}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries\color{memoBlue}
+  Connected electron--phonon moments can improve observables despite\\
+  violation of a necessary representability condition\par}
+  \vspace{1pt}
+  {\small Independent exploratory Holstein-dimer diagnostic for discussion
+  with the Ping group\par}
+\end{center}
+
+\vspace{2pt}
+\noindent\colorbox{memoSoft}{%
+  \parbox{0.972\linewidth}{%
+  \textbf{Measured result.} At the source-parameter point
+  $(\lambda,\gamma,V)=(0.5,0.5,1)$, the independent 31-coordinate closure
+  reduces the electronic 1-RDM RMS error by \textbf{75\%} and the polarization
+  RMS error by \textbf{83\%} relative to matched coherent-only dynamics.
+  Errors are measured against the same truncated-exact trajectory and
+  normalized by its dynamic RMS.  This is a repository benchmark, not a
+  reproduction of the published spin-reduced curves.}}
+
+\vspace{5pt}
+\noindent
+\begin{minipage}[t]{0.485\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{\runroot/source_point_trajectory.pdf}
+  \vspace{-7pt}
+
+  {\footnotesize\textbf{Matched source-parameter trajectory.}
+  The 31D polarization remains close to the exact reference through $t=4$,
+  although its necessary joint-Gram certificate first crosses below
+  $-10^{-8}$ at $t=0.2$.  The velocity barrier restores the enforced
+  necessary Gram condition but moves the trajectory away from the raw
+  closure.\par}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.485\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{\runroot/grid_method_comparison.pdf}
+  \vspace{-7pt}
+
+  {\footnotesize\textbf{Bounded 12-point comparison.}
+  Bars below one favor the 31D closure over coherent-only dynamics.  The raw
+  closure wins in 10 of 12 cases; the two reversals occur at strong coupling
+  $(\lambda=1.5)$ with the weaker drive $V=0.5$.\par}
+\end{minipage}
+
+\vspace{3pt}
+{\large\bfseries\color{memoBlue}What the result does---and does not---show}
+
+\begin{itemize}
+  \item \textbf{Connected equal-time moments carry useful dynamical
+  information.}  At $(0.5,0.5,1)$, the raw-closure/coherent error ratios are
+  $0.247$ for the electronic 1-RDM, $0.168$ for polarization, and $0.390$ for
+  the coherent phonon amplitude.
+  \item \textbf{Representability and observable accuracy separate.}  All 12
+  raw trajectories violate the joint-Gram condition, yet five never cross the
+  exploratory $0.1$ instantaneous 1-RDM-error threshold by $t=4$.  The pooled
+  rank association between violation severity and 1-RDM error is $+0.59$, but
+  becomes $-0.49$ and $-0.89$ after stratifying the six cases at each coupling.
+  The present grid therefore supports an early-warning interpretation, not a
+  calibrated error predictor.
+  \item \textbf{A physicality barrier is not an accuracy correction.}  It keeps
+  the necessary Gram condition nonnegative but beats coherent-only 1-RDM error
+  in only 7 of 12 cases, compared with 10 of 12 for the unmodified closure.
+\end{itemize}
+
+\noindent\colorbox{memoWarm}{%
+  \parbox{0.972\linewidth}{%
+  \textbf{Concrete discussion question.}  Does this separation between
+  useful non-Markovian observable corrections and loss of necessary
+  representability also occur in the authors' spin-reduced implementation?
+  If so, which omitted equal-time moments or algebraic constraints should be
+  retained to preserve the source-point accuracy gain without violating the
+  enforced necessary physicality conditions?  A spin-reduced supplement or
+  one reference trajectory would enable a true parity test.}}
+
+\vspace{3pt}
+{\scriptsize
+\textbf{Evidence conditions.} Same exact-ground-state contractions at every
+method boundary; $t\le4$; local phonon cutoff 16; stored grid step $0.02$;
+coherent DOP853 maximum-step refinement $0.02\to0.01$ changes the 1-RDM by less
+than $8\times10^{-16}$ at the source-parameter point.  Exact data are used only
+for offline evaluation.  Results are independent, internally verified, and
+not reviewed or endorsed by Gabriele Riva, Jacopo Simoni, or Yuan Ping.
+Scientific context:
+\href{https://arxiv.org/html/2504.17936v2}{Simoni--Riva--Ping, first-principles
+open dynamics} and
+\href{https://arxiv.org/html/2606.22233v1}{Riva--Simoni--Ping, equal-time
+non-Markovian electron--phonon theory}.}
+
+\end{document}

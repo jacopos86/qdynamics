@@ -1,0 +1,54 @@
+{
+  "approved_behavior_change": {
+    "acceptance": "SciPy Powell status=2 maxiter exhaustion only; finite objective and parameters; finite non-increasing exact refit energy within rel_tol=abs_tol=1e-10",
+    "powell_maxiter_cap_policy": "accept_finite_nonincreasing_v1",
+    "scope": "Append-ADAPT fixed-horizon row only"
+  },
+  "batch_id": "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1",
+  "code_bundle": {
+    "excludes": [
+      "__pycache__",
+      "*.pyc",
+      "*.pyo"
+    ],
+    "members": [
+      "chtc/__init__.py",
+      "chtc/phase3_optuna/__init__.py",
+      "pipelines",
+      "src",
+      "docs",
+      "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py"
+    ],
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "6f578afece852cafd09aee164658f3fefc6e30d0eba07f308b1c9e37a35ec7dc",
+    "size_bytes": 2887507
+  },
+  "exact_energy_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/exact_energy_manifest.json",
+  "exact_energy_manifest_sha256": "5fff8c67abff10a229a1ecd82dc08a25bc211d723727a82257930447d920d296",
+  "generated_utc": "2026-07-11T10:51:47.724773+00:00",
+  "implementation_lock": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_lock.json",
+  "implementation_lock_sha256": "c75b51a22230adc0520eb9fa9422a61c9704f40453831d4a575a038fba6cc426",
+  "implementation_repair_audit": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/implementation_repair_audit.json",
+  "record_count": 1,
+  "record_ids": [
+    "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__powellcap_finite_nonincreasing_v1__iter30"
+  ],
+  "record_ids_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_record_ids.txt",
+  "record_queue_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_record_queue.tsv",
+  "records_path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+  "schema": "paper_i_scaling_matrix_single_row_repair_manifest_v1",
+  "settings_diff": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/settings_diff.json",
+  "source_cluster": 8772847,
+  "source_evidence": {
+    "cell_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_cell_manifest.json",
+    "cell_manifest_sha256": "340d419416ea173a868136d7bf1fff85ccdaa3d4cfc3dc29dc7d4ffa2f4d2297",
+    "result_json": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_generic_static_single.json",
+    "result_json_sha256": "00dca6c25128958ee7e7b5a9c85714098aaddb7b80dbd9fc011d78a4b6babdce",
+    "status": "local_bytes_verified_and_packaged_for_transfer"
+  },
+  "source_process": 53,
+  "source_record_id": "paper_i_scaling_matrix_parent_powell200_20260710_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__iter30",
+  "status": "prepared_not_submitted",
+  "submission_authority": "prepared_only_not_submitted",
+  "submit_path": "chtc/phase3_optuna/submit_paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1.sub"
+}

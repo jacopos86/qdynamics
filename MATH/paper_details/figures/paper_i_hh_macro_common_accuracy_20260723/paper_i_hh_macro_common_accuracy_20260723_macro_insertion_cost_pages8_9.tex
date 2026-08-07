@@ -1,0 +1,43 @@
+\documentclass[letterpaper,10pt]{article}
+\usepackage[margin=0.35in]{geometry}
+\usepackage{amsmath,graphicx}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\Large\bfseries Insertion SNAKE versus Append-ADAPT at matched error}\par
+\vspace{3pt}
+\begin{minipage}{0.96\textwidth}
+\small
+Each curve ends at the reported matched-error prefix.  Weak--strong and
+strong--strong use the insertion plateaus at \(k=9\) and \(k=11\) as their
+error anchors; Append-ADAPT first reaches those errors at \(k=9\) and \(k=12\).
+The other panels retain the pairwise common-window first-crossing rule.
+Endpoint labels report $(N_{2q},D_{2q},D_c,W_{1q},S_{\rm alg})$.
+\end{minipage}
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_insertion_cost_pages8_9_matched_plot.png}
+
+{\footnotesize The append-only SNAKE versus Append-ADAPT matched-error
+comparison remains on page 2 and uses its own independently selected pairwise
+cap.}
+\end{center}
+
+\newpage
+\begin{center}
+{\Large\bfseries Endpoint costs of commutation-reduced insertion SNAKE}\par
+\vspace{3pt}
+\begin{minipage}{0.94\textwidth}
+\small
+Red stars mark either the completed local horizon or the retrieved finalized
+CHTC checkpoint and report the corresponding
+$(N_{2q},D_{2q},D_c,W_{1q},S_{\rm alg})$ tuple without accuracy matching.  Here
+$W_{1q}$ is genuine Qiskit-emitted Pauli-rotation one-qubit work before
+transpilation. The two append
+routes are retained through iteration 50 as trajectory context; their costs
+are not reported on this page.
+\end{minipage}
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_insertion_cost_pages8_9_terminal_plot.png}
+\end{center}
+\end{document}

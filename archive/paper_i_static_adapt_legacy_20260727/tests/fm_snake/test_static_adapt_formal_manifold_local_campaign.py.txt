@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from pipelines.static_adapt import formal_manifold_local_campaign as campaign
+
+
+def _write_authorities(repo_root: Path) -> None:
+    for relative in (campaign.VISIBLE_SOURCE_LOCK, campaign.CANONICAL_PROFILE_DOC):
+        path = repo_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}\n", encoding="utf-8")
+
+
+def test_six_regime_plan_is_serial_and_weak_weak_first(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+
+    payload = campaign.initialize_campaign(
+        repo_root=repo_root,
+        campaign_dir=campaign_dir,
+    )
+
+    assert payload["scientific_concurrency"] == 1
+    assert [cell["regime"]["id"] for cell in payload["cells"]] == [
+        "weak-weak",
+        "intermediate-weak",
+        "strong-weak-u8",
+        "weak-strong",
+        "intermediate-strong",
+        "strong-strong-u8",
+    ]
+    assert [cell["regime"]["n_ph_max"] for cell in payload["cells"]] == [
+        2,
+        2,
+        2,
+        4,
+        4,
+        4,
+    ]
+
+
+def test_cell_argv_locks_fm_outer_sr_singleton_profile(tmp_path: Path) -> None:
+    regime = campaign.REGIMES[0]
+    argv = campaign.build_cell_argv(
+        repo_root=tmp_path,
+        campaign_dir=tmp_path / "campaign",
+        regime=regime,
+        formal_config_json=tmp_path / "formal.json",
+    )
+    joined = " ".join(argv)
+
+    assert "--adapt-reoptimization-route formal_manifold_warm_start_v1" in joined
+    assert (
+        "--adapt-formal-manifold-route-profile "
+        "sr_phase2_phase3_whitened_adaptive_trust_no_n2_v1"
+    ) in joined
+    assert "--historical-singleton-coordinate-solve-scope phase2_and_phase3_v1" in joined
+    assert "--sr-powell-coordinate-chart-policy expanded_runtime_projected_logical_v1" in joined
+    assert "--phase3-novelty-ablation-mode no_phase2" in joined
+    assert "--phase3-geometry-window-size 99" in joined
+    assert "--phase0-no-pilot" in argv
+    assert "--phase2-no-batching" in argv
+    assert "--phase3-no-batching" in argv
+    assert "--adapt-insertion-mode append_only" in joined
+    assert "--adapt-allow-repeats" in argv
+    assert "--adapt-beam-lambda 0.005" in joined
+    assert "--adapt-max-depth 30" in joined
+    assert "--adapt-maxiter 100" in joined
+    assert "--adapt-final-refit-maxiter 100" in joined
+
+
+def test_campaign_materializes_sparse_qbroyd_metric_policy(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+
+    payload = campaign.initialize_campaign(
+        repo_root=repo_root,
+        campaign_dir=campaign_dir,
+    )
+    config_record = payload["formal_manifold_config"]
+    config = json.loads(Path(config_record["path"]).read_text(encoding="utf-8"))
+
+    assert config_record["qbroyd_enabled"] is True
+    assert config_record["qbang_momentum_active"] is False
+    assert config_record["metric_mode"] == "sparse_anchor_qbroyd_recycled_v1"
+    assert config_record["transport_policy"] == (
+        "predicted_transported_frame_gauge_v1"
+    )
+    assert config_record["post_anchor_exact_gram_budget"] == 4
+    assert config_record["line_search_max_steps"] == 15
+    assert config["metric_mode"] == "sparse_anchor_qbroyd_recycled_v1"
+    assert config["post_anchor_exact_gram_budget"] == 4
+    assert config["qbroyd_epsilon0"] == 0.15
+    assert config["line_search_max_steps"] == 15
+
+
+def test_initialize_refuses_nonempty_unknown_campaign(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+    campaign_dir.mkdir(parents=True)
+    (campaign_dir / "foreign.txt").write_text("do not clobber\n", encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="Refusing to clobber"):
+        campaign.initialize_campaign(repo_root=repo_root, campaign_dir=campaign_dir)
+
+
+def test_terminal_validation_locks_sparse_metric_and_100_step_budget(
+    tmp_path: Path,
+) -> None:
+    paths = campaign._cell_paths(tmp_path / "campaign", "weak-weak")
+    paths["root"].mkdir(parents=True)
+    payload = {
+        "adapt_vqe": {
+            "success": True,
+            "energy": -0.9,
+            "abs_delta_e": 1.0e-6,
+            "controller_round_count": 1,
+            "operators": ["A"],
+            "static_route_identity": {
+                "route_family": "formal_manifold_snake",
+                "route_profile": (
+                    "sr_phase2_phase3_whitened_adaptive_trust_no_n2_v1"
+                ),
+                "candidate_selector_family": "singleton_response_snake",
+                "coordinate_solve_scope": "phase2_and_phase3_v1",
+                "powell_coordinate_chart_policy": (
+                    "expanded_runtime_projected_logical_v1"
+                ),
+            },
+            "formal_manifold_query_closure": {
+                "joint_response_selector_invoked": False,
+                "formal_combinatorial_selector_invoked": False,
+                "singleton_response_selector_invoked": True,
+            },
+            "adapt_formal_manifold_config": (
+                campaign.canonical_formal_manifold_config().as_dict()
+            ),
+        }
+        ,
+        "settings": {
+            "adapt_final_refit_maxiter": 100,
+        },
+    }
+    paths["result"].write_text(json.dumps(payload), encoding="utf-8")
+    paths["current"].write_text("{}\n", encoding="utf-8")
+    paths["estimator_ledger"].write_text("{}\n", encoding="utf-8")
+    paths["command"].write_text(
+        json.dumps({"argv": ["python", "--adapt-maxiter", "100"]}),
+        encoding="utf-8",
+    )
+    cell = {
+        "paths": {name: str(path) for name, path in paths.items()},
+    }
+
+    assert campaign._validate_cell_result(cell)["status"] == "validated"
+    payload["adapt_vqe"]["adapt_formal_manifold_config"][
+        "post_anchor_exact_gram_budget"
+    ] = 5
+    paths["result"].write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="terminal provenance mismatch"):
+        campaign._validate_cell_result(cell)
+
+
+def test_run_campaign_executes_cells_strictly_serially(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+    campaign.initialize_campaign(repo_root=repo_root, campaign_dir=campaign_dir)
+    observed: list[str] = []
+
+    monkeypatch.setattr(
+        campaign,
+        "_disk_preflight",
+        lambda _root: {"free_gib": 100.0, "launch_floor_gib": 10.0, "status": "ok"},
+    )
+
+    def fake_run(argv, **_kwargs):
+        regime_id = Path(argv[argv.index("--output-json") + 1]).parent.name
+        observed.append(regime_id)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(campaign.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        campaign,
+        "_validate_cell_result",
+        lambda cell: {"status": "validated", "regime": cell["regime"]["id"]},
+    )
+
+    payload = campaign.run_campaign(repo_root=repo_root, campaign_dir=campaign_dir)
+
+    assert observed == [regime["id"] for regime in campaign.REGIMES]
+    assert payload["status"] == "complete"
+    assert all(cell["status"] == "complete" for cell in payload["cells"])
+    persisted = json.loads(
+        (campaign_dir / "campaign_manifest.json").read_text(encoding="utf-8")
+    )
+    assert persisted["status"] == "complete"
+
+
+def test_run_campaign_refuses_implicit_partial_restart(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+    payload = campaign.initialize_campaign(repo_root=repo_root, campaign_dir=campaign_dir)
+    current = Path(payload["cells"][0]["paths"]["current"])
+    current.write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="implicit restart/continuation"):
+        campaign.run_campaign(repo_root=repo_root, campaign_dir=campaign_dir)
+
+
+def test_run_cell_executes_only_selected_regime_and_writes_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    campaign_dir = repo_root / "raw_outputs" / "campaign"
+    _write_authorities(repo_root)
+    observed: list[str] = []
+
+    monkeypatch.setattr(
+        campaign,
+        "_disk_preflight",
+        lambda _root: {"free_gib": 100.0, "launch_floor_gib": 10.0, "status": "ok"},
+    )
+
+    def fake_run(argv, **_kwargs):
+        regime_id = Path(argv[argv.index("--output-json") + 1]).parent.name
+        observed.append(regime_id)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(campaign.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        campaign,
+        "_validate_cell_result",
+        lambda cell: {"status": "validated", "regime": cell["regime"]["id"]},
+    )
+
+    payload = campaign.run_cell(
+        repo_root=repo_root,
+        campaign_dir=campaign_dir,
+        regime_id="intermediate-weak",
+    )
+
+    assert observed == ["intermediate-weak"]
+    assert payload["status"] == "partial_complete"
+    by_regime = {cell["regime"]["id"]: cell for cell in payload["cells"]}
+    assert by_regime["intermediate-weak"]["status"] == "complete"
+    assert by_regime["weak-weak"]["status"] == "queued"
+    normalized = json.loads(
+        Path(
+            by_regime["intermediate-weak"]["paths"]["normalized_manifest"]
+        ).read_text(encoding="utf-8")
+    )
+    assert normalized["schema"] == "paper_i_hh_fm_sr_scientific_cell_manifest_v1"
+    assert normalized["status"] == "complete"
+    assert normalized["regime"]["id"] == "intermediate-weak"
+    assert normalized["route_identity"] == {
+        "route_family": "formal_manifold_snake",
+        "route_profile": "sr_phase2_phase3_whitened_adaptive_trust_no_n2_v1",
+        "candidate_selector_family": "singleton_response_snake",
+    }
+    command = json.loads(
+        Path(by_regime["intermediate-weak"]["paths"]["command"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    validation = json.loads(
+        Path(by_regime["intermediate-weak"]["paths"]["validation"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert command["regime"]["id"] == "intermediate-weak"
+    assert command["route_family"] == "formal_manifold_snake"
+    assert validation["status"] == "validated"

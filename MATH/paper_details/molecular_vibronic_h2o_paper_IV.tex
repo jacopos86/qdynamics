@@ -1,0 +1,1430 @@
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{multirow}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\ifmmode\left[#1\right]\else\textsf{[#1]}\fi}}
+\newcommand{\todo}[1]{\textcolor{red!70!black}{\textsf{[TODO: #1]}}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Reop}{\operatorname{Re}}
+\newcommand{\Imop}{\operatorname{Im}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\argminp}{\mathop{\mathrm{arg\,min}}}
+\newcommand{\argmaxp}{\mathop{\mathrm{arg\,max}}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\comb}[2]{\binom{#1}{#2}}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\expval}[1]{\langle #1\rangle}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Gcal}{\mathcal{G}}
+\newcommand{\Acal}{\mathcal{A}}
+\newcommand{\Bcal}{\mathcal{B}}
+\newcommand{\Ccal}{\mathcal{C}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Ecal}{\mathcal{E}}
+\newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\Ical}{\mathcal{I}}
+\newcommand{\Mcal}{\mathcal{M}}
+\newcommand{\Ocal}{\mathcal{O}}
+\newcommand{\Pcal}{\mathcal{P}}
+\newcommand{\Rcal}{\mathcal{R}}
+\newcommand{\Scal}{\mathcal{S}}
+\newcommand{\Ucal}{\mathcal{U}}
+\newcommand{\Vcal}{\mathcal{V}}
+\newcommand{\Wcal}{\mathcal{W}}
+\newcommand{\twq}{\mathrm{2Q}}
+\newcommand{\stat}{\mathrm{stat}}
+\newcommand{\dyn}{\mathrm{dyn}}
+\newcommand{\drv}{\mathrm{drv}}
+\newcommand{\qse}{\mathrm{QSE}}
+\newcommand{\ed}{\mathrm{ED}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+\newcommand{\el}{\mathrm{el}}
+\newcommand{\vib}{\mathrm{vib}}
+\newcommand{\vibel}{\mathrm{vib}\text{-}\mathrm{el}}
+\newcommand{\MO}{\mathrm{MO}}
+\newcommand{\AO}{\mathrm{AO}}
+\newcommand{\HF}{\mathrm{HF}}
+\newcommand{\FS}{\mathrm{FS}}
+\newcommand{\CAS}{\mathrm{CAS}}
+\newcommand{\HtwoO}{\mathrm{H_2O}}
+\newcommand{\lin}{\mathrm{lin}}
+\newcommand{\APM}{\mathrm{AP}\text{-}\mathrm{McLachlan}}
+\newcommand{\work}{\mathrm{work}}
+\newcommand{\refc}{\mathrm{ref}}
+\newcommand{\scalar}{\mathrm{scalar}}
+\newcommand{\zpf}{\mathrm{zpf}}
+\newcommand{\one}{\mathbf{1}}
+
+\newcommand{\inlinetablecaption}[2]{%
+  \refstepcounter{table}\label{#1}%
+  \noindent\textsc{Table~\thetable.} #2\par\vspace{0.6ex}%
+}
+
+\begin{document}
+
+\title{Static Adaptive Quantum Simulation of a Linear Finite-Difference Molecular-Vibronic Water Hamiltonian}
+
+\author{Jake Strobel}
+\author{Jacopo Simoni}
+\author{Gabrielle Riva}
+\author{Yuan Ping}
+\affiliation{University of Wisconsin--Madison}
+
+\date{\today}
+
+\begin{abstract}
+We formulate a conservative application workflow for a finite active-space molecular-vibronic model of water.  The baseline Hamiltonian retains all three normal modes of \(\HtwoO\)---bend, symmetric stretch, and antisymmetric stretch---as local harmonic oscillators, and couples them linearly to an active-space electronic Hamiltonian through central finite-difference derivatives along mass-weighted normal coordinates.  The paper-facing target is a frozen-core valence active space, minimally \(\CAS((8e,6o))\) in STO-3G, with displaced active-space Hamiltonians aligned into a common equilibrium molecular-orbital frame before subtraction.  The main near-term objective is static ground-state preparation and diagnostic benchmarking using the SNAKE adaptive ansatz-construction method of Paper~I.  The \(\APM\) dynamics method of Paper~II and the spectral-manifold algorithm of Paper~III are retained as forward-compatible interfaces, not as completed water results or blockers for the present static model paper.  Prior quantum-computing work already exists on molecular vibrations, vibronic spectra, adaptive ansatz construction, McLachlan/TDVP dynamics, and QSE/qEOM excited-state methods; accordingly, the contribution here is narrower: a workflow-level application to an all-three-mode, finite-active-space, local harmonic, linearly coupled \(\HtwoO\) Hamiltonian built from finite-difference derivative records with exact-sector and bosonic-cutoff diagnostics.  No numerical \(\HtwoO\) energies, spectra, dynamics errors, fidelities, or resource improvements are claimed in this draft; all such quantities remain explicit placeholders pending a locked production finite-difference fixture and SNAKE benchmark run.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Quantum simulation of molecular nuclear motion and vibronic response has an established literature.  Digital algorithms for molecular vibrations have been applied to small molecules including water, hardware-efficient approaches have been developed for vibrational structure calculations, and quantum algorithms for vibronic spectra have been proposed and benchmarked on molecular examples \cite{McArdle2019Vibrations,Ollitrault2020Vibrational,SawayaHuh2019Vibronic,MacDonell2023AnalogVibronic}.  Water itself has appeared in quantum-computing studies of vibrational and rovibrational structure, including digital vibrational simulation and recent H2O-specific rovibrational or grid-based infrared-spectra studies \cite{McArdle2019Vibrations,LotstedtSzidarovszky2026H2O,Feng2026GridIR,LotstedtYamanouchi2026VibDynamics}.  These works preclude broad novelty claims such as first quantum simulation of water vibrations, first quantum algorithm for vibronic spectra, or first quantum treatment of molecular vibrational dynamics.
+
+The present application has a narrower purpose.  We construct the paper-facing Hamiltonian as a finite active-space, all-three-mode, local harmonic, linearly coupled molecular-vibronic model of \(\HtwoO\), with coupling operators obtained by central finite differences of active-space electronic Hamiltonians along mass-weighted normal coordinates.  The electronic derivative records are defined in a common equilibrium molecular-orbital frame, so orbital gauge alignment and finite-difference diagnostics are part of the Hamiltonian definition rather than implementation details.  The intended minimum defensible production model is frozen-core valence \(\CAS((8e,6o))\) water in STO-3G, retaining the bend, symmetric-stretch, and antisymmetric-stretch modes.  Larger-basis or larger-active-space variants may be used later, but the present draft does not claim chemically accurate water spectroscopy.
+
+The three companion method papers enter as method references.  Paper~I supplies SNAKE, the geometry- and cost-aware ADAPT ansatz-construction rule used for the static \(\HtwoO\) ground-state calculation \cite{StrobelPaperIStaticADAPT}.  Paper~II supplies \(\APM\), the checkpoint-adaptive McLachlan scheme that can later propagate the prepared state under the same Hamiltonian \cite{StrobelPaperIIMcLachlan}.  Paper~III supplies the independent QSE/spectral-manifold algorithm for future vibronic excitation and response calculations \cite{StrobelPaperIIIQSE}.  The static ground-state path is the primary near-term result path; dynamics and QSE remain structurally compatible with the Hamiltonian and the evidence record, but they are not presented as completed \(\HtwoO\) results.
+
+The central baseline Hamiltonian is
+\begin{align}
+H_{\HtwoO}^{\lin}
+={}&
+H_{\el}^{\Acal}(\mathbf Q_0)
++
+\sum_{\mu=1}^{3}
+\omega_\mu
+\left(a_\mu^\dagger a_\mu+\frac12\right)
+\nonumber\\
+&+
+\sum_{\mu=1}^{3}
+\frac{D_\mu}{\sqrt{2\omega_\mu}}
+\left(a_\mu^\dagger+a_\mu\right).
+\label{eq:intro_linear_h2o}
+\end{align}
+Here \(\mathbf Q_0\) is the equilibrium normal-coordinate origin, \(H_{\el}^{\Acal}(\mathbf Q_0)\) is the active-space electronic Hamiltonian at equilibrium, \(Q_\mu\) are mass-weighted normal coordinates, \(\omega_\mu\) are harmonic normal-mode frequencies, and
+\begin{equation}
+D_\mu
+=
+\left.
+\frac{\partial H_{\el}^{\Acal}}{\partial Q_\mu}
+\right|_{\mathbf Q_0}
+\label{eq:intro_dmu}
+\end{equation}
+is constructed by central finite differences after displaced electronic Hamiltonians are aligned into the center active-orbital frame.  The derivative \(D_\mu\) includes scalar, one-body, and two-body active-space derivative components, including the derivative of nuclear repulsion, the frozen-core scalar, and any scalar active-space correction.  Quadratic electronic-operator couplings, Duschinsky rotations, non-Condon dipole derivatives, and pure nuclear anharmonicity are future or diagnostic extensions, not part of the baseline Hamiltonian in Eq.~\eqref{eq:intro_linear_h2o}.
+
+The paper is deliberately conservative about evidence.  An older two-spatial-orbital, one-mode \(\HtwoO\) object exists only as a smoke-test path for mixed fermion--boson plumbing.  It does not define the present paper-facing model and must not be used as scientific evidence.  The production fixture is expected to record the equilibrium geometry, all three normal modes, displaced geometries, active-space tensors, alignment diagnostics, finite-difference derivative tensors, register layout, physical sector, encoded operators, reference state, exact reference, cutoff diagnostics, evidence hooks, pool metadata, and provenance.  Numerical \(\HtwoO\) results remain placeholders until a full finite-difference production fixture and static SNAKE run are locked.
+
+\section{Relation to prior work and claim boundary}
+\label{sec:literature_boundary}
+
+The relevant prior work falls into four categories.  First, quantum algorithms for vibrational structure and dynamics have been developed using vibrational coupled-cluster, bosonic encodings, grid encodings, and related approaches \cite{McArdle2019Vibrations,Ollitrault2020Vibrational,Sawaya2020DLevel,LotstedtYamanouchi2026VibDynamics,Feng2026GridIR}.  These papers motivate finite-dimensional bosonic registers and molecular vibrational benchmarks, but they do not establish the specific finite active-space electron--vibration Hamiltonian and static SNAKE workflow used here.
+
+Second, vibronic spectra and electron--nuclear dynamics have been addressed by several quantum-computing routes, including circuit-model vibronic-spectrum algorithms, time-domain analog vibronic simulation, product-formula vibronic-dynamics algorithms, and analog pre-Born--Oppenheimer mappings \cite{SawayaHuh2019Vibronic,MacDonell2023AnalogVibronic,HaMacDonell2025Analog,Li2025MSVQD}.  These works preclude claims that quantum vibronic spectra or vibronic dynamics are new topics.  The present paper instead uses a linearly coupled active-space Hamiltonian as a controlled benchmark for adaptive static state preparation.
+
+Third, adaptive ansatz construction is well established for electronic structure through ADAPT-VQE and related variants \cite{Grimsley2019ADAPT,Tang2021QubitADAPT,Yordanov2021QEB,Anastasiou2024TETRIS}.  Related adaptive work also exists for nuclear-electronic orbital settings and purely vibrational Hamiltonians \cite{Nykanen2023NEOADAPT,Majland2024vADAPT}.  In particular, vibrational ADAPT-VQE uses modal excitations for nuclear Hamiltonians constructed from precomputed potential-energy surfaces; the variational problem does not retain coupled electronic and vibrational registers \cite{Majland2024vADAPT}.  The present Hamiltonian retains the finite electronic active space and quantized normal modes jointly, with electron--vibration couplings defined by active-space electronic derivatives.  The contribution is a geometry- and cost-aware mixed fermion--boson static workflow for a physically constructed finite-active-space \(\HtwoO\) vibronic Hamiltonian with derivative, cutoff, and exact-sector diagnostics.
+
+Fourth, McLachlan/TDVP real-time simulation and QSE/qEOM-style excited-state methods are established algorithmic families \cite{McLachlan1964,Yuan2019VQS,Barison2021PVQD,Yao2021AVQDS,Ollitrault2020qEOM,Asthana2023qscEOM,McClean2017QSE,Colless2018QSE,Vallury2020QCM}.  In this paper they serve as forward-compatible interfaces.  The static Hamiltonian and SNAKE evidence path should stand without completed QSE spectra or checkpoint dynamics.
+
+Classical water spectroscopy is also a demanding reference point.  High-accuracy water rovibrational calculations use global potential-energy surfaces and correction hierarchies far beyond a local \(\CAS((8e,6o))\)/STO-3G linear model \cite{PartridgeSchwenke1997,Polyansky2013Water}.  Six-orbital active-space descriptions can nevertheless be meaningful local electronic components in water modeling \cite{KedzioraShavitt1997}, and linear vibronic-coupling models are standard reduced descriptions near a reference geometry \cite{Staab2022LVC}.  The present Hamiltonian should therefore be described as an algorithmic finite active-space benchmark near equilibrium, not a chemically accurate water spectral model.
+
+The safe contribution statement is: a workflow-level application of adaptive quantum-simulation methods to a finite active-space, all-three-mode, local harmonic, linearly coupled molecular-vibronic \(\HtwoO\) Hamiltonian constructed from finite-difference derivatives of an active-space electronic Hamiltonian in a common molecular-orbital frame.  No broader first-claim is required.
+
+\section{Baseline molecular-vibronic water Hamiltonian}
+\label{sec:h2o_hamiltonian}
+
+\subsection{Active-space electronic Hamiltonian at equilibrium}
+
+Let \(\mathbf R_0\) be the equilibrium geometry and \(\mathbf Q_0=\mathbf 0\) the origin of mass-weighted normal coordinates.  In an orthonormal spatial molecular-orbital basis, the active-space electronic Hamiltonian is
+\begin{align}
+H_{\el}^{\Acal}(\mathbf Q_0)
+={}&
+E_{\scalar}^{\Acal}(\mathbf Q_0)I
++
+\sum_{p,q\in\Acal}\sum_{\sigma}
+h_{pq}^{\Acal}(\mathbf Q_0)
+c_{p\sigma}^{\dagger}c_{q\sigma}
+\nonumber\\
+&+
+\frac12
+\sum_{p,q,r,s\in\Acal}
+\sum_{\sigma,\sigma'}
+g_{pqrs}^{\Acal}(\mathbf Q_0)
+c_{p\sigma}^{\dagger}c_{q\sigma'}^{\dagger}
+c_{s\sigma'}c_{r\sigma}.
+\label{eq:h_el_active}
+\end{align}
+The scalar term \(E_{\scalar}^{\Acal}\) includes nuclear repulsion, frozen-core scalar contributions, and any scalar active-space correction.  For a closed-shell frozen core \(\Ccal\), a common chemist-integral convention is
+\begin{align}
+E_{\scalar}^{\Acal}
+={}&
+E_{\rm nuc}
++
+2\sum_{i\in\Ccal}h_{ii}
++
+\sum_{i,j\in\Ccal}
+\left[
+2(ii|jj)-(ij|ji)
+\right],
+\nonumber\\
+h_{pq}^{\Acal}
+={}&
+h_{pq}
++
+\sum_{i\in\Ccal}
+\left[
+2(pq|ii)-(pi|iq)
+\right],
+\qquad p,q\in\Acal,
+\nonumber\\
+g_{pqrs}^{\Acal}
+={}&
+(pq|rs),
+\qquad p,q,r,s\in\Acal .
+\label{eq:frozen_core_convention}
+\end{align}
+The implementation and manuscript must declare the actual tensor convention used for \(g_{pqrs}^{\Acal}\), since spin-orbital expansion and Pauli encoding depend on index order.
+
+The minimal paper-facing water target is frozen-core valence water,
+\begin{align}
+\Acal_{\rm min}:&\quad
+\text{O}(1s)\ \text{frozen},
+\nonumber\\
+&\quad
+N_{\rm spatial}=6,
+\qquad
+(N_\alpha,N_\beta)=(4,4).
+\label{eq:cas_8e6o}
+\end{align}
+which is the full non-core valence active space in a minimal STO-3G description.  The corresponding fixed spin-sector electronic dimension is
+\begin{equation}
+d_{\el}
+=
+\comb{N_{\rm spatial}}{N_\alpha}
+\comb{N_{\rm spatial}}{N_\beta}
+=
+\comb{6}{4}^{2}
+=
+225 .
+\label{eq:cas_8e6o_dim}
+\end{equation}
+This active space is still a model approximation.  Larger-basis variants such as 6-31G or cc-pVDZ may use the same active-space concept, but the present draft does not promote them to completed results.
+
+\subsection{All three normal modes}
+
+For nonlinear water, \(3N_{\rm atom}-6=3\) vibrational modes are retained:
+\begin{equation}
+\mu\in
+\{\mathrm{bend},\mathrm{symmetric\ stretch},\mathrm{antisymmetric\ stretch}\}.
+\label{eq:three_modes}
+\end{equation}
+Let \(A\) index nuclei and \(\alpha\in\{x,y,z\}\).  Mass-weighted normal vectors satisfy
+\begin{equation}
+\sum_{A,\alpha}
+e_{\mu,A\alpha}e_{\nu,A\alpha}
+=
+\delta_{\mu\nu},
+\label{eq:normal_mode_orthonormal}
+\end{equation}
+after translational and rotational components have been removed.  A normal-coordinate displacement is
+\begin{equation}
+R_{A\alpha}(\mathbf Q)
+=
+R_{0,A\alpha}
++
+\sum_{\mu=1}^{3}
+Q_\mu
+\frac{e_{\mu,A\alpha}}{\sqrt{M_A}},
+\label{eq:mass_weighted_displacement}
+\end{equation}
+where nuclear masses are expressed in electron masses in atomic units.  The harmonic oscillator convention is
+\begin{align}
+H_{\vib}
+&=
+\frac12
+\sum_{\mu=1}^{3}
+\left(P_\mu^2+\omega_\mu^2Q_\mu^2\right)
+=
+\sum_{\mu=1}^{3}
+\omega_\mu\left(a_\mu^\dagger a_\mu+\frac12\right),
+\nonumber\\
+Q_\mu
+&=
+\frac{1}{\sqrt{2\omega_\mu}}
+\left(a_\mu^\dagger+a_\mu\right),
+\qquad
+P_\mu
+=
+\ii\sqrt{\frac{\omega_\mu}{2}}
+\left(a_\mu^\dagger-a_\mu\right).
+\label{eq:q_p_ladder}
+\end{align}
+The production fixture must record \(\omega_\mu\), normal-mode eigenvectors, mass convention, finite-difference steps \(\Delta Q_\mu\), and zero-point amplitudes
+\begin{equation}
+Q_{\zpf,\mu}
+=
+\frac{1}{\sqrt{2\omega_\mu}}.
+\label{eq:qzpf}
+\end{equation}
+The mode frequencies, finite-difference steps, and zero-point amplitudes are placeholders until the production fixture is generated:
+\begin{equation}
+\{
+\omega_\mu,\Delta Q_\mu,Q_{\zpf,\mu}
+\}_{\mu=1}^{3}
+=
+\placeholder{TBD}.
+\label{eq:normal_mode_placeholders}
+\end{equation}
+
+\subsection{Linear finite-difference derivative operators}
+
+The active-space electronic Hamiltonian is expanded locally as
+\begin{equation}
+H_{\el}^{\Acal}(\mathbf Q)
+=
+H_{\el}^{\Acal}(\mathbf Q_0)
++
+\sum_{\mu=1}^{3}
+Q_\mu D_\mu
++
+O(Q^2),
+\label{eq:linear_taylor}
+\end{equation}
+with
+\begin{equation}
+D_\mu
+=
+\left.
+\frac{\partial H_{\el}^{\Acal}}{\partial Q_\mu}
+\right|_{\mathbf Q_0}.
+\label{eq:dmu_definition}
+\end{equation}
+Each derivative operator has scalar, one-body, and two-body parts:
+\begin{align}
+D_\mu
+={}&
+E_{\scalar,\mu}'I
++
+\sum_{p,q\in\Acal}\sum_{\sigma}
+h_{pq,\mu}'
+c_{p\sigma}^{\dagger}c_{q\sigma}
+\nonumber\\
+&+
+\frac12
+\sum_{p,q,r,s\in\Acal}\sum_{\sigma,\sigma'}
+g_{pqrs,\mu}'
+c_{p\sigma}^{\dagger}c_{q\sigma'}^{\dagger}
+c_{s\sigma'}c_{r\sigma}.
+\label{eq:dmu_components}
+\end{align}
+The scalar derivative \(E_{\scalar,\mu}'\) is part of the model:
+\begin{equation}
+E_{\scalar,\mu}'
+\approx
+\frac{
+\widetilde E_{\scalar}^{(+\mu)}
+-
+\widetilde E_{\scalar}^{(-\mu)}
+}{
+2\Delta Q_\mu
+}.
+\label{eq:scalar_derivative}
+\end{equation}
+The one- and two-body derivatives are
+\begin{align}
+h_{pq,\mu}'
+&\approx
+\frac{
+\widetilde h_{pq}^{(+\mu)}
+-
+\widetilde h_{pq}^{(-\mu)}
+}{
+2\Delta Q_\mu
+},
+\nonumber\\
+g_{pqrs,\mu}'
+&\approx
+\frac{
+\widetilde g_{pqrs}^{(+\mu)}
+-
+\widetilde g_{pqrs}^{(-\mu)}
+}{
+2\Delta Q_\mu
+}.
+\label{eq:tensor_derivatives}
+\end{align}
+The tilde denotes tensors rotated into the equilibrium active-orbital frame before subtraction.  Omitting the scalar derivative would change the Hamiltonian and is not allowed in the production baseline unless explicitly labeled as a diagnostic variant.
+
+A useful equilibrium-centering diagnostic is the active-model force
+\begin{equation}
+F_\mu^{\Acal}
+=
+\bra{\Psi_0^{\Acal}}D_\mu\ket{\Psi_0^{\Acal}},
+\label{eq:active_force}
+\end{equation}
+where \(\ket{\Psi_0^{\Acal}}\) is the active-space electronic reference at \(\mathbf Q_0\).  If \(F_\mu^{\Acal}\) is large, the local model is not centered at an active-space equilibrium.  A recentered diagnostic derivative may be defined as \(D_\mu^\perp=D_\mu-F_\mu^{\Acal}I\), but this is a labeled variant rather than the baseline.
+
+Combining Eqs.~\eqref{eq:q_p_ladder} and~\eqref{eq:linear_taylor} gives the baseline Hamiltonian already stated in Eq.~\eqref{eq:intro_linear_h2o}:
+\begin{align}
+H_{\HtwoO}^{\lin}
+={}&
+H_{\el}^{\Acal}(\mathbf Q_0)
++
+\sum_{\mu=1}^{3}
+\omega_\mu
+\left(a_\mu^\dagger a_\mu+\frac12\right)
+\nonumber\\
+&+
+\sum_{\mu=1}^{3}
+Q_{\zpf,\mu}D_\mu
+\left(a_\mu^\dagger+a_\mu\right).
+\label{eq:h2o_linear_final}
+\end{align}
+
+\subsection{Molecular-orbital frame alignment}
+
+Finite differences of second-quantized Hamiltonians are meaningful only after all displaced active-space tensors are expressed in a common orbital frame.  Let \(C_0\) denote the equilibrium molecular-orbital coefficient matrix and \(C_g\) the coefficient matrix at a displaced geometry \(g\).  Let \(S_{\AO}^{0g}\) be the AO cross-overlap between center and displaced AO bases.  The MO overlap block for the active space is
+\begin{equation}
+S_{\Acal}^{0g}
+=
+\left[
+C_0^\dagger S_{\AO}^{0g} C_g
+\right]_{\Acal_0,\Acal_g}.
+\label{eq:active_mo_overlap}
+\end{equation}
+With the singular value decomposition
+\begin{equation}
+S_{\Acal}^{0g}=U_g\Sigma_g V_g^\dagger ,
+\label{eq:svd_alignment}
+\end{equation}
+the nearest unitary active-block alignment is
+\begin{equation}
+R_g=V_gU_g^\dagger .
+\label{eq:procrustes_alignment}
+\end{equation}
+The displaced active tensors are transformed as
+\begin{align}
+\widetilde h^{(g)}
+&=
+R_g^\dagger h^{(g)}R_g,
+\nonumber\\
+\widetilde g^{(g)}_{pqrs}
+&=
+\sum_{abcd}
+(R_g^\dagger)_{pa}
+(R_g^\dagger)_{qb}
+g^{(g)}_{abcd}
+(R_g)_{cr}
+(R_g)_{ds}.
+\label{eq:tensor_alignment}
+\end{align}
+The production fixture must report active-block singular values, active-to-external leakage, alignment residuals, and post-alignment Hermiticity and integral-symmetry residuals:
+\begin{align}
+\sigma_{\min}^{(g)}
+&=
+\min_i [\Sigma_g]_{ii},
+\nonumber\\
+r_{\Acal}^{(g)}
+&=
+\|S_{\Acal}^{0g}R_g-I\|_F,
+\nonumber\\
+\ell_{\Acal\to\Ecal}^{(g)}
+&=
+\|P_{\Acal}^{0}S_{\MO}^{0g}P_{\Ecal}^{g}\|_F,
+\nonumber\\
+\eta_h^{(g)}
+&=
+\|\widetilde h^{(g)}-\widetilde h^{(g)\dagger}\|_F,
+\nonumber\\
+\eta_g^{(g)}
+&=
+\|\widetilde g^{(g)}-\widetilde g^{(g),{\rm perm}}\|_F .
+\label{eq:alignment_diagnostics}
+\end{align}
+Fixtures with failed alignment diagnostics are not production evidence.
+
+\subsection{Quadratic and anharmonic terms are not baseline}
+
+A quadratic electronic-operator expansion would introduce
+\begin{equation}
+H^{(2)}
+=
+\frac12
+\sum_{\mu,\nu}
+D_{\mu\nu}Q_\mu Q_\nu,
+\qquad
+D_{\mu\nu}
+=
+\left.
+\frac{\partial^2H_{\el}^{\Acal}}
+{\partial Q_\mu\partial Q_\nu}
+\right|_{\mathbf Q_0}.
+\label{eq:quadratic_future}
+\end{equation}
+However, if \(\omega_\mu\) is obtained from a Born--Oppenheimer Hessian, adding \(D_{\mu\nu}\) naively can double count curvature already represented in the harmonic frequencies and in the second-order relaxation generated by the linear couplings.  Therefore Eq.~\eqref{eq:quadratic_future} is excluded from the baseline.  It may be introduced later as a diagnostic or residual-quadratic variant only after the pair-counting and curvature-subtraction convention is fixed.  Pure nuclear anharmonic force constants, Duschinsky rotations, and non-Condon dipole derivatives are likewise deferred.
+
+\subsection{Qubit and boson encoding}
+
+The default electronic map is Jordan--Wigner:
+\begin{equation}
+c_p^\dagger
+=
+\frac12(X_p-\ii Y_p)
+\prod_{r<p}Z_r,
+\qquad
+c_p
+=
+\frac12(X_p+\ii Y_p)
+\prod_{r<p}Z_r .
+\label{eq:jordan_wigner}
+\end{equation}
+Parity and Bravyi--Kitaev mappings may be resource variants \cite{JordanWigner1928,BravyiKitaev2002}.  Each bosonic mode is truncated to
+\begin{equation}
+\ket{n_\mu},\qquad n_\mu=0,\ldots,n_{\mu,\max},
+\label{eq:boson_truncation}
+\end{equation}
+and encoded, by default, in binary:
+\begin{align}
+\ket{n_\mu}
+&\mapsto
+\ket{\operatorname{bin}(n_\mu)}_\mu,
+\nonumber\\
+a_\mu^\dagger
+&=
+\sum_{n=0}^{n_{\mu,\max}-1}
+\sqrt{n+1}
+\ket{\operatorname{bin}(n+1)}_\mu
+\bra{\operatorname{bin}(n)}_\mu,
+\nonumber\\
+a_\mu
+&=
+\sum_{n=1}^{n_{\mu,\max}}
+\sqrt n
+\ket{\operatorname{bin}(n-1)}_\mu
+\bra{\operatorname{bin}(n)}_\mu .
+\label{eq:binary_encoding}
+\end{align}
+For \(N_{\rm spatial}=6\), the electronic register has \(12\) fermion qubits.  With three binary mode registers, the total qubit count is
+\begin{equation}
+N_q
+=
+12+
+\sum_{\mu=1}^{3}
+\left\lceil
+\log_2(n_{\mu,\max}+1)
+\right\rceil .
+\label{eq:qubit_count}
+\end{equation}
+For equal cutoffs \(n_{\mu,\max}=2\), this gives \(N_q=18\) before any symmetry tapering.  The fixed-sector reference dimension is
+\begin{equation}
+d_{\rm exact}
+=
+\comb{N_{\rm spatial}}{N_\alpha}
+\comb{N_{\rm spatial}}{N_\beta}
+\prod_{\mu=1}^{3}(n_{\mu,\max}+1).
+\label{eq:exact_dimension}
+\end{equation}
+For \(\CAS((8e,6o))\), \(d_{\rm exact}=6075,14400,28125\) for equal three-mode cutoffs \(n_{\max}=2,3,4\), respectively.
+
+\section{Static ground-state protocol}
+\label{sec:static_protocol}
+
+The near-term Paper~IV result path is the static ground-state calculation for Eq.~\eqref{eq:h2o_linear_final}.  The reference state is
+\begin{equation}
+\ket{\Phi_{\rm ref}}
+=
+\ket{\HF_{\Acal}}
+\otimes
+\ket{0_{\rm bend}}
+\otimes
+\ket{0_{\rm sym}}
+\otimes
+\ket{0_{\rm asym}} .
+\label{eq:h2o_reference}
+\end{equation}
+The variational state is
+\begin{equation}
+\ket{\psi(\boldsymbol\theta)}
+=
+U_{\Ocal}(\boldsymbol\theta)\ket{\Phi_{\rm ref}},
+\qquad
+U_{\Ocal}(\boldsymbol\theta)
+=
+\prod_{j=1}^{N_\theta}\exp(-\ii\theta_jG_j).
+\label{eq:static_ansatz}
+\end{equation}
+The objective is
+\begin{equation}
+E(\boldsymbol\theta)
+=
+\bra{\psi(\boldsymbol\theta)}
+H_{\HtwoO}^{\lin}
+\ket{\psi(\boldsymbol\theta)}.
+\label{eq:static_energy}
+\end{equation}
+
+The production pool is built from physically labeled operator families:
+\begin{equation}
+\Gcal_{\HtwoO}
+=
+\Gcal_{\el}
+\cup
+\Gcal_{\vib}
+\cup
+\Gcal_{\vibel}
+\cup
+\Gcal_{D}
+\cup
+\Gcal_{H}.
+\label{eq:pool_union}
+\end{equation}
+Representative operators are
+\begin{align}
+\Gcal_{\el}:&\quad
+\ii(c_a^\dagger c_i-c_i^\dagger c_a),
+\quad
+\ii(c_a^\dagger c_b^\dagger c_jc_i-\mathrm{h.c.}),
+\nonumber\\
+\Gcal_{\vib}:&\quad
+P_\mu,\quad
+N_\mu,\quad
+\ii[(a_\mu^\dagger)^2-a_\mu^2],
+\quad
+X_\mu P_\nu+P_\nu X_\mu,
+\nonumber\\
+\Gcal_{\vibel}:&\quad
+n_pP_\mu,\quad
+n_pX_\mu,\quad
+(c_p^\dagger c_q+c_q^\dagger c_p)P_\mu,
+\nonumber\\
+\Gcal_{D}:&\quad
+D_\mu P_\mu,\quad
+D_\mu X_\mu,\quad
+D_\mu P_\nu .
+\label{eq:pool_examples}
+\end{align}
+Here \(X_\mu=a_\mu^\dagger+a_\mu\), \(P_\mu=\ii(a_\mu^\dagger-a_\mu)\), and \(N_\mu=a_\mu^\dagger a_\mu\).  The derivative-Hamiltonian momentum channel \(D_\mu P_\mu\) is physically motivated because the Hamiltonian contains \(D_\mu X_\mu/\sqrt{2\omega_\mu}\); its conjugate momentum generator can generate an electronically conditioned oscillator displacement.
+
+SNAKE scores candidate generator-position records by state-space novelty, local energy descent, and cost.  For a candidate tangent
+\begin{equation}
+\tau_r
+=
+-\ii \widetilde G_r\ket{\psi},
+\label{eq:candidate_tangent}
+\end{equation}
+with \(Q_\psi=I-\ket{\psi}\bra{\psi}\), the Fubini--Study scale is
+\begin{equation}
+F_r
+=
+\bra{\tau_r}Q_\psi\ket{\tau_r}.
+\label{eq:fubini_scale}
+\end{equation}
+Given a local ansatz tangent window \(W_r\), the novelty factor is
+\begin{align}
+\mathcal N_r
+&=
+1-
+\frac{q_r^\top G_{W_r}^{+}q_r}{F_r},
+\nonumber\\
+(G_{W_r})_{ij}
+&=
+\Reop\bra{\tau_i}Q_\psi\ket{\tau_j},
+\qquad
+(q_r)_i
+=
+\Reop\bra{\tau_i}Q_\psi\ket{\tau_r}.
+\label{eq:static_novelty}
+\end{align}
+The H2O run must record selected generator classes, accepted depth, optimizer settings, gradient norm, exact-reference error, boundary weights, and compiled resource proxies.
+
+The static diagnostics are
+\begin{align}
+|\Delta E|_{\work}
+&=
+|E_{\rm SNAKE}(n_{\max}^{\work})-E_{\ed}(n_{\max}^{\work})|,
+\nonumber\\
+|\Delta E|_{\refc}
+&=
+|E_{\rm SNAKE}(n_{\max}^{\work})-E_{\ed}(n_{\max}^{\refc})|,
+\nonumber\\
+1-F_{\work}
+&=
+1-
+|\braket{\psi_{\rm SNAKE}(n_{\max}^{\work})}{\psi_{\ed}(n_{\max}^{\work})}|^2,
+\nonumber\\
+w_{\rm boundary}
+&=
+\sum_{\mathbf n:\exists\mu,\ n_\mu=n_{\mu,\max}}
+\sum_I
+|\braket{I,\mathbf n}{\psi_{\rm SNAKE}}|^2 .
+\label{eq:static_diagnostics}
+\end{align}
+No static H2O values are presently claimed:
+\begin{equation}
+|\Delta E|_{\work}^{\HtwoO}
+=
+\placeholder{TBD}.
+\label{eq:h2o_static_placeholder}
+\end{equation}
+This placeholder is filled only after the production finite-difference fixture and static SNAKE benchmark are locked.
+
+\section{Exact references, cutoffs, and validation contract}
+\label{sec:evidence_contract}
+
+The static paper-facing evidence requires exact references at the same Hamiltonian and cutoff whenever feasible.  Exact diagonalization should be performed in the fixed \((N_\alpha,N_\beta)\) sector and valid bosonic code subspace.  The same-cutoff reference isolates algorithmic error; the higher-cutoff reference estimates bosonic truncation drift:
+\begin{align}
+E_{\ed}^{\work}
+&=
+\lambda_{\min}\!\left[
+H_{\HtwoO}^{\lin}(n_{\max}^{\work})
+\right],
+\nonumber\\
+E_{\ed}^{\refc}
+&=
+\lambda_{\min}\!\left[
+H_{\HtwoO}^{\lin}(n_{\max}^{\refc})
+\right],
+\nonumber\\
+\delta_{\rm cut}
+&=
+|E_{\ed}^{\refc}-E_{\ed}^{\work}|.
+\label{eq:exact_refs}
+\end{align}
+For spectra or excited-state hooks, root-resolved boundary weights should also be reported.
+
+The production validation contract is fail-closed.  A fixture is not accepted as production evidence if any of the following are true: the model identity is not the linear finite-difference water model; the status is not a production candidate or validated production artifact; tensor shapes are inconsistent; active-space one- or two-body tensors violate Hermiticity or integral permutation symmetries; alignment diagnostics fail; a derivative record is missing for any of the three modes; the scalar derivative convention is missing; the fixed-sector dimension does not match the register and physical-sector metadata; cutoff diagnostics are absent without a stated fallback policy; or the reference state is not normalized.  These are manuscript-level reproducibility conditions, not local software details.
+
+The error budget must keep model and algorithmic errors separate:
+\begin{align}
+\epsilon_{\rm active}
+&=
+\placeholder{\text{active-space/basis error}},
+\nonumber\\
+\epsilon_{\rm fd}
+&=
+\placeholder{\text{finite-difference derivative drift}},
+\nonumber\\
+\epsilon_{\rm cut}
+&=
+|E_{\ed}^{\refc}-E_{\ed}^{\work}|,
+\nonumber\\
+\epsilon_{\rm alg}
+&=
+|E_{\rm VQA}^{\work}-E_{\ed}^{\work}|.
+\label{eq:error_budget}
+\end{align}
+Only \(\epsilon_{\rm alg}\) is directly attributable to the adaptive quantum algorithm.
+
+\section{Forward-compatible dynamics hooks}
+\label{sec:dynamics_hooks}
+
+\(\APM\) dynamics is not a completed \(\HtwoO\) result in this draft.  The Hamiltonian and evidence record are nevertheless designed so that a later dynamics run can reuse the static state and the same operator records.  A simple initial perturbation is a mode displacement,
+\begin{equation}
+\ket{\psi(0)}
+=
+\ee^{-\ii\eta P_\mu}\ket{\psi_0},
+\label{eq:displaced_initial_state}
+\end{equation}
+or a dipole impulse,
+\begin{equation}
+\ket{\psi(0)}
+\propto
+(I-\ii\eta \hat\mu_\alpha^{\Acal})\ket{\psi_0},
+\label{eq:dipole_impulse}
+\end{equation}
+provided the active-space dipole operator is constructed in the same aligned orbital frame.
+
+For a driven Hamiltonian,
+\begin{equation}
+H(t)
+=
+H_{\HtwoO}^{\lin}
++
+\sum_{\eta}\lambda_\eta(t)O_\eta^{\drv},
+\label{eq:driven_hamiltonian}
+\end{equation}
+McLachlan propagation uses
+\begin{align}
+(G+\Lambda)\dot{\boldsymbol\theta}
+&=
+f,
+\nonumber\\
+G_{ij}
+&=
+\Reop\bra{\partial_i\psi}Q_\psi\ket{\partial_j\psi},
+\nonumber\\
+f_i
+&=
+\Reop\bra{\partial_i\psi}Q_\psi(-\ii H(t))\ket{\psi}.
+\label{eq:mclachlan_equations}
+\end{align}
+Checkpoint structural edits use residuals and Schur-complement append scores from the \(\APM\) method of Paper~II \cite{StrobelPaperIIMcLachlan}.  Exact trajectories, when available, are diagnostic references only and should not enter online controller decisions.
+
+Dynamics observables should include
+\begin{align}
+\Ocal_{\dyn}
+=
+\{&
+Q_\mu(t),P_\mu(t),N_\mu(t),
+\nonumber\\
+&
+E_{\el}(t),E_{\vib}(t),E_{\vibel}(t),
+\gamma_{pq}(t),\mu_\alpha(t)
+\}.
+\label{eq:dynamics_observables}
+\end{align}
+with trajectory errors reported only after a locked run:
+\begin{equation}
+\epsilon_{\Ocal,\HtwoO}^{(2)}
+=
+\placeholder{future}.
+\label{eq:h2o_dyn_placeholder}
+\end{equation}
+
+\section{Forward-compatible QSE hooks}
+\label{sec:qse_hooks}
+
+QSE is retained as a future-ready interface rather than a completed result.  The static ground state \(\ket{\psi_0}\) and the derivative records \(D_\mu\) define natural excitation and response operators.  A future QSE basis may include
+\begin{align}
+\Ecal_{\vib}^{\qse}
+&=
+\{X_\mu,P_\mu,N_\mu,X_\mu X_\nu\},
+\nonumber\\
+\Ecal_{\el}^{\qse}
+&=
+\{c_a^\dagger c_i,\ c_a^\dagger c_b^\dagger c_jc_i\},
+\nonumber\\
+\Ecal_{\vibel}^{\qse}
+&=
+\{D_\mu X_\nu,\ D_\mu P_\nu,\ c_p^\dagger c_q X_\mu,\ c_p^\dagger c_q P_\mu\}.
+\label{eq:qse_alphabet_hooks}
+\end{align}
+For excitation records \(\Omega_a\), the QSE vectors are
+\begin{equation}
+\ket{\phi_a}
+=
+Q_0\Omega_a\ket{\psi_0},
+\qquad
+Q_0=\Pi_{\rm sector}-\ket{\psi_0}\bra{\psi_0}.
+\label{eq:qse_vectors}
+\end{equation}
+The generalized eigenproblem is
+\begin{align}
+M c^{(\nu)}
+&=
+\varepsilon_\nu S c^{(\nu)},
+\nonumber\\
+S_{ab}
+&=
+\braket{\phi_a}{\phi_b},
+\qquad
+M_{ab}
+=
+\bra{\phi_a}H_{\HtwoO}^{\lin}\ket{\phi_b}.
+\label{eq:qse_gep}
+\end{align}
+Potential probe weights include
+\begin{align}
+w_{\mu\nu}^{(Q)}
+&=
+|\bra{\Psi_\nu^{\qse}}Q_\mu\ket{\Psi_0}|^2,
+\nonumber\\
+\expval{N_\mu}_\nu
+&=
+\bra{\Psi_\nu^{\qse}}N_\mu\ket{\Psi_\nu^{\qse}}.
+\label{eq:qse_character}
+\end{align}
+The QSE metric support, root matching, transition strengths, and spectral functions remain placeholders:
+\begin{equation}
+\overline{|\Delta\omega|}_{\HtwoO}^{\qse}
+=
+\placeholder{future hook}.
+\label{eq:qse_placeholder}
+\end{equation}
+This value is outside the locked static claim.
+
+\section{Results}
+\label{sec:results}
+
+This results section is a production shell.  It should be filled only from a validated all-three-mode linear finite-difference \(\HtwoO\) fixture and a locked static SNAKE run.  Numerical placeholders must not be replaced by values from the old two-orbital surrogate.
+
+\subsection{Hamiltonian and encoding audit}
+
+\begin{table*}[t]
+\caption{\label{tab:h2o_model_audit}Production \(\HtwoO\) linear finite-difference Hamiltonian audit.  The baseline model is all-three-mode, local harmonic, and linearly coupled.  Quadratic couplings are absent from the baseline.}
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}ll}
+Item & Production value \\
+\colrule
+Equilibrium geometry & \placeholder{H2O equilibrium geometry, units, optimization level} \\
+Electronic basis & \placeholder{STO-3G for minimal target; larger-basis variants TBD} \\
+Active-space rule & \placeholder{frozen O(1s), valence CAS((8e,6o)), active orbital labels/indices} \\
+Electronic sector & \(\placeholder{N_{\rm spatial}=6,\ (N_\alpha,N_\beta)=(4,4),\ d_{\el}=225}\) \\
+Modes retained & bend, symmetric stretch, antisymmetric stretch \\
+Normal-mode frequencies & \(\placeholder{\omega_{\rm bend},\omega_{\rm sym},\omega_{\rm asym}}\) \\
+Finite-difference steps & \(\placeholder{\Delta Q_\mu\text{ and alternate-step convergence}}\) \\
+Scalar derivative convention & \(\placeholder{nuclear repulsion + frozen-core scalar + active scalar correction included}\) \\
+MO alignment diagnostics & \(\placeholder{\sigma_{\min},r_{\Acal},\ell_{\Acal\to\Ecal},\eta_h,\eta_g\text{ for all displacements}}\) \\
+Derivative records & \(\placeholder{three }D_\mu\text{ records with scalar, one-body, two-body derivatives}\) \\
+Baseline coupling order & linear only; quadratic electronic-operator terms absent \\
+Fermion map & \placeholder{Jordan--Wigner default; parity/BK variants TBD} \\
+Boson encoding and cutoffs & \(\placeholder{binary registers; }(n_{\rm bend},n_{\rm sym},n_{\rm asym})_{\max}=\placeholder{TBD}\) \\
+Qubits and Pauli terms & \(\placeholder{N_q,\ N_{\rm Pauli},\text{ grouped measurement count}}\) \\
+Physical-sector dimension & \(\placeholder{d_{\rm exact}=d_{\el}\prod_\mu(n_{\mu,\max}+1)}\) \\
+Exact reference status & \(\placeholder{same-cutoff ED and higher-cutoff policy}\) \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\subsection{Finite-difference and alignment diagnostics}
+
+\begin{table*}[t]
+\caption{\label{tab:h2o_fd_results}Finite-difference derivative and MO-frame alignment diagnostics.  Production validation fails closed if a derivative record or alignment diagnostic is missing or failed.}
+\begin{ruledtabular}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccccc}
+Mode & \(\Delta Q_\mu\) & \(\epsilon_{{\rm fd},\mu}\) & \(\|D_\mu\|_{\rm sector}\) & \(\|D_\mu\|_{L_1}\) & \(F_\mu^{\Acal}\) & \(\sigma_{\min}\) & status \\
+\colrule
+bend & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{pass/fail}\) \\
+symmetric stretch & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{pass/fail}\) \\
+antisymmetric stretch & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{pass/fail}\) \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\subsection{Exact references and cutoff diagnostics}
+
+\begin{table}[t]
+\caption{\label{tab:h2o_cutoff_results}Bosonic cutoff diagnostics for the production \(\HtwoO\) linear vibronic Hamiltonian.}
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+Cutoff vector & \(d_{\rm exact}\) & \(E_{\ed}\) & \(\delta_{\rm cut}\) & \(w_{\rm boundary}\) \\
+\colrule
+\(\placeholder{(n_{\rm bend},n_{\rm sym},n_{\rm asym})_{\max}^{\work}}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) \\
+\(\placeholder{(n_{\rm bend},n_{\rm sym},n_{\rm asym})_{\max}^{\refc}}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & -- & \(\placeholder{TBD}\) \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{Static ground-state benchmark}
+
+\begin{table*}[t]
+\caption{\label{tab:h2o_static_results}Static \(\HtwoO\) ground-state benchmark for the all-three-mode linear finite-difference Hamiltonian.  Same-cutoff error measures algorithmic accuracy in the encoded Hilbert space; higher-cutoff error includes bosonic truncation drift.}
+\begin{ruledtabular}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccccccc}
+Method & \(k_{\rm pl}\) & \(N_\theta\) & \(|\Delta E|_{\work}\) & \(|\Delta E|_{\refc}\) & \(1-F_{\work}\) & \(w_{\rm boundary}\) & \(N_{\twq}\) & \(D_{\twq}\) & \(D_c\) \\
+\colrule
+HF \(\otimes\) vibrational vacuum & -- & 0 & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & 0 & 0 & \(\placeholder{TBD}\) \\
+Fixed chemically motivated ansatz & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) \\
+Append-only ADAPT & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) \\
+Geometry-aware ADAPT comparator & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) \\
+SNAKE & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) \\
+Exact diagonalization & -- & -- & 0 & \(\placeholder{\delta_{\rm cut}}\) & 0 & \(\placeholder{TBD}\) & -- & -- & -- \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.92\columnwidth}
+\centering
+\vspace{2.0em}
+\placeholder{Insert static SNAKE convergence trace for production H2O: same-cutoff energy error versus adaptive iteration; include cutoff floor, selected-generator family annotations, and boundary-weight markers.}
+\vspace{2.0em}
+\end{minipage}}
+\caption{\label{fig:static_convergence_placeholder}Static \(\HtwoO\) SNAKE convergence placeholder.  This figure should be generated only from the all-three-mode linear finite-difference Hamiltonian.}
+\end{figure}
+
+\subsection{Forward-looking dynamics and QSE tables}
+
+\begin{table*}[t]
+\caption{\label{tab:h2o_dynamics_results}Future \(\APM\) dynamics hook.  These rows are placeholders and are not part of the static evidence claim.}
+\begin{ruledtabular}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc}
+Method & init. & \(T\) & \(N_t\) & \(\epsilon_E^{(2)}\) & \(\epsilon_{\Ocal}^{(2)}\) & events & \(N_{\twq}^{\rm max}\) & \(D_{\twq}^{\rm max}\) \\
+\colrule
+Exact diagnostic trajectory & \(\placeholder{mode/dipole}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & 0 & 0 & -- & -- & -- \\
+Fixed McLachlan & \(\placeholder{same}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & 0/0 & \(\placeholder{future}\) & \(\placeholder{future}\) \\
+\(\APM\) & \(\placeholder{same}\) & \(\placeholder{TBD}\) & \(\placeholder{TBD}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{\label{tab:h2o_qse_results}Future QSE spectral hook from Paper~III.  These rows are placeholders and should not be interpreted as completed \(\HtwoO\) QSE results.}
+\begin{ruledtabular}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc}
+Method & \(M_{\rm eff}\) & \(\kappa(S)\) & roots & \(\overline{|\Delta\omega|}_{\work}\) & \(\epsilon_{\rm spec}\) & trans. err. & \(S_{\rm mat}\) & status \\
+\colrule
+Same-cutoff ED reference & -- & -- & \(\placeholder{future}\) & 0 & 0 & 0 & -- & future diagnostic \\
+Fixed alphabet QSE & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & hook only \\
+Geometry-selected QSE & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & \(\placeholder{future}\) & hook only \\
+\end{tabular*}
+\end{ruledtabular}
+\end{table*}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The revised model places the physical Hamiltonian construction before the end-to-end workflow narrative.  This is necessary because the scientific risk in a molecular-vibronic \(\HtwoO\) application is not merely variational convergence; it is whether the Hamiltonian itself is a defensible finite active-space, finite-mode molecular model.  Retaining all three water modes and using finite-difference derivative Hamiltonians in a common MO frame avoids the principal weakness of the older smoke-test object, namely its one-mode surrogate coupling and two-orbital active space.
+
+The baseline is still intentionally modest.  A frozen-core valence \(\CAS((8e,6o))\)/STO-3G model can support an algorithmic benchmark with exact-sector references and cutoff diagnostics, but it is not a high-accuracy water spectroscopy model.  The classical water literature reaches quantitative spectroscopy through much larger potential-energy-surface and correction machinery \cite{PartridgeSchwenke1997,Polyansky2013Water}.  The correct comparison for this paper is therefore not experiment or high-resolution water line lists; it is exact diagonalization of the same finite Hamiltonian, plus cutoff and derivative diagnostics that reveal the limitations of the model.
+
+The dominant diagnostics are MO-frame stability, scalar derivative inclusion, finite-difference step convergence, exact-sector references, and boson cutoff boundary weights.  A small same-cutoff variational error is not meaningful if the active orbitals are unstable across displacements or if the oscillator wavefunction presses against the truncation boundary.  Conversely, if those diagnostics pass, then a static SNAKE calculation on Eq.~\eqref{eq:h2o_linear_final} becomes a clean test of mixed electronic--vibrational adaptive ansatz construction.
+
+Dynamics and QSE remain natural continuations.  The derivative-Hamiltonian records \(D_\mu\), mode operators \(X_\mu,P_\mu,N_\mu\), and active-space dipole/density observables already define the relevant operator hooks.  However, the present paper should not let unfinished QSE or dynamics obscure the main contribution: constructing and statically benchmarking a physical, finite active-space, all-three-mode, linearly coupled water Hamiltonian.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We revised the Paper~IV application around a production-oriented \(\HtwoO\) model: frozen-core finite active-space electronic structure, all three water normal modes, local harmonic nuclear motion, and linear finite-difference electron--vibration couplings in a common molecular-orbital frame.  The near-term paper-facing algorithmic result is static SNAKE ground-state preparation with exact-sector and cutoff diagnostics.  \(\APM\) dynamics and Paper~III QSE spectra remain compatible future hooks rather than completed claims.  The manuscript avoids broad novelty claims that are precluded by existing work on quantum vibrational simulation, vibronic spectra, adaptive ansatz construction, variational dynamics, and subspace excited-state methods.  Its conservative contribution is a workflow-level adaptive quantum-simulation application to a physically constructed finite active-space molecular-vibronic water Hamiltonian.  All numerical water results remain placeholders until the production finite-difference fixture and static benchmark run are locked.
+
+\begin{acknowledgments}
+\placeholder{Add funding, computational resources, software acknowledgments, and discussions.}
+\end{acknowledgments}
+
+\clearpage
+\appendix
+
+\section{Production fixture construction checklist}
+\label{app:fixture_checklist}
+
+The production \(\HtwoO\) fixture should be generated by the following sequence.
+
+\begin{enumerate}
+\item Specify or optimize the equilibrium geometry \(\mathbf R_0\), including units, masses, charge, multiplicity, method, basis, and convergence status.
+\item Compute the harmonic Hessian and all three normal modes at the same geometry and electronic-structure level used for the electronic snapshots.
+\item Define the active space.  The minimal paper-facing target is frozen O(1s) core and valence \(\CAS((8e,6o))\) in STO-3G, with active orbital identities recorded by character and index.
+\item Build displaced geometries \(\mathbf R_0\pm\Delta Q_\mu \mathbf M^{-1/2}\mathbf e_\mu\) for \(\mu=1,2,3\).  Alternate half-step displacements should be generated for finite-difference stability diagnostics.
+\item Compute electronic snapshots at the center and displaced geometries.
+\item Track and align displaced active orbital blocks to the equilibrium active frame using MO overlap and Procrustes/polar alignment.
+\item Build center-frame active tensors \(\widetilde E_{\scalar}^{(\pm\mu)}\), \(\widetilde h^{(\pm\mu)}\), and \(\widetilde g^{(\pm\mu)}\).
+\item Construct \(D_\mu\) for each mode by central finite differences, including scalar, one-body, and two-body derivative components.
+\item Assemble \(H_{\HtwoO}^{\lin}\), encode fermions and bosons, and emit Pauli operators, reference state, physical-sector metadata, exact references, and cutoff diagnostics.
+\item Validate that all required derivative, alignment, exact-reference, cutoff, and normalization diagnostics are present and passing before allowing paper-facing use.
+\end{enumerate}
+
+The manuscript-auditable fixture record is
+\begin{align}
+\mathcal J_{\rm fixture}
+=
+\{&
+\mathbf R_0,\Acal,N_\alpha,N_\beta,
+\omega_\mu,\Delta Q_\mu,Q_{\zpf,\mu},
+D_\mu,
+\nonumber\\
+&
+\sigma_{\min}^{(g)},r_{\Acal}^{(g)},\ell_{\Acal\to\Ecal}^{(g)},
+\eta_h^{(g)},\eta_g^{(g)},
+\nonumber\\
+&
+n_{\mu,\max},N_q,N_{\rm Pauli},
+E_{\ed}^{\work},E_{\ed}^{\refc},w_{\rm boundary}
+\}.
+\label{eq:fixture_record}
+\end{align}
+
+\section{Gauge-alignment derivation}
+\label{app:gauge_alignment}
+
+Let \(d_p^{(g)\dagger}\) create an electron in a displaced active orbital and \(c_q^\dagger\) create an electron in the equilibrium active orbital frame.  With
+\begin{equation}
+d_p^{(g)\dagger}
+=
+\sum_q R_{qp}^{(g)}c_q^\dagger,
+\label{eq:orbital_rotation_creation}
+\end{equation}
+a displaced one-body operator transforms as
+\begin{align}
+\sum_{pq}h_{pq}^{(g)}d_p^{(g)\dagger}d_q^{(g)}
+&=
+\sum_{pq}h_{pq}^{(g)}
+\sum_{rs}
+R_{rp}^{(g)*}R_{sq}^{(g)}
+c_r^\dagger c_s
+\nonumber\\
+&=
+\sum_{rs}
+\left[
+R^{(g)\dagger}h^{(g)}R^{(g)}
+\right]_{rs}
+c_r^\dagger c_s .
+\label{eq:one_body_rotation}
+\end{align}
+Similarly,
+\begin{equation}
+\sum_{pqrs}g_{pqrs}^{(g)}
+d_p^\dagger d_q^\dagger d_s d_r
+=
+\sum_{abcd}
+\widetilde g_{abcd}^{(g)}
+c_a^\dagger c_b^\dagger c_d c_c,
+\label{eq:two_body_rotation}
+\end{equation}
+where
+\begin{equation}
+\widetilde g_{abcd}^{(g)}
+=
+\sum_{pqrs}
+R_{ap}^{(g)*}
+R_{bq}^{(g)*}
+g_{pqrs}^{(g)}
+R_{cr}^{(g)}
+R_{ds}^{(g)}.
+\label{eq:two_body_rotation_tensor}
+\end{equation}
+Equations~\eqref{eq:one_body_rotation}--\eqref{eq:two_body_rotation_tensor} define the center-frame tensors used in the finite differences.
+
+\section{Derivative step-convergence diagnostics}
+\label{app:fd_diagnostics}
+
+For each mode, the derivative should be computed at a primary step \(\Delta Q_\mu\) and an alternate step, typically \(\Delta Q_\mu/2\).  A relative derivative drift can be defined by
+\begin{equation}
+\epsilon_{{\rm fd},\mu}
+=
+\frac{
+\|D_\mu(\Delta Q_\mu)-D_\mu(\Delta Q_\mu/2)\|
+}{
+\max\{\|D_\mu(\Delta Q_\mu/2)\|,\epsilon\}
+}.
+\label{eq:fd_drift}
+\end{equation}
+The norm should be reported in at least one algorithm-facing representation, such as the fixed-sector operator norm or encoded Pauli \(L_1\) norm, and may be supplemented by one- and two-body tensor Frobenius norms:
+\begin{equation}
+\|D_\mu\|_{\rm sector},
+\qquad
+\|D_\mu\|_{L_1},
+\qquad
+\|h_\mu'\|_F,
+\qquad
+\|g_\mu'\|_F.
+\label{eq:derivative_norms}
+\end{equation}
+A derivative record with missing step-convergence metadata should be marked as a production candidate rather than production validated.
+
+\section{Operator pool details}
+\label{app:operator_pool}
+
+For a molecular active space with occupied orbitals \(i,j\) and virtual orbitals \(a,b\), electronic generators include
+\begin{align}
+G_{i\to a,\sigma}
+&=
+\ii(c_{a\sigma}^\dagger c_{i\sigma}-c_{i\sigma}^\dagger c_{a\sigma}),
+\nonumber\\
+G_{ij\to ab,\sigma\sigma'}
+&=
+\ii(c_{a\sigma}^\dagger c_{b\sigma'}^\dagger c_{j\sigma'}c_{i\sigma}-\mathrm{h.c.}).
+\label{eq:appendix_ucc_generators}
+\end{align}
+For each retained mode,
+\begin{align}
+X_\mu&=a_\mu^\dagger+a_\mu,
+&
+P_\mu&=\ii(a_\mu^\dagger-a_\mu),
+\nonumber\\
+N_\mu&=a_\mu^\dagger a_\mu,
+&
+S_\mu&=\ii[(a_\mu^\dagger)^2-a_\mu^2].
+\label{eq:vib_generators}
+\end{align}
+The pure vibrational pool may include
+\begin{equation}
+\Gcal_{\vib}
+=
+\{P_\mu,N_\mu,S_\mu,X_\mu X_\nu,P_\mu P_\nu,X_\mu P_\nu+P_\nu X_\mu\}_{\mu\nu}.
+\label{eq:vib_pool}
+\end{equation}
+The mixed pool should be derived from physical records:
+\begin{align}
+\Gcal_{\vibel}
+=
+\{&
+D_\mu P_\nu,\,
+D_\mu X_\nu,\,
+n_pP_\mu,\,
+n_pX_\mu,\,
+(c_p^\dagger c_q+c_q^\dagger c_p)P_\mu,
+\nonumber\\
+&
+\ii(c_p^\dagger c_q-c_q^\dagger c_p)X_\mu,\,
+G_{i\to a,\sigma}P_\mu,\,
+G_{ij\to ab,\sigma\sigma'}P_\mu
+\}.
+\label{eq:vibronic_pool}
+\end{align}
+The old frontier-imbalance surrogate channels should not appear in the production paper-facing pool except as explicitly marked smoke-test legacy records.
+
+\section{Reference and cutoff policy}
+\label{app:reference_policy}
+
+For static energies, the manuscript should report
+\begin{align}
+\epsilon_{\rm alg}
+&=
+|E_{\rm VQA}(n_{\max}^{\work})-E_{\ed}(n_{\max}^{\work})|,
+\nonumber\\
+\epsilon_{\rm cut}
+&=
+|E_{\ed}(n_{\max}^{\work})-E_{\ed}(n_{\max}^{\refc})|.
+\label{eq:appendix_error_split}
+\end{align}
+These must not be collapsed into one number without explanation.  The cutoff boundary weight is
+\begin{equation}
+w_{\rm boundary}(\Psi)
+=
+\sum_{\mathbf n:\exists\mu,\ n_\mu=n_{\mu,\max}}
+\sum_I
+|\braket{I,\mathbf n}{\Psi}|^2.
+\label{eq:appendix_boundary}
+\end{equation}
+A small energy drift with a large boundary weight should be treated as a failed cutoff diagnostic.
+
+For future QSE spectra, root matching should not rely on sorted root index.  A cost such as
+\begin{align}
+C_{\nu m}
+={}&
+w_E|\omega_\nu^{\qse}-\omega_m^{\ed}|
++
+w_F\left(1-|\braket{\Psi_\nu^{\qse}}{\Psi_m^{\ed}}|^2\right)
+\nonumber\\
+&+
+w_T\sum_O
+\left|
+|T_\nu^O|^2-|T_m^O|^2
+\right|
+\label{eq:root_matching_cost}
+\end{align}
+should be minimized globally over roots when exact references are available.
+
+\section{Prototype status and guardrails}
+\label{app:prototype_guardrails}
+
+The old \(\HtwoO\) object is retained only as a smoke test.  It uses a two-spatial-orbital active-space projection, one binary bosonic mode, a deterministic surrogate derivative, and a small qubit register.  Its purpose is to verify data plumbing, not to define a molecular-vibronic water model.  It should not appear in the results section and should not be cited as evidence for energy accuracy, spectra, dynamics, cutoff convergence, or resource improvement.
+
+Production water evidence requires all of the following: all three normal modes; finite-difference derivative records \(D_\mu\) from displaced active-space Hamiltonians; scalar derivative inclusion; molecular-orbital frame alignment diagnostics; Hermiticity and tensor-symmetry validation; a physical-sector exact reference or stated fallback policy; bosonic cutoff diagnostics; and a normalized reference state.  Failing any of these conditions blocks paper-facing numerical claims.
+
+\begin{thebibliography}{99}
+
+\bibitem{StrobelPaperIStaticADAPT}
+J. Strobel, J. Simoni, G. Riva, and Y. Ping,
+``SNAKE: Geometry- and Cost-Aware ADAPT Ansatz Construction,''
+Paper I, manuscript in preparation.
+
+\bibitem{StrobelPaperIIMcLachlan}
+J. Strobel, J. Simoni, G. Riva, and Y. Ping,
+``Checkpoint-Adaptive McLachlan Dynamics for Mixed Fermion--Boson Hamiltonians,''
+Paper II, manuscript in preparation.
+
+\bibitem{StrobelPaperIIIQSE}
+J. Strobel, J. Simoni, G. Riva, and Y. Ping,
+``Geometry-Selected Quantum Subspace Expansion for Mixed Fermion--Boson Spectra,''
+Paper III, manuscript in preparation.
+
+\bibitem{BornOppenheimer1927}
+M. Born and R. Oppenheimer,
+``Zur Quantentheorie der Molekeln,''
+Ann. Phys. \textbf{389}, 457 (1927).
+
+\bibitem{WilsonDeciusCross1955}
+E. B. Wilson, J. C. Decius, and P. C. Cross,
+\emph{Molecular Vibrations}
+(McGraw--Hill, New York, 1955).
+
+\bibitem{Grimsley2019ADAPT}
+H. R. Grimsley, S. E. Economou, E. Barnes, and N. J. Mayhall,
+``An adaptive variational algorithm for exact molecular simulations on a quantum computer,''
+Nat. Commun. \textbf{10}, 3007 (2019).
+
+\bibitem{Tang2021QubitADAPT}
+H. L. Tang et al.,
+``Qubit-ADAPT-VQE: An adaptive algorithm for constructing hardware-efficient ans\"atze on a quantum processor,''
+PRX Quantum \textbf{2}, 020310 (2021).
+
+\bibitem{Yordanov2021QEB}
+Y. S. Yordanov, V. Armaos, C. H. W. Barnes, and D. R. M. Arvidsson-Shukur,
+``Qubit-excitation-based adaptive variational quantum eigensolver,''
+Commun. Phys. \textbf{4}, 228 (2021).
+
+\bibitem{Anastasiou2024TETRIS}
+P. G. Anastasiou, Y. Chen, N. J. Mayhall, E. Barnes, and S. E. Economou,
+``TETRIS-ADAPT-VQE: An adaptive algorithm that yields shallower, denser circuit ans\"atze,''
+Phys. Rev. Res. \textbf{6}, 013254 (2024).
+
+\bibitem{Nykanen2023NEOADAPT}
+A. Nyk\"anen et al.,
+``Toward Accurate Post-Born--Oppenheimer Molecular Simulations on Quantum Computers: An Adaptive Variational Eigensolver with Nuclear-Electronic Frozen Natural Orbitals,''
+J. Chem. Theory Comput. \textbf{19}, 9269 (2023).
+
+\bibitem{Majland2024vADAPT}
+M. Majland, P. Ettenhuber, N. T. Zinner, and O. Christiansen,
+``Vibrational ADAPT-VQE: Critical points lead to problematic convergence,''
+J. Chem. Phys. \textbf{160}, 154109 (2024).
+
+\bibitem{McLachlan1964}
+A. D. McLachlan,
+``A variational solution of the time-dependent Schr\"odinger equation,''
+Mol. Phys. \textbf{8}, 39 (1964).
+
+\bibitem{Yuan2019VQS}
+X. Yuan, S. Endo, Q. Zhao, Y. Li, and S. C. Benjamin,
+``Theory of variational quantum simulation,''
+Quantum \textbf{3}, 191 (2019).
+
+\bibitem{Barison2021PVQD}
+S. Barison, F. Vicentini, and G. Carleo,
+``An efficient quantum algorithm for the time evolution of parameterized circuits,''
+Quantum \textbf{5}, 512 (2021).
+
+\bibitem{Yao2021AVQDS}
+Y.-X. Yao, N. Gomes, F. Zhang, C.-Z. Wang, K.-M. Ho, T. Iadecola, and P. P. Orth,
+``Adaptive variational quantum dynamics simulations,''
+PRX Quantum \textbf{2}, 030307 (2021).
+
+\bibitem{McClean2017QSE}
+J. R. McClean, M. E. Kimchi-Schwartz, J. Carter, and W. A. de Jong,
+``Hybrid quantum-classical hierarchy for mitigation of decoherence and determination of excited states,''
+Phys. Rev. A \textbf{95}, 042308 (2017).
+
+\bibitem{Colless2018QSE}
+J. I. Colless et al.,
+``Computation of molecular spectra on a quantum processor with an error-resilient algorithm,''
+Phys. Rev. X \textbf{8}, 011021 (2018).
+
+\bibitem{Ollitrault2020qEOM}
+P. J. Ollitrault et al.,
+``Quantum equation of motion for computing molecular excitation energies on a noisy quantum processor,''
+Phys. Rev. Res. \textbf{2}, 043140 (2020).
+
+\bibitem{Asthana2023qscEOM}
+A. Asthana et al.,
+``Quantum self-consistent equation-of-motion method for computing molecular excitation energies, ionization potentials, and electron affinities on a quantum computer,''
+Chem. Sci. \textbf{14}, 2405 (2023).
+
+\bibitem{Vallury2020QCM}
+H. J. Vallury, M. A. Jones, C. D. Hill, and L. C. L. Hollenberg,
+``Quantum computed moments correction to variational estimates,''
+Quantum \textbf{4}, 373 (2020).
+
+\bibitem{McArdle2019Vibrations}
+S. McArdle et al.,
+``Digital quantum simulation of molecular vibrations,''
+Chem. Sci. \textbf{10}, 5725 (2019).
+
+\bibitem{Ollitrault2020Vibrational}
+P. J. Ollitrault, A. Kandala, C.-F. Chen, P. K. Barkoutsos, A. Mezzacapo, M. Pistoia, S. Sheldon, S. Woerner, J. M. Gambetta, and I. Tavernelli,
+``Hardware efficient quantum algorithms for vibrational structure calculations,''
+Chem. Sci. \textbf{11}, 6842 (2020).
+
+\bibitem{SawayaHuh2019Vibronic}
+N. P. D. Sawaya and J. Huh,
+``Quantum Algorithm for Calculating Molecular Vibronic Spectra,''
+J. Phys. Chem. Lett. \textbf{10}, 3586 (2019).
+
+\bibitem{Sawaya2020DLevel}
+N. P. D. Sawaya et al.,
+``Resource-efficient digital quantum simulation of \(d\)-level systems for photonic, vibrational, and spin-\(s\) Hamiltonians,''
+npj Quantum Inf. \textbf{6}, 49 (2020).
+
+\bibitem{MacDonell2023AnalogVibronic}
+R. J. MacDonell et al.,
+``Predicting molecular vibronic spectra using time-domain analog quantum simulation,''
+Chem. Sci. \textbf{14}, 9439 (2023).
+
+\bibitem{HaMacDonell2025Analog}
+J.-K. Ha and R. J. MacDonell,
+``Analog quantum simulation of coupled electron-nuclear dynamics in molecules,''
+Chem. Sci. (2025), \placeholder{complete bibliographic details}.
+
+\bibitem{Li2025MSVQD}
+J. Li et al.,
+``Multi-set variational quantum dynamics algorithm for simulating nonadiabatic dynamics on quantum computers,''
+J. Phys. Chem. Lett. (2025), \placeholder{complete bibliographic details}.
+
+\bibitem{LotstedtSzidarovszky2026H2O}
+E. L\"otstedt and T. Szidarovszky,
+``Rovibrational energy levels of \(\mathrm{H_2O}\) by quantum computing,''
+arXiv:2603.05795 (2026).
+
+\bibitem{Feng2026GridIR}
+X. Feng et al.,
+``A Grid-Based Quantum Algorithm for the Time-Dependent Simulation of Infrared Spectra,''
+arXiv:2603.21122 (2026).
+
+\bibitem{LotstedtYamanouchi2026VibDynamics}
+E. L\"otstedt and K. Yamanouchi,
+``Simulation of vibrational dynamics using qubits and qudits,''
+arXiv:2605.12866 (2026).
+
+\bibitem{PartridgeSchwenke1997}
+H. Partridge and D. W. Schwenke,
+``The determination of an accurate isotope dependent potential energy surface for water from extensive ab initio calculations and experimental data,''
+J. Chem. Phys. \textbf{106}, 4618 (1997).
+
+\bibitem{Polyansky2013Water}
+O. L. Polyansky et al.,
+``Calculation of rotation-vibration energy levels of the water molecule,''
+\placeholder{journal and page details} (2013).
+
+\bibitem{KedzioraShavitt1997}
+G. S. Kedziora and I. Shavitt,
+``Calculation and fitting of potential energy and dipole surfaces for water,''
+J. Chem. Phys. \textbf{106}, 8733 (1997).
+
+\bibitem{Staab2022LVC}
+J. K. Staab and N. F. Chilton,
+``Analytic Linear Vibronic Coupling Method for First-Principles Spin-Dynamics Calculations in Single-Molecule Magnets,''
+J. Chem. Theory Comput. (2022), \placeholder{complete bibliographic details}.
+
+\bibitem{CardenasNogueira2020ActiveSpace}
+G. C\'ardenas and J. J. Nogueira,
+``An algorithm to correct for the CASSCF active space in ensembles of geometries,''
+\placeholder{journal and page details} (2020).
+
+\bibitem{JordanWigner1928}
+P. Jordan and E. Wigner,
+``\"Uber das Paulische \"Aquivalenzverbot,''
+Z. Phys. \textbf{47}, 631 (1928).
+
+\bibitem{BravyiKitaev2002}
+S. B. Bravyi and A. Yu. Kitaev,
+``Fermionic quantum computation,''
+Ann. Phys. \textbf{298}, 210 (2002).
+
+\end{thebibliography}
+
+\end{document}

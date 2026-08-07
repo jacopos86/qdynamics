@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+import pipelines.static_adapt.current_checkpoint as current_checkpoint
+import pipelines.static_adapt.sr_snake._cli_compatibility as cli_compatibility
+
+
+def test_cli_compatibility_reexports_neutral_checkpoint_publisher() -> None:
+    assert (
+        cli_compatibility._publish_active_cli_current_checkpoint
+        is current_checkpoint._publish_active_cli_current_checkpoint
+    )
+    assert (
+        cli_compatibility._stable_json_digest
+        is current_checkpoint._stable_json_digest
+    )
+    assert (
+        current_checkpoint._publish_active_cli_current_checkpoint.__module__
+        == "pipelines.static_adapt.current_checkpoint"
+    )
+
+
+def test_cli_compatibility_no_longer_defines_checkpoint_publisher() -> None:
+    compatibility_path = Path(cli_compatibility.__file__)
+    tree = ast.parse(compatibility_path.read_text(encoding="utf-8"))
+    defined_functions = {
+        node.name
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert "_publish_active_cli_current_checkpoint" not in defined_functions

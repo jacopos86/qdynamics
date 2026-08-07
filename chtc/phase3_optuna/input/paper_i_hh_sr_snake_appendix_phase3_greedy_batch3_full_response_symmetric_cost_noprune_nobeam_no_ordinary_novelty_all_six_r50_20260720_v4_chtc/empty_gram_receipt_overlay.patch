@@ -1,0 +1,75 @@
+--- a/pipelines/static_adapt/selector_query_closure.py
++++ b/pipelines/static_adapt/selector_query_closure.py
+@@ -159,6 +159,38 @@
+     return array
+ 
+ 
++def normalize_serialized_matrix_payload(
++    value: Any,
++    *,
++    expected_shape: tuple[int, int],
++    field_name: str,
++) -> np.ndarray:
++    """Restore a finite matrix whose JSON payload may have zero extent.
++
++    ``ndarray.tolist()`` serializes every zero-row matrix as ``[]`` and thus
++    loses its second dimension.  The surrounding typed receipt supplies the
++    authoritative dimensions, so a size-zero payload is reshaped only when
++    the expected matrix itself has zero elements.  Nonempty and malformed
++    payloads continue to fail closed.
++    """
++
++    shape = tuple(int(value) for value in expected_shape)
++    if len(shape) != 2 or any(dimension < 0 for dimension in shape):
++        raise ValueError(f"{field_name} has invalid expected shape {shape!r}.")
++    array = np.asarray(value, dtype=float)
++    if array.size == 0 and int(np.prod(shape)) == 0:
++        array = np.zeros(shape, dtype=float)
++    if array.shape != shape:
++        raise ValueError(
++            f"{field_name}: expected shape {shape!r}, got {array.shape!r}."
++        )
++    if not np.all(np.isfinite(array)):
++        raise ValueError(f"{field_name}: matrix contains nonfinite values.")
++    result = np.asarray(array, dtype=float).copy()
++    result.setflags(write=False)
++    return result
++
++
+ def _readonly_symmetric(value: Any, *, dimension: int) -> np.ndarray:
+     array = _readonly_array(value, ndim=2, shape=(dimension, dimension))
+     result = np.asarray(0.5 * (array + array.T), dtype=float)
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -577,6 +577,7 @@
+     build_formal_growth_geometry_receipt,
+     build_query_closed_population_workspace,
+     evaluate_phase1_query_closed_score,
++    normalize_serialized_matrix_payload,
+     projective_state_fingerprint,
+     select_combinatorial_query_closed_batch,
+ )
+@@ -2190,14 +2191,17 @@
+         return value
+ 
+     def _finite_matrix(name: str, expected_shape: tuple[int, int]) -> np.ndarray:
+-        value = np.asarray(summary.get(name, []), dtype=float)
+-        if value.shape != expected_shape or not np.all(np.isfinite(value)):
++        try:
++            return normalize_serialized_matrix_payload(
++                summary.get(name, []),
++                expected_shape=expected_shape,
++                field_name=name,
++            )
++        except ValueError as exc:
+             raise RuntimeError(
+                 "Phase-III batching appendix response receipt has malformed "
+-                f"{name}: expected shape {expected_shape!r}, got "
+-                f"{value.shape!r}."
+-            )
+-        return value
++                f"{name}: {exc}"
++            ) from exc
+ 
+     _finite_vector("g_A", active_count)
+     _finite_vector("g_B", batch_count)

@@ -1,0 +1,689 @@
+"""Resolved route profiles for Formal-Manifold SNAKE compositions.
+
+The outer FM controller and its mutable manifold state remain distinct from
+the candidate selector named here.  This module is deliberately declarative:
+it owns no optimizer, selector, checkpoint, or circuit state.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import asdict, dataclass
+from typing import Any
+
+from pipelines.static_adapt.joint_linear_solve import (
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+from pipelines.static_adapt.sr_snake_escape_controller import (
+    SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1,
+    SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1,
+    SR_ESCAPE_DISABLED,
+    SR_POWELL_COORDINATE_CHART_AUTO,
+    SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
+    SR_POWELL_COORDINATE_CHART_REQUEST_CHOICES,
+)
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+    canonical_sr_snake_contract,
+    canonical_sr_snake_contract_sha256,
+    canonical_sr_snake_v3_contract,
+    canonical_sr_snake_v3_contract_sha256,
+)
+
+
+FORMAL_MANIFOLD_ROUTE_PROFILE_SCHEMA = "formal_manifold_route_profile_v1"
+FORMAL_MANIFOLD_ROUTE_PROFILE_OFF = "off"
+FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1 = (
+    "sr_phase2_phase3_whitened_adaptive_trust_no_n2_v1"
+)
+FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1 = (
+    "sr_source_locked_supported_whitened_adaptive_trust_v1"
+)
+FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1 = (
+    "sr_v3_outer_information_shadow_v1"
+)
+FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1 = (
+    "sr_v3_outer_information_active_v1"
+)
+FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1 = (
+    "sr_v3_outer_information_active_fallback_only_no_prune_v1"
+)
+FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2 = (
+    "sr_v3_outer_information_model_guard_no_prune_v2"
+)
+SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1 = (
+    "sr_no_prune_symmetric_cost_outer_information_shadow_v1"
+)
+SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1 = (
+    "sr_no_prune_symmetric_cost_outer_information_active_v1"
+)
+SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1 = (
+    "sr_no_prune_symmetric_cost_outer_information_active_exact_powell_v1"
+)
+FORMAL_MANIFOLD_ROUTE_PROFILE_CHOICES = (
+    FORMAL_MANIFOLD_ROUTE_PROFILE_OFF,
+    FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1,
+    FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+)
+
+FORMAL_MANIFOLD_ROUTE_FAMILY = "formal_manifold_snake"
+FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE = "formal_manifold_warm_start_v1"
+FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY = "singleton_response_snake"
+FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_PROFILE = "sr_singleton_controller_v1"
+FORMAL_MANIFOLD_SR_SOURCE_LOCKED_CANDIDATE_SELECTOR_PROFILE = (
+    "supported_whitened_adaptive_trust_v1"
+)
+FORMAL_MANIFOLD_ADAPTIVE_TRUST_POLICY = (
+    "displacement_calibrated_unbounded_v2"
+)
+FORMAL_MANIFOLD_METRIC_FULL_REFRESH_EXACT_REFERENCE = (
+    "full_refresh_exact_reference_v1"
+)
+FORMAL_MANIFOLD_METRIC_SPARSE_ANCHOR_QBROYDEN = (
+    "sparse_anchor_qbroyd_recycled_v1"
+)
+FORMAL_MANIFOLD_TRANSPORT_EXACT_ENDPOINT_PROCRUSTES = (
+    "exact_endpoint_procrustes_v1"
+)
+FORMAL_MANIFOLD_TRANSPORT_PREDICTED_FRAME_GAUGE = (
+    "predicted_transported_frame_gauge_v1"
+)
+FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_SHADOW = (
+    "outer_information_shadow_v1"
+)
+FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE = (
+    "outer_information_active_reuse_v1"
+)
+FORMAL_MANIFOLD_TRANSPORT_ANCHORED_SPLIT_CONNECTION = (
+    "anchored_split_connection_v1"
+)
+FORMAL_MANIFOLD_TRANSPORT_PREDICTED_CLOSURE_REANCHOR = (
+    "predicted_closure_reanchor_v1"
+)
+FORMAL_MANIFOLD_OUTER_INFORMATION_POLICY = (
+    "exact_growth_affine_strain_skew_connection_closure_v1"
+)
+FORMAL_MANIFOLD_OUTER_CLOSURE_POLICY = (
+    "deterministic_probe_minimum_change_reanchor_v1"
+)
+FORMAL_MANIFOLD_ACCEPTED_REOPTIMIZER_SR_V3 = (
+    "source_locked_sr_v3_supported_fs_powell_v1"
+)
+SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER = (
+    "source_locked_sr_supported_fs_powell_v1"
+)
+SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1 = (
+    "predicted_external_receipt_v1"
+)
+SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1 = (
+    "canonical_exact_supported_fs_backend_v1"
+)
+FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES = {
+    "phase2_gram_novelty_policy": "fallback_only_v1",
+    "phase3_gram_novelty_policy": "fallback_only_v1",
+    "phase1_prune_enabled": False,
+}
+
+NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1 = (
+    "legacy_ablation_mode_v1"
+)
+NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1 = (
+    "inactive_ordinary_route_v1"
+)
+NOVELTY_MULTIPLIER_POLICY_CHOICES = (
+    NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1,
+    NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1,
+)
+
+
+@dataclass(frozen=True)
+class FormalManifoldRouteProfile:
+    """Fully resolved, serialization-safe FM route-profile contract."""
+
+    schema: str
+    route_family: str
+    route_profile: str
+    adapt_reoptimization_route: str
+    candidate_selector_family: str
+    candidate_selector_profile: str
+    historical_singleton_coordinate_solve_policy: str
+    historical_singleton_coordinate_solve_scope: str
+    historical_singleton_trust_region_update_policy: str
+    sr_powell_coordinate_chart_policy: str
+    sr_escape_mode: str
+    phase2_novelty_mode: str
+    phase3_novelty_ablation_mode: str
+    phase2_novelty_multiplier_policy: str
+    phase3_novelty_multiplier_policy: str
+    phase2_gram_novelty_policy: str
+    phase3_gram_novelty_policy: str
+    phase0_pilot_enabled: bool
+    phase2_enable_batching: bool
+    phase3_enable_batching: bool
+    structural_rollback_enabled: bool
+    route_a_funnel_active: bool
+    phase3_runtime_split_mode: str
+    phase3_runtime_split_selection_mode: str
+    phase3_runtime_split_subset_sizes: tuple[int, ...]
+    phase3_runtime_split_child_set_symmetry_policy: str
+    phase3_runtime_split_child_padding_policy: str
+    candidate_response_model: str
+    admission_cardinality: int
+    phase1_prune_enabled: bool | None
+    prune_policy: str
+    measured_n2_retained: bool
+    additional_n3_multiplier_applied: bool
+    formal_metric_mode: str
+    formal_transport_policy: str
+    formal_post_anchor_exact_gram_budget: int
+    formal_qbroyd_epsilon0: float
+    formal_qbang_momentum_active: bool
+    formal_line_search_max_steps: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return dict(asdict(self))
+
+
+@dataclass(frozen=True)
+class FormalManifoldOuterInformationRouteProfile(FormalManifoldRouteProfile):
+    """Outer-information owner around an immutable SR controller/refit."""
+
+    sr_controller_route_profile: str = SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    sr_controller_contract_sha256: str = ""
+    sr_controller_contract: dict[str, Any] | None = None
+    sr_controller_overrides_sha256: str = ""
+    sr_controller_overrides: dict[str, Any] | None = None
+    accepted_reoptimizer_owner: str = FORMAL_MANIFOLD_ACCEPTED_REOPTIMIZER_SR_V3
+    powell_metric_authority_policy: str = (
+        SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1
+    )
+    outer_information_mode: str = "shadow_v1"
+    outer_information_policy: str = FORMAL_MANIFOLD_OUTER_INFORMATION_POLICY
+    outer_closure_policy: str = FORMAL_MANIFOLD_OUTER_CLOSURE_POLICY
+    outer_gradient_prediction_policy: str = (
+        "transported_source_only_v1"
+    )
+    outer_finalist_authority_policy: str = "predictive_reuse_v1"
+    outer_stationarity_policy: str = "powell_status_only_v1"
+    outer_curvature_update_policy: str = "closure_secant_v1"
+
+    def __post_init__(self) -> None:
+        controller_profile = str(self.sr_controller_route_profile)
+        if controller_profile not in {
+            SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+        }:
+            raise ValueError(
+                "outer-information route must source-lock a registered SR "
+                "controller profile."
+            )
+        expected_contract = canonical_sr_snake_contract(controller_profile)
+        expected_digest = canonical_sr_snake_contract_sha256(controller_profile)
+        if dict(self.sr_controller_contract or {}) != expected_contract:
+            raise ValueError("outer-information SR controller contract drifted.")
+        if str(self.sr_controller_contract_sha256) != expected_digest:
+            raise ValueError("outer-information SR contract digest drifted.")
+        expected_overrides = (
+            FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES
+            if str(self.route_profile) in {
+                FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+                FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+            }
+            else {}
+        )
+        actual_overrides = dict(self.sr_controller_overrides or {})
+        if actual_overrides != expected_overrides:
+            raise ValueError("outer-information FM SR-v3 override contract drifted.")
+        expected_override_digest = (
+            hashlib.sha256(
+                json.dumps(
+                    expected_overrides,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest()
+            if expected_overrides
+            else ""
+        )
+        if str(self.sr_controller_overrides_sha256) != expected_override_digest:
+            raise ValueError("outer-information FM SR-v3 override digest drifted.")
+        expected_reoptimizer = (
+            SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER
+            if controller_profile == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+            else FORMAL_MANIFOLD_ACCEPTED_REOPTIMIZER_SR_V3
+        )
+        if str(self.accepted_reoptimizer_owner) != expected_reoptimizer:
+            raise ValueError(
+                "outer-information route must retain the source SR Powell refit."
+            )
+        expected_modes = {
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1: "shadow_v1",
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1: (
+                "active_reuse_v1"
+            ),
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1: (
+                "active_reuse_v1"
+            ),
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2: (
+                "active_reuse_v1"
+            ),
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1: (
+                "shadow_v1"
+            ),
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1: (
+                "active_reuse_v1"
+            ),
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1: (
+                "active_reuse_v1"
+            ),
+        }
+        expected_mode = expected_modes.get(str(self.route_profile))
+        if expected_mode is None:
+            raise ValueError(
+                "outer-information FM route_profile must identify a registered "
+                "shadow or active-reuse profile."
+            )
+        if str(self.outer_information_mode) != expected_mode:
+            raise ValueError(
+                "outer-information FM mode/profile mismatch: "
+                f"{self.route_profile!r} requires {expected_mode!r}."
+            )
+        canonical_exact_powell_profiles = {
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+        }
+        expected_powell_metric_policy = (
+            SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1
+            if str(self.route_profile) in canonical_exact_powell_profiles
+            else SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1
+        )
+        if (
+            str(self.powell_metric_authority_policy)
+            != expected_powell_metric_policy
+        ):
+            raise ValueError(
+                "outer-information Powell metric authority drifted: "
+                f"{self.route_profile!r} requires "
+                f"{expected_powell_metric_policy!r}."
+            )
+        model_guard = bool(
+            str(self.route_profile)
+            == FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+        )
+        expected_policies = {
+            "outer_gradient_prediction_policy": (
+                "transported_source_plus_curvature_displacement_v2"
+                if model_guard
+                else "transported_source_only_v1"
+            ),
+            "outer_finalist_authority_policy": (
+                "exact_full_phase3_rescore_each_outer_v2"
+                if model_guard
+                else "predictive_reuse_v1"
+            ),
+            "outer_stationarity_policy": (
+                "exact_supported_gradient_after_powell_v1"
+                if model_guard
+                else "powell_status_only_v1"
+            ),
+            "outer_curvature_update_policy": (
+                "exact_secant_or_rank_reset_v2"
+                if model_guard
+                else "closure_secant_v1"
+            ),
+        }
+        for field, expected in expected_policies.items():
+            if str(getattr(self, field)) != expected:
+                raise ValueError(
+                    f"outer-information FM {field} drifted: expected {expected!r}."
+                )
+
+
+def normalize_formal_manifold_route_profile(value: Any) -> str:
+    """Normalize one FM route-profile request and reject unknown profiles."""
+
+    profile = str(
+        FORMAL_MANIFOLD_ROUTE_PROFILE_OFF
+        if value is None or value == ""
+        else value
+    ).strip().lower()
+    if profile not in FORMAL_MANIFOLD_ROUTE_PROFILE_CHOICES:
+        raise ValueError(
+            "formal_manifold_route_profile must be one of "
+            f"{list(FORMAL_MANIFOLD_ROUTE_PROFILE_CHOICES)}; got {value!r}."
+        )
+    return profile
+
+
+def resolve_formal_manifold_route_profile(
+    value: Any,
+    *,
+    requested_powell_coordinate_chart_policy: str = (
+        SR_POWELL_COORDINATE_CHART_AUTO
+    ),
+) -> FormalManifoldRouteProfile | None:
+    """Resolve the opt-in FM/SR composition without changing standalone SR.
+
+    Every exposed FM/SR composition here uses the expanded-runtime
+    projected-logical Powell chart.  The outer-information profile embeds the
+    current standalone SR-v3 chart and selector contract verbatim; resolving
+    it does not mutate standalone SR defaults.
+    """
+
+    profile = normalize_formal_manifold_route_profile(value)
+    if profile == FORMAL_MANIFOLD_ROUTE_PROFILE_OFF:
+        return None
+
+    requested_powell = str(
+        requested_powell_coordinate_chart_policy
+    ).strip().lower()
+    if requested_powell not in SR_POWELL_COORDINATE_CHART_REQUEST_CHOICES:
+        raise ValueError(
+            "requested_powell_coordinate_chart_policy must be one of "
+            f"{list(SR_POWELL_COORDINATE_CHART_REQUEST_CHOICES)}."
+        )
+    if requested_powell not in {
+        SR_POWELL_COORDINATE_CHART_AUTO,
+        SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
+    }:
+        raise ValueError(
+            f"{profile} requires "
+            f"{SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1}."
+        )
+
+    source_locked_profile = (
+        profile
+        == FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+    )
+    outer_shadow_profile = (
+        profile
+        in {
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+        }
+    )
+    no_prune_symmetric_cost_outer_profile = profile in {
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+    }
+    fallback_only_no_prune_profile = (
+        profile in {
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+        }
+    )
+    outer_active_profile = profile in {
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1,
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+    }
+    outer_information_profile = outer_shadow_profile or outer_active_profile
+    profile_type = (
+        FormalManifoldOuterInformationRouteProfile
+        if outer_information_profile
+        else FormalManifoldRouteProfile
+    )
+    common = dict(
+        schema=FORMAL_MANIFOLD_ROUTE_PROFILE_SCHEMA,
+        route_family=(
+            FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY
+            if no_prune_symmetric_cost_outer_profile
+            else FORMAL_MANIFOLD_ROUTE_FAMILY
+        ),
+        route_profile=profile,
+        adapt_reoptimization_route=(
+            FORMAL_MANIFOLD_ROUTE_PROFILE_OFF
+            if no_prune_symmetric_cost_outer_profile
+            else FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE
+        ),
+        candidate_selector_family=FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY,
+        candidate_selector_profile=(
+            (
+                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+                if no_prune_symmetric_cost_outer_profile
+                else SR_ROUTE_PROFILE_CONVENTIONAL_V3
+            )
+            if outer_information_profile
+            else FORMAL_MANIFOLD_SR_SOURCE_LOCKED_CANDIDATE_SELECTOR_PROFILE
+            if source_locked_profile
+            else FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_PROFILE
+        ),
+        historical_singleton_coordinate_solve_policy=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+        ),
+        historical_singleton_coordinate_solve_scope=(
+            SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1
+            if source_locked_profile or outer_information_profile
+            else SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1
+        ),
+        historical_singleton_trust_region_update_policy=(
+            FORMAL_MANIFOLD_ADAPTIVE_TRUST_POLICY
+        ),
+        sr_powell_coordinate_chart_policy=(
+            SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
+        ),
+        sr_escape_mode=SR_ESCAPE_DISABLED,
+        phase2_novelty_mode="collective_span_v1",
+        # The source-locked profile preserves canonical SR novelty scoring.
+        # The no-N2 profile keeps the raw observations while explicitly
+        # removing their multipliers from both scores.
+        phase3_novelty_ablation_mode=(
+            "off"
+            if source_locked_profile or outer_information_profile
+            else "no_phase2"
+        ),
+        phase2_novelty_multiplier_policy=(
+            NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+            if fallback_only_no_prune_profile
+            else NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1
+            if source_locked_profile or outer_information_profile
+            else NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+        ),
+        phase3_novelty_multiplier_policy=(
+            NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+            if fallback_only_no_prune_profile
+            else NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1
+            if source_locked_profile or outer_information_profile
+            else NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+        ),
+        phase2_gram_novelty_policy=(
+            "fallback_only_v1"
+            if fallback_only_no_prune_profile
+            else "ordinary_multiplier_v1"
+        ),
+        phase3_gram_novelty_policy=(
+            "fallback_only_v1"
+            if fallback_only_no_prune_profile
+            else "ordinary_multiplier_v1"
+        ),
+        phase0_pilot_enabled=False,
+        phase2_enable_batching=False,
+        phase3_enable_batching=False,
+        structural_rollback_enabled=False,
+        route_a_funnel_active=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="archival_child_set_forward_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        phase3_runtime_split_child_padding_policy=(
+            "exact_projected_grouped_v1"
+        ),
+        candidate_response_model="full_active_plus_singleton_v1",
+        admission_cardinality=1,
+        phase1_prune_enabled=(
+            False if fallback_only_no_prune_profile else None
+        ),
+        prune_policy="recoverability_ladder_v1",
+        measured_n2_retained=True,
+        additional_n3_multiplier_applied=(
+            (source_locked_profile or outer_information_profile)
+            and not fallback_only_no_prune_profile
+        ),
+        formal_metric_mode=(
+            FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_SHADOW
+            if outer_shadow_profile
+            else FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE
+            if outer_active_profile
+            else FORMAL_MANIFOLD_METRIC_FULL_REFRESH_EXACT_REFERENCE
+            if source_locked_profile
+            else FORMAL_MANIFOLD_METRIC_SPARSE_ANCHOR_QBROYDEN
+        ),
+        formal_transport_policy=(
+            FORMAL_MANIFOLD_TRANSPORT_ANCHORED_SPLIT_CONNECTION
+            if outer_shadow_profile
+            else FORMAL_MANIFOLD_TRANSPORT_PREDICTED_CLOSURE_REANCHOR
+            if outer_active_profile
+            else FORMAL_MANIFOLD_TRANSPORT_EXACT_ENDPOINT_PROCRUSTES
+            if source_locked_profile
+            else FORMAL_MANIFOLD_TRANSPORT_PREDICTED_FRAME_GAUGE
+        ),
+        formal_post_anchor_exact_gram_budget=(
+            0 if outer_information_profile else 4
+        ),
+        formal_qbroyd_epsilon0=(
+            0.0
+            if source_locked_profile or outer_information_profile
+            else 0.15
+        ),
+        formal_qbang_momentum_active=False,
+        formal_line_search_max_steps=15,
+    )
+    if outer_information_profile:
+        controller_profile = (
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+            if no_prune_symmetric_cost_outer_profile
+            else SR_ROUTE_PROFILE_CONVENTIONAL_V3
+        )
+        controller_contract = canonical_sr_snake_contract(controller_profile)
+        controller_digest = canonical_sr_snake_contract_sha256(
+            controller_profile
+        )
+        return profile_type(
+            **common,
+            sr_controller_route_profile=controller_profile,
+            sr_controller_contract_sha256=controller_digest,
+            sr_controller_contract=controller_contract,
+            sr_controller_overrides_sha256=(
+                hashlib.sha256(
+                    json.dumps(
+                        FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest()
+                if fallback_only_no_prune_profile
+                and not no_prune_symmetric_cost_outer_profile
+                else ""
+            ),
+            sr_controller_overrides=(
+                dict(FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES)
+                if fallback_only_no_prune_profile
+                and not no_prune_symmetric_cost_outer_profile
+                else None
+            ),
+            accepted_reoptimizer_owner=(
+                SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER
+                if no_prune_symmetric_cost_outer_profile
+                else FORMAL_MANIFOLD_ACCEPTED_REOPTIMIZER_SR_V3
+            ),
+            powell_metric_authority_policy=(
+                SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1
+                if profile
+                in {
+                    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+                    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+                    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+                }
+                else SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1
+            ),
+            outer_information_mode=(
+                "shadow_v1" if outer_shadow_profile else "active_reuse_v1"
+            ),
+            outer_information_policy=FORMAL_MANIFOLD_OUTER_INFORMATION_POLICY,
+            outer_closure_policy=FORMAL_MANIFOLD_OUTER_CLOSURE_POLICY,
+            outer_gradient_prediction_policy=(
+                "transported_source_plus_curvature_displacement_v2"
+                if profile
+                == FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+                else "transported_source_only_v1"
+            ),
+            outer_finalist_authority_policy=(
+                "exact_full_phase3_rescore_each_outer_v2"
+                if profile
+                == FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+                else "predictive_reuse_v1"
+            ),
+            outer_stationarity_policy=(
+                "exact_supported_gradient_after_powell_v1"
+                if profile
+                == FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+                else "powell_status_only_v1"
+            ),
+            outer_curvature_update_policy=(
+                "exact_secant_or_rank_reset_v2"
+                if profile
+                == FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+                else "closure_secant_v1"
+            ),
+        )
+    return profile_type(**common)
+
+
+__all__ = [
+    "FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1",
+    "FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1",
+    "FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1",
+    "FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1",
+    "FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2",
+    "FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1",
+    "SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1",
+    "SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1",
+    "SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1",
+    "SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER",
+    "SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1",
+    "SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1",
+    "FORMAL_MANIFOLD_ACCEPTED_REOPTIMIZER_SR_V3",
+    "FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE",
+    "FORMAL_MANIFOLD_ADAPTIVE_TRUST_POLICY",
+    "FORMAL_MANIFOLD_METRIC_FULL_REFRESH_EXACT_REFERENCE",
+    "FORMAL_MANIFOLD_METRIC_SPARSE_ANCHOR_QBROYDEN",
+    "FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_SHADOW",
+    "FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE",
+    "FORMAL_MANIFOLD_OUTER_CLOSURE_POLICY",
+    "FORMAL_MANIFOLD_OUTER_INFORMATION_POLICY",
+    "FORMAL_MANIFOLD_TRANSPORT_EXACT_ENDPOINT_PROCRUSTES",
+    "FORMAL_MANIFOLD_TRANSPORT_PREDICTED_FRAME_GAUGE",
+    "FORMAL_MANIFOLD_TRANSPORT_ANCHORED_SPLIT_CONNECTION",
+    "FORMAL_MANIFOLD_TRANSPORT_PREDICTED_CLOSURE_REANCHOR",
+    "FORMAL_MANIFOLD_ROUTE_FAMILY",
+    "FORMAL_MANIFOLD_ROUTE_PROFILE_CHOICES",
+    "FORMAL_MANIFOLD_ROUTE_PROFILE_OFF",
+    "FORMAL_MANIFOLD_ROUTE_PROFILE_SCHEMA",
+    "FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY",
+    "FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES",
+    "FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_PROFILE",
+    "FORMAL_MANIFOLD_SR_SOURCE_LOCKED_CANDIDATE_SELECTOR_PROFILE",
+    "FormalManifoldRouteProfile",
+    "FormalManifoldOuterInformationRouteProfile",
+    "NOVELTY_MULTIPLIER_POLICY_CHOICES",
+    "NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1",
+    "NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1",
+    "normalize_formal_manifold_route_profile",
+    "resolve_formal_manifold_route_profile",
+]

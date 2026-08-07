@@ -1,0 +1,135 @@
+# Inert source snapshot: Paper-I algebraic-lane record partitioning.
+#
+# Original source:
+#   pipelines/static_adapt/algebraic_metadata.py
+# Original source spans at retirement:
+#   constants 16-20
+#   AlgebraicLocalContextSummary and index lane method 100-179
+#   assign_lane and summarize_local_context 464-530
+#
+# Retained commutation/expansion primitives were extracted first to
+# pipelines/static_adapt/commutation_metadata.py.  This .py.txt file is
+# intentionally non-importable and records only the retired lane partition.
+
+LANE_FLAT = "flat"
+LANE_CURV = "curv"
+LANE_DISJ = "disj"
+LANE_MIX = "mix"
+LANES_PHASE1 = (LANE_FLAT, LANE_CURV, LANE_DISJ, LANE_MIX)
+
+
+@dataclass(frozen=True)
+class AlgebraicLocalContextSummary:
+    """Local algebraic context counts for a candidate against scaffold records."""
+
+    candidate_key: str
+    candidate_label: str
+    context_keys: tuple[str, ...]
+    context_labels: tuple[str, ...]
+    n_flat: int
+    n_curv: int
+    n_disj: int
+    n_approx: int
+    lane: str
+    quality: str
+
+
+def _summarize_local_context_on_index(
+    index,
+    candidate_key: str,
+    context_keys: Sequence[str],
+    *,
+    coefficient_tol: float = 1.0e-12,
+) -> AlgebraicLocalContextSummary:
+    """Snapshot of AlgebraicMetadataIndex.summarize_local_context."""
+
+    candidate = index.resolve_key(candidate_key)
+    context = tuple(index.resolve_key(key) for key in context_keys)
+    return summarize_local_context(
+        index.expansions_by_key[candidate],
+        [index.expansions_by_key[key] for key in context],
+        pair_lookup=lambda lhs, rhs: index.pair(
+            lhs,
+            rhs,
+            coefficient_tol=float(coefficient_tol),
+        ),
+    )
+
+
+def assign_lane(
+    *,
+    n_flat: int = 0,
+    n_curv: int = 0,
+    n_disj: int = 0,
+    n_approx: int = 0,
+) -> str:
+    """Assign Phase-1 algebraic lane from exact local-context counts."""
+
+    flat = int(n_flat)
+    curv = int(n_curv)
+    disj = int(n_disj)
+    approx = int(n_approx)
+    if approx > 0:
+        return LANE_MIX
+    if flat > 0 and curv == 0:
+        return LANE_FLAT
+    if curv > 0 and flat == 0:
+        return LANE_CURV
+    if flat == 0 and curv == 0 and disj > 0:
+        return LANE_DISJ
+    return LANE_MIX
+
+
+def summarize_local_context(
+    candidate: GeneratorAlgebraicExpansion,
+    context: Sequence[GeneratorAlgebraicExpansion],
+    *,
+    pair_lookup: Callable[[str, str], AlgebraicPairMetadata] | None = None,
+) -> AlgebraicLocalContextSummary:
+    """Summarize exact pair relations between one candidate and local context."""
+
+    n_flat = 0
+    n_curv = 0
+    n_disj = 0
+    n_approx = 0
+    labels: list[str] = []
+    keys: list[str] = []
+    for other in context:
+        labels.append(str(other.label))
+        keys.append(str(other.key))
+        pair = (
+            pair_lookup(str(candidate.key), str(other.key))
+            if pair_lookup is not None
+            else build_pair_metadata(candidate, other)
+        )
+        if (
+            pair.exactness != EXACTNESS_EXACT
+            or pair.relation == RELATION_APPROX_OR_UNKNOWN
+        ):
+            n_approx += 1
+        elif pair.relation == RELATION_FLAT_COMM:
+            n_flat += 1
+        elif pair.relation == RELATION_CURV_NONCOMM:
+            n_curv += 1
+        elif pair.relation == RELATION_DISJ_COMM:
+            n_disj += 1
+        else:
+            n_approx += 1
+    lane = assign_lane(
+        n_flat=n_flat,
+        n_curv=n_curv,
+        n_disj=n_disj,
+        n_approx=n_approx,
+    )
+    return AlgebraicLocalContextSummary(
+        candidate_key=str(candidate.key),
+        candidate_label=str(candidate.label),
+        context_keys=tuple(keys),
+        context_labels=tuple(labels),
+        n_flat=int(n_flat),
+        n_curv=int(n_curv),
+        n_disj=int(n_disj),
+        n_approx=int(n_approx),
+        lane=str(lane),
+        quality=EXACTNESS_EXACT if n_approx == 0 else EXACTNESS_APPROX,
+    )

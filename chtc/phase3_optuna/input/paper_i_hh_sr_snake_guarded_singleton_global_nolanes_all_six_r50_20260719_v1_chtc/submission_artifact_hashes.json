@@ -1,0 +1,133 @@
+{
+  "artifacts": {
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/README.md": {
+      "sha256": "c1e1abe419ab74789a85efe5e83ca7860c0ff463dcc02b7f676f476008135a58",
+      "size_bytes": 600
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/archive_only_preflight.json": {
+      "sha256": "969db64a384909084e3e57a005443943456f790eae67b7837ebbe4309c267cab",
+      "size_bytes": 1423
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/build_bundle.py": {
+      "sha256": "fd7d4292f70438cdcc23462acc2db8c72bb7e7a180165e75c44a46de9b2ac706",
+      "size_bytes": 1379
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/bundle_manifest.json": {
+      "sha256": "a6e16cbf2814529b8a902608b4362d009e455d19e1669143d722a7d9166cd441",
+      "size_bytes": 2016
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/evidence_validation.py": {
+      "sha256": "567273813b5c89c94a0f2b459c0c16762a95bd537db4df426799110e5f37c3e3",
+      "size_bytes": 76793
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/execute_source_locked_job.sh": {
+      "sha256": "57d50dd99870e1ec0e32062a435fbe1de95c71fe65ff5674bd426e01ed0081b2",
+      "size_bytes": 2300
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/intermediate_strong.json": {
+      "sha256": "bc41b1a7211b2471cc8066a5d8c4460d71a5a4be071ac562e70c3fe297117f13",
+      "size_bytes": 25871
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/intermediate_weak.json": {
+      "sha256": "f8f14e0752c8e67eb92628f479d81bc9bb2fb7aa98d003940c1998bd080115d0",
+      "size_bytes": 25829
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/strong_strong_u8.json": {
+      "sha256": "f5ea0a447b8be454d82cb109ce9145265b23bb088b2b4fcf8ba2e1bb4e8d9aed",
+      "size_bytes": 25804
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/strong_weak_u8.json": {
+      "sha256": "e58955a1851c1c848576aa22a0a9dada6443c81897cd1fd8843bb1dbf6be63d5",
+      "size_bytes": 25762
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/weak_strong.json": {
+      "sha256": "3a8ea5c1357e514179f153a1c73eb5507466c24824b4f0d7e90bd1ac300682af",
+      "size_bytes": 25703
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/jobs/weak_weak.json": {
+      "sha256": "de0d60bc45196c8bf1bb98f0cd53fe068a1df2c32d9895617d743b4eb75d68d2",
+      "size_bytes": 25669
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/intermediate_strong.json": {
+      "sha256": "3daa80853b996b8c0a54c6042bb6c01631f9376df7107d8bbdefc68df1f8435c",
+      "size_bytes": 23724
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/intermediate_weak.json": {
+      "sha256": "0e608e71241a46c7a41f76100a437afdb2ffed470f3a5708db7d0f133930bc29",
+      "size_bytes": 23702
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/strong_strong_u8.json": {
+      "sha256": "846044f15fc5e3c3cfb818eb70eb921f7f60f0e17852eb431998b889814c9e19",
+      "size_bytes": 23687
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/strong_weak_u8.json": {
+      "sha256": "4fac4399978d72d1c4c59f654237764f20700bc89b8393cf301c7e52bfc9dc21",
+      "size_bytes": 23665
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/weak_strong.json": {
+      "sha256": "e6f22c3db66185a06d886ecc71c2028d6846ede3209eb933b93e94717a28c46e",
+      "size_bytes": 23636
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/normalized_manifests/weak_weak.json": {
+      "sha256": "7612d39c92d854cce23771d0139eb74f102d47c5747e881fa94690cf10e96517",
+      "size_bytes": 23622
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/physics_and_exact_reference_lock.json": {
+      "sha256": "c6474dce7372ac862d51a1ba8ea72e46072de474a1ca4c4c480b131df9267737",
+      "size_bytes": 6681
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/preflight.json": {
+      "sha256": "97f984ffe16bc6bcf64e4ddb1d4ae68966213fbdfff9173289d7612bd08e9203",
+      "size_bytes": 703
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/queue.tsv": {
+      "sha256": "fe68947f3a002334e3b956f661e9738efa35560536b9b0777837b2d13b6c9e65",
+      "size_bytes": 1848
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/route_parity.json": {
+      "sha256": "b1dfe150c0dd3c8e180d88f532de06bb239b8822df7f980cafe58b9288ccd293",
+      "size_bytes": 1823
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/run_job.py": {
+      "sha256": "3d87eed35897bd98eba9ddbf6d0755e90bf41676e979a5746b267190ab06dbe8",
+      "size_bytes": 43201
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/scientific_settings_audit.json": {
+      "sha256": "56112906ed149dc8d91ecf04fcbd1783d870feb4d6f3f1c50282849e29b6ce50",
+      "size_bytes": 2597
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/source_archive_manifest.json": {
+      "sha256": "ac02176c80694c64087196b47c5173243d60de706c64c6f436f3299301f25199",
+      "size_bytes": 124838
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/source_lock/local_smoke_evidence.json": {
+      "sha256": "c1c46c3bc2251d16ce4a37195b87e6ece212ca843588186627f93b387599c7db",
+      "size_bytes": 1107
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/source_locked.tar.gz": {
+      "sha256": "3a5ed36ebdf260357aa86b3a5ab3c7d8372072329a8fec2e1043e90b6f7c34c7",
+      "size_bytes": 3684147
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/source_revision_manifest.json": {
+      "sha256": "0f035c8702d7eb40934687df527341f9e61eb49aa3143a28dcde11af453907ea",
+      "size_bytes": 53251
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/submit.sub": {
+      "sha256": "a8477b14d8d76a20a718507216a36890b5ab856bd3fc0b4f06283c9454196179",
+      "size_bytes": 3422
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/test_bundle.py": {
+      "sha256": "9a2480f8ed342b13aa0d641823cff7c3ee9929388ca2c8b8a14c002b88aabae0",
+      "size_bytes": 239
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/upload_artifact_list.txt": {
+      "sha256": "9e0de59a4f4901412ada0af54e5b76cef308c8a01f6a16b874a0647fd035fb0b",
+      "size_bytes": 3769
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_all_six_r50_20260719_v1_chtc/validate_fetched.py": {
+      "sha256": "8a1f69981c15b129d1a82a0a352502ec04a45109394d2795784bbfe6eeae23d1",
+      "size_bytes": 25896
+    }
+  },
+  "schema": "paper_i_hh_sr_pool_complement_artifact_hashes_v1"
+}

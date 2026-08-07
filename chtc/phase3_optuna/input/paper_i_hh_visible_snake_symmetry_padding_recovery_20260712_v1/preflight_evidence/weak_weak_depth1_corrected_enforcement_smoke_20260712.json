@@ -1,0 +1,1220 @@
+{
+  "assertions": {
+    "checkpoint_leakage_within_tolerance": true,
+    "compatibility_active": true,
+    "current_checkpoint_artifact_present": true,
+    "estimator_accounting_components_exact": true,
+    "estimator_ledger_complete": true,
+    "estimator_ledger_sidecar_hash_roundtrip": true,
+    "hard_guard_policy_active": true,
+    "historical_caps_restored": true,
+    "padding_counts_exact": true,
+    "padding_policy_active": true,
+    "post_checkpoint_complete": true,
+    "runtime_child_gradient_occurrences_complete": true,
+    "selected_child_fixed_sector_exact": true,
+    "selected_child_symmetry_checked_and_passed": true,
+    "selected_execution_grouped_exact": true,
+    "stderr_empty": true,
+    "terminal_checkpoint_complete": true
+  },
+  "estimator_accounting": {
+    "all_branch_search_work": {
+      "N_H_outer": 1,
+      "N_H_refit": 72,
+      "N_grad": 133,
+      "N_metric": 177,
+      "S_alg": 383
+    },
+    "complete": true,
+    "discarded_branch_unique": {
+      "S_alg": 26,
+      "components": {
+        "N_H_outer": 0,
+        "N_H_refit": 26,
+        "N_grad": 0,
+        "N_metric": 0
+      },
+      "primitive_ids": [
+        "00e1514e1be3e9edf02a3d21a2854cafa17ff43997a3f13d08ee0c6a27bff380",
+        "0bb34752cc9b7ca64cf55ffcb1d95f34b07ba4a04933fc099a0d362dc009d87a",
+        "10077a2f03b5086c6b458886fcbcff09d33d0516d368b002343f3ec64a6b8c69",
+        "25fca14b60abe8f9206162166629a76cdc6778f473c9ecfecaa11866579d8286",
+        "360741f700e3275f9a7ce766d81b24f15f48e587f846866306170dcf67d2c3a5",
+        "43974d7ff0411bf62220141a87dc9e75ad5a1e598c5000c0e666540dfada40e0",
+        "643f9c51ff10bdadfb46b3b47346f6a7429b64878bbef4fd0ff0fed8f50a5886",
+        "74baaae41fdc5b463b2465f55eb6d83e8b0b29d2abd6f12ecf7899e2a7decfa2",
+        "7fb484eaedd5f6c3a9921ac9c6cd514b7a2f9fb7321f0d2f8666f34627259cdd",
+        "8317c6eeba4abc7e9bddbb9017d072bb499c964f13b0554b301179d643271246",
+        "85df7eb48b4abf410381c8a2e842f415e18eb54ff15da4aaac989a5997733489",
+        "8aee72bbe47c6234cbe67378ef85527a43504b489139cd0681ea44e62f413138",
+        "8c4c5d385a2314ea300aba4842fca532205ec3b4c7cefbb1c8839c7cbef17d09",
+        "8de11f4b9d04f67d823bffe06e76aa913e704390b3efb2ce0c02b6eb65f375dc",
+        "8f5215202b500851d7f71b71b5f1bbedfdbbe34a9e70b504bbae5bdf5e9aabab",
+        "9209ff15b783409bead92afeac01df1016592c24625229eafe96204aca5bd358",
+        "95f458fc0d5d4d13a63b8ae9a33dabeab625b81a6eb3d421d5d531a3df526daa",
+        "9600c3105534ef788094de35679796de72f0ec7dbc58d3b22c5c4ea92e53aabc",
+        "9f1a0b2c152c2243d475c14fabbb3493bbca53cb2ff2d8916ce2076ffb630364",
+        "a271ee966b468f3a01bcf137af56482be109db95e70725250651a6943d002a1c",
+        "a9cd4b77ba793f4e96956640f015b5a5847df8fceb97df2fc3c87dc7fff16ff8",
+        "b5db521690502cbb6d968c4dfe17783461023139e2289649a1ebdefe3a60001c",
+        "bd699f46c99cf227ec00afc31a32106a624ddc1ffb45d6a8f13cc3388e0a96c5",
+        "c544e9590a0604a3b4552b655363d5694ce4c5936ac40661f95f67eab6dc6f4f",
+        "c768d21a2ae63b6e0f62598041dd0a0fd5aaa92b720f5680f5c2666a1b12a0d1",
+        "f8f18d3f045601f5f8108da3bd4b3229915868b75d84b6bfd1d6e48cbf1dab4a"
+      ],
+      "unique_primitive_count": 26
+    },
+    "exact_blockers": [],
+    "executed_occurrences": {
+      "N_H_outer": 3,
+      "N_H_refit": 84,
+      "N_grad": 141,
+      "N_metric": 229,
+      "S_alg": 457
+    },
+    "runtime_split_child_gradient_occurrences": 36,
+    "sidecar_pointer": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.estimator_ledger.json",
+      "schema": "paper_i_estimator_call_ledger_sidecar_pointer_v1",
+      "sha256": "3727dea668ab18f0d991363f395d97d0e4ca0931bac1b839af63f47ec44b3ccd",
+      "size_bytes": 1019084
+    },
+    "winning_lineage": {
+      "N_H_outer": 1,
+      "N_H_refit": 46,
+      "N_grad": 133,
+      "N_metric": 177,
+      "S_alg": 357
+    }
+  },
+  "failed_assertions": [],
+  "input_artifacts": {
+    "current_json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.current.json",
+      "sha256": "3af329d972a244b5ae3c98e41facbb94d29d92485d0cdfe54574985d0cf39a91",
+      "size_bytes": 538864
+    },
+    "estimator_ledger_json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.estimator_ledger.json",
+      "sha256": "3727dea668ab18f0d991363f395d97d0e4ca0931bac1b839af63f47ec44b3ccd",
+      "size_bytes": 1019084
+    },
+    "result_json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.result.json",
+      "sha256": "dfd3b4fc59e1b0553c94ed97ea1432006aeb68909c95bcaf41527de1b30a4333",
+      "size_bytes": 5855484
+    },
+    "stderr_log": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "stdout_log": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stdout.log",
+      "sha256": "dc03c80d03ff6e38d73d7f5a722441ec9b670f413d1a78f9a451ac1695aa2909",
+      "size_bytes": 108809
+    }
+  },
+  "leakage_tolerance": 1e-12,
+  "padding": {
+    "admissible": 36,
+    "deduplicated": 8,
+    "policy": {
+      "boson_encoding": "binary",
+      "n_ph_max": 2,
+      "num_sites": 2,
+      "policy": "exact_projected_grouped_v1",
+      "problem_key": "hh",
+      "total_register_width": 8
+    },
+    "projected": 36,
+    "scored": 36,
+    "selected_execution_mode": "grouped_exact",
+    "zero_rejected": 0
+  },
+  "passed": true,
+  "prefix_checkpoints": {
+    "post_admission": {
+      "active_ansatz_depth": 1,
+      "admission_at_outer_iteration": {
+        "selected_batch_effective_positions": [
+          0
+        ],
+        "selected_batch_labels": [
+          "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected"
+        ],
+        "selected_batch_positions": [
+          0
+        ]
+      },
+      "boson_illegal_codeword_probability": 4.440892098500626e-16,
+      "boson_legal_codeword_probability": 0.9999999999999996,
+      "boson_legal_subspace": {
+        "bits_per_boson_site": 2,
+        "boson_legal_codeword_count": 9,
+        "boson_register_width": 4,
+        "boson_site_count": 2,
+        "full_hilbert_dim": 256,
+        "illegal_state_count": 112,
+        "legal_state_count": 144,
+        "legal_subspace_dim": 144,
+        "legal_subspace_scope": "boson_codewords_with_full_fermion_register",
+        "non_boson_register_dim": 16,
+        "non_boson_register_width": 4,
+        "statevector_dim": 256,
+        "total_register_width": 8
+      },
+      "checkpoint_kind": "post_admission_prune",
+      "checkpoint_sha256": "d7ac61ca8a51c128d5ea7f03961303ccfebfc9f23181511b69b338c4792187d1",
+      "fixed_spin_sector_illegal_probability": 4.440892098500626e-16,
+      "fixed_spin_sector_probability": 0.9999999999999996,
+      "ordered_active_operator_labels": [
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected"
+      ],
+      "ordered_active_operators": [
+        {
+          "active_position": 0,
+          "execution_mode": "grouped_exact",
+          "generator_id": "gen:3fc0bc32fd757517",
+          "label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+          "parent_generator_id": "gen:dc707e4181a59244",
+          "route_a_child_padding_lineage": {
+            "direction_normalization": {
+              "canonical_anchor_positive_real": true,
+              "canonical_coefficient_l2_norm": 1.0,
+              "global_scalar_sign_phase_removed": true,
+              "schema": "route_a_child_direction_normalization_v1",
+              "source_anchor_phase_im": 0.0,
+              "source_anchor_phase_re": 1.0,
+              "source_coefficient_l2_norm": 0.5,
+              "status": "normalized",
+              "term_count": 1
+            },
+            "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "position_id": 0,
+            "pre_normalization_projected_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 0.5,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "pre_normalization_projected_term_order": "deterministic_pauli_label_order",
+            "projected_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "projected_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "projection": {
+              "active": true,
+              "affected_site_block_count": 0,
+              "applied_before_child_phase1_evaluation": true,
+              "applied_before_global_projected_identity_deduplication": true,
+              "policy": "exact_projected_grouped_v1",
+              "projected_term_count": 1,
+              "projection_equivalence": "P_legal_P_P_legal_on_legal_subspace_minimal_block_extension_v1",
+              "raw_term_count": 1,
+              "reason": "exact_local_block_projection_applied",
+              "recommended_execution_mode": "grouped_exact",
+              "schema": "route_a_child_padding_exact_projection_v1"
+            },
+            "raw_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+            "raw_child_generator_ids": [
+              "gen:cf57b8baf8782ef3"
+            ],
+            "raw_child_indices": [
+              0
+            ],
+            "raw_child_labels": [
+              "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+            ],
+            "raw_generator_id": "gen:2a92511865c42319",
+            "raw_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "raw_parent_generator_id": "gen:dc707e4181a59244",
+            "raw_runtime_split": {
+              "child_count": 2,
+              "child_generator_ids": [
+                "gen:cf57b8baf8782ef3"
+              ],
+              "child_indices": [
+                0
+              ],
+              "child_labels": [
+                "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+              ],
+              "mode": "shortlist_pauli_children_v1",
+              "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+              "recommended_execution_mode": "termwise_product",
+              "representation": "child_set",
+              "requested_subset_sizes": [
+                1
+              ],
+              "subset_cardinality": 1,
+              "symmetry_gate": {
+                "checked": true,
+                "commutator_l1_dn": 1.0,
+                "commutator_l1_total": 1.0,
+                "commutator_l1_up": 0.0,
+                "fixed_count_sector": {
+                  "fixed_num_particles": {
+                    "n_dn": 1,
+                    "n_up": 1
+                  },
+                  "gate_scope": "fixed_count_sector_invariance_v1",
+                  "particle_sector_invariant": true,
+                  "particle_sector_leakage_l1": 0.0,
+                  "sector_basis_dimension": 4,
+                  "sector_leakage_max_abs": 0.0,
+                  "spin_sector_invariant": true,
+                  "spin_sector_leakage_l1": 0.0
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "globally_particle_number_commuting": false,
+                "globally_spin_sector_commuting": false,
+                "hard_guard_present": true,
+                "hard_guard_required": true,
+                "particle_number_preserving": true,
+                "passed": true,
+                "rejected": false,
+                "rejection_reason": null,
+                "required_particle_number": true,
+                "required_spin_sector": true,
+                "spin_sector_preserving": true
+              },
+              "termwise_child_gates_all_passed": true
+            },
+            "raw_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 0.5,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "raw_symmetry_gate": {
+              "checked": true,
+              "commutator_l1_dn": 1.0,
+              "commutator_l1_total": 1.0,
+              "commutator_l1_up": 0.0,
+              "fixed_count_sector": {
+                "fixed_num_particles": {
+                  "n_dn": 1,
+                  "n_up": 1
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "particle_sector_invariant": true,
+                "particle_sector_leakage_l1": 0.0,
+                "sector_basis_dimension": 4,
+                "sector_leakage_max_abs": 0.0,
+                "spin_sector_invariant": true,
+                "spin_sector_leakage_l1": 0.0
+              },
+              "gate_scope": "fixed_count_sector_invariance_v1",
+              "globally_particle_number_commuting": false,
+              "globally_spin_sector_commuting": false,
+              "hard_guard_present": true,
+              "hard_guard_required": true,
+              "particle_number_preserving": true,
+              "passed": true,
+              "rejected": false,
+              "rejection_reason": null,
+              "required_particle_number": true,
+              "required_spin_sector": true,
+              "spin_sector_preserving": true
+            },
+            "raw_term_order": "polynomial_iteration_order",
+            "selected_execution_mode": "grouped_exact",
+            "selected_projected_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 1.0,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "selected_projected_term_order": "projective_unit_norm_positive_anchor_order",
+            "source_ordinal": 0,
+            "status": "projected"
+          },
+          "runtime_split": {
+            "child_count": 2,
+            "child_generator_ids": [
+              "gen:cf57b8baf8782ef3"
+            ],
+            "child_indices": [
+              0
+            ],
+            "child_labels": [
+              "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+            ],
+            "mode": "shortlist_pauli_children_v1",
+            "padding_projection_policy": "exact_projected_grouped_v1",
+            "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "projected_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "projected_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "raw_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+            "recommended_execution_mode": "grouped_exact",
+            "representation": "child_set",
+            "requested_subset_sizes": [
+              1
+            ],
+            "subset_cardinality": 1,
+            "symmetry_gate": {
+              "checked": true,
+              "commutator_l1_dn": 1.0,
+              "commutator_l1_total": 1.0,
+              "commutator_l1_up": 0.0,
+              "fixed_count_sector": {
+                "fixed_num_particles": {
+                  "n_dn": 1,
+                  "n_up": 1
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "particle_sector_invariant": true,
+                "particle_sector_leakage_l1": 0.0,
+                "sector_basis_dimension": 4,
+                "sector_leakage_max_abs": 0.0,
+                "spin_sector_invariant": true,
+                "spin_sector_leakage_l1": 0.0
+              },
+              "gate_scope": "fixed_count_sector_invariance_v1",
+              "globally_particle_number_commuting": false,
+              "globally_spin_sector_commuting": false,
+              "hard_guard_present": true,
+              "hard_guard_required": true,
+              "particle_number_preserving": true,
+              "passed": true,
+              "rejected": false,
+              "rejection_reason": null,
+              "required_particle_number": true,
+              "required_spin_sector": true,
+              "spin_sector_preserving": true
+            },
+            "termwise_child_gates_all_passed": true
+          },
+          "serialized_terms_exyz_in_execution_order": [
+            {
+              "coeff_im": 0.0,
+              "coeff_re": 1.0,
+              "nq": 8,
+              "pauli_exyz": "eeeeyxee"
+            }
+          ]
+        }
+      ],
+      "outer_iteration": 1,
+      "parameterization": {
+        "blocks": [
+          {
+            "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "logical_index": 0,
+            "runtime_count": 1,
+            "runtime_start": 0,
+            "runtime_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 1.0,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ]
+          }
+        ],
+        "coefficient_tolerance": 1e-12,
+        "ignore_identity": true,
+        "logical_operator_count": 1,
+        "mode": "per_pauli_term_v1",
+        "runtime_parameter_count": 1,
+        "term_order": "sorted"
+      },
+      "parameterization_mode": "logical_shared",
+      "post_admission_prune": {
+        "accepted_count": 0,
+        "amplitude_witness_authority": "diagnostic_only",
+        "amplitude_witness_config_required": false,
+        "amplitude_witness_effective_required": false,
+        "amplitude_witness_required": false,
+        "amplitude_witness_rows": [],
+        "candidate_count": 0,
+        "candidate_nomination_sources": [],
+        "checkpoint_due": false,
+        "checkpoint_period": 3,
+        "collapse_current_abs_max": 0.001,
+        "collapse_min_abs_drop": 0.001,
+        "collapse_min_observations": 3,
+        "collapse_peak_abs_min": 0.001,
+        "collapse_ratio": 0.25,
+        "compensator_window_authority": {
+          "typed_compensator_window": {
+            "active": true,
+            "authority": "window_selection_and_escalation_only",
+            "reason": "typed compensator windows define remove-refit rung breadth, not deletion-target nomination lanes"
+          }
+        },
+        "cooldown_blocked_indices": [],
+        "cooldown_steps": 2,
+        "decisions": [],
+        "deletion_authority": "remove_refit_energy_safety",
+        "enabled": true,
+        "energy_after_post_refit": 0.11721778146268086,
+        "energy_after_prune": 0.11721778146268086,
+        "energy_before": 0.11721778146268086,
+        "executed": false,
+        "final_mode_enabled": true,
+        "fraction_candidates": 0.25,
+        "frozen_scores": [],
+        "gain_ewma_recent": 0.0,
+        "gain_floor": 0.0,
+        "gate_rows": [],
+        "live_min_depth": 0,
+        "live_mode_enabled": true,
+        "local_window_size": 4,
+        "mature_eligible_indices": [],
+        "mature_open": false,
+        "maturity_threshold": 0.5,
+        "max_candidates": 6,
+        "max_regression": 1e-08,
+        "max_regression_effective": 1e-08,
+        "metadata": [],
+        "metric_prune_route_active": false,
+        "metric_schur_cost_weighting": "ansatz_entry_denominator_v1",
+        "metric_schur_mu": 1e-06,
+        "metric_schur_solve_mode": "stationary_gw_zero_v1",
+        "min_candidates": 1,
+        "nomination_lanes": {
+          "amplitude_activity": {
+            "active": true,
+            "authority": "nomination_only"
+          },
+          "cached_tangent_fubini": {
+            "active": false,
+            "authority": "nomination_only",
+            "reason": "no_valid_tangent_fubini_cache_wired_in_this_slice"
+          },
+          "recoverability_broad_rank": {
+            "active": true,
+            "authority": "nomination_only"
+          },
+          "schur_surrogate": {
+            "active": true,
+            "authority": "nomination_only",
+            "reason": "exact_current_hessian_schur_nomination"
+          }
+        },
+        "old_fraction": 0.25,
+        "permission_base_gates": {
+          "has_min_scaffold": false,
+          "mature_open": false,
+          "mode_enabled": true,
+          "stable_refit": true
+        },
+        "permission_open": false,
+        "permission_policy": "recoverability_ladder_v1",
+        "permission_reason": "has_min_scaffold",
+        "permission_schema": "static_prune_permission_v1",
+        "permission_triggers": {
+          "accepted_admission": false,
+          "checkpoint_due": false,
+          "plateau": false,
+          "terminal": false
+        },
+        "phase1_prune_tolerance_chem": 0.0,
+        "phase1_prune_tolerance_mode": "adaptive_v1",
+        "phase1_prune_tolerance_mode_requested": "auto",
+        "phase1_prune_tolerance_rel_coeff": 0.0,
+        "phase1_prune_tolerance_screen_coeff": 0.01,
+        "phase1_prune_tolerance_shot_coeff": 0.0,
+        "phase1_prune_tolerance_target_energy": null,
+        "post_refit_executed": false,
+        "pressure_signals": {
+          "snr_adm": null,
+          "snr_low_enough": false
+        },
+        "probe_indices": [],
+        "probe_labels": [],
+        "protect_steps": 2,
+        "protected_indices": [],
+        "prune_mode": "both",
+        "prune_policy": "recoverability_ladder_v1",
+        "prune_prefilter_active": false,
+        "prune_prefilter_allowed_count": 0,
+        "prune_prefilter_blocked_count": 0,
+        "prune_prefilter_blocked_indices": [],
+        "prune_prefilter_blocked_labels": [],
+        "prune_prefilter_input_count": 0,
+        "prune_prefilter_json": null,
+        "prune_prefilter_max_candidates": 1,
+        "prune_prefilter_policy": "off",
+        "prune_prefilter_profile_schema": null,
+        "prune_prefilter_risk_threshold": 0.0,
+        "prune_prefilter_rows": [],
+        "recoverability_eligible_indices": [],
+        "recovery_class": null,
+        "recovery_classification": null,
+        "repeat_label_guard": {
+          "active": false,
+          "blocked_count": 0,
+          "blocked_labels": [],
+          "blocked_rows": [],
+          "post_guard_candidate_count": 0,
+          "pre_guard_candidate_count": 0
+        },
+        "retained_gain_ratio": 0.5,
+        "rolled_back": false,
+        "runway_ratio": 1.0,
+        "schur_nomination_route": "hessian_coupling_v1",
+        "schur_surrogate_enabled": true,
+        "schur_surrogate_exact_trial_cap": 1,
+        "schur_surrogate_monotonicity_tol": 1e-10,
+        "schur_surrogate_nomination": {
+          "active": false,
+          "authority": "rank_window_diag_only",
+          "enabled": true,
+          "exact_trial_cap": 1,
+          "hessian_shape": [],
+          "local_window_size": 4,
+          "logical_parameter_count": 0,
+          "metric_schur_cost_weighting": "ansatz_entry_denominator_v1",
+          "metric_schur_mu": 1e-06,
+          "metric_schur_solve_mode": "stationary_gw_zero_v1",
+          "monotonicity_tol": 1e-10,
+          "nomination_gate_enabled": true,
+          "nomination_gate_factor": 1.0,
+          "nomination_gate_threshold": null,
+          "post_gate_candidate_count": 0,
+          "reason": "not_built",
+          "recovery_trust_radius": 0.0,
+          "ridge": 1e-06,
+          "rows": [],
+          "runtime_parameter_count": null,
+          "schema": "static_prune_schur_nomination_v1",
+          "schur_nomination_route": "hessian_coupling_v1",
+          "score_count": 0,
+          "selected_parameterization_mode": "logical_shared",
+          "used_for_acceptance": false,
+          "used_for_nomination": false
+        },
+        "schur_surrogate_nomination_gate_enabled": true,
+        "schur_surrogate_nomination_gate_factor": 1.0,
+        "schur_surrogate_recovery_trust_radius": 0.0,
+        "schur_surrogate_ridge": 1e-06,
+        "screen_authority": "nomination_only",
+        "selected_amplitude_witness": null,
+        "selected_index": null,
+        "selected_label": null,
+        "sigma_phase3": 0.0,
+        "small_angle_pool_indices": [],
+        "small_theta_abs": 0.001,
+        "small_theta_relative": 0.5,
+        "snr_adm": 0.0,
+        "snr_low_enough": true,
+        "snr_threshold": 1.0,
+        "stagnation_pass_indices": [],
+        "stagnation_threshold": 0.0,
+        "stale_age": 2,
+        "stale_age_pass_indices": [],
+        "surrogate_used_for_acceptance": false,
+        "theta_small": 0.001,
+        "trial": null,
+        "typed_prune_ladder_active": true,
+        "typed_prune_ladder_gate": {
+          "active": true,
+          "algebraic_lane_policy_active": true,
+          "live_mode_enabled": true,
+          "phase1_prune_policy": "recoverability_ladder_v1",
+          "phase3_selector_policy": "algebraic_nested_v1",
+          "recoverability_prune_policy_active": true
+        },
+        "typed_prune_ladder_note": "typed algebraic prune rungs are live-gated to algebraic_nested_v1 + recoverability_ladder_v1; acceptance remains remove_refit_energy_safety",
+        "typed_prune_ladder_plans": [],
+        "typed_prune_ladder_status": "not_enough_coordinates",
+        "u_sat": 0.0
+      },
+      "projective_state_fingerprint": "projective_state_v1:cfd96d2f10ec7ccaa585e630dff9708ae83b99fa34c27f56ecee2ad8c5f2bbcd",
+      "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+      "signed_unwrapped_logical_parameters": [
+        0.8475756625181428
+      ],
+      "signed_unwrapped_runtime_parameters": [
+        0.8475756625181428
+      ]
+    },
+    "terminal": {
+      "active_ansatz_depth": 1,
+      "admission_at_outer_iteration": {
+        "selected_batch_effective_positions": [
+          0
+        ],
+        "selected_batch_labels": [
+          "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected"
+        ],
+        "selected_batch_positions": [
+          0
+        ]
+      },
+      "boson_illegal_codeword_probability": 4.440892098500626e-16,
+      "boson_legal_codeword_probability": 0.9999999999999996,
+      "boson_legal_subspace": {
+        "bits_per_boson_site": 2,
+        "boson_legal_codeword_count": 9,
+        "boson_register_width": 4,
+        "boson_site_count": 2,
+        "full_hilbert_dim": 256,
+        "illegal_state_count": 112,
+        "legal_state_count": 144,
+        "legal_subspace_dim": 144,
+        "legal_subspace_scope": "boson_codewords_with_full_fermion_register",
+        "non_boson_register_dim": 16,
+        "non_boson_register_width": 4,
+        "statevector_dim": 256,
+        "total_register_width": 8
+      },
+      "checkpoint_kind": "terminal_post_final_refit_and_prune",
+      "checkpoint_sha256": "2e357b591a6bbbe50b34b51544a0f69875e6839cfe797b8371853f169f366036",
+      "fixed_spin_sector_illegal_probability": 4.440892098500626e-16,
+      "fixed_spin_sector_probability": 0.9999999999999996,
+      "ordered_active_operator_labels": [
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected"
+      ],
+      "ordered_active_operators": [
+        {
+          "active_position": 0,
+          "execution_mode": "grouped_exact",
+          "generator_id": "gen:3fc0bc32fd757517",
+          "label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+          "parent_generator_id": "gen:dc707e4181a59244",
+          "route_a_child_padding_lineage": {
+            "direction_normalization": {
+              "canonical_anchor_positive_real": true,
+              "canonical_coefficient_l2_norm": 1.0,
+              "global_scalar_sign_phase_removed": true,
+              "schema": "route_a_child_direction_normalization_v1",
+              "source_anchor_phase_im": 0.0,
+              "source_anchor_phase_re": 1.0,
+              "source_coefficient_l2_norm": 0.5,
+              "status": "normalized",
+              "term_count": 1
+            },
+            "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "position_id": 0,
+            "pre_normalization_projected_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 0.5,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "pre_normalization_projected_term_order": "deterministic_pauli_label_order",
+            "projected_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "projected_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "projection": {
+              "active": true,
+              "affected_site_block_count": 0,
+              "applied_before_child_phase1_evaluation": true,
+              "applied_before_global_projected_identity_deduplication": true,
+              "policy": "exact_projected_grouped_v1",
+              "projected_term_count": 1,
+              "projection_equivalence": "P_legal_P_P_legal_on_legal_subspace_minimal_block_extension_v1",
+              "raw_term_count": 1,
+              "reason": "exact_local_block_projection_applied",
+              "recommended_execution_mode": "grouped_exact",
+              "schema": "route_a_child_padding_exact_projection_v1"
+            },
+            "raw_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+            "raw_child_generator_ids": [
+              "gen:cf57b8baf8782ef3"
+            ],
+            "raw_child_indices": [
+              0
+            ],
+            "raw_child_labels": [
+              "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+            ],
+            "raw_generator_id": "gen:2a92511865c42319",
+            "raw_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "raw_parent_generator_id": "gen:dc707e4181a59244",
+            "raw_runtime_split": {
+              "child_count": 2,
+              "child_generator_ids": [
+                "gen:cf57b8baf8782ef3"
+              ],
+              "child_indices": [
+                0
+              ],
+              "child_labels": [
+                "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+              ],
+              "mode": "shortlist_pauli_children_v1",
+              "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+              "recommended_execution_mode": "termwise_product",
+              "representation": "child_set",
+              "requested_subset_sizes": [
+                1
+              ],
+              "subset_cardinality": 1,
+              "symmetry_gate": {
+                "checked": true,
+                "commutator_l1_dn": 1.0,
+                "commutator_l1_total": 1.0,
+                "commutator_l1_up": 0.0,
+                "fixed_count_sector": {
+                  "fixed_num_particles": {
+                    "n_dn": 1,
+                    "n_up": 1
+                  },
+                  "gate_scope": "fixed_count_sector_invariance_v1",
+                  "particle_sector_invariant": true,
+                  "particle_sector_leakage_l1": 0.0,
+                  "sector_basis_dimension": 4,
+                  "sector_leakage_max_abs": 0.0,
+                  "spin_sector_invariant": true,
+                  "spin_sector_leakage_l1": 0.0
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "globally_particle_number_commuting": false,
+                "globally_spin_sector_commuting": false,
+                "hard_guard_present": true,
+                "hard_guard_required": true,
+                "particle_number_preserving": true,
+                "passed": true,
+                "rejected": false,
+                "rejection_reason": null,
+                "required_particle_number": true,
+                "required_spin_sector": true,
+                "spin_sector_preserving": true
+              },
+              "termwise_child_gates_all_passed": true
+            },
+            "raw_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 0.5,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "raw_symmetry_gate": {
+              "checked": true,
+              "commutator_l1_dn": 1.0,
+              "commutator_l1_total": 1.0,
+              "commutator_l1_up": 0.0,
+              "fixed_count_sector": {
+                "fixed_num_particles": {
+                  "n_dn": 1,
+                  "n_up": 1
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "particle_sector_invariant": true,
+                "particle_sector_leakage_l1": 0.0,
+                "sector_basis_dimension": 4,
+                "sector_leakage_max_abs": 0.0,
+                "spin_sector_invariant": true,
+                "spin_sector_leakage_l1": 0.0
+              },
+              "gate_scope": "fixed_count_sector_invariance_v1",
+              "globally_particle_number_commuting": false,
+              "globally_spin_sector_commuting": false,
+              "hard_guard_present": true,
+              "hard_guard_required": true,
+              "particle_number_preserving": true,
+              "passed": true,
+              "rejected": false,
+              "rejection_reason": null,
+              "required_particle_number": true,
+              "required_spin_sector": true,
+              "spin_sector_preserving": true
+            },
+            "raw_term_order": "polynomial_iteration_order",
+            "selected_execution_mode": "grouped_exact",
+            "selected_projected_serialized_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 1.0,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ],
+            "selected_projected_term_order": "projective_unit_norm_positive_anchor_order",
+            "source_ordinal": 0,
+            "status": "projected"
+          },
+          "runtime_split": {
+            "child_count": 2,
+            "child_generator_ids": [
+              "gen:cf57b8baf8782ef3"
+            ],
+            "child_indices": [
+              0
+            ],
+            "child_labels": [
+              "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::split[0]::eeeeyxee"
+            ],
+            "mode": "shortlist_pauli_children_v1",
+            "padding_projection_policy": "exact_projected_grouped_v1",
+            "parent_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "projected_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "projected_identity": "pauli:c1915cadaf951df28bafc0ab7b47d07f7770dfb8295ad99a82002813d856fa77",
+            "raw_candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]",
+            "recommended_execution_mode": "grouped_exact",
+            "representation": "child_set",
+            "requested_subset_sizes": [
+              1
+            ],
+            "subset_cardinality": 1,
+            "symmetry_gate": {
+              "checked": true,
+              "commutator_l1_dn": 1.0,
+              "commutator_l1_total": 1.0,
+              "commutator_l1_up": 0.0,
+              "fixed_count_sector": {
+                "fixed_num_particles": {
+                  "n_dn": 1,
+                  "n_up": 1
+                },
+                "gate_scope": "fixed_count_sector_invariance_v1",
+                "particle_sector_invariant": true,
+                "particle_sector_leakage_l1": 0.0,
+                "sector_basis_dimension": 4,
+                "sector_leakage_max_abs": 0.0,
+                "spin_sector_invariant": true,
+                "spin_sector_leakage_l1": 0.0
+              },
+              "gate_scope": "fixed_count_sector_invariance_v1",
+              "globally_particle_number_commuting": false,
+              "globally_spin_sector_commuting": false,
+              "hard_guard_present": true,
+              "hard_guard_required": true,
+              "particle_number_preserving": true,
+              "passed": true,
+              "rejected": false,
+              "rejection_reason": null,
+              "required_particle_number": true,
+              "required_spin_sector": true,
+              "spin_sector_preserving": true
+            },
+            "termwise_child_gates_all_passed": true
+          },
+          "serialized_terms_exyz_in_execution_order": [
+            {
+              "coeff_im": 0.0,
+              "coeff_re": 1.0,
+              "nq": 8,
+              "pauli_exyz": "eeeeyxee"
+            }
+          ]
+        }
+      ],
+      "outer_iteration": 1,
+      "parameterization": {
+        "blocks": [
+          {
+            "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "logical_index": 0,
+            "runtime_count": 1,
+            "runtime_start": 0,
+            "runtime_terms_exyz": [
+              {
+                "coeff_im": 0.0,
+                "coeff_re": 1.0,
+                "nq": 8,
+                "pauli_exyz": "eeeeyxee"
+              }
+            ]
+          }
+        ],
+        "coefficient_tolerance": 1e-12,
+        "ignore_identity": true,
+        "logical_operator_count": 1,
+        "mode": "per_pauli_term_v1",
+        "runtime_parameter_count": 1,
+        "term_order": "sorted"
+      },
+      "parameterization_mode": "logical_shared",
+      "post_admission_prune": {
+        "accepted_count": 0,
+        "amplitude_witness_authority": "diagnostic_only",
+        "amplitude_witness_config_required": false,
+        "amplitude_witness_effective_required": false,
+        "amplitude_witness_required": false,
+        "amplitude_witness_rows": [],
+        "candidate_count": 0,
+        "candidate_nomination_sources": [],
+        "checkpoint_due": false,
+        "checkpoint_period": 3,
+        "collapse_current_abs_max": 0.001,
+        "collapse_min_abs_drop": 0.001,
+        "collapse_min_observations": 3,
+        "collapse_peak_abs_min": 0.001,
+        "collapse_ratio": 0.25,
+        "compensator_window_authority": {
+          "typed_compensator_window": {
+            "active": true,
+            "authority": "window_selection_and_escalation_only",
+            "reason": "typed compensator windows define remove-refit rung breadth, not deletion-target nomination lanes"
+          }
+        },
+        "cooldown_blocked_indices": [],
+        "cooldown_steps": 2,
+        "decisions": [],
+        "deletion_authority": "remove_refit_energy_safety",
+        "enabled": true,
+        "energy_after_post_refit": 0.11721778146268086,
+        "energy_after_prune": 0.11721778146268086,
+        "energy_before": 0.11721778146268086,
+        "executed": false,
+        "final_mode_enabled": true,
+        "fraction_candidates": 0.25,
+        "frozen_scores": [],
+        "gain_ewma_recent": 0.0,
+        "gain_floor": 0.0,
+        "gate_rows": [],
+        "live_min_depth": 0,
+        "live_mode_enabled": true,
+        "local_window_size": 4,
+        "mature_eligible_indices": [],
+        "mature_open": false,
+        "maturity_threshold": 0.5,
+        "max_candidates": 6,
+        "max_regression": 1e-08,
+        "max_regression_effective": 1e-08,
+        "metadata": [],
+        "metric_prune_route_active": false,
+        "metric_schur_cost_weighting": "ansatz_entry_denominator_v1",
+        "metric_schur_mu": 1e-06,
+        "metric_schur_solve_mode": "stationary_gw_zero_v1",
+        "min_candidates": 1,
+        "nomination_lanes": {
+          "amplitude_activity": {
+            "active": true,
+            "authority": "nomination_only"
+          },
+          "cached_tangent_fubini": {
+            "active": false,
+            "authority": "nomination_only",
+            "reason": "no_valid_tangent_fubini_cache_wired_in_this_slice"
+          },
+          "recoverability_broad_rank": {
+            "active": true,
+            "authority": "nomination_only"
+          },
+          "schur_surrogate": {
+            "active": true,
+            "authority": "nomination_only",
+            "reason": "exact_current_hessian_schur_nomination"
+          }
+        },
+        "old_fraction": 0.25,
+        "permission_base_gates": {
+          "has_min_scaffold": false,
+          "mature_open": false,
+          "mode_enabled": true,
+          "stable_refit": true
+        },
+        "permission_open": false,
+        "permission_policy": "recoverability_ladder_v1",
+        "permission_reason": "has_min_scaffold",
+        "permission_schema": "static_prune_permission_v1",
+        "permission_triggers": {
+          "accepted_admission": false,
+          "checkpoint_due": false,
+          "plateau": false,
+          "terminal": false
+        },
+        "phase1_prune_tolerance_chem": 0.0,
+        "phase1_prune_tolerance_mode": "adaptive_v1",
+        "phase1_prune_tolerance_mode_requested": "auto",
+        "phase1_prune_tolerance_rel_coeff": 0.0,
+        "phase1_prune_tolerance_screen_coeff": 0.01,
+        "phase1_prune_tolerance_shot_coeff": 0.0,
+        "phase1_prune_tolerance_target_energy": null,
+        "post_refit_executed": false,
+        "pressure_signals": {
+          "snr_adm": null,
+          "snr_low_enough": false
+        },
+        "probe_indices": [],
+        "probe_labels": [],
+        "protect_steps": 2,
+        "protected_indices": [],
+        "prune_mode": "both",
+        "prune_policy": "recoverability_ladder_v1",
+        "prune_prefilter_active": false,
+        "prune_prefilter_allowed_count": 0,
+        "prune_prefilter_blocked_count": 0,
+        "prune_prefilter_blocked_indices": [],
+        "prune_prefilter_blocked_labels": [],
+        "prune_prefilter_input_count": 0,
+        "prune_prefilter_json": null,
+        "prune_prefilter_max_candidates": 1,
+        "prune_prefilter_policy": "off",
+        "prune_prefilter_profile_schema": null,
+        "prune_prefilter_risk_threshold": 0.0,
+        "prune_prefilter_rows": [],
+        "recoverability_eligible_indices": [],
+        "recovery_class": null,
+        "recovery_classification": null,
+        "repeat_label_guard": {
+          "active": false,
+          "blocked_count": 0,
+          "blocked_labels": [],
+          "blocked_rows": [],
+          "post_guard_candidate_count": 0,
+          "pre_guard_candidate_count": 0
+        },
+        "retained_gain_ratio": 0.5,
+        "rolled_back": false,
+        "runway_ratio": 1.0,
+        "schur_nomination_route": "hessian_coupling_v1",
+        "schur_surrogate_enabled": true,
+        "schur_surrogate_exact_trial_cap": 1,
+        "schur_surrogate_monotonicity_tol": 1e-10,
+        "schur_surrogate_nomination": {
+          "active": false,
+          "authority": "rank_window_diag_only",
+          "enabled": true,
+          "exact_trial_cap": 1,
+          "hessian_shape": [],
+          "local_window_size": 4,
+          "logical_parameter_count": 0,
+          "metric_schur_cost_weighting": "ansatz_entry_denominator_v1",
+          "metric_schur_mu": 1e-06,
+          "metric_schur_solve_mode": "stationary_gw_zero_v1",
+          "monotonicity_tol": 1e-10,
+          "nomination_gate_enabled": true,
+          "nomination_gate_factor": 1.0,
+          "nomination_gate_threshold": null,
+          "post_gate_candidate_count": 0,
+          "reason": "not_built",
+          "recovery_trust_radius": 0.0,
+          "ridge": 1e-06,
+          "rows": [],
+          "runtime_parameter_count": null,
+          "schema": "static_prune_schur_nomination_v1",
+          "schur_nomination_route": "hessian_coupling_v1",
+          "score_count": 0,
+          "selected_parameterization_mode": "logical_shared",
+          "used_for_acceptance": false,
+          "used_for_nomination": false
+        },
+        "schur_surrogate_nomination_gate_enabled": true,
+        "schur_surrogate_nomination_gate_factor": 1.0,
+        "schur_surrogate_recovery_trust_radius": 0.0,
+        "schur_surrogate_ridge": 1e-06,
+        "screen_authority": "nomination_only",
+        "selected_amplitude_witness": null,
+        "selected_index": null,
+        "selected_label": null,
+        "sigma_phase3": 0.0,
+        "small_angle_pool_indices": [],
+        "small_theta_abs": 0.001,
+        "small_theta_relative": 0.5,
+        "snr_adm": 0.0,
+        "snr_low_enough": true,
+        "snr_threshold": 1.0,
+        "stagnation_pass_indices": [],
+        "stagnation_threshold": 0.0,
+        "stale_age": 2,
+        "stale_age_pass_indices": [],
+        "surrogate_used_for_acceptance": false,
+        "theta_small": 0.001,
+        "trial": null,
+        "typed_prune_ladder_active": true,
+        "typed_prune_ladder_gate": {
+          "active": true,
+          "algebraic_lane_policy_active": true,
+          "live_mode_enabled": true,
+          "phase1_prune_policy": "recoverability_ladder_v1",
+          "phase3_selector_policy": "algebraic_nested_v1",
+          "recoverability_prune_policy_active": true
+        },
+        "typed_prune_ladder_note": "typed algebraic prune rungs are live-gated to algebraic_nested_v1 + recoverability_ladder_v1; acceptance remains remove_refit_energy_safety",
+        "typed_prune_ladder_plans": [],
+        "typed_prune_ladder_status": "not_enough_coordinates",
+        "u_sat": 0.0
+      },
+      "projective_state_fingerprint": "projective_state_v1:cfd96d2f10ec7ccaa585e630dff9708ae83b99fa34c27f56ecee2ad8c5f2bbcd",
+      "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+      "signed_unwrapped_logical_parameters": [
+        0.8475756625181428
+      ],
+      "signed_unwrapped_runtime_parameters": [
+        0.8475756625181428
+      ]
+    }
+  },
+  "route_compatibility": {
+    "activation_signature": {
+      "adapt_continuation_mode": "phase3_v1",
+      "adapt_pool": "full_meta",
+      "phase2_enable_batching": false,
+      "phase3_enable_batching": false,
+      "phase3_runtime_split_max_subset_size": 1,
+      "phase3_runtime_split_mode": "shortlist_pauli_children_v1",
+      "phase3_runtime_split_selection_mode": "archival_child_set_forward_v1",
+      "phase3_runtime_split_subset_sizes": [
+        1
+      ],
+      "route_a_funnel_active": false,
+      "static_lane_route": "physical_operator_type",
+      "static_meta_feature_profile": "paper_i_production_v1",
+      "static_route_id": "route_a"
+    },
+    "active": true,
+    "compatibility_id": "paper_i_july8_physical_singleton_route_v1",
+    "resolved_behavior": {
+      "beam_phase1_cheap_score_config": "none",
+      "scaffold_derivative_global_phase_alignment": false,
+      "shortlist_budget_contract": {
+        "historical_paper_i_contract_active": true,
+        "historical_route_compatibility_id": "paper_i_july8_physical_singleton_route_v1",
+        "phase1_shortlist_size_base": 24,
+        "phase1_shortlist_size_effective": 8,
+        "phase2_shortlist_fraction_base": 0.25,
+        "phase2_shortlist_fraction_effective": 0.08333333333333333,
+        "phase2_shortlist_size_base": 12,
+        "phase2_shortlist_size_effective": 4,
+        "physical_lane_shortlist_factor": 3,
+        "policy": "paper_i_july8_physical_lane_factor_division_v1"
+      },
+      "shortlist_selection_unit": "candidate_position_record"
+    },
+    "schema": "historical_paper_i_route_compatibility_v1"
+  },
+  "schema": "paper_i_hh_weak_weak_depth1_corrected_enforcement_smoke_v1",
+  "status": "passed",
+  "symmetry": {
+    "policy": "hard_guard",
+    "rejected_child_count": 0,
+    "selected_gate": {
+      "checked": true,
+      "commutator_l1_dn": 1.0,
+      "commutator_l1_total": 1.0,
+      "commutator_l1_up": 0.0,
+      "fixed_count_sector": {
+        "fixed_num_particles": {
+          "n_dn": 1,
+          "n_up": 1
+        },
+        "gate_scope": "fixed_count_sector_invariance_v1",
+        "particle_sector_invariant": true,
+        "particle_sector_leakage_l1": 0.0,
+        "sector_basis_dimension": 4,
+        "sector_leakage_max_abs": 0.0,
+        "spin_sector_invariant": true,
+        "spin_sector_leakage_l1": 0.0
+      },
+      "gate_scope": "fixed_count_sector_invariance_v1",
+      "globally_particle_number_commuting": false,
+      "globally_spin_sector_commuting": false,
+      "hard_guard_present": true,
+      "hard_guard_required": true,
+      "particle_number_preserving": true,
+      "passed": true,
+      "rejected": false,
+      "rejection_reason": null,
+      "required_particle_number": true,
+      "required_spin_sector": true,
+      "spin_sector_preserving": true
+    }
+  }
+}

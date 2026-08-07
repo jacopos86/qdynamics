@@ -1,0 +1,292 @@
+    build_retained_selector_anchor_from_formal_state,
+    FormalAdmissionCurvatureReceipt,
+    build_formal_admission_curvature_receipt,
+    build_formal_growth_geometry_receipt,
+    build_formal_manifold_query_closure_from_estimator_ledger,
+_FORMAL_QUERY_ACCOUNTING_SCHEMA = "formal_manifold_query_accounting_closed_v1"
+        result["formal_phase2_anchor_order_status"] = (
+            "formal_phase2_anchor_order_status": "aligned",
+            "formal_phase2_active_indices_source_order": list(source),
+            "formal_phase2_active_indices_anchor_order": list(target),
+            "formal_phase2_active_coordinate_permutation": list(permutation),
+            "formal_phase2_active_coordinate_permutation_applied": bool(
+        "formal_manifold_finite_angle_fallback_bridge"
+            != "formal_manifold_query_closed_finite_angle_bridge_v1"
+                == "formal_manifold_sr_v3_finite_angle_shadow_bridge_v1"
+                == "formal_manifold_sr_v3_finite_angle_active_bridge_v1"
+    formal_manifold_route_profile_resolved = None
+    formal_manifold_config_resolved = None
+    formal_outer_exact_control_enabled = False
+    formal_outer_exact_shadow_enabled = False
+    formal_outer_exact_model_guard_enabled = False
+    formal_outer_exact_authority_enabled = False
+    formal_outer_model_guard_profile_enabled = False
+    formal_selector_phase_model_key = ""
+    formal_manifold_session = None
+    formal_outer_information_session = None
+    formal_query_ledger = None
+    formal_query_winning_ledger = None
+    formal_query_discarded_ledger = None
+    formal_query_round_finalized = True
+    formal_query_candidate_records: dict[tuple[int, int, str], Any] = {}
+    formal_query_anchor_cache = None
+    formal_query_outer_anchor_energy_primitive_id = None
+    formal_query_outer_anchor_audit = None
+    formal_query_phase2_blocks: dict[tuple[int, int, str], dict[str, Any]] = {}
+    formal_query_active_hessian_receipts: dict[str, QueryReceipt] = {}
+    formal_query_selected_growth_receipt = None
+    formal_query_selected_curvature_receipt = None
+    formal_query_selected_phase3_summary = None
+    formal_manifold_seed_bootstrap = None
+    formal_nfev_accounting = {
+    formal_outer_active_reuse_stats: dict[str, int] = {}
+    formal_energy_occurrence_ids_winning: list[str] = []
+    formal_energy_occurrence_ids_discarded: list[str] = []
+    formal_beam_all_energy_occurrence_ids: list[str] = []
+    formal_beam_energy_occurrence_lineage_by_branch: dict[int, list[str]] = {}
+    formal_manifold_route_enabled = False
+    formal_outer_information_profile_enabled = False
+    formal_outer_information_active_enabled = False
+    formal_outer_information_shadow_enabled = False
+    formal_outer_information_exact_powell_metric_enabled = False
+    formal_phase3_curvature_handoff_enabled = False
+    formal_manifold_selector_enabled = False
+    formal_singleton_refeed_selector_enabled = False
+    formal_shared_estimator_bridge_stats: dict[str, int] = {
+            "formal_query_category": "N_cross",
+                "formal_query_category": "N_cross",
+        pure_formal_manifold_expected_generator_fingerprints = None
+            pure_formal_manifold_expected_generator_fingerprints=(
+                pure_formal_manifold_expected_generator_fingerprints
+    formal_resume_checkpoint_payload: Mapping[str, Any] | None = None
+                "formal_manifold_warm_state_checkpoint"
+            formal_resume_checkpoint_payload = dict(
+                    "formal_manifold_warm_state_checkpoint"
+            "formal_manifold_query_closure_checkpoint"
+            summary["nfev_formal_frozen_prune_energy_probes"] = 0
+            summary["nfev_formal_frozen_prune_energy_probes"] = 0
+            summary["nfev_formal_frozen_prune_energy_probes"] = 0
+            formal_resume_candidate: Any | None = None
+            formal_resume_info: dict[str, Any] | None = None
+                if formal_resume_candidate is not None
+            if phase2_enabled and formal_resume_candidate is None:
+                    "adapt_formal_manifold_config": (
+                        if formal_manifold_config_resolved is None
+                        else formal_manifold_config_resolved.as_dict()
+                    "formal_manifold_warm_start": (
+                        dict(formal_resume_info)
+                        if isinstance(formal_resume_info, Mapping)
+                    formal_manifold_seed_bootstrap=(
+                        if formal_manifold_seed_bootstrap is None
+                        else dict(formal_manifold_seed_bootstrap)
+            checkpoint_formal_session = None
+            checkpoint_formal_query_telemetry = None
+            checkpoint_formal_query_payload = None
+                    "formal_manifold_route_profile": "off",
+                    "formal_manifold_route_composition": None,
+                    "adapt_formal_manifold_config": None,
+                    "formal_manifold_warm_start": (
+                        if checkpoint_formal_session is None
+                        else dict(checkpoint_formal_session.summary())
+                    "formal_manifold_warm_state_checkpoint": (
+                        if checkpoint_formal_session is None
+                        else checkpoint_formal_session.checkpoint_payload()
+                    "formal_manifold_runtime_checkpoint": None,
+                    "formal_manifold_outer_information_checkpoint": (
+                    "formal_manifold_outer_information_resume_policy": (
+                    "formal_manifold_resume_policy": (
+                        if checkpoint_formal_session is None
+                    "formal_manifold_query_closure": (
+                        checkpoint_formal_query_telemetry
+                    "formal_manifold_query_closure_checkpoint": (
+                        checkpoint_formal_query_payload
+                        checkpoint_formal_query_payload
+            formal_outer_nfev_delta_local = 0
+            formal_branch_runtime_local = None
+            formal_round_ledger_local: QueryPrimitiveLedger | None = None
+            formal_anchor_local: Any | None = None
+            formal_candidate_geometry_local: dict[
+            formal_phase2_blocks_local: dict[
+            formal_active_hessian_receipts_local: dict[
+            formal_proposal_receipts_local: dict[int, Any] = {}
+            formal_outer_energy_primitive_id_local: str | None = None
+            formal_outer_anchor_audit_local: dict[str, Any] | None = None
+                    nfev_delta=int(formal_outer_nfev_delta_local),
+                    formal_phase1_payload_inner = None
+                        "formal_query_closure": (
+                            if formal_phase1_payload_inner is None
+                            else dict(formal_phase1_payload_inner)
+                        "formal_query_ledger_serial"
+                            formal_phase1_payload_local = None
+                                "formal_query_closure": (
+                                    if formal_phase1_payload_local is None
+                                    else dict(formal_phase1_payload_local)
+                        formal_phase2_payload_local = None
+                            "formal_query_closure": {
+                                "phase1": rec.get("formal_query_closure"),
+                                    dict(formal_phase2_payload_local)
+                                        formal_phase2_payload_local, Mapping
+                            "disabled_formal_live_handles"
+                        "formal_outer_active_endpoint_preparation": (
+                        "formal_outer_active_endpoint_anchor": (
+                        else "formal_query_closed_combinatorial_beam_v1"
+                            "formal_manifold_finite_angle_fallback_bridge": {
+                                    "formal_manifold_sr_v3_finite_angle_active_bridge_v1"
+                                    else "formal_manifold_sr_v3_finite_angle_shadow_bridge_v1"
+                                    else "formal_manifold_query_closed_finite_angle_bridge_v1"
+                                nfev_delta=int(formal_outer_nfev_delta_local),
+                            nfev_delta=int(formal_outer_nfev_delta_local),
+                nfev_delta=int(formal_outer_nfev_delta_local),
+            formal_beam_growth_receipt_local: Any | None = None
+            formal_beam_curvature_receipt_local: (
+                FormalAdmissionCurvatureReceipt | None
+            formal_beam_adapter_local: Any | None = None
+            formal_beam_step_info_local: dict[str, Any] | None = None
+            formal_beam_outer_shadow_growth_local: dict[str, Any] | None = None
+            formal_beam_outer_cached_observation_local: (
+            formal_beam_outer_cached_observation_error_local: str | None = None
+            formal_beam_outer_cached_observation_failure_local: (
+            formal_beam_outer_cached_identity_binding_local: (
+            formal_beam_outer_anchor_audit_local: dict[str, Any] | None = None
+            formal_beam_outer_anchor_energy_id_local: str | None = None
+            formal_beam_external_powell_gram_receipt_local: (
+            formal_beam_active_candidate_primitive_ids_local: tuple[str, ...] = ()
+            formal_beam_growth_energy_accounting_local: dict[str, Any] | None = (
+                    formal_beam_external_powell_gram_receipt_local
+                    "formal_manifold_finite_angle_fallback_bridge"
+                    "formal_manifold_sr_v3_finite_angle_shadow_bridge_v1",
+                    "formal_manifold_sr_v3_finite_angle_active_bridge_v1",
+                        "formal_manifold_sr_v3_finite_angle_trust_hold_v1"
+            if isinstance(formal_beam_step_info_local, Mapping):
+                history_row_local["formal_manifold_warm_start"] = dict(
+                    formal_beam_step_info_local
+                formal_prune_nfev_local = int(
+                        "nfev_formal_manifold_prune_trials", 0
+                if formal_prune_nfev_local > 0:
+                    beam_nfev_total += int(formal_prune_nfev_local)
+                    child.nfev_total_local += int(formal_prune_nfev_local)
+                        "nfev_formal_manifold_prune_trials"
+                    ] = int(formal_prune_nfev_local)
+                    ) + int(formal_prune_nfev_local)
+                    ) + int(formal_prune_nfev_local)
+                        "nfev_formal_frozen_prune_energy_probes", 0
+                        "nfev_formal_frozen_prune_energy_probes"
+        formal_beam_all_query_ledger: QueryPrimitiveLedger | None = None
+            formal_root_runtime: FormalManifoldBranchRuntime | None = None
+                    formal_phase1_query_payload_child = None
+                            "formal_query_closure": (
+                                dict(formal_phase1_query_payload_child)
+                                    formal_phase1_query_payload_child,
+                    formal_phase2_query_payload = None
+                        "formal_query_closure": {
+                                dict(formal_phase1_query_payload_child)
+                                    formal_phase1_query_payload_child,
+                                    rec.get("formal_query_closure")
+                                dict(formal_phase2_query_payload)
+                                    formal_phase2_query_payload, Mapping
+                        formal_phase1_query_payload = None
+                                "formal_query_closure": (
+                                    dict(formal_phase1_query_payload)
+                                        formal_phase1_query_payload, Mapping
+                                    _rescore_formal_singleton_phase3_population
+                                    "formal_manifold_query_closed_combinatorial_v1"
+            formal_manifold_candidate_result: Any | None = None
+            formal_manifold_step_info: dict[str, Any] | None = None
+                "formal_manifold_warm_start": (
+                    dict(formal_manifold_step_info)
+                    if isinstance(formal_manifold_step_info, Mapping)
+                        "fm_selector_invoked": False,
+                            formal_manifold_route_profile_resolved.powell_metric_authority_policy
+                formal_prune_nfev_live = int(
+                    prune_summary.get("nfev_formal_manifold_prune_trials", 0)
+                if formal_prune_nfev_live > 0:
+                    nfev_total += int(formal_prune_nfev_live)
+                    history[-1]["nfev_formal_manifold_prune_trials"] = int(
+                        formal_prune_nfev_live
+                    ) + int(formal_prune_nfev_live)
+                    ) + int(formal_prune_nfev_live)
+                        "nfev_formal_frozen_prune_energy_probes", 0
+                        "nfev_formal_frozen_prune_energy_probes"
+                formal_final_candidate: Any | None = None
+                formal_final_info: dict[str, Any] | None = None
+                    if formal_final_candidate is not None
+                if phase2_enabled and formal_final_candidate is None:
+                final_full_refit_meta["formal_manifold_warm_start"] = (
+                    dict(formal_final_info)
+                    if isinstance(formal_final_info, Mapping)
+        estimator_formal_query_closure: dict[str, Any] | None = None
+                    "formal_manifold_shared_estimator_bridge": {
+                            "formal_manifold_shared_estimator_bridge_summary_v1"
+                        **dict(formal_shared_estimator_bridge_stats),
+                                formal_shared_estimator_bridge_stats[
+                                formal_shared_estimator_bridge_stats[
+        formal_accounting_top_level: dict[str, Any] = {}
+        formal_query_closure_payload_final: dict[str, Any] | None = None
+        formal_query_checkpoint_final: dict[str, Any] | None = None
+        formal_outer_information_checkpoint_final: dict[str, Any] | None = None
+        formal_outer_information_summary_final: dict[str, Any] | None = None
+                str(formal_manifold_route_profile_resolved.route_family)
+                if formal_manifold_route_profile_resolved is not None
+                str(formal_manifold_route_profile_resolved.route_profile)
+                if formal_manifold_route_profile_resolved is not None
+                str(formal_manifold_route_profile_resolved.candidate_selector_profile)
+                if formal_manifold_route_profile_resolved is not None
+            "formal_manifold_route_composition": (
+                formal_manifold_route_profile_resolved.as_dict()
+                if formal_manifold_route_profile_resolved is not None
+            **formal_accounting_top_level,
+            "adapt_formal_manifold_config": (
+                if formal_manifold_config_resolved is None
+                else formal_manifold_config_resolved.as_dict()
+            "formal_manifold_warm_start": (
+                if formal_manifold_session is None
+                else dict(formal_manifold_session.summary())
+            "formal_manifold_seed_bootstrap": (
+                if formal_manifold_seed_bootstrap is None
+                else dict(formal_manifold_seed_bootstrap)
+            "formal_manifold_warm_state_checkpoint": (
+                if formal_manifold_session is None
+                else formal_manifold_session.checkpoint_payload()
+            "formal_manifold_outer_information": (
+                if formal_outer_information_summary_final is None
+                else dict(formal_outer_information_summary_final)
+            "formal_manifold_outer_information_checkpoint": (
+                if formal_outer_information_checkpoint_final is None
+                else dict(formal_outer_information_checkpoint_final)
+                if formal_outer_information_checkpoint_final is None
+                else dict(formal_outer_information_checkpoint_final)
+            "formal_manifold_outer_information_resume_policy": (
+                if formal_outer_information_checkpoint_final is None
+                if formal_outer_information_checkpoint_final is None
+            "formal_manifold_resume_policy": (
+                if formal_manifold_session is None
+            "formal_manifold_query_closure": (
+                formal_query_closure_payload_final
+            "formal_manifold_query_closure_checkpoint": (
+                formal_query_checkpoint_final
+                formal_query_closure_payload_final
+                formal_query_checkpoint_final
+            "formal_query_category": "N_cross",
+    formal_manifold_selector_enabled: bool
+    formal_singleton_refeed_selector_enabled: bool
+    formal_outer_information_active_enabled: bool
+            formal_payload = None
+                    "formal_query_closure": formal_payload,
+                formal_payload = None
+                        "formal_query_closure": formal_payload,
+        if evaluation_stage_key == 'full' and (not self.context.formal_manifold_selector_enabled):
+        formal_phase1_query_payload_child = None
+            return {**dict(rec), 'feature': feat_candidate_base, 'candidate_label': str(candidate_label), 'candidate_term': candidate_term, 'cheap_score': float(cheap_score_source if cheap_score_source is not None else float('-inf')), 'simple_score': float(feat_candidate_base.simple_score if feat_candidate_base.simple_score is not None else float('-inf')), 'phase1_active_score': float(phase1_active_score_source if phase1_active_score_source is not None else float('-inf')), 'phase1_score_mode': str(feat_candidate_base.phase1_score_mode), 'phase1_legacy_simple_score': feat_candidate_base.phase1_legacy_simple_score, 'phase1_trust_region_gain': feat_candidate_base.phase1_trust_region_gain, 'phase1_trust_region_score': feat_candidate_base.phase1_trust_region_score, 'phase1_rho': feat_candidate_base.phase1_rho, 'phase2_raw_score': float('-inf'), 'full_v2_score': float('-inf'), 'selector_score': float(phase1_active_score_source if phase1_active_score_source is not None else float('-inf')), 'phase3_primary_score': None, 'phase3_tie_break_score': 0.0, 'phase3_auxiliary_score_mode': str(feat_candidate_base.phase3_auxiliary_score_mode), 'phase3_canonical_score_formula': str(feat_candidate_base.phase3_canonical_score_formula), 'candidate_pool_index': int(feat_candidate_base.candidate_pool_index), 'position_id': int(feat_candidate_base.position_id), 'formal_query_closure': dict(formal_phase1_query_payload_child) if isinstance(formal_phase1_query_payload_child, Mapping) else None, 'candidate_record_cache': {'schema': _CANDIDATE_RECORD_CACHE_SCHEMA, 'status': 'staged_phase1', 'source': 'live_phase1_feature', 'cache_key': str(candidate_record_cache_key), 'outer_curvature_prior': copy.deepcopy(self.outer_curvature_candidate_cache_identity)}}
+        phase2_geometry_indices = [] if evaluation_stage_key == 'phase2' else self.context.selector_feature_metadata.phase3_schur_indices(feat_candidate_base) if evaluation_stage_key == 'phase3' else list(range(len(self.cursor.selected_ops))) if self.context.formal_manifold_selector_enabled or (self.context.formal_singleton_refeed_selector_enabled and evaluation_stage_key == 'full') else self.context.selector_feature_metadata.phase2_geometry_indices(feat_candidate_base)
+        phase3_schur_indices = list(phase2_geometry_indices) if evaluation_stage_key == 'phase3' or canonical_child12_phase2_only or (self.context.formal_singleton_refeed_selector_enabled and evaluation_stage_key in {'phase2', 'full'}) else self.context.selector_feature_metadata.phase3_schur_indices(feat_candidate_base)
+                phase3_outer_prior_available = bool(self.context.formal_outer_information_active_enabled and self.pending.nonbeam_outer_old_old_prior is not None and (np.asarray(self.pending.nonbeam_outer_old_old_prior.G_AA, dtype=float).shape == (len(self.cursor.selected_ops), len(self.cursor.selected_ops))) and (np.asarray(self.pending.nonbeam_outer_old_old_prior.H_AA, dtype=float).shape == (len(self.cursor.selected_ops), len(self.cursor.selected_ops))))
+        feat_full = build_full_candidate_features(base_feature=feat_candidate_base, candidate_term=candidate_term, cfg=self.pending.phase2_score_cfg_round, novelty_oracle=self.context.phase2_novelty_oracle, curvature_oracle=self.context.phase2_curvature_oracle, scaffold_context=scaffold_context, phase2_scaffold_context=scaffold_context, phase3_scaffold_context=phase3_scaffold_context, h_compiled=self.context.compiled_hamiltonian, compiled_cache=self.context.phase2_compiled_term_cache, pauli_action_cache=self.cursor.pauli_action_cache, optimizer_memory=active_memory, motif_library=self.context.phase3_input_motif_library if self.context.phase3_enabled else None, target_num_sites=int(self.context.num_sites), include_phase3=bool(evaluation_stage_key in {'full', 'phase3'} and (not canonical_child12_phase2_only) and (not self.context.formal_manifold_selector_enabled) and (not self.context.formal_singleton_refeed_selector_enabled)), emit_fresh_phase3_joint_geometry_receipt=bool(evaluation_stage_key == 'phase3'))
+        if not canonical_child12_phase2_only and (not self.context.formal_manifold_selector_enabled):
+        formal_phase2_query_payload = None
+        full_record = {**dict(rec), 'feature': feat_full, 'cheap_score': float(cheap_score_source if cheap_score_source is not None else float('-inf')), 'simple_score': float(feat_full.simple_score if feat_full.simple_score is not None else float('-inf')), 'phase1_active_score': float(phase1_active_score_source if phase1_active_score_source is not None else float('-inf')), 'phase1_score_mode': str(feat_full.phase1_score_mode), 'phase1_legacy_simple_score': feat_full.phase1_legacy_simple_score, 'phase1_trust_region_gain': feat_full.phase1_trust_region_gain, 'phase1_trust_region_score': feat_full.phase1_trust_region_score, 'phase1_rho': feat_full.phase1_rho, 'phase2_raw_score': float(feat_full.phase2_raw_score if feat_full.phase2_raw_score is not None else float('-inf')), 'full_v2_score': float(feat_full.full_v2_score if feat_full.full_v2_score is not None else float('-inf')), 'selector_score': float(feat_full.selector_score if feat_full.selector_score is not None else float('-inf')), 'phase3_primary_score': float(feat_full.phase3_primary_score) if feat_full.phase3_primary_score is not None else None, 'phase3_tie_break_score': float(feat_full.phase3_tie_break_score), 'phase3_auxiliary_score_mode': str(feat_full.phase3_auxiliary_score_mode), 'phase3_canonical_score_formula': str(feat_full.phase3_canonical_score_formula), 'candidate_pool_index': int(feat_full.candidate_pool_index), 'position_id': int(feat_full.position_id), 'candidate_term': candidate_term, 'phase2_reusable_metric_primitive_ids': [str(candidate_self_metric_primitive_id)] if evaluation_stage_key == 'phase2' and (candidate_self_metric_primitive_id is not None) else [], 'fresh_phase3_metric_primitive_ids': sorted(set(fresh_phase3_metric_primitive_ids)) if evaluation_stage_key == 'phase3' else [], 'fresh_phase3_gradient_primitive_ids': sorted(set(fresh_phase3_gradient_primitive_ids)) if evaluation_stage_key == 'phase3' else [], 'formal_query_closure': {'phase1': dict(formal_phase1_query_payload_child) if isinstance(formal_phase1_query_payload_child, Mapping) else copy.deepcopy(rec.get('formal_query_closure')), 'phase2': dict(formal_phase2_query_payload) if isinstance(formal_phase2_query_payload, Mapping) else None}}
+        if evaluation_stage_key == 'full' and (not self.context.formal_manifold_selector_enabled) and (str(self.context.candidate_record_cache_mode) != 'off'):
+        formal_manifold_selector_enabled=False,
+        formal_singleton_refeed_selector_enabled=False,
+        formal_outer_information_active_enabled=False,
+    "adapt_formal_outer_exact_control_mode": "off",
+            "adapt_formal_manifold_config": None,

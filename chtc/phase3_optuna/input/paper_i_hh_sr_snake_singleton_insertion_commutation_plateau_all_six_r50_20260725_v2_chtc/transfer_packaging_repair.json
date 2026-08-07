@@ -1,0 +1,22 @@
+{
+  "schema": "chtc_transfer_packaging_repair_v1",
+  "bundle_id": "paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc",
+  "applied_after_dag_submission": true,
+  "initial_dag_cluster_id": 9380122,
+  "dag_cluster_id": 9380128,
+  "scientific_settings_changed": [],
+  "execution_script_sha256_before": "9adc5b101f9ef82e74b6c1bf9dec7c76edd48e4a7c091a947a75081429131fc4",
+  "execution_script_sha256_after": "2036da5088f4c2a54b729f99b0d6797bfaba89cdc16fb8aa8ac292692197e95a",
+  "retained_transfer_payloads": [
+    "execution.json",
+    "normalized_run_manifest.json",
+    "json/current.json",
+    "json/current.estimator_call_ledger_checkpoint.*.json"
+  ],
+  "omitted_transfer_payloads": [
+    "cache/**",
+    "json/result.json",
+    "json/estimator_call_ledger.json"
+  ],
+  "reason": "Prevent worker-local caches and duplicate multi-gigabyte terminal ledgers from exhausting CHTC home quota while preserving the live checkpoint and its closed estimator-work ledger."
+}

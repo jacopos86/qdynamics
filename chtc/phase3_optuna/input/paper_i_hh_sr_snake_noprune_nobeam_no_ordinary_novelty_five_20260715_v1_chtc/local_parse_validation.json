@@ -1,0 +1,85 @@
+{
+  "created_utc": "2026-07-16T02:01:15.873010+00:00",
+  "jobs": [
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/jobs/intermediate_weak.json",
+      "job_manifest_sha256": "10bf51f97c576cf4ffc1a3e3e450197da408af329d26515eb3f5ab46ea712fb0",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/jobs/strong_weak_u8.json",
+      "job_manifest_sha256": "4c2a2232c5ed7db1cbac1a624957219af80c9424d6e36c98c75c931bdd7fcb93",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/jobs/weak_strong.json",
+      "job_manifest_sha256": "5ef132fc7325d0e49d6622110a9bd0643bff9027eb04e765fc6b78ed27ebd953",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/jobs/intermediate_strong.json",
+      "job_manifest_sha256": "d028096d3f1e83267e2f48a96ce5063eea9fcd03d8b1c1cb0cda670431b311c6",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/jobs/strong_strong_u8.json",
+      "job_manifest_sha256": "9527c7dfe284b69b289997fbeccb87c4d91c40b966b105761985396bb3198c99",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    }
+  ],
+  "runner_manifest_validation_all_rows": true,
+  "schema": "paper_i_hh_sr_five_regime_local_parse_validation_v1",
+  "scientific_execution_performed": false,
+  "status": "pass",
+  "validation_kind": "frozen_cli_parse_and_job_manifest_validation_only"
+}

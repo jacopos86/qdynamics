@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""Run the six-regime Paper-I HH Append+FM first-hit diagnostic.
+
+This campaign keeps the projected-singleton Append-ADAPT selector authoritative
+and changes only the accepted-ansatz optimizer to the persistent formal-manifold
+qB-off inverse-RBFGS overlay.  Each regime terminates immediately after its
+first completed outer iteration with same-cutoff ``abs(Delta E) <= 2e-4``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gc
+import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from pipelines.exact_bench.generic_static_adapt_variants import (
+    SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1,
+    STATIC_FULL_META_APPEND_ADAPT_VQE,
+    _resolve_context_from_spec,
+    _safe_exact_energy,
+    run_generic_static_adapt_variant_single,
+)
+from pipelines.exact_bench.table_i_canonical_cases import (
+    TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS,
+    TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+    table_i_canonical_spec_by_case_id,
+)
+
+
+CAMPAIGN_SCHEMA = "paper_i_hh_append_fm_first_hit_campaign_v1"
+RUN_CLASS = "diagnostic"
+TARGET_ABS_DELTA_E = 2.0e-4
+MAX_ADAPT_ITERATIONS = 50
+OPTIMIZER_MAXITER = 200
+SEED = 7
+RESOURCE_QUBIT_CAP = 12
+RESOURCE_POOL_TERM_CAP = 16384
+EXACT_FIDELITY_MAX_QUBITS = 12
+OPTIMIZER_OVERLAY_SOURCE = "append_fm_inverse_rbfgs_qbroyd_off_v1"
+REGIME_ORDER = tuple(TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS)
+
+
+def _lock_environment_value(name: str, value: str) -> None:
+    existing = str(os.environ.get(name, "")).strip()
+    if existing and existing != value:
+        raise ValueError(
+            f"Campaign requires {name}={value!r}; inherited environment has {existing!r}."
+        )
+    os.environ[name] = value
+
+
+def lock_runtime_environment() -> dict[str, str]:
+    required = {
+        "TABLE_I_STATIC_SUITE_PROFILE": TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+        "GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP": str(RESOURCE_QUBIT_CAP),
+        "GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP": str(RESOURCE_POOL_TERM_CAP),
+        "GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS": str(EXACT_FIDELITY_MAX_QUBITS),
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact",
+    }
+    for name, value in required.items():
+        _lock_environment_value(name, value)
+    return required
+
+
+def _atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(dict(payload), indent=2, sort_keys=True) + "\n")
+    os.replace(temporary, path)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _deduplicate_exact_copy(source: Path, duplicate: Path) -> bool:
+    """Replace a byte-identical duplicate with a hard link, preserving paths."""
+
+    if not source.is_file() or not duplicate.is_file():
+        return False
+    if source.stat().st_size != duplicate.stat().st_size:
+        return False
+    if _sha256(source) != _sha256(duplicate):
+        return False
+    duplicate.unlink()
+    os.link(source, duplicate)
+    return True
+
+
+def _n_ph_from_spec(spec: Any) -> int:
+    args = tuple(str(item) for item in spec.base_pipeline_args)
+    for index, item in enumerate(args[:-1]):
+        if item == "--n-ph-max":
+            return int(args[index + 1])
+    raise ValueError(f"Spec {spec.benchmark_id!r} lacks --n-ph-max")
+
+
+def campaign_plan() -> tuple[dict[str, Any], ...]:
+    rows: list[dict[str, Any]] = []
+    for regime in REGIME_ORDER:
+        case_id = TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS[regime]
+        spec = table_i_canonical_spec_by_case_id(
+            "hh",
+            case_id,
+            TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+        )
+        n_ph = _n_ph_from_spec(spec)
+        rows.append(
+            {
+                "regime": regime,
+                "case_id": case_id,
+                "n_ph_work": n_ph,
+                "n_ph_ref": n_ph,
+                "same_cutoff": True,
+                "target_abs_delta_e": TARGET_ABS_DELTA_E,
+            }
+        )
+    return tuple(rows)
+
+
+def _source_hashes(repo_root: Path) -> dict[str, str]:
+    relative_paths = (
+        "pipelines/exact_bench/generic_static_adapt_variants.py",
+        "pipelines/exact_bench/paper_i_hh_append_fm_first_hit_campaign.py",
+        "pipelines/exact_bench/table_i_canonical_cases.py",
+        "pipelines/static_adapt/formal_manifold_warm_start.py",
+        "pipelines/static_adapt/joint_linear_solve.py",
+    )
+    return {
+        relative: _sha256(repo_root / relative)
+        for relative in relative_paths
+        if (repo_root / relative).is_file()
+    }
+
+
+def _row_summary(payload: Mapping[str, Any], *, regime: str, output_dir: Path) -> dict[str, Any]:
+    row = payload.get("result") if isinstance(payload.get("result"), Mapping) else payload
+    abs_delta_e = row.get("abs_delta_e", payload.get("abs_delta_e"))
+    stop_reason = row.get("adapt_stop_reason", payload.get("adapt_stop_reason"))
+    depth = row.get(
+        "ansatz_depth",
+        row.get(
+            "adapt_depth_reached",
+            row.get("num_parameters", payload.get("ansatz_depth")),
+        ),
+    )
+    energy = row.get("energy", payload.get("energy"))
+    status = str(payload.get("status") or row.get("status") or "").strip().lower()
+    target_hit = (
+        abs_delta_e is not None
+        and float(abs_delta_e) <= TARGET_ABS_DELTA_E
+        and str(stop_reason) == "benchmark_abs_delta_e_target"
+    )
+    return {
+        "schema": "paper_i_hh_append_fm_first_hit_row_summary_v1",
+        "regime": regime,
+        "case_id": str(payload.get("case_id") or row.get("case_id") or ""),
+        "status": status,
+        "target_hit": bool(target_hit),
+        "target_abs_delta_e": TARGET_ABS_DELTA_E,
+        "abs_delta_e": None if abs_delta_e is None else float(abs_delta_e),
+        "energy": None if energy is None else float(energy),
+        "ansatz_depth": None if depth is None else int(depth),
+        "adapt_stop_reason": stop_reason,
+        "result_json": str(output_dir / "result.json"),
+        "progress_jsonl": str(output_dir / "adapt_iteration_progress.jsonl"),
+    }
+
+
+def run_regime(*, campaign_dir: Path, regime: str, repo_root: Path) -> dict[str, Any]:
+    normalized = str(regime).strip().lower().replace("_", "-")
+    if normalized not in TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS:
+        known = ", ".join(REGIME_ORDER)
+        raise ValueError(f"Unknown regime {regime!r}; expected one of {known}")
+
+    plan_row = next(row for row in campaign_plan() if row["regime"] == normalized)
+    output_dir = campaign_dir / normalized
+    summary_path = output_dir / "first_hit_summary.json"
+    if summary_path.is_file():
+        existing = json.loads(summary_path.read_text())
+        if bool(existing.get("target_hit")):
+            print(json.dumps({"event": "row_already_complete", **existing}, sort_keys=True), flush=True)
+            return existing
+
+    spec = table_i_canonical_spec_by_case_id(
+        "hh",
+        str(plan_row["case_id"]),
+        TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+    )
+    context = _resolve_context_from_spec(spec)
+    exact_energy = _safe_exact_energy(context)
+    if exact_energy is None:
+        raise RuntimeError(f"Unable to resolve same-cutoff exact energy for {normalized}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _atomic_write_json(
+        output_dir / "launch_manifest.json",
+        {
+            "schema": "paper_i_hh_append_fm_first_hit_launch_v1",
+            "run_class": RUN_CLASS,
+            **plan_row,
+            "same_cutoff_exact_gs_energy": float(exact_energy),
+            "algorithm_id": STATIC_FULL_META_APPEND_ADAPT_VQE,
+            "candidate_selector": "generic_projected_singleton_full_meta_append",
+            "accepted_ansatz_optimizer": "formal_manifold_warm_start_v1",
+            "formal_manifold_policy": "inverse_rbfgs_qbroyd_off_v1",
+            "max_adapt_iterations": MAX_ADAPT_ITERATIONS,
+            "optimizer_maxiter": OPTIMIZER_MAXITER,
+            "seed": SEED,
+            "source_hashes": _source_hashes(repo_root),
+        },
+    )
+    print(
+        json.dumps(
+            {
+                "event": "row_start",
+                "regime": normalized,
+                "case_id": plan_row["case_id"],
+                "n_ph_work": plan_row["n_ph_work"],
+                "n_ph_ref": plan_row["n_ph_ref"],
+                "exact_energy": exact_energy,
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+
+    payload = run_generic_static_adapt_variant_single(
+        family="hh",
+        case_id=str(plan_row["case_id"]),
+        algorithm_id=STATIC_FULL_META_APPEND_ADAPT_VQE,
+        output_dir=output_dir,
+        max_adapt_iterations=MAX_ADAPT_ITERATIONS,
+        optimizer_maxiter=OPTIMIZER_MAXITER,
+        gradient_threshold=0.0,
+        seed=SEED,
+        energy_stop_target=TARGET_ABS_DELTA_E,
+        first_hit_thresholds=(TARGET_ABS_DELTA_E,),
+        same_cutoff_exact_gs_energy=float(exact_energy),
+        exact_reference_energy=float(exact_energy),
+        exact_reference_n_ph_max=int(plan_row["n_ph_ref"]),
+        primary_energy_metric="same_cutoff_abs_delta_e",
+        same_cutoff_error_role="primary",
+        allow_repeats=True,
+        progress_jsonl_path=output_dir / "adapt_iteration_progress.jsonl",
+        generic_adapt_stop_policy="default",
+        generic_adapt_runtime_split_mode="off",
+        generic_adapt_runtime_split_symmetry_policy="off",
+        generic_adapt_runtime_split_max_subset_size=1,
+        shared_pauli_pool_mode=SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1,
+        shared_pauli_pool_symmetry_policy="hard_guard",
+        shared_pauli_pool_max_subset_size=1,
+        adapt_optimizer_kind="formal_manifold",
+        optimizer_overlay_source=OPTIMIZER_OVERLAY_SOURCE,
+        hh_adaptive_pool_profile="full_meta_unfiltered",
+    )
+    summary = _row_summary(payload, regime=normalized, output_dir=output_dir)
+    if not summary["target_hit"]:
+        summary["failure_reason"] = "row_did_not_terminate_at_requested_first_hit"
+    summary["deduplicated_generic_static_single"] = _deduplicate_exact_copy(
+        output_dir / "result.json",
+        output_dir / "generic_static_single.json",
+    )
+    _atomic_write_json(summary_path, summary)
+    print(json.dumps({"event": "row_complete", **summary}, sort_keys=True), flush=True)
+    if summary["status"] not in {"completed", "ok", "success"}:
+        raise RuntimeError(
+            f"{normalized} failed operationally: status={summary['status']!r}, "
+            f"stop={summary['adapt_stop_reason']!r}"
+        )
+    return summary
+
+
+def run_campaign(*, campaign_dir: Path, regimes: Sequence[str], repo_root: Path) -> dict[str, Any]:
+    runtime_environment = lock_runtime_environment()
+    campaign_dir.mkdir(parents=True, exist_ok=True)
+    selected = tuple(regimes) if regimes else REGIME_ORDER
+    manifest = {
+        "schema": CAMPAIGN_SCHEMA,
+        "run_class": RUN_CLASS,
+        "target_abs_delta_e": TARGET_ABS_DELTA_E,
+        "stopping_policy": "first_completed_outer_iteration_at_or_below_target",
+        "suite_profile": TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+        "regimes": list(selected),
+        "plan": list(campaign_plan()),
+        "runtime_environment": runtime_environment,
+        "source_hashes": _source_hashes(repo_root),
+    }
+    _atomic_write_json(campaign_dir / "campaign_manifest.json", manifest)
+    completed: list[dict[str, Any]] = []
+    for regime in selected:
+        completed.append(
+            run_regime(campaign_dir=campaign_dir, regime=regime, repo_root=repo_root)
+        )
+        gc.collect()
+    campaign_summary = {
+        **manifest,
+        "status": "completed",
+        "completed_rows": completed,
+        "all_rows_target_hit": bool(completed) and all(row["target_hit"] for row in completed),
+    }
+    _atomic_write_json(campaign_dir / "campaign_summary.json", campaign_summary)
+    return campaign_summary
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--campaign-dir", type=Path, required=True)
+    parser.add_argument("--regime", action="append", default=[])
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = Path(__file__).resolve().parents[2]
+    summary = run_campaign(
+        campaign_dir=Path(args.campaign_dir),
+        regimes=tuple(args.regime),
+        repo_root=repo_root,
+    )
+    print(
+        json.dumps(
+            {
+                "schema": summary["schema"],
+                "status": summary["status"],
+                "all_rows_target_hit": summary["all_rows_target_hit"],
+                "campaign_dir": str(args.campaign_dir),
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
+    return 0 if summary["all_rows_target_hit"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

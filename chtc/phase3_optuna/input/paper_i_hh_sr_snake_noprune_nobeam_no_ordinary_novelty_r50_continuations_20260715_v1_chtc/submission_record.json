@@ -1,0 +1,63 @@
+{
+  "schema": "paper_i_hh_sr_r50_condor_submission_v1",
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc",
+  "batch_name": "paper-i-hh-sr-noprune-nobeam-nonovelty-r50-cont-20260715-v1",
+  "cluster_id": 8811168,
+  "job_count": 4,
+  "submitted_utc": "2026-07-16T04:44:22Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_status": "idle",
+  "initial_scheduler_status_code": 1,
+  "initial_hold_reasons": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "remote_artifact_verification": {
+    "status": "pass",
+    "verified_artifact_count": 36,
+    "mismatch_count": 0,
+    "submission_artifact_hashes_sha256": "d176d7b1c92171cdfcf7eb08b6b04f119f79e58a05fca78f8df4a3363fa49c03"
+  },
+  "remote_job_manifest_validation": {
+    "status": "pass",
+    "validated_job_count": 4
+  },
+  "condor_dry_run": {
+    "status": "pass",
+    "job_count": 4
+  },
+  "source_lock": {
+    "base_archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+    "patched_archive_sha256": "070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a",
+    "resume_patch_sha256": "df31265fa46dda5ee8d7872789cd9986b8a9b0d72020f01aad120b8aa594630f",
+    "resume_patch_manifest_sha256": "7ea7e3a11c323e56f66cbec92f09d5753d6429a3f8965ef491e1e26cab90f3ca",
+    "settings_diff_sha256": "a6b926f63e8d6cfc3deb0804056cae593329661d421e8ba40e27ebee27242e50",
+    "boundary_execution_smoke_sha256": "ea6281cbe681639e6636920a23db449041bbf4f5ba543b471266fc65ff75a6f6"
+  },
+  "submit_inputs": {
+    "submit_sub_sha256": "17f45cb124a6d47b1490e618b783aae208e505f90f7ef7fe85256fb528a3815b",
+    "queue_tsv_sha256": "f43c24cd64fcffc0a61a978d41c3d6599448c5ae09a2fa2d8855e252ab563aa1",
+    "bundle_manifest_sha256": "33b0aaea66516ba053894ccf0d5595f9c029809f94864e5b0c5d373c73b7f919",
+    "preflight_sha256": "02a5ed847e9fac6158d102965636f57b9ce892df8c6dfee4eaf80d95257f9dbb"
+  },
+  "resources": {
+    "request_cpus_all_rows": 4,
+    "request_disk_mb_all_rows": 61440,
+    "request_memory_mb_by_regime": {
+      "strong_weak_u8": 32768,
+      "weak_strong": 40960,
+      "intermediate_strong": 40960,
+      "strong_strong_u8": 40960
+    },
+    "max_runtime_s": 259200
+  },
+  "regimes_by_proc": {
+    "0": "strong_weak_u8",
+    "1": "weak_strong",
+    "2": "intermediate_strong",
+    "3": "strong_strong_u8"
+  }
+}

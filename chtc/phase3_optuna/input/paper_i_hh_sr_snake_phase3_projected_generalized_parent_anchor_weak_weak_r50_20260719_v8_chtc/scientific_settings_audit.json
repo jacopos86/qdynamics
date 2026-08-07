@@ -1,0 +1,11 @@
+{
+  "anchor_changed_scientific_fields_vs_source": [],
+  "anchor_value": "supported_metric_whitened_eigh_v1",
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v8_chtc",
+  "candidate_not_executed_in_anchor": true,
+  "candidate_value": "supported_metric_projected_generalized_trust_v1",
+  "fanout_authorized": false,
+  "schema": "paper_i_sr_phase3_projection_anchor_scientific_settings_audit_v1",
+  "status": "pass",
+  "swept_field": "historical_singleton_coordinate_solve_policy"
+}

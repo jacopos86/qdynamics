@@ -1,0 +1,512 @@
+PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1 = "legacy_small_angle_v1"
+@dataclass(frozen=True)
+class PruneConfig:
+    policy: str = PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1
+    max_candidates: int = 6
+    min_candidates: int = 2
+    fraction_candidates: float = 0.25
+    max_regression: float = 1e-8
+    retained_gain_ratio: float = 0.5
+    protect_steps: int = 2
+    stale_age: int = 2
+    stagnation_threshold: float = 0.0
+    small_theta_abs: float = 1e-3
+    small_theta_relative: float = 0.5
+    cooldown_steps: int = 2
+    local_window_size: int = 4
+    old_fraction: float = 0.25
+    amplitude_witness_required: bool = False
+    collapse_peak_abs_min: float = 1e-3
+    collapse_current_abs_max: float = 1e-3
+    collapse_ratio: float = 0.25
+    collapse_min_abs_drop: float = 1e-3
+    collapse_min_observations: int = 3
+def amplitude_collapse_witness(
+    *,
+    current_abs_theta: float,
+    peak_abs_theta: float,
+    observation_count: int,
+    previous_abs_theta: float | None = None,
+    peak_abs_min: float = 1e-3,
+    current_abs_max: float = 1e-3,
+    collapse_ratio: float = 0.25,
+    min_abs_drop: float = 1e-3,
+    min_observations: int = 3,
+) -> dict[str, Any]:
+    """Return diagnostic amplitude-collapse telemetry for mature pruning.
+
+    A coordinate may be reported as having first become nontrivial and then
+    collapsed. Always-small coordinates, missing traces, and one-shot snapshots
+    remain useful diagnostics, but prune acceptance is governed by remove-refit
+    energy safety and retained-gain/curvature guards.
+    """
+
+    current_abs = float(abs(_wrap_to_pi(float(current_abs_theta))))
+    peak_abs = float(abs(_wrap_to_pi(float(peak_abs_theta))))
+    previous_abs = (
+        current_abs
+        if previous_abs_theta is None
+        else float(abs(_wrap_to_pi(float(previous_abs_theta))))
+    )
+    obs_count = int(max(0, int(observation_count)))
+    peak_min = float(max(0.0, float(peak_abs_min)))
+    current_max = float(max(0.0, float(current_abs_max)))
+    ratio_max = float(max(0.0, float(collapse_ratio)))
+    drop_min = float(max(0.0, float(min_abs_drop)))
+    obs_min = int(max(1, int(min_observations)))
+    drop_abs = float(max(0.0, peak_abs - current_abs))
+    ratio_observed = float(current_abs / max(peak_abs, 1e-15))
+    ok = True
+    reason = "accepted"
+    if obs_count < obs_min:
+        ok = False
+        reason = "amplitude_trace_insufficient"
+    elif peak_abs < peak_min:
+        ok = False
+        reason = "amplitude_peak_too_small"
+    elif current_abs > current_max:
+        ok = False
+        reason = "amplitude_current_not_collapsed"
+    elif previous_abs > current_max:
+        ok = False
+        reason = "amplitude_previous_not_collapsed"
+    elif ratio_observed > ratio_max:
+        ok = False
+        reason = "amplitude_collapse_ratio_failed"
+    elif drop_abs < drop_min:
+        ok = False
+        reason = "amplitude_drop_too_small"
+    return {
+        "ok": bool(ok),
+        "reason": str(reason),
+        "current_abs_theta": float(current_abs),
+        "peak_abs_theta": float(peak_abs),
+        "drop_abs_theta": float(drop_abs),
+        "collapse_ratio_observed": float(ratio_observed),
+        "previous_abs_theta": float(previous_abs),
+        "observation_count": int(obs_count),
+        "peak_abs_min": float(peak_min),
+        "current_abs_max": float(current_max),
+        "collapse_ratio_max": float(ratio_max),
+        "min_abs_drop": float(drop_min),
+        "min_observations": int(obs_min),
+    }
+
+
+def rank_prune_candidates(
+    *,
+    theta: np.ndarray,
+    labels: list[str],
+    marginal_proxy_benefit: list[float] | None,
+    max_candidates: int,
+    min_candidates: int,
+    fraction_candidates: float,
+    selector_burden: Sequence[float] | None = None,
+    admission_steps: Sequence[int] | None = None,
+    first_seen_steps: Sequence[int] | None = None,
+    cooldown_remaining: Sequence[int] | None = None,
+    stagnation_scores: Sequence[float] | None = None,
+    current_step: int | None = None,
+    protect_steps: int = 0,
+    stale_age: int = 0,
+    stagnation_threshold: float = 0.0,
+    small_theta_abs: float = 0.0,
+    small_theta_relative: float = 1.0,
+    policy: str = PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1,
+    surrogate_scores: Mapping[int, Mapping[str, Any]] | None = None,
+    surrogate_score_threshold: float | None = None,
+    surrogate_candidate_cap: int | None = None,
+    surrogate_score_primary_only: bool = False,
+) -> list[int]:
+    n = int(theta.size)
+    if n <= 0:
+        return []
+    policy_key = _normalized_prune_policy(policy)
+    benefits = list(marginal_proxy_benefit) if marginal_proxy_benefit is not None else []
+
+    def _benefit_key(i: int) -> float:
+        if i >= len(benefits):
+            return float("inf")
+        val = float(benefits[i])
+        if not np.isfinite(val):
+            return float("inf")
+        return float(val)
+
+    surrogate_rows: Mapping[int, Mapping[str, Any]] = surrogate_scores or {}
+
+    def _surrogate_key(i: int) -> float:
+        row = surrogate_rows.get(int(i))
+        if not isinstance(row, Mapping):
+            return float("inf")
+        for key in ("score", "schur_min", "schur_score", "surrogate_score"):
+            if key in row:
+                try:
+                    val = float(row[key])
+                except (TypeError, ValueError):
+                    continue
+                if np.isfinite(val):
+                    return float(val)
+        return float("inf")
+
+    def _surrogate_gated(indices: Sequence[int]) -> list[int]:
+        if (
+            policy_key != PRUNE_POLICY_RECOVERABILITY_LADDER_V1
+            or not surrogate_rows
+            or surrogate_score_threshold is None
+        ):
+            out = [int(i) for i in indices]
+        else:
+            try:
+                threshold = float(surrogate_score_threshold)
+            except (TypeError, ValueError):
+                threshold = float("nan")
+            if not np.isfinite(threshold) or threshold < 0.0:
+                return []
+            out = [
+                int(i)
+                for i in indices
+                if np.isfinite(_surrogate_key(int(i)))
+                and float(_surrogate_key(int(i))) <= float(threshold) + 1e-15
+            ]
+        if (
+            policy_key == PRUNE_POLICY_RECOVERABILITY_LADDER_V1
+            and surrogate_candidate_cap is not None
+        ):
+            try:
+                cap = int(surrogate_candidate_cap)
+            except (TypeError, ValueError):
+                cap = 0
+            if cap <= 0:
+                return []
+            out = [int(i) for i in out[:cap]]
+        return [int(i) for i in out]
+
+    wrapped = np.asarray([_wrap_to_pi(float(x)) for x in np.asarray(theta, dtype=float).tolist()], dtype=float)
+    target = int(np.ceil(float(fraction_candidates) * float(n)))
+    target = max(int(min_candidates), target)
+    target = min(int(max_candidates), target, n)
+
+    metadata_ready = all(
+        seq is not None
+        for seq in (
+            admission_steps,
+            first_seen_steps,
+            cooldown_remaining,
+            stagnation_scores,
+        )
+    ) and current_step is not None
+    if not metadata_ready:
+        order = sorted(
+            range(n),
+            key=lambda i: (
+                _surrogate_key(int(i)) if policy_key == PRUNE_POLICY_RECOVERABILITY_LADDER_V1 else 0.0,
+                str(labels[int(i)]) if bool(surrogate_score_primary_only) else abs(float(wrapped[i])),
+                "" if bool(surrogate_score_primary_only) else _benefit_key(int(i)),
+                str(labels[i]),
+            ),
+        )
+        return _surrogate_gated([int(i) for i in order[:target]])
+
+    admission_steps_list = [int(x) for x in list(admission_steps or [])[:n]]
+    first_seen_steps_list = [int(x) for x in list(first_seen_steps or [])[:n]]
+    cooldown_list = [int(x) for x in list(cooldown_remaining or [])[:n]]
+    stagnation_list = [float(x) for x in list(stagnation_scores or [])[:n]]
+    while len(admission_steps_list) < n:
+        admission_steps_list.append(0)
+    while len(first_seen_steps_list) < n:
+        first_seen_steps_list.append(0)
+    while len(cooldown_list) < n:
+        cooldown_list.append(0)
+    while len(stagnation_list) < n:
+        stagnation_list.append(0.0)
+
+    eligible = [
+        int(i)
+        for i in range(n)
+        if int(current_step) - int(first_seen_steps_list[i]) >= int(stale_age)
+        and float(stagnation_list[i]) >= float(stagnation_threshold)
+        and int(current_step) - int(admission_steps_list[i]) >= int(protect_steps)
+        and int(cooldown_list[i]) <= 0
+    ]
+    if policy_key == PRUNE_POLICY_RECOVERABILITY_LADDER_V1:
+        eligible = [
+            int(i)
+            for i in range(n)
+            if int(current_step) - int(admission_steps_list[i]) >= int(protect_steps)
+            and int(cooldown_list[i]) <= 0
+        ]
+    if not eligible:
+        return []
+
+    theta_small = float(
+        max(
+            float(max(0.0, small_theta_abs)),
+            float(max(0.0, small_theta_relative))
+            * float(np.median(np.abs(wrapped[np.asarray(eligible, dtype=int)]))),
+        )
+    )
+    angle_pool = [int(i) for i in eligible if abs(float(wrapped[i])) <= float(theta_small) + 1e-15]
+    if policy_key == PRUNE_POLICY_RECOVERABILITY_LADDER_V1:
+        burden_list = [float(x) for x in list(selector_burden or [])[:n]]
+        while len(burden_list) < n:
+            burden_list.append(0.0)
+        target = min(int(max_candidates), len(eligible))
+        if bool(surrogate_score_primary_only):
+            order = sorted(
+                eligible,
+                key=lambda i: (
+                    _surrogate_key(int(i)),
+                    str(labels[int(i)]),
+                ),
+            )
+            return _surrogate_gated([int(i) for i in order[:target]])
+        order = sorted(
+            eligible,
+            key=lambda i: (
+                _surrogate_key(int(i)),
+                _benefit_key(int(i)),
+                0 if int(i) in angle_pool else 1,
+                -float(stagnation_list[int(i)]),
+                float(max(0.0, burden_list[int(i)])),
+                abs(float(wrapped[int(i)])),
+                str(labels[int(i)]),
+            ),
+        )
+        return _surrogate_gated([int(i) for i in order[:target]])
+
+    if not angle_pool:
+        return []
+
+    burden_list = [float(x) for x in list(selector_burden or [])[:n]]
+    while len(burden_list) < n:
+        burden_list.append(0.0)
+    target = min(int(max_candidates), len(angle_pool))
+    order = sorted(
+        angle_pool,
+        key=lambda i: (
+            abs(float(wrapped[i])),
+            _benefit_key(int(i)),
+            float(max(0.0, burden_list[i])),
+            str(labels[i]),
+        ),
+    )
+    return [int(i) for i in order[:target]]
+
+
+def _witness_for_candidate(
+    *,
+    candidate_index: int,
+    amplitude_witness_by_index: Mapping[int, Mapping[str, Any]] | None,
+    amplitude_witness_required: bool,
+) -> dict[str, Any]:
+    # Compatibility input only: amplitude witness telemetry is diagnostic, not
+    # an authority for prune acceptance.
+    amplitude_required_effective = False
+    if amplitude_witness_by_index is None or int(candidate_index) not in amplitude_witness_by_index:
+        return {
+            "ok": bool(not amplitude_required_effective),
+            "reason": "amplitude_witness_not_required",
+        }
+    witness = dict(amplitude_witness_by_index[int(candidate_index)])
+    witness["ok"] = bool(witness.get("ok", False))
+    witness["reason"] = str(witness.get("reason", "accepted" if witness["ok"] else "amplitude_witness_failed"))
+    return witness
+
+
+def _prune_reason(
+    *,
+    safe_regression_ok: bool,
+    retained_ok: bool,
+    amplitude_witness_ok: bool,
+    amplitude_witness_reason: str | None,
+    curvature_guard_ok: bool = True,
+    curvature_guard_reason: str | None = None,
+) -> str:
+    failures: list[str] = []
+    if not bool(safe_regression_ok):
+        failures.append("safe_regression_exceeded")
+    if not bool(retained_ok):
+        failures.append("retained_gain_below_ratio")
+    if not bool(amplitude_witness_ok):
+        failures.append(str(amplitude_witness_reason or "amplitude_witness_failed"))
+    if not bool(curvature_guard_ok):
+        failures.append(str(curvature_guard_reason or "curvature_guard_failed"))
+    return "accepted" if not failures else "_and_".join(failures)
+        witness = _witness_for_candidate(
+            candidate_index=int(original_idx),
+            amplitude_witness_by_index=amplitude_witness_by_index,
+            amplitude_witness_required=bool(amplitude_witness_required),
+        )
+        amplitude_witness_ok = bool(witness.get("ok", False))
+        amplitude_witness_gate_ok = True
+        amplitude_witness_reason = str(
+            witness.get("reason", "accepted" if amplitude_witness_ok else "amplitude_witness_failed")
+        )
+            accepted = (
+                bool(safe_regression_ok)
+                and bool(retained_ok)
+                and bool(amplitude_witness_gate_ok)
+                and bool(curvature_guard_ok)
+            )
+            reason = _prune_reason(
+                safe_regression_ok=bool(safe_regression_ok),
+                retained_ok=bool(retained_ok),
+                amplitude_witness_ok=bool(amplitude_witness_gate_ok),
+                amplitude_witness_reason=amplitude_witness_reason,
+                curvature_guard_ok=bool(curvature_guard_ok),
+                curvature_guard_reason=str(curvature_guard.get("curvature_guard_reason", "")),
+            )
+                amplitude_witness_ok=bool(amplitude_witness_ok),
+                amplitude_witness_reason=str(amplitude_witness_reason),
+                amplitude_current_abs=(
+                    None
+                    if witness.get("current_abs_theta") is None
+                    else float(witness.get("current_abs_theta"))
+                ),
+                amplitude_peak_abs=(
+                    None
+                    if witness.get("peak_abs_theta") is None
+                    else float(witness.get("peak_abs_theta"))
+                ),
+                amplitude_drop_abs=(
+                    None
+                    if witness.get("drop_abs_theta") is None
+                    else float(witness.get("drop_abs_theta"))
+                ),
+                amplitude_collapse_ratio=(
+                    None
+                    if witness.get("collapse_ratio_observed") is None
+                    else float(witness.get("collapse_ratio_observed"))
+                ),
+                amplitude_observation_count=(
+                    None
+                    if witness.get("observation_count") is None
+                    else int(witness.get("observation_count"))
+                ),
+                    "amplitude_witness_required": False,
+                    "amplitude_witness_config_required": bool(amplitude_witness_required),
+                    "amplitude_witness_ok": bool(amplitude_witness_ok),
+def apply_pruning(
+    *,
+    theta: np.ndarray,
+    labels: list[str],
+    candidate_indices: list[int],
+    eval_with_removal: Callable[..., tuple[float, np.ndarray]],
+    energy_before: float,
+    max_regression: float,
+    retained_reference_energy: float | None = None,
+    admitted_gain: float | None = None,
+    retained_gain_ratio: float = 0.0,
+    amplitude_witness_by_index: Mapping[int, Mapping[str, Any]] | None = None,
+    amplitude_witness_required: bool = False,
+) -> tuple[np.ndarray, list[str], list[PruneDecision], float]:
+    cur_theta = np.asarray(theta, dtype=float).copy()
+    cur_labels = list(labels)
+    decisions: list[PruneDecision] = []
+    cur_energy = float(energy_before)
+    removed_so_far = 0
+
+    for idx0 in candidate_indices:
+        original_idx = int(idx0)
+        idx = int(original_idx) - int(removed_so_far)
+        if idx < 0 or idx >= len(cur_labels):
+            continue
+        try:
+            trial_energy, trial_theta = eval_with_removal(idx, cur_theta, list(cur_labels))
+        except TypeError:
+            trial_energy, trial_theta = eval_with_removal(idx, cur_theta)
+        regression = float(trial_energy - cur_energy)
+        retained_gain = (
+            None
+            if retained_reference_energy is None
+            else float(retained_reference_energy) - float(trial_energy)
+        )
+        retained_gain_threshold = (
+            None
+            if admitted_gain is None
+            else float(retained_gain_ratio) * float(max(0.0, admitted_gain))
+        )
+        safe_regression_ok = bool(regression <= float(max_regression))
+        retained_ok = True
+        if retained_gain is not None and retained_gain_threshold is not None:
+            retained_ok = bool(float(retained_gain) >= float(retained_gain_threshold))
+        witness = _witness_for_candidate(
+            candidate_index=int(original_idx),
+            amplitude_witness_by_index=amplitude_witness_by_index,
+            amplitude_witness_required=bool(amplitude_witness_required),
+        )
+        amplitude_witness_ok = bool(witness.get("ok", False))
+        amplitude_witness_gate_ok = True
+        amplitude_witness_reason = str(witness.get("reason", "accepted" if amplitude_witness_ok else "amplitude_witness_failed"))
+        accepted = (
+            bool(safe_regression_ok)
+            and bool(retained_ok)
+            and bool(amplitude_witness_gate_ok)
+        )
+        reason = _prune_reason(
+            safe_regression_ok=bool(safe_regression_ok),
+            retained_ok=bool(retained_ok),
+            amplitude_witness_ok=bool(amplitude_witness_gate_ok),
+            amplitude_witness_reason=amplitude_witness_reason,
+        )
+        label = str(cur_labels[idx])
+        decisions.append(
+            PruneDecision(
+                index=int(idx),
+                label=label,
+                accepted=bool(accepted),
+                energy_before=float(cur_energy),
+                energy_after=float(trial_energy),
+                regression=float(regression),
+                reason=str(reason),
+                safe_regression_ok=bool(safe_regression_ok),
+                retained_gain_ok=bool(retained_ok),
+                regression_threshold=float(max_regression),
+                retained_gain=(None if retained_gain is None else float(retained_gain)),
+                retained_gain_threshold=(
+                    None if retained_gain_threshold is None else float(retained_gain_threshold)
+                ),
+                amplitude_witness_ok=bool(amplitude_witness_ok),
+                amplitude_witness_reason=str(amplitude_witness_reason),
+                amplitude_current_abs=(
+                    None
+                    if witness.get("current_abs_theta") is None
+                    else float(witness.get("current_abs_theta"))
+                ),
+                amplitude_peak_abs=(
+                    None
+                    if witness.get("peak_abs_theta") is None
+                    else float(witness.get("peak_abs_theta"))
+                ),
+                amplitude_drop_abs=(
+                    None
+                    if witness.get("drop_abs_theta") is None
+                    else float(witness.get("drop_abs_theta"))
+                ),
+                amplitude_collapse_ratio=(
+                    None
+                    if witness.get("collapse_ratio_observed") is None
+                    else float(witness.get("collapse_ratio_observed"))
+                ),
+                amplitude_observation_count=(
+                    None
+                    if witness.get("observation_count") is None
+                    else int(witness.get("observation_count"))
+                ),
+            )
+        )
+        if accepted:
+            cur_theta = np.asarray(trial_theta, dtype=float).copy()
+            del cur_labels[idx]
+            cur_energy = float(trial_energy)
+            removed_so_far += 1
+
+    return cur_theta, cur_labels, decisions, float(cur_energy)
+
+
+def post_prune_refit(
+    *,
+    theta: np.ndarray,
+    refit_fn: Callable[[np.ndarray], tuple[np.ndarray, float]],
+) -> tuple[np.ndarray, float]:
+    return refit_fn(np.asarray(theta, dtype=float))

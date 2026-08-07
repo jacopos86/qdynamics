@@ -1,0 +1,88 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/analyze.json",
+      "sha256": "7f08a744e5576ae96e21120ec48145635f4644767e223ee477d33e55b6dff2e6"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "sha256": "10c6fb37c540efbea5ece2a42e638a38106843710409867fe1644300a71fcda8"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/validation_report.json",
+      "sha256": "94a7f0c174baaab3acf221dc6f1ba821d30f4cc1a957b816d51c54a0440bd0df"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/validation_report.json",
+      "sha256": "12fa4001c13715dc05bd0c0ff7bb806b74e4bb30d82640206bb1bc498b8a477f"
+    }
+  ],
+  "checks": [
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "study_1_execution_state",
+      "observed": "not_run",
+      "status": "pending"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "stationarity_winner_selected",
+      "observed": false,
+      "status": "pending_user_decision"
+    },
+    {
+      "evidence_paths": [
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/validation_report.json",
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/validation_report.json"
+      ],
+      "id": "objective_execution_gates",
+      "observed": "not_run",
+      "status": "pending"
+    },
+    {
+      "id": "agent_selected_winner",
+      "observed": false,
+      "status": "passed"
+    }
+  ],
+  "decision": {
+    "evidence_or_manuscript_replacement": null,
+    "phase_i_resource_weighting_selection": null,
+    "stationarity_winner": null,
+    "user_decision_recorded": false
+  },
+  "outputs": [],
+  "pending_outputs": [
+    {
+      "id": "user_stationarity_decision_receipt",
+      "status": "pending_user_decision"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "daf3f0f5cfe939329fa7e8505e53c3bc71c8b65a28ece4c2410360a3f6a1b6a2",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/bundle_manifest.json"
+    },
+    {
+      "bundle_manifest_canonical_sha256": "6e39a48d1f5c0100d14159f9bda214ef3b1c9ce4caaea7b4e9c555ea95fcfb13",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/bundle_manifest.json"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_user_review_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "user-review",
+  "state": "pending_user_decision",
+  "state_reason": "The final v5 bundles are validated but intentionally not submitted or executed; no objective Study-1 results exist for comparison and no stationarity winner has been selected.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/analyze.json",
+      "receipt_id": "ra_adapt_repair_20260727_analyze_v1",
+      "sha256": "7f08a744e5576ae96e21120ec48145635f4644767e223ee477d33e55b6dff2e6",
+      "stage": "analyze"
+    },
+    "superseded_receipts": [],
+    "successor_stage": null
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

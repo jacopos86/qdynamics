@@ -1,0 +1,169 @@
+{
+  "batch_mode": "combinatorial",
+  "cell_count": 6,
+  "cell_ids_txt": "cell_ids.txt",
+  "cell_records_tsv": "cell_records.tsv",
+  "execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "generated_utc": "2026-07-13T02:43:33.719995+00:00",
+  "manifest_sha256": "c1c36e78f88007eaa55bfda63b7a07ab28385e9dc4f6c75052dc13d0d2f59d9a",
+  "objective_directions": [
+    "minimize",
+    "minimize",
+    "minimize",
+    "minimize"
+  ],
+  "objective_names": [
+    "worst_regime_abs_delta_e",
+    "total_expanded_query_work",
+    "total_graph_count_2q_proxy",
+    "total_graph_depth_proxy"
+  ],
+  "result_root": "results",
+  "run_class": "candidate_fixed_policy_matrix",
+  "schema": "paper_i_hh_route_a_optuna_wave_v1",
+  "scientific_contract": {
+    "beam": {
+      "children_per_parent": 2,
+      "enabled": true,
+      "legacy_lambda_affects_decisions": false,
+      "live_branches": 3
+    },
+    "cutoff_contract": {
+      "strong_holstein": {
+        "n_ph_ref": 7,
+        "n_ph_work": 4
+      },
+      "weak_holstein": {
+        "n_ph_ref": 5,
+        "n_ph_work": 2
+      }
+    },
+    "execution": {
+      "current_checkpoint_every_controller_round": true,
+      "fresh_start": true,
+      "max_controller_rounds": 50,
+      "noise": "off",
+      "qiskit_costing": "post_run_exact_prefix",
+      "query_accounting": [
+        "winning_lineage_S_alg",
+        "discarded_branch_search_work_diagnostic_separate"
+      ],
+      "result_payload_mode": "summary_checkpoint_v1",
+      "state_backend": "compiled"
+    },
+    "num_sites": 2,
+    "optimizer": {
+      "final_full_refit": true,
+      "full_insertion_position_search": true,
+      "full_refit_every": 1,
+      "maxfev": 200,
+      "maxiter": 50,
+      "name": "POWELL",
+      "reoptimization_policy": "full",
+      "seed": 7
+    },
+    "policy": {
+      "batch_mode": "combinatorial",
+      "batch_search_pool_size": 10,
+      "batch_size_cap": 2,
+      "child_phase1_cap": 32,
+      "child_phase2_cap": 25,
+      "lambda_add": 0.0,
+      "macro_phase1_cap": 32,
+      "macro_phase2_cap": 24
+    },
+    "pruning": {
+      "deletion_authority": "remove_refit_energy_safety",
+      "enabled": true,
+      "policy": "recoverability_ladder_v1"
+    },
+    "regimes": [
+      "weak-weak",
+      "intermediate-weak",
+      "strong-weak-u8",
+      "weak-strong",
+      "intermediate-strong",
+      "strong-strong-u8"
+    ],
+    "route": {
+      "allow_repeats": true,
+      "child_identity_normalization": "projective_normalized_pauli_polynomial_v1",
+      "child_identity_policy": "global_pauli_word_v1",
+      "child_padding_policy_by_sector": {
+        "strong_holstein": "exact_projected_grouped_v1",
+        "weak_holstein_nph2": "nph2_exact_projected_grouped_v1"
+      },
+      "child_padding_semantics": "pre_score_exact_projection_then_global_projected_identity_dedup_v1",
+      "child_phase3_enabled": false,
+      "child_symmetry_policy": "hard_guard",
+      "duplicate_cooldown_control": "absent",
+      "funnel_mode": "child_12_joint_response_v2",
+      "macro_phase3_enabled": false,
+      "pauli_word_subset_sizes": [
+        1
+      ],
+      "phase0_enabled": false,
+      "route_id": "route_a",
+      "structural_rollback_control": "absent"
+    },
+    "run_class": "candidate_fixed_policy_matrix",
+    "schema": "paper_i_hh_jr_l10_rollback_free_r50_contract_v1",
+    "scope": "fresh_transferable_jr_l10_policy_all_six_L2_hh_regimes",
+    "selector": {
+      "additivity_policy": "soft_penalty_v1",
+      "batch_mode": "combinatorial_reduced_plane",
+      "batch_search_feasibility_policy": "joint_subset_gate_v1",
+      "batch_search_pool_size": 10,
+      "batch_size_cap": 2,
+      "cost_enabled": true,
+      "cost_weights": {
+        "1q": 0.05,
+        "2q": 0.2,
+        "d": 0.2,
+        "shot": 0.15,
+        "theta": 0.05
+      },
+      "geometry_mode": "full_residual_gram_hessian_v1",
+      "joint_batch_context_mode": "full_ansatz_v1",
+      "joint_linear_solve_policy": "supported_metric_whitened_eigh_v1",
+      "joint_step_warm_start_mode": "exact_applied_joint_step_guarded_v1",
+      "lambda_add": 0.0,
+      "selector_exhaustion_retry_policy": "stop",
+      "trust_region_initial_radius": 0.25,
+      "trust_region_rate_limiter": "none",
+      "trust_region_scientific_radius_max": null,
+      "trust_region_scientific_radius_min": 0.0,
+      "trust_region_update_policy": "displacement_calibrated_unbounded_v2"
+    },
+    "supersedes_removed_cluster": {
+      "batch_name": "paper-i-hh-wave11-l25-adaptive-whitened-r30-20260712-v1",
+      "cluster_id": 8775666,
+      "local_wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/wave_manifest.json"
+    }
+  },
+  "scientific_contract_hash": "d4f06a3724c95499f0cd56983bfcf1f26e6fb1499cb5fa82d84bfa7ba76499e3",
+  "settings_diff": "settings_diff_vs_removed_cluster_8775666.json",
+  "settings_diff_sha256": "09e5430137646149d948e2a33bb20d5df218060ea0e86cc228cab0fea99f72ac",
+  "study_database": null,
+  "study_name": "paper_i_hh_jr_l10_rollback_free_whitened_r50_v1",
+  "study_storage_policy": "no_optuna_fixed_immutable_policy",
+  "trial_count": 1,
+  "trials": [
+    {
+      "cell_count": 6,
+      "policy": {
+        "batch_mode": "combinatorial",
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": 25,
+        "lambda_add": 0.0,
+        "macro_phase1_cap": 32,
+        "macro_phase2_cap": 24
+      },
+      "policy_sha256": "32c309bc869d5394f84b9167ba10a7a3196b420927b0a02041074a422ec463dc",
+      "trial_manifest": "trial_manifests/trial_000000.json",
+      "trial_number": 0
+    }
+  ]
+}

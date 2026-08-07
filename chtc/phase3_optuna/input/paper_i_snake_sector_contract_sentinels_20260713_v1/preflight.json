@@ -1,0 +1,11 @@
+{
+  "batch_id": "paper_i_snake_sector_contract_sentinels_20260713_v1",
+  "blocking_reasons": [],
+  "generated_utc": "2026-07-13T22:15:03.228264+00:00",
+  "ok": true,
+  "record_count": 6,
+  "records_path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_snake_sector_contract_sentinel_records.tsv",
+  "schema": "paper_i_snake_sector_contract_sentinel_preflight_v1",
+  "status": "pass",
+  "submit_path": "chtc/phase3_optuna/submit_paper_i_snake_sector_contract_sentinels_20260713_v1.sub"
+}

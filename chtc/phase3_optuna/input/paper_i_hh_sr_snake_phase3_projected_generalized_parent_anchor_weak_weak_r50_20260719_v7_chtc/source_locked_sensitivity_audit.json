@@ -1,0 +1,52 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": false,
+    "anchor_result_json": null,
+    "metric_abs_diff": null,
+    "non_swept_settings_diff": [],
+    "operator_sequence_match": null,
+    "value": "supported_metric_whitened_eigh_v1"
+  },
+  "fanout_authorized": false,
+  "planned_rows": [
+    {
+      "bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v7_chtc",
+      "changed_fields_vs_source": [],
+      "non_swept_settings_diff": [],
+      "value": "supported_metric_whitened_eigh_v1"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SR-SNAKE Main",
+    "regime_or_case": "weak_weak",
+    "route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+    "route_or_profile_id": "sr_snake_no_prune_symmetric_cost_v1",
+    "source_bundle": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+    "source_cluster": 8887574,
+    "source_command_or_manifest": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/jobs/weak_weak.json",
+    "source_command_or_manifest_sha256": "f1bf2f8f9c67f2800c6e5bdbc18b1319081090b22c17d93664594b3df717f285",
+    "source_json": "raw_outputs/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/weak_weak/json/result.json",
+    "source_proc": 0,
+    "source_sha256": "8f394fe60582581dd6d9173e7c379cc63ce74468e5061c287448a5b8827dedb9",
+    "source_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/main_sr_8887574_completed_p0_1/8887574.0__weak_weak_transfer.tar.gz",
+    "source_transfer_archive_sha256": "4ca20f57067ac4d011a4479b225b8b69540d29d77e4310984e454d21e766a8a4",
+    "source_validation_receipt": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/main_sr_8887574_completed_p0_1/8887574.0__weak_weak_local_validation_receipt.json",
+    "source_validation_receipt_sha256": "8b0fb096b9705af17cf5d6c1142925edca07896e4239a3fcb46d35c467e30f1c",
+    "source_variable_value": "supported_metric_whitened_eigh_v1"
+  },
+  "status": "anchor_pending",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      "supported_metric_whitened_eigh_v1",
+      "supported_metric_projected_generalized_trust_v1"
+    ],
+    "run_class": "candidate",
+    "runner_mode": "direct_source_locked_replay",
+    "unresolved_source_fields": [],
+    "variable": "historical_singleton_coordinate_solve_policy",
+    "wrapper_used": false
+  }
+}

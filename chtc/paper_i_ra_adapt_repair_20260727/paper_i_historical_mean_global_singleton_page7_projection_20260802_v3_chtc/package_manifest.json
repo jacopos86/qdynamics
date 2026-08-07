@@ -1,0 +1,72 @@
+{
+  "classification": "supplemental_diagnostic_projection_not_adopted_evidence",
+  "execution_authorized": true,
+  "jobs": [
+    {
+      "archive_sha256": "251d238d51363262e20a052ca7d5445abf0bb8e83ef1015674320336c881d204",
+      "archive_size_bytes": 2113869425,
+      "execution_id": "historical_mean_global_singleton_v3_nph3_r50__weak_weak__nph3__ra_global_singleton_plateau",
+      "regime_id": "weak_weak",
+      "source_cluster_id": 9400779,
+      "source_proc_id": 0
+    }
+  ],
+  "paper_evidence_adopted": false,
+  "package_id": "paper_i_historical_mean_global_singleton_page7_projection_20260802_v3_chtc",
+  "row_count": 1,
+  "schema": "paper_i_historical_mean_global_singleton_page7_projection_package_v3",
+  "sha256": "1efa78806aeb4b71d7542424989b3ea67e8dd33bd38638fd3f1a614d158d6d3f",
+  "source_bindings": {
+    "append_adapter": {
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_append_singleton_r70_all6_adapter.json",
+      "sha256": "d43ac93e881db1149196d8be0442200e8723982605a1353dbca3e2f7550357cc",
+      "size_bytes": 59093
+    },
+    "archive_validator": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/validate_nph3_v3_attempt_archive.py",
+      "sha256": "8f6f8f0a3b3da6363602f388da94f8b232ca2dfb7ac44a12742041c8b49e1aad",
+      "size_bytes": 52091
+    },
+    "ijson_pure_python_vendor": {
+      "backend": "python",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_historical_mean_global_singleton_page7_projection_20260802_v3_chtc/ijson_pure_python.tar.gz",
+      "sha256": "820030b23d1e2c6a37d1ccc02d44c313c3305396bf30c1fdfecab3273a98733e",
+      "size_bytes": 15498
+    },
+    "projection_builder": {
+      "path": "pipelines/reporting/build_paper_i_historical_mean_global_singleton_ra_projection.py",
+      "sha256": "11e06bbfc648e444417f1d9357002ba741e28dddd879d8aa2e866a22455c2f46",
+      "size_bytes": 2721
+    },
+    "projection_updater": {
+      "path": "pipelines/reporting/add_paper_i_historical_mean_global_singleton_full6_page.py",
+      "sha256": "f3a353fc7a1341ae0b456ea83f1cc4d17b1b0a6009d7d75a89563a6feb38306b",
+      "size_bytes": 142314
+    },
+    "sealed_image": {
+      "path": "chtc/phase3_optuna/image.sif",
+      "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+      "size_bytes": 216371200
+    },
+    "source_archive": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc/source/source_locked.tar.gz",
+      "sha256": "7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01",
+      "size_bytes": 2008121
+    }
+  },
+  "submission_authorized": true,
+  "submission_files": {
+    "execute_projection.sh": {
+      "sha256": "cd7d5e4c9807cbc00a0191cc8b20148fa1cf78daf7b5fedb64966550e1c1eace",
+      "size_bytes": 4347
+    },
+    "queue.tsv": {
+      "sha256": "d2251cb5e6800c3d3dd49a83ecde0317465de4ab895346f08c837f70cfa8f410",
+      "size_bytes": 922
+    },
+    "submit.sub": {
+      "sha256": "c92c327e749cedc3c0516b70fb5dea6ac432877015503610e3cde100202ff5d5",
+      "size_bytes": 4257
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc",
+  "operational_changes": [
+    "isolated output/cache paths",
+    "bundle and batch labels",
+    "source archive hash"
+  ],
+  "parent_bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc",
+  "parent_job_manifest_sha256": "810907882566a78db8386de3b27e6d514406ba600f449c7160e5b2b0d021db94",
+  "regime_slug": "strong_weak_u8",
+  "repair_job_manifest_sha256": "460c1c228050cbc075d94acb67d5b525cd110b0f543070f1524523942f16d69d",
+  "run_class": "candidate_source_locked_continuation_repair",
+  "schema": "source_locked_sensitivity_audit_v1",
+  "scientific_settings_changed": [],
+  "source_repair": {
+    "archive_execution_probe": {
+      "batching_enabled": false,
+      "phase3_batch_summary": null,
+      "phase3_batching_enabled": false,
+      "route_a_joint_selector_active": false,
+      "selection_mode": "simple_v1_terminal_phase1",
+      "status": "pass",
+      "success": true
+    },
+    "changed_files": [
+      "pipelines/static_adapt/adapt_pipeline.py"
+    ],
+    "parent_archive_sha256": "070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a",
+    "patch_sha256": "33fce0f0eb608437b6d329eccd598b9252336d4b13126435b067f54475d00b0b",
+    "repaired_archive_sha256": "e682e79d4c9218794c94822ebce99df427f0840287e5212a45e528931cb2efc5"
+  },
+  "status": "pass"
+}

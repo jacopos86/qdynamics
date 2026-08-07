@@ -1,0 +1,43 @@
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -1448,12 +1448,36 @@
+     *,
+     support: RetainedSupportReceipt,
+ ) -> PhaseIIIStabilizationReceipt:
++    """Project stabilization from the accepted winner, not candidate telemetry.
++
++    The plateau-gated singleton producer materializes its accepted Phase-II
++    winner before the plateau opens and its accepted Phase-III winner after it
++    opens in ``selected_feature_rows``.  The trust update may echo that same
++    stabilization receipt.  Other recursively nested summaries can describe
++    candidates that were scored but not admitted, so they are not evidence for
++    the accepted round.
++    """
++
++    candidates: list[Mapping[str, Any]] = []
++    selected_rows = row.get("selected_feature_rows")
++    if isinstance(selected_rows, (tuple, list)):
++        for selected in selected_rows:
++            if not isinstance(selected, Mapping):
++                continue
++            winner_geometry = selected.get("phase2_joint_geometry_reuse")
++            if isinstance(winner_geometry, Mapping):
++                candidates.append(winner_geometry)
++    trust_update = row.get("route_a_trust_region_update")
++    if isinstance(trust_update, Mapping):
++        accepted_path_echo = trust_update.get(
++            "phase3_stabilization_receipt"
++        )
++        if isinstance(accepted_path_echo, Mapping):
++            candidates.append(accepted_path_echo)
++
+     matches: list[PhaseIIIStabilizationReceipt] = []
+     seen: set[tuple[float, float, float, bool]] = set()
+-    for candidate in _find_mapping(
+-        row,
+-        key="kappa_stabilization_shift",
+-    ):
++    for candidate in candidates:
+         if (
+             str(
+                 candidate.get(

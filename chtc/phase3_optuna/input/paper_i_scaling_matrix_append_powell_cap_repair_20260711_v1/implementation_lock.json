@@ -1,0 +1,95 @@
+{
+  "code_bundle": {
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "6f578afece852cafd09aee164658f3fefc6e30d0eba07f308b1c9e37a35ec7dc"
+  },
+  "critical_bundle_member_count": 7,
+  "entries": [
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/generate_paper_i_scaling_matrix_records.py",
+      "sha256": "597aceb71896b3ab11406387f315c93ead2bb62230d0621fe4ebf5b531e3d59a",
+      "size_bytes": 35339
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prepare_paper_i_scaling_snake_overlay_repair.py",
+      "sha256": "c034e1717bab78dbf8dabd75c20b232e4f61a4d4ebe80b338402945dd915e2c2",
+      "size_bytes": 12676
+    },
+    {
+      "bundle_member_sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/table_i_canonical_cases.py",
+      "sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "size_bytes": 63121
+    },
+    {
+      "bundle_member_sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/static_reference_metrics.py",
+      "sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "size_bytes": 7831
+    },
+    {
+      "bundle_member_sha256": "3f6495f3ca3ceceb9c32ffc768264368489c04853e141ee1b18bc7c1d5eed250",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_benchmark.py",
+      "sha256": "3f6495f3ca3ceceb9c32ffc768264368489c04853e141ee1b18bc7c1d5eed250",
+      "size_bytes": 133084
+    },
+    {
+      "bundle_member_sha256": "48154971a3e36ecbdc2697e65bb1f5e668b2608460361cdf1a522ed1f06cf747",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_adapt_variants.py",
+      "sha256": "48154971a3e36ecbdc2697e65bb1f5e668b2608460361cdf1a522ed1f06cf747",
+      "size_bytes": 352549
+    },
+    {
+      "bundle_member_sha256": "bab0d394e889ad37b9d3eaa173dfb493d68987027fc7bedf70d6349a56104bd0",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/optimization/phase3_policy_optuna.py",
+      "sha256": "bab0d394e889ad37b9d3eaa173dfb493d68987027fc7bedf70d6349a56104bd0",
+      "size_bytes": 629016
+    },
+    {
+      "bundle_member_sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "critical_bundle_member": true,
+      "path": "src/quantum/compiled_ansatz.py",
+      "sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "size_bytes": 31832
+    },
+    {
+      "bundle_member_sha256": "5015b06405fee9e7250d5f68e3c63dd4b0b8b053b835340416ee094d7d137544",
+      "critical_bundle_member": true,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py",
+      "sha256": "5015b06405fee9e7250d5f68e3c63dd4b0b8b053b835340416ee094d7d137544",
+      "size_bytes": 17175
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+      "sha256": "e8b3dfcad653e1ec6276baf3a63aa727229b9d5207fccfd9a34258aefcea5f7c",
+      "size_bytes": 1095
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prewarm_paper_i_scaling_hh_pool_cache.py",
+      "sha256": "280b12caa00350dde4175bdb94dc7fcb693abab316e94d5150be269206f85c03",
+      "size_bytes": 15065
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/preflight_submit.py",
+      "sha256": "f64ed670b54e8271083d85e7601fbb32653afb93208e8ebc976dcd6c64750bed",
+      "size_bytes": 197116
+    }
+  ],
+  "schema": "paper_i_scaling_matrix_implementation_lock_v1",
+  "status": "pass"
+}

@@ -1,0 +1,48 @@
+{
+  "created_utc": "2026-07-19T20:12:10.009506+00:00",
+  "focused_tests": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "..............                                                           [100%]\n14 passed in 28.87s\n"
+  },
+  "schema": "paper_i_sr_pool_complement_archive_preflight_v1",
+  "six_validate_only_rows": [
+    {
+      "regime_slug": "weak_weak",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_weak.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "regime_slug": "intermediate_weak",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_weak.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "regime_slug": "strong_weak_u8",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_weak_u8.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "regime_slug": "weak_strong",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "regime_slug": "intermediate_strong",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "regime_slug": "strong_strong_u8",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_strong_u8.json\", \"status\": \"pass\"}\n"
+    }
+  ],
+  "status": "pass"
+}

@@ -1,0 +1,232 @@
+{
+  "active_ansatz_depth": 28,
+  "algorithmic_work": {
+    "S_alg": 2696757,
+    "components": {
+      "N_H_outer": 28,
+      "N_H_refit": 16193,
+      "N_grad": 1334990,
+      "N_metric": 1345546
+    }
+  },
+  "classification": "supplemental_live_diagnostic_not_adopted_evidence",
+  "cluster_id": 9401106,
+  "exact_same_cutoff_energy": 0.5205762765682245,
+  "execution_id": "historical_mean_global_singleton_v2_nph7_r50__strong_strong_u8__nph7__ra_global_singleton_plateau__resume_from_d17_to_r50_loaderfix_v2",
+  "implementation_repair": {
+    "after_sha256": "173fcbc219453b4a90d604afdfe117718a34318bc621a11ab178a63304e72032",
+    "before_sha256": "6d3753f22071cae21eb5eb006e634655be0fb4a9ec60054d61dfef2a3625e37f",
+    "path": "pipelines/static_adapt/sr_snake/_resume.py",
+    "repair_id": "accepted_round_current_checkpoint_receipt_loader_fix_v2",
+    "scientific_protocol_changed": false,
+    "scientific_settings_changed": []
+  },
+  "live_controller_round": 28,
+  "observed_utc": "2026-08-03T16:07:06Z",
+  "paper_evidence_adopted": false,
+  "points": [
+    {
+      "delta_e": 8.479423723431776,
+      "energy": 9.0,
+      "round": 0
+    },
+    {
+      "delta_e": 0.3563180978141156,
+      "energy": 0.8768943743823401,
+      "round": 1
+    },
+    {
+      "delta_e": 0.22942372343183792,
+      "energy": 0.7500000000000624,
+      "round": 2
+    },
+    {
+      "delta_e": 0.007287768432497677,
+      "energy": 0.5278640450007221,
+      "round": 3
+    },
+    {
+      "delta_e": 0.006363549665298729,
+      "energy": 0.5269398262335232,
+      "round": 4
+    },
+    {
+      "delta_e": 0.003781569952634012,
+      "energy": 0.5243578465208585,
+      "round": 5
+    },
+    {
+      "delta_e": 0.0028211669853112076,
+      "energy": 0.5233974435535357,
+      "round": 6
+    },
+    {
+      "delta_e": 0.00015515058113835245,
+      "energy": 0.5207314271493628,
+      "round": 7
+    },
+    {
+      "delta_e": 0.00010431904185215224,
+      "energy": 0.5206805956100766,
+      "round": 8
+    },
+    {
+      "delta_e": 5.1499816442479585e-05,
+      "energy": 0.520627776384667,
+      "round": 9
+    },
+    {
+      "delta_e": 3.679370478471e-05,
+      "energy": 0.5206130702730092,
+      "round": 10
+    },
+    {
+      "delta_e": 3.1622274077158785e-05,
+      "energy": 0.5206078988423016,
+      "round": 11
+    },
+    {
+      "delta_e": 2.6704893782314443e-05,
+      "energy": 0.5206029814620068,
+      "round": 12
+    },
+    {
+      "delta_e": 2.590440133964922e-05,
+      "energy": 0.5206021809695641,
+      "round": 13
+    },
+    {
+      "delta_e": 2.5813117163542287e-05,
+      "energy": 0.520602089685388,
+      "round": 14
+    },
+    {
+      "delta_e": 2.3654437288245234e-05,
+      "energy": 0.5205999310055127,
+      "round": 15
+    },
+    {
+      "delta_e": 2.3638872018727497e-05,
+      "energy": 0.5205999154402432,
+      "round": 16
+    },
+    {
+      "delta_e": 2.361024304298187e-05,
+      "energy": 0.5205998868112675,
+      "round": 17
+    },
+    {
+      "delta_e": 2.2972387846320608e-05,
+      "energy": 0.5205992489560708,
+      "round": 18
+    },
+    {
+      "delta_e": 2.295151685050012e-05,
+      "energy": 0.520599228085075,
+      "round": 19
+    },
+    {
+      "delta_e": 2.292195308672973e-05,
+      "energy": 0.5205991985213112,
+      "round": 20
+    },
+    {
+      "delta_e": 2.2921503845640956e-05,
+      "energy": 0.5205991980720701,
+      "round": 21
+    },
+    {
+      "delta_e": 2.5605510467485715e-07,
+      "energy": 0.5205765326233291,
+      "round": 22
+    },
+    {
+      "delta_e": 1.849396404907111e-07,
+      "energy": 0.520576461507865,
+      "round": 23
+    },
+    {
+      "delta_e": 1.5263044761404387e-07,
+      "energy": 0.5205764291986721,
+      "round": 24
+    },
+    {
+      "delta_e": 1.4112126511811596e-07,
+      "energy": 0.5205764176894896,
+      "round": 25
+    },
+    {
+      "delta_e": 1.2290774997758547e-07,
+      "energy": 0.5205763994759744,
+      "round": 26
+    },
+    {
+      "delta_e": 1.2247685976518596e-07,
+      "energy": 0.5205763990450842,
+      "round": 27
+    },
+    {
+      "delta_e": 1.1909791819419979e-07,
+      "energy": 0.5205763956661427,
+      "round": 28
+    }
+  ],
+  "proc_id": 2,
+  "qiskit_costs": {
+    "D2q": null,
+    "Dc": null,
+    "N2q": null,
+    "W1q": null
+  },
+  "qiskit_status": "pending_live_prefix_not_compiled",
+  "regime_id": "strong_strong_u8",
+  "route_contract_sha256": "69af64db5bbaf5b811685b8353b82b748dc13d16306e4c08ddfe5ffde07f301b",
+  "scheduler_state": "running",
+  "schema": "paper_i_historical_mean_global_singleton_page7_live_projection_v1",
+  "scientific_protocol_changed": false,
+  "scientific_protocol_sha256": "f4da815a493ce4d03b41501814ffbf648d69e306fca768f261bc8ed616b32e52",
+  "scientific_settings_changed": [],
+  "sha256": "4b88a6564439380ce76a997f5688abc33cc964bb955149219156d3d55f6c99a3",
+  "snapshot": {
+    "checkpoint": {
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.2__strong_strong_u8__20260803T160706Z.tar.gz#checkpoint.json",
+      "sha256": "f38ac2b8efa43ff689d99bc632bf2276e77e862abf9e85c96e57c282d48bc2db",
+      "size_bytes": 4699722225
+    },
+    "estimator_ledger_checkpoint": {
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.2__strong_strong_u8__20260803T160706Z.tar.gz#checkpoint.estimator_call_ledger_checkpoint.6e17ea4b0fdc6a27.json",
+      "sha256": "6e17ea4b0fdc6a2789d52a3971d189d0a3d41061945cef1d0f9b7fe17e1bb640",
+      "size_bytes": 8837367042
+    },
+    "verified_resume_sidecar": {
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.2__strong_strong_u8__20260803T160706Z.tar.gz#checkpoint.verified_singleton_resume.a868f5bb434e3e6e.json",
+      "sha256": "a868f5bb434e3e6eafe2cf9a47a5bd986fd6a069b78727978c6336eda2eab894",
+      "size_bytes": 4813
+    }
+  },
+  "snapshot_archive": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.2__strong_strong_u8__20260803T160706Z.tar.gz",
+    "sha256": "28d326ed58a8fbfe845de4177227b8c07318f4c77a15c6f6365000562c010123",
+    "size_bytes": 3188735988
+  },
+  "snapshot_validation": {
+    "accepted_trajectory_projected_from_checkpoint": true,
+    "algorithmic_work_closed_against_ledger_checkpoint": true,
+    "archive_file_sha256_verified": true,
+    "archive_member_set_exact": true,
+    "archive_size_verified": true,
+    "checkpoint_file_sha256_verified": true,
+    "checkpoint_triplet_pointer_closed": true,
+    "estimator_ledger_checkpoint_file_sha256_verified": true,
+    "validation_receipt_archive_binding_verified": true,
+    "verified_resume_sidecar_file_sha256_verified": true
+  },
+  "snapshot_validation_receipt": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.2__strong_strong_u8__20260803T160706Z.validation.json",
+    "sha256": "59799719c282ecd9b7a96ebefc916d5abdd29a9117c6435d7b4ac3339212c88d",
+    "size_bytes": 1325
+  },
+  "status": "passed_authenticated_live_partial",
+  "target_horizon": 50,
+  "terminal": false
+}

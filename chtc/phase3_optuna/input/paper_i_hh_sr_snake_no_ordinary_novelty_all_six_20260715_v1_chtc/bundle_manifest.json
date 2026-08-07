@@ -1,0 +1,203 @@
+{
+  "batch_name": "paper-i-hh-sr-no-ordinary-novelty-six-20260715-v1",
+  "bundle_id": "paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc",
+  "created_utc": "2026-07-16T00:42:19.521205+00:00",
+  "execution_image": {
+    "path": "chtc/phase3_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "job_count": 6,
+  "jobs": [
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_weak.json",
+      "job_manifest_sha256": "2801513d62cbf6beec726fe62515dcfd2b1479b6fa1732b9b947efb1dcff3627",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 0.25
+      },
+      "regime_slug": "weak_weak"
+    },
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract",
+        "--u"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_weak.json",
+      "job_manifest_sha256": "b12c5da0a606783bd033391c3a8d417beb5b68a9f1baf4f6b28ee9fe38fd144f",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_weak"
+    },
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract",
+        "--u"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_weak_u8.json",
+      "job_manifest_sha256": "e3dc1b3aad4ebbb32ba3f820c09f4bdfc0bbb9df8e09e1ad4d7c8e2bed681a13",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_weak_u8"
+    },
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_strong.json",
+      "job_manifest_sha256": "a516772ba6044db732f4864d5ce18b33857ded7876f7e31cbb7459894a4b9ee7",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 0.25
+      },
+      "regime_slug": "weak_strong"
+    },
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract",
+        "--u"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_strong.json",
+      "job_manifest_sha256": "a88c95519d877c5a59130521cb170fe6ea2dffa97df625c1c1cdf780ea269991",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_strong"
+    },
+    {
+      "changed_flags": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--sr-controller-ablation-contract",
+        "--u"
+      ],
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_strong_u8.json",
+      "job_manifest_sha256": "5300d68674a1168cd3b40df65f7db281aa311a1eb183ab0b68b9e8e07a488587",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_strong_u8"
+    }
+  ],
+  "local_smoke_validation": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/local_smoke_validation.json",
+    "sha256": "c39fe7e4adcd8d528300e62fb010e39c5136c66668780db5642e685d66a03c04"
+  },
+  "schema": "paper_i_hh_sr_no_ordinary_novelty_six_job_bundle_v1",
+  "settings_diff": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_lock_and_settings_diff.json",
+    "sha256": "5eda9f09e9e927b4d1eeda1591f1dfa1cc75b7935b8751083038399b19e3b95c"
+  },
+  "source_archive": {
+    "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_locked.tar.gz",
+    "archive_sha256": "f0ced05fb7c4ab242ef10323c13ac0e3e3d5be2c15b255c931b73aa8a980cbae",
+    "archive_size_bytes": 3597459,
+    "critical_source_hashes": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "9ac932645e68781a4835f52f68b2ed89f834c4e215b1c114ca58c99014756303",
+      "pipelines/static_adapt/accepted_refit.py": "099c128e1857801e68fc403015bd3eab35398ccfd405e12382bd3015829affd4",
+      "pipelines/static_adapt/adapt_pipeline.py": "9ebea2885ea77c954c249f135e43c6bdc0d1ee486566514388a083d99a317e95",
+      "pipelines/static_adapt/cli_config.py": "b7337127cf2c450a1d8311794ecb991a5d2698466134f6ed41b5452e2b26441f",
+      "pipelines/static_adapt/joint_linear_solve.py": "13c74cda3dabaf6a6c3eee06cf5a9c44b57ca1799a4f45fc33ea2ac1bad446b5",
+      "pipelines/static_adapt/sr_snake_escape_controller.py": "5743b2dc4f1a8a7c14ff0c20aea4a2065a18f86a9d420f6c4ad1f559081f6e4c",
+      "pipelines/static_adapt/sr_snake_route_profile.py": "8d6d8e72d8a471fb57f927b2acf04ae23630ff01377fec88ce284f244926cf12"
+    },
+    "file_count": 901,
+    "schema": "paper_i_hh_sr_source_archive_inventory_v1"
+  },
+  "source_records": {
+    "anchor_command": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_command.json",
+      "sha256": "7823df8a3cb4c900a0d9a21366c18e354cd982804bdc8ad52199541ec20bd800"
+    },
+    "anchor_settings_diff": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_settings_diff.json",
+      "sha256": "de0f9cd5fefc88ea27557480b84eeb9d5bc4186e36792e0e5f18a0b4a117501f"
+    },
+    "source_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/source_manifest.json",
+      "sha256": "7e0b8d4b72bcabb5de842ae89afd8d34ce861ebf0e2b9d16fe12f883c73aa416"
+    }
+  },
+  "submission_artifact_hashes": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/submission_artifact_hashes.json"
+  },
+  "submission_status": "staged_not_submitted"
+}

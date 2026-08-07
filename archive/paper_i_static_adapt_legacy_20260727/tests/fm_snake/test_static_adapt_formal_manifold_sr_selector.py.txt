@@ -1,0 +1,427 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+from pipelines.contracts.static_provenance import HH_FULL_META_CLASSIFIER_VERSION
+from pipelines.static_adapt.formal_manifold_route_profile import (
+    FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1,
+    FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1,
+)
+from pipelines.static_adapt.sr_snake_escape_controller import (
+    SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1,
+    SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1,
+    SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
+)
+from src.quantum.hubbard_latex_python_pairs import (
+    build_hubbard_holstein_hamiltonian,
+)
+
+
+def test_fm_sr_exact_growth_zeros_a_nonzero_selector_proposal() -> None:
+    assert adapt_pipeline._resolve_admitted_growth_init_theta(
+        0.375,
+        exact_zero_growth_required=True,
+    ) == 0.0
+    assert adapt_pipeline._resolve_admitted_growth_init_theta(
+        0.375,
+        exact_zero_growth_required=False,
+    ) == pytest.approx(0.375)
+
+
+def test_source_locked_finite_angle_plan_requires_query_closed_zero_growth_bridge() -> None:
+    marker = {
+        "formal_manifold_finite_angle_fallback_bridge": {
+            "schema": "formal_manifold_query_closed_finite_angle_bridge_v1",
+            "selector_proposed_init_theta": 0.1,
+            "recompute_supported_geometry": True,
+            "exact_zero_growth": True,
+        }
+    }
+    adapt_pipeline._assert_historical_singleton_coordinate_plan_admissible(
+        marker,
+        whitening_active=True,
+        coordinate_solve_policy="supported_metric_whitened_eigh_v1",
+        allow_query_closed_finite_angle_bridge=True,
+    )
+
+    malformed = {
+        "formal_manifold_finite_angle_fallback_bridge": {
+            **marker["formal_manifold_finite_angle_fallback_bridge"],
+            "exact_zero_growth": False,
+        }
+    }
+    with pytest.raises(RuntimeError, match="malformed query-closed"):
+        adapt_pipeline._assert_historical_singleton_coordinate_plan_admissible(
+            malformed,
+            whitening_active=True,
+            coordinate_solve_policy="supported_metric_whitened_eigh_v1",
+            allow_query_closed_finite_angle_bridge=True,
+        )
+
+
+def _write_small_full_meta_filter(tmp_path: Path) -> Path:
+    path = tmp_path / "fm_sr_small_full_meta.json"
+    path.write_text(
+        json.dumps(
+            {
+                "keep_classes": ["uccsd_sing"],
+                "classifier_version": HH_FULL_META_CLASSIFIER_VERSION,
+                "source_pool": "full_meta",
+                "source_problem": "hh",
+                "source_num_sites": 2,
+                "source_n_ph_max": 2,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+@pytest.mark.parametrize(
+    ("beam_width", "max_depth", "force_live_prune"),
+    ((1, 1, False), (2, 1, False), (2, 2, False), (2, 3, True)),
+)
+def test_fm_sr_profile_uses_singleton_selector_and_keyed_growth_geometry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    beam_width: int,
+    max_depth: int,
+    force_live_prune: bool,
+) -> None:
+    """The opt-in profile keeps FM state but delegates admission to true SR."""
+
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
+
+    def _forbidden_selector(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("FM+SR invoked JR or formal combinatorial selection")
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "run_route_a_child_funnel",
+        "select_route_a_schur_proposals",
+        "select_combinatorial_query_closed_batch",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    h_poly = build_hubbard_holstein_hamiltonian(
+        dims=2,
+        J=1.0,
+        U=0.5,
+        omega0=1.0,
+        g=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+    current_json = tmp_path / f"fm_sr_beam{beam_width}_current.json"
+    prune_kwargs = (
+        {
+            "phase1_prune_enabled": True,
+            "phase1_prune_mode": "live",
+            "phase1_prune_checkpoint_period": 1,
+            "phase1_prune_maturity_threshold": 0.0,
+            "phase1_prune_snr_threshold": 1.0e12,
+            "phase1_prune_fraction": 1.0,
+            "phase1_prune_min_candidates": 1,
+            "phase1_prune_max_candidates": 2,
+            "phase1_prune_max_regression": 1.0e6,
+            "phase1_prune_retained_gain_ratio": 0.0,
+            "phase1_prune_protect_steps": 0,
+            "phase1_prune_stale_age": 0,
+            "phase1_prune_stagnation_threshold": 0.0,
+            "phase1_prune_small_theta_abs": 10.0,
+            "phase1_prune_small_theta_relative": 0.0,
+        }
+        if force_live_prune
+        else {}
+    )
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hh",
+        adapt_pool="full_meta",
+        adapt_pool_class_filter_json=_write_small_full_meta_filter(tmp_path),
+        t=1.0,
+        u=0.5,
+        dv=0.0,
+        boundary="open",
+        omega0=1.0,
+        g_ep=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        max_depth=int(max_depth),
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=2,
+        seed=7,
+        adapt_inner_optimizer="POWELL",
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_reopt_policy="full",
+        adapt_final_full_refit=False,
+        adapt_beam_live_branches=int(beam_width),
+        adapt_beam_children_per_parent=1,
+        formal_manifold_route_profile=(
+            FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1
+        ),
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        **prune_kwargs,
+    )
+
+    assert payload["success"] is True
+    assert payload["route_family"] == "formal_manifold_snake"
+    assert payload["candidate_selector_family"] == "singleton_response_snake"
+    assert payload["candidate_selector_profile"] == "sr_singleton_controller_v1"
+    composition = payload["formal_manifold_route_composition"]
+    assert composition["phase2_enable_batching"] is False
+    assert composition["phase3_enable_batching"] is False
+    assert composition["structural_rollback_enabled"] is False
+    assert composition["prune_policy"] == "recoverability_ladder_v1"
+
+    identity = payload["static_route_identity"]
+    assert identity["route_family"] == "formal_manifold_snake"
+    assert identity["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1
+    )
+    assert identity["candidate_selector_family"] == "singleton_response_snake"
+    assert identity["powell_coordinate_chart_policy"] == (
+        SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
+    )
+    assert identity["coordinate_solve_scope"] == (
+        SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1
+    )
+    assert identity["phase2_whitening_active"] is True
+    assert identity["phase3_whitening_active"] is True
+
+    closure = payload["formal_manifold_query_closure"]
+    assert closure["candidate_selector_family"] == "singleton_response_snake"
+    assert closure["formal_combinatorial_selector_invoked"] is False
+    closure_checkpoint = payload[
+        "formal_manifold_query_closure_checkpoint"
+    ]
+    assert closure_checkpoint["current_round_finalized"] is True
+    assert closure["singleton_response_selector_invoked"] is True
+    assert closure["joint_response_selector_invoked"] is False
+
+    step = payload["history"][0]["formal_manifold_warm_start"]
+    receipt = step["query_closure_growth_receipt"]
+    assert len(receipt["candidate_keys"]) == 1
+    assert len(receipt["insertion_positions"]) == 1
+    assert receipt["zero_new_coordinates"] is True
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    settings = checkpoint["settings"]
+    assert settings["route_family"] == "formal_manifold_snake"
+    assert settings["candidate_selector_family"] == "singleton_response_snake"
+    assert settings["formal_manifold_route_profile"] == (
+        FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1
+    )
+    assert settings["phase2_novelty_multiplier_policy"] == (
+        "inactive_ordinary_route_v1"
+    )
+    assert settings["phase3_novelty_multiplier_policy"] == (
+        "inactive_ordinary_route_v1"
+    )
+    formal_config = settings["adapt_formal_manifold_config"]
+    assert formal_config["metric_mode"] == "sparse_anchor_qbroyd_recycled_v1"
+    assert formal_config["transport_policy"] == (
+        "predicted_transported_frame_gauge_v1"
+    )
+    assert formal_config["post_anchor_exact_gram_budget"] == 4
+    assert formal_config["qbroyd_epsilon0"] == pytest.approx(0.15)
+    assert formal_config["line_search_max_steps"] == 15
+    if int(beam_width) > 1:
+        runtime_checkpoint = checkpoint["adapt_vqe"][
+            "formal_manifold_runtime_checkpoint"
+        ]
+        assert runtime_checkpoint["rollback_scope"] == "pending_proposal_only"
+        assert runtime_checkpoint["structural_rollback_supported"] is False
+        assert runtime_checkpoint["branch_id"].startswith("beam_branch:")
+    if int(max_depth) >= 2 and not force_live_prune:
+        first_outer_anchor = payload["history"][0][
+            "formal_manifold_warm_start"
+        ]["outer_exact_anchor"]
+        assert first_outer_anchor["status"] == "available"
+        second_step = payload["history"][1]["formal_manifold_warm_start"]
+        assert second_step["initial_evaluation"][
+            "precharged_energy_primitive_id"
+        ] == first_outer_anchor["energy_primitive_id"]
+        winning_ledger = closure_checkpoint["winning_branch_ledger"]
+        assert set(
+            winning_ledger["ids_by_phase"][
+                "outer_anchor_geometry_reuse"
+            ]
+        ) == set(first_outer_anchor["geometry_source_primitive_ids"])
+        assert winning_ledger["ids_by_phase"][
+            "outer_anchor_energy_reuse"
+        ] == [first_outer_anchor["energy_primitive_id"]]
+    if force_live_prune:
+        prune_rows = [
+            row["post_admission_prune"]
+            for row in payload["history"]
+            if int(row["post_admission_prune"].get("accepted_count", 0)) > 0
+        ]
+        assert prune_rows
+        assert all(
+            row["formal_manifold_post_prune_reanchor"]["state_action"]
+            == "reset_then_exact_reanchor_committed"
+            for row in prune_rows
+        )
+        assert checkpoint["adapt_vqe"]["formal_manifold_runtime_checkpoint"][
+            "warm_state"
+        ] is not None
+
+
+def test_source_locked_sr_profile_keeps_selector_window_but_fm_optimizes_full_manifold(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
+
+    def _forbidden_selector(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("source-locked FM+SR invoked JR/combinatorial selection")
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "run_route_a_child_funnel",
+        "select_route_a_schur_proposals",
+        "select_combinatorial_query_closed_batch",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    h_poly = build_hubbard_holstein_hamiltonian(
+        dims=2,
+        J=1.0,
+        U=0.5,
+        omega0=1.0,
+        g=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+    current_json = tmp_path / "source_locked_current.json"
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hh",
+        adapt_pool="full_meta",
+        adapt_pool_class_filter_json=_write_small_full_meta_filter(tmp_path),
+        t=1.0,
+        u=0.5,
+        dv=0.0,
+        boundary="open",
+        omega0=1.0,
+        g_ep=0.2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=2,
+        seed=7,
+        adapt_inner_optimizer="POWELL",
+        allow_repeats=True,
+        finite_angle_fallback=True,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_reopt_policy="windowed",
+        adapt_window_size=3,
+        adapt_window_topk=0,
+        adapt_full_refit_every=8,
+        adapt_final_full_refit=True,
+        adapt_final_refit_maxiter=200,
+        phase3_geometry_window_size=0,
+        static_route_id="route_a",
+        static_meta_feature_profile="paper_i_production_v1",
+        static_lane_route="physical_operator_type",
+        physical_lane_shortlist_aggressiveness=3,
+        phase1_shortlist_size=24,
+        phase1_probe_max_positions=6,
+        phase2_shortlist_size=12,
+        phase2_shortlist_fraction=0.25,
+        phase1_prune_enabled=True,
+        phase1_prune_mode="both",
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_lambda=0.005,
+        formal_manifold_route_profile=(
+            FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+        ),
+        adapt_formal_manifold_config={
+            "qbroyd_epsilon0": 0.0,
+            "line_search_max_steps": 15,
+        },
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+    )
+
+    assert payload["success"] is True
+    identity = payload["static_route_identity"]
+    assert identity["route_profile"] == (
+        FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+    )
+    assert identity["candidate_selector_profile"] == (
+        "supported_whitened_adaptive_trust_v1"
+    )
+    assert identity["coordinate_solve_scope"] == (
+        SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1
+    )
+    assert identity["phase2_whitening_active"] is False
+    assert identity["phase3_whitening_active"] is True
+    assert identity["phase2_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert identity["phase3_gram_novelty_policy"] == "ordinary_multiplier_v1"
+
+    closure = payload["formal_manifold_query_closure"]
+    assert closure["candidate_scoring_policy"] == (
+        "singleton_response_snake_supported_whitened_adaptive_trust_v1"
+    )
+    assert closure["joint_response_selector_invoked"] is False
+    assert closure["formal_combinatorial_selector_invoked"] is False
+
+    step = payload["history"][0]["formal_manifold_warm_start"]
+    assert step["selector_reopt_policy"] == "windowed"
+    assert step["accepted_reoptimizer_scope"] == (
+        "full_supported_manifold_v1"
+    )
+    assert step["accepted_reoptimizer_coordinate_count"] == len(
+        payload["history"][0]["selected_ops"]
+    )
+    assert step["query_closure_growth_receipt"]["zero_new_coordinates"] is True
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    settings = checkpoint["settings"]
+    assert settings["formal_manifold_route_profile"] == (
+        FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+    )
+    assert settings["phase2_novelty_multiplier_policy"] == (
+        "legacy_ablation_mode_v1"
+    )
+    assert settings["phase3_novelty_multiplier_policy"] == (
+        "legacy_ablation_mode_v1"
+    )
+    assert settings["phase2_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert settings["phase3_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    config = settings["adapt_formal_manifold_config"]
+    assert config["qbroyd_epsilon0"] == 0.0
+    assert config["line_search_max_steps"] == 15

@@ -1,0 +1,330 @@
+\documentclass[9pt,letterpaper,twocolumn]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.62in,columnsep=0.27in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{array,booktabs}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+
+% The user-local tools/array package is newer than the available LaTeX kernel.
+\makeatletter
+\def\vcenter@text{\vbox}
+\makeatother
+
+\definecolor{navy}{HTML}{17365D}
+\definecolor{green}{HTML}{2F6B4F}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize Holstein-dimer stability addendum}
+\fancyhead[R]{\footnotesize New print supplement}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt plus 0.4pt}
+\renewcommand{\arraystretch}{1.07}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\I}{\mathbb I}
+\newcommand{\ii}{\mathrm i}
+\newcommand{\segmenthead}[1]{%
+  \Needspace{4\baselineskip}%
+  \par\smallskip{\color{navy}\large\bfseries #1}\par
+  \vspace{-2pt}{\color{navy}\rule{\columnwidth}{0.7pt}}\par\smallskip
+}
+\newcommand{\conceptbreak}{%
+  \par\smallskip\noindent
+  {\color{black!30}\rule{\columnwidth}{0.35pt}}%
+  \par\smallskip
+}
+
+\begin{document}
+\raggedbottom
+\setcounter{page}{24}
+
+\twocolumn[
+\begin{center}
+  {\color{navy}\Large\bfseries New Print Supplement}\par\vspace{2pt}
+  {\large Minimum-Norm Solver and Offline Closure Diagnostic}\par\vspace{2pt}
+  {\small Continuation after the previously printed page 23, 2 August 2026}
+\end{center}
+\vspace{2pt}\hrule\vspace{5pt}
+]
+
+\segmenthead{Supplement to E. How Eq. (X23) was solved}
+
+At one right-hand-side evaluation, the printed correction problem chooses
+\(w\in\R^{31}\).  Its three linear equalities are energy neutrality and the
+real and imaginary parts of the fixed-number correlation-trace condition.
+Collect them as
+{\footnotesize
+\[
+Lw=d,
+\qquad
+L=
+\begin{pmatrix}
+\nabla_xE_{\rm int}(x)^{\mathsf T}\\
+e_{17}^{\mathsf T}\\
+e_{18}^{\mathsf T}
+\end{pmatrix},
+\qquad
+d=
+\begin{pmatrix}
+0\\
+-\dot x_{0,17}-\beta x_{17}\\
+-\dot x_{0,18}-\beta x_{18}
+\end{pmatrix}.
+\tag{X26e}
+\]
+}
+Here \(e_j\) is the \(j\)-th standard coordinate vector.  A singular-value
+decomposition gives the minimum-Euclidean-norm particular solution
+\(w_{\rm p}=L^+d\) and an orthonormal basis
+\(Z\in\R^{31\times(31-r)}\) for the null space of \(L\):
+\[
+Lw_{\rm p}=d,
+\quad LZ=0,
+\quad Z^{\mathsf T}Z=I,
+\quad Z^{\mathsf T}w_{\rm p}=0.
+\tag{X26f}
+\]
+Every equality-feasible correction is therefore
+\[
+\begin{aligned}
+w&=w_{\rm p}+Zy,
+&y&\in\R^{31-r},\\
+\frac12\lVert w\rVert_2^2
+&=\frac12\lVert w_{\rm p}\rVert_2^2
++\frac12\lVert y\rVert_2^2.
+\end{aligned}
+\tag{X26g}
+\]
+The equalities fix \(w_{\rm p}\).  The remaining minimization is the Euclidean
+projection of \(y=0\) onto the semidefinite-feasible set.
+
+\conceptbreak
+\textbf{One negative eigenvector produces one linear cut.}
+Let \(\ell\in\{\rho^-,\rho^+,\mathcal G\}\) select the electronic lower
+barrier, electronic upper barrier, or joint Gram barrier.  After equality
+elimination, its corrected barrier matrix is the affine map
+\[
+B_\ell(y)=M_{0,\ell}+\Delta M_\ell(w_{\rm p}+Zy).
+\tag{X26h}
+\]
+At the current reduced point \(y^{(k)}\), diagonalization exposes a normalized
+failing direction \(v\):
+\[
+B_\ell(y^{(k)})v=\lambda v,
+\qquad v^\dagger v=1,
+\qquad \lambda<0.
+\tag{X26i}
+\]
+The eigenvector \(v\) identifies the failing matrix direction, and
+\(\lambda\) measures its differential-barrier violation.  The response of
+that direction to the \(j\)-th correction coordinate is
+\[
+[a_\ell(v)]_j=v^\dagger\Delta M_\ell(e_j)v,
+\qquad n=Z^{\mathsf T}a_\ell(v).
+\tag{X26j}
+\]
+Because the lift is linear, the exposed quadratic form is exactly affine:
+\[
+\begin{aligned}
+v^\dagger B_\ell(y)v
+&=\lambda+n^{\mathsf T}(y-y^{(k)}),\\
+v^\dagger B_\ell(y)v\geq0
+&\Longleftrightarrow
+n^{\mathsf T}y\geq n^{\mathsf T}y^{(k)}-\lambda.
+\end{aligned}
+\tag{X26k}
+\]
+Thus one negative eigenvector supplies one half-space containing every
+correction that is feasible in that matrix direction.  The vector \(n\) is
+normal to its boundary hyperplane.
+
+For a single cut \(a^{\mathsf T}w+\lambda\geq0\), the minimum-norm solution
+follows directly:
+{\footnotesize
+\[
+\begin{aligned}
+&\underset{w}{\operatorname{minimize}}\ \tfrac12w^{\mathsf T}w
+\quad\text{subject to}\quad a^{\mathsf T}w+\lambda\geq0,\\
+&\mathcal L(w,\mu)=\tfrac12w^{\mathsf T}w
+-\mu(a^{\mathsf T}w+\lambda),\\
+&\nabla_w\mathcal L=w-\mu a=0,
+\qquad
+\mu=-\lambda/\lVert a\rVert_2^2,\\
+&\boxed{w^\star=-\lambda a/\lVert a\rVert_2^2.}
+\end{aligned}
+\tag{X26d}
+\]
+}
+This is the Euclidean projection of the origin onto the exposed boundary.
+
+\conceptbreak
+\textbf{Accumulated cuts give the implemented quadratic program.}
+After \(p\) failing directions have been exposed, the reduced problem is
+\[
+\boxed{
+\begin{aligned}
+\underset{y\in\R^{31-r}}{\operatorname{minimize}}\quad
+&\tfrac12y^{\mathsf T}y\\
+\text{subject to}\quad
+&n_i^{\mathsf T}y\geq c_i,
+\qquad i=1,\ldots,p.
+\end{aligned}}
+\tag{X26l}
+\]
+SciPy's Sequential Least Squares Programming optimizer, SLSQP, projects the
+reduced origin onto the intersection of these accumulated half-spaces.  The
+full correction and matrices are then reconstructed and diagonalized again:
+\[
+y^{(k)}
+\longrightarrow B_\ell(y^{(k)})
+\longrightarrow(\lambda,v)
+\longrightarrow(n^{\mathsf T}y\geq c)
+\longrightarrow y^{(k+1)}.
+\tag{X26m}
+\]
+Previously generated cuts remain active.  Iteration stops when all three
+complete barrier matrices satisfy the cone tolerance.  Geometrically, the
+positive-semidefinite feasible set is the intersection of the half-spaces
+generated by every normalized matrix direction; the accumulated finite set is
+a cutting-plane approximation to that spectrahedron.
+
+Near an eigenvalue degeneracy, the exposed lowest eigenvector can exchange
+with another direction.  The fallback asks SLSQP to impose every eigenvalue
+constraint directly:
+\[
+\begin{aligned}
+\underset{y\in\R^{31-r}}{\operatorname{minimize}}\quad
+&\tfrac12y^{\mathsf T}y\\
+\text{subject to}\quad
+&\lambda_m(B_\ell(y))\geq0
+\quad\text{for every }\ell,m,
+\end{aligned}
+\tag{X26n}
+\]
+with the simple-eigenvalue derivative
+\[
+\frac{\partial\lambda_m(B_\ell(y))}{\partial y_j}
+=v_m^\dagger\frac{\partial B_\ell(y)}{\partial y_j}v_m.
+\tag{X26o}
+\]
+At the exact cutoff-16 initial state, the direct and cutting-plane solves
+agreed in correction norm to relative tolerance \(2\times10^{-7}\).  Both
+minimize the Euclidean norm of the independent 31-coordinate correction.
+Minimizing the Frobenius norm of all displayed lifted matrix entries requires
+the weighted metric derived later in Eq. (X48).
+
+\segmenthead{Offline reconstruction of the missing correlation velocity}
+
+The pair
+\[
+C=(C^0,C^1),
+\qquad C^q\in\mathbb C^{2\times2},
+\]
+contains one electron--phonon correlation matrix for each phonon mode.  The
+symbol \(\dot C_{31}\) denotes the derivative assigned to this pair by the
+31-real-coordinate archive closure:
+\[
+x_{\rm ex}(t)
+\xrightarrow{\mathcal E}X_{\rm ex}(t)
+\xrightarrow{F_C}\dot C_{31}(t).
+\tag{X44a}
+\]
+The closure is evaluated on the exact contracted state at each saved time;
+the state used in this audit comes from the independently propagated truncated
+Holstein Hamiltonian.  Printed Eq. (D14d) gives
+\[
+\dot C_{31}^{,q}
+=-\ii\bigl(h(t)C^q-C^qh(t)+\omega_qC^q\bigr)
++\sum_{a=0}^{4}S_a^q.
+\tag{X44b}
+\]
+
+The exact operator derivative contains three additional physical sources.
+With \(O_{ij}=c_{j\uparrow}^\dagger c_{i\uparrow}\),
+\(n_{r\uparrow}=c_{r\uparrow}^\dagger c_{r\uparrow}\), and
+\(\delta X_r=\delta b_r+\delta b_r^\dagger\), define
+{\footnotesize
+\[
+\begin{aligned}
+Q^{qr}_{ij}
+&=\left\langle[O_{ij},n_{r\uparrow}]\delta X_r\delta b_q\right\rangle,\\
+Q^{qr}_{ij,0}
+&=\left\langle[O_{ij},n_{r\uparrow}]\right\rangle
+  \left\langle\delta X_r\delta b_q\right\rangle,\\
+K^{qr}_{ij}&=Q^{qr}_{ij}-Q^{qr}_{ij,0},\\
+P^q_{ij}&=\delta_{iq}\rho_{qj}-\rho_{ij}\rho_{qq},\\
+D^q_{ij}&=\left\langle O_{ij}n_{q\downarrow}\right\rangle
+-\rho_{ij}\left\langle n_{q\downarrow}\right\rangle.
+\end{aligned}
+\tag{X44c}
+\]
+}
+Their velocity additions are
+{\footnotesize
+\[
+\begin{aligned}
+\Delta\dot C^q_{K,ij}
+&=-\ii g\sum_rK^{qr}_{ij},\\
+\Delta\dot C^q_{P,ij}
+&=-\ii gP^q_{ij}
+-\left[\left(\sum_{a=0}^{4}S_a^q\right)_{ij}
++\ii g\sum_rQ^{qr}_{ij,0}\right],\\
+\Delta\dot C^q_{D,ij}
+&=-\ii gD^q_{ij}.
+\end{aligned}
+\tag{X44d}
+\]
+}
+The \(P\) line is a replacement: it subtracts the effective same-spin source
+already contained in the archive factorization and supplies the exact
+fixed-number Pauli covariance.
+
+At every exact-trajectory sample, the audit formed
+\[
+\begin{aligned}
+&\dot C_{31},\\
+&\dot C_{31}+\Delta\dot C_K,\\
+&\dot C_{31}+\Delta\dot C_K+\Delta\dot C_P,\\
+&\dot C_{31}+\Delta\dot C_K+\Delta\dot C_P+\Delta\dot C_D.
+\end{aligned}
+\]
+and compared each expression with \(\dot C_{\rm ex}\).  Over
+\(0\leq t\leq4\), the residual-subtracted 14-real-coordinate errors were
+\[
+\begin{array}{@{}lrr@{}}
+\toprule
+\text{supplied sources}&\operatorname{RMS}\lVert e\rVert_2
+&\max_t\lVert e\rVert_2\\
+\midrule
+\varnothing&0.166690&0.274310\\
+K&0.089345&0.137864\\
+K+P&0.026160&0.038268\\
+K+P+D&2.53\times10^{-5}&3.47\times10^{-5}\\
+\bottomrule
+\end{array}
+\tag{X44e}
+\]
+The remaining scale matches the finite-cutoff commutator remainder
+\[
+R_{\rm cut}
+=\dot C_{\rm ex}-\dot C_{31}
+-\Delta\dot C_K-\Delta\dot C_P-\Delta\dot C_D.
+\tag{X44f}
+\]
+
+This sequence was an offline local-derivative diagnostic.  The exact
+trajectory supplied \(K\), \(P\), and \(D\) only for attribution.  These
+terms were never supplied to RK4 or to the minimum-norm controller \(w\).
+The controller preserves representability; the offline audit identifies the
+missing dynamics that an enlarged autonomous closure must reproduce.
+
+\end{document}

@@ -1,0 +1,86 @@
+{
+  "archive_validate_evidence": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc/source_lock/v6_archive_validate_evidence.json",
+  "archive_validate_evidence_sha256": "1a1293ba4aa201456f4ea41e3ae1bfbf96e9cfa4395741ec94afc8618efd3f15",
+  "batch_name": "paper-i-hh-sr-appendix-phase3-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260720-v17",
+  "batch_selector_workspace_receipt_repair": {
+    "classification": "non_scientific_selected_proposal_workspace_telemetry_preservation_v1",
+    "derived_file_sha256": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "3684ae46dfd07cc5f0fdfc8809e29dc47bf1709da62754c88acf5cc3500b5bf8"
+    },
+    "failure_mode": "The non-beam batch selector wrappers returned the selected proposal's partial summary instead of the complete selector summary, dropping the already-computed geometry_workspace trust receipt.",
+    "model_inputs_or_selection_changed": false,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc/batch_selector_workspace_receipt_overlay.patch",
+    "overlay_sha256": "1da782d0d14355f22de3152961ce7f1d12f602920464fec916362f4643785bdf",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "predecessor_cluster": 8887596,
+    "predecessor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1",
+    "repair_scope": [
+      "pipelines/scaffold/hh_continuation_scoring.py::greedy_reduced_plane_batch_select",
+      "pipelines/scaffold/hh_continuation_scoring.py::combinatorial_reduced_plane_batch_select"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "selected_records_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+    "successor_source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "telemetry_preserved": [
+      "geometry_workspace",
+      "proposal_count",
+      "selection-level response receipts"
+    ]
+  },
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+  "checks": {
+    "batch_selector_workspace_receipt_repair_present": true,
+    "explicit_disabled_argv_all_rows": true,
+    "only_contract_diff_is_hysteresis_false": true,
+    "runtime_route_validation_in_archive": true,
+    "serialized_zero_extent_matrix_receipt_repair_present": true,
+    "six_archive_only_validate_rows_pass": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "submission_not_performed": true,
+    "v4_predecessor_archive_unchanged": true,
+    "v5_predecessor_archive_unchanged": true
+  },
+  "empty_gram_receipt_repair": {
+    "classification": "non_scientific_serialized_zero_extent_matrix_shape_restoration_v1",
+    "derived_file_sha256": {
+      "pipelines/static_adapt/adapt_pipeline.py": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+      "pipelines/static_adapt/selector_query_closure.py": "bcdd57c621f0b9688ae97537e63dcfa804371115e871a2b57543668fabd73b34"
+    },
+    "failure_mode": "JSON ndarray.tolist() collapses zero-row matrices such as (0,0) and (0,b) to [] with inferred reload shape (0,)",
+    "malformed_nonempty_or_nonfinite_payloads_fail_closed": true,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc/empty_gram_receipt_overlay.patch",
+    "overlay_sha256": "fcbba1e050c894316eeba7bf4468aabbd7e64be69a6d22ab7ebe72add05cc478",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+    "predecessor_source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+    "repair_scope": [
+      "pipelines/static_adapt/selector_query_closure.py::normalize_serialized_matrix_payload",
+      "pipelines/static_adapt/adapt_pipeline.py::_phase3_batch_appendix_trust_update_inputs._finite_matrix"
+    ],
+    "restoration_authority": "typed receipt expected_shape",
+    "restored_shapes": [
+      "(0,0)",
+      "(0,b)",
+      "(a,0)"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch3_empty_gram_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "successor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+  },
+  "profile_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_hysteresis_disabled_bundle_preflight_v1",
+  "source_archive_manifest_sha256": "55c25b5a8bbb9662f388332889d2abb5ce9ad8adaa1fb1d6fef159a117e278fb",
+  "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+  "status": "pass",
+  "submission_performed": false
+}

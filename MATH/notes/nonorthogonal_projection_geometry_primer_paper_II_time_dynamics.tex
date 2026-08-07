@@ -1,0 +1,323 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.48in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{microtype}
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,citecolor=blue!45!black}
+\setlength{\columnsep}{0.18in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.3em,itemsep=1pt,topsep=2pt}
+\captionsetup{font=footnotesize,skip=3pt}
+\allowdisplaybreaks
+\newcommand{\R}{\mathbb R}
+\newcommand{\range}{\operatorname{range}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\nov}{\mathcal N}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\braket}[2]{\langle #1\mid #2\rangle}
+\definecolor{deepblue}{HTML}{1E5575}
+\definecolor{pale}{HTML}{EFF7FA}
+\definecolor{warm}{HTML}{FFF4E8}
+\definecolor{greenbox}{HTML}{EEF8EF}
+\definecolor{redbox}{HTML}{FFF0F0}
+\tcbset{boxsep=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt,arc=2pt,boxrule=0.55pt}
+\newtcolorbox{intuitionbox}{colback=pale,colframe=deepblue,title=Intuition,fonttitle=\bfseries\small}
+\newtcolorbox{jargonbox}{colback=warm,colframe=orange!60!black,title=Jargon-heavy statement,fonttitle=\bfseries\small}
+\newtcolorbox{cautionbox}{colback=redbox,colframe=red!55!black,title=Caution,fonttitle=\bfseries\small}
+
+\title{Paper-II McLachlan Projection Geometry Primer\\[-1mm]
+\large Same Gram/Schur machinery, written only in time-dynamics notation}
+\author{Local pedagogical note}
+\date{May 17, 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note rewrites the nonorthogonal projection primer entirely in Paper-II McLachlan time-dynamics notation. The recurring object is a horizontal tangent block \(\bar T_k\) and a horizontal Schr\"odinger drift \(\bar b_k\). McLachlan dynamics is the least-squares projection of \(\bar b_k\) onto \(\range(\bar T_k)\):
+\[
+K_k\dot\theta_k=f_k,
+\qquad
+\epsilon_{{\rm expr},k}^2=\|\bar b_k\|^2-f_k^\top K_k^+f_k.
+\]
+Append-block Schur gain is the same residual-projection calculation after splitting old tangent coordinates from candidate append coordinates.
+\end{abstract}
+
+\section{The McLachlan projection question}
+
+\begin{intuitionbox}
+At time step \(k\), the exact Schr\"odinger drift points in some horizontal Hilbert-space direction. The ansatz can move only through its horizontal tangent columns. McLachlan chooses velocity coefficients \(\dot\theta_k\) so the synthesized tangent velocity \(\bar T_k\dot\theta_k\) best matches the drift \(\bar b_k\).
+\end{intuitionbox}
+
+\begin{jargonbox}
+Paper II is least-squares vector-field projection on a time-dependent variational tangent bundle. The horizontal tangent block \(\bar T_k\) is the current nonorthogonal dictionary, the Schr\"odinger drift \(\bar b_k\) is the target vector field, and the McLachlan normal equations convert raw force overlaps into velocity coordinates:
+\[
+K_k\dot\theta_k=f_k.
+\]
+The residual scalar \(\|\bar b_k\|^2-f_k^\top K_k^+f_k\) is the drift norm not represented by the current ansatz tangent space.
+\end{jargonbox}
+
+Let
+\begin{equation}
+\bar T_k=[\bar\tau_{1,k}\ \cdots\ \bar\tau_{N_k,k}],
+\qquad
+\bar b_k=-i(H_k-\langle H_k\rangle_{\psi_k})\ket{\psi_k}.
+\label{eq:p2_Tb}
+\end{equation}
+The variational velocity is synthesized as
+\begin{equation}
+\bar T_k\dot\theta_k=\sum_i\dot\theta_{k,i}\bar\tau_{i,k}.
+\label{eq:p2_velocity_synthesis}
+\end{equation}
+Choose \(\dot\theta_k\) by least squares:
+\begin{equation}
+\dot\theta_k^\star\in\arg\min_v\|\bar b_k-\bar T_kv\|^2.
+\label{eq:p2_ls}
+\end{equation}
+Expanding gives
+\begin{align}
+\|\bar b_k-\bar T_kv\|^2
+&=\langle \bar b_k-\bar T_kv,\bar b_k-\bar T_kv\rangle
+\notag\\
+&=\|\bar b_k\|^2
+-2v^\top\Re(\bar T_k^\dagger\bar b_k)
++v^\top\Re(\bar T_k^\dagger\bar T_k)v
+\notag\\
+&=\|\bar b_k\|^2-2v^\top f_k+v^\top G_kv,
+\label{eq:p2_expand}\\
+G_k&=\Re(\bar T_k^\dagger\bar T_k),
+\qquad
+f_k=\Re(\bar T_k^\dagger\bar b_k).
+\label{eq:p2_Gf}
+\end{align}
+With regularization \(\Lambda_k\), define
+\begin{equation}
+K_k=G_k+\Lambda_k.
+\label{eq:p2_K}
+\end{equation}
+The normal equations are
+\begin{equation}
+\boxed{K_k\dot\theta_k=f_k.}
+\label{eq:p2_normal}
+\end{equation}
+Here \(f_k\) is the force-overlap vector: it records how strongly the target drift shadows each available tangent direction. The solve through \(K_k\) corrects those raw shadows for nonorthogonality and regularization before returning velocity coordinates.
+The projected drift is \(\bar T_k\dot\theta_k\), and the expressivity miss is
+\begin{equation}
+\boxed{
+\epsilon_{{\rm expr},k}^2
+=\|\bar b_k\|^2-f_k^\top K_k^+f_k.
+}
+\label{eq:p2_expr_miss}
+\end{equation}
+
+\section{Analysis, synthesis, and the residual scalar}
+
+The McLachlan analysis map is
+\begin{equation}
+\bar b_k\longmapsto f_k=\Re(\bar T_k^\dagger\bar b_k),
+\label{eq:p2_analysis}
+\end{equation}
+and the synthesis map is
+\begin{equation}
+v\longmapsto\bar T_kv.
+\label{eq:p2_synthesis_map}
+\end{equation}
+The normal solve produces the best velocity coordinates:
+\begin{equation}
+\begin{aligned}
+K_kv^\star=f_k
+&\Longrightarrow v^\star=K_k^+f_k\\
+&\Longrightarrow \bar T_kv^\star
+\text{ is the fitted variational drift}\\
+&\Longrightarrow
+\|\bar b_k-\bar T_kv^\star\|^2
+=\|\bar b_k\|^2-f_k^\top K_k^+f_k.
+\end{aligned}
+\label{eq:p2_chain}
+\end{equation}
+Thus the miss \(\epsilon_{{\rm expr},k}^2\) is the dynamical analogue of Paper-I novelty: it is the part of the target vector field that survives projection against the current nonorthogonal tangent span.
+
+\section{Supported tangent geometry}
+
+Diagonalize the McLachlan normal metric:
+\begin{equation}
+K_k=V_k\diag(s_{k,1},\ldots,s_{k,N_k})V_k^\top.
+\label{eq:p2_eigs}
+\end{equation}
+The columns \(v_{k,a}\) are obtained from
+\begin{equation}
+K_kv_{k,a}=s_{k,a}v_{k,a},
+\qquad \|v_{k,a}\|=1.
+\label{eq:p2_eigenproblem}
+\end{equation}
+Each \(v_{k,a}\) is a velocity-coordinate recipe:
+\begin{equation}
+\bar T_kv_{k,a}=\sum_i(v_{k,a})_i\bar\tau_{i,k}.
+\label{eq:p2_mode_synthesis}
+\end{equation}
+Its realized tangent-velocity length is
+\begin{equation}
+\|\bar T_kv_{k,a}\|^2
+=v_{k,a}^\top G_kv_{k,a},
+\label{eq:p2_mode_length_G}
+\end{equation}
+and, without regularization, this is the corresponding eigenvalue of \(G_k\). Small supported modes are velocity mixtures that barely move the state but can receive large fitted coefficients.
+
+A supported inverse uses the resolved metric modes:
+\begin{equation}
+K_{k,\tau}^+
+=V_k\diag\left(\frac{\mathbf 1[s_{k,a}\ge\tau s_{k,\max}]}{s_{k,a}}\right)V_k^\top.
+\label{eq:p2_supported_inverse}
+\end{equation}
+
+\section{Append-block Schur gain}
+
+Split the tangent columns into current columns \(\bar T_k\) and candidate append columns \(\bar U_{r,k}\). Define
+\begin{align}
+K_k&=\Re(\bar T_k^\dagger\bar T_k)+\Lambda_k,
+&
+B_{r,k}&=\Re(\bar T_k^\dagger\bar U_{r,k}),
+\notag\\
+C_{r,k}&=\Re(\bar U_{r,k}^\dagger\bar U_{r,k})+\Lambda_{r,k},
+&
+q_{r,k}&=\Re(\bar U_{r,k}^\dagger\bar b_k),
+\notag\\
+f_k&=\Re(\bar T_k^\dagger\bar b_k).
+\label{eq:p2_append_blocks}
+\end{align}
+The augmented normal matrix is
+\begin{equation}
+\begin{pmatrix}
+K_k&B_{r,k}\\
+B_{r,k}^\top&C_{r,k}
+\end{pmatrix}.
+\label{eq:p2_augmented_normal}
+\end{equation}
+The augmented force vector is
+\begin{equation}
+\begin{pmatrix}
+f_k\\ q_{r,k}
+\end{pmatrix}.
+\label{eq:p2_augmented_force}
+\end{equation}
+Eliminating old velocity coordinates gives the candidate residual geometry
+\begin{equation}
+S_{r,k}=C_{r,k}-B_{r,k}^\top K_k^+B_{r,k},
+\label{eq:p2_append_schur}
+\end{equation}
+and the residual force seen by the candidate block
+\begin{equation}
+w_{r,k}=q_{r,k}-B_{r,k}^\top K_k^+f_k.
+\label{eq:p2_residual_force}
+\end{equation}
+The append gain is
+\begin{equation}
+\boxed{
+\Delta_{r,k}^{\rm Schur}=w_{r,k}^\top S_{r,k}^+w_{r,k}.
+}
+\label{eq:p2_append_gain}
+\end{equation}
+This is the amount of remaining drift the candidate block can explain after the current tangent coordinates have already had their best chance.
+
+\begin{jargonbox}
+The Schur block \(S_{r,k}\) is the candidate append metric after quotienting out old tangent velocities. The vector \(w_{r,k}\) is the residual force seen by the append block after the old tangent coordinates have already explained their share of \(\bar b_k\).
+\end{jargonbox}
+
+\section{Stay, append, prune as projection decisions}
+
+The same scalar geometry supports three actions:
+\begin{equation}
+\begin{array}{ccl}
+\text{stay}&:&\epsilon_{{\rm expr},k}^2\text{ is already small},\\[1mm]
+\text{append}&:&\Delta_{r,k}^{\rm Schur}\text{ is large for some }r,\\[1mm]
+\text{prune}&:&\text{a retained tangent mode has negligible supported contribution}.
+\end{array}
+\label{eq:p2_actions}
+\end{equation}
+All three decisions are metric-projection decisions inside the same nonorthogonal tangent bundle.
+
+\appendix
+\section{Tiny McLachlan example}
+
+Let
+\begin{equation}
+\bar T=\begin{pmatrix}1&1\\0&1\\0&0\end{pmatrix},
+\qquad
+\bar b=\begin{pmatrix}0\\1\\1\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+G=\bar T^\top\bar T=\begin{pmatrix}1&1\\1&2\end{pmatrix},
+\qquad
+f=\bar T^\top\bar b=\begin{pmatrix}0\\1\end{pmatrix}.
+\end{equation}
+Solving \(G\dot\theta=f\) gives \(\dot\theta=(-1,1)^\top\), so
+\begin{equation}
+\bar T\dot\theta=\begin{pmatrix}0\\1\\0\end{pmatrix}.
+\end{equation}
+The third coordinate of \(\bar b\) remains outside the current tangent span.
+
+\section{Example: force overlaps are not velocity coefficients}
+
+Let
+\begin{equation}
+\bar T=
+\begin{pmatrix}
+1&1\\
+0&1
+\end{pmatrix},
+\qquad
+\bar b=
+\begin{pmatrix}
+1\\0
+\end{pmatrix}.
+\end{equation}
+Then
+\begin{equation}
+G=\bar T^\top\bar T=
+\begin{pmatrix}1&1\\1&2\end{pmatrix},
+\qquad
+f=\bar T^\top\bar b=
+\begin{pmatrix}1\\1\end{pmatrix}.
+\end{equation}
+Solving \(Gv=f\) gives
+\begin{equation}
+v^\star=\begin{pmatrix}1\\0\end{pmatrix}.
+\end{equation}
+The force overlaps \(f=(1,1)^\top\) are both large because both tangent columns shadow \(\bar b\). The velocity coefficients are \((1,0)^\top\) after the Gram solve removes the double-counting.
+
+\section{Example: append-block Schur gain}
+
+Let
+\begin{equation}
+K=(2),\qquad
+B=(1),\qquad
+C=(3),\qquad
+f=(4),\qquad
+q=(5).
+\end{equation}
+Then
+\begin{equation}
+S=C-B^\top K^{-1}B=3-\frac12=\frac52,
+\qquad
+w=q-B^\top K^{-1}f=5-2=3.
+\end{equation}
+The append gain is
+\begin{equation}
+\Delta^{\rm Schur}=w^\top S^{-1}w
+=3\left(\frac{2}{5}\right)3
+=\frac{18}{5}.
+\end{equation}
+This number is the residual drift explained by the candidate after the old tangent coordinate has been eliminated.
+
+\end{document}

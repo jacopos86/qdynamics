@@ -1,0 +1,22 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.33in]{geometry}
+\usepackage{amsmath,graphicx,booktabs,xcolor}
+\usepackage[T1]{fontenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\Large\bfseries RA-ADAPT--Append singleton costs at common attained accuracy}\par
+\vspace{2pt}
+{\small For each regime,
+$\Delta E_\cap=\max\{\min_{k\leq k_{\rm pl}^{\mathrm{RA\text{-}ADAPT}}}
+\Delta E_{\mathrm{RA\text{-}ADAPT}}(k),
+\min_{k\leq k_{\rm pl}^{\rm Append}}
+\Delta E_{\rm Append}(k)\}$.
+Each cost is evaluated at that method's first stored prefix satisfying
+$\Delta E(k)\leq\Delta E_\cap$ no later than its own selected plateau.
+Each displayed trajectory terminates at that costed prefix.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_page4_own_plateau_plot.png}
+\end{center}
+\end{document}

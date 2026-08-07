@@ -1,0 +1,78 @@
+{
+  "generated_utc": "2026-07-19T00:53:48.762708+00:00",
+  "operational_repairs": [
+    "worker uses its immutable bundle-local run_job.py path",
+    "empty continuation kwargs omitted for true fresh round-zero classification"
+  ],
+  "preserved_method_contract": {
+    "algorithm_id": "static_geo_adapt_vqe",
+    "factorization": "exact_real_tangent_span_svd_v1",
+    "insertion": "append",
+    "optimizer": "Powell",
+    "optimizer_maxiter": 200,
+    "parent_pool": "full_meta_unfiltered with HVA included",
+    "repeat_semantics": "score with replacement; skip append only for immediate repeat",
+    "selection": "full-pool projected Fubini-Study natural-gradient response"
+  },
+  "schema": "paper_i_hh_geo_completion_settings_difference_audit_v1",
+  "status": "pass",
+  "tracker_required_changes": [
+    "fresh output identity",
+    "seed 7",
+    "same working/reference cutoff 3/3 or 7/7",
+    "exact 50-round fixed horizon without plateau stop",
+    "HH preseed off",
+    "current exact S_alg receipt and reporting-only fidelity instrumentation",
+    "exact real tangent-span SVD with coordinate-scaling-invariant Geo score",
+    "explicit macro versus projected-singleton candidate representations"
+  ],
+  "unapproved_drift": [],
+  "visible_geo_source_locks": {
+    "intermediate_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/intermediate_strong_geo_adapt.json",
+      "sha256": "54f2680b8d8423eb48fff8f4bf8ca2c32469e3bed30d44e0dda1203683e5932e",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__geo__generic_static_single.json",
+      "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e",
+      "visible_value": 0.02897791863102661
+    },
+    "intermediate_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/intermediate_weak_geo_adapt.json",
+      "sha256": "ac1e1bb97bd8d8667e9bf1dc42401d164cf2fe88ac5c97e33c2edff6b33b600b",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__geo__generic_static_single.json",
+      "source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255",
+      "visible_value": 0.09893293320249796
+    },
+    "strong_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/strong_strong_geo_adapt.json",
+      "sha256": "38c75cf2f70146405eb811047798ba404b0a47afffdf17387a57388c0eb70cc6",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__geo__generic_static_single.json",
+      "source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63",
+      "visible_value": 4.982206763848307e-05
+    },
+    "strong_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/strong_weak_geo_adapt.json",
+      "sha256": "39c74036dc4d5d8d45a06976176b33ac5ec1d8d67719df498a8d531184d1f7cc",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__geo__generic_static_single.json",
+      "source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab",
+      "visible_value": 2.354651946201436e-06
+    },
+    "weak_strong": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/weak_strong_geo_adapt.json",
+      "sha256": "3624e7200a2d318cf31bb2448caffa0e5b2662c32e7661ba07a83023ad3dbe5f",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__geo__generic_static_single.json",
+      "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259",
+      "visible_value": 0.043646714159213396
+    },
+    "weak_weak": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/visible_source_locks/weak_weak_geo_adapt.json",
+      "sha256": "32c407daa3aa1e1e901876766e1cae21442bf53b332ad720315b0e6b9ca0b293",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__geo__generic_static_single.json",
+      "source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45",
+      "visible_value": 0.0013117770378563431
+    }
+  },
+  "visible_source_map_path_repair": {
+    "reason": "obsolete Documents/iCloud absolute paths replaced by hash-identical local copies",
+    "scientific_fields_changed": []
+  }
+}

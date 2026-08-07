@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/paper_iv_h2o_static_snake_resume_20260705/run_h2o_resume_whitened_nobatch_metric_prune_apptainer.sh
+arguments = paper_iv_h2o_resume_depth8_r15_whitened_adaptive_trust_nobatch_metric_prune_powell
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_iv_h2o_static_snake_resume_20260705/input/h2o_whitened_nobatch_metric_prune_code_20260713.tgz, chtc/phase3_optuna/image.sif, chtc/paper_iv_h2o_static_snake_resume_20260705/run_h2o_resume_whitened_nobatch_metric_prune_task.sh, tmp/h2o_linear_fd_valence_psi4_optimized/h2o_linear_fd_sparse_fixture_nph1_ref2.json, tmp/h2o_linear_fd_valence_psi4_optimized/adapt_paper_i_current_powell_anchor_d15/h2o_depth6_checkpoint_for_chtc_20260705T001649Z.json
+transfer_output_files = raw_outputs, logs
+log = logs/paper-iv-h2o-d8-r15-whitened-trust-nobatch-metric-prune.$(Cluster).$(Process).log
+output = logs/paper-iv-h2o-d8-r15-whitened-trust-nobatch-metric-prune.$(Cluster).$(Process).out
+error = logs/paper-iv-h2o-d8-r15-whitened-trust-nobatch-metric-prune.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 32GB
+request_disk = 10240MB
++MaxRuntime = 604800
++JobBatchName = "paper-iv-h2o-d8-r15-whitened-trust-nobatch-metric-prune"
+environment = "H2O_SHELL_HEARTBEAT_SEC=300 H2O_RESUME_DEPTH=8 H2O_ADAPT_MAX_DEPTH=15 H2O_ADAPT_SEGMENT_ID=paper_iv_h2o_depth8_r15_whitened_adaptive_trust_nobatch_metric_prune_powell H2O_ADAPT_SEGMENT_MAX_NEW_ADMISSIONS=15 STATIC_ADAPT_CANDIDATE_RECORD_CACHE=memory OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1"
+queue 1

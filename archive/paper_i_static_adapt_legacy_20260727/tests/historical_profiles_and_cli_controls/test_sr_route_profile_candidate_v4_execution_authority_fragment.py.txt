@@ -1,0 +1,16 @@
+    """The complete-contract handoff must accept the opt-in v4 profile."""
+
+    class _RuntimeProfileAccepted(RuntimeError):
+        pass
+
+    def _runtime_profile_accepted(_payload: dict[str, object]) -> str:
+        raise _RuntimeProfileAccepted
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_candidate_record_payload_digest",
+        _runtime_profile_accepted,
+    )
+
+    with pytest.raises(_RuntimeProfileAccepted):
+        adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)

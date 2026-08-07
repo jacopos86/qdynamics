@@ -1,0 +1,35 @@
+{
+  "schema": "paper_i_hh_sr_source_lock_revision_v1",
+  "purpose": "Add an explicit beam-disabled SR controller ablation marker without changing the canonical three-by-two beam route.",
+  "base_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/source_locked.tar.gz",
+    "sha256": "f0ced05fb7c4ab242ef10323c13ac0e3e3d5be2c15b255c931b73aa8a980cbae"
+  },
+  "revised_archive": {
+    "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/source_lock/source_tree_no_beam_ablation_v1.tar.gz",
+    "sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6"
+  },
+  "frozen_source_changes": [
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline.py",
+      "base_sha256": "9ebea2885ea77c954c249f135e43c6bdc0d1ee486566514388a083d99a317e95",
+      "revised_sha256": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+      "change": "Allow beam_enabled=false only under novelty_prune_beam_controls_v1; preserve the historical-beam guard for every other contract."
+    },
+    {
+      "path": "pipelines/static_adapt/cli_config.py",
+      "base_sha256": "b7337127cf2c450a1d8311794ecb991a5d2698466134f6ed41b5452e2b26441f",
+      "revised_sha256": "d3b46ac2c28eaa43af3d9a14a961761ba247d5d8d9b9781116db3ac28a4a70b9",
+      "change": "Document the explicit beam-aware ablation marker."
+    },
+    {
+      "path": "pipelines/static_adapt/sr_snake_escape_controller.py",
+      "base_sha256": "5743b2dc4f1a8a7c14ff0c20aea4a2065a18f86a9d420f6c4ad1f559081f6e4c",
+      "revised_sha256": "323183c2819c0bab1e3ee19da24cd2dfea24a269a39baf0e6f3965dd2bf7b1f4",
+      "change": "Register novelty_prune_beam_controls_v1 as a distinct explicit ablation contract."
+    }
+  ],
+  "scientific_changes": [],
+  "canonical_route_changes": [],
+  "ablation_only": true
+}

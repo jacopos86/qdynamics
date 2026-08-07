@@ -1,0 +1,92 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/paper-i-final-correctness-and-evidence-completion-plan-20260727.md",
+      "sha256": "a3174c9d33bfcfa97892ca1702369296456cd401f1f6101fcdf34bc7d2c93709"
+    },
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/user-review.json",
+      "sha256": "c16338ce60094c3a7970a96540e2045dea58b133a2016558193e89f3719c9f6b"
+    },
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v8.json",
+      "sha256": "94195872490ce6333f3253de017116f1fc1914700af9b537c42ada419c779774"
+    }
+  ],
+  "checks": [
+    {
+      "id": "stationarity_policy_selection",
+      "observed": "stationary_source_response_v1",
+      "source": "explicit_user_instruction_2026-07-28",
+      "status": "passed"
+    },
+    {
+      "id": "obsolete_study1_disposition",
+      "observed": "The 18-direct-job, 23-round Study-1 discriminator is canceled, remains unsubmitted, and is forbidden as execution authority.",
+      "status": "passed"
+    },
+    {
+      "id": "selected_core_scope",
+      "observed": "48 direct cells: six regime-appropriate 3/7 cutoffs times macro/singleton times conventional Append plus stationary RA append-only, plateau, and always; horizon 50; Powell/200; seed 7; same-cutoff ED; late weighting.",
+      "status": "passed"
+    },
+    {
+      "id": "submission_authority",
+      "observed": "No CHTC submission authorization exists for the 48-cell core. An explicit future user authorization is required before condor_submit.",
+      "status": "passed"
+    }
+  ],
+  "decision": {
+    "active_gradient_policy": "stationary_source_response_v1",
+    "core_bundle_id": "ra_repair_stationary_late_core_v1",
+    "core_campaign_id": "paper_i_ra_adapt_stationary_late_core_v1",
+    "core_direct_cell_count": 48,
+    "core_horizon": 50,
+    "execution_authorized": false,
+    "phase_i_resource_weighting_selection": "late_resource_weighting_v1",
+    "singleton_append_disposition": "rerun_as_six_direct_core_cells",
+    "stationarity_winner": "stationary_source_response_v1",
+    "study1_disposition": "canceled_unsubmitted_superseded_by_explicit_user_selection",
+    "submission_authorized": false,
+    "user_decision_recorded": true
+  },
+  "outputs": [],
+  "pending_outputs": [
+    {
+      "id": "immutable_stationary_core_materialization",
+      "status": "pending"
+    },
+    {
+      "id": "validated_preauthorization_chtc_package",
+      "status": "pending"
+    },
+    {
+      "id": "explicit_core_submission_authorization_receipt",
+      "status": "pending_user_decision"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_user_review_stationary_core_20260728_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "user-review",
+  "state": "complete",
+  "state_reason": "The user explicitly selected stationary-source Phase-III active gradients and replaced the obsolete Study-1 discriminator with the full 48-direct-cell core. This receipt records scientific scope only and grants no execution or submission authority.",
+  "supersession_lineage": {
+    "lineage_type": "append_only_user_decision_revision_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/user-review.json",
+      "receipt_id": "ra_adapt_repair_20260727_user_review_v1",
+      "sha256": "c16338ce60094c3a7970a96540e2045dea58b133a2016558193e89f3719c9f6b",
+      "stage": "user-review"
+    },
+    "superseded_receipts": [
+      {
+        "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/user-review.json",
+        "receipt_id": "ra_adapt_repair_20260727_user_review_v1",
+        "sha256": "c16338ce60094c3a7970a96540e2045dea58b133a2016558193e89f3719c9f6b",
+        "status": "superseded_only_for_stationarity_selection_state"
+      }
+    ],
+    "successor_stage": "materialize-stationary-core"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

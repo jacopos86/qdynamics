@@ -1,0 +1,39 @@
+{
+  "archive_only_validate_rows_passed": 6,
+  "archive_source_focused_tests_passed": 188,
+  "cross_arm_executable_diff": [
+    "phase3_hardware_cost_normalization_mode"
+  ],
+  "job_count": 6,
+  "live_source_focused_tests_passed": 190,
+  "profile_contract_sha256": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+  "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1",
+  "prune_trial_consumer_id_repair": {
+    "classification": "non_scientific_estimator_consumer_identity_isolation_v1",
+    "exact_changes": [
+      "scope_prune_trial_consumer_id_by_parent_beam_branch_id",
+      "pass_estimator_call_context_branch_id_to_consumer_id_builder"
+    ],
+    "failed_cluster": 8894497,
+    "path": "pipelines/static_adapt/adapt_pipeline.py",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v3_chtc",
+    "predecessor_source_archive_sha256": "7c3ceaf5523f0c551e3c41c30e8f130f554935dba04fc6ec08ac9d48c1e4e3c9",
+    "profile_contract_sha256_preserved": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+    "schema": "paper_i_sr_prune_trial_consumer_id_repair_v1",
+    "scientific_setting_changes": [],
+    "source_sha256_after": "6bdb823fe602146bb5beec87f2ed7bc75b67ed2f63a4658b110c89e2361a09a4",
+    "source_sha256_before": "f67bdae0706e7663a53f229882eb53f0dc202aeb54462194a8fb56774d76fb4b"
+  },
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_preflight_v1",
+  "sibling_pair_archive_only_validate_rows_passed": 12,
+  "source_archive_sha256": "b968d3781d6c37001f78239e844d5eb9ac2a67f91bfef91c69dcb04c0b3a1720",
+  "status": "pass",
+  "test_targets": [
+    "test/test_static_adapt_macro_beam_prune_cost_profiles.py",
+    "test/test_paper_i_main_fidelity_audit.py",
+    "test/test_static_adapt_guarded_singleton_pool_route.py",
+    "test/test_static_adapt_sr_prune_appendix_profile.py",
+    "test/test_static_adapt_sr_route_profile.py"
+  ]
+}

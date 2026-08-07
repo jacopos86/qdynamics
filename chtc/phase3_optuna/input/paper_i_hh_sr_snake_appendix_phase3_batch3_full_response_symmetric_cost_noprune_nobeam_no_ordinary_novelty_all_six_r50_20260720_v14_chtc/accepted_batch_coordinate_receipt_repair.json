@@ -1,0 +1,40 @@
+{
+  "accepted_subset_changed": false,
+  "changed_source_files": [
+    "pipelines/static_adapt/adapt_pipeline.py"
+  ],
+  "phase3_batch_singleton_coordinate_receipt_retention": {
+    "accepted_subset_changed": false,
+    "authoritative_identity_fields": [
+      "candidate_pool_index",
+      "position_id",
+      "candidate_label"
+    ],
+    "predecessor_adapt_pipeline_sha256": "e81c434da8dc8c45157add2fe1494ee90a6ee5fda8e732ad1077a0853d5a0cf2",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v13_chtc",
+    "predecessor_source_archive_sha256": "0fa7c0cc8b4fa0d54656e8da46d2cca19938e9c25e579e1ece2d52fbfc9c6f7b",
+    "raw_phase2_fallback_forbidden": true,
+    "restored_fields": [
+      "phase2_joint_geometry_reuse",
+      "phase3_response_supported_rank"
+    ],
+    "schema": "paper_i_sr_phase3_batch_singleton_coordinate_receipt_retention_v1",
+    "scientific_settings_changed": false,
+    "selector_or_model_inputs_changed": false,
+    "successor_adapt_pipeline_sha256": "9db78f63a4f6ea94b964782a4dbe9d7c9e092e3d472fec9d47e0a23949e37441",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v14_chtc",
+    "successor_source_archive_sha256": "d97bd6e33bc2c6b224e831e88095b17aaf5ac6a88d37e44c6264f2d48d789a11"
+  },
+  "predecessor_adapt_pipeline_sha256": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v6_chtc",
+  "predecessor_source_archive_sha256": "f11607321e426d73627910a1da76a22a96f4d4bd82f66708b5b202b2e5a61453",
+  "repair": "preserve the prior accepted-coordinate and typed-zero-row repair; for canonical Phase-III batching, forbid raw Phase-II fallback and restore only the already measured full-active-plus-singleton coordinate receipt from the exact authoritative admission identity",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_batch3_accepted_coordinate_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "selector_or_model_inputs_changed": false,
+  "source_archive_manifest_sha256": "100f58cfe71c09573d3492149567240802c181841f440e5a26fa4f52aea6c3be",
+  "source_revision_manifest_sha256": "553a1fa34fc98c8ca331b382c35a6217417c80b8053ed70984d7f8141790937d",
+  "successor_adapt_pipeline_sha256": "9db78f63a4f6ea94b964782a4dbe9d7c9e092e3d472fec9d47e0a23949e37441",
+  "successor_source_archive_sha256": "d97bd6e33bc2c6b224e831e88095b17aaf5ac6a88d37e44c6264f2d48d789a11"
+}

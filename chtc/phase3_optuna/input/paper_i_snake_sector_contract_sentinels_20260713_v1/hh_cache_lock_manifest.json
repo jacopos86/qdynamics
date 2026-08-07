@@ -1,0 +1,59 @@
+{
+  "case_count": 3,
+  "cases": [
+    {
+      "case_id": "hh_L4_nph1_scaling_strong_weak",
+      "generator_registry": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_generator_registry_cache_v1/603b7a328aa7cd9f7734a98f246be12c871c8376b3bf57d55562b7c4cc8acbe5.pickle",
+        "sha256": "79acc412478ead6d63883228e2450fb4f076b9f93a4c60fec88b69863058a2d1",
+        "size_bytes": 707967,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_generator_registry_cache_v1/603b7a328aa7cd9f7734a98f246be12c871c8376b3bf57d55562b7c4cc8acbe5.pickle"
+      },
+      "pool": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_pool_cache_v1/f12920d80311d558649e81011c5a4f32ee76fb4bccb6f11c932f58f4f4f436c6.pickle",
+        "sha256": "1b58db52a72623fca7fc7c5f13f0b7a00b998b1ecea8d2b070b02d5eb8a03b1a",
+        "size_bytes": 1291030,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_pool_cache_v1/f12920d80311d558649e81011c5a4f32ee76fb4bccb6f11c932f58f4f4f436c6.pickle"
+      },
+      "source_disk_hit_verified": true
+    },
+    {
+      "case_id": "hh_L4_nph1_scaling_intermediate_weak",
+      "generator_registry": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_generator_registry_cache_v1/626a9d8c6d0f711a7021f630c61c7507f9e1cdad03e174699abd7d45811dd1fd.pickle",
+        "sha256": "97ebe70c041686a98a67db216235e678bef416e227f363763f05399e87517e24",
+        "size_bytes": 708228,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_generator_registry_cache_v1/626a9d8c6d0f711a7021f630c61c7507f9e1cdad03e174699abd7d45811dd1fd.pickle"
+      },
+      "pool": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_pool_cache_v1/d796b3cd7ca7695b201dd43fd9aeeed08cdaf22a5824cb290306724526e76ee7.pickle",
+        "sha256": "82c73c860ec5c8c5b8725c4f446c39bb6ae55d6fc3b49122c0a603c73ce70ef0",
+        "size_bytes": 1291101,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_pool_cache_v1/d796b3cd7ca7695b201dd43fd9aeeed08cdaf22a5824cb290306724526e76ee7.pickle"
+      },
+      "source_disk_hit_verified": true
+    },
+    {
+      "case_id": "hh_L3_nph2_scaling_weak_weak",
+      "generator_registry": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_generator_registry_cache_v1/c4bb35d496600c6ac7f7d992b6d2107b2aace4906888ec268bd46bcea5dea923.pickle",
+        "sha256": "6ed6994b35836212ae3600e33ee5096c297065f4e29ae004bdb82ce6c86c0652",
+        "size_bytes": 842033,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_generator_registry_cache_v1/c4bb35d496600c6ac7f7d992b6d2107b2aace4906888ec268bd46bcea5dea923.pickle"
+      },
+      "pool": {
+        "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_pool_cache_v1/0f02d557a5c9c0755000483a8d500981287e13a1bcb88538392416e626f1e445.pickle",
+        "sha256": "4ac2a235bfdedf6acf1d038588e71fa4046b795ec12de3f754c300819b244dc8",
+        "size_bytes": 1974488,
+        "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_pool_cache_v1/0f02d557a5c9c0755000483a8d500981287e13a1bcb88538392416e626f1e445.pickle"
+      },
+      "source_disk_hit_verified": true
+    }
+  ],
+  "generator_registry_cache_dir": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_generator_registry_cache_v1",
+  "pool_cache_dir": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_pool_cache_v1",
+  "schema": "paper_i_snake_sector_contract_hh_cache_lock_v1",
+  "source_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/hh_cache_prewarm_manifest.json",
+  "source_manifest_sha256": "e6478d09f22815ca8ae224568a9380286143b9f31d2ef64e13351dc4a9d8e32a",
+  "status": "pass"
+}

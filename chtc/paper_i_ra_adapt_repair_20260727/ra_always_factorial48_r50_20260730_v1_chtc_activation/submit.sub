@@ -1,0 +1,33 @@
+# Authorized activation overlay for the 48-cell RA-always policy factorial.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_activation/execute_authorized_job.sh chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_activation chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc $(job_path) $(job_file_sha256) $(authorization_path) $(authorization_file_sha256) efae5d26981bab62cfb2b6dbf077effb4f19a7da6f636dde2b16fbf7acde76b6 chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc, chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_activation, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz=chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/fetched/$(execution_id)__cluster_$(ClusterId)__proc_$(ProcId).tar.gz"
+
+request_cpus = $(cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-ra-adapt-always-factorial48-r50-20260730-v1"
+max_materialize = 4
+leave_in_queue = True
+
+log = chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).err
+
+queue execution_id,job_path,job_file_sha256,authorization_path,authorization_file_sha256,cpus,memory_mb,disk_mb,max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_activation/queue.tsv

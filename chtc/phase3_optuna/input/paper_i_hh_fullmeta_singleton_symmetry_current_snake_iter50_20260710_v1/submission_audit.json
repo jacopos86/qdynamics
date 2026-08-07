@@ -1,0 +1,2683 @@
+{
+  "batch_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1",
+  "command_audits": [
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    },
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    },
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    },
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    },
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    },
+    {
+      "changed_flags": [
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50/current.json"
+          ],
+          "flag": "--adapt-current-json",
+          "source": []
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-drop-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-min-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-drop-patience",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--adapt-full-refit-every",
+          "source": [
+            "8"
+          ]
+        },
+        {
+          "effective": [
+            "-1"
+          ],
+          "flag": "--adapt-grad-floor",
+          "source": []
+        },
+        {
+          "effective": [
+            "always"
+          ],
+          "flag": "--adapt-insertion-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-max-depth",
+          "source": [
+            "30"
+          ]
+        },
+        {
+          "effective": [
+            "full"
+          ],
+          "flag": "--adapt-reopt-policy",
+          "source": [
+            "windowed"
+          ]
+        },
+        {
+          "effective": [
+            "append-prune"
+          ],
+          "flag": "--adapt-schur-warm-start-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50"
+          ],
+          "flag": "--adapt-segment-id",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-max-new-admissions",
+          "source": []
+        },
+        {
+          "effective": [
+            "50"
+          ],
+          "flag": "--adapt-segment-target-depth",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--adapt-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "0"
+          ],
+          "flag": "--adapt-window-topk",
+          "source": []
+        },
+        {
+          "effective": [
+            "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50/json/result.json"
+          ],
+          "flag": "--output-json",
+          "source": [
+            "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json"
+          ]
+        },
+        {
+          "effective": [
+            true
+          ],
+          "flag": "--phase-live-hysteresis-disabled",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase-maturity-shot-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.001"
+          ],
+          "flag": "--phase1-lambda-theta",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase1-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase1-probe-max-positions",
+          "source": []
+        },
+        {
+          "effective": [
+            "ansatz_entry_denominator_v1"
+          ],
+          "flag": "--phase1-prune-metric-schur-cost-weighting",
+          "source": []
+        },
+        {
+          "effective": [
+            "0.01"
+          ],
+          "flag": "--phase1-prune-metric-schur-mu",
+          "source": []
+        },
+        {
+          "effective": [
+            "metric_regularized_v1"
+          ],
+          "flag": "--phase1-prune-schur-nomination-route",
+          "source": []
+        },
+        {
+          "effective": [
+            "1.0"
+          ],
+          "flag": "--phase1-trough-margin-ratio",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase2-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase2-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "99"
+          ],
+          "flag": "--phase3-geometry-window-size",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-max",
+          "source": []
+        },
+        {
+          "effective": [
+            "999999"
+          ],
+          "flag": "--phase3-maturity-cap-min",
+          "source": []
+        },
+        {
+          "effective": [
+            "1"
+          ],
+          "flag": "--phase3-maturity-shot-cap",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--phase3-novelty-ablation-mode",
+          "source": []
+        },
+        {
+          "effective": [
+            "off"
+          ],
+          "flag": "--shared-pauli-pool-mode",
+          "source": []
+        }
+      ],
+      "effective_command": [
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-full-refit-every",
+        "1",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "50",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50/json/result.json",
+        "--adapt-segment-target-depth",
+        "50",
+        "--adapt-segment-max-new-admissions",
+        "50",
+        "--adapt-drop-floor",
+        "-1",
+        "--adapt-drop-patience",
+        "0",
+        "--adapt-drop-min-depth",
+        "0",
+        "--adapt-grad-floor",
+        "-1",
+        "--adapt-current-json",
+        "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50/current.json",
+        "--adapt-schur-warm-start-mode",
+        "append-prune",
+        "--allow-archival-phase3-runtime-split",
+        "--shared-pauli-pool-mode",
+        "off",
+        "--adapt-insertion-mode",
+        "always",
+        "--adapt-segment-id",
+        "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50",
+        "--adapt-window-size",
+        "99",
+        "--adapt-window-topk",
+        "0",
+        "--phase-maturity-shot-max",
+        "1",
+        "--phase-maturity-shot-min",
+        "1",
+        "--phase1-lambda-theta",
+        "0.001",
+        "--phase1-maturity-cap-max",
+        "999999",
+        "--phase1-maturity-cap-min",
+        "999999",
+        "--phase1-maturity-shot-cap",
+        "1",
+        "--phase1-probe-max-positions",
+        "999999",
+        "--phase1-prune-metric-schur-cost-weighting",
+        "ansatz_entry_denominator_v1",
+        "--phase1-prune-metric-schur-mu",
+        "0.01",
+        "--phase1-prune-schur-nomination-route",
+        "metric_regularized_v1",
+        "--phase1-trough-margin-ratio",
+        "1.0",
+        "--phase2-maturity-cap-max",
+        "999999",
+        "--phase2-maturity-cap-min",
+        "999999",
+        "--phase2-maturity-shot-cap",
+        "1",
+        "--phase3-geometry-window-size",
+        "99",
+        "--phase3-maturity-cap-max",
+        "999999",
+        "--phase3-maturity-cap-min",
+        "999999",
+        "--phase3-maturity-shot-cap",
+        "1",
+        "--phase3-novelty-ablation-mode",
+        "off",
+        "--phase-live-hysteresis-disabled",
+        "--phase2-no-batching",
+        "--phase3-no-batching"
+      ],
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50",
+      "status": "pass"
+    }
+  ],
+  "durability": {
+    "condor_transfer_policy": "ON_EXIT_OR_EVICT",
+    "current_json": "current.json",
+    "eviction_behavior": "partial output transfers; retry starts fresh",
+    "restartable_from_iteration_checkpoint": false
+  },
+  "generated_utc": "2026-07-11T02:20:05.617986+00:00",
+  "git_head": "e1478cfbd6aa1792cd271c1c4f39b4d7f64ce8e8",
+  "git_worktree_note": "Exact implementation SHA256 values identify the submitted worktree.",
+  "horizon": {
+    "early_energy_and_drop_stops": "disabled",
+    "max_depth": 50,
+    "max_new_admissions": 50,
+    "segment_target_depth": 50
+  },
+  "implementation_lock": [
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline.py",
+      "sha256": "c50f39de5dee8f6d60634305f8716ee00414b98f6003bb9bb149cd66807e440a",
+      "size_bytes": 1370309
+    },
+    {
+      "path": "pipelines/static_adapt/cli_config.py",
+      "sha256": "0668cb95249865c998a28a2618c671e8aa8f100b05138733e06e50d00985b9d6",
+      "size_bytes": 184414
+    },
+    {
+      "path": "chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_cell.py",
+      "sha256": "3a3158b2d33c81928acd410a7afd63e3ab8ad2e277cf18cc65834850001f8152",
+      "size_bytes": 80820
+    },
+    {
+      "path": "chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_task_apptainer.sh",
+      "sha256": "e1f666ebe015002380f7a1b1593f3d7f4a673af863891f2c144b3e22c2878d5e",
+      "size_bytes": 925
+    },
+    {
+      "path": "chtc/phase3_optuna/preflight_submit.py",
+      "sha256": "ce400141cc82db7a42d6181afb1564310a5780da4f78a1a52250a811c0228253",
+      "size_bytes": 138499
+    }
+  ],
+  "paper_target": "Paper_I.pdf page 13; fig:hh_main_results_composite; SNAKE overlay",
+  "preserved_contract": {
+    "final_refit_maxiter": 200,
+    "hva_included": true,
+    "optimizer": "POWELL",
+    "optimizer_maxiter": 200,
+    "phase2_batching": "off",
+    "phase3_batching": "off",
+    "pool": "full_meta_unfiltered",
+    "runtime_split": "shortlist_pauli_children_v1",
+    "runtime_split_cap": 1,
+    "runtime_split_selection": "archival_child_set_forward_v1",
+    "runtime_split_symmetry": "hard_guard",
+    "shared_pauli_pool": "off",
+    "static_lane": "physical_operator_type",
+    "static_route": "route_a"
+  },
+  "run_class": "candidate",
+  "schema": "paper_i_hh_current_snake_iter50_submission_audit_v1",
+  "source_locked_sensitivity_note": "This batch applies approved forward canonical controls in addition to the iteration-50 horizon; it is not represented as a one-variable depth sensitivity.",
+  "source_locked_sensitivity_status": "not_applicable_canonical_candidate_batch",
+  "source_records": "chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_20260709_v1/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "source_records_sha256": "97d774e19b26601de42df62ca486cea91a7d35fe34a1a7758e01beed78f4bfc0",
+  "source_results": [
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+      "regime": "weak-weak",
+      "sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json",
+      "regime": "intermediate-weak",
+      "sha256": "aee2bdfc258555013392ebda3ab97bc822b248bee0ffa41b9bada35bb70ab1e9"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json",
+      "regime": "strong-weak",
+      "sha256": "a77f913eb2c2b1cbf8adfeebd4e6cca23dc0f966a2d06467a3d902554042a745"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json",
+      "regime": "weak-strong",
+      "sha256": "bd2bf3e23db23523edda9c716589cc3ad9899bb2e8ff1a1a783537f51120f9b0"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json",
+      "regime": "intermediate-strong",
+      "sha256": "9c49de416cf31831ee7be58f75faddfbf2e04ea0e5d4a0e03342b9da195da9ea"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json",
+      "regime": "strong-strong",
+      "sha256": "d789821367b4cf512346794f38193e68c1cf2aa6644474f29b041485579e9124"
+    }
+  ],
+  "status": "pass"
+}

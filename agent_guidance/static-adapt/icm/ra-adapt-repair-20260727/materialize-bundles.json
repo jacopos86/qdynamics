@@ -1,0 +1,145 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/verify.json",
+      "sha256": "0ef7c045c94534e2af5c831bb4a146a8d892a79aa85535c6f2e4f1300c0082c3"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/source_materialization/source_validation_receipt.json",
+      "sha256": "b54a1263c0abfc81b7d9cf659bf4956492a1596823dba788c72d500c434ecc5b"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/preflight_receipt.json",
+      "sha256": "330ca2fa3c10281393b9ee9fef61e326fb4d62424427e8f17e5974b2a6328fa2"
+    }
+  ],
+  "checks": [
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "source_locked_bundle_materialization",
+      "observed": {
+        "visible_provenance_sha256": "0153bbf8e1ea73c6c73bd559548d5e8b9e80b185effe9c4e8cd9ce6b7a1cae2e",
+        "implementation_inventory_sha256": "6cc3d62bac451d0b3a1709f3cf9736e7365d9f6ecf553667e3b455c82765d9b1",
+        "implementation_file_count": 144
+      },
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/cross_file_loader_validation.json",
+      "id": "cross_file_loader_validation",
+      "observed": "116 passed; 0 failed",
+      "status": "passed"
+    },
+    {
+      "evidence_paths": [
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/validation_report.json",
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/validation_report.json"
+      ],
+      "id": "per_bundle_local_validation",
+      "observed": "58 cells passed per bundle",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "older_materialization_preservation",
+      "observed": "v1-v4 pre/post tree hashes byte-identical",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "chtc_submission",
+      "observed": "not_submitted",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "id": "stationarity_winner_selection",
+      "observed": false,
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "canonical_sha256": "6dd56d5a7ea4c577223053ab46fdac8115620e2aa8ebb6c68943474d57989d12",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/final_materialization_receipt.json",
+      "sha256": "10c6fb37c540efbea5ece2a42e638a38106843710409867fe1644300a71fcda8"
+    },
+    {
+      "canonical_sha256": "e310d9e27c5197885b886106855025d73ad897a1acacc73d3c6d2a689ebebd0d",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/cross_file_loader_validation.json",
+      "sha256": "23ef528aa3b1b07f9a7ea58a16029f4c4f20d95398144dfc81c2481644b5fb1f"
+    },
+    {
+      "canonical_sha256": "daf3f0f5cfe939329fa7e8505e53c3bc71c8b65a28ece4c2410360a3f6a1b6a2",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "sha256": "5b5079d215db83a4fe49c106332de61dc64145e1d7e8327849eedff8895b9f0d"
+    },
+    {
+      "canonical_sha256": "4c43f4212f443eb1443110a308649e8309b58385e30709e312ff7d11fff7c508",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/validation_report.json",
+      "sha256": "94a7f0c174baaab3acf221dc6f1ba821d30f4cc1a957b816d51c54a0440bd0df"
+    },
+    {
+      "canonical_sha256": "6e39a48d1f5c0100d14159f9bda214ef3b1c9ce4caaea7b4e9c555ea95fcfb13",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/bundle_manifest.json",
+      "sha256": "93957b5694ef407b77f8be29caf6ca84ca5316e9845ba1f9ee54d3bb6c194628"
+    },
+    {
+      "canonical_sha256": "f1e22749bd72f571eef8f36dfd4127a386ed7e236ffcdc9c422bae8df1f7f231",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/validation_report.json",
+      "sha256": "12fa4001c13715dc05bd0c0ff7bb806b74e4bb30d82640206bb1bc498b8a477f"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "daf3f0f5cfe939329fa7e8505e53c3bc71c8b65a28ece4c2410360a3f6a1b6a2",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    },
+    {
+      "bundle_manifest_canonical_sha256": "6e39a48d1f5c0100d14159f9bda214ef3b1c9ce4caaea7b4e9c555ea95fcfb13",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v2",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "materialize-bundles",
+  "state": "complete",
+  "state_reason": "The final append-only v5 materialization contains both validated 58-cell Study-1 bundles, passes all 116 cross-file loader checks, preserves v1-v4 byte-identically, and remains non-authorizing and not submitted.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/verify.json",
+      "receipt_id": "ra_adapt_repair_20260727_verify_v1",
+      "sha256": "0ef7c045c94534e2af5c831bb4a146a8d892a79aa85535c6f2e4f1300c0082c3",
+      "stage": "verify"
+    },
+    "superseded_receipts": [
+      {
+        "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v1.json",
+        "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v1",
+        "sha256": "4e2c18428c5230e49a0d082c415c7aed234e097e9eb1850ca6daf5f38ddff497"
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v2/source_materialization/materialization_status.json",
+        "sha256": "12bf0a3b58efc178e4eb76c1f5b877ceac3bc7884918ff223b6d21d6ec6aedd7",
+        "status": "partial_blocked"
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v3/materialization_receipt.json",
+        "sha256": "ca157f82e573c9124ba0ab3820e2a00a862fce9ae60aa526a18d2f8cedcc00c7",
+        "status": "partial_superseded_pending_v4_inventory_revalidation"
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v4/partial_materialization_status.json",
+        "sha256": "a615fe42e41c5c1565a8f7e1c88fd408daa2b4e4d1012b9e95aab2914e037209",
+        "status": "partial_superseded_pending_post_fix_revision"
+      }
+    ],
+    "successor_stage": "analyze"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

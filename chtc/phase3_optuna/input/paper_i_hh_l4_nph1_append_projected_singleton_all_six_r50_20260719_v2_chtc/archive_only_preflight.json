@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "append_v4_source_contract_lock_count": 6,
+    "archive_only_powell_cap_and_projected_pool_regressions": "8 passed",
+    "archive_only_worker_import": "pass; source-defined cap classifier imported and exercised",
+    "bundle_contract_tests": "15 passed",
+    "normalized_manifest_count": 6,
+    "optimizer_failure_policy": "only finite non-increasing exact Powell maxiter caps accepted; every other failure rejected",
+    "same_cutoff_and_horizon_contract": "pass",
+    "worker_static_preflight": "py_compile, bash -n, and --help pass"
+  },
+  "generated_utc": "2026-07-19T19:33:49.321641+00:00",
+  "generic_static_adapt_variants_sha256": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d",
+  "operational_blockers": [],
+  "schema": "paper_i_hh_l4_nph1_append_preflight_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+  "status": "pass"
+}

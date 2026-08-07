@@ -1,0 +1,227 @@
+{
+  "bundle_id": "paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1",
+  "files": [
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/src_sanitized.tar.gz",
+      "sha256": "df54ea579624f12e4efc640072c99d266da156159fe7b92d118c47fbf855b61f",
+      "size_bytes": 3233008
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/source_archive_manifest.json",
+      "sha256": "84a56f8fe2bfe057c2d894475fb04dee1b24c1a79285d3e112d96dea34237255",
+      "size_bytes": 92760
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/source_lock_comparison.json",
+      "sha256": "1a0f8020e08cf4ad89bb4a2f5131bbe0b5bf2aaca82b98f5e9d7bf4a816dc1ec",
+      "size_bytes": 127767
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/submit.sub",
+      "sha256": "8b5367cdff8a5ac74380a913ba0f6d9198156da10e373d3492355a92dd8fd7a2",
+      "size_bytes": 3426
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/queue.tsv",
+      "sha256": "b37f215d4c48783a088253fc8ac57b19266b33439aaa78632b1d813ba88d5404",
+      "size_bytes": 832
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/execute_source_locked_job.sh",
+      "sha256": "ae4e18c71b45eff4077b176558429cb4005660cb7de67bd6972ae036d50d419d",
+      "size_bytes": 2178
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/run_job.py",
+      "sha256": "4750170e814b174d58beb2bae07462200a4e9e4e535a2d4e8236875d0404d4fb",
+      "size_bytes": 10366
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/build_bundle.py",
+      "sha256": "454b0d8026237eb44dfdf85b5e6270f1d6bc21147c7b96f64cdeff9bc582a6f7",
+      "size_bytes": 58170
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/build_route_parity_evidence.py",
+      "sha256": "c9068b7fbef954a10941982e9ac8b857fdb9af2d97480dab3f26de13544e4b7a",
+      "size_bytes": 16518
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/build_enforcement_smoke_evidence.py",
+      "sha256": "d7174f847e40da326f7767313be14c7ad3990af7b40ea6bbfcffd060a1c88043",
+      "size_bytes": 11418
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/paper_i_hh_visible_snake_prerepair_remote_snapshot_20260712.tar.gz",
+      "sha256": "1c7b8e76566813d1fc571276373b8284f0c08f6a7a07b4d96390901b346a4f63",
+      "size_bytes": 17895270
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/pre_repair_vs_corrected_source_diff.json",
+      "sha256": "ba4201b49b666b255d06a49dca6253a9738be61972ed379cd36621893cea6dff",
+      "size_bytes": 693312
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/logs/weak_weak.stdout.log",
+      "sha256": "9617ce2980d06fb1269867b81ea74700ececcb3926b5d8ccd2043618a518a0dc",
+      "size_bytes": 325957
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v1/src_sanitized.tar.gz",
+      "sha256": "898b122a4873459c52eb1161c314bb7aef324226cc3189e2a5791ff21a0f6164",
+      "size_bytes": 254967
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_20260709_v1/src_sanitized.tar.gz",
+      "sha256": "701d68c1c1654d6f3fae6ff7c37a97b9fe5a1fd4bf6d0b37e8f36443fc173797",
+      "size_bytes": 254967
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/commands_20260708.json",
+      "sha256": "aaaef244b7f2a7dbe71bbc2a2062ab2b1855bf5e684d0c2cf768815bfb5d6238",
+      "size_bytes": 23815
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_corrected_enforcement_smoke_20260712.json",
+      "sha256": "2cb7fcfcb9deb7bda4a91ab0c372fe79957b30590c4f1b5a4b4608ec4c181a27",
+      "size_bytes": 48879
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.result.json",
+      "sha256": "a8840c68181a2c58d418c0861db8fcab17a85e03166f87c3aba7ce893eb8e62b",
+      "size_bytes": 2927181
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stdout.log",
+      "sha256": "e63719a1813f04fcdbce0dda2b51d1463b3171f21b3b0aeaf6a2cc700186c6ab",
+      "size_bytes": 107404
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.result.json",
+      "sha256": "5fd0fb0afaabf909e5dd5c53458fa60bd6ad73be071e86eea8a1559a3f28b5db",
+      "size_bytes": 2927334
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stdout.log",
+      "sha256": "4467d17240c430b4162852055a96be0b8148486e653ddd7b97c87c4d49d89ea5",
+      "size_bytes": 63976
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.current.json",
+      "sha256": "3af329d972a244b5ae3c98e41facbb94d29d92485d0cdfe54574985d0cf39a91",
+      "size_bytes": 538864
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.estimator_ledger.json",
+      "sha256": "3727dea668ab18f0d991363f395d97d0e4ca0931bac1b839af63f47ec44b3ccd",
+      "size_bytes": 1019084
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.result.json",
+      "sha256": "dfd3b4fc59e1b0553c94ed97ea1432006aeb68909c95bcaf41527de1b30a4333",
+      "size_bytes": 5855484
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stdout.log",
+      "sha256": "dc03c80d03ff6e38d73d7f5a722441ec9b670f413d1a78f9a451ac1695aa2909",
+      "size_bytes": 108809
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_current_route_parity_20260712.json",
+      "sha256": "831aedc24d420c2b7e6909ce0c35f66b821cfe7b376bce90766001869604799e",
+      "size_bytes": 20671
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.result.json",
+      "sha256": "f21ffed6b1bd7e9f78e0a94774e3237038dc5cddaccf58b390889d7e4ea915f8",
+      "size_bytes": 2233457
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stdout.log",
+      "sha256": "85e4faada52f21c2fe15d53a798dd6b94a632994cc31b82edd98a339f7765cea",
+      "size_bytes": 106388
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_weak.json",
+      "sha256": "f6381e08d7d975162f48c01a17b52779c107692968474553ef16b6449c0b8f5e",
+      "size_bytes": 24125
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_weak.json",
+      "sha256": "6c34724868142f0c5f2ff439c3a4e72dafcd91ed3f55908ffb379c93f931637e",
+      "size_bytes": 24357
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_weak.json",
+      "sha256": "e815401c17a3b5714a57693bd656a4acb16808065c61cc4b33721cc1b5d20c52",
+      "size_bytes": 24178
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_strong.json",
+      "sha256": "862d4c98a3d929746d7af1dce747c1016f1b241bd1521290ee44aa41beed1a53",
+      "size_bytes": 24183
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_strong.json",
+      "sha256": "3b30c15574258f6383703e2874ca09de3506bdd05ab4da5003f102d4882b2ea0",
+      "size_bytes": 24415
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_strong.json",
+      "sha256": "c01489324e4ac42f7790838292d360ef0168493c7f799e25b056f3e8481cc456",
+      "size_bytes": 24236
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_weak.args.json",
+      "sha256": "01c5b56609a1bfe483bac20c752543d7e1877f2aaa259e28496b517045a9a5ba",
+      "size_bytes": 2670
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_weak.args.json",
+      "sha256": "05d77f1ff04cf7cdae9251015f6cdf349a0af65641bc30d19babf0ca8fd003c3",
+      "size_bytes": 2702
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_weak.args.json",
+      "sha256": "47b06783ed6f73e3467291b3d5b7c2a3fe0e01e05d2c3eaf613a24914addad61",
+      "size_bytes": 2677
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_strong.args.json",
+      "sha256": "4aed9797e383f44d13a6603ac852159da54bd56ba2822c26c1f349874dacc769",
+      "size_bytes": 2678
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_strong.args.json",
+      "sha256": "506e62c2086269e1ab7e473b711700cbe1e4a5813a623760aa6e7c987b4c7769",
+      "size_bytes": 2710
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_strong.args.json",
+      "sha256": "0f02b2238978c88bfbb9abef6bf13b2a8d0db0b203e3139a3e659c7669f8fa60",
+      "size_bytes": 2685
+    }
+  ],
+  "output_root": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712",
+  "schema": "paper_i_hh_visible_snake_recovery_bundle_manifest_v1"
+}

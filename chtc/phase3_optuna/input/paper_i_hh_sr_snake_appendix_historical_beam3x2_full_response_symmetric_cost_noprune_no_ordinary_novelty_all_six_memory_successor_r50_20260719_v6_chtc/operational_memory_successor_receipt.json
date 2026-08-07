@@ -1,0 +1,209 @@
+{
+  "classification": "operational_only_no_scientific_change_v1",
+  "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+  "parent_artifacts": {
+    "bundle_manifest.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/bundle_manifest.json",
+      "sha256": "1a73654a495c2b567611983dbcae9ed6cc15b5f1001b702b765335ad69006c95",
+      "size_bytes": 115242
+    },
+    "evidence_validation.py": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/evidence_validation.py",
+      "sha256": "6c6284ed95283e36d3ec38c0306a5d2e70d00ca1177938420e422a1972ff3c2d",
+      "size_bytes": 74884
+    },
+    "execute_source_locked_job.sh": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/execute_source_locked_job.sh",
+      "sha256": "66aa3ecccbb8a95183fb4fa3c1cf009d2a791ff93af84bbeea4d0ccce123f4d7",
+      "size_bytes": 2352
+    },
+    "physics_and_exact_reference_lock.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/physics_and_exact_reference_lock.json",
+      "sha256": "dd14be0c496bcb77dea8246e9d77d557d34bc468d4aba20329ebecc919a8c109",
+      "size_bytes": 6690
+    },
+    "preflight.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/preflight.json",
+      "sha256": "ea395900de245cb7c722f53d6845ef3a6592e358677475466d984163cac61a75",
+      "size_bytes": 1023
+    },
+    "route_parity.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/route_parity.json",
+      "sha256": "51501aeb3605344b0222d81ee2c6b18aebf00f112e82c776683c50b671e0497e",
+      "size_bytes": 12688
+    },
+    "run_job.py": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/run_job.py",
+      "sha256": "9ec9f4312e7fc1ccc285ee6fa17ce1b450548b4300adcb10157b6d1947b568aa",
+      "size_bytes": 44836
+    },
+    "scientific_settings_audit.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/scientific_settings_audit.json",
+      "sha256": "558b488d55e76fcf624d1fa7627b777e9cc95747c2b5dc1dfa5f08083e310e8f",
+      "size_bytes": 8018
+    },
+    "source_archive_manifest.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/source_archive_manifest.json",
+      "sha256": "6df3482f061cfb86a008c456d8b2445162e62bf3c9e5eebf80645d9cf9c48e14",
+      "size_bytes": 75954
+    },
+    "source_locked.tar.gz": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/source_locked.tar.gz",
+      "sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04",
+      "size_bytes": 3276892
+    },
+    "source_revision_manifest.json": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/source_revision_manifest.json",
+      "sha256": "f7d0c2b3dbc747ae8787791eef4f1457d0df85270350143c5aadef19180e220c",
+      "size_bytes": 12824
+    },
+    "validate_fetched.py": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc/validate_fetched.py",
+      "sha256": "f1584b4c1f401a13c66ada8751a1ea18eb8f1ab059132b5ee4d7523c5aed495a",
+      "size_bytes": 36738
+    }
+  },
+  "parent_batch_name": "paper-i-hh-sr-appendix-historical-beam3x2-fullresp-symcost-noprune-nonovelty-six-r50-20260718-v4",
+  "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "parent_cluster": 8887576,
+  "quota_note": "thin overlay; no duplicate source archive. Remote submission remains blocked until the parent artifacts are verified present and the reported submit-host quota headroom has been verified.",
+  "retry_scope": "all_six_memory_held_rows_after_v4_v5_failures",
+  "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+  "route_contract_unchanged": true,
+  "rows": [
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 40960,
+      "failure_cluster": 8887761,
+      "failure_proc": 0,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 42500000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 49152,
+      "observed_memory_usage_mb": 41504,
+      "old_request_memory_mb": 32768,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 0,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 41567296,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    },
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 40960,
+      "failure_cluster": 8887761,
+      "failure_proc": 1,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 42500000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 49152,
+      "observed_memory_usage_mb": 41504,
+      "old_request_memory_mb": 32768,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 1,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 41552224,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    },
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 49152,
+      "failure_cluster": 8887761,
+      "failure_proc": 2,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 50000000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 57344,
+      "observed_memory_usage_mb": 48829,
+      "old_request_memory_mb": 40960,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 2,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 49925828,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    },
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 49152,
+      "failure_cluster": 8887576,
+      "failure_proc": 3,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 50000000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 57344,
+      "observed_memory_usage_mb": 48829,
+      "old_request_memory_mb": 49152,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 3,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 48768096,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    },
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 49152,
+      "failure_cluster": 8887576,
+      "failure_proc": 4,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 50000000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 57344,
+      "observed_memory_usage_mb": 48829,
+      "old_request_memory_mb": 49152,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 4,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 49921404,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    },
+    {
+      "classification": "operational_only_no_scientific_change_v1",
+      "failed_request_memory_mb": 57344,
+      "failure_cluster": 8887761,
+      "failure_proc": 3,
+      "hold_reason": "cgroup memory limit exceeded",
+      "image_size": 75000000,
+      "memory_policy": "ceil_1p10_observed_memory_usage_to_4096mb_tier_v1",
+      "new_request_memory_mb": 81920,
+      "observed_memory_usage_mb": 73243,
+      "old_request_memory_mb": 49152,
+      "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+      "parent_cluster": 8887576,
+      "parent_proc": 5,
+      "peak_memory_usage_available": false,
+      "resident_set_size_raw": 58341520,
+      "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+      "schema": "paper_i_hh_sr_condor_memory_retry_v1",
+      "scientific_settings_changed": false,
+      "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04"
+    }
+  ],
+  "schema": "paper_i_hh_sr_beam_memory_successor_receipt_v1",
+  "scientific_settings_changed": false,
+  "source_archive_reused_byte_identical": true,
+  "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04",
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-appendix-historical-beam3x2-memory-repair-six-r50-20260719-v6",
+  "successor_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_memory_successor_r50_20260719_v6_chtc",
+  "unaffected_parent_procs_not_duplicated": []
+}

@@ -1,0 +1,314 @@
+--- a/pipelines/static_adapt/sr_snake_route_profile.py
++++ b/pipelines/static_adapt/sr_snake_route_profile.py
+@@ -55,7 +55,7 @@
+     "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
+     "no_prune_v1"
+ )
+-SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1 = (
++SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1 = (
+     "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
+     "no_prune_phase3_batch_v1"
+ )
+@@ -71,8 +71,8 @@
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1 = (
+     "sr_snake_no_prune_symmetric_cost_v1"
+ )
+-SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1 = (
+-    "sr_snake_no_prune_symmetric_cost_phase3_batch_v1"
++SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_ALIAS_V1 = (
++    "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1"
+ )
+ SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1 = (
+     "sr_snake_no_novelty_metric_prune_beam_v1"
+@@ -103,8 +103,8 @@
+     SR_ROUTE_PROFILE_CANDIDATE_V4,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+-    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1,
+-    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_ALIAS_V1,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1,
+     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+ )
+@@ -513,7 +513,7 @@
+ }
+ 
+ 
+-CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS: dict[
++CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS: dict[
+     str, Any
+ ] = {
+     # Appendix-only one-factor batching ablation of the main 1x1 route.
+@@ -522,8 +522,8 @@
+     **CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS,
+     "phase2_enable_batching": False,
+     "phase3_enable_batching": True,
+-    "phase2_batch_selection_mode": "combinatorial_reduced_plane",
+-    "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++    "phase2_batch_selection_mode": "greedy_reduced_plane",
++    "phase3_batch_selection_mode": "greedy_reduced_plane",
+     "phase2_batch_target_size": 3,
+     "phase3_batch_target_size": 3,
+     "phase2_batch_size_cap": 3,
+@@ -1150,15 +1150,15 @@
+     return _json_sha256(canonical_sr_snake_no_prune_symmetric_cost_v1_contract())
+ 
+ 
+-def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract() -> dict[str, Any]:
+-    """Return the Phase-III-only combinatorial batching appendix contract."""
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract() -> dict[str, Any]:
++    """Return the Phase-III-only fixed-source greedy batching appendix contract."""
+ 
+     payload = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+     payload["route_profile"] = (
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1
+     )
+     payload["execution_settings"] = dict(
+-        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS
+     )
+     payload["semantic_invariants"].update(
+         {
+@@ -1166,7 +1166,7 @@
+             "phase2_batching_active": False,
+             "phase3_batching_active": True,
+             "phase3_batching_scope": "post_shortlist_admission_only_v1",
+-            "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++            "phase3_batch_selection_mode": "greedy_reduced_plane",
+             "phase3_batch_target_size": 3,
+             "phase3_batch_size_cap": 3,
+             "phase3_runtime_child_subset_cap": 1,
+@@ -1186,9 +1186,9 @@
+     return json.loads(json.dumps(payload, sort_keys=True))
+ 
+ 
+-def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() -> str:
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256() -> str:
+     return _json_sha256(
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     )
+ 
+ 
+@@ -1266,8 +1266,8 @@
+         return canonical_sr_snake_v4_contract()
+     if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
+         return canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+-    if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1:
+-        return canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1:
++        return canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     if requested == SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1:
+         return canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract()
+     raise ValueError("The off SR route profile has no canonical contract.")
+@@ -1307,14 +1307,14 @@
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1: (
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+         ),
+-        "sr_snake_no_prune_symmetric_cost_phase3_batch_v1": (
+-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1": (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1
+         ),
+         "no_prune_symmetric_cost_phase3_batch_v1": (
+-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
+-        ),
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1: (
+-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1
++        ),
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1: (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1
+         ),
+         "sr_snake_no_novelty_metric_prune_beam_v1": (
+             SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1
+@@ -1334,7 +1334,7 @@
+         SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+         SR_ROUTE_PROFILE_CANDIDATE_V4,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+         SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+     }:
+         raise ValueError(
+@@ -1412,9 +1412,9 @@
+         execution_settings = (
+             CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS
+         )
+-    elif requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1:
++    elif requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1:
+         execution_settings = (
+-            CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++            CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS
+         )
+     elif requested == SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1:
+         execution_settings = {
+@@ -1442,7 +1442,7 @@
+     conflicts: list[dict[str, Any]] = []
+     if requested in {
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+     }:
+         horizon_options = frozenset(
+             _DEST_OPTION_STRINGS.get("adapt_max_depth", ("--adapt-max-depth",))
+@@ -1470,7 +1470,7 @@
+     if requested in {
+         SR_ROUTE_PROFILE_CANDIDATE_V4,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+     } and explicit_options is not None:
+         forbidden_lambda_f_options = sorted(
+             explicit_options.intersection(_V4_DISALLOWED_LAMBDA_F_OPTIONS)
+@@ -1603,7 +1603,7 @@
+     runtime_settings_checked = dict(runtime_settings)
+     if requested in {
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+     }:
+         if "adapt_max_depth" not in runtime_settings_checked:
+             raise ValueError(
+@@ -1653,7 +1653,7 @@
+     "CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS",
+-    "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS",
++    "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1_EXECUTION_SETTINGS",
+     "HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS",
+     "HISTORICAL_SR_SNAKE_V1_ACCEPTED_REFIT_SETTINGS",
+@@ -1671,8 +1671,8 @@
+     "SR_ROUTE_PROFILE_CANDIDATE_V4",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1",
+-    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1",
+-    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1",
++    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_ALIAS_V1",
++    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1",
+     "SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1",
+     "SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1",
+     "SR_ROUTE_PROFILE_CONVENTIONAL_V2",
+@@ -1693,8 +1693,8 @@
+     "canonical_sr_snake_v4_contract_sha256",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256",
+-    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract",
+-    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract_sha256",
+     "normalize_phase3_response_coordinate_scope",
+--- a/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
++++ b/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
+@@ -30,10 +30,10 @@
+     _build_run_hardcoded_adapt_vqe_kwargs,
+ )
+ from pipelines.static_adapt.sr_snake_route_profile import (
+-    CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS,
+-    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+-    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract,
+-    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256,
++    CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
+ )
+ 
+@@ -46,7 +46,7 @@
+     return _parser().parse_args(
+         [
+             "--sr-route-profile",
+-            "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
++            "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1",
+             "--adapt-max-depth",
+             "50",
+             *extra,
+@@ -110,18 +110,18 @@
+     args = _args()
+ 
+     assert args.sr_route_profile_resolved == (
+-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1
+     )
+     assert args.sr_route_profile_contract == (
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     )
+     assert args.sr_route_profile_contract_sha256 == (
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256()
+     )
+     assert args.phase2_enable_batching is False
+     assert args.phase3_enable_batching is True
+-    assert args.phase2_batch_selection_mode == "combinatorial_reduced_plane"
+-    assert args.phase3_batch_selection_mode == "combinatorial_reduced_plane"
++    assert args.phase2_batch_selection_mode == "greedy_reduced_plane"
++    assert args.phase3_batch_selection_mode == "greedy_reduced_plane"
+     assert args.phase2_batch_target_size == 3
+     assert args.phase3_batch_target_size == 3
+     assert args.phase2_batch_size_cap == 3
+@@ -129,7 +129,7 @@
+     assert args.phase3_runtime_split_max_subset_size == 1
+     assert args.phase1_prune_enabled is False
+     assert args.adapt_beam_live_branches == 1
+-    assert canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() != (
++    assert canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256() != (
+         canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
+     )
+ 
+@@ -137,10 +137,10 @@
+     assert kwargs["phase2_enable_batching"] is False
+     assert kwargs["phase3_enable_batching"] is True
+     assert kwargs["phase2_batch_selection_mode"] == (
+-        "combinatorial_reduced_plane"
++        "greedy_reduced_plane"
+     )
+     assert kwargs["phase3_batch_selection_mode"] == (
+-        "combinatorial_reduced_plane"
++        "greedy_reduced_plane"
+     )
+     assert kwargs["phase2_batch_target_size"] == 3
+     assert kwargs["phase2_batch_size_cap"] == 3
+@@ -155,7 +155,7 @@
+         {"valid": False, "noncanonical_reasons": [reason]},
+         declared_route_id="route_a",
+         historical_singleton_overlay_active=True,
+-        sr_route_profile=SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++        sr_route_profile=SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+     )
+     assert result["valid"] is True
+     assert result["allowed_legacy_noncanonical_reasons"] == [reason]
+@@ -166,12 +166,12 @@
+     ("profile", "reason"),
+     [
+         (
+-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+             "conflict_alias:phase3_enable_batching:"
+             "phase3_enable_batching=False;phase2_enable_batching=True",
+         ),
+         (
+-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1,
+             "conflict_alias:phase3_enable_batching:"
+             "phase3_enable_batching=True;batching_enabled=False",
+         ),
+@@ -214,10 +214,10 @@
+ 
+ 
+ def test_phase3_batch_appendix_contract_is_exact_one_factor_delta() -> None:
+-    contract = canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    contract = canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     settings = contract["execution_settings"]
+     assert settings == (
+-        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_GREEDY_BATCH_V1_EXECUTION_SETTINGS
+     )
+     invariants = contract["semantic_invariants"]
+     assert invariants["phase2_batching_active"] is False

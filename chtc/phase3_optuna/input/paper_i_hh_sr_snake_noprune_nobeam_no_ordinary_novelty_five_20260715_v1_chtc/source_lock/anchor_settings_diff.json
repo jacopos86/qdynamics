@@ -1,0 +1,46 @@
+{
+  "anchor_reproduction": {
+    "anchor_error": 1.0373365499916076e-09,
+    "existing_validated_anchor_used": true,
+    "new_source_value_anchor_required": false,
+    "reason": "explicit multi-field diagnostic against frozen validated anchor"
+  },
+  "approved_multi_field_ablation": true,
+  "authorization_marker_added": "sr_controller_ablation_contract:off->novelty_prune_beam_controls_v1",
+  "fallback_retained": "all_energy_models_infeasible_collective_novelty_over_cost_v1",
+  "operational_path_fields_changed": [
+    "--adapt-current-json",
+    "--adapt-estimator-call-ledger-json",
+    "--output-json"
+  ],
+  "run_class": "diagnostic",
+  "same_cutoff": {
+    "n_ph_reference": 2,
+    "n_ph_work": 2
+  },
+  "schema": "source_locked_sensitivity_audit_v1",
+  "settings_changed": [
+    "phase1_prune_enabled:true->false",
+    "adapt_beam_live_branches:3->1 (beam_enabled:false)",
+    "adapt_beam_children_per_parent:2->1 (inactive capacity)",
+    "phase2_gram_novelty_policy:ordinary_multiplier_v1->fallback_only_v1",
+    "phase3_gram_novelty_policy:ordinary_multiplier_v1->fallback_only_v1"
+  ],
+  "source": {
+    "command_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/command.json",
+    "command_sha256": "7823df8a3cb4c900a0d9a21366c18e354cd982804bdc8ad52199541ec20bd800",
+    "result_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/result.json",
+    "result_sha256": "ef43248e5a9c9893a4555f753c2871d42aca95d4143b6878fd4be04dddac6172",
+    "validated_same_cutoff_error": 1.0373365499916076e-09
+  },
+  "source_archive": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/source_lock/source_tree_no_beam_ablation_v1.tar.gz",
+    "sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6"
+  },
+  "source_revision_manifest": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/source_lock/source_revision_manifest.json",
+    "sha256": "dc6f68c6f78a737a773b7672846485e6d591f8ffd4cd2ec06aa7491339a33817"
+  },
+  "status": "pass",
+  "unexpected_differences": []
+}

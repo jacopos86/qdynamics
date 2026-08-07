@@ -1,5 +1,13 @@
--r requirements-core.txt
-
-# Plotting/reporting stack (optional in locked-down environments).
-# Install separately when available:
-#   pip install matplotlib
+numpy==2.3.5
+scipy==1.16.3
+matplotlib==3.10.7
+pandas==2.3.3
+qiskit==2.3.1
+qiskit-aer==0.17.2
+qiskit-ibm-runtime==0.46.1
+qiskit-algorithms==0.4.0
+tqdm==4.67.3
+PyYAML==6.0.3
+reportlab==4.4.10
+pdfplumber==0.11.9
+pypdf==6.10.0

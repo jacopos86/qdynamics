@@ -1,0 +1,156 @@
+{
+  "activation_id": "paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1",
+  "batch_name": "paper-i-append-adapt-stationary-core12-r70-fresh-20260731-v1-ordinary-held-v1",
+  "bindings": {
+    "activation_manifest": {
+      "canonical_sha256": "543ff80423e3348800d975bab139ccac53fc87192ef3065e3e9e0fbebd183ce2",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/activation_manifest.json",
+      "sha256": "77c813fafc0173af32802a8dac055f0e38bb4d38c196065d37c9776d07a5f9b9",
+      "size_bytes": 10624
+    },
+    "execution_authorization": {
+      "canonical_sha256": "6e3f7378fdbe352e29ba60c119ae94b3a8351a4687ea5346ec6d5368e1d8fbd4",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/execution_authorization.json",
+      "sha256": "4662e0b4732559b8efe26c1c27a9be3f94b3649751b6100dd186b5b55ca8d979",
+      "size_bytes": 2101
+    },
+    "package_manifest": {
+      "canonical_sha256": "eea38b59e60d727281dc3bdaf6d2efa7880f3f49375ce49e61134fbb35a566ea",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc/package_manifest.json",
+      "sha256": "334fb630c061d205d61554dca4b3e4f734edf5af394eda1ddb9c994869efefee",
+      "size_bytes": 5573
+    },
+    "queue": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/queue.tsv",
+      "sha256": "9e1c7ac80897ffd3b64020df7bc05c68362b767b64add946e30e0069249da000",
+      "size_bytes": 6272
+    },
+    "source_archive": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc/source_r50_locked.tar.gz",
+      "sha256": "1f949b0cc8b61dca63911832e8dc8bb32614174755ac476827956bb0812accee",
+      "size_bytes": 2418129
+    },
+    "submit_file": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/submit.sub",
+      "sha256": "8f94bf3ba61dd2c5ef34eb1f89259ae0a38d22c43cb88c32f5aa148fc1b8bc73",
+      "size_bytes": 2828
+    }
+  },
+  "campaign_id": "paper_i_append_adapt_stationary_core_r70_fresh_v1",
+  "cluster_id": 9398375,
+  "direct_execution_count": 12,
+  "initial_state": {
+    "all_held": true,
+    "all_never_started": true,
+    "batch_name_match": true,
+    "hold_reason_code_counts": {
+      "15": 12
+    },
+    "job_status_counts": {
+      "5": 12
+    },
+    "lifecycle_mode_match": true,
+    "num_job_starts_counts": {
+      "0": 12
+    },
+    "observed_proc_count": 12,
+    "observed_utc": "2026-07-31T16:12:58Z",
+    "proc_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "submit_file_match": true
+  },
+  "lifecycle": {
+    "automatic_release": false,
+    "cluster_wide_release_forbidden": true,
+    "late_materialization": false,
+    "mode": "ordinary_held_exact_proc_release_v1",
+    "one_proc_per_quota_cycle": true,
+    "release_scope": "exact_cluster_proc_only",
+    "submit_hold": true
+  },
+  "owner": "jsstrobel",
+  "package_id": "paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc",
+  "paper_evidence_adopted": false,
+  "preflight": {
+    "batch_collision_count_before_submit": 0,
+    "condor_dry_run_proc_count": 12,
+    "condor_lifecycle_validator_passed": true,
+    "staged_activation_validator_passed_in_locked_image": true
+  },
+  "provenance_limitation": {
+    "classification": "historical_external_anchor_archives_unavailable_for_fresh_rescan",
+    "embedded_source_archive_full_scan_passed": true,
+    "execution_or_source_lock_blocker": false,
+    "sealed_anchor_receipt_digest_bound": true
+  },
+  "receipt_created_utc": "2026-07-31T16:15:38Z",
+  "remote_image": {
+    "byte_verification_passed": true,
+    "path": "chtc/phase3_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "verified_utc": "2026-07-31T16:00:38Z"
+  },
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "schedd": "ap2001.chtc.wisc.edu",
+  "schema": "paper_i_append_adapt_stationary_core_r70_ordinary_held_submission_receipt_v1",
+  "sha256": "8c0847eb85e6e332f4bca90aef8ddba2ed4bffb81bfbf56649c25810b75d9b9d",
+  "status": "passed",
+  "submission_evidence": [
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/condor_dry_run.ads",
+      "role": "condor_dry_run_ads",
+      "sha256": "62fa1c94f367cd5201d4dce0e7b044d97bdfbd58986deb4597fede00ca25770c",
+      "size_bytes": 27649
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/collision_before_submit.tsv",
+      "role": "batch_collision_before_submit",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/submitted_utc.txt",
+      "role": "submission_timestamp",
+      "sha256": "d5443b130661f08e7c7796cf99d56e1466b85d968cf232420793c3a783aa2183",
+      "size_bytes": 21
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/submit.stdout",
+      "role": "successful_submit_stdout",
+      "sha256": "f607cbbce1c5290d2fc150f1c56c4e2634055fdc1a4c830383adb609273c5e2d",
+      "size_bytes": 70
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/submit.stderr",
+      "role": "successful_submit_stderr",
+      "sha256": "12e58522dd5c01144580985aefff41e886415fe3b0a0182b40cb0ed5fffbffcf",
+      "size_bytes": 62
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/submit.exit_code",
+      "role": "successful_submit_exit_code",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size_bytes": 2
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/preflight/postsubmit.json",
+      "role": "initial_condor_q_json",
+      "sha256": "cb463c14a07a70b43b3ed04cf4d97fa61868e62ce5d8bb9835a6414460bd2795",
+      "size_bytes": 83224
+    }
+  ],
+  "submit_host": "ap2001.chtc.wisc.edu",
+  "submitted_utc": "2026-07-31T16:12:58Z"
+}

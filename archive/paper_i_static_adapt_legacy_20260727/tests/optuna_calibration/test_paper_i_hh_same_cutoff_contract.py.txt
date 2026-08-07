@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import pytest
+
+from pipelines.exact_bench import paper_i_comparator_spsa_calibration as comparator
+from pipelines.exact_bench import paper_i_hh_full_policy_warm_start as full_policy
+from pipelines.exact_bench import paper_i_hh_route_a_optuna as route_a
+from pipelines.exact_bench import paper_i_hh_shared_spsa_calibration as shared_spsa
+from pipelines.exact_bench import paper_i_hh_snake_fullpolicy_warm_start as snake_warm
+from pipelines.exact_bench import paper_i_hh_snake_global_policy_optuna as global_policy
+from pipelines.exact_bench import paper_i_hh_speed_optuna as speed
+
+
+def _assert_same_cutoff(rows) -> None:
+    assert rows
+    assert all(int(row.n_ph_work) == int(row.n_ph_ref) for row in rows)
+
+
+def test_all_live_paper_i_hh_comparison_defaults_are_same_cutoff() -> None:
+    assert all(
+        int(row["n_ph_work"]) == int(row["n_ph_ref"])
+        for row in snake_warm.REGIME_SPECS.values()
+    )
+    assert all(
+        int(row["n_ph_work"]) == int(row["n_ph_ref"])
+        for row in full_policy.REGIME_EXPECTED_HH.values()
+    )
+    assert all(
+        int(row["n_ph_work"]) == int(row["n_ph_ref"])
+        for row in speed._REGIMES.values()
+    )
+    _assert_same_cutoff(global_policy.default_training_points())
+    _assert_same_cutoff(global_policy.default_evaluation_points())
+    _assert_same_cutoff(shared_spsa.PAPER_I_HH_SHARED_SPSA_REGIMES)
+    _assert_same_cutoff(comparator.HH_TABLEIII_REPAIR_TARGETS)
+    assert comparator.HH_TABLEIII_REPAIR_PRIMARY_ENERGY_METRIC == "same_cutoff_abs_delta_e"
+    assert comparator.HH_TABLEIII_REPAIR_SAME_CUTOFF_ERROR_ROLE == "primary"
+
+    jr_contract = route_a.jr_l10_rollback_free_r50_scientific_contract(max_depth=50)
+    assert all(
+        int(row["n_ph_work"]) == int(row["n_ph_ref"])
+        for row in jr_contract["cutoff_contract"].values()
+    )
+
+
+def test_speed_wrapper_rejects_a_distinct_reference_cutoff() -> None:
+    args = speed._build_parser().parse_args(["--regime", "weak-weak", "--n-ph-ref", "5"])
+    with pytest.raises(ValueError, match="require --n-ph-ref to equal"):
+        speed._effective_hh_point(args)
+

@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_task_apptainer.sh
+arguments = $(record_id) chtc/phase3_optuna/input/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2/paper_i_hh_spsa_budget_ladder_records.tsv raw_outputs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna, agent_guidance/static-adapt/hh_full_meta_minus_hva_class_filter.json, MATH/paper_facing/paper_I_static_scaffold/hh_ed_reference_manifest_20260614.json, raw_outputs/chtc_retrievals/paper_i_u8_hh_strong_strong_snake_current_best/paper_i_u8_hh_ss_v2_7702629_2_20260614T180758Z/trial_0001_current.json
+transfer_output_files = raw_outputs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2, logs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2
+stream_output = False
+stream_error = False
+log = logs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2.$(Cluster).$(Process).log
+output = logs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2.$(Cluster).$(Process).out
+error = logs/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 24576MB
+request_disk = 40960MB
++MaxRuntime = 172800
++JobBatchName = "holstein-paper-i-hh-shared-pool-rotosolve-all-regimes-20260627-v2"
+queue record_id from chtc/phase3_optuna/input/paper_i_hh_shared_pool_rotosolve_all_regimes_20260627_v2/paper_i_hh_spsa_budget_ladder_record_ids.txt

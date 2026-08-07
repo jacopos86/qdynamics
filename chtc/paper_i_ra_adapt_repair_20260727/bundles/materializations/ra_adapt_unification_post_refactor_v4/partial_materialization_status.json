@@ -1,0 +1,30 @@
+{
+  "blocked_at_utc": "2026-07-28T03:20:04Z",
+  "bundle_materialization": {
+    "interrupted_during": "canonical_archive_member_verification",
+    "process_exit_status": 130,
+    "ra_repair_measured_late_v1_emitted": false,
+    "ra_repair_stationary_late_v1_emitted": false
+  },
+  "execution_authorized": false,
+  "reason": {
+    "classification": "implementation_validation_failure_discovered_concurrently",
+    "failure_count": 3,
+    "scope": "historical_singleton_pruning_lineage_canonicalization",
+    "required_resolution": "narrow engine fix followed by a new append-only final materialization revision"
+  },
+  "schema": "ra_adapt_partial_materialization_status_v1",
+  "source_materialization": {
+    "defining_input_comparison_status": "passed",
+    "logical_source_lock_count": 50,
+    "projection_count": 14,
+    "strict_resolver_count": 50,
+    "strict_resolver_failures": 0,
+    "strict_resolver_permissive_flags_used": false,
+    "visible_provenance_sha256": "0153bbf8e1ea73c6c73bd559548d5e8b9e80b185effe9c4e8cd9ce6b7a1cae2e"
+  },
+  "stationarity_winner_selected": false,
+  "status": "partial_superseded_pending_post_fix_revision",
+  "submission_state": "not_submitted",
+  "submitted": false
+}

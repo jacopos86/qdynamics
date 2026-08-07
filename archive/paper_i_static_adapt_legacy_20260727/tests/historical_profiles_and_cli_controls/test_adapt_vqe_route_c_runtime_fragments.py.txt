@@ -1,0 +1,380 @@
+    def _route_c_plateau_kwargs(self, **overrides: object) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "h_poly": self._hh_h(),
+            "num_sites": 2,
+            "ordering": "blocked",
+            "problem": "hh",
+            "adapt_pool": "full_meta",
+            "t": 1.0,
+            "u": 2.0,
+            "dv": 0.0,
+            "boundary": "periodic",
+            "omega0": 1.0,
+            "g_ep": 0.5,
+            "n_ph_max": 1,
+            "boson_encoding": "binary",
+            "max_depth": 2,
+            "eps_grad": 1e-12,
+            "eps_energy": 1e-12,
+            "maxiter": 8,
+            "seed": 7,
+            "allow_repeats": False,
+            "finite_angle_fallback": False,
+            "finite_angle": 0.1,
+            "finite_angle_min_improvement": 1e-12,
+            "adapt_inner_optimizer": "POWELL",
+            "adapt_reopt_policy": "windowed",
+            "adapt_window_size": 2,
+            "adapt_window_topk": 0,
+            "adapt_final_full_refit": True,
+            "adapt_continuation_mode": "phase3_v1",
+            "static_route_id": "route_c",
+            "phase3_selector_policy": "algebraic_nested_v1",
+            "phase3_selector_geometry_mode": "reduced",
+            "phase3_backend_cost_mode": "proxy",
+            "phase2_enable_batching": True,
+            "phase2_batch_selection_mode": "reduced_plane",
+            "phase3_batch_prefilter_mode": "off",
+            "phase3_novelty_ablation_mode": "off",
+            "phase3_window_relaxation_mode": "reduced",
+            "phase3_enable_rescue": False,
+            "phase3_lifetime_cost_mode": "phase3_v1",
+            "phase1_prune_enabled": True,
+            "phase1_prune_policy": "recoverability_ladder_v1",
+            "phase1_prune_mode": "both",
+            "phase3_plateau_acquisition_mode": "novelty_cost_v1",
+            "phase3_plateau_duplicate_policy": "block_exact_position_v1",
+        }
+        payload.update(overrides)
+        return payload
+    def test_route_c_plateau_acquisition_beam_width_fails_fast(self):
+        with pytest.raises(NotImplementedError, match="single-branch execution"):
+            _run_hardcoded_adapt_vqe(
+                **self._route_c_plateau_kwargs(
+                    max_depth=1,
+                    adapt_beam_live_branches=2,
+                )
+            )
+    def test_route_c_plateau_failed_unlock_commits_zero_dormant_record(self):
+        payload, _ = _run_hardcoded_adapt_vqe(
+            **self._route_c_plateau_kwargs(
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                phase3_plateau_unlock_margin=1e9,
+            )
+        )
+
+        route_c = payload["route_c_plateau_acquisition"]
+        assert route_c["enabled"] is True
+        assert route_c["exit_status"] == "dormant_records_remaining"
+        assert int(route_c["failed_unlock_count"]) >= 1
+        assert int(route_c["dormant_count"]) >= 1
+        assert any(row.get("event") == "plateau_entry" for row in route_c["events_tail"])
+        assert any(
+            row.get("event") == "failed_unlock_dormant_admission"
+            for row in route_c["events_tail"]
+        )
+
+        failed_rows = [
+            row
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and row["route_c_plateau_acquisition"].get("event") == "failed_unlock_dormant_admission"
+        ]
+        assert failed_rows
+        failed = failed_rows[-1]
+        failed_payload = failed["route_c_plateau_acquisition"]
+        assert failed_payload["unlock_success"] is False
+        assert failed_payload["unlock_status"] == "failed_dormant_commit"
+        assert float(failed_payload["trial_drop"]) < 1e9
+        assert failed["energy_after_opt"] == pytest.approx(
+            float(failed_payload["reportable_energy_after"])
+        )
+        assert failed["energy_after_opt"] == pytest.approx(
+            float(failed_payload["reportable_energy_before"])
+        )
+        assert failed_payload["trainable_logical_indices"]
+        assert failed_payload["dormant_indices_after"]
+
+        logical_theta = [float(x) for x in payload["logical_optimal_point"]]
+        for dormant_idx in route_c["dormant_logical_indices"]:
+            assert abs(logical_theta[int(dormant_idx)]) == pytest.approx(0.0, abs=1e-14)
+        assert payload["final_full_refit"]["executed"] is False
+        assert payload["final_full_refit"]["skipped_reason"] == "route_c_plateau_dormant_records_present"
+        assert payload["prune_summary"]["suppressed_reason"] == "route_c_plateau_dormant_records_present"
+    def test_route_c_plateau_sp_qngd_trial_dispatch_records_optimizer_info(self):
+        payload, _ = _run_hardcoded_adapt_vqe(
+            **self._route_c_plateau_kwargs(
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                phase3_plateau_unlock_margin=1e9,
+                phase3_plateau_trial_optimizer="sp_qngd",
+                phase3_plateau_trial_qngd_maxiter=0,
+                adapt_estimator_call_ledger_enabled=True,
+            )
+        )
+
+        failed_rows = [
+            row
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and row["route_c_plateau_acquisition"].get("event") == "failed_unlock_dormant_admission"
+        ]
+        assert failed_rows
+        row = failed_rows[-1]
+        event = row["route_c_plateau_acquisition"]
+        assert row["opt_method"] == "SP_QNGD"
+        assert event["trial_optimizer_requested"] == "sp_qngd"
+        assert event["trial_optimizer_effective"] == "SP_QNGD"
+        assert event["trial_optimizer_info"]["optimizer"] == "route_c_sp_qngd_v1"
+        assert event["trial_optimizer_info"]["qngd_maxiter_effective"] == 0
+        assert event["trial_optimizer_info"]["qngd_state_probe_count"] == 0
+        expected_sp_qngd_energy_occurrences = sum(
+            int(
+                row["route_c_plateau_acquisition"]["trial_optimizer_info"].get(
+                    "qngd_energy_observer_call_count",
+                    0,
+                )
+            )
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and isinstance(
+                row["route_c_plateau_acquisition"].get(
+                    "trial_optimizer_info"
+                ),
+                dict,
+            )
+            and row["route_c_plateau_acquisition"]["trial_optimizer_info"].get(
+                "optimizer"
+            )
+            == "route_c_sp_qngd_v1"
+        )
+        sp_qngd_energy_occurrences = [
+            occurrence
+            for occurrence in payload["estimator_call_accounting"]["full_ledger"][
+                "occurrences"
+            ]
+            if str(occurrence.get("consumer_scope", "")).startswith(
+                "energy:route_c_sp_qngd_trial:"
+            )
+        ]
+        assert expected_sp_qngd_energy_occurrences > 0
+        assert len(sp_qngd_energy_occurrences) == int(
+            expected_sp_qngd_energy_occurrences
+        )
+        identity_by_primitive_id = {
+            str(entry["primitive_id"]): dict(entry["identity"])
+            for entry in payload["estimator_call_accounting"]["full_ledger"][
+                "entries"
+            ]
+        }
+        assert all(
+            occurrence["component"] == "N_H_refit"
+            and identity_by_primitive_id[str(occurrence["primitive_id"])][
+                "primitive_kind"
+            ]
+            == "hamiltonian_expectation"
+            for occurrence in sp_qngd_energy_occurrences
+        )
+        assert (
+            "route_c_sp_qngd_gradient_metric_primitives_unresolved"
+            not in payload["estimator_call_accounting"]["exact_blockers"]
+        )
+    def test_route_c_plateau_sp_qngd_geometry_probe_counter(self):
+        history = [
+            {
+                "route_c_plateau_acquisition": {
+                    "trial_optimizer_info": {
+                        "optimizer": "route_c_sp_qngd_v1",
+                        "qngd_state_probe_count": 12,
+                        "qngd_metric_eval_count": 3,
+                    }
+                }
+            },
+            {
+                "route_c_plateau_acquisition": {
+                    "trial_optimizer_info": {
+                        "optimizer": "POWELL",
+                        "qngd_state_probe_count": 999,
+                        "qngd_metric_eval_count": 999,
+                    }
+                }
+            },
+        ]
+        assert (
+            _route_c_sp_qngd_unaccounted_geometry_probe_count(history)
+            == 15
+        )
+    def test_route_c_plateau_successful_unlock_commits_trial_and_promotes_nonzero_coords(self):
+        payload, _ = _run_hardcoded_adapt_vqe(
+            **self._route_c_plateau_kwargs(
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                phase3_plateau_unlock_margin=1e-3,
+                adapt_final_full_refit=False,
+            )
+        )
+
+        route_c = payload["route_c_plateau_acquisition"]
+        assert route_c["enabled"] is True
+        assert int(route_c["unlock_count"]) >= 1
+        assert any(row.get("event") == "successful_unlock" for row in route_c["events_tail"])
+        assert route_c["exit_status"] in {"unlocked", "dormant_records_remaining"}
+
+        success_rows = [
+            row
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and row["route_c_plateau_acquisition"].get("event") == "successful_unlock"
+        ]
+        assert success_rows
+        success = success_rows[-1]["route_c_plateau_acquisition"]
+        assert success["unlock_success"] is True
+        assert success["unlock_status"] == "successful_unlock"
+        assert float(success["trial_drop"]) + 1e-14 >= float(success["unlock_margin"])
+        assert success_rows[-1]["energy_after_opt"] == pytest.approx(float(success["trial_energy"]))
+        assert success_rows[-1]["energy_after_opt"] == pytest.approx(
+            float(success["reportable_energy_after"])
+        )
+        assert float(success["reportable_energy_after"]) < float(success["reportable_energy_before"])
+
+        promoted = [int(i) for i in success["promoted_logical_indices"]]
+        remaining = [int(i) for i in success["remaining_dormant_indices"]]
+        success_state = success["state_after"]
+        assert promoted
+        assert set(promoted).isdisjoint(set(remaining))
+        assert bool(success_state["active_episode"]) is bool(remaining)
+        assert int(success_state["unlock_count"]) >= 1
+        theta_zero = float(route_c["theta_zero"])
+        assert success["logical_index_space"] == "route_c_event_post_insertion_pre_final_prune"
+        event_parameter_count = int(success["logical_parameter_count_after_trial"])
+        promoted_abs_theta = {
+            int(k): float(v) for k, v in success["promoted_logical_abs_theta"].items()
+        }
+        for idx in promoted:
+            assert 0 <= int(idx) < event_parameter_count
+            assert promoted_abs_theta[int(idx)] > theta_zero
+        logical_theta = [float(x) for x in payload["logical_optimal_point"]]
+        for idx in remaining:
+            assert abs(logical_theta[idx]) == pytest.approx(0.0, abs=1e-14)
+        assert sorted(remaining) == sorted(int(i) for i in route_c["dormant_logical_indices"])
+        assert int(route_c["dormant_count"]) == len(remaining)
+    def test_route_c_plateau_second_failed_unlock_trains_existing_dormant_coordinate(self):
+        payload, _ = _run_hardcoded_adapt_vqe(
+            **self._route_c_plateau_kwargs(
+                max_depth=3,
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                phase3_plateau_unlock_margin=1e9,
+            )
+        )
+
+        failed_rows = [
+            row
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and row["route_c_plateau_acquisition"].get("event") == "failed_unlock_dormant_admission"
+        ]
+        assert len(failed_rows) >= 2
+        first_failed = failed_rows[0]["route_c_plateau_acquisition"]
+        second_row = failed_rows[1]
+        second_failed = second_row["route_c_plateau_acquisition"]
+        first_dormants = [int(i) for i in first_failed["dormant_indices_after"]]
+        assert first_dormants
+        assert set(first_dormants).issubset(
+            {int(i) for i in second_failed["dormant_indices_before"]}
+        )
+
+        selected_record = second_failed["selected_record"]
+        assert isinstance(selected_record, dict)
+        window = selected_record["active_dormant_nested_window"]
+        assert isinstance(window, dict)
+        assert set(first_dormants).issubset({int(i) for i in window["dormant_old_pre_indices"]})
+        assert selected_record["phase3_plateau_novelty_source"] == "active_dormant_schur_v1"
+        assert selected_record["phase3_plateau_novelty_error"] is None
+        assert set(first_dormants).issubset(
+            {int(i) for i in selected_record["phase3_plateau_novelty_dormant_indices"]}
+        )
+        assert set(first_dormants).issubset(
+            {int(i) for i in selected_record["phase3_plateau_novelty_context_indices"]}
+        )
+        assert selected_record["phase3_plateau_novelty_dormant_count"] >= len(first_dormants)
+        dormant_post = [int(i) for i in window["dormant_old_post_indices"]]
+        trainable = {int(i) for i in second_failed["trainable_logical_indices"]}
+        assert dormant_post
+        assert set(dormant_post).issubset(trainable)
+        assert int(window["candidate_post_index"]) in trainable
+
+        assert second_failed["unlock_success"] is False
+        assert second_failed["unlock_status"] == "failed_dormant_commit"
+        assert second_row["energy_after_opt"] == pytest.approx(
+            float(second_failed["reportable_energy_before"])
+        )
+        assert second_row["energy_after_opt"] == pytest.approx(
+            float(second_failed["reportable_energy_after"])
+        )
+        assert set(dormant_post).issubset({int(i) for i in second_failed["dormant_indices_after"]})
+
+        route_c = payload["route_c_plateau_acquisition"]
+        assert int(route_c["failed_unlock_count"]) >= 2
+        logical_theta = [float(x) for x in payload["logical_optimal_point"]]
+        for dormant_idx in route_c["dormant_logical_indices"]:
+            assert abs(logical_theta[int(dormant_idx)]) == pytest.approx(0.0, abs=1e-14)
+        assert payload["final_full_refit"]["executed"] is False
+        assert payload["prune_summary"]["suppressed_reason"] == "route_c_plateau_dormant_records_present"
+    def test_route_c_plateau_seed_probe_targets_existing_dormant_plus_new_coordinate(self):
+        payload, _ = _run_hardcoded_adapt_vqe(
+            **self._route_c_plateau_kwargs(
+                max_depth=3,
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                phase3_plateau_unlock_margin=1e9,
+                phase3_plateau_seed_probe_mode="dormant_new_random_v1",
+                phase3_plateau_seed_probe_count=3,
+                phase3_plateau_seed_probe_radius=0.05,
+                phase3_plateau_seed_probe_seed=123,
+            )
+        )
+
+        failed_rows = [
+            row
+            for row in payload["history"]
+            if isinstance(row.get("route_c_plateau_acquisition"), dict)
+            and row["route_c_plateau_acquisition"].get("event") == "failed_unlock_dormant_admission"
+        ]
+        assert len(failed_rows) >= 2
+        first_failed = failed_rows[0]["route_c_plateau_acquisition"]
+        second_row = failed_rows[1]
+        second_failed = second_row["route_c_plateau_acquisition"]
+        first_dormants = [int(i) for i in first_failed["dormant_indices_after"]]
+        assert first_dormants
+
+        seed_probe = second_failed["seed_probe"]
+        assert seed_probe["schema"] == "route_c_plateau_seed_probe_v1"
+        assert seed_probe["mode"] == "dormant_new_random_v1"
+        assert seed_probe["enabled"] is True
+        assert seed_probe["status"] == "seed_selected"
+        assert seed_probe["seed_used"] is True
+        assert int(seed_probe["nfev"]) == 4
+        assert int(second_failed["seed_probe_nfev"]) == 4
+        assert int(second_row["nfev_seed_probe"]) == 4
+        assert seed_probe["base_energy"] is not None
+        assert seed_probe["best_energy"] is not None
+        assert seed_probe["best_drop"] is not None
+
+        probe_logical = {int(i) for i in seed_probe["probe_logical_indices"]}
+        assert set(first_dormants).issubset(probe_logical)
+        assert int(second_failed["position_id"]) in probe_logical
+        assert {int(i) for i in seed_probe["probe_runtime_indices"]}
+        assert {int(i) for i in seed_probe["probe_reduced_positions"]}
+        assert payload["route_c_plateau_acquisition"]["config"]["seed_probe_enabled"] is True
+        assert payload["route_c_plateau_acquisition"]["config"]["seed_probe_count"] == 3
+        assert second_failed["unlock_success"] is False
+        assert second_row["energy_after_opt"] == pytest.approx(
+            float(second_failed["reportable_energy_after"])
+        )

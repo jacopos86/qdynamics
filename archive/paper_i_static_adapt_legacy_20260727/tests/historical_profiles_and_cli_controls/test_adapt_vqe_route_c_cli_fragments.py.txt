@@ -1,0 +1,59 @@
+    def test_parse_accepts_route_c_plateau_acquisition_flags(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--static-route-id",
+                "route_c",
+                "--allow-legacy-static-route",
+                "--phase3-plateau-acquisition-mode",
+                "novelty_cost_v1",
+                "--phase3-plateau-acquisition-score",
+                "fractional_residual_v1",
+                "--phase3-plateau-unlock-margin",
+                "1e-7",
+                "--phase3-plateau-duplicate-policy",
+                "block_exact_position_v1",
+                "--phase3-plateau-lambda-vol",
+                "1e-6",
+                "--phase3-plateau-sigma-min",
+                "1e-5",
+                "--phase3-plateau-nu-min",
+                "0.2",
+                "--phase3-plateau-volume-min",
+                "0.1",
+                "--phase3-plateau-failed-family-patience",
+                "3",
+                "--phase3-plateau-trial-optimizer",
+                "sp_qngd",
+                "--phase3-plateau-trial-qngd-maxiter",
+                "11",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.static_route_id) == "route_c"
+        assert str(args.phase3_plateau_acquisition_mode) == "novelty_cost_v1"
+        assert str(args.phase3_plateau_acquisition_score) == "fractional_residual_v1"
+        assert float(args.phase3_plateau_unlock_margin) == pytest.approx(1e-7)
+        assert str(args.phase3_plateau_duplicate_policy) == "block_exact_position_v1"
+        assert float(args.phase3_plateau_lambda_vol) == pytest.approx(1e-6)
+        assert float(args.phase3_plateau_sigma_min) == pytest.approx(1e-5)
+        assert float(args.phase3_plateau_nu_min) == pytest.approx(0.2)
+        assert float(args.phase3_plateau_volume_min) == pytest.approx(0.1)
+        assert int(args.phase3_plateau_failed_family_patience) == 3
+        assert str(args.phase3_plateau_trial_optimizer) == "sp_qngd"
+        assert int(args.phase3_plateau_trial_qngd_maxiter) == 11
+
+    def test_parse_rejects_route_c_without_legacy_compatibility_gate(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--static-route-id", "route_c"],
+        )
+
+        with pytest.raises(SystemExit):
+            _adapt_mod.parse_args()

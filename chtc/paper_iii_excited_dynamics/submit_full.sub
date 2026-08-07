@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_iii_excited_dynamics/run_task_apptainer.sh
+arguments = $(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/paper_iii_excited_dynamics, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_disk = 30GB
+request_memory = 12GB
++MaxRuntime = 43200
++JobBatchName = "holstein-paper-iii-excited-dynamics-full"
+log = logs/paper-iii-excited-dynamics-full.$(Cluster).$(Process).log
+output = logs/paper-iii-excited-dynamics-full.$(Cluster).$(Process).out
+error = logs/paper-iii-excited-dynamics-full.$(Cluster).$(Process).err
+queue record_id from chtc/paper_iii_excited_dynamics/input/full_record_ids.txt

@@ -1,0 +1,27 @@
+{
+  "schema": "paper_i_hh_sr_symcost_noprune_remote_execution_gate_v1",
+  "status": "pass",
+  "remote_execution_preflight": {
+    "image_path": "chtc/phase3_optuna/image.sif",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "qiskit_import_passed": true,
+    "qiskit_version": "2.3.1",
+    "fake_backend_instantiation_passed": true,
+    "fake_backend_resolved": "fake_marrakesh",
+    "fake_backend_qubits": 156
+  },
+  "confirmation": {
+    "checked_utc": "2026-07-18T17:14:55Z",
+    "checked_by": "codex_main_agent_authenticated_ssh",
+    "evidence": {
+      "host": "ap2001.chtc.wisc.edu",
+      "remote_root": "Holstein_phase3_optuna_chtc",
+      "image_sha256_command": "sha256sum chtc/phase3_optuna/image.sif",
+      "container_runtime": "apptainer",
+      "python_executable": "python3",
+      "qiskit_backend_class": "qiskit_ibm_runtime.fake_provider.FakeMarrakesh"
+    }
+  },
+  "submission_performed": false,
+  "blockers": []
+}

@@ -1,0 +1,75 @@
+{
+  "classification": "operational_storage_cleanup_not_paper_evidence",
+  "deleted_archives": [
+    {
+      "cluster_id": 9401082,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_chtc_runtime/fetched/historical_mean_global_singleton_v2_nph7_r50__weak_strong__nph7__ra_global_singleton_plateau__resume_from_d35_to_r50_v1__cluster_9401082__proc_0.tar.gz",
+      "proc_id": 0,
+      "recoverability": "deleted_archive_not_recoverable_source_checkpoint_and_logs_retained",
+      "regime_id": "weak_strong",
+      "sha256": "e80f67bbd47183eead044198de9dde345da8e66bc4c5e6f9a2007b47619d1d2f",
+      "size_bytes": 1117054960
+    },
+    {
+      "cluster_id": 9401082,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_chtc_runtime/fetched/historical_mean_global_singleton_v2_nph7_r50__intermediate_strong__nph7__ra_global_singleton_plateau__resume_from_d31_to_r50_v1__cluster_9401082__proc_1.tar.gz",
+      "proc_id": 1,
+      "recoverability": "deleted_archive_not_recoverable_source_checkpoint_and_logs_retained",
+      "regime_id": "intermediate_strong",
+      "sha256": "789001b49b9c15e37ae54f2c6a4890d4bbae0c0301b1e7c1d4f5fa016399cf7e",
+      "size_bytes": 987491299
+    },
+    {
+      "cluster_id": 9401082,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_chtc_runtime/fetched/historical_mean_global_singleton_v2_nph7_r50__strong_strong_u8__nph7__ra_global_singleton_plateau__resume_from_d17_to_r50_v1__cluster_9401082__proc_2.tar.gz",
+      "proc_id": 2,
+      "recoverability": "deleted_archive_not_recoverable_source_checkpoint_and_logs_retained",
+      "regime_id": "strong_strong_u8",
+      "sha256": "b2ce31a7c8b30341fa8ea5d555a19a86cfd6e4758ac8b5fa37c697608f7a766a",
+      "size_bytes": 1048223399
+    }
+  ],
+  "deleted_bytes": 3152769658,
+  "paper_evidence_adopted": false,
+  "quota": {
+    "after_used_mib": 44900,
+    "before_used_mib": 47907,
+    "hard_limit_mib": 51200,
+    "soft_limit_mib": 40960
+  },
+  "reason": "cluster_9401082_exited_before_resume_acceptance_and_archives_only_repackaged_retained_source_checkpoint_triplets",
+  "retained_failure_evidence": {
+    "job_status": "held_after_exit_2",
+    "logs_directory": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_chtc_runtime/logs",
+    "scheduler_cluster_id": 9401082,
+    "submission_receipt": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_chtc_runtime/submission_receipt.json"
+  },
+  "retained_source_checkpoints": [
+    {
+      "controller_round": 35,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.0__weak_strong__20260802T192821Z.tar.gz",
+      "proc_id": 0,
+      "sha256": "06efd350c3c188d8e5af75f385ede22d340b71355c48b38516294ec17af6b6c7",
+      "size_bytes": 1227663445
+    },
+    {
+      "controller_round": 31,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.1__intermediate_strong__20260802T192821Z.tar.gz",
+      "proc_id": 1,
+      "sha256": "2daba25929aae14889e22b968e8da24c0e2c396749b155bd985d9363e480c049",
+      "size_bytes": 1083965298
+    },
+    {
+      "controller_round": 17,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.2__strong_strong__20260802T192821Z.tar.gz",
+      "proc_id": 2,
+      "sha256": "80941a839ae950b90e30c1da7b82aefcee8ce61d87790329fbb8117454145ed9",
+      "size_bytes": 1142566246
+    }
+  ],
+  "schema": "paper_i_failed_resume_attempt_archive_cleanup_receipt_v1",
+  "sha256": "711995e64be4041c65277f4b918aa412ef065029b2b385a52c9a08a24b4aa754",
+  "status": "passed",
+  "user_authorized": true,
+  "verified_absent_utc": "2026-08-03T00:26:51Z"
+}

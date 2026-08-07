@@ -1,0 +1,221 @@
+{
+  "adapt_vqe": {
+    "active_prefix_checkpoints": [
+      {
+        "active_ansatz_depth": 2,
+        "checkpoint_kind": "post_admission_prune",
+        "checkpoint_sha256": "32db36284cc2ebebc1b0d1f103987d50b876eb767f1b0277d55c9ff36f18454e",
+        "estimator_ledger_receipt": {
+          "checkpoint_kind": "post_admission_prune",
+          "checkpoint_sequence": 2,
+          "cumulative_raw_occurrences": {
+            "total": 1103
+          },
+          "cumulative_unique_primitives": {
+            "S_alg": 922
+          },
+          "outer_iteration": 2,
+          "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1"
+        },
+        "ordered_active_operator_labels": [
+          "op::a",
+          "op::b"
+        ],
+        "outer_iteration": 2,
+        "parameterization": {
+          "logical_operator_count": 2,
+          "runtime_parameter_count": 2
+        },
+        "parameterization_mode": "logical_shared",
+        "projective_state_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+        "signed_unwrapped_logical_parameters": [
+          0.125,
+          -0.25
+        ],
+        "signed_unwrapped_runtime_parameters": [
+          0.125,
+          -0.25
+        ],
+        "sr_route_profile": "sr_snake_no_prune_symmetric_cost_v1",
+        "sr_route_profile_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ],
+    "continuation": {
+      "active_prefix_checkpoints": [
+        {
+          "active_ansatz_depth": 2,
+          "checkpoint_kind": "post_admission_prune",
+          "checkpoint_sha256": "32db36284cc2ebebc1b0d1f103987d50b876eb767f1b0277d55c9ff36f18454e",
+          "estimator_ledger_receipt": {
+            "checkpoint_kind": "post_admission_prune",
+            "checkpoint_sequence": 2,
+            "cumulative_raw_occurrences": {
+              "total": 1103
+            },
+            "cumulative_unique_primitives": {
+              "S_alg": 922
+            },
+            "outer_iteration": 2,
+            "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1"
+          },
+          "ordered_active_operator_labels": [
+            "op::a",
+            "op::b"
+          ],
+          "outer_iteration": 2,
+          "parameterization": {
+            "logical_operator_count": 2,
+            "runtime_parameter_count": 2
+          },
+          "parameterization_mode": "logical_shared",
+          "projective_state_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+          "signed_unwrapped_logical_parameters": [
+            0.125,
+            -0.25
+          ],
+          "signed_unwrapped_runtime_parameters": [
+            0.125,
+            -0.25
+          ],
+          "sr_route_profile": "sr_snake_no_prune_symmetric_cost_v1",
+          "sr_route_profile_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "terminal_active_prefix_checkpoint": {
+        "active_ansatz_depth": 2,
+        "checkpoint_kind": "terminal_post_final_refit_and_prune",
+        "checkpoint_sha256": "23fc988713f244f64e6dae7e6561a1be39cdfc084e8496d7faab16535d226cd9",
+        "estimator_ledger_receipt": {
+          "checkpoint_kind": "terminal_post_final_refit_and_prune",
+          "checkpoint_sequence": 3,
+          "cumulative_raw_occurrences": {
+            "total": 1104
+          },
+          "cumulative_unique_primitives": {
+            "S_alg": 922
+          },
+          "outer_iteration": 2,
+          "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1"
+        },
+        "ordered_active_operator_labels": [
+          "op::a",
+          "op::b"
+        ],
+        "outer_iteration": 2,
+        "parameterization": {
+          "logical_operator_count": 2,
+          "runtime_parameter_count": 2
+        },
+        "parameterization_mode": "logical_shared",
+        "projective_state_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+        "signed_unwrapped_logical_parameters": [
+          0.125,
+          -0.25
+        ],
+        "signed_unwrapped_runtime_parameters": [
+          0.125,
+          -0.25
+        ],
+        "sr_route_profile": "sr_snake_no_prune_symmetric_cost_v1",
+        "sr_route_profile_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "history": [
+      {
+        "active_prefix_checkpoint": {
+          "active_ansatz_depth": 2,
+          "checkpoint_kind": "post_admission_prune",
+          "checkpoint_sha256": "32db36284cc2ebebc1b0d1f103987d50b876eb767f1b0277d55c9ff36f18454e",
+          "estimator_ledger_receipt": {
+            "checkpoint_kind": "post_admission_prune",
+            "checkpoint_sequence": 2,
+            "cumulative_raw_occurrences": {
+              "total": 1103
+            },
+            "cumulative_unique_primitives": {
+              "S_alg": 922
+            },
+            "outer_iteration": 2,
+            "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1"
+          },
+          "ordered_active_operator_labels": [
+            "op::a",
+            "op::b"
+          ],
+          "outer_iteration": 2,
+          "parameterization": {
+            "logical_operator_count": 2,
+            "runtime_parameter_count": 2
+          },
+          "parameterization_mode": "logical_shared",
+          "projective_state_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+          "signed_unwrapped_logical_parameters": [
+            0.125,
+            -0.25
+          ],
+          "signed_unwrapped_runtime_parameters": [
+            0.125,
+            -0.25
+          ],
+          "sr_route_profile": "sr_snake_no_prune_symmetric_cost_v1",
+          "sr_route_profile_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    ],
+    "operators": [
+      "op::a",
+      "op::b"
+    ],
+    "optimal_point": [
+      0.125,
+      -0.25
+    ],
+    "parameterization": {
+      "logical_operator_count": 2,
+      "runtime_parameter_count": 2
+    },
+    "terminal_active_prefix_checkpoint": {
+      "active_ansatz_depth": 2,
+      "checkpoint_kind": "terminal_post_final_refit_and_prune",
+      "checkpoint_sha256": "23fc988713f244f64e6dae7e6561a1be39cdfc084e8496d7faab16535d226cd9",
+      "estimator_ledger_receipt": {
+        "checkpoint_kind": "terminal_post_final_refit_and_prune",
+        "checkpoint_sequence": 3,
+        "cumulative_raw_occurrences": {
+          "total": 1104
+        },
+        "cumulative_unique_primitives": {
+          "S_alg": 922
+        },
+        "outer_iteration": 2,
+        "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1"
+      },
+      "ordered_active_operator_labels": [
+        "op::a",
+        "op::b"
+      ],
+      "outer_iteration": 2,
+      "parameterization": {
+        "logical_operator_count": 2,
+        "runtime_parameter_count": 2
+      },
+      "parameterization_mode": "logical_shared",
+      "projective_state_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+      "signed_unwrapped_logical_parameters": [
+        0.125,
+        -0.25
+      ],
+      "signed_unwrapped_runtime_parameters": [
+        0.125,
+        -0.25
+      ],
+      "sr_route_profile": "sr_snake_no_prune_symmetric_cost_v1",
+      "sr_route_profile_contract_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_phase1_score_parity_v2_task_apptainer.sh
+arguments = $(record_id) raw_outputs/paper_i_phase1_score_parity_20260604_v2/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna, MATH/paper_facing/paper_I_static_scaffold/hh_tableiii_convergence_sources.json, MATH/paper_facing/paper_I_static_scaffold/history_sources/hh_tableiii_weak_strong_snake_structural_continue_7096352_stdout_20260601.json, MATH/paper_facing/paper_I_static_scaffold/history_sources/hh_tableiii_strong_strong_snake_structural_continue_7096352_stdout_20260601.json
+transfer_output_files = raw_outputs/paper_i_phase1_score_parity_20260604_v2/$(record_id)
+stream_output = False
+stream_error = False
+log = logs/paper-i-phase1-score-parity-20260604-v2.$(Cluster).$(Process).log
+output = logs/paper-i-phase1-score-parity-20260604-v2.$(Cluster).$(Process).out
+error = logs/paper-i-phase1-score-parity-20260604-v2.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 32GB
+request_disk = 122880MB
++MaxRuntime = 172800
++JobBatchName = "paper-i-phase1-score-parity-20260604-v2"
+queue record_id from chtc/phase3_optuna/input/paper_i_phase1_score_parity_20260604_v1/cases.txt

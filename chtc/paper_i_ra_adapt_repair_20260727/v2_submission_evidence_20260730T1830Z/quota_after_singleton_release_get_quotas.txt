@@ -1,0 +1,5 @@
+/staging/j/jsstrobel is not on a CEPH filesystem
+Warning: Quota not found for /staging/j/jsstrobel
+Path                  Disk_Used(GB)  Disk_Limit(GB)  Files_Used  File_Limit
+/home/jsstrobel       33.6796        40              49287       N/A
+/staging/j/jsstrobel  0              N/A             0           N/A

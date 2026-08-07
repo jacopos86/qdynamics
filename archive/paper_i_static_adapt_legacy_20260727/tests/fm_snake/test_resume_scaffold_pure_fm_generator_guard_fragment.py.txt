@@ -1,0 +1,18 @@
+    with pytest.raises(
+        ValueError,
+        match="cannot reconstruct the checkpoint generator identity",
+    ):
+        match_resume_scaffold_to_pool(
+            source,
+            pool=[pool_term],
+            build_selected_layout=lambda ops: build_parameter_layout(
+                ops,
+                ignore_identity=True,
+                coefficient_tolerance=1.0e-12,
+                sort_terms=True,
+            ),
+            expected_parameterization_mode="logical_shared",
+            pure_formal_manifold_expected_generator_fingerprints=(
+                candidate_generator_fingerprint(pool_term),
+            ),
+        )

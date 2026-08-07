@@ -1,0 +1,6 @@
+{
+  "schema": "paper_i_sr_operational_successor_marker_v1",
+  "status": "superseded_do_not_submit",
+  "reason": "The immutable v5 bundle inherited a stale predecessor SCIENTIFIC_BLOCKER_DO_NOT_SUBMIT marker and contradictory preflight receipts at bundle root. No CHTC submission was performed.",
+  "successor_bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v6_chtc"
+}

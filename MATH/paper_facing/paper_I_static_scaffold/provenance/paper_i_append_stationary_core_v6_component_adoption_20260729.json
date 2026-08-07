@@ -1,0 +1,220 @@
+{
+  "adoption": {
+    "aggregate_partial_report_adopted": false,
+    "authority": "explicit_user_direction_in_current_task",
+    "component_count": 12,
+    "decision_date": "2026-07-29",
+    "execution_ids": [
+      "core__intermediate_strong__nph7__append_macro",
+      "core__intermediate_strong__nph7__append_singleton",
+      "core__intermediate_weak__nph3__append_macro",
+      "core__intermediate_weak__nph3__append_singleton",
+      "core__strong_strong_u8__nph7__append_macro",
+      "core__strong_strong_u8__nph7__append_singleton",
+      "core__strong_weak_u8__nph3__append_macro",
+      "core__strong_weak_u8__nph3__append_singleton",
+      "core__weak_strong__nph7__append_macro",
+      "core__weak_strong__nph7__append_singleton",
+      "core__weak_weak__nph3__append_macro",
+      "core__weak_weak__nph3__append_singleton"
+    ],
+    "fixed_horizon_contract": {
+      "display_iterations": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "display_projection": "The authenticated k=0 reference point is retained in provenance; the overlay displays controller rounds k=1..50 for like-for-like comparison with RA trajectories.",
+      "resource_fields": [
+        "N2q",
+        "D2q",
+        "Dc",
+        "W1q",
+        "S_alg"
+      ],
+      "resource_iteration": 50,
+      "trajectory_iterations": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ]
+    },
+    "immutable_source_artifacts_modified": false,
+    "method_family": "append",
+    "paper_evidence_adopted": true,
+    "ra_cells_adopted": false,
+    "regimes": [
+      "weak_weak",
+      "intermediate_weak",
+      "strong_weak_u8",
+      "weak_strong",
+      "intermediate_strong",
+      "strong_strong_u8"
+    ],
+    "representations": [
+      {
+        "overlay_kind": "macro",
+        "paper_representation": "intact_macro",
+        "source_candidate_representation": "macro_generator_v1"
+      },
+      {
+        "overlay_kind": "singleton",
+        "paper_representation": "projected_singleton",
+        "source_candidate_representation": "single_pauli_word_v1"
+      }
+    ],
+    "scope_note": "Only the twelve independently validated Append cells are adopted. The aggregate 32/48 cross-revision progress report remains non-evidentiary, and no RA source or result is promoted by this receipt.",
+    "status": "adopted"
+  },
+  "core_materialization_id": "ra_adapt_stationary_late_core_v10",
+  "package_id": "paper_i_ra_adapt_stationary_core_full48_r50_20260728_v6_chtc",
+  "schema": "paper_i_append_stationary_core_component_adoption_v1",
+  "source_archive_sha256": "1f949b0cc8b61dca63911832e8dc8bb32614174755ac476827956bb0812accee",
+  "source_files": {
+    "core_final_receipt": {
+      "canonical_sha256": "5924cf714ca3f1a36b3b766b4c5e30c5599d1606267ffd98fc08685afa1a9e80",
+      "file_sha256": "8c396883ebd728150057eb9b223793621f774b0475fde59a80675d2de2ccd354",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_stationary_late_core_v10/final_publication_receipt.json"
+    },
+    "execution_plan": {
+      "canonical_sha256": "d8f52fbedf4cce26caf1407a33d6dd62bd5a732546122e20a4d34a1d449ed6ad",
+      "file_sha256": "e1c5c9f550a4038fef55c1ec095c9b5286205432ffc510635f4598ede44c6ce3",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v6_chtc/execution_plan.json"
+    },
+    "fetched_archives": {
+      "path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v6_9392337_20260729"
+    },
+    "package_manifest": {
+      "canonical_sha256": "75063a0d8de86518d91a55283e025037229d20c185681db74b79175f9b9e6176",
+      "file_sha256": "48a32ad64773a794f748b4c4e6013cf52e7d637a0c8f8c7da83b71a07df280cc",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v6_chtc/package_manifest.json"
+    },
+    "partial_report_pdf": {
+      "file_sha256": "c30d72fbba62fca26e86ddf3410c86144efaa31089d3f32bdc2a584690253baf",
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_partial_progress.pdf"
+    },
+    "partial_report_provenance": {
+      "file_sha256": "cdb37959f987bce2d09edb7f9330901ab85140e735f69e6a6d165822071ca8de",
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_partial_progress_provenance.json"
+    },
+    "source_archive_manifest": {
+      "canonical_sha256": "c843a1332026ce8d3236a59adcd53e29770dad63a535ed8fa09990313ed80b72",
+      "file_sha256": "fd1d0f0046bbf6d2cdbba7c718a451351eda46b8802cdb16666deba43bfbf029",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v6_chtc/source_archive_manifest.json"
+    },
+    "validation": {
+      "canonical_sha256": "2a55c1509e9112e75c9a87201a8a7ea511529a0659d7fb58ba08b6f9875eb853",
+      "file_sha256": "65119e8ca07c8a7f4e0360e131c26f0b5a558bf2de503b48afd121744ad86218",
+      "path": "raw_outputs/paper_i_ra_adapt_stationary_core_v6_partial_report_12of48_20260729/fetched_validation.json"
+    }
+  },
+  "validation_contract": {
+    "all_attempt_statuses": "passed",
+    "automatic_attempt_selection_performed": false,
+    "compile_convention": "table_i_basis_gate_transpile_v1",
+    "error_metric": "same_cutoff_absolute_energy_error",
+    "exact_reference": "exact_ground_state_energy_at_identical_n_ph_max",
+    "optimizer": "powell",
+    "optimizer_maxiter": 200,
+    "protocol_horizon": 50,
+    "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+    "seed_adapt": 7,
+    "seed_transpiler": 7,
+    "validation_status": "validated_no_selection"
+  }
+}

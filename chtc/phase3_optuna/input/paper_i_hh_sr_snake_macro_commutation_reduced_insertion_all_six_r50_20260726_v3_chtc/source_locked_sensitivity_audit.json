@@ -1,0 +1,52 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": false,
+    "cluster_id": 9381227,
+    "reason": "The exact source bundle is still completing on CHTC. The child is diagnostic until source validation closes."
+  },
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "bundle": "paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc",
+    "cluster_id": 9381227,
+    "profile_contract_sha256": "36be908d3e770675be338cba5e00460a7ea1415f53a6b53987bf2e51eb26bc94",
+    "profile_request": "sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1",
+    "source_archive_sha256": "11e974249ec784c2f98c0270dfcfff7e66c7eb656bde8d3b451de9cb7ad421c9",
+    "source_execution_status": "submitted_with_meaningful_scientific_checkpoints"
+  },
+  "status": "diagnostic_child_while_source_batch_is_active",
+  "sweep": {
+    "child_value": "full_commutation_reduced",
+    "contract_diff_paths": [
+      "execution_settings.adapt_insertion_mode",
+      "lineage_authority.only_intended_parent_setting_changes.adapt_insertion_mode",
+      "route_profile",
+      "semantic_invariants.diagnostic_position_ablation",
+      "semantic_invariants.experimental_insertion_policy",
+      "semantic_invariants.insertion_position_scope",
+      "semantic_invariants.online_exact_reference_used",
+      "semantic_invariants.plateau_energy_decrease_threshold",
+      "semantic_invariants.plateau_hysteresis_active",
+      "semantic_invariants.plateau_patience",
+      "semantic_invariants.plateau_threshold_calibration_status",
+      "semantic_invariants.plateau_threshold_comparison",
+      "semantic_invariants.plateau_trigger_source"
+    ],
+    "horizon": 50,
+    "non_swept_settings_diff": [],
+    "regimes": [
+      "intermediate_strong",
+      "intermediate_weak",
+      "strong_strong_u8",
+      "strong_weak_u8",
+      "weak_strong",
+      "weak_weak"
+    ],
+    "run_class": "diagnostic",
+    "settings_changed": [
+      "adapt_insertion_mode"
+    ],
+    "source_archive_reused_byte_for_byte": true,
+    "source_value": "insertion_commutation_plateau_v1",
+    "variable": "adapt_insertion_mode"
+  }
+}

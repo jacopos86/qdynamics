@@ -1,0 +1,43 @@
+{
+  "candidate_archive_sha256": "f1a01a6e8b3a11ee8ab861b7a55ef1307f57ff35c12085a4bb919fe80c5038e6",
+  "candidate_bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v14_chtc",
+  "candidate_route_contract_sha256": "b43b23181ab1d93294fd2fb4ab96b32f7669c82db38082c86af39636cdf05201",
+  "changed_execution_fields": [
+    "phase1_prune_enabled",
+    "phase1_prune_mode",
+    "phase1_prune_max_candidates",
+    "phase1_prune_local_window_size",
+    "phase1_prune_recovery_trust_radius",
+    "phase1_prune_schur_nomination_route",
+    "phase1_prune_metric_schur_mu",
+    "phase1_prune_metric_schur_solve_mode",
+    "phase1_prune_metric_schur_cost_weighting",
+    "phase1_prune_trust_update_policy",
+    "phase1_prune_metric_mu_update_policy",
+    "phase1_prune_endpoint_overlap_policy"
+  ],
+  "fanout_authorized": true,
+  "non_swept_settings_diff": [],
+  "operational_repair": {
+    "algorithmic_query_delta": 0,
+    "changed_paths": [
+      "pipelines/static_adapt/adapt_pipeline.py"
+    ],
+    "detected_by": "three_weak_cutoff_first_accepted_prune_transactions",
+    "failure_class": "undefined_receipt_only_array_fingerprint_helper",
+    "numeric_geometry_modified": false,
+    "predecessor_bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v13_chtc",
+    "predecessor_cluster": 9309548,
+    "predecessor_source_archive_sha256": "242c26fe2d92ba433f68963bf38593ebb681f7ab4dc5ba8e8d484a5a0fbc1eca",
+    "receipt_only_change": true,
+    "recovery_authority": "existing_candidate_record_array_fingerprint_v1",
+    "route_contract_sha256_unchanged": "b43b23181ab1d93294fd2fb4ab96b32f7669c82db38082c86af39636cdf05201",
+    "schema": "paper_i_sr_test2_immutable_keep_receipt_fingerprint_repair_v1",
+    "scientific_settings_changed": false
+  },
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source_archive_sha256": "ced6b10d6bfbe4ae6a54495ff2ef4747a90036fa2027b0386555d016d5869a05",
+  "source_bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+  "source_route_contract_sha256": "9d6cfae3fda84eb6a24232358c45a8f25b42c6147bfa4250905910eff687a417",
+  "status": "test1_validated_test2_fanout_authorized"
+}

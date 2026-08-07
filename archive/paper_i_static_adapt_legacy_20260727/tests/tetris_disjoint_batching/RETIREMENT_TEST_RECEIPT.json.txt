@@ -1,0 +1,16 @@
+{
+  "schema": "paper_i_tetris_disjoint_retirement_test_receipt_v1",
+  "retired_test_scope": [
+    "standalone static_tetris_qubit_adapt_vqe execution/config tests",
+    "tetris_disjoint_batch_select selector tests",
+    "tetris_disjoint_benchmark CLI and HH execution tests"
+  ],
+  "replacement_proof": "test/test_ra_adapt_retired_reachability.py::test_tetris_disjoint_batching_has_no_active_executor_or_registry_route",
+  "preservation_proof": "test/test_ra_adapt_retired_reachability.py::test_phase0_overlap_context_assembly_remains_distinct_from_retired_tetris",
+  "focused_results": [
+    "366 passed, 5 deselected",
+    "4 retained overlap/CEO integration tests passed",
+    "6 retirement reachability/archive tests passed"
+  ],
+  "known_unrelated_collection_blocker": "test/test_generic_static_benchmark.py imports absent pipelines.time_dynamics.tables.dynamics_benchmark_contract"
+}

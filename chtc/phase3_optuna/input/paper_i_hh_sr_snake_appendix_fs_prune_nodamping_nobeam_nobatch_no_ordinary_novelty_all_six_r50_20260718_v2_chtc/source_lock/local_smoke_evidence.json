@@ -1,0 +1,67 @@
+{
+  "exact_blockers": [],
+  "appendix_prune_runtime_smoke_claimed": false,
+  "note": "This is the frozen parent no-prune smoke reference only. It does not claim runtime evidence for the new prune policy; appendix construction authority comes from the isolated route-contract and archive regression gates.",
+  "passed_gates": [
+    "route_profile_and_contract_digest",
+    "phase1_first_order_fs_trust_only",
+    "phase2_measured_curvature_required",
+    "phase2_curvature_receipt_count_closure",
+    "zero_phase1_phase2_lambda_f_proxy_occurrences",
+    "zero_missing_curvature_fallback_occurrences",
+    "finite_angle_fallback_disabled_no_guard_probes",
+    "phase3_rescue_disabled",
+    "phase3_oracle_gradient_mode_off",
+    "full_phase3_pre_support_coordinate_count",
+    "phase3_response_supported_rank_recorded",
+    "full_accepted_refit_coordinate_count",
+    "adaptive_trust_one_update_per_accepted_refit",
+    "symmetry_and_padding_leakage",
+    "checkpoint_roundtrip_and_fixed_prefix_replay",
+    "estimator_ledger_closure",
+    "shadow_damping_off",
+    "beam_effective_1x1_disabled",
+    "prune_disabled_zero_trials",
+    "ordinary_novelty_multipliers_off",
+    "infeasible_model_fallback_explicit_telemetry"
+  ],
+  "records": [
+    {
+      "S_alg_all_branch_search_work": 7312,
+      "admissions": 8,
+      "evidence_sha256": {
+        "json/current.json": "36b6f6697480caaa2f41127164c11dc7a3add6f135e3447c8f63c14fed5570bd",
+        "json/estimator_call_ledger.json": "43198f427025fee730284de08a3d2044b2019ed41a0c8a34a68d46b301350847",
+        "json/result.json": "2265bf204de9270ffa719c5a5ad62c7ba12a5ed9d900c6bcc28dc5658152c85f"
+      },
+      "exit_success": true,
+      "label": "eight_admission_cache_off_symcost_noprune_candidate_v1",
+      "phase12_energy_model_telemetry": {
+        "candidate_cache_hit_validated_receipt_occurrences": 0,
+        "phase1_energy_model": "first_order_fs_trust_v1",
+        "phase1_lambda_f_proxy_occurrences": 0,
+        "phase1_score_mode": "trust_region_v1",
+        "phase2_cheap_curvature_proxy_policy": "off",
+        "phase2_curvature_policy": "measured_required_fail_closed_v1",
+        "phase2_full_candidate_occurrences": 404,
+        "phase2_lambda_f_proxy_occurrences": 0,
+        "phase2_missing_curvature_fallback_occurrences": 0,
+        "schema": "sr_snake_phase12_energy_model_runtime_v1",
+        "validated_phase2_curvature_receipt_occurrences": 404
+      },
+      "profile_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+      "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_v1",
+      "root": "raw_outputs/paper_i_hh_sr_snake_no_prune_symmetric_cost_weak_weak_smoke_20260717/weak_weak_8_admissions_cache_off_v3",
+      "same_cutoff_exact_energy": -0.918380919994822,
+      "scientific_evidence_validation": {
+        "current_sha256": "36b6f6697480caaa2f41127164c11dc7a3add6f135e3447c8f63c14fed5570bd",
+        "ledger_sha256": "43198f427025fee730284de08a3d2044b2019ed41a0c8a34a68d46b301350847",
+        "note": "The immutable depth-8 smoke predates active-prefix receipt telemetry; the archive-only no-beam regression is authoritative for that overlay.",
+        "result_sha256": "2265bf204de9270ffa719c5a5ad62c7ba12a5ed9d900c6bcc28dc5658152c85f",
+        "status": "pre_overlay_route_smoke_reference_only"
+      }
+    }
+  ],
+  "schema": "paper_i_hh_sr_prune_appendix_parent_smoke_reference_v1",
+  "status": "parent_route_smoke_reference_only_not_prune_runtime_evidence"
+}

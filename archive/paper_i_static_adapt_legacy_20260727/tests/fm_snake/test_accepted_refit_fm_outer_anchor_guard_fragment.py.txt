@@ -1,0 +1,7 @@
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "build_retained_selector_anchor_from_formal_state",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("standalone SR invoked FM outer-anchor reuse")
+        ),
+    )

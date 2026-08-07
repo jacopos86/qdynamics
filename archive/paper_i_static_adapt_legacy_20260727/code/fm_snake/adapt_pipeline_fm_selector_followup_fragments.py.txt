@@ -1,0 +1,530 @@
+if formal_resume_candidate is not None:
+                if formal_manifold_session is None:
+                    raise RuntimeError(
+                        "Formal manifold session disappeared before resume commit."
+                    )
+                formal_manifold_session.commit(formal_resume_candidate)if singleton_response_selector_enabled:
+                if int(batch_size_local) != 1:
+                    raise RuntimeError(
+                        "FM+SR beam materialization requires exactly one admission."
+                    )
+                base_runtime = base_branch.formal_manifold_runtime
+                child_runtime = child.formal_manifold_runtime
+                if (
+                    not isinstance(base_runtime, FormalManifoldBranchRuntime)
+                    or not isinstance(child_runtime, FormalManifoldBranchRuntime)
+                ):
+                    raise RuntimeError(
+                        "FM+SR beam child lost its branch-local manifold runtime."
+                    )
+                base_layout = _build_selected_layout(base_branch.selected_ops)
+                base_theta_logical = _logical_theta_alias(
+                    np.asarray(base_branch.theta, dtype=float), base_layout
+                )
+                base_registry = (
+                    tuple(base_runtime.session.state.registry)
+                    if base_runtime.session.state is not None
+                    else ()
+                )
+                registry_fingerprint = digest_jsonable(list(base_registry))
+                tie_map_fingerprint = digest_jsonable(
+                    serialize_layout(base_layout)
+                )
+                primitive_scope = {
+                    "physical_state_fingerprint": projective_state_fingerprint(
+                        scratch.psi_current
+                    ),
+                    "branch_id": str(base_runtime.branch_id),
+                    "ordered_scaffold_fingerprint": ordered_scaffold_fingerprint(
+                        base_branch.selected_ops
+                    ),
+                    "theta_fingerprint": str(
+                        _candidate_record_array_fingerprint(base_theta_logical)[
+                            "sha256"
+                        ]
+                    ),
+                    "coordinate_registry_fingerprint": str(
+                        registry_fingerprint
+                    ),
+                    "parameterization_tie_map_fingerprint": str(
+                        tie_map_fingerprint
+                    ),
+                    "hamiltonian_fingerprint": compiled_hamiltonian_fingerprint(
+                        h_compiled
+                    ),
+                    "provider_backend_id": "compiled_exact_state_v1",
+                    "estimator_precision_contract": (
+                        "analytic_exact_float64_v1"
+                    ),
+                }
+                candidate_primitive = EstimatorPrimitiveIdentity(
+                    primitive_kind="coordinate_gradient",
+                    candidate_generator_fingerprint=str(
+                        candidate_generator_fingerprint(selected_primary_term)
+                    ),
+                    candidate_insertion_position=int(selected_position_local),
+                    formula_primitive_identity=(
+                        "phase1_candidate_coordinate_differential_and_tangent_v1"
+                    ),
+                    **primitive_scope,
+                )
+                candidate_known = bool(
+                    candidate_primitive.primitive_id
+                    in child_runtime.query_ledger.unique_primitive_ids
+                )
+                candidate_receipt = QueryReceipt.from_primitives(
+                    requested=(() if candidate_known else (candidate_primitive,)),
+                    reused=((candidate_primitive,) if candidate_known else ()),
+                    returned_fields=(
+                        "b_B",
+                        "candidate_tangent_handle",
+                        "G_BB",
+                    ),
+                    closure_capabilities=(
+                        "round_local_live_tangent_handle",
+                        "active_candidate_gram_available",
+                        "common_state_tangent_contraction",
+                    ),
+                    provenance_by_field={
+                        "b_B": "exact_state_coordinate_differential",
+                        "candidate_tangent_handle": (
+                            "exact_compiled_parameter_tangent"
+                        ),
+                        "G_BB": "same_response_tangent_norm",
+                    },
+                    provider_kind="compiled_exact_state_provider_v1",
+                    statevector_shortcut_used=True,
+                )
+                anchor_receipts: tuple[QueryReceipt, ...] = ()
+                retained_outer_anchor = None
+                if (
+                    base_branch.selected_ops
+                    and not formal_outer_information_profile_enabled
+                ):
+                    outer_reuse = (
+                        build_retained_selector_anchor_from_formal_state(
+                            state=base_runtime.session.state,
+                            source_query_ledger=child_runtime.query_ledger,
+                            psi_state=np.asarray(
+                                scratch.psi_current, dtype=complex
+                            ),
+                            theta=np.asarray(
+                                base_theta_logical, dtype=float
+                            ),
+                            branch_id=str(base_runtime.branch_id),
+                            ordered_scaffold_fingerprint=(
+                                ordered_scaffold_fingerprint(
+                                    base_branch.selected_ops
+                                )
+                            ),
+                            coordinate_registry_fingerprint=str(
+                                registry_fingerprint
+                            ),
+                            parameterization_tie_map_fingerprint=str(
+                                tie_map_fingerprint
+                            ),
+                            hamiltonian_fingerprint=(
+                                compiled_hamiltonian_fingerprint(h_compiled)
+                            ),
+                            active_coordinate_indices=tuple(
+                                range(len(base_branch.selected_ops))
+                            ),
+                        )
+                    )
+                    formal_beam_outer_anchor_audit_local = (
+                        outer_reuse.portable_payload()
+                    )
+                    if outer_reuse.reusable:
+                        assert outer_reuse.anchor is not None
+                        assert outer_reuse.geometry_reuse_receipt is not None
+                        assert outer_reuse.energy_reuse_receipt is not None
+                        child_runtime.query_ledger.consume_receipt(
+                            outer_reuse.geometry_reuse_receipt,
+                            consumer_phase="outer_anchor_geometry_reuse",
+                        )
+                        child_runtime.query_ledger.consume_receipt(
+                            outer_reuse.energy_reuse_receipt,
+                            consumer_phase="outer_anchor_energy_reuse",
+                        )
+                        retained_outer_anchor = outer_reuse.anchor
+                        formal_beam_outer_anchor_energy_id_local = (
+                            outer_reuse.precharged_energy_primitive_id
+                        )
+                if (
+                    base_branch.selected_ops
+                    and retained_outer_anchor is None
+                    and not formal_outer_information_profile_enabled
+                ):
+                    anchor_scope = {
+                        **primitive_scope,
+                        "candidate_generator_fingerprint": (
+                            "accepted_active_manifold_anchor"
+                        ),
+                        "candidate_insertion_position": None,
+                    }
+                    active_gradient = EstimatorPrimitiveIdentity(
+                        primitive_kind="coordinate_gradient",
+                        formula_primitive_identity=(
+                            "accepted_active_coordinate_gradient_v1"
+                        ),
+                        **anchor_scope,
+                    )
+                    active_metric = EstimatorPrimitiveIdentity(
+                        primitive_kind="tangent_or_metric",
+                        formula_primitive_identity=(
+                            "accepted_active_tangent_metric_v1"
+                        ),
+                        **anchor_scope,
+                    )
+                    requested_anchor = tuple(
+                        primitive
+                        for primitive in (active_gradient, active_metric)
+                        if primitive.primitive_id
+                        not in child_runtime.query_ledger.unique_primitive_ids
+                    )
+                    reused_anchor = tuple(
+                        primitive
+                        for primitive in (active_gradient, active_metric)
+                        if primitive.primitive_id
+                        in child_runtime.query_ledger.unique_primitive_ids
+                    )
+                    anchor_receipts = (
+                        QueryReceipt.from_primitives(
+                            requested=requested_anchor,
+                            reused=reused_anchor,
+                            returned_fields=(
+                                "b_A",
+                                "G_AA",
+                                "active_tangent_handles",
+                            ),
+                            closure_capabilities=(
+                                "round_local_live_tangent_handle",
+                                "common_state_tangent_contraction",
+                            ),
+                            provenance_by_field={
+                                "b_A": "exact_state_coordinate_differential",
+                                "G_AA": "exact_state_retained_anchor",
+                                "active_tangent_handles": (
+                                    "exact_compiled_parameter_tangents"
+                                ),
+                            },
+                            provider_kind="compiled_exact_state_provider_v1",
+                            statevector_shortcut_used=True,
+                        ),
+                    )
+                    child_runtime.query_ledger.consume_receipt(
+                        anchor_receipts[0], consumer_phase="growth"
+                    )
+                phase3_summary_raw = selected_batch_feature_rows_local[0].get(
+                    "phase2_joint_geometry_reuse"
+                )
+                geometry = None
+                workspace = None
+                old_to_new: tuple[int, ...] = ()
+                if not formal_outer_information_profile_enabled:
+                    geometry = build_exact_query_closed_candidate_geometry(
+                        selected_ops=list(base_branch.selected_ops),
+                        theta=np.asarray(base_theta_logical, dtype=float),
+                        psi_ref=np.asarray(psi_ref, dtype=complex),
+                        psi_state=np.asarray(scratch.psi_current, dtype=complex),
+                        hpsi_state=np.asarray(scratch.hpsi_current, dtype=complex),
+                        candidate_term=selected_primary_term,
+                        insertion_position=int(selected_position_local),
+                        active_coordinate_indices=tuple(
+                            range(len(base_branch.selected_ops))
+                        ),
+                        branch_id=str(base_runtime.branch_id),
+                        manifold_id="static_adapt_accepted_ansatz_v1",
+                        coordinate_registry_fingerprint=str(
+                            registry_fingerprint
+                        ),
+                        parameterization_tie_map_fingerprint=str(
+                            tie_map_fingerprint
+                        ),
+                        h_compiled=h_compiled,
+                        candidate_query_receipt=candidate_receipt,
+                        anchor_query_receipts=anchor_receipts,
+                        retained_anchor=retained_outer_anchor,
+                        pauli_action_cache=pauli_action_cache,
+                    )
+                    child_runtime.query_ledger.consume_receipt(
+                        candidate_receipt, consumer_phase="growth"
+                    )
+                    workspace = build_query_closed_population_workspace(
+                        anchor=geometry.anchor,
+                        candidate_records=(geometry.candidate_record,),
+                    )
+                    old_to_new = tuple(
+                        int(
+                            index
+                            + (1 if selected_position_local <= index else 0)
+                        )
+                        for index in range(workspace.anchor.active_dimension)
+                    )
+                formal_executor = _build_formal_manifold_executor(
+                    list(child.selected_ops)
+                )
+                formal_beam_adapter_local = (
+                    build_compiled_exact_manifold_adapter(
+                        executor=formal_executor,
+                        layout=child_layout_after,
+                        theta_runtime=np.asarray(child.theta, dtype=float),
+                        psi_ref=np.asarray(psi_ref, dtype=complex),
+                        h_compiled=h_compiled,
+                        manifold_id="static_adapt_accepted_ansatz_v1",
+                        hamiltonian_fingerprint=(
+                            compiled_hamiltonian_fingerprint(h_compiled)
+                        ),
+                    )
+                )
+                
+
+                class _SelectedBeamSRSingleton:
+                    feasible = True
+                    candidate_indices = (0,)
+
+                formal_beam_candidate_positions_local = tuple(
+                    index
+                    for index in range(
+                        len(formal_beam_adapter_local.coordinate_registry)
+                    )
+                    if index not in set(old_to_new)
+                )
+                formal_beam_same_ray_growth_local = bool(
+                    len(formal_beam_candidate_positions_local) == 1
+                    and np.allclose(
+                        np.asarray(formal_beam_adapter_local.x0, dtype=float)[
+                            list(formal_beam_candidate_positions_local)
+                        ],
+                        0.0,
+                        rtol=0.0,
+                        atol=1.0e-12,
+                    )
+                )
+                if workspace is None:
+                    raise RuntimeError(
+                        "source-locked FM+SR lost its query-closed workspace."
+                    )
+                formal_beam_growth_receipt_local = (
+                    build_formal_growth_geometry_receipt(
+                        workspace=workspace,
+                        selected=_SelectedBeamSRSingleton(),
+                        old_to_new_registry_mapping=old_to_new,
+                        new_coordinate_registry_fingerprint=digest_jsonable(
+                            list(
+                                formal_beam_adapter_local.coordinate_registry
+                            )
+                        ),
+                        rank_relative_tolerance=float(
+                            child_runtime.session.config.supported_metric.rank_relative_tolerance
+                        ),
+                        metric_regularization=float(
+                            child_runtime.session.config.supported_metric.metric_regularization
+                        ),
+                        zero_new_coordinates=bool(
+                            formal_beam_same_ray_growth_local
+                        ),
+                        old_gate_subsequence_unchanged=True,
+                        live_statevector=np.asarray(
+                            scratch.psi_current, dtype=complex
+                        ),
+                        live_energy=float(energy_prev_local),
+                        precharged_energy_primitive_id=(
+                            formal_beam_outer_anchor_energy_id_local
+                        ),
+                    )
+                )
+                (
+                    formal_beam_growth_receipt_local,
+                    formal_beam_growth_energy_accounting_local,
+                ) = _precharge_formal_growth_energy(
+                    formal_beam_growth_receipt_local,
+                    backend=formal_beam_adapter_local.backend,
+                    theta=np.asarray(formal_beam_adapter_local.x0, dtype=float),
+                    ledger=child_runtime.query_ledger,
+                    branch_id=str(child_runtime.branch_id),
+                )
+                
+                selected_batch_feature_rows_local[0][
+                    "formal_manifold_growth_bridge"
+                ] = {
+                    "schema": "formal_manifold_sr_singleton_growth_bridge_v1",
+                    "candidate_selector_family": str(
+                        candidate_selector_family_key
+                    ),
+                    "formal_combinatorial_selector_invoked": False,
+                    "singleton_response_selector_invoked": True,
+                    "joint_response_selector_invoked": False,
+                    "growth_receipt": (
+                        None
+                        if formal_beam_growth_receipt_local is None
+                        else formal_beam_growth_receipt_local.portable_payload()
+                    ),
+                    "growth_energy_accounting": dict(
+                        formal_beam_growth_energy_accounting_local
+                    ),
+                    "outer_anchor_reuse": (
+                        None
+                        if formal_beam_outer_anchor_audit_local is None
+                        else dict(formal_beam_outer_anchor_audit_local)
+                    ),
+                    "admission_curvature_receipt": (
+                        None
+                        if formal_beam_curvature_receipt_local is None
+                        else formal_beam_curvature_receipt_local.portable_payload()
+                    ),
+                    "cached_sr_v3_phase3_observation": (
+                        None
+                        if formal_beam_outer_cached_observation_local is None
+                        else formal_beam_outer_cached_observation_local.portable_payload()
+                    ),
+                    "cached_sr_v3_phase3_observation_telemetry": (
+                        None
+                        if formal_beam_outer_cached_observation_local is None
+                        else formal_beam_outer_cached_observation_local.portable_telemetry()
+                    ),
+                    "cached_sr_v3_phase3_observation_error": (
+                        formal_beam_outer_cached_observation_error_local
+                    ),
+                    "cached_sr_v3_identity_binding": (
+                        None
+                        if formal_beam_outer_cached_identity_binding_local is None
+                        else dict(
+                            formal_beam_outer_cached_identity_binding_local
+                        )
+                    ),
+                    "outer_information_shadow_growth": (
+                        None
+                        if formal_beam_outer_shadow_growth_local is None
+                        else dict(formal_beam_outer_shadow_growth_local)
+                    ),
+                }if (
+                singleton_response_selector_enabled
+                or formal_singleton_refeed_selector_enabled
+            ):
+                if formal_manifold_session is None or formal_query_ledger is None:
+                    raise RuntimeError(
+                        "FM singleton growth requires isolated manifold state "
+                        "and its query ledger."
+                    )
+                if len(phase2_selected_records) != 1:
+                    raise RuntimeError(
+                        "FM must hand exactly one singleton-selected record to the "
+                        "formal-manifold growth transaction."
+                    )
+                sr_growth_record = dict(phase2_selected_records[0])
+                sr_growth_feature = sr_growth_record.get("feature")
+                if not isinstance(sr_growth_feature, CandidateFeatures):
+                    raise RuntimeError(
+                        "FM singleton winner lost its typed CandidateFeatures."
+                    )
+                sr_growth_term = sr_growth_record.get("candidate_term")
+                if not isinstance(sr_growth_term, AnsatzTerm):
+                    raise RuntimeError(
+                        "FM singleton winner lost its explicit singleton term."
+                    )
+                sr_growth_pool_index = int(
+                    sr_growth_feature.candidate_pool_index
+                )
+                sr_growth_position = int(sr_growth_feature.position_id)
+                sr_phase3_summary_raw = (
+                    sr_growth_feature.phase2_joint_geometry_reuse
+                )
+                formal_query_selected_phase3_summary = None
+                formal_query_selected_curvature_receipt = None
+                sr_growth_geometry_payload = None
+                sr_growth_geometry_key = (
+                    sr_growth_pool_index,
+                    sr_growth_position,
+                    str(sr_growth_term.label),
+                )
+                sr_growth_geometry = formal_query_candidate_records.get(
+                    sr_growth_geometry_key
+                )
+                if sr_growth_geometry is None:
+                    raise RuntimeError(
+                        "FM+SR failed to retain the keyed winner geometry."
+                    )
+                sr_growth_workspace = build_query_closed_population_workspace(
+                    anchor=sr_growth_geometry.anchor,
+                    candidate_records=(
+                        sr_growth_geometry.candidate_record,
+                    ),
+                )
+                sr_old_to_new = tuple(
+                    int(old_index + (1 if sr_growth_position <= old_index else 0))
+                    for old_index in range(
+                        sr_growth_workspace.anchor.active_dimension
+                    )
+                )
+
+                class _SelectedSRSingleton:
+                    feasible = True
+                    candidate_indices = (0,)
+
+                formal_query_selected_growth_receipt = (
+                    build_formal_growth_geometry_receipt(
+                        workspace=sr_growth_workspace,
+                        selected=_SelectedSRSingleton(),
+                        old_to_new_registry_mapping=sr_old_to_new,
+                        new_coordinate_registry_fingerprint=digest_jsonable(
+                            {
+                                "old": sr_growth_workspace.anchor.coordinate_registry_fingerprint,
+                                "candidate_key": str(
+                                    sr_growth_geometry.candidate_record.candidate_key
+                                ),
+                                "insertion_position": sr_growth_position,
+                                "old_to_new": list(sr_old_to_new),
+                            }
+                        ),
+                        rank_relative_tolerance=float(
+                            formal_manifold_session.config.supported_metric.rank_relative_tolerance
+                        ),
+                        metric_regularization=float(
+                            formal_manifold_session.config.supported_metric.metric_regularization
+                        ),
+                        zero_new_coordinates=True,
+                        old_gate_subsequence_unchanged=True,
+                        live_statevector=np.asarray(
+                            psi_current, dtype=complex
+                        ),
+                        live_energy=float(energy_current),
+                        precharged_energy_primitive_id=(
+                            formal_query_outer_anchor_energy_primitive_id
+                        ),
+                    )
+                )
+                formal_query_ledger.record_query_free_derived_fields(
+                    (
+                        "sr_authoritative_singleton_argmax",
+                        "fm_growth_receipt_from_keyed_sr_winner_geometry",
+                    )
+                )
+                sr_growth_record["formal_manifold_growth_bridge"] = {
+                    "schema": "formal_manifold_sr_singleton_growth_bridge_v1",
+                    "candidate_selector_family": str(
+                        candidate_selector_family_key
+                    ),
+                    "formal_combinatorial_selector_invoked": False,
+                    "singleton_response_selector_invoked": bool(
+                        singleton_response_selector_enabled
+                    ),
+                    "formal_singleton_refeed_selector_invoked": bool(
+                        formal_singleton_refeed_selector_enabled
+                    ),
+                    "joint_response_selector_invoked": False,
+                    "phase1_geometry": (
+                        dict(sr_growth_geometry_payload)
+                        if isinstance(sr_growth_geometry_payload, Mapping)
+                        else None
+                    ),
+                    "growth_receipt": (
+                        formal_query_selected_growth_receipt.portable_payload()
+                    ),
+                }
+                phase2_selected_records = [sr_growth_record]if formal_final_candidate is not None:
+                    if formal_manifold_session is None:
+                        raise RuntimeError(
+                            "Formal manifold session disappeared before final commit."
+                        )
+                    formal_manifold_session.commit(formal_final_candidate)

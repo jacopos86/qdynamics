@@ -1,0 +1,297 @@
+{
+  "argv": [
+    "python3",
+    "-m",
+    "pipelines.static_adapt.adapt_pipeline",
+    "--problem",
+    "hh",
+    "--L",
+    "2",
+    "--ordering",
+    "blocked",
+    "--boundary",
+    "open",
+    "--t",
+    "1.0",
+    "--dv",
+    "0.0",
+    "--omega0",
+    "1.0",
+    "--boson-encoding",
+    "binary",
+    "--adapt-pool",
+    "full_meta",
+    "--adapt-continuation-mode",
+    "phase3_v1",
+    "--static-route-id",
+    "route_a",
+    "--static-meta-feature-profile",
+    "paper_i_production_v1",
+    "--static-lane-route",
+    "physical_operator_type",
+    "--physical-lane-shortlist-aggressiveness",
+    "3",
+    "--adapt-inner-optimizer",
+    "POWELL",
+    "--adapt-maxiter",
+    "200",
+    "--adapt-scipy-maxfev",
+    "0",
+    "--adapt-reopt-policy",
+    "windowed",
+    "--adapt-full-refit-every",
+    "8",
+    "--adapt-final-full-refit",
+    "true",
+    "--adapt-final-refit-maxiter",
+    "200",
+    "--adapt-max-depth",
+    "45",
+    "--phase1-shortlist-size",
+    "24",
+    "--phase2-shortlist-size",
+    "12",
+    "--phase2-shortlist-fraction",
+    "0.25",
+    "--phase2-no-batching",
+    "--phase3-no-batching",
+    "--phase3-runtime-split-mode",
+    "shortlist_pauli_children_v1",
+    "--allow-archival-phase3-runtime-split",
+    "--phase3-runtime-split-selection-mode",
+    "archival_child_set_forward_v1",
+    "--phase3-runtime-split-max-subset-size",
+    "1",
+    "--phase3-runtime-split-child-set-symmetry-policy",
+    "hard_guard",
+    "--phase1-prune-enabled",
+    "--phase1-prune-policy",
+    "recoverability_ladder_v1",
+    "--phase1-prune-mode",
+    "both",
+    "--adapt-beam-live-branches",
+    "3",
+    "--adapt-beam-children-per-parent",
+    "2",
+    "--adapt-beam-lambda",
+    "0.005",
+    "--phase3-backend-cost-mode",
+    "marrakesh_graph_span_v1",
+    "--phase3-selector-policy",
+    "algebraic_nested_v1",
+    "--phase3-selector-geometry-mode",
+    "reduced",
+    "--skip-pdf",
+    "--u",
+    "8.0",
+    "--g-ep",
+    "0.790569415042",
+    "--n-ph-max",
+    "4",
+    "--phase3-runtime-split-child-padding-policy",
+    "exact_projected_grouped_v1",
+    "--adapt-current-json",
+    "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/current.json",
+    "--adapt-estimator-call-ledger-json",
+    "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/estimator_call_ledger.json",
+    "--output-json",
+    "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/result.json",
+    "--historical-singleton-coordinate-solve-policy",
+    "supported_metric_whitened_eigh_v1",
+    "--historical-singleton-trust-region-update-policy",
+    "displacement_calibrated_unbounded_v2",
+    "--phase0-no-pilot"
+  ],
+  "environment": {
+    "PYTHONPATH": ".",
+    "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/cache/candidate_records"
+  },
+  "generated_utc": "2026-07-13T16:44:18.137289+00:00",
+  "lineage_scope": "fresh",
+  "mode": "fresh_route4_round45",
+  "normalized_options": {
+    "--L": "2",
+    "--adapt-beam-children-per-parent": "2",
+    "--adapt-beam-lambda": "0.005",
+    "--adapt-beam-live-branches": "3",
+    "--adapt-continuation-mode": "phase3_v1",
+    "--adapt-current-json": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/current.json",
+    "--adapt-estimator-call-ledger-json": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/estimator_call_ledger.json",
+    "--adapt-final-full-refit": "true",
+    "--adapt-final-refit-maxiter": "200",
+    "--adapt-full-refit-every": "8",
+    "--adapt-inner-optimizer": "POWELL",
+    "--adapt-max-depth": "45",
+    "--adapt-maxiter": "200",
+    "--adapt-pool": "full_meta",
+    "--adapt-reopt-policy": "windowed",
+    "--adapt-scipy-maxfev": "0",
+    "--allow-archival-phase3-runtime-split": true,
+    "--boson-encoding": "binary",
+    "--boundary": "open",
+    "--dv": "0.0",
+    "--g-ep": "0.790569415042",
+    "--historical-singleton-coordinate-solve-policy": "supported_metric_whitened_eigh_v1",
+    "--historical-singleton-trust-region-update-policy": "displacement_calibrated_unbounded_v2",
+    "--n-ph-max": "4",
+    "--omega0": "1.0",
+    "--ordering": "blocked",
+    "--output-json": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/result.json",
+    "--phase0-no-pilot": true,
+    "--phase1-prune-enabled": true,
+    "--phase1-prune-mode": "both",
+    "--phase1-prune-policy": "recoverability_ladder_v1",
+    "--phase1-shortlist-size": "24",
+    "--phase2-no-batching": true,
+    "--phase2-shortlist-fraction": "0.25",
+    "--phase2-shortlist-size": "12",
+    "--phase3-backend-cost-mode": "marrakesh_graph_span_v1",
+    "--phase3-no-batching": true,
+    "--phase3-runtime-split-child-padding-policy": "exact_projected_grouped_v1",
+    "--phase3-runtime-split-child-set-symmetry-policy": "hard_guard",
+    "--phase3-runtime-split-max-subset-size": "1",
+    "--phase3-runtime-split-mode": "shortlist_pauli_children_v1",
+    "--phase3-runtime-split-selection-mode": "archival_child_set_forward_v1",
+    "--phase3-selector-geometry-mode": "reduced",
+    "--phase3-selector-policy": "algebraic_nested_v1",
+    "--physical-lane-shortlist-aggressiveness": "3",
+    "--problem": "hh",
+    "--skip-pdf": true,
+    "--static-lane-route": "physical_operator_type",
+    "--static-meta-feature-profile": "paper_i_production_v1",
+    "--static-route-id": "route_a",
+    "--t": "1.0",
+    "--u": "8.0"
+  },
+  "regime": "strong_strong",
+  "schema": "paper_i_hh_route4_round45_normalized_manifest_v1",
+  "scientific_contract": {
+    "beam_children_per_parent": 2,
+    "beam_live_branches": 3,
+    "coordinate_solve_policy": "supported_metric_whitened_eigh_v1",
+    "padding_policy": "exact_projected_grouped_v1",
+    "phase0_enabled": false,
+    "phase2_batching_enabled": false,
+    "phase3_batching_enabled": false,
+    "prune_policy": "recoverability_ladder_v1",
+    "singleton_subset_size": 1,
+    "symmetry_policy": "hard_guard",
+    "target_controller_round": 45,
+    "trust_region_update_policy": "displacement_calibrated_unbounded_v2"
+  },
+  "settings_difference_audit": {
+    "cache_environment_change": {
+      "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/cache/candidate_records"
+    },
+    "differences": [
+      {
+        "field": "--adapt-current-json",
+        "source": "raw_outputs/paper_i_hh_new_paper_i_route4_two_stage_20260712/route4_exact_hessian_schur/strong_strong/full/json/current.json",
+        "target": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/current.json"
+      },
+      {
+        "field": "--adapt-estimator-call-ledger-json",
+        "source": "raw_outputs/paper_i_hh_new_paper_i_route4_two_stage_20260712/route4_exact_hessian_schur/strong_strong/full/json/estimator_call_ledger.json",
+        "target": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/estimator_call_ledger.json"
+      },
+      {
+        "field": "--adapt-max-depth",
+        "source": "30",
+        "target": "45"
+      },
+      {
+        "field": "--output-json",
+        "source": "raw_outputs/paper_i_hh_new_paper_i_route4_two_stage_20260712/route4_exact_hessian_schur/strong_strong/full/json/result.json",
+        "target": "raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/strong_strong_fresh/full/json/result.json"
+      }
+    ],
+    "isolation_passed": true,
+    "mode": "fresh_route4_round45",
+    "route": "strong_strong_fresh",
+    "unexpected_differences": []
+  },
+  "source_ancestry": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/strong_strong/normalized_manifest.json",
+  "source_checkpoint": null,
+  "source_lock": {
+    "records": [
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/static_adapt/adapt_pipeline.py",
+        "sha256": "fa4173e13bbe74dfee24bcbde185ff7c2a4f249a0194e64ae69da0feb79f6703",
+        "size_bytes": 1735637
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/static_adapt/cli_config.py",
+        "sha256": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+        "size_bytes": 191609
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/static_adapt/resume_scaffold.py",
+        "sha256": "9e0c17d66730b4cb255c9ba8cd0a8eaadcb1ac1513ba49a74aa7d4648e1d0580",
+        "size_bytes": 54957
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/static_adapt/run_control.py",
+        "sha256": "3faad1ee1033f043bc4db91c8f5ef973c627d692749691908c4971ad1e803c05",
+        "size_bytes": 15373
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/static_adapt/output_artifacts.py",
+        "sha256": "f51cc9d23a41bd34df522c15422ec73d44ff18932f88043d4fdbbea002246e1b",
+        "size_bytes": 54203
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/reporting/build_paper_i_selected_prefix_qiskit_sidecar.py",
+        "sha256": "bcb745d13dc9fabb663993948e867741e05cb0eb75b98b879067c9e0a5498cd6",
+        "size_bytes": 48033
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/checkpoints/weak_strong/current_r21.json",
+        "sha256": "4fde4b229ea6a607e7667934b98a8b325cca16dba89f2244e82e248546466df8",
+        "size_bytes": 50615680
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/checkpoints/intermediate_strong/current_r21.json",
+        "sha256": "ee714d4e9779a39147c02bab6e3d7c32ae1adf51d91fea431b4ac812f8a55e93",
+        "size_bytes": 49632364
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/weak_strong/command.json",
+        "sha256": "0e18ebb710d3560c8ad387ff43675ebf00138c7168811b551f50b559a7ca9fe1",
+        "size_bytes": 7568
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/weak_strong/normalized_manifest.json",
+        "sha256": "caf045f6e2f1894be6cc4c1bfdd07c1c32d76b384958b4b690e59625def978e9",
+        "size_bytes": 10127
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/intermediate_strong/command.json",
+        "sha256": "bb739b746f3d20c92375b7ed0c3ddfaed02b5e4390948aeed15c16f575f62c84",
+        "size_bytes": 7640
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/intermediate_strong/normalized_manifest.json",
+        "sha256": "4cbb1ce3a13f62430a860590e7d0dff0ccff5a12cdbf68cea75ad779e8a8dc79",
+        "size_bytes": 10199
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/strong_strong/normalized_manifest.json",
+        "sha256": "6abe0ecf3678609a55f6fa51946423f2e4897578d6cad18ed0bd333045132210",
+        "size_bytes": 10147
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/ancestry/strong_strong/source_job.json",
+        "sha256": "c01489324e4ac42f7790838292d360ef0168493c7f799e25b056f3e8481cc456",
+        "size_bytes": 24236
+      },
+      {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_route4_round45_best_branch_recovery_20260713/source_lock/archive/paper_i_hh_route4_round45_source_archive_20260713.tar.gz",
+        "sha256": "f591f4a5296ac2ac8e3b255e41d1ffd8267c905feb0be9992ed5d0895c1c367b",
+        "size_bytes": 1432504
+      }
+    ],
+    "schema": "paper_i_hh_route4_round45_source_lock_v1",
+    "verified_utc": "2026-07-13T16:44:18.132783+00:00"
+  },
+  "working_directory": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3"
+}

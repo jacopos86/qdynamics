@@ -1,0 +1,90 @@
+{
+  "schema": "paper_i_six_regime_corrected_comparator_visible_baseline_v1",
+  "table_label": "fig:hh_main_results_composite",
+  "regimes": {
+    "weak-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.0013117770378563431,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.0009192819178269751,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "a0b53b4643d97588a04fb688f09dd48964a90a1cd650e95d6cad68d167c8c3a6"
+        }
+      }
+    },
+    "intermediate-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.09893293320249796,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.005223690514773949,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "eb3876dbfdbc1fae7e3859d2fe44b9da63824301eb894339b08ed97497aaba0c"
+        }
+      }
+    },
+    "strong-weak": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.000002354651946201436,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.0000023546519453132575,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "4debf76c8b85567938266e1d434c580cda585b16748fab6781144d960f6c548a"
+        }
+      }
+    },
+    "weak-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.043646714159213396,
+          "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.023007750483881706,
+          "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "22618c3753c502121b4aeb03d07a76368b0ae8fb948054b827e1284c4def6579"
+        }
+      }
+    },
+    "intermediate-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.02897791863102661,
+          "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.009295831578261082,
+          "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "1c24d47f5376fe6950ceb1e78b833cf4a6da5e318760b9caee395e3e45b3b257"
+        }
+      }
+    },
+    "strong-strong": {
+      "methods": {
+        "Geo-ADAPT": {
+          "visible_value": 0.00004982206763848307,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63"
+        },
+        "Append-ADAPT": {
+          "visible_value": 0.0000361579243989274,
+          "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "3044eab7111c647fbe211781365ed837b2c4d8e39c9a0a5104bdf2ee35534524"
+        }
+      }
+    }
+  }
+}

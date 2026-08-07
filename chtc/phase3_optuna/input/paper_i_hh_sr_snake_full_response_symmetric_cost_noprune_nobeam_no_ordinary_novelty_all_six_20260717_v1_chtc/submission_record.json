@@ -1,0 +1,44 @@
+{
+  "schema": "paper_i_hh_sr_symcost_noprune_submission_v1",
+  "bundle_id": "paper_i_hh_sr_snake_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_20260717_v1_chtc",
+  "batch_name": "paper-i-hh-sr-fullresp-symcost-noprune-nobeam-nonovelty-six-20260717-v1",
+  "cluster_id": 8887004,
+  "job_count": 6,
+  "submitted_utc": "2026-07-17T23:04:15Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_state": {
+    "idle": 6,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "source_lock": {
+    "git_commit_base_ancestry_only": "8a746d244a15e2cb16099a732e78e1110a8e59f2",
+    "git_tree_base_ancestry_only": "6cb596ab953386a9c9a3b0698e7b1489e3b0f02e",
+    "source_archive_sha256": "edd870785a579b4979cf93d640ccc1fe10b102e8ac1311b9088e56916434997d",
+    "route_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "executable_authority": "hash_locked_live_worktree_snapshot_plus_complete_file_inventory_v1"
+  },
+  "pre_submission_validation": {
+    "focused_live_source_tests": "478_passed_2_skipped",
+    "archive_focused_regressions": "477_passed_9_skipped",
+    "cache_off_weak_weak_eight_admission_smoke": "passed",
+    "local_bundle_tests": "10_of_10_passed",
+    "all_six_archive_only_validate_only": "passed",
+    "remote_bundle_tests_inside_registered_image": "10_of_10_passed",
+    "remote_image_sha256_passed": true,
+    "remote_qiskit_version": "2.3.1",
+    "remote_fake_backend": "fake_marrakesh",
+    "remote_fake_backend_qubits": 156,
+    "scheduler_job_count": 6
+  },
+  "submitted_artifact_hashes": {
+    "bundle_manifest_json": "82faf64c5fc5c0d77db06de6a7611d39b8b55f3902989da6e388c097fb6f43c9",
+    "preflight_json": "f171eff562c28fd2d4649ba5c0da19a677a8fce8dd3be3f4ce65456eaa6b5196",
+    "remote_execution_gate_json": "47aeef78b269afed3971ad4eb5310d61e78c6e80d2acd9b381168b19b698806d",
+    "submit_sub": "901c65f4f3cd99b43023c0f5b53deed6fb8f6a4709f06a775d88eac873bb8789",
+    "queue_tsv": "5614c2b969e634327612a3e04fb9a4435bf7b269b02d5e6797cfe0d6425cb8a2",
+    "submission_artifact_hashes_json": "fde2c605694d104d91f76f2c9bebcbad92e967207bdfac035091499608803f25"
+  }
+}

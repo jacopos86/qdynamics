@@ -1,0 +1,20 @@
+{
+  "schema": "paper_i_hh_chtc_submission_record_v1",
+  "submitted_utc": "2026-07-12T20:39:03Z",
+  "batch_name": "paper-i-hh-wave11-l25-adaptive-whitened-r30-20260712-v1",
+  "cluster_id": 8775666,
+  "job_count": 6,
+  "initial_status": {
+    "idle": 6,
+    "running": 0,
+    "held": 0
+  },
+  "remote_root": "/home/jsstrobel/Holstein_wave11_l25_adaptive_whitened_r30_20260712_v1",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/submit.sub",
+  "submit_sha256": "28c360cc47878349ffe8af80f8135b4ae1c5dfdd09b631fd71c7c087276c3887",
+  "export_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/export_manifest.json",
+  "export_manifest_sha256": "1d8fab44657e2095065f43f59c44998aab2e770e4b4cb27323eb1126d8fef0ac",
+  "scientific_contract_hash": "74c037ad3777d3a98463de14c9421d0117c75cdbc8fa20341ac4da2b9cc784cc",
+  "monitoring_policy": "one_shot_manual_status_only",
+  "automatic_pdf_update": false
+}

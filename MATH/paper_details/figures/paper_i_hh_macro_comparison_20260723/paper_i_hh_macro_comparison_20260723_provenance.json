@@ -1,0 +1,817 @@
+{
+  "blockers": [],
+  "generated_png": {
+    "dpi": 300,
+    "path": "MATH/paper_details/figures/paper_i_hh_macro_comparison_20260723/paper_i_hh_macro_comparison_20260723.png",
+    "pixel_dimensions": [
+      2430,
+      3060
+    ],
+    "sha256": "32afca8592ccf6bb4c112b0ac2fd0b35948426beaced46a6f1230f67b2da8e6d"
+  },
+  "metric": "same-cutoff absolute ground-state energy error",
+  "oracle_query_convention": {
+    "append_snake_accounting": "clean_algorithm_recount",
+    "geo_accounting": "historical support receipt preserved",
+    "meaning": "logical scalar estimator invocation count",
+    "not_physical_shots_or_circuits": true,
+    "selected_prefix_scope": "display_prefix",
+    "symbol": "S_alg"
+  },
+  "plateau_costs": [
+    {
+      "D2q": 2560,
+      "Dc": 10731,
+      "N2q": 2752,
+      "S_alg": 636849,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 591301,
+      "W1q": 5218,
+      "abbreviation": "WW",
+      "error": 0.0005095990903486447,
+      "k_pl": 32,
+      "method": "append",
+      "regime": "weak_weak",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 2952,
+      "Dc": 12979,
+      "N2q": 3150,
+      "S_alg": 660040,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 606782,
+      "W1q": 6042,
+      "abbreviation": "IW",
+      "error": 0.02841840613345592,
+      "k_pl": 30,
+      "method": "append",
+      "regime": "intermediate_weak",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 231,
+      "Dc": 1542,
+      "N2q": 284,
+      "S_alg": 6492,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 6106,
+      "W1q": 576,
+      "abbreviation": "SW",
+      "error": 1.4112561306234284e-06,
+      "k_pl": 10,
+      "method": "append",
+      "regime": "strong_weak_u8",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 519,
+      "Dc": 2915,
+      "N2q": 724,
+      "S_alg": 8255,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 7854,
+      "W1q": 1272,
+      "abbreviation": "WS",
+      "error": 0.04344938928841113,
+      "k_pl": 10,
+      "method": "append",
+      "regime": "weak_strong",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 1865,
+      "Dc": 7029,
+      "N2q": 2088,
+      "S_alg": 15031,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 14154,
+      "W1q": 3624,
+      "abbreviation": "IS",
+      "error": 0.02576216290620803,
+      "k_pl": 12,
+      "method": "append",
+      "regime": "intermediate_strong",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 9090,
+      "Dc": 38704,
+      "N2q": 10394,
+      "S_alg": 707425,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 664625,
+      "W1q": 18491,
+      "abbreviation": "SS",
+      "error": 3.440247943220509e-05,
+      "k_pl": 35,
+      "method": "append",
+      "regime": "strong_strong_u8",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 68,
+      "Dc": 498,
+      "N2q": 68,
+      "S_alg": 23633,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 23633,
+      "W1q": 132,
+      "abbreviation": "WW",
+      "error": 0.02274033372537765,
+      "k_pl": 3,
+      "method": "geo",
+      "regime": "weak_weak",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 68,
+      "Dc": 498,
+      "N2q": 68,
+      "S_alg": 23671,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 23671,
+      "W1q": 132,
+      "abbreviation": "IW",
+      "error": 0.09936476291191787,
+      "k_pl": 3,
+      "method": "geo",
+      "regime": "intermediate_weak",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 116,
+      "Dc": 723,
+      "N2q": 144,
+      "S_alg": 39701,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 39701,
+      "W1q": 284,
+      "abbreviation": "SW",
+      "error": 2.9972447381787504e-06,
+      "k_pl": 5,
+      "method": "geo",
+      "regime": "strong_weak_u8",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 285,
+      "Dc": 1685,
+      "N2q": 288,
+      "S_alg": 122669,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 122669,
+      "W1q": 456,
+      "abbreviation": "WS",
+      "error": 0.04852826070424854,
+      "k_pl": 8,
+      "method": "geo",
+      "regime": "weak_strong",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 159,
+      "Dc": 955,
+      "N2q": 162,
+      "S_alg": 60202,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 60202,
+      "W1q": 265,
+      "abbreviation": "IS",
+      "error": 0.15232905876539293,
+      "k_pl": 4,
+      "method": "geo",
+      "regime": "intermediate_strong",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 207,
+      "Dc": 1177,
+      "N2q": 328,
+      "S_alg": 75375,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 75375,
+      "W1q": 540,
+      "abbreviation": "SS",
+      "error": 0.0002468896270849674,
+      "k_pl": 5,
+      "method": "geo",
+      "regime": "strong_strong_u8",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 162,
+      "Dc": 1105,
+      "N2q": 180,
+      "S_alg": 6473,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 5879,
+      "W1q": 336,
+      "abbreviation": "WW",
+      "error": 0.0012280933430489638,
+      "k_pl": 10,
+      "method": "snake",
+      "regime": "weak_weak",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 58,
+      "Dc": 429,
+      "N2q": 64,
+      "S_alg": 1561,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 1336,
+      "W1q": 124,
+      "abbreviation": "IW",
+      "error": 0.07863484401688581,
+      "k_pl": 4,
+      "method": "snake",
+      "regime": "intermediate_weak",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 161,
+      "Dc": 1049,
+      "N2q": 172,
+      "S_alg": 5245,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 4715,
+      "W1q": 344,
+      "abbreviation": "SW",
+      "error": 1.4112512494168783e-06,
+      "k_pl": 9,
+      "method": "snake",
+      "regime": "strong_weak_u8",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 266,
+      "Dc": 1592,
+      "N2q": 304,
+      "S_alg": 8010,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 6956,
+      "W1q": 496,
+      "abbreviation": "WS",
+      "error": 0.04094874951253202,
+      "k_pl": 10,
+      "method": "snake",
+      "regime": "weak_strong",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 316,
+      "Dc": 2018,
+      "N2q": 420,
+      "S_alg": 19873,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 18138,
+      "W1q": 754,
+      "abbreviation": "IS",
+      "error": 0.007916151699386198,
+      "k_pl": 16,
+      "method": "snake",
+      "regime": "intermediate_strong",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 881,
+      "Dc": 4721,
+      "N2q": 936,
+      "S_alg": 9045,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 7768,
+      "W1q": 1460,
+      "abbreviation": "SS",
+      "error": 4.330038679056791e-05,
+      "k_pl": 12,
+      "method": "snake",
+      "regime": "strong_strong_u8",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    }
+  ],
+  "plot_policy": {
+    "curve_markers": "one marker per curve at selected plateau prefix",
+    "initial_state_synthesized": false,
+    "shared_y_axis": "within each n_ph row",
+    "stored_rounds": [
+      1,
+      50
+    ],
+    "target_line_drawn": false,
+    "x_axis": "stored ADAPT iteration",
+    "x_limits": [
+      0,
+      50
+    ],
+    "y_axis": "logarithmic"
+  },
+  "qiskit_cost_convention": {
+    "D2q": "Qiskit two-qubit depth",
+    "Dc": "Qiskit total circuit depth",
+    "N2q": "Qiskit two-qubit gate count",
+    "W1q": "Qiskit-emitted Pauli-rotation one-qubit work before transpilation: basis changes plus central Rz",
+    "backend": null,
+    "identity": "table_i_basis_gate_transpile_v1",
+    "optimization_level": 0,
+    "reference_state_included": true,
+    "seed_transpiler": 7
+  },
+  "route_ids": [
+    "append_adapt_macro_nph3_7",
+    "geo_adapt_macro_nph3_7",
+    "sr_macro_physical_lanes_nph3_7"
+  ],
+  "schema": "paper_i_hh_macro_comparison_png_v1",
+  "source_schema": "paper_i_hh_sr_snake_trajectory_qiskit_tracker_v9",
+  "source_tracking_json": "output/pdf/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715.json",
+  "source_tracking_json_sha256": "8e057da082f9d81b308fc6563029ef9f1f309950b54191bd60bc47abfec95922",
+  "target_abs_error": 0.0002,
+  "target_costs": [
+    {
+      "D2q": 116,
+      "Dc": 723,
+      "N2q": 144,
+      "S_alg": 1658,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 1579,
+      "W1q": 284,
+      "abbreviation": "SW",
+      "error": 2.9972447386228396e-06,
+      "k_target": 5,
+      "method": "append",
+      "method_label": "Append-ADAPT",
+      "regime": "strong_weak_u8",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 116,
+      "Dc": 723,
+      "N2q": 144,
+      "S_alg": 39701,
+      "S_alg_accounting": "historical_geo_support_receipt_preserved",
+      "S_alg_original_tracker_value": 39701,
+      "W1q": 284,
+      "abbreviation": "SW",
+      "error": 2.9972447381787504e-06,
+      "k_target": 5,
+      "method": "geo",
+      "method_label": "Geo-ADAPT",
+      "regime": "strong_weak_u8",
+      "route_id": "geo_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 107,
+      "Dc": 670,
+      "N2q": 112,
+      "S_alg": 2663,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 2379,
+      "W1q": 228,
+      "abbreviation": "SW",
+      "error": 2.9993582068010838e-06,
+      "k_target": 5,
+      "method": "snake",
+      "method_label": "SNAKE",
+      "regime": "strong_weak_u8",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    },
+    {
+      "D2q": 681,
+      "Dc": 3757,
+      "N2q": 904,
+      "S_alg": 6111,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 5713,
+      "W1q": 1580,
+      "abbreviation": "SS",
+      "error": 0.0001392408719199656,
+      "k_target": 9,
+      "method": "append",
+      "method_label": "Append-ADAPT",
+      "regime": "strong_strong_u8",
+      "route_id": "append_adapt_macro_nph3_7"
+    },
+    {
+      "D2q": 409,
+      "Dc": 2213,
+      "N2q": 416,
+      "S_alg": 3913,
+      "S_alg_accounting": "clean_algorithm_recount",
+      "S_alg_original_tracker_value": 3293,
+      "W1q": 660,
+      "abbreviation": "SS",
+      "error": 0.00016579965354757142,
+      "k_target": 6,
+      "method": "snake",
+      "method_label": "SNAKE",
+      "regime": "strong_strong_u8",
+      "route_id": "sr_macro_physical_lanes_nph3_7"
+    }
+  ],
+  "trajectory_panels": [
+    {
+      "abbreviation": "WW",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.0005095990903486447,
+            "round": 32
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__weak_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/append_macro_8887541/append_macro__weak_weak__r50_transfer.tar.gz",
+            "sha256": "5ce3ca6b555bde9d8e81bffce7608dbee595b61074c67421dfc0d51fdc58d64f",
+            "size_bytes": 1460833506
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.02274033372537765,
+            "round": 3
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__weak_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__weak_weak__r50_transfer.tar.gz",
+            "sha256": "fcc7bde3a7f5147db690d809d2a621895039cd7bab6af4628348cb4ebe500be6",
+            "size_bytes": 286061790
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.0012280933430489638,
+            "round": 10
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc/weak_weak/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/macro_8890778_post_run_recovery_20260719/8890778.0__weak_weak_reporting_recovered_v1.tar.gz",
+            "sha256": "14a2fa6d55c137bd5b7067cc04851d294ed5f02d53abfc7d825a7cd0f9ce5b15",
+            "size_bytes": 254308099
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 3,
+      "regime": "weak_weak"
+    },
+    {
+      "abbreviation": "IW",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.02841840613345592,
+            "round": 30
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__intermediate_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/append_macro_8887541/append_macro__intermediate_weak__r50_transfer.tar.gz",
+            "sha256": "bda7dc30fb65326aa9629177839e488b24aac39300ebc17f4946f0c0dd4a2ffc",
+            "size_bytes": 1466239574
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.09936476291191787,
+            "round": 3
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__intermediate_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__intermediate_weak__r50_transfer.tar.gz",
+            "sha256": "cbb8a2ce2efd213100a3e9325c5f9c1ffc231cccace5d2dd05b2fe002afe9c60",
+            "size_bytes": 298112506
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.07863484401688581,
+            "round": 4
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc/intermediate_weak/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/macro_8890778_post_run_recovery_20260719/8890778.1__intermediate_weak_reporting_recovered_v1.tar.gz",
+            "sha256": "9885f1c76705679efdffdaa5200d63e7203bb7b542057ac322875ce7ec32ff8a",
+            "size_bytes": 255005006
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 3,
+      "regime": "intermediate_weak"
+    },
+    {
+      "abbreviation": "SW",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 1.4112561306234284e-06,
+            "round": 10
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__strong_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/append_macro_8887541/append_macro__strong_weak__r50_transfer.tar.gz",
+            "sha256": "5e29c2a6d94091cb3d5fbed97a451c1ecdf7abfda8ab976be85b1e555659481e",
+            "size_bytes": 206572181
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 2.9972447381787504e-06,
+            "round": 5
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__strong_weak__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__strong_weak__r50_transfer.tar.gz",
+            "sha256": "542958448ab385cb9759e315bf06294c51b7a0e5307622e296d15df7488fc46d",
+            "size_bytes": 284332650
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 1.4112512494168783e-06,
+            "round": 9
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc/strong_weak_u8/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/macro_8890778_post_run_recovery_20260719/8890778.2__strong_weak_u8_reporting_recovered_v1.tar.gz",
+            "sha256": "c048dc3e6a74c7bc7eb1fec510892c4ac4b2e0324a5c8e31ae5f7aa64d4598ea",
+            "size_bytes": 250934308
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 3,
+      "regime": "strong_weak_u8"
+    },
+    {
+      "abbreviation": "WS",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.04344938928841113,
+            "round": 10
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__weak_strong__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/append_macro_8887541/append_macro__weak_strong__r50_transfer.tar.gz",
+            "sha256": "87b885be93e27a9da89ea90bd50c15c9e244deda7112ebcb36eef8d7b6910198",
+            "size_bytes": 3116047708
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.04852826070424854,
+            "round": 8
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__weak_strong__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__weak_strong__r50_transfer.tar.gz",
+            "sha256": "d3b6deb70753042db4b08dd6d981d3e5aff6d1dc464655e65024cfde006660e1",
+            "size_bytes": 23423873
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.04094874951253202,
+            "round": 10
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc/weak_strong/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/macro_8890778_p3_post_run_recovery_20260720_v3/8890778.3__weak_strong_reporting_recovered_v1.tar.gz",
+            "sha256": "d909c5fce889a573a464c62bbfaa6c1b32abb3b11cdabd9674580b9e6d99abfc",
+            "size_bytes": 301596201
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 7,
+      "regime": "weak_strong"
+    },
+    {
+      "abbreviation": "IS",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.02576216290620803,
+            "round": 12
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__intermediate_strong__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/append_macro_8887541_completed_p4/8887541.4__append_macro__intermediate_strong__r50_transfer.tar.gz",
+            "sha256": "c5ca1dcf6e955ded9c834901893350470ccd2f98d16ec867097af762a65e1b6b",
+            "size_bytes": 3052917302
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.15232905876539293,
+            "round": 4
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__intermediate_strong__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__intermediate_strong__r50_transfer.tar.gz",
+            "sha256": "8606794b63472bf7e13523adf7d2a678d47444a781117e1c1c7fcc0ba59e568a",
+            "size_bytes": 16791803
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.007916151699386198,
+            "round": 16
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/intermediate_strong/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/status_20260720T0100Z/8894440.0__intermediate_strong_transfer.tar.gz",
+            "sha256": "d07be0290f60bc1445db61544f9fd81831c6fac8789ee8f65fdc91bf54951f4f",
+            "size_bytes": 390968650
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 7,
+      "regime": "intermediate_strong"
+    },
+    {
+      "abbreviation": "SS",
+      "curves": {
+        "append": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 3.440247943220509e-05,
+            "round": 35
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v3_chtc/append_macro__strong_strong__r50/result.json",
+            "member_sha256": "92d505d9f5dc2b37bbea534c57f6dec9f322e76ff0d27a93bef8d4798ec10904",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/retrieval_20260720T131959Z/append_macro__strong_strong__r50_transfer.tar.gz",
+            "sha256": "d770083c67565034a1fe6b6f9d6461ed6fc40a31777d442c066c9a5f4626293f",
+            "size_bytes": 3920723436
+          },
+          "route_id": "append_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "geo": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 0.0002468896270849674,
+            "round": 5
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "geo_macro__strong_strong__r50/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_r50_full48_20260719/geo_macro_8887540/geo_macro__strong_strong__r50_transfer.tar.gz",
+            "sha256": "288e7d965625b2b5125bbab61831e02cef60c9a2b8c5f34b6ae39bc8281aa7a5",
+            "size_bytes": 15779149
+          },
+          "route_id": "geo_adapt_macro_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        },
+        "snake": {
+          "initial_state_synthesized": false,
+          "marker": {
+            "error": 4.330038679056791e-05,
+            "round": 12
+          },
+          "marker_policy": "first plateau prefix from route plateau receipt",
+          "point_count": 50,
+          "result_source": {
+            "member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/strong_strong_u8/json/result.json",
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/status_20260720T0100Z/8894440.1__strong_strong_u8_transfer.tar.gz",
+            "sha256": "19ab432dc9fbd0d9eb471b105445cf6ec045197792ef93962b32c435c82b2866",
+            "size_bytes": 373654525
+          },
+          "route_id": "sr_macro_physical_lanes_nph3_7",
+          "stored_round_range": [
+            1,
+            50
+          ]
+        }
+      },
+      "n_ph": 7,
+      "regime": "strong_strong_u8"
+    }
+  ]
+}

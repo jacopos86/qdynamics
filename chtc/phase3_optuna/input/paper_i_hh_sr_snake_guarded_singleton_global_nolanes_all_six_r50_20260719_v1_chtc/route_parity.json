@@ -1,0 +1,37 @@
+{
+  "fixed_population_progressively_shortlisted": true,
+  "phase1_population_source": "same_atomic_pool_phase1_phase2_phase3_v1",
+  "phase2_population_rule": "shortlist_of_same_phase1_population_v1",
+  "phase3_population_rule": "shortlist_of_same_phase2_population_v1",
+  "profile_contract_sha256": "97f89960b93c37d4151a5e6837771c2278c3283fa89ba40671e95fb5806a5e1a",
+  "profile_request": "sr_snake_guarded_singleton_pool_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_guarded_singleton_pool_v1",
+  "projection_active": false,
+  "route_execution": {
+    "adapt_child_pool_expansion_mode": "off",
+    "adapt_child_pool_expansion_symmetry_policy": "off",
+    "adapt_pool": "full_meta",
+    "allow_archival_phase3_runtime_split": false,
+    "phase3_runtime_split_child_padding_policy": "unchecked_diagnostic_v1",
+    "phase3_runtime_split_child_set_symmetry_policy": "hard_guard",
+    "phase3_runtime_split_max_subset_size": 1,
+    "phase3_runtime_split_mode": "off",
+    "phase3_selector_policy": "hardware_resolvable_v1",
+    "physical_lane_shortlist_aggressiveness": 1,
+    "shared_pauli_pool_mode": "guarded_singleton_children_only_v1",
+    "shared_pauli_pool_symmetry_policy": "hard_guard",
+    "static_lane_route": "algebraic"
+  },
+  "route_semantics": {
+    "algebraic_lanes_active": false,
+    "candidate_pool_projection_active": false,
+    "global_child_identity_policy": "global_pauli_word_v1",
+    "macro_candidates_enter_phase1": false,
+    "macro_parent_role": "decomposition_source_only_v1",
+    "physical_operator_lanes_active": false,
+    "pool_exposure_scope": "same_atomic_pool_phase1_phase2_phase3_v1",
+    "shortlist_population_policy": "single_global_population_v1"
+  },
+  "schema": "paper_i_hh_sr_pool_complement_route_parity_v1",
+  "status": "pass"
+}

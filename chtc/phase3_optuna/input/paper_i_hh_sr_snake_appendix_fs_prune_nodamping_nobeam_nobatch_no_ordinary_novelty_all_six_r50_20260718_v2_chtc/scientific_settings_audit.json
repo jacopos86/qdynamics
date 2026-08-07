@@ -1,0 +1,164 @@
+{
+  "anchor": {
+    "parent_bundle_manifest_sha256": "2e7eebb5f955aebfaf51ea5b7ea4cd3f871c5b7e10bd7bd87762ad42a32ef97d",
+    "parent_bundle_manifest_snapshot": "parent_provenance_snapshot/main_bundle_manifest.construction_snapshot.json",
+    "parent_scientific_settings_audit_sha256": "8d337f6b6763242649181a84867c7b33567fd0a2584a18d249a7b7a91a6fc25f",
+    "parent_scientific_settings_audit_snapshot": "parent_provenance_snapshot/main_scientific_settings_audit.construction_snapshot.json",
+    "parent_source_archive_manifest_sha256": "e979fd9533f8ae98396c43fd4b092a6150b6ea8b69c7ebe2c1c09e8df65f35e4",
+    "parent_source_archive_manifest_snapshot": "parent_provenance_snapshot/main_source_archive_manifest.construction_snapshot.json",
+    "parent_source_archive_sha256": "fa9014b9608ccb8a301df0429268482abf6dd10c91eb336111a15d00be256d35",
+    "parent_source_revision_manifest_sha256": "ffa51edd94fb3cac9749488f56dbe9e0004e5f25ddf033ff7e3cac4937a3dfbb",
+    "parent_source_revision_manifest_snapshot": "parent_provenance_snapshot/main_source_revision_manifest.construction_snapshot.json",
+    "scientific_result_anchor_claimed": false,
+    "source_value_scientific_evidence_required_before_submission": false,
+    "status": "frozen_main_route_contract_anchored"
+  },
+  "exact_settings_diff": {
+    "allowed_changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "field_values": {
+      "phase1_prune_enabled": {
+        "perturbation": true,
+        "source": false
+      },
+      "phase1_prune_endpoint_overlap_policy": {
+        "perturbation": "off",
+        "source": "absent_inert"
+      },
+      "phase1_prune_local_window_size": {
+        "perturbation": 0,
+        "source": 4
+      },
+      "phase1_prune_max_candidates": {
+        "perturbation": 1,
+        "source": 6
+      },
+      "phase1_prune_metric_mu_update_policy": {
+        "perturbation": "off",
+        "source": "absent_inert"
+      },
+      "phase1_prune_metric_schur_cost_weighting": {
+        "perturbation": "off",
+        "source": "ansatz_entry_denominator_v1"
+      },
+      "phase1_prune_metric_schur_mu": {
+        "perturbation": 0.0,
+        "source": 1e-06
+      },
+      "phase1_prune_metric_schur_solve_mode": {
+        "perturbation": "affine_deletion_global_trust_v1",
+        "source": "stationary_gw_zero_v1"
+      },
+      "phase1_prune_mode": {
+        "perturbation": "live",
+        "source": "both"
+      },
+      "phase1_prune_recovery_trust_radius": {
+        "perturbation": 0.125,
+        "source": 0.0
+      },
+      "phase1_prune_schur_nomination_route": {
+        "perturbation": "full_logical_fs_trust_delete_refit_v1",
+        "source": "hessian_coupling_v1"
+      },
+      "phase1_prune_trust_update_policy": {
+        "perturbation": "modeled_local_fs_conservative_v1",
+        "source": "absent_inert"
+      }
+    },
+    "unexpected_non_prune_differences": []
+  },
+  "perturbation_route": {
+    "contract_sha256": "272ede635558edb4acc2507ac3a9803d8ccec062b96c98634b8d6407df9fbc21",
+    "profile_request": "sr_snake_symmetric_cost_fs_prune_nodamping_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_v1",
+    "source_archive_sha256": "1d6e93bd59f97f74cc444c6c3559b15d48053b2c4914736a3c32b0e0869a196a"
+  },
+  "prune_contract": {
+    "acceptance_authority": "measured_delete_and_refit_v1",
+    "endpoint_overlap": "off",
+    "execution_scope": "live_only_v1",
+    "initial_radius": 0.125,
+    "metric_damping": 0.0,
+    "metric_damping_update": "off",
+    "radius_update": "rejection_contraction_only_half_to_1e-8_floor_v1",
+    "response_scope": "full_active_logical_v1",
+    "solve": "affine_deletion_global_trust_v1",
+    "terminal_prune": false,
+    "terminal_refit": false
+  },
+  "rows": [
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "intermediate_strong",
+      "same_cutoff": true,
+      "target_round": 50
+    },
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "intermediate_weak",
+      "same_cutoff": true,
+      "target_round": 50
+    },
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "strong_strong_u8",
+      "same_cutoff": true,
+      "target_round": 50
+    },
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "strong_weak_u8",
+      "same_cutoff": true,
+      "target_round": 50
+    },
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "weak_strong",
+      "same_cutoff": true,
+      "target_round": 50
+    },
+    {
+      "anchor_status": "frozen_main_route_contract_anchored",
+      "regime_slug": "weak_weak",
+      "same_cutoff": true,
+      "target_round": 50
+    }
+  ],
+  "schema": "paper_i_hh_sr_prune_appendix_scientific_settings_audit_v1",
+  "source_route": {
+    "contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "profile_request": "sr_snake_no_prune_symmetric_cost_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_v1",
+    "source_archive_sha256": "fa9014b9608ccb8a301df0429268482abf6dd10c91eb336111a15d00be256d35"
+  },
+  "status": "pass",
+  "submission_authorized": false,
+  "variable": "live_full_logical_fs_trust_pruning"
+}

@@ -1,0 +1,143 @@
+{
+  "accepted_refit_receipts": [
+    {
+      "base_chart_policy": "expanded_runtime_projected_logical_v1",
+      "coordinate_chart": "supported_fs_whitened_fixed_v1",
+      "full_ansatz": true,
+      "scope": "full_ansatz_v1",
+      "supported_rank": 1
+    },
+    {
+      "base_chart_policy": "expanded_runtime_projected_logical_v1",
+      "coordinate_chart": "supported_fs_whitened_fixed_v1",
+      "full_ansatz": true,
+      "scope": "full_ansatz_v1",
+      "supported_rank": 2
+    },
+    {
+      "base_chart_policy": "expanded_runtime_projected_logical_v1",
+      "coordinate_chart": "supported_fs_whitened_fixed_v1",
+      "full_ansatz": true,
+      "scope": "full_ansatz_v1",
+      "supported_rank": 3
+    }
+  ],
+  "accepted_trajectory": [
+    {
+      "controller_round": 1,
+      "energy": 0.5857864376269054,
+      "insertion_positions": [
+        0
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected"
+      ]
+    },
+    {
+      "controller_round": 2,
+      "energy": 3.9616392356701424e-16,
+      "insertion_positions": [
+        0,
+        1
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected"
+      ]
+    },
+    {
+      "controller_round": 3,
+      "energy": -0.08113883007881595,
+      "insertion_positions": [
+        0,
+        1,
+        2
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+        "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[6]::legal_projected"
+      ]
+    }
+  ],
+  "estimator_accounting": {
+    "components": {
+      "n_grad": 537,
+      "n_h_outer": 3,
+      "n_h_refit": 998,
+      "n_metric": 731
+    },
+    "prefix_components": [
+      {
+        "n_grad": 154,
+        "n_h_outer": 1,
+        "n_h_refit": 31,
+        "n_metric": 185
+      },
+      {
+        "n_grad": 367,
+        "n_h_outer": 2,
+        "n_h_refit": 823,
+        "n_metric": 496
+      },
+      {
+        "n_grad": 537,
+        "n_h_outer": 3,
+        "n_h_refit": 998,
+        "n_metric": 731
+      }
+    ],
+    "prefix_s_alg": [
+      371,
+      1688,
+      2269
+    ],
+    "s_alg": 2269
+  },
+  "problem": {
+    "g_ep": 1.0,
+    "n_ph_max": 3,
+    "num_sites": 2,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem_request_sha256": "b7299ce9e978abc1f5c2db8b11328dbe2df4f679be1abc4d6aa4da3fc0159c53",
+    "t": 1.0,
+    "u": 2.0
+  },
+  "route": {
+    "contract_sha256": "eecd11fccf8f34b5e89042fb75949b54546a297ea5fe4f9969ad91ec569ff08a",
+    "profile": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_insertion_commutation_plateau_v1",
+    "trust_policy": "source_metric_inverse_sqrt_no_overlap_v1"
+  },
+  "schema": "ra_adapt_singleton_trajectory_fixture_v1",
+  "trust_receipts": [
+    {
+      "endpoint_overlap_query_charge": 0,
+      "policy": "source_metric_inverse_sqrt_no_overlap_v1",
+      "transaction_failure": "ValueError:Projected trust transaction is missing square G_AA_raw.",
+      "update_reason": "source_metric_transaction_failure_hold"
+    },
+    {
+      "endpoint_overlap_query_charge": 0,
+      "policy": "source_metric_inverse_sqrt_no_overlap_v1",
+      "predicted_source_metric_displacement": 0.25000000001249995,
+      "realized_source_metric_displacement": 0.8779895542565358,
+      "supported_metric_inverse_sqrt_constructed": false,
+      "supported_metric_whitening_active": false,
+      "supported_rank": 2,
+      "transaction_complete": true,
+      "update_reason": "realized_source_metric_motion_larger_contract"
+    },
+    {
+      "endpoint_overlap_query_charge": 0,
+      "policy": "source_metric_inverse_sqrt_no_overlap_v1",
+      "predicted_source_metric_displacement": 0.13340292085268815,
+      "realized_source_metric_displacement": 0.16087603958322097,
+      "supported_metric_inverse_sqrt_constructed": false,
+      "supported_metric_whitening_active": false,
+      "supported_rank": 3,
+      "transaction_complete": true,
+      "update_reason": "realized_source_metric_motion_larger_contract"
+    }
+  ]
+}

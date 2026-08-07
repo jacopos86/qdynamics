@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-07-17T20:20:10.525236+00:00",
+  "files": {
+    "command.json": {
+      "sha256": "a67e6317aed47bede1c0a81a50fdd9b6894d6cc713f6d4205b53018fce81ac08",
+      "size_bytes": 16516
+    },
+    "command_preflight.json": {
+      "sha256": "037c92b372861853e60ce516cebe8c515b6a7fedec5ec1b3a5ded068e0ba9f31",
+      "size_bytes": 370
+    },
+    "h2o_fixture.json": {
+      "sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594",
+      "size_bytes": 3320124
+    },
+    "route_settings_diff_audit.json": {
+      "sha256": "eb5c23aca5e885f598fe511bc3c11ae6e102ecd423e9619bc1e356cef7375244",
+      "size_bytes": 6492
+    },
+    "source_tree.tar.gz": {
+      "sha256": "fa9bea2f01ebe190de9771b4501441765b1518c8c0d39176ba6b069b76fc98db",
+      "size_bytes": 3705030
+    }
+  },
+  "record_id": "paper_iv_h2o_sr_v3_no_novelty_metric_prune_beam_from_zero_d50_20260717_v1",
+  "route_contract_sha256": "4b495a6c23263ddaa5b77e121570c34a041d1faf708e635f7957ab81f83b09c8",
+  "route_difference_audit_status": "pass",
+  "schema": "paper_iv_h2o_sr_depth50_input_manifest_v1",
+  "starting_depth": 0,
+  "target_depth": 50
+}

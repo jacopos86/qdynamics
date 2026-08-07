@@ -1,0 +1,27 @@
+{
+  "blockers": [],
+  "bundle_manifest": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/bundle_manifest.json",
+    "sha256": "e88179c6de62819ff7d853c189b0e96cc90f61f3abaf48f6df73cc83a4fc7632"
+  },
+  "checks": {
+    "argv_settings_diff_is_output_paths_only": true,
+    "cache_environment_diff_recorded_separately": true,
+    "compressed_transfer_contract": true,
+    "critical_source_hashes_match": true,
+    "image_hash_requires_remote_verification": true,
+    "isolated_output_root": true,
+    "non_icloud_checkout": true,
+    "scientific_contract_match": true,
+    "single_queue_row": true,
+    "source_archive_hash_match": true
+  },
+  "generated_utc": "2026-07-14T01:03:16.687036+00:00",
+  "required_remote_checks": [
+    "sha256sum chtc/phase3_optuna/image.sif",
+    "condor_submit -dry-run /tmp/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc.dryrun chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/submit.sub",
+    "one-shot duplicate-batch condor_q check"
+  ],
+  "schema": "paper_i_hh_sr_snake_strong_strong_r45_chtc_preflight_v1",
+  "status": "ready_for_remote_dry_run"
+}

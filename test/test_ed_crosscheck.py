@@ -265,6 +265,66 @@ class TestEDGroundStateEnergy:
         )
 
 
+class TestL3PaperISectorReference:
+    """L=3 Paper-I weak-Holstein sector reference must remain fixed."""
+
+    def test_l3_strong_weak_binary_open_matches_sector_gold(self):
+        dims = 3
+        J, U, omega0, g = 1.0, 8.0, 1.0, 0.3535533905932738
+        n_ph_max = 1
+        num_particles = (2, 1)
+        kwargs = dict(
+            dims=dims,
+            J=J,
+            U=U,
+            omega0=omega0,
+            g=g,
+            n_ph_max=n_ph_max,
+            boson_encoding="binary",
+            indexing="blocked",
+            pbc=False,
+            num_particles=num_particles,
+            include_zero_point=True,
+        )
+
+        evals_ed = _sector_eigenvalues_ed(**kwargs)
+        evals_pauli = _sector_eigenvalues_pauli(**kwargs)
+        h_sparse = build_hh_sector_hamiltonian_ed(
+            dims=dims,
+            J=J,
+            U=U,
+            omega0=omega0,
+            g=g,
+            n_ph_max=n_ph_max,
+            num_particles=num_particles,
+            indexing="blocked",
+            boson_encoding="binary",
+            pbc=False,
+            include_zero_point=True,
+            sparse=True,
+        )
+        evals_sparse = np.sort(np.real(np.linalg.eigvalsh(matrix_to_dense(h_sparse))))
+
+        np.testing.assert_allclose(evals_ed, evals_pauli, atol=1e-10)
+        np.testing.assert_allclose(evals_ed, evals_sparse, atol=1e-10)
+        assert abs(float(evals_ed[0]) - 0.79018469638518) < 1e-10
+
+        no_zp = _sector_eigenvalues_ed(
+            dims=dims,
+            J=J,
+            U=U,
+            omega0=omega0,
+            g=g,
+            n_ph_max=n_ph_max,
+            boson_encoding="binary",
+            indexing="blocked",
+            pbc=False,
+            num_particles=num_particles,
+            include_zero_point=False,
+        )
+        assert abs(float(evals_ed[0] - no_zp[0]) - 1.5) < 1e-10
+
+
 class TestEncodingConsistency:
     """Binary and unary encodings must give the same physical eigenvalues."""
 

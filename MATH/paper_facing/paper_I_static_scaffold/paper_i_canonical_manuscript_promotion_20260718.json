@@ -1,0 +1,44 @@
+{
+  "schema": "paper_i_canonical_manuscript_promotion_v1",
+  "status": "complete",
+  "user_approved": true,
+  "promotion_date": "2026-07-18",
+  "canonical": {
+    "source": "MATH/paper_details/Paper_I.tex",
+    "source_sha256": "e71bc9af305b8b0dd4eac8b813d4eef305fcecf4841392baf0355e0deab74f52",
+    "build_side_pdf": "MATH/paper_details/Paper_I.pdf",
+    "reader_facing_pdf": "Paper_I.pdf",
+    "pdf_sha256": "a07af14d587f2085278954b8054717b5a8341edc9ae5ab3a0009ab98706f3a0a",
+    "pdf_page_count": 22,
+    "bibliography": "MATH/paper_details/Paper_INotes.bib",
+    "bibliography_sha256": "61b9ca8a0eae79078bb6bcd4205c582b5f4f2ed0a16ece16a01837cc4718248d"
+  },
+  "promoted_candidate": {
+    "source": "MATH/paper_details/Paper_I_no_ordinary_novelty_sr_snake_20260717.tex",
+    "source_pre_canonicalization_sha256": "5e10fc9f2b3573d8c45fb8f7eda02909d019c43179acfd75d3b1ca8b007fc435",
+    "pdf": "MATH/paper_details/Paper_I_no_ordinary_novelty_sr_snake_20260717.pdf",
+    "pdf_sha256": "fd5b34acae9a54583292bc531f5dbec3159e438d654c000072a62405336afaf9",
+    "evidence_provenance": "MATH/paper_facing/paper_I_static_scaffold/paper_i_no_ordinary_novelty_sr_snake_evidence_copy_20260717.json"
+  },
+  "prior_canonical": {
+    "source_sha256": "f28f98309f4d99011738ba011ad0247e64bc08a4a011c4bf9c9475d249046d4a",
+    "pdf_sha256": "d5288150f6b3a6afc4d11c7f3da0c16e5d16dd4d81c0366348d556423a73834d",
+    "archive_directory": "MATH/paper_details/backups/paper_i_pre_no_ordinary_novelty_promotion_20260718"
+  },
+  "canonicalization_edits": [
+    "removed the Evidence Copy subtitle",
+    "changed evidence-copy self-references to canonical manuscript wording",
+    "replaced the evidence-copy machine-readable status block with the canonical promotion receipt pointer",
+    "preserved all scientific values, endpoint choices, figures, route settings, references, and comparison qualifications"
+  ],
+  "build_validation": {
+    "command": "cd MATH/paper_details && latexmk -pdf -interaction=nonstopmode -halt-on-error Paper_I.tex",
+    "exit_code": 0,
+    "root_and_build_side_pdf_byte_identical": true,
+    "visual_inspection": "all 22 pages rendered with Poppler at 100 dpi and inspected; no clipping, overlap, missing figure, black box, or broken page composition observed",
+    "retained_warnings": [
+      "BibTeX reports missing database entries because the manuscript retains its existing manual bibliography alongside the empty Notes bib",
+      "one existing 5.54138 pt overfull hbox remains near the Phase-III equation block"
+    ]
+  }
+}

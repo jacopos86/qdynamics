@@ -1,0 +1,28 @@
+{
+  "schema": "paper_i_ra_adapt_scheduler_resource_adjustment_receipt_v1",
+  "adjusted_utc": "2026-08-02T14:27:14Z",
+  "cluster_id": 9400779,
+  "proc_ids": [0, 1, 2],
+  "scientific_settings_changed": false,
+  "before": {
+    "request_cpus": 4,
+    "request_memory_mb": 49152,
+    "request_disk_kb": 62914560
+  },
+  "after": {
+    "request_cpus": 4,
+    "request_memory_mb": 36864,
+    "request_disk_kb": 41943040
+  },
+  "basis": {
+    "prior_cluster_id": 9400252,
+    "prior_proc_ids": [0, 1, 2],
+    "observed_peak_memory_mb": [24113, 21949, 27847],
+    "policy": "history_backed_scheduler_only_reduction_with_margin_v1"
+  },
+  "post_adjustment_state": {
+    "idle": 3,
+    "running": 0,
+    "held": 0
+  }
+}

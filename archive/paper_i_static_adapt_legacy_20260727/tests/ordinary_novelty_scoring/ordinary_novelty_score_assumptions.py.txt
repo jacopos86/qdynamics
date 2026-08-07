@@ -1,0 +1,142 @@
+    GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+    HISTORICAL_SINGLETON_PHASE2_WHITENED_SCORE_FORMULA,
+    assert [row["phase2_raw_score"] for row in evaluation.records] == (
+        pytest.approx([0.6 * 0.25 / 2.0, 0.5 * 0.8 / 4.0])
+    )
+        assert model["authority"] == "historical_phase2_benefit_overlay_only"
+        assert new_feature.phase2_raw_score_formula == (
+            HISTORICAL_SINGLETON_PHASE2_WHITENED_SCORE_FORMULA
+        )
+    assert evaluation.telemetry["novelty_preserved"] is True
+def test_phase2_fallback_only_accepts_null_n2_and_keeps_supported_whitening(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+        cfg=FullScoreConfig(
+            phase2_gram_novelty_policy=(
+                GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+            ),
+            batch_joint_linear_solve_policy=_WHITENED_POLICY,
+        ),
+    assert evaluation.telemetry["novelty_preserved"] is False
+    assert [row["full_v2_score"] for row in rescored] == pytest.approx(
+        [0.15, 0.20]
+    )
+        assert components["N3"] == pytest.approx(0.5)
+        phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+    assert rescored[0]["full_v2_score"] == pytest.approx(0.15)
+def test_phase3_fallback_only_ordinary_ranking_uses_gain_over_cost_without_n3(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _unexpected_lazy_novelty(*_args, **_kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError(
+            "ordinary Phase-III fallback-only ranking must not compute novelty"
+        )
+        cfg=FullScoreConfig(
+            phase3_gram_novelty_policy=(
+                GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+            )
+        ),
+def test_all_infeasible_whitened_models_use_collective_novelty_without_veto() -> None:
+    first = replace(
+        _feature(candidate_label="first", candidate_pool_index=7),
+        phase2_joint_geometry_reuse={
+            "schema": HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+            "feasible": False,
+            "reason": "rank_gate",
+            "joint_gain": 0.0,
+            "joint_linear_solve_policy_effective": _WHITENED_POLICY,
+        },
+    )
+    second_components = {
+        **_feature().phase_score_components,
+        "N3": 0.8,
+        "phase3_N3": 0.8,
+        "K3": 3.0,
+        "phase3_K3": 3.0,
+        "denominator_1_plus_K3": 4.0,
+        "phase3_denominator_1_plus_K3": 4.0,
+    }
+    second = replace(
+        _feature(
+            candidate_label="second",
+            candidate_pool_index=3,
+            phase3_burden_total=4.0,
+            phase_score_components=second_components,
+        ),
+        phase2_joint_geometry_reuse={
+            "schema": HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+            "feasible": False,
+            "reason": "conditioning_gate",
+            "joint_gain": 0.0,
+            "joint_linear_solve_policy_effective": _WHITENED_POLICY,
+        },
+    )
+
+    rescored, telemetry = rescore_historical_phase3_records_with_coordinate_models(
+        [_record("first", 7, first), _record("second", 3, second)],
+        cfg=FullScoreConfig(),
+    )
+
+    assert [row["candidate_label"] for row in rescored] == ["first", "second"]
+    assert [row["full_v2_score"] for row in rescored] == pytest.approx(
+        [0.25, 0.20]
+    )
+    assert all(math.isfinite(row["full_v2_score"]) for row in rescored)
+    assert all(
+        row["route_a_geometry_expansion_mode"]
+        == "collective_span_novelty_over_cost_v1"
+        for row in rescored
+    )
+    assert telemetry["geometry_expansion_active"] is True
+    assert telemetry["geometry_expansion_score_formula"] == "N3/(1+K3)"
+    assert telemetry["infeasible_reason_counts"] == {
+        "conditioning_gate": 1,
+        "rank_gate": 1,
+    }
+
+def test_phase3_fallback_only_computes_n3_lazily_for_all_infeasible_geometry() -> None:
+        cfg=FullScoreConfig(
+            phase3_gram_novelty_policy=(
+                GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+            ),
+            novelty_eps=0.0,
+        ),
+def test_all_infeasible_geometry_expansion_domain_retains_novelty_rows() -> None:
+    rows: list[dict[str, Any]] = []
+    for index, reason in enumerate(("rank_gate", "conditioning_gate")):
+        feature = replace(
+            _feature(candidate_label=f"candidate_{index}", candidate_pool_index=index),
+            phase2_joint_geometry_reuse={
+                "schema": HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+                "feasible": False,
+                "reason": reason,
+                "joint_gain": 0.0,
+                "joint_linear_solve_policy_effective": _WHITENED_POLICY,
+            },
+        )
+        rows.append(_record(f"candidate_{index}", index, feature))
+    rescored, rescore_summary = (
+        rescore_historical_phase3_records_with_coordinate_models(
+            rows,
+            cfg=FullScoreConfig(),
+        )
+    )
+
+    domain, telemetry = (
+        adapt_pipeline._historical_singleton_coordinate_admission_domain(
+            rescored,
+            rescore_summary=rescore_summary,
+        )
+    )
+
+    assert [row["candidate_label"] for row in domain] == [
+        "candidate_0",
+        "candidate_1",
+    ]
+    assert telemetry["geometry_expansion_active"] is True
+    assert telemetry["filtered_count"] == 0
+    assert rescored[0]["selector_score"] == pytest.approx(0.4 * 0.5 / 2.0)
+    assert rescored[0]["selector_score"] == pytest.approx(0.2 * 0.5 / 2.0)
+    assert rescored[1]["selector_score"] == pytest.approx(0.5 * 0.5 / 2.0)
+    assert feature.phase_score_components["N3"] == pytest.approx(n3)

@@ -1,0 +1,22 @@
+{
+  "completed_rounds": 1,
+  "phase1_lambda_f_proxy_applied": false,
+  "phase1_shortlist_size": 24,
+  "phase2_lambda_f_proxy_applied": false,
+  "phase2_missing_curvature_fallback_used": false,
+  "phase2_retained_shortlist_size": 2,
+  "phase3_accepted_refit_coordinate_count": 1,
+  "phase3_response_pre_support_count": 1,
+  "phase3_response_supported_rank": 1,
+  "physical_operator_lane": "uccsd_single",
+  "pool_size": 102,
+  "route_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+  "route_profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_macro_only_physical_lanes_v1",
+  "schema": "paper_i_sr_pool_complement_one_admission_smoke_v1",
+  "selected_operator": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+  "shared_pauli_pool_mode": "off",
+  "source_result": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_smoke_20260719/weak_weak/json/result.json",
+  "source_result_sha256": "3afff9f0370604f0778c3cf829f703b14357ff4e2e62a4baedd3867a66a40a4c",
+  "static_lane_route": "physical_operator_type",
+  "status": "pass"
+}

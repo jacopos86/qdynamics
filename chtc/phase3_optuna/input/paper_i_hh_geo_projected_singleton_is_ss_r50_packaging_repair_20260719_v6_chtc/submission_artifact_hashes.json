@@ -1,0 +1,28 @@
+{
+  "files": {
+    "README.md": "03a0b6ff9fa40efe0d1e13aebd461b96cac903661e0b14fb07f13b1d65e7d25b",
+    "build_bundle.py": "dd63998df5250e6d3a27d0b3c58bff273d94e3b29f6bf138df55602d6f11b66b",
+    "bundle_manifest.json": "1d868c9c651d32f3b9c66fb6d1bcccb619f663b513c863bd96ddf4de732df67c",
+    "execute_source_locked_job.sh": "518d1b8ff7ece6b72cb46b3fa6c031d1e1a6671eb0d48a7928b9f3a1307e9067",
+    "jobs/geo_projected_singleton__intermediate_strong__r50.json": "31d3aaa844d8d9ffce44329cc04a656daf381289ad9150e943de98144b414ac3",
+    "jobs/geo_projected_singleton__strong_strong__r50.json": "af48065c80ffe0b3c52bf6daf937411a7d900dd80f790e0ad4b8fca802319d53",
+    "normalized_manifests/geo_projected_singleton__intermediate_strong__r50.json": "31d3aaa844d8d9ffce44329cc04a656daf381289ad9150e943de98144b414ac3",
+    "normalized_manifests/geo_projected_singleton__strong_strong__r50.json": "af48065c80ffe0b3c52bf6daf937411a7d900dd80f790e0ad4b8fca802319d53",
+    "queue.tsv": "c2676be21a5d1478b136d6fe43e937a47eb67c08352c72a6d2c48b4ffc3a7cbc",
+    "remote_execution_gate.json": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+    "run_job.py": "5d11a0cf16b300fc93e1aa6244b08d5631c505d3110711872f79a9775dd44d5f",
+    "settings_difference_audit.json": "df91eeeb63155db22bdace6405982732357e1ed2c2b4072f263869385ab8b10d",
+    "source_archive_manifest.json": "60f9f90f5847957d51741fe8c1da5b93f86b9bfb119cfdcc745258417d8d2bca",
+    "source_locked.tar.gz": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+    "submit.sub": "e7f479d7e61e413216ded48a89ba426ffa7f30b08925cab0d724305aec335517",
+    "test_bundle.py": "cc2167078e44a907a68e4d8671bb40592b1ec470f952cbe10e44ea9790c8e3f7",
+    "visible_source_locks/intermediate_strong_geo_adapt.json": "54f2680b8d8423eb48fff8f4bf8ca2c32469e3bed30d44e0dda1203683e5932e",
+    "visible_source_locks/intermediate_weak_geo_adapt.json": "ac1e1bb97bd8d8667e9bf1dc42401d164cf2fe88ac5c97e33c2edff6b33b600b",
+    "visible_source_locks/strong_strong_geo_adapt.json": "38c75cf2f70146405eb811047798ba404b0a47afffdf17387a57388c0eb70cc6",
+    "visible_source_locks/strong_weak_geo_adapt.json": "39c74036dc4d5d8d45a06976176b33ac5ec1d8d67719df498a8d531184d1f7cc",
+    "visible_source_locks/weak_strong_geo_adapt.json": "3624e7200a2d318cf31bb2448caffa0e5b2662c32e7661ba07a83023ad3dbe5f",
+    "visible_source_locks/weak_weak_geo_adapt.json": "32c407daa3aa1e1e901876766e1cae21442bf53b332ad720315b0e6b9ca0b293",
+    "visible_source_map_resolved.json": "e16188de93fb9057ef9dcc0be214a85675b714e898729d2857f20d7a8e194dc7"
+  },
+  "schema": "paper_i_hh_geo_projected_singleton_packaging_repair_hashes_v1"
+}

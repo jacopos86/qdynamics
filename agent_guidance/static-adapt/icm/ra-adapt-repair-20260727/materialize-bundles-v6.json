@@ -1,0 +1,137 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/paper-i-final-correctness-and-evidence-completion-plan-20260727.md",
+      "sha256": "d194420fc4bff195ba3cec2961b890b833ed1df54501e1615feddb5fab7a5420"
+    },
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles.json",
+      "sha256": "e2ee41313bf51bb46ca4269b4740b799167dae48da328bb291b56559db1c2f3f"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/materialize_study1_v6.py",
+      "sha256": "2f4991c6a965414941514176e8a4a07d023dbe9f2ed44d4048acca7f27f1e22b"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/source_materialization/source_locks_input.json",
+      "sha256": "bee791d98a008e604e053ff07a6ce55117c448d32ffec6c747b1771c2e7c4fba"
+    }
+  ],
+  "checks": [
+    {
+      "command": "python -m pytest -q test/test_ra_adapt_*.py test/test_static_adapt_commutation_metadata.py test/test_static_adapt_accepted_refit.py test/test_static_adapt_accepted_refit_external_gram.py test/test_static_adapt_resume_checkpoint_parameterization.py test/test_static_adapt_resume_scaffold.py test/test_paper_i_sr_snake_resume_adapter.py",
+      "id": "final_correctness_regression_gate",
+      "observed": "231 passed, 9 skipped, 14 warnings",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/v5_v6_normalized_diff_receipt.json",
+      "id": "normalized_v5_to_v6_diff",
+      "observed": {
+        "append_native_refit_protocol_count": 28,
+        "protocol_count": 116,
+        "typed_full_insertion_protocol_count": 28,
+        "unexpected_normalized_difference_count": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/cross_file_loader_validation.json",
+      "id": "cross_file_loader_validation",
+      "observed": "116 passed; 0 failed",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/final_materialization_receipt.json",
+      "id": "older_materialization_preservation",
+      "observed": "v1-v5 pre/post tree hashes byte-identical",
+      "status": "passed"
+    },
+    {
+      "id": "pool_identity_smoke",
+      "observed": {
+        "guarded_child_nph3_sha256": "66ea9d6b058b562ba913e221124285de7be0ec13a972d30b9812ab29874a58e0",
+        "guarded_child_nph7_sha256": "8e1fe54be4b089d759d334399add40fc5edea8faa31af9ea70f1f2cc36834e93",
+        "macro_nph3": "102 / 1549f2e108406f494c2d4f884212c1026dbaa42f12eb92189f18eaf2a62b17df",
+        "macro_nph7": "148 / e30e879dabf4d6eb234be92aae1cea76998172b67e8c679b241f5cdc6641d14e"
+      },
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/final_materialization_receipt.json",
+      "id": "execution_and_submission_state",
+      "observed": "execution_authorized=false; submitted=false",
+      "status": "passed"
+    },
+    {
+      "id": "stationarity_winner_selection",
+      "observed": false,
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "canonical_sha256": "03265f27d0e3b6db55a9ca80914ca6fef5780e73649ff254a8d0e6ca4f5f4e36",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/final_materialization_receipt.json",
+      "sha256": "6fca31f9a9f4eb4860198aeda6300dfa9291244f02df06f8c47a8b818209a75f"
+    },
+    {
+      "canonical_sha256": "6cf627f3b7d1162db1cd59e133f18ac7fb67732be5dde7b564226b521bc97941",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/cross_file_loader_validation.json",
+      "sha256": "b8a2354d7173892659ce27378ac83359f04a0321ac60825c1477947012f0014d"
+    },
+    {
+      "canonical_sha256": "66b481fd84d641e31a278be16410717d8984f716d4543ee477aa3f1b35afd0e8",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/v5_v6_normalized_diff_receipt.json",
+      "sha256": "6c9b9ebd74964b6afbbebfeea43cc06f02a28c96c183dd81c5a3fb69fa86519d"
+    },
+    {
+      "canonical_sha256": "4061ab51d1e04063a4f54a2d0969d5801b81a1e100feafb7b3cc2f48f3c65b23",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "sha256": "62f44fd7792f46ef8d423e525d26d7f3fdfea75aa9c2069a401ee21c20fb22a5"
+    },
+    {
+      "canonical_sha256": "b254dc7d9c16a92b3345aca56e31e688fddb30c956f9aa0ae41cb01277a47f32",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/ra_repair_measured_late_v1/bundle_manifest.json",
+      "sha256": "179d60b6c801c3f7574fa7d8cd00877145dea7e604fb560a63710d0a7c0dc1bd"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "4061ab51d1e04063a4f54a2d0969d5801b81a1e100feafb7b3cc2f48f3c65b23",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    },
+    {
+      "bundle_manifest_canonical_sha256": "b254dc7d9c16a92b3345aca56e31e688fddb30c956f9aa0ae41cb01277a47f32",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v6/ra_repair_measured_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v3",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "materialize-bundles",
+  "state": "complete",
+  "state_reason": "The immutable v6 revision contains both corrected 58-cell Study-1 bundles, passes the exact normalized repair allowlist and all 116 loader checks, preserves v1-v5 byte-identically, and remains non-authorizing and unsubmitted.",
+  "supersession_lineage": {
+    "lineage_type": "append_only_materialization_revision_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles.json",
+      "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v2",
+      "sha256": "e2ee41313bf51bb46ca4269b4740b799167dae48da328bb291b56559db1c2f3f",
+      "stage": "materialize-bundles"
+    },
+    "superseded_receipts": [
+      {
+        "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles.json",
+        "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v2",
+        "sha256": "e2ee41313bf51bb46ca4269b4740b799167dae48da328bb291b56559db1c2f3f",
+        "status": "superseded_for_execution_by_corrected_v6"
+      }
+    ],
+    "successor_stage": "execute-study1"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

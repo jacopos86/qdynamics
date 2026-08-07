@@ -1,0 +1,195 @@
+        formal_manifold_session_override: FormalManifoldSession | None = None,
+        formal_query_ledger_override: QueryPrimitiveLedger | None = None,
+        formal_winning_energy_occurrence_ids_override: list[str] | None = None,
+        formal_all_energy_occurrence_ids_override: list[str] | None = None,
+        formal_frozen_prune_ledgers_by_index: dict[
+            int, QueryPrimitiveLedger
+        ] = {}
+        formal_frozen_prune_receipts_by_index: dict[
+            int, dict[str, Any]
+        ] = {}
+
+            if formal_query_ledger_override is None:
+            if formal_query_ledger_override is not None:
+                formal_prune_session = (
+                    formal_manifold_session_override
+                    if formal_manifold_session_override is not None
+                    else formal_manifold_session
+                )
+                if formal_prune_session is None:
+                    raise RuntimeError(
+                        "Pure-FM frozen-prune probe lost its branch session."
+                    )
+                trial_layout = _build_selected_layout(ops_trial)
+                trial_state = _prepare_selected_state(
+                    ops_now=ops_trial,
+                    theta_now=np.asarray(theta_trial0, dtype=float),
+                    executor_now=executor_trial,
+                    parameter_layout_now=trial_layout,
+                )
+                trial_formal_executor = _build_formal_manifold_executor(
+                    ops_trial
+                )
+                trial_adapter = build_compiled_exact_manifold_adapter(
+                    executor=trial_formal_executor,
+                    layout=trial_layout,
+                    theta_runtime=np.asarray(theta_trial0, dtype=float),
+                    psi_ref=np.asarray(psi_ref, dtype=complex),
+                    h_compiled=h_compiled,
+                    manifold_id="static_adapt_accepted_ansatz_v1",
+                    hamiltonian_fingerprint=(
+                        compiled_hamiltonian_fingerprint(h_compiled)
+                    ),
+                    branch_id=str(formal_prune_session.branch_id),
+                    coordinate_registry_override=(
+                        _formal_coordinate_registry_override(
+                            executor=trial_formal_executor,
+                            layout=trial_layout,
+                            session=formal_prune_session,
+                            removed_parent_coordinate_indices=(
+                                int(idx_remove),
+                            ),
+                            admission_context="live_prune_frozen",
+                        )
+                    ),
+                )
+                energy_primitive = formal_manifold_energy_query_primitive(
+                    backend=trial_adapter.backend,
+                    theta=np.asarray(trial_adapter.x0, dtype=float),
+                    statevector=np.asarray(trial_state, dtype=complex),
+                    branch_id=str(formal_prune_session.branch_id),
+                    evaluation_role=FORMAL_ENDPOINT_ROLE_PRUNE_FROZEN,
+                )
+                energy_receipt = QueryReceipt.from_primitives(
+                    requested=(energy_primitive,),
+                    returned_fields=("energy",),
+                    provenance_by_field={
+                        "energy": "formal_frozen_prune_exact_energy"
+                    },
+                    provider_kind="compiled_exact_state_provider_v1",
+                    statevector_shortcut_used=True,
+                )
+                probe_ledger = QueryPrimitiveLedger()
+                probe_ledger.consume_receipt(
+                    energy_receipt,
+                    consumer_phase="prune_frozen",
+                )
+                formal_frozen_prune_ledgers_by_index[int(idx_remove)] = (
+                    probe_ledger
+                )
+                formal_frozen_prune_receipts_by_index[int(idx_remove)] = {
+                    "schema": "formal_frozen_prune_energy_query_receipt_v1",
+                    "removal_index": int(idx_remove),
+                    "removed_label": str(labels_now[int(idx_remove)]),
+                    "trial_scaffold_fingerprint": (
+                        ordered_scaffold_fingerprint(ops_trial)
+                    ),
+                    "accepted_prune": False,
+                    "query_receipt": energy_receipt.portable_payload(),
+                }
+        if formal_frozen_prune_ledgers_by_index:
+            if (
+                formal_query_ledger_override is None
+                or formal_query_discarded_ledger is None
+            ):
+                raise RuntimeError(
+                    "Pure-FM frozen-prune accounting ledgers disappeared."
+                )
+            typed_payloads: list[dict[str, Any]] = []
+            for index, probe_ledger in sorted(
+                formal_frozen_prune_ledgers_by_index.items()
+            ):
+                accepted_probe = int(index) in accepted_prune_indices
+                typed_payload = dict(
+                    formal_frozen_prune_receipts_by_index[int(index)]
+                )
+                typed_payload["accepted_prune"] = bool(accepted_probe)
+                typed_payloads.append(typed_payload)
+                energy_ids = _formal_primitive_ids_by_category(
+                    probe_ledger
+                )["N_E"]
+                if accepted_probe:
+                    formal_query_ledger_override.merge(probe_ledger)
+                    winning_occurrence_target = (
+                        formal_winning_energy_occurrence_ids_override
+                        if formal_winning_energy_occurrence_ids_override
+                        is not None
+                        else formal_energy_occurrence_ids_winning
+                    )
+                    winning_occurrence_target.extend(energy_ids)
+                    if formal_all_energy_occurrence_ids_override is not None:
+                        formal_all_energy_occurrence_ids_override.extend(
+                            energy_ids
+                        )
+                else:
+                    formal_query_discarded_ledger.merge(probe_ledger)
+                    formal_energy_occurrence_ids_discarded.extend(energy_ids)
+            summary["formal_frozen_prune_energy_receipts"] = typed_payloads
+            summary["nfev_formal_frozen_prune_energy_probes"] = int(
+                len(typed_payloads)
+            )
+                        formal_manifold_session_override=None,
+                        formal_query_ledger_override=None,
+                        formal_winning_energy_occurrence_ids_override=None,
+                        formal_all_energy_occurrence_ids_override=None,
+                        formal_manifold_session_override=(
+                            formal_manifold_session
+                            if formal_manifold_selector_enabled
+                            else None
+                        ),
+                        formal_query_ledger_override=(
+                            formal_query_winning_ledger
+                            if formal_manifold_selector_enabled
+                            else None
+                        ),
+                        formal_winning_energy_occurrence_ids_override=(
+                            formal_energy_occurrence_ids_winning
+                            if formal_manifold_selector_enabled
+                            else None
+                        ),
+            formal_terminal_frozen_prune_ledgers_by_index: dict[
+                int, QueryPrimitiveLedger
+            ] = {}
+            formal_terminal_frozen_prune_receipts_by_index: dict[
+                int, dict[str, Any]
+            ] = {}
+
+            if formal_terminal_frozen_prune_ledgers_by_index:
+                if (
+                    formal_query_winning_ledger is None
+                    or formal_query_discarded_ledger is None
+                ):
+                    raise RuntimeError(
+                        "Pure-FM terminal frozen-prune accounting ledgers "
+                        "disappeared."
+                    )
+                terminal_frozen_receipts: list[dict[str, Any]] = []
+                for index, probe_ledger in sorted(
+                    formal_terminal_frozen_prune_ledgers_by_index.items()
+                ):
+                    accepted_probe = int(index) in accepted_prune_indices
+                    receipt_payload = dict(
+                        formal_terminal_frozen_prune_receipts_by_index[
+                            int(index)
+                        ]
+                    )
+                    receipt_payload["accepted_prune"] = bool(accepted_probe)
+                    terminal_frozen_receipts.append(receipt_payload)
+                    energy_ids = _formal_primitive_ids_by_category(
+                        probe_ledger
+                    )["N_E"]
+                    if accepted_probe:
+                        formal_query_winning_ledger.merge(probe_ledger)
+                        formal_energy_occurrence_ids_winning.extend(energy_ids)
+                    else:
+                        formal_query_discarded_ledger.merge(probe_ledger)
+                        formal_energy_occurrence_ids_discarded.extend(energy_ids)
+                terminal_frozen_probe_count = int(
+                    len(terminal_frozen_receipts)
+                )
+                prune_summary[
+                    "formal_terminal_frozen_prune_energy_receipts"
+                ] = terminal_frozen_receipts
+                prune_summary[
+                    "nfev_formal_frozen_prune_energy_probes"
+                ] = int(terminal_frozen_probe_count)

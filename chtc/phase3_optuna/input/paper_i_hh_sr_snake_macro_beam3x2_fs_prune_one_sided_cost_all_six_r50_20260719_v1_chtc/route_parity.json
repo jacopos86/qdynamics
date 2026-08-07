@@ -1,0 +1,23 @@
+{
+  "base": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+    "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+    "profile_request": "sr_snake_macro_only_physical_lanes_v1"
+  },
+  "common_beam_prune_overlay": {
+    "phase3_hardware_cost_normalization_mode": "family_robust_v1"
+  },
+  "cost_arm": "family_robust_v1",
+  "fresh_round0_to_round50": true,
+  "same_cutoff_all_six": true,
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_route_parity_v1",
+  "sibling_arm_only_executable_difference": "phase3_hardware_cost_normalization_mode",
+  "status": "pass",
+  "unexpected_differences": [],
+  "variant": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc",
+    "profile_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_one_sided_cost_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_one_sided_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1"
+  }
+}

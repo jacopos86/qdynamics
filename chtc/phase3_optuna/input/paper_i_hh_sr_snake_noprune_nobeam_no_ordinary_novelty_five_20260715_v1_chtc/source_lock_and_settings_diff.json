@@ -1,0 +1,220 @@
+{
+  "anchor": {
+    "anchor_command": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/anchor_command.json",
+      "sha256": "87bff4c130d17c994e25dab49ac72d012c9beae97f6d89cd2edb857fc1806014"
+    },
+    "anchor_execution": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/anchor_execution.json",
+      "sha256": "c62770cd1d828a7ee5c4bfb52a24510e3aacb6ba29b28b76f63645081204e6fc"
+    },
+    "anchor_result_summary": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/anchor_result_summary.json",
+      "sha256": "365ad73c9a1ec2e72b5bb5443d51044512eb56119b29a935d0569013d71a5f5f"
+    },
+    "anchor_settings_diff": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/anchor_settings_diff.json",
+      "sha256": "a9f381968cb503bc9f931ece8711e2574e4b359238134375fa908019ad02c6f6"
+    },
+    "base_source_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/base_source_manifest.json",
+      "sha256": "7e0b8d4b72bcabb5de842ae89afd8d34ce861ebf0e2b9d16fe12f883c73aa416"
+    },
+    "n_ph_reference": 2,
+    "n_ph_work": 2,
+    "same_cutoff_exact_energy": -0.9183531194991743,
+    "source_revision_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_lock/source_revision_manifest.json",
+      "sha256": "dc6f68c6f78a737a773b7672846485e6d591f8ffd4cd2ec06aa7491339a33817"
+    },
+    "validated_energy": -0.9183531194991663,
+    "validated_same_cutoff_error": 7.993605777301127e-15
+  },
+  "approved_scientific_axis": "five_remaining_hh_interaction_regimes_with_locked_same_cutoff",
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc",
+  "canonical_identity_changed": false,
+  "created_utc": "2026-07-16T02:01:09.808514+00:00",
+  "jobs": [
+    {
+      "changed_flags_vs_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--u"
+      ],
+      "non_regime_non_path_settings_diff": [],
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_weak"
+    },
+    {
+      "changed_flags_vs_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--u"
+      ],
+      "non_regime_non_path_settings_diff": [],
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_weak_u8"
+    },
+    {
+      "changed_flags_vs_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json"
+      ],
+      "non_regime_non_path_settings_diff": [],
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 0.25
+      },
+      "regime_slug": "weak_strong"
+    },
+    {
+      "changed_flags_vs_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--u"
+      ],
+      "non_regime_non_path_settings_diff": [],
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_strong"
+    },
+    {
+      "changed_flags_vs_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--u"
+      ],
+      "non_regime_non_path_settings_diff": [],
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_strong_u8"
+    }
+  ],
+  "route_signature": {
+    "--L": "2",
+    "--adapt-accepted-refit-base-chart-policy": "expanded_runtime_projected_logical_v1",
+    "--adapt-accepted-refit-coordinate-chart": "supported_fs_whitened_fixed_v1",
+    "--adapt-accepted-refit-scope": "full_ansatz_v1",
+    "--adapt-beam-children-per-parent": "1",
+    "--adapt-beam-lambda": "0.005",
+    "--adapt-beam-live-branches": "1",
+    "--adapt-continuation-mode": "phase3_v1",
+    "--adapt-final-full-refit": "true",
+    "--adapt-final-refit-maxiter": "200",
+    "--adapt-full-refit-every": "8",
+    "--adapt-inner-optimizer": "POWELL",
+    "--adapt-max-depth": "30",
+    "--adapt-maxiter": "200",
+    "--adapt-pool": "full_meta",
+    "--adapt-reopt-policy": "windowed",
+    "--adapt-scipy-maxfev": "0",
+    "--allow-archival-phase3-runtime-split": true,
+    "--boson-encoding": "binary",
+    "--boundary": "open",
+    "--dv": "0.0",
+    "--historical-singleton-coordinate-solve-policy": "supported_metric_whitened_eigh_v1",
+    "--historical-singleton-trust-region-update-policy": "displacement_calibrated_unbounded_v2",
+    "--omega0": "1.0",
+    "--ordering": "blocked",
+    "--phase0-no-pilot": true,
+    "--phase1-no-prune": true,
+    "--phase1-prune-mode": "both",
+    "--phase1-prune-policy": "recoverability_ladder_v1",
+    "--phase1-shortlist-size": "24",
+    "--phase2-gram-novelty-policy": "fallback_only_v1",
+    "--phase2-no-batching": true,
+    "--phase2-shortlist-fraction": "0.25",
+    "--phase2-shortlist-size": "12",
+    "--phase3-backend-cost-mode": "marrakesh_graph_span_v1",
+    "--phase3-gram-novelty-policy": "fallback_only_v1",
+    "--phase3-no-batching": true,
+    "--phase3-runtime-split-child-padding-policy": "exact_projected_grouped_v1",
+    "--phase3-runtime-split-child-set-symmetry-policy": "hard_guard",
+    "--phase3-runtime-split-max-subset-size": "1",
+    "--phase3-runtime-split-mode": "shortlist_pauli_children_v1",
+    "--phase3-runtime-split-selection-mode": "archival_child_set_forward_v1",
+    "--phase3-selector-geometry-mode": "reduced",
+    "--phase3-selector-policy": "algebraic_nested_v1",
+    "--physical-lane-shortlist-aggressiveness": "3",
+    "--problem": "hh",
+    "--skip-pdf": true,
+    "--sr-controller-ablation-contract": "novelty_prune_beam_controls_v1",
+    "--static-lane-route": "physical_operator_type",
+    "--static-meta-feature-profile": "paper_i_production_v1",
+    "--static-route-id": "route_a",
+    "--t": "1.0"
+  },
+  "route_signature_equal_all_rows": true,
+  "run_class": "diagnostic_provisional_cross_regime_extension",
+  "schema": "source_locked_cross_regime_extension_audit_v1",
+  "source_archive": {
+    "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/source_locked.tar.gz",
+    "archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+    "archive_size_bytes": 3563453,
+    "critical_source_hashes": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "9ac932645e68781a4835f52f68b2ed89f834c4e215b1c114ca58c99014756303",
+      "pipelines/static_adapt/accepted_refit.py": "099c128e1857801e68fc403015bd3eab35398ccfd405e12382bd3015829affd4",
+      "pipelines/static_adapt/adapt_pipeline.py": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+      "pipelines/static_adapt/cli_config.py": "d3b46ac2c28eaa43af3d9a14a961761ba247d5d8d9b9781116db3ac28a4a70b9",
+      "pipelines/static_adapt/joint_linear_solve.py": "13c74cda3dabaf6a6c3eee06cf5a9c44b57ca1799a4f45fc33ea2ac1bad446b5",
+      "pipelines/static_adapt/sr_snake_escape_controller.py": "323183c2819c0bab1e3ee19da24cd2dfea24a269a39baf0e6f3965dd2bf7b1f4",
+      "pipelines/static_adapt/sr_snake_route_profile.py": "8d6d8e72d8a471fb57f927b2acf04ae23630ff01377fec88ce284f244926cf12"
+    },
+    "file_count": 432,
+    "schema": "paper_i_hh_sr_noprune_nobeam_source_archive_inventory_v1",
+    "source_revision": "no_beam_ablation_v1"
+  },
+  "status": "pass",
+  "unexpected_differences": []
+}

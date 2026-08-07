@@ -1,0 +1,41 @@
+{
+  "confirmation": {
+    "checked_by": "codex_main_agent_authenticated_ssh",
+    "checked_utc": "2026-07-18T17:14:55Z",
+    "evidence": {
+      "container_runtime": "apptainer",
+      "host": "ap2001.chtc.wisc.edu",
+      "image_sha256_command": "sha256sum chtc/phase3_optuna/image.sif",
+      "python_executable": "python3",
+      "qiskit_backend_class": "qiskit_ibm_runtime.fake_provider.FakeMarrakesh",
+      "remote_root": "Holstein_phase3_optuna_chtc"
+    }
+  },
+  "remote_execution_gate": {
+    "checks": {
+      "fake_backend_identity": true,
+      "fake_backend_instantiation": true,
+      "fake_backend_qubits": true,
+      "image_path": true,
+      "image_sha256": true,
+      "qiskit_import": true,
+      "qiskit_version": true,
+      "schema": true,
+      "status": true
+    },
+    "gate_path": "remote_execution_gate.json",
+    "gate_sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+    "passed": true,
+    "reason": "pass",
+    "schema_expected": "paper_i_hh_sr_symcost_noprune_remote_execution_gate_v1"
+  },
+  "schema": "paper_i_hh_sr_prune_appendix_remote_preflight_receipt_v1",
+  "status": "pass",
+  "storage_cleanup": {
+    "remote_removed_paths": [],
+    "scope": "no_cleanup_authorized_or_performed",
+    "unrelated_remote_paths_modified": false
+  },
+  "submission_authorized": false,
+  "submission_performed": false
+}

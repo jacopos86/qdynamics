@@ -1,0 +1,550 @@
+from __future__ import annotations
+
+import csv
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from chtc.phase3_optuna import generate_routeA_paper_i_clean_phonon_ladder_records as generator
+from chtc.phase3_optuna import paper_i_table_i_audit_escalation as audit_escalation
+from chtc.phase3_optuna import preflight_submit, run_task
+from pipelines.static_adapt.optimization import phase3_policy_optuna as p3opt
+
+
+def _rows(tsv_text: str) -> list[dict[str, str]]:
+    return list(csv.DictReader(tsv_text.splitlines(), delimiter="\t"))
+
+
+def _write_snake_candidate_manifest(tmp_path: Path, *, target_case_id: str = "hh_L2_nph3_clean_weak") -> Path:
+    source_case_id = target_case_id.replace("_nph3_", "_nph2_")
+    audit_path = tmp_path / "source_audit.json"
+    audit_path.write_text('{"schema":"paper_i_fixed_accuracy_table_audit_v1"}\n', encoding="utf-8")
+    manifest = {
+        "schema": audit_escalation.CANDIDATE_SCHEMA,
+        "threshold": 2e-4,
+        "target_profile": "paper_i_phys_v1",
+        "source_stage": "nph2_ref4_screen",
+        "next_stage": "nph3_ref4_escalation",
+        "candidates": [
+            {
+                "candidate_key": f"snake|hh|SNAKE|weak|{target_case_id}|static_family_native_adapt_phase3",
+                "lane": "snake",
+                "family": "hh",
+                "method": "SNAKE",
+                "regime": "weak",
+                "algorithm_id": "static_family_native_adapt_phase3",
+                "source_case_id": source_case_id,
+                "source_stage": "nph2_ref4_screen",
+                "source_n_ph_work": 2,
+                "source_n_ph_ref": 4,
+                "source_status": "failed",
+                "source_threshold_status": "failed",
+                "source_record_id": f"static_table__hh__{source_case_id}__static_family_native_adapt_phase3",
+                "source_payload_path": "raw_outputs/example/live_snake.json",
+                "source_payload_sha256": "abc123",
+                "source_audit_json": str(audit_path),
+                "source_audit_sha256": "def456",
+                "source_target_profile": "paper_i_phys_v1",
+                "source_threshold": 2e-4,
+                "next_stage": "nph3_ref4_escalation",
+                "next_stage_case_id": target_case_id,
+                "target_n_ph_work": 3,
+                "target_n_ph_ref": 4,
+                "target_suite_profile": "paper_i_clean_nph3_ref4_v1",
+                "escalation_reason": "completed_failed_phonon_ladder_row",
+            }
+        ],
+    }
+    path = tmp_path / "candidates.json"
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def _write_submit(tmp_path: Path, *, records_rel: str, ids_rel: str) -> Path:
+    submit = tmp_path / "submit.sub"
+    submit.write_text(
+        "\n".join(
+            [
+                "transfer_input_files = .",
+                f'environment = "PHASE3_RECORDS_PATH={records_rel}"',
+                f"queue record_id from {ids_rel}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return submit
+
+
+def test_clean_phonon_ladder_generator_contract_nph2_ref4(tmp_path: Path) -> None:
+    artifacts = generator.render_artifacts(tmp_path)
+    rows = _rows(artifacts[tmp_path / generator.FULL_RECORDS])
+    smoke = _rows(artifacts[tmp_path / generator.SMOKE_RECORDS])
+
+    assert len(rows) == 8
+    assert len(smoke) == 2
+    assert {row["benchmark_ids"] for row in rows} == {
+        "bose_hubbard_L2_nph2_clean_weak",
+        "bose_hubbard_L2_nph2_clean_strong",
+        "harmonic_kerr_chain_L2_nph2_clean_weak",
+        "harmonic_kerr_chain_L2_nph2_clean_strong",
+        "spin_boson_L2_nph2_clean_weak",
+        "spin_boson_L2_nph2_clean_strong",
+        "hh_L2_nph2_clean_weak",
+        "hh_L2_nph2_clean_strong",
+    }
+    assert {row["benchmark_ids"] for row in smoke} == {
+        "spin_boson_L2_nph2_clean_weak",
+        "hh_L2_nph2_clean_weak",
+    }
+    for row in rows:
+        assert row["suite_profile"] == "paper_i_clean_nph2_ref4_v1"
+        assert row["physics_grid_profile"] == "paper_i_clean"
+        assert row["static_route_id"] == "route_a"
+        assert row["meta_feature_profile"] == "paper_i_production_v1"
+        assert row["fixed_inner_optimizer"] == "SPSA"
+        assert row["required_target_profile"] == "paper_i_phys_v1"
+        assert row["discovery_objective_mode"] == "discovery_first_crossing"
+        assert row["required_target_benchmark_ids"] == row["benchmark_ids"]
+        assert row["required_target_abs_delta_e"] == ""
+        assert row["target_abs_delta_e"] == ""
+        assert row["objective_2q_weight"] == "4.0"
+        assert row["objective_2q_depth_weight"] == "0.5"
+        assert row["objective_depth_weight"] == "0.05"
+        assert row["objective_parameter_weight"] == "0.10"
+        assert row["objective_shot_weight"] == "0.05"
+        assert row["boson_cutoff"] == "2"
+        assert row["exact_reference_boson_cutoff"] == "4"
+        assert row["n_ph_work"] == "2"
+        assert row["n_ph_ref"] == "4"
+        assert row["primary_energy_metric"] == "higher_cutoff_reference_abs_delta_e"
+        assert row["same_cutoff_error_role"] == "diagnostic_only"
+        assert row["paper_i_cutoff_ladder_stage"] == "nph2_ref4_screen"
+        assert row["paper_i_ladder_snake_policy"] == "snake_only"
+        assert row["tau_phys"] == "0.0002"
+        assert row["tau_tight"] == "0.0002"
+        assert row["reference_energy_status"] == "ok"
+        assert row["reference_energy_cache_json"].endswith(generator.REFERENCE_CACHE)
+        assert row["same_cutoff_reference_energy_key"]
+        assert row["reference_cutoff_energy_key"]
+        assert row["same_cutoff_exact_gs_energy"]
+        assert row["exact_reference_energy"]
+        assert row["historical_ledger"] == ""
+        assert "spin_boson_L1" not in row["benchmark_ids"]
+
+    manifest = json.loads(artifacts[tmp_path / generator.MANIFEST])
+    assert manifest["run_class"] == "candidate_settings_search_clean_phonon_ladder_first_crossing"
+    assert manifest["constraints"]["paper_i_ladder_snake_policy"] == "snake_only"
+    assert manifest["constraints"]["tau_tight"] == pytest.approx(2e-4)
+    cache = json.loads(artifacts[tmp_path / generator.REFERENCE_CACHE])
+    assert cache["schema"] == "static_reference_energy_cache_v1"
+    assert cache["record_count"] == 16
+
+
+def test_clean_phonon_ladder_record_suffix_isolates_targeted_rerun(tmp_path: Path) -> None:
+    suffix = "hh_strong_tau2e4_budget500_depth1200"
+    artifacts = generator.render_artifacts(
+        tmp_path,
+        paper_i_ladder_case_ids=("hh_L2_nph2_clean_strong",),
+        paper_i_ladder_record_suffix=suffix,
+    )
+    rows = _rows(artifacts[tmp_path / generator.FULL_RECORDS])
+    smoke = _rows(artifacts[tmp_path / generator.SMOKE_RECORDS])
+
+    assert len(rows) == 1
+    assert len(smoke) == 1
+    row = rows[0]
+    assert row["benchmark_ids"] == "hh_L2_nph2_clean_strong"
+    assert row["record_id"] == (
+        "routeA_paper_i_clean_phonon_ladder_nph2_ref4_"
+        "hh_l2_nph2_clean_strong_hh_strong_tau2e4_budget500_depth1200_v1"
+    )
+    assert row["required_target_profile"] == "paper_i_phys_v1"
+    assert row["required_target_abs_delta_e"] == ""
+    assert row["target_abs_delta_e"] == ""
+    assert row["discovery_objective_mode"] == "discovery_first_crossing"
+    assert row["tau_phys"] == "0.0002"
+    assert row["tau_tight"] == "0.0002"
+    manifest = json.loads(artifacts[tmp_path / generator.MANIFEST])
+    assert manifest["constraints"]["record_suffix"] == suffix
+
+
+def test_clean_phonon_ladder_escalation_requires_case_ids_and_reason(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="requires explicit"):
+        generator.generate_records(
+            tmp_path / "nph3",
+            paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+        )
+    with pytest.raises(ValueError, match="requires --paper-i-ladder-escalation-reason"):
+        generator.generate_records(
+            tmp_path / "nph3_case",
+            paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+            paper_i_ladder_case_ids=("bose_hubbard_L2_nph3_clean_weak",),
+        )
+    with pytest.raises(ValueError, match="allow-ref5"):
+        generator.generate_records(
+            tmp_path / "nph4",
+            paper_i_cutoff_ladder_stage="nph4_ref5_optional",
+            paper_i_ladder_case_ids=("bose_hubbard_L2_nph4_clean_weak",),
+            paper_i_ladder_escalation_reason="nph3_ref4_failed_tau_tight",
+        )
+
+    summary = generator.generate_records(
+        tmp_path / "nph3_ok",
+        write=True,
+        paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+        paper_i_ladder_case_ids=("bose_hubbard_L2_nph3_clean_weak",),
+        paper_i_ladder_escalation_reason="nph2_ref4_failed_tau_tight",
+    )
+    assert summary["full_record_count"] == 1
+    row = _rows((tmp_path / "nph3_ok" / generator.FULL_RECORDS).read_text(encoding="utf-8"))[0]
+    assert row["benchmark_ids"] == "bose_hubbard_L2_nph3_clean_weak"
+    assert row["n_ph_work"] == "3"
+    assert row["n_ph_ref"] == "4"
+    assert row["paper_i_ladder_requires_prior_failure"] == "true"
+
+
+def test_clean_phonon_ladder_candidate_manifest_filters_snake_records(tmp_path: Path) -> None:
+    candidate_manifest = _write_snake_candidate_manifest(tmp_path)
+    summary = generator.generate_records(
+        tmp_path / "nph3_candidate",
+        write=True,
+        paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+        paper_i_ladder_candidate_manifest=candidate_manifest,
+    )
+
+    assert summary["full_record_count"] == 1
+    assert summary["candidate_manifest_filter"]["candidate_count"] == 1
+    row = _rows((tmp_path / "nph3_candidate" / generator.FULL_RECORDS).read_text(encoding="utf-8"))[0]
+    assert row["benchmark_ids"] == "hh_L2_nph3_clean_weak"
+    assert row["n_ph_work"] == "3"
+    assert row["n_ph_ref"] == "4"
+    assert row["paper_i_ladder_escalation_reason"] == "completed_failed_phonon_ladder_row"
+    assert row["paper_i_ladder_candidate_manifest_json"] == str(candidate_manifest)
+    assert row["paper_i_ladder_source_case_id"] == "hh_L2_nph2_clean_weak"
+    assert row["paper_i_ladder_source_stage"] == "nph2_ref4_screen"
+    assert row["paper_i_ladder_source_n_ph_work"] == "2"
+    assert row["paper_i_ladder_source_n_ph_ref"] == "4"
+
+
+def test_clean_phonon_ladder_run_task_forwards_first_crossing_fields(tmp_path: Path) -> None:
+    row = generator.build_rows(output_dir=tmp_path)[0][0]
+    cmd = run_task.build_phase3_command(
+        row,
+        record_id=row["record_id"],
+        out_root=tmp_path / "out",
+        run_root=tmp_path / "out" / "run",
+        progress_dir=tmp_path / "out" / "progress",
+    )
+
+    assert cmd[cmd.index("--suite-profile") + 1] == "paper_i_clean_nph2_ref4_v1"
+    assert cmd[cmd.index("--benchmark-id") + 1] == row["benchmark_ids"]
+    assert cmd[cmd.index("--physics-grid-profile") + 1] == "paper_i_clean"
+    assert cmd[cmd.index("--meta-feature-profile") + 1] == "paper_i_production_v1"
+    assert cmd[cmd.index("--required-target-profile") + 1] == "paper_i_phys_v1"
+    assert cmd[cmd.index("--discovery-objective-mode") + 1] == "discovery_first_crossing"
+    assert cmd[cmd.index("--boson-cutoff") + 1] == "2"
+    assert cmd[cmd.index("--exact-reference-boson-cutoff") + 1] == "4"
+    assert cmd[cmd.index("--phase3-adapt-parallel-gradient-workers") + 1] == "10"
+    assert cmd[cmd.index("--phase3-adapt-beam-parent-workers") + 1] == "4"
+    assert cmd[cmd.index("--objective-2q-weight") + 1] == "4.0"
+    assert cmd[cmd.index("--objective-2q-depth-weight") + 1] == "0.5"
+    assert cmd[cmd.index("--objective-depth-weight") + 1] == "0.05"
+    assert cmd[cmd.index("--objective-parameter-weight") + 1] == "0.10"
+    assert cmd[cmd.index("--objective-shot-weight") + 1] == "0.05"
+    assert "--historical-ledger" not in cmd
+    assert "--target-abs-delta-e" not in cmd
+
+
+def test_clean_phonon_ladder_selected_recovery_uses_manifest_sources(tmp_path: Path) -> None:
+    artifacts = generator.render_artifacts(
+        tmp_path,
+        paper_i_cutoff_ladder_stage="table_nph2_ref5",
+        paper_i_ladder_case_ids=("spin_boson_L2_nph2_clean_weak", "hh_L2_nph2_clean_strong"),
+        paper_i_ladder_record_suffix="selected_recovery_test",
+        selected_logical_route="historical_selected",
+    )
+    rows = _rows(artifacts[tmp_path / generator.FULL_RECORDS])
+
+    assert len(rows) == 2
+    by_case = {row["benchmark_ids"]: row for row in rows}
+    assert by_case["spin_boson_L2_nph2_clean_weak"]["selected_logical_source_json"].endswith(
+        "spin_boson_problem.selected_logical.json"
+    )
+    assert by_case["hh_L2_nph2_clean_strong"]["selected_logical_source_json"].endswith(
+        "hh_L2_nph2.selected_logical.json"
+    )
+    for row in rows:
+        assert row["n_ph_work"] == "2"
+        assert row["n_ph_ref"] == "5"
+        assert row["n_trials"] == "8"
+        assert row["enqueue_default"] == "false"
+        assert row["enqueue_historical"] == "true"
+        assert row["paper_i_recovery_intent"] == "selected_logical_current_evidence_recovery"
+        assert row["phase3_adapt_parallel_gradient_workers"] == "10"
+        assert row["phase3_adapt_beam_parent_workers"] == "4"
+        assert row["historical_ledger"].endswith("phase3_historical_best_ledger_selected_plus_hk_routeA_20260512.json")
+        assert row["selected_logical_source_manifest_json"].endswith(
+            "paper_i_reduced_pool_selected_logical_20260524_v1/manifest.json"
+        )
+        cmd = run_task.build_phase3_command(
+            row,
+            record_id=row["record_id"],
+            out_root=tmp_path / "out",
+            run_root=tmp_path / "out" / "run",
+            progress_dir=tmp_path / "out" / "progress",
+        )
+        assert "--no-enqueue-default" in cmd
+        assert "--no-enqueue-historical" not in cmd
+        assert cmd[cmd.index("--phase3-adapt-parallel-gradient-workers") + 1] == "10"
+
+    manifest = json.loads(artifacts[tmp_path / generator.MANIFEST])
+    assert manifest["constraints"]["selected_recovery_n_trials"] == 8
+    assert set(manifest["constraints"]["selected_logical_source_by_benchmark"]) == {
+        "spin_boson_L2_nph2_clean_weak",
+        "hh_L2_nph2_clean_strong",
+    }
+
+
+def test_clean_phonon_ladder_selected_recovery_rejects_broad_old_shape(tmp_path: Path) -> None:
+    row = generator.build_rows(
+        output_dir=tmp_path,
+        paper_i_cutoff_ladder_stage="table_nph2_ref5",
+        paper_i_ladder_case_ids=("hh_L2_nph2_clean_strong",),
+        selected_logical_route="historical_selected",
+    )[0][0]
+    bad = dict(row)
+    bad["n_trials"] = "36"
+    bad["phase3_adapt_parallel_gradient_workers"] = "11"
+    bad["phase3_adapt_beam_parent_workers"] = "5"
+    bad["enqueue_historical"] = "false"
+    bad["selected_logical_source_json"] = ""
+
+    with pytest.raises(ValueError, match="selected recovery validation failed"):
+        run_task.build_phase3_command(
+            bad,
+            record_id=bad["record_id"],
+            out_root=tmp_path / "out",
+            run_root=tmp_path / "out" / "run",
+            progress_dir=tmp_path / "out" / "progress",
+        )
+
+
+def test_clean_phonon_ladder_selected_recovery_preflight_rejects_eleven_cpus(tmp_path: Path) -> None:
+    output_dir = tmp_path / "selected_recovery"
+    generator.generate_records(
+        output_dir,
+        write=True,
+        paper_i_cutoff_ladder_stage="table_nph2_ref5",
+        paper_i_ladder_case_ids=("hh_L2_nph2_clean_strong",),
+        selected_logical_route="historical_selected",
+    )
+    row = _rows((output_dir / generator.FULL_RECORDS).read_text(encoding="utf-8"))[0]
+    submit = tmp_path / "submit_eleven_cpus.sub"
+    submit.write_text("request_cpus = 11\n", encoding="utf-8")
+
+    payload = run_task.build_phase3_preflight_manifest(
+        row,
+        record_id=row["record_id"],
+        records_path=output_dir / generator.FULL_RECORDS,
+        submit_path=submit,
+        repo_root=REPO_ROOT,
+    )
+
+    assert payload["status"] == "fail"
+    assert any(
+        "paper_i_selected_recovery_request_cpus_too_high:11:10" in reason
+        for reason in payload["blocking_reasons"]
+    )
+
+
+def test_clean_phonon_ladder_record_manifest_includes_cache_metadata(tmp_path: Path) -> None:
+    row = generator.build_rows(output_dir=tmp_path)[0][0]
+    out_root = tmp_path / "out"
+    run_root = out_root / "run"
+    progress_dir = out_root / "progress"
+    cmd = run_task.build_phase3_command(row, record_id=row["record_id"], out_root=out_root, run_root=run_root, progress_dir=progress_dir)
+
+    run_task.write_record_manifest(row, record_id=row["record_id"], out_root=out_root, run_root=run_root, progress_dir=progress_dir, command=cmd)
+
+    payload = json.loads((out_root / "record_manifest.json").read_text(encoding="utf-8"))
+    assert payload["paper_i_cutoff_ladder"]["stage"] == "nph2_ref4_screen"
+    assert payload["meta_feature_profile"] == "paper_i_production_v1"
+    assert payload["meta_feature_policy_contract"]["production_contract"] == "paper_i_clean_table_i_static_snake_v1"
+    assert payload["paper_i_cutoff_ladder"]["n_ph_work"] == 2
+    assert payload["paper_i_cutoff_ladder"]["n_ph_ref"] == 4
+    assert payload["reference_energy_metadata"]["reference_energy_status"] == "ok"
+    assert payload["reference_energy_metadata"]["reference_cutoff_energy_key"] == row["reference_cutoff_energy_key"]
+
+
+def test_clean_phonon_ladder_submit_preflight_applies_cutoff_floor_guard() -> None:
+    for submit_name, expected_count in (
+        ("submit_routeA_paper_i_clean_phonon_ladder_nph2_ref4_smoke.sub", 2),
+        ("submit_routeA_paper_i_clean_phonon_ladder_nph2_ref4_hh_strong_tau2e4_budget_v1.sub", 1),
+    ):
+        payload = preflight_submit.build_preflight_bundle(
+            submit_path=REPO_ROOT / "chtc" / "phase3_optuna" / submit_name,
+            repo_root=REPO_ROOT,
+        )
+        assert payload["status"] == "pass", payload
+        assert payload["record_count"] == expected_count
+        assert payload["failed_record_count"] == 0
+        assert all(record["paper_i_cutoff_ladder"]["validation_status"] == "pass" for record in payload["records"])
+
+    payload = preflight_submit.build_preflight_bundle(
+        submit_path=REPO_ROOT / "chtc" / "phase3_optuna" / "submit_routeA_paper_i_clean_phonon_ladder_nph2_ref4_full.sub",
+        repo_root=REPO_ROOT,
+    )
+    assert payload["status"] == "fail"
+    assert payload["record_count"] == 8
+    assert payload["failed_record_count"] == 3
+    reasons = "\n".join(payload["blocking_reasons"])
+    assert "paper_i_cutoff_floor_exceeds_tau:harmonic_kerr_chain_L2_nph2_clean_weak" in reasons
+    assert "paper_i_cutoff_floor_exceeds_tau:harmonic_kerr_chain_L2_nph2_clean_strong" in reasons
+    assert "paper_i_cutoff_floor_exceeds_tau:spin_boson_L2_nph2_clean_strong" in reasons
+
+
+def test_clean_phonon_ladder_preflight_fails_bad_cache_key(tmp_path: Path) -> None:
+    artifacts = generator.render_artifacts(tmp_path)
+    rows = _rows(artifacts[tmp_path / generator.FULL_RECORDS])
+    row = dict(rows[0])
+    row["reference_cutoff_energy_key"] = "missing_key"
+    records = tmp_path / generator.FULL_RECORDS
+    with records.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(row), delimiter="\t")
+        writer.writeheader()
+        writer.writerow(row)
+    (tmp_path / generator.FULL_IDS).write_text(row["record_id"] + "\n", encoding="utf-8")
+    (tmp_path / generator.REFERENCE_CACHE).write_text(artifacts[tmp_path / generator.REFERENCE_CACHE], encoding="utf-8")
+    submit = tmp_path / "submit.sub"
+    submit.write_text(
+        "\n".join(
+            [
+                "transfer_input_files = .",
+                f'environment = "PHASE3_RECORDS_PATH={records.name}"',
+                f"queue record_id from {generator.FULL_IDS}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    payload = preflight_submit.build_preflight_bundle(submit_path=submit, repo_root=tmp_path)
+
+    assert payload["status"] == "fail"
+    assert any("paper_i_ladder_reference_cache_key_missing:missing_key" in reason for reason in payload["blocking_reasons"])
+
+
+def test_clean_phonon_ladder_preflight_fails_empty_cache_and_non_snake_policy(tmp_path: Path) -> None:
+    artifacts = generator.render_artifacts(tmp_path)
+    rows = _rows(artifacts[tmp_path / generator.FULL_RECORDS])
+    row = dict(rows[0])
+    row["paper_i_ladder_snake_policy"] = "benchmarks_only_explicit"
+    records = tmp_path / generator.FULL_RECORDS
+    with records.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(row), delimiter="\t")
+        writer.writeheader()
+        writer.writerow(row)
+    (tmp_path / generator.FULL_IDS).write_text(row["record_id"] + "\n", encoding="utf-8")
+    (tmp_path / generator.REFERENCE_CACHE).write_text(
+        json.dumps({"schema": "static_reference_energy_cache_v1", "record_count": 0, "records": {}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    submit = tmp_path / "submit.sub"
+    submit.write_text(
+        "\n".join(
+            [
+                "transfer_input_files = .",
+                f'environment = "PHASE3_RECORDS_PATH={records.name}"',
+                f"queue record_id from {generator.FULL_IDS}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    payload = preflight_submit.build_preflight_bundle(submit_path=submit, repo_root=tmp_path)
+
+    assert payload["status"] == "fail"
+    reasons = "\n".join(payload["blocking_reasons"])
+    assert "paper_i_ladder_routea_requires_snake_only_policy:benchmarks_only_explicit" in reasons
+    assert "paper_i_ladder_reference_cache_records_missing_or_empty" in reasons
+
+
+def test_clean_phonon_ladder_preflight_rejects_missing_escalation_source_metadata(tmp_path: Path) -> None:
+    output_dir = tmp_path / "nph3_no_source"
+    generator.generate_records(
+        output_dir,
+        write=True,
+        paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+        paper_i_ladder_case_ids=("hh_L2_nph3_clean_weak",),
+        paper_i_ladder_escalation_reason="completed_failed_phonon_ladder_row",
+    )
+    submit = _write_submit(
+        tmp_path,
+        records_rel=f"{output_dir.name}/{generator.FULL_RECORDS}",
+        ids_rel=f"{output_dir.name}/{generator.FULL_IDS}",
+    )
+
+    payload = preflight_submit.build_preflight_bundle(submit_path=submit, repo_root=tmp_path)
+
+    assert payload["status"] == "fail"
+    reasons = "\n".join(payload["blocking_reasons"])
+    assert "paper_i_ladder_source_metadata_missing:paper_i_ladder_candidate_manifest_json" in reasons
+    assert "paper_i_ladder_source_metadata_missing:paper_i_ladder_source_case_id" in reasons
+
+
+def test_clean_phonon_ladder_preflight_rejects_wrong_source_cutoff(tmp_path: Path) -> None:
+    candidate_manifest = _write_snake_candidate_manifest(tmp_path)
+    output_dir = tmp_path / "nph3_bad_source"
+    generator.generate_records(
+        output_dir,
+        write=True,
+        paper_i_cutoff_ladder_stage="nph3_ref4_escalation",
+        paper_i_ladder_candidate_manifest=candidate_manifest,
+    )
+    records_path = output_dir / generator.FULL_RECORDS
+    rows = _rows(records_path.read_text(encoding="utf-8"))
+    rows[0]["paper_i_ladder_source_n_ph_work"] = "3"
+    with records_path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]), delimiter="\t")
+        writer.writeheader()
+        writer.writerows(rows)
+    submit = _write_submit(
+        tmp_path,
+        records_rel=f"{output_dir.name}/{generator.FULL_RECORDS}",
+        ids_rel=f"{output_dir.name}/{generator.FULL_IDS}",
+    )
+
+    payload = preflight_submit.build_preflight_bundle(submit_path=submit, repo_root=tmp_path)
+
+    assert payload["status"] == "fail"
+    assert any(
+        "paper_i_ladder_source_n_ph_work_mismatch:3:2" in reason
+        for reason in payload["blocking_reasons"]
+    )
+
+
+def test_phase3_parser_accepts_clean_grid_and_discovery_alias() -> None:
+    args = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            "tmp/parser-check",
+            "--physics-grid-profile",
+            "paper_i_clean",
+            "--objective-profile",
+            "paper_i_discovery_first_crossing",
+            "--required-target-profile",
+            "paper_i_phys_v1",
+            "--discovery-objective-mode",
+            "discovery_first_crossing",
+        ]
+    )
+    assert args.physics_grid_profile == "paper_i_clean"
+    assert args.objective_profile == "paper_i_discovery_first_crossing"

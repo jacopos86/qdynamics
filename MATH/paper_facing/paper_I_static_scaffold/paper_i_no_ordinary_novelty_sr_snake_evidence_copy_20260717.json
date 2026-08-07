@@ -1,0 +1,364 @@
+{
+  "schema": "paper_i_no_ordinary_novelty_sr_snake_evidence_copy_v1",
+  "generated_utc": "2026-07-17T19:55:50Z",
+  "status": "separate_evidence_copy_built_verified_all_six_qiskit_costs_resolved",
+  "scope": {
+    "purpose": "Paper-I duplicate replacing only the six visible Hubbard-Holstein SNAKE result rows and trajectories with preserved no-ordinary-novelty SR-SNAKE evidence",
+    "active_manuscript_edited": false,
+    "active_pdf_replaced": false,
+    "paper_promotion_decision": "not_made"
+  },
+  "active_authority_preserved": {
+    "tex": {
+      "path": "MATH/paper_details/Paper_I.tex",
+      "sha256": "f28f98309f4d99011738ba011ad0247e64bc08a4a011c4bf9c9475d249046d4a"
+    },
+    "pdf": {
+      "path": "Paper_I.pdf",
+      "sha256": "d5288150f6b3a6afc4d11c7f3da0c16e5d16dd4d81c0366348d556423a73834d"
+    }
+  },
+  "evidence_copy": {
+    "tex": {
+      "path": "MATH/paper_details/Paper_I_no_ordinary_novelty_sr_snake_20260717.tex",
+      "sha256": "5e10fc9f2b3573d8c45fb8f7eda02909d019c43179acfd75d3b1ca8b007fc435"
+    },
+    "built_pdf": {
+      "path": "MATH/paper_details/Paper_I_no_ordinary_novelty_sr_snake_20260717.pdf",
+      "sha256": "fd5b34acae9a54583292bc531f5dbec3159e438d654c000072a62405336afaf9",
+      "pages": 22
+    },
+    "reader_copy": {
+      "path": "Paper_I_no_ordinary_novelty_sr_snake_20260717.pdf",
+      "sha256": "fd5b34acae9a54583292bc531f5dbec3159e438d654c000072a62405336afaf9"
+    }
+  },
+  "route_contract": {
+    "route_family": "singleton_response_snake",
+    "phase0": "off",
+    "admission": "singleton",
+    "phase2_batching": "off",
+    "phase3_batching": "off",
+    "regular_energy_response_model": "undamped",
+    "phase2_gram_novelty_policy": "fallback_only_v1",
+    "phase3_gram_novelty_policy": "fallback_only_v1",
+    "all_energy_models_infeasible_novelty_fallback": "retained",
+    "phase3_coordinate_policy": "supported_metric_whitened_eigh_v1",
+    "trust_policy": "displacement_calibrated_unbounded_v2",
+    "beam": "off_effective_1x1",
+    "pruning": "off",
+    "accepted_refit": "full_accepted_ansatz_supported_fs_whitened",
+    "powell_base_chart": "expanded_runtime_projected_logical_v1",
+    "negative_curvature_escape": "off",
+    "powell_maxiter": 200
+  },
+  "display_semantics": {
+    "snake_endpoint": "terminal_controller_round_after_preserved_terminal_refit for weak_weak/weak_strong/intermediate_strong; user-selected last-plateau history checkpoint for intermediate_weak/strong_weak_u8/strong_strong_u8",
+    "snake_horizons": {
+      "weak_weak": 30,
+      "intermediate_weak": 30,
+      "strong_weak_u8": 50,
+      "weak_strong": 50,
+      "intermediate_strong": 50,
+      "strong_strong_u8": 50
+    },
+    "comparator_endpoint": "retained_historical_first_plateau_prefix",
+    "prefix_matched_comparison": false,
+    "compiled_resource_claim": true,
+    "compiled_resource_scope": "same-endpoint Qiskit triples for all six displayed SNAKE rows; no compiled-resource superiority claim",
+    "selected_plateau_mapping": {
+      "intermediate_weak": {"visible_zero_based_k": 23, "history_position": 24, "active_depth": 24},
+      "strong_weak_u8": {"visible_zero_based_k": 9, "history_position": 10, "active_depth": 10},
+      "strong_strong_u8": {"visible_zero_based_k": 33, "history_position": 34, "active_depth": 34}
+    },
+    "qiskit_cells": "resolved at all six displayed SNAKE endpoints; weak_weak/weak_strong/intermediate_strong use terminal endpoints and intermediate_weak/strong_weak_u8/strong_strong_u8 use selected plateau checkpoints",
+    "qiskit_compile_convention": {
+      "id": "table_i_basis_gate_transpile_v1",
+      "optimization_level": 0,
+      "seed_transpiler": 7,
+      "backend": null,
+      "coupling_map": null,
+      "basis_gates": ["id", "x", "sx", "rx", "ry", "rz", "h", "s", "sdg", "cx", "cz"]
+    },
+    "s_alg_semantics": "ledger_closed_state_keyed_winning_lineage total through the same displayed endpoint; terminal rows include terminal refit, selected plateau rows stop before the next outer_state_refresh",
+    "discarded_branch_work": 0
+  },
+  "rows": [
+    {
+      "regime": "weak_weak",
+      "k_eval": 30,
+      "history_position": 30,
+      "active_depth": 30,
+      "absolute_same_cutoff_error": 7.993605777301127e-15,
+      "s_alg": 39947,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 18285, "N_grad": 4259, "N_metric": 17402},
+      "s_alg_source": {
+        "policy": "canonical_same_state_unique_primitive_v1",
+        "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/estimator_call_ledger.json",
+        "sha256": "4edbb7f0df321c36857d9442f678365528f673597542a82b325ff1b62ce66b09",
+        "raw_call_occurrence_count": 43798,
+        "unique_primitive_count": 39947,
+        "same_identity_reuse_occurrence_count": 3851
+      },
+      "n2q": 258,
+      "d2q": 236,
+      "dc": 1234,
+      "checkpoint_sha256": "e8c593b36f26c4e69ef82aedad475a37b11c22a141b9f260241e60e404fda8a0",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_weak/k30_terminal/qiskit_cost_sidecar.json",
+        "sha256": "b89d60cfc1617935c460a630fd269df2aea48442ddd2f5a548ac560dc9c38d8a",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_weak/k30_terminal/history_replay_accounting_and_qiskit.json",
+        "history_replay_crosscheck_sha256": "2662c6042ff287687118cd7df501f7a4e7f5c74b83008eb9ac7cb50564e1bbe8",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_weak/k30_terminal/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "9d6b1f5400484bd15d2de792a36b5fc1b25afc0a14757dacc17fa85b4ff6d963",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "evidence_summary": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_weak/k30_terminal/validated_endpoint_summary.json",
+        "sha256": "d71e9ed651c0c79a0aac8de9c25f255e22c2bbea20ce0a23f57c98cbecaebaff"
+      },
+      "source": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+        "sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa"
+      }
+    },
+    {
+      "regime": "intermediate_weak",
+      "k_eval": 23,
+      "history_position": 24,
+      "active_depth": 24,
+      "absolute_same_cutoff_error": 3.4416913763379853e-15,
+      "s_alg": 33814,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 18086, "N_grad": 3436, "N_metric": 12291},
+      "s_alg_source": {
+        "policy": "raw_state_keyed_ledger_prefix_cut_before_next_outer_state_refresh_v1",
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/intermediate_weak/json/estimator_call_ledger.json",
+        "sha256": "bb22de223b5e1e955fab561a9c45c98694759db87d015514a45cae60407097a6",
+        "cut_sequence": 37260,
+        "charged_occurrence_count": 33814,
+        "unique_primitive_count": 33814,
+        "duplicate_primitive_count": 0
+      },
+      "n2q": 196,
+      "d2q": 170,
+      "dc": 901,
+      "checkpoint_sha256": "1621e0b94d761606f7ef27d2b687459c20f6de01d054a8d2e801d55928ec37c8",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_weak/k24_visual_k23/qiskit_cost_sidecar.json",
+        "sha256": "ca494179400b1d1c33ba7de1c48fabda582a692ac309be6512f686a4ebdcaa25",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_weak/k24_visual_k23/history_replay_accounting_and_qiskit.json",
+        "history_replay_crosscheck_sha256": "02b22eb26c23e9a3c24212086b76c2fe1b91f83decaa627b771445698a714eb2",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_weak/k24_visual_k23/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "933a06d8e3e7202ec6478e8e847bcdb78d96c963cc2555198f7a58919af82679",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "source": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/intermediate_weak/json/result.json",
+        "sha256": "9e2479fd8308f111cd311e7843ccf1978962dc9d66876bc78f5c69566054a2ed"
+      }
+    },
+    {
+      "regime": "strong_weak_u8",
+      "k_eval": 9,
+      "history_position": 10,
+      "active_depth": 10,
+      "absolute_same_cutoff_error": 1.5711479179891796e-6,
+      "s_alg": 7639,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 2418, "N_grad": 1391, "N_metric": 3829},
+      "s_alg_source": {
+        "policy": "raw_state_keyed_ledger_prefix_cut_before_next_outer_state_refresh_v1",
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_weak_u8/json/estimator_call_ledger.json",
+        "sha256": "a8ee0b1fa439049ea91c95c832e7a961af5a9795ef60ca830b8c565e64975389",
+        "cut_sequence": 8517,
+        "charged_occurrence_count": 7639,
+        "unique_primitive_count": 7639,
+        "duplicate_primitive_count": 0
+      },
+      "n2q": 54,
+      "d2q": 40,
+      "dc": 329,
+      "checkpoint_sha256": "33f7c3b7085e14ccc1bcb65f93d4e884b38029009801b0475793eb44f98acbe0",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_weak_u8/k10_visual_k9/qiskit_cost_sidecar.json",
+        "sha256": "e9bab1ff3b7ca40ddff9f5c30f2eae8122fe1aeeef2f9eefed46a6585e894ec8",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_weak_u8/k10_visual_k9/history_replay_accounting_and_qiskit.json",
+        "history_replay_crosscheck_sha256": "88ed9d2fbd620cccb9a649a74a66522b9f8df04dee30ff5622ab31dea6c13b89",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_weak_u8/k10_visual_k9/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "fe617be741810694bbab5341aae39cc5e89b53fefbe519b93b6104338dbd676d",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "source": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_weak_u8/json/result.json",
+        "sha256": "b62f89ef9271a2ff42eab2057e9183f48900355967adcabc1fbc9491d22a21f6"
+      }
+    },
+    {
+      "regime": "weak_strong",
+      "k_eval": 50,
+      "history_position": 50,
+      "active_depth": 50,
+      "absolute_same_cutoff_error": 3.051703169054676e-6,
+      "s_alg": 182236,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 117280, "N_grad": 9359, "N_metric": 55596},
+      "s_alg_source": {
+        "policy": "canonical_same_state_unique_primitive_v1",
+        "archive_member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/json/estimator_call_ledger.json",
+        "sha256": "64c2545adb765c284200d6bbb3adacf9460f25b353dd3f978a9495c4fff221e6",
+        "raw_call_occurrence_count": 198516,
+        "unique_primitive_count": 182236,
+        "same_identity_reuse_occurrence_count": 16280
+      },
+      "n2q": 822,
+      "d2q": 757,
+      "dc": 3187,
+      "checkpoint_sha256": "0f44198c40ac0f1352243128e7461329572ffa05422f7fbbb7f86b6a6f6e157d",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_strong/k50_terminal/qiskit_cost_sidecar.json",
+        "sha256": "3b4b13204385ba2634083ff1a649b2d200e2c21bcff39887446d5f22c168f7f9",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_strong/k50_terminal/history_position_50_qiskit_crosscheck.json",
+        "history_replay_crosscheck_sha256": "9be49d328a9b219f2bd8379b65889458e8e2930a20bae31e15518b098ab627c6",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_strong/k50_terminal/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "899438e69ecbde07b3b9bfcb3a8899c12875753394decd4c5e7170c38d666aa4",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "evidence_summary": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/weak_strong/k50_terminal/resolved_terminal_cost.json",
+        "sha256": "a6f55b207b99ea78f6aec816999669ab262423042ca27e31b5d1c4ef09224db5"
+      },
+      "source": {
+        "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong_transfer.tar.gz",
+        "sha256": "dcde3bd74b2d0c41e15c31cc51e890793d8c34148341feef751e15e6348b7aee",
+        "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/json/result.json",
+        "member_sha256": "327a4c01f2e40f49364734ab474ffc9d7da874e339323552a9fd57c8876c011b"
+      }
+    },
+    {
+      "regime": "intermediate_strong",
+      "k_eval": 50,
+      "history_position": 50,
+      "active_depth": 50,
+      "absolute_same_cutoff_error": 4.7338917443573436e-5,
+      "s_alg": 196013,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 130580, "N_grad": 9430, "N_metric": 56002},
+      "s_alg_source": {
+        "policy": "canonical_same_state_unique_primitive_v1",
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/estimator_call_ledger.json",
+        "sha256": "9ba5cd7452d68dcef09390e7f73df487c1b94de39570c759a356806a3e3b0411",
+        "raw_call_occurrence_count": 213783,
+        "unique_primitive_count": 196013,
+        "same_identity_reuse_occurrence_count": 17770
+      },
+      "n2q": 824,
+      "d2q": 767,
+      "dc": 3320,
+      "checkpoint_sha256": "0a5feef895bb54337112304934a3731d970a71a8480822d9c672bf1362e84f03",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_strong/k50_terminal/qiskit_cost_sidecar.json",
+        "sha256": "5aa5d7ed4296234754b70de7f61419212156958ca9f7715100c2e902ebe47d73",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_strong/k50_terminal/history_replay_accounting_and_qiskit.json",
+        "history_replay_crosscheck_sha256": "ae082aa689b59f9ba9420c2c31a54d34c2789f55c0e601d8b17ec2aaeaecd810",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_strong/k50_terminal/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "02ed6aad9802b2d87037fc869d1b65c3cd6d72d79b444d2e94a5f25721d9d2a5",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "evidence_summary": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/intermediate_strong/k50_terminal/evidence_summary.json",
+        "sha256": "2c696e6b72ceece9c3bfaf7bd67752cde20f6b26ec546309b861ec4b2b952e35"
+      },
+      "source": {
+        "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong_transfer.tar.gz",
+        "sha256": "d1f6f1e8928b054837ab426b5024975b60f24945008d4180c4884697859d967d",
+        "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/result.json",
+        "member_sha256": "2091eb72dcd374fa2727d7cf9b2dd204fc0ba826d767f9e0269930a3af271448"
+      }
+    },
+    {
+      "regime": "strong_strong_u8",
+      "k_eval": 33,
+      "history_position": 34,
+      "active_depth": 34,
+      "absolute_same_cutoff_error": 3.2083758372269955e-7,
+      "s_alg": 80909,
+      "s_alg_components": {"N_H_outer": 1, "N_H_refit": 43650, "N_grad": 6665, "N_metric": 30593},
+      "s_alg_source": {
+        "policy": "raw_state_keyed_ledger_prefix_cut_before_next_outer_state_refresh_v1",
+        "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8/json/estimator_call_ledger.json",
+        "sha256": "042ad3bed7eddf453f1476d2328f669ca2322741ddcc9da0181212b27d344296",
+        "cut_sequence": 88520,
+        "charged_occurrence_count": 80909,
+        "unique_primitive_count": 80909,
+        "duplicate_primitive_count": 0
+      },
+      "n2q": 404,
+      "d2q": 329,
+      "dc": 1687,
+      "checkpoint_sha256": "d6e280246dc71f0017d90aecb08f0c52634a2903137d7fbc95d168e76a3bf6dc",
+      "qiskit_sidecar": {
+        "path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_strong_u8/k34_visual_k33/qiskit_cost_sidecar.json",
+        "sha256": "bb71657f6407629155023354674087adb9ce3c6a9a08aa8936f67cafb9fc5516",
+        "history_replay_crosscheck_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_strong_u8/k34_visual_k33/history_replay_accounting_and_qiskit.json",
+        "history_replay_crosscheck_sha256": "84525be657f9844e5be48a2a37adaa68f59510ac983b525343e237964f47d472",
+        "checkpoint_order_repair_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/strong_strong_u8/k34_visual_k33/checkpoint_execution_order_repair.json",
+        "checkpoint_order_repair_sha256": "5d754d53564c8f79742dbb004e5eb668e57986d69b80c46c25a7c47d72adbb58",
+        "execution_order_repair": "permutation_only_no_substantive_term_changes"
+      },
+      "source": {
+        "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8_transfer.tar.gz",
+        "sha256": "cce59f9ec67efb22a455120a31556fe2f7f351509368ba54cc3748fb0e305003",
+        "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8/json/result.json",
+        "member_sha256": "080f66e46c0887d0232b48edca6669c9b0c89c25ba2c8c394a2e9ad9feaa3975"
+      }
+    }
+  ],
+  "figure_provenance": {
+    "path": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_provenance.json",
+    "sha256": "704842c3d09b95aa0847e345b9be911170fe90d8511321fb2bea90e46ee09d28",
+    "csv_path": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_provenance.csv",
+    "csv_sha256": "398db6d6a3d491f1465b609072356a9229200bbb121564b69a4e1753bb7a31fc",
+    "builder_path": "MATH/paper_facing/paper_I_static_scaffold/build_paper_i_no_ordinary_novelty_sr_snake_figures_20260717.py",
+    "builder_sha256": "32e88e87494691e9edddb716edbc11f630261d006f6cde6e87cccdbbbb1e5829",
+    "local_comparator_support_snapshot": {
+      "path": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_comparator_support_source.csv",
+      "sha256": "6409dd077cb4ab0fceaa15d62e7570a70549a49f1ed9989abcea6435767c521c"
+    }
+  },
+  "supporting_validation": {
+    "plateau_prefix_qiskit_compilation": {
+      "json_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/comparison/plateau_prefix_qiskit_costs.json",
+      "json_sha256": "1c4ae3e0bfcda999f60f64c63870edad78625e1eed7beffa44324e20553c9423",
+      "markdown_path": "raw_outputs/paper_i_hh_no_ordinary_novelty_sr_snake_plateau_qiskit_20260717/comparison/plateau_prefix_qiskit_costs.md",
+      "markdown_sha256": "27f6ca0d7e64d25bcd788261e65dd1462140b6498a87bc7a035075268bb12065"
+    },
+    "paper_i_completion_tracker": {
+      "path": "MATH/paper_facing/paper_I_static_scaffold/paper_i_completion_tracker_20260717.md",
+      "sha256": "b84816f9835580448c7841f3cdb4dccd0e83a70bd2e0badc206fb2dffb433f45"
+    },
+    "round50_continuations": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/validation_cluster_8811168_20260716/baseline_continuation_validation.json",
+      "sha256": "d92244a9ea7902a5bbabd8e6b3131f0729c2c19ce30b4ee5ee122bbcd1b19175"
+    },
+    "strong_weak_round50_repair": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/validation_cluster_8811308_20260717/strong_weak_round50_repair_validation.json",
+      "sha256": "5025f585223402084404cbb9094a6411c064b648cd9e7ac0e870e8a67874c697"
+    }
+  },
+  "verification": {
+    "latexmk": "passed",
+    "pdf_pages": 22,
+    "source_hash_stability": "passed",
+    "figure_rebuild_determinism": "passed_two_consecutive_runs",
+    "final_visual_audit": {
+      "status": "passed",
+      "pages_checked": [1, 13, 16],
+      "checks": [
+        "title_and_abstract_legible",
+        "six_trajectory_panels_legible",
+        "six_mini_tables_have_separated_columns",
+        "all_six_errors_and_s_alg_values_visible",
+        "all_six_displayed_snake_qiskit_triples_visible",
+        "no_unresolved_snake_resource_cells_remain",
+        "settings_table_has_no_overprint_or_clipping"
+      ]
+    }
+  }
+}

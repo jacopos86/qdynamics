@@ -1,0 +1,34 @@
+{
+  "schema": "paper_i_hh_sr_novelty_on_frozen_depth_zero_smoke_v1",
+  "created_utc": "2026-07-16T04:16:58Z",
+  "status": "pass",
+  "run_class": "smoke",
+  "scientific_execution_performed": true,
+  "scientific_result_retained": false,
+  "purpose": "configuration and route-resolution validation only",
+  "source_archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+  "source_job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_weak.json",
+  "smoke_overrides": {
+    "adapt_max_depth": 0,
+    "output_and_cache_paths": "ephemeral_isolated_tmpdir"
+  },
+  "observed": {
+    "pipeline_returncode": 0,
+    "adapt_success": true,
+    "ansatz_depth": 0,
+    "phase1_prune_enabled": false,
+    "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+    "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+    "sr_escape_mode": "disabled",
+    "same_cutoff_n_ph": true
+  },
+  "beam_shape_evidence": {
+    "source": "local_parse_validation.json",
+    "adapt_beam_live_branches": 1,
+    "adapt_beam_children_per_parent": 1
+  },
+  "notes": [
+    "The first harness invocation completed the pipeline with return code 0 but its post-run assertion requested two beam fields not serialized by a depth-zero result.",
+    "The corrected harness retained the identical smoke command and scientific settings and passed using result fields that depth zero actually serializes; beam shape remains independently verified by the frozen CLI parse."
+  ]
+}

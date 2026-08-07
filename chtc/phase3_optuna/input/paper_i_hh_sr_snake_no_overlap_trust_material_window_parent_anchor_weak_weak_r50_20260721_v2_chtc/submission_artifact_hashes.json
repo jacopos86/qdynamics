@@ -1,0 +1,117 @@
+{
+  "files": {
+    "README.md": {
+      "sha256": "37b7fb5e3c2d2171c93e2fbb1a767aa15b03633d76f9fd8b00019ef67c6fb0b8",
+      "size_bytes": 181
+    },
+    "__pycache__/build_bundle.cpython-312.pyc": {
+      "sha256": "eef8f6016181ce9e5e02621f09d1fc7d403e8d77fd0873631fa43c62e0430a04",
+      "size_bytes": 2716
+    },
+    "__pycache__/test_bundle.cpython-312-pytest-9.0.2.pyc": {
+      "sha256": "027969e2193312fc1b2a3ec159a008be0297e16ddfbf83bb2b31582b05ecaf22",
+      "size_bytes": 1212
+    },
+    "anchor_bundle_receipt.json": {
+      "sha256": "89fd60f731b8fdbfef48c6dd8337691203b419e8fe45dc69d9f2a059d70a5f88",
+      "size_bytes": 1267
+    },
+    "archive_only_preflight.json": {
+      "sha256": "0712a6a88b651a012b67e4c935dc207125ef7742b03a15b6b786ece49f30b9c1",
+      "size_bytes": 367
+    },
+    "build_bundle.py": {
+      "sha256": "bb6994c5ec9810d697101ab562b6266952e4537eaa6ac6607494195e16dce069",
+      "size_bytes": 1200
+    },
+    "bundle_manifest.json": {
+      "sha256": "89fd60f731b8fdbfef48c6dd8337691203b419e8fe45dc69d9f2a059d70a5f88",
+      "size_bytes": 1267
+    },
+    "evidence_validation.py": {
+      "sha256": "dfe1045a316792c064cc95865623931d7076e802bacb6cf846977196accf9c40",
+      "size_bytes": 90105
+    },
+    "execute_source_locked_job.sh": {
+      "sha256": "5b74d7eecb6bbdf3b78936241ddc3c6e00f279a2911877c4e929454ebba3e6ec",
+      "size_bytes": 2335
+    },
+    "jobs/weak_weak.json": {
+      "sha256": "f7b88db0cb3ca526ecf10e41a2ca230a1d46f225b5e92117c206e0f3c3f28ff5",
+      "size_bytes": 77948
+    },
+    "material_window_threshold_source_audit.json": {
+      "sha256": "aff21bf4b993c1f3f0d098b81d0c86b90c533c9f5154b4dc29ba88a071398d8f",
+      "size_bytes": 2880
+    },
+    "normalized_manifests/weak_weak.json": {
+      "sha256": "27cab324e44ff11666c92983b287c8a610da6217fe020fef6f6299b1db53daa4",
+      "size_bytes": 75826
+    },
+    "physics_and_exact_reference_lock.json": {
+      "sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+      "size_bytes": 6687
+    },
+    "preflight.json": {
+      "sha256": "0712a6a88b651a012b67e4c935dc207125ef7742b03a15b6b786ece49f30b9c1",
+      "size_bytes": 367
+    },
+    "queue.tsv": {
+      "sha256": "c425ae19b90731610f316cf024be1a9fe7f96f2b2691f8372aa6a9240378dac7",
+      "size_bytes": 324
+    },
+    "remote_execution_gate.json": {
+      "sha256": "f03ce8aa3a491a32c503e9fa95d2e88619da6120e49cf20893729692a42a402b",
+      "size_bytes": 335
+    },
+    "route_parity.json": {
+      "sha256": "8597a140ded9d301b783a20c1273d2ea3a9f3a909787d428d1aaaa9abde695f2",
+      "size_bytes": 410
+    },
+    "route_registration_repair.json": {
+      "sha256": "6f17eeaedde8869bf220310e7857be52b414fefa50284ce22d6fd55ce41bc4ed",
+      "size_bytes": 1053
+    },
+    "run_job.py": {
+      "sha256": "4f62b07bd42dc2539aa8a78e4d2470ae73e5683820ae40511964793d6ddb7e89",
+      "size_bytes": 41165
+    },
+    "scientific_settings_audit.json": {
+      "sha256": "07efe1fa7a369811fbefa09e6d7f3026a2b5d2aac65e669c4b106a9b7a837dfa",
+      "size_bytes": 197
+    },
+    "source_archive_manifest.json": {
+      "sha256": "ad28d2093ad54bd1eace77af2af97f705f802be0c723d88b75680391e6b4eebb",
+      "size_bytes": 92857
+    },
+    "source_locked.tar.gz": {
+      "sha256": "7b4526fcd26655512dfd219dc53d3ab8ba064a79a1385985eb24dd263639458d",
+      "size_bytes": 3411588
+    },
+    "source_locked_sensitivity_audit.json": {
+      "sha256": "7eb888481a6c5ab1a39e409b3eb90cdda3554067e9bc1a4ff22724677e836443",
+      "size_bytes": 36999
+    },
+    "source_revision_manifest.json": {
+      "sha256": "fcd0564ace05a7e7047986510dfb501ff09ac90b8bf0f1f01e48df1a1b74ce19",
+      "size_bytes": 26286
+    },
+    "submit.sub": {
+      "sha256": "ab4bfa1577ff3e6a75ba669708d1fa491ff791342b62598101ffdfe7c64a9ff9",
+      "size_bytes": 3505
+    },
+    "test_bundle.py": {
+      "sha256": "f3a8dd69a6f4e3bb59bc0678edd6471536b621d19f91b019aa79fd1e613290a0",
+      "size_bytes": 68
+    },
+    "test_no_overlap_evidence_validation.py": {
+      "sha256": "622c697de6231cd338f0377ed76771fa558bd2a547795ebe0fc1169a64902e46",
+      "size_bytes": 3074
+    },
+    "validate_fetched.py": {
+      "sha256": "8ef540ce3062d22386488d19f0300e7b58a6c72c4c2297c427a3b3c0da1b95b3",
+      "size_bytes": 26406
+    }
+  },
+  "schema": "paper_i_sr_material_window_anchor_submission_artifacts_v1"
+}

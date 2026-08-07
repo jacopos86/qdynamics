@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "contract_digest": true,
+    "fixture_exists": true,
+    "profile_request": true,
+    "profile_resolved": true,
+    "profile_settings": true
+  },
+  "profile_setting_mismatches": {},
+  "route_contract_sha256": "8517b110f5fb5d7bb04d8419140246b170601623fd009a27c012f0543c3e3aa6",
+  "schema": "paper_iv_h2o_sr_derivative_resolved_command_preflight_v1",
+  "status": "pass"
+}

@@ -1,4 +1,6 @@
 {
-    "python-envs.pythonProjects": [],
-    "markdown.math.enabled": true
+  "markdown.math.enabled": true,
+  "markdown.styles": [
+    "MATH/notes/qiskit-two-column-markdown.css"
+  ]
 }

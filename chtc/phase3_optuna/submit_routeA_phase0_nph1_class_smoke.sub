@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_task_apptainer.sh
+arguments = $(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/phase3-routeA-phase0-nph1-class-smoke.$(Cluster).$(Process).log
+output = logs/phase3-routeA-phase0-nph1-class-smoke.$(Cluster).$(Process).out
+error = logs/phase3-routeA-phase0-nph1-class-smoke.$(Cluster).$(Process).err
+stream_output = True
+stream_error = True
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 24GB
+request_disk = 122880MB
++MaxRuntime = 14400
++JobBatchName = "holstein-routeA-phase0-nph1-class-smoke"
+environment = "PHASE3_RECORDS_PATH=chtc/phase3_optuna/input/routeA_phase0_nph1_class_v1/phase0_class_smoke_records.tsv"
+queue record_id from chtc/phase3_optuna/input/routeA_phase0_nph1_class_v1/phase0_class_smoke_record_ids.txt

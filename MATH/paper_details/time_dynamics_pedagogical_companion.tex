@@ -1,0 +1,3070 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.56in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\columnsep}{0.24in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlist[itemize]{leftmargin=1.15em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.25em,itemsep=1pt,topsep=2pt}
+\allowdisplaybreaks
+
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\braket}[2]{\left\langle #1\,\middle|\,#2\right\rangle}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\ip}[2]{\left\langle #1,#2\right\rangle}
+\newcommand{\R}{\mathbb R}
+\newcommand{\C}{\mathbb C}
+\newcommand{\Hh}{\mathcal H}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\Real}{\operatorname{Re}}
+\newcommand{\Imag}{\operatorname{Im}}
+\newcommand{\Id}{I}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\dd}{\mathrm d}
+\newcommand{\transpose}{\mathsf T}
+\newcommand{\adj}{\dagger}
+
+\definecolor{boxgray}{RGB}{246,246,243}
+\definecolor{linegray}{RGB}{213,213,205}
+\definecolor{deepblue}{RGB}{20,70,125}
+\definecolor{deepred}{RGB}{130,35,35}
+\definecolor{deepgreen}{RGB}{35,95,60}
+\definecolor{deepviolet}{RGB}{85,55,125}
+
+\newcommand{\micro}[1]{%
+  \par\smallskip
+  \noindent\textcolor{deepblue}{\textbf{Micro-intuition:}} #1
+  \par\smallskip}
+
+\newcommand{\deriv}{%
+  \par\noindent\textcolor{deepviolet}{\textbf{Mathematical derivation:}}\par\vspace{-1mm}}
+
+\newcommand{\phys}[1]{%
+  \par\smallskip
+  \noindent\textcolor{deepgreen}{\textbf{Physical interpretation:}} #1
+  \par\smallskip}
+
+\newcommand{\geom}[1]{%
+  \par\smallskip
+  \noindent\textcolor{deepviolet}{\textbf{Geometric picture:}} #1
+  \par\smallskip}
+
+\newcommand{\caution}[1]{%
+  \par\smallskip
+  \noindent\fcolorbox{linegray}{boxgray}{%
+  \begin{minipage}{0.965\columnwidth}
+  \textcolor{deepred}{\textbf{Caution:}} #1
+  \end{minipage}}
+  \par\smallskip}
+
+\newcommand{\paperbox}[1]{%
+  \par\smallskip
+  \noindent\fcolorbox{linegray}{boxgray}{%
+  \begin{minipage}{0.965\columnwidth}
+  \textbf{Paper-compatible translation:} #1
+  \end{minipage}}
+  \par\smallskip}
+
+\newcommand{\implbox}[1]{%
+  \par\smallskip
+  \noindent\fcolorbox{linegray}{boxgray}{%
+  \begin{minipage}{0.965\columnwidth}
+  \textbf{Implementation-level reading:} #1
+  \end{minipage}}
+  \par\smallskip}
+
+\title{\vspace{-1.1cm}AP--McLachlan Time Dynamics\\
+\large A Pedagogical Companion for the Inverse, Repair, Append, and Prune Logic}
+\author{}
+\date{\vspace{-0.95cm}}
+
+\begin{document}
+\maketitle
+\vspace{-0.9cm}
+
+\section*{0. Local convention}
+
+\micro{The whole note should be read at one checkpoint unless a previous or
+future checkpoint is written explicitly.}
+
+\deriv
+Let
+\[
+\begin{aligned}
+\Hh&\cong \C^d,\\
+\ket{\psi}&\in\Hh,\qquad \braket{\psi}{\psi}=1,\\
+\theta&=(\theta_j)_{j=1}^{n}\in\R^n,\\
+U(\theta)&:\Hh\to\Hh,\qquad U(\theta)^\dagger U(\theta)=\Id,\\
+\ket{\psi(\theta)}&=U(\theta)\ket{\psi_{\rm ref}}\in\Hh.
+\end{aligned}
+\]
+At the checkpoint, write \(\ket{\psi}=\ket{\psi(\theta)}\).
+
+\phys{The ansatz state is a vector in the Hilbert space. The parameters are
+classical real coordinates. The variational dynamics tries to move \(\theta\)
+so that the state velocity follows the Schrödinger velocity.}
+
+\geom{Picture \(\R^n\) as the coordinate chart and the variational states as a
+curved surface inside Hilbert space. A parameter-space arrow \(v\) becomes a
+state-space arrow \(Tv\) only after the tangent map pushes it onto that surface.
+McLachlan asks which pushed arrow lies closest to the target drift \(\ket b\).}
+
+\paperbox{Paper II often writes the checkpoint as \(k\), for example
+\(\ket{\psi_k}=U(\theta_k)\ket{\psi_{\rm ref}}\). This companion suppresses \(k\) until a
+time comparison is actually needed.}
+
+\section*{1. The target velocity}
+
+\micro{The exact Schrödinger velocity is projected horizontally so global phase
+does not become a fake variational direction.}
+
+\deriv
+Let \(H(t):\Hh\to\Hh\) be Hermitian and let
+\[
+\begin{aligned}
+e_\psi&=\bra{\psi}H(t)\ket{\psi}\in\R,\\
+\Pi_\psi&=\Id-\ket{\psi}\bra{\psi}:\Hh\to\Hh,\\
+\ket{b}&=-\ii\bigl(H(t)-e_\psi\Id\bigr)\ket{\psi}\in\Hh.
+\end{aligned}
+\]
+Then
+\[
+\begin{aligned}
+\braket{\psi}{b}
+&=-\ii\bra{\psi}H(t)\ket{\psi}
++\ii e_\psi\braket{\psi}{\psi}\\
+&=-\ii e_\psi+\ii e_\psi\\
+&=0,
+\end{aligned}
+\]
+and
+\[
+\Pi_\psi\ket{b}=\ket{b}.
+\]
+
+\phys{The ket \(\ket b\) is the physically relevant instantaneous drift. The
+removed component is parallel to \(\ket\psi\), so it changes only global phase.}
+
+\micro{The norm of the projected drift is the local size of the exact motion
+that the tangent space is asked to represent.}
+
+\deriv
+\[
+\begin{aligned}
+\norm{\ket b}^2
+&=\braket{b}{b}\\
+&=\bra{\psi}\bigl(H(t)-e_\psi\Id\bigr)^2\ket{\psi}\\
+&=\bra{\psi}H(t)^2\ket{\psi}-e_\psi^2\\
+&=\operatorname{Var}_{\psi}(H(t)).
+\end{aligned}
+\]
+
+\phys{A small \(\norm{\ket b}^2\) means the exact horizontal velocity is small at that
+checkpoint. A large residual fraction is physically less alarming when the
+absolute drift itself is tiny, although the current noiseless diagnostics can
+still track the fraction.}
+
+\section*{2. Tangents from the ansatz}
+
+\micro{The tangent matrix is the linear map from parameter velocity to state
+velocity.}
+
+\deriv
+For \(1\le j\le n\),
+\[
+\begin{aligned}
+\partial_j\ket{\psi}
+&=\frac{\partial}{\partial\theta_j}\ket{\psi(\theta)}\in\Hh,\\
+\ket{t_j}&=\Pi_\psi\,\partial_j\ket{\psi}\in\Hh.
+\end{aligned}
+\]
+Define the tangent matrix
+\[
+T=
+\begin{bmatrix}
+| & & |\\
+\ket{t_1}&\cdots&\ket{t_n}\\
+| & & |
+\end{bmatrix}
+\in\C^{d\times n}.
+\]
+For \(v=(v_j)_{j=1}^n\in\R^n\),
+\[
+\begin{aligned}
+Tv
+&=\sum_{j=1}^n v_j\ket{t_j}\in\Hh,\\
+(Tv)_a
+&=\sum_{j=1}^n T_{aj}v_j,\qquad 1\le a\le d.
+\end{aligned}
+\]
+
+\phys{A real vector \(v\) is a candidate parameter velocity. Multiplying by
+\(T\) converts parameter velocity into the represented horizontal state
+velocity.}
+
+\geom{The columns of \(T\) are the local arrows drawn by the ansatz coordinates.
+If two columns draw nearly the same arrow, the coordinate chart has redundancy.
+If one column is very short, that coordinate barely moves the state.}
+
+\micro{For a product ansatz, noncommuting operator order matters in the tangent
+columns.}
+
+\deriv
+Let
+\[
+\begin{aligned}
+U(\theta)
+&=U_n(\theta_n)\cdots U_1(\theta_1),\\
+U_j(\theta_j)
+&=\exp(-\ii\theta_j A_j),\qquad A_j=A_j^\dagger.
+\end{aligned}
+\]
+Then
+\[
+\begin{aligned}
+\partial_j U(\theta)
+&=
+U_n\cdots U_{j+1}(\partial_jU_j)U_{j-1}\cdots U_1,\\
+\partial_jU_j
+&=-\ii A_jU_j,\\
+\partial_j\ket{\psi}
+&=
+U_n\cdots U_{j+1}(-\ii A_j)U_j\cdots U_1\ket{\psi_{\rm ref}}.
+\end{aligned}
+\]
+Thus
+\[
+\ket{t_j}
+=\Pi_\psi U_n\cdots U_{j+1}(-\ii A_j)U_j\cdots U_1\ket{\psi_{\rm ref}}.
+\]
+
+\phys{The \(j\)-th tangent is not simply \(-\ii A_j\ket\psi\) unless the generator is
+the last applied factor or the implementation has already pushed the generator
+into the correct dressed frame. The code's executor matters because it fixes
+this ordered product.}
+
+\implbox{The executor is the concrete rule that maps the ordered ansatz record
+and \(\theta\) to \(U(\theta)\ket{\psi_{\rm ref}}\), and to the tangent columns that
+feed \(T\). Loading a final state can bypass state preparation, but McLachlan
+still needs the tangent map of the ansatz if parameters are propagated.}
+
+\section*{3. The McLachlan objective}
+
+\micro{The least-squares problem chooses the parameter velocity whose tangent
+velocity best approximates \(\ket b\).}
+
+\deriv
+Let \(\dot\theta\in\R^n\) be a candidate parameter velocity. Using the complex
+Hilbert-space inner product,
+\[
+\begin{alignedat}{2}
+m(\dot\theta)
+&=\norm{T\dot\theta-\ket b}^2
+&&\quad\scriptstyle(\text{definition})\\
+&=(T\dot\theta-\ket b)^\dagger(T\dot\theta-\ket b)
+&&\quad\scriptstyle(\norm{x}^2=x^\dagger x)\\
+&=\dot\theta^\top T^\dagger T\dot\theta
+-\dot\theta^\top T^\dagger\ket b
+-\bra b T\dot\theta
++\braket{b}{b}
+&&\quad\scriptstyle(\text{expand})\\
+&=\dot\theta^\top T^\dagger T\dot\theta
+-2\Real\!\left(\dot\theta^\top T^\dagger\ket b\right)
+&&\quad\scriptscriptstyle(z+z^*=2\Real z)\\
+&\quad+\norm{\ket b}^2\\
+&=\dot\theta^\top\Real(T^\dagger T)\dot\theta
+-2\dot\theta^\top\Real(T^\dagger\ket b)
+&&\quad\scriptscriptstyle(\dot\theta\in\R^n)\\
+&\quad+\norm{\ket b}^2.
+\end{alignedat}
+\]
+Here the fourth line uses
+\(\bra bT\dot\theta=(\dot\theta^\top T^\dagger\ket b)^*\). The last line uses
+the fact that the imaginary part of the Hermitian quadratic form does not
+contribute for real \(\dot\theta\). With
+\[
+G=\Real(T^\dagger T),
+\qquad
+f=\Real(T^\dagger\ket b),
+\]
+the objective is
+\[
+m(\dot\theta)
+=\dot\theta^\top G\dot\theta-2\dot\theta^\top f+\norm{\ket b}^2.
+\]
+
+\micro{The implementation form is the same normal equation written entrywise.}
+
+\deriv
+Let
+\[
+\begin{aligned}
+T&=(T_{aj})_{1\le a\le d,\;1\le j\le n}\in\C^{d\times n},\\
+\ket b&\leftrightarrow b=(b_a)_{a=1}^{d}\in\C^d,\\
+\dot\theta&=(\dot\theta_j)_{j=1}^{n}\in\R^n.
+\end{aligned}
+\]
+The definitions
+\[
+G=\Real(T^\dagger T),
+\qquad
+f=\Real(T^\dagger\ket b)
+\]
+mean
+\[
+\begin{aligned}
+G_{ij}
+&=\Real\sum_{a=1}^{d}T_{ai}^*T_{aj},
+\qquad
+1\le i,j\le n,\\
+f_i
+&=\Real\sum_{a=1}^{d}T_{ai}^*b_a,
+\qquad
+1\le i\le n.
+\end{aligned}
+\]
+Thus \(G\dot\theta=f\) is the component equation
+\[
+\sum_{j=1}^{n}G_{ij}\dot\theta_j=f_i,
+\qquad
+1\le i\le n,
+\]
+or, after substituting the primitive overlap definitions,
+\[
+\sum_{j=1}^{n}
+\left(
+\Real\sum_{a=1}^{d}T_{ai}^*T_{aj}
+\right)
+\dot\theta_j
+=
+\Real\sum_{a=1}^{d}T_{ai}^*b_a,
+\qquad
+1\le i\le n.
+\]
+The component derivative uses dummy-index relabeling and symmetry:
+\[
+\begin{aligned}
+\frac{\partial}{\partial\dot\theta_i}
+\left(\sum_{p,q}\dot\theta_pG_{pq}\dot\theta_q\right)
+&=
+\sum_q G_{iq}\dot\theta_q+\sum_p\dot\theta_pG_{pi}\\
+&=
+\sum_q G_{iq}\dot\theta_q+\sum_q\dot\theta_qG_{qi}\\
+&=
+2\sum_qG_{iq}\dot\theta_q,
+\end{aligned}
+\]
+where \(G_{qi}=G_{iq}\). Thus the \(i\)-th stationarity equation is
+\[
+2\sum_qG_{iq}\dot\theta_q-2f_i=0.
+\]
+
+\phys{The real part enters because the variational parameters are real, so the
+complex Hilbert-space overlaps become a real quadratic problem in the parameter
+velocity \(\dot\theta\). Each \(G_{ij}\) is a tangent--tangent overlap, each
+\(f_i\) is a tangent--drift overlap, and the implementation fills these real
+arrays before solving for the coordinate velocity.}
+
+\section*{4. Why \(G\dot\theta=f\)}
+
+\micro{A normal equation is the gradient-zero system for least squares:
+\(\min_x\norm{Ax-y}^2\) gives \(A^\dagger Ax=A^\dagger y\). Here \(A=T\),
+\(x=\dot\theta\), \(y=\ket b\), and real coordinates give \(G\dot\theta=f\).}
+
+\deriv
+\[
+\begin{aligned}
+m(\dot\theta)&=\dot\theta^\top G\dot\theta-2\dot\theta^\top f+\norm{\ket b}^2,\\
+G^\top&=G,\qquad G\succeq0.
+\end{aligned}
+\]
+Using the vector-gradient identities
+\[
+\begin{aligned}
+\nabla_{\dot\theta}(\dot\theta^\top G\dot\theta)&=2G\dot\theta,\\
+\nabla_{\dot\theta}(2\dot\theta^\top f)&=2f,
+\end{aligned}
+\]
+Thus
+\[
+\nabla_{\dot\theta}m(\dot\theta)=2G\dot\theta-2f.
+\]
+The stationary velocity satisfies
+\[
+G\dot\theta=f.
+\]
+
+\phys{The McLachlan velocity is the parameter velocity where an infinitesimal
+coordinate change cannot further reduce the state-space mismatch.}
+
+\micro{Non-identifiability means distinct coordinate velocities create the same
+first-order state velocity.}
+
+\deriv
+Two coordinate velocities are locally indistinguishable when their difference
+lies in the nullspace of the tangent map:
+\[
+T(\dot\theta+a)=T\dot\theta
+\quad\Longleftrightarrow\quad
+Ta=0.
+\]
+Equivalently,
+\[
+\dot\theta\sim\dot\theta+a
+\quad\text{when}\quad
+a\in\operatorname{null}T.
+\]
+The identifiable object is the represented velocity, not the raw coordinate
+velocity:
+\[
+[\,\dot\theta\,]\longmapsto T\dot\theta,
+\qquad
+[\,\dot\theta\,]=\dot\theta+\operatorname{null}T.
+\]
+
+\phys{A non-identifiable coordinate direction is locally gauge-like: moving in
+that coordinate changes the parameter vector but not the quantum state to first
+order. McLachlan must solve on the visible quotient coordinates, not on every
+raw coordinate direction as though all directions were physical.}
+
+\micro{Singular \(G\) means some nonzero coordinate direction is invisible to
+the tangent map.}
+
+\deriv
+A square matrix is singular when it has a nonzero null direction. A null
+direction is a coordinate vector that the matrix sends to zero:
+\[
+\exists\,a\in\R^n,\qquad a\ne0,\qquad Ga=0.
+\]
+For the McLachlan Gram matrix,
+\[
+\begin{aligned}
+G&=\Real(T^\dagger T),\\
+a^\top Ga
+&=a^\top\Real(T^\dagger T)a\\
+&=\Real\bigl((Ta)^\dagger(Ta)\bigr)\\
+&=\norm{Ta}^2.
+\end{aligned}
+\]
+Thus, in the exact positive-semidefinite geometry,
+\[
+Ga=0
+\quad\Longrightarrow\quad
+a^\top Ga=0
+\quad\Longrightarrow\quad
+Ta=0.
+\]
+
+\phys{The coordinate direction \(a\) changes parameters, but it produces no
+first-order state velocity. The ansatz has a redundant or ineffective local
+parameter direction.}
+
+\geom{A null direction is a coordinate arrow that vanishes when projected onto
+the variational surface. Moving along that coordinate can look large in
+parameter space while producing no visible first-order motion of the state.}
+
+\micro{The pseudoinverse solves only on the range of \(G\), and sets null
+directions to zero.}
+
+\deriv
+The nullspace is the set of all null directions. The range is the set of all
+vectors the matrix can output:
+\[
+\operatorname{null}G=\{a\in\R^n:Ga=0\},
+\qquad
+\operatorname{ran}G=\{Gy:y\in\R^n\}.
+\]
+The theorem used here is the fundamental subspace theorem for a real symmetric
+matrix: the range is the orthogonal complement of the nullspace,
+\[
+\operatorname{ran}G=(\operatorname{null}G)^\perp.
+\]
+For symmetric positive-semidefinite \(G\), this gives the orthogonal direct
+sum
+\[
+\R^n=\operatorname{ran}G\oplus\operatorname{null}G.
+\]
+The symbol \(\oplus\) means each vector splits uniquely into a range component
+plus a nullspace component.
+The Moore--Penrose pseudoinverse theorem says that \(GG^+\) is the orthogonal
+projector onto \(\operatorname{ran}G\), and that \(G^+f\) is the
+minimum-norm least-squares solution of \(Gx\approx f\).
+If \(f\in\operatorname{ran}G\), then \(G\dot\theta=f\) has supported solutions.
+They differ by null directions:
+\[
+\dot\theta=G^+f+n,
+\qquad
+n\in\operatorname{null}G.
+\]
+The minimum-norm supported solution chooses \(n=0\):
+\[
+\dot\theta=G^+f.
+\]
+Then
+\[
+G\dot\theta=GG^+f=f.
+\]
+If \(f\notin\operatorname{ran}G\), the full equation \(G\dot\theta=f\) has no
+exact solution. The pseudoinverse returns the least-squares supported solve:
+\[
+\dot\theta=G^+f,
+\qquad
+G\dot\theta=GG^+f=P_{\operatorname{ran}G}f.
+\]
+The unsupported force component is
+\[
+f_\perp=f-P_{\operatorname{ran}G}f.
+\]
+
+\phys{The retained tangent coordinates respond only to the component of the
+force \(f\) that lies in the supported metric range. The nullspace component
+would create parameter motion without state-space motion, so the minimum-norm
+solve removes it.}
+
+\geom{The range is the visible subspace of tangent forces. The projector
+\(P_{\operatorname{ran}G}\) drops the part of \(f\) that points outside that
+visible subspace, leaving only the force shadow the current tangent chart can
+answer.}
+
+\micro{A near-null direction makes the ordinary inverse large because the solve
+divides by the metric strength of that direction.}
+
+\deriv
+The theorem used here is the real spectral theorem: every real symmetric matrix
+has an orthonormal eigenbasis. Thus, for symmetric positive-semidefinite \(G\),
+there are orthonormal vectors \(v_a\) and nonnegative eigenvalues \(s_a\) such
+that
+\[
+Gv_a=s_av_a,\qquad v_a^\top v_a=1,\qquad s_a\ge0.
+\]
+Because the vectors \(v_a\) form an orthonormal basis, every vector in
+\(\R^n\), including \(f\) and \(\dot\theta\), has a unique expansion in these
+eigenmodes.
+The number \(s_a\) is the physical tangent strength of the parameter direction
+\(v_a\):
+\[
+s_a=v_a^\top Gv_a=\norm{Tv_a}^2.
+\]
+Expand the force and velocity in the same eigenbasis:
+\[
+f=\sum_a f_av_a,\qquad
+\dot\theta=\sum_a y_av_a,\qquad
+f_a=v_a^\top f.
+\]
+The normal equation \(G\dot\theta=f\) becomes, mode by mode,
+\[
+s_ay_a=f_a.
+\]
+Therefore an ordinary inverse would require
+\[
+y_a=\frac{f_a}{s_a}.
+\]
+This is the precise instability:
+\[
+s_a\to0^+,\quad f_a\ne0
+\quad\Longrightarrow\quad
+|y_a|=\frac{|f_a|}{s_a}\to\infty.
+\]
+When \(G\) is nonsingular, the inverse response map is
+\[
+\Phi_G:\R^n\to\R^n,
+\qquad
+\Phi_G(\delta f)=G^{-1}\delta f.
+\]
+For a perturbation \(\delta f=\sum_a \delta f_av_a\),
+\[
+\Phi_G(\delta f)
+=
+\sum_a\frac{\delta f_a}{s_a}v_a.
+\]
+The operator norm of this response map is
+\[
+\norm{\Phi_G}_{2\to2}
+=
+\sup_{\delta f\ne0}
+\frac{\norm{G^{-1}\delta f}}{\norm{\delta f}}
+=
+\frac{1}{s_{\min}},
+\qquad
+s_{\min}=\min_a s_a.
+\]
+The supremum is attained when \(\delta f\) points along an eigenmode with
+eigenvalue \(s_{\min}\). The spectral condition number is
+\[
+\kappa(G)=\frac{s_{\max}}{s_{\min}},
+\qquad
+s_{\max}=\max_a s_a,
+\]
+so a large \(\kappa(G)\) means the weakest identifiable mode is much weaker
+than the strongest one. A small force error along the weakest eigenmode can
+create a large coordinate-velocity error.
+If \(s_a=0\) exactly, then \(1/s_a\) is undefined. A supported inverse avoids
+this by using a retention indicator \(\chi_a\):
+\[
+y_a^{\rm supp}
+=\chi_a\frac{f_a}{s_a}.
+\]
+Here \(\chi_a=0\) on discarded null or near-null modes.
+A damped supported inverse further replaces \(s_a\) by
+\(s_a+\epsilon\) on retained modes.
+
+\phys{A near-null coordinate direction barely moves the quantum state. If a
+finite force component or a small force error is assigned to that weak
+direction, an ordinary inverse compensates by making the parameter velocity
+large. Truncation and damping prevent the algorithm from turning weakly
+identifiable coordinate motion into an unstable time step.}
+
+\geom{In the eigenbasis, \(G\) turns the coordinate chart into principal axes.
+The axis \(v_a\) has visible tangent length \(s_a^{1/2}\). A near-flat axis
+requires a long coordinate arrow \(y_av_a\) to make a small state-space arrow,
+which is why \(y_a=f_a/s_a\) becomes unstable when \(s_a\) is tiny.}
+
+\section*{5. Explained drift}
+
+\micro{The quadratic form \(f^\top G^+f\) is the amount of squared drift
+explained after the best tangent coefficients have been optimized out.}
+
+\deriv
+Let
+\[
+\dot\theta=G^+f.
+\]
+The represented velocity is
+\[
+\ket u=T\dot\theta\in\Hh.
+\]
+Its squared norm is
+\[
+\begin{aligned}
+\norm{\ket u}^2
+&=(T\dot\theta)^\dagger(T\dot\theta)\\
+&=\dot\theta^\top T^\dagger T\dot\theta.
+\end{aligned}
+\]
+Since \(\dot\theta\in\R^n\),
+\[
+\dot\theta^\top T^\dagger T\dot\theta
+=\dot\theta^\top\Real(T^\dagger T)\dot\theta
+=\dot\theta^\top G\dot\theta.
+\]
+Substitute \(\dot\theta=G^+f\):
+\[
+\norm{\ket u}^2
+=f^\top G^+GG^+f.
+\]
+For a symmetric positive semidefinite \(G\),
+\[
+G^+GG^+=G^+.
+\]
+Thus
+\[
+\boxed{\norm{T\dot\theta}^2=f^\top G^+f.}
+\]
+
+\phys{The overlap vector \(f\) by itself is not an explained length. The metric
+correction \(G^+\) converts raw shadows into nonorthogonal coefficients, then
+the quadratic form reports the length of the fitted tangent velocity.}
+
+\micro{The same expression appears by substituting the optimizer back into the
+least-squares residual.}
+
+\deriv
+\[
+\begin{aligned}
+m(\dot\theta)
+&=\dot\theta^\top G\dot\theta-2\dot\theta^\top f+\norm{\ket b}^2\\
+&=f^\top G^+GG^+f-2f^\top G^+f+\norm{\ket b}^2\\
+&=\norm{\ket b}^2-f^\top G^+f.
+\end{aligned}
+\]
+Therefore
+\[
+\boxed{
+\min_{v\in\R^n}\norm{Tv-\ket b}^2
+=
+\norm{\ket b}^2-f^\top G^+f.
+}
+\]
+
+\phys{The velocity variable disappeared because it was optimized out. The
+reported residual is the minimized error left after the tangent span made its
+best local attempt to reconstruct \(\ket b\).}
+
+\section*{6. Structural tangent miss}
+
+\micro{The structural miss asks whether the current tangent span can explain
+the Schrödinger drift after the best supported fit.}
+
+\deriv
+Use the same supported pseudoinverse convention as the projection geometry;
+Section 7 expands this inverse spectrally. The current structural miss is
+\[
+\rho(T,\ket b)
+=
+\frac{
+\left[
+\norm{\ket b}^2-f^\top G^+f
+\right]_+
+}{\norm{\ket b}^2}
+\]
+and equivalently
+\[
+\rho(T,\ket b)
+=
+\frac{
+\left[
+\min_{v\in\R^n}\norm{Tv-\ket b}^2
+\right]_+
+}{\norm{\ket b}^2}.
+\]
+The first expression is the computable Gram form; the second expression is the
+least-squares meaning.
+
+\phys{Large \(\rho(T,\ket b)\) means the manifold is missing physical tangent
+directions. This is the structural reason to consider append.}
+
+\caution{The denominator can have a small numerical floor in the implementation.
+The floor prevents division by a tiny drift norm; it is not a new physical
+quantity.}
+
+\section*{7. Supported inverse}
+
+\micro{The supported inverse keeps retained eigenmodes and truncates untrusted
+eigenmodes.}
+
+\deriv
+By the real spectral theorem, write the symmetric positive-semidefinite Gram
+matrix as
+\[
+G=V\diag(s_1,\ldots,s_n)V^\top,
+\qquad
+s_a\ge0,
+\qquad
+V^\top V=\Id.
+\]
+The columns of \(V\) are the orthonormal eigenmodes \(v_a\), and the numbers
+\(s_a\) are their metric strengths.
+Let
+\[
+s_{\max}=\max_a s_a,
+\qquad
+\chi_a=\mathbf 1[s_a\ge\tau s_{\max}].
+\]
+A retained mode has \(\chi_a=1\). A truncated mode has \(\chi_a=0\), meaning its
+inverse weight is set to zero:
+\[
+\chi_a=0
+\quad\Longrightarrow\quad
+\frac{\chi_a}{s_a}=0.
+\]
+The supported exact inverse is
+\[
+G_\tau^+
+=
+V\diag\left(\frac{\chi_a}{s_a}\right)V^\top,
+\]
+with the convention \(\chi_a/s_a=0\) when \(\chi_a=0\). In components,
+\[
+(G_\tau^+)_{ij}
+=
+\sum_{a=1}^{n}V_{ia}\frac{\chi_a}{s_a}V_{ja}.
+\]
+
+\phys{A retained eigenmode is a tangent-coordinate combination that changes the
+state enough to be trusted. A truncated mode is treated as geometrically
+unresolved, so the inverse does not amplify that direction.}
+
+\geom{The cutoff draws a floor under the metric ellipsoid. Axes above the floor
+remain available for inversion; axes below the floor are removed from the
+inverse, so the solve does not chase directions the ansatz barely resolves.}
+
+\micro{The damped implementation inverse changes the denominator of retained
+modes.}
+
+\deriv
+Let \(\epsilon\ge0\). The damped supported inverse is
+\[
+G_{\tau,\epsilon}^{-1}
+=
+V\diag\left(\frac{\chi_a}{s_a+\epsilon}\right)V^\top.
+\]
+Thus
+\[
+\dot\theta
+=G_{\tau,\epsilon}^{-1}f
+=
+\sum_{a=1}^{n}
+V_{\cdot a}
+\frac{\chi_a}{s_a+\epsilon}
+(V_{\cdot a}^\top f).
+\]
+
+\phys{Damping makes each retained inverse denominator larger. This reduces the
+amplification of small retained modes and can reduce unstable parameter
+velocity.}
+
+\micro{Ridge changes the matrix before the eigenmode solve.}
+
+\deriv
+Let \(\Lambda\succeq0\). The propagated solve uses
+\[
+\begin{aligned}
+G_\Lambda&=G+\Lambda,\\
+\dot\theta_\ell
+&=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f.
+\end{aligned}
+\]
+If \(\Lambda_\ell=\lambda_\ell\Id\), then
+\[
+v^\top(G+\lambda_\ell\Id)v
+=v^\top Gv+\lambda_\ell\norm v^2.
+\]
+
+\phys{Ridge penalizes large parameter velocity in coordinate space. It is a
+numerical stabilizer for the solve, not an extra Hamiltonian force.}
+
+\micro{The supported inverse and the state-space trust region control different
+objects in the local Taylor model.}
+
+\deriv
+For a small coordinate displacement \(\delta\theta\),
+\[
+\ket{\psi(\theta+\delta\theta)}
+=
+\ket{\psi(\theta)}+T\delta\theta+O(\norm{\delta\theta}^2).
+\]
+The supported inverse acts on metric eigenmodes:
+\[
+\begin{aligned}
+s_a\ge\tau s_{\max}
+&\Longrightarrow
+v_a\ \text{retained},\\
+s_a<\tau s_{\max}
+&\Longrightarrow
+v_a\ \text{truncated}.
+\end{aligned}
+\]
+The state-space trust condition acts after a velocity has been chosen:
+\[
+\delta\theta=\Delta t\,\dot\theta,
+\qquad
+\Delta t\,\norm{T\dot\theta}\le\tau_\Delta.
+\]
+
+\phys{The inverse decides which coordinate axes are identifiable enough to
+invert. The trust condition decides whether the accepted velocity moves the
+state too far for the local linear model. A well-conditioned inverse can still
+require a smaller time step.}
+
+\section*{8. Realized drift and numerical miss}
+
+\micro{Numerical miss measures how much explained tangent motion is lost because
+of the chosen stabilized inverse.}
+
+\deriv
+Let
+\[
+\dot\theta_\ell=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f.
+\]
+The residual produced by this specific velocity is
+\[
+\begin{aligned}
+m(\dot\theta_\ell)
+&=\norm{T\dot\theta_\ell-\ket b}^2\\
+&=\dot\theta_\ell^\top G\dot\theta_\ell
+-2f^\top\dot\theta_\ell+\norm{\ket b}^2.
+\end{aligned}
+\]
+The realized explained drift is
+\[
+\begin{aligned}
+E_\ell
+&=\norm{\ket b}^2-m(\dot\theta_\ell)\\
+&=2f^\top\dot\theta_\ell
+-\dot\theta_\ell^\top G\dot\theta_\ell.
+\end{aligned}
+\]
+The best supported explained drift is
+\[
+E_\star=f^\top G^+f.
+\]
+The numerical miss is
+\[
+\boxed{
+\rho_{\rm num}(\ell)
+=
+\frac{[E_\star-E_\ell]_+}{\norm{\ket b}^2}.
+}
+\]
+
+\phys{If \(\rho_{\rm num}\) is large, the tangent span may contain useful
+directions but the current inverse convention is not realizing them. This is a
+solve problem, not automatically an append problem.}
+
+\micro{The realized drift uses \(G\), not \(G+\Lambda_\ell\), because the
+question is physical tangent motion, not self-certification by the regularizer.}
+
+\deriv
+\[
+\begin{aligned}
+E_\ell
+&=2f^\top\dot\theta_\ell-\dot\theta_\ell^\top G\dot\theta_\ell,\\
+\dot\theta_\ell
+&=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f.
+\end{aligned}
+\]
+If one used \(G+\Lambda_\ell\) in the realized term, then
+\[
+2f^\top\dot\theta_\ell
+-\dot\theta_\ell^\top(G+\Lambda_\ell)\dot\theta_\ell
+\]
+would include the penalty that chose \(\dot\theta_\ell\), rather than only the
+state-space velocity \(T\dot\theta_\ell\).
+
+\phys{The propagated state only sees \(T\dot\theta\). The ridge penalty helps
+choose the velocity, but the physical miss must be evaluated through \(T\) and
+therefore through \(G=\Real(T^\dagger T)\).}
+
+\section*{9. State-space step motion}
+
+\micro{A stable inverse can still move the state too far for the selected time
+step.}
+
+\deriv
+Let
+\[
+\ket{u_\ell}=T\dot\theta_\ell\in\Hh,
+\qquad
+\Delta t_\ell>0.
+\]
+First-order propagation gives
+\[
+\ket{\psi(t+\Delta t_\ell)}
+=\ket{\psi(t)}+\Delta t_\ell\ket{u_\ell}+O(\Delta t_\ell^2).
+\]
+Thus
+\[
+\norm{\ket{\psi(t+\Delta t_\ell)}-\ket{\psi(t)}}
+=
+\Delta t_\ell\norm{\ket{u_\ell}}+
+O(\Delta t_\ell^2).
+\]
+The state-motion guard is
+\[
+\Delta t_\ell\norm{T\dot\theta_\ell}\le\tau_\Delta.
+\]
+
+\phys{This guard checks the physical size of the proposed state movement, not
+the size of raw parameter movement. If it fails, local subdivision is a natural
+cure.}
+
+\micro{Local subdivision reduces the first-order state displacement per
+substep.}
+
+\deriv
+For \(r\) equal substeps,
+\[
+\delta t=\Delta t/r.
+\]
+The one-substep first-order motion is
+\[
+\delta t\,\norm{\ket{u_\ell}}
+=\frac{\Delta t}{r}\norm{\ket{u_\ell}}.
+\]
+To satisfy \(\delta t\norm{\ket{u_\ell}}\le\tau_\Delta\), it is enough that
+\[
+r\ge \frac{\Delta t\norm{\ket{u_\ell}}}{\tau_\Delta}.
+\]
+The Paper-II scheduler uses a severity-derived dyadic response:
+\[
+r=2^q.
+\]
+
+\phys{Subdivision is not artificial damping. It keeps the same local vector
+field idea but asks the integrator to take smaller local steps through a
+difficult interval.}
+
+\section*{10. Temporal state-space kink}
+
+\micro{The kink diagnostic compares represented state velocities at adjacent
+accepted checkpoints.}
+
+\deriv
+Let
+\[
+\ket{u_k}=T_k\dot\theta_k,\qquad
+\ket{u_{k-1}^{\rm acc}}=T_{k-1}\dot\theta_{k-1}^{\rm acc}.
+\]
+Then
+\[
+\eta_k
+=
+\frac{\norm{\ket{u_k}-\ket{u_{k-1}^{\rm acc}}}^2}
+{\tfrac12(\norm{\ket{b_k}}^2+\norm{\ket{b_{k-1}}}^2)}.
+\]
+The guard is
+\[
+\eta_k\le\tau_{\rm kink}.
+\]
+
+\phys{A kink is a jump in the physical tangent velocity. It is evaluated in
+state space through \(T\dot\theta\), not by comparing coordinate vectors.}
+
+\section*{11. Repair entry}
+
+\micro{Repair opens when the base numerical convention is unhealthy in
+state-space terms.}
+
+\deriv
+A rung is one numerical convention for the same local McLachlan problem:
+\[
+\ell=(\Lambda_\ell,\tau_\ell,\epsilon_\ell,\Delta t_\ell).
+\]
+Here \(\Lambda_\ell\) is the ridge matrix, \(\tau_\ell\) is the retained-mode
+threshold, \(\epsilon_\ell\) is the solve damping, and \(\Delta t_\ell\) is the
+time step for that local proposal. The base rung \(\ell_0\) is the default
+convention before repair. At the base rung, define
+\[
+\begin{aligned}
+g_\rho&=\mathbf 1[\rho_{\rm num}(\ell_0)>\tau_{\rm num}],\\
+g_\Delta&=\mathbf 1[\Delta t_{\ell_0}\norm{T\dot\theta_{\ell_0}}>\tau_\Delta],\\
+g_t&=\mathbf 1[\eta_k(\ell_0)>\tau_{\rm kink}].
+\end{aligned}
+\]
+The symbol \(\mathbf 1[\cdot]\) is an indicator: it equals \(1\) when the
+condition inside brackets is true and \(0\) otherwise. Let
+\(g_{\rm inv}\in\{0,1\}\) mark invalid numerical data. Here invalid means the
+needed arrays do not define a real finite solve: NaN/Inf values, missing
+objects, nonsymmetric real Gram data after preprocessing, or incompatible
+matrix/vector dimensions. Repair entry is checked only after the checkpoint
+data are finite and dimensionally compatible.
+Then
+\[
+g_{\rm inv}=0.
+\]
+Repair entry is
+\[
+g_{\rm inv}\vee g_\rho\vee g_\Delta\vee g_t.
+\]
+
+\phys{The three non-invalid lanes are: numerical miss, state-motion size, and
+temporal kink. The condition number modifies candidate risk; it is not a
+global repair trigger in the noiseless diagnostic policy.}
+
+\micro{The severity scalar determines how broad the repair response should be.}
+
+\deriv
+The severity scalar \(m\) is a dimensionless maximum over normalized defects:
+\(m\le1\) means no listed defect exceeds its threshold, while \(m>1\) measures
+how far the worst defect is beyond threshold.
+\[
+\begin{aligned}
+m
+=
+\max\Bigg\{
+&
+\frac{\rho_{\rm num}(\ell_0)}{\tau_{\rm num}},
+\\
+&
+\frac{\Delta t_{\ell_0}\norm{T\dot\theta_{\ell_0}}}{\tau_\Delta},
+\\
+&
+\sqrt{\frac{\eta_k(\ell_0)}{\tau_{\rm kink}}}
+\Bigg\}.
+\end{aligned}
+\]
+The scheduler breadth is
+\[
+q=\left\lceil\log_2(m)\right\rceil_+,
+\qquad
+\lceil x\rceil_+=\max\{0,\lceil x\rceil\}.
+\]
+
+\phys{A larger normalized defect requests stronger local subdivision, broader
+inverse search, or longer hold behavior. The square root on \(\eta_k\)
+puts the kink's squared norm back on a velocity-size scale.}
+
+\section*{12. Candidate repair set}
+
+\micro{Paper II does not use an ordered first-passing repair list. It evaluates
+a finite set of candidates.}
+
+\deriv
+For repair, a candidate is a proposed numerical rung for the same current
+state, tangent matrix, and drift vector. Let
+\[
+\ell=(\Lambda_\ell,\tau_\ell,\epsilon_\ell,\Delta t_\ell).
+\]
+Let \(C\) be the finite candidate set considered at the checkpoint:
+\[
+C=\{\ell_0\}\cup C_{\rm sub}\cup C_{\rm inv}.
+\]
+Here \(\{\ell_0\}\) keeps the base convention available,
+\(C_{\rm sub}\) contains time-subdivision candidates, and \(C_{\rm inv}\)
+contains inverse-convention candidates. The subdivision candidates are present
+when \(g_\Delta=1\) or \(g_t=1\):
+\[
+C_{\rm sub}
+=
+\{\ell_{\Delta t/2},\ell_{\Delta t/4},\ldots,\ell_{\Delta t/2^q}\}.
+\]
+The notation \(\ell_{\Delta t/2^j}\) means the same inverse settings as the
+base rung, but with the local step divided by \(2^j\).
+The inverse candidates are present when \(g_\rho=1\):
+\[
+C_{\rm inv}
+=
+C_\uparrow\cup C_\downarrow.
+\]
+Here \(C_\uparrow\) increases regularization/truncation/damping, while
+\(C_\downarrow\) safely relaxes them.
+
+\phys{The same numerical miss can come from under-regularization or
+over-regularization. The candidate set tests nearby directions instead of
+assuming one cure direction.}
+
+\micro{Acceptability is a state-space condition on each candidate rung.}
+
+\deriv
+An acceptable rung is a candidate whose realized state-space diagnostics all
+satisfy their declared thresholds.
+For \(\ell\in C\),
+\[
+\begin{aligned}
+\dot\theta_\ell
+&=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f,\\
+\ket{u_\ell}&=T\dot\theta_\ell.
+\end{aligned}
+\]
+The finite acceptable set is
+\[
+\begin{aligned}
+A=\{\ell\in C:\;&
+\rho_{\rm num}(\ell)\le\tau_{\rm num},\\
+&
+\Delta t_\ell\norm{\ket{u_\ell}}\le\tau_\Delta,\\
+&
+\eta_k(\ell)\le\tau_{\rm kink},\\
+&
+\ell\text{ is finite}\}.
+\end{aligned}
+\]
+
+\phys{A candidate rung has to actually improve the realized state-space
+behavior. Merely being more damped or more aggressive does not make it better.}
+
+\section*{13. Repair selection}
+
+\micro{The accepted repair is the least invasive acceptable candidate.}
+
+\deriv
+Least invasive means lowest scalar score \(J(\ell)\) among acceptable rungs.
+The score combines a declared intervention cost with normalized defects. The
+weights \(w_c,w_\rho,w_\Delta,w_t,w_\eta,w_\kappa\ge0\) are runtime settings,
+not derived physics quantities.
+For \(\ell\in C\), let
+\[
+\begin{aligned}
+J(\ell)
+={}&
+w_c C_\ell
++w_\rho\frac{\rho_{\rm num}(\ell)}{\tau_{\rm num}}
++w_\Delta
+\frac{\Delta t_\ell\norm{\ket{u_\ell}}}{\tau_\Delta}\\
+&+
+w_t\frac{\eta_k(\ell)}{\tau_{\rm kink}}
++w_\eta\frac{\eta_{\rm cand}(\ell)}{\tau_{\rm kink}}
++w_\kappa\phi_\kappa(\ell).
+\end{aligned}
+\]
+Here \(C_\ell\) is the intervention cost of candidate \(\ell\): small for
+staying near the base convention and larger for stronger damping, truncation
+changes, or subdivision. The function \(\phi_\kappa(\ell)\ge0\) is a
+conditioning-risk penalty computed from the retained condition number of the
+candidate solve.
+The selected rung is
+\[
+\ell^\star\in\argmin_{\ell\in A}J(\ell).
+\]
+If \(A=\varnothing\) in a diagnostic run,
+\[
+\ell^\star\in\argmin_{\ell\in C_{\rm finite}}J(\ell),
+\]
+and the checkpoint is marked unsupported.
+The set \(C_{\rm finite}\subseteq C\) contains candidates whose arrays and
+velocities are finite even though one or more diagnostic thresholds failed.
+
+\phys{Unsupported means the run produced diagnostic data beyond a numerical
+health threshold. It does not mean the trajectory had a runtime error.}
+
+\micro{The candidate-kink term compares a candidate against the base solve at
+the same checkpoint.}
+
+\deriv
+This term is local in time: it compares two candidate velocities at checkpoint
+\(k\), not velocities at two different checkpoints.
+Let
+\[
+\ket{u_\ell}=T\dot\theta_\ell,\qquad \ket{u_0}=T\dot\theta_0.
+\]
+Then
+\[
+\eta_{\rm cand}(\ell)
+=
+\frac{\norm{\ket{u_\ell}-\ket{u_0}}^2}{\norm{\ket b}^2}.
+\]
+
+\phys{This term discourages a repair that creates a large same-checkpoint
+velocity jump relative to the base convention, unless the other terms justify
+it.}
+
+\section*{14. Hold and release}
+
+\micro{After a repair is accepted, the method should not immediately flip back
+to the base inverse if that creates another velocity jump.}
+
+\deriv
+A held convention is an accepted non-base rung reused at later checkpoints
+until release is safe. Let the held repaired convention be \(\ell^\star\). At a
+later checkpoint,
+\[
+\begin{aligned}
+\ket{u_{\rm hold}}&=T\dot\theta_{\ell^\star},\\
+\ket{u_{\rm base}}&=T\dot\theta_0.
+\end{aligned}
+\]
+The return-to-base comparison is
+\[
+\eta_{\rm rel}
+=
+\frac{\norm{\ket{u_{\rm hold}}-\ket{u_{\rm base}}}^2}{\norm{\ket b}^2}.
+\]
+Release requires
+\[
+\eta_{\rm rel}\le \tau_{\rm rel},
+\qquad
+\tau_{\rm rel}=\alpha_{\rm rel}\tau_{\rm kink},
+\qquad
+0<\alpha_{\rm rel}<1.
+\]
+
+\phys{The release threshold is stricter than the original kink threshold. This
+prevents a repaired inverse from turning on for one checkpoint and then turning
+off in a way that creates rough state-space velocity.}
+
+\micro{The patience count grows with the size of the accepted kink.}
+
+\deriv
+The patience count \(p\) is the number of future checkpoints for which the
+method may keep the repaired convention before attempting release. Let
+\[
+\eta_{\rm acc}
+=
+\frac{\norm{\ket{u^+}-\ket{u^-}}^2}{\norm{\ket b}^2},
+\]
+where \(\ket{u^-}\) and \(\ket{u^+}\) are the pre-repair and accepted post-repair
+represented velocities. Then
+\[
+\begin{aligned}
+p
+=
+\Bigg\lceil
+p_{\min}
+&+(p_{\max}-p_{\min})\\
+&\times
+\min\left\{
+1,
+\frac{[\sqrt{\eta_{\rm acc}}-\sqrt{\tau_{\rm kink}}]_+}
+{\sqrt{\tau_{\rm kink}}\chi_{\rm kink}}
+\right\}
+\Bigg\rceil.
+\end{aligned}
+\]
+
+\phys{The square roots again put the kink severity on a velocity scale. A severe
+repair is held longer before the base convention can return.}
+
+\section*{15. Append: zero state change, new tangent directions}
+
+\micro{Append adds directions to the tangent space without changing the state at
+the instant of insertion.}
+
+\deriv
+An append block \(R\) is a set of proposed new generators inserted with zero
+initial amplitude. If the block has \(r\) new real coordinates, write
+\(\phi\in\R^r\). The phrase zero amplitude means \(\phi=0\) at insertion, so
+the state is unchanged before the tangent space is re-evaluated. Let
+\[
+U_R(\phi):\Hh\to\Hh,\qquad U_R(0)=\Id.
+\]
+The augmented state is
+\[
+\ket{\psi_R(\theta,\phi)}=U_R(\phi)\ket{\psi(\theta)}.
+\]
+At zero amplitude,
+\[
+\ket{\psi_R(\theta,0)}=\ket{\psi(\theta)}.
+\]
+The candidate tangent columns are
+\[
+\ket{u_a}=\Pi_\psi\,\partial_{\phi_a}\ket{\psi_R(\theta,\phi)}\big|_{\phi=0},
+\qquad
+1\le a\le r.
+\]
+Collect them in
+\[
+U=
+\begin{bmatrix}
+| & & |\\
+\ket{u_1}&\cdots&\ket{u_r}\\
+| & & |
+\end{bmatrix}
+\in\C^{d\times r}.
+\]
+
+\phys{Append does not jump the state. It changes which instantaneous velocities
+the McLachlan solve can represent after the checkpoint.}
+
+\micro{For a Hermitian appended generator \(A\), the zero-angle tangent has the
+same physical form as a McLachlan direction.}
+
+\deriv
+Let
+\[
+U_R(\phi)=\exp(-\ii\phi A),
+\qquad A=A^\dagger.
+\]
+Then
+\[
+\begin{aligned}
+\partial_\phi U_R(\phi)
+&=-\ii A\exp(-\ii\phi A),\\
+\partial_\phi\ket{\psi_R(\theta,\phi)}\big|_{\phi=0}
+&=-\ii A\ket{\psi},\\
+\ket u&=\Pi_\psi(-\ii A\ket{\psi}).
+\end{aligned}
+\]
+
+\phys{A drive-aligned density augmentation uses this exact logic: it adds the
+tangent \(-\ii D\ket\psi\) for the drive operator \(D\), while leaving \(H(t)\) and
+the state unchanged at zero angle.}
+
+\section*{16. Augmented least squares}
+
+\micro{Append gain is a before--after least-squares comparison on the augmented
+tangent matrix.}
+
+\deriv
+Let
+\[
+T_R=[T~U]\in\C^{d\times(n+r)}.
+\]
+The augmented coordinate vector \(w\) stacks old McLachlan velocity coordinates
+and candidate-block velocity coordinates. Let
+\[
+w=
+\begin{bmatrix}
+\dot\theta\\
+\alpha
+\end{bmatrix}
+\in\R^{n+r},
+\qquad
+\dot\theta\in\R^n,\quad \alpha\in\R^r.
+\]
+The augmented represented velocity is
+\[
+T_Rw=T\dot\theta+U\alpha.
+\]
+The augmented objective is
+\[
+m_R(w)=\norm{T_Rw-\ket b}^2.
+\]
+Define
+\[
+G_R=\Real(T_R^\dagger T_R),
+\qquad
+f_R=\Real(T_R^\dagger\ket b).
+\]
+Then
+\[
+m_R(w)=w^\top G_Rw-2w^\top f_R+\norm{\ket b}^2.
+\]
+
+\phys{The old coordinates and new candidate coordinates are fitted together.
+The append score is not the raw overlap of \(U\) with \(\ket b\); it is the improvement
+after the whole augmented tangent space refits.}
+
+\micro{The augmented matrices have a block structure that exposes old--new
+coupling.}
+
+\deriv
+\[
+G_R
+=
+\begin{bmatrix}
+G & B\\
+B^\top & C
+\end{bmatrix},
+\qquad
+f_R=
+\begin{bmatrix}
+f\\
+q
+\end{bmatrix},
+\]
+where
+\[
+\begin{aligned}
+G&=\Real(T^\dagger T)\in\R^{n\times n},\\
+B&=\Real(T^\dagger U)\in\R^{n\times r},\\
+C&=\Real(U^\dagger U)\in\R^{r\times r},\\
+f&=\Real(T^\dagger\ket b)\in\R^n,\\
+q&=\Real(U^\dagger\ket b)\in\R^r.
+\end{aligned}
+\]
+In components,
+\[
+\begin{aligned}
+B_{ia}
+&=\Real\sum_{\mu=1}^{d}T_{\mu i}^*U_{\mu a},\\
+C_{ab}
+&=\Real\sum_{\mu=1}^{d}U_{\mu a}^*U_{\mu b},\\
+q_a
+&=\Real\sum_{\mu=1}^{d}U_{\mu a}^*b_\mu.
+\end{aligned}
+\]
+
+\phys{\(B\) measures how much the candidate tangent block overlaps the old
+tangent directions. \(C\) is the candidate internal Gram matrix. \(q\) is the
+candidate's direct force vector.}
+
+\section*{17. Append gain}
+
+\micro{The append gain is the increase in explained drift after solving the
+augmented normal equation.}
+
+\deriv
+The notation \(G_{\rm stab}^{-1}\) means the active stabilized inverse: a
+supported inverse with the current retained-mode threshold, ridge, and damping.
+For this block it is shorthand, not an ordinary matrix inverse.
+Old explained drift:
+\[
+E_{\rm old}=f^\top G_{\rm stab}^{-1}f.
+\]
+Augmented explained drift:
+\[
+E_R=f_R^\top G_{R,{\rm stab}}^{-1}f_R.
+\]
+Append gain:
+\[
+\rho_{\rm gain}(R)
+=
+\frac{[E_R-E_{\rm old}]_+}{\norm{\ket b}^2}.
+\]
+Expanded:
+\[
+\rho_{\rm gain}(R)
+=
+\frac{
+\left[
+\begin{bmatrix}f\\q\end{bmatrix}^{\!\top}
+\begin{bmatrix}G&B\\B^\top&C\end{bmatrix}_{\rm stab}^{-1}
+\begin{bmatrix}f\\q\end{bmatrix}
+-f^\top G_{\rm stab}^{-1}f
+\right]_+
+}{\norm{\ket b}^2}.
+\]
+
+\phys{This is Paper II's append score in simplified notation. A singleton is the
+case \(r=1\). A batch is the case \(r>1\).}
+
+\micro{The post-append structural miss is the same projection residual on the
+augmented tangent span.}
+
+\deriv
+\[
+\rho(T_R,\ket b)
+=
+\frac{
+\left[
+\norm{\ket b}^2
+-f_R^\top G_R^+f_R
+\right]_+
+}{\norm{\ket b}^2}.
+\]
+When \(R=\varnothing\),
+\[
+T_R=T,\qquad
+G_R=G,\qquad
+f_R=f.
+\]
+Thus
+\[
+\rho(T,\ket b)
+=
+\frac{
+\left[
+\norm{\ket b}^2-f^\top G^+f
+\right]_+
+}{\norm{\ket b}^2}.
+\]
+
+\phys{The empty-set value is the current structural miss. Candidate append
+blocks are tested by how much they reduce that miss and how much stabilized
+gain they provide.}
+
+\section*{18. Schur novelty and eliminated old coordinates}
+
+\micro{The Schur expression appears when the old coordinates are optimized out
+and only the candidate's leftover direction remains.}
+
+\deriv
+The theorem used here is the Schur-complement block-elimination identity. In
+this context, eliminating a coordinate means solving for that coordinate's
+least-squares optimum and substituting it back into the remaining equations. If a
+block matrix has an invertible old-support block \(G\), then eliminating the old
+variables replaces the candidate block \(C\) by
+\[
+S=C-B^\top G^{-1}B.
+\]
+Assume \(G\) is invertible for the derivation. The augmented normal equations
+are
+\[
+\begin{bmatrix}
+G&B\\
+B^\top&C
+\end{bmatrix}
+\begin{bmatrix}
+\dot\theta\\
+\alpha
+\end{bmatrix}
+=
+\begin{bmatrix}
+f\\
+q
+\end{bmatrix}.
+\]
+Equivalently,
+\[
+\begin{aligned}
+G\dot\theta+B\alpha&=f,\\
+B^\top\dot\theta+C\alpha&=q.
+\end{aligned}
+\]
+Solve the first line for \(\dot\theta\):
+\[
+\dot\theta=G^{-1}f-G^{-1}B\alpha.
+\]
+Substitute into the second line:
+\[
+\begin{aligned}
+B^\top(G^{-1}f-G^{-1}B\alpha)+C\alpha&=q,\\
+(C-B^\top G^{-1}B)\alpha&=q-B^\top G^{-1}f.
+\end{aligned}
+\]
+Define
+\[
+S=C-B^\top G^{-1}B,
+\qquad
+w=q-B^\top G^{-1}f.
+\]
+Then
+\[
+S\alpha=w.
+\]
+
+\phys{The old tangent span is allowed to explain both the drift and the
+candidate. After eliminating the old coefficients, \(S\) is the candidate's
+leftover Gram geometry and \(w\) is its leftover force.}
+
+\geom{Picture the old tangent columns as a plane and the candidate block as new
+arrows arriving near that plane. Schur first lets the old plane absorb every
+shadow it can. The remaining arrows are the candidate's leftover directions:
+\(S\) measures their geometry, and \(w\) measures the drift shadow landing on
+them.}
+
+\micro{The Schur gain is the explained drift inside that leftover candidate
+space.}
+
+\deriv
+With \(\alpha=S^{-1}w\),
+\[
+\begin{aligned}
+\Delta_{\rm Schur}
+&=w^\top S^{-1}w\\
+&=\alpha^\top S\alpha.
+\end{aligned}
+\]
+Using the block elimination above,
+\[
+E_R-E_{\rm old}
+=w^\top S^{-1}w.
+\]
+Thus
+\[
+\rho_{\rm gain}(R)
+=
+\frac{[w^\top S^{-1}w]_+}{\norm{\ket b}^2}
+\]
+when the Schur shortcut uses the same retained-support and regularization
+convention as the direct grouped solve.
+
+\phys{Schur is not a separate physics objective. It is a compact way to compute
+the same grouped before--after least-squares gain after old coordinates have
+been optimized out.}
+
+\caution{If whitening, compression, retained-mode truncation, or ridge differs
+between the direct grouped solve and Schur shortcut, the direct grouped gain is
+the authority. The Schur value can still screen or confirm candidates.}
+
+\section*{19. Cost-weighted append and the ladder}
+
+\micro{Cost weighting divides gain by a hardware-cost factor; it does not turn
+a weak tangent candidate into an admissible one.}
+
+\deriv
+Let \(K_{\rm hw}(R)\ge1\) be the hardware-cost factor of append block \(R\),
+such as a compiled two-qubit-count or estimator-work proxy. Let
+\(\alpha_{\rm app}\ge0\) be the exponent controlling how strongly cost reduces
+the append score. The cost-weighted append score is
+\[
+\Xi_{\rm app}(R)
+=
+\frac{\rho_{\rm gain}(R)}
+{K_{\rm hw}(R)^{\alpha_{\rm app}}}.
+\]
+The direct-admission test has the form
+\[
+\begin{aligned}
+\rho(T,\ket b)&>\tau_{\rm miss},\\
+\rho_{\rm gain}(R)&\ge\tau_{\rm gain},\\
+\Xi_{\rm app}(R)&\ge\tau_{\rm app},\\
+S_R&\succeq_{\rm retained}\tau_{\rm Schur},\\
+G_R^{-1}f_R&\text{ finite under the active solve convention.}
+\end{aligned}
+\]
+The notation \(S_R\succeq_{\rm retained}\tau_{\rm Schur}\) means that the
+candidate's Schur-reduced Gram matrix has enough retained metric support: after
+the same retained-mode convention is applied, the accepted candidate directions
+are not numerically null below the Schur threshold.
+
+\phys{The candidate must be useful, affordable, geometrically retained, and
+numerically sane before commit. Exact reference trajectories are not part of
+this decision.}
+
+\micro{The combinatorial batch ladder scores joint sets at each cardinality.}
+
+\deriv
+Let \(P\) be the available candidate pool: the finite set of append blocks that
+can be tested at the checkpoint. A ladder rung \(q\) is a candidate batch size.
+At rung \(q\),
+\[
+\mathcal R_q=\{R\subseteq P:\ |R|=q\}.
+\]
+The selected set at rung \(q\) is
+\[
+R_q^\star\in\argmax_{R\in\mathcal R_q}\Xi_{\rm app}(R)
+\]
+subject to the confirmation checks. The ladder escalates only while the miss
+remains active and smaller accepted sets did not satisfy the declared
+admission rule.
+
+\phys{A size-five batch means ``at most five, tested through the ladder''
+when the implementation follows the Paper-II ladder. It should not mean forcing
+exactly five candidates regardless of miss and confirmation.}
+
+\section*{20. Failed append search reuse}
+
+\micro{A failed append search should not force repeated full rescoring until
+the local model has changed enough.}
+
+\deriv
+At a failed search checkpoint \(k_0\), store a certificate. A certificate is the
+data needed to decide whether the old failed-search conclusion is still
+applicable:
+\[
+\mathcal C_{k_0}
+=
+(J_{k_0},P_{k_0},\pi_{k_0},r_{k_0},G_{k_0},f_{k_0},U^\star_{k_0}).
+\]
+Here \(J_{k_0}\) is the active coordinate support, \(P_{k_0}\) is the candidate
+pool, \(\pi_{k_0}\) is the parameterization policy, \(r_{k_0}\) is the maximum
+batch rung tested, and \(U^\star_{k_0}\) is the best candidate block found
+before failure. The support symbol \(J_{k_0}\) is unrelated to the repair score
+\(J(\ell)\) in Section 13.
+At a later checkpoint \(k\), immediate invalidation occurs if
+\[
+J_k\ne J_{k_0}
+\quad\text{or}\quad
+P_k\ne P_{k_0}
+\quad\text{or}\quad
+\pi_k\ne\pi_{k_0}
+\quad\text{or}\quad
+r_k\ne r_{k_0}.
+\]
+If not invalidated, use local drift metrics such as
+\[
+\begin{aligned}
+d_G(k,k_0)
+&=\norm{\widetilde G_{k_0}^{-1/2}
+(G_k-G_{k_0})
+\widetilde G_{k_0}^{-1/2}},\\
+d_f(k,k_0)
+&=
+\frac{\norm{\widetilde G_{k_0}^{-1/2}(f_k-f_{k_0})}}
+{1+\norm{\widetilde G_{k_0}^{-1/2}f_{k_0}}}.
+\end{aligned}
+\]
+The matrix \(\widetilde G_{k_0}\) is a stabilized reference metric used to make
+changes in \(G\) and \(f\) dimensionless before comparing checkpoints.
+The search reopens when the combined drift exceeds the declared retry rule.
+
+\phys{This is not a total append cap. It is a local model-staleness rule:
+skip full candidate rescoring only while the old failed-search conclusion is
+still geometrically credible.}
+
+\section*{21. Prune as the reverse least-squares comparison}
+
+\micro{Prune asks how much explained drift is lost after deleting directions
+and refitting the survivors.}
+
+\deriv
+A deletion batch \(D\) is a proposed set of active coordinates to remove
+together. Refit means the retained coordinates are re-solved after deletion;
+the deleted block is not simply zeroed while old velocities are held fixed.
+Partition the active tangent matrix as
+\[
+T=[T_D~T_R],
+\]
+where \(T_D\in\C^{d\times r}\) are directions proposed for deletion and
+\(T_R\in\C^{d\times(n-r)}\) are the retained directions. The full primitives
+are
+\[
+G=\Real(T^\dagger T),
+\qquad
+f=\Real(T^\dagger\ket b).
+\]
+The retained-only primitives are
+\[
+G_R=\Real(T_R^\dagger T_R),
+\qquad
+f_R=\Real(T_R^\dagger\ket b).
+\]
+Full explained drift:
+\[
+E_{\rm full}=f^\top G_{\rm stab}^{-1}f.
+\]
+Retained explained drift:
+\[
+E_R=f_R^\top G_{R,{\rm stab}}^{-1}f_R.
+\]
+Deletion loss:
+\[
+\boxed{
+L(D)
+=
+\frac{[E_{\rm full}-E_R]_+}{\norm{\ket b}^2}.
+}
+\]
+
+\phys{Small deletion loss means the remaining tangent directions can still
+explain nearly the same instantaneous drift after the deleted block is removed
+and the survivors refit.}
+
+\micro{The singleton prune case is the one-block version of the same grouped
+loss.}
+
+\deriv
+If \(D=\{d\}\), then
+\[
+T=[t_d~T_R],
+\]
+and
+\[
+L(d)
+=
+\frac{
+\left[
+f^\top G_{\rm stab}^{-1}f
+-f_R^\top G_{R,{\rm stab}}^{-1}f_R
+\right]_+
+}{\norm{\ket b}^2}.
+\]
+If \(D=\{d_1,\ldots,d_q\}\), the same formula holds with all deleted columns
+removed at once.
+
+\phys{Batched prune is not the sum of singleton prune losses. It is the grouped
+loss after removing the whole proposed set and refitting the retained support.}
+
+\section*{22. Prune Schur form}
+
+\micro{The prune Schur expression is the same elimination geometry with the sign
+reversed.}
+
+\deriv
+This again uses the Schur-complement block-elimination identity, now after
+splitting the support into deleted coordinates \(D\) and retained coordinates
+\(R\).
+Partition the full Gram matrix and force as
+\[
+G=
+\begin{bmatrix}
+G_{DD}&G_{DR}\\
+G_{RD}&G_{RR}
+\end{bmatrix},
+\qquad
+f=
+\begin{bmatrix}
+f_D\\
+f_R
+\end{bmatrix}.
+\]
+Eliminate retained coordinates first. The deletion-side Schur objects are the
+leftover Gram matrix and leftover force for the deleted block after the retained
+block has made its best local fit:
+\[
+\begin{aligned}
+S_D^-&=G_{DD}-G_{DR}G_{RR}^{-1}G_{RD},\\
+w_D^-&=f_D-G_{DR}G_{RR}^{-1}f_R.
+\end{aligned}
+\]
+Under matched inverse conventions,
+\[
+L(D)
+=
+\frac{[(w_D^-)^\top(S_D^-)^{-1}w_D^-]_+}{\norm{\ket b}^2}.
+\]
+
+\geom{For prune, reverse the picture. The retained arrows form the plane that
+stays. The proposed deleted block is safe only when its leftover direction,
+after the retained plane explains what it can, is small and carries little
+force shadow.}
+
+\phys{If the deleted block is already explained by the retained block, its
+Schur leftover is small and its loss is small. This is a local tangent-plane
+statement, not a full future-trajectory certificate.}
+
+\section*{23. Why prune needs history}
+
+\micro{A direction can be redundant at one checkpoint and useful later, so prune
+needs persistence.}
+
+\deriv
+The history set \(H_D\) is the finite collection of recent checkpoints used to
+test whether deletion batch \(D\) has been persistently low-loss, not only
+accidentally low-loss at the present checkpoint. For a deletion batch \(D\),
+define checkpoint losses
+\[
+L_\ell(D)
+=
+\frac{[E_{\rm full,\ell}-E_{R,\ell}]_+}{\norm{\ket{b_\ell}}^2}.
+\]
+For weights \(w_\ell\ge0\),
+\[
+\sum_{\ell\in H_D}w_\ell=1,
+\]
+the history loss is
+\[
+\overline L_{\rm hist}(D)
+=
+\sum_{\ell\in H_D}w_\ell L_\ell(D).
+\]
+The parameter \(\lambda_{\rm hist}\ge0\) controls how strongly historical loss
+enters the score, and \(\epsilon_L>0\) prevents division by zero when both
+current and historical losses are tiny. The cost-weighted prune score can be
+written
+\[
+\Xi_{\rm prune}(D)
+=
+\frac{K_{\rm hw}(D)^{\alpha_{\rm prune}}}
+{L(D)+\lambda_{\rm hist}\overline L_{\rm hist}(D)+\epsilon_L}.
+\]
+
+\phys{Current low loss nominates a deletion. Historical low loss makes the
+nomination more credible. Projection protects the current state, a short-horizon
+no-harm check tests a few immediate future steps, cooldown prevents repeated
+rapid edits of the same support, and rollback means restoring the previous
+support if the reduced run fails its safety checks.}
+
+\section*{24. Reduced-state projection after deletion}
+
+\micro{Accepted prune cannot be unverified deletion; the reduced ansatz must be
+projected back near the incumbent state.}
+
+\deriv
+Let \(\theta\in\R^n\) be the incumbent coordinate vector. Let \(D\) be deleted,
+and let the reduced coordinate vector be \(\xi\in\R^{n-r}\). The reduced state is
+\[
+\ket{\psi_{-D}(\xi)}=U_{-D}(\xi)\ket{\psi_{\rm ref}}.
+\]
+The projection objective has the form
+\[
+\xi^\star\in\argmin_{\xi\in\R^{n-r}}
+\Phi_D(\xi),
+\]
+with
+\[
+\begin{aligned}
+\Phi_D(\xi)
+={}&
+d_{\rm FS}^2(\psi_{-D}(\xi),\psi(\theta))\\
+&+\lambda_Y\norm{Y(\xi)-Y(\theta)}_{\Sigma_Y^{-1}}^2\\
+&+\lambda_u\norm{\ket{u(\xi)}-\ket{u(\theta)}}^2.
+\end{aligned}
+\]
+Here \(d_{\rm FS}\) is Fubini--Study distance, the projective Hilbert-space
+distance between normalized states after global phase is removed. The vector
+\(Y(\xi)\) collects tracked observables, \(\Sigma_Y\) is their positive
+weighting/covariance matrix, and
+\(\norm{x}_{\Sigma_Y^{-1}}^2=x^\top\Sigma_Y^{-1}x\). The constants
+\(\lambda_Y,\lambda_u\ge0\) weight observable preservation and represented
+velocity preservation.
+The committed reduced state is
+\[
+\ket{\psi_{-D}(\xi^\star)}.
+\]
+
+\phys{Deletion changes the ansatz support. The projection step chooses reduced
+coordinates that preserve the state, tracked observables, and represented
+velocity as well as the reduced support allows.}
+
+\section*{25. Patch after pure append and pure prune}
+
+\micro{The support patch is simple after pure append and pure prune are already
+understood.}
+
+\deriv
+A support patch is one checkpoint edit to the active coordinate support. It has
+a deletion side \(D\) and an append side \(R\), written
+\(\nu=(D,R)\). The patched tangent matrix is
+\[
+T_\nu=[T_{-D}~U_R],
+\qquad
+\nu=(D,R).
+\]
+Here \(T_{-D}\) means the old tangent matrix after removing the columns indexed
+by \(D\), and \(U_R\) is the zero-amplitude tangent block for the appended set
+\(R\).
+Define
+\[
+G_\nu=\Real(T_\nu^\dagger T_\nu),
+\qquad
+f_\nu=\Real(T_\nu^\dagger\ket b).
+\]
+The patch explained-drift change is
+\[
+\Delta_{\rm patch}(\nu)
+=
+\frac{
+f_\nu^\top G_{\nu,{\rm stab}}^{-1}f_\nu
+-f^\top G_{\rm stab}^{-1}f
+}{\norm{\ket b}^2}.
+\]
+The limiting cases are
+\[
+\begin{array}{ccl}
+D=\varnothing,\ R=\varnothing &:& \text{stay},\\
+D=\varnothing,\ R\ne\varnothing &:& \text{append},\\
+D\ne\varnothing,\ R=\varnothing &:& \text{prune},\\
+D\ne\varnothing,\ R\ne\varnothing &:& \text{exchange}.
+\end{array}
+\]
+If \(\mathcal A\) is the current active support and \(\mathcal P\) is the append
+candidate pool, the exact global swap problem is
+\[
+(D^\star,R^\star)
+\in
+\argmax_{\substack{D\subseteq\mathcal A\\ R\subseteq\mathcal P}}
+\Delta_{\rm patch}(D,R),
+\]
+with the declared cost and safety constraints enforced.
+This subset-search problem is NP-hard in general: it contains best-subset
+selection as a limiting case, and the number of possible support patches grows
+combinatorially with the active and candidate pools.
+
+\phys{Exchange replaces stale directions with new directions in one checkpoint
+edit. The append side still needs append confirmation. The prune side still
+needs deletion safety. Exact global swap is therefore a reference optimization
+problem, while AP--McLachlan uses scored local batches and guarded commits.}
+
+\section*{26. Ordering of the full algorithmic logic}
+
+\micro{The conceptual order is fixed-support dynamics first, numerical repair
+second, structural edits third.}
+
+\deriv
+Fixed support means the active generator/coordinate set is held fixed while the
+McLachlan velocity is solved. Structural edits are append, prune, and exchange
+changes to that active support.
+At checkpoint \(k\):
+\[
+\begin{aligned}
+&\ket{\psi_k}=U(\theta_k)\ket{\psi_{\rm ref}},\\
+&T_k,\ \ket{b_k},\ G_k,\ f_k,\\
+&\dot\theta_k^{(0)}=(G_k+\Lambda_0)_{\rm stab}^{-1}f_k.
+\end{aligned}
+\]
+Then:
+\[
+\begin{aligned}
+&\text{solve repair if }
+\rho_{\rm num},\ \Delta t\norm{T\dot\theta},\ \eta_k
+\text{ require it},\\
+&\text{append if }\rho(T_k,\ket{b_k})\text{ remains structurally large},\\
+&\text{prune if grouped loss and history/no-harm checks are safe},\\
+&\text{exchange if both sides pass their side constraints}.
+\end{aligned}
+\]
+
+\phys{This ordering prevents confusing numerical inverse failure with
+tangent-span insufficiency. It also prevents prune/exchange notation from obscuring
+the simpler append-only and prune-only cases.}
+
+\section*{27. Runtime parameters versus derived objects}
+
+\micro{A threshold is a run setting; a residual, Gram matrix, or velocity is a
+checkpoint-derived object.}
+
+\deriv
+At a checkpoint,
+\[
+\ket\psi,\theta,T,\ket b,G,f,\dot\theta
+\]
+are derived objects. The diagnostic quantities are
+\[
+\rho(T,\ket b),\qquad \rho_{\rm num}(\ell),\qquad \eta_k.
+\]
+The runtime inverse settings include
+\[
+\tau,\qquad \Lambda,\qquad \epsilon.
+\]
+The runtime decision thresholds include
+\[
+\tau_{\rm miss},\qquad
+\tau_{\rm num},\qquad
+\tau_\Delta,\qquad
+\tau_{\rm kink}.
+\]
+The structural choices are
+\[
+R,\qquad D,\qquad \nu=(D,R).
+\]
+
+\phys{The code should record both settings and derived telemetry. Settings say
+which rule was declared; derived objects say what happened at the checkpoint.}
+
+\section*{28. Primitive expansion of \(G\dot\theta=f\)}
+
+\micro{The implementation ultimately solves a real matrix equation whose
+entries are real parts of complex Hilbert-space overlaps.}
+
+\deriv
+Let
+\[
+T=(T_{aj})_{1\le a\le d,\;1\le j\le n}\in\C^{d\times n},
+\qquad
+\ket b\leftrightarrow b=(b_a)_{a=1}^{d}\in\C^d.
+\]
+Then
+\[
+G=(G_{ij})_{1\le i,j\le n}\in\R^{n\times n},
+\qquad
+f=(f_i)_{i=1}^{n}\in\R^n,
+\]
+with
+\[
+\begin{aligned}
+G_{ij}
+&=\Real\sum_{a=1}^{d}T_{ai}^*T_{aj},\\
+f_i
+&=\Real\sum_{a=1}^{d}T_{ai}^*b_a.
+\end{aligned}
+\]
+The velocity equation is
+\[
+\sum_{j=1}^{n}G_{ij}\dot\theta_j=f_i,
+\qquad
+1\le i\le n.
+\]
+Substituting the primitive definitions gives
+\[
+\sum_{j=1}^{n}
+\left(
+\Real\sum_{a=1}^{d}T_{ai}^*T_{aj}
+\right)
+\dot\theta_j
+=
+\Real\sum_{a=1}^{d}T_{ai}^*b_a.
+\]
+
+\phys{This is the base measurement-to-solve path: tangent overlaps fill \(G\),
+tangent--drift overlaps fill \(f\), and a real linear solve gives parameter
+velocity.}
+
+\section*{29. Primitive expansion of represented velocity}
+
+\micro{The state-space velocity \(T\dot\theta\) is the quantity used by repair
+guards, not the coordinate vector alone.}
+
+\deriv
+Let
+\[
+\dot\theta=(\dot\theta_j)_{j=1}^{n}\in\R^n.
+\]
+The represented velocity is
+\[
+\ket u=T\dot\theta\in\Hh,
+\]
+with component form
+\[
+u_a=\sum_{j=1}^{n}T_{aj}\dot\theta_j,
+\qquad
+1\le a\le d.
+\]
+Its squared norm is
+\[
+\begin{aligned}
+\norm{\ket u}^2
+&=\sum_{a=1}^{d}u_a^*u_a\\
+&=
+\sum_{a=1}^{d}
+\left(\sum_{i=1}^{n}T_{ai}\dot\theta_i\right)^*
+\left(\sum_{j=1}^{n}T_{aj}\dot\theta_j\right)\\
+&=
+\sum_{i=1}^{n}\sum_{j=1}^{n}
+\dot\theta_i
+\left(\sum_{a=1}^{d}T_{ai}^*T_{aj}\right)
+\dot\theta_j.
+\end{aligned}
+\]
+Since the scalar is real,
+\[
+\norm{\ket u}^2=\dot\theta^\top G\dot\theta.
+\]
+
+\phys{The same \(G\) that appears in the solve also computes the physical size
+of the represented velocity. This is why state-motion repair uses
+\(\Delta t\norm{T\dot\theta}\).}
+
+\section*{30. Primitive expansion of \(E_\ell\)}
+
+\micro{The realized explained drift is the total drift minus the residual
+produced by the specific stabilized velocity.}
+
+\deriv
+Let
+\[
+\dot\theta_\ell=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f.
+\]
+The realized residual is
+\[
+\ket{r_\ell}=T\dot\theta_\ell-\ket b\in\Hh.
+\]
+In components,
+\[
+(r_\ell)_a
+=
+\sum_{j=1}^{n}T_{aj}(\dot\theta_\ell)_j-b_a.
+\]
+The residual norm is
+\[
+\begin{aligned}
+\norm{r_\ell}^2
+&=
+\norm{T\dot\theta_\ell-\ket b}^2\\
+&=
+\dot\theta_\ell^\top G\dot\theta_\ell
+-2f^\top\dot\theta_\ell
++\norm{\ket b}^2.
+\end{aligned}
+\]
+Therefore
+\[
+\begin{aligned}
+E_\ell
+&=\norm{\ket b}^2-\norm{r_\ell}^2\\
+&=
+2f^\top\dot\theta_\ell
+-\dot\theta_\ell^\top G\dot\theta_\ell.
+\end{aligned}
+\]
+
+\phys{This is the exact expression Paper II uses to detect whether the
+implemented inverse has lost useful tangent motion relative to the supported
+least-squares reference.}
+
+\section*{31. Primitive expansion of append block matrices}
+
+\micro{Append introduces a second tangent matrix \(U\), and all augmented
+objects are built by ordinary block matrix multiplication.}
+
+\deriv
+Let
+\[
+U=(U_{a\mu})_{1\le a\le d,\;1\le \mu\le r}\in\C^{d\times r}.
+\]
+Then
+\[
+T_R=[T~U]\in\C^{d\times(n+r)}.
+\]
+The augmented Gram matrix is
+\[
+G_R=\Real(T_R^\dagger T_R)
+=
+\begin{bmatrix}
+G&B\\
+B^\top&C
+\end{bmatrix},
+\]
+with
+\[
+\begin{aligned}
+B_{i\mu}
+&=\Real\sum_{a=1}^{d}T_{ai}^*U_{a\mu},\\
+C_{\mu\nu}
+&=\Real\sum_{a=1}^{d}U_{a\mu}^*U_{a\nu}.
+\end{aligned}
+\]
+The augmented force is
+\[
+f_R=\Real(T_R^\dagger\ket b)
+=
+\begin{bmatrix}
+f\\
+q
+\end{bmatrix},
+\qquad
+q_\mu=\Real\sum_{a=1}^{d}U_{a\mu}^*b_a.
+\]
+
+\phys{The code path that evaluates a candidate append batch has to compute the
+old block \(G,f\), the cross block \(B\), the candidate block \(C\), and the
+candidate force \(q\).}
+
+\section*{32. Shape check for append gain}
+
+\micro{The append gain expression is well-defined because every matrix and
+vector lives in the augmented coordinate space.}
+
+\deriv
+The shapes are
+\[
+\begin{aligned}
+G_R&\in\R^{(n+r)\times(n+r)},\\
+f_R&\in\R^{n+r},\\
+G_{R,{\rm stab}}^{-1}&\in\R^{(n+r)\times(n+r)}.
+\end{aligned}
+\]
+Thus
+\[
+G_{R,{\rm stab}}^{-1}f_R\in\R^{n+r},
+\]
+and
+\[
+f_R^\top G_{R,{\rm stab}}^{-1}f_R\in\R.
+\]
+The old score has
+\[
+G_{\rm stab}^{-1}\in\R^{n\times n},
+\qquad
+f^\top G_{\rm stab}^{-1}f\in\R.
+\]
+Therefore
+\[
+\rho_{\rm gain}(R)
+=
+\frac{[f_R^\top G_{R,{\rm stab}}^{-1}f_R-f^\top G_{\rm stab}^{-1}f]_+}
+{\norm{\ket b}^2}
+\]
+is a scalar.
+
+\phys{A failed augmented solve should block append admission. The candidate
+support is not committed unless the augmented geometry can produce a finite
+stabilized velocity.}
+
+\section*{33. Drive profile versus drive-aligned tangent}
+
+\micro{The drive coefficient changes the Hamiltonian; the drive-aligned ansatz
+factor changes only the available tangent directions.}
+
+\deriv
+Let \(H_0\) be the time-independent Hamiltonian part, \(D=D^\dagger\) the
+Hermitian drive operator, and \(c(t)\in\R\) the scalar drive profile. Let the
+driven Hamiltonian be
+\[
+H(t)=H_0+c(t)D,
+\qquad
+D=D^\dagger.
+\]
+The physical drift contains
+\[
+b(t)
+=-\ii\bigl(H_0+c(t)D-\langle H(t)\rangle_\psi\Id\bigr)\psi.
+\]
+A zero-angle ansatz factor is
+\[
+U_D(\phi)=\exp(-\ii\phi D).
+\]
+At \(\phi=0\),
+\[
+U_D(0)=\Id,
+\qquad
+U_D(0)\psi=\psi.
+\]
+The added tangent is
+\[
+\partial_\phi U_D(\phi)\psi\big|_{\phi=0}
+=-\ii D\psi,
+\qquad
+u_D=\Pi_\psi(-\ii D\psi).
+\]
+
+\phys{The Hamiltonian drive supplies the physical drift. The zero-angle
+drive-aligned ansatz factor supplies a tangent direction that can represent that
+drift. It is not counted as the append mechanism being tested in append
+diagnostics.}
+
+\section*{34. Per-child versus macro coordinates}
+
+\micro{The same logical generator can define different tangent spaces depending
+on how its Pauli-polynomial children are parameterized.}
+
+\deriv
+A Pauli-polynomial child is one Pauli term in a decomposed Hermitian generator.
+Let
+\[
+A=\sum_{\mu=1}^{r}c_\mu P_\mu,
+\qquad
+P_\mu=P_\mu^\dagger.
+\]
+Per-child coordinates use
+\[
+U_{\rm child}(\phi)
+=
+\prod_{\mu=r}^{1}\exp(-\ii\phi_\mu c_\mu P_\mu),
+\qquad
+\phi\in\R^r.
+\]
+The zero-angle tangent columns are
+\[
+u_\mu=\Pi_\psi(-\ii c_\mu P_\mu\psi),
+\qquad
+1\le\mu\le r.
+\]
+Macro/shared coordinates use
+\[
+U_{\rm macro}(\alpha)
+=
+\prod_{\mu=r}^{1}\exp(-\ii\alpha c_\mu P_\mu),
+\qquad
+\alpha\in\R.
+\]
+The zero-angle macro tangent is
+\[
+u_{\rm macro}
+=
+\sum_{\mu=1}^{r}u_\mu.
+\]
+
+\phys{Per-child mode can append or prune individual Pauli-polynomial children.
+Macro mode ties the children together into one shared coordinate. These are
+different variational tangent geometries.}
+
+\section*{35. Exact reference boundary}
+
+\micro{Exact trajectories can evaluate the result after the run, but they cannot
+enter the AP decision equations.}
+
+\deriv
+An exact reference is a separately computed classical trajectory used only for
+post-run scoring. The online decision variables are functions of
+\[
+\psi,\quad H(t),\quad T,\quad b,\quad G,\quad f,\quad U,\quad D.
+\]
+The exact diagnostic trajectory has the form
+\[
+\psi_{\rm exact}(t)
+=
+\mathcal T\exp\left(-\ii\int_0^tH(s)\,\dd s\right)\psi(0).
+\]
+Reporting errors can use
+\[
+\Delta O(t)
+=
+\bra{\psi(t)}O\ket{\psi(t)}
+-
+\bra{\psi_{\rm exact}(t)}O\ket{\psi_{\rm exact}(t)}.
+\]
+Let \(C_k\) be the candidate tangent data at the checkpoint and let \(s_k\) be
+the runtime setting vector. Controller decisions must have the form
+\[
+\nu_k
+=
+\pi\bigl(T_k,b_k,G_k,f_k,C_k,s_k\bigr),
+\]
+with no \(\psi_{\rm exact}\) argument.
+
+\phys{Energy, doublon, site occupation, and exact overlays are reporting tools.
+They do not tune append, prune, repair, or solve choices in a strict AP row.}
+
+\section*{36. Unsupported checkpoint}
+
+\micro{Unsupported means the diagnostic health checks did not all certify the
+accepted rung; it is distinct from a runtime crash.}
+
+\deriv
+Let \(A\subseteq C\) be the acceptable candidate repair set:
+\[
+A=\{\ell\in C:\mathcal A(\ell)=1\}.
+\]
+The predicate \(\mathcal A(\ell)\) equals \(1\) exactly when candidate \(\ell\)
+passes the acceptability conditions from Section 12.
+If
+\[
+A\ne\varnothing,
+\]
+then
+\[
+\ell^\star\in\argmin_{\ell\in A}J(\ell),
+\qquad
+\operatorname{unsupported}=0.
+\]
+If
+\[
+A=\varnothing
+\]
+and at least one finite candidate exists, then
+\[
+\ell^\star\in\argmin_{\ell\in C_{\rm finite}}J(\ell),
+\qquad
+\operatorname{unsupported}=1.
+\]
+
+\phys{The trajectory can continue for scientific diagnostics even when a
+checkpoint is unsupported. Strict invalid states, NaN/Inf, impossible
+dimensions, and missing required data remain true execution failures.}
+
+\section*{37. Primitive Schur append block}
+
+\micro{The Schur object is built from the same primitive tangent overlaps as
+the McLachlan solve.}
+
+\deriv
+Let \(U=[u_1~\cdots~u_r]\in\C^{d\times r}\) be the candidate tangent block.
+The primitive overlap arrays are
+\[
+\begin{aligned}
+G&=\Real(T^\dagger T)\in\R^{n\times n},\\
+B&=\Real(T^\dagger U)\in\R^{n\times r},\\
+C&=\Real(U^\dagger U)\in\R^{r\times r},\\
+f&=\Real(T^\dagger\ket b)\in\R^n,\\
+q&=\Real(U^\dagger\ket b)\in\R^r.
+\end{aligned}
+\]
+Componentwise,
+\[
+\begin{aligned}
+G_{ij}
+&=\Real\sum_{a=1}^{d}T_{ai}^\ast T_{aj},
+&&1\le i,j\le n,\\
+B_{i\mu}
+&=\Real\sum_{a=1}^{d}T_{ai}^\ast U_{a\mu},
+&&1\le i\le n,\;1\le\mu\le r,\\
+C_{\mu\nu}
+&=\Real\sum_{a=1}^{d}U_{a\mu}^\ast U_{a\nu},
+&&1\le\mu,\nu\le r,\\
+f_i
+&=\Real\sum_{a=1}^{d}T_{ai}^\ast b_a,
+&&1\le i\le n,\\
+q_\mu
+&=\Real\sum_{a=1}^{d}U_{a\mu}^\ast b_a,
+&&1\le\mu\le r.
+\end{aligned}
+\]
+
+\phys{Every term above is a tangent-overlap or tangent-force quantity. The
+append calculation does not need an exact trajectory; it needs the current
+state, the current Hamiltonian drift, old tangent columns, and candidate
+tangent columns.}
+
+\micro{The Schur subtraction removes the part of the candidate block that the
+old tangent span already explains.}
+
+\deriv
+Assume \(G^{-1}\) denotes the retained stabilized inverse used for this local
+derivation. Then
+\[
+\begin{aligned}
+S&=C-B^\top G^{-1}B\in\R^{r\times r},\\
+w&=q-B^\top G^{-1}f\in\R^r.
+\end{aligned}
+\]
+For \(1\le\mu,\nu\le r\),
+\[
+S_{\mu\nu}
+=
+C_{\mu\nu}
+-
+\sum_{i=1}^{n}\sum_{j=1}^{n}
+B_{i\mu}(G^{-1})_{ij}B_{j\nu}.
+\]
+For \(1\le\mu\le r\),
+\[
+w_\mu
+=
+q_\mu
+-
+\sum_{i=1}^{n}\sum_{j=1}^{n}
+B_{i\mu}(G^{-1})_{ij}f_j.
+\]
+The candidate-space solve is
+\[
+\alpha=S^{-1}w.
+\]
+The Schur gain is
+\[
+\Delta_{\rm Schur}
+=
+w^\top S^{-1}w
+=
+\sum_{\mu=1}^{r}\sum_{\nu=1}^{r}
+w_\mu(S^{-1})_{\mu\nu}w_\nu.
+\]
+
+\phys{The candidate block is admitted only for its leftover tangent content.
+If \(U\) is already explained by \(T\), then \(S\) becomes small or singular and
+the retained novelty check blocks the append.}
+
+\section*{38. Augmented solve confirmation before append}
+
+\micro{The selected append batch is checked by solving the full augmented
+McLachlan problem before it is committed.}
+
+\deriv
+The augmented tangent matrix is
+\[
+T_+=
+\begin{bmatrix}
+T&U
+\end{bmatrix}
+\in\C^{d\times(n+r)}.
+\]
+The augmented Gram and force are
+\[
+G_+
+=
+\Real(T_+^\dagger T_+)
+=
+\begin{bmatrix}
+G&B\\
+B^\top&C
+\end{bmatrix},
+\qquad
+f_+
+=
+\Real(T_+^\dagger\ket b)
+=
+\begin{bmatrix}
+f\\
+q
+\end{bmatrix}.
+\]
+Let \(z=(v,\alpha)\in\R^{n+r}\), where \(v\in\R^n\) are old-support velocity
+coordinates and \(\alpha\in\R^r\) are candidate-block velocity coordinates. The
+augmented least-squares problem is
+\[
+z^\star
+\in
+\argmin_{z\in\R^{n+r}}\norm{T_+z-b}^2.
+\]
+The stabilized solve used for confirmation is
+\[
+z^\star_\ell
+=
+(G_++\Lambda_{+,\ell})_{\tau_\ell,\epsilon_\ell}^{-1}f_+.
+\]
+The represented augmented velocity is
+\[
+u_+=T_+z^\star_\ell.
+\]
+
+\phys{This is the pre-commit check. The batch is not accepted merely because a
+ranking score liked it. The appended support must produce a finite, stabilized,
+state-space McLachlan solve at the current checkpoint.}
+
+\micro{The confirmation residual is the realized miss after the candidate is
+added at zero amplitude.}
+
+\deriv
+The old and augmented realized misses are
+\[
+\begin{aligned}
+R_{\rm old}
+&=\norm{T\dot\theta_\ell-b}^2,\\
+R_+
+&=\norm{T_+z^\star_\ell-b}^2.
+\end{aligned}
+\]
+The confirmed gain fraction is
+\[
+\gamma_+
+=
+\frac{[R_{\rm old}-R_+]_+}{\norm{\ket b}^2}.
+\]
+The append batch may commit only if
+\[
+\begin{aligned}
+z^\star_\ell&\in\R^{n+r},\\
+\norm{z^\star_\ell}&<\infty,\\
+\norm{u_+}&<\infty,\\
+\gamma_+&\ge\tau_{\rm gain},\\
+S&\succeq_{\rm retained}\tau_{\rm Schur}.
+\end{aligned}
+\]
+
+\phys{This closes the gap between candidate scoring and actual propagation.
+The exact reference remains outside the decision; the confirmation uses only
+the augmented tangent geometry and the current drift.}
+
+\section*{39. Primitive numerical miss chain}
+
+\micro{Numerical miss compares the realized stabilized solve against the best
+supported tangent fit.}
+
+\deriv
+The stabilized velocity is
+\[
+\dot\theta_\ell
+=
+(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f.
+\]
+The realized explained drift is
+\[
+E_\ell
+=
+2f^\top\dot\theta_\ell
+-
+\dot\theta_\ell^\top G\dot\theta_\ell.
+\]
+Componentwise,
+\[
+E_\ell
+=
+2\sum_{i=1}^{n}f_i\dot\theta_{\ell,i}
+-
+\sum_{i=1}^{n}\sum_{j=1}^{n}
+\dot\theta_{\ell,i}G_{ij}\dot\theta_{\ell,j}.
+\]
+The realized squared miss is
+\[
+\epsilon_\ell^2
+=
+\norm{\ket b}^2-E_\ell.
+\]
+The supported best-case explained drift is
+\[
+E_\star
+=
+f^\top G^+f,
+\]
+and the supported best-case miss is
+\[
+\epsilon_\star^2
+=
+\norm{\ket b}^2-E_\star.
+\]
+The numerical miss is
+\[
+\rho_{\rm num}(\ell)
+=
+\frac{[\epsilon_\ell^2-\epsilon_\star^2]_+}{\norm{\ket b}^2}.
+\]
+
+\phys{The same tangent span can be structurally sufficient but numerically
+mis-solved. Then the implemented inverse loses drift that the supported
+least-squares geometry says was available.}
+
+\micro{The primitive substitution shows exactly where \(T\), \(G\), and \(f\)
+enter the realized miss.}
+
+\deriv
+\[
+\begin{aligned}
+\epsilon_\ell^2
+&=\norm{T\dot\theta_\ell-b}^2\\
+&=\dot\theta_\ell^\top G\dot\theta_\ell
+-2f^\top\dot\theta_\ell
++\norm{\ket b}^2\\
+&=
+\sum_{i,j}\dot\theta_{\ell,i}G_{ij}\dot\theta_{\ell,j}
+-2\sum_i f_i\dot\theta_{\ell,i}
++\sum_a b_a^\ast b_a.
+\end{aligned}
+\]
+With
+\[
+\begin{aligned}
+G_{ij}&=\Real\sum_a T_{ai}^\ast T_{aj},\\
+f_i&=\Real\sum_a T_{ai}^\ast b_a,
+\end{aligned}
+\]
+the fully substituted scalar is
+\[
+\begin{aligned}
+\epsilon_\ell^2
+={}&
+\sum_{i,j}\dot\theta_{\ell,i}\dot\theta_{\ell,j}
+\Real\sum_a T_{ai}^\ast T_{aj}\\
+&-
+2\sum_i\dot\theta_{\ell,i}
+\Real\sum_a T_{ai}^\ast b_a
++
+\sum_a b_a^\ast b_a.
+\end{aligned}
+\]
+
+\phys{This is why diagnostics should use \(T\dot\theta\) in state space. The
+coordinate vector only matters through the state-space velocity it synthesizes.}
+
+\section*{40. Why damping can help or hurt}
+
+\micro{Regularization changes the inverse mode-by-mode, so it can cure an
+unstable solve or over-damp a useful one.}
+
+\deriv
+Let
+\[
+G=Z\diag(s_1,\ldots,s_n)Z^\top,
+\qquad
+Z^\top Z=\Id.
+\]
+The columns \(z_\alpha\) of \(Z\) are orthonormal eigenmodes of \(G\), and
+\(s_\alpha\) are their metric strengths.
+Let
+\[
+a=Z^\top f.
+\]
+Thus \(a_\alpha=z_\alpha^\top f\) is the force component along eigenmode
+\(z_\alpha\).
+For a scalar ridge \(\lambda_\ell\) and solve damping \(\epsilon_\ell\), the
+retained inverse gives
+\[
+\dot\theta_\ell
+=
+\sum_{\alpha=1}^{n}
+\chi_{\ell,\alpha}
+\frac{a_\alpha}{s_\alpha+\lambda_\ell+\epsilon_\ell}
+z_\alpha.
+\]
+The retained-mode contribution to represented velocity is
+\[
+u_\ell
+=
+T\dot\theta_\ell
+=
+\sum_{\alpha=1}^{n}
+\chi_{\ell,\alpha}
+\frac{a_\alpha}{s_\alpha+\lambda_\ell+\epsilon_\ell}
+Tz_\alpha.
+\]
+For a retained mode,
+\[
+\frac{\partial}{\partial\lambda_\ell}
+\left(
+\frac{a_\alpha}{s_\alpha+\lambda_\ell+\epsilon_\ell}
+\right)
+=
+-
+\frac{a_\alpha}{(s_\alpha+\lambda_\ell+\epsilon_\ell)^2}.
+\]
+
+\phys{Increasing ridge damps every retained coordinate mixture. This can remove
+a state-space jump caused by small unstable modes, but it can also suppress
+real drift if the mode was useful. That is why \(\rho_{\rm num}\) triggers a
+candidate search rather than dictating one direction.}
+
+\micro{A high condition number is a response-risk signal, not the main
+noiseless trigger.}
+
+\deriv
+For retained eigenmodes
+\[
+I_\ell=\{\alpha:\chi_{\ell,\alpha}=1\},
+\]
+define
+\[
+\kappa_{\rm eff}(\ell)
+=
+\frac{\max_{\alpha\in I_\ell}s_\alpha}
+{\min_{\alpha\in I_\ell}s_\alpha}.
+\]
+The least-intervention score may contain
+\[
+w_\kappa\phi_\kappa(\ell),
+\]
+but repair entry in the noiseless diagnostic route comes from
+\[
+g_\rho\vee g_\Delta\vee g_t\vee g_{\rm inv}.
+\]
+
+\phys{A large \(\kappa_{\rm eff}\) makes a candidate less attractive because
+small errors can be amplified. It does not by itself force the controller into
+global repair at every checkpoint.}
+
+\section*{41. Local subdivision as the first state-motion cure}
+
+\micro{When the vector field is plausible but the step is too large,
+subdivision reduces integration error without changing the tangent manifold.}
+
+\deriv
+Subdivision means replacing one interval of length \(\Delta t\) by \(r\)
+shorter intervals while using the same local vector-field construction.
+For a first-order local step,
+\[
+\psi(t+\Delta t)
+=
+\psi(t)+\Delta t\,u(t)+O(\Delta t^2).
+\]
+With \(r\) substeps of size \(\delta t=\Delta t/r\),
+\[
+\psi(t+\Delta t)
+=
+\psi(t)
++
+\sum_{m=0}^{r-1}\delta t\,u(t_m)
++
+O(r\delta t^2).
+\]
+Since
+\[
+r\delta t^2
+=
+r\left(\frac{\Delta t}{r}\right)^2
+=
+\frac{\Delta t^2}{r},
+\]
+the leading local discretization scale decreases as \(r^{-1}\).
+
+\phys{If the defect is a temporal kink or an excessive state-space step, the
+first cure is to resolve the time interval more finely. Heavy damping changes
+the vector field; subdivision first asks whether the same vector field was
+being stepped too coarsely.}
+
+\section*{42. Support change continuity}
+
+\micro{Appending at zero amplitude changes the tangent space before it changes
+the state.}
+
+\deriv
+State-continuous means the state vector is unchanged at insertion.
+Tangent-discontinuous means the set of available first-order velocities changes
+at the same state. Let \(A=A^\dagger:\Hh\to\Hh\) and let
+\[
+\psi_+(\theta,\phi)
+=
+\exp(-\ii\phi A)\psi(\theta).
+\]
+At \(\phi=0\),
+\[
+\psi_+(\theta,0)=\psi(\theta).
+\]
+The new tangent is
+\[
+\left.\frac{\partial}{\partial\phi}\psi_+(\theta,\phi)\right|_{\phi=0}
+=
+-\ii A\psi(\theta).
+\]
+After horizontal projection,
+\[
+u_A
+=
+\Pi_\psi(-\ii A\psi).
+\]
+Thus
+\[
+T_+
+=
+\begin{bmatrix}
+T&u_A
+\end{bmatrix}.
+\]
+
+\phys{A zero-angle append is state-continuous but tangent-discontinuous. The
+state does not jump, while the available McLachlan velocities can change
+immediately at the append checkpoint.}
+
+\micro{Pure append, pure prune, and exchange are the same patch object with
+different empty sides.}
+
+\deriv
+Let \(D\) be a deletion set and \(R\) an append set. The patched tangent matrix
+is
+\[
+T_\nu
+=
+\begin{bmatrix}
+T_{-D}&U_R
+\end{bmatrix}.
+\]
+The limiting cases are
+\[
+\begin{array}{ccl}
+D=\varnothing,\ R=\varnothing &\Longrightarrow& T_\nu=T,\\[1mm]
+D=\varnothing,\ R\ne\varnothing &\Longrightarrow& T_\nu=[T~U_R],\\[1mm]
+D\ne\varnothing,\ R=\varnothing &\Longrightarrow& T_\nu=T_{-D},\\[1mm]
+D\ne\varnothing,\ R\ne\varnothing &\Longrightarrow& T_\nu=[T_{-D}~U_R].
+\end{array}
+\]
+
+\phys{Append and prune are easiest to learn separately, but Paper II's full
+object is the support patch. The same least-squares diagnostics decide whether
+the patch reduces structural tangent miss without creating unacceptable numerical
+or continuity risk.}
+
+\section*{43. A two-coordinate null-direction example}
+
+\micro{A toy tangent matrix makes non-identifiability visible without adding
+physics assumptions.}
+
+\deriv
+Let
+\[
+T=
+\begin{bmatrix}
+1&1\\
+0&0
+\end{bmatrix},
+\qquad
+a=
+\begin{bmatrix}
+1\\
+-1
+\end{bmatrix}.
+\]
+Then
+\[
+Ta=
+\begin{bmatrix}
+1&1\\
+0&0
+\end{bmatrix}
+\begin{bmatrix}
+1\\
+-1
+\end{bmatrix}
+=
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}.
+\]
+The Gram matrix is
+\[
+G=T^\top T
+=
+\begin{bmatrix}
+1&1\\
+1&1
+\end{bmatrix},
+\]
+and therefore
+\[
+Ga=
+\begin{bmatrix}
+1&1\\
+1&1
+\end{bmatrix}
+\begin{bmatrix}
+1\\
+-1
+\end{bmatrix}
+=
+\begin{bmatrix}
+0\\
+0
+\end{bmatrix}.
+\]
+Only the sum direction is identifiable:
+\[
+T\dot\theta
+=
+\begin{bmatrix}
+\dot\theta_1+\dot\theta_2\\
+0
+\end{bmatrix}.
+\]
+The difference direction \(\dot\theta_1-\dot\theta_2\) is invisible to the
+tangent map.
+
+\phys{The two coordinates look distinct in parameter space, but locally they
+draw the same state-space arrow. McLachlan should not spend inverse weight on
+the invisible difference direction.}
+
+\section*{44. Compact mental model}
+
+\micro{The AP--McLachlan route is one repeated least-squares geometry with
+three different questions.}
+
+\deriv
+\[
+(T,\ket b)
+\longmapsto
+(G,f,\norm{\ket b}^2)
+\longmapsto
+G^+
+\longmapsto
+\dot\theta
+\longmapsto
+T\dot\theta.
+\]
+\[
+\dot\theta
+=
+\argmin_v\norm{Tv-b}^2.
+\]
+\[
+\begin{aligned}
+\dot\theta_\ell
+&=(G+\Lambda_\ell)_{\tau_\ell,\epsilon_\ell}^{-1}f,\\
+u_\ell&=T\dot\theta_\ell.
+\end{aligned}
+\]
+\[
+\begin{aligned}
+T_{\rm app}&=[T~U_R],\\
+\Delta_{\rm app}
+&=E(T_{\rm app})-E(T).
+\end{aligned}
+\]
+\[
+\begin{aligned}
+T_{\rm pr}&=T_{-D},\\
+\Delta_{\rm pr}
+&=E(T)-E(T_{\rm pr}).
+\end{aligned}
+\]
+\[
+T_\nu=[T_{-D}~U_R].
+\]
+
+\phys{All major formulas come from the same object: least-squares projection of
+the Schrödinger drift \(b\) onto a tangent span. The inverse determines the
+velocity; repair stabilizes that inverse; append expands the span; prune
+contracts the span only after safety checks.}
+
+\end{document}

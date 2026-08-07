@@ -1,0 +1,157 @@
+from __future__ import annotations
+
+import csv
+import json
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from chtc.phase3_optuna import generate_paper_i_hh_strong_weak_anchor_ablation_records as generator
+from chtc.phase3_optuna import run_task
+
+
+def _generate() -> tuple[list[dict[str, str]], dict[str, object]]:
+    assert generator.main() == 0
+    with generator.RECORDS_TSV.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    manifest = json.loads(generator.MANIFEST_JSON.read_text(encoding="utf-8"))
+    return rows, manifest
+
+
+def _override(name: str) -> dict[str, object]:
+    path = generator.INPUT_DIR / f"{name}_trial_param_overrides.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload["trial_param_overrides"]
+
+
+def test_anchor_ablation_records_match_visible_strong_weak_source() -> None:
+    rows, manifest = _generate()
+
+    assert manifest["schema"] == "paper_i_hh_strong_weak_fixed_ablation_manifest_v6"
+    assert manifest["source_current_best"]["best_trial_number"] == 11
+    assert manifest["source_current_best"]["primary_error"] == 0.0001875954084569753
+    assert manifest["validation"]["record_count"] == 9
+    assert manifest["phase2_repair_record_ids"].endswith("_phase2_repair_record_ids.txt")
+    assert manifest["phase2_repair_replay_summary_json"].endswith("_phase2_legacy_replay_summary.json")
+    assert manifest["submit_phase2_repair"].endswith("_phase2_repair.sub")
+    assert manifest["run_gate"]["submit_order"] == [
+        "baseline_smoke_only",
+        "ablation_rows_after_baseline_reproduces_source",
+    ]
+    assert manifest["run_gate"]["no_matrix_before_smoke"] is True
+
+    assert len(rows) == 9
+    assert rows[0]["record_id"].endswith("_full_snake_anchor")
+    assert rows[0]["static_route_id"] == "route_a"
+    assert [row["record_id"].rsplit("_", 1)[-1] for row in rows if row["record_id"].endswith("_anchor")] == [
+        "anchor"
+    ]
+    assert all(row["benchmark_ids"] == "hh_L2_nph2_three_model_sym_strong_weak" for row in rows)
+    assert all(row["families"] == "hh" for row in rows)
+    assert all(row["boson_cutoff"] == "2" for row in rows)
+    assert all(row["exact_reference_boson_cutoff"] == "5" for row in rows)
+    assert all(row["n_trials"] == "1" for row in rows)
+    assert all(row["oracle_enqueue_limit"] == "1" for row in rows)
+    assert all(
+        row["oracle_summary_root"].endswith(generator.SUMMARY_JSON.name)
+        for row in rows
+        if not row["record_id"].endswith("_no_phase2_collective_novelty")
+    )
+    assert all(row["seed"] == "95118" for row in rows)
+    assert all(row["static_route_id"] == "unspecified" for row in rows[1:])
+
+    smoke_ids = generator.SMOKE_RECORD_IDS.read_text(encoding="utf-8").splitlines()
+    phase2_repair_ids = generator.PHASE2_REPAIR_RECORD_IDS.read_text(encoding="utf-8").splitlines()
+    all_ids = generator.ALL_RECORD_IDS.read_text(encoding="utf-8").splitlines()
+    assert smoke_ids == [rows[0]["record_id"]]
+    assert phase2_repair_ids == [by_id for by_id in all_ids if by_id.endswith("_no_phase2_collective_novelty")]
+    assert all_ids == [row["record_id"] for row in rows]
+
+
+def test_anchor_ablation_separates_phase2_and_phase3_novelty() -> None:
+    rows, _manifest = _generate()
+    by_suffix = {row["record_id"].removeprefix(f"{generator.BATCH_ID}_"): row for row in rows}
+
+    assert by_suffix["no_tangent_novelty"]["phase2_novelty_mode"] == "collective_span_v1"
+    assert by_suffix["no_tangent_novelty"]["phase3_novelty_ablation_mode"] == "all"
+    assert _override("no_tangent_novelty")["phase3_novelty_ablation_mode"] == "all"
+
+    assert by_suffix["no_phase2_collective_novelty"]["phase2_novelty_mode"] == "legacy_pairwise_v1"
+    assert by_suffix["no_phase2_collective_novelty"]["meta_feature_profile"] == "safe_core_v1"
+    assert by_suffix["no_phase2_collective_novelty"]["oracle_summary_root"].endswith(
+        generator.PHASE2_REPAIR_SUMMARY_JSON.name
+    )
+    assert by_suffix["no_phase2_collective_novelty"]["phase3_novelty_ablation_mode"] == "off"
+    assert _override("no_phase2_collective_novelty")["meta_feature_profile"] == "safe_core_v1"
+    assert _override("no_phase2_collective_novelty")["phase2_novelty_mode"] == "legacy_pairwise_v1"
+
+    phase2_summary = json.loads(generator.PHASE2_REPAIR_SUMMARY_JSON.read_text(encoding="utf-8"))
+    best_params = phase2_summary["summaries"]["hh_L2_nph2_three_model_sym_strong_weak"]["best_params"]
+    assert best_params["meta_feature_profile"] == "safe_core_v1"
+
+
+def test_anchor_ablation_reuses_trial11_policy_payload_without_recalibration() -> None:
+    rows, _manifest = _generate()
+    full = _override("full_snake_anchor")
+
+    assert full["adapt_max_depth"] == 500
+    assert full["adapt_maxiter"] == 800
+    assert full["adapt_drop_floor"] == 0.0005
+    assert full["adapt_drop_patience"] == 3
+    assert full["adapt_drop_min_depth"] == 12
+    assert full["phase2_gamma_N_schedule_mode"] == "depth_linear_v1"
+    assert full["lambda_1q"] == 0.0
+    assert full["lambda_2q"] == 0.0
+    assert full["lambda_d"] == 0.0
+    assert full["lambda_shot"] == 0.0
+    assert full["lambda_theta"] == 0.0
+
+    append = _override("append_only_adapt_limit")
+    assert append["adapt_reopt_policy"] == "append_only"
+    assert append["adapt_insertion_mode"] == "append_only"
+    assert append["adapt_rollback_mode"] == "off"
+    assert append["adapt_window_size"] == 1
+    assert append["adapt_window_topk"] == 0
+
+    no_prune = _override("no_generator_ablation")
+    assert no_prune["phase1_prune_enabled"] is False
+    assert no_prune["phase1_prune_amplitude_witness_required"] is False
+
+    for row in rows:
+        assert row["trial_param_overrides_json"].endswith("_trial_param_overrides.json")
+
+
+def test_anchor_ablation_rows_preflight_and_command_shape() -> None:
+    rows, _manifest = _generate()
+
+    for row in rows:
+        payload = run_task.build_phase3_preflight_manifest(
+            row,
+            record_id=row["record_id"],
+            records_path=generator.RECORDS_TSV,
+            submit_path=None,
+            repo_root=REPO_ROOT,
+        )
+        assert payload["status"] == "pass", payload
+        assert payload["benchmark_selection"]["expected_benchmark_ids"] == [
+            "hh_L2_nph2_three_model_sym_strong_weak"
+        ]
+
+        cmd = run_task.build_phase3_command(
+            row,
+            record_id=row["record_id"],
+            out_root=Path("/tmp/hh_anchor_ablation_test"),
+            run_root=Path("/tmp/hh_anchor_ablation_test/run"),
+            progress_dir=Path("/tmp/hh_anchor_ablation_test/progress"),
+        )
+        assert cmd[cmd.index("--trial-param-overrides-json") + 1] == row["trial_param_overrides_json"]
+        assert cmd[cmd.index("--oracle-summary-root") + 1] == row["oracle_summary_root"]
+        assert cmd[cmd.index("--fixed-phase2-novelty-mode") + 1] == row["phase2_novelty_mode"]
+        assert cmd[cmd.index("--benchmark-id") + 1] == "hh_L2_nph2_three_model_sym_strong_weak"
+        assert cmd[cmd.index("--boson-cutoff") + 1] == "2"
+        assert cmd[cmd.index("--exact-reference-boson-cutoff") + 1] == "5"
+        assert cmd[cmd.index("--n-trials") + 1] == "1"
+        assert cmd[cmd.index("--static-route-id") + 1] == row["static_route_id"]

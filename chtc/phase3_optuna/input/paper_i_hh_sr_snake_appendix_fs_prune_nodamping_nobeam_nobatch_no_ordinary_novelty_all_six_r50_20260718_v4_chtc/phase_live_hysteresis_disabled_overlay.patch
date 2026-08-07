@@ -1,0 +1,51 @@
+--- a/pipelines/static_adapt/sr_snake_route_profile.py
++++ b/pipelines/static_adapt/sr_snake_route_profile.py
+@@ -481,6 +481,8 @@
+         for field, value in CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS.items()
+         if field != "adapt_max_depth"
+     },
++    # Full active-plus-singleton Phase III must remain live every round.
++    "phase_live_hysteresis_enabled": False,
+     "adapt_disable_hh_seed": True,
+     "phase1_score_mode": PHASE1_SCORE_MODE_TRUST_REGION_V1,
+     "phase1_energy_model": PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
+@@ -598,6 +600,10 @@
+     "phase2_novelty_mode": ("--phase2-novelty-mode",),
+     "phase2_selector_gain_mode": ("--phase2-selector-gain-mode",),
+     "phase2_rho": ("--phase2-rho",),
++    "phase_live_hysteresis_enabled": (
++        "--phase-live-hysteresis-enabled",
++        "--phase-live-hysteresis-disabled",
++    ),
+     "phase1_score_mode": ("--phase1-score-mode",),
+     "phase1_energy_model": ("--phase1-energy-model",),
+     "phase2_curvature_policy": ("--phase2-curvature-policy",),
+@@ -1084,6 +1090,8 @@
+             "phase3_response_pre_support_invariant": (
+                 "response_count_equals_active_logical_count_plus_one_v1"
+             ),
++            "phase_live_hysteresis_enabled": False,
++            "phase_retirement_policy": "disabled_v1",
+             "selector_coordinate_solve_scope": "phase3_only_v1",
+             "phase2_supported_whitening_active": False,
+             "phase3_supported_whitening_active": True,
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -8100,6 +8100,17 @@
+                 phase2_cheap_curvature_proxy_policy_key
+             ),
+             "phase2_rho": float(phase2_rho_val),
++            **(
++                {
++                    "phase_live_hysteresis_enabled": bool(
++                        phase_live_hysteresis_enabled
++                    )
++                }
++                if sr_route_profile_contract_resolved is not None
++                and "phase_live_hysteresis_enabled"
++                in sr_route_profile_contract_resolved.get("execution_settings", {})
++                else {}
++            ),
+             "adapt_inner_optimizer": str(adapt_inner_optimizer_key),
+             "adapt_maxiter": int(maxiter),
+             "adapt_scipy_maxfev": int(adapt_scipy_maxfev_val),

@@ -1,0 +1,45 @@
+{
+  "remote_execution_preflight": {
+    "fake_backend_instantiation_passed": true,
+    "fake_backend_qubits": 156,
+    "fake_backend_resolved": "fake_marrakesh",
+    "image_path": "chtc/phase3_optuna/image.sif",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "qiskit_import_passed": true,
+    "qiskit_version": "2.3.1"
+  },
+  "schema": "paper_i_hh_sr_snake_v4_remote_preflight_cleanup_receipt_v2",
+  "status": "pass",
+  "storage_cleanup": {
+    "local_preservation_verified": true,
+    "local_preserved_roots": [
+      "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc",
+      "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc"
+    ],
+    "local_validation_records": [
+      {
+        "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/validation_cluster_8811168_20260716/baseline_continuation_validation.json",
+        "sha256": "d92244a9ea7902a5bbabd8e6b3131f0729c2c19ce30b4ee5ee122bbcd1b19175"
+      },
+      {
+        "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/validation_study_b_8811165/study_b_validation_summary.json",
+        "sha256": "326d0d66aa3702618d9aaf58ff7602fa0780cb21017d236c97919998d15e4adc"
+      }
+    ],
+    "post_cleanup_quota": {
+      "files": 42540,
+      "filesystem": "/dev/md9",
+      "limit": "51200M",
+      "quota": "40960M",
+      "space_used": "38917M"
+    },
+    "remote_absence_check": "CLEANUP_OK",
+    "remote_removed_paths": [
+      "/home/jsstrobel/Holstein_phase3_optuna_chtc/raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc",
+      "/home/jsstrobel/Holstein_phase3_optuna_chtc/raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc"
+    ],
+    "scope": "two completed SR output directories already fetched_and_validated",
+    "unrelated_remote_paths_modified": false
+  },
+  "submission_performed": false
+}

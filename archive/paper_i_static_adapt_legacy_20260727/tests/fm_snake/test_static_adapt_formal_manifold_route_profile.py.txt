@@ -1,0 +1,884 @@
+from __future__ import annotations
+
+import inspect
+from dataclasses import replace
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from pipelines.scaffold import hh_continuation_scoring as scoring
+from pipelines.scaffold.hh_continuation_scoring import (
+    FullScoreConfig,
+    HISTORICAL_SINGLETON_PHASE2_WHITENED_NO_N2_SCORE_FORMULA,
+    HISTORICAL_SINGLETON_PHASE2_WHITENED_SCORE_FORMULA,
+    PHASE2_NO_NOVELTY_RAW_SCORE_FORMULA,
+    PHASE3_NO_NOVELTY_SCORE_FORMULA,
+    evaluate_historical_singleton_phase2_coordinate_models,
+    phase2_raw_geometry_score,
+    phase3_canonical_score_components,
+    rescore_historical_phase3_records_with_coordinate_models,
+)
+from pipelines.scaffold.hh_continuation_types import CandidateFeatures
+from pipelines.static_adapt.cli_config import (
+    _build_adapt_arg_parser,
+    _build_run_hardcoded_adapt_vqe_kwargs,
+    _normalize_sr_and_formal_route_profile_namespace,
+)
+from pipelines.static_adapt.adapt_pipeline import (
+    _phase2_geometry_payload_in_anchor_order,
+    _run_hardcoded_adapt_vqe,
+)
+from pipelines.static_adapt.formal_manifold_route_profile import (
+    FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1,
+    FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+    FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+    FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE,
+    FORMAL_MANIFOLD_ROUTE_FAMILY,
+    FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+    FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY,
+    FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES,
+    FORMAL_MANIFOLD_SR_SOURCE_LOCKED_CANDIDATE_SELECTOR_PROFILE,
+    FORMAL_MANIFOLD_TRANSPORT_PREDICTED_CLOSURE_REANCHOR,
+    NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1,
+    NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1,
+    SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+    SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+    SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1,
+    SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1,
+    resolve_formal_manifold_route_profile,
+)
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
+    canonical_sr_snake_contract,
+    canonical_sr_snake_contract_sha256,
+    canonical_sr_snake_v3_contract,
+    canonical_sr_snake_v3_contract_sha256,
+)
+from pipelines.static_adapt.sr_snake_escape_controller import (
+    SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1,
+    SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1,
+    SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
+    SR_POWELL_COORDINATE_CHART_LOGICAL_SHARED_REDUCED_V1,
+)
+from pipelines.static_adapt.joint_linear_solve import (
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+
+
+def _feature(**overrides: object) -> CandidateFeatures:
+    values: dict[str, object] = {
+        "stage_name": "phase3",
+        "candidate_label": "candidate",
+        "candidate_family": "core",
+        "candidate_pool_index": 0,
+        "position_id": 0,
+        "append_position": 0,
+        "positions_considered": [0],
+        "g_signed": -1.0,
+        "g_abs": 1.0,
+        "g_lcb": 1.0,
+        "sigma_hat": 0.0,
+        "F_metric": 1.0,
+        "metric_proxy": 1.0,
+        "novelty": 0.25,
+        "curvature_mode": "append_exact_reduced_path",
+        "novelty_mode": "append_exact_tangent_context_v1",
+        "refit_window_indices": [],
+        "compiled_position_cost_proxy": {},
+        "measurement_cache_stats": {},
+        "leakage_penalty": 0.0,
+        "stage_gate_open": True,
+        "leakage_gate_open": True,
+        "trough_probe_triggered": False,
+        "trough_detected": False,
+        "simple_score": 0.0,
+        "score_version": "full_v2",
+        "F_raw": 1.0,
+        "F_red": 1.0,
+        "h_eff": 0.5,
+        "h_hat": 0.5,
+        "phase2_raw_novelty": 0.2,
+        "phase2_raw_trust_gain": 1.0,
+        "phase2_raw_score": 0.05,
+        "phase2_burden_total": 4.0,
+    }
+    values.update(overrides)
+    return CandidateFeatures(**values)
+
+
+def test_phase2_geometry_payload_is_permuted_into_phase1_anchor_order() -> None:
+    payload = {
+        "active_indices": [1, 0],
+        "G_AA": [[11.0, 10.0], [10.0, 0.0]],
+        "G_AB": [101.0, 100.0],
+        "H_AA": [[21.0, 20.0], [20.0, 2.0]],
+        "H_AB": [201.0, 200.0],
+        "g_A": [301.0, 300.0],
+    }
+
+    aligned = _phase2_geometry_payload_in_anchor_order(
+        payload,
+        anchor_active_indices=(0, 1),
+    )
+
+    assert aligned["active_indices"] == [0, 1]
+    assert aligned["G_AA"] == [[0.0, 10.0], [10.0, 11.0]]
+    assert aligned["G_AB"] == [100.0, 101.0]
+    assert aligned["H_AA"] == [[2.0, 20.0], [20.0, 21.0]]
+    assert aligned["H_AB"] == [200.0, 201.0]
+    assert aligned["g_A"] == [300.0, 301.0]
+    assert aligned["formal_phase2_active_coordinate_permutation"] == [1, 0]
+    assert aligned["formal_phase2_active_coordinate_permutation_applied"] is True
+
+
+def _profile_cfg(**overrides: object) -> FullScoreConfig:
+    values: dict[str, object] = {
+        "z_alpha": 0.0,
+        "lambda_F": 1.0,
+        "rho": 0.5,
+        "gamma_N": 2.0,
+        "novelty_ablation_mode": "no_phase2",
+        "phase2_novelty_multiplier_policy": (
+            NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+        ),
+        "phase3_novelty_multiplier_policy": (
+            NOVELTY_MULTIPLIER_POLICY_INACTIVE_ORDINARY_ROUTE_V1
+        ),
+        "wD": 0.0,
+        "wG": 0.0,
+        "wC": 0.0,
+        "wP": 0.0,
+        "wc": 0.0,
+        "lifetime_weight": 0.0,
+    }
+    values.update(overrides)
+    return FullScoreConfig(**values)
+
+
+def test_profile_resolves_complete_fm_outer_sr_inner_contract() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.route_profile == (
+        FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1
+    )
+    assert profile.candidate_selector_family == (
+        FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY
+    )
+    assert profile.historical_singleton_coordinate_solve_scope == (
+        SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1
+    )
+    assert profile.sr_powell_coordinate_chart_policy == (
+        SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
+    )
+    assert profile.phase3_runtime_split_subset_sizes == (1,)
+    assert profile.admission_cardinality == 1
+    assert profile.measured_n2_retained is True
+    assert profile.additional_n3_multiplier_applied is False
+    assert profile.structural_rollback_enabled is False
+    assert profile.formal_metric_mode == "sparse_anchor_qbroyd_recycled_v1"
+    assert profile.formal_transport_policy == (
+        "predicted_transported_frame_gauge_v1"
+    )
+    assert profile.formal_post_anchor_exact_gram_budget == 4
+    assert profile.formal_qbroyd_epsilon0 == pytest.approx(0.15)
+    assert profile.formal_qbang_momentum_active is False
+    assert profile.formal_line_search_max_steps == 15
+
+
+def test_source_locked_profile_preserves_canonical_sr_selector_contract() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.candidate_selector_family == (
+        FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY
+    )
+    assert profile.candidate_selector_profile == (
+        FORMAL_MANIFOLD_SR_SOURCE_LOCKED_CANDIDATE_SELECTOR_PROFILE
+    )
+    assert profile.historical_singleton_coordinate_solve_policy == (
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+    assert profile.historical_singleton_coordinate_solve_scope == (
+        SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1
+    )
+    assert profile.historical_singleton_trust_region_update_policy == (
+        "displacement_calibrated_unbounded_v2"
+    )
+    assert profile.sr_powell_coordinate_chart_policy == (
+        SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
+    )
+    assert profile.phase2_novelty_mode == "collective_span_v1"
+    assert profile.phase3_novelty_ablation_mode == "off"
+    assert profile.phase2_novelty_multiplier_policy == (
+        NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1
+    )
+    assert profile.phase3_novelty_multiplier_policy == (
+        NOVELTY_MULTIPLIER_POLICY_LEGACY_ABLATION_MODE_V1
+    )
+    assert profile.phase2_gram_novelty_policy == "ordinary_multiplier_v1"
+    assert profile.phase3_gram_novelty_policy == "ordinary_multiplier_v1"
+    assert profile.phase0_pilot_enabled is False
+    assert profile.phase2_enable_batching is False
+    assert profile.phase3_enable_batching is False
+    assert profile.phase3_runtime_split_subset_sizes == (1,)
+    assert profile.admission_cardinality == 1
+    assert profile.structural_rollback_enabled is False
+    assert profile.route_a_funnel_active is False
+    assert profile.prune_policy == "recoverability_ladder_v1"
+    assert profile.measured_n2_retained is True
+    assert profile.additional_n3_multiplier_applied is True
+    assert profile.formal_metric_mode == "full_refresh_exact_reference_v1"
+    assert profile.formal_transport_policy == "exact_endpoint_procrustes_v1"
+    assert profile.formal_qbroyd_epsilon0 == pytest.approx(0.0)
+    assert profile.formal_qbang_momentum_active is False
+    assert profile.formal_line_search_max_steps == 15
+
+
+def test_outer_information_shadow_embeds_immutable_sr_v3_controller_and_refit() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.candidate_selector_profile == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert profile.sr_controller_contract == canonical_sr_snake_v3_contract()
+    assert profile.sr_controller_contract_sha256 == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    assert profile.accepted_reoptimizer_owner == (
+        "source_locked_sr_v3_supported_fs_powell_v1"
+    )
+    assert profile.outer_information_mode == "shadow_v1"
+    assert profile.formal_metric_mode == "outer_information_shadow_v1"
+    assert profile.formal_transport_policy == "anchored_split_connection_v1"
+    assert profile.formal_post_anchor_exact_gram_budget == 0
+    assert profile.formal_qbroyd_epsilon0 == pytest.approx(0.0)
+    assert profile.structural_rollback_enabled is False
+
+
+def test_outer_information_active_reuse_embeds_immutable_sr_v3_controller_and_refit() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.route_profile == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1
+    )
+    assert profile.candidate_selector_profile == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert profile.sr_controller_contract == canonical_sr_snake_v3_contract()
+    assert profile.sr_controller_contract_sha256 == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    assert profile.accepted_reoptimizer_owner == (
+        "source_locked_sr_v3_supported_fs_powell_v1"
+    )
+    assert profile.outer_information_mode == "active_reuse_v1"
+    assert profile.formal_metric_mode == (
+        FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE
+    )
+    assert profile.formal_transport_policy == (
+        FORMAL_MANIFOLD_TRANSPORT_PREDICTED_CLOSURE_REANCHOR
+    )
+    assert profile.formal_post_anchor_exact_gram_budget == 0
+    assert profile.formal_qbroyd_epsilon0 == pytest.approx(0.0)
+    assert profile.structural_rollback_enabled is False
+
+
+@pytest.mark.parametrize(
+    ("route_profile", "outer_information_mode", "powell_metric_policy"),
+    [
+        (
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+            "shadow_v1",
+            SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1,
+        ),
+        (
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+            "active_reuse_v1",
+            SR_OUTER_INFORMATION_POWELL_METRIC_PREDICTED_EXTERNAL_V1,
+        ),
+        (
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+            "active_reuse_v1",
+            SR_OUTER_INFORMATION_POWELL_METRIC_CANONICAL_EXACT_BACKEND_V1,
+        ),
+    ],
+)
+def test_sr_no_prune_outer_information_profiles_preserve_sr_route_identity(
+    route_profile: str,
+    outer_information_mode: str,
+    powell_metric_policy: str,
+) -> None:
+    profile = resolve_formal_manifold_route_profile(route_profile)
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_SR_CANDIDATE_SELECTOR_FAMILY
+    assert profile.adapt_reoptimization_route == "off"
+    assert profile.candidate_selector_profile == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert profile.sr_controller_route_profile == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert profile.sr_controller_contract == canonical_sr_snake_contract(
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert profile.sr_controller_contract_sha256 == (
+        canonical_sr_snake_contract_sha256(
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+        )
+    )
+    assert profile.sr_controller_overrides is None
+    assert profile.sr_controller_overrides_sha256 == ""
+    assert profile.accepted_reoptimizer_owner == (
+        SR_OUTER_INFORMATION_ACCEPTED_REOPTIMIZER
+    )
+    assert profile.outer_information_mode == outer_information_mode
+    assert profile.powell_metric_authority_policy == powell_metric_policy
+
+
+def test_outer_information_active_fallback_only_no_prune_is_explicit_overlay() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.route_profile == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1
+    )
+    assert profile.candidate_selector_profile == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert profile.sr_controller_contract == canonical_sr_snake_v3_contract()
+    assert profile.sr_controller_contract_sha256 == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    assert profile.sr_controller_overrides == (
+        FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES
+    )
+    assert profile.sr_controller_overrides_sha256
+    assert profile.outer_information_mode == "active_reuse_v1"
+    assert profile.formal_metric_mode == (
+        FORMAL_MANIFOLD_METRIC_OUTER_INFORMATION_ACTIVE_REUSE
+    )
+    assert profile.candidate_response_model == "full_active_plus_singleton_v1"
+    assert profile.phase2_gram_novelty_policy == "fallback_only_v1"
+    assert profile.phase3_gram_novelty_policy == "fallback_only_v1"
+    assert profile.phase3_novelty_ablation_mode == "off"
+    assert profile.additional_n3_multiplier_applied is False
+    assert profile.phase1_prune_enabled is False
+    assert profile.prune_policy == "recoverability_ladder_v1"
+
+
+def test_outer_information_model_guard_is_versioned_fm_only_overlay() -> None:
+    profile = resolve_formal_manifold_route_profile(
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2
+    )
+
+    assert profile is not None
+    assert profile.route_family == FORMAL_MANIFOLD_ROUTE_FAMILY
+    assert profile.sr_controller_contract == canonical_sr_snake_v3_contract()
+    assert profile.sr_controller_contract_sha256 == (
+        canonical_sr_snake_v3_contract_sha256()
+    )
+    assert profile.sr_controller_overrides == (
+        FORMAL_MANIFOLD_SR_V3_FALLBACK_ONLY_NO_PRUNE_OVERRIDES
+    )
+    assert profile.phase1_prune_enabled is False
+    assert profile.outer_information_mode == "active_reuse_v1"
+    assert profile.outer_gradient_prediction_policy == (
+        "transported_source_plus_curvature_displacement_v2"
+    )
+    assert profile.outer_finalist_authority_policy == (
+        "exact_full_phase3_rescore_each_outer_v2"
+    )
+    assert profile.outer_stationarity_policy == (
+        "exact_supported_gradient_after_powell_v1"
+    )
+    assert profile.outer_curvature_update_policy == (
+        "exact_secant_or_rank_reset_v2"
+    )
+    assert profile.accepted_reoptimizer_owner == (
+        "source_locked_sr_v3_supported_fs_powell_v1"
+    )
+
+
+@pytest.mark.parametrize(
+    ("route_profile", "wrong_mode"),
+    [
+        (FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1, "active_reuse_v1"),
+        (FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_V1, "shadow_v1"),
+        (
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+            "shadow_v1",
+        ),
+        (
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+            "shadow_v1",
+        ),
+    ],
+)
+def test_outer_information_mode_must_match_route_profile(
+    route_profile: str,
+    wrong_mode: str,
+) -> None:
+    profile = resolve_formal_manifold_route_profile(route_profile)
+
+    assert profile is not None
+    with pytest.raises(ValueError, match="mode/profile mismatch"):
+        replace(profile, outer_information_mode=wrong_mode)
+
+
+def test_profile_rejects_reduced_logical_powell_request() -> None:
+    with pytest.raises(ValueError, match="requires expanded_runtime"):
+        resolve_formal_manifold_route_profile(
+            FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1,
+            requested_powell_coordinate_chart_policy=(
+                SR_POWELL_COORDINATE_CHART_LOGICAL_SHARED_REDUCED_V1
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "route_profile",
+    [
+        FM_ROUTE_PROFILE_SR_PHASE2_PHASE3_WHITENED_ADAPTIVE_TRUST_NO_N2_V1,
+        FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1,
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_MODEL_GUARD_NO_PRUNE_V2,
+    ],
+)
+def test_cli_accepts_explicit_fm_route_profile(route_profile: str) -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    args = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-formal-manifold-route-profile",
+            route_profile,
+            "--adapt-reoptimization-route",
+            FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+        ]
+    )
+    assert args.adapt_formal_manifold_route_profile == route_profile
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=None,
+        resolved_problem_context=SimpleNamespace(
+            layout=SimpleNamespace(total_qubits=6)
+        ),
+        cli_adapt_continuation_mode="legacy",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    assert kwargs["adapt_formal_manifold_route_profile"] == route_profile
+    assert set(kwargs).issubset(
+        inspect.signature(_run_hardcoded_adapt_vqe).parameters
+    )
+
+
+def _direct_outer_information_namespace() -> SimpleNamespace:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    parsed = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-formal-manifold-route-profile",
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1,
+            "--adapt-reoptimization-route",
+            FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+        ]
+    )
+    values = vars(parsed).copy()
+    values.pop("_explicit_cli_options", None)
+    return SimpleNamespace(**values)
+
+
+def test_outer_information_direct_namespace_requires_exact_sr_v3_contract() -> None:
+    direct = _direct_outer_information_namespace()
+    direct.phase2_rho = 0.99
+
+    with pytest.raises(
+        ValueError,
+        match="untracked scientific settings",
+    ):
+        _normalize_sr_and_formal_route_profile_namespace(direct)
+
+
+def test_outer_information_direct_namespace_accepts_matching_sr_v3_contract() -> None:
+    direct = _direct_outer_information_namespace()
+
+    normalized = _normalize_sr_and_formal_route_profile_namespace(direct)
+
+    assert not hasattr(normalized, "_explicit_cli_options")
+    assert normalized.phase2_rho == pytest.approx(0.25)
+    assert normalized.adapt_reoptimization_route == (
+        FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE
+    )
+    assert normalized.adapt_formal_manifold_route_profile == (
+        FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_SHADOW_V1
+    )
+    assert normalized.sr_route_profile_resolved == (
+        SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    )
+
+
+def test_outer_information_fallback_only_no_prune_namespace_applies_only_overlay() -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    parsed = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-formal-manifold-route-profile",
+            FM_ROUTE_PROFILE_SR_V3_OUTER_INFORMATION_ACTIVE_FALLBACK_ONLY_NO_PRUNE_V1,
+            "--adapt-reoptimization-route",
+            FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+        ]
+    )
+
+    normalized = _normalize_sr_and_formal_route_profile_namespace(parsed)
+
+    assert normalized.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert normalized.phase2_gram_novelty_policy == "fallback_only_v1"
+    assert normalized.phase3_gram_novelty_policy == "fallback_only_v1"
+    assert normalized.phase2_novelty_mode == "collective_span_v1"
+    assert normalized.phase3_novelty_ablation_mode == "off"
+    assert normalized.phase1_prune_enabled is False
+    assert normalized.phase3_response_coordinate_scope == (
+        "full_active_plus_singleton_v1"
+    )
+    assert normalized.adapt_inner_optimizer == "POWELL"
+    assert normalized.adapt_beam_live_branches == 3
+    assert normalized.adapt_beam_children_per_parent == 2
+
+
+@pytest.mark.parametrize(
+    "route_profile",
+    [
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_EXACT_POWELL_V1,
+    ],
+)
+def test_sr_no_prune_outer_information_cli_preserves_exact_sr_settings(
+    route_profile: str,
+) -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    normalized = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-max-depth",
+            "30",
+            "--sr-route-profile",
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+            "--adapt-formal-manifold-route-profile",
+            route_profile,
+        ]
+    )
+
+    expected_contract = canonical_sr_snake_contract(
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert normalized.sr_route_profile_request == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert normalized.sr_route_profile_resolved == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert normalized.sr_route_profile_contract == expected_contract
+    assert normalized.sr_route_profile_contract_sha256 == (
+        canonical_sr_snake_contract_sha256(
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+        )
+    )
+    assert normalized.adapt_reoptimization_route == "off"
+    assert normalized.adapt_formal_manifold_route_profile == route_profile
+    for field, expected in expected_contract["execution_settings"].items():
+        if field == "adapt_formal_manifold_route_profile":
+            continue
+        assert getattr(normalized, field) == expected, field
+
+
+def test_sr_no_prune_outer_information_cli_defaults_to_locked_sr_profile() -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    normalized = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-max-depth",
+            "30",
+            "--adapt-formal-manifold-route-profile",
+            SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_SHADOW_V1,
+        ]
+    )
+
+    assert normalized.sr_route_profile_request == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert normalized.sr_route_profile_resolved == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert normalized.adapt_reoptimization_route == "off"
+
+
+def test_sr_no_prune_outer_information_cli_build_is_idempotent() -> None:
+    route_profile = (
+        SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1
+    )
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    args = parser.parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-max-depth",
+            "30",
+            "--sr-route-profile",
+            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+            "--adapt-formal-manifold-route-profile",
+            route_profile,
+        ]
+    )
+
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=None,
+        resolved_problem_context=SimpleNamespace(
+            layout=SimpleNamespace(total_qubits=6)
+        ),
+        cli_adapt_continuation_mode="legacy",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+
+    assert kwargs["sr_route_profile_request"] == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert kwargs["sr_route_profile_resolved"] == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    assert kwargs["adapt_reoptimization_route"] == "off"
+    assert kwargs["adapt_formal_manifold_route_profile"] == route_profile
+    assert kwargs["phase1_prune_enabled"] is False
+    assert kwargs["adapt_beam_live_branches"] == 1
+    assert kwargs["adapt_beam_children_per_parent"] == 1
+
+
+def test_sr_no_prune_outer_information_cli_rejects_different_sr_profile() -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--adapt-max-depth",
+                "30",
+                "--sr-route-profile",
+                "sr_snake_v3",
+                "--adapt-formal-manifold-route-profile",
+                SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+            ]
+        )
+
+
+def test_sr_no_prune_outer_information_cli_rejects_fm_reoptimizer_owner() -> None:
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--adapt-max-depth",
+                "30",
+                "--sr-route-profile",
+                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+                "--adapt-formal-manifold-route-profile",
+                SR_OUTER_INFORMATION_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ACTIVE_V1,
+                "--adapt-reoptimization-route",
+                FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE,
+            ]
+        )
+
+
+def test_phase2_keeps_measured_n2_but_applies_unit_multiplier() -> None:
+    payload = phase2_raw_geometry_score(
+        _feature(),
+        F_raw=1.0,
+        h_raw=0.5,
+        q_window=[0.5],
+        Q_window=np.asarray([[1.0]], dtype=float),
+        cfg=_profile_cfg(novelty_eps=0.0, metric_floor=1.0e-12),
+    )
+
+    assert payload["phase2_measured_novelty"] == pytest.approx(0.75)
+    assert payload["phase2_raw_novelty"] == pytest.approx(0.75)
+    assert payload["phase2_novelty_multiplier"] == pytest.approx(1.0)
+    assert payload["phase2_novelty_applied"] is False
+    assert payload["phase2_raw_score_formula"] == (
+        PHASE2_NO_NOVELTY_RAW_SCORE_FORMULA
+    )
+    expected = float(payload["phase2_raw_trust_gain"]) / float(
+        payload["phase2_burden_total"]
+    )
+    assert payload["phase2_raw_score"] == pytest.approx(expected)
+
+
+def test_phase3_keeps_measured_n3_but_applies_no_additional_multiplier() -> None:
+    payload = phase3_canonical_score_components(
+        _feature(novelty=0.25),
+        _profile_cfg(),
+    )
+
+    assert payload["phase3_measured_novelty"] == pytest.approx(0.25)
+    assert payload["phase3_novelty_multiplier"] == pytest.approx(1.0)
+    assert payload["N3"] == pytest.approx(1.0)
+    assert payload["phase3_novelty_applied"] is False
+    assert payload["phase3_canonical_score_formula"] == (
+        PHASE3_NO_NOVELTY_SCORE_FORMULA
+    )
+    expected = float(payload["DeltaE_TR"]) / float(
+        payload["denominator_1_plus_K3"]
+    )
+    assert payload["phase3_primary_score"] == pytest.approx(expected)
+
+
+def test_historical_phase3_overlay_keeps_measured_n3_without_multiplying() -> None:
+    feature = _feature(
+        phase3_burden_total=4.0,
+        phase2_joint_geometry_reuse={
+            "schema": "historical_singleton_coordinate_model_v1",
+            "joint_linear_solve_policy_effective": (
+                JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+            ),
+            "feasible": True,
+            "reason": "ok",
+            "joint_gain": 2.0,
+        },
+        phase_score_components={
+            "phase3_historical_scalar_DeltaE_TR": 1.0,
+            "N3": 0.25,
+            "K3": 3.0,
+            "denominator_1_plus_K3": 4.0,
+        },
+    )
+    rows, telemetry = rescore_historical_phase3_records_with_coordinate_models(
+        [
+            {
+                "candidate_label": "candidate",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "feature": feature,
+            }
+        ],
+        cfg=_profile_cfg(),
+    )
+
+    row = rows[0]
+    components = row["feature"].phase_score_components
+    assert row["phase3_primary_score"] == pytest.approx(0.5)
+    assert components["phase3_measured_novelty"] == pytest.approx(0.25)
+    assert components["phase3_novelty_multiplier"] == pytest.approx(1.0)
+    assert components["phase3_novelty_applied"] is False
+    assert row["feature"].phase3_canonical_score_formula == (
+        PHASE3_NO_NOVELTY_SCORE_FORMULA
+    )
+    assert telemetry["phase3_novelty_applied"] is False
+    assert telemetry["measured_n3_retained"] is True
+
+
+class _FakeWorkspace:
+    def summary_for_records(self, records):
+        assert len(records) == 1
+        return {"feasible": True, "reason": "ok", "joint_gain": 2.0}
+
+    def build_telemetry(self):
+        return {"schema": "fake_workspace_v1"}
+
+
+def test_phase2_whitened_overlay_retains_measured_n2_without_multiplying(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        scoring,
+        "_build_batch_full_geometry_workspace",
+        lambda *args, **kwargs: _FakeWorkspace(),
+    )
+    feature = _feature(phase2_raw_novelty=0.2, phase2_burden_total=4.0)
+    record = {
+        "candidate_label": "candidate",
+        "candidate_pool_index": 0,
+        "position_id": 0,
+        "feature": feature,
+    }
+
+    profile_evaluation = evaluate_historical_singleton_phase2_coordinate_models(
+        [record],
+        cfg=_profile_cfg(),
+        selected_ops=[],
+        theta=np.zeros(0),
+        psi_ref=np.asarray([1.0 + 0.0j]),
+        psi_state=np.asarray([1.0 + 0.0j]),
+        h_compiled=object(),
+    )
+    profile_row = profile_evaluation.records[0]
+    profile_model = profile_row["historical_singleton_phase2_coordinate_model"]
+    assert profile_model["measured_N2"] == pytest.approx(0.2)
+    assert profile_model["phase2_novelty_multiplier"] == pytest.approx(1.0)
+    assert profile_model["phase2_novelty_applied"] is False
+    assert profile_row["phase2_raw_score"] == pytest.approx(0.5)
+    assert profile_row["phase2_raw_score_formula"] == (
+        HISTORICAL_SINGLETON_PHASE2_WHITENED_NO_N2_SCORE_FORMULA
+    )
+
+    legacy_evaluation = evaluate_historical_singleton_phase2_coordinate_models(
+        [record],
+        cfg=FullScoreConfig(),
+        selected_ops=[],
+        theta=np.zeros(0),
+        psi_ref=np.asarray([1.0 + 0.0j]),
+        psi_state=np.asarray([1.0 + 0.0j]),
+        h_compiled=object(),
+    )
+    legacy_row = legacy_evaluation.records[0]
+    assert legacy_row["phase2_raw_score"] == pytest.approx(0.1)
+    assert legacy_row["phase2_raw_score_formula"] == (
+        HISTORICAL_SINGLETON_PHASE2_WHITENED_SCORE_FORMULA
+    )

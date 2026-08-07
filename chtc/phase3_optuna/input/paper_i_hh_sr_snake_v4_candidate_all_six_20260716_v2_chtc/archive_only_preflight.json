@@ -1,0 +1,88 @@
+{
+  "all_six_validate_only_pass": true,
+  "archive_sha256": "3ded93603370da2755505decd6d3ca0c344eb503a247f877e19a9ce2ac3d679f",
+  "focused_source_locked_regressions": {
+    "dependency_environment": "local_python_packages_with_extracted_archive_source_only",
+    "expected_pass_count": 45,
+    "pass": true,
+    "paths": [
+      "test/test_static_adapt_sr_trust_prune.py",
+      "test/test_static_adapt_sr_v4_runtime.py",
+      "test/test_static_adapt_sr_v4_serialization.py"
+    ],
+    "returncode": 0,
+    "stderr_empty": true
+  },
+  "live_repo_import_excluded": true,
+  "qiskit_helper": {
+    "help_pass": true,
+    "help_returncode": 0,
+    "path": "pipelines/exact_bench/paper_i_hh_recovery_prefix_qiskit_sidecar.py",
+    "present": true
+  },
+  "schema": "paper_i_hh_sr_snake_v4_archive_only_preflight_v2",
+  "six_validate_only_parses": [
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_weak_u8.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_strong_u8.json",
+        "status": "pass"
+      }
+    }
+  ],
+  "source_import": {
+    "module": "pipelines/static_adapt/sr_snake_route_profile.py",
+    "profile_contract_sha256": "7f99682678c1c338ad73142e604c2cc6757dbb4db311a3b0bb8cb7b23e8436be",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+    "sha256": "6c6b8de448beaafa44066e4585ecf6c948431015ef8c491cea183868361f6034",
+    "status": "pass"
+  },
+  "status": "pass"
+}

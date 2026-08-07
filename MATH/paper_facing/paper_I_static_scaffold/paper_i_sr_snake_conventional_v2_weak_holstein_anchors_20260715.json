@@ -1,0 +1,210 @@
+{
+  "schema": "paper_i_sr_snake_conventional_v2_weak_holstein_anchors_v1",
+  "created_date": "2026-07-15",
+  "purpose": "Immutable route-identity anchor for the three completed weak-Holstein conventional SR-SNAKE runs.",
+  "route_identity": {
+    "route_family": "singleton_response_snake",
+    "route_profile": "supported_whitened_adaptive_trust_full_accepted_refit_v2",
+    "aliases": [
+      "sr_snake",
+      "sr_snake_v2"
+    ],
+    "contract_sha256": "32d2bdf2b05818be6f4add74137447a313605d7ed35ffb880651863b793a0f64",
+    "historical_v1_profile": "supported_whitened_adaptive_trust_v1",
+    "historical_v1_contract_sha256": "fab7b5a6c4bd2ab019139367aa2a507356a5c969b6b88cd72d32365ae766e13e"
+  },
+  "normalized_equivalence": {
+    "normalized_argv_sha256": "3cb4137465200196c2c0c71beba5dd387033cdc9f59285f65033f723c3e3a834",
+    "normalized_resolved_settings_sha256": "e8fd5a17c23d7c8f6015741491f3babec1bcee7867d57e2e5905e05c4e1b0446",
+    "normalized_path_fields": true,
+    "scientific_setting_differences": [
+      "u"
+    ],
+    "shared_n_ph_work": 2,
+    "shared_n_ph_ref": 2
+  },
+  "source_lock": {
+    "manifest": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/source_lock/source_manifest.json",
+      "sha256": "7e0b8d4b72bcabb5de842ae89afd8d34ce861ebf0e2b9d16fe12f883c73aa416"
+    },
+    "archive": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/source_lock/source_tree.tar.gz",
+      "sha256": "f0ced05fb7c4ab242ef10323c13ac0e3e3d5be2c15b255c931b73aa8a980cbae"
+    },
+    "frozen_file_count": 436
+  },
+  "common_executable_policy": {
+    "problem": "hh",
+    "adapt_pool": "full_meta",
+    "hva_included": true,
+    "phase0_pilot_enabled": false,
+    "phase2_enable_batching": false,
+    "phase3_enable_batching": false,
+    "historical_singleton_coordinate_solve_policy": "supported_metric_whitened_eigh_v1",
+    "historical_singleton_coordinate_solve_scope": "phase3_only_v1",
+    "historical_singleton_trust_region_update_policy": "displacement_calibrated_unbounded_v2",
+    "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+    "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+    "geometry_expansion_fallback": "collective_span_novelty_over_cost_v1",
+    "sr_escape_mode": "disabled",
+    "sr_powell_coordinate_chart_policy": "expanded_runtime_projected_logical_v1",
+    "adapt_accepted_refit_scope": "full_ansatz_v1",
+    "adapt_accepted_refit_coordinate_chart": "supported_fs_whitened_fixed_v1",
+    "adapt_accepted_refit_base_chart_policy": "expanded_runtime_projected_logical_v1",
+    "phase1_prune_policy": "recoverability_ladder_v1",
+    "phase1_prune_mode": "both",
+    "phase1_prune_schur_nomination_route": "hessian_coupling_v1",
+    "adapt_reopt_policy": "windowed",
+    "adapt_window_size": 3,
+    "adapt_full_refit_every": 8,
+    "adapt_final_full_refit": true,
+    "adapt_final_refit_maxiter": 200,
+    "adapt_inner_optimizer": "POWELL",
+    "adapt_maxiter": 200,
+    "adapt_scipy_maxfev": 0,
+    "adapt_seed": 7,
+    "adapt_max_depth": 30,
+    "adapt_beam_live_branches": 3,
+    "adapt_beam_children_per_parent": 2,
+    "adapt_beam_lambda": 0.005
+  },
+  "anchors": [
+    {
+      "regime": "weak-weak",
+      "u": 0.25,
+      "n_ph_work": 2,
+      "n_ph_ref": 2,
+      "energy": -0.9183531184618378,
+      "same_cutoff_reference_energy": -0.9183531194991743,
+      "absolute_error": 1.0373365499916076e-09,
+      "active_ansatz_depth": 25,
+      "controller_rounds": 30,
+      "source_root": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30",
+      "artifacts": {
+        "command": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/command.json",
+          "sha256": "7823df8a3cb4c900a0d9a21366c18e354cd982804bdc8ad52199541ec20bd800"
+        },
+        "result": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/result.json",
+          "sha256": "ef43248e5a9c9893a4555f753c2871d42aca95d4143b6878fd4be04dddac6172"
+        },
+        "current": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/current.json",
+          "sha256": "c78cea551cc5711721e67699f90f7041f86adfaf94531c84face905e59663ec8"
+        },
+        "estimator_ledger": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/estimator_call_ledger.json",
+          "sha256": "d3273f7b557c4fd5c8013cb72e52c08bd2de45e5f9a160d61691ad76a860a31f"
+        },
+        "exit_status": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/exit_status.json",
+          "sha256": "60f06f5101b2fd22d0f3fb02b657b8f1a0f2153980cb9108800f7daafeec9e12"
+        },
+        "settings_diff": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/source_lock_and_settings_diff.json",
+          "sha256": "de0f9cd5fefc88ea27557480b84eeb9d5bc4186e36792e0e5f18a0b4a117501f"
+        },
+        "validation": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/validation_comparison.json",
+          "sha256": "2c141ecd5c1136290496ad20e5f51296acf895c5588cb6f1f4a535b8ae8352ad"
+        }
+      }
+    },
+    {
+      "regime": "intermediate-weak",
+      "u": 1.25,
+      "n_ph_work": 2,
+      "n_ph_ref": 2,
+      "energy": -0.49499563910841426,
+      "same_cutoff_reference_energy": -0.49499563910870126,
+      "absolute_error": 2.8699265186560297e-13,
+      "result_embedded_reference_energy": -0.49499563910866023,
+      "result_embedded_absolute_error": 2.4596991110570343e-13,
+      "active_ansatz_depth": 27,
+      "controller_rounds": 30,
+      "source_root": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30",
+      "artifacts": {
+        "command": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/command.json",
+          "sha256": "576e402f29117726f1dcaea82b2a0654a6089e2034d836a8d1a2f18ed63adfdd"
+        },
+        "result": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/result.json",
+          "sha256": "4fa47aa4285c40a53a9e88f0ffe57d10be8841cae59b9effd3f692da20318c8d"
+        },
+        "current": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/current.json",
+          "sha256": "71becf4ed40be3b97e7fb7e4c6a06f41921e838afd77d0239fd7246711a97c38"
+        },
+        "estimator_ledger": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/estimator_call_ledger.json",
+          "sha256": "e3ed73f0965e2bb7a2dd54697cb77f4e4a3058512306a0235ede5474579f58cb"
+        },
+        "exit_status": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/exit_status.json",
+          "sha256": "8843126145519c1f17fc0a235b89ecbb34ca2de78f61f0c79a117d4c653db945"
+        },
+        "settings_diff": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/source_lock_and_settings_diff.json",
+          "sha256": "b2209ff810b4713698b9077576d771baf49fff92a771f9141eb29b591478c6f3"
+        },
+        "validation": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/validation_comparison.json",
+          "sha256": "3ae96ff8ed4eef696a060370d2842243694aef408d456a68dac590ad4501ec16"
+        },
+        "qiskit_sidecar": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_intermediate_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/qiskit_sidecar.json",
+          "sha256": "744a90e637a4fa845ef83d34f87e83bd45c9331b40e1418ed78604efe57c1868"
+        }
+      }
+    },
+    {
+      "regime": "strong-weak-u8",
+      "u": 8.0,
+      "n_ph_work": 2,
+      "n_ph_ref": 2,
+      "energy": 0.5264600841532714,
+      "same_cutoff_reference_energy": 0.5264587007998404,
+      "absolute_error": 1.3833534310281337e-06,
+      "active_ansatz_depth": 24,
+      "controller_rounds": 30,
+      "source_root": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30",
+      "artifacts": {
+        "command": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/command.json",
+          "sha256": "3340e423bf654ba562655ec820023eb76afbb23150941066de120a444b4bc3e1"
+        },
+        "result": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/result.json",
+          "sha256": "541966c89e0cf5523cb6b66260c5bb6a2f5b1cff2e4e81c617d34c984f351bc1"
+        },
+        "current": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/current.json",
+          "sha256": "c39081b6687ea94e5e12440f663ab5665c16321971f16c3a65b48633f1911d87"
+        },
+        "estimator_ledger": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/estimator_call_ledger.json",
+          "sha256": "dc31f75f4cd25e35273a1b66a71a2b1594525ad48a76b91388b7169144d5a8a8"
+        },
+        "exit_status": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/exit_status.json",
+          "sha256": "af4c2c374aaa07e1a31b1bb5016c89d39bc368ed8af212dd033fc970c653b159"
+        },
+        "settings_diff": {
+          "path": "raw_outputs/paper_i_hh_sr_snake_strong_weak_u8_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/source_lock_and_settings_diff.json",
+          "sha256": "aa97c51a0310dbcffadf412dc163351f14d2ab4105370af73567397d9d4e1a61"
+        }
+      },
+      "validation_note": "No standalone validation_comparison.json was preserved; strict terminal replay and zero sector/padding leakage are serialized in result.json."
+    }
+  ],
+  "legacy_serialization_note": "The three anchors predate v2 registration and therefore must not be identified from their old profile-request field alone.",
+  "authorization": {
+    "launch_scientific_run": false,
+    "submit_chtc": false,
+    "edit_manuscript": false,
+    "regenerate_pdf": false
+  }
+}

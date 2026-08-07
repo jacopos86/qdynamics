@@ -1,0 +1,35 @@
+# Paper-I RA-ADAPT Study-1 minimal package: 20 logical cells / 18 jobs.
+# This file is inert until the immutable builder has produced queue.tsv and an
+# authorized operator explicitly runs condor_submit.  The package itself never
+# submits.
+
+universe = vanilla
+executable = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/execute_source_locked_job.sh
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/$(job_spec) $(job_spec_sha256) chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/source_locked.tar.gz $(source_sha256) chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/package_manifest.json chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/execution_authorization_receipt.json $(authorization_sha256) chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/v7_final_materialization_receipt.json chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/study1_objective_gate_authority_receipt.json chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/execution_plan.json transfer/$(execution_id).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/$(job_spec), chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/build_attempt_selection.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/build_package.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/run_cell.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/package_contract.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/objective_gates.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/link_shared_append.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/validate_package.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/validate_fetched.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/run_scientific_preflight_smokes.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/stage_transferred_executable.py, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/submit.sub, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/package_manifest.json, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/execution_plan.json, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/source_locked.tar.gz, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/execution_authorization_receipt.json, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/v7_final_materialization_receipt.json, chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/authority/study1_objective_gate_authority_receipt.json, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id).tar.gz
+transfer_output_remaps = "transfer/$(execution_id).tar.gz=chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/fetched/$(execution_id)__cluster_$(ClusterId)__proc_$(ProcId).tar.gz"
+
+request_cpus = 4
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = 259200
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-ra-adapt-study1-minimal-20260728-v2"
+
+log = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/logs/$(Cluster).$(Process)__$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/logs/$(Cluster).$(Process)__$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/logs/$(Cluster).$(Process)__$(execution_id).err
+
+queue execution_id, job_spec, job_spec_sha256, source_sha256, authorization_sha256, memory_mb, disk_mb from chtc/paper_i_ra_adapt_repair_20260727/study1_minimal_20260728_v1_chtc/queue.tsv

@@ -1,0 +1,119 @@
+{
+  "schema": "paper_i_hh_sr_no_beam_resume_patch_v3",
+  "status": "verified",
+  "base_source_archive": {
+    "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/source_lock/source_tree_no_beam_ablation_v1.tar.gz",
+    "sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6"
+  },
+  "patch": {
+    "path": "/tmp/paper_i_hh_sr_no_beam_resume_patch_v3.patch",
+    "sha256": "df31265fa46dda5ee8d7872789cd9986b8a9b0d72020f01aad120b8aa594630f",
+    "apply": "patch -p1"
+  },
+  "files": [
+    {
+      "path": "pipelines/static_adapt/resume_scaffold.py",
+      "base_sha256": "eead6153cae41ea144a405d891167b9ab47dec1a9af6db883f8cacd8bd9315b3",
+      "patched_sha256": "8271ec88d0a885ef9290b95b52786e7b79f6180f1002020ef01144c64735d656"
+    },
+    {
+      "path": "pipelines/static_adapt/adapt_pipeline.py",
+      "base_sha256": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+      "patched_sha256": "0b74f979efc8e00074a4526dd7a4e3968b2746883c3899fe7c8b970593d5e7a1"
+    }
+  ],
+  "resume_sidecars": {
+    "signed_prefix_filename": "signed_active_prefix_checkpoint.json",
+    "signed_prefix_schema": "static_adapt_signed_active_prefix_resume_sidecar_v1",
+    "controller_state_schema": "static_adapt_singleton_controller_resume_state_v1",
+    "selection_state_schema": "static_adapt_singleton_selection_count_resume_state_v1",
+    "controller_snapshot_schema": "phase123_controller_maturity_v2",
+    "selection_count_source": "adapt_vqe.history[i].selected_feature_rows[0].candidate_pool_index",
+    "estimator_ledger_filename": "estimator_call_ledger.json",
+    "full_result_required_at_runtime": false
+  },
+  "verification": {
+    "status": "pass",
+    "patch_dry_run": "pass",
+    "patch_apply": "pass",
+    "patched_hash_match": "pass",
+    "py_compile": "pass",
+    "frozen_module_import": "pass",
+    "strong_weak_signed_prefix_load": {
+      "status": "pass",
+      "controller_round": 30,
+      "operator_count": 30,
+      "execution_modes": [
+        "grouped_exact"
+      ],
+      "fixed_sector_guarded_occurrence_count": 22,
+      "checkpoint_sha256": "b038d2c12fa0c93bf1faf5c90f12d980037b5c430f44c34075a7b6cc802e569c",
+      "restored_estimator_occurrence_count": 32599,
+      "restored_S_alg": 26751,
+      "source_energy": 0.526460084233483
+    },
+    "four_regime_controller_and_selection_restore": {
+      "status": "pass",
+      "controller_round": 30,
+      "phase1_residual_opened": false,
+      "phase1_stage_name": "core",
+      "drop_policy_enabled": false,
+      "drop_plateau_hits": 0,
+      "strong_weak_phase_live": {
+        "phase1": true,
+        "phase2": false,
+        "phase3": false
+      },
+      "strong_weak_phase_null_streaks": {
+        "phase2": 4,
+        "phase3": 9
+      },
+      "other_three_phase_live": {
+        "phase1": true,
+        "phase2": true,
+        "phase3": true
+      },
+      "other_three_phase_null_streaks": {
+        "phase2": 0,
+        "phase3": 0
+      },
+      "selection_count_total_each": 30,
+      "logical_selection_counts": []
+    },
+    "zero_admission_boundary_execution_smoke": {
+      "status": "pass",
+      "regime_slug": "strong_weak_u8",
+      "source_controller_round": 30,
+      "final_controller_round": 30,
+      "final_depth": 30,
+      "scientific_admissions_executed": 0,
+      "boundary_refit_attempted": false,
+      "boundary_refit_executed": false,
+      "energy_abs_discrepancy": 1.1102230246251565e-16,
+      "compile_backend": "FakeMarrakesh",
+      "compile_success": true,
+      "compiled_count_2q": 405,
+      "compiled_depth": 1198,
+      "ordered_prefix_identical": true,
+      "strict_replay_pass": true,
+      "fixed_sector_pass": true,
+      "binary_padding_pass": true,
+      "accounting_complete": true,
+      "restored_S_alg": 26751,
+      "total_call_occurrences": 32601,
+      "controller_and_selection_state_restored": true
+    },
+    "live_focused_tests": {
+      "status": "pass",
+      "command": "PYTHONPATH=. pytest -q test/test_static_adapt_resume_scaffold.py -k 'verified_singleton and not preserved_depth30'",
+      "passed": 10,
+      "deselected": 51
+    },
+    "live_resume_regression_file": {
+      "status": "pass",
+      "command": "PYTHONPATH=. pytest -q test/test_static_adapt_resume_scaffold.py",
+      "passed": 59,
+      "skipped": 2
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "classification": "non_scientific_selected_proposal_workspace_telemetry_preservation_v1",
+  "derived_file_sha256": {
+    "pipelines/scaffold/hh_continuation_scoring.py": "3684ae46dfd07cc5f0fdfc8809e29dc47bf1709da62754c88acf5cc3500b5bf8"
+  },
+  "failure_mode": "The non-beam batch selector wrappers returned the selected proposal's partial summary instead of the complete selector summary, dropping the already-computed geometry_workspace trust receipt.",
+  "model_inputs_or_selection_changed": false,
+  "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc/batch_selector_workspace_receipt_overlay.patch",
+  "overlay_sha256": "1da782d0d14355f22de3152961ce7f1d12f602920464fec916362f4643785bdf",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+  "predecessor_cluster": 8887596,
+  "predecessor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1",
+  "repair_scope": [
+    "pipelines/scaffold/hh_continuation_scoring.py::greedy_reduced_plane_batch_select",
+    "pipelines/scaffold/hh_continuation_scoring.py::combinatorial_reduced_plane_batch_select"
+  ],
+  "route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "selected_records_changed": false,
+  "submission_performed": false,
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+  "successor_source_archive_sha256": "58874302974a7913696571b9b8e205cc3d569638b14ff4687a6b4cd7b3ca1da2",
+  "telemetry_preserved": [
+    "geometry_workspace",
+    "proposal_count",
+    "selection-level response receipts"
+  ]
+}

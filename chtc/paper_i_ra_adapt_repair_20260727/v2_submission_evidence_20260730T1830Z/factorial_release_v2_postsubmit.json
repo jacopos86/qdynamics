@@ -1,0 +1,586 @@
+[
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 0,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 1,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 2,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 3,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 4,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 5,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 6,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 7,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 8,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 9,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 10,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 11,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 12,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 13,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 14,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 15,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 16,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 17,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 18,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 19,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 20,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 21,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 22,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 23,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 24,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 25,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 26,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 27,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 28,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 29,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 30,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 31,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 32,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 33,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 34,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 35,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 36,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 37,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 38,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 39,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 40,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 41,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 42,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 43,
+  "QDate": 1785438125
+}
+,
+{
+  "ClusterId": 9397758,
+  "HoldReason": "submitted on hold at user's request",
+  "HoldReasonCode": 15,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "JobSubmitFile": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+  "NumJobStarts": 0,
+  "ProcId": 44,
+  "QDate": 1785438125
+}
+]

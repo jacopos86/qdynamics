@@ -1,0 +1,20 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_generic_static_table_task_apptainer.sh
+arguments = $(record_id) chtc/phase3_optuna/input/paper_i_clean_fermionic_benchmarks_v1/generic_static_table_records.tsv raw_outputs/paper_i_clean_fermionic_benchmarks_v1/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/paper-i-clean-fermionic-benchmarks-full.$(Cluster).$(Process).log
+output = logs/paper-i-clean-fermionic-benchmarks-full.$(Cluster).$(Process).out
+error = logs/paper-i-clean-fermionic-benchmarks-full.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 16GB
+request_disk = 122880MB
++MaxRuntime = 43200
++JobBatchName = "holstein-paper-i-clean-fermionic-benchmarks-full"
+environment = "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1"
+queue record_id from chtc/phase3_optuna/input/paper_i_clean_fermionic_benchmarks_v1/generic_static_table_record_ids.txt

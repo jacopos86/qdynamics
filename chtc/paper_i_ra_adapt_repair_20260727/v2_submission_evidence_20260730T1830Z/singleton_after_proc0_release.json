@@ -1,0 +1,122 @@
+[
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438376,
+  "HoldReason": null,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 1,
+  "NumJobStarts": 0,
+  "ProcId": 0
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 1
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 2
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 3
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 4
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 5
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 6
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 7
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 8
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 9
+}
+,
+{
+  "ClusterId": 9397760,
+  "EnteredCurrentStatus": 1785438183,
+  "HoldReason": "submitted on hold at user's request",
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 10
+}
+]

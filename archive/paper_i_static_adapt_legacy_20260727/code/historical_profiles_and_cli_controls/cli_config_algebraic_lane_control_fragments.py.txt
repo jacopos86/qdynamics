@@ -1,0 +1,35 @@
+    p.add_argument(
+        "--phase0-lane-quota-pressure",
+        type=float,
+        default=1.0,
+        help="Weak Phase-0 lane exposure pressure; 1 preserves live lanes when a user cap allows.",
+    )
+    p.add_argument(
+        "--phase0-algebraic-lane-mode",
+        choices=["weak", "off"],
+        default="weak",
+        help="Weak Phase-0 algebraic lane exposure mode; does not activate strict algebraic_nested_v1.",
+    )
+    p.add_argument(
+        "--algebraic-phase2-lane-rel-threshold",
+        type=float,
+        default=0.10,
+        help="Relative lane-health floor for algebraic nested Phase-2 shortlist survival.",
+    )
+    p.add_argument(
+        "--algebraic-phase1-lane-quota-pressure",
+        type=float,
+        default=0.70,
+        help="Quota pressure for algebraic Phase-1 lane budgets; 1 preserves all live lanes when cap allows.",
+    )
+    p.add_argument(
+        "--algebraic-phase2-lane-quota-pressure",
+        type=float,
+        default=0.70,
+        help="Quota pressure for algebraic Phase-2 lane-health budgets; lower values favor global score rank.",
+    )
+        "phase0_lane_quota_pressure": float(args.phase0_lane_quota_pressure),
+        "phase0_algebraic_lane_mode": str(args.phase0_algebraic_lane_mode),
+        "algebraic_phase2_lane_rel_threshold": float(args.algebraic_phase2_lane_rel_threshold),
+        "algebraic_phase1_lane_quota_pressure": float(args.algebraic_phase1_lane_quota_pressure),
+        "algebraic_phase2_lane_quota_pressure": float(args.algebraic_phase2_lane_quota_pressure),

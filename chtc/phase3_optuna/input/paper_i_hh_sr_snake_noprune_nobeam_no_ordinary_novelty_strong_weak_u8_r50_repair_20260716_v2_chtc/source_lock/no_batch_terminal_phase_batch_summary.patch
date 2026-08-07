@@ -1,0 +1,21 @@
+diff --git a/pipelines/static_adapt/adapt_pipeline.py b/pipelines/static_adapt/adapt_pipeline.py
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -27318,6 +27318,8 @@
+                     and int(terminal_phase_now) >= 3
+                     and _controller_phase_live(controller_snapshot, "phase3", True)
+                 )
++                canonical_joint_selector = False
++                batch_summary: dict[str, Any] = {}
+                 if phase2_enabled and not phase2_live_now and phase1_shortlisted_records:
+                     terminal_phase1_records = sorted(
+                         [dict(rec) for rec in phase1_shortlisted_records],
+@@ -29815,8 +29817,6 @@
+                     phase2_last_retained_shortlist_records = _candidate_feature_rows(
+                         admission_source_records
+                     )
+-                    canonical_joint_selector = False
+-                    batch_summary: dict[str, Any] = {}
+                     if full_records:
+                         phase2_batch_scoring_attempted = False
+                         canonical_joint_selector = bool(

@@ -1,0 +1,20 @@
+{
+  "blockers": [],
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc",
+  "checks": {
+    "isolated_output_paths": true,
+    "parent_checkpoint_validation": true,
+    "runner_validation": true,
+    "same_round30_checkpoint_and_ledger": true,
+    "scientific_settings_diff_empty": true,
+    "source_archive_hash": true,
+    "source_repair_probe": true
+  },
+  "created_utc": "2026-07-16T13:25:30.606404+00:00",
+  "regime_slug": "strong_weak_u8",
+  "runner_validation_stdout": "{\"job_manifest\": \"/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc/jobs/strong_weak_u8.json\", \"job_manifest_sha256\": \"460c1c228050cbc075d94acb67d5b525cd110b0f543070f1524523942f16d69d\", \"status\": \"pass\", \"validation_only\": true}",
+  "schema": "paper_i_hh_sr_r50_source_repair_preflight_v2",
+  "scientific_execution_performed": false,
+  "status": "pass",
+  "submission_performed": false
+}

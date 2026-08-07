@@ -1,0 +1,572 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.58in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.2pt}
+\setlist{nosep,leftmargin=*}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=false,
+  frame=single,
+  framerule=0.25pt,
+  xleftmargin=0pt,
+  xrightmargin=0pt,
+  aboveskip=3pt,
+  belowskip=3pt,
+  showstringspaces=false
+}
+
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\braket}[2]{\left\langle#1\middle|#2\right\rangle}
+\newcommand{\Acal}{\mathcal A}
+\newcommand{\Gcal}{\mathcal G}
+\newcommand{\Pcal}{\mathcal P}
+\newcommand{\Qcal}{\mathcal Q}
+\newcommand{\Rcal}{\mathcal R}
+\newcommand{\Wcal}{\mathcal W}
+\newcommand{\Sadapt}{S_{\rm ADAPT}}
+\newcommand{\Ssnake}{S_{\rm SNAKE}}
+\newcommand{\Salg}{S_{\rm alg}}
+\newcommand{\Ngrad}{N_{\rm grad}}
+\newcommand{\Nmetric}{N_{\rm metric}}
+\newcommand{\NH}{N_H}
+\newcommand{\NHouter}{N_{H,\rm outer}}
+\newcommand{\NHrefit}{N_{H,\rm refit}}
+\newcommand{\oneGeo}{\mathbf 1_{\rm Geo}}
+\newcommand{\boxline}{\vspace{2pt}\hrule\vspace{3pt}}
+\newenvironment{primerbox}[1]{%
+  \boxline\begingroup\raggedright\textbf{#1.}\ }{\par\endgroup\boxline}
+
+\begin{document}
+\title{Paper I Shot Proxy: Reporting Primer}
+\author{Paper-I support note}
+\date{2026-06-11}
+\maketitle
+\vspace{-1.1em}
+
+\begin{primerbox}{Scope}
+This note describes the \(S\) value reported in the Paper I tables.  It does
+not use the Math.pdf candidate-local shot-cost expression.  The reported \(S\)
+is a normalized estimator/probe-work ledger through the displayed accepted
+prefix.  Its units are counted controller probe records and Hamiltonian
+objective evaluations, not calibrated physical circuit shots.
+\end{primerbox}
+
+\section*{1. Displayed Prefix}
+
+Let \(k=0,1,\ldots\) index accepted adaptive iterations.  The displayed table
+row uses an accepted prefix \(k_\star\): the first prefix whose energy supports
+the displayed accuracy resolution.  Every reported sum below stops at
+\(k_\star\).
+
+For a non-SNAKE adaptive comparator, let \(\Acal_k\) be the live candidate set
+scored before admission \(k\), and let \(n_k=|\Acal_k|\).  If the comparator is
+geometric, the centered candidate tangents
+\[
+  \tau_r^{(k)}
+  =
+  (I-\ket{\psi_k}\bra{\psi_k})(-iA_r\ket{\psi_k})
+\]
+define
+\[
+  G_{rs}^{(k)}
+  =
+  \operatorname{Re}\braket{\tau_r^{(k)}}{\tau_s^{(k)}},
+  \qquad r,s\in\Acal_k.
+\]
+The symmetric metric triangle contributes \(n_k(n_k+1)/2\).  If \(f_k\)
+denotes the Hamiltonian objective evaluations charged after admission \(k\),
+then
+\[
+\boxed{
+\Sadapt
+=
+\sum_{k=0}^{k_\star}
+\left(
+n_k+\oneGeo\frac{n_k(n_k+1)}{2}+f_k
+\right).
+}
+\]
+
+\section*{2. From A Record To A Countable Probe}
+
+SNAKE does not report a separate shot proxy for every low-level Pauli term.
+The reporting path starts from candidate-position records.  A record is
+\[
+  r=(a,p),
+\]
+where \(a\) is a candidate generator and \(p\) is the proposed insertion
+position in the current ansatz prefix.  The record carries an ansatz generator
+\[
+  A_r=\sum_{\nu} c_{r\nu}P_{r\nu},
+  \qquad
+  P_{r\nu}\in\{e,x,y,z\}^{\otimes n}.
+\]
+For a Pauli key \(u\in\{e,x,y,z\}^{\otimes n}\), write \(w(u)\) for its
+non-identity weight.  A basis key \(v\) covers \(u\), written \(u\preceq v\),
+when
+\[
+  \forall q,\qquad u_q=e\quad\hbox{or}\quad u_q=v_q .
+\]
+Two keys merge when every qubit is compatible:
+\[
+  (u\vee v)_q=
+  \begin{cases}
+  v_q, & u_q=e,\\
+  u_q, & v_q=e,\\
+  u_q, & u_q=v_q,
+  \end{cases}
+\]
+and the merge is undefined when some non-identity axes disagree.
+
+The reporting group-key map is the same QWC compression used by
+\texttt{measurement\_group\_keys\_for\_term}:
+\[
+  \Gamma(r)
+  =
+  {\rm Compress}_{\rm QWC}
+  \{\,P_{r\nu}: |c_{r\nu}|>0,\; w(P_{r\nu})>0\,\}.
+\]
+A selector record is measurement-bearing exactly when
+\[
+  \Gamma(r)\ne\varnothing .
+\]
+The strict Paper I SNAKE reconstruction reads
+\texttt{records\_with\_group\_keys}.  Thus the count for a phase is the number
+of measurement-bearing records, not \(\sum_r|\Gamma(r)|\).
+
+\[
+\boxed{
+  N_{\rm phase}(k)
+  =
+  |\{r\in\Rcal_{\rm phase}(k):\Gamma(r)\ne\varnothing\}|.
+}
+\]
+
+\section*{3. How \(P_1,P_2,P_3\) Are Found}
+
+At prefix \(k\), let \(\Omega_k\) be the available candidate-position surface.
+The controller scores records on this surface and moves only selected records
+to later phases.  Write
+\[
+  {\rm Short}_{j,k}(\Rcal;s,\tau,B)
+\]
+for the deterministic controller shortlist: sort records by score \(s\), keep
+records above the phase threshold/frontier rule, and cap by the phase budget
+\(B\).  This symbol names the table-support selection operation; the \(S\)
+column counts the records it causes to be probed.
+
+The Phase-I record surface is
+\[
+  \begin{aligned}
+  \Rcal_1(k)
+  =
+  \{(a,p)\in\Omega_k:\;&
+  (a,p)\hbox{ survives}\\
+  &\hbox{the Phase-0 pilot screen}\}.
+  \end{aligned}
+\]
+The Paper I Phase-I probe set is the measurement-bearing part of that surface:
+\[
+  P_1(k)=\{r\in\Rcal_1(k):\Gamma(r)\ne\varnothing\}.
+\]
+The Phase-I shortlist is
+\[
+  \Qcal_1(k)
+  =
+  {\rm Short}_{1,k}(\Rcal_1(k);s_1,\tau_1,B_1).
+\]
+
+Phase II reranks the Phase-I shortlist with the full geometric score.  Its
+reported probe surface is
+\[
+  \Rcal_2(k)
+  =
+  {\rm FullGeom}_{2,k}\bigl(\Qcal_1(k)\bigr),
+\]
+where each retained record is rebuilt with the current gradient, tangent norm,
+hardware cost, measurement-stat payload, and Phase-II score.  The reported
+Phase-II set is
+\[
+  P_2(k)=\{r\in\Rcal_2(k):\Gamma(r)\ne\varnothing\}.
+\]
+The Phase-II shortlist is
+\[
+  \Qcal_2(k)
+  =
+  {\rm Short}_{2,k}(\Rcal_2(k);s_2,\tau_2,B_2).
+\]
+
+Phase III reranks the Phase-II shortlist with the reduced Schur-window
+geometry.  The reported Phase-III probe surface is
+\[
+  \Rcal_3(k)=\Qcal_2(k),
+  \qquad
+  P_3(k)=\{r\in\Rcal_3(k):\Gamma(r)\ne\varnothing\}.
+\]
+The final admission set is selected after this rerank:
+\[
+  \Qcal_3(k)
+  =
+  {\rm Short}_{3,k}(\Rcal_3(k);s_3,\tau_3,B_3).
+\]
+The table \(S\) charges the probes used to form \(\Rcal_1,\Rcal_2,\Rcal_3\).
+It does not replace those counts by the size of the final admitted batch.
+Since Phase II is built from the Phase-I shortlist and Phase III is built from
+the Phase-II shortlist, the same-prefix record counts obey
+\[
+  |P_3(k)|\le |P_2(k)|\le |P_1(k)|.
+\]
+
+\begin{primerbox}{Phase-0 gradient screen}
+The implementation also has a Phase-0 pilot/selected-logical gradient screen.
+The table reconstruction puts it in the gradient bin with Phase I:
+\[
+  \Ngrad
+  =
+  \sum_{k=0}^{k_\star}
+  \left(N_{\rm phase0}(k)+|P_1(k)|\right).
+\]
+When explicit Phase-0 controller telemetry exists, \(N_{\rm phase0}\) is its
+\texttt{records\_with\_group\_keys}.  Otherwise the reconstruction uses the
+selected-logical screening count recorded by the source payload.
+\end{primerbox}
+
+\section*{4. Paper I Table Formulas}
+
+For the non-SNAKE adaptive comparators, the table row uses the explicit
+algorithmic ledger
+\[
+\boxed{
+\begin{aligned}
+G_K&=\sum_{k=0}^{K}{\tt candidate\_count\_scored}_k,\\
+M_K&=\sum_{k=0}^{K}{\tt selector\_metric\_probe\_count}_k,\\
+F_K&=\sum_{k=0}^{K}{\tt optimizer\_nfev}_k,\\
+S_K&=G_K+M_K+F_K.
+\end{aligned}}
+\]
+For append ADAPT, TETRIS, and QEB, \(M_K=0\) in the Hubbard weak table-facing
+sources.  For Geo-ADAPT, \(M_K\) is the geometric selector metric triangle.
+
+For SNAKE, the current Paper I table cell uses the native controller
+\texttt{shots\_new} ledger.  Let \(\Wcal_K\) be the controller work scopes
+whose \texttt{depth} is in the displayed accepted prefix \(0,\ldots,K\).  Each
+scope \(w\) has a phase \(\phi(w)\) and a fresh controller shot count
+\[
+  c_w={\tt shots\_new}(w).
+\]
+The reported SNAKE table value is
+\[
+\boxed{
+\begin{aligned}
+\Ngrad^{\rm table}(K)
+&=
+\sum_{\substack{w\in\Wcal_K\\ \phi(w)\in\{0,1\}}} c_w,\\
+\Nmetric^{\rm table}(K)
+&=
+\sum_{\substack{w\in\Wcal_K\\ \phi(w)\in\{2,3\}}} c_w,\\
+\Ssnake^{\rm table}(K)
+&=
+\Ngrad^{\rm table}(K)+\Nmetric^{\rm table}(K).
+\end{aligned}
+}
+\]
+Optimizer/refit counts are present in SNAKE telemetry as optimizer provenance;
+the current Paper I SNAKE shot-proxy cell is the controller
+\texttt{shots\_new} sum.
+
+The SNAKE source still stores Hamiltonian objective telemetry for audits:
+\[
+  \begin{aligned}
+  \NHrefit
+  &=
+  N_{\rm hist}+N_{\rm resume}+N_{\rm final},\\
+  N_{\rm hist}
+  &=\sum {\tt history[*].nfev\_opt},\\
+  N_{\rm resume}
+  &={\tt resume\_boundary\_refit.nfev},\\
+  N_{\rm final}
+  &={\tt final\_full\_refit.nfev}.
+  \end{aligned}
+\]
+\[
+  \NHouter={\tt nfev\_total}-\NHrefit.
+\]
+
+\begin{primerbox}{Reported table convention}
+For the current Paper I SNAKE row, the promoted support file labels the table
+cell as \(\Salg=98\), and the source is \texttt{controller\_shot\_proxy}.
+That value is the fresh controller \texttt{shots\_new} total across Phase 0,
+Phase I, Phase II, and Phase III.  Reused controller groups appear in the
+source as \texttt{shots\_reused}; they are not added again to the table cell.
+\end{primerbox}
+
+\section*{5. Actual Reporting Code}
+
+\textbf{\footnotesize A phase count is a measurement-bearing record count.}
+
+\footnotesize\path{pipelines/static_adapt/adapt_pipeline.py}
+\begin{lstlisting}
+def _controller_work_group_keys_from_records(records):
+    records_list = [dict(rec) for rec in (records or []) if isinstance(rec, Mapping)]
+    group_keys = []
+    records_with_group_keys = 0
+    for rec in records_list:
+        candidate_term = rec.get("candidate_term")
+        if not isinstance(candidate_term, AnsatzTerm):
+            idx_raw = rec.get("candidate_pool_index")
+            try:
+                idx = int(idx_raw)
+                if 0 <= idx < len(pool):
+                    candidate_term = pool[idx]
+            except (TypeError, ValueError):
+                candidate_term = None
+        if isinstance(candidate_term, AnsatzTerm):
+            keys = measurement_group_keys_for_term(candidate_term)
+            if keys:
+                records_with_group_keys += 1
+                group_keys.extend(str(key) for key in keys)
+    return group_keys, int(len(records_list)), int(records_with_group_keys)
+\end{lstlisting}
+
+\textbf{\footnotesize Phase events that create the reported \(P_j\) counts:
+\path{pipelines/static_adapt/adapt_pipeline.py}.}
+\begin{lstlisting}
+_record_controller_work_for_records(
+    controller_work_local,
+    snapshot=controller_snapshot_local,
+    phase="phase1",
+    event_kind=(
+        "phase1_insertion_probe"
+        if bool(insertion_probe_triggered_local)
+        else "phase1_append_probe"
+    ),
+    records=phase1_records_local,
+    depth_value=int(depth + 1),
+    scope_qualifiers=branch_scope_qualifiers,
+)
+
+phase2_last_shortlist_eval_records_local = [dict(rec) for rec in full_records]
+_record_controller_work_for_records(
+    controller_work_local,
+    snapshot=controller_snapshot_local,
+    phase="phase2",
+    event_kind="phase2_rerank_records",
+    records=full_records,
+    depth_value=int(depth + 1),
+    scope_qualifiers=branch_scope_qualifiers,
+)
+
+if phase3_live_now_local:
+    _record_controller_work_for_records(
+        controller_work_local,
+        snapshot=controller_snapshot_local,
+        phase="phase3",
+        event_kind="phase3_reduced_geometry_rerank",
+        records=phase2_shortlisted_records_local,
+        depth_value=int(depth + 1),
+        scope_qualifiers=branch_scope_qualifiers,
+    )
+\end{lstlisting}
+
+\textbf{\footnotesize QWC key construction:
+\path{pipelines/scaffold/hh_continuation_scoring.py}.}
+\begin{lstlisting}
+def measurement_group_specs_for_term(term):
+    label_coeffs = _pauli_label_coeffs_from_term(term)
+    specs = []
+    for label, coeff in label_coeffs:
+        label_s = str(label)
+        if _pauli_weight_exyz(label_s) <= 0:
+            continue
+        coeff_abs = abs(complex(coeff))
+        if not math.isfinite(float(coeff_abs)) or float(coeff_abs) == 0.0:
+            continue
+        specs.append(
+            MeasurementGroupSpec(
+                group_key=label_s,
+                coeff_l2=float(coeff_abs),
+                term_count=1,
+                source="polynomial_coeff_l2_v1",
+            )
+        )
+    if specs:
+        return _compress_measurement_group_specs(specs)
+    return [
+        MeasurementGroupSpec(group_key=str(key), coeff_l2=1.0, term_count=1, source="label_fallback_l2_v1")
+        for key in _measurement_group_keys_from_labels(_pauli_labels_from_term(term))
+    ]
+\end{lstlisting}
+
+\textbf{\footnotesize Runtime reconstruction:
+\path{pipelines/exact_bench/snake_table_i_measurement_work.py}.}
+\begin{lstlisting}
+def _phase_records_with_group_keys(phase_map, phase):
+    entry = phase_map.get(phase)
+    if entry is None:
+        return 0.0, {"phase": phase, "status": "absent_zero"}
+    if not isinstance(entry, Mapping):
+        return None, {"phase": phase, "status": "invalid_phase_payload"}
+    value = _finite_nonnegative(entry.get("records_with_group_keys"))
+    if value is None:
+        return None, {"phase": phase, "status": "invalid_records_with_group_keys"}
+    return value, {"phase": phase, "status": "ok", "records_with_group_keys": float(value)}
+\end{lstlisting}
+
+\begin{lstlisting}
+phase0, phase0_accounting = _selected_logical_phase0_gradient_work(source_payload, phase_map)
+phase1, detail = _phase_records_with_group_keys(phase_map, "phase1")
+phase2, detail = _phase_records_with_group_keys(phase_map, "phase2")
+phase3, detail = _phase_records_with_group_keys(phase_map, "phase3")
+
+n_h_refit = float(history_refit + resume_refit + final_refit)
+n_h_outer = float(nfev_total - n_h_refit)
+
+components = {
+    "N_H_outer_eval": float(n_h_outer),
+    "N_grad": float(phase0 + phase1),
+    "N_metric": float(phase2 + phase3),
+    "N_H_refit_eval": float(n_h_refit),
+}
+\end{lstlisting}
+
+\textbf{\footnotesize Current SNAKE table cell:
+\path{pipelines/exact_bench/snake_table_i_measurement_work.py}.}
+\begin{lstlisting}
+phase1_shots, detail = _phase_shots_new(phase_map, "phase1")
+phase2_shots, detail = _phase_shots_new(phase_map, "phase2")
+phase3_shots, detail = _phase_shots_new(phase_map, "phase3")
+
+n_grad_shots = float(phase0_shots + phase1_shots)
+n_metric_shots = float(phase2_shots + phase3_shots)
+total = float(n_grad_shots + n_metric_shots)
+meta.update(
+    status="ok",
+    controller_shot_proxy=total,
+    N_grad_controller=float(n_grad_shots),
+    N_metric_controller=float(n_metric_shots),
+    controller_phase_shots_new={
+        "phase0": float(phase0_shots),
+        "phase1": float(phase1_shots),
+        "phase2": float(phase2_shots),
+        "phase3": float(phase3_shots),
+    },
+)
+\end{lstlisting}
+
+\textbf{\footnotesize Non-SNAKE paper-facing total:
+\path{pipelines/exact_bench/generic_static_metric_enrichment.py}.}
+\begin{lstlisting}
+s_alg = (
+    weights["s_H_outer"] * components["N_H_outer_eval"]
+    + weights["s_grad"] * components["N_grad_probe"]
+    + weights["s_metric"] * components["N_metric_probe"]
+    + weights["s_H_refit"] * components["N_H_refit_eval"]
+)
+row_updates = {
+    "S_alg": float(s_alg),
+    "S_alg_N_H_outer_eval": float(components["N_H_outer_eval"]),
+    "S_alg_N_grad_probe": float(components["N_grad_probe"]),
+    "S_alg_N_metric_probe": float(components["N_metric_probe"]),
+    "S_alg_N_H_refit_eval": float(components["N_H_refit_eval"]),
+    "S_alg_N_other_quantum": 0.0,
+}
+\end{lstlisting}
+
+\section*{6. Hubbard Weak Prefix Examples}
+
+These values are computed from the visible Paper I Hubbard weak sources
+(\(\mathrm{Hubbard}\ L=2,\ U/t=0.5\)).  For the comparator rows,
+\[
+  S_K=G_K+M_K+F_K.
+\]
+For SNAKE, the current table source contains two accepted rounds; rows
+\(K=2,\ldots,5\) are undefined for that table-facing artifact.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\begin{tabular}{@{}lrlrrrr@{}}
+\hline
+algorithm & \(K\) & increment & \(G_K\) & \(M_K\) & \(F_K\) & \(S_K\)\\
+\hline
+Append & 0 & \(18+9037\) & 18 & 0 & 9037 & 9055\\
+Append & 1 & \(17+5668\) & 35 & 0 & 14705 & 14740\\
+Append & 2 & \(17+1291\) & 52 & 0 & 15996 & 16048\\
+Append & 3 & \(17+22\) & 69 & 0 & 16018 & 16087\\
+Append & 4 & \(17+22\) & 86 & 0 & 16040 & 16126\\
+Append & 5 & \(17+7\) & 103 & 0 & 16047 & 16150\\
+\hline
+TETRIS & 0 & \(18+16\) & 18 & 0 & 16 & 34\\
+TETRIS & 1 & \(17+1759\) & 35 & 0 & 1775 & 1810\\
+TETRIS & 2 & \(17+892\) & 52 & 0 & 2667 & 2719\\
+TETRIS & 3 & \(17+133\) & 69 & 0 & 2800 & 2869\\
+TETRIS & 4 & \(17+154\) & 86 & 0 & 2954 & 3040\\
+TETRIS & 5 & \(17+145\) & 103 & 0 & 3099 & 3202\\
+\hline
+Geo & 0 & \(18+171+9037\) & 18 & 171 & 9037 & 9226\\
+Geo & 1 & \(17+153+5668\) & 35 & 324 & 14705 & 15064\\
+Geo & 2 & \(17+153+364\) & 52 & 477 & 15069 & 15598\\
+Geo & 3 & \(17+153+133\) & 69 & 630 & 15202 & 15901\\
+Geo & 4 & \(17+153+16\) & 86 & 783 & 15218 & 16087\\
+Geo & 5 & \(17+153+25\) & 103 & 936 & 15243 & 16282\\
+\hline
+QEB & 0 & \(9+9037\) & 9 & 0 & 9037 & 9046\\
+QEB & 1 & \(8+5668\) & 17 & 0 & 14705 & 14722\\
+QEB & 2 & \(8+745\) & 25 & 0 & 15450 & 15475\\
+QEB & 3 & \(8+214\) & 33 & 0 & 15664 & 15697\\
+QEB & 4 & \(8+262\) & 41 & 0 & 15926 & 15967\\
+QEB & 5 & \(8+22\) & 49 & 0 & 15948 & 15997\\
+\hline
+SNAKE & 0 & \(46\) & 22 & 24 & 0 & 46\\
+SNAKE & 1 & \(52\) & 44 & 54 & 0 & 98\\
+\hline
+\end{tabular}
+\caption{\footnotesize Paper I Hubbard weak prefix shot-proxy examples.  \(G\)
+is gradient/controller-gradient work, \(M\) is metric/controller-metric work,
+and \(F\) is refit optimizer work for non-SNAKE comparator rows.}
+\end{table*}
+
+For SNAKE the two increments are the native controller event sums
+\[
+\begin{array}{c|ccccc|c}
+K & \phi0 & \phi1 & \phi2 & \phi3_{\rm union} & \phi3_{\rm geom} & \Delta S\\
+\hline
+0 & 11 & 11 & 11 & 2 & 11 & 46\\
+1 & 11 & 11 & 11 & 8 & 11 & 52
+\end{array}
+\]
+The depth-\(K=1\) Phase-0 scope also reports \(11\) reused shots; the table adds
+the fresh \texttt{shots\_new}=11.
+
+\section*{7. Implementation Anchors}
+
+\begin{itemize}
+\item \footnotesize\path{MATH/paper_details/static_adapt_paper_I.tex}
+\item \footnotesize\path{pipelines/static_adapt/adapt_pipeline.py}
+\item \footnotesize\path{pipelines/static_adapt/selector_measurement_proxy.py}
+\item \footnotesize\path{pipelines/scaffold/hh_continuation_scoring.py}
+\item \footnotesize\path{pipelines/exact_bench/snake_table_i_measurement_work.py}
+\item \footnotesize\path{pipelines/exact_bench/generic_static_metric_enrichment.py}
+\item \footnotesize\path{MATH/paper_facing/paper_I_static_scaffold/paper_i_tables_i_ii_repeat_enabled_comparator_promotion_20260610.json}
+\end{itemize}
+
+\begin{primerbox}{Memory hook}
+For non-SNAKE Paper I reporting, the table adds gradient probes, metric probes,
+and optimizer refit evaluations.  For the current SNAKE Paper I row, the table
+adds fresh controller \texttt{shots\_new} from Phase 0, Phase I, Phase II, and
+Phase III; reused controller groups are recorded but not added again.
+\end{primerbox}
+
+\end{document}

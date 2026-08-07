@@ -1,0 +1,64 @@
+diff --git a/pipelines/static_adapt/ra_adapt/engine.py b/pipelines/static_adapt/ra_adapt/engine.py
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -149,17 +149,27 @@ ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1 = (
+     RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY
+ )
++RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID = {
++    (
++        "paper_i_ra_adapt_global_singleton_"
++        "append_commutation_reduced_v1"
++    ): AppendCommutationReducedInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_plateau_commutation_v1"
++    ): PlateauCommutationInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_append_commutation_"
++        "reduced_qiskit_transpile_cost_v1"
++    ): AppendCommutationReducedInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_plateau_commutation_"
++        "qiskit_transpile_cost_v1"
++    ): PlateauCommutationInsertion.kind,
++}
+ RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS = frozenset(
+-    {
+-        (
+-            "paper_i_ra_adapt_global_singleton_append_commutation_"
+-            "reduced_qiskit_transpile_cost_v1"
+-        ),
+-        (
+-            "paper_i_ra_adapt_global_singleton_plateau_commutation_"
+-            "qiskit_transpile_cost_v1"
+-        ),
+-    }
++    algorithm_id
++    for algorithm_id in RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID
++    if algorithm_id.endswith("_qiskit_transpile_cost_v1")
+ )
+ RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID = {
+     (
+diff --git a/pipelines/reporting/paper_i_run_summary.py b/pipelines/reporting/paper_i_run_summary.py
+--- a/pipelines/reporting/paper_i_run_summary.py
++++ b/pipelines/reporting/paper_i_run_summary.py
+@@ -522,6 +522,7 @@ def _canonical_ra_supersession_identities(
+     )
+     from pipelines.static_adapt.ra_adapt.engine import (
+         RA_ADAPT_ALGORITHM_ID,
++        RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID,
+         RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS,
+         RA_ADAPT_LEGACY_ALGORITHM_ID,
+         RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID,
+@@ -573,7 +574,11 @@ def _canonical_ra_supersession_identities(
+                 RA_ADAPT_LEGACY_ALGORITHM_ID,
+                 *tuple(
+                     sorted(
+-                        RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS
++                        algorithm_id
++                        for algorithm_id, insertion_kind in (
++                            RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID.items()
++                        )
++                        if insertion_kind == method.insertion.kind
+                     )
+                 ),
+             )

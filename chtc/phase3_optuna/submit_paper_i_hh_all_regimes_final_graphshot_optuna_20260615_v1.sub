@@ -1,0 +1,30 @@
+# Overnight candidate Optuna batch for all Paper-I HH SNAKE regimes.
+# Goal: find final Paper-I SNAKE candidates improving iteration/energy/resource/shot proxy.
+universe = vanilla
+executable = chtc/phase3_optuna/run_paper_i_hh_speed_optuna_apptainer.sh
+arguments = $(regime) $(tag) raw_outputs/paper_i_hh_all_regimes_final_graphshot_optuna_20260615_v1/$(tag) 24 search 13 800 800 graph_cost_speed_feasible staged_graph 8
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, MATH/paper_facing/paper_I_static_scaffold/hh_ed_reference_manifest_20260614.json, agent_guidance/static-adapt/hh_full_meta_minus_hva_class_filter.json, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/paper_i_hh_all_regimes_final_graphshot_optuna_20260615_v1.$(Cluster).$(Process).log
+output = logs/paper_i_hh_all_regimes_final_graphshot_optuna_20260615_v1.$(Cluster).$(Process).out
+error = logs/paper_i_hh_all_regimes_final_graphshot_optuna_20260615_v1.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 48GB
+request_disk = 122880MB
++MaxRuntime = 172800
++JobBatchName = "holstein-paper_i_hh_all_regimes_final_graphshot_optuna_20260615_v1"
+queue regime, tag from (
+weak-weak paper_i_hh_weak_weak_final_graphshot_optuna_20260615_v1
+intermediate-weak paper_i_hh_intermediate_weak_final_graphshot_optuna_20260615_v1
+strong-weak-u8 paper_i_hh_strong_weak_u8_final_graphshot_optuna_20260615_v1
+weak-strong paper_i_hh_weak_strong_final_graphshot_optuna_20260615_v1
+intermediate-strong paper_i_hh_intermediate_strong_final_graphshot_optuna_20260615_v1
+strong-strong-u8 paper_i_hh_strong_strong_u8_final_graphshot_optuna_20260615_v1
+)

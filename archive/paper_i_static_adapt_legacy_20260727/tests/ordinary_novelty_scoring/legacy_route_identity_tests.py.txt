@@ -1,0 +1,142 @@
+def test_explicit_sr_novelty_fallback_live_prune_ablation_passes_legacy_identity_gate() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_raw_score_formula:no_novelty!=canonical",
+            "mismatch:phase1_prune_mode:live!=both",
+        ],
+    }
+    result = adapt_pipeline._validate_resolved_static_route_identity(
+        payload,
+        declared_route_id="route_a",
+        historical_singleton_overlay_active=True,
+        route_profile_conformance="unpromoted_explicit_ablation",
+        phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+    )
+    assert result["valid"] is True
+    assert result["explicit_ablation"] is True
+    assert result["novelty_fallback_ablation"] is True
+    assert result["validation_authority"] == "sr_explicit_ablation_contract_v1"
+
+
+def test_explicit_sr_novelty_fallback_no_prune_ablation_passes_legacy_identity_gate() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_raw_score_formula:no_novelty!=canonical",
+            "mismatch:phase1_prune_enabled:False!=True",
+            "mismatch:phase1_prune_mode:live!=both",
+        ],
+    }
+    result = adapt_pipeline._validate_resolved_static_route_identity(
+        payload,
+        declared_route_id="route_a",
+        historical_singleton_overlay_active=True,
+        route_profile_conformance="unpromoted_explicit_ablation",
+        phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase1_prune_enabled=False,
+        phase1_prune_mode="live",
+    )
+    assert result["valid"] is True
+    assert len(result["allowed_legacy_noncanonical_reasons"]) == 3
+
+
+def test_named_no_overlap_route_passes_legacy_identity_gate() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_raw_score_formula:no_novelty!=canonical",
+            "mismatch:phase1_prune_enabled:False!=True",
+        ],
+    }
+    result = adapt_pipeline._validate_resolved_static_route_identity(
+        payload,
+        declared_route_id="route_a",
+        historical_singleton_overlay_active=True,
+        sr_route_profile=(
+            adapt_pipeline.SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+        ),
+        route_profile_conformance="registered_profile",
+        phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase1_prune_enabled=False,
+        phase1_prune_mode="both",
+    )
+
+    assert result["valid"] is True
+    assert result["registered_controller_ablation_profile"] is True
+    assert result["novelty_fallback_ablation"] is True
+
+
+def test_sr_novelty_fallback_ablation_cannot_bypass_identity_gate_without_marker() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_raw_score_formula:no_novelty!=canonical",
+        ],
+    }
+    with pytest.raises(ValueError, match="phase2_raw_score_formula"):
+        adapt_pipeline._validate_resolved_static_route_identity(
+            payload,
+            declared_route_id="route_a",
+            historical_singleton_overlay_active=True,
+            route_profile_conformance="registered_profile",
+            phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            phase1_prune_enabled=True,
+            phase1_prune_mode="both",
+        )
+
+
+def test_phase3_only_controller_ablation_marker_allows_named_novelty_and_live_prune_mismatches() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase2_raw_score_formula:no_novelty!=canonical",
+            "mismatch:phase1_prune_mode:live!=both",
+        ],
+    }
+    result = adapt_pipeline._validate_resolved_static_route_identity(
+        payload,
+        declared_route_id="route_a",
+        historical_singleton_overlay_active=True,
+        route_profile_conformance="registered_profile",
+        phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        sr_controller_ablation_contract=(
+            SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1
+        ),
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+    )
+    assert result["valid"] is True
+    assert result["profile_instance_ablation"] is False
+    assert result["controller_ablation_marked"] is True
+    assert result["novelty_fallback_ablation"] is True
+
+
+def test_phase3_only_controller_ablation_marker_allows_live_prune_with_ordinary_novelty() -> None:
+    payload = {
+        "valid": False,
+        "noncanonical_reasons": [
+            "mismatch:phase1_prune_mode:live!=both",
+        ],
+    }
+    result = adapt_pipeline._validate_resolved_static_route_identity(
+        payload,
+        declared_route_id="route_a",
+        historical_singleton_overlay_active=True,
+        route_profile_conformance="registered_profile",
+        sr_controller_ablation_contract=(
+            SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1
+        ),
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+    )
+    assert result["valid"] is True
+    assert result["controller_ablation_marked"] is True
+    assert result["novelty_fallback_ablation"] is False

@@ -1,0 +1,29 @@
+{
+  "batch_id": "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1",
+  "generated_utc": "2026-07-11T02:20:05.617986+00:00",
+  "max_depth": 50,
+  "optimizer": "POWELL",
+  "record_count": 6,
+  "record_ids": [
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_weak__snake__current_forward__powell200__iter50",
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_weak__snake__current_forward__powell200__iter50",
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_weak__snake__current_forward__powell200__iter50",
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__weak_strong__snake__current_forward__powell200__iter50",
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__intermediate_strong__snake__current_forward__powell200__iter50",
+    "paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1__strong_strong__snake__current_forward__powell200__iter50"
+  ],
+  "record_ids_path": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_spsa_budget_ladder_record_ids.txt",
+  "record_queue_path": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_spsa_budget_ladder_record_queue.tsv",
+  "records_path": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "regimes": [
+    "weak-weak",
+    "intermediate-weak",
+    "strong-weak",
+    "weak-strong",
+    "intermediate-strong",
+    "strong-strong"
+  ],
+  "schema": "paper_i_hh_current_snake_iter50_manifest_v1",
+  "status": "ready_for_preflight",
+  "submission_audit": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_current_snake_iter50_20260710_v1/submission_audit.json"
+}

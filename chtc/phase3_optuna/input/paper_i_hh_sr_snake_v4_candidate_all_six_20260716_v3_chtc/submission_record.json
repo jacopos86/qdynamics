@@ -1,0 +1,39 @@
+{
+  "schema": "paper_i_hh_sr_snake_v4_candidate_submission_v3",
+  "bundle_id": "paper_i_hh_sr_snake_v4_candidate_all_six_20260716_v3_chtc",
+  "batch_name": "paper-i-hh-sr-v4-candidate-six-r30-20260716-v3",
+  "cluster_id": 8856925,
+  "job_count": 6,
+  "submitted_utc": "2026-07-17T02:39:05Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_state": {
+    "idle": 6,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "source_lock": {
+    "git_commit": "6b1a6c619998bb397e382c78c3a9c77572aa4ede",
+    "source_archive_sha256": "680d42e100ddc92ea665a6967a4ad56df9aaa51d6230aff86d7307e2ae1e00ec",
+    "route_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc"
+  },
+  "pre_submission_validation": {
+    "local_bundle_tests": "11_of_11_passed",
+    "remote_bundle_tests": "11_of_11_passed",
+    "remote_image_sha256_passed": true,
+    "remote_qiskit_version": "2.3.1",
+    "remote_fake_backend": "fake_marrakesh",
+    "remote_fake_backend_qubits": 156,
+    "condor_dry_run_job_count": 6,
+    "matching_prior_cluster_found": false
+  },
+  "submitted_artifact_hashes": {
+    "bundle_manifest_json": "35fa3ecfcf99562a401501d3f91f95638eb5c1aec755eb768566e7dac37d9273",
+    "preflight_json": "f11e9ddf60d48804b09df8a825c265c0a7f8f4d3d26bd808914dce6f938d0aca",
+    "remote_execution_gate_json": "547a551a226e1300e8453bf8e14195b2f4937d3eab05ff92e9fe2ff2faeef883",
+    "submit_sub": "46281f9aa21a9c345f52861e8bee79be1efe64d4ef452085b3e0bcb4245dc7fe",
+    "queue_tsv": "4be37c4bc0d2a7b17d8a9070b54eba77d55bb1f2d9907eaa0b306724f0a628a5",
+    "submission_artifact_hashes_json": "c1d4c9184f5072243fb89d5a922c027d7e7abc9a585e5b27239964cbb8ef5f14"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "archive_count": 12,
+  "archives": [
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__intermediate_strong__nph7__append_singleton__cluster_9392883__proc_36.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__intermediate_strong__nph7__append_singleton__cluster_9392883__proc_36.tar.gz",
+      "sha256": "51a867da7de3e74e11a6c68f3fd2e63cb73f3272f335e8eb0cc20bd8178c7c18",
+      "size_bytes": 726489064
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__strong_strong_u8__nph7__append_singleton__cluster_9392883__proc_44.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__strong_strong_u8__nph7__append_singleton__cluster_9392883__proc_44.tar.gz",
+      "sha256": "85bda822743455d48644893597d9232394230a6f26028fef2b73ddb89cfc3e0e",
+      "size_bytes": 611813972
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__strong_strong_u8__nph7__ra_macro_plateau__cluster_9392883__proc_42.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched/core__strong_strong_u8__nph7__ra_macro_plateau__cluster_9392883__proc_42.tar.gz",
+      "sha256": "1f26fc7b2d54a163aa0e886eaf7b095beb389479ddcde839001b75503775ed63",
+      "size_bytes": 1234675007
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__intermediate_strong__nph7__ra_macro_append_only__cluster_9392920__proc_4.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__intermediate_strong__nph7__ra_macro_append_only__cluster_9392920__proc_4.tar.gz",
+      "sha256": "dec46267f3e70102a0d8b4bb4249af54c14ba0b657325e3a65111ef4f0fbc908",
+      "size_bytes": 240039969
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__intermediate_weak__nph3__ra_macro_append_only__cluster_9392920__proc_1.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__intermediate_weak__nph3__ra_macro_append_only__cluster_9392920__proc_1.tar.gz",
+      "sha256": "32de745fb70e3bcc022841095aa9b9dfdb9df7ed70b3b5eb2c71d917f65a63be",
+      "size_bytes": 206807971
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__strong_strong_u8__nph7__ra_macro_append_only__cluster_9392920__proc_5.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__strong_strong_u8__nph7__ra_macro_append_only__cluster_9392920__proc_5.tar.gz",
+      "sha256": "f27d5cbafb082eff9cd3de0ff1cf6f3fcf268812e18b3f4917fb48e7e800dcd9",
+      "size_bytes": 230057163
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__strong_weak_u8__nph3__ra_macro_append_only__cluster_9392920__proc_2.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__strong_weak_u8__nph3__ra_macro_append_only__cluster_9392920__proc_2.tar.gz",
+      "sha256": "905e0cbc77c915695c90db3161726dfb8737d7128a74fd006f9b603133f4d5da",
+      "size_bytes": 188198231
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__weak_strong__nph7__ra_macro_append_only__cluster_9392920__proc_3.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__weak_strong__nph7__ra_macro_append_only__cluster_9392920__proc_3.tar.gz",
+      "sha256": "6a15fbf476cb5ed8a623df58998df6eb24b26b6eeab1b8ad82b4aa5204287972",
+      "size_bytes": 237997496
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v8_9392920_20260729/core__weak_weak__nph3__ra_macro_append_only__cluster_9392920__proc_0.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched/core__weak_weak__nph3__ra_macro_append_only__cluster_9392920__proc_0.tar.gz",
+      "sha256": "8a2569b7ee0844b4aba63a7930949cc8f040f9b812a7a8b32dcc10955696add7",
+      "size_bytes": 195976561
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__intermediate_weak__nph3__ra_singleton_always__cluster_9393067__proc_3.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__intermediate_weak__nph3__ra_singleton_always__cluster_9393067__proc_3.tar.gz",
+      "sha256": "6edc237a4d7461e0fd7a8e83413cca2af3ee0d8e76ac55b62e772d6add7b8f90",
+      "size_bytes": 687486849
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__strong_weak_u8__nph3__ra_singleton_always__cluster_9393067__proc_5.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__strong_weak_u8__nph3__ra_singleton_always__cluster_9393067__proc_5.tar.gz",
+      "sha256": "8e9976564d5c64b7bb6c4d92d6142a04c6ac9703411469c70e33463cfd868816",
+      "size_bytes": 726657709
+    },
+    {
+      "local_path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_preexisting_remote_only_20260730/chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__weak_weak__nph3__ra_singleton_always__cluster_9393067__proc_1.tar.gz",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched/core__weak_weak__nph3__ra_singleton_always__cluster_9393067__proc_1.tar.gz",
+      "sha256": "4d0a444570618f3a023940ff926eef9d560aadad604bc0d0ab59952f2de85f9f",
+      "size_bytes": 694372516
+    }
+  ],
+  "local_verification": {
+    "algorithm": "sha256",
+    "all_match_recorded_remote_digests": true,
+    "archive_count": 12,
+    "total_bytes": 5980572508
+  },
+  "observed_utc": "2026-07-30T13:11:51Z",
+  "remote_cleanup": {
+    "exact_targets_deleted": 12,
+    "exact_targets_remaining": 0,
+    "fetched_root_file_counts_after": {
+      "stationary_core_full48_r50_20260728_v7_chtc_runtime/fetched": 0,
+      "stationary_core_full48_r50_20260728_v8_chtc_runtime/fetched": 0,
+      "stationary_ra_always12_r50_20260729_v1_chtc_runtime/fetched": 0
+    },
+    "post_cleanup_quota": {
+      "hard_limit_mib": 51200,
+      "soft_quota_mib": 40960,
+      "used_mib": 34481
+    },
+    "state": "completed_after_local_sha256_verification"
+  },
+  "schema": "paper_i_ra_adapt_preexisting_archive_recovery_receipt_v1",
+  "sha256": "7c43d1214961aeb3f958eac54a6cb6d3f614e86b9a0aa99000335c6ccc90da61",
+  "total_bytes": 5980572508,
+  "unrelated_remote_files_touched": false
+}

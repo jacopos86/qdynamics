@@ -1,0 +1,276 @@
+from __future__ import annotations
+
+from dataclasses import asdict, replace
+import json
+from pathlib import Path
+import sys
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+import pipelines.static_adapt.optimization.staged_adapt_optuna as staged_optuna
+from pipelines.static_adapt.optimization.staged_adapt_optuna import (
+    TrialObservation,
+    _baseline_trial_params,
+    _build_base_run_config,
+    _build_trial_command,
+    _run_study,
+    _search_space,
+    build_parser,
+)
+from pipelines.static_adapt.output_artifacts import extract_adapt_energy_metrics
+
+
+def _base_args(*pipeline_tokens: str):
+    return build_parser().parse_args(["--", *pipeline_tokens])
+
+
+def _base_cfg(*pipeline_tokens: str):
+    return _build_base_run_config(_base_args(*pipeline_tokens))
+
+
+def test_build_base_run_config_from_remainder_preserves_omitted_adapt_pool() -> None:
+    cfg = _base_cfg(
+        "--problem",
+        "hubbard",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+    )
+    assert cfg.family == "hubbard"
+    assert cfg.source_kind == "cli_remainder"
+    assert "--adapt-pool" not in cfg.pipeline_args
+
+
+def test_build_base_run_config_rejects_hh() -> None:
+    with pytest.raises(ValueError, match="rejects hh"):
+        _base_cfg(
+            "--problem",
+            "hh",
+            "--L",
+            "2",
+            "--adapt-continuation-mode",
+            "phase3_v1",
+        )
+
+
+def test_build_trial_command_uses_canonical_static_adapt_entrypoint(tmp_path: Path) -> None:
+    cfg = _base_cfg(
+        "--problem",
+        "extended_hubbard",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--adapt-pool",
+        "full_meta",
+    )
+    params = _baseline_trial_params(cfg)
+    command, dropped, env_overrides, effective = _build_trial_command(
+        python_bin=sys.executable,
+        base_cfg=cfg,
+        params=params,
+        case_dir=tmp_path / "trial_case",
+    )
+    assert command[:4] == [
+        sys.executable,
+        "-u",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+    ]
+    assert "--output-json" in command
+    assert "--skip-pdf" in command
+    assert dropped == []
+    assert env_overrides == ()
+    assert effective["selection_cost_mode"] == "proxy"
+
+
+def test_build_trial_command_forwards_exact_gs_override(tmp_path: Path) -> None:
+    cfg = _base_cfg(
+        "--problem",
+        "extended_hubbard",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--adapt-pool",
+        "full_meta",
+    )
+    params = _baseline_trial_params(cfg)
+    command, dropped, _env_overrides, effective = _build_trial_command(
+        python_bin=sys.executable,
+        base_cfg=cfg,
+        params=params,
+        case_dir=tmp_path / "trial_case",
+        exact_gs_override=-0.125,
+    )
+    assert dropped == []
+    assert "--adapt-exact-gs-override" in command
+    assert command[command.index("--adapt-exact-gs-override") + 1] == repr(-0.125)
+    assert effective["adapt_exact_gs_override"] == pytest.approx(-0.125)
+
+
+def test_build_trial_command_forwards_exact_reference_manifest(tmp_path: Path) -> None:
+    manifest = tmp_path / "exact_refs.json"
+    manifest.write_text("{\"references\": []}", encoding="utf-8")
+    cfg = _base_cfg(
+        "--problem",
+        "extended_hubbard",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--adapt-pool",
+        "full_meta",
+    )
+    params = _baseline_trial_params(cfg)
+    command, dropped, _env_overrides, effective = _build_trial_command(
+        python_bin=sys.executable,
+        base_cfg=cfg,
+        params=params,
+        case_dir=tmp_path / "trial_case",
+        exact_gs_reference_json=manifest,
+    )
+    assert dropped == []
+    assert "--adapt-exact-gs-reference-json" in command
+    assert command[command.index("--adapt-exact-gs-reference-json") + 1] == str(manifest)
+    assert effective["adapt_exact_gs_reference_json"] == str(manifest)
+
+
+def test_build_trial_command_can_select_recoverability_prune_policy(tmp_path: Path) -> None:
+    cfg = _base_cfg(
+        "--problem",
+        "extended_hubbard",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--adapt-pool",
+        "full_meta",
+    )
+    params = replace(
+        _baseline_trial_params(cfg),
+        phase1_prune_policy="recoverability_ladder_v1",
+        phase1_prune_mode="live",
+    )
+    command, dropped, _env_overrides, effective = _build_trial_command(
+        python_bin=sys.executable,
+        base_cfg=cfg,
+        params=params,
+        case_dir=tmp_path / "trial_case",
+    )
+    assert "--phase1-prune-policy" in command
+    idx = command.index("--phase1-prune-policy")
+    assert command[idx + 1] == "recoverability_ladder_v1"
+    assert dropped == []
+    assert effective["phase1_prune_policy"] == "recoverability_ladder_v1"
+
+
+def test_extract_adapt_energy_metrics_falls_back_to_energy_difference() -> None:
+    metrics = extract_adapt_energy_metrics(
+        {
+            "adapt_vqe": {
+                "energy": -0.10086920445548969,
+                "exact_gs_energy": -0.10849528301415162,
+            }
+        }
+    )
+    assert metrics.energy == pytest.approx(-0.10086920445548969)
+    assert metrics.exact_gs_energy == pytest.approx(-0.10849528301415162)
+    assert metrics.abs_delta_e == pytest.approx(0.007626078558661931)
+
+
+def test_run_study_writes_summary_and_progress(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = _base_cfg(
+        "--problem",
+        "spinless_tv",
+        "--L",
+        "2",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--adapt-pool",
+        "full_meta",
+    )
+    baseline = _baseline_trial_params(cfg)
+    search_space = _search_space(_base_args("--problem", "spinless_tv", "--L", "2", "--adapt-continuation-mode", "phase3_v1", "--adapt-pool", "full_meta"), baseline)
+
+    def _fake_evaluate_trial(**kwargs):
+        case_dir = Path(kwargs["output_dir"]) / "trials" / f"trial_{int(kwargs['trial_number']):04d}"
+        (case_dir / "json").mkdir(parents=True, exist_ok=True)
+        result_json = case_dir / "json" / "result.json"
+        compile_json = case_dir / "json" / "compile_scout_fake_marrakesh.json"
+        result_json.write_text("{}", encoding="utf-8")
+        compile_json.write_text("{}", encoding="utf-8")
+        return TrialObservation(
+            trial_number=int(kwargs["trial_number"]),
+            source_kind="trial",
+            family=str(kwargs["base_cfg"].family),
+            params=asdict(kwargs["params"]),
+            objective=0.033,
+            status="completed",
+            abs_delta_e=0.033,
+            energy=-2.08,
+            exact_gs_energy=-2.11,
+            stop_reason="drop_plateau",
+            ansatz_depth=16,
+            compiled_count_2q=42,
+            compiled_depth=88,
+            logical_parameter_count=16,
+            runtime_parameter_count=16,
+            compile_status="completed",
+            invalid_reasons=[],
+            compile_invalid_reasons=[],
+            case_dir=str(case_dir),
+            result_json=str(result_json),
+            compile_json=str(compile_json),
+            returncode=0,
+            compile_returncode=0,
+            pipeline_elapsed_s=0.25,
+            compile_elapsed_s=0.1,
+            total_elapsed_s=0.35,
+            dropped_args=[],
+            family_path_signature=["diag"],
+            selected_op_signature=["diag:z0"],
+            source_artifact_dir=None,
+            error=None,
+        )
+
+    monkeypatch.setattr(staged_optuna, "_evaluate_trial", _fake_evaluate_trial)
+
+    out_dir = tmp_path / "study"
+    summary = _run_study(
+        tag="spinless_tv_optuna_test",
+        output_dir=out_dir,
+        python_bin=sys.executable,
+        base_cfg=cfg,
+        search_space=search_space,
+        baseline_params=baseline,
+        n_trials=1,
+        n_startup_trials=0,
+        sampler_seed=7,
+        enqueue_baseline=False,
+        compile_backend="FakeMarrakesh",
+        compile_opt_level=1,
+        compile_seed=7,
+        warm_start_observations=[],
+        warm_start_params=[],
+        reference_observations=[],
+        skipped_artifacts=[],
+    )
+
+    summary_path = out_dir / "summary.json"
+    progress_path = out_dir / "progress.json"
+    assert summary_path.exists()
+    assert progress_path.exists()
+
+    summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    progress_payload = json.loads(progress_path.read_text(encoding="utf-8"))
+    assert summary["best_objective_trial"]["trial_number"] == 0
+    assert summary_payload["best_objective_trial"]["trial_number"] == 0
+    assert summary_payload["feasible_trial_count"] == 1
+    assert progress_payload["done"] is True
+    assert progress_payload["best_trial_number"] == 0

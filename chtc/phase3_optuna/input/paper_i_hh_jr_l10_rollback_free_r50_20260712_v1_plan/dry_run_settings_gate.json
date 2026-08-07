@@ -1,0 +1,91 @@
+{
+  "cell_count": 6,
+  "rows": [
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__intermediate_strong",
+      "child_padding_policy": "exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "intermediate-strong",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "568e0eae767d8b2ef22b6094f8ac5ffb70926f8ae6ec4453649996987431c5f1",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    },
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__intermediate_weak",
+      "child_padding_policy": "nph2_exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "intermediate-weak",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "455edb12aa7fdb19ff2c97b86b6d7c5dffc92f723d12a8f0eb99e31bfc7963b3",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    },
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__strong_strong_u8",
+      "child_padding_policy": "exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "strong-strong-u8",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "0ee4e2a7b6e2e66bd09b2ee36db3593a06233912abd52a2d2e66661072a2cd6e",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    },
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__strong_weak_u8",
+      "child_padding_policy": "nph2_exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "strong-weak-u8",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "fc3a922a19ea572050ac41df784e4b281efc4cce01d5390f83966221475b1e11",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    },
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__weak_strong",
+      "child_padding_policy": "exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "weak-strong",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "1ce39df2fe2d10b7e7ba8ec9c1622342b2c574d8a64d250aa6ad3bb85eef8064",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    },
+    {
+      "B_max": 2,
+      "L_search": 10,
+      "cell_id": "trial_000000__weak_weak",
+      "child_padding_policy": "nph2_exact_projected_grouped_v1",
+      "exhaustion": "stop",
+      "funnel_mode": "child_12_joint_response_v2",
+      "regime": "weak-weak",
+      "rollback_controls_absent": true,
+      "scientific_settings_hash": "8a4f2ddd6678806423ec4fad993bd3c9f77dcd1931a208dd79bfd4ae338acfd5",
+      "status": "pass",
+      "trust_update": "displacement_calibrated_unbounded_v2",
+      "warm_start": "exact_applied_joint_step_guarded_v1"
+    }
+  ],
+  "schema": "paper_i_hh_jr_l10_rollback_free_r50_dry_run_gate_v1",
+  "status": "pass"
+}

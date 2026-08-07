@@ -1,0 +1,51 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.static_adapt.optimization.hh_snake_interpretable_ml_analysis import analyze
+
+
+def test_interpretable_analysis_labels_and_ranges(tmp_path: Path) -> None:
+    anchors = {
+        "anchor_sets": {
+            "snake_incumbent": [{"regime": "weak-strong", "delta_E": 0.10, "k_useful": 10}],
+            "paper_i_geo_useful": [{"regime": "weak-strong", "delta_E": 0.20, "k_useful": 12}],
+        }
+    }
+    anchors_path = tmp_path / "anchors.json"
+    anchors_path.write_text(json.dumps(anchors), encoding="utf-8")
+    features_path = tmp_path / "features.ndjson"
+    rows = []
+    for idx in range(12):
+        rows.append(
+            {
+                "ml_row_id": idx,
+                "path": f"row{idx}.json",
+                "regime": "weak-strong",
+                "n_ph": 4,
+                "delta_E_best_proxy": 0.05 + idx * 0.001,
+                "k_best_energy_proxy": 8,
+                "include_for_strict_bound_training": True,
+                "effective_params": {
+                    "phase1_prune_fraction": 0.2 + idx * 0.01,
+                    "batch_near_degenerate_ratio_shared": 0.9 + idx * 0.001,
+                    "batch_rank_rel_tol_shared": 1e-6,
+                    "batch_additivity_slack_scale": 0.5,
+                },
+            }
+        )
+    features_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+    summary = analyze(features_path, anchors_path, tmp_path / "out")
+
+    assert summary["strict_row_count"] == 12
+    assert summary["strong_positive_count"] == 12
+    ranges = {row["parameter"]: row for row in summary["candidate_ranges"]}
+    assert ranges["phase1_prune_fraction"]["status"] == "candidate_range"
+    assert (tmp_path / "out" / "analysis_report.md").exists()

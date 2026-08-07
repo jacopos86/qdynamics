@@ -1,0 +1,65 @@
+{
+  "batch_name": "paper-i-hh-jr-l10-resume48gb-r30-20260714-v1",
+  "checkpoints": [
+    {
+      "abs_delta_e": 0.017411079380891037,
+      "ansatz_depth": 35,
+      "cell_id": "trial_000000__weak_strong",
+      "controller_round": 25,
+      "regime": "weak-strong",
+      "sha256": "8762adf797a98ca718a3e3a0fdb4cd97f8f852632c9653fe2c0d736be72003b6",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_resume48gb_r30_20260714_v1/resume_scaffolds/weak-strong.current.json"
+    },
+    {
+      "abs_delta_e": 0.00704682995989292,
+      "ansatz_depth": 38,
+      "cell_id": "trial_000000__intermediate_strong",
+      "controller_round": 27,
+      "regime": "intermediate-strong",
+      "sha256": "ac33c36894d7abc0e0734e2636ca06195328d176a89c77be439f6b4c5cbc2fa4",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_resume48gb_r30_20260714_v1/resume_scaffolds/intermediate-strong.current.json"
+    },
+    {
+      "abs_delta_e": 0.0010570693350077098,
+      "ansatz_depth": 30,
+      "cell_id": "trial_000000__strong_strong_u8",
+      "controller_round": 25,
+      "regime": "strong-strong-u8",
+      "sha256": "7f07b874a15e5e4ce109e8c9b9d554d8b5f70f6cfbefad3e9bb63bc1e1761e45",
+      "source_json": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_resume48gb_r30_20260714_v1/resume_scaffolds/strong-strong-u8.current.json"
+    }
+  ],
+  "held_checkpoint_note": "latest recoverable snapshots predate memory holds; unretrieved post-snapshot work is not claimed",
+  "operational_changes": {
+    "request_disk_mb": 61440,
+    "request_memory_mb": "32768->49152",
+    "structural_resume": true
+  },
+  "policy_unchanged": {
+    "B_max": 2,
+    "C1": 32,
+    "C2": 25,
+    "L_search": 10,
+    "M1": 32,
+    "M2": 24,
+    "joint_linear_solve": "supported_metric_whitened_eigh_v1",
+    "powell_maxfev": 200,
+    "structural_rollback_enabled": false,
+    "trust_update": "displacement_calibrated_unbounded_v2"
+  },
+  "schema": "paper_i_hh_jr_r30_memory_recovery_submission_v1",
+  "scientific_settings_changed": [
+    "segment_local_max_controller_rounds:50->remaining_to_cumulative_round_30"
+  ],
+  "segment_local_max_controller_rounds_by_regime": {
+    "intermediate-strong": 3,
+    "strong-strong-u8": 5,
+    "weak-strong": 5
+  },
+  "selector_exhaustion_retry_policy": "stop",
+  "source_cluster_id": 8776170,
+  "source_execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "source_max_controller_rounds": 50,
+  "source_wave_manifest_sha256": "c1c36e78f88007eaa55bfda63b7a07ab28385e9dc4f6c75052dc13d0d2f59d9a",
+  "target_controller_round": 30
+}

@@ -1,0 +1,23 @@
+{
+  "created_utc": "2026-07-19T00:52:19.729744+00:00",
+  "predecessor_batch_name": "paper-i-hh-sr-main-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260718-v2",
+  "predecessor_bundle_id": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc",
+  "repair_scope": [
+    "accepted_record_fallback_receipt_reconstruction",
+    "fallback_aware_supported_rank_evidence_validation",
+    "focused_bundle_tests",
+    "operational_identity_and_artifact_hash_refresh"
+  ],
+  "route_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+  "route_contract_unchanged": true,
+  "schema": "paper_i_hh_sr_operational_successor_receipt_v1",
+  "scientific_settings_changed": false,
+  "scientific_source_archive_sha256": "fa9014b9608ccb8a301df0429268482abf6dd10c91eb336111a15d00be256d35",
+  "scientific_source_archive_unchanged": true,
+  "scientific_validation_status": "blocked_phase3_response_not_executed_every_round",
+  "submission_blocked": true,
+  "submission_blocker": "frozen source can enter a phase2_raw/eps_grad_suppressed_continue path without executing the declared full-active-plus-singleton Phase-III response on every controller round; missing supported rank on those rounds is not an all-energy-models-infeasible fallback receipt and cannot be repaired by evidence-validation or telemetry plumbing",
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-main-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260718-v3",
+  "successor_bundle_id": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v3_chtc"
+}

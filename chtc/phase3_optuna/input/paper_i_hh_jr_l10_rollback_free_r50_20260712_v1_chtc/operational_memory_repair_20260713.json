@@ -1,0 +1,25 @@
+{
+  "cluster_id": 8776170,
+  "generated_utc": "2026-07-13T14:54:06Z",
+  "jobs": [
+    {
+      "proc_id": 0,
+      "regime": "weak-weak"
+    },
+    {
+      "proc_id": 1,
+      "regime": "intermediate-weak"
+    }
+  ],
+  "new_request_memory_mb": 32768,
+  "old_request_memory_mb": 24576,
+  "reason": "cgroup_memory_limit_reached",
+  "repair_actions": [
+    "condor_qedit RequestMemory 32768",
+    "condor_release"
+  ],
+  "schema": "paper_i_hh_chtc_operational_repair_v1",
+  "scientific_settings_changed": false,
+  "source_snapshot_changed": false,
+  "status_after_repair": "idle_awaiting_rematch"
+}

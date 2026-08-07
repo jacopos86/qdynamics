@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.static_adapt.optimization.hh_snake_shallow_feature_extract import extract_large_json_features
+
+
+def test_extract_large_json_features_from_head_and_tail(tmp_path: Path) -> None:
+    payload_head = {
+        "adapt_segment": {"final_depth": 14, "final_runtime_parameter_count": 88, "stop_reason": "drop_plateau"},
+        "adapt_vqe": {"abs_delta_e": 0.0123, "adapt_beam_enabled": True, "adapt_beam_live_branches": 2},
+    }
+    tail_settings = {
+        "settings": {
+            "benchmark_id": "hh_L2_nph4_three_model_sym_weak_strong",
+            "phase1_prune_fraction": 0.34,
+            "phase2_batch_near_degenerate_ratio": 0.96,
+            "phase2_batch_rank_rel_tol": 1.0e-6,
+            "phase2_batch_additivity_tol": 0.5,
+            "phase2_gamma_N": 1.0,
+            "phase2_gamma_N_schedule_mode": "fixed",
+            "phase2_motif_bonus_weight": 0.0,
+            "phase3_enable_batching": True,
+            "adapt_inner_optimizer": "SPSA",
+            "u": 0.25,
+            "g_ep": 1.25,
+            "n_ph_max": 4,
+        }
+    }
+    path = tmp_path / "run" / "hh_L2_nph4_three_model_sym_weak_strong" / "trial_0001" / "result.json"
+    path.parent.mkdir(parents=True)
+    text = json.dumps(payload_head) + ("\n " * 2000) + json.dumps(tail_settings)
+    path.write_text(text, encoding="utf-8")
+
+    row = extract_large_json_features(path, head_bytes=2000, tail_bytes=8000)
+
+    assert row["regime"] == "weak-strong"
+    assert row["n_ph"] == 4
+    assert row["delta_E_best_proxy"] == 0.0123
+    assert row["history_len_proxy"] == 14
+    assert row["effective_params"]["phase1_prune_fraction"] == 0.34
+    assert row["effective_params"]["batch_near_degenerate_ratio_shared"] == 0.96
+    assert row["phase2_gamma_N_schedule_mode"] == "fixed"
+    assert row["include_for_strict_bound_training"] is True

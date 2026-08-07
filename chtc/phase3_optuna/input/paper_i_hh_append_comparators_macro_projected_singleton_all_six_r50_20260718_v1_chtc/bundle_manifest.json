@@ -1,0 +1,122 @@
+{
+  "bundle_id": "paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v1_chtc",
+  "expected_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "generated_utc": "2026-07-18T17:27:09.439268+00:00",
+  "job_count": 12,
+  "operational_blockers": [],
+  "records": [
+    {
+      "job_id": "append_macro__weak_weak__r50",
+      "job_manifest_sha256": "1ccf971d5fe04f5a2f6a6ce4ba669b5bac56e8eb5c7161500448b5e2751c1dc8",
+      "normalized_manifest_sha256": "1ccf971d5fe04f5a2f6a6ce4ba669b5bac56e8eb5c7161500448b5e2751c1dc8",
+      "regime": "weak-weak",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_macro__intermediate_weak__r50",
+      "job_manifest_sha256": "9cb114956f28208c1099f51999ec506cf4acdebee581b4cea1cac5dc78462208",
+      "normalized_manifest_sha256": "9cb114956f28208c1099f51999ec506cf4acdebee581b4cea1cac5dc78462208",
+      "regime": "intermediate-weak",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_macro__strong_weak__r50",
+      "job_manifest_sha256": "61093748bea547c6a80a7d12da97e4b22b82548f551e42c08b46ce72f38dd1ce",
+      "normalized_manifest_sha256": "61093748bea547c6a80a7d12da97e4b22b82548f551e42c08b46ce72f38dd1ce",
+      "regime": "strong-weak",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_macro__weak_strong__r50",
+      "job_manifest_sha256": "565765a737c579e86b18c38384c38bd14edf6f06987c63f6df665b4af7e9ebf4",
+      "normalized_manifest_sha256": "565765a737c579e86b18c38384c38bd14edf6f06987c63f6df665b4af7e9ebf4",
+      "regime": "weak-strong",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_macro__intermediate_strong__r50",
+      "job_manifest_sha256": "37c069755cb2090d693fdd7ce794c107ed9fd28b76c56a8218cac2b9e81a919c",
+      "normalized_manifest_sha256": "37c069755cb2090d693fdd7ce794c107ed9fd28b76c56a8218cac2b9e81a919c",
+      "regime": "intermediate-strong",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_macro__strong_strong__r50",
+      "job_manifest_sha256": "c3eed6c401a468209f00b22f5c945b5f75b6dec2594f9060b1323b8b23744d3b",
+      "normalized_manifest_sha256": "c3eed6c401a468209f00b22f5c945b5f75b6dec2594f9060b1323b8b23744d3b",
+      "regime": "strong-strong",
+      "variant": "macro"
+    },
+    {
+      "job_id": "append_projected_singleton__weak_weak__r50",
+      "job_manifest_sha256": "c29aa9a573c753330a78061edcee343abb51e1801ffb51829e9caf64cefb5f61",
+      "normalized_manifest_sha256": "c29aa9a573c753330a78061edcee343abb51e1801ffb51829e9caf64cefb5f61",
+      "regime": "weak-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__intermediate_weak__r50",
+      "job_manifest_sha256": "4348bf7e43c23094cdd8d8235f52f5217872df891d92531b4f33a79eab47e47e",
+      "normalized_manifest_sha256": "4348bf7e43c23094cdd8d8235f52f5217872df891d92531b4f33a79eab47e47e",
+      "regime": "intermediate-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__strong_weak__r50",
+      "job_manifest_sha256": "308250a78a500ee1d3551f719121b5c36bbd2d954769bdfa08b6511ee33c873c",
+      "normalized_manifest_sha256": "308250a78a500ee1d3551f719121b5c36bbd2d954769bdfa08b6511ee33c873c",
+      "regime": "strong-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__weak_strong__r50",
+      "job_manifest_sha256": "96be55bb0f9e3a9ba6c22531c694309c3a000c5784faf6932b6309be2e63bd2c",
+      "normalized_manifest_sha256": "96be55bb0f9e3a9ba6c22531c694309c3a000c5784faf6932b6309be2e63bd2c",
+      "regime": "weak-strong",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__intermediate_strong__r50",
+      "job_manifest_sha256": "33c5726b9caa75053947831c4e8ba90dc5c73b6e7e04a6fd70dc53e971606703",
+      "normalized_manifest_sha256": "33c5726b9caa75053947831c4e8ba90dc5c73b6e7e04a6fd70dc53e971606703",
+      "regime": "intermediate-strong",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__strong_strong__r50",
+      "job_manifest_sha256": "14a54978e703d0e0ea2d8f41c46a6189e0f51635ade9dea5b98de8c8d0112725",
+      "normalized_manifest_sha256": "14a54978e703d0e0ea2d8f41c46a6189e0f51635ade9dea5b98de8c8d0112725",
+      "regime": "strong-strong",
+      "variant": "projected_singleton"
+    }
+  ],
+  "regime_count_per_variant": 6,
+  "remote_image_gate": {
+    "checks": {
+      "fake_backend_identity": true,
+      "fake_backend_instantiation": true,
+      "fake_backend_qubits": true,
+      "image_path": true,
+      "image_sha256": true,
+      "qiskit_import": true,
+      "qiskit_version": true,
+      "schema": true,
+      "status": true
+    },
+    "gate_path": "remote_execution_gate.json",
+    "gate_sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+    "passed": true,
+    "reason": "pass",
+    "schema_expected": "paper_i_hh_sr_symcost_noprune_remote_execution_gate_v1"
+  },
+  "schema": "paper_i_hh_append_completion_bundle_v1",
+  "scientific_blockers": [],
+  "source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_append_comparators_macro_projected_singleton_all_six_r50_20260718_v1_chtc/source_locked.tar.gz",
+    "sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd"
+  },
+  "status": "prepared_not_submitted",
+  "submission_enabled": true,
+  "submission_requirements": "TARGET.HasSIF",
+  "variant_count": 2
+}

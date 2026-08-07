@@ -1,0 +1,14 @@
+{
+  "accepted_refit_coordinate_chart": "supported_fs_whitened_fixed_v1",
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "candidate_value": "supported_metric_projected_generalized_trust_v1",
+  "changed_execution_fields_vs_parent": [
+    "historical_singleton_coordinate_solve_policy"
+  ],
+  "non_swept_settings_diff": [],
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "parent_value": "supported_metric_whitened_eigh_v1",
+  "projected_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_fanout_route_parity_v1",
+  "status": "pass"
+}

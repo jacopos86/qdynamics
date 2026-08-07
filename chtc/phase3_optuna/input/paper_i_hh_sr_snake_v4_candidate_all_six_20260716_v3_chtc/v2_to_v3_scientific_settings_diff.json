@@ -1,0 +1,247 @@
+{
+  "approved_contract_diff_paths": [
+    "execution_settings.adapt_disable_hh_seed",
+    "execution_settings.phase1_energy_model",
+    "execution_settings.phase1_score_mode",
+    "execution_settings.phase2_cheap_curvature_proxy_policy",
+    "execution_settings.phase2_curvature_policy",
+    "semantic_invariants.hh_preseed_policy",
+    "semantic_invariants.phase1_energy_model",
+    "semantic_invariants.phase1_fs_metric_role",
+    "semantic_invariants.phase1_phase2_lambda_f_proxy_active",
+    "semantic_invariants.phase2_cheap_curvature_proxy_policy",
+    "semantic_invariants.phase2_curvature_failure_policy",
+    "semantic_invariants.phase2_curvature_policy"
+  ],
+  "baseline_bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_all_six_20260716_v2_chtc",
+  "candidate_bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_all_six_20260716_v3_chtc",
+  "observed_contract_diff": [
+    {
+      "path": "execution_settings.adapt_disable_hh_seed",
+      "v2": false,
+      "v3": true
+    },
+    {
+      "path": "execution_settings.phase1_energy_model",
+      "v2": "<MISSING>",
+      "v3": "first_order_fs_trust_v1"
+    },
+    {
+      "path": "execution_settings.phase1_score_mode",
+      "v2": "<MISSING>",
+      "v3": "trust_region_v1"
+    },
+    {
+      "path": "execution_settings.phase2_cheap_curvature_proxy_policy",
+      "v2": "<MISSING>",
+      "v3": "off"
+    },
+    {
+      "path": "execution_settings.phase2_curvature_policy",
+      "v2": "<MISSING>",
+      "v3": "measured_required_fail_closed_v1"
+    },
+    {
+      "path": "semantic_invariants.hh_preseed_policy",
+      "v2": "<MISSING>",
+      "v3": "disabled_singleton_growth_from_reference_v1"
+    },
+    {
+      "path": "semantic_invariants.phase1_energy_model",
+      "v2": "<MISSING>",
+      "v3": "first_order_fs_trust_v1"
+    },
+    {
+      "path": "semantic_invariants.phase1_fs_metric_role",
+      "v2": "<MISSING>",
+      "v3": "trust_domain_only_v1"
+    },
+    {
+      "path": "semantic_invariants.phase1_phase2_lambda_f_proxy_active",
+      "v2": "<MISSING>",
+      "v3": false
+    },
+    {
+      "path": "semantic_invariants.phase2_cheap_curvature_proxy_policy",
+      "v2": "<MISSING>",
+      "v3": "off"
+    },
+    {
+      "path": "semantic_invariants.phase2_curvature_failure_policy",
+      "v2": "<MISSING>",
+      "v3": "abort_run_v1"
+    },
+    {
+      "path": "semantic_invariants.phase2_curvature_policy",
+      "v2": "<MISSING>",
+      "v3": "measured_required_fail_closed_v1"
+    }
+  ],
+  "regime_checks": [
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": -0.9183531194991743,
+          "v3": -0.918380919994822
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 2,
+          "v3": 3
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 2,
+          "v3": 3
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "weak_weak"
+    },
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": -0.4949956391086595,
+          "v3": -0.4950053491813613
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 2,
+          "v3": 3
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 2,
+          "v3": 3
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "intermediate_weak"
+    },
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": 0.5264587007998427,
+          "v3": 0.5264586847939736
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 2,
+          "v3": 3
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 2,
+          "v3": 3
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "strong_weak_u8"
+    },
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": -1.1385792003592516,
+          "v3": -1.1387206380749124
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 4,
+          "v3": 7
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 4,
+          "v3": 7
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "weak_strong"
+    },
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": -0.6239104048313423,
+          "v3": -0.6239396137518493
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 4,
+          "v3": 7
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 4,
+          "v3": 7
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "intermediate_strong"
+    },
+    {
+      "approved_physics_diff": [
+        {
+          "path": "expected_exact_energy",
+          "v2": 0.5205762777107107,
+          "v3": 0.5205762765682517
+        },
+        {
+          "path": "n_ph_reference",
+          "v2": 4,
+          "v3": 7
+        },
+        {
+          "path": "n_ph_work",
+          "v2": 4,
+          "v3": 7
+        }
+      ],
+      "checks": {
+        "command_identical_after_revision_path_normalization": true,
+        "environment_identical_after_bundle_path_normalization": true,
+        "physics_diff_exactly_approved": true,
+        "resource_request_identical": true,
+        "segment_identical": true
+      },
+      "regime_slug": "strong_strong_u8"
+    }
+  ],
+  "schema": "paper_i_hh_sr_snake_v4_v2_to_v3_scientific_settings_diff_v1",
+  "status": "pass",
+  "unexpected_executable_differences": []
+}

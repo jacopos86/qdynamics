@@ -1,0 +1,71 @@
+{
+  "generated": {
+    "preserved_original_four_page_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_original4_preserved.pdf",
+      "sha256": "f3116af20455f98a8b4c985ba266a237ba4ccae4b3f03314f08b467d303b4940"
+    },
+    "review_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723.pdf",
+      "sha256": "57b1fcbdbdc88b5617b3ff1fc24d5c151cf1ab3b44f20cc84c6bd74a10df9126"
+    }
+  },
+  "inputs": {
+    "appended_macro_source_page": {
+      "page": 2,
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_pages1_2.pdf",
+      "sha256": "4cdc6e3d212d892e5d0b460d401aab73a2622671abe7aae8a75825ea49c4aaba"
+    },
+    "appended_singleton_page": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_page4_own_plateau.pdf",
+      "sha256": "d818a666411177f3523ecb8f92dad17c86e4a8cbdc21cf93ba1e199325716405"
+    },
+    "original_page_4": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_past_results_page4.pdf",
+      "sha256": "24223cbb61c641234f62a723575ac44d60e627d7dfaeaec45f81c7735c1df448"
+    },
+    "original_pages_1_3": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_past_results_pages1_3.pdf",
+      "sha256": "3ccf98056e2111539b7be8ef37dbf917d5aa7b9ce015b14da1820d68e89bd76f"
+    }
+  },
+  "page_contract": {
+    "cost_tuple_font_size_pt": 6.8,
+    "cost_tuple_markers": {
+      "Append-ADAPT": "blue circle",
+      "SNAKE": "red star"
+    },
+    "cost_tuple_order": [
+      "N_2q",
+      "D_2q",
+      "D_c",
+      "S_alg"
+    ],
+    "cost_tuple_s_alg_format": "two-significant-digit compact e notation",
+    "display_padding_fraction": 0.15,
+    "geo_adapt_on_appended_pages": false,
+    "in_panel_n_ph_labels": false,
+    "macro_intermediate_weak_ymin": 0.05,
+    "page_5": "macro SNAKE versus Append-ADAPT common-accuracy comparison; each trace ends at its reported cost prefix; per-method costs appear as in-panel tuples rather than a table",
+    "page_6": "projected-singleton SNAKE versus Append-ADAPT common-accuracy comparison; each trace ends at its reported cost prefix; per-method costs appear as in-panel tuples rather than a table",
+    "pages_1_4": "same four review pages and plot order; Append/SNAKE S_alg tables replaced from clean-algorithm prefix receipts",
+    "panel_identifiers": false,
+    "source_histories_truncated": false
+  },
+  "schema": "paper_i_hh_snake_append_review6_v1",
+  "status": "review_only_not_inserted_into_manuscript",
+  "validation": {
+    "latex_overfull_or_underfull_boxes": 0,
+    "page_count": 6,
+    "page_size": "letter",
+    "pages_1_4_s_alg_tables_corrected": true,
+    "pages_1_4_semantic_structure_preserved": true,
+    "rendered_pages_inspected": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "schema": "paper_i_hh_ed_cutoff_reference_plan_v1",
+  "run_class": "diagnostic",
+  "target": "Paper-I Hubbard-Holstein phonon-cutoff justification prose",
+  "campaign_id": "paper_i_hh_ed_cutoff_reference_six_regime_20260727",
+  "method": "sector-restricted exact diagonalization",
+  "ordered_regimes": [
+    {
+      "name": "weak-weak",
+      "U_over_t": 0.25,
+      "lambda": 0.25
+    },
+    {
+      "name": "intermediate-weak",
+      "U_over_t": 1.25,
+      "lambda": 0.25
+    },
+    {
+      "name": "strong-weak",
+      "U_over_t": 8.0,
+      "lambda": 0.25
+    },
+    {
+      "name": "weak-strong",
+      "U_over_t": 0.25,
+      "lambda": 1.25
+    },
+    {
+      "name": "intermediate-strong",
+      "U_over_t": 1.25,
+      "lambda": 1.25
+    },
+    {
+      "name": "strong-strong",
+      "U_over_t": 8.0,
+      "lambda": 1.25
+    }
+  ],
+  "cutoffs": [
+    3,
+    7,
+    9,
+    10
+  ],
+  "working_cutoff_by_lambda": {
+    "0.25": 3,
+    "1.25": 7
+  },
+  "physics": {
+    "family": "Hubbard-Holstein",
+    "L": 2,
+    "t": 1.0,
+    "omega0": 1.0,
+    "g_over_t": "sqrt(lambda/2)",
+    "boundary": "open",
+    "num_particles": [
+      1,
+      1
+    ],
+    "indexing": "blocked",
+    "boson_encoding": "binary",
+    "include_zero_point": true
+  },
+  "source_lock": {
+    "repository_commit": "8a746d244a15e2cb16099a732e78e1110a8e59f2",
+    "solver": "src/quantum/ed_hubbard_holstein.py",
+    "solver_sha256": "3312121cbe29e05fd16d3d52b828f59dfb87842c0d7d64d0e911a0d7c9d2e154",
+    "historical_four_regime_json_sha256": "562fc40fc67d85b1adc02c55276c83c5868d44cc106fa0b39b51f5f31bd7026d"
+  },
+  "comparison_contract": {
+    "reported_error": "abs(E_alg(M)-E_ED(M))",
+    "weak_cutoff_bias": "max_U abs(E_ED(U,lambda=0.25,M=3)-E_ED(U,lambda=0.25,M=10))",
+    "strong_cutoff_bias": "max_U abs(E_ED(U,lambda=1.25,M=7)-E_ED(U,lambda=1.25,M=10))",
+    "M9_to_M10_tail": "max_U_lambda abs(E_ED(U,lambda,M=9)-E_ED(U,lambda,M=10))"
+  },
+  "execution_target": "local",
+  "execution_authorized": true,
+  "authorization_basis": "User approved the quick ED rerun and requested the numerical values replacing X, Y, and Z.",
+  "optimizer": null,
+  "seed": null,
+  "checkpoint": null,
+  "estimator_ledger": null,
+  "expected_output": "MATH/paper_facing/paper_I_static_scaffold/paper_i_hh_ed_cutoff_reference_six_regime_20260727.json"
+}

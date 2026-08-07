@@ -1,0 +1,19 @@
+{
+  "batch_name": "paper-i-historical-mean-global-singleton-page7-projection-20260802-v1",
+  "cluster_id": 9401086,
+  "direct_job_count": 2,
+  "execution_authorized": true,
+  "package_manifest_canonical_sha256": "8486723b2022ee2aa3bf4c0ba0c49c301f13d4193f4073f886b2f93554bdd777",
+  "paper_evidence_adopted": false,
+  "resources": {
+    "request_cpus": 4,
+    "request_disk_mb": 20480,
+    "request_memory_mb": 24576
+  },
+  "schema": "paper_i_historical_mean_global_singleton_page7_projection_submission_receipt_v1",
+  "sha256": "1034b840cc6054da8bb6363b2734eecb2087f0c0c7a049b0edf09453764a7637",
+  "status": "submitted",
+  "submission_authorized": true,
+  "submitted_utc": "2026-08-02T23:23:40Z",
+  "submit_descriptor_sha256": "dbb82049e15ee2a7ab0a3a0376052f69ada9832b2d917dc09c1379a606399dfd"
+}

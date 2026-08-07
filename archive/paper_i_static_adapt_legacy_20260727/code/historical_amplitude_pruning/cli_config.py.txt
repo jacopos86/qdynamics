@@ -1,0 +1,67 @@
+    p.set_defaults(phase1_prune_enabled=True)
+    p.add_argument("--phase1-prune-enabled", dest="phase1_prune_enabled", action="store_true")
+    p.add_argument("--phase1-no-prune", dest="phase1_prune_enabled", action="store_false")
+    p.add_argument(
+        "--phase1-prune-policy",
+        choices=["legacy_small_angle_v1", "recoverability_ladder_v1"],
+        default="legacy_small_angle_v1",
+        help=(
+            "Static ADAPT prune policy. recoverability_ladder_v1 broadens candidate "
+            "nomination/ranking but final deletion still requires remove-refit safety."
+        ),
+    )
+    p.add_argument(
+        "--phase1-prune-tolerance-mode",
+        choices=["auto", "fixed", "adaptive_v1"],
+        default="auto",
+        help=(
+            "Prune regression tolerance mode. auto keeps legacy small-angle fixed "
+            "and uses adaptive_v1 for recoverability_ladder_v1."
+        ),
+    )
+    p.add_argument("--phase1-prune-protect-steps", type=int, default=2)
+    p.add_argument("--phase1-prune-stale-age", type=int, default=2)
+    p.add_argument("--phase1-prune-stagnation-threshold", type=float, default=0.0)
+    p.add_argument("--phase1-prune-small-theta-abs", type=float, default=1e-3)
+    p.add_argument("--phase1-prune-small-theta-relative", type=float, default=0.5)
+    p.add_argument("--phase1-prune-cooldown-steps", type=int, default=2)
+    p.set_defaults(phase1_prune_amplitude_witness_required=False)
+    p.add_argument(
+        "--phase1-prune-amplitude-witness-required",
+        dest="phase1_prune_amplitude_witness_required",
+        action="store_true",
+        help=(
+            "Compatibility no-op: record amplitude-collapse diagnostics without "
+            "making them prune-acceptance authority."
+        ),
+    )
+    p.add_argument(
+        "--phase1-prune-amplitude-witness-optional",
+        dest="phase1_prune_amplitude_witness_required",
+        action="store_false",
+        help="Record amplitude witness diagnostics; prune acceptance is not gated by this signal.",
+    )
+    p.add_argument("--phase1-prune-collapse-peak-abs-min", type=float, default=None)
+    p.add_argument("--phase1-prune-collapse-current-abs-max", type=float, default=None)
+    p.add_argument("--phase1-prune-collapse-ratio", type=float, default=0.25)
+    p.add_argument("--phase1-prune-collapse-min-abs-drop", type=float, default=None)
+    p.add_argument("--phase1-prune-collapse-min-observations", type=int, default=3)
+        "phase1_prune_retained_gain_ratio": float(args.phase1_prune_retained_gain_ratio),
+        "phase1_prune_protect_steps": int(args.phase1_prune_protect_steps),
+        "phase1_prune_stale_age": int(args.phase1_prune_stale_age),
+        "phase1_prune_stagnation_threshold": float(args.phase1_prune_stagnation_threshold),
+        "phase1_prune_small_theta_abs": float(args.phase1_prune_small_theta_abs),
+        "phase1_prune_small_theta_relative": float(args.phase1_prune_small_theta_relative),
+        "phase1_prune_cooldown_steps": int(args.phase1_prune_cooldown_steps),
+        "phase1_prune_amplitude_witness_required": bool(args.phase1_prune_amplitude_witness_required),
+        "phase1_prune_collapse_peak_abs_min": (
+            None if args.phase1_prune_collapse_peak_abs_min is None else float(args.phase1_prune_collapse_peak_abs_min)
+        ),
+        "phase1_prune_collapse_current_abs_max": (
+            None if args.phase1_prune_collapse_current_abs_max is None else float(args.phase1_prune_collapse_current_abs_max)
+        ),
+        "phase1_prune_collapse_ratio": float(args.phase1_prune_collapse_ratio),
+        "phase1_prune_collapse_min_abs_drop": (
+            None if args.phase1_prune_collapse_min_abs_drop is None else float(args.phase1_prune_collapse_min_abs_drop)
+        ),
+        "phase1_prune_collapse_min_observations": int(args.phase1_prune_collapse_min_observations),

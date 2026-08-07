@@ -1,0 +1,28 @@
+{
+  "automatic_pdf_update": false,
+  "batch_name": "paper-i-hh-jr-l10-rollback-free-r50-20260712-v1",
+  "cluster_id": 8776170,
+  "execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "export_manifest": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_rollback_free_r50_20260712_v1_chtc/export_manifest.json",
+  "export_manifest_sha256": "86a18ca2eb375251b5e42c8f7ca8d0f3e633093489e377b3a316037dd9715334",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "initial_status": {
+    "held": 0,
+    "idle": 6,
+    "running": 0
+  },
+  "job_count": 6,
+  "monitoring_policy": "one_shot_manual_status_only",
+  "queue_sha256": "bf952366233723f05e4188a13172dd923285c8bc6841b743fb54ed44aa33ab53",
+  "remote_root": "/home/jsstrobel/Holstein_jr_l10_rollback_free_r50_20260712_v1",
+  "removed_superseded_cluster_id": 8775666,
+  "rollback_policy": "disabled",
+  "schema": "paper_i_hh_chtc_submission_record_v1",
+  "scientific_contract_hash": "d4f06a3724c95499f0cd56983bfcf1f26e6fb1499cb5fa82d84bfa7ba76499e3",
+  "settings_diff_sha256": "09e5430137646149d948e2a33bb20d5df218060ea0e86cc228cab0fea99f72ac",
+  "source_hash_check_count": 18,
+  "source_hash_check_status": "pass",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_rollback_free_r50_20260712_v1_chtc/submit.sub",
+  "submit_sha256": "fb45fb9c827d562c242219728d3a183ed5c47d922711f7dc272af1977c5d2400",
+  "submitted_utc": "2026-07-13T02:50:15Z"
+}

@@ -1,0 +1,68 @@
+{
+  "cell_count": 6,
+  "cells": [
+    {
+      "cell_id": "trial_000000__weak_weak",
+      "manifest": "cell_manifests/trial_000000__weak_weak.json",
+      "output_relative_dir": "trial_000000/weak-weak",
+      "regime": "weak-weak"
+    },
+    {
+      "cell_id": "trial_000000__intermediate_weak",
+      "manifest": "cell_manifests/trial_000000__intermediate_weak.json",
+      "output_relative_dir": "trial_000000/intermediate-weak",
+      "regime": "intermediate-weak"
+    },
+    {
+      "cell_id": "trial_000000__strong_weak_u8",
+      "manifest": "cell_manifests/trial_000000__strong_weak_u8.json",
+      "output_relative_dir": "trial_000000/strong-weak-u8",
+      "regime": "strong-weak-u8"
+    },
+    {
+      "cell_id": "trial_000000__weak_strong",
+      "manifest": "cell_manifests/trial_000000__weak_strong.json",
+      "output_relative_dir": "trial_000000/weak-strong",
+      "regime": "weak-strong"
+    },
+    {
+      "cell_id": "trial_000000__intermediate_strong",
+      "manifest": "cell_manifests/trial_000000__intermediate_strong.json",
+      "output_relative_dir": "trial_000000/intermediate-strong",
+      "regime": "intermediate-strong"
+    },
+    {
+      "cell_id": "trial_000000__strong_strong_u8",
+      "manifest": "cell_manifests/trial_000000__strong_strong_u8.json",
+      "output_relative_dir": "trial_000000/strong-strong-u8",
+      "regime": "strong-strong-u8"
+    }
+  ],
+  "execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "generated_utc": "2026-07-13T02:43:33.718151+00:00",
+  "manifest_sha256": "16e9d55088808fa380c9474d4fcbb2a1d00ac77df20db4bfb39ddac0f6e015e7",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 10,
+    "batch_size_cap": 2,
+    "child_phase1_cap": 32,
+    "child_phase2_cap": 25,
+    "lambda_add": 0.0,
+    "macro_phase1_cap": 32,
+    "macro_phase2_cap": 24
+  },
+  "policy_sha256": "32c309bc869d5394f84b9167ba10a7a3196b420927b0a02041074a422ec463dc",
+  "regime_order": [
+    "weak-weak",
+    "intermediate-weak",
+    "strong-weak-u8",
+    "weak-strong",
+    "intermediate-strong",
+    "strong-strong-u8"
+  ],
+  "run_class": "candidate_fixed_policy_matrix",
+  "schema": "paper_i_hh_route_a_optuna_trial_v1",
+  "scientific_contract_hash": "d4f06a3724c95499f0cd56983bfcf1f26e6fb1499cb5fa82d84bfa7ba76499e3",
+  "study_name": "paper_i_hh_jr_l10_rollback_free_whitened_r50_v1",
+  "trial_number": 0
+}

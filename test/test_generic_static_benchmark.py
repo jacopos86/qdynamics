@@ -18,21 +18,40 @@ from pipelines.exact_bench.generic_static_benchmark import (
     run_single,
 )
 from pipelines.exact_bench.table_i_canonical_cases import (
+    TABLE_I_CLEAN_NPH1_REF4_PROFILE,
     TABLE_I_CLEAN_NPH2_REF3_PROFILE,
     TABLE_I_CLEAN_NPH2_REF4_PROFILE,
+    TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE,
     TABLE_I_CLEAN_NPH3_REF4_PROFILE,
     TABLE_I_DEFERRED_CASE_IDS_BY_FAMILY,
     TABLE_I_EXECUTABLE_CASE_IDS_BY_FAMILY,
+    TABLE_I_PAPER_I_MAIN_TABLES_SPSA_PROFILE,
+    TABLE_I_STANDARD_PROFILE,
+    TABLE_I_THREE_MODEL_HH_SYMMETRIC_PROFILE,
     table_i_canonical_spec_by_case_id,
     table_i_declared_case_ids,
     table_i_deferred_case_reason,
     table_i_executable_case_ids,
     table_i_executable_case_ids_by_family,
+    table_i_executable_specs,
+    table_i_suite_profile,
 )
 from pipelines.exact_bench.table_i_static_benchmark import (
     TABLE_I_STATIC_ALGORITHM_IDS,
     build_table_i_static_jobs,
     summarize_table_i_jobs,
+)
+from pipelines.exact_bench.paper_i_main_tables_spsa_profile import (
+    PAPER_I_MAIN_TABLES_SPSA_ADAPT_SCHEDULE_TSV_FIELDS,
+    PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS,
+    PAPER_I_MAIN_TABLES_SPSA_CASE_IDS,
+    PAPER_I_MAIN_TABLES_SPSA_CASE_IDS_BY_FAMILY,
+    PAPER_I_MAIN_TABLES_SPSA_COMPARATOR_ALGORITHM_IDS,
+    PAPER_I_MAIN_TABLES_SPSA_FAMILY_INFORMED_SCHEDULE_TSV_FIELDS,
+    PAPER_I_MAIN_TABLES_SPSA_HEA_SCHEDULE_TSV_FIELDS,
+    PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES,
+    PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID,
+    PAPER_I_MAIN_TABLES_SPSA_SCHEDULE_TSV_FIELDS,
 )
 from pipelines.reporting.benchmark_manifest import write_manifest_bundle
 from pipelines.static_adapt.hardware_resolution_profiles import (
@@ -41,7 +60,7 @@ from pipelines.static_adapt.hardware_resolution_profiles import (
     HARDWARE_RESOLUTION_PROFILE_UNITS,
 )
 from pipelines.static_adapt.resume_scaffold import digest_jsonable, file_sha256
-from pipelines.time_dynamics.generic_dynamics_benchmark import build_dynamics_jobs
+from pipelines.time_dynamics.tables.generic_dynamics_benchmark import build_dynamics_jobs
 
 
 _NON_HH_STATIC_ED_REFERENCE_FAMILIES = tuple(
@@ -141,6 +160,158 @@ def test_table_i_molecular_vibronic_h2_is_declared_but_deferred_at_head() -> Non
     )
     assert table_i_declared_case_ids("molecular_vibronic_h2", TABLE_I_CLEAN_NPH2_REF4_PROFILE) == clean_ids
     assert table_i_executable_case_ids("molecular_vibronic_h2", TABLE_I_CLEAN_NPH2_REF4_PROFILE) == clean_ids
+    assert table_i_executable_case_ids("molecular_vibronic_h2", TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE) == (
+        "molecular_vibronic_h2_L2_nph3_clean_strong",
+    )
+
+
+def _arg_value(args: tuple[str, ...] | list[str], flag: str) -> str | None:
+    values = tuple(str(x) for x in args)
+    try:
+        idx = values.index(str(flag))
+    except ValueError:
+        return None
+    return values[idx + 1] if idx + 1 < len(values) else None
+
+
+def test_paper_i_main_tables_spsa_profile_resolves_exact_visible_case_set() -> None:
+    assert TABLE_I_PAPER_I_MAIN_TABLES_SPSA_PROFILE == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert table_i_suite_profile(PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID) == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert table_i_suite_profile("paper_i_main_tables_spsa") == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert table_i_suite_profile("three_model_main") == TABLE_I_THREE_MODEL_HH_SYMMETRIC_PROFILE
+    assert table_i_executable_case_ids_by_family(PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID) == (
+        PAPER_I_MAIN_TABLES_SPSA_CASE_IDS_BY_FAMILY
+    )
+    assert sum(len(case_ids) for case_ids in PAPER_I_MAIN_TABLES_SPSA_CASE_IDS_BY_FAMILY.values()) == 8
+    assert PAPER_I_MAIN_TABLES_SPSA_CASE_IDS == (
+        "hubbard_L2_three_model_weak",
+        "hubbard_L2_three_model_strong",
+        "spin_boson_L2_nph1_three_model_weak",
+        "spin_boson_L2_nph2_three_model_strong",
+        "hh_L2_nph2_three_model_sym_weak_weak",
+        "hh_L2_nph2_three_model_sym_strong_weak",
+        "hh_L2_nph4_three_model_sym_weak_strong",
+        "hh_L2_nph4_three_model_sym_strong_strong",
+    )
+    specs = table_i_executable_specs(PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    assert tuple(str(spec.benchmark_id) for spec in specs) == PAPER_I_MAIN_TABLES_SPSA_CASE_IDS
+    assert tuple(str(spec.family) for spec in specs) == (
+        "hubbard",
+        "hubbard",
+        "spin_boson",
+        "spin_boson",
+        "hh",
+        "hh",
+        "hh",
+        "hh",
+    )
+    assert all(
+        f"optimizer_profile:{PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID}" in tuple(spec.tags)
+        for spec in specs
+    )
+    assert table_i_executable_case_ids("hubbard", TABLE_I_THREE_MODEL_HH_SYMMETRIC_PROFILE) == ()
+    assert table_i_executable_case_ids("spin_boson", TABLE_I_THREE_MODEL_HH_SYMMETRIC_PROFILE) == ()
+    assert table_i_executable_case_ids("hh", TABLE_I_THREE_MODEL_HH_SYMMETRIC_PROFILE) == (
+        "hh_L2_nph2_three_model_sym_weak_weak",
+        "hh_L2_nph2_three_model_sym_strong_weak",
+        "hh_L2_nph4_three_model_sym_weak_strong",
+        "hh_L2_nph4_three_model_sym_strong_strong",
+    )
+
+
+def test_clean_nph1_ref4_profile_resolves_hh_weak_strong() -> None:
+    assert table_i_suite_profile("clean_nph1_ref4") == TABLE_I_CLEAN_NPH1_REF4_PROFILE
+    assert table_i_executable_case_ids("hh", TABLE_I_CLEAN_NPH1_REF4_PROFILE) == (
+        "hh_L2_nph1_clean_weak",
+        "hh_L2_nph1_clean_strong",
+    )
+    specs = {
+        str(spec.benchmark_id): spec
+        for spec in table_i_executable_specs(TABLE_I_CLEAN_NPH1_REF4_PROFILE)
+        if str(spec.family) == "hh"
+    }
+    assert set(specs) == {"hh_L2_nph1_clean_weak", "hh_L2_nph1_clean_strong"}
+    assert all(_arg_value(spec.base_pipeline_args, "--n-ph-max") == "1" for spec in specs.values())
+    assert all(spec.exact_reference_n_ph_max == 4 for spec in specs.values())
+
+
+def test_paper_i_main_tables_spsa_profile_contract_constants_are_centralized() -> None:
+    assert PAPER_I_MAIN_TABLES_SPSA_COMPARATOR_ALGORITHM_IDS == TABLE_I_STATIC_ALGORITHM_IDS[:-1]
+    assert PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS["hea"] == {
+        "optimizer": "spsa",
+        "spsa_maxiter": 800,
+        "spsa_seed": 42,
+    }
+    assert PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS["family_informed"]["optimizer"] == "spsa"
+    assert PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS["adapt"]["optimizer_kind"] == "spsa"
+    assert PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"] == (
+        "GENERIC_STATIC_TABLE_OPTIMIZER_PROFILE"
+    )
+    assert PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_optimizer_kind"] == (
+        "GENERIC_STATIC_TABLE_ADAPT_OPTIMIZER_KIND"
+    )
+    assert PAPER_I_MAIN_TABLES_SPSA_HEA_SCHEDULE_TSV_FIELDS == (
+        "hea_spsa_learning_rate",
+        "hea_spsa_perturbation",
+    )
+    assert "family_informed_spsa_avg_last" in PAPER_I_MAIN_TABLES_SPSA_FAMILY_INFORMED_SCHEDULE_TSV_FIELDS
+    assert PAPER_I_MAIN_TABLES_SPSA_ADAPT_SCHEDULE_TSV_FIELDS == (
+        "adapt_spsa_a",
+        "adapt_spsa_c",
+        "adapt_spsa_alpha",
+        "adapt_spsa_gamma",
+        "adapt_spsa_big_a",
+    )
+    assert set(PAPER_I_MAIN_TABLES_SPSA_SCHEDULE_TSV_FIELDS).issubset(
+        set(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES)
+    )
+    assert PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_spsa_learning_rate"] == (
+        "GENERIC_STATIC_TABLE_HEA_SPSA_LEARNING_RATE"
+    )
+
+
+def test_exact_bench_h2_fixture_env_threads_to_comparator_specs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+    import pipelines.exact_bench.generic_static_benchmark as static_benchmark
+    import pipelines.exact_bench.generic_static_family_informed_vqe as family_vqe
+    import pipelines.exact_bench.generic_static_hea_qiskit_vqe as hea
+    import pipelines.exact_bench.generic_static_qiskit_adapt_vqe as qadapt
+
+    fixture = tmp_path / "h2_runtime_fixture.json"
+    fixture.write_text("{}\n", encoding="utf-8")
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", TABLE_I_CLEAN_NPH2_REF4_PROFILE)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_MOLECULAR_VIBRONIC_H2_FIXTURE_JSON", str(fixture))
+
+    weak_case = "molecular_vibronic_h2_L2_nph1_clean_weak"
+    specs = (
+        (hea, hea._spec_by_case_id("molecular_vibronic_h2", weak_case)),
+        (family_vqe, family_vqe._spec_by_case_id("molecular_vibronic_h2", weak_case)),
+        (qadapt, qadapt._spec_by_case_id("molecular_vibronic_h2", weak_case)),
+        (
+            variants,
+            variants._spec_by_case_id(
+                "molecular_vibronic_h2",
+                weak_case,
+                "static_full_meta_append_adapt_vqe",
+            ),
+        ),
+    )
+    for module, spec in specs:
+        assert _arg_value(spec.base_pipeline_args, "--molecular-vibronic-h2-fixture-json") == str(fixture)
+        namespace = module._namespace_from_base_args(spec.base_pipeline_args)
+        assert namespace.molecular_vibronic_h2_fixture_json == str(fixture)
+
+    static_benchmark._phase3_specs_for_family_profile.cache_clear()
+    phase3_spec = static_benchmark._phase3_static_spec_for_case(
+        family="molecular_vibronic_h2",
+        case_id=weak_case,
+        algorithm_id="static_family_native_adapt_phase3",
+    )
+    assert phase3_spec is not None
+    assert _arg_value(phase3_spec.base_pipeline_args, "--molecular-vibronic-h2-fixture-json") == str(fixture)
 
 
 def test_table_i_clean_profiles_encode_weak_strong_points_and_deferred_rows() -> None:
@@ -224,6 +395,17 @@ def test_table_i_clean_profiles_encode_weak_strong_points_and_deferred_rows() ->
     assert weak_h2.base_pipeline_args[weak_h2.base_pipeline_args.index("--g-ep") + 1] == "0.25"
     assert strong_h2.base_pipeline_args[strong_h2.base_pipeline_args.index("--g-ep") + 1] == "1.0"
 
+    escalated_h2 = table_i_canonical_spec_by_case_id(
+        "molecular_vibronic_h2",
+        "molecular_vibronic_h2_L2_nph3_clean_strong",
+        TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE,
+    )
+    assert escalated_h2.features.L == 2
+    assert escalated_h2.features.n_qubits == 6
+    assert escalated_h2.exact_reference_n_ph_max == 6
+    assert escalated_h2.base_pipeline_args[escalated_h2.base_pipeline_args.index("--n-ph-max") + 1] == "3"
+    assert escalated_h2.base_pipeline_args[escalated_h2.base_pipeline_args.index("--g-ep") + 1] == "1.0"
+
 
 def test_static_manifest_emits_runnable_hh_and_skipped_non_hh(tmp_path: Path) -> None:
     jobs = build_static_jobs(
@@ -284,6 +466,8 @@ def test_static_hea_qiskit_manifest_promotes_all_feasible_train_cases(tmp_path: 
         assert job.metadata.get("external_algorithm") is True
         assert job.metadata.get("optional_dependencies") == ["qiskit"]
         assert job.metadata.get("phase3_controller_called") is False
+        assert job.metadata["comparator_source"]["execution_surface_role"] == "primary_execution_surface"
+        assert job.metadata["comparator_source"]["external_reference_status"] == "primary_execution_surface"
         assert job.resources == {"request_cpus": 1, "request_memory": "8GB", "request_disk": "8GB"}
     assert counts == _STATIC_HEA_QISKIT_TRAIN_CASE_COUNTS
 
@@ -311,6 +495,8 @@ def test_static_qiskit_adapt_vqe_manifest_emits_canonical_table_i_cases(tmp_path
         assert job.metadata.get("optional_dependencies") == ["qiskit", "qiskit_algorithms"]
         assert job.metadata.get("phase3_controller_called") is False
         assert job.metadata.get("resource_guarded_execution") is True
+        assert job.metadata["comparator_source"]["execution_surface"] == "qiskit_algorithms_adaptvqe_full_meta_sparse_pauli_ops"
+        assert job.metadata["comparator_source"]["parity_reference_algorithm_id"] == "static_full_meta_append_adapt_vqe"
         assert job.resources == {"request_cpus": 1, "request_memory": "16GB", "request_disk": "20GB"}
     assert seen_cases == expected_cases
 
@@ -321,10 +507,9 @@ def test_generic_static_adapt_variant_manifest_emits_canonical_table_i_cases(tmp
     for algorithm_id in (
         "static_full_meta_append_adapt_vqe",
         "static_qubit_qeb_adapt_vqe",
-        "static_tetris_qubit_adapt_vqe",
         "static_geo_qubit_adapt_vqe",
         "static_geo_qeb_adapt_vqe",
-        "static_pos_geo_adapt_vqe",
+        "static_geo_adapt_vqe",
     ):
         jobs = build_static_jobs(
             output_root=tmp_path,
@@ -345,11 +530,12 @@ def test_generic_static_adapt_variant_manifest_emits_canonical_table_i_cases(tmp
             assert job.metadata.get("external_algorithm") is False
             assert job.metadata.get("benchmark_local_competitor") is True
             expected_optional_dependencies = (
-                [] if algorithm_id in {"static_geo_qeb_adapt_vqe", "static_pos_geo_adapt_vqe"} else ["scipy"]
+                [] if algorithm_id in {"static_geo_qeb_adapt_vqe", "static_geo_adapt_vqe"} else ["scipy"]
             )
             assert job.metadata.get("optional_dependencies") == expected_optional_dependencies
             assert job.metadata.get("phase3_controller_called") is False
             assert job.metadata.get("resource_guarded_execution") is True
+            assert job.metadata["comparator_source"]["execution_surface_role"] == "primary_execution_surface"
             assert job.resources == {"request_cpus": 1, "request_memory": "16GB", "request_disk": "20GB"}
         assert seen_cases == expected_cases
 
@@ -413,22 +599,26 @@ def test_static_manifest_emits_project_controller_append_only_and_external_adapt
     ceo_jobs = [job for job in runnable if job.algorithm_id == "static_ceo_adapt_phase3"]
     tetris_jobs = [job for job in runnable if job.algorithm_id == "static_tetris_adapt_phase3"]
     assert len(ceo_jobs) == 1
-    assert len(tetris_jobs) == 1
+    assert len(tetris_jobs) == 3
     assert ceo_jobs[0].case_id == "hubbard_L2"
-    assert tetris_jobs[0].case_id == "hubbard_L2"
+    assert tuple(job.case_id for job in tetris_jobs) == (
+        "hubbard_L2",
+        "hubbard_L2_three_model_weak",
+        "hubbard_L2_three_model_strong",
+    )
     assert ceo_jobs[0].metadata.get("dispatch") == "external_static_adapt_ceo_public_code"
-    assert tetris_jobs[0].metadata.get("dispatch") == "external_static_adapt_tetris_public_code"
+    assert all(job.metadata.get("dispatch") == "external_static_adapt_tetris_public_code" for job in tetris_jobs)
     assert ceo_jobs[0].metadata.get("external_algorithm") is True
-    assert tetris_jobs[0].metadata.get("external_algorithm") is True
+    assert all(job.metadata.get("external_algorithm") is True for job in tetris_jobs)
     assert ceo_jobs[0].metadata.get("phase3_controller_called") is False
-    assert tetris_jobs[0].metadata.get("phase3_controller_called") is False
+    assert all(job.metadata.get("phase3_controller_called") is False for job in tetris_jobs)
     assert ceo_jobs[0].metadata.get("external_adapt_pinned_commits", {}).get("ceo_adapt_vqe")
-    assert tetris_jobs[0].metadata.get("external_adapt_pinned_commits", {}).get("ceo_adapt_vqe")
+    assert all(job.metadata.get("external_adapt_pinned_commits", {}).get("ceo_adapt_vqe") for job in tetris_jobs)
     assert skipped == []
 
 
 def test_run_single_non_hh_project_controller_uses_static_adapt_runner(monkeypatch, tmp_path: Path) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured = {}
 
@@ -458,7 +648,7 @@ def test_run_single_non_hh_project_controller_uses_static_adapt_runner(monkeypat
 
 
 def test_run_single_non_hh_append_only_uses_append_only_policy(monkeypatch, tmp_path: Path) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured = {}
 
@@ -488,9 +678,17 @@ def test_run_single_non_hh_append_only_uses_append_only_policy(monkeypatch, tmp_
     assert policy.static.phase1_prune_enabled is False
 
 
-def test_run_single_policy_json_append_only_route_a_is_rejected(
+@pytest.mark.parametrize(
+    "algorithm_id",
+    (
+        "static_family_native_adapt_phase3",
+        "static_append_only_adapt_phase3",
+    ),
+)
+def test_run_single_policy_json_historical_route_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    algorithm_id: str,
 ) -> None:
     policy_json = tmp_path / "policy.json"
     policy_json.write_text(
@@ -499,11 +697,17 @@ def test_run_single_policy_json_append_only_route_a_is_rejected(
     )
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_POLICY_JSON", str(policy_json))
 
-    with pytest.raises(ValueError, match="static_append_only_adapt_phase3.*static_route_id='unspecified'"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            rf"{algorithm_id} cannot execute historical "
+            r"static_route_id=.*must be 'unspecified'"
+        ),
+    ):
         run_single(
             family="hubbard",
             case_id="hubbard_L2",
-            algorithm_id="static_append_only_adapt_phase3",
+            algorithm_id=algorithm_id,
             output_dir=tmp_path / "append_policy_json",
         )
 
@@ -537,9 +741,9 @@ def test_table_i_static_manifest_promotes_all_current_manuscript_methods(tmp_pat
     assert "static_full_meta_append_adapt_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_qiskit_adapt_vqe" not in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_qubit_qeb_adapt_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
-    assert "static_tetris_qubit_adapt_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
+    assert "static_tetris_qubit_adapt_vqe" not in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_geo_qubit_adapt_vqe" not in TABLE_I_STATIC_ALGORITHM_IDS
-    assert "static_pos_geo_adapt_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
+    assert "static_geo_adapt_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_family_informed_vqe" in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_qubit_qeb_adapt_phase3" not in TABLE_I_STATIC_ALGORITHM_IDS
     assert "static_tetris_ceo_style_adapt_phase3" not in TABLE_I_STATIC_ALGORITHM_IDS
@@ -556,7 +760,7 @@ def test_table_i_static_manifest_promotes_all_current_manuscript_methods(tmp_pat
     assert summary["status_by_method"]["Qubit/QEB-ADAPT-VQE"] == {"runnable": expected_case_count}
     assert summary["status_by_method"]["TETRIS-ADAPT-VQE"] == {"runnable": expected_case_count}
     assert "full-meta metric ADAPT (Geo-style)" not in summary["status_by_method"]
-    assert summary["status_by_method"]["Pos-Geo-ADAPT-VQE"] == {"runnable": expected_case_count}
+    assert summary["status_by_method"]["Geo-ADAPT-VQE"] == {"runnable": expected_case_count}
     assert "TETRIS/CEO-style ADAPT" not in summary["status_by_method"]
 
 
@@ -590,7 +794,7 @@ def test_run_single_qiskit_adapt_vqe_uses_generic_qiskit_runner_not_phase3(
     monkeypatch, tmp_path: Path
 ) -> None:
     import pipelines.exact_bench.generic_static_qiskit_adapt_vqe as qadapt
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("Qiskit AdaptVQE benchmark must not call Phase3 static ADAPT")
@@ -633,7 +837,7 @@ def test_run_single_family_informed_vqe_uses_benchmark_local_runner_not_phase3(
     monkeypatch, tmp_path: Path
 ) -> None:
     import pipelines.exact_bench.generic_static_family_informed_vqe as family_vqe
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("family-informed VQE benchmark must not call Phase3 static ADAPT")
@@ -676,7 +880,7 @@ def test_run_single_generic_static_adapt_variants_use_benchmark_local_runner_not
     monkeypatch, tmp_path: Path
 ) -> None:
     import pipelines.exact_bench.generic_static_adapt_variants as variants
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("generic static ADAPT competitors must not call Phase3 static ADAPT")
@@ -704,10 +908,9 @@ def test_run_single_generic_static_adapt_variants_use_benchmark_local_runner_not
     for algorithm_id in (
         "static_full_meta_append_adapt_vqe",
         "static_qubit_qeb_adapt_vqe",
-        "static_tetris_qubit_adapt_vqe",
         "static_geo_qubit_adapt_vqe",
         "static_geo_qeb_adapt_vqe",
-        "static_pos_geo_adapt_vqe",
+        "static_geo_adapt_vqe",
     ):
         output_dir = tmp_path / algorithm_id
         payload = run_single(
@@ -725,11 +928,696 @@ def test_run_single_generic_static_adapt_variants_use_benchmark_local_runner_not
         }
 
 
+def test_run_single_selected_logical_env_threads_to_posgeo_runner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SELECTED_LOGICAL_ROUTE", "historical_selected")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SELECTED_LOGICAL_SOURCE_JSON", "chtc/phase3_optuna/input/selected/hk.json")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SELECTED_LOGICAL_TRANSFER_MODE", "boundary_v1")
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "posgeo",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["selected_logical_route"] == "historical_selected"
+    assert captured["selected_logical_source_json"] == "chtc/phase3_optuna/input/selected/hk.json"
+    assert captured["selected_logical_transfer_mode"] == "boundary_v1"
+
+
+def test_run_single_generic_static_adapt_threads_progress_jsonl_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    progress_path = tmp_path / "progress" / "generic_static_adapt_progress.jsonl"
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PROGRESS_JSONL_PATH", str(progress_path))
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "geo",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["progress_jsonl_path"] == str(progress_path)
+
+
+def test_run_single_generic_static_adapt_threads_runtime_split_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+    import pipelines.exact_bench.generic_static_benchmark as benchmark
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setattr(
+        benchmark,
+        "evaluate_algorithm_for_family",
+        lambda algorithm_id, family: SimpleNamespace(status="runnable", resolved_pool_key="full_meta"),
+    )
+    monkeypatch.setattr(benchmark, "_dispatch_kind", lambda **kwargs: "generic_static_adapt_variants")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_MODE", "shortlist_pauli_children_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_SYMMETRY_POLICY", "hard_guard")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_MAX_SUBSET_SIZE", "4")
+
+    payload = run_single(
+        family="hh",
+        case_id="hh_L2_nph2_three_model_sym_weak_weak",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "geo_runtime_split",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["generic_adapt_runtime_split_mode"] == "shortlist_pauli_children_v1"
+    assert captured["generic_adapt_runtime_split_symmetry_policy"] == "hard_guard"
+    assert captured["generic_adapt_runtime_split_max_subset_size"] == 4
+
+
+def test_run_single_generic_static_adapt_threads_shared_pauli_pool_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+    import pipelines.exact_bench.generic_static_benchmark as benchmark
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setattr(
+        benchmark,
+        "evaluate_algorithm_for_family",
+        lambda algorithm_id, family: SimpleNamespace(status="runnable", resolved_pool_key="full_meta"),
+    )
+    monkeypatch.setattr(benchmark, "_dispatch_kind", lambda **kwargs: "generic_static_adapt_variants")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_MODE", "shared_pauli_child_sets_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_SYMMETRY_POLICY", "hard_guard")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_MAX_SUBSET_SIZE", "4")
+
+    payload = run_single(
+        family="hh",
+        case_id="hh_L2_nph2_three_model_sym_weak_weak",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "geo_shared_pool",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["shared_pauli_pool_mode"] == "shared_pauli_child_sets_v1"
+    assert captured["shared_pauli_pool_symmetry_policy"] == "hard_guard"
+    assert captured["shared_pauli_pool_max_subset_size"] == 4
+
+
+def test_run_single_generic_static_adapt_threads_shared_pauli_pool_no_guard_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+    import pipelines.exact_bench.generic_static_benchmark as benchmark
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setattr(
+        benchmark,
+        "evaluate_algorithm_for_family",
+        lambda algorithm_id, family: SimpleNamespace(status="runnable", resolved_pool_key="full_meta"),
+    )
+    monkeypatch.setattr(benchmark, "_dispatch_kind", lambda **kwargs: "generic_static_adapt_variants")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_MODE", "shared_pauli_child_sets_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_SYMMETRY_POLICY", "off")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_MAX_SUBSET_SIZE", "1")
+
+    payload = run_single(
+        family="hh",
+        case_id="hh_L2_nph2_three_model_sym_weak_weak",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "geo_shared_pool_no_guard",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["shared_pauli_pool_mode"] == "shared_pauli_child_sets_v1"
+    assert captured["shared_pauli_pool_symmetry_policy"] == "off"
+    assert captured["shared_pauli_pool_max_subset_size"] == 1
+    assert payload["shared_pauli_pool_env_overlay"] == {
+        "shared_pauli_pool_mode": "shared_pauli_child_sets_v1",
+        "shared_pauli_pool_symmetry_policy": "off",
+        "shared_pauli_pool_max_subset_size": 1,
+    }
+
+
+def test_run_single_rejects_shared_pauli_pool_with_runtime_split_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+    import pipelines.exact_bench.generic_static_benchmark as benchmark
+
+    monkeypatch.setattr(
+        benchmark,
+        "evaluate_algorithm_for_family",
+        lambda algorithm_id, family: SimpleNamespace(status="runnable", resolved_pool_key="full_meta"),
+    )
+    monkeypatch.setattr(benchmark, "_dispatch_kind", lambda **kwargs: "generic_static_adapt_variants")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_MODE", "shared_pauli_child_sets_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SHARED_PAULI_POOL_SYMMETRY_POLICY", "hard_guard")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_RUNTIME_SPLIT_MODE", "shortlist_pauli_children_v1")
+
+    with pytest.raises(ValueError, match="cannot be combined"):
+        run_single(
+            family="hh",
+            case_id="hh_L2_nph2_three_model_sym_weak_weak",
+            algorithm_id="static_geo_adapt_vqe",
+            output_dir=tmp_path / "blocked_shared_plus_runtime_split",
+        )
+
+
+def test_run_single_phase3_budget_env_threads_to_generic_adapt_runner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAX_DEPTH", "500")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAXITER", "5000")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_ALLOW_REPEATS", "true")
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", "paper_i_three_model_main_20260525_v1")
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2_three_model_weak",
+        algorithm_id="static_full_meta_append_adapt_vqe",
+        output_dir=tmp_path / "append",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["max_adapt_iterations"] == 500
+    assert captured["optimizer_maxiter"] == 5000
+    assert captured["allow_repeats"] is True
+    assert "adapt_optimizer_kind" not in captured
+    assert "optimizer_profile" not in captured
+
+
+def test_run_single_fixed_horizon_stop_policy_disables_generic_adapt_target_and_gradient_stops(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "metadata": {},
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_STOP_POLICY", "fixed_horizon_no_target_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAX_DEPTH", "20")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_ALLOW_REPEATS", "false")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_FIRST_HIT_THRESHOLDS", "2e-4")
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2",
+        algorithm_id="static_geo_adapt_vqe",
+        output_dir=tmp_path / "geo_fixed_horizon",
+    )
+
+    assert payload["status"] == "completed"
+    assert payload["generic_adapt_stop_policy"] == "fixed_horizon_no_target_v1"
+    assert payload["metadata"]["generic_adapt_stop_policy"] == "fixed_horizon_no_target_v1"
+    assert captured["max_adapt_iterations"] == 20
+    assert captured["allow_repeats"] is False
+    assert captured["energy_stop_target"] is None
+    assert captured["first_hit_thresholds"] == (2e-4,)
+    assert captured["gradient_threshold"] == 0.0
+    assert captured["generic_adapt_stop_policy"] == "fixed_horizon_no_target_v1"
+
+
+def test_run_single_fixed_horizon_stop_policy_rejects_target_stop(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    def _unexpected_runner(**kwargs):  # noqa: ANN003, ANN202
+        raise AssertionError("fixed-horizon target-stop validation must happen before dispatch")
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _unexpected_runner)
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_STOP_POLICY", "fixed_horizon_no_target_v1")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAX_DEPTH", "20")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_ENERGY_STOP_TARGET", "2e-4")
+
+    with pytest.raises(ValueError, match="requires energy_stop_target to be absent"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2",
+            algorithm_id="static_geo_adapt_vqe",
+            output_dir=tmp_path / "bad_fixed_horizon",
+        )
+
+
+def test_run_single_fixed_horizon_stop_policy_rejects_wrong_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_GENERIC_ADAPT_STOP_POLICY", "fixed_horizon_no_target_v1")
+
+    with pytest.raises(ValueError, match="generic_adapt_stop_policy env overlay is only valid"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_strong",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "bad_dispatch",
+        )
+
+
+def test_run_single_optimizer_profile_env_threads_to_hea_dispatch_stub(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_hea_qiskit_vqe as hea
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_hea_qiskit_vqe_v1",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(hea, "run_static_hea_qiskit_vqe_single", _fake_runner)
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_spsa_maxiter"], "7")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_spsa_learning_rate"], "0.04")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_spsa_perturbation"], "0.01")
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2_three_model_weak",
+        algorithm_id="static_hea_qiskit_vqe",
+        output_dir=tmp_path / "hea_profile",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["optimizer_profile"] == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert captured["optimizer_profile_source"] == "env"
+    assert captured["hea_optimizer"] == "spsa"
+    assert captured["hea_spsa_maxiter"] == 7
+    assert captured["hea_spsa_seed"] == PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS["hea"]["spsa_seed"]
+    assert captured["hea_spsa_learning_rate"] == pytest.approx(0.04)
+    assert captured["hea_spsa_perturbation"] == pytest.approx(0.01)
+    assert "optimizer" not in captured
+
+
+def test_run_single_optimizer_unprefixed_env_is_ignored_for_legacy_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_hea_qiskit_vqe as hea
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_hea_qiskit_vqe_v1",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(hea, "run_static_hea_qiskit_vqe_single", _fake_runner)
+    monkeypatch.setenv("HEA_OPTIMIZER", "SPSA")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_optimizer"], "")
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2",
+        algorithm_id="static_hea_qiskit_vqe",
+        output_dir=tmp_path / "hea_legacy_defaults",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured == {
+        "family": "hubbard",
+        "case_id": "hubbard_L2",
+        "output_dir": tmp_path / "hea_legacy_defaults",
+    }
+
+
+def test_run_single_optimizer_profile_env_threads_to_family_dispatch_stub(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_family_informed_vqe as family_vqe
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_family_informed_vqe_v1",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(family_vqe, "run_static_family_informed_vqe_single", _fake_runner)
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_seed"], "123")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_a"], "0.05")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_c"], "0.02")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_eval_repeats"], "2")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_avg_last"], "3")
+
+    payload = run_single(
+        family="spin_boson",
+        case_id="spin_boson_L2_nph1_three_model_weak",
+        algorithm_id="static_family_informed_vqe",
+        output_dir=tmp_path / "family_profile",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["optimizer_profile"] == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert captured["family_informed_optimizer"] == "spsa"
+    assert captured["family_informed_spsa_maxiter"] == (
+        PAPER_I_MAIN_TABLES_SPSA_BUDGET_DEFAULTS["family_informed"]["spsa_maxiter"]
+    )
+    assert captured["family_informed_spsa_seed"] == 123
+    assert captured["family_informed_spsa_a"] == pytest.approx(0.05)
+    assert captured["family_informed_spsa_c"] == pytest.approx(0.02)
+    assert captured["family_informed_spsa_eval_repeats"] == 2
+    assert captured["family_informed_spsa_avg_last"] == 3
+
+
+def test_run_single_optimizer_profile_env_threads_to_generic_adapt_dispatch_stub(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_adapt_variants as variants
+
+    captured: dict[str, object] = {}
+
+    def _fake_runner(**kwargs):  # noqa: ANN003, ANN202
+        captured.update(kwargs)
+        return {
+            "schema": "generic_static_adapt_variants_v4",
+            "status": "completed",
+            "rows": [{"status": "ok"}],
+        }
+
+    monkeypatch.setattr(variants, "run_generic_static_adapt_variant_single", _fake_runner)
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_maxiter"], "9")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_seed"], "321")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_a"], "0.07")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_c"], "0.03")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_alpha"], "0.602")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_gamma"], "0.101")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_big_a"], "50.0")
+
+    payload = run_single(
+        family="hh",
+        case_id="hh_L2_nph2_three_model_sym_weak_weak",
+        algorithm_id="static_full_meta_append_adapt_vqe",
+        output_dir=tmp_path / "append_profile",
+    )
+
+    assert payload["status"] == "completed"
+    assert captured["optimizer_profile"] == PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID
+    assert captured["adapt_optimizer_kind"] == "spsa"
+    assert captured["adapt_spsa_maxiter"] == 9
+    assert captured["adapt_spsa_seed"] == 321
+    assert captured["adapt_spsa_a"] == pytest.approx(0.07)
+    assert captured["adapt_spsa_c"] == pytest.approx(0.03)
+    assert captured["adapt_spsa_alpha"] == pytest.approx(0.602)
+    assert captured["adapt_spsa_gamma"] == pytest.approx(0.101)
+    assert captured["adapt_spsa_big_a"] == pytest.approx(50.0)
+    assert captured["energy_stop_target"] is None
+
+
+def test_run_single_optimizer_env_rejects_wrong_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_optimizer"], "SPSA")
+
+    with pytest.raises(ValueError, match="HEA optimizer env overlay is only valid"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_weak",
+            algorithm_id="static_family_informed_vqe",
+            output_dir=tmp_path / "wrong_dispatch",
+        )
+
+
+def test_run_single_optimizer_schedule_env_rejects_wrong_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["adapt_spsa_a"], "0.05")
+
+    with pytest.raises(ValueError, match="generic-ADAPT optimizer env overlay is only valid"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_weak",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "wrong_schedule_dispatch",
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("hea_spsa_learning_rate", "0", "positive finite float"),
+        ("adapt_spsa_c", "nan", "positive finite float"),
+        ("family_informed_spsa_eval_repeats", "0", "positive integer"),
+    ],
+)
+def test_run_single_optimizer_schedule_env_validates_numeric_bounds(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    field: str,
+    value: str,
+    match: str,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES[field], value)
+
+    algorithm_id = "static_hea_qiskit_vqe"
+    if field.startswith("adapt_"):
+        algorithm_id = "static_full_meta_append_adapt_vqe"
+    elif field.startswith("family_informed_"):
+        algorithm_id = "static_family_informed_vqe"
+
+    with pytest.raises(ValueError, match=match):
+        run_single(
+            family="hubbard" if algorithm_id != "static_full_meta_append_adapt_vqe" else "hh",
+            case_id=(
+                "hubbard_L2_three_model_weak"
+                if algorithm_id != "static_full_meta_append_adapt_vqe"
+                else "hh_L2_nph2_three_model_sym_weak_weak"
+            ),
+            algorithm_id=algorithm_id,
+            output_dir=tmp_path / "bad_schedule_value",
+        )
+
+
+def test_run_single_hea_schedule_requires_learning_rate_perturbation_pair(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_spsa_learning_rate"], "0.04")
+
+    with pytest.raises(ValueError, match="provided together"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_weak",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "hea_one_sided_schedule",
+        )
+
+
+def test_run_single_schedule_fields_require_spsa_optimizer(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_optimizer"], "bfgs")
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["family_informed_spsa_a"], "0.05")
+
+    with pytest.raises(ValueError, match="require family_informed_optimizer=spsa"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_weak",
+            algorithm_id="static_family_informed_vqe",
+            output_dir=tmp_path / "schedule_requires_spsa",
+        )
+
+
+def test_run_single_optimizer_profile_requires_spsa_values(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["hea_optimizer"], "COBYLA")
+
+    with pytest.raises(ValueError, match="requires hea_optimizer=spsa"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2_three_model_weak",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "bad_profile_value",
+        )
+
+
+def test_run_single_optimizer_profile_rejects_non_visible_cases_and_posgeo(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    with pytest.raises(ValueError, match="exact visible Paper-I main-table case set"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "legacy_case",
+        )
+
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    with pytest.raises(ValueError, match="displayed Paper-I methods"):
+        run_single(
+            family="hh",
+            case_id="hh_L2_nph2_three_model_sym_weak_weak",
+            algorithm_id="static_pos_geo_adapt_vqe",
+            output_dir=tmp_path / "posgeo_profile",
+        )
+
+
+def test_run_single_optimizer_profile_reaches_hea_runner_after_internals_accept_kwargs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import pipelines.exact_bench.generic_static_hea_qiskit_vqe as hea
+
+    monkeypatch.setattr(hea, "has_qiskit_hea_support", lambda: False)
+    monkeypatch.setenv("TABLE_I_STATIC_SUITE_PROFILE", PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+    monkeypatch.setenv(PAPER_I_MAIN_TABLES_SPSA_OPTIMIZER_ENV_NAMES["optimizer_profile"], PAPER_I_MAIN_TABLES_SPSA_PROFILE_ID)
+
+    payload = run_single(
+        family="hubbard",
+        case_id="hubbard_L2_three_model_weak",
+        algorithm_id="static_hea_qiskit_vqe",
+        output_dir=tmp_path / "hea_actual_runner_profile",
+    )
+
+    assert payload["status"] == "skipped_optional_dependency"
+    assert payload["rows"][0]["status"] == "skipped_optional_dependency"
+
+
+def test_run_single_selected_logical_env_rejects_non_generic_static_variant(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SELECTED_LOGICAL_ROUTE", "historical_selected")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_SELECTED_LOGICAL_SOURCE_JSON", "selected.json")
+
+    with pytest.raises(ValueError, match="selected-logical CHTC env overlay"):
+        run_single(
+            family="hubbard",
+            case_id="hubbard_L2",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "hea",
+        )
+
+
 def test_run_single_static_ed_reference_uses_generic_exact_target_runner_not_phase3(
     monkeypatch, tmp_path: Path
 ) -> None:
     import pipelines.exact_bench.generic_static_ed_reference as edref
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("static ED reference benchmark must not call Phase3 static ADAPT")
@@ -786,7 +1674,7 @@ def test_run_single_fixed_count_hea_uses_generic_qiskit_runner(
     tmp_path: Path,
 ) -> None:
     import pipelines.exact_bench.generic_static_hea_qiskit_vqe as hea
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("HEA benchmark must not call Phase3 static ADAPT")
@@ -903,15 +1791,14 @@ def test_generic_static_table_record_generator_includes_new_benchmark_rows_witho
     assert "static_full_meta_append_adapt_vqe" in summary["algorithm_ids"]
     assert "static_qiskit_adapt_vqe" not in summary["algorithm_ids"]
     assert "static_qubit_qeb_adapt_vqe" in summary["algorithm_ids"]
-    assert "static_tetris_qubit_adapt_vqe" in summary["algorithm_ids"]
+    assert "static_tetris_qubit_adapt_vqe" not in summary["algorithm_ids"]
     assert "static_geo_qubit_adapt_vqe" not in summary["algorithm_ids"]
-    assert "static_pos_geo_adapt_vqe" in summary["algorithm_ids"]
+    assert "static_geo_adapt_vqe" in summary["algorithm_ids"]
     expected_case_count = _table_i_executable_case_count()
     assert summary["status_by_algorithm"]["static_full_meta_append_adapt_vqe"] == {"runnable": expected_case_count}
     assert summary["status_by_algorithm"]["static_qubit_qeb_adapt_vqe"] == {"runnable": expected_case_count}
-    assert summary["status_by_algorithm"]["static_tetris_qubit_adapt_vqe"] == {"runnable": expected_case_count}
     assert "static_geo_qubit_adapt_vqe" not in summary["status_by_algorithm"]
-    assert summary["status_by_algorithm"]["static_pos_geo_adapt_vqe"] == {"runnable": expected_case_count}
+    assert summary["status_by_algorithm"]["static_geo_adapt_vqe"] == {"runnable": expected_case_count}
     assert summary["status_by_algorithm"]["static_family_informed_vqe"] == {"runnable": expected_case_count}
     assert summary["runnable_record_count"] == expected_case_count * len(summary["algorithm_ids"])
     assert summary["smoke_record_count"] == 14
@@ -972,15 +1859,344 @@ def test_generic_static_table_record_generator_includes_new_benchmark_rows_witho
     assert "static_qiskit_adapt_vqe" not in records_text
     assert "static_table__hh__hh_L2__static_qubit_qeb_adapt_vqe" in records_text
     assert "static_table__spinless_tv__spinless_tv_L2_v1p5__static_qubit_qeb_adapt_vqe" in records_text
-    assert "static_table__spin_boson__spin_boson_L1_g0p7__static_tetris_qubit_adapt_vqe" in records_text
+    assert "static_tetris_qubit_adapt_vqe" not in records_text
     assert "static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2" not in records_text
     assert "static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2" not in smoke_text
     assert table_i_deferred_case_reason("molecular_vibronic_h2", "molecular_vibronic_h2_L2") is not None
     assert "static_geo_qubit_adapt_vqe" not in records_text
     assert "static_geo_qubit_adapt_vqe" not in smoke_text
-    assert "static_table__hubbard__hubbard_L2__static_pos_geo_adapt_vqe" in records_text
-    assert "static_table__bose_hubbard__bose_hubbard_L2__static_pos_geo_adapt_vqe" in smoke_text
+    assert "static_table__hubbard__hubbard_L2__static_geo_adapt_vqe" in records_text
+    assert "static_table__bose_hubbard__bose_hubbard_L2__static_geo_adapt_vqe" in smoke_text
     assert "static_family_native_adapt_phase3" not in records_text
+
+
+def test_generic_static_table_generic_adapt_budget_profile_depth500_applies_to_comparators(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna.generate_generic_static_table_records import generate_records
+
+    output_dir = tmp_path / "input"
+    summary = generate_records(
+        output_dir=output_dir,
+        queue_output_root=tmp_path / "queue",
+        suite_profile="paper_i_three_model_main_20260525_v1",
+        family_filter=("hubbard",),
+        algorithm_filter=(
+            "static_full_meta_append_adapt_vqe",
+            "static_geo_adapt_vqe",
+            "static_qubit_qeb_adapt_vqe",
+        ),
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        disable_resource_guards=True,
+        generic_adapt_budget_profile="paper_i_first_hit_depth500_v1",
+        selected_logical_route="standard",
+    )
+
+    rows = list(
+        csv.DictReader(
+            (output_dir / "generic_static_table_records.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+    assert summary["runnable_record_count"] == 6
+    assert summary["generic_adapt_budget_overlay"]["applied_record_count"] == 6
+    assert {row["family"] for row in rows} == {"hubbard"}
+    assert {row["algorithm_id"] for row in rows} == {
+        "static_full_meta_append_adapt_vqe",
+        "static_geo_adapt_vqe",
+        "static_qubit_qeb_adapt_vqe",
+    }
+    assert all(row["selected_logical_route"] == "" for row in rows)
+    assert all(row["phase3_adapt_max_depth"] == "500" for row in rows)
+    assert all(row["phase3_adapt_maxiter"] == "5000" for row in rows)
+    assert all(row["phase3_adapt_allow_repeats"] == "true" for row in rows)
+    assert all(row["resource_qubit_cap"] == "0" and row["resource_pool_term_cap"] == "0" for row in rows)
+
+
+def test_generic_static_table_hh_symmetric_full_meta_smokes_each_comparator_with_tiny_budget(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna.generate_generic_static_table_records import generate_records
+
+    output_dir = tmp_path / "input"
+    summary = generate_records(
+        output_dir=output_dir,
+        queue_output_root=tmp_path / "queue",
+        suite_profile="paper_i_three_model_hh_symmetric_20260527_v1",
+        family_filter=("hh",),
+        algorithm_filter=(
+            "static_full_meta_append_adapt_vqe",
+            "static_geo_adapt_vqe",
+        ),
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        disable_resource_guards=True,
+        generic_adapt_budget_profile="paper_i_first_hit_depth500_v1",
+        generic_adapt_smoke_budget_profile="weak_local_v1",
+        selected_logical_route="standard",
+        smoke_case_ids=("hh_L2_nph2_three_model_sym_weak_weak",),
+    )
+
+    full_rows = list(
+        csv.DictReader(
+            (output_dir / "generic_static_table_records.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+    smoke_rows = list(
+        csv.DictReader(
+            (output_dir / "generic_static_table_smoke_records.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+    assert summary["runnable_record_count"] == 8
+    assert summary["smoke_record_count"] == 2
+    assert summary["generic_adapt_budget_overlay"]["applied_record_count"] == 8
+    assert summary["generic_adapt_smoke_budget_overlay"]["applied_record_count"] == 2
+    assert {row["algorithm_id"] for row in smoke_rows} == {
+        "static_full_meta_append_adapt_vqe",
+        "static_geo_adapt_vqe",
+    }
+    assert {row["case_id"] for row in smoke_rows} == {"hh_L2_nph2_three_model_sym_weak_weak"}
+    assert all(row["phase3_adapt_max_depth"] == "500" for row in full_rows)
+    assert all(row["phase3_adapt_maxiter"] == "5000" for row in full_rows)
+    assert all(row["phase3_adapt_allow_repeats"] == "true" for row in full_rows)
+    assert all(row["phase3_adapt_max_depth"] == "1" for row in smoke_rows)
+    assert all(row["phase3_adapt_maxiter"] == "1" for row in smoke_rows)
+    assert all(row["phase3_refit_maxiter"] == "1" for row in smoke_rows)
+    assert all(row["phase3_final_maxiter"] == "1" for row in smoke_rows)
+
+
+def test_generic_static_table_runtime_split_records_only_target_hh_append_and_geo(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna import generate_generic_static_table_records as records_mod
+    from pipelines.reporting.benchmark_manifest import BenchmarkJob
+
+    jobs = (
+        BenchmarkJob(
+            job_id="append",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_full_meta_append_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+        BenchmarkJob(
+            job_id="geo",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_geo_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+        BenchmarkJob(
+            job_id="qeb",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_qubit_qeb_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+        BenchmarkJob(
+            job_id="hubbard_append",
+            domain="static",
+            family="hubbard",
+            case_id="hubbard_case",
+            algorithm_id="static_full_meta_append_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+    )
+    overlay = records_mod._normalize_generic_adapt_runtime_split_overlay(
+        generic_adapt_runtime_split_mode="shortlist_pauli_children_v1",
+        generic_adapt_runtime_split_symmetry_policy="hard_guard",
+        generic_adapt_runtime_split_max_subset_size=4,
+    )
+    rows = records_mod._records_from_jobs(
+        jobs,
+        suite_profile=TABLE_I_STANDARD_PROFILE,
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        generic_adapt_runtime_split_overlay=overlay,
+    )
+    records_mod._write_records(tmp_path / "records.tsv", rows)
+
+    by_id = {row["record_id"]: row for row in rows}
+    for record_id in ("static_table__hh__hh_case__static_full_meta_append_adapt_vqe", "static_table__hh__hh_case__static_geo_adapt_vqe"):
+        assert by_id[record_id]["generic_adapt_runtime_split_mode"] == "shortlist_pauli_children_v1"
+        assert by_id[record_id]["generic_adapt_runtime_split_symmetry_policy"] == "hard_guard"
+        assert by_id[record_id]["generic_adapt_runtime_split_max_subset_size"] == "4"
+    assert by_id["static_table__hh__hh_case__static_qubit_qeb_adapt_vqe"]["generic_adapt_runtime_split_mode"] == ""
+    assert by_id["static_table__hubbard__hubbard_case__static_full_meta_append_adapt_vqe"]["generic_adapt_runtime_split_mode"] == "shortlist_pauli_children_v1"
+    header = (tmp_path / "records.tsv").read_text(encoding="utf-8").splitlines()[0].split("\t")
+    assert "generic_adapt_runtime_split_mode" in header
+    assert "generic_adapt_runtime_split_symmetry_policy" in header
+    assert "generic_adapt_runtime_split_max_subset_size" in header
+
+
+def test_generic_static_table_shared_pauli_pool_no_guard_targets_snake_append_and_geo(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna import generate_generic_static_table_records as records_mod
+    from pipelines.reporting.benchmark_manifest import BenchmarkJob
+
+    jobs = (
+        BenchmarkJob(
+            job_id="snake",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_family_native_adapt_phase3",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "phase3_static_adapt"},
+        ),
+        BenchmarkJob(
+            job_id="append",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_full_meta_append_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+        BenchmarkJob(
+            job_id="geo",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_geo_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+        BenchmarkJob(
+            job_id="qeb",
+            domain="static",
+            family="hh",
+            case_id="hh_case",
+            algorithm_id="static_qubit_qeb_adapt_vqe",
+            status="runnable",
+            reason="",
+            metadata={"dispatch": "generic_static_adapt_variants"},
+        ),
+    )
+    overlay = records_mod._normalize_shared_pauli_pool_overlay(
+        shared_pauli_pool_mode="shared_pauli_child_sets_v1",
+        shared_pauli_pool_symmetry_policy="off",
+        shared_pauli_pool_max_subset_size=1,
+    )
+    rows = records_mod._records_from_jobs(
+        jobs,
+        suite_profile=TABLE_I_STANDARD_PROFILE,
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        shared_pauli_pool_overlay=overlay,
+    )
+    records_mod._write_records(tmp_path / "records.tsv", rows)
+
+    by_id = {row["record_id"]: row for row in rows}
+    for record_id in (
+        "static_table__hh__hh_case__static_family_native_adapt_phase3",
+        "static_table__hh__hh_case__static_full_meta_append_adapt_vqe",
+        "static_table__hh__hh_case__static_geo_adapt_vqe",
+    ):
+        assert by_id[record_id]["shared_pauli_pool_mode"] == "shared_pauli_child_sets_v1"
+        assert by_id[record_id]["shared_pauli_pool_symmetry_policy"] == "off"
+        assert by_id[record_id]["shared_pauli_pool_max_subset_size"] == "1"
+    assert by_id["static_table__hh__hh_case__static_qubit_qeb_adapt_vqe"]["shared_pauli_pool_mode"] == ""
+    header = (tmp_path / "records.tsv").read_text(encoding="utf-8").splitlines()[0].split("\t")
+    assert "shared_pauli_pool_mode" in header
+    assert "shared_pauli_pool_symmetry_policy" in header
+    assert "shared_pauli_pool_max_subset_size" in header
+
+
+def test_generic_static_table_hh_symmetric_selected_overlay_only_supported_rows(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna.generate_generic_static_table_records import generate_records
+
+    output_dir = tmp_path / "input"
+    source = "chtc/phase3_optuna/input/paper_i_three_model_reduced_pool_selected_logical_20260525_v1/hh_L2_from_result.selected_logical.json"
+    summary = generate_records(
+        output_dir=output_dir,
+        queue_output_root=tmp_path / "queue",
+        suite_profile="paper_i_three_model_hh_symmetric_20260527_v1",
+        family_filter=("hh",),
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        disable_resource_guards=True,
+        generic_adapt_budget_profile="paper_i_first_hit_depth256_v1",
+        selected_logical_route="historical_selected",
+        selected_logical_source_json=source,
+        selected_logical_transfer_mode="boundary_v1",
+        selected_logical_supported_algorithms_only=True,
+    )
+
+    rows = list(
+        csv.DictReader(
+            (output_dir / "generic_static_table_records.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+    selected = [row for row in rows if row["selected_logical_route"] == "historical_selected"]
+    assert summary["runnable_record_count"] == 20
+    assert summary["generic_adapt_budget_overlay"]["applied_record_count"] == 12
+    assert summary["selected_logical_overlay"]["applied_record_count"] == 8
+    assert {row["case_id"] for row in rows} == {
+        "hh_L2_nph2_three_model_sym_weak_weak",
+        "hh_L2_nph2_three_model_sym_strong_weak",
+        "hh_L2_nph4_three_model_sym_weak_strong",
+        "hh_L2_nph4_three_model_sym_strong_strong",
+    }
+    assert {row["algorithm_id"] for row in selected} == {
+        "static_full_meta_append_adapt_vqe",
+        "static_geo_adapt_vqe",
+    }
+    assert all(row["selected_logical_transfer_mode"] == "boundary_v1" for row in selected)
+    assert all(row["phase3_adapt_max_depth"] == "256" for row in rows if row["algorithm_id"].endswith("_adapt_vqe"))
+    assert all(row["n_ph_ref"] in {"5", "7"} for row in rows)
+
+
+def test_generic_static_table_geo_comparator_is_append_only_without_posgeo_override(
+    tmp_path: Path,
+) -> None:
+    from chtc.phase3_optuna.generate_generic_static_table_records import generate_records
+
+    output_dir = tmp_path / "input"
+    generate_records(
+        output_dir=output_dir,
+        queue_output_root=tmp_path / "queue",
+        suite_profile="paper_i_three_model_main_20260525_v1",
+        family_filter=("hh",),
+        algorithm_filter=("static_geo_adapt_vqe",),
+        energy_stop_target=0.0002,
+        first_hit_thresholds=(0.0002,),
+        disable_resource_guards=True,
+        generic_adapt_budget_profile="paper_i_first_hit_depth500_v1",
+        selected_logical_route="standard",
+    )
+
+    rows = list(
+        csv.DictReader(
+            (output_dir / "generic_static_table_records.tsv").read_text(encoding="utf-8").splitlines(),
+            delimiter="\t",
+        )
+    )
+    assert rows
+    assert {row["algorithm_id"] for row in rows} == {"static_geo_adapt_vqe"}
+    assert {row["family"] for row in rows} == {"hh"}
+    assert all(row["phase3_pos_geo_position_policy"] == "" for row in rows)
 
 
 
@@ -998,11 +2214,11 @@ def test_generic_static_table_nph2_ref3_record_generator_uses_cutoff2_cases(tmp_
     assert summary["first_hit_thresholds"] == [1e-6, 1e-8]
     expected_case_count = _table_i_executable_case_count("nph2_ref3_v1")
     assert summary["runnable_record_count"] == expected_case_count * len(summary["algorithm_ids"])
-    assert summary["smoke_record_count"] == 14
+    assert summary["smoke_record_count"] == 12
     records_text = Path(summary["paths"]["records_tsv"]).read_text(encoding="utf-8")
-    assert "static_table__bose_hubbard__bose_hubbard_L2_nph2__static_pos_geo_adapt_vqe" in records_text
-    assert "static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2_nph2_w0p75__static_pos_geo_adapt_vqe" in records_text
-    assert "static_table__spin_boson__spin_boson_L1_nph2_g0p7__static_tetris_qubit_adapt_vqe" in records_text
+    assert "static_table__bose_hubbard__bose_hubbard_L2_nph2__static_geo_adapt_vqe" in records_text
+    assert "static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2_nph2_w0p75__static_geo_adapt_vqe" in records_text
+    assert "static_tetris_qubit_adapt_vqe" not in records_text
     assert "static_table__hh__hh_L2_nph2__static_full_meta_append_adapt_vqe" in records_text
     assert "static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2" not in records_text
     assert table_i_deferred_case_reason("molecular_vibronic_h2", "molecular_vibronic_h2_L2", "nph2_ref3_v1") is not None
@@ -1094,7 +2310,7 @@ def test_generic_static_table_h2_clean_comparator_records_are_fixture_backed(tmp
 
     assert summary["suite_profile"] == TABLE_I_CLEAN_NPH2_REF4_PROFILE
     assert summary["family_filter"] == ["molecular_vibronic_h2"]
-    assert summary["runnable_record_count"] == 12
+    assert summary["runnable_record_count"] == 10
     assert summary["smoke_record_count"] == 1
     assert "static_family_native_adapt_phase3" not in summary["algorithm_ids"]
 
@@ -1116,8 +2332,7 @@ def test_generic_static_table_h2_clean_comparator_records_are_fixture_backed(tmp
         "static_family_informed_vqe",
         "static_full_meta_append_adapt_vqe",
         "static_qubit_qeb_adapt_vqe",
-        "static_tetris_qubit_adapt_vqe",
-        "static_pos_geo_adapt_vqe",
+        "static_geo_adapt_vqe",
     }
     assert {row["n_ph_work"] for row in rows} == {"1"}
     assert {row["n_ph_ref"] for row in rows} == {"4"}
@@ -1172,6 +2387,44 @@ def test_generic_static_table_h2_clean_snake_records_are_separate_and_seeded(tmp
     assert all(row["phase3_adapt_beam_parent_workers"] == "4" for row in rows)
     assert all(row["static_route_id"] == "route_a" for row in rows)
     assert all(row["reference_energy_status"] == "ok" for row in rows)
+
+
+def test_generic_static_table_h2_strong_nph3_ref6_full_suite_records(tmp_path: Path) -> None:
+    from chtc.phase3_optuna.generate_generic_static_table_records import generate_records
+
+    summary = generate_records(
+        output_dir=tmp_path / "input",
+        queue_output_root=tmp_path / "queue",
+        suite_profile=TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE,
+        family_filter=("molecular_vibronic_h2",),
+        include_snake=True,
+        energy_stop_target=2e-4,
+        first_hit_thresholds=(2e-4,),
+        phase3_policy_profile="spsa_prior_best_v1",
+        phase3_oracle_seed=7,
+        phase3_adapt_parallel_gradient_workers=10,
+        phase3_adapt_beam_parent_workers=4,
+    )
+
+    assert summary["suite_profile"] == TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE
+    assert summary["include_snake"] is True
+    assert summary["runnable_record_count"] == len(TABLE_I_STATIC_ALGORITHM_IDS)
+    assert summary["smoke_record_count"] == 1
+    assert summary["phase3_policy_overlay"]["applied_record_count"] == 1
+    assert summary["phase3_runtime_overlay"]["applied_record_count"] == 1
+    assert summary["phase3_oracle_overlay"]["applied_record_count"] == 1
+    assert summary["static_route_overlay"]["route_a_record_count"] == 1
+
+    records_text = Path(summary["paths"]["records_tsv"]).read_text(encoding="utf-8")
+    assert "molecular_restricted_closed_shell" not in records_text
+    rows = list(csv.DictReader(records_text.splitlines(), delimiter="\t"))
+    assert {row["family"] for row in rows} == {"molecular_vibronic_h2"}
+    assert {row["case_id"] for row in rows} == {"molecular_vibronic_h2_L2_nph3_clean_strong"}
+    assert {row["algorithm_id"] for row in rows} == set(TABLE_I_STATIC_ALGORITHM_IDS)
+    assert {row["n_ph_work"] for row in rows} == {"3"}
+    assert {row["n_ph_ref"] for row in rows} == {"6"}
+    assert {row["exact_reference_n_ph_max"] for row in rows} == {"6"}
+    assert {row["reference_energy_status"] for row in rows} == {"ok"}
 
 
 def test_generic_static_table_clean_ladder_generates_explicit_ref4_and_escalation_rows(tmp_path: Path) -> None:
@@ -1338,7 +2591,7 @@ def test_generic_static_table_snake_only_generator_uses_matched_profile(tmp_path
     assert summary["static_route_overlay"]["unspecified_record_count"] == 0
     assert "static_table__hh__hh_L2_nph2__static_family_native_adapt_phase3" in records_text
     assert "static_table__hh__hh_L2_nph2__static_family_native_adapt_phase3" in smoke_text
-    assert "static_pos_geo_adapt_vqe" not in records_text
+    assert "static_geo_adapt_vqe" not in records_text
     assert "\tnph2_ref3_v1\t1e-08\t1e-06,1e-08" in records_text
 
 
@@ -1401,7 +2654,7 @@ def test_generic_static_table_hardware_resolution_profile_generator_applies_only
         )
 
     monkeypatch.setattr(records_mod, "build_table_i_static_jobs", fake_table_i_jobs)
-    monkeypatch.setattr(records_mod, "summarize_table_i_jobs", lambda jobs: {"job_count": len(tuple(jobs))})
+    monkeypatch.setattr(records_mod, "summarize_table_i_jobs", lambda jobs, **kwargs: {"job_count": len(tuple(jobs))})
     monkeypatch.setattr(records_mod, "_select_smoke_records", lambda records, **kwargs: (list(records), 0))
 
     summary = generate_records(
@@ -1561,7 +2814,7 @@ def test_generic_static_table_benchmark_value_noise_generator_populates_all_runn
     assert smoke_rows
     assert all(row["benchmark_value_noise_model"] == "gaussian_iid_v1" for row in smoke_rows)
     assert any(row["algorithm_id"] == "static_hea_qiskit_vqe" for row in rows)
-    assert any(row["algorithm_id"] == "static_pos_geo_adapt_vqe" for row in rows)
+    assert any(row["algorithm_id"] == "static_geo_adapt_vqe" for row in rows)
 
 
 def test_generic_static_table_benchmark_decision_noise_generator_populates_only_non_phase3_rows(tmp_path: Path) -> None:
@@ -2017,8 +3270,11 @@ def test_phase3_static_table_contract_fields_use_phase3_compile_and_measurement_
     assert fields["compiled_depth_total"] == 166
     assert fields["compiled_count_2q_total"] == 65
     assert fields["compiled_circuit_stats_status"] == "phase3_compile_json_metrics_v1"
-    assert fields["shots_total"] == 107
-    assert fields["static_shot_estimate_status"] == "controller_measurement_work_proxy_not_physical_shots"
+    assert "shots_total" not in fields
+    assert "static_shot_estimate_status" not in fields
+    assert fields["legacy_work_proxy_status"] == "controller_proxy_diagnostic_only"
+    assert fields["legacy_work_proxies"]["measurement_shots_proxy"] == 107.0
+    assert fields["legacy_work_proxies"]["shot_cost_proxy"] == 999.0
 
 
 def test_phase3_static_algorithmic_work_fields_use_native_controller_records(tmp_path: Path) -> None:
@@ -2026,15 +3282,51 @@ def test_phase3_static_algorithmic_work_fields_use_native_controller_records(tmp
     result_json.write_text(
         json.dumps(
             {
+                "hamiltonian_pauli_term_count": 7,
                 "adapt_vqe": {
                     "controller_measurement_work_summary": {
+                        "schema": "controller_measurement_work_proxy_v1",
+                        "source": "native_controller_live_decision_work_v1",
                         "source_kind": "native_controller_work",
-                        "by_scope": {
-                            "phase=phase1|event=append_probe": {"records_evaluated": 79, "shots_total": 10_000},
-                            "phase=phase2|event=rerank_records": {"records_evaluated": 13},
-                            "phase=phase3|event=reduced_geometry_rerank": {"records_evaluated": 13},
+                        "legacy_fallback_used": False,
+                        "candidate_work_ledger_schema": "controller_candidate_work_ledger_v1",
+                        "candidate_work_ledger_status": "explicit_candidate_work_ledger_v1",
+                        "candidate_work_event_count": 3,
+                        "candidate_work_missing_event_count": 0,
+                        "candidate_count_total": 105,
+                        "evaluated_count_total": 105,
+                        "pre_shortlist_count_total": 105,
+                        "shortlist_size_total": 105,
+                        "retained_count_total": 105,
+                        "rejected_count_total": 0,
+                        "candidate_work_ledger_scope": "event_records_measured_v1",
+                        "candidate_work_ledger_scopes": {"event_records_measured_v1": 3},
+                        "by_phase": {
+                            "phase1": {
+                                "records_with_group_keys": 79,
+                                "groups_total": 79,
+                                "shots_total": 10_000,
+                                "actual_operator_probe_count": 79,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
+                            "phase2": {
+                                "records_with_group_keys": 13,
+                                "groups_total": 13,
+                                "actual_operator_probe_count": 13,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
+                            "phase3": {
+                                "records_with_group_keys": 13,
+                                "groups_total": 13,
+                                "actual_operator_probe_count": 13,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
                         },
                     },
+                    "history": [{"nfev_opt": 7}],
+                    "resume_boundary_refit": {"executed": False},
+                    "final_full_refit": {"executed": False},
+                    "nfev_total": 7,
                     "continuation": {
                         "oracle_gradient_config": {
                             "value_noise": {
@@ -2052,21 +3344,98 @@ def test_phase3_static_algorithmic_work_fields_use_native_controller_records(tmp
     )
 
     fields = _phase3_static_algorithmic_work_fields_from_result(
-        {"result_json": str(result_json), "measurement_shots_proxy": 999_999.0, "shots_total": 888_888}
+        {"result_json": str(result_json), "measurement_shots_proxy": 999_999.0, "shots_total": 888_888},
+        shots_per_pauli_term_proxy=10,
     )
 
-    assert fields["algorithmic_measurement_work_source"] == "native_phase3_controller_records_evaluated_v1"
-    assert fields["S_alg"] == 105.0
-    assert fields["S_alg_N_grad_probe"] == 92.0
-    assert fields["S_alg_N_metric_probe"] == 13.0
+    assert fields["algorithmic_measurement_work_source"] == "snake_canonical_runtime_reconstruction_v1"
+    assert fields["S_alg_status"] == "ok"
+    assert fields["S_alg"] == 112.0
+    assert fields["S_alg_N_grad_probe"] == 79.0
+    assert fields["S_alg_N_metric_probe"] == 26.0
     assert fields["S_alg_N_H_outer_eval"] == 0.0
-    assert fields["S_alg_N_H_refit_eval"] == 0.0
+    assert fields["S_alg_N_H_refit_eval"] == 7.0
     assert fields["S_alg_N_other_quantum"] == 0.0
+    assert fields["snake_deterministic_shot_proxy"]["status"] == "ok"
+    assert fields["snake_deterministic_shot_proxy"]["shots_per_pauli_term_proxy_source"] == (
+        "argument.shots_per_pauli_term_proxy"
+    )
+    assert fields["shots_total"] == 10 * 7 * (7 + 79 + 26)
+    assert fields["static_shot_estimate_status"] == "deterministic_proxy_not_physical_shots"
+    assert fields["shots_total"] != 999_999
+    assert fields["shots_total"] != 888_888
     ledger = fields["table_i_measurement_event_ledger"]
     assert ledger["schema"] == "table_i_measurement_event_ledger_v1"
-    assert ledger["component_totals"]["N_grad_probe"] == 92.0
-    assert ledger["component_totals"]["N_metric_probe"] == 13.0
-    assert len(ledger["events"]) == 3
+    assert ledger["component_totals"]["N_grad_probe"] == 79.0
+    assert ledger["component_totals"]["N_metric_probe"] == 26.0
+    assert ledger["component_totals"]["N_H_refit_eval"] == 7.0
+
+
+def test_phase3_static_algorithmic_work_fields_block_deterministic_shots_without_explicit_shots_per_term(
+    tmp_path: Path,
+) -> None:
+    result_json = tmp_path / "result.json"
+    result_json.write_text(
+        json.dumps(
+            {
+                "hamiltonian_pauli_term_count": 7,
+                "adapt_vqe": {
+                    "controller_measurement_work_summary": {
+                        "schema": "controller_measurement_work_proxy_v1",
+                        "source": "native_controller_live_decision_work_v1",
+                        "source_kind": "native_controller_work",
+                        "legacy_fallback_used": False,
+                        "candidate_work_ledger_schema": "controller_candidate_work_ledger_v1",
+                        "candidate_work_ledger_status": "explicit_candidate_work_ledger_v1",
+                        "candidate_work_event_count": 3,
+                        "candidate_work_missing_event_count": 0,
+                        "candidate_count_total": 105,
+                        "evaluated_count_total": 105,
+                        "pre_shortlist_count_total": 105,
+                        "shortlist_size_total": 105,
+                        "retained_count_total": 105,
+                        "rejected_count_total": 0,
+                        "candidate_work_ledger_scope": "event_records_measured_v1",
+                        "candidate_work_ledger_scopes": {"event_records_measured_v1": 3},
+                        "by_phase": {
+                            "phase1": {
+                                "records_with_group_keys": 79,
+                                "groups_total": 79,
+                                "shots_total": 10_000,
+                                "actual_operator_probe_count": 79,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
+                            "phase2": {
+                                "records_with_group_keys": 13,
+                                "groups_total": 13,
+                                "actual_operator_probe_count": 13,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
+                            "phase3": {
+                                "records_with_group_keys": 13,
+                                "groups_total": 13,
+                                "actual_operator_probe_count": 13,
+                                "operator_probe_charge_basis": "logical_estimator_request_pre_grouping_v1",
+                            },
+                        },
+                    },
+                    "history": [{"nfev_opt": 7}],
+                    "resume_boundary_refit": {"executed": False},
+                    "final_full_refit": {"executed": False},
+                    "nfev_total": 7,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    fields = _phase3_static_algorithmic_work_fields_from_result({"result_json": str(result_json)})
+
+    assert fields["S_alg_status"] == "ok"
+    assert fields["S_alg"] == 112.0
+    assert fields["snake_deterministic_shot_proxy"]["status"] == "missing_shots_per_pauli_term_proxy"
+    assert "shots_total" not in fields
+    assert "static_shot_estimate_status" not in fields
 
 
 def test_run_single_benchmark_value_noise_env_applies_to_non_phase3_result_and_artifacts(
@@ -2257,7 +3626,7 @@ def test_run_single_benchmark_value_noise_env_requires_finite_energy(
 
 
 def test_run_single_phase3_oracle_value_noise_env_applies_to_phase3_policy(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured = {}
 
@@ -2308,7 +3677,7 @@ def test_run_single_hardware_resolution_profile_env_applies_to_phase3_policy(
     tmp_path: Path,
 ) -> None:
     import pipelines.exact_bench.generic_static_benchmark as gsb
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     spec = p3opt.HamiltonianBenchmarkSpec(
         benchmark_id="hh_L2",
@@ -2344,8 +3713,6 @@ def test_run_single_hardware_resolution_profile_env_applies_to_phase3_policy(
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_MODE", "profile")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_PROFILE_JSON", "calibrations/small_noise.json")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_PROFILE_NAME", "small_noise_v1")
-    monkeypatch.setenv("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", "unspecified")
-
     payload = run_single(
         family="hh",
         case_id="hh_L2",
@@ -2359,7 +3726,7 @@ def test_run_single_hardware_resolution_profile_env_applies_to_phase3_policy(
         "hardware_resolution_profile_json": "calibrations/small_noise.json",
         "hardware_resolution_profile_name": "small_noise_v1",
     }
-    assert payload["static_route_env_overlay"] == {"static_route_id": "unspecified"}
+    assert payload["static_route_env_overlay"] == {}
     assert static.static_route_id == "unspecified"
     assert static.hardware_resolution_mode == "profile"
     assert static.hardware_resolution_profile_json == "calibrations/small_noise.json"
@@ -2381,7 +3748,6 @@ def test_run_single_phase3_local_fixture_profile_dry_run_emits_hardware_resoluti
         "hardware_resolution_mode",
         "hardware_resolution_profile_json",
         "hardware_resolution_profile_name",
-        "static_route_id",
         "phase3_adapt_max_depth",
         "phase3_adapt_maxiter",
         "phase3_refit_maxiter",
@@ -2422,7 +3788,6 @@ def test_run_single_phase3_local_fixture_profile_dry_run_emits_hardware_resoluti
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_MODE", "profile")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_PROFILE_JSON", str(profile_path))
     monkeypatch.setenv("GENERIC_STATIC_TABLE_HARDWARE_RESOLUTION_PROFILE_NAME", profile_name)
-    monkeypatch.setenv("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", "unspecified")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAX_DEPTH", "1")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAXITER", "20")
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_REFIT_MAXITER", "1")
@@ -2450,7 +3815,7 @@ def test_run_single_phase3_local_fixture_profile_dry_run_emits_hardware_resoluti
         "hardware_resolution_profile_json": str(profile_path),
         "hardware_resolution_profile_name": profile_name,
     }
-    assert payload["static_route_env_overlay"] == {"static_route_id": "unspecified"}
+    assert payload["static_route_env_overlay"] == {}
     assert payload["phase3_budget_env_overlay"] == {
         "adapt_max_depth": 1,
         "adapt_maxiter": 20,
@@ -2483,7 +3848,8 @@ def test_run_single_phase3_local_fixture_profile_dry_run_emits_hardware_resoluti
     assert static_policy["hardware_resolution_profile_name"] == profile_name
 
     command_text = (result_json.parent.parent / "logs" / "command.sh").read_text(encoding="utf-8")
-    assert "--static-route-id unspecified" in command_text
+    assert "--static-route-id" not in command_text
+    assert "--static-meta-feature-profile" not in command_text
     assert "--hardware-resolution-mode profile" in command_text
     assert "--hardware-resolution-profile-json" in command_text
     assert str(profile_path) in command_text
@@ -2566,17 +3932,30 @@ def test_run_single_hardware_resolution_profile_env_rejects_non_phase3_static_re
         )
 
 
-def test_run_single_static_route_env_rejects_non_phase3_static_record(
+@pytest.mark.parametrize(
+    ("algorithm_id", "route_id"),
+    (
+        ("static_hea_qiskit_vqe", "route_a"),
+        ("static_family_native_adapt_phase3", "route_a"),
+        ("static_family_native_adapt_phase3", "unspecified"),
+    ),
+)
+def test_run_single_static_route_env_is_retired_for_every_dispatch(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    algorithm_id: str,
+    route_id: str,
 ) -> None:
-    monkeypatch.setenv("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", "route_a")
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", route_id)
 
-    with pytest.raises(ValueError, match="static-route CHTC env overlay is only valid.*phase3_static_adapt"):
+    with pytest.raises(
+        ValueError,
+        match="Historical static-route execution controls are retired",
+    ):
         run_single(
             family="hh",
             case_id="hh_L2",
-            algorithm_id="static_hea_qiskit_vqe",
+            algorithm_id=algorithm_id,
             output_dir=tmp_path / "hea",
         )
 
@@ -2613,7 +3992,7 @@ def test_run_single_hardware_resolution_profile_env_partial_overlays_fail_closed
 
 
 def test_run_single_phase3_budget_env_applies_to_phase3_policy(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured = {}
 
@@ -2665,7 +4044,7 @@ def test_run_single_phase3_runtime_env_applies_parallel_gradient_worker_cli(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured = {}
 
@@ -2708,7 +4087,7 @@ def test_run_single_phase3_runtime_env_reaches_nested_adapt_result(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     captured: dict[str, tuple[str, ...]] = {}
 
@@ -2821,7 +4200,7 @@ def test_run_single_phase3_runtime_env_reaches_nested_adapt_result(
 def test_run_single_phase3_budget_env_rejects_non_phase3_static_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_MAX_DEPTH", "1")
 
-    with pytest.raises(ValueError, match="budget.*only valid for phase3_static_adapt"):
+    with pytest.raises(ValueError, match="budget.*only valid for phase3_static_adapt or generic_static_adapt_variants"):
         run_single(
             family="hh",
             case_id="hh_L2",
@@ -2915,15 +4294,18 @@ def test_external_adapt_manifest_metadata_is_provenance_tracked(tmp_path: Path) 
         job for job in jobs if job.family == "hubbard" and job.algorithm_id == "static_tetris_adapt_phase3"
     ]
     assert len(ceo_hubbard) == 1
-    assert len(tetris_hubbard) == 1
+    assert len(tetris_hubbard) == 3
     assert ceo_hubbard[0].status == "runnable"
-    assert tetris_hubbard[0].status == "runnable"
+    assert all(job.status == "runnable" for job in tetris_hubbard)
     assert ceo_hubbard[0].command
-    assert tetris_hubbard[0].command
+    assert all(job.command for job in tetris_hubbard)
     assert ceo_hubbard[0].metadata.get("external_adapt_dispatch") == "external_static_adapt_ceo_public_code"
-    assert tetris_hubbard[0].metadata.get("external_adapt_dispatch") == "external_static_adapt_tetris_public_code"
+    assert all(
+        job.metadata.get("external_adapt_dispatch") == "external_static_adapt_tetris_public_code"
+        for job in tetris_hubbard
+    )
 
-    runnable_external_hubbard_ids = {ceo_hubbard[0].job_id, tetris_hubbard[0].job_id}
+    runnable_external_hubbard_ids = {ceo_hubbard[0].job_id, *(job.job_id for job in tetris_hubbard)}
     for job in jobs:
         assert job.metadata.get("external_algorithm") is True
         assert job.metadata.get("phase3_controller_called") is False
@@ -2936,7 +4318,7 @@ def test_external_adapt_manifest_metadata_is_provenance_tracked(tmp_path: Path) 
 
 def test_run_single_hubbard_ceo_uses_external_adapter_not_phase3(monkeypatch, tmp_path: Path) -> None:
     import pipelines.exact_bench.external_adapt.external_static_adapt_benchmark as external
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("external CEO benchmark must not call Phase3 static ADAPT")
@@ -2979,7 +4361,7 @@ def test_run_single_hubbard_ceo_uses_external_adapter_not_phase3(monkeypatch, tm
 
 def test_run_single_hubbard_tetris_uses_external_adapter_not_phase3(monkeypatch, tmp_path: Path) -> None:
     import pipelines.exact_bench.external_adapt.external_static_adapt_benchmark as external
-    import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+    import pipelines.exact_bench.static_benchmark_runtime as p3opt
 
     def _forbidden_phase3(*args, **kwargs):  # noqa: ANN002, ANN003
         raise AssertionError("external TETRIS benchmark must not call Phase3 static ADAPT")

@@ -1,0 +1,18 @@
+# Inert template: no execution_authorization.json ships in this package.
+# A separately reviewed activation overlay must supply exact per-job authority.
+universe = vanilla
+executable = execute_source_locked_job.sh
+arguments = jobs/$(execution_id).json execution_authorization.json result.json
+transfer_executable = true
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = run_cell.py,package_contract.py,source_locked.tar.gz,source_archive_manifest.json,jobs/$(execution_id).json,execution_authorization.json
+transfer_output_files = result.json
+request_cpus = $(cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+log = logs/$(execution_id).log
+output = logs/$(execution_id).out
+error = logs/$(execution_id).err
+queue execution_id,cpus,memory_mb,disk_mb,max_runtime_seconds from queue.tsv

@@ -1,0 +1,582 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.62in,columnsep=0.24in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlength{\abovedisplayskip}{5pt}
+\setlength{\belowdisplayskip}{5pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{3pt}
+
+\newcommand{\blk}[1]{\vspace{3pt}\noindent\textbf{#1:}\quad}
+\newcommand{\Ek}{E_k}
+\newcommand{\Ok}{\mathcal O_k}
+\newcommand{\Edel}{\mathcal E_k^{\ominus}}
+\newcommand{\Gdel}{\mathcal G_k^{\ominus}}
+\newcommand{\Ndel}{\mathcal N_k^{\ominus}}
+\newcommand{\Cdel}{\mathcal C_k^{\ominus}}
+\newcommand{\Lam}{\Lambda_j^{\ominus}}
+\newcommand{\nudel}{\nu_j^{\ominus}}
+\newcommand{\Rdel}{R_j^{\ominus}}
+\newcommand{\dEdel}{\Delta E_j^{\ominus}}
+\newcommand{\clip}{\Pi_{[0,1]}}
+
+\begin{document}
+
+\title{\vspace{-2em}Paper-I SNAKE Prune Redesign: Pedagogical Math Note}
+\author{Planning companion to \texttt{paper\_i\_snake\_prune\_redesign\_plan\_20260704.md}}
+\date{2026-07-04}
+\maketitle
+\vspace{-1.2em}
+
+\textbf{Scope.} This note is a mathematical design aid for the prune redesign. It is not an implementation patch and does not change Paper-I results.
+
+\section*{1. Present Prune Contract}
+
+\blk{Micro-intuition}
+The current prune path first asks which existing ansatz coordinates may be considered, then uses Schur only to choose what to measure.
+
+\blk{Mathematical derivation}
+At adaptive step \(k\), the active ordered ansatz and energy are
+\[
+\Ok=(d_1,\ldots,d_{n_k}),
+\qquad
+\Ek=E(\Ok,\boldsymbol\theta_k).
+\]
+Here \(k\) is the current adaptive step, \(\Ok\) is the ordered ansatz operator sequence at that step, \(d_j\) is its \(j\)-th admitted generator, \(n_k\) is the current ansatz length, \(\boldsymbol\theta_k\) is the optimized parameter vector on that ansatz, and \(\Ek\) is the corresponding variational energy.
+Coordinate \(d_j\) has admission step \(a_j\) and cooldown \(c_j(k)\). The current deletion-eligible set is
+\[
+\boxed{
+\Edel=
+\{j\in\{1,\ldots,n_k\}: k-a_j\ge p_{\rm protect},\ c_j(k)\le 0\}.
+}
+\]
+Here \(\Edel\) is the set of coordinate indices that prune is allowed to consider, \(a_j\) is the step when \(d_j\) was first admitted, \(p_{\rm protect}\) is the minimum protected age before deletion can be attempted, and \(c_j(k)\) is the remaining cooldown for coordinate \(j\). The condition \(c_j(k)\le0\) means the cooldown has expired.
+For \(j\in\Edel\), the Schur surrogate produces a predicted deletion loss \(\Lam\). The measured nonlinear deletion loss is
+\[
+\boxed{
+\dEdel
+=
+E(\Ok\ominus d_j,\boldsymbol\theta_{k,-j})-\Ek .
+}
+\]
+Here \(\Ok\ominus d_j\) is the ansatz after deleting generator \(d_j\), \(\boldsymbol\theta_{k,-j}\) is the parameter vector used for that delete-refit trial, and \(\dEdel\) is the actual measured energy regression caused by deletion. Negative or small \(\dEdel\) means the deletion is energetically safe.
+The authoritative deletion accept/reject variable has the form
+\[
+\boxed{
+A_j^\ominus
+=
+\mathbf 1\{\dEdel\le\epsilon_k^\ominus\}
+\mathbf 1\{G_j^{\rm ret}\ge\rho_{\rm ret}G_k^{\rm adm}\}
+\mathbf 1\{C_j^{\rm curv}=1\}.
+}
+\]
+Here \(A_j^\ominus=1\) means the deletion is accepted, \(\epsilon_k^\ominus\) is the allowed prune energy-regression tolerance, \(G_j^{\rm ret}\) is the post-deletion retained gain, \(G_k^{\rm adm}\) is the gain from the just-accepted admission, \(\rho_{\rm ret}\) is the required retained-gain fraction, and \(C_j^{\rm curv}\) is the curvature-safety indicator.
+
+\blk{Physical interpretation}
+Schur controls which candidate is worth paying to test. The measured delete-refit energy test decides whether deletion is actually committed.
+
+\section*{2. Defect in the Current Nomination Key}
+
+\blk{Micro-intuition}
+The lexicographic key behaves like a deterministic sorting ladder, not like one coherent prune utility.
+
+\blk{Mathematical derivation}
+The current ranking object can be summarized as
+\[
+K_j=
+(\Lam,b_j,\alpha_j,-s_j,\beta_j,|\bar\theta_j|,\ell_j),
+\qquad
+K_j<K_i\Rightarrow j\succ i.
+\]
+Here \(K_j\) is the current lexicographic prune ranking key for coordinate \(j\), \(b_j\) is the stored admission/selector score discounted by stored burden, \(\alpha_j\) is the small-angle pool flag, \(s_j\) is the smallness or stagnation score, \(\beta_j\) is the stored selector burden, \(\bar\theta_j\) is the wrapped angle, \(\ell_j\) is the coordinate label, and \(j\succ i\) means \(j\) is ranked ahead of \(i\).
+Lexicographic ordering means
+\[
+\Lam<\Lambda_i^\ominus
+\quad\Longrightarrow\quad
+j\succ i
+\]
+Here \(\Lambda_i^\ominus\) is the Schur predicted deletion loss for the comparison coordinate \(i\).
+regardless of the other entries. The later entries matter only after earlier entries tie or nearly tie in the sorting implementation.
+
+\blk{Physical interpretation}
+A prune decision should trade saved cost, predicted loss, redundancy, history, and conditioning in one scalar pressure. A long tie-breaker stack is not the mathematical object we want to tune.
+
+\section*{3. Replacement: Hard Gates Plus Scalar Score}
+
+\blk{Micro-intuition}
+First remove coordinates that are physically or numerically unsafe to nominate; then score the remaining coordinates by one scalar deletion utility.
+
+\blk{Mathematical derivation}
+Define the hard-gated nomination domain
+\[
+\boxed{
+\begin{gathered}
+\Gdel=
+\{j\in\Edel:
+C_j^{\rm saved}>0,\ \Lam<\infty,\\
+\nudel\le\nu_{\max},\
+\Delta\kappa_j\le\Delta\kappa_{\max}\}.
+\end{gathered}
+}
+\]
+Here \(\Gdel\) is the subset of eligible coordinates that pass hard prune-safety gates. The index \(j\) denotes a candidate deletion coordinate. \(C_j^{\rm saved}\) is the estimated compiled-resource or measurement burden saved by deleting \(d_j\). \(\Lam\) is the Schur predicted deletion loss. \(\nudel\) is the deletion-novelty residual: large values mean the deleted direction is not well represented by survivors. \(\nu_{\max}\) is the maximum allowed deletion novelty. \(\Delta\kappa_j\) is the estimated conditioning damage from deleting \(d_j\), and \(\Delta\kappa_{\max}\) is the maximum allowed conditioning damage.
+For \(j\in\Gdel\), define
+\[
+\boxed{
+\Rdel
+=
+\frac{
+C_j^{\rm saved}
+w_j^{\rm small}
+w_j^{\rm stale}
+w_j^{\rm red}
+}{
+\epsilon_R
++\Lambda_{j,+}^{\ominus}
++\lambda_\nu\nudel
++\lambda_{\rm rej}\bar L_j^{\rm rej}
++\lambda_\kappa\Delta\kappa_j
+},
+}
+\]
+Here \(\Rdel\) is the scalar prune nomination score. The factors \(w_j^{\rm small}\), \(w_j^{\rm stale}\), and \(w_j^{\rm red}\) respectively favor small-angle, old, and redundant coordinates. The denominator penalizes predicted deletion loss \(\Lambda_{j,+}^{\ominus}\), deletion novelty \(\nudel\), rejection history \(\bar L_j^{\rm rej}\), and conditioning damage \(\Delta\kappa_j\). The positive constants \(\epsilon_R,\lambda_\nu,\lambda_{\rm rej},\lambda_\kappa\) are tunable score-scale and penalty weights.
+The clipped Schur loss is
+\[
+\Lambda_{j,+}^{\ominus}:=\max\{0,\Lam\}.
+\]
+Here \(\Lambda_{j,+}^{\ominus}\) is the nonnegative part of the Schur predicted deletion loss, so a negative surrogate loss is treated as zero risk rather than as a negative denominator contribution.
+The unpersisted top nomination is
+\[
+\boxed{
+j_k^\star\in\arg\max_{j\in\Gdel}\Rdel .
+}
+\]
+Here \(j_k^\star\) is the coordinate index with the largest prune nomination score at step \(k\), before applying the persistence gate.
+
+\blk{Physical interpretation}
+The numerator says why deletion is attractive. The denominator says why deletion is risky. Negative Schur predictions do not make the score singular because \(\Lambda_{j,+}^{\ominus}\) is clipped at zero.
+
+\section*{4. Saved Burden}
+
+\blk{Micro-intuition}
+Deletion should be more attractive when it saves compiled resources or measurement burden.
+
+\blk{Mathematical derivation}
+Let deleting \(d_j\) save the nonnegative resource amounts
+\[
+\Delta N_{2q,j}^+,\qquad
+\Delta D_{2q,j}^+,\qquad
+\Delta D_{c,j}^+,\qquad
+\Delta S_j^+,
+\]
+where \(x^+=\max\{0,x\}\).
+Here \(\Delta N_{2q,j}^+\) is the saved two-qubit gate count, \(\Delta D_{2q,j}^+\) is the saved two-qubit depth, \(\Delta D_{c,j}^+\) is the saved total circuit depth, and \(\Delta S_j^+\) is the saved estimator-work or shot-count proxy from deleting \(d_j\). The superscript \(+\) keeps only positive savings, so a deletion that does not save a resource contributes zero for that resource.
+A normalized saved-burden score is
+\[
+\boxed{
+\begin{aligned}
+C_j^{\rm saved}
+&=
+\omega_N\frac{\Delta N_{2q,j}^{+}}{N_0+\epsilon_C}
++\omega_{D2}\frac{\Delta D_{2q,j}^{+}}{D_{2,0}+\epsilon_C}
+\\
+&\quad
++\omega_{Dc}\frac{\Delta D_{c,j}^{+}}{D_{c,0}+\epsilon_C}
++\omega_S\frac{\Delta S_j^{+}}{S_0+\epsilon_C}.
+\end{aligned}
+}
+\]
+Here \(C_j^{\rm saved}\) is a dimensionless weighted sum of saved resources. The constants \(\omega_N,\omega_{D2},\omega_{Dc},\omega_S\) choose the relative importance of the four resources; \(N_0,D_{2,0},D_{c,0},S_0\) are normalization scales; and \(\epsilon_C>0\) prevents division by zero.
+
+\blk{Physical interpretation}
+\(C_j^{\rm saved}\) is the resource side of prune. It is allowed to prefer deleting a costly generator, but only if the denominator says the deletion is geometrically and energetically plausible.
+
+\section*{5. Smooth Small-Angle and Stale-Age Pressures}
+
+\blk{Micro-intuition}
+Small amplitudes and old coordinates are weak deletion evidence, so they should be smooth weights rather than binary authorities.
+
+\blk{Mathematical derivation}
+Use the wrapped coordinate magnitude
+\[
+\bar\theta_j=\operatorname{wrap}_{[-\pi,\pi)}(\theta_j),
+\qquad
+a_j^\theta=|\bar\theta_j|.
+\]
+Here \(\theta_j\) is the current variational angle for coordinate \(j\), \(\bar\theta_j\) is that angle wrapped into the interval \([-\pi,\pi)\), and \(a_j^\theta\) is its absolute wrapped magnitude.
+Define the adaptive small-angle scale
+\[
+\tau_{\theta,k}
+=
+\max\left\{
+\tau_{\theta,\min},
+\eta_\theta\,{\rm median}_{i\in\Edel}|\bar\theta_i|
+\right\}.
+\]
+Here \(\tau_{\theta,k}\) is the step-dependent reference scale for deciding whether an angle is small, \(\tau_{\theta,\min}\) is the minimum allowed scale, \(\eta_\theta\) is a multiplier on the current median eligible angle, and the median is taken over eligible prune coordinates \(i\in\Edel\).
+Then
+\[
+\boxed{
+w_j^{\rm small}
+=
+\left[
+1+
+\left(
+\frac{a_j^\theta}{\tau_{\theta,k}+\epsilon_\theta}
+\right)^{p_\theta}
+\right]^{-1}.
+}
+\]
+Here \(w_j^{\rm small}\in(0,1]\) is large when \(|\bar\theta_j|\) is small compared with \(\tau_{\theta,k}\), \(\epsilon_\theta>0\) prevents division by zero, and \(p_\theta\) controls how sharply the weight decays for larger angles.
+For age \(A_j(k)=k-a_j\),
+\[
+\boxed{
+w_j^{\rm stale}
+=
+1+\eta_{\rm stale}
+\left[
+1-\exp\left(
+-\frac{(A_j(k)-p_{\rm protect})_+}{\tau_{\rm age}}
+\right)
+\right].
+}
+\]
+Here \(A_j(k)\) is the branch-local age of coordinate \(j\), \(w_j^{\rm stale}\) is the stale-coordinate preference, \(\eta_{\rm stale}\) sets the maximum stale-age boost, and \(\tau_{\rm age}\) controls how quickly the boost saturates after the protection window.
+
+\blk{Physical interpretation}
+Small and old coordinates become easier to nominate, but neither feature can bypass Schur loss, novelty, history, conditioning, or measured delete safety.
+
+\section*{6. Deletion Novelty as Residual Tangent Fraction}
+
+\blk{Micro-intuition}
+For pruning, novelty reverses meaning: high novelty protects a coordinate because survivors cannot reproduce its tangent direction.
+
+\blk{Mathematical derivation}
+Let \(\tilde t_i\) be the horizontal Fubini--Study tangent associated with coordinate \(d_i\). For survivor set \(W_j\),
+\[
+G_{jj}=\operatorname{Re}\langle \tilde t_j,\tilde t_j\rangle,
+\qquad
+G_{jW}=
+\bigl(\operatorname{Re}\langle \tilde t_j,\tilde t_i\rangle\bigr)_{i\in W_j},
+\]
+\[
+G_{WW}=
+\bigl(\operatorname{Re}\langle \tilde t_i,\tilde t_\ell\rangle\bigr)_{i,\ell\in W_j}.
+\]
+Here \(W_j\) is the chosen survivor coordinate window used to ask whether the remaining ansatz directions can reproduce the tangent of \(d_j\). \(G_{jj}\) is the Fubini--Study norm of the deleted coordinate's tangent, \(G_{jW}\) is the row vector of overlaps between the deleted tangent and survivor tangents, \(G_{Wj}=G_{jW}^{\top}\), and \(G_{WW}\) is the survivor Gram block.
+Survivors explain \(d_j\)'s tangent by the metric-corrected projection fraction
+\[
+\eta_j^{\rm span}
+=
+\frac{
+G_{jW}(G_{WW}+\lambda_G I)^+G_{Wj}
+}{
+G_{jj}+\epsilon_G
+}.
+\]
+Here \(\eta_j^{\rm span}\) is the fraction of the deleted tangent explained by the survivor window, \(\lambda_G\) is the Gram ridge used in the pseudoinverse solve, \(I\) is the identity on the survivor window, \((\cdot)^+\) is the Moore--Penrose pseudoinverse, and \(\epsilon_G>0\) stabilizes the normalization.
+The deletion novelty is the residual fraction
+\[
+\boxed{
+\nudel
+=
+\clip\left(1-\eta_j^{\rm span}\right).
+}
+\]
+Here \(\clip(x)=\min\{1,\max\{0,x\}\}\) clips the residual into \([0,1]\), and \(\nudel\) is the unexplained tangent fraction left after the survivor projection.
+Then a smooth redundancy preference is
+\[
+\boxed{
+w_j^{\rm red}
+=
+\sigma\left(
+\frac{\nu_\star-\nudel}{\tau_\nu}
+\right),
+\qquad
+\sigma(x)=\frac{1}{1+e^{-x}}.
+}
+\]
+Here \(w_j^{\rm red}\in(0,1)\) is large when deletion novelty is below the redundancy target \(\nu_\star\), \(\tau_\nu\) sets the softness of the transition, and \(\sigma\) is the logistic function.
+
+\blk{Physical interpretation}
+\(\nudel\approx0\) means the survivors span the coordinate's tangent well, so deletion is plausible. \(\nudel\approx1\) means deletion removes a structurally distinct tangent direction, so the coordinate should be protected.
+
+\section*{7. Persistence Gate}
+
+\blk{Micro-intuition}
+Persistence should stabilize prune nominations without requiring the exact same full batch to recur.
+
+\blk{Mathematical derivation}
+Let \(\mathcal N_r^\ominus\) be the scored prune-nomination list at step \(r\), before measured delete-refit. Let \(\phi(j)\) be a family key for coordinate identity, label, Pauli support family, or operator class. Define
+\[
+\boxed{
+p_j(k)
+=
+\sum_{r=\max\{0,k-W_p\}}^{k-1}
+\mathbf 1\left\{
+j\in\mathcal N_r^\ominus
+\;\lor\;
+\phi(j)\in\phi(\mathcal N_r^\ominus)
+\right\}.
+}
+\]
+Here \(p_j(k)\) counts how often coordinate \(j\), or a coordinate in the same family \(\phi(j)\), appeared in recent prune-nomination lists. \(W_p\) is the persistence lookback window, \(r\) indexes prior adaptive steps, \(\mathcal N_r^\ominus\) is the prior scored nomination list, and \(\phi(\mathcal N_r^\ominus)\) is the set of family keys represented in that list.
+Measured deletion is allowed only when
+\[
+\boxed{
+p_j(k)\ge p_{\min}.
+}
+\]
+Here \(p_{\min}\) is the required number of recent nomination appearances before the expensive measured delete-refit trial is allowed.
+Thus the selection sequence is
+\[
+\begin{aligned}
+j_k^\star\in\arg\max_{j\in\Gdel}\Rdel,
+\\
+p_{j_k^\star}(k)<p_{\min}
+\;&\Rightarrow\;
+\text{no measured delete call}.
+\end{aligned}
+\]
+Here the first line chooses the highest-scoring candidate, and the second line suppresses the measured delete test if that candidate has not persisted long enough.
+
+\blk{Physical interpretation}
+The scalar score still chooses the candidate. Persistence decides whether the score has been stable enough to justify paying the measured delete-refit cost.
+
+\section*{8. Rejection History Penalty}
+
+\blk{Micro-intuition}
+Cooldown blocks immediate retries; rejection history should make repeatedly unsafe deletions harder to nominate later.
+
+\blk{Mathematical derivation}
+After a rejected measured deletion trial for \(j\),
+\[
+\boxed{
+\bar L_{j,k+1}^{\rm rej}
+=
+(1-\rho_{\rm rej})\bar L_{j,k}^{\rm rej}
++\rho_{\rm rej}
+\max\{0,\dEdel-\epsilon_k^\ominus\}.
+}
+\]
+Here \(\bar L_{j,k}^{\rm rej}\) is the accumulated rejection-loss history for coordinate \(j\) before step \(k\), \(\bar L_{j,k+1}^{\rm rej}\) is its updated value, and \(\rho_{\rm rej}\in[0,1]\) is the update rate. The term \(\max\{0,\dEdel-\epsilon_k^\ominus\}\) records only the amount by which the rejected deletion exceeded the allowed prune tolerance.
+If \(j\) is not measured at step \(k\), use idle decay
+\[
+\bar L_{j,k+1}^{\rm rej}
+=
+(1-\rho_{\rm idle})\bar L_{j,k}^{\rm rej},
+\qquad
+0\le\rho_{\rm idle}\le\rho_{\rm rej}.
+\]
+Here \(\rho_{\rm idle}\) is the decay rate for rejection history on steps where the coordinate is not tested.
+This penalty enters \(R_j^\ominus\) through
+\[
+\epsilon_R+\cdots+\lambda_{\rm rej}\bar L_j^{\rm rej}+\cdots.
+\]
+Here the ellipses denote the other denominator terms already defined in the scalar score.
+
+\blk{Physical interpretation}
+A badly rejected prune candidate remains possible later, but it must overcome its own rejection history. A nearly safe rejection receives only a small future penalty.
+
+\section*{9. Conditioning Pressure}
+
+\blk{Micro-intuition}
+Deleting a coordinate can improve or damage tangent-space conditioning; this should first be telemetry, then optionally a risk term.
+
+\blk{Mathematical derivation}
+Let \(G_k\) be the Fubini--Study Gram matrix for the active ansatz tangents and \(G_{k,-j}\) the survivor Gram matrix after removing coordinate \(j\). With ridge \(\lambda_\kappa\),
+\[
+G_{k,\lambda}=G_k+\lambda_\kappa I,
+\qquad
+G_{k,-j,\lambda}=G_{k,-j}+\lambda_\kappa I.
+\]
+Here \(G_{k,\lambda}\) and \(G_{k,-j,\lambda}\) are ridge-regularized Gram matrices before and after deleting \(d_j\), and \(\lambda_\kappa\) is the conditioning ridge.
+Define condition-number damage
+\[
+\boxed{
+\Delta\kappa_j
+=
+\left[
+\log\kappa(G_{k,-j,\lambda})
+-
+\log\kappa(G_{k,\lambda})
+\right]_+.
+}
+\]
+Here \(\kappa(\cdot)\) is the matrix condition number, \([\cdot]_+=\max\{0,\cdot\}\), and \(\Delta\kappa_j\) measures only worsening of conditioning after deletion.
+Define rank-loss telemetry
+\[
+\boxed{
+\Delta r_j
+=
+{\rm rank}_{\tau}(G_k)
+-
+{\rm rank}_{\tau}(G_{k,-j}).
+}
+\]
+Here \({\rm rank}_{\tau}\) is numerical rank at threshold \(\tau\), and \(\Delta r_j\) counts how many numerically independent tangent directions would be lost by deleting \(d_j\).
+
+\blk{Physical interpretation}
+\(\Delta\kappa_j=0\) means deletion does not worsen conditioning by this metric. \(\Delta r_j>0\) means deletion removes a numerically independent tangent direction, which overlaps with high deletion novelty.
+
+\section*{10. Schur Accuracy Knobs}
+
+\blk{Micro-intuition}
+The scalar prune score depends on \(\Lam\), so Schur prediction quality must be audited.
+
+\blk{Mathematical derivation}
+Recommended Schur-window sweep:
+\[
+w_{\rm Schur}\in\{4,8,12,{\rm full}\}.
+\]
+Here \(w_{\rm Schur}\) is the number of survivor coordinates allowed in the local Schur model; \({\rm full}\) means all surviving coordinates may enter the Schur block.
+For even \(w\), a centered interior window is
+\[
+W_j^{\rm centered}
+=
+\{d_{j-w/2},\ldots,d_{j-1},d_{j+1},\ldots,d_{j+w/2}\},
+\]
+with boundary shifts near the ends.
+Here \(w\) is a chosen finite Schur-window size, \(W_j^{\rm centered}\) is the centered survivor window around deletion coordinate \(j\), and \(d_j\) itself is omitted because it is the coordinate being tested for deletion.
+
+Recommended measured trial cap sweep:
+\[
+M_{\rm exact}^{\ominus}\in\{1,2,3\}.
+\]
+Here \(M_{\rm exact}^{\ominus}\) is the maximum number of Schur-nominated prune candidates that may be sent to measured delete-refit at one adaptive step.
+For every measured prune trial, record
+\[
+\boxed{
+(\Lam,\dEdel,\dEdel-\Lam,A_j^\ominus).
+}
+\]
+Here the recorded tuple compares the Schur predicted loss, the measured deletion loss, the prediction error, and the final accept/reject result for the same coordinate \(j\).
+
+\blk{Physical interpretation}
+The dangerous failure mode is a low predicted \(\Lam\) with high measured \(\dEdel\). Window size, centering, and measured cap should be tuned by that diagnostic, not by final energy alone.
+
+\section*{11. Measurement-Cost Boundary}
+
+\blk{Micro-intuition}
+Energy regression is already the measured prune safety test; extra overlap tests should not silently become hardware-facing acceptance guards.
+
+\blk{Mathematical derivation}
+Default acceptance remains
+\[
+\dEdel
+=
+E(\Ok\ominus d_j,\boldsymbol\theta_{k,-j})-\Ek
+\le
+\epsilon_k^\ominus
+\]
+together with retained-gain and curvature guards. Geometry-only quantities such as \(\nudel\) and \(\Delta\kappa_j\) are measurement-free only when their Gram blocks are already estimated or cached:
+Here the inequality is the energy-regression guard: deleting \(d_j\) is allowed only if the measured energy increase stays below the prune tolerance \(\epsilon_k^\ominus\).
+\[
+\begin{gathered}
+G_{jj},G_{jW},G_{WW},G_k,G_{k,-j}\\
+\subseteq
+\text{available SNAKE geometry cache}.
+\end{gathered}
+\]
+Here the listed Gram objects are the tangent-overlap quantities needed for novelty and conditioning telemetry. The subset relation means these quantities are already available from the algorithm's geometry cache; if not, estimating them introduces additional measurement cost.
+Otherwise, they require additional metric/overlap estimation.
+
+\blk{Physical interpretation}
+Use state-overlap and fidelity checks as simulator diagnostics by default. Make them hardware-facing acceptance guards only after an explicit measurement-budget argument.
+
+\section*{12. Proposed Prune Flow}
+
+\blk{Micro-intuition}
+The redesign changes nomination, not the measured deletion authority.
+
+\blk{Mathematical derivation}
+\[
+\boxed{
+\begin{gathered}
+\Edel
+\xrightarrow{\rm features}
+\Gdel
+\xrightarrow{\max R_j^\ominus}
+j_k^\star
+\\
+\xrightarrow{p_j(k)\ge p_{\min}}
+\Cdel
+\xrightarrow{\rm measured}
+A_j^\ominus.
+\end{gathered}
+}
+\]
+Here the flow reads from left to right: eligible coordinates are featurized, hard gates produce the scoreable set, the scalar score chooses a top nomination, persistence decides whether the nomination is stable enough to measure, and the measured delete-refit test produces \(A_j^\ominus\).
+Equivalently,
+\[
+\boxed{
+\begin{gathered}
+j\in\Edel
+\xrightarrow{\rm score}
+R_j^\ominus
+\xrightarrow{\rm persistence}
+\Cdel
+\xrightarrow{p_j(k)\ge p_{\min}}
+A_j^\ominus.
+\end{gathered}
+}
+\]
+Here the second display emphasizes the per-coordinate view: an eligible coordinate \(j\) receives a score \(R_j^\ominus\), may enter the measured candidate set \(\Cdel\), and is finally accepted or rejected by \(A_j^\ominus\).
+On rejection,
+\[
+\begin{aligned}
+A_j^\ominus=0
+\quad&\Longrightarrow\quad
+\Ok^{\rm out}=\Ok,
+\\
+&c_j(k+1)=c_{\rm cool},
+\qquad
+\bar L_{j,k+1}^{\rm rej}\ {\rm increases}.
+\end{aligned}
+\]
+Here \(\Ok^{\rm out}\) is the ansatz returned by prune after the failed deletion trial, \(c_{\rm cool}\) is the cooldown reset value, and the rejection history increases according to the update in Sec.~8.
+On acceptance,
+\[
+A_j^\ominus=1
+\quad\Longrightarrow\quad
+\Ok^{\rm out}=\Ok\ominus d_j.
+\]
+Here the accepted prune commits the deleted ansatz as the outgoing branch state.
+
+\blk{Physical interpretation}
+Nomination should become resource-aware, redundancy-aware, history-aware, and geometry-aware. Acceptance remains the measured delete-refit safety test.
+
+\section*{13. Implementation-Later Hooks}
+
+\blk{Micro-intuition}
+The likely code changes are localized, but this PDF does not implement them.
+
+\blk{Mathematical derivation}
+Future hooks should map the mathematical objects as follows:
+{\scriptsize
+\[
+\begin{array}{c|p{0.62\columnwidth}}
+\text{object} & \text{likely implementation hook}\\
+\hline
+\Lam & \texttt{build\_static\_prune\_surrogate\_scores}\\
+\Rdel & \texttt{rank\_prune\_candidates} replacement or extension\\
+A_j^\ominus & \texttt{apply\_pruning}\text{ remains authoritative}\\
+c_j,\bar L_j^{\rm rej} & prune metadata transport in \texttt{adapt\_pipeline.py}\\
+\nu_j^\ominus,\Delta\kappa_j & \text{geometry/cache telemetry}\\
+p_j(k) & \text{nomination-history state}
+\end{array}
+\]
+}
+Here the left column lists mathematical objects from this design note, and the right column lists likely implementation locations for a later code pass. This table is only a planning map; it does not change the current implementation.
+
+\blk{Physical interpretation}
+The first code pass should emit telemetry for every score component before using all gates aggressively. The benchmark contract should be rerun only after the component audit is interpretable.
+
+\end{document}

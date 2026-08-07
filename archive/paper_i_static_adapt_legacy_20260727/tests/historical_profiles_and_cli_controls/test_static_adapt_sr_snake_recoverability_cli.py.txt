@@ -1,0 +1,55 @@
+def test_recoverability_pruning_cli_enters_the_public_controller(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_ai_log",
+        lambda *_args, **_kwargs: None,
+    )
+    problem = _small_hh_problem()
+    context = _resolve_execution_context(
+        problem,
+        _pruning_run_request(1),
+    )
+    executor_kwargs = context.legacy_executor_kwargs()
+
+    assert _active_cli_compatibility_reason(executor_kwargs) is None
+    for key, value in TAMPERED_ACTIVE_PRUNE_SETTINGS.items():
+        tampered = {**executor_kwargs, key: value}
+        assert _active_cli_compatibility_reason(tampered) is not None
+        with pytest.raises(
+            ValueError,
+            match=(
+                "route identity and recoverability-prune enablement disagree"
+                if key == "phase1_prune_enabled"
+                else "outside its exact contract"
+            ),
+        ):
+            adapt_pipeline._default_recoverability_prune_config(
+                tampered
+            )
+    parent_context = _resolve_execution_context(
+        problem,
+        _no_pruning_run_request(1),
+    )
+    parent_with_pruning = parent_context.legacy_executor_kwargs()
+    parent_with_pruning.update(EXPECTED_ACTIVE_PRUNE_SETTINGS)
+    with pytest.raises(
+        ValueError,
+        match="route identity and recoverability-prune enablement disagree",
+    ):
+        adapt_pipeline._default_recoverability_prune_config(
+            parent_with_pruning
+        )
+    projection = _run_active_cli_sr_snake(
+        problem,
+        executor_kwargs,
+        estimator_ledger_path=None,
+    )
+
+    assert projection.result.route.profile == context.route.profile
+    assert projection.result.route.contract_sha256 == EXPECTED_ROUTE_DIGEST
+    assert len(projection.result.accepted_transitions) == 1
+    receipt = projection.result.accepted_transitions[0].pruning
+    assert receipt is not None
+    assert receipt.reason == "no_mature_old_coordinate"

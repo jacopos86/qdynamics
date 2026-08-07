@@ -1,0 +1,58 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc",
+  "files": [
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/build_bundle.py",
+      "sha256": "c561cf3581d551f176ab2c6e58b25bddf20d3b24b61914b4a76507da6ee04d7b",
+      "size_bytes": 19022
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/execute_source_locked_job.sh",
+      "sha256": "b4137c48f0581efa21949a418c1e4634886a738c30d13a15888c24256c6bbd10",
+      "size_bytes": 2142
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/run_job.py",
+      "sha256": "3ae81dcc252fb91f73cbd687df6beeba5737148c27df9d925a6f0fbe13dceb8b",
+      "size_bytes": 9221
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/source_archive_manifest.json",
+      "sha256": "84f8b3fa7f94967aa6a22cc2b653343f28cedbda166434b0cf23accdd1e17e1a",
+      "size_bytes": 68337
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/source_lock/source_command.json",
+      "sha256": "3bb011ad5a24c92c5b4f935b707453f53c45eede4e7e5146b41c0b2e88db8e9e",
+      "size_bytes": 8173
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/source_lock/source_normalized_manifest.json",
+      "sha256": "e1f839913cff95a2326c4dff66941c919c85fa38cec9389fc9efc9461949c69f",
+      "size_bytes": 12833
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/jobs/strong_strong.json",
+      "sha256": "7c7cfcd176da67f92dbcaf6863447c4ec8b7f48fd9c1b9759515866af8c977b1",
+      "size_bytes": 19669
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/queue.tsv",
+      "sha256": "c84aca9fcf9cdf2de6fa035914200a260a19206c33d5ea9095362fbe7f391bbd",
+      "size_bytes": 130
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/submit.sub",
+      "sha256": "7c96312d65a3becb655c2b7dba3cc1e8c81db429e3b8351538720e405eed4c98",
+      "size_bytes": 2048
+    },
+    {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/source_locked.tar.gz",
+      "sha256": "f591f4a5296ac2ac8e3b255e41d1ffd8267c905feb0be9992ed5d0895c1c367b",
+      "size_bytes": 1432504
+    }
+  ],
+  "generated_utc": "2026-07-14T01:03:16.680101+00:00",
+  "output_root": "raw_outputs/paper_i_hh_sr_snake_strong_strong_r45_20260713_v1_chtc/strong_strong",
+  "schema": "paper_i_hh_sr_snake_strong_strong_r45_chtc_bundle_v1"
+}

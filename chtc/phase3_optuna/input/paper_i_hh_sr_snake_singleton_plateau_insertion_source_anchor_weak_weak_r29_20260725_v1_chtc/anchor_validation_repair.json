@@ -1,0 +1,15 @@
+{
+  "schema": "chtc_anchor_validation_repair_v1",
+  "bundle_id": "paper_i_hh_sr_snake_singleton_plateau_insertion_source_anchor_weak_weak_r29_20260725_v1_chtc",
+  "initial_dag_cluster_id": 9380122,
+  "held_anchor_cluster_id": 9380124,
+  "held_before_execution": true,
+  "failure_prevented": "execution argv differs from exact normalized parent command",
+  "cause": "The anchor manifest used the 20260725 segment id while expected_argv retained the generator's 20260724 campaign date.",
+  "scientific_settings_changed": [],
+  "run_job_sha256_before": "26716b8b2c5e469520d9cc83dbd305999c90b78d0d58e4cec93bcdaf9ebb29e4",
+  "run_job_sha256_after": "a081506f3026134568583a1ef9c7e747ad052fd604c3715ce842926c79da8a73",
+  "source_locked_worker_validation": "pass",
+  "resubmitted_dag_cluster_id": 9380128,
+  "resubmitted_anchor_cluster_id": 9380130
+}

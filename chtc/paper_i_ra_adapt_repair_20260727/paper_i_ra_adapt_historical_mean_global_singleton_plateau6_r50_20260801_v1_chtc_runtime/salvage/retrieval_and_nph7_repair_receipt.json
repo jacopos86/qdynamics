@@ -1,0 +1,91 @@
+{
+  "schema": "paper_i_ra_global_singleton_plateau_retrieval_and_repair_receipt_v1",
+  "recorded_utc": "2026-08-02T13:28:30Z",
+  "original_cluster": 9400252,
+  "retrieval": {
+    "completed_scientific_procs": [0, 1, 2],
+    "complete_result_bundles_recovered": false,
+    "recovered_material": [
+      "three Condor stdout logs",
+      "three Condor stderr logs",
+      "three Condor event logs",
+      "three finalizer-failure attempt archives"
+    ],
+    "local_archive": "paper_i_ra_adapt_historical_mean_global_singleton_plateau6_r50_cluster_9400252_nph3_salvage_v1.tar.gz",
+    "remote_archive": "/home/jsstrobel/paper_i_ra_adapt_historical_mean_global_singleton_plateau6_r50_cluster_9400252_nph3_salvage_v1.tar.gz",
+    "remote_archive_preserved": true,
+    "archive_size_bytes": 44551,
+    "archive_sha256": "a8d3176a7a1bc4bab7227128e30cd2b0e1441b3c65dce22d44d05ca228be44fb",
+    "gzip_integrity": "passed",
+    "tar_readability": "passed",
+    "member_count": 12,
+    "scientific_trajectory_validation": [
+      {
+        "proc": 0,
+        "regime": "weak_weak",
+        "n_ph_max": 3,
+        "controller_rounds": 50,
+        "final_energy": -0.9183809199948143,
+        "exact_energy": -0.9183809199948856,
+        "absolute_delta_e": 7.13e-14
+      },
+      {
+        "proc": 1,
+        "regime": "intermediate_weak",
+        "n_ph_max": 3,
+        "controller_rounds": 50,
+        "final_energy": -0.49500534918135763,
+        "exact_energy": -0.4950053491813961,
+        "absolute_delta_e": 3.85e-14
+      },
+      {
+        "proc": 2,
+        "regime": "strong_weak_u8",
+        "n_ph_max": 3,
+        "controller_rounds": 50,
+        "final_energy": 0.526458684794586,
+        "exact_energy": 0.5264586847939832,
+        "absolute_delta_e": 6.03e-13
+      }
+    ],
+    "failure": {
+      "kind": "cross_device_finalizer_publish",
+      "errno": 18,
+      "detail": "The original worker attempted os.rename from /tmp staging to Condor scratch. Scientific work reached round 50, but the source staging directory was removed before complete result transfer.",
+      "full_artifact_rerun_required": true
+    }
+  },
+  "unfinished_nph7_repair": {
+    "original_procs": [3, 4, 5],
+    "original_request_memory_mb": 90112,
+    "original_request_disk_mb": 98304,
+    "repaired_request_memory_mb": 49152,
+    "repaired_request_disk_mb": 61440,
+    "resource_basis": {
+      "completed_nph3_peak_memory_mb": [24415, 21973, 29297],
+      "completed_nph3_disk_usage_kb": [10074688, 9539164, 9505928],
+      "note": "The repaired envelope is conservative relative to observed nph3 use and recent comparable nph7 jobs; scientific settings are unchanged."
+    },
+    "temporary_hold_reason": "temporary known-bad cross-device finalizer repair; prevents completed science from losing artifacts",
+    "superseded_old_procs_removed": ["9400252.3", "9400252.4", "9400252.5"],
+    "replacement_package": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v2_chtc",
+    "package_manifest_sha256": "fe7fd6f5f572c3ca90dbf43ec43c69f35282d4c699cd271d8cd6564555bb495f",
+    "activation_manifest_sha256": "934da66e8750cad43f3e5351a8c6705e53a42e7862c66ab788985579d70b35ec",
+    "source_archive_sha256": "7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01",
+    "container_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "validation": {
+      "finalizer_exdev_regression": "passed",
+      "local_deep_preflight_count": 3,
+      "local_real_one_round_smoke": "passed",
+      "remote_container_deep_preflight_count": 3,
+      "remote_activation_validation": "passed",
+      "remote_submit_lifecycle_validation": "passed",
+      "condor_dry_run_job_count": 3
+    },
+    "replacement_cluster": 9400751,
+    "replacement_procs": [0, 1, 2],
+    "replacement_initial_status": "three idle, zero held",
+    "replacement_batch_name": "paper-i-ra-historical-mean-global-singleton-plateau3-nph7-r50-20260802-v2-finalizer-repair"
+  },
+  "evidence_status": "salvage_and_submission_receipt_only_not_promoted_paper_evidence"
+}

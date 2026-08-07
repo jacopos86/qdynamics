@@ -1,0 +1,40 @@
+{
+  "schema": "paper_i_hh_embedded_overlay_preservation_v1",
+  "representation": "projected_singleton",
+  "status": "current_manuscript_plot_preserved",
+  "preservation": {
+    "method": "lossless RGB extraction of the plot embedded on page 11 of the active Paper_I.pdf",
+    "source_pdf": {
+      "path": "MATH/paper_details/Paper_I.pdf",
+      "sha256": "919dcde67ef9669a86b86cbd5d92f131b2d813cc95a1b8e7309f6dd97b864e6b"
+    }
+  },
+  "plot": {
+    "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_insertion_policy_overlay_plot.png",
+    "sha256": "337e0c81587a68646f3467319ee3330d58de9108e7f8781be5b7fbf80f6681c2",
+    "width_px": 2295,
+    "height_px": 1725
+  },
+  "source_locks": {
+    "always_insertion_evidence": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_always_insertion_batch_page16_evidence.json",
+      "sha256": "485c41eb7dae497bd8804a1a4a144a984dca81225f3fd12abc40bd7e36ed6c12"
+    },
+    "plateau_insertion_evidence": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_plateau_insertion_batch_page12_evidence.json",
+      "sha256": "69d833f2ad5fb7701dc729a57cf82fdf6e896ea789ed621e6fa7354f4d78bcbe"
+    },
+    "no_insertion_tracker": {
+      "path": "output/pdf/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715.json",
+      "sha256": "8e057da082f9d81b308fc6563029ef9f1f309950b54191bd60bc47abfec95922"
+    },
+    "append_component_adoption": {
+      "path": "MATH/paper_facing/paper_I_static_scaffold/provenance/paper_i_append_stationary_core_v6_component_adoption_20260729.json",
+      "sha256": "36b692255e73dd8287de5e309259e1f8703dd0ef4e2f5e889279e97c2c4d23ce"
+    },
+    "uniform_k50_costs": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_uniform_k50_qiskit_costs.json",
+      "sha256": "a7115bc52a755de35bb7460eb87e93e7b8e10cf90149f88a8bb41609a0a52d70"
+    }
+  }
+}

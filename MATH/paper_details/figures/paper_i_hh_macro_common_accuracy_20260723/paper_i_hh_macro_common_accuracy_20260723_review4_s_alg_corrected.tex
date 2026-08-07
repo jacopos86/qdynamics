@@ -1,0 +1,137 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0in]{geometry}
+\usepackage{amsmath,graphicx,booktabs,pdfpages,tikz}
+\usepackage[T1]{fontenc}
+\usetikzlibrary{calc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture,overlay]
+\node[anchor=south west,inner sep=0pt] at
+  ($ (current page.south west) + (24.479pt,59.223pt) $)
+  {\includegraphics[width=563.05pt]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_comparison_20260723/paper_i_hh_macro_comparison_20260723.png}};
+\end{tikzpicture}
+\null
+\clearpage
+\includepdf[
+  pages=2,
+  fitpaper=true,
+  noautoscale=true,
+  pagecommand={
+    \begin{tikzpicture}[remember picture,overlay]
+    \fill[white] ($ (current page.south west) + (143pt,238pt) $)
+      rectangle ($ (current page.south west) + (469pt,380pt) $);
+    \node[anchor=north west,inner sep=0pt] at
+      ($ (current page.south west) + (146pt,377pt) $)
+      {\scriptsize \resizebox{319pt}{!}{%
+\begin{tabular}{@{}ccc l r c rrrrr@{}}
+\toprule
+Reg. & $K_\cap$ & $\Delta E_\cap$ & Method
+& $k_\cap$ & $\Delta E(k_\cap)$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $W_{1q}$ & $S_{\rm alg}$ \\
+\midrule
+WW & 10 & $1.331\times 10^{-3}$ & RA-ADAPT & 9 & $1.290\times 10^{-3}$ & 152 & 136 & 936 & 288 & 5,464 \\
+WW & 10 & $1.331\times 10^{-3}$ & Append-ADAPT & 10 & $1.331\times 10^{-3}$ & 602 & 525 & 2,601 & 1,182 & 9,821 \\
+\addlinespace[1.5pt]
+IW & 4 & $9.936\times 10^{-2}$ & RA-ADAPT & 3 & $9.936\times 10^{-2}$ & 36 & 32 & 260 & 76 & 1,037 \\
+IW & 4 & $9.936\times 10^{-2}$ & Append-ADAPT & 4 & $9.936\times 10^{-2}$ & 440 & 440 & 1,927 & 818 & 1,718 \\
+\addlinespace[1.5pt]
+SW & 9 & $1.749\times 10^{-6}$ & RA-ADAPT & 8 & $1.733\times 10^{-6}$ & 170 & 159 & 1,008 & 334 & 4,516 \\
+SW & 9 & $1.749\times 10^{-6}$ & Append-ADAPT & 9 & $1.749\times 10^{-6}$ & 256 & 204 & 1,337 & 528 & 4,814 \\
+\addlinespace[1.5pt]
+WS & 10 & $4.345\times 10^{-2}$ & RA-ADAPT & 10 & $4.095\times 10^{-2}$ & 304 & 266 & 1,592 & 496 & 8,010 \\
+WS & 10 & $4.345\times 10^{-2}$ & Append-ADAPT & 10 & $4.345\times 10^{-2}$ & 724 & 519 & 2,915 & 1,272 & 8,255 \\
+\addlinespace[1.5pt]
+IS & 12 & $2.576\times 10^{-2}$ & RA-ADAPT & 12 & $2.559\times 10^{-2}$ & 328 & 270 & 1,611 & 549 & 10,797 \\
+IS & 12 & $2.576\times 10^{-2}$ & Append-ADAPT & 12 & $2.576\times 10^{-2}$ & 2,088 & 1,865 & 7,029 & 3,624 & 15,031 \\
+\addlinespace[1.5pt]
+SS & 12 & $4.330\times 10^{-5}$ & RA-ADAPT & 12 & $4.330\times 10^{-5}$ & 936 & 881 & 4,721 & 1,460 & 9,045 \\
+SS & 12 & $4.330\times 10^{-5}$ & Append-ADAPT & 12 & $4.035\times 10^{-5}$ & 1,028 & 805 & 4,475 & 1,766 & 16,020 \\
+\bottomrule
+\end{tabular}%
+}};
+    \end{tikzpicture}
+  }
+]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_past_results_pages1_3.pdf}
+\includepdf[
+  pages=3,
+  fitpaper=true,
+  noautoscale=true,
+  pagecommand={
+    \begin{tikzpicture}[remember picture,overlay]
+    \fill[white] ($ (current page.south west) + (143pt,238pt) $)
+      rectangle ($ (current page.south west) + (469pt,380pt) $);
+    \node[anchor=north west,inner sep=0pt] at
+      ($ (current page.south west) + (146pt,377pt) $)
+      {\scriptsize \resizebox{319pt}{!}{%
+\begin{tabular}{@{}ccc l r c rrrrr@{}}
+\toprule
+Reg. & $K_\cap$ & $\Delta E_\cap$ & Method
+& $k_\cap$ & $\Delta E(k_\cap)$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $W_{1q}$ & $S_{\rm alg}$ \\
+\midrule
+WW & 29 & $3.021\times 10^{-7}$ & RA-ADAPT & 29 & $3.021\times 10^{-7}$ & 116 & 94 & 462 & 265 & 40,510 \\
+WW & 29 & $3.021\times 10^{-7}$ & Append-ADAPT & 26 & $2.698\times 10^{-7}$ & 130 & 108 & 514 & 264 & 144,599 \\
+\addlinespace[1.5pt]
+IW & 30 & $7.091\times 10^{-8}$ & RA-ADAPT & 30 & $7.091\times 10^{-8}$ & 110 & 92 & 504 & 260 & 52,038 \\
+IW & 30 & $7.091\times 10^{-8}$ & Append-ADAPT & 29 & $8.141\times 10^{-9}$ & 140 & 112 & 572 & 273 & 282,997 \\
+\addlinespace[1.5pt]
+SW & 11 & $1.414\times 10^{-6}$ & RA-ADAPT & 11 & $1.413\times 10^{-6}$ & 30 & 17 & 138 & 81 & 7,851 \\
+SW & 11 & $1.414\times 10^{-6}$ & Append-ADAPT & 11 & $1.414\times 10^{-6}$ & 44 & 37 & 207 & 105 & 23,987 \\
+\addlinespace[1.5pt]
+WS & 48 & $6.388\times 10^{-4}$ & RA-ADAPT & 37 & $6.057\times 10^{-4}$ & 124 & 83 & 486 & 271 & 150,680 \\
+WS & 48 & $6.388\times 10^{-4}$ & Append-ADAPT & 48 & $6.388\times 10^{-4}$ & 276 & 223 & 870 & 512 & 1,202,525 \\
+\addlinespace[1.5pt]
+IS & 49 & $4.812\times 10^{-5}$ & RA-ADAPT & 49 & $4.812\times 10^{-5}$ & 160 & 87 & 609 & 333 & 256,486 \\
+IS & 49 & $4.812\times 10^{-5}$ & Append-ADAPT & 49 & $4.675\times 10^{-5}$ & 288 & 228 & 919 & 513 & 1,470,894 \\
+\addlinespace[1.5pt]
+SS & 18 & $6.847\times 10^{-5}$ & RA-ADAPT & 18 & $6.847\times 10^{-5}$ & 54 & 36 & 226 & 108 & 21,790 \\
+SS & 18 & $6.847\times 10^{-5}$ & Append-ADAPT & 9 & $5.346\times 10^{-5}$ & 28 & 17 & 127 & 71 & 83,349 \\
+\bottomrule
+\end{tabular}%
+}};
+    \end{tikzpicture}
+  }
+]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_past_results_pages1_3.pdf}
+\includepdf[
+  pages=1,
+  fitpaper=true,
+  noautoscale=true,
+  pagecommand={
+    \begin{tikzpicture}[remember picture,overlay]
+    \fill[white] ($ (current page.south west) + (143pt,238pt) $)
+      rectangle ($ (current page.south west) + (469pt,380pt) $);
+    \node[anchor=north west,inner sep=0pt] at
+      ($ (current page.south west) + (146pt,377pt) $)
+      {\scriptsize \resizebox{319pt}{!}{%
+\begin{tabular}{@{}ccc l r c rrrrr@{}}
+\toprule
+Reg. & $k_{\rm pl}$ & $\Delta E_\cap$ & Method
+& $k_\cap$ & $\Delta E(k_\cap)$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $W_{1q}$ & $S_{\rm alg}$ \\
+\midrule
+WW & 29 & $3.021\times 10^{-7}$ & RA-ADAPT & 29 & $3.021\times 10^{-7}$ & 116 & 94 & 462 & 265 & 40,510 \\
+WW & 39 & $3.021\times 10^{-7}$ & Append-ADAPT & 26 & $2.698\times 10^{-7}$ & 130 & 108 & 514 & 264 & 144,599 \\
+\addlinespace[1.5pt]
+IW & 47 & $2.953\times 10^{-9}$ & RA-ADAPT & 33 & $1.791\times 10^{-9}$ & 120 & 98 & 557 & 291 & 58,670 \\
+IW & 30 & $2.953\times 10^{-9}$ & Append-ADAPT & 30 & $2.953\times 10^{-9}$ & 144 & 116 & 586 & 280 & 296,274 \\
+\addlinespace[1.5pt]
+SW & 11 & $1.413\times 10^{-6}$ & RA-ADAPT & 11 & $1.413\times 10^{-6}$ & 30 & 17 & 138 & 81 & 7,851 \\
+SW & 19 & $1.413\times 10^{-6}$ & Append-ADAPT & 12 & $1.412\times 10^{-6}$ & 48 & 40 & 231 & 112 & 26,080 \\
+\addlinespace[1.5pt]
+WS & 48 & $6.388\times 10^{-4}$ & RA-ADAPT & 37 & $6.057\times 10^{-4}$ & 124 & 83 & 486 & 271 & 150,680 \\
+WS & 48 & $6.388\times 10^{-4}$ & Append-ADAPT & 48 & $6.388\times 10^{-4}$ & 276 & 223 & 870 & 512 & 1,202,525 \\
+\addlinespace[1.5pt]
+IS & 50 & $4.675\times 10^{-5}$ & RA-ADAPT & 50 & $4.046\times 10^{-5}$ & 166 & 93 & 640 & 346 & 280,955 \\
+IS & 49 & $4.675\times 10^{-5}$ & Append-ADAPT & 49 & $4.675\times 10^{-5}$ & 288 & 228 & 919 & 513 & 1,470,894 \\
+\addlinespace[1.5pt]
+SS & 19 & $2.367\times 10^{-5}$ & RA-ADAPT & 19 & $2.322\times 10^{-5}$ & 58 & 38 & 226 & 115 & 26,298 \\
+SS & 18 & $2.367\times 10^{-5}$ & Append-ADAPT & 18 & $2.367\times 10^{-5}$ & 94 & 72 & 337 & 174 & 188,836 \\
+\bottomrule
+\end{tabular}%
+}};
+    \end{tikzpicture}
+  }
+]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_past_results_page4.pdf}
+\end{document}

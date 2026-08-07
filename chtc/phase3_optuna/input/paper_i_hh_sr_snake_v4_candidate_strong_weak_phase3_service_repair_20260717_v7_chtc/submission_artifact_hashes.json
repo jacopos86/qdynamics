@@ -1,0 +1,145 @@
+{
+  "artifacts": {
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/README.md": {
+      "sha256": "f6252344b105c7f75b7ebbcac78b1af5b0d50af5bef07787f3aeb8044f22d169",
+      "size_bytes": 2294
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/archive_only_preflight.json": {
+      "sha256": "fd7961514e06303f9a3ce7e2ddfd8d02f3f24518832f9c4fcd06619b77bb8309",
+      "size_bytes": 3624
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/build_bundle.py": {
+      "sha256": "0ad702a07128e65079b7e7aebcf97852e320a1bc5c386751e2986b9c1a97354b",
+      "size_bytes": 76472
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/bundle_manifest.json": {
+      "sha256": "6573b4c868d7b492e74d59a2ca14584b8a82932325f39c47e7670bc7b9049d21",
+      "size_bytes": 91171
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/evidence_validation.py": {
+      "sha256": "58aaab8d4045f9342eb0ff02ab32f8ff61f831f16ef400c758edd1e3076f14bd",
+      "size_bytes": 44824
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/execute_source_locked_job.sh": {
+      "sha256": "5b5a627fa961b289500c6bcfbd75b0e81f4241661a96dbf30082231bd64c95e4",
+      "size_bytes": 2302
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/future_round30_to_round50_continuation_template.json": {
+      "sha256": "ee720fd83cb3efab23da7729fac8ef08ee5021109b0d4a9d4c5db581392eb982",
+      "size_bytes": 2719
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/intermediate_strong.json": {
+      "sha256": "40f387d01d35a48d3892876b115894c82a482830a6d2eb9d9d9e0c31a3005638",
+      "size_bytes": 18983
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/intermediate_weak.json": {
+      "sha256": "71be31cf19ec6d726945d79b5b01c0a7d05cb2e953d4941ed133c2b869e8b9dd",
+      "size_bytes": 18946
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/strong_strong_u8.json": {
+      "sha256": "09f79fb32d7f0def8b337a5fb76a37b1ca56dfee3d8936642b7d387adfc5314d",
+      "size_bytes": 18920
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/strong_weak_u8.json": {
+      "sha256": "bc61308e76092ef6872d4ed4691ed547ea6beab2f8f7e5068eb9fbcb2dde59ba",
+      "size_bytes": 18880
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/weak_strong.json": {
+      "sha256": "4e80cdd7f4811d2e1ffcff3523e065d6f1ff745160a87637342575d2d666b8fb",
+      "size_bytes": 18823
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/jobs/weak_weak.json": {
+      "sha256": "3ce17ac34cea8965c2cc1eed0e0ed068986ea7f203347b553b283ba68771f55a",
+      "size_bytes": 18795
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/intermediate_strong.json": {
+      "sha256": "7326f1e5ef78b43b4438f16ae697f01c8bb1eae2d8f82a7ca312310678bf0e76",
+      "size_bytes": 17110
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/intermediate_weak.json": {
+      "sha256": "a0316293e48a3f962031fce4b88fe13e47d3ce94e8f1212406c47c128fd20a2d",
+      "size_bytes": 17091
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/strong_strong_u8.json": {
+      "sha256": "0bd3b0f1232db44182811f6fe700a7adf7ca2dcdf082a3704f116af7d0051702",
+      "size_bytes": 17074
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/strong_weak_u8.json": {
+      "sha256": "a84de81984329b75b11888152b25f39321ee01e65ea7c4a5e414315289fc9b8e",
+      "size_bytes": 17052
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/weak_strong.json": {
+      "sha256": "83082f16a8bdea804cc992c4cd4d10f35097f295b4d52947d39b25c77b327c1f",
+      "size_bytes": 17022
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/normalized_manifests/weak_weak.json": {
+      "sha256": "ecfa7d9c1025dfe3820354e07feafacf5c5147fd2ca7726e37cf041bdfa7691c",
+      "size_bytes": 17012
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/physics_and_exact_reference_lock.json": {
+      "sha256": "f6b93fc811bee14349c290e71275f92561ef43528ea18a4cd3d18d06e516a604",
+      "size_bytes": 6680
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/preflight.json": {
+      "sha256": "990580f8ebc086454f3c4d1d0302758b539f8f435213d91bf1765830b5cf4eed",
+      "size_bytes": 2825
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/queue.tsv": {
+      "sha256": "c300edee3b4bf31699ab0d81732412c5c4f04cbe890360f0a0881e50c1cc5580",
+      "size_bytes": 311
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/remote_execution_gate.json": {
+      "sha256": "547a551a226e1300e8453bf8e14195b2f4937d3eab05ff92e9fe2ff2faeef883",
+      "size_bytes": 971
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/remote_preflight_and_cleanup_receipt.json": {
+      "sha256": "4b3a2aefeb52a9cd4ed64a26c8237930585d163b414b32460e8c61457f885e6c",
+      "size_bytes": 938
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/route_parity.json": {
+      "sha256": "6715db63e27b5a17ffb09762eaf2b2f77023c781d1922f9f845cc6375f7daf52",
+      "size_bytes": 3498
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/run_job.py": {
+      "sha256": "26f48eb977a83349ff99dc6c717b3551a6fbce9a9645d7047928cd32907c3a21",
+      "size_bytes": 26965
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/source_archive_manifest.json": {
+      "sha256": "391a012410c9efdc857452f017bae5628edaaecd8b0159337465341832c6d52c",
+      "size_bytes": 68835
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/source_lock/local_smoke_evidence.json": {
+      "sha256": "7e39a027ca1cf479c959363080fde4511bb462c3a411ec6a92ca3229a725abea",
+      "size_bytes": 5000
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/source_locked.tar.gz": {
+      "sha256": "01cb257db88826afe4eb50027431ef0d244b357fb0e859c2b57b52e628f18da8",
+      "size_bytes": 3114531
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/source_revision_manifest.json": {
+      "sha256": "92065825a2efc1770b6ab69f5447aea075da44b22fba059d501c48379f33cc12",
+      "size_bytes": 4937
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/submit.sub": {
+      "sha256": "d2de39a44d6fbc54d212dbc44f97af410d4cabedaacdea647d8d9adb4d2eac8d",
+      "size_bytes": 3396
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/test_bundle.py": {
+      "sha256": "3314a860185fd403019ee713f587a2b8b6c3cc5d0c17493cb03fd2b2fa5139d8",
+      "size_bytes": 24789
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/upload_artifact_list.txt": {
+      "sha256": "ae81a1923ce70dd8517cfdf83485ca8d21e537da262e6c01ea4b726e70bbd730",
+      "size_bytes": 4282
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/v2_to_v3_scientific_settings_diff.json": {
+      "sha256": "7dd9cb64abfee05dac03c7a1b812f0511ca02f252d6e07b180cb4d21244e6234",
+      "size_bytes": 6917
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_strong_weak_phase3_service_repair_20260717_v7_chtc/validate_fetched.py": {
+      "sha256": "41c13aba980780673a70e8cfd3c1843e3dbbfba3d142a946aac6b3bc6aae828d",
+      "size_bytes": 19082
+    }
+  },
+  "schema": "paper_i_hh_sr_snake_v4_submission_artifact_hashes_v3"
+}

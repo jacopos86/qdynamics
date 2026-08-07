@@ -1,0 +1,310 @@
+{
+  "approved_changes_vs_visible_rows": [
+    "append scores the full parent pool with replacement",
+    "geo scores the full parent pool and suppresses only an immediate repeat append",
+    "grouped-exact generator execution mode is preserved",
+    "estimator-query component accounting is corrected",
+    "outer selector horizon changes from 30 to 50 iterations",
+    "fresh output and batch identity"
+  ],
+  "batch_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1",
+  "corrected_depth30_behavior_anchors": [
+    {
+      "S_alg": 155799.0,
+      "abs_delta_e_same_cutoff": 0.0011268718745005568,
+      "adapt_depth_reached": 10,
+      "adapt_max_iterations": 30,
+      "adapt_num_iterations": 30,
+      "adapt_stop_reason": "max_adapt_iterations",
+      "geo_immediate_repeat_blocked": true,
+      "geo_selection_with_replacement": true,
+      "method_key": "geo",
+      "selected_operator_count": 10,
+      "selected_unique_operator_count": 8,
+      "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_weak_weak_parent_only_comparator_fix_powell200_depth30_local_20260710_v1/geo/result/generic_static_single.json",
+      "source_sha256": "e8795281c9be81750c569733ba622554f901a9c12637a6e859913b5e0918ec7f",
+      "vendored_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/corrected_anchors/weak_weak__geo__generic_static_single.json",
+      "vendored_sha256": "e8795281c9be81750c569733ba622554f901a9c12637a6e859913b5e0918ec7f"
+    },
+    {
+      "S_alg": 72454.0,
+      "abs_delta_e_same_cutoff": 0.0005724630216756843,
+      "adapt_depth_reached": 30,
+      "adapt_max_iterations": 30,
+      "adapt_num_iterations": 30,
+      "adapt_stop_reason": "max_adapt_iterations",
+      "geo_immediate_repeat_blocked": false,
+      "geo_selection_with_replacement": false,
+      "method_key": "append",
+      "selected_operator_count": 30,
+      "selected_unique_operator_count": 8,
+      "source_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_weak_weak_parent_only_comparator_fix_powell200_depth30_local_20260710_v1/append/result/generic_static_single.json",
+      "source_sha256": "dc6a871337ca24777d17b405b9b341726e5b2e87f780d6e53e467d595e6b37ac",
+      "vendored_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/corrected_anchors/weak_weak__append__generic_static_single.json",
+      "vendored_sha256": "dc6a871337ca24777d17b405b9b341726e5b2e87f780d6e53e467d595e6b37ac"
+    }
+  ],
+  "durability": {
+    "condor_transfer_policy": "ON_EXIT_OR_EVICT",
+    "eviction_behavior": "partial output transfers, then retry starts from iteration zero",
+    "progress_ledger": "adapt_iteration_progress.jsonl",
+    "restartable_from_iteration_checkpoint": false
+  },
+  "generated_utc": "2026-07-11T01:19:19.982717+00:00",
+  "git_head": "e1478cfbd6aa1792cd271c1c4f39b4d7f64ce8e8",
+  "git_worktree_note": "Exact file SHA256 values, not git HEAD alone, identify the corrected dirty worktree.",
+  "implementation_lock": [
+    {
+      "path": "src/quantum/compiled_ansatz.py",
+      "sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "size_bytes": 31832
+    },
+    {
+      "path": "pipelines/exact_bench/generic_static_adapt_variants.py",
+      "sha256": "3cd184b2a50fc917d15da3dc3ee13ebac6fa5992cdffbffebe0cd68334bc43bc",
+      "size_bytes": 339739
+    },
+    {
+      "path": "pipelines/exact_bench/generic_static_benchmark.py",
+      "sha256": "b6a803e11b2e8851e0f4808badd81d987fe63686d90f2a5591ed2cd3fb46c38b",
+      "size_bytes": 131165
+    },
+    {
+      "path": "pipelines/exact_bench/table_i_qiskit_resource_compile.py",
+      "sha256": "0578f2494273f731152d0194c68724b5bb12967abd5fba6e0708492a5e1723e3",
+      "size_bytes": 23390
+    },
+    {
+      "path": "pipelines/exact_bench/generic_static_metric_enrichment.py",
+      "sha256": "eedef1579cd34abe9407b24757f38ac1e5ad125b214b7b45c141dc9c0f158216",
+      "size_bytes": 213549
+    },
+    {
+      "path": "chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_cell.py",
+      "sha256": "3a3158b2d33c81928acd410a7afd63e3ab8ad2e277cf18cc65834850001f8152",
+      "size_bytes": 80820
+    },
+    {
+      "path": "chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_task_apptainer.sh",
+      "sha256": "e1f666ebe015002380f7a1b1593f3d7f4a673af863891f2c144b3e22c2878d5e",
+      "size_bytes": 925
+    },
+    {
+      "path": "chtc/phase3_optuna/preflight_submit.py",
+      "sha256": "ce400141cc82db7a42d6181afb1564310a5780da4f78a1a52250a811c0228253",
+      "size_bytes": 138499
+    }
+  ],
+  "paper_target": "Paper_I.pdf page 13; fig:hh_main_results_composite",
+  "preserved_contract": {
+    "exact_reference_usage": "reporting_only_after_optimization",
+    "generic_runtime_split_mode": "off",
+    "hva_included": true,
+    "methods": [
+      "static_geo_adapt_vqe",
+      "static_full_meta_append_adapt_vqe"
+    ],
+    "optimizer": "POWELL",
+    "optimizer_maxiter": 200,
+    "pool": "full_meta_unfiltered",
+    "pool_exposure": "parent_macro_generators_only",
+    "primary_metric": "same_cutoff_abs_delta_e",
+    "seed": 42,
+    "shared_pauli_pool_mode": "off",
+    "stop_policy": "fixed_horizon_no_target_v1"
+  },
+  "run_class": "candidate",
+  "schema": "paper_i_hh_corrected_parent_comparator_submission_audit_v1",
+  "selector_horizon": {
+    "max_iterations": 50,
+    "semantics": "outer selector iterations; Geo immediate-repeat skips may yield ansatz depth below 50"
+  },
+  "source_locked_sensitivity_note": "This batch intentionally changes implementation semantics and estimator-query accounting in addition to the selector horizon, so it is not represented as a one-variable sensitivity sweep.",
+  "source_locked_sensitivity_status": "not_applicable_correction_batch",
+  "status": "pass",
+  "visible_baseline_count": 12,
+  "visible_baselines": [
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__weak_weak__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "weak-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "2915cbe60f35fec40bac5b71a8a3e72d7eccb80e8162451a77a47b96bdc77f68",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/weak-weak_geo_adapt.json",
+      "visible_value": 0.0013117770378563431
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__weak_weak__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "weak-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "2f2873a5abf0e4d88e3c8b996e3136674038de28184902e3d61ab1e7c860ac66",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "a0b53b4643d97588a04fb688f09dd48964a90a1cd650e95d6cad68d167c8c3a6",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_weak__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/weak-weak_append_adapt.json",
+      "visible_value": 0.0009192819178269751
+    },
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__intermediate_weak__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "intermediate-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "1bbdfe2cafc33cbfebd9c695446941357890ffc54dfd06cf6efc7f0d50b56f30",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/intermediate-weak_geo_adapt.json",
+      "visible_value": 0.09893293320249796
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__intermediate_weak__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "intermediate-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "2ad6013b248f3c1e744311a96a690ba5d6eb77d36a1565bd5731dad7d4b3270e",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "eb3876dbfdbc1fae7e3859d2fe44b9da63824301eb894339b08ed97497aaba0c",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_weak__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/intermediate-weak_append_adapt.json",
+      "visible_value": 0.005223690514773949
+    },
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__strong_weak__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "strong-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "2449152f9ecb4a1b27cc3e0c47f4d40f569cb28692ef905cd110506486fa6692",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/strong-weak_geo_adapt.json",
+      "visible_value": 2.354651946201436e-06
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__strong_weak__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "strong-weak",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "3a2747462f0bb88310b2572dbd9fb357cf10f5fa37ca34807c124e7c152c2398",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "4debf76c8b85567938266e1d434c580cda585b16748fab6781144d960f6c548a",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_weak__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/strong-weak_append_adapt.json",
+      "visible_value": 2.3546519453132575e-06
+    },
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__weak_strong__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "weak-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "dd601f2f68df65574d92ddd6b5f76a345d3d2984423ec073e4fa30b7a79335bb",
+      "source_json_original": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/weak-strong_geo_adapt.json",
+      "visible_value": 0.043646714159213396
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__weak_strong__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "weak-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "e8e92359905b21edfc522a3e7340a746a366cf6da2b6c33ba2a3d005ede5771d",
+      "source_json_original": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "22618c3753c502121b4aeb03d07a76368b0ae8fb948054b827e1284c4def6579",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/weak_strong__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/weak-strong_append_adapt.json",
+      "visible_value": 0.023007750483881706
+    },
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__intermediate_strong__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "intermediate-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "1c9cc7acc350d7421de840dc33675cb31ee49b122b02d5e2b01684a5d6669758",
+      "source_json_original": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/intermediate-strong_geo_adapt.json",
+      "visible_value": 0.02897791863102661
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__intermediate_strong__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "intermediate-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "70ae3ea12fee69eb5a55ba22ca667f5ff9b224ed8c37754272adf6df7f1c2a9a",
+      "source_json_original": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "1c24d47f5376fe6950ceb1e78b833cf4a6da5e318760b9caee395e3e45b3b257",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/intermediate_strong__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/intermediate-strong_append_adapt.json",
+      "visible_value": 0.009295831578261082
+    },
+    {
+      "algorithm_id": "static_geo_adapt_vqe",
+      "method": "Geo-ADAPT",
+      "method_key": "geo",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__strong_strong__geo__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "strong-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "fa035627fdc013f595f32db3b18ad8a754b530ce1f60c0ef9eb927126ac34472",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__geo__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__geo__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/strong-strong_geo_adapt.json",
+      "visible_value": 4.982206763848307e-05
+    },
+    {
+      "algorithm_id": "static_full_meta_append_adapt_vqe",
+      "method": "Append-ADAPT",
+      "method_key": "append",
+      "record_id": "paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1__strong_strong__append__C_macro_only__powell200__iter50__fullmeta_parent",
+      "regime": "strong-strong",
+      "source_cell_manifest_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/cell_manifest.json",
+      "source_cell_manifest_sha256": "2354fca6a3244483a0253d8e46c5a3a930e85a90899e1bdbd01339cdbb288fbf",
+      "source_json_original": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+      "source_sha256": "3044eab7111c647fbe211781365ed837b2c4d8e39c9a0a5104bdf2ee35534524",
+      "vendored_cell_manifest": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__append__cell_manifest.json",
+      "vendored_source_json": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_baselines/strong_strong__append__generic_static_single.json",
+      "vendored_source_lock": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_locks/strong-strong_append_adapt.json",
+      "visible_value": 3.61579243989274e-05
+    }
+  ],
+  "visible_source_map": "chtc/phase3_optuna/input/paper_i_hh_fullmeta_singleton_symmetry_corrected_parent_iter50_20260710_v1/visible_source_map.json",
+  "visible_source_map_sha256": "c8c3527ccfe956026fef9f7d4d774a134ca7bec9066eeea8407999eefbebc880"
+}

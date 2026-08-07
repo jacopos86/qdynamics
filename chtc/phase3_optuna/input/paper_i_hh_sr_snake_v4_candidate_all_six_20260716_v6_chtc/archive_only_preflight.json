@@ -1,0 +1,106 @@
+{
+  "all_six_validate_only_pass": true,
+  "archive_sha256": "fd4bb433a8da24a7bdd47a9526ded22c8e39198019d7a84b3f041cb9dec00349",
+  "focused_source_locked_regressions": {
+    "dependency_environment": "local_python_packages_with_extracted_archive_source_only",
+    "pass": true,
+    "paths": [
+      "test/test_static_adapt_sr_route_profile.py",
+      "test/test_static_adapt_historical_singleton_overlays.py",
+      "test/test_static_adapt_resume_scaffold.py",
+      "test/test_adapt_candidate_record_cache.py",
+      "test/test_hh_continuation_scoring.py",
+      "test/test_static_adapt_sr_trust_prune.py",
+      "test/test_static_adapt_sr_v4_runtime.py",
+      "test/test_static_adapt_sr_v4_serialization.py"
+    ],
+    "pytest_stdout_tail": [
+      "443 passed, 9 skipped, 1 warning in 7.93s"
+    ],
+    "returncode": 0,
+    "stderr_empty": true
+  },
+  "live_repo_import_excluded": true,
+  "qiskit_helper": {
+    "help_pass": true,
+    "help_returncode": 0,
+    "path": "pipelines/exact_bench/paper_i_hh_recovery_prefix_qiskit_sidecar.py",
+    "present": true
+  },
+  "schema": "paper_i_hh_sr_snake_v4_archive_only_preflight_v3",
+  "six_validate_only_parses": [
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_weak_u8.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_strong_u8.json",
+        "status": "pass"
+      }
+    }
+  ],
+  "source_import": {
+    "adapt_compatibility_alias_is_archived_target": true,
+    "live_repo_sys_path_entries": 0,
+    "module": "pipelines/static_adapt/sr_snake_route_profile.py",
+    "overlay_hashes": {
+      "pipelines/hardcoded/adapt_pipeline.py": "93c0e91cd01981f5bfa1e9d1434b74296395ca0837f2901ca66ad18ac63dd42f",
+      "pipelines/hardcoded/hh_continuation_generators.py": "8c6292c5c71f67312bdc32afc8d3908a83cb550b8f2d8871ed7f7183824e6570",
+      "pipelines/hardcoded/hh_continuation_scoring.py": "f25b2ae3f4037758c5f1942e6e3e0c75df04f9c5c7008d8b8dacfa9f150aa492",
+      "pipelines/hardcoded/hh_continuation_symmetry.py": "5f61b9c43c253fb81bc354aace4e015f0c4f06a1e8aa8a48b24a43a11b341e01",
+      "pipelines/hardcoded/hh_continuation_types.py": "f24b1a670179ec17c05132b3b65f9541db54ffd888429951f7e17d6aaaf41f4c"
+    },
+    "profile_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+    "project_modules_outside_archive": [],
+    "scoring_compatibility_alias_is_archived_target": true,
+    "sha256": "a67aa72c8d458ea321956bafaf0c5edc69dae427e5cc56171e5b151e27e69028",
+    "status": "pass"
+  },
+  "status": "pass"
+}

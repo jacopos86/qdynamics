@@ -1,0 +1,38 @@
+{
+  "schema": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_submission_receipt_v1",
+  "submitted_utc": "2026-08-02T14:20:44Z",
+  "cluster_id": 9400779,
+  "batch_name": "paper-i-ra-historical-mean-global-singleton-plateau3-nph3-r50-20260802-v3-finalizer-repair",
+  "direct_job_count": 3,
+  "initial_queue_state": {
+    "idle": 3,
+    "running": 0,
+    "held": 0,
+    "removed": 0,
+    "completed": 0
+  },
+  "package": {
+    "id": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc",
+    "manifest_canonical_sha256": "dd756ffa8fa0b1d9b21f906d2587a664ff49743f4eb80c4f1c787c0989cf4f23",
+    "source_archive_sha256": "7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01"
+  },
+  "activation": {
+    "id": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc_activation_ordinary_v1",
+    "manifest_canonical_sha256": "97d6070ebbc2180051536c3bdfc1e979df60819e287c8e6449257e71fac906b1",
+    "submit_descriptor_sha256": "aa518afcbb37c5f6f621884cdaeff13b678bc6960d1de2cd22672f44bf6d83ff"
+  },
+  "remote_image": {
+    "path": "chtc/phase3_optuna/image.sif",
+    "size_bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "preflight": {
+    "package_validation": "passed",
+    "activation_validation": "passed",
+    "submit_lifecycle_validation": "passed",
+    "condor_dry_run_job_count": 3,
+    "batch_collision_count": 0,
+    "fetched_output_collision_count": 0
+  },
+  "paper_evidence_adopted": false
+}

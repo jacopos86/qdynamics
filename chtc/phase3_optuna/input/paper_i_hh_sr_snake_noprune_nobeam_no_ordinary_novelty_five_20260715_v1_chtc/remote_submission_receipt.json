@@ -1,0 +1,58 @@
+{
+  "schema": "paper_i_hh_sr_noprune_nobeam_nonovelty_remote_submission_receipt_v1",
+  "generated_utc": "2026-07-16T02:07:17Z",
+  "batch_name": "paper-i-hh-sr-noprune-nobeam-nonovelty-five-20260715-v1",
+  "cluster_id": 8810574,
+  "job_count": 5,
+  "regime_order": [
+    "intermediate_weak",
+    "strong_weak_u8",
+    "weak_strong",
+    "intermediate_strong",
+    "strong_strong_u8"
+  ],
+  "initial_scheduler_state": {
+    "job_status": 1,
+    "meaning": "idle",
+    "proc_ids": [0, 1, 2, 3, 4],
+    "hold_reasons": []
+  },
+  "route_contract": {
+    "anchor": "successful local weak-weak diagnostic",
+    "anchor_reported_same_cutoff_absolute_error": 7.993605777301127e-15,
+    "phase0_enabled": false,
+    "phase2_batching_enabled": false,
+    "phase3_batching_enabled": false,
+    "pruning_enabled": false,
+    "beam_enabled": false,
+    "beam_shape": "1x1",
+    "phase2_ordinary_novelty_multiplier_enabled": false,
+    "phase3_ordinary_novelty_multiplier_enabled": false,
+    "infeasible_model_novelty_fallback_retained": true,
+    "negative_curvature_route_enabled": false,
+    "controller_round_target": 30,
+    "same_cutoff_reference_required": true
+  },
+  "source_lock": {
+    "revised_archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+    "execution_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "bundle_manifest_sha256": "fb7f4892241879b6815ac822979a26ba1166fd8ce29d0a16c58e930fb2edcbd2",
+    "settings_diff_sha256": "06ef288ee1dd56a9c3380cfd7f10d42dc5aab053153d06d5b5ab65325a322660",
+    "submission_artifact_hashes_sha256": "3621bd670b97dff74c7ce190aac77269b780e71e5c3852168f819d6289624bce",
+    "upload_archive_sha256": "46485ba523c92d1c59dabfe3aaa05552b8cffbeffa508e9286098029ba22a994"
+  },
+  "remote_preflight": {
+    "uploaded_artifact_hashes": "21_of_21_passed",
+    "runner_validate_only": "passed_for_all_five_regimes",
+    "condor_dry_run": "passed_for_five_jobs",
+    "frozen_container_import": "passed",
+    "duplicate_batch_check": "no_match_before_submission",
+    "stale_submitter_check": "no_match",
+    "initial_scheduler_holds": 0
+  },
+  "novelty_only_cluster_context": {
+    "cluster_id": 8810407,
+    "completed_successfully_before_removal": [0, 1, 2],
+    "removed_unfinished": [3, 4, 5]
+  }
+}

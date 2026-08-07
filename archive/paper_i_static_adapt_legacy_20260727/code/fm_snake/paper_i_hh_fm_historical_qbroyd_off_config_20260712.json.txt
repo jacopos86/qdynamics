@@ -1,0 +1,42 @@
+{
+  "alignment_sigma_min": 1e-07,
+  "armijo_c1": 0.0001,
+  "curvature_branch": "inverse_rbfgs_raised_covariant_hessian_v1",
+  "curvature_guard": 1e-10,
+  "gradient_tol": 1e-08,
+  "growth_identity_tol": 2e-07,
+  "inherited_geometry_tol": 2e-07,
+  "initial_inverse_curvature": 1.0,
+  "initial_trust_radius": 0.25,
+  "inverse_curvature_max": 1000000.0,
+  "inverse_curvature_min": 1e-06,
+  "line_search_max_steps": 15,
+  "line_search_shrink": 0.5,
+  "max_rejections": 3,
+  "max_trust_radius": 2.0,
+  "metric_innovation_hard": 0.5,
+  "metric_innovation_soft": 0.1,
+  "min_trust_radius": 1e-08,
+  "numerical_floor": 1e-14,
+  "postcondition_tol": 2e-08,
+  "powell_eta": 0.2,
+  "qbroyd_epsilon0": 0.0,
+  "rank_rule": {
+    "tau_abs": 1e-12,
+    "tau_gap": 1e-08,
+    "tau_rel": 1e-10
+  },
+  "rank_rule_effective_fields": [
+    "tau_gap"
+  ],
+  "step_tol": 1e-11,
+  "supported_metric": {
+    "energy_regularization": 1e-09,
+    "max_fubini_study_step": 0.25,
+    "metric_regularization": 1e-09,
+    "policy": "supported_metric_whitened_eigh_v1",
+    "rank_relative_tolerance": 1e-06
+  },
+  "trust_expand": 1.5,
+  "trust_shrink": 0.5
+}

@@ -1,0 +1,20 @@
+universe = vanilla
+batch_name = paper-i-hh-geo-macro-singleton-r50-20260718-v4
+executable = chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/execute_source_locked_job.sh
+arguments = $(job_manifest) chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/source_locked.tar.gz 8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(job_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/run_job.py, $(job_manifest), $(normalized_manifest), chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/source_archive_manifest.json, chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/bundle_manifest.json, chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/source_locked.tar.gz, chtc/phase3_optuna/image.sif
+transfer_output_files = raw_outputs/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/$(job_id)_transfer.tar.gz
+transfer_output_remaps = "raw_outputs/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/$(job_id)_transfer.tar.gz = $(job_id)_transfer.tar.gz"
+request_cpus = $(request_cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++WantFlocking = true
+log = logs/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc.$(Cluster).$(Process).log
+output = logs/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc.$(Cluster).$(Process).out
+error = logs/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+# Both a valid remote_execution_gate.json and explicit SUBMISSION_ENABLED=True are required.
+queue job_id, job_manifest, normalized_manifest, memory_mb, disk_mb, request_cpus from chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/queue.tsv

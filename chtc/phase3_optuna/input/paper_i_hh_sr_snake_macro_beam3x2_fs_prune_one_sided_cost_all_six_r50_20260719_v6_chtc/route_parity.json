@@ -1,0 +1,50 @@
+{
+  "base": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+    "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+    "profile_request": "sr_snake_macro_only_physical_lanes_v1"
+  },
+  "common_beam_prune_overlay": {
+    "phase3_hardware_cost_normalization_mode": "family_robust_v1"
+  },
+  "cost_arm": "family_robust_v1",
+  "fresh_round0_to_round50": true,
+  "prune_trial_consumer_id_repair": {
+    "classification": "non_scientific_serialization_identity_and_validation_v1",
+    "exact_changes": [
+      "scope_prune_trial_consumer_id_by_parent_beam_branch_id",
+      "pass_estimator_call_context_branch_id_to_consumer_id_builder",
+      "serialize_existing_physical_lane_receipt_on_beam_history_rows",
+      "validate_controller_frontier_separately_from_selected_terminal_winner",
+      "close_materialized_branch_estimator_receipts_by_identity"
+    ],
+    "failed_cluster": 8894498,
+    "path": "pipelines/static_adapt/adapt_pipeline.py",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v3_chtc",
+    "predecessor_source_archive_sha256": "7c3ceaf5523f0c551e3c41c30e8f130f554935dba04fc6ec08ac9d48c1e4e3c9",
+    "profile_contract_sha256_preserved": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "schema": "paper_i_sr_macro_beam_plumbing_repair_v2",
+    "scientific_setting_changes": [],
+    "source_sha256_after": "32ff70e911e4136be9b8de15ff21f99b4c583eca1fe2bc6ba6eb5f3a5bad98c5",
+    "source_sha256_before": "f67bdae0706e7663a53f229882eb53f0dc202aeb54462194a8fb56774d76fb4b"
+  },
+  "same_cutoff_all_six": true,
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_route_parity_v1",
+  "sibling_arm_only_executable_difference": "phase3_hardware_cost_normalization_mode",
+  "status": "pass",
+  "superseded_predecessor": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v3_chtc",
+    "classification": "non_scientific_prune_trial_consumer_id_collision_under_beam_v1",
+    "cluster_id": 8894498,
+    "failure_stage": "live_fs_prune_exact_delete_refit_estimator_accounting",
+    "scientific_setting_changes": [],
+    "successor_revision": "v6"
+  },
+  "unexpected_differences": [],
+  "variant": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v6_chtc",
+    "profile_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_one_sided_cost_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_one_sided_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "checks": {
+    "archive_focused_tests": true,
+    "archive_only_worker_validation": true,
+    "candidate_not_executed": true,
+    "fifty_round_safety_cap": true,
+    "first_hit_stop_enabled": true,
+    "one_parent_anchor_record": true
+  },
+  "schema": "paper_i_query_neutral_prune_anchor_preflight_v1",
+  "status": "pass"
+}

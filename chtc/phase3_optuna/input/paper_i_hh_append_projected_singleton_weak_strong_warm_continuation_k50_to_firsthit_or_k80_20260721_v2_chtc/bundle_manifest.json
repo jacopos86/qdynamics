@@ -1,0 +1,114 @@
+{
+  "artifact_inventory_without_self": [
+    {
+      "path": "build_bundle.py",
+      "sha256": "762de37fc1aa565de14b7bd95c23b3bbba7cb3b2f7950e201f4f9fdee880bac9",
+      "size_bytes": 40845
+    },
+    {
+      "path": "execute_source_locked_job.sh",
+      "sha256": "8239d111b7b8ed93a91a1794375a6f1747837d6bfa4ab864516b9004540c9ba3",
+      "size_bytes": 2332
+    },
+    {
+      "path": "jobs/append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80.json",
+      "sha256": "b741ce43388bc5a8fb894493e498b60af3c35e9aa170a959b325671908a6e24e",
+      "size_bytes": 4711
+    },
+    {
+      "path": "normalized_manifests/append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80.json",
+      "sha256": "b741ce43388bc5a8fb894493e498b60af3c35e9aa170a959b325671908a6e24e",
+      "size_bytes": 4711
+    },
+    {
+      "path": "queue.tsv",
+      "sha256": "ffecd982adc8e870ed7d33d528dda47e5c275749c331aa88228553a9684a49aa",
+      "size_bytes": 514
+    },
+    {
+      "path": "run_job.py",
+      "sha256": "1d2aa4bb15fe0bc129c76643a75f55fefe5f312401b7825e0be328a780b28f62",
+      "size_bytes": 22984
+    },
+    {
+      "path": "source_archive_manifest.json",
+      "sha256": "1d90a6113597701cb3dc58e18f5504ee5d2ae0bdca7b6ab8618f85d410e997a8",
+      "size_bytes": 76474
+    },
+    {
+      "path": "source_locked.tar.gz",
+      "sha256": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+      "size_bytes": 3356638
+    },
+    {
+      "path": "source_locked_sensitivity_audit.json",
+      "sha256": "e3220611593f8a477af0fd818eab62586e44010bfe756191dea96afc1f4d83cd",
+      "size_bytes": 5658
+    },
+    {
+      "path": "source_prefix_identity.json",
+      "sha256": "a3650b8660381830432aae6de08139b85d4c844d1c20b77d12010e59ce9a4931",
+      "size_bytes": 3291
+    },
+    {
+      "path": "submit.sub",
+      "sha256": "79eaaa471110aa5e61717bca14e9076432ed1ae6f517c77fa36607ae0a0d4685",
+      "size_bytes": 3337
+    },
+    {
+      "path": "test_bundle.py",
+      "sha256": "c08291d3b70135edbc5fff10c870662a7ad19cb96ee7fb734cf54dc5be8b5553",
+      "size_bytes": 7425
+    },
+    {
+      "path": "warm_start_state.json",
+      "sha256": "2f8cf43b8d6a77b8387ca97ed61e247083a776c0a0d867196f465db7480bf329",
+      "size_bytes": 100191
+    }
+  ],
+  "batch_name": "paper-i-hh-append-proj-singleton-ws-k50-firsthit2e4-k80-v2",
+  "bundle_id": "paper_i_hh_append_projected_singleton_weak_strong_warm_continuation_k50_to_firsthit_or_k80_20260721_v2_chtc",
+  "created_utc": "2026-07-21T21:45:03+00:00",
+  "job_id": "append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80",
+  "max_total_iterations": 80,
+  "remote_image_preflight": "exact_uploaded_v2_required_before_condor_submit",
+  "remote_image_sha256_expected": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "requirements": "True",
+  "row_count": 1,
+  "schema": "paper_i_hh_append_warm_continuation_bundle_v1",
+  "scientific_settings_preserved": {
+    "algorithm_id": true,
+    "candidate_pool": true,
+    "optimizer": true,
+    "physics": true,
+    "qiskit_cost": true,
+    "seed": true,
+    "variant": true
+  },
+  "source_S_alg": 1276060.0,
+  "source_archive_sha256": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+  "source_prefix_identity_sha256": "190c782d30d695d938de5390953eb4b2d05494b572bbcdaef57b159fbd8166c7",
+  "source_validation_receipt": {
+    "S_alg": 1276060.0,
+    "active_depth": 50,
+    "adapt_iterations": 50,
+    "boson_truncation_leak_flag": false,
+    "compiled_count_2q_total": 288,
+    "compiled_depth_2q_total": 233,
+    "compiled_depth_total": 913,
+    "energy": -1.138114683316429,
+    "fidelity": 0.9998302694243241,
+    "job_id": "append_projected_singleton__weak_strong__r50",
+    "ledger_closure": "pass",
+    "regime": "weak-strong",
+    "same_cutoff_abs_error": 0.0006059547584833513,
+    "schema": "paper_i_hh_append_completion_validation_receipt_v1",
+    "sector_leak_flag": false,
+    "status": "pass",
+    "validated_utc": "2026-07-20T05:31:36.240085+00:00",
+    "variant": "projected_singleton"
+  },
+  "status": "submission_enabled_remote_gate_pending",
+  "submission_enabled": true,
+  "target_error": 0.0002
+}

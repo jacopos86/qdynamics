@@ -1,0 +1,88 @@
+{
+  "code_bundle": {
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "d0982f4696eaecdde533aaf2194af0900fb5fa7c4adde301056cbab80354c3fb"
+  },
+  "critical_bundle_member_count": 7,
+  "entries": [
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/generate_paper_i_scaling_matrix_records.py",
+      "sha256": "8f3c7cd18f47c944a09ad222ddec8122baa3563d33ef2908a1d3a1329441afee",
+      "size_bytes": 35219
+    },
+    {
+      "bundle_member_sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/table_i_canonical_cases.py",
+      "sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "size_bytes": 63121
+    },
+    {
+      "bundle_member_sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/static_reference_metrics.py",
+      "sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "size_bytes": 7831
+    },
+    {
+      "bundle_member_sha256": "b6a803e11b2e8851e0f4808badd81d987fe63686d90f2a5591ed2cd3fb46c38b",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_benchmark.py",
+      "sha256": "b6a803e11b2e8851e0f4808badd81d987fe63686d90f2a5591ed2cd3fb46c38b",
+      "size_bytes": 131165
+    },
+    {
+      "bundle_member_sha256": "0fa3a740f54d9a112b5eb03af937b42d1bb745817b46d3c547956a63c66f82c8",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_adapt_variants.py",
+      "sha256": "0fa3a740f54d9a112b5eb03af937b42d1bb745817b46d3c547956a63c66f82c8",
+      "size_bytes": 340223
+    },
+    {
+      "bundle_member_sha256": "bab0d394e889ad37b9d3eaa173dfb493d68987027fc7bedf70d6349a56104bd0",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/optimization/phase3_policy_optuna.py",
+      "sha256": "bab0d394e889ad37b9d3eaa173dfb493d68987027fc7bedf70d6349a56104bd0",
+      "size_bytes": 629016
+    },
+    {
+      "bundle_member_sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "critical_bundle_member": true,
+      "path": "src/quantum/compiled_ansatz.py",
+      "sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "size_bytes": 31832
+    },
+    {
+      "bundle_member_sha256": "102834060fec63c532f72824d587c1a5b2af1322e21dc2d8a205d3f283525b82",
+      "critical_bundle_member": true,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py",
+      "sha256": "102834060fec63c532f72824d587c1a5b2af1322e21dc2d8a205d3f283525b82",
+      "size_bytes": 16126
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+      "sha256": "e8b3dfcad653e1ec6276baf3a63aa727229b9d5207fccfd9a34258aefcea5f7c",
+      "size_bytes": 1095
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prewarm_paper_i_scaling_hh_pool_cache.py",
+      "sha256": "280b12caa00350dde4175bdb94dc7fcb693abab316e94d5150be269206f85c03",
+      "size_bytes": 15065
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/preflight_submit.py",
+      "sha256": "e6d1bef5960729d59d796566138af0bb3dde912c89589edd33c4df7d0c3db216",
+      "size_bytes": 180181
+    }
+  ],
+  "schema": "paper_i_scaling_matrix_implementation_lock_v1",
+  "status": "pass"
+}

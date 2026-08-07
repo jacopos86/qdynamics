@@ -1,0 +1,9 @@
+{
+  "classification": "non_scientific_prune_trial_consumer_id_collision_under_beam_v1",
+  "cluster_id": 8894498,
+  "do_not_submit": true,
+  "route_digest": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+  "schema": "paper_i_chtc_superseded_bundle_v1",
+  "scientific_setting_changes_in_successor": [],
+  "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v4_chtc"
+}

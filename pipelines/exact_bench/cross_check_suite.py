@@ -24,7 +24,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -35,16 +35,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from reports.pdf_utils import (
+from docs.reports.pdf_utils import (
     HAS_MATPLOTLIB,
     require_matplotlib,
     get_plt,
     get_PdfPages,
-    render_text_page,
     render_command_page,
     render_compact_table,
-    render_parameter_manifest,
     current_command_string,
+)
+from docs.reports.report_pages import (
+    render_executive_summary_page,
+    render_manifest_overview_page,
+    render_section_divider_page,
 )
 
 # plt and PdfPages are fetched inside _write_pdf after require_matplotlib() guard.
@@ -62,8 +65,6 @@ from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
     HardcodedUCCSDLayerwiseAnsatz,
     HubbardLayerwiseAnsatz,
-    HubbardHolsteinTermwiseAnsatz,
-    HubbardHolsteinLayerwiseAnsatz,
     apply_exp_pauli_polynomial,
     apply_pauli_string,
     basis_state,
@@ -73,6 +74,11 @@ from src.quantum.vqe_latex_python_pairs import (
     half_filled_num_particles,
     hartree_fock_bitstring,
     vqe_minimize,
+)
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
+from pipelines.exact_bench.hh_conventional_vqe import (
+    default_hh_conventional_vqe_config,
+    run_hh_conventional_vqe_trial,
 )
 
 # ---------------------------------------------------------------------------
@@ -99,9 +105,9 @@ _HUBBARD_PARAMS: dict[int, dict[str, Any]] = {
 
 # Hubbard-Holstein minimum parameters per (L, n_ph_max)
 _HH_PARAMS: dict[tuple[int, int], dict[str, Any]] = {
-    (2, 1): {"trotter_steps": 64,  "reps": 2, "restarts": 3, "maxiter": 800,  "method": "COBYLA"},
-    (2, 2): {"trotter_steps": 128, "reps": 3, "restarts": 4, "maxiter": 1500, "method": "COBYLA"},
-    (3, 1): {"trotter_steps": 192, "reps": 2, "restarts": 4, "maxiter": 2400, "method": "COBYLA"},
+    (2, 1): {"trotter_steps": 64, **default_hh_conventional_vqe_config(2, 1)},
+    (2, 2): {"trotter_steps": 128, **default_hh_conventional_vqe_config(2, 2)},
+    (3, 1): {"trotter_steps": 192, **default_hh_conventional_vqe_config(3, 1)},
 }
 
 # ADAPT-VQE defaults per L
@@ -431,15 +437,9 @@ def _build_adapt_pool_hh(
         return pool
 
     elif pool_name == "hva":
-        # Delegate to the adapt_pipeline's builder via direct import
-        sys_path_orig = list(sys.path)
-        try:
-            adapt_dir = str(REPO_ROOT / "pipelines" / "hardcoded")
-            if adapt_dir not in sys.path:
-                sys.path.insert(0, adapt_dir)
-            from adapt_pipeline import _build_hva_pool  # type: ignore[import]
-        finally:
-            sys.path[:] = sys_path_orig
+        from pipelines.static_adapt.builders.primitive_pools import (
+            _build_hva_pool,
+        )
 
         # HVA pool needs physical parameters — we use defaults
         # (the pool structure doesn't depend on exact coupling values,
@@ -686,6 +686,24 @@ def _run_conventional_vqe_trial(
     )
 
 
+def _trial_result_from_hh_conventional_payload(payload: Mapping[str, Any]) -> TrialResult:
+    name = str(payload.get("display_name", payload.get("name", "HH-Conventional")))
+    exact_energy = float(payload.get("exact_energy", payload.get("exact_gs_energy")))
+    energy = float(payload["energy"])
+    return TrialResult(
+        name=name,
+        category="conventional_vqe",
+        ansatz_label=name,
+        energy=energy,
+        exact_energy=exact_energy,
+        delta_e=float(payload.get("delta_e", energy - exact_energy)),
+        num_params=int(payload.get("num_parameters", payload.get("num_params", 0))),
+        nfev=int(payload.get("nfev", 0)),
+        psi_vqe=np.asarray(payload["_psi_vqe"], dtype=complex).ravel(),
+        elapsed_s=float(payload.get("runtime_s", payload.get("elapsed_s", 0.0))),
+    )
+
+
 def _run_adapt_vqe_trial(
     *,
     name: str,
@@ -818,29 +836,32 @@ def run_cross_check(args: argparse.Namespace) -> dict[str, Any]:
     pbc_flag = (boundary == "periodic")
 
     if is_hh:
-        # Trial 1: HH Termwise
-        _ai_log("building_ansatz", name="HH-Termwise")
-        ans_tw = HubbardHolsteinTermwiseAnsatz(
-            dims=L, J=t_hop, U=U, omega0=omega0, g=g_ep,
-            n_ph_max=n_ph_max, boson_encoding=boson_enc,
-            reps=reps, repr_mode="JW", indexing=ordering, pbc=pbc_flag,
-        )
-        trials.append(_run_conventional_vqe_trial(
-            name="HH-Termwise", ansatz=ans_tw, h_poly=h_poly, psi_ref=psi_ref,
-            exact_energy=gs_energy, restarts=restarts, seed=seed, maxiter=maxiter, method=method,
-        ))
-
-        # Trial 2: HH Layerwise
-        _ai_log("building_ansatz", name="HH-Layerwise")
-        ans_lw = HubbardHolsteinLayerwiseAnsatz(
-            dims=L, J=t_hop, U=U, omega0=omega0, g=g_ep,
-            n_ph_max=n_ph_max, boson_encoding=boson_enc,
-            reps=reps, repr_mode="JW", indexing=ordering, pbc=pbc_flag,
-        )
-        trials.append(_run_conventional_vqe_trial(
-            name="HH-Layerwise", ansatz=ans_lw, h_poly=h_poly, psi_ref=psi_ref,
-            exact_energy=gs_energy, restarts=restarts, seed=seed, maxiter=maxiter, method=method,
-        ))
+        # Trials 1-2: existing HH fixed-ansatz conventional VQE paths.
+        for ansatz_kind in ("termwise", "layerwise"):
+            conventional_payload = run_hh_conventional_vqe_trial(
+                ansatz_kind=ansatz_kind,
+                h_poly=h_poly,
+                exact_gs=gs_energy,
+                num_sites=L,
+                t=t_hop,
+                u=U,
+                dv=dv,
+                omega0=omega0,
+                g_ep=g_ep,
+                n_ph_max=n_ph_max,
+                boson_encoding=boson_enc,
+                boundary=boundary,
+                ordering=ordering,
+                reps=reps,
+                optimizer=method,
+                maxiter=maxiter,
+                restarts=restarts,
+                seed=seed,
+                include_zero_point=True,
+                psi_ref=psi_ref,
+                ai_log=_ai_log,
+            )
+            trials.append(_trial_result_from_hh_conventional_payload(conventional_payload))
 
         # Trial 3: ADAPT(full_hamiltonian) for HH
         pool_fh = _build_adapt_pool_hh(h_poly, L, num_particles, ordering, "full_hamiltonian", n_ph_max, boson_enc)
@@ -937,6 +958,25 @@ def run_cross_check(args: argparse.Namespace) -> dict[str, Any]:
     else:
         _ai_log("pdf_skipped", reason="matplotlib_unavailable")
 
+    summary_dir = out_dir / "summary"
+    sidecars = write_proxy_sidecars(
+        payload.get("trials", []),
+        summary_dir,
+        defaults={
+            "problem": str(problem),
+            "L": int(L),
+            "vqe_reps": int(reps),
+            "vqe_restarts": int(restarts),
+            "vqe_maxiter": int(maxiter),
+        },
+    )
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(sidecars["csv"]),
+        jsonl=str(sidecars["jsonl"]),
+        summary_json=str(sidecars["summary_json"]),
+    )
+
     _ai_log("cross_check_done", n_trials=len(trials))
     return payload
 
@@ -955,17 +995,25 @@ def _build_payload(
     trial_summaries = []
     for tr in trials:
         d: dict[str, Any] = {
+            "run_id": tr.name,
+            "method_id": tr.name,
+            "method_kind": tr.category,
+            "ansatz_name": tr.ansatz_label,
             "name": tr.name,
             "category": tr.category,
             "energy": tr.energy,
             "exact_energy": tr.exact_energy,
             "delta_e": tr.delta_e,
             "abs_delta_e": abs(tr.delta_e),
+            "delta_E_abs": abs(tr.delta_e),
+            "num_parameters": tr.num_params,
             "num_params": tr.num_params,
             "nfev": tr.nfev,
+            "runtime_s": round(tr.elapsed_s, 3),
             "elapsed_s": round(tr.elapsed_s, 3),
         }
         if tr.category == "adapt_vqe":
+            d["adapt_depth_reached"] = tr.adapt_depth
             d["adapt_depth"] = tr.adapt_depth
             d["adapt_stop_reason"] = tr.adapt_stop_reason
         if tr.trajectory:
@@ -1008,38 +1056,135 @@ def _write_pdf(
     PdfP = get_PdfPages()
 
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    model_name = "Hubbard-Holstein" if args.problem == "hh" else "Hubbard"
+    categories = sorted({str(tr.category).replace("_", " ") for tr in trials})
+    ranked_trials = sorted(trials, key=lambda tr: abs(float(tr.delta_e)))
+    best_trial = ranked_trials[0] if ranked_trials else None
+    adapt_trials = [tr for tr in ranked_trials if "adapt" in str(tr.category).lower() or "adapt" in str(tr.name).lower()]
+    conventional_trials = [tr for tr in ranked_trials if tr not in adapt_trials]
 
-    with PdfP(str(pdf_path)) as pdf:
-        # --- Page 1: Parameter manifest ---
-        problem_str = str(args.problem).upper()
-        model_name = "Hubbard-Holstein" if args.problem == "hh" else "Hubbard"
-        extra_params: dict[str, Any] = {
-            "L": args.L,
-            "ordering": args.ordering,
-            "boundary": args.boundary,
-            "Exact GS (filtered)": f"{exact_energy:.10f}",
-            "# ansatz trials": len(trials),
-        }
-        if args.problem == "hh":
-            extra_params.update({
-                "omega0": args.omega0,
-                "g_ep": args.g_ep,
-                "n_ph_max": args.n_ph_max,
-                "boson_encoding": args.boson_encoding,
-            })
-        render_parameter_manifest(
-            pdf,
-            model=model_name,
-            ansatz=f"Cross-Check Suite ({len(trials)} ansätze)",
-            drive_enabled=False,
-            t=args.t,
-            U=args.U,
-            dv=args.dv,
-            extra=extra_params,
-            command=current_command_string(),
+    def _trial_metric(trial: TrialResult | None, attr: str) -> Any:
+        if trial is None:
+            return "n/a"
+        value = getattr(trial, attr)
+        if attr == "delta_e":
+            return abs(float(value))
+        return value
+
+    manifest_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Model and regime",
+            [
+                ("Model family", model_name),
+                ("Problem", args.problem),
+                ("L", args.L),
+                ("Ordering", args.ordering),
+                ("Boundary", args.boundary),
+            ],
+        ),
+        (
+            "Trial matrix",
+            [
+                ("Categories", categories),
+                ("# ansatz trials", len(trials)),
+                ("Exact filtered ground energy", exact_energy),
+            ],
+        ),
+        (
+            "Core physical parameters",
+            [
+                ("t", args.t),
+                ("U", args.U),
+                ("dv", args.dv),
+            ],
+        ),
+        (
+            "Dynamics grid",
+            [
+                ("t_final", args.t_final),
+                ("num_times", args.num_times),
+                ("trotter_steps", args.trotter_steps),
+                ("Seed", args.seed),
+            ],
+        ),
+    ]
+    if args.problem == "hh":
+        manifest_sections.append(
+            (
+                "Hubbard-Holstein parameters",
+                [
+                    ("omega0", args.omega0),
+                    ("g_ep", args.g_ep),
+                    ("n_ph_max", args.n_ph_max),
+                    ("Boson encoding", args.boson_encoding),
+                ],
+            )
         )
 
-        # --- Page 2: Scoreboard table ---
+    summary_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Best performers",
+            [
+                ("Best overall", _trial_metric(best_trial, "name")),
+                ("Best overall |ΔE|", _trial_metric(best_trial, "delta_e")),
+                ("Best conventional", _trial_metric(conventional_trials[0] if conventional_trials else None, "name")),
+                ("Best conventional |ΔE|", _trial_metric(conventional_trials[0] if conventional_trials else None, "delta_e")),
+                ("Best ADAPT", _trial_metric(adapt_trials[0] if adapt_trials else None, "name")),
+                ("Best ADAPT |ΔE|", _trial_metric(adapt_trials[0] if adapt_trials else None, "delta_e")),
+            ],
+        ),
+        (
+            "Coverage",
+            [
+                ("Categories", categories),
+                ("Trials with trajectories", sum(1 for tr in trials if tr.trajectory)),
+                ("Max parameter count", max((int(tr.num_params) for tr in trials), default=0)),
+            ],
+        ),
+        (
+            "Reference and grid",
+            [
+                ("Exact filtered ground energy", exact_energy),
+                ("t_final", args.t_final),
+                ("num_times", args.num_times),
+                ("trotter_steps", args.trotter_steps),
+            ],
+        ),
+    ]
+
+    with PdfP(str(pdf_path)) as pdf:
+        render_manifest_overview_page(
+            pdf,
+            title=f"{model_name} cross-check — L={args.L}",
+            experiment_statement=(
+                f"Cross-check suite comparing {len(trials)} ansatz / VQE-mode trials against exact ED "
+                "with a common propagation grid."
+            ),
+            sections=manifest_sections,
+            notes=[
+                "Machine-readable benchmark detail remains in sidecars.",
+                "The full executed command appears at the end of the PDF.",
+            ],
+        )
+        render_executive_summary_page(
+            pdf,
+            title="Executive summary",
+            experiment_statement="Best-by-family overview before dense tables or per-trial pages.",
+            sections=summary_sections,
+            notes=[
+                "Scoreboard page comes next, followed by per-trial trajectories and then cross-trial overlays.",
+            ],
+        )
+        render_section_divider_page(
+            pdf,
+            title="Scoreboard and per-trial trajectories",
+            summary="Start with the compact scoreboard, then inspect each ansatz trajectory on its own page.",
+            bullets=[
+                "Exact filtered energy is the common reference.",
+                "Per-trial pages show fidelity, energy, and site-0 occupations.",
+            ],
+        )
+
         headers = ["Ansatz", "Category", "E_VQE", "|ΔE|", "#Params", "NFev", "Final Fid.", "Time(s)"]
         rows = []
         for tr in trials:
@@ -1060,7 +1205,6 @@ def _write_pdf(
         pdf.savefig(fig_tbl)
         plt.close(fig_tbl)
 
-        # --- Pages 3+: Individual trajectory plots per trial ---
         for i, tr in enumerate(trials):
             if not tr.trajectory:
                 continue
@@ -1104,9 +1248,18 @@ def _write_pdf(
             pdf.savefig(fig)
             plt.close(fig)
 
-        # --- Overlay pages: all ansätze on one plot ---
-        # Overlay: Fidelity
         if any(tr.trajectory for tr in trials):
+            render_section_divider_page(
+                pdf,
+                title="Overlay appendix",
+                summary="Cross-trial overlays collect the main trajectory comparisons once the per-trial pages are complete.",
+                bullets=[
+                    "Fidelity overlay.",
+                    "Energy overlay.",
+                    "Doublon overlay.",
+                ],
+            )
+
             fig, ax = plt.subplots(figsize=(10, 5))
             fig.suptitle("Fidelity Overlay — All Ansätze", fontsize=13)
             for i, tr in enumerate(trials):
@@ -1125,7 +1278,6 @@ def _write_pdf(
             pdf.savefig(fig)
             plt.close(fig)
 
-            # Overlay: Energy
             fig, ax = plt.subplots(figsize=(10, 5))
             fig.suptitle("Energy Overlay — All Ansätze (Trotter)", fontsize=13)
             for i, tr in enumerate(trials):
@@ -1148,7 +1300,6 @@ def _write_pdf(
             pdf.savefig(fig)
             plt.close(fig)
 
-            # Overlay: Doublon
             fig, ax = plt.subplots(figsize=(10, 5))
             fig.suptitle("Total Doublon Overlay — All Ansätze", fontsize=13)
             for i, tr in enumerate(trials):
@@ -1167,8 +1318,11 @@ def _write_pdf(
             pdf.savefig(fig)
             plt.close(fig)
 
-        # --- Final page: run command ---
-        render_command_page(pdf, current_command_string())
+        render_command_page(
+            pdf,
+            current_command_string(),
+            script_name="pipelines/exact_bench/cross_check_suite.py",
+        )
 
     _ai_log("pdf_complete", path=str(pdf_path))
 

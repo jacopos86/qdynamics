@@ -1,0 +1,60 @@
+{
+  "schema": "paper_i_hh_jr_checkpoint_resume_submission_v1",
+  "status": "submitted",
+  "generated_utc": "2026-07-14T02:13:19Z",
+  "source_cluster_id": 8776170,
+  "source_job_batch_name": "paper-i-hh-jr-l10-rollback-free-r50-20260712-v1",
+  "execution_profile": "jr_l10_rollback_free_whitened_r50_v1",
+  "scientific_contract_hash": "d4f06a3724c95499f0cd56983bfcf1f26e6fb1499cb5fa82d84bfa7ba76499e3",
+  "policy_sha256": "32c309bc869d5394f84b9167ba10a7a3196b420927b0a02041074a422ec463dc",
+  "target_max_depth": 50,
+  "output_root": "raw_outputs/paper_i_hh_jr_l10_rollback_free_r50_resume48gb_20260713_v1",
+  "job_batch_name": "paper-i-hh-jr-l10-resume48gb-r50-20260713-v1",
+  "queue_tsv": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_resume48gb_20260713_v1/queue.tsv",
+  "queue_sha256": "4ac48399b96618bee6daa460440029f5905d8c24d1250e49b7f42769b0e5e8ef",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_jr_l10_resume48gb_20260713_v1/submit.sub",
+  "submit_sha256": "f2d7419dda74a8a0228ce38cf0ebc8092bbe47c80c2ce4bd22c51f68922f85a1",
+  "adapter": {
+    "python": "chtc/phase3_optuna/run_jr_resume_cell.py",
+    "python_sha256": "c5153a9ad205ffeb5c2ecc2f927ee57874d6eae79397fb7849c920842d27df6e",
+    "wrapper": "chtc/phase3_optuna/run_jr_resume_cell_apptainer.sh",
+    "wrapper_sha256": "f3d9dc8314f6c20b98387d126baee4ff342a549d19c7160534611f8aaa9002c0"
+  },
+  "source_snapshot": {
+    "archive": "live_snapshots/cluster_8776170/20260713T210403Z.tar.gz",
+    "archive_sha256": "37aeefb4463e1dfdd22ea54d4bf0724492600223a4c6a9b0e0859f0ea03b06d5"
+  },
+  "cells": [
+    {
+      "regime": "weak-weak",
+      "source_proc_id": 0,
+      "source_hold_reason": "memory_cgroup_exceeded_at_32768MB",
+      "resume_controller_round": 34,
+      "resume_ansatz_depth": 34,
+      "resume_scaffold_sha256": "7fdd98bfc39e883982a5c9750cd6ea1d1649eae88b727401084b74507038cf14",
+      "cell_manifest_sha256": "ee6d95750f47c239d5da79e845f3aa94f9f2f043e4c4780d0b81f2ad72219165"
+    },
+    {
+      "regime": "intermediate-weak",
+      "source_proc_id": 1,
+      "source_hold_reason": "memory_cgroup_exceeded_at_32768MB",
+      "resume_controller_round": 32,
+      "resume_ansatz_depth": 32,
+      "resume_scaffold_sha256": "413054e27dd14c7f4d42e9a0b0dbb08eb9d04eea0b4e1dee2252622c7eda43bc",
+      "cell_manifest_sha256": "da5feba56d14dc4dd9d5e84a9d6b1ae828db57312bd85147c046aff3049b3958"
+    }
+  ],
+  "scientific_settings_changed": [],
+  "operational_changes": {
+    "structural_resume_from_verified_current_json": true,
+    "request_memory_mb": 49152,
+    "request_disk_mb": 61440
+  },
+  "preservation": {
+    "healthy_source_cluster_jobs_untouched": true,
+    "formal_manifold_jobs_untouched": true,
+    "separate_output_root": true
+  },
+  "submitted_cluster_id": 8778421,
+  "submitted_utc": "2026-07-14T02:17:31Z"
+}

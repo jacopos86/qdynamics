@@ -1,0 +1,268 @@
+{
+  "campaigns": [
+    {
+      "batch_name": "paper-i-ra-adapt-always-factorial48-r50-20260730-v1",
+      "cluster_id": 9395481,
+      "retirement_verified_utc": "2026-07-30T17:59:46Z",
+      "state": "retired_after_completed_v1_preservation",
+      "total_submit_procs": 48
+    },
+    {
+      "batch_name": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v1",
+      "cluster_id": 9395482,
+      "retirement_verified_utc": "2026-07-30T17:59:46Z",
+      "state": "retired_after_completed_v1_preservation",
+      "total_submit_procs": 12
+    }
+  ],
+  "checkpoint_retention_v2": {
+    "builder_sha256": "45c414f609fced1ce1b53c0061ddc817a6c5a4bd7dd4a6446e15f015a876c523",
+    "factorial": {
+      "activation_manifest_canonical_sha256": "69c4de0423da21c54774ea1a257ecc50d2b661aaff138803bbd0387937c02e1b",
+      "activation_manifest_file_sha256": "73aa699c4836b02e4988bf27386abc61b76c18b31e9cd369609c99b1dbb54d9c",
+      "completed_v1_excluded_proc_ids": [
+        0,
+        1,
+        3
+      ],
+      "package_manifest_canonical_sha256": "25f5a69da1c74c721e1e2061cd901b0465e49c32b5f328f4c64029d44f46a80a",
+      "package_manifest_file_sha256": "4f30b4b7750372a5324fa7c2b56ea70a607e8909d5bba34176bb14631d1d6d41",
+      "queued_count": 45,
+      "release_activation_manifest_canonical_sha256": "b220f0d7a8deccee513f5352e3b9bfccd934c35357b5ca607a83c44c6636c7bd",
+      "release_activation_manifest_file_sha256": "847aa39ff738e5b796788ec9fe4fd7f107f2394d2792ae95e8a78cfb2c81e386",
+      "release_submission_state": "blocked_before_commit_by_schedd_spool_enospc",
+      "source_archive_sha256": "584896ed11f4c0469e064d0b6279302798e477ef4b3f7bd44d8e646d7d17a8eb",
+      "submission_state": "pre_retirement_factory_9397643_submitted_frozen_then_paused_for_removal_zero_materialized",
+      "superseded_frozen_factory_cluster_id": 9397643,
+      "superseded_frozen_factory_receipt_sha256": "bb91c22c732d56b56a8d0908c370bea07e5c4362f8a0ef0d274d994691aa743d"
+    },
+    "global_singleton": {
+      "activation_manifest_canonical_sha256": "b9712be747ba11603abed8534f42ed87c8039e7270f293664d743d27e05e6097",
+      "activation_manifest_file_sha256": "07b19e8f198bae3870d17e67dbb1d0f5dcade0937bf1afff2c45b94d1b994334",
+      "completed_v1_excluded_proc_ids": [
+        0
+      ],
+      "package_manifest_canonical_sha256": "9a41027b2681b75aadb154af67aa9e8844ec91c143a230db0ff0a60951963029",
+      "package_manifest_file_sha256": "ee2f47c15276df4bb4538c2ceae250c001c2920ef03e3bfd2b3276e2d8167df7",
+      "queued_count": 11,
+      "release_activation_manifest_canonical_sha256": "f78b84c71c08a04d2f70312c51b1b088a4c23ca2167c304305dbe33f757fd679",
+      "release_activation_manifest_file_sha256": "e5f906930ff137d405f38bdd97eef6da3fa5421238da64831f2e9149ddc12b6e",
+      "release_submission_state": "not_attempted_pending_factorial_submission_and_schedd_spool_recovery",
+      "source_archive_sha256": "4c79f8de78c1700120f2018b098d361c37c3b054e261be7214cb5fb74d862dd8",
+      "submission_state": "pre_retirement_factory_9397644_submitted_frozen_then_paused_for_removal_zero_materialized",
+      "superseded_frozen_factory_cluster_id": 9397644,
+      "superseded_frozen_factory_receipt_sha256": "ed30e6bd5a55322d72e3ee0ffce43b999e10ba58729d5408fab4a842fcbb4dff"
+    },
+    "local_validation": {
+      "builder_validate_status": "passed",
+      "condor_lifecycle_validation_status": "passed_for_both_exact_submit_files",
+      "focused_tests": "15_passed",
+      "scientific_settings_changed": [],
+      "source_member_delta": [
+        "pipelines/static_adapt/current_checkpoint.py"
+      ]
+    },
+    "preservation_snapshot": {
+      "archive_count": 4,
+      "canonical_sha256": "7d606f18d8343e988d0595654a4353e028e298ff2bbc6f579a8066616e83c4e6",
+      "file_sha256": "17b7c1657046c01e7686c98d1fec36a23ddbeb4b479aabf2eab3dd2bf913a973",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_completed_v1_preservation_9395481_9395482_20260730_v1.json",
+      "status": "passed",
+      "total_bytes": 22059477120
+    },
+    "parent_cluster_retirement": {
+      "canonical_sha256": "4c53f41da94099771410d5a6c58add633bdd2c88010fc2068c113db0f9f11941",
+      "file_sha256": "9ed8966737459d0585c621438c3f1c6ceea35394886b91132f31fcabc89dd613",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_parent_cluster_retirement_9395481_9395482_20260730_v1.json",
+      "retired_cluster_ids": [
+        9395481,
+        9395482
+      ],
+      "status": "passed",
+      "verified_utc": "2026-07-30T17:59:46Z"
+    },
+    "remote_stage": {
+      "bundle_sha256": "2740e6e1e1fe121f7889997159e634ad325f3f79f8748e1d0fa42bac21b9a747",
+      "bundle_size_bytes": 57440,
+      "dry_run_factorial_job_count": 45,
+      "dry_run_global_singleton_job_count": 11,
+      "dry_run_status": "passed_for_both_exact_release_submit_files",
+      "remote_file_closure_count": 67,
+      "remote_file_closure_sha256": "3e439e76fe4696382187581192dc18521202a0b0160cd1a7dd069273464483b8",
+      "remote_state": "release_activations_and_retirement_receipt_staged_exact_hash_verified",
+      "submission_state": "release_factories_not_submitted"
+    },
+    "schedd_spool_blocker": {
+      "candidate_cluster_ids_rolled_back": [
+        9397710,
+        9397711,
+        9397712,
+        9397713,
+        9397714
+      ],
+      "candidate_clusters_absent_from_live_queue_and_factory_ads": true,
+      "filesystem": "/var/lib/condor/spool",
+      "filesystem_available_bytes": 0,
+      "filesystem_inode_use_percent": 2,
+      "last_observed_utc": "2026-07-30T18:53:18Z",
+      "schedd_log_diagnosis": "SendMaterializeData failed creating the candidate cluster spool directory with errno 28 (No space left on device)",
+      "state": "infrastructure_blocked_before_factory_commit",
+      "submit_file_and_queue_byte_validation": "passed_clean_ascii_tsv_no_control_bytes"
+    },
+    "stale_prior_materialization_quarantine": "tmp/chtc_checkpoint_retention_v2_stale_20260730.cl1WW2",
+    "state": "release_ready_and_remotely_validated_waiting_for_schedd_spool_capacity"
+  },
+  "guard": {
+    "held_history": [
+      {
+        "cluster_id": 9395481,
+        "entered_current_status_epoch": 1785425645,
+        "hold_reason": "temporary CHTC home-quota guard during verified output retrieval (by user jsstrobel)",
+        "proc_id": 4,
+        "provenance": "preexisting_scoped_guard"
+      },
+      {
+        "cluster_id": 9395481,
+        "entered_current_status_epoch": 1785425645,
+        "hold_reason": "temporary CHTC home-quota guard during verified output retrieval (by user jsstrobel)",
+        "proc_id": 5,
+        "provenance": "preexisting_scoped_guard"
+      },
+      {
+        "cluster_id": 9395481,
+        "entered_current_status_epoch": 1785430674,
+        "hold_reason": "temporary CHTC home-quota guard during verified output retrieval (Codex, authorized 2026-07-30) (by user jsstrobel)",
+        "proc_id": 6,
+        "provenance": "applied_by_this_retrieval_after_factory_materialization"
+      },
+      {
+        "cluster_id": 9395482,
+        "entered_current_status_epoch": 1785427397,
+        "hold_reason": "temporary CHTC home-quota guard during verified output retrieval (Codex, authorized 2026-07-30) (by user jsstrobel)",
+        "proc_id": 1,
+        "provenance": "applied_by_this_retrieval"
+      },
+      {
+        "cluster_id": 9395481,
+        "entered_current_status_epoch": 1785432566,
+        "hold_reason": "temporary CHTC home-quota and v2-supersession guard (Codex, authorized 2026-07-30) (by user jsstrobel)",
+        "proc_id": 2,
+        "provenance": "applied_by_authorized_current_objective_after_unexpected_third_start"
+      }
+    ],
+    "held": [],
+    "idle": [],
+    "rationale": "Parent clusters 9395481 and 9395482 are retired. The superseded v2 factories 9397643 and 9397644 have zero materialized rows, max_idle zero, and JobFactoryPaused code 3 after exact condor_rm. Release submissions remain blocked before commit by schedd spool ENOSPC.",
+    "release_events": [
+      {
+        "cluster_id": 9395481,
+        "proc_id": 2,
+        "released_utc": "2026-07-30T16:41:50Z"
+      },
+      {
+        "cluster_id": 9395481,
+        "proc_id": 2,
+        "released_utc": "2026-07-30T17:27:19Z"
+      }
+    ],
+    "restart_and_rehold_events": [
+      {
+        "cluster_id": 9395481,
+        "num_job_starts": 3,
+        "proc_id": 2,
+        "reason": "unexpected_third_start_then_reheld_for_v2_supersession_and_quota_safety",
+        "reheld_epoch": 1785432566,
+        "running_epoch": 1785432470
+      }
+    ],
+    "running": [],
+    "state": "parent_clusters_retired_no_live_parent_rows_release_factories_not_committed"
+  },
+  "local_unpaired_archives": [
+    {
+      "agent_delete_observed": true,
+      "cluster_id": 9395482,
+      "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730/global_singleton__weak_weak__nph3__ra_global_singleton_append_commutation_reduced__cluster_9395482__proc_0.tar.gz",
+      "local_sha256": "bcc1f49cb8c6cc7986b0d64400d0a1b398d20b37fd7029fd56660d186d7352b2",
+      "proc_id": 0,
+      "remote_copy_observed": false,
+      "remote_delete_attribution": "verified_exact_agent_delete_earlier_in_retrieval",
+      "remote_pathname_state": "deleted_after_local_preservation",
+      "size_bytes": 3340648793,
+      "verification_state": "local_sha256_recorded_remote_digest_unavailable"
+    }
+  ],
+  "observed_utc": "2026-07-30T18:53:18Z",
+  "quota": {
+    "grace": null,
+    "hard_limit_mib": 51200,
+    "observed_utc": "2026-07-30T18:52:13Z",
+    "soft_quota_mib": 40960,
+    "used_gib": 33.6787,
+    "used_mib": 34487
+  },
+  "remote_cleanup": {
+    "completed_v1_archive_scope_count": 4,
+    "factorial_exact_targets_remaining": 0,
+    "factorial_pathnames_absent_without_observed_agent_delete": 3,
+    "open_unlinked_inode_note": "A pre-existing SFTP reader temporarily held factorial proc 1 open after its pathname disappeared; no agent delete was observed. Block reclamation was confirmed at 2026-07-30T16:41:50Z.",
+    "state": "all_completed_v1_archives_locally_preserved_with_mixed_remote_disposition",
+    "unrelated_remote_files_touched": false,
+    "verified_exact_agent_delete_scope": "global_singleton_cluster_9395482_proc_0",
+    "verified_exact_agent_deletes": 1
+  },
+  "remote_preserved_archives": [
+    {
+      "agent_delete_observed": false,
+      "cluster_id": 9395481,
+      "execution_id": "core__weak_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off",
+      "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730/core__weak_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_1.tar.gz",
+      "local_sha256": "26d4bf3af26cdb5001d355cbcb2687bc822279e924f91b012f767c28138e46cc",
+      "local_state": "size_and_sha256_verified",
+      "proc_id": 1,
+      "remote_delete_attribution": "not_observed",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/fetched/core__weak_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_1.tar.gz",
+      "remote_pathname_state": "absent_when_observed",
+      "remote_sha256": "26d4bf3af26cdb5001d355cbcb2687bc822279e924f91b012f767c28138e46cc",
+      "size_bytes": 4625144090
+    },
+    {
+      "agent_delete_observed": false,
+      "cluster_id": 9395481,
+      "execution_id": "core__intermediate_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off",
+      "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730/core__intermediate_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_3.tar.gz",
+      "local_sha256": "5435c4650148abe5e3a892790b48990dd54365a36a309cc8d77c3cb953474da0",
+      "local_state": "size_and_sha256_verified",
+      "proc_id": 3,
+      "remote_delete_attribution": "not_observed",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/fetched/core__intermediate_weak__nph3__ra_singleton_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_3.tar.gz",
+      "remote_pathname_state": "absent_when_observed",
+      "remote_sha256": "5435c4650148abe5e3a892790b48990dd54365a36a309cc8d77c3cb953474da0",
+      "size_bytes": 4670078681
+    },
+    {
+      "agent_delete_observed": false,
+      "cluster_id": 9395481,
+      "execution_id": "core__weak_weak__nph3__ra_macro_always__gradient_stationary__phase1_cost_off",
+      "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730/core__weak_weak__nph3__ra_macro_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_0.tar.gz",
+      "local_sha256": "f0c44e4054535e51b73b4d479e14704410d6e7cb99e8debbb107addda2cdce87",
+      "local_state": "size_sha256_gzip_full_tar_verified",
+      "proc_id": 0,
+      "remote_delete_attribution": "not_observed",
+      "remote_path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v1_chtc_runtime/fetched/core__weak_weak__nph3__ra_macro_always__gradient_stationary__phase1_cost_off__cluster_9395481__proc_0.tar.gz",
+      "remote_pathname_absent_observed_utc": "2026-07-30T17:28:04Z",
+      "remote_pathname_state": "absent_when_observed",
+      "remote_sha256": "f0c44e4054535e51b73b4d479e14704410d6e7cb99e8debbb107addda2cdce87",
+      "size_bytes": 9423605556
+    }
+  ],
+  "schema": "paper_i_ra_adapt_rolling_quota_guard_receipt_v1",
+  "sha256": "e6b5d1a58c2a37db4ba40ebc257fb448958d1dc52a6b3aee1c0e74e63fbf09f2",
+  "transfer": {
+    "all_completed_v1_local_bytes": 22059477120,
+    "authentication_state": "duo_approved_rsync_control_handle_closed_after_transfer",
+    "factorial_verified_bytes": 18718828327,
+    "local_destination": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730",
+    "state": "three_factorial_archives_locally_size_and_sha256_verified; proc_0_also_gzip_and_full_tar_verified"
+  }
+}

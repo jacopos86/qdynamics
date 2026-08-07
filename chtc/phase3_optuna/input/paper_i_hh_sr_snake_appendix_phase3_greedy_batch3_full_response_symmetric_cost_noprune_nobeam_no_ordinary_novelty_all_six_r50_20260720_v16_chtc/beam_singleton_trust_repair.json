@@ -1,0 +1,22 @@
+{
+  "completed_utc": "2026-07-21T01:30:48.051340+00:00",
+  "failed_predecessor_error": "Phase-III batching appendix requires the supported-metric global trust solve for its complete batch response.",
+  "measurements_added": 0,
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v15_chtc",
+  "proof": {
+    "archive_only_job_gates_passed": 6,
+    "exact_remote_image_gate": "pending",
+    "frozen_source_tests_passed": 3,
+    "multi_record_global_trust_still_required": true,
+    "route_digest_unchanged": true
+  },
+  "query_charge_added": 0,
+  "repair": "propagate the authoritative one-record full-response receipt through 1x1 beam proposal and singleton-fallback plans",
+  "route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "schema": "paper_i_sr_phase3_batch_beam_singleton_trust_repair_v1",
+  "scientific_settings_changed": false,
+  "selection_changed": false,
+  "source_archive_sha256": "d5891482ee2eb75b8e38bc4845221e9871457b2539a9b6723c63ffc1764b4d42",
+  "status": "pass_built_not_submitted_pending_exact_remote_image_gate",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v16_chtc"
+}

@@ -1,0 +1,20 @@
+--- a/pipelines/scaffold/hh_continuation_scoring.py
++++ b/pipelines/scaffold/hh_continuation_scoring.py
+@@ -15734,7 +15734,7 @@
+         tie_break_score_key=tie_break_score_key,
+         max_proposals=1,
+     )
+-    return (list(proposals[0].records), dict(proposals[0].summary)) if proposals else ([], dict(summary))
++    return (list(proposals[0].records), dict(summary)) if proposals else ([], dict(summary))
+ 
+ 
+ def combinatorial_reduced_plane_batch_select(
+@@ -15767,7 +15767,7 @@
+         tie_break_score_key=tie_break_score_key,
+         max_proposals=1,
+     )
+-    return (list(proposals[0].records), dict(proposals[0].summary)) if proposals else ([], dict(summary))
++    return (list(proposals[0].records), dict(summary)) if proposals else ([], dict(summary))
+ 
+ 
+ def reduced_plane_batch_select(

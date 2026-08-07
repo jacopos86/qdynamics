@@ -1,0 +1,75 @@
+{
+  "all_horizons_explicit_in_argv": true,
+  "all_six_commands_parse": true,
+  "batch_name": "paper-i-hh-sr-appendix-fsprune-nodamp-nobeam-nobatch-nonovelty-six-r50-20260718-v4",
+  "batching_active": false,
+  "beam_shape": "effective_1x1_v1",
+  "bundle_id": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "exact_settings_diff": {
+    "allowed_changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "unexpected_non_prune_differences": []
+  },
+  "hysteresis_disabled_successor": {
+    "only_scientific_contract_diff": [
+      {
+        "field": "phase_live_hysteresis_enabled",
+        "new": false,
+        "old": null
+      }
+    ],
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+    "predecessor_cluster": 8887537,
+    "route_contract_sha256": "81b072c03f9866817a4fc6173017788223ab8b5ba007d6015315e39d3fb4c30e",
+    "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+    "source_archive_sha256": "43a39a30d75fd3524e4f61a8339bde31f75465cf3dbbe6244f09eeaecef940f8"
+  },
+  "infeasible_model_novelty_fallback_active": true,
+  "infeasible_model_novelty_fallback_telemetry_required": true,
+  "metric_damping_active": false,
+  "ordinary_novelty_multiplier_active": false,
+  "per_regime_horizons": {
+    "intermediate_strong": 50,
+    "intermediate_weak": 50,
+    "strong_strong_u8": 50,
+    "strong_weak_u8": 50,
+    "weak_strong": 50,
+    "weak_weak": 50
+  },
+  "profile_contract_sha256": "81b072c03f9866817a4fc6173017788223ab8b5ba007d6015315e39d3fb4c30e",
+  "profile_request": "sr_snake_symmetric_cost_fs_prune_nodamping_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_v1",
+  "pruning_active": true,
+  "same_cutoff_lock_pass": true,
+  "schema": "paper_i_hh_sr_prune_appendix_route_parity_v1",
+  "scientific_settings_audit": "scientific_settings_audit.json",
+  "source_profile_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+  "status": "pass",
+  "submission_authorized": false
+}

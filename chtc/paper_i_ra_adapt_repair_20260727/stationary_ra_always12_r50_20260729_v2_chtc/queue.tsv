@@ -1,0 +1,12 @@
+core__weak_weak__nph3__ra_macro_always	4	49152	61440	259200
+core__weak_weak__nph3__ra_singleton_always	4	57344	61440	259200
+core__intermediate_weak__nph3__ra_macro_always	4	49152	61440	259200
+core__intermediate_weak__nph3__ra_singleton_always	4	57344	61440	259200
+core__strong_weak_u8__nph3__ra_macro_always	4	49152	61440	259200
+core__strong_weak_u8__nph3__ra_singleton_always	4	57344	61440	259200
+core__weak_strong__nph7__ra_macro_always	4	65536	81920	259200
+core__weak_strong__nph7__ra_singleton_always	4	90112	98304	259200
+core__intermediate_strong__nph7__ra_macro_always	4	65536	81920	259200
+core__intermediate_strong__nph7__ra_singleton_always	4	90112	98304	259200
+core__strong_strong_u8__nph7__ra_macro_always	4	65536	81920	259200
+core__strong_strong_u8__nph7__ra_singleton_always	4	90112	98304	259200

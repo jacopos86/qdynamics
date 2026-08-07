@@ -1,0 +1,1967 @@
+{
+  "cluster_id": 9381297,
+  "insertion_policy": "always",
+  "partial_batch": false,
+  "representation": "intact_macro",
+  "rows": [
+    {
+      "regime": "intermediate_strong",
+      "source": {
+        "archive": "9381297.0__intermediate_strong_transfer.tar.gz",
+        "archive_sha256": "df994e4e683fd724d31b688ee76c2aa10e60557f86aa471af9085a851ea35961",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.0__intermediate_strong_compact.json.gz",
+        "compact_evidence_sha256": "16990bd773c0cd6664e470343b0f4ba6be2da6ce20504dcae91a2ff2dd1508fa",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/intermediate_strong/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 2760,
+        "D2q": 1455,
+        "Dc": 9007,
+        "N2q": 1774,
+        "S_alg": 1937438,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 122830,
+          "N_grad": 97823,
+          "N_metric": 1716735
+        },
+        "S_alg_receipt": {
+          "S_alg": 1937438,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 122830,
+            "N_grad": 97823,
+            "N_metric": 1716735
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 1937438,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 3190,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(zeyeeezeee)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(eeezzyeeez)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(eeezzyeeez)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_phonon::xp_sym(site=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_full:paop_disp(site=1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "hh_phonon::p(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_termwise_ham_quadrature_term(zzyeeezeee)",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=1)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_phonon::xp_sym(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.007720346827816638,
+      "terminal_k": 50,
+      "title": "Intermediate--strong",
+      "trajectory": [
+        {
+          "delta_E": 1.0696919722447726,
+          "k": 1
+        },
+        {
+          "delta_E": 0.24893961375184903,
+          "k": 2
+        },
+        {
+          "delta_E": 0.15355778697198397,
+          "k": 3
+        },
+        {
+          "delta_E": 0.11508135613543113,
+          "k": 4
+        },
+        {
+          "delta_E": 0.07412101678626715,
+          "k": 5
+        },
+        {
+          "delta_E": 0.05151962217231154,
+          "k": 6
+        },
+        {
+          "delta_E": 0.027401084260542996,
+          "k": 7
+        },
+        {
+          "delta_E": 0.021314410963527264,
+          "k": 8
+        },
+        {
+          "delta_E": 0.014865227911337486,
+          "k": 9
+        },
+        {
+          "delta_E": 0.012230000555908505,
+          "k": 10
+        },
+        {
+          "delta_E": 0.01118752861813066,
+          "k": 11
+        },
+        {
+          "delta_E": 0.008480359739039711,
+          "k": 12
+        },
+        {
+          "delta_E": 0.008377601071924645,
+          "k": 13
+        },
+        {
+          "delta_E": 0.008377600996061663,
+          "k": 14
+        },
+        {
+          "delta_E": 0.008377597836543238,
+          "k": 15
+        },
+        {
+          "delta_E": 0.008359314707097276,
+          "k": 16
+        },
+        {
+          "delta_E": 0.008293290222262106,
+          "k": 17
+        },
+        {
+          "delta_E": 0.008117492015009997,
+          "k": 18
+        },
+        {
+          "delta_E": 0.007997595814934755,
+          "k": 19
+        },
+        {
+          "delta_E": 0.007956760245017458,
+          "k": 20
+        },
+        {
+          "delta_E": 0.007940029699812556,
+          "k": 21
+        },
+        {
+          "delta_E": 0.007910863522093137,
+          "k": 22
+        },
+        {
+          "delta_E": 0.007896395268562895,
+          "k": 23
+        },
+        {
+          "delta_E": 0.007881516859562288,
+          "k": 24
+        },
+        {
+          "delta_E": 0.007855533612006638,
+          "k": 25
+        },
+        {
+          "delta_E": 0.007827618377958645,
+          "k": 26
+        },
+        {
+          "delta_E": 0.007816648018831973,
+          "k": 27
+        },
+        {
+          "delta_E": 0.007805542039299063,
+          "k": 28
+        },
+        {
+          "delta_E": 0.007792553412510506,
+          "k": 29
+        },
+        {
+          "delta_E": 0.007783111639401263,
+          "k": 30
+        },
+        {
+          "delta_E": 0.007762673668474496,
+          "k": 31
+        },
+        {
+          "delta_E": 0.007757635641883143,
+          "k": 32
+        },
+        {
+          "delta_E": 0.0077550444064626856,
+          "k": 33
+        },
+        {
+          "delta_E": 0.0077527321581547515,
+          "k": 34
+        },
+        {
+          "delta_E": 0.007750477254949373,
+          "k": 35
+        },
+        {
+          "delta_E": 0.007748763512200663,
+          "k": 36
+        },
+        {
+          "delta_E": 0.007747119181614637,
+          "k": 37
+        },
+        {
+          "delta_E": 0.0077454514203709746,
+          "k": 38
+        },
+        {
+          "delta_E": 0.007744469316987468,
+          "k": 39
+        },
+        {
+          "delta_E": 0.007743109465893072,
+          "k": 40
+        },
+        {
+          "delta_E": 0.007742196837794424,
+          "k": 41
+        },
+        {
+          "delta_E": 0.007741286586413043,
+          "k": 42
+        },
+        {
+          "delta_E": 0.007739699266414712,
+          "k": 43
+        },
+        {
+          "delta_E": 0.0077380574783117995,
+          "k": 44
+        },
+        {
+          "delta_E": 0.007736859287331921,
+          "k": 45
+        },
+        {
+          "delta_E": 0.00773363786963599,
+          "k": 46
+        },
+        {
+          "delta_E": 0.007731043456109976,
+          "k": 47
+        },
+        {
+          "delta_E": 0.0077258965969011495,
+          "k": 48
+        },
+        {
+          "delta_E": 0.007722202597916006,
+          "k": 49
+        },
+        {
+          "delta_E": 0.007720346827816638,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "intermediate_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.1__intermediate_weak_transfer.tar.gz",
+        "archive_sha256": "1aa49d39f264c3c4851cc66f24e0a0e01dce8cd273e321bb14c6aca15c4e1bbb",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.1__intermediate_weak_compact.json.gz",
+        "compact_evidence_sha256": "2d5ae095cbbe6beb12155d60ae28ead9f34cd448f24bee77fac2fac2b4176ee6",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/intermediate_weak/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 3844,
+        "D2q": 1957,
+        "Dc": 10334,
+        "N2q": 2162,
+        "S_alg": 2365784,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 25590,
+          "N_grad": 84532,
+          "N_metric": 2255612
+        },
+        "S_alg_receipt": {
+          "S_alg": 2365784,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 25590,
+            "N_grad": 84532,
+            "N_metric": 2255612
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 2365784,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 4263,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "hh_termwise_ham_quadrature_term(eeeyezee)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "paop_full:paop_disp(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(zyeeeeze)",
+            "hh_termwise_ham_quadrature_term(zyeeeeze)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_sq_full:paop_pair_sq(0,1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "hh_termwise_ham_quadrature_term(eeeyeeez)",
+            "hh_phonon::s(site=0)",
+            "hh_termwise_ham_quadrature_term(zyeeeeze)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_sq_full:paop_pair_sq(0,1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=1)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(eeeyeeez)",
+            "hh_phonon::s(site=0)",
+            "uccsd_otimes_paop_seq2p::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_bond_disp_std::phonon_bond_p_sum(0,1)::step=motif",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_sq_full:paop_pair_sq(0,1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "hh_phonon::s(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.00017261933639178828,
+      "terminal_k": 50,
+      "title": "Intermediate--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.9407577076742833,
+          "k": 1
+        },
+        {
+          "delta_E": 0.12000534918135874,
+          "k": 2
+        },
+        {
+          "delta_E": 0.024623522401494458,
+          "k": 3
+        },
+        {
+          "delta_E": 0.012735159024268305,
+          "k": 4
+        },
+        {
+          "delta_E": 0.0004991639494813516,
+          "k": 5
+        },
+        {
+          "delta_E": 0.00040443613977830806,
+          "k": 6
+        },
+        {
+          "delta_E": 0.0003096037852157174,
+          "k": 7
+        },
+        {
+          "delta_E": 0.0002718350501355049,
+          "k": 8
+        },
+        {
+          "delta_E": 0.00025793577555599523,
+          "k": 9
+        },
+        {
+          "delta_E": 0.00022016232673899294,
+          "k": 10
+        },
+        {
+          "delta_E": 0.00020640087132128837,
+          "k": 11
+        },
+        {
+          "delta_E": 0.00020477497183457594,
+          "k": 12
+        },
+        {
+          "delta_E": 0.00019404740208817106,
+          "k": 13
+        },
+        {
+          "delta_E": 0.0001915260718762246,
+          "k": 14
+        },
+        {
+          "delta_E": 0.0001900030155660426,
+          "k": 15
+        },
+        {
+          "delta_E": 0.00017349357830753753,
+          "k": 16
+        },
+        {
+          "delta_E": 0.00017301603328867543,
+          "k": 17
+        },
+        {
+          "delta_E": 0.0001729006437006797,
+          "k": 18
+        },
+        {
+          "delta_E": 0.00017286367956836912,
+          "k": 19
+        },
+        {
+          "delta_E": 0.00017284161871466974,
+          "k": 20
+        },
+        {
+          "delta_E": 0.00017284015323526525,
+          "k": 21
+        },
+        {
+          "delta_E": 0.00017283991225686135,
+          "k": 22
+        },
+        {
+          "delta_E": 0.00017283903597942185,
+          "k": 23
+        },
+        {
+          "delta_E": 0.00017283704974835334,
+          "k": 24
+        },
+        {
+          "delta_E": 0.00017283443129989529,
+          "k": 25
+        },
+        {
+          "delta_E": 0.00017283319134497876,
+          "k": 26
+        },
+        {
+          "delta_E": 0.00017283197147788254,
+          "k": 27
+        },
+        {
+          "delta_E": 0.0001728319001753631,
+          "k": 28
+        },
+        {
+          "delta_E": 0.00017283185795863298,
+          "k": 29
+        },
+        {
+          "delta_E": 0.00017282031252319197,
+          "k": 30
+        },
+        {
+          "delta_E": 0.00017282017534692162,
+          "k": 31
+        },
+        {
+          "delta_E": 0.0001728201569479726,
+          "k": 32
+        },
+        {
+          "delta_E": 0.00017281811679381587,
+          "k": 33
+        },
+        {
+          "delta_E": 0.0001727016031517481,
+          "k": 34
+        },
+        {
+          "delta_E": 0.00017266813722094376,
+          "k": 35
+        },
+        {
+          "delta_E": 0.00017264516964898835,
+          "k": 36
+        },
+        {
+          "delta_E": 0.0001726340625338718,
+          "k": 37
+        },
+        {
+          "delta_E": 0.00017263379404691692,
+          "k": 38
+        },
+        {
+          "delta_E": 0.0001726337697455227,
+          "k": 39
+        },
+        {
+          "delta_E": 0.0001726327806833572,
+          "k": 40
+        },
+        {
+          "delta_E": 0.00017263209987711248,
+          "k": 41
+        },
+        {
+          "delta_E": 0.0001726307624108081,
+          "k": 42
+        },
+        {
+          "delta_E": 0.00017263075372397907,
+          "k": 43
+        },
+        {
+          "delta_E": 0.00017262928808797762,
+          "k": 44
+        },
+        {
+          "delta_E": 0.00017262190422911994,
+          "k": 45
+        },
+        {
+          "delta_E": 0.00017262092378805827,
+          "k": 46
+        },
+        {
+          "delta_E": 0.00017262020358510544,
+          "k": 47
+        },
+        {
+          "delta_E": 0.00017261974480098363,
+          "k": 48
+        },
+        {
+          "delta_E": 0.00017261948098612478,
+          "k": 49
+        },
+        {
+          "delta_E": 0.00017261933639178828,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_strong_u8",
+      "source": {
+        "archive": "9381297.2__strong_strong_u8_transfer.tar.gz",
+        "archive_sha256": "0a788eca7c710eb18e74207c06a4bdf78f56d010aa62a468ed1693bd5117cd39",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.2__strong_strong_u8_compact.json.gz",
+        "compact_evidence_sha256": "8216a09cbb9a051fa971e03482c5cc9dfff264b2d6e1cfbdc2288a0e62a4e942",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/strong_strong_u8/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 3412,
+        "D2q": 1823,
+        "Dc": 10172,
+        "N2q": 2524,
+        "S_alg": 2108035,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 28842,
+          "N_grad": 105439,
+          "N_metric": 1973704
+        },
+        "S_alg_receipt": {
+          "S_alg": 2108035,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 28842,
+            "N_grad": 105439,
+            "N_metric": 1973704
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 2108035,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 3966,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::p(site=0)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "hh_phonon::p(site=0)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::p(site=1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 2.459917206998341e-05,
+      "terminal_k": 50,
+      "title": "Strong--strong",
+      "trajectory": [
+        {
+          "delta_E": 0.3563180978140805,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2367830363124539,
+          "k": 2
+        },
+        {
+          "delta_E": 0.007287768432163277,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0038246270130681825,
+          "k": 4
+        },
+        {
+          "delta_E": 0.0002468896271141663,
+          "k": 5
+        },
+        {
+          "delta_E": 0.00016122020385722635,
+          "k": 6
+        },
+        {
+          "delta_E": 7.533676386828336e-05,
+          "k": 7
+        },
+        {
+          "delta_E": 6.617318412271977e-05,
+          "k": 8
+        },
+        {
+          "delta_E": 5.700690976084832e-05,
+          "k": 9
+        },
+        {
+          "delta_E": 4.969435471613437e-05,
+          "k": 10
+        },
+        {
+          "delta_E": 4.2377754384759214e-05,
+          "k": 11
+        },
+        {
+          "delta_E": 4.156121545129121e-05,
+          "k": 12
+        },
+        {
+          "delta_E": 4.0744681917948e-05,
+          "k": 13
+        },
+        {
+          "delta_E": 4.074467504389112e-05,
+          "k": 14
+        },
+        {
+          "delta_E": 4.074466792780562e-05,
+          "k": 15
+        },
+        {
+          "delta_E": 4.0744599231867795e-05,
+          "k": 16
+        },
+        {
+          "delta_E": 4.0744348091203975e-05,
+          "k": 17
+        },
+        {
+          "delta_E": 4.0744345918053426e-05,
+          "k": 18
+        },
+        {
+          "delta_E": 4.074353234695405e-05,
+          "k": 19
+        },
+        {
+          "delta_E": 4.0742891995959596e-05,
+          "k": 20
+        },
+        {
+          "delta_E": 4.0742044008945655e-05,
+          "k": 21
+        },
+        {
+          "delta_E": 4.0741711297309635e-05,
+          "k": 22
+        },
+        {
+          "delta_E": 4.017162072389446e-05,
+          "k": 23
+        },
+        {
+          "delta_E": 4.017044056192631e-05,
+          "k": 24
+        },
+        {
+          "delta_E": 4.015052303740774e-05,
+          "k": 25
+        },
+        {
+          "delta_E": 4.0140491301410286e-05,
+          "k": 26
+        },
+        {
+          "delta_E": 4.0136489189657176e-05,
+          "k": 27
+        },
+        {
+          "delta_E": 4.0136488924868985e-05,
+          "k": 28
+        },
+        {
+          "delta_E": 4.0135218286385665e-05,
+          "k": 29
+        },
+        {
+          "delta_E": 4.012645011208793e-05,
+          "k": 30
+        },
+        {
+          "delta_E": 4.012527330721216e-05,
+          "k": 31
+        },
+        {
+          "delta_E": 4.0124961904641765e-05,
+          "k": 32
+        },
+        {
+          "delta_E": 4.0124961895871e-05,
+          "k": 33
+        },
+        {
+          "delta_E": 4.01245172150233e-05,
+          "k": 34
+        },
+        {
+          "delta_E": 3.991084574606063e-05,
+          "k": 35
+        },
+        {
+          "delta_E": 3.986344511397455e-05,
+          "k": 36
+        },
+        {
+          "delta_E": 3.9623996661575234e-05,
+          "k": 37
+        },
+        {
+          "delta_E": 3.833224426541548e-05,
+          "k": 38
+        },
+        {
+          "delta_E": 2.691140947153059e-05,
+          "k": 39
+        },
+        {
+          "delta_E": 2.485543783037336e-05,
+          "k": 40
+        },
+        {
+          "delta_E": 2.4790568860399986e-05,
+          "k": 41
+        },
+        {
+          "delta_E": 2.469306950381167e-05,
+          "k": 42
+        },
+        {
+          "delta_E": 2.469203147004162e-05,
+          "k": 43
+        },
+        {
+          "delta_E": 2.4691272691113042e-05,
+          "k": 44
+        },
+        {
+          "delta_E": 2.4690825403794747e-05,
+          "k": 45
+        },
+        {
+          "delta_E": 2.469068486354864e-05,
+          "k": 46
+        },
+        {
+          "delta_E": 2.4658858415627094e-05,
+          "k": 47
+        },
+        {
+          "delta_E": 2.460420744365699e-05,
+          "k": 48
+        },
+        {
+          "delta_E": 2.460036147977629e-05,
+          "k": 49
+        },
+        {
+          "delta_E": 2.459917206998341e-05,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_weak_u8",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.3__strong_weak_u8_transfer.tar.gz",
+        "archive_sha256": "e2844aa0730137574ab64a1184f9a9a5f98e2a21490ef0527c5588b52d8f6b10",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.3__strong_weak_u8_compact.json.gz",
+        "compact_evidence_sha256": "63ffaf398d9a137000e5ab76f40e34cd38f9260a306697f672e219f7655d91db",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/strong_weak_u8/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 1324,
+        "D2q": 646,
+        "Dc": 5013,
+        "N2q": 786,
+        "S_alg": 2192100,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 20413,
+          "N_grad": 76356,
+          "N_metric": 2095281
+        },
+        "S_alg_receipt": {
+          "S_alg": 2192100,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 20413,
+            "N_grad": 76356,
+            "N_metric": 2095281
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 2192100,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 1547,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_phonon::s(site=0)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeyezee)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeyezee)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=1)",
+            "hh_termwise_ham_quadrature_term(eyeezeee)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "hh_termwise_ham_quadrature_term(eezyeeez)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_sq_full:paop_hop_sq(0,1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 1.38701614926795e-06,
+      "terminal_k": 50,
+      "title": "Strong--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.35043568958836335,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2309006280867384,
+          "k": 2
+        },
+        {
+          "delta_E": 0.0014053602093894169,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0007065360296213408,
+          "k": 4
+        },
+        {
+          "delta_E": 2.9972447375126166e-06,
+          "k": 5
+        },
+        {
+          "delta_E": 2.5023947800573154e-06,
+          "k": 6
+        },
+        {
+          "delta_E": 2.007536898052109e-06,
+          "k": 7
+        },
+        {
+          "delta_E": 1.7738057995764223e-06,
+          "k": 8
+        },
+        {
+          "delta_E": 1.538835638692504e-06,
+          "k": 9
+        },
+        {
+          "delta_E": 1.4715575220591859e-06,
+          "k": 10
+        },
+        {
+          "delta_E": 1.4056328894174186e-06,
+          "k": 11
+        },
+        {
+          "delta_E": 1.398444911204777e-06,
+          "k": 12
+        },
+        {
+          "delta_E": 1.3915211098947111e-06,
+          "k": 13
+        },
+        {
+          "delta_E": 1.3915210910209197e-06,
+          "k": 14
+        },
+        {
+          "delta_E": 1.3915210791415333e-06,
+          "k": 15
+        },
+        {
+          "delta_E": 1.3915210670401024e-06,
+          "k": 16
+        },
+        {
+          "delta_E": 1.3915210550496937e-06,
+          "k": 17
+        },
+        {
+          "delta_E": 1.3915210471671102e-06,
+          "k": 18
+        },
+        {
+          "delta_E": 1.3915209056136746e-06,
+          "k": 19
+        },
+        {
+          "delta_E": 1.3914610985654718e-06,
+          "k": 20
+        },
+        {
+          "delta_E": 1.3914609986453996e-06,
+          "k": 21
+        },
+        {
+          "delta_E": 1.3910846949904965e-06,
+          "k": 22
+        },
+        {
+          "delta_E": 1.389193643897002e-06,
+          "k": 23
+        },
+        {
+          "delta_E": 1.3875211866132275e-06,
+          "k": 24
+        },
+        {
+          "delta_E": 1.3870658763792676e-06,
+          "k": 25
+        },
+        {
+          "delta_E": 1.3870166239993154e-06,
+          "k": 26
+        },
+        {
+          "delta_E": 1.3870162061113689e-06,
+          "k": 27
+        },
+        {
+          "delta_E": 1.3870161872375775e-06,
+          "k": 28
+        },
+        {
+          "delta_E": 1.3870161872375775e-06,
+          "k": 29
+        },
+        {
+          "delta_E": 1.3870161872375775e-06,
+          "k": 30
+        },
+        {
+          "delta_E": 1.387016186349399e-06,
+          "k": 31
+        },
+        {
+          "delta_E": 1.387016179688061e-06,
+          "k": 32
+        },
+        {
+          "delta_E": 1.3870161778006818e-06,
+          "k": 33
+        },
+        {
+          "delta_E": 1.3870161772455702e-06,
+          "k": 34
+        },
+        {
+          "delta_E": 1.3870161770235256e-06,
+          "k": 35
+        },
+        {
+          "delta_E": 1.3870161770235256e-06,
+          "k": 36
+        },
+        {
+          "delta_E": 1.3870161766904587e-06,
+          "k": 37
+        },
+        {
+          "delta_E": 1.3870161716944551e-06,
+          "k": 38
+        },
+        {
+          "delta_E": 1.3870161715834328e-06,
+          "k": 39
+        },
+        {
+          "delta_E": 1.3870161517104407e-06,
+          "k": 40
+        },
+        {
+          "delta_E": 1.3870161506002177e-06,
+          "k": 41
+        },
+        {
+          "delta_E": 1.3870161506002177e-06,
+          "k": 42
+        },
+        {
+          "delta_E": 1.3870161499340838e-06,
+          "k": 43
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 44
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 45
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 46
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 47
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 48
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 49
+        },
+        {
+          "delta_E": 1.38701614926795e-06,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "weak_strong",
+      "source": {
+        "archive": "9381297.4__weak_strong_transfer.tar.gz",
+        "archive_sha256": "797f221e5ed3349f93c5b85d0ba4039ef04819f4cc94fcb0df2257ec922ca06a",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.4__weak_strong_compact.json.gz",
+        "compact_evidence_sha256": "1aac3274016467b082582d5128405a4108cafb35d263b68c511be14c88569bc0",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/weak_strong/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 3128,
+        "D2q": 1715,
+        "Dc": 10705,
+        "N2q": 2098,
+        "S_alg": 2049055,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 166049,
+          "N_grad": 101454,
+          "N_metric": 1781502
+        },
+        "S_alg_receipt": {
+          "S_alg": 2049055,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 166049,
+            "N_grad": 101454,
+            "N_metric": 1781502
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 2049055,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 3624,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(zeyeeezeee)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(eeeyyyeeez)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(zeyeeeeeze)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "hh_phonon::xp_sym(site=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.0006284272107197619,
+      "terminal_k": 50,
+      "title": "Weak--strong",
+      "trajectory": [
+        {
+          "delta_E": 1.2559384195375962,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2637206380749155,
+          "k": 2
+        },
+        {
+          "delta_E": 0.21251143232607028,
+          "k": 3
+        },
+        {
+          "delta_E": 0.21234063478794596,
+          "k": 4
+        },
+        {
+          "delta_E": 0.16016369831592625,
+          "k": 5
+        },
+        {
+          "delta_E": 0.11457596384608038,
+          "k": 6
+        },
+        {
+          "delta_E": 0.06813814229367376,
+          "k": 7
+        },
+        {
+          "delta_E": 0.05790207900828914,
+          "k": 8
+        },
+        {
+          "delta_E": 0.04829354145729492,
+          "k": 9
+        },
+        {
+          "delta_E": 0.030804859221865266,
+          "k": 10
+        },
+        {
+          "delta_E": 0.030747631128559494,
+          "k": 11
+        },
+        {
+          "delta_E": 0.03074515183604265,
+          "k": 12
+        },
+        {
+          "delta_E": 0.03074515120938348,
+          "k": 13
+        },
+        {
+          "delta_E": 0.025945924211216775,
+          "k": 14
+        },
+        {
+          "delta_E": 0.020037592541087834,
+          "k": 15
+        },
+        {
+          "delta_E": 0.0196017373414199,
+          "k": 16
+        },
+        {
+          "delta_E": 0.01951517869815156,
+          "k": 17
+        },
+        {
+          "delta_E": 0.01877239046235979,
+          "k": 18
+        },
+        {
+          "delta_E": 0.01824636400483648,
+          "k": 19
+        },
+        {
+          "delta_E": 0.01806715939720349,
+          "k": 20
+        },
+        {
+          "delta_E": 0.017912179951365514,
+          "k": 21
+        },
+        {
+          "delta_E": 0.017798798841887065,
+          "k": 22
+        },
+        {
+          "delta_E": 0.010294945535253897,
+          "k": 23
+        },
+        {
+          "delta_E": 0.00797604461986512,
+          "k": 24
+        },
+        {
+          "delta_E": 0.002681733738879144,
+          "k": 25
+        },
+        {
+          "delta_E": 0.0016384560754765243,
+          "k": 26
+        },
+        {
+          "delta_E": 0.0016074274267785515,
+          "k": 27
+        },
+        {
+          "delta_E": 0.001472240032937,
+          "k": 28
+        },
+        {
+          "delta_E": 0.001469744430101505,
+          "k": 29
+        },
+        {
+          "delta_E": 0.0013353096477293214,
+          "k": 30
+        },
+        {
+          "delta_E": 0.0012299964754565185,
+          "k": 31
+        },
+        {
+          "delta_E": 0.0011692814707051635,
+          "k": 32
+        },
+        {
+          "delta_E": 0.0011231965361711005,
+          "k": 33
+        },
+        {
+          "delta_E": 0.0010489524421972707,
+          "k": 34
+        },
+        {
+          "delta_E": 0.0010207177701051506,
+          "k": 35
+        },
+        {
+          "delta_E": 0.0010088830131593785,
+          "k": 36
+        },
+        {
+          "delta_E": 0.0009676347437290733,
+          "k": 37
+        },
+        {
+          "delta_E": 0.0009374693145309809,
+          "k": 38
+        },
+        {
+          "delta_E": 0.0009004868747175543,
+          "k": 39
+        },
+        {
+          "delta_E": 0.0008778093602181958,
+          "k": 40
+        },
+        {
+          "delta_E": 0.0008588087751673079,
+          "k": 41
+        },
+        {
+          "delta_E": 0.0008402291703355491,
+          "k": 42
+        },
+        {
+          "delta_E": 0.0008221226949476357,
+          "k": 43
+        },
+        {
+          "delta_E": 0.0008080432259658377,
+          "k": 44
+        },
+        {
+          "delta_E": 0.0007934520916030863,
+          "k": 45
+        },
+        {
+          "delta_E": 0.0007793908607953703,
+          "k": 46
+        },
+        {
+          "delta_E": 0.0007143814549885885,
+          "k": 47
+        },
+        {
+          "delta_E": 0.0007084572683446755,
+          "k": 48
+        },
+        {
+          "delta_E": 0.000662714001397724,
+          "k": 49
+        },
+        {
+          "delta_E": 0.0006284272107197619,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "weak_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.5__weak_weak_transfer.tar.gz",
+        "archive_sha256": "289be3e4efc2df8fd434d9455b5910c754e977c11e7f2e4039951c21a8ebe812",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381297.5__weak_weak_compact.json.gz",
+        "compact_evidence_sha256": "4dbe244805e9081b436dd84c18f83984dec8565972b39c45c9c631da7dd56871",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_commutation_reduced_insertion_all_six_r50_20260726_v3_chtc/weak_weak/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 1872,
+        "D2q": 705,
+        "Dc": 5207,
+        "N2q": 1268,
+        "S_alg": 2024560,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 18946,
+          "N_grad": 76861,
+          "N_metric": 1928703
+        },
+        "S_alg_receipt": {
+          "S_alg": 2024560,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 18946,
+            "N_grad": 76861,
+            "N_metric": 1928703
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 2024560,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2236,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::s(site=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::s(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.00037350392164026136,
+      "terminal_k": 50,
+      "title": "Weak--weak",
+      "trajectory": [
+        {
+          "delta_E": 1.035598701457503,
+          "k": 1
+        },
+        {
+          "delta_E": 0.0433809199948223,
+          "k": 2
+        },
+        {
+          "delta_E": 0.02274033372537898,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0020104148303485836,
+          "k": 4
+        },
+        {
+          "delta_E": 0.0011771287008596198,
+          "k": 5
+        },
+        {
+          "delta_E": 0.0009375983514205988,
+          "k": 6
+        },
+        {
+          "delta_E": 0.0006975535938851252,
+          "k": 7
+        },
+        {
+          "delta_E": 0.0006354548728676468,
+          "k": 8
+        },
+        {
+          "delta_E": 0.0005733515001520306,
+          "k": 9
+        },
+        {
+          "delta_E": 0.0005392973860584016,
+          "k": 10
+        },
+        {
+          "delta_E": 0.0005052295127322415,
+          "k": 11
+        },
+        {
+          "delta_E": 0.0004718865055682864,
+          "k": 12
+        },
+        {
+          "delta_E": 0.0004385351876305954,
+          "k": 13
+        },
+        {
+          "delta_E": 0.00042498407510271896,
+          "k": 14
+        },
+        {
+          "delta_E": 0.00041143103924246027,
+          "k": 15
+        },
+        {
+          "delta_E": 0.0004046714938528151,
+          "k": 16
+        },
+        {
+          "delta_E": 0.00039791099234887106,
+          "k": 17
+        },
+        {
+          "delta_E": 0.00039407873546326577,
+          "k": 18
+        },
+        {
+          "delta_E": 0.00039024671053877746,
+          "k": 19
+        },
+        {
+          "delta_E": 0.0003878757178312764,
+          "k": 20
+        },
+        {
+          "delta_E": 0.00038550455865427047,
+          "k": 21
+        },
+        {
+          "delta_E": 0.0003839406715862026,
+          "k": 22
+        },
+        {
+          "delta_E": 0.00038237686696485085,
+          "k": 23
+        },
+        {
+          "delta_E": 0.0003812943241428002,
+          "k": 24
+        },
+        {
+          "delta_E": 0.0003802117779386771,
+          "k": 25
+        },
+        {
+          "delta_E": 0.0003794332972522074,
+          "k": 26
+        },
+        {
+          "delta_E": 0.00037865480479715163,
+          "k": 27
+        },
+        {
+          "delta_E": 0.00037807754262642046,
+          "k": 28
+        },
+        {
+          "delta_E": 0.0003775002729488053,
+          "k": 29
+        },
+        {
+          "delta_E": 0.00037706128654435567,
+          "k": 30
+        },
+        {
+          "delta_E": 0.0003766222956105292,
+          "k": 31
+        },
+        {
+          "delta_E": 0.00037628135368616977,
+          "k": 32
+        },
+        {
+          "delta_E": 0.0003759404078989004,
+          "k": 33
+        },
+        {
+          "delta_E": 0.0003756708393801711,
+          "k": 34
+        },
+        {
+          "delta_E": 0.00037540126962654075,
+          "k": 35
+        },
+        {
+          "delta_E": 0.000375184845755383,
+          "k": 36
+        },
+        {
+          "delta_E": 0.00037496841969320016,
+          "k": 37
+        },
+        {
+          "delta_E": 0.0003747923427278588,
+          "k": 38
+        },
+        {
+          "delta_E": 0.00037461626423018757,
+          "k": 39
+        },
+        {
+          "delta_E": 0.00037447134279311456,
+          "k": 40
+        },
+        {
+          "delta_E": 0.0003743264200823937,
+          "k": 41
+        },
+        {
+          "delta_E": 0.00037420591797909797,
+          "k": 42
+        },
+        {
+          "delta_E": 0.00037408541513306304,
+          "k": 43
+        },
+        {
+          "delta_E": 0.0003739843075053484,
+          "k": 44
+        },
+        {
+          "delta_E": 0.0003738831987543101,
+          "k": 45
+        },
+        {
+          "delta_E": 0.0003737976758430017,
+          "k": 46
+        },
+        {
+          "delta_E": 0.00037371215197035124,
+          "k": 47
+        },
+        {
+          "delta_E": 0.00037363928446287886,
+          "k": 48
+        },
+        {
+          "delta_E": 0.00037356641608710106,
+          "k": 49
+        },
+        {
+          "delta_E": 0.00037350392164026136,
+          "k": 50
+        }
+      ]
+    }
+  ],
+  "schema": "paper_i_hh_insertion_batch_evidence_v2",
+  "selected_regimes": [
+    "weak_weak",
+    "intermediate_weak",
+    "strong_weak_u8",
+    "weak_strong",
+    "intermediate_strong",
+    "strong_strong_u8"
+  ]
+}

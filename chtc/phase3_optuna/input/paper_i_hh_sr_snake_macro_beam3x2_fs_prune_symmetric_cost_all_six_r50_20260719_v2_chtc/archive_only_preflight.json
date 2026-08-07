@@ -1,0 +1,22 @@
+{
+  "archive_only_validate_rows_passed": 6,
+  "archive_source_focused_tests_passed": 188,
+  "cross_arm_executable_diff": [
+    "phase3_hardware_cost_normalization_mode"
+  ],
+  "job_count": 6,
+  "live_source_focused_tests_passed": 190,
+  "profile_contract_sha256": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+  "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1",
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_archive_only_preflight_v1",
+  "sibling_pair_archive_only_validate_rows_passed": 12,
+  "source_archive_sha256": "69d15c1bc7f2b704d8bf658696a551b5a15a34c2140971c6c382f0cae385cec2",
+  "status": "pass",
+  "test_targets": [
+    "test/test_static_adapt_macro_beam_prune_cost_profiles.py",
+    "test/test_static_adapt_guarded_singleton_pool_route.py",
+    "test/test_static_adapt_sr_prune_appendix_profile.py",
+    "test/test_static_adapt_sr_route_profile.py"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "accounting": {
+    "S_alg_definition": "N_H_outer+N_H_refit+N_grad+N_metric",
+    "cache_policy": "cache_off_but_measurement_occurrences_preserved",
+    "exact_reference_and_fidelity_charged": false,
+    "round_receipts_required": true,
+    "state_keyed_estimator_call_ledger_required": true
+  },
+  "algorithm_id": "static_geo_adapt_vqe",
+  "bundle_id": "paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v1_chtc",
+  "candidate_pool": {
+    "generic_runtime_split_mode": "off",
+    "hva_included": true,
+    "macro_and_projected_singleton_mixing": false,
+    "parent_pool": "full_meta_unfiltered",
+    "shared_pauli_pool_max_subset_size": 3,
+    "shared_pauli_pool_mode": "off",
+    "shared_pauli_pool_symmetry_policy": "off"
+  },
+  "controller": {
+    "allow_repeats": true,
+    "energy_stop_target": null,
+    "fresh_round_zero": true,
+    "gradient_threshold": 0.0,
+    "hh_preseed": "off",
+    "immediate_repeat_policy": "score_full_pool_then_skip_append",
+    "initial_selected_operator_count": 0,
+    "initial_theta_count": 0,
+    "max_adapt_iterations": 50,
+    "repeat_policy": "with_replacement_except_immediate_repeat",
+    "selected_logical_route": "standard",
+    "selection_with_replacement": true,
+    "stop_policy": "fixed_horizon_no_target_v1"
+  },
+  "exact_reference": {
+    "energy": -1.1387206380749124,
+    "n_ph_max": 7,
+    "primary_metric": "same_cutoff_abs_delta_e",
+    "reference_hash": "42872c0f1988ea8bdbd99b79",
+    "usage": "reporting_only_after_optimization"
+  },
+  "family": "hh",
+  "fidelity": {
+    "reporting_only": true,
+    "required": true,
+    "same_cutoff_ground_space_convention_required": true
+  },
+  "geo_selector": {
+    "fixed_horizon_overrides_plateau_stop": true,
+    "metric_factorization": "exact_real_tangent_span_svd_v1",
+    "metric_pinv_rcond": 1e-08,
+    "mode": "full_pool_projected_natural_gradient",
+    "numerical_tie_policy": "machine_precision_collinear_alias_then_label_v1",
+    "pre_screen": "full_candidate_set",
+    "regularization_used_in_selector_solve": false,
+    "solve_kind": "moore_penrose_pseudoinverse",
+    "stop_rule": "fubini_study_natural_gradient_norm"
+  },
+  "job_id": "geo_macro__weak_strong__r50",
+  "method_id": "static_geo_adapt_vqe",
+  "optimizer": {
+    "kind": "powell",
+    "maxiter": 200,
+    "overlay_source": "paper_i_completion_tracker_20260717",
+    "position_optimized_geo_adapt": false,
+    "position_policy": "append",
+    "powell_maxiter_cap_policy": "strict_failure_v1"
+  },
+  "output_contract": {
+    "progress_jsonl": "adapt_iteration_progress.jsonl",
+    "result_json": "generic_static_single.json",
+    "runtime_seed_json": "runtime_seed.json",
+    "transfer_archive": "geo_macro__weak_strong__r50_transfer.tar.gz",
+    "validation_receipt": "validation_receipt.json"
+  },
+  "physics": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "g_ep": 0.790569415042,
+    "n_ph_ref": 7,
+    "n_ph_work": 7,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "same_cutoff_reference": true,
+    "suite_profile": "paper_i_hh_completion_samecutoff_nph3_nph7_20260718_v1",
+    "t": 1.0,
+    "u": 0.25
+  },
+  "qiskit_cost": {
+    "metrics": [
+      "compiled_count_2q_total",
+      "compiled_depth_2q_total",
+      "compiled_depth_total"
+    ],
+    "optimization_level": 0,
+    "qiskit_version": "2.3.1",
+    "required": true,
+    "transpile_seed": 7
+  },
+  "regime": {
+    "case_id": "hh_L2_nph7_completion_weak_strong",
+    "label": "weak-strong",
+    "slug": "weak_strong"
+  },
+  "schema": "paper_i_hh_geo_completion_job_v1",
+  "seed": 7,
+  "source_lock": {
+    "archive": "source_locked.tar.gz",
+    "archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+    "generic_static_adapt_variants_sha256": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d",
+    "generic_static_adapt_variants_test_sha256": "790fd3bea888c444883d7677ba0418b2112781fec65e8283fe6a88a9935d1c19"
+  },
+  "variant": {
+    "candidate_representation": "unsplit_full_meta_macro_parent",
+    "display": "Geo-ADAPT macro",
+    "slug": "macro"
+  }
+}

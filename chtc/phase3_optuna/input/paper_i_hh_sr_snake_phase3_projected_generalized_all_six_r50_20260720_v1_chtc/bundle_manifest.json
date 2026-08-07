@@ -1,0 +1,31 @@
+{
+  "anchor_result_sha256": "7ba3b3d95db548695010463896ab557b85dd2fd1e08e95bf254812b5c19ae278",
+  "batch_name": "paper-i-hh-sr-phase3-projected-generalized-six-r50-20260720-v1",
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "fanout_authorized": true,
+  "job_count": 6,
+  "jobs": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/jobs/strong_strong_u8.json"
+  ],
+  "normalized_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/normalized_manifests/strong_strong_u8.json"
+  ],
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "projected_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_fanout_bundle_v1",
+  "source_archive_manifest_sha256": "cf5d2448663fa06d3e2af1997187f88686b3e4a5dc4b892e5ff2caf66b3f1088",
+  "source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "source_revision_manifest_sha256": "53fde8a97868de3aafb9256ba8d00a3b87415518935cc3531310c78ff07e314c",
+  "submission_performed": false
+}

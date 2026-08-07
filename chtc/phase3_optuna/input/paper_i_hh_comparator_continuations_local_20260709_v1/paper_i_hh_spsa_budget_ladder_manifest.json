@@ -1,0 +1,28 @@
+{
+  "batch_id": "paper_i_hh_comparator_continuations_local_20260709_v1",
+  "credential_policy": "no credentials serialized; local serial execution only",
+  "excluded_methods": [
+    "append_singleton",
+    "geo_singleton",
+    "B_common_phase0_singleton_hard_guard"
+  ],
+  "generated_utc": "2026-07-09T23:45:13.665549+00:00",
+  "queue_path": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_20260709_v1/paper_i_hh_spsa_budget_ladder_record_queue.tsv",
+  "record_count": 4,
+  "record_ids": [
+    "paper_i_hh_comparator_continuations_local_20260709_v1__weak_strong__geo__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_20260709_v1__weak_strong__append__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_20260709_v1__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth45_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_20260709_v1__intermediate_strong__append__C_macro_only__native_forced__powell200__depth45_noearlystop__fullmeta_singleton_symmetry"
+  ],
+  "records_path": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_20260709_v1/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "run_policy": "no CHTC; run Geo/Append parent-pool C_macro comparator continuations serially",
+  "schema": "paper_i_hh_comparator_continuations_local_batch_manifest_v1",
+  "settings_policy": "Rows generated from current plotted depth30 C_macro parent comparator source JSONs; only max_depth and output identity changed.",
+  "target_horizons": {
+    "intermediate-strong": 45,
+    "weak-strong": 50
+  },
+  "visible_source_audit": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_20260709_v1/visible_source_audit.json",
+  "visible_source_map": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_20260709_v1/visible_source_map.json"
+}

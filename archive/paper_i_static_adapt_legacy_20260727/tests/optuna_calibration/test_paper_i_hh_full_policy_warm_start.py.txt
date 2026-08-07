@@ -1,0 +1,134 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from math import sqrt
+from pathlib import Path
+
+import pytest
+
+from pipelines.exact_bench.paper_i_hh_full_policy_warm_start import (
+    EXPECTED_REGIMES,
+    REGIME_EXPECTED_HH,
+    build_warm_start_manifest,
+)
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _result_payload(regime: str) -> dict:
+    spec = REGIME_EXPECTED_HH[regime]
+    return {
+        "settings": {
+            "u": spec["u"],
+            "t": 1.0,
+            "omega0": 1.0,
+            "g_ep": sqrt(float(spec["lambda"]) / 2.0),
+            "n_ph_max": spec["n_ph_work"],
+            "adapt_pool": "full_meta",
+            "adapt_pool_class_filter_json": "agent_guidance/static-adapt/hh_full_meta_minus_hva_class_filter.json",
+            "adapt_max_depth": 30,
+            "adapt_final_refit_maxiter": 200,
+            "phase0_pilot_max_records": 24,
+            "phase1_shortlist_size": 24,
+            "phase2_shortlist_fraction": 0.25,
+            "phase2_shortlist_size": 12,
+            "adapt_window_size": 4,
+            "phase3_geometry_window_size": 4,
+            "phase2_w_shot": 0.08,
+            "phase2_rho": 0.25,
+            "phase2_batch_target_size": 8,
+            "phase2_batch_size_cap": 16,
+            "phase2_batch_near_degenerate_ratio": 0.9982411735035968,
+            "phase2_batch_rank_rel_tol": 0.00013662376421438911,
+            "phase2_batch_additivity_tol": 0.6663130343903237,
+            "phase3_batch_order_max_permutations": 24,
+            "phase1_prune_fraction": 0.4101910583864897,
+            "phase1_prune_min_candidates": 1,
+            "phase1_prune_max_candidates": 6,
+            "phase1_prune_max_regression": 1e-8,
+            "phase1_prune_tolerance_mode": "auto",
+            "phase1_prune_tolerance_screen_coeff": 0.01,
+            "phase1_prune_retained_gain_ratio": 0.5,
+            "phase1_prune_protect_steps": 2,
+            "phase1_prune_stale_age": 2,
+            "phase1_prune_cooldown_steps": 2,
+            "phase1_prune_local_window_size": 4,
+            "phase1_prune_recovery_trust_radius": 0.0,
+            "phase1_prune_old_fraction": 0.25,
+            "phase1_prune_checkpoint_period": 3,
+            "phase1_prune_live_min_depth": 0,
+            "adapt_spsa": {
+                "a": 0.1,
+                "c": 0.02,
+                "alpha": 0.602,
+                "gamma": 0.101,
+                "A": 5.0,
+                "avg_last": 0,
+                "eval_repeats": 1,
+                "callback_every": 5,
+            },
+        },
+        "adapt_vqe": {"static_route_identity": {"route_id": "route_a"}},
+    }
+
+
+def _alignment(tmp_path: Path, *, strong_weak_u: float = 8.0) -> Path:
+    rows = []
+    display_labels = {
+        "strong-weak-u8": "strong-weak",
+        "strong-strong-u8": "strong-strong",
+    }
+    for regime in EXPECTED_REGIMES:
+        payload = _result_payload(regime)
+        if regime == "strong-weak-u8":
+            payload["settings"]["u"] = strong_weak_u
+        result_json = tmp_path / regime / "json" / "result.json"
+        _write_json(result_json, payload)
+        rows.append(
+            {
+                "method": "SNAKE",
+                "regime": display_labels.get(regime, regime),
+                "source_json": str(result_json),
+                "source_sha256": _digest(result_json),
+                "display": {"k_pl": 13, "DeltaE": "4.71e-4"},
+                "one_minus_F_display": "0.000216",
+            }
+        )
+    alignment = tmp_path / "alignment.json"
+    _write_json(
+        alignment,
+        {
+            "schema": "unit",
+            "snake_rows": rows,
+        },
+    )
+    return alignment
+
+
+def test_full_policy_warm_start_manifest_extracts_six_visible_rows(tmp_path: Path) -> None:
+    payload = build_warm_start_manifest(_alignment(tmp_path))
+
+    assert payload["schema"] == "paper_i_hh_snake_full_policy_warm_start_manifest_v1"
+    assert tuple(payload["regimes"]) == EXPECTED_REGIMES
+    weak = payload["regimes"]["weak-weak"]["enqueue_params"][0]["params"]
+    assert weak["base_preset"] == "resolved_default"
+    assert weak["runtime_split_mode"] == "shortlist_pauli_children_v1"
+    assert weak["selection_cost_mode"] == "marrakesh_graph_span_v1"
+    assert weak["full_phase2_batch_target_size"] == "8"
+    assert weak["full_phase1_prune_fraction"] == "0.4101910583864897"
+    assert weak["full_spsa_maxiter"] == "200"
+    assert "200" in payload["search_space"]["full_spsa_maxiter"]
+    assert payload["fixed_identity_locks"]["prune_policy"] == "recoverability_ladder_v1"
+
+
+def test_full_policy_warm_start_rejects_ambiguous_legacy_strong_label(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Ambiguous or unsupported visible regime"):
+        build_warm_start_manifest(_alignment(tmp_path, strong_weak_u=1.25))

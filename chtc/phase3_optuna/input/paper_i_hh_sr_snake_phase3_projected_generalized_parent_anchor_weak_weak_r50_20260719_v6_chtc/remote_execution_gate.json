@@ -1,0 +1,9 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v6_chtc",
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "schema": "paper_i_sr_phase3_projection_anchor_remote_gate_v1",
+  "source_archive_sha256": "bd881bd901ed6418e016cbc229346823ac657a84873fdeffd25f11de7ba76aa9",
+  "status": "pending_authenticated_remote_preflight",
+  "submission_performed": false
+}

@@ -1,0 +1,46 @@
+# Temporary parser-local compatibility choices.  The typed RA-ADAPT facade
+# never enumerates these historical route-registry values; they remain here
+# only until the monolith's legacy CLI adapter is removed.
+_LEGACY_STATIC_ROUTE_ID_CHOICES = (
+    "unspecified",
+    "route_a",
+    "route_b_legacy_pairwise",
+    "route_c",
+)
+_LEGACY_STATIC_META_FEATURE_PROFILE_CHOICES = (
+    "off",
+    "safe_core_v1",
+    "paper_i_production_v1",
+)
+    p.add_argument(
+        "--static-route-id",
+        choices=list(_LEGACY_STATIC_ROUTE_ID_CHOICES),
+        default="unspecified",
+        help=(
+            "Static SNAKE route identity claim for ADAPT artifacts. route_a is the "
+            "only first-class SNAKE route; unspecified remains available for "
+            "diagnostic and historical artifacts. Optimizer choice remains separate."
+        ),
+    )
+    p.add_argument(
+        "--allow-legacy-static-route",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    p.add_argument(
+        "--static-meta-feature-profile",
+        choices=list(_LEGACY_STATIC_META_FEATURE_PROFILE_CHOICES),
+        default="off",
+        help=(
+            "Static SNAKE feature-bundle contract. safe_core_v1 keeps the hard "
+            "Route-A selector/novelty/pool identity fixed while allowing approved "
+            "feature on/off choices such as batching and pruning. "
+            "paper_i_production_v1 is the clean Paper-I/Table-I production "
+            "contract: candidate-position SNAKE with Phase0/algebraic/prune "
+            "enabled, reduced Phase-III geometry, phase liveness off, zero "
+            "position-shift/family-repeat/motif score priors, and batching/repeats "
+            "as the allowed feature toggles."
+        ),
+    )
+        "static_route_id": str(getattr(args, "static_route_id", "unspecified")),
+        "static_meta_feature_profile": str(getattr(args, "static_meta_feature_profile", "off")),

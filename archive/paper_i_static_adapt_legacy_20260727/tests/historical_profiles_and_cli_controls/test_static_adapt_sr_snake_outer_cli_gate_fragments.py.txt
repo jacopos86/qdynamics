@@ -1,0 +1,272 @@
+def test_outer_cli_greedy_gate_rejects_drift_before_legacy_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    problem = _small_hh_problem()
+    admission = GreedyBatchAdmission(
+        maximum_size=2,
+        search_window_size=4,
+    )
+    context = sr_context._resolve_execution_context(
+        problem,
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=admission),
+        ),
+    )
+    exact = context.legacy_executor_kwargs()
+    active_calls: list[dict[str, Any]] = []
+    legacy_calls: list[dict[str, Any]] = []
+    sentinel_state = object()
+
+    class _Projection:
+        payload = {"route": "greedy-active-sentinel"}
+        final_statevector = sentinel_state
+
+    def _active_spy(
+        observed_problem: Any,
+        executor_kwargs: dict[str, Any],
+        *,
+        estimator_ledger_path: Path | None,
+    ) -> Any:
+        assert observed_problem is problem
+        assert estimator_ledger_path is None
+        active_calls.append(executor_kwargs)
+        return _Projection()
+
+    def _legacy_forbidden(**executor_kwargs: Any) -> Any:
+        legacy_calls.append(executor_kwargs)
+        raise AssertionError(
+            "explicit greedy intent must never enter legacy dispatch"
+        )
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_active_cli_sr_snake",
+        _active_spy,
+    )
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe_compatibility",
+        _legacy_forbidden,
+    )
+
+    payload, state = adapt_pipeline._dispatch_normalized_sr_snake_cli(
+        problem,
+        exact,
+        estimator_ledger_path=None,
+    )
+
+    assert payload == {"route": "greedy-active-sentinel"}
+    assert state is sentinel_state
+    assert active_calls == [exact]
+    assert legacy_calls == []
+
+    tampered_digest = {
+        **exact,
+        "sr_route_profile_contract_sha256": "0" * 64,
+    }
+    tampered_maximum = copy.deepcopy(exact)
+    tampered_maximum["sr_route_profile_contract"]["semantic_invariants"][
+        "greedy_batch_maximum_size"
+    ] = 3
+    tampered_window = copy.deepcopy(exact)
+    tampered_window["sr_route_profile_contract"]["semantic_invariants"][
+        "greedy_batch_search_window_size"
+    ] = 3
+    tampered_profile_coupling = {
+        **exact,
+        "sr_route_profile_resolved": ROUTE_PROFILE,
+    }
+    contract_identified_greedy = {
+        **exact,
+        "sr_route_profile_request": ROUTE_PROFILE,
+        "sr_route_profile_resolved": ROUTE_PROFILE,
+    }
+    family_identified_greedy = copy.deepcopy(contract_identified_greedy)
+    family_identified_greedy["sr_route_profile_contract"] = {
+        "route_family": "greedy_batch_response_snake",
+    }
+    for tampered in (
+        tampered_digest,
+        tampered_maximum,
+        tampered_window,
+        tampered_profile_coupling,
+        contract_identified_greedy,
+        family_identified_greedy,
+    ):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Explicit Issue-15 greedy-batch SR-SNAKE route failed exact "
+                "active CLI validation; reason=.* Legacy compatibility "
+                "dispatch is forbidden"
+            ),
+        ):
+            adapt_pipeline._dispatch_normalized_sr_snake_cli(
+                problem,
+                tampered,
+                estimator_ledger_path=None,
+            )
+
+    assert active_calls == [exact]
+    assert legacy_calls == []
+
+
+def test_outer_cli_combinatorial_gate_rejects_drift_before_legacy_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    problem = _small_hh_problem()
+    admission = CombinatorialBatchAdmission(
+        maximum_size=2,
+        search_window_size=4,
+    )
+    context = sr_context._resolve_execution_context(
+        problem,
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=admission),
+        ),
+    )
+    exact = context.legacy_executor_kwargs()
+    active_calls: list[dict[str, Any]] = []
+    legacy_calls: list[dict[str, Any]] = []
+    sentinel_state = object()
+
+    class _Projection:
+        payload = {"route": "combinatorial-active-sentinel"}
+        final_statevector = sentinel_state
+
+    def _active_spy(
+        observed_problem: Any,
+        executor_kwargs: dict[str, Any],
+        *,
+        estimator_ledger_path: Path | None,
+    ) -> Any:
+        assert observed_problem is problem
+        assert estimator_ledger_path is None
+        active_calls.append(executor_kwargs)
+        return _Projection()
+
+    def _legacy_forbidden(**executor_kwargs: Any) -> Any:
+        legacy_calls.append(executor_kwargs)
+        raise AssertionError(
+            "explicit combinatorial intent must never enter legacy dispatch"
+        )
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_active_cli_sr_snake",
+        _active_spy,
+    )
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe_compatibility",
+        _legacy_forbidden,
+    )
+    payload, state = adapt_pipeline._dispatch_normalized_sr_snake_cli(
+        problem,
+        exact,
+        estimator_ledger_path=None,
+    )
+    assert payload == {"route": "combinatorial-active-sentinel"}
+    assert state is sentinel_state
+
+    tampered_digest = {
+        **exact,
+        "sr_route_profile_contract_sha256": "0" * 64,
+    }
+    tampered_maximum = copy.deepcopy(exact)
+    tampered_maximum["sr_route_profile_contract"]["semantic_invariants"][
+        "combinatorial_batch_maximum_size"
+    ] = 3
+    tampered_window = copy.deepcopy(exact)
+    tampered_window["sr_route_profile_contract"]["semantic_invariants"][
+        "combinatorial_batch_search_window_size"
+    ] = 3
+    family_identified = copy.deepcopy(exact)
+    family_identified["sr_route_profile_request"] = ROUTE_PROFILE
+    family_identified["sr_route_profile_resolved"] = ROUTE_PROFILE
+    family_identified["sr_route_profile_contract"] = {
+        "route_family": "combinatorial_batch_response_snake",
+    }
+    for tampered in (
+        tampered_digest,
+        tampered_maximum,
+        tampered_window,
+        family_identified,
+    ):
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Explicit Issue-16 combinatorial-batch SR-SNAKE route failed "
+                "exact active CLI validation; reason=.* Legacy "
+                "compatibility dispatch is forbidden"
+            ),
+        ):
+            adapt_pipeline._dispatch_normalized_sr_snake_cli(
+                problem,
+                tampered,
+                estimator_ledger_path=None,
+            )
+
+    assert active_calls == [exact]
+    assert legacy_calls == []
+
+
+def test_outer_cli_dispatch_preserves_genuinely_other_legacy_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    problem = _small_hh_problem()
+    executor_kwargs = (
+        sr_context._resolve_execution_context(
+            problem,
+            _request(problem),
+        ).legacy_executor_kwargs()
+    )
+    executor_kwargs.update(
+        {
+            "sr_route_profile_request": "historical_compatibility_fixture",
+            "sr_route_profile_resolved": "historical_compatibility_fixture",
+            "sr_route_profile_contract": None,
+            "sr_route_profile_contract_sha256": None,
+        }
+    )
+    sentinel_state = object()
+    legacy_reasons: list[str] = []
+
+    def _active_forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "a genuinely historical profile must not enter the active facade"
+        )
+
+    def _legacy_spy(
+        *,
+        compatibility_reason: str,
+        **observed_kwargs: Any,
+    ) -> tuple[dict[str, Any], object]:
+        assert observed_kwargs == executor_kwargs
+        legacy_reasons.append(compatibility_reason)
+        return {"route": "legacy-sentinel"}, sentinel_state
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_active_cli_sr_snake",
+        _active_forbidden,
+    )
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe_compatibility",
+        _legacy_spy,
+    )
+
+    payload, state = adapt_pipeline._dispatch_normalized_sr_snake_cli(
+        problem,
+        executor_kwargs,
+        estimator_ledger_path=None,
+    )
+
+    assert payload == {"route": "legacy-sentinel"}
+    assert state is sentinel_state
+    assert legacy_reasons == [
+        "normalized_sr_route_profile_request_is_not_active_facade_contract"
+    ]

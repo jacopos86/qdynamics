@@ -1,0 +1,25 @@
+{
+  "schema": "paper_i_hh_l4_nph1_append_operational_successor_v1",
+  "generated_utc": "2026-07-19T19:48:00Z",
+  "status": "prepared",
+  "predecessor": {
+    "bundle_id": "paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v3_chtc",
+    "cluster_id": 8890181,
+    "job_count": 6,
+    "observed_job_status": "idle_then_removed",
+    "num_job_starts": 0,
+    "exit_code": null,
+    "stderr": null,
+    "scientific_python_started": false,
+    "scientific_iterations_completed": 0
+  },
+  "successor": {
+    "bundle_id": "paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+    "repair": "manifest-lock both the generic execution and exact-fidelity caps to 12",
+    "resource_qubit_cap": 12,
+    "exact_fidelity_max_qubits": 12,
+    "scientific_source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+    "scientific_source_archive_changed": false,
+    "scientific_settings_changed": false
+  }
+}

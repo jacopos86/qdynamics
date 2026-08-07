@@ -1,0 +1,230 @@
+if (
+                    formal_outer_information_profile_enabled
+                    and formal_outer_information_session is not None
+                    and int(prune_summary.get("accepted_count", 0) or 0) > 0
+                ):
+                    formal_outer_information_session.invalidate_after_structural_change(
+                        reason="accepted_sr_live_prune_changed_registry",
+                        accepted_registry=tuple(
+                            f"accepted_operator:{index}:{term.label}"
+                            for index, term in enumerate(selected_ops)
+                        ),
+                    )
+                    prune_summary["formal_outer_information_action"] = {
+                        "schema": "formal_manifold_outer_post_prune_invalidation_v1",
+                        "structural_rollback_performed": False,
+                        "accepted_prune_preserved": True,
+                        "prediction_discarded": True,
+                        "next_round_exact_anchor_required": True,
+                    }
+                    history[-1]["post_admission_prune"] = copy.deepcopy(
+                        prune_summary
+                    )if (
+                    formal_outer_information_profile_enabled
+                    and formal_outer_information_session is not None
+                    and int(accepted_count) > 0
+                    and not bool(prune_summary.get("rolled_back", False))
+                ):
+                    formal_outer_information_session.invalidate_after_structural_change(
+                        reason="accepted_sr_terminal_prune_changed_registry",
+                        accepted_registry=tuple(
+                            f"accepted_operator:{index}:{term.label}"
+                            for index, term in enumerate(selected_ops)
+                        ),
+                    )
+                    prune_summary["formal_outer_information_action"] = {
+                        "schema": "formal_manifold_outer_terminal_prune_invalidation_v1",
+                        "structural_rollback_performed": False,
+                        "accepted_prune_preserved": True,
+                        "prediction_discarded": True,
+                        "terminal_exact_anchor_required_for_continuation": True,
+                    }if formal_manifold_route_enabled:
+            formal_query_closure_final = _formal_query_closure_telemetry()
+            if formal_query_closure_final is None:
+                raise RuntimeError(
+                    "Formal query accounting disappeared before payload emission."
+                )
+            estimator_closure_available = bool(
+                estimator_formal_query_closure is not None
+            )
+            estimator_accounting_complete = bool(
+                estimator_call_accounting.get("complete", False)
+            )
+            if estimator_formal_query_closure is None:
+                # Keep ledger-disabled diagnostic/smoke runs executable while
+                # failing closed on exact cross-route S_alg comparison.  The
+                # route-local occurrence partition remains useful telemetry,
+                # but is not promoted to shared estimator accounting.
+                winning_nfev = int(
+                    len(
+                        formal_query_closure_final[
+                            "winning_energy_evaluation_occurrence_ids"
+                        ]
+                    )
+                )
+                discarded_nfev = int(
+                    len(
+                        formal_query_closure_final[
+                            "discarded_energy_evaluation_occurrence_ids"
+                        ]
+                    )
+                )
+                estimator_optimizer_guard_nfev = int(
+                    winning_nfev + discarded_nfev
+                )
+            else:
+                winning_nfev = int(
+                    estimator_formal_query_closure["nfev_winning_lineage"]
+                )
+                discarded_nfev = int(
+                    estimator_formal_query_closure[
+                        "nfev_discarded_operational_overhead"
+                    ]
+                )
+                estimator_optimizer_guard_nfev = int(
+                    estimator_formal_query_closure["corrected_nfev_total"]
+                )
+            if (
+                formal_singleton_refeed_selector_enabled
+                and estimator_formal_query_closure is not None
+            ):
+                formal_query_closure_payload_final = {
+                    **dict(estimator_formal_query_closure),
+                    "route": FORMAL_MANIFOLD_ROUTE,
+                    "query_accounting_scope": (
+                        "fm_singleton_refeed_state_keyed_estimator_ledger_v1"
+                    ),
+                    "candidate_scoring_policy": (
+                        "formal_manifold_macro_child_singleton_refeed_v1"
+                    ),
+                    "candidate_selector_family": str(
+                        candidate_selector_family_key
+                    ),
+                    "formal_combinatorial_selector_invoked": False,
+                    "singleton_response_selector_invoked": False,
+                    "joint_response_selector_invoked": False,
+                    "phase_measurement_reuse_policy": (
+                        "state_keyed_scalar_primitive_union_charge_once_v1"
+                    ),
+                }
+                occurrence_ids_final = [
+                    str(value)
+                    for value in estimator_formal_query_closure[
+                        "energy_evaluation_occurrence_ids"
+                    ]
+                ]
+                route_energy_set_reconciled = bool(
+                    estimator_formal_query_closure.get(
+                        "nfev_reconciled", False
+                    )
+                    and estimator_formal_query_closure.get(
+                        "primitive_set_reconciliation", {}
+                    ).get("union_equals_all_executed", False)
+                )
+            else:
+                formal_query_closure_payload_final = dict(
+                    formal_query_closure_final
+                )
+                occurrence_ids_final = [
+                    str(value)
+                    for value in formal_query_closure_final[
+                        "energy_evaluation_occurrence_ids"
+                    ]
+                ]
+                route_energy_set_reconciled = bool(
+                    formal_query_closure_final["occurrence_reconciliation"][
+                        "occurrence_id_set_equals_all_executed_N_E"
+                    ]
+                )
+            nfev_reconciled = bool(
+                estimator_optimizer_guard_nfev == int(nfev_total)
+                and winning_nfev + discarded_nfev == int(nfev_total)
+            )
+            accounting_complete = bool(
+                estimator_accounting_complete
+                and
+                estimator_closure_available
+                and nfev_reconciled
+                and route_energy_set_reconciled
+                and formal_query_round_finalized
+            )
+            formal_nfev_accounting["nfev_winning_lineage"] = int(
+                winning_nfev
+            )
+            formal_nfev_accounting[
+                "nfev_discarded_operational_overhead"
+            ] = int(discarded_nfev)
+            formal_accounting_top_level = {
+                "formal_manifold_query_accounting_schema": (
+                    _FORMAL_QUERY_ACCOUNTING_SCHEMA
+                ),
+                "formal_manifold_query_accounting_complete": bool(
+                    accounting_complete
+                ),
+                "nfev_winning_lineage": int(winning_nfev),
+                "nfev_discarded_operational_overhead": int(discarded_nfev),
+                "raw_optimizer_nfev": int(
+                    formal_nfev_accounting["raw_optimizer_nfev"]
+                ),
+                "estimator_optimizer_and_guard_nfev": int(
+                    estimator_optimizer_guard_nfev
+                ),
+                "nfev_reconciled": bool(nfev_reconciled),
+                "nfev_partition_source": (
+                    "estimator_occurrence_optimizer_and_guard_scope_v2"
+                    if estimator_closure_available
+                    else "route_local_occurrence_fallback_noncomparable"
+                ),
+                "exact_cross_route_s_alg_available": bool(
+                    estimator_accounting_complete
+                    and estimator_closure_available
+                ),
+                "energy_evaluation_occurrence_ids": occurrence_ids_final,
+                "raw_energy_evaluation_occurrence_count": int(
+                    len(occurrence_ids_final)
+                ),
+                "chargeable_unique_energy_evaluations": int(
+                    formal_query_closure_payload_final[
+                        "chargeable_unique_energy_evaluations"
+                    ]
+                ),
+                "chargeable_unique_energy_evaluation_ids": list(
+                    formal_query_closure_payload_final[
+                        "chargeable_unique_energy_evaluation_ids"
+                    ]
+                ),
+                "raw_minus_unique_energy_evaluations": int(
+                    formal_query_closure_payload_final[
+                        "raw_minus_unique_energy_evaluations"
+                    ]
+                ),
+            }
+            if not accounting_complete:
+                formal_accounting_top_level[
+                    "formal_manifold_query_accounting_incomplete_reason"
+                ] = {
+                    "nfev_total": int(nfev_total),
+                    "raw_energy_occurrence_count": int(
+                        len(occurrence_ids_final)
+                    ),
+                    "estimator_optimizer_and_guard_nfev": int(
+                        estimator_optimizer_guard_nfev
+                    ),
+                    "winning_nfev": int(winning_nfev),
+                    "discarded_nfev": int(discarded_nfev),
+                    "nfev_reconciled": bool(nfev_reconciled),
+                    "estimator_exact_blockers": list(
+                        estimator_call_accounting.get("exact_blockers", ())
+                    ),
+                    "estimator_call_accounting_complete": bool(
+                        estimator_accounting_complete
+                    ),
+                    "current_round_finalized": bool(
+                        formal_query_round_finalized
+                    ),
+                    "occurrence_reconciliation": dict(
+                        formal_query_closure_payload_final[
+                            "occurrence_reconciliation"
+                        ]
+                    ),
+                }

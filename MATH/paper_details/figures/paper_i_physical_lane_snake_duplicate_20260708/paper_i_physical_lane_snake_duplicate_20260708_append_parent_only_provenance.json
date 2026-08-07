@@ -1,0 +1,348 @@
+{
+  "depth50_update": {
+    "method": "SNAKE",
+    "policy": "SNAKE curve stitched from depth-30 source, depth-45 continuation, and completed CHTC depth-50 continuation; Geo/Append curves remain current 30-iteration parent-pool comparator sources.",
+    "regime": "weak-strong",
+    "source": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_strong_snake_depth50_stitched_source.json",
+    "source_sha256": "142b978eb9d196a906dd2261f2cc4f476326bc0d5a3c0d8604be6d142c5b302f",
+    "terminal_abs_delta_e": 3.474276848813851e-05,
+    "terminal_k": 50
+  },
+  "error_metric": "same-cutoff energy error |E_alg - E_ED| from source trajectories; resource tables retain source-row selected-prefix errors",
+  "generated_utc": "2026-07-09T17:12:20+00:00",
+  "initial_point_policy": "SNAKE omits the first-history delta_abs_prev point and starts from first delta_abs_current to match the comparator support-CSV trajectory convention; this avoids mixing unoptimized pre-admission reference error with comparator stored trajectories",
+  "intermediate_strong_depth45_update": {
+    "method": "SNAKE",
+    "policy": "SNAKE curve stitched from depth-30 source and completed local depth-45 continuation; Geo/Append curves remain current 30-iteration parent-pool comparator sources.",
+    "regime": "intermediate-strong",
+    "source": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_strong_snake_depth45_stitched_source.json",
+    "source_sha256": "159057a9328998d2b1bc6b422c97817ad43f2c4906e22f8b8f7bab2cc60b8ffa",
+    "terminal_abs_delta_e": 1.8105198894780017e-05,
+    "terminal_k": 45
+  },
+  "marker_policy": "marker x uses displayed selected prefix; marker y is read from the plotted trajectory at that same k so markers sit on visible curves; table/source-row errors are unchanged and stored separately as table_error",
+  "omitted_plot_role_keys": [
+    "append_singleton_b1"
+  ],
+  "omitted_visible_methods": [
+    "Append singleton"
+  ],
+  "physical_lane_comparison_json": "output/pdf/paper_i_hh_physical_operator_lane_comparison_20260708/paper_i_hh_physical_operator_lane_comparison_20260708_provenance.json",
+  "physical_lane_comparison_json_sha256": "d66ee190e59f2b524faa234efcc352d4d422194046a66795c2000244b738ae51",
+  "plot_policy": "solid lines for all visible methods; fixed upper-right legend without a legend title; no repeated curve markers; one method-specific marker at each displayed plateau prefix; no target guide lines; x-axis is ADAPT iteration",
+  "plots": [
+    {
+      "methods": [
+        {
+          "initial_point_policy": "x=0 uses first delta_abs_current; first delta_abs_prev is omitted to match comparator support-CSV trajectory convention",
+          "marker_error": 0.00045236490925915085,
+          "marker_k": 13,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "SNAKE",
+          "point_count": 31,
+          "role_key": "snake",
+          "source_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+          "source_sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb",
+          "table_error": 0.00045236490925915085
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.001127815214085226,
+          "marker_k": 5,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45",
+          "table_error": 0.0013117770378563431
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.00036917404831438017,
+          "marker_k": 23,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "a0b53b4643d97588a04fb688f09dd48964a90a1cd650e95d6cad68d167c8c3a6",
+          "table_error": 0.0009192819178269751
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_weak.pdf",
+      "pdf_sha256": "37136b03a98699b19c97f91a066aa817891a56d7318b9b94cc1c7c730862aa29",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_weak.png",
+      "png_sha256": "69adc8edfea28a75ac70550ccfc83bc9f03b7e169d8357fa9ef5319d19d0894f",
+      "regime": "weak-weak"
+    },
+    {
+      "methods": [
+        {
+          "initial_point_policy": "x=0 uses first delta_abs_current; first delta_abs_prev is omitted to match comparator support-CSV trajectory convention",
+          "marker_error": 0.00021581402163145524,
+          "marker_k": 10,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "SNAKE",
+          "point_count": 31,
+          "role_key": "snake",
+          "source_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json",
+          "source_sha256": "aee2bdfc258555013392ebda3ab97bc822b248bee0ffa41b9bada35bb70ab1e9",
+          "table_error": 0.00021581402163145524
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.07795429664731951,
+          "marker_k": 4,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255",
+          "table_error": 0.09893293320249796
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.003946816613623283,
+          "marker_k": 28,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "eb3876dbfdbc1fae7e3859d2fe44b9da63824301eb894339b08ed97497aaba0c",
+          "table_error": 0.005223690514773949
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_weak.pdf",
+      "pdf_sha256": "30455d35ee0f9b88baa7195804a6cbec2abff767c5a883d66616a5388bf1596f",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_weak.png",
+      "png_sha256": "0bd2e498e9d3ceb26ddb8bca59f575e0bd16e5d9aff6283732909fcc7de5ad1e",
+      "regime": "intermediate-weak"
+    },
+    {
+      "methods": [
+        {
+          "initial_point_policy": "x=0 uses first delta_abs_current; first delta_abs_prev is omitted to match comparator support-CSV trajectory convention",
+          "marker_error": 1.5912792076244742e-06,
+          "marker_k": 11,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "SNAKE",
+          "point_count": 31,
+          "role_key": "snake",
+          "source_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json",
+          "source_sha256": "a77f913eb2c2b1cbf8adfeebd4e6cca23dc0f966a2d06467a3d902554042a745",
+          "table_error": 1.5912792076244742e-06
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 1.958072529117949e-06,
+          "marker_k": 6,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab",
+          "table_error": 2.354651946201436e-06
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 1.958072529451016e-06,
+          "marker_k": 6,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "4debf76c8b85567938266e1d434c580cda585b16748fab6781144d960f6c548a",
+          "table_error": 2.3546519453132575e-06
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_weak.pdf",
+      "pdf_sha256": "640a979b40232fa639f63b3c5deed1998fef633d043d338ffd553b7a93400cac",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_weak.png",
+      "png_sha256": "7613d4904ec75671384319b4cec01893a7b64141d8c73362666b571df986018f",
+      "regime": "strong-weak"
+    },
+    {
+      "methods": [
+        {
+          "initial_point_policy": "stitched depth-30/depth-45/depth-50 cumulative trajectory; x=0 uses the depth-30 first post-admission error; terminal segment uses the completed CHTC depth-50 result energy",
+          "marker_error": 3.474276848813851e-05,
+          "marker_k": 50,
+          "marker_source": "terminal_depth50_result",
+          "method": "SNAKE",
+          "point_count": 51,
+          "role_key": "snake",
+          "source_json": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_strong_snake_depth50_stitched_source.json",
+          "source_sha256": "142b978eb9d196a906dd2261f2cc4f476326bc0d5a3c0d8604be6d142c5b302f",
+          "table_error": 3.474276848813851e-05
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.04139381176829238,
+          "marker_k": 8,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259",
+          "table_error": 0.043646714159213396
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.019354949951648548,
+          "marker_k": 23,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "22618c3753c502121b4aeb03d07a76368b0ae8fb948054b827e1284c4def6579",
+          "table_error": 0.023007750483881706
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_strong.pdf",
+      "pdf_sha256": "c47f825be609e08fd73ed982a48892c877bcc20be5623fd5ea2cbd2630617868",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__weak_strong.png",
+      "png_sha256": "a6fa5cd7e915116d1a8a342b54fe5623762053d29659dd70115229227abcace6",
+      "regime": "weak-strong"
+    },
+    {
+      "methods": [
+        {
+          "initial_point_policy": "stitched depth-30/depth-45 cumulative trajectory; x=0 uses the depth-30 first post-admission error; terminal segment uses the completed local depth-45 final-refit energy",
+          "marker_error": 1.8105198894780017e-05,
+          "marker_k": 45,
+          "marker_source": "terminal_depth45_result",
+          "method": "SNAKE",
+          "point_count": 46,
+          "role_key": "snake",
+          "source_json": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_strong_snake_depth45_stitched_source.json",
+          "source_sha256": "159057a9328998d2b1bc6b422c97817ad43f2c4906e22f8b8f7bab2cc60b8ffa",
+          "table_error": 1.8105198894780017e-05
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.026725016240164545,
+          "marker_k": 8,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e",
+          "table_error": 0.02897791863102661
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 0.008150300978024494,
+          "marker_k": 25,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "1c24d47f5376fe6950ceb1e78b833cf4a6da5e318760b9caee395e3e45b3b257",
+          "table_error": 0.009295831578261082
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_strong.pdf",
+      "pdf_sha256": "2e8b697b548c6d490ae9df7f877247469b3c54820cbbc6c8a60cf41b826c96c6",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__intermediate_strong.png",
+      "png_sha256": "58ae1b865fd6fd9f8839f7c56984e9e9279d53b319dc4ab32bb1686d1a8f5b3f",
+      "regime": "intermediate-strong"
+    },
+    {
+      "methods": [
+        {
+          "initial_point_policy": "x=0 uses first delta_abs_current; first delta_abs_prev is omitted to match comparator support-CSV trajectory convention",
+          "marker_error": 4.682526561594624e-05,
+          "marker_k": 13,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "SNAKE",
+          "point_count": 31,
+          "role_key": "snake",
+          "source_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json",
+          "source_sha256": "d789821367b4cf512346794f38193e68c1cf2aa6644474f29b041485579e9124",
+          "table_error": 4.682526561594624e-05
+        },
+        {
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 4.080673884965247e-05,
+          "marker_k": 6,
+          "marker_source": "trajectory_points_at_displayed_k_pl",
+          "method": "Geo-ADAPT",
+          "point_count": 31,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63",
+          "table_error": 4.982206763848307e-05
+        },
+        {
+          "D2q": 7833,
+          "Dc": 26219,
+          "N2q": 7976,
+          "S_alg": 6378,
+          "initial_point_policy": "support CSV trajectory_points_json",
+          "marker_error": 3.61579243989274e-05,
+          "marker_k": 8,
+          "marker_source": "trajectory_points_at_displayed_k_pl_strong_strong_append_k8_override",
+          "method": "Append-ADAPT",
+          "point_count": 31,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "3044eab7111c647fbe211781365ed837b2c4d8e39c9a0a5104bdf2ee35534524",
+          "table_cost_source": "qiskit_prefix_recompile_at_plot_iteration_k8",
+          "table_error": 3.61579243989274e-05
+        }
+      ],
+      "pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_strong.pdf",
+      "pdf_sha256": "69e2d58ac520a49119f8f71953b2575692fad155c7206b4b6b6f4137cd18f636",
+      "png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_strong.png",
+      "png_sha256": "f1375eeaa68bfd23e77f80f81bc92b2e23d63e1b06ba5249397986e9b0ff9ebe",
+      "regime": "strong-strong"
+    }
+  ],
+  "retained_comment_only_role_keys": [
+    "geo_singleton_b1",
+    "append_singleton_b1"
+  ],
+  "schema": "paper_i_hh_main_append_parent_only_plot_update_v1",
+  "scope": "Paper_I.tex main Hubbard-Holstein error-vs-ADAPT-iteration panels",
+  "strong_strong_append_k8_update": {
+    "D2q": 7833,
+    "Dc": 26219,
+    "N2q": 7976,
+    "S_alg": 6378,
+    "abs_delta_e": 3.61579243989274e-05,
+    "adapt_iteration": 8,
+    "compile_status": "ok",
+    "history_prefix_k_1based": 9,
+    "marker_error": 3.61579243989274e-05,
+    "method": "Append-ADAPT",
+    "plot_iteration_k": 8,
+    "plot_pdf": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_strong.pdf",
+    "plot_pdf_sha256": "27d73e72f873183491403f587e6581e2a03678d8e3e984fc25188df1c33e1592",
+    "plot_png": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708__strong_strong.png",
+    "plot_png_sha256": "56257d9fa03efb1bf8285d2490ffa009b6fcb6870664a1f20f5ee7c50b041f23",
+    "policy": "strong-strong Append-ADAPT is marked and costed at plotted iteration k=8 for the abstract and cost-table comparison.",
+    "regime": "strong-strong",
+    "source_csv": "output/pdf/paper_i_hh_append_k8_prefix_qiskit_20260708/paper_i_hh_append_plot_iteration8_qiskit_20260708.csv",
+    "source_csv_sha256": "4e272f956d1ee65f608220b09443344ce624d7f9a6461313ba761eb725296eb6",
+    "source_json": "output/pdf/paper_i_hh_append_k8_prefix_qiskit_20260708/paper_i_hh_append_plot_iteration8_qiskit_20260708.json",
+    "source_json_sha256": "a44aeaac6e04780ca3d60d3fd0fec48866c80e8d22a9ca2c684218712e2a7878",
+    "source_run_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+    "source_run_json_sha256": "3044eab7111c647fbe211781365ed837b2c4d8e39c9a0a5104bdf2ee35534524"
+  },
+  "support_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/pdf/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630/paper_i_hh_fullmeta_singleton_symmetry_chtc_current_20260630_powell_pool_exposure_support.csv",
+  "support_csv_sha256": "6409dd077cb4ab0fceaa15d62e7570a70549a49f1ed9989abcea6435767c521c",
+  "visible_methods": [
+    "SNAKE",
+    "Geo-ADAPT",
+    "Append-ADAPT"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "cell_id": "trial_000005__strong_weak_u8",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-11T17:45:50.717410+00:00",
+  "manifest_sha256": "43f22294e06b2a2c0f15ef2d477b0a9548eb1fcd49b89f92bef56227a45d0151",
+  "max_depth": 15,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000005/strong-weak-u8",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 6,
+    "batch_size_cap": 2,
+    "child_phase1_cap": "all",
+    "child_phase2_cap": 32,
+    "lambda_add": 0.1,
+    "macro_phase1_cap": 48,
+    "macro_phase2_cap": "all"
+  },
+  "policy_sha256": "13025a7b4cb7c4fb9f64e214128511edaa45caf03a2ccad3280ad6c21378489b",
+  "regime": "strong-weak-u8",
+  "run_class": "diagnostic_pareto_search",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "trial_number": 5
+}

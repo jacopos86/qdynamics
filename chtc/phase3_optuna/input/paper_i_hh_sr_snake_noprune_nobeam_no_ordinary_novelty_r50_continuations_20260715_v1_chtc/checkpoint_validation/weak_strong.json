@@ -1,0 +1,185 @@
+{
+  "checkpoint_parity": {
+    "compile_smoke": {
+      "backend_name": "FakeMarrakesh",
+      "compiled_count_2q": 426,
+      "compiled_depth": 1293,
+      "compiled_size": 1760,
+      "error": null,
+      "executed": true,
+      "output_json": "/var/folders/z3/nyfjj9zs3bz_llqhyfvl___w0000gn/T/sr_r50_checkpoint_z3ea7mbr/current_resume_compile_smoke.json",
+      "required": true,
+      "success": true
+    },
+    "energy_abs_discrepancy": 8.881784197001252e-15,
+    "energy_tolerance": 1e-08,
+    "expected_source_options": {
+      "--adapt-max-depth": "30",
+      "--g-ep": "0.790569415042",
+      "--n-ph-max": "4",
+      "--u": "0.25"
+    },
+    "legacy_vs_signed_prefix_state_l2_discrepancy": 3.836613611950536e-15,
+    "loader_validation": {
+      "candidate_pool_complete": false,
+      "continuation_mode": "phase3_v1",
+      "current_continuation_mode": "phase3_v1",
+      "formal_manifold_full_profile_match": true,
+      "formal_manifold_route_composition": null,
+      "formal_manifold_route_composition_sha256": null,
+      "logical_parameter_count": 30,
+      "no_credentials_serialized": true,
+      "powell_coordinate_chart_policy": "expanded_runtime_projected_logical_v1",
+      "powell_coordinate_chart_policy_validation": {
+        "coordinate_solve_scope": "phase3_only_v1",
+        "coordinate_solve_scope_fields": {
+          "settings.historical_singleton_coordinate_solve_scope": "phase3_only_v1",
+          "settings.historical_singleton_coordinate_trust_overlay.coordinate_solve_scope": "phase3_only_v1",
+          "settings.sr_powell_route_instance.coordinate_solve_scope": "phase3_only_v1"
+        },
+        "expected_policy": null,
+        "expected_route_profile_conformance": null,
+        "explicit_unpromoted_ablation": false,
+        "inferred": false,
+        "required": true,
+        "resolved_policy": "expanded_runtime_projected_logical_v1",
+        "route_profile_conformance": "registered_profile",
+        "route_profile_conformance_fields": {
+          "settings.historical_singleton_coordinate_trust_overlay.route_profile_conformance": "registered_profile",
+          "settings.route_profile_conformance": "registered_profile",
+          "settings.sr_powell_route_instance.route_profile_conformance": "registered_profile"
+        },
+        "route_profile_expected_policy": null,
+        "route_profile_fields": {},
+        "schema_version": "static_adapt_resume_powell_chart_policy_v1",
+        "source_field_count": 2,
+        "source_fields": {
+          "adapt_vqe.optimizer_coordinate_chart.powell_coordinate_chart_policy": "expanded_runtime_projected_logical_v1",
+          "settings.historical_singleton_coordinate_trust_overlay.powell_coordinate_chart_policy": "expanded_runtime_projected_logical_v1"
+        },
+        "status": "pass"
+      },
+      "problem": "hh",
+      "route_profile_conformance": "registered_profile",
+      "runtime_parameter_count": 73,
+      "schema_version": "static_hh_adapt_resume_validation_v1",
+      "selected_term_count": 30,
+      "settings_match": true,
+      "sr_route_profile_contract_sha256": null,
+      "sr_route_profile_contract_validation": {
+        "artifact_profile_request": "off",
+        "contract_sha256": null,
+        "contract_sha256_fields": {},
+        "contract_source_fields": [],
+        "expected_contract_sha256": null,
+        "expected_profile_request": null,
+        "inferred": false,
+        "request_fields": {
+          "settings.historical_singleton_coordinate_trust_overlay.sr_route_profile_request": "off",
+          "settings.sr_route_profile_request": "off"
+        },
+        "schema_version": "static_adapt_resume_sr_route_profile_contract_v1",
+        "status": "not_applicable"
+      },
+      "sr_route_profile_request": "off"
+    },
+    "replayed_energy": -1.12129175903358,
+    "saved_energy": -1.1212917590335711,
+    "signed_active_prefix": {
+      "checkpoint_sha256": "9ab6560b1cf40e9be730e06fe32bb3fdce1be516b2e71c53588c0486363dedb9",
+      "operator_count": 30,
+      "outer_iteration": 30,
+      "projective_state_fingerprint": "projective_state_v1:42931243735f4ec2135b6e8b7dc2066fc3bde8cc8988b10c6040e37541007929",
+      "resume_sidecar_json": "/var/folders/z3/nyfjj9zs3bz_llqhyfvl___w0000gn/T/sr_r50_checkpoint_z3ea7mbr/signed_active_prefix_checkpoint.json",
+      "resume_sidecar_sha256": "0e574a1d98e0276252c906e68cf0d8b4825a85d8a2afddc849f7662d76b8366e",
+      "schema": "verified_resume_signed_active_prefix_sidecar_v1",
+      "source_result_json": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/weak_strong/json/result.json",
+      "source_result_sha256": "aaf2102a7829ac7a2b4c0f13ef55ef96fe81ed3b70f7d110e2d7c001b6d9cf3e"
+    },
+    "signed_prefix_energy_abs_discrepancy": 6.661338147750939e-16,
+    "signed_prefix_replayed_energy": -1.1212917590335718,
+    "signed_prefix_state_l2_discrepancy": 4.0164438042874925e-15,
+    "state_l2_discrepancy": 3.925800072610066e-16,
+    "state_tolerance": 1e-12,
+    "status": "pass",
+    "verified_checkpoint": {
+      "history_count": 30,
+      "restored_S_alg": 47280,
+      "restored_occurrence_count": 52138,
+      "source_ansatz_depth": 30,
+      "source_controller_round": 30
+    }
+  },
+  "checkpoint_source_sha256": "db8659345347731f3e5ceb02471c33f6c6e963898e04cc195f3d661600320bfd",
+  "checkpoint_transferred_compressed_sha256": "1346034ae7d3e0dad5144d41ce34e497f312449482bddc2fe9a4e16a013f7d42",
+  "checkpoint_transferred_uncompressed_sha256": "db8659345347731f3e5ceb02471c33f6c6e963898e04cc195f3d661600320bfd",
+  "compressed_resume_input_roundtrip": {
+    "checkpoint": {
+      "compressed_sha256": "1346034ae7d3e0dad5144d41ce34e497f312449482bddc2fe9a4e16a013f7d42",
+      "uncompressed_sha256": "db8659345347731f3e5ceb02471c33f6c6e963898e04cc195f3d661600320bfd",
+      "uncompressed_size_bytes": 13409429
+    },
+    "estimator_ledger": {
+      "compressed_sha256": "fe91d1f65f3219438b19d69036004e49ed39eebc155fed59ea967fc0e0c7a82d",
+      "uncompressed_sha256": "8125be269b7408dbb4778f33d0bcc2aa7e4c9910cd9ded7cfd187da16eef6820",
+      "uncompressed_size_bytes": 126192121
+    },
+    "status": "pass"
+  },
+  "environment_diff": [
+    {
+      "classification": "isolated_operational_output_or_cache_path",
+      "field": "MPLCONFIGDIR",
+      "source": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/weak_strong/cache/matplotlib",
+      "target": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/cache/matplotlib"
+    },
+    {
+      "classification": "isolated_operational_output_or_cache_path",
+      "field": "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR",
+      "source": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/weak_strong/cache/candidate_records",
+      "target": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/cache/candidate_records"
+    },
+    {
+      "classification": "isolated_operational_output_or_cache_path",
+      "field": "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR",
+      "source": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/weak_strong/cache/hh_generator_registry",
+      "target": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/cache/hh_generator_registry"
+    },
+    {
+      "classification": "isolated_operational_output_or_cache_path",
+      "field": "STATIC_ADAPT_HH_POOL_CACHE_DIR",
+      "source": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/weak_strong/cache/hh_pool",
+      "target": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/cache/hh_pool"
+    }
+  ],
+  "negative_runner_guard_tests": {
+    "cases": [
+      {
+        "case": "compressed_checkpoint_byte_tamper",
+        "expected_failure": "source-lock hash mismatch",
+        "status": "pass_rejected"
+      },
+      {
+        "case": "compressed_ledger_byte_tamper",
+        "expected_failure": "source-lock hash mismatch",
+        "status": "pass_rejected"
+      },
+      {
+        "case": "sidecar_byte_tamper",
+        "expected_failure": "source-lock hash mismatch",
+        "status": "pass_rejected"
+      },
+      {
+        "case": "claimed_source_result_sha256_mutation",
+        "expected_failure": "signed-prefix source-result provenance mismatch",
+        "status": "pass_rejected"
+      }
+    ],
+    "status": "pass"
+  },
+  "non_approved_executable_diff": [],
+  "regime_slug": "weak_strong",
+  "source_depth": 30,
+  "status": "pass",
+  "target_depth": 50
+}

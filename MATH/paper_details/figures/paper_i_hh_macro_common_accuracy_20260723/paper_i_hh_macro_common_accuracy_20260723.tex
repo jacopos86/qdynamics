@@ -1,0 +1,67 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.33in]{geometry}
+\usepackage{amsmath,graphicx,booktabs,xcolor}
+\usepackage[T1]{fontenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\Large\bfseries Macro-generator plateau-prefix comparison}\par
+\vspace{2pt}
+{\small Each trajectory terminates at the selected plateau prefix whose
+compiled circuit resources and cumulative logical estimator work are reported
+below. The panel-specific horizontal range includes a 15\% blank margin beyond
+the latest displayed prefix.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_page1_plot.png}
+\vspace{3pt}
+\scriptsize
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{0.94}
+\begin{tabular}{@{}cl r c rrr r@{}}
+\toprule
+Reg. & Method & $k_{\rm pl}$ & $\Delta E(k_{\rm pl})$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $S_{\rm alg}$ \\
+\midrule
+WW & SNAKE & 10 & $1.228\times 10^{-3}$ & 180 & 162 & 1,105 & 6,473 \\
+WW & Append-ADAPT & 32 & $5.096\times 10^{-4}$ & 2,752 & 2,560 & 10,731 & 636,849 \\
+\addlinespace[1.5pt]
+IW & SNAKE & 4 & $7.863\times 10^{-2}$ & 64 & 58 & 429 & 1,561 \\
+IW & Append-ADAPT & 30 & $2.842\times 10^{-2}$ & 3,150 & 2,952 & 12,979 & 660,040 \\
+\addlinespace[1.5pt]
+SW & SNAKE & 9 & $1.411\times 10^{-6}$ & 172 & 161 & 1,049 & 5,245 \\
+SW & Append-ADAPT & 10 & $1.411\times 10^{-6}$ & 284 & 231 & 1,542 & 6,492 \\
+\addlinespace[1.5pt]
+WS & SNAKE & 10 & $4.095\times 10^{-2}$ & 304 & 266 & 1,592 & 8,010 \\
+WS & Append-ADAPT & 10 & $4.345\times 10^{-2}$ & 724 & 519 & 2,915 & 8,255 \\
+\addlinespace[1.5pt]
+IS & SNAKE & 16 & $7.916\times 10^{-3}$ & 420 & 316 & 2,018 & 19,873 \\
+IS & Append-ADAPT & 12 & $2.576\times 10^{-2}$ & 2,088 & 1,865 & 7,029 & 15,031 \\
+\addlinespace[1.5pt]
+SS & SNAKE & 12 & $4.330\times 10^{-5}$ & 936 & 881 & 4,721 & 9,045 \\
+SS & Append-ADAPT & 35 & $3.440\times 10^{-5}$ & 10,394 & 9,090 & 38,704 & 707,425 \\
+\bottomrule
+\end{tabular}
+\par\vspace{4pt}
+\begin{minipage}{0.96\textwidth}
+\footnotesize
+$N_{2q}$, $D_{2q}$, and $D_c$ are exact Qiskit-compiled costs for the
+selected active prefix (optimization level 0, transpiler seed 7, reference
+state included). $S_{\rm alg}$ is cumulative logical estimator work, not
+physical shots or circuits. Both methods use intact macro generators.
+\end{minipage}
+\end{center}
+\newpage
+\begin{center}
+{\Large\bfseries Macro-generator costs at shared pre-plateau accuracy}\par
+\vspace{2pt}
+{\small For each regime, $K_\cap$ is the earlier selected plateau and
+$\Delta E_\cap=\max\{\min_{k\leq K_\cap}\Delta E_{\rm SNAKE}(k),
+\min_{k\leq K_\cap}\Delta E_{\rm Append}(k)\}$.
+Each cost is evaluated at that method's first stored prefix satisfying
+$\Delta E(k)\leq\Delta E_\cap$ within this shared window. Each displayed
+trajectory terminates at that costed prefix.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_page2_plot.png}
+\end{center}
+\end{document}

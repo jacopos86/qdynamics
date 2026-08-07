@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_hh_strong_weak_no_target_continue_task_apptainer.sh
+arguments = $(method) raw_outputs/paper_i_hh_strong_weak_no_target_continue_20260607_v1/$(method) 500
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs/paper_i_hh_strong_weak_no_target_continue_20260607_v1/$(method)
+stream_output = False
+stream_error = False
+log = logs/phase3-paper-i-hh-strong-weak-no-target-continue-20260607-v1.$(Cluster).$(Process).log
+output = logs/phase3-paper-i-hh-strong-weak-no-target-continue-20260607-v1.$(Cluster).$(Process).out
+error = logs/phase3-paper-i-hh-strong-weak-no-target-continue-20260607-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 24GB
+request_disk = 40960MB
++MaxRuntime = 172800
++JobBatchName = "paper-i-hh-strong-weak-no-target-continue-20260607-v1"
+queue method from chtc/phase3_optuna/input/paper_i_hh_strong_weak_no_target_continue_20260607_v1/methods.txt

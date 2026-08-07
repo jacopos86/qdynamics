@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_paper_i_hh_spsa_budget_ladder_task_apptainer_srcpkg.sh
+arguments = $(record_id) chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write/paper_i_hh_spsa_budget_ladder_records.tsv raw_outputs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, docs, test_support, chtc/phase3_optuna, MATH/paper_facing/paper_I_static_scaffold/hh_ed_reference_manifest_20260614.json, chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write/src_sanitized.tar.gz, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/commands.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/source_lock_manifest.json, output/pdf/paper_i_hh_physical_operator_lane_comparison_20260708/paper_i_hh_physical_operator_lane_comparison_20260708.pdf, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json, raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json
+transfer_output_files = raw_outputs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write, logs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write
+stream_output = False
+stream_error = False
+log = logs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write.$(Cluster).$(Process).log
+output = logs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write.$(Cluster).$(Process).out
+error = logs/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = 172800
++JobBatchName = "holstein-paper-i-hh-all-regime-snake-mechanism-ablation-unit-write"
+queue record_id, memory_mb, disk_mb from chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_unit_write/paper_i_hh_spsa_budget_ladder_record_queue.tsv

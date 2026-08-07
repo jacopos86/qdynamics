@@ -1,0 +1,19 @@
+{
+  "batch_name": "paper-i-hh-sr-query-neutral-prune-parent-anchor-ww-target-20260723-v3",
+  "benchmark_target_abs_delta_e": 0.0002,
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_full_geometry_query_neutral_prune_parent_anchor_weak_weak_target_20260723_v3_chtc",
+  "candidate_not_executed": true,
+  "candidate_route_contract_sha256": "326ae05091b24fcb580d33f86f25add4c1252bcdd64316b82ae14c14c6bb3372",
+  "candidate_route_profile": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_query_neutral_fs_prune_v1",
+  "fanout_authorized": false,
+  "job_count": 1,
+  "max_round_safety_cap": 50,
+  "parent_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "parent_route_profile": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_v1",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "schema": "paper_i_query_neutral_prune_parent_anchor_bundle_v1",
+  "source_archive_manifest_sha256": "96c5682c678823e1ba3ce0da4aef599104012e8289eb739fdb89cc83a4791a83",
+  "source_archive_sha256": "5747f73be5b6f4a050c5c33c12c87099db7e2edb57ca2eb9a41d9e4a783207e4",
+  "source_revision_manifest_sha256": "5426f0a937d3b7eb4bb52cefec39089d487ff25ae2a8c5c4719f8f91bdf26841",
+  "submission_performed": false
+}

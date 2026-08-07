@@ -1,0 +1,29 @@
+{
+  "classification": "non_scientific_serialized_zero_extent_matrix_shape_restoration_v1",
+  "derived_file_sha256": {
+    "pipelines/static_adapt/adapt_pipeline.py": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+    "pipelines/static_adapt/selector_query_closure.py": "bcdd57c621f0b9688ae97537e63dcfa804371115e871a2b57543668fabd73b34"
+  },
+  "failure_mode": "JSON ndarray.tolist() collapses zero-row matrices such as (0,0) and (0,b) to [] with inferred reload shape (0,)",
+  "malformed_nonempty_or_nonfinite_payloads_fail_closed": true,
+  "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc/empty_gram_receipt_overlay.patch",
+  "overlay_sha256": "fcbba1e050c894316eeba7bf4468aabbd7e64be69a6d22ab7ebe72add05cc478",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "predecessor_source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+  "repair_scope": [
+    "pipelines/static_adapt/selector_query_closure.py::normalize_serialized_matrix_payload",
+    "pipelines/static_adapt/adapt_pipeline.py::_phase3_batch_appendix_trust_update_inputs._finite_matrix"
+  ],
+  "restoration_authority": "typed receipt expected_shape",
+  "restored_shapes": [
+    "(0,0)",
+    "(0,b)",
+    "(a,0)"
+  ],
+  "route_contract_sha256": "7554bb2488a26573039eb94a74e2697b38d883a53698515a9b3ed0e5ea0fef9f",
+  "schema": "paper_i_hh_sr_phase3_batch3_empty_gram_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "submission_performed": false,
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+  "successor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+}

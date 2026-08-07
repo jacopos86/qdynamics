@@ -1,0 +1,21 @@
+{
+  "archive_sha256": "1d6e93bd59f97f74cc444c6c3559b15d48053b2c4914736a3c32b0e0869a196a",
+  "focused_source_locked_regressions": {
+    "profile_and_route_suite": {
+      "passed": 130,
+      "status": "pass"
+    },
+    "runtime_serialization_refit_resume_suite": {
+      "passed": 108,
+      "skipped": 9,
+      "status": "pass"
+    }
+  },
+  "live_repo_import_excluded": true,
+  "schema": "paper_i_hh_sr_prune_appendix_archive_only_preflight_v1",
+  "six_validate_only_parses": {
+    "passed": 6,
+    "status": "pass"
+  },
+  "status": "pass"
+}

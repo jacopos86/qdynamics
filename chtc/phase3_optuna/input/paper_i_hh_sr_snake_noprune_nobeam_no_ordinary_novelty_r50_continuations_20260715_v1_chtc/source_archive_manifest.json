@@ -1,0 +1,37 @@
+{
+  "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_locked.tar.gz",
+  "archive_sha256": "070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a",
+  "archive_size_bytes": 3459858,
+  "base_archive": {
+    "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/source_lock/source_tree_no_beam_ablation_v1.tar.gz",
+    "preserved_unchanged": true,
+    "sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6"
+  },
+  "created_utc": "2026-07-16T04:29:44.431529+00:00",
+  "live_scientific_tree_imported": false,
+  "member_count": 432,
+  "patch": {
+    "changed_files": [
+      "pipelines/static_adapt/adapt_pipeline.py",
+      "pipelines/static_adapt/resume_scaffold.py"
+    ],
+    "file_hashes_after": {
+      "pipelines/static_adapt/adapt_pipeline.py": "0b74f979efc8e00074a4526dd7a4e3968b2746883c3899fe7c8b970593d5e7a1",
+      "pipelines/static_adapt/resume_scaffold.py": "8271ec88d0a885ef9290b95b52786e7b79f6180f1002020ef01144c64735d656"
+    },
+    "file_hashes_before": {
+      "pipelines/static_adapt/adapt_pipeline.py": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+      "pipelines/static_adapt/resume_scaffold.py": "eead6153cae41ea144a405d891167b9ab47dec1a9af6db883f8cacd8bd9315b3"
+    },
+    "manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_lock/no_beam_resume_patch_manifest.json",
+    "manifest_sha256": "7ea7e3a11c323e56f66cbec92f09d5753d6429a3f8965ef491e1e26cab90f3ca",
+    "patch_stdout": "patching file 'pipelines/static_adapt/resume_scaffold.py'\npatching file 'pipelines/static_adapt/adapt_pipeline.py'\n",
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_lock/no_beam_verified_resume.patch",
+    "sha256": "df31265fa46dda5ee8d7872789cd9986b8a9b0d72020f01aad120b8aa594630f"
+  },
+  "patched_member_hashes": {
+    "pipelines/static_adapt/adapt_pipeline.py": "0b74f979efc8e00074a4526dd7a4e3968b2746883c3899fe7c8b970593d5e7a1",
+    "pipelines/static_adapt/resume_scaffold.py": "8271ec88d0a885ef9290b95b52786e7b79f6180f1002020ef01144c64735d656"
+  },
+  "schema": "paper_i_hh_sr_r50_patched_source_archive_v1"
+}

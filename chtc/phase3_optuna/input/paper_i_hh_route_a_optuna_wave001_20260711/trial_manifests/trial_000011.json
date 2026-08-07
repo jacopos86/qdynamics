@@ -1,0 +1,66 @@
+{
+  "cell_count": 6,
+  "cells": [
+    {
+      "cell_id": "trial_000011__weak_weak",
+      "manifest": "cell_manifests/trial_000011__weak_weak.json",
+      "output_relative_dir": "trial_000011/weak-weak",
+      "regime": "weak-weak"
+    },
+    {
+      "cell_id": "trial_000011__intermediate_weak",
+      "manifest": "cell_manifests/trial_000011__intermediate_weak.json",
+      "output_relative_dir": "trial_000011/intermediate-weak",
+      "regime": "intermediate-weak"
+    },
+    {
+      "cell_id": "trial_000011__strong_weak_u8",
+      "manifest": "cell_manifests/trial_000011__strong_weak_u8.json",
+      "output_relative_dir": "trial_000011/strong-weak-u8",
+      "regime": "strong-weak-u8"
+    },
+    {
+      "cell_id": "trial_000011__weak_strong",
+      "manifest": "cell_manifests/trial_000011__weak_strong.json",
+      "output_relative_dir": "trial_000011/weak-strong",
+      "regime": "weak-strong"
+    },
+    {
+      "cell_id": "trial_000011__intermediate_strong",
+      "manifest": "cell_manifests/trial_000011__intermediate_strong.json",
+      "output_relative_dir": "trial_000011/intermediate-strong",
+      "regime": "intermediate-strong"
+    },
+    {
+      "cell_id": "trial_000011__strong_strong_u8",
+      "manifest": "cell_manifests/trial_000011__strong_strong_u8.json",
+      "output_relative_dir": "trial_000011/strong-strong-u8",
+      "regime": "strong-strong-u8"
+    }
+  ],
+  "generated_utc": "2026-07-11T17:45:50.922546+00:00",
+  "manifest_sha256": "e503175fa6b89b9b5697614585ddc07714358e05e19e6c56df029f0ef0c0c424",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": "all",
+    "batch_size_cap": 1,
+    "child_phase1_cap": 64,
+    "child_phase2_cap": 64,
+    "lambda_add": 0.1,
+    "macro_phase1_cap": 48,
+    "macro_phase2_cap": 12
+  },
+  "policy_sha256": "62624a0b27da88828cc846d0d3765f7ddb70a012e25baaf63b54ab93c6e6ec92",
+  "regime_order": [
+    "weak-weak",
+    "intermediate-weak",
+    "strong-weak-u8",
+    "weak-strong",
+    "intermediate-strong",
+    "strong-strong-u8"
+  ],
+  "schema": "paper_i_hh_route_a_optuna_trial_v1",
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "trial_number": 11
+}

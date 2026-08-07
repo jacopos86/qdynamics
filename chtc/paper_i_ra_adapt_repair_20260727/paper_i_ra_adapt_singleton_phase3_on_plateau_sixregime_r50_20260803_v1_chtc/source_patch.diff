@@ -1,0 +1,3615 @@
+--- a/pipelines/reporting/paper_i_run_summary.py
++++ b/pipelines/reporting/paper_i_run_summary.py
+@@ -513,6 +513,7 @@
+         PROJECTED_GENERALIZED_SOLVER,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
++        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
+         RAAdaptRequest,
+         RESOURCE_WEIGHTING_ALL_PHASE,
+         RESOURCE_WEIGHTING_SCOPES,
+@@ -522,6 +523,7 @@
+     )
+     from pipelines.static_adapt.ra_adapt.engine import (
+         RA_ADAPT_ALGORITHM_ID,
++        RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID,
+         RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS,
+         RA_ADAPT_LEGACY_ALGORITHM_ID,
+         RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID,
+@@ -573,7 +575,11 @@
+                 RA_ADAPT_LEGACY_ALGORITHM_ID,
+                 *tuple(
+                     sorted(
+-                        RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS
++                        algorithm_id
++                        for algorithm_id, insertion_kind in (
++                            RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID.items()
++                        )
++                        if insertion_kind == method.insertion.kind
+                     )
+                 ),
+             )
+@@ -581,10 +587,9 @@
+             algorithm_ids = (
+                 RA_ADAPT_ALGORITHM_ID,
+                 RA_ADAPT_LEGACY_ALGORITHM_ID,
++                "paper_i_ra_adapt_singleton_plateau_insertion_repair_v1",
+                 *(
+-                    (
+-                        "paper_i_ra_adapt_singleton_plateau_insertion_repair_v1",
+-                    )
++                    (RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,)
+                     if str(method.insertion.kind) == "plateau_commutation"
+                     else ()
+                 ),
+@@ -635,6 +640,15 @@
+                         active_gradient_policy != "measured_residual_response_v1"
+                     ):
+                         continue
++                    if algorithm_id == (
++                        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
++                    ) and (
++                        active_gradient_policy
++                        != "stationary_source_response_v1"
++                        or resource_weighting_scope
++                        != "late_resource_weighting_v1"
++                    ):
++                        continue
+                     qiskit_cost_algorithm = bool(
+                         algorithm_id
+                         in (
+@@ -700,6 +714,12 @@
+                     expected_supersession_reason = (
+                         "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
+                         if algorithm_id == RA_ADAPT_ALGORITHM_ID
++                        else (
++                            "paper_i_ra_adapt_singleton_phase3_plateau_"
++                            "ablation_20260802"
++                        )
++                        if algorithm_id
++                        == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
+                         else "paper_i_ra_adapt_unification_repair_20260727"
+                     )
+                     if algorithm_id == RA_ADAPT_ALGORITHM_ID:
+@@ -721,6 +741,25 @@
+                                 ),
+                             }
+                         )
++                    if algorithm_id == (
++                        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
++                    ):
++                        required_invariants.update(
++                            {
++                                "phase1_activation_scope": (
++                                    "all_controller_rounds_v1"
++                                ),
++                                "phase2_activation_scope": (
++                                    "all_controller_rounds_v1"
++                                ),
++                                "phase3_competitive_population_activation": (
++                                    "same_round_insertion_plateau_predicate_v1"
++                                ),
++                                "phase3_preplateau_admission_authority": (
++                                    "phase2_raw_score_top_rank_v1"
++                                ),
++                            }
++                        )
+                     if (
+                         contract.get("schema")
+                         != (
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -2221,6 +2221,10 @@
+     expected_domain: tuple[_CandidatePositionRecord, ...]
+     accepted_state_snapshotter: Callable[[], object]
+     sidecar: dict[str, Any]
++    phase3_competitive_population_live: bool = True
++    phase3_activation_receipt: Mapping[str, Any] = field(
++        default_factory=dict
++    )
+ 
+ 
+ @dataclass(frozen=True, slots=True)
+@@ -2260,15 +2264,40 @@
+         )
+         occurrence_after_phase2 = len(
+             self.receipts.ledger_occurrences()
++        )
++        phase2_shortlisted_records = [
++            dict(record)
++            for record in phase2_runtime["phase2_shortlisted_records"]
++        ]
++        if not phase2_shortlisted_records:
++            raise RuntimeError(
++                "Default Phase II returned no singleton admission candidate."
++            )
++        phase3_competitive_population_live = bool(
++            self.runtime.phase3_competitive_population_live
+         )
++        from pipelines.static_adapt.ra_adapt.contracts import (
++            RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        )
++
++        phase3_population_is_plateau_gated = (
++            self.runtime.phase3_activation_receipt.get("policy")
++            == RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++        )
++        phase3_input_records = (
++            phase2_shortlisted_records
++            if phase3_competitive_population_live
++            else phase2_shortlisted_records[:1]
++        )
++        fixed_phase2_winner = self.receipts.record_from_live(
++            phase3_input_records[0]
++        )
+         (
+             phase3_measurement_input_records,
+             projected_phase3_population_receipt,
+             phase3_initial_shortlisted_records,
+         ) = self.phases.projected_phase_iii(
+-            phase2_shortlisted_records=(
+-                phase2_runtime["phase2_shortlisted_records"]
+-            ),
++            phase2_shortlisted_records=phase3_input_records,
+             archival_phase3_factory_by_parent_key=(
+                 phase2_runtime["archival_phase3_factory_by_parent_key"]
+             ),
+@@ -2281,6 +2310,19 @@
+             controller_snapshot=phase1_runtime["controller_snapshot"],
+             phase3_live=True,
+         )
++        if phase3_population_is_plateau_gated:
++            projected_phase3_population_receipt = {
++                **dict(projected_phase3_population_receipt),
++                "competitive_population_activation": dict(
++                    self.runtime.phase3_activation_receipt
++                ),
++                "competitive_population_input_count": int(
++                    len(phase3_input_records)
++                ),
++                "phase2_available_shortlist_count": int(
++                    len(phase2_shortlisted_records)
++                ),
++            }
+         self.phases.record_phase3_work(
+             phase3_measurement_input_records,
+             phase3_initial_shortlisted_records,
+@@ -2309,6 +2351,15 @@
+             )
+         )
+         selected_live_record = dict(phase2_selected_records[0])
++        if (
++            not phase3_competitive_population_live
++            and self.receipts.record_from_live(selected_live_record)
++            != fixed_phase2_winner
++        ):
++            raise RuntimeError(
++                "Winner-only Phase-III materialization changed the fixed "
++                "Phase-II admission identity."
++            )
+         selected_feature = selected_live_record.get("feature")
+         if not isinstance(selected_feature, CandidateFeatures):
+             raise RuntimeError(
+@@ -2472,7 +2523,7 @@
+                 phase1_event_count + phase2_event_count:
+             ],
+         )
+-        self.runtime.sidecar[selected_identity.domain_record_id] = {
++        selected_sidecar = {
+             "phase1": phase1_runtime,
+             "phase2": phase2_runtime,
+             "phase3_measurement_input_records": (
+@@ -2493,6 +2544,13 @@
+             "phase2_selected_records": phase2_selected_records,
+             "selected_live_record": selected_live_record,
+         }
++        if phase3_population_is_plateau_gated:
++            selected_sidecar["phase3_population_activation"] = dict(
++                self.runtime.phase3_activation_receipt
++            )
++        self.runtime.sidecar[selected_identity.domain_record_id] = (
++            selected_sidecar
++        )
+         return _SelectionEvaluation(
+             phase_i=phase_i_receipt,
+             phase_ii=phase_ii_receipt,
+@@ -11570,8 +11628,113 @@
+             }
+         )
+     return receipt
++
++
++def _ra_phase3_population_activation_receipt(
++    *,
++    route_contract: Mapping[str, Any],
++    insertion_round_policy: Mapping[str, Any] | None,
++    candidate_adapter: Any | None,
++    admission_policy: Any,
++) -> dict[str, Any]:
++    """Resolve the singleton ablation from the already-authenticated trigger.
+ 
++    The plateau predicate is computed once by ``prepare_selection``.  This
++    projection deliberately has no memory, patience counter, or hysteresis of
++    its own.  A closed round fixes admission to the top Phase-II record, then
++    materializes only that winner's response geometry for the unchanged
++    accepted-refit transaction.
++    """
+ 
++    from pipelines.static_adapt.ra_adapt.adapters import (
++        SINGLE_PAULI_ADAPTER_ID,
++    )
++    from pipelines.static_adapt.ra_adapt.contracts import (
++        CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++        RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
++    )
++
++    execution = route_contract.get("execution_settings")
++    invariants = route_contract.get("semantic_invariants")
++    if not isinstance(execution, Mapping) or not isinstance(
++        invariants, Mapping
++    ):
++        raise RuntimeError(
++            "RA Phase-III activation requires a complete route contract."
++        )
++    activation_policy = str(
++        execution.get(
++            "ra_phase3_population_activation_policy",
++            RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        )
++    )
++    if activation_policy == RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS:
++        return {
++            "schema": "ra_phase3_population_activation_receipt_v1",
++            "policy": RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++            "competitive_population_live": True,
++            "activation_source": "route_default_all_rounds_v1",
++            "preplateau_admission_authority": None,
++            "winner_materialization_policy": None,
++            "insertion_plateau_domain_open": None,
++            "independent_latch_active": False,
++            "hysteresis_active": False,
++        }
++    if activation_policy != (
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++    ):
++        raise RuntimeError(
++            "RA route declared an unknown Phase-III population activation "
++            f"policy: {activation_policy!r}."
++        )
++    expected_materialization = (
++        RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++    )
++    if (
++        not isinstance(admission_policy, SingletonAdmission)
++        or str(getattr(candidate_adapter, "adapter_id", ""))
++        != SINGLE_PAULI_ADAPTER_ID
++        or invariants.get("candidate_representation")
++        != CANDIDATE_REPRESENTATION_SINGLE_PAULI
++        or execution.get("adapt_insertion_mode")
++        != "insertion_commutation_plateau_v2"
++        or execution.get("ra_phase3_preplateau_materialization_policy")
++        != expected_materialization
++        or invariants.get("phase3_activation_source")
++        != "same_round_authenticated_insertion_plateau_domain_open_v1"
++        or invariants.get("phase3_activation_independent_latch") is not False
++        or invariants.get("phase3_activation_hysteresis_active") is not False
++        or not isinstance(insertion_round_policy, Mapping)
++        or insertion_round_policy.get("policy")
++        != "insertion_commutation_plateau_v2"
++        or insertion_round_policy.get("patience") != 1
++        or insertion_round_policy.get("hysteresis_active") is not False
++    ):
++        raise RuntimeError(
++            "The singleton Phase-III-on-plateau activation contract drifted."
++        )
++    domain_open = bool(insertion_round_policy.get("domain_open", False))
++    return {
++        "schema": "ra_phase3_population_activation_receipt_v1",
++        "policy": RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        "competitive_population_live": domain_open,
++        "activation_source": (
++            "same_round_authenticated_insertion_plateau_domain_open_v1"
++        ),
++        "preplateau_admission_authority": (
++            None if domain_open else "phase2_raw_score_top_rank_v1"
++        ),
++        "winner_materialization_policy": (
++            None if domain_open else expected_materialization
++        ),
++        "insertion_plateau_domain_open": domain_open,
++        "independent_latch_active": False,
++        "hysteresis_active": False,
++    }
++
++
+ def _phase1_position_probe_plan(
+     *,
+     insertion_mode: str,
+@@ -38419,6 +38582,7 @@
+             insertion_commutation_plateau_round_policy = (
+                 _insertion_commutation_plateau_round_policy(
+                     history=history,
++                    policy=adapt_insertion_mode_key,
+                 )
+                 if insertion_commutation_plateau_active
+                 else None
+@@ -55622,6 +55786,13 @@
+         self,
+         operators: Sequence[AnsatzTerm],
+     ) -> CompiledAnsatzExecutor:
++        sector_indices = self.fixed_count_auditor.joint_target_indices
++        invariant_basis_indices = (
++            sector_indices
++            if int(sector_indices.size)
++            < int(self.fixed_count_auditor.dimension)
++            else None
++        )
+         return CompiledAnsatzExecutor(
+             list(operators),
+             coefficient_tolerance=1e-12,
+@@ -55629,6 +55800,7 @@
+             sort_terms=True,
+             pauli_action_cache=self.pauli_action_cache,
+             parameterization_mode=self.parameterization_mode,
++            invariant_basis_indices=invariant_basis_indices,
+         )
+ 
+     def prepare(
+@@ -56092,9 +56264,14 @@
+     )
+     from pipelines.static_adapt.ra_adapt.contracts import (
+         ACTIVE_GRADIENT_MEASURED,
++        CANDIDATE_REPRESENTATION_MACRO,
++        CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+         RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY,
+         RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY,
+         RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
++        RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
+     )
+@@ -56106,8 +56283,12 @@
+     }:
+         return None
+     profile = str(contract.get("route_profile", ""))
++    paper_i_profile = profile.startswith("paper_i_ra_adapt__")
++    h2o_application_profile = profile.startswith(
++        "paper_iv_h2o_ra_adapt__"
++    )
+     if (
+-        not profile.startswith("paper_i_ra_adapt__")
++        not (paper_i_profile or h2o_application_profile)
+         or profile != str(kwargs.get("sr_route_profile_resolved", ""))
+         or profile != str(kwargs.get("sr_route_profile_request", ""))
+     ):
+@@ -56118,6 +56299,64 @@
+         execution, Mapping
+     ):
+         raise ValueError("The RA-ADAPT route contract is incomplete.")
++    if h2o_application_profile:
++        resolved_problem = kwargs.get("resolved_problem_context")
++        representation = invariants.get("candidate_representation")
++        application_lane = invariants.get("application_lane")
++        representation_contract = {
++            (
++                CANDIDATE_REPRESENTATION_MACRO,
++                "paper_iv_h2o_linear_fd_ra_adapt_v2",
++            ): {
++                "application_lane": "paper_iv_h2o_linear_fd_ra_adapt_v2",
++                "staged_singleton_exposure": False,
++                "staged_sector_complete_pauli_block_exposure": False,
++                "candidate_generator_semantics": (
++                    "symmetry_complete_derivative_resolved_v1"
++                ),
++                "guarded_single_pauli_child_exposure": False,
++                "sector_complete_pauli_block_exposure": False,
++            },
++            (
++                CANDIDATE_REPRESENTATION_MACRO,
++                "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_v1",
++            ): {
++                "application_lane": (
++                    "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_v1"
++                ),
++                "staged_singleton_exposure": False,
++                "staged_sector_complete_pauli_block_exposure": True,
++                "candidate_generator_semantics": (
++                    "sector_complete_pauli_block_v1"
++                ),
++                "guarded_single_pauli_child_exposure": False,
++                "sector_complete_pauli_block_exposure": True,
++            },
++        }.get((representation, application_lane))
++        if (
++            not isinstance(resolved_problem, ResolvedProblemContext)
++            or str(resolved_problem.family_key).strip().lower()
++            != "molecular_vibronic_h2o_linear_fd"
++            or execution.get("problem")
++            != "molecular_vibronic_h2o_linear_fd"
++            or execution.get("adapt_pool")
++            != "full_meta_derivative_resolved_v2"
++            or execution.get("phase3_runtime_split_mode") != "off"
++            or invariants.get("problem_family")
++            != "molecular_vibronic_h2o_linear_fd"
++            or invariants.get("operator_pool_identity")
++            != "full_meta_derivative_resolved_v2"
++            or invariants.get("singleton_admission") is not True
++            or invariants.get("raw_single_pauli_child_exposure") is not False
++            or representation_contract is None
++            or any(
++                invariants.get(key) != value
++                for key, value in representation_contract.items()
++            )
++        ):
++            raise ValueError(
++                "The Paper-IV H2O RA-ADAPT application identity drifted."
++            )
+     required = {
+         "candidate_geometry_chart": "exact_ordered_insertion_zero_angle_v1",
+         "phase3_solver": "supported_metric_projected_generalized_trust_v1",
+@@ -56135,6 +56374,62 @@
+         execution.get("historical_singleton_trust_region_update_policy", "")
+     ) != ROUTE_A_TRUST_REGION_SOURCE_METRIC_INVERSE_SQRT_NO_OVERLAP_V1:
+         raise ValueError("The RA-ADAPT no-overlap trust setting drifted.")
++    phase3_population_policy = str(
++        execution.get(
++            "ra_phase3_population_activation_policy",
++            RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        )
++    )
++    phase3_plateau_suffix = "__phase3_population_on_insertion_plateau_v1"
++    if phase3_population_policy == (
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++    ):
++        expected_phase3_plateau_contract = {
++            "candidate_representation": CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++            "phase1_activation_scope": "all_controller_rounds_v1",
++            "phase2_activation_scope": "all_controller_rounds_v1",
++            "phase3_competitive_population_activation": (
++                RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++            ),
++            "phase3_activation_source": (
++                "same_round_authenticated_insertion_plateau_domain_open_v1"
++            ),
++            "phase3_preplateau_admission_authority": (
++                "phase2_raw_score_top_rank_v1"
++            ),
++            "phase3_preplateau_materialization_policy": (
++                RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            ),
++            "phase3_activation_independent_latch": False,
++            "phase3_activation_hysteresis_active": False,
++        }
++        if (
++            not profile.endswith(phase3_plateau_suffix)
++            or execution.get("adapt_insertion_mode")
++            != "insertion_commutation_plateau_v2"
++            or execution.get(
++                "ra_phase3_preplateau_materialization_policy"
++            )
++            != RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            or any(
++                invariants.get(key) != value
++                for key, value in expected_phase3_plateau_contract.items()
++            )
++        ):
++            raise ValueError(
++                "The singleton Phase-III-on-plateau route contract drifted."
++            )
++    elif phase3_population_policy != RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS:
++        raise ValueError("The RA-ADAPT Phase-III activation policy is unknown.")
++    elif profile.endswith(phase3_plateau_suffix) or any(
++        key in execution
++        for key in (
++            "ra_phase3_preplateau_materialization_policy",
++        )
++    ):
++        raise ValueError(
++            "The RA-ADAPT route carries orphaned Phase-III plateau fields."
++        )
+     full_response_suffix = (
+         "__incremental_active_baseline__exact_guarded_full_response"
+     )
+@@ -59538,6 +59833,13 @@
+                 )
+             ),
+         }
++        phase3_population_activation = selected_runtime.get(
++            "phase3_population_activation"
++        )
++        if isinstance(phase3_population_activation, Mapping):
++            history_row["phase3_population_activation"] = copy.deepcopy(
++                phase3_population_activation
++            )
+         active_branch_id = getattr(
+             self.estimator_service.call_context,
+             "branch_id",
+@@ -61403,8 +61705,10 @@
+ 
+         adapter = self.context.candidate_adapter
+         identity_singleton_exposure = False
++        sector_complete_block_exposure = False
+         if adapter is not None:
+             from pipelines.static_adapt.ra_adapt.adapters import (
++                PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS,
+                 PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
+             )
+ 
+@@ -61418,6 +61722,16 @@
+                 )
+                 == PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY
+             )
++            sector_complete_block_exposure = bool(
++                str(
++                    getattr(
++                        adapter,
++                        "phase_ii_candidate_exposure_id",
++                        "",
++                    )
++                )
++                == PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS
++            )
+         adapter_exposure = None
+         retained_adapter_candidates: tuple[Any, ...] = ()
+         owned_child_counts: dict[str, int] = {}
+@@ -62101,9 +62415,12 @@
+                     owned_child_counts.get(parent_identity, 0)
+                 )
+                 split_parent = bool(
+-                    str(adapter.candidate_representation_id)
+-                    == "single_pauli_word_v1"
+-                    and not identity_singleton_exposure
++                    (
++                        str(adapter.candidate_representation_id)
++                        == "single_pauli_word_v1"
++                        and not identity_singleton_exposure
++                    )
++                    or sector_complete_block_exposure
+                 )
+                 expansion = {
+                     "schema": "ra_adapt_adapter_parent_expansion_v1",
+@@ -62854,6 +63171,15 @@
+     transaction = _DefaultNoPruneSelectionTransaction(
+         session=session,
+         pending=pending,
++    )
++    phase3_activation = _ra_phase3_population_activation_receipt(
++        route_contract=session.context.route_contract,
++        insertion_round_policy=pending.insertion_round_policy,
++        candidate_adapter=session.context.candidate_adapter,
++        admission_policy=session.context.admission_policy,
++    )
++    phase3_competitive_population_live = bool(
++        phase3_activation["competitive_population_live"]
+     )
+     occurrences = transaction.ledger_occurrences()
+     prefix_count = int(
+@@ -62911,7 +63237,7 @@
+                 for record in pending.domain_records
+             )
+         ),
+-        phase_live=(True, True, True),
++        phase_live=(True, True, phase3_competitive_population_live),
+         trust_state_identity=_candidate_record_payload_digest(
+             _candidate_record_cache_jsonable(
+                 session.cursor.route_a_trust_region_state
+@@ -62978,6 +63304,10 @@
+             transaction.accepted_state_snapshot
+         ),
+         sidecar=pending.runtime_sidecar,
++        phase3_competitive_population_live=(
++            phase3_competitive_population_live
++        ),
++        phase3_activation_receipt=dict(phase3_activation),
+     )
+     admission_policy = session.context.admission_policy
+     kernel: Any
+@@ -63036,7 +63366,12 @@
+ 
+     continuation = str(kwargs["adapt_continuation_mode"]).strip().lower()
+     problem = str(kwargs["problem"]).strip().lower()
+-    staged_problem = problem in {"hh", "hubbard", "molecular_restricted_closed_shell"}
++    staged_problem = problem in {
++        "hh",
++        "hubbard",
++        "molecular_restricted_closed_shell",
++        "molecular_vibronic_h2o_linear_fd",
++    }
+     phase1 = bool(
+         staged_problem
+         and continuation in {"phase1_v1", "phase2_v1", "phase3_v1"}
+@@ -63065,6 +63400,7 @@
+     if runtime_split_mode == "off":
+         if isinstance(supplied, RouteAChildPaddingConfig):
+             if str(supplied.policy).strip().lower() not in {
++                ROUTE_A_CHILD_PADDING_FULL_BINARY_CODE_SPACE_V1,
+                 ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
+                 ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+             }:
+@@ -65186,6 +65522,7 @@
+     route_profile: str,
+     route_contract: Mapping[str, Any],
+     route_contract_sha256: str,
++    gradient_tolerance: float | None = None,
+ ) -> dict[str, Any]:
+     """Compose the exact controller inputs from typed facade dependencies.
+ 
+@@ -65313,6 +65650,11 @@
+             "sr_route_profile_contract_sha256": str(route_contract_sha256),
+         }
+     )
++    if gradient_tolerance is not None:
++        threshold = float(gradient_tolerance)
++        if not math.isfinite(threshold) or threshold <= 0.0:
++            raise ValueError("gradient_tolerance must be positive and finite.")
++        kwargs["eps_grad"] = threshold
+     return kwargs
+ 
+ 
+--- a/pipelines/static_adapt/builders/legal_subspace_filter.py
++++ b/pipelines/static_adapt/builders/legal_subspace_filter.py
+@@ -100,6 +100,17 @@
+         boson_site_count = n_sites
+         non_boson_register_width = 2
+         legal_subspace_scope = "boson_codewords_with_full_emitter_register"
++    elif problem == "molecular_vibronic_h2o_linear_fd":
++        if n_sites != 6:
++            raise ValueError(
++                "molecular_vibronic_h2o_linear_fd legal-subspace filtering "
++                "requires the production six-spatial-orbital active space."
++            )
++        boson_site_count = 3
++        non_boson_register_width = 2 * n_sites
++        legal_subspace_scope = (
++            "three_normal_mode_codewords_with_full_active_fermion_register"
++        )
+     else:
+         raise ValueError(f"Unsupported problem for legal-subspace filter: {problem!r}")
+ 
+--- a/pipelines/static_adapt/builders/shared_pauli_pool_contract.py
++++ b/pipelines/static_adapt/builders/shared_pauli_pool_contract.py
+@@ -23,6 +23,7 @@
+     serialize_polynomial_terms_exyz,
+ )
+ from pipelines.static_adapt.route_a_child_padding import (
++    ROUTE_A_CHILD_PADDING_FULL_BINARY_CODE_SPACE_V1,
+     ROUTE_A_CHILD_PADDING_HARD_FILTER_V1,
+     ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+     RouteAChildPaddingConfig,
+@@ -490,9 +491,15 @@
+                 f"{mode_key} requires fixed_num_particles "
+                 "for fail-closed symmetry certification."
+             )
+-        if guarded_children_only and str(problem_key).strip().lower() != "hh":
++        problem_key_normalized = str(problem_key).strip().lower()
++        guarded_singleton_families = {
++            "hh",
++            "molecular_vibronic_h2o_linear_fd",
++        }
++        if guarded_children_only and problem_key_normalized not in guarded_singleton_families:
+             raise ValueError(
+-                "guarded_singleton_children_only_v1 currently requires problem_key='hh'."
++                "guarded_singleton_children_only_v1 requires an explicitly "
++                "supported fixed-sector fermion-boson family."
+             )
+         if guarded_children_only and (
+             n_ph_max is None
+@@ -517,8 +524,14 @@
+         )
+         meta["source_parent_ordered_pool_hash"] = _json_digest(parent_fingerprints)
+     if mode_key != SHARED_PAULI_POOL_MODE_OFF:
+-        if str(problem_key).strip().lower() not in {"hh", "hubbard"}:
+-            raise ValueError("shared_pauli_pool_mode is currently only valid for problem in {'hh','hubbard'}.")
++        if str(problem_key).strip().lower() not in {
++            "hh",
++            "hubbard",
++            "molecular_vibronic_h2o_linear_fd",
++        }:
++            raise ValueError(
++                "shared_pauli_pool_mode is not registered for this problem."
++            )
+ 
+     candidates: list[SharedPauliPoolCandidate] = []
+     guarded_raw_records: list[dict[str, Any]] = []
+@@ -918,8 +931,14 @@
+                 ),
+             )
+             record["route_a_child_lineage_records"] = lineage
++        padding_policy = (
++            ROUTE_A_CHILD_PADDING_FULL_BINARY_CODE_SPACE_V1
++            if str(problem_key).strip().lower()
++            == "molecular_vibronic_h2o_linear_fd"
++            else ROUTE_A_CHILD_PADDING_HARD_FILTER_V1
++        )
+         padding_config = RouteAChildPaddingConfig(
+-            policy=ROUTE_A_CHILD_PADDING_HARD_FILTER_V1,
++            policy=padding_policy,
+             problem_key=str(problem_key),
+             num_sites=int(num_sites),
+             n_ph_max=int(n_ph_max),
+--- a/pipelines/static_adapt/ra_adapt/__init__.py
++++ b/pipelines/static_adapt/ra_adapt/__init__.py
+@@ -7,6 +7,8 @@
+ from pipelines.static_adapt.ra_adapt.adapters import (
+     CandidateRepresentationAdapter,
+     GlobalSinglePauliWordCandidateAdapter,
++    H2OLinearFDSinglePauliWordCandidateAdapter,
++    H2OLinearFDSymmetryCompleteCandidateAdapter,
+     MacroCandidateAdapter,
+     SinglePauliWordCandidateAdapter,
+ )
+@@ -55,6 +57,8 @@
+     "CandidateLineageReceipt",
+     "CandidateRepresentationAdapter",
+     "GlobalSinglePauliWordCandidateAdapter",
++    "H2OLinearFDSinglePauliWordCandidateAdapter",
++    "H2OLinearFDSymmetryCompleteCandidateAdapter",
+     "MacroCandidateAdapter",
+     "PaperICampaignContractError",
+     "PaperICampaignPlan",
+--- a/pipelines/static_adapt/ra_adapt/adapters.py
++++ b/pipelines/static_adapt/ra_adapt/adapters.py
+@@ -15,6 +15,8 @@
+     CandidateRecord,
+     build_executable_macro_pool,
+     build_guarded_single_pauli_pool,
++    build_h2o_sector_complete_pauli_block_pool,
++    build_h2o_symmetry_complete_generator_pool,
+     build_parent_template_inventory,
+     build_staged_single_pauli_pool,
+ )
+@@ -27,18 +29,34 @@
+ GLOBAL_SINGLE_PAULI_ADAPTER_ID = (
+     "paper_i_ra_adapt_global_single_pauli_word_candidate_adapter_v1"
+ )
++H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID = (
++    "paper_iv_h2o_linear_fd_ra_adapt_single_pauli_word_candidate_adapter_v1"
++)
++H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID = (
++    "paper_iv_h2o_linear_fd_ra_adapt_symmetry_complete_candidate_adapter_v1"
++)
++H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID = (
++    "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_adapter_v1"
++)
++H2O_LINEAR_FD_APPLICATION_FAMILY = "molecular_vibronic_h2o_linear_fd"
+ 
+ PHASE_I_SUPPLY_EXECUTABLE_MACRO = "executable_macro_pool_v1"
+ PHASE_I_SUPPLY_PARENT_TEMPLATE_FACTORY = "parent_template_factory_v1"
+ PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON = (
+     "global_guarded_singleton_pool_v1"
+ )
++PHASE_I_SUPPLY_H2O_SYMMETRY_COMPLETE = (
++    "h2o_derivative_resolved_symmetry_complete_pool_v1"
++)
+ PHASE_II_EXPOSURE_RETAINED_MACRO_IDENTITY = (
+     "identity_on_retained_macro_generators_v1"
+ )
+ PHASE_II_EXPOSURE_RETAINED_PARENT_CHILDREN = (
+     "guarded_children_from_retained_parent_shortlist_v1"
+ )
++PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS = (
++    "sector_complete_pauli_blocks_from_retained_parent_shortlist_v1"
++)
+ PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY = (
+     "identity_on_retained_singletons_v1"
+ )
+@@ -218,6 +236,102 @@
+ 
+ 
+ @dataclass(frozen=True)
++class H2OLinearFDSinglePauliWordCandidateAdapter(
++    SinglePauliWordCandidateAdapter
++):
++    """Named staged-singleton adapter for the production H2O application."""
++
++    application_family_key: ClassVar[str] = H2O_LINEAR_FD_APPLICATION_FAMILY
++    application_pool_key: ClassVar[str] = "full_meta_derivative_resolved_v2"
++    adapter_id: str = H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID
++
++    def __post_init__(self) -> None:
++        if (
++            self.candidate_representation_id
++            != CANDIDATE_REPRESENTATION_SINGLE_PAULI
++            or self.adapter_id != H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID
++        ):
++            raise ValueError("H2O RA adapter identity fields are fixed.")
++
++
++@dataclass(frozen=True)
++class H2OLinearFDSymmetryCompleteCandidateAdapter(MacroCandidateAdapter):
++    """Admit one physical derivative-resolved H2O generator per round."""
++
++    application_family_key: ClassVar[str] = H2O_LINEAR_FD_APPLICATION_FAMILY
++    application_pool_key: ClassVar[str] = "full_meta_derivative_resolved_v2"
++    phase_i_candidate_supply_id: ClassVar[str] = (
++        PHASE_I_SUPPLY_H2O_SYMMETRY_COMPLETE
++    )
++    candidate_representation_id: str = CANDIDATE_REPRESENTATION_MACRO
++    adapter_id: str = H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID
++
++    def __post_init__(self) -> None:
++        if (
++            self.candidate_representation_id
++            != CANDIDATE_REPRESENTATION_MACRO
++            or self.adapter_id
++            != H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID
++        ):
++            raise ValueError("H2O RA adapter identity fields are fixed.")
++
++    def executable_pool(
++        self, problem: ResolvedProblemContext
++    ) -> CandidateInventory:
++        return build_h2o_symmetry_complete_generator_pool(problem)
++
++
++@dataclass(frozen=True)
++class H2OLinearFDSectorCompletePauliBlockCandidateAdapter(
++    MacroCandidateAdapter
++):
++    """Stage the finest Pauli blocks that preserve the H2O electron sector."""
++
++    application_family_key: ClassVar[str] = H2O_LINEAR_FD_APPLICATION_FAMILY
++    application_pool_key: ClassVar[str] = "full_meta_derivative_resolved_v2"
++    phase_i_candidate_supply_id: ClassVar[str] = (
++        PHASE_I_SUPPLY_H2O_SYMMETRY_COMPLETE
++    )
++    phase_ii_candidate_exposure_id: ClassVar[str] = (
++        PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS
++    )
++    candidate_representation_id: str = CANDIDATE_REPRESENTATION_MACRO
++    adapter_id: str = H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID
++
++    def __post_init__(self) -> None:
++        if (
++            self.candidate_representation_id
++            != CANDIDATE_REPRESENTATION_MACRO
++            or self.adapter_id
++            != H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID
++        ):
++            raise ValueError(
++                "H2O sector-complete block adapter identity fields are fixed."
++            )
++
++    def executable_pool(
++        self, problem: ResolvedProblemContext
++    ) -> CandidateInventory:
++        return build_h2o_symmetry_complete_generator_pool(problem)
++
++    def expose_children(
++        self,
++        retained_parents: Sequence[CandidateRecord],
++        *,
++        problem: ResolvedProblemContext | None = None,
++    ) -> CandidateInventory:
++        if problem is None:
++            raise TypeError(
++                "H2O sector-complete block exposure requires the resolved "
++                "problem."
++            )
++        return build_h2o_sector_complete_pauli_block_pool(
++            problem,
++            retained_parents=tuple(retained_parents),
++        )
++
++
++@dataclass(frozen=True)
+ class GlobalSinglePauliWordCandidateAdapter:
+     """Run every globally guarded Append singleton through the RA funnel.
+ 
+@@ -382,6 +496,12 @@
+     "CandidateRepresentationAdapter",
+     "GLOBAL_SINGLE_PAULI_ADAPTER_ID",
+     "GlobalSinglePauliWordCandidateAdapter",
++    "H2O_LINEAR_FD_APPLICATION_FAMILY",
++    "H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID",
++    "H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID",
++    "H2OLinearFDSinglePauliWordCandidateAdapter",
++    "H2OLinearFDSectorCompletePauliBlockCandidateAdapter",
++    "H2OLinearFDSymmetryCompleteCandidateAdapter",
+     "MACRO_ADAPTER_ID",
+     "MacroCandidateAdapter",
+     "PHASE_I_SUPPLY_EXECUTABLE_MACRO",
+@@ -390,6 +510,7 @@
+     "PHASE_I_VISIBILITY_ALL_EXECUTABLE",
+     "PHASE_II_EXPOSURE_RETAINED_MACRO_IDENTITY",
+     "PHASE_II_EXPOSURE_RETAINED_PARENT_CHILDREN",
++    "PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS",
+     "PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY",
+     "SINGLE_PAULI_ADAPTER_ID",
+     "SinglePauliWordCandidateAdapter",
+--- a/pipelines/static_adapt/ra_adapt/contracts.py
++++ b/pipelines/static_adapt/ra_adapt/contracts.py
+@@ -78,6 +78,16 @@
+ RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID = (
+     "paper_i_ra_adapt_nonstationary_incremental_full_response_v2"
+ )
++RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID = (
++    "paper_i_ra_adapt_singleton_phase3_population_on_insertion_plateau_v1"
++)
++RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS = "all_controller_rounds_v1"
++RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU = (
++    "same_round_insertion_plateau_predicate_v1"
++)
++RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION = (
++    "phase2_winner_only_refit_geometry_v1"
++)
+ RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY = (
+     "joint_minus_active_only_supported_trust_v1"
+ )
+@@ -1327,9 +1337,15 @@
+ def _adapter_from_mapping(value: Any) -> Any:
+     from pipelines.static_adapt.ra_adapt.adapters import (
+         GLOBAL_SINGLE_PAULI_ADAPTER_ID,
++        H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID,
++        H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID,
++        H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID,
+         MACRO_ADAPTER_ID,
+         SINGLE_PAULI_ADAPTER_ID,
+         GlobalSinglePauliWordCandidateAdapter,
++        H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++        H2OLinearFDSinglePauliWordCandidateAdapter,
++        H2OLinearFDSymmetryCompleteCandidateAdapter,
+         MacroCandidateAdapter,
+         SinglePauliWordCandidateAdapter,
+     )
+@@ -1338,10 +1354,16 @@
+     representation = payload.get("candidate_representation_id")
+     adapter_id = payload.get("adapter_id")
+     if representation == CANDIDATE_REPRESENTATION_MACRO:
++        if adapter_id == H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID:
++            return H2OLinearFDSectorCompletePauliBlockCandidateAdapter()
++        if adapter_id == H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID:
++            return H2OLinearFDSymmetryCompleteCandidateAdapter()
+         if adapter_id not in {None, MACRO_ADAPTER_ID}:
+             raise ValueError("Macro adapter id drifted.")
+         return MacroCandidateAdapter()
+     if representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
++        if adapter_id == H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID:
++            return H2OLinearFDSinglePauliWordCandidateAdapter()
+         if adapter_id == GLOBAL_SINGLE_PAULI_ADAPTER_ID:
+             return GlobalSinglePauliWordCandidateAdapter()
+         if adapter_id not in {None, SINGLE_PAULI_ADAPTER_ID}:
+@@ -1845,6 +1867,10 @@
+     "RA_ADAPT_RESULT_SCHEMA_V2",
+     "RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1",
+     "RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2",
++    "RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID",
++    "RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS",
++    "RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU",
++    "RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION",
+     "RA_STAGED_SELECTOR_ID",
+     "RAAdaptOperationalControls",
+     "RAAdaptRequest",
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -21,11 +21,14 @@
+     PHASE_I_VISIBILITY_ALL_EXECUTABLE,
+     PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
+     GlobalSinglePauliWordCandidateAdapter,
++    H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++    H2OLinearFDSymmetryCompleteCandidateAdapter,
+     MacroCandidateAdapter,
+     SinglePauliWordCandidateAdapter,
+ )
+ from pipelines.static_adapt.ra_adapt.contracts import (
+     ACTIVE_GRADIENT_MEASURED,
++    ACTIVE_GRADIENT_STATIONARY,
+     APPEND_ADAPT_PROTOCOL_SCHEMA,
+     BundleProtocolMaterializationAuthority,
+     CANDIDATE_REPRESENTATION_MACRO,
+@@ -42,6 +45,8 @@
+     RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY,
+     RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY,
+     RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
++    RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++    RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
+     RA_ADAPT_PROTOCOL_SCHEMA,
+     RA_ADAPT_PROTOCOL_SCHEMAS,
+     RA_ADAPT_PROTOCOL_SCHEMA_V2,
+@@ -49,11 +54,13 @@
+     RA_ADAPT_RESULT_SCHEMA_V2,
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
++    RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
+     RA_STAGED_SELECTOR_ID,
+     RAAdaptOperationalControls,
+     RAAdaptRequest,
+     RAAdaptResult,
+     RESOURCE_WEIGHTING_ALL_PHASE,
++    RESOURCE_WEIGHTING_LATE,
+     ResolvedRAAdaptProtocol,
+     SOURCE_GRAM_NO_OVERLAP_TRUST,
+     SUPPORTED_FS_WHITENED_REFIT_CHART,
+@@ -65,6 +72,7 @@
+     CandidateRecord,
+     build_candidate_inventory_lineage_receipt,
+     guarded_singleton_generator_identity,
++    require_h2o_symmetry_complete_problem,
+ )
+ from pipelines.static_adapt.ra_adapt.replay_evidence import (
+     build_ra_controller_replay_evidence,
+@@ -111,14 +119,16 @@
+     AlwaysCommutationReducedInsertion,
+     AppendCommutationReducedInsertion,
+     AppendOnlyInsertion,
++    BeamOff,
+     FreshStart,
+     PlateauCommutationInsertion,
++    PruningOff,
+     ResolvedProblemReceipt,
+     SRRunRequest,
++    SingletonAdmission,
+ )
+ from pipelines.static_adapt.ra_adapt.runtime import (
+     _execute_resolved_context,
+-    _execute_sr_snake,
+ )
+ from pipelines.static_adapt.sr_snake_route_profile import (
+     canonical_sr_snake_insertion_commutation_plateau_v1_contract,
+@@ -127,8 +137,12 @@
+     canonical_sr_snake_macro_only_physical_lanes_commutation_reduced_insertion_diagnostic_v2_contract_sha256,
+     canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract,
+     canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256,
++    canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract,
++    canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256,
+     canonical_sr_snake_macro_only_physical_lanes_v1_contract,
+     canonical_sr_snake_macro_only_physical_lanes_v1_contract_sha256,
++    canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract,
++    canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256,
+ )
+ 
+ 
+@@ -149,17 +163,27 @@
+ ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1 = (
+     RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY
+ )
++RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID = {
++    (
++        "paper_i_ra_adapt_global_singleton_"
++        "append_commutation_reduced_v1"
++    ): AppendCommutationReducedInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_plateau_commutation_v1"
++    ): PlateauCommutationInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_append_commutation_"
++        "reduced_qiskit_transpile_cost_v1"
++    ): AppendCommutationReducedInsertion.kind,
++    (
++        "paper_i_ra_adapt_global_singleton_plateau_commutation_"
++        "qiskit_transpile_cost_v1"
++    ): PlateauCommutationInsertion.kind,
++}
+ RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS = frozenset(
+-    {
+-        (
+-            "paper_i_ra_adapt_global_singleton_append_commutation_"
+-            "reduced_qiskit_transpile_cost_v1"
+-        ),
+-        (
+-            "paper_i_ra_adapt_global_singleton_plateau_commutation_"
+-            "qiskit_transpile_cost_v1"
+-        ),
+-    }
++    algorithm_id
++    for algorithm_id in RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID
++    if algorithm_id.endswith("_qiskit_transpile_cost_v1")
+ )
+ RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID = {
+     (
+@@ -209,6 +233,11 @@
+     "initial_layout": None,
+     "routing_method": None,
+ }
++H2O_LINEAR_FD_FAMILY = "molecular_vibronic_h2o_linear_fd"
++H2O_RA_MACRO_APPLICATION_LANE = "paper_iv_h2o_linear_fd_ra_adapt_v2"
++H2O_RA_SECTOR_COMPLETE_PAULI_BLOCK_APPLICATION_LANE = (
++    "paper_iv_h2o_linear_fd_ra_adapt_sector_complete_pauli_block_v1"
++)
+ ALWAYS_REDUCED_INSERTION_MODE = "full_commutation_reduced"
+ ALWAYS_REDUCED_INSERTION_SCOPE = (
+     "full_logical_ansatz_commutation_classes_every_depth_v2"
+@@ -269,6 +298,43 @@
+             sort_keys=True,
+         ).encode("utf-8")
+     ).hexdigest()
++
++
++def _h2o_application_active(
++    problem: ResolvedProblemContext | None,
++    request: RAAdaptRequest,
++) -> bool:
++    if problem is None:
++        return False
++    family = str(problem.family_key).strip().lower()
++    if family != H2O_LINEAR_FD_FAMILY:
++        return False
++    if not isinstance(
++        request.adapter,
++        (
++            H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++            H2OLinearFDSymmetryCompleteCandidateAdapter,
++        ),
++    ):
++        raise ValueError(
++            "The H2O RA application requires its named derivative-resolved "
++            "macro or staged sector-complete Pauli-block adapter."
++        )
++    require_h2o_symmetry_complete_problem(problem)
++    if not (
++        isinstance(request.method.admission, SingletonAdmission)
++        and isinstance(
++            request.method.insertion,
++            PlateauCommutationInsertion,
++        )
++        and isinstance(request.method.pruning, PruningOff)
++        and isinstance(request.method.beam, BeamOff)
++    ):
++        raise ValueError(
++            "The H2O RA application is locked to singleton admission, "
++            "plateau insertion, pruning off, and beam off."
++        )
++    return True
+ 
+ 
+ def _validate_executed_insertion_contract(
+@@ -303,15 +369,17 @@
+         declared_plateau_policy = str(
+             invariants.get("experimental_insertion_policy", "")
+         ).strip()
+-        expected_plateau_mode = (
+-            declared_plateau_policy
+-            if declared_plateau_policy
+-            in {
+-                "insertion_commutation_plateau_v1",
+-                "insertion_commutation_plateau_v2",
+-            }
+-            else "insertion_commutation_plateau_v2"
+-        )
++        if str(route_contract.get("route_profile", "")).startswith(
++            "paper_iv_h2o_ra_adapt__"
++        ):
++            expected_plateau_mode = "insertion_commutation_plateau_v1"
++        elif declared_plateau_policy in {
++            "insertion_commutation_plateau_v1",
++            "insertion_commutation_plateau_v2",
++        }:
++            expected_plateau_mode = declared_plateau_policy
++        else:
++            expected_plateau_mode = "insertion_commutation_plateau_v2"
+         if (
+             execution.get("adapt_insertion_mode")
+             != expected_plateau_mode
+@@ -342,6 +410,51 @@
+             )
+     else:
+         raise RuntimeError("Canonical RA insertion policy is unsupported.")
++    if str(algorithm_id) == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID:
++        expected_execution = {
++            "ra_phase3_population_activation_policy": (
++                RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++            ),
++            "ra_phase3_preplateau_materialization_policy": (
++                RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            ),
++        }
++        expected_invariants = {
++            "candidate_representation": CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++            "phase1_activation_scope": "all_controller_rounds_v1",
++            "phase2_activation_scope": "all_controller_rounds_v1",
++            "phase3_competitive_population_activation": (
++                RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++            ),
++            "phase3_activation_source": (
++                "same_round_authenticated_insertion_plateau_domain_open_v1"
++            ),
++            "phase3_preplateau_admission_authority": (
++                "phase2_raw_score_top_rank_v1"
++            ),
++            "phase3_preplateau_materialization_policy": (
++                RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            ),
++            "phase3_activation_independent_latch": False,
++            "phase3_activation_hysteresis_active": False,
++        }
++        if (
++            not isinstance(request.adapter, SinglePauliWordCandidateAdapter)
++            or not isinstance(request.method.admission, SingletonAdmission)
++            or not isinstance(request.method.insertion, PlateauCommutationInsertion)
++            or any(
++                execution.get(key) != value
++                for key, value in expected_execution.items()
++            )
++            or any(
++                invariants.get(key) != value
++                for key, value in expected_invariants.items()
++            )
++        ):
++            raise RuntimeError(
++                "The singleton Phase-III-on-plateau ablation drifted from "
++                "its typed route contract."
++            )
+     if str(algorithm_id) == RA_ADAPT_ALGORITHM_ID and (
+         route_contract.get("algorithm_id") != RA_ADAPT_ALGORITHM_ID
+         or execution.get("ra_active_gradient_policy")
+@@ -390,9 +503,14 @@
+             canonical_sr_snake_macro_only_physical_lanes_commutation_reduced_insertion_diagnostic_v2_contract_sha256(),
+         )
+     if isinstance(request.method.insertion, PlateauCommutationInsertion):
++        if str(algorithm_id) == RA_ADAPT_LEGACY_ALGORITHM_ID:
++            return (
++                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract(),
++                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256(),
++            )
+         return (
+-            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract(),
+-            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256(),
++            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract(),
++            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256(),
+         )
+     if isinstance(
+         request.method.insertion,
+@@ -434,15 +552,39 @@
+     active_gradient_policy: str,
+     resource_weighting_scope: str,
+     algorithm_id: str,
++    problem: ResolvedProblemContext | None = None,
+ ) -> tuple[str, str, dict[str, Any], str]:
+     representation = str(request.adapter.candidate_representation_id)
+     global_singleton_supply = _global_singleton_supply_contract(
+         request.adapter
+     )
+     algorithm_identity = str(algorithm_id)
++    phase3_population_plateau_ablation = bool(
++        algorithm_identity
++        == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
++    )
+     canonical_full_response_v2 = bool(
+         algorithm_identity == RA_ADAPT_ALGORITHM_ID
+     )
++    if phase3_population_plateau_ablation:
++        if (
++            not isinstance(request.adapter, SinglePauliWordCandidateAdapter)
++            or isinstance(request.adapter, GlobalSinglePauliWordCandidateAdapter)
++            or representation != CANDIDATE_REPRESENTATION_SINGLE_PAULI
++            or not isinstance(request.method.admission, SingletonAdmission)
++            or not isinstance(
++                request.method.insertion,
++                PlateauCommutationInsertion,
++            )
++            or str(active_gradient_policy) != ACTIVE_GRADIENT_STATIONARY
++            or str(resource_weighting_scope) != RESOURCE_WEIGHTING_LATE
++        ):
++            raise ValueError(
++                "The Phase-III-on-plateau ablation requires the Paper-I "
++                "single-Pauli adapter, singleton admission, plateau-v2 "
++                "insertion, stationary active response, and late resource "
++                "weighting."
++            )
+     if canonical_full_response_v2 and (
+         str(active_gradient_policy) != ACTIVE_GRADIENT_MEASURED
+     ):
+@@ -494,10 +636,29 @@
+             "weighting so Phases I, II, and III share the transpiled cost."
+         )
+     sr_request = _sr_request(request)
+-    if representation == CANDIDATE_REPRESENTATION_MACRO:
++    h2o_application = _h2o_application_active(problem, request)
++    if h2o_application:
++        parent_contract = (
++            canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
++        )
++        parent_digest = (
++            canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256()
++        )
++        policy_parent_contract = json.loads(
++            json.dumps(parent_contract, sort_keys=True)
++        )
++        parent_execution = dict(
++            policy_parent_contract.get("execution_settings", {})
++        )
++        parent_execution["adapt_insertion_mode"] = (
++            "insertion_commutation_plateau_v1"
++        )
++        policy_parent_contract["execution_settings"] = parent_execution
++    elif representation == CANDIDATE_REPRESENTATION_MACRO:
+         parent_contract, parent_digest = _macro_parent_contract(
+             request, algorithm_id=algorithm_id
+         )
++        policy_parent_contract = parent_contract
+     elif representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
+         if (
+             algorithm_identity == RA_ADAPT_LEGACY_ALGORITHM_ID
+@@ -519,17 +680,34 @@
+                 parent_contract,
+                 parent_digest,
+             ) = _canonical_route_contract_for_request(sr_request)
++        policy_parent_contract = parent_contract
+     else:
+         raise ValueError("Unknown RA candidate representation.")
+ 
+     insertion_mode = str(
+-        parent_contract.get("execution_settings", {}).get(
++        policy_parent_contract.get("execution_settings", {}).get(
+             "adapt_insertion_mode", ""
+         )
+     )
++    h2o_candidate_route_suffix = (
++        "__sector_complete_pauli_block_exposure_v1"
++        if h2o_application
++        and isinstance(
++            request.adapter,
++            H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++        )
++        else "__symmetry_complete_macro_v1"
++        if h2o_application
++        else ""
++    )
+     profile = (
+-        "paper_i_ra_adapt__"
++        (
++            "paper_iv_h2o_ra_adapt__"
++            if h2o_application
++            else "paper_i_ra_adapt__"
++        )
+         + representation
++        + h2o_candidate_route_suffix
+         + "__"
+         + insertion_mode
+         + (
+@@ -551,8 +729,13 @@
+             if qiskit_cost_active
+             else ""
+         )
++        + (
++            "__phase3_population_on_insertion_plateau_v1"
++            if phase3_population_plateau_ablation
++            else ""
++        )
+     )
+-    contract = json.loads(json.dumps(parent_contract, sort_keys=True))
++    contract = json.loads(json.dumps(policy_parent_contract, sort_keys=True))
+     contract["schema"] = (
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2
+         if canonical_full_response_v2
+@@ -596,6 +779,29 @@
+                 ),
+             }
+         )
++    if phase3_population_plateau_ablation:
++        execution.update(
++            {
++                "ra_phase3_population_activation_policy": (
++                    RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                ),
++                "ra_phase3_preplateau_materialization_policy": (
++                    RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++                ),
++            }
++        )
++    if h2o_application:
++        execution.update(
++            {
++                "problem": H2O_LINEAR_FD_FAMILY,
++                "adapt_pool": "full_meta_derivative_resolved_v2",
++                "adapt_parallel_gradient_workers": 8,
++                "allow_archival_phase3_runtime_split": False,
++                "phase3_runtime_split_mode": "off",
++                "phase3_runtime_split_selection_mode": "off",
++                "phase3_backend_cost_mode": "proxy",
++            }
++        )
+     if qiskit_cost_active:
+         execution.update(
+             {
+@@ -674,6 +880,63 @@
+                 ),
+             }
+         )
++    if phase3_population_plateau_ablation:
++        invariants.update(
++            {
++                "phase1_activation_scope": "all_controller_rounds_v1",
++                "phase2_activation_scope": "all_controller_rounds_v1",
++                "phase3_competitive_population_activation": (
++                    RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                ),
++                "phase3_activation_source": (
++                    "same_round_authenticated_insertion_plateau_domain_open_v1"
++                ),
++                "phase3_preplateau_admission_authority": (
++                    "phase2_raw_score_top_rank_v1"
++                ),
++                "phase3_preplateau_materialization_policy": (
++                    RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++                ),
++                "phase3_activation_independent_latch": False,
++                "phase3_activation_hysteresis_active": False,
++            }
++        )
++    if h2o_application:
++        h2o_sector_blocks = isinstance(
++            request.adapter,
++            H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++        )
++        for retired_key in (
++            "child_padding_policy",
++            "child_padding_projection_required",
++            "child_padding_reason",
++        ):
++            invariants.pop(retired_key, None)
++        invariants.update(
++            {
++                "application_lane": (
++                    H2O_RA_SECTOR_COMPLETE_PAULI_BLOCK_APPLICATION_LANE
++                    if h2o_sector_blocks
++                    else H2O_RA_MACRO_APPLICATION_LANE
++                ),
++                "problem_family": H2O_LINEAR_FD_FAMILY,
++                "operator_pool_identity": "full_meta_derivative_resolved_v2",
++                "singleton_admission": True,
++                "staged_singleton_exposure": False,
++                "staged_sector_complete_pauli_block_exposure": (
++                    h2o_sector_blocks
++                ),
++                "candidate_generator_semantics": (
++                    "sector_complete_pauli_block_v1"
++                    if h2o_sector_blocks
++                    else "symmetry_complete_derivative_resolved_v1"
++                ),
++                "raw_single_pauli_child_exposure": False,
++                "guarded_single_pauli_child_exposure": False,
++                "sector_complete_pauli_block_exposure": h2o_sector_blocks,
++                "normal_mode_count": 3,
++            }
++        )
+     if global_singleton_supply is not None:
+         invariants.update(global_singleton_supply)
+     if qiskit_cost_active:
+@@ -703,6 +966,26 @@
+                 "guarded_full_existing_plus_new_coordinate_refit_seed",
+             ]
+         )
++    if phase3_population_plateau_ablation:
++        only_intended_scientific_changes.append(
++            "phase3_competitive_population_activates_on_same_round_"
++            "insertion_plateau"
++        )
++    if h2o_application:
++        only_intended_scientific_changes.extend(
++            [
++                "h2o_linear_fd_problem_application",
++                "derivative_resolved_h2o_parent_pool",
++                (
++                    "staged_sector_complete_pauli_block_exposure"
++                    if isinstance(
++                        request.adapter,
++                        H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++                    )
++                    else "singleton_admission_of_symmetry_complete_generators"
++                ),
++            ]
++        )
+     if global_singleton_supply is not None:
+         only_intended_scientific_changes.extend(
+             [
+@@ -718,8 +1001,15 @@
+         "parent_route_profile": str(parent_contract["route_profile"]),
+         "parent_contract_sha256": str(parent_digest),
+         "supersession_reason": (
+-            "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
++            (
++                "paper_iv_h2o_ra_adapt_nonstationary_full_response_v2_"
++                "20260731"
++            )
++            if h2o_application and canonical_full_response_v2
++            else "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
+             if canonical_full_response_v2
++            else "paper_i_ra_adapt_singleton_phase3_plateau_ablation_20260802"
++            if phase3_population_plateau_ablation
+             else "paper_i_ra_adapt_unification_repair_20260727"
+         ),
+         "only_intended_scientific_changes": (
+@@ -832,13 +1122,25 @@
+     horizon = int(sr_request.execution.stop.maximum_controller_rounds)
+     if horizon < 1:
+         raise ValueError("RA protocols require a positive controller horizon.")
+-    (
+-        _route_request,
+-        parent_route,
+-        _parent_contract,
+-        parent_digest,
+-    ) = _canonical_route_contract_for_request(sr_request)
++    h2o_application = _h2o_application_active(problem, request)
++    if h2o_application:
++        h2o_parent = (
++            canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
++        )
++        parent_route = str(h2o_parent["route_profile"])
++        parent_digest = (
++            canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256()
++        )
++    else:
++        (
++            _route_request,
++            parent_route,
++            _parent_contract,
++            parent_digest,
++        ) = _canonical_route_contract_for_request(sr_request)
+     if (
++        not h2o_application
++        and
+         request.adapter.candidate_representation_id
+         == CANDIDATE_REPRESENTATION_MACRO
+     ):
+@@ -923,6 +1225,7 @@
+             active_gradient_policy=str(active_gradient_policy),
+             resource_weighting_scope=str(resource_weighting_scope),
+             algorithm_id=str(algorithm_id),
++            problem=problem,
+         )
+         payload["route_contract"] = {
+             **bound_route_contract,
+@@ -1831,6 +2134,10 @@
+         )
+         canonical_full_response_v2 = bool(
+             str(algorithm_id or "") == RA_ADAPT_ALGORITHM_ID
++        )
++        phase3_population_plateau_ablation = bool(
++            str(algorithm_id or "")
++            == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
+         )
+         fixed_refit_chart = _required_accepted_refit_fixed_chart(raw_row)
+         scored_positions = raw_row.get(
+@@ -1959,7 +2266,65 @@
+                 ) from exc
+             round_receipt["insertion_commutation_plateau"] = (
+                 copy.deepcopy(dict(plateau))
++            )
++        if phase3_population_plateau_ablation:
++            activation = raw_row.get("phase3_population_activation")
++            projected = raw_row.get(
++                "projected_phase3_population_receipt"
+             )
++            if (
++                not isinstance(plateau, Mapping)
++                or not isinstance(activation, Mapping)
++                or not isinstance(projected, Mapping)
++                or activation.get("schema")
++                != "ra_phase3_population_activation_receipt_v1"
++                or activation.get("policy")
++                != RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                or activation.get("competitive_population_live")
++                is not plateau.get("domain_open")
++                or activation.get("insertion_plateau_domain_open")
++                is not plateau.get("domain_open")
++                or activation.get("independent_latch_active") is not False
++                or activation.get("hysteresis_active") is not False
++                or projected.get("competitive_population_activation")
++                != activation
++            ):
++                raise RuntimeError(
++                    "Accepted singleton Phase-III activation did not project "
++                    "the authenticated plateau predicate."
++                )
++            phase3_live = bool(activation["competitive_population_live"])
++            competitive_count = int(
++                projected.get("competitive_population_input_count", -1)
++            )
++            available_count = int(
++                projected.get("phase2_available_shortlist_count", -1)
++            )
++            if (
++                competitive_count < 1
++                or available_count < competitive_count
++                or (not phase3_live and competitive_count != 1)
++                or (
++                    not phase3_live
++                    and activation.get("preplateau_admission_authority")
++                    != "phase2_raw_score_top_rank_v1"
++                )
++                or (
++                    not phase3_live
++                    and activation.get("winner_materialization_policy")
++                    != RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++                )
++            ):
++                raise RuntimeError(
++                    "Accepted singleton Phase-III competitive population "
++                    "receipt is inconsistent."
++                )
++            round_receipt["phase3_population_activation"] = (
++                copy.deepcopy(dict(activation))
++            )
++            round_receipt["projected_phase3_population_receipt"] = (
++                copy.deepcopy(dict(projected))
++            )
+         reduced = raw_row.get("insertion_commutation_reduced")
+         if reduced is not None:
+             reduced_policy = (
+@@ -2384,13 +2749,15 @@
+ 
+     if not isinstance(problem, ResolvedProblemContext):
+         raise TypeError("problem must be a ResolvedProblemContext.")
+-    if (
+-        str(problem.family_key).strip().lower() != "hh"
+-        or int(problem.request.num_sites) != 2
++    family_key = str(problem.family_key).strip().lower()
++    if not (
++        (family_key == "hh" and int(problem.request.num_sites) == 2)
++        or family_key == H2O_LINEAR_FD_FAMILY
+     ):
+         raise ValueError(
+-            "The canonical Paper-I RA-ADAPT facade is locked to the "
+-            "canonical Hubbard--Holstein L=2 problem."
++            "The RA-ADAPT facade supports canonical Paper-I "
++            "Hubbard--Holstein L=2 or an explicitly named lane-owned "
++            "application."
+         )
+     bundle_resolved = isinstance(request, ResolvedRAAdaptProtocol)
+     if request is None:
+@@ -2411,6 +2778,7 @@
+             "request must be RAAdaptRequest, a bundle-resolved RA protocol, "
+             "or None."
+         )
++    _h2o_application_active(problem, public_request)
+ 
+     if operational_controls is not None:
+         if not bundle_resolved:
+@@ -2519,13 +2887,28 @@
+         == RESOURCE_WEIGHTING_ALL_PHASE
+     )
+     if historical_singleton_passthrough:
+-        completed = _execute_sr_snake(problem, sr_request)
++        legacy_contract = (
++            canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++        )
++        route_override = (
++            str(legacy_contract["route_profile"]),
++            str(legacy_contract["route_profile"]),
++            legacy_contract,
++            canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256(),
++        )
++        context = _resolve_execution_context(
++            problem,
++            sr_request,
++            route_override=route_override,
++        )
++        completed = _execute_resolved_context(context, sr_request)
+     else:
+         route_override = _repaired_route_contract(
+             public_request,
+             active_gradient_policy=protocol.active_gradient_policy,
+             resource_weighting_scope=protocol.resource_weighting_scope,
+             algorithm_id=protocol.algorithm_id,
++            problem=problem,
+         )
+         if protocol.algorithm_id == RA_ADAPT_ALGORITHM_ID:
+             bound_route = protocol.route_contract
+@@ -2562,8 +2945,26 @@
+         adapter_id=protocol.adapter_id,
+         candidate_representation=protocol.candidate_representation,
+         executable_inventory=executable_inventory,
++        algorithm_id=protocol.algorithm_id,
++    )
++    route_contract = finalization.get("sr_route_profile_contract")
++    if not isinstance(route_contract, Mapping):
++        raise RuntimeError(
++            "Canonical RA finalization is missing its resolved route contract."
++        )
++    _validate_executed_insertion_contract(
++        public_request,
++        route_contract,
+         algorithm_id=protocol.algorithm_id,
+     )
++    route_execution = route_contract.get("execution_settings")
++    if not isinstance(route_execution, Mapping):
++        raise RuntimeError(
++            "Canonical RA finalization omitted route execution settings."
++        )
++    expected_plateau_policy = str(
++        route_execution.get("adapt_insertion_mode", "")
++    )
+     insertion_policy = public_request.method.insertion
+     for round_receipt in accepted_round_receipts:
+         has_plateau = "insertion_commutation_plateau" in round_receipt
+@@ -2624,6 +3025,14 @@
+             _validate_endpoint_only_accepted_round(round_receipt)
+         elif isinstance(insertion_policy, PlateauCommutationInsertion):
+             plateau = round_receipt.get("insertion_commutation_plateau")
++            if (
++                not isinstance(plateau, Mapping)
++                or plateau.get("policy") != expected_plateau_policy
++            ):
++                raise RuntimeError(
++                    "Plateau-insertion receipt disagrees with its executed "
++                    "route policy."
++                )
+             _validate_reduced_accepted_round_admission(
+                 round_receipt,
+                 reduction_key="insertion_commutation_plateau",
+@@ -2642,16 +3051,6 @@
+                 reduction_key="insertion_commutation_reduced",
+             )
+     latest_round = accepted_round_receipts[-1]
+-    route_contract = finalization.get("sr_route_profile_contract")
+-    if not isinstance(route_contract, Mapping):
+-        raise RuntimeError(
+-            "Canonical RA finalization is missing its resolved route contract."
+-        )
+-    _validate_executed_insertion_contract(
+-        public_request,
+-        route_contract,
+-        algorithm_id=protocol.algorithm_id,
+-    )
+     deferred_fallback = _required_deferred_gram_fallback(finalization)
+     numerical_physical_integrity = (
+         build_ra_numerical_physical_integrity(
+--- /dev/null
++++ b/pipelines/static_adapt/ra_adapt/h2o_application.py
+@@ -0,0 +1,301 @@
++"""Checkpointed local launcher for the production H2O RA-ADAPT lane."""
++
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++from pathlib import Path
++from typing import Any
++
++from pipelines.contracts.problem import ProblemRequest
++from pipelines.static_adapt.builders.problem_registry import (
++    resolve_problem_context,
++)
++from pipelines.static_adapt.ra_adapt.adapters import (
++    H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
++    H2OLinearFDSymmetryCompleteCandidateAdapter,
++)
++from pipelines.static_adapt.ra_adapt.contracts import (
++    CANDIDATE_REPRESENTATION_MACRO,
++    CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++    RAAdaptRequest,
++)
++from pipelines.static_adapt.ra_adapt.engine import (
++    build_resolved_ra_protocol,
++    run_ra_adapt,
++)
++from pipelines.static_adapt.sr_snake.contracts import (
++    BeamOff,
++    CheckpointObservation,
++    EstimatorLedgerObservation,
++    ExactEDSourceReceipt,
++    ExactEDStop,
++    PlateauCommutationInsertion,
++    PruningOff,
++    SRExecutionPolicy,
++    SRMethodPolicy,
++    SRObservationPolicy,
++    SRStopPolicy,
++    SingletonAdmission,
++)
++from src.quantum.chemistry.vibronic_h2o_linear_fd import (
++    load_cached_production_vibronic_h2o_linear_fd_fixture,
++)
++
++
++DEFAULT_GRADIENT_TOLERANCE = 5.0e-7
++DEFAULT_CHEMICAL_ACCURACY_HARTREE = 1.6e-3
++H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK = (
++    "sector_complete_pauli_block_v1"
++)
++
++
++def _candidate_adapter(candidate_representation: str) -> Any:
++    representation = str(candidate_representation).strip()
++    if representation == H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK:
++        return H2OLinearFDSectorCompletePauliBlockCandidateAdapter()
++    if representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
++        raise ValueError(
++            "Raw H2O single-Pauli children are not sector-complete. Use "
++            f"{H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK!r}."
++        )
++    if representation == CANDIDATE_REPRESENTATION_MACRO:
++        return H2OLinearFDSymmetryCompleteCandidateAdapter()
++    raise ValueError(
++        "Unsupported H2O candidate representation "
++        f"{candidate_representation!r}."
++    )
++
++
++def _sha256(path: Path) -> str:
++    digest = hashlib.sha256()
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def _write_json(path: Path, payload: Any) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(
++        json.dumps(payload, allow_nan=False, indent=2, sort_keys=True) + "\n",
++        encoding="utf-8",
++    )
++
++
++def _problem(fixture: Path) -> Any:
++    cached = load_cached_production_vibronic_h2o_linear_fd_fixture(fixture)
++    model = cached.model
++    return resolve_problem_context(
++        ProblemRequest(
++            problem_key="molecular_vibronic_h2o_linear_fd",
++            num_sites=int(model.n_spatial_orbitals),
++            t=1.0,
++            u=0.0,
++            dv=0.0,
++            omega0=1.0,
++            g_ep=1.0,
++            n_ph_max=max(int(value) for value in model.mode_cutoffs),
++            boson_encoding="binary",
++            ordering="blocked",
++            boundary="open",
++            include_zero_point=True,
++            molecular_vibronic_h2o_linear_fd_fixture_json=str(fixture),
++        )
++    )
++
++
++def build_h2o_ra_request(
++    *,
++    problem: Any,
++    output_dir: Path,
++    maximum_controller_rounds: int,
++    gradient_tolerance: float,
++    exact_absolute_tolerance: float,
++    exact_confirmation_controller_rounds: int = 0,
++    candidate_representation: str = (
++        H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK
++    ),
++) -> RAAdaptRequest:
++    exact_energy = float(problem.exact_target.resolve_energy())
++    exact_source = ExactEDSourceReceipt.from_problem(
++        problem,
++        source_id="paper_iv_h2o_linear_fd_same_cutoff_sector_ed_v1",
++    )
++    return RAAdaptRequest(
++        adapter=_candidate_adapter(candidate_representation),
++        method=SRMethodPolicy(
++            admission=SingletonAdmission(),
++            insertion=PlateauCommutationInsertion(),
++            pruning=PruningOff(),
++            beam=BeamOff(),
++        ),
++        execution=SRExecutionPolicy(
++            stop=SRStopPolicy(
++                maximum_controller_rounds=maximum_controller_rounds,
++                exact_ed_target=ExactEDStop(
++                    energy=exact_energy,
++                    absolute_tolerance=exact_absolute_tolerance,
++                    source=exact_source,
++                    confirmation_controller_rounds=(
++                        exact_confirmation_controller_rounds
++                    ),
++                ),
++                gradient_tolerance=gradient_tolerance,
++            )
++        ),
++        observation=SRObservationPolicy(
++            checkpoint=CheckpointObservation(
++                path=output_dir / "current.json",
++                every_controller_rounds=1,
++                keep_history_tail=100,
++            ),
++            estimator_ledger=EstimatorLedgerObservation(
++                path=output_dir / "estimator_call_ledger.json"
++            ),
++        ),
++    )
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--fixture", type=Path, required=True)
++    parser.add_argument("--output-dir", type=Path, required=True)
++    parser.add_argument("--maximum-controller-rounds", type=int, default=50)
++    parser.add_argument(
++        "--gradient-tolerance",
++        type=float,
++        default=DEFAULT_GRADIENT_TOLERANCE,
++    )
++    parser.add_argument(
++        "--exact-absolute-tolerance",
++        type=float,
++        default=DEFAULT_CHEMICAL_ACCURACY_HARTREE,
++    )
++    parser.add_argument(
++        "--exact-confirmation-controller-rounds",
++        type=int,
++        default=0,
++    )
++    parser.add_argument(
++        "--candidate-representation",
++        choices=(
++            H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK,
++            CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++            CANDIDATE_REPRESENTATION_MACRO,
++        ),
++        default=H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK,
++    )
++    args = parser.parse_args()
++
++    fixture = args.fixture.expanduser().resolve()
++    output_dir = args.output_dir.expanduser().resolve()
++    if not fixture.is_file():
++        raise FileNotFoundError(f"H2O fixture does not exist: {fixture}")
++    output_dir.mkdir(parents=True, exist_ok=True)
++    result_path = output_dir / "result.json"
++    if result_path.exists():
++        raise FileExistsError(
++            f"Refusing to overwrite completed H2O RA result: {result_path}"
++        )
++
++    problem = _problem(fixture)
++    request = build_h2o_ra_request(
++        problem=problem,
++        output_dir=output_dir,
++        maximum_controller_rounds=args.maximum_controller_rounds,
++        gradient_tolerance=args.gradient_tolerance,
++        exact_absolute_tolerance=args.exact_absolute_tolerance,
++        exact_confirmation_controller_rounds=(
++            args.exact_confirmation_controller_rounds
++        ),
++        candidate_representation=args.candidate_representation,
++    )
++    protocol = build_resolved_ra_protocol(problem, request)
++    _write_json(output_dir / "protocol.json", protocol.to_dict())
++    _write_json(
++        output_dir / "launch_manifest.json",
++        {
++            "schema": "paper_iv_h2o_ra_plateau_local_launch_v3",
++            "fixture": str(fixture),
++            "fixture_sha256": _sha256(fixture),
++            "protocol_sha256": protocol.sha256,
++            "route_profile": protocol.route_contract["route_profile"],
++            "route_contract_sha256": protocol.route_contract["sha256"],
++            "maximum_controller_rounds": args.maximum_controller_rounds,
++            "gradient_tolerance": args.gradient_tolerance,
++            "exact_absolute_tolerance": args.exact_absolute_tolerance,
++            "exact_confirmation_controller_rounds": (
++                args.exact_confirmation_controller_rounds
++            ),
++            "candidate_representation": protocol.candidate_representation,
++            "candidate_mode": args.candidate_representation,
++            "candidate_adapter_id": request.adapter.adapter_id,
++            "fresh_start": True,
++        },
++    )
++    print(
++        json.dumps(
++            {
++                "event": "paper_iv_h2o_ra_launch",
++                "protocol_sha256": protocol.sha256,
++                "route_profile": protocol.route_contract["route_profile"],
++                "maximum_controller_rounds": args.maximum_controller_rounds,
++                "gradient_tolerance": args.gradient_tolerance,
++                "exact_absolute_tolerance": args.exact_absolute_tolerance,
++                "exact_confirmation_controller_rounds": (
++                    args.exact_confirmation_controller_rounds
++                ),
++                "candidate_representation": (
++                    protocol.candidate_representation
++                ),
++                "candidate_mode": args.candidate_representation,
++                "candidate_adapter_id": request.adapter.adapter_id,
++            },
++            sort_keys=True,
++        ),
++        flush=True,
++    )
++    result = run_ra_adapt(problem, protocol)
++    _write_json(result_path, result.to_dict())
++    _write_json(
++        output_dir / "summary.json",
++        {
++            "schema": "paper_iv_h2o_ra_plateau_local_summary_v3",
++            "protocol_sha256": protocol.sha256,
++            "candidate_representation": protocol.candidate_representation,
++            "candidate_adapter_id": request.adapter.adapter_id,
++            "completed_controller_rounds": (
++                result.run.stop.completed_controller_rounds
++            ),
++            "accepted_operator_count": result.run.stop.accepted_operator_count,
++            "stop_reason": result.run.stop.primary_reason,
++            "energy_hartree": result.run.final_state.energy,
++            "exact_energy_hartree": (
++                result.run.canonical_reporting.exact_same_cutoff_energy
++            ),
++            "absolute_error_hartree": abs(
++                result.run.final_state.energy
++                - result.run.canonical_reporting.exact_same_cutoff_energy
++            ),
++            "chemical_accuracy_reached": bool(
++                abs(
++                    result.run.final_state.energy
++                    - result.run.canonical_reporting.exact_same_cutoff_energy
++                )
++                <= args.exact_absolute_tolerance
++            ),
++            "exact_first_hit_controller_round": (
++                result.run.stop.exact_first_hit_controller_round
++            ),
++            "exact_confirmation_controller_rounds": (
++                result.run.stop.exact_confirmation_controller_rounds
++            ),
++        },
++    )
++    print((output_dir / "summary.json").read_text(encoding="utf-8"), flush=True)
++
++
++if __name__ == "__main__":
++    main()
+--- a/pipelines/static_adapt/ra_adapt/pools.py
++++ b/pipelines/static_adapt/ra_adapt/pools.py
+@@ -25,12 +25,16 @@
+     canonical_sha256,
+ )
+ from pipelines.static_adapt.sector_invariants import (
++    audit_generator_sector_contract,
+     audit_candidate_pool_sector_contract,
++    resolve_fixed_count_qubit_groups,
+ )
+ from pipelines.scaffold.hh_continuation_generators import (
+     serialize_polynomial_terms_exyz,
+ )
+ from src.quantum.vqe_latex_python_pairs import AnsatzTerm
++from src.quantum.pauli_polynomial_class import PauliPolynomial
++from src.quantum.qubitization_module import PauliTerm
+ 
+ 
+ PARENT_TEMPLATE_INVENTORY_SCHEMA = "ra_adapt_parent_template_inventory_v1"
+@@ -40,10 +44,22 @@
+ GUARDED_SINGLETON_GENERATOR_IDENTITY_SCHEMA = (
+     "ra_adapt_guarded_singleton_intrinsic_generator_identity_v1"
+ )
++H2O_SYMMETRY_COMPLETE_POOL_SCHEMA = (
++    "paper_iv_h2o_ra_adapt_symmetry_complete_generator_pool_v1"
++)
++H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA = (
++    "paper_iv_h2o_ra_adapt_sector_complete_pauli_block_pool_v1"
++)
++H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA = (
++    "paper_iv_h2o_sector_complete_pauli_block_identity_v1"
++)
+ 
+ EXPECTED_PARENT_COUNTS = {3: 123, 7: 171}
+ EXPECTED_EXECUTABLE_MACRO_COUNTS = {3: 102, 7: 148}
+ EXPECTED_MACRO_REMOVED_COUNTS = {3: 21, 7: 23}
++H2O_LINEAR_FD_FAMILY = "molecular_vibronic_h2o_linear_fd"
++H2O_DERIVATIVE_RESOLVED_POOL = "full_meta_derivative_resolved_v2"
++EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT = 448
+ 
+ 
+ @dataclass(frozen=True)
+@@ -169,6 +185,77 @@
+         )
+ 
+ 
++def require_h2o_symmetry_complete_problem(
++    problem: ResolvedProblemContext,
++) -> None:
++    """Require the supported three-mode CAS(8e,6o) full-binary H2O lane."""
++
++    if not isinstance(problem, ResolvedProblemContext):
++        raise TypeError("problem must be a ResolvedProblemContext.")
++    n_ph_max = int(problem.request.n_ph_max)
++    level_count = n_ph_max + 1
++    qubits_per_mode = max(0, (level_count - 1).bit_length())
++    mode_cutoffs = tuple(
++        int(value)
++        for value in problem.runtime_data.get(
++            "vibronic_h2o_linear_fd_mode_cutoffs",
++            (),
++        )
++    )
++    if (
++        str(problem.family_key).strip().lower() != H2O_LINEAR_FD_FAMILY
++        or int(problem.request.num_sites) != 6
++        or tuple(int(value) for value in problem.sector.num_particles)
++        != (4, 4)
++        or str(problem.request.boson_encoding).strip().lower() != "binary"
++        or level_count < 1
++        or bool(level_count & (level_count - 1))
++        or mode_cutoffs != (n_ph_max, n_ph_max, n_ph_max)
++        or int(problem.layout.fermion_qubits) != 12
++        or int(problem.layout.boson_qubits) != 3 * qubits_per_mode
++        or int(problem.layout.total_qubits) != 12 + 3 * qubits_per_mode
++    ):
++        raise ValueError(
++            "The H2O RA application requires the three-mode CAS(8e,6o), "
++            "(4 alpha, 4 beta), equal-cutoff full-binary linear-FD problem."
++        )
++
++
++def _require_supported_singleton_problem(
++    problem: ResolvedProblemContext,
++) -> None:
++    if not isinstance(problem, ResolvedProblemContext):
++        raise TypeError("problem must be a ResolvedProblemContext.")
++    family = str(problem.family_key).strip().lower()
++    if family == "hh" and int(problem.request.num_sites) == 2:
++        return
++    if family == H2O_LINEAR_FD_FAMILY:
++        require_h2o_symmetry_complete_problem(problem)
++        return
++    raise ValueError(
++        "The staged RA singleton pool supports canonical Paper-I HH L=2 "
++        "or the named Paper-IV H2O linear-FD CAS(8e,6o) lane."
++    )
++
++
++def _parent_pool_spec(problem: ResolvedProblemContext) -> dict[str, Any]:
++    _require_supported_singleton_problem(problem)
++    family = str(problem.family_key).strip().lower()
++    if family == "hh":
++        return {
++            "problem_key": "hh",
++            "num_sites": 2,
++            "pool_key": "full_meta",
++            "boson_mode_count": 2,
++        }
++    return {
++        "problem_key": H2O_LINEAR_FD_FAMILY,
++        "num_sites": 6,
++        "pool_key": H2O_DERIVATIVE_RESOLVED_POOL,
++        "boson_mode_count": 3,
++    }
++
++
+ def _serialized_terms(term: AnsatzTerm) -> tuple[dict[str, Any], ...]:
+     return tuple(
+         dict(row) for row in serialize_polynomial_terms_exyz(term.polynomial)
+@@ -185,12 +272,15 @@
+ def _parent_records(
+     problem: ResolvedProblemContext,
+ ) -> tuple[tuple[CandidateRecord, ...], Any]:
+-    _require_paper_i_problem(problem)
++    spec = _parent_pool_spec(problem)
++    problem_key = str(spec["problem_key"])
++    num_sites = int(spec["num_sites"])
++    pool_key = str(spec["pool_key"])
+     filters = resolve_requested_pool_filters(
+-        problem_key="hh",
+-        num_sites=2,
++        problem_key=problem_key,
++        num_sites=num_sites,
+         n_ph_max=int(problem.request.n_ph_max),
+-        adapt_pool="full_meta",
++        adapt_pool=pool_key,
+         adapt_pool_class_filter_json=None,
+         adapt_pool_label_filter_json=None,
+         adapt_selected_logical_source_json=None,
+@@ -200,7 +290,7 @@
+     plan = resolve_pool_plan(
+         resolved_problem=problem,
+         continuation_mode="benchmark_static_geo_adapt",
+-        adapt_pool="full_meta",
++        adapt_pool=pool_key,
+         paop_r=2,
+         paop_split_paulis=False,
+         paop_prune_eps=1.0e-12,
+@@ -228,14 +318,14 @@
+                 family_id=str(
+                     plan.pool_family_ids[index]
+                     if index < len(plan.pool_family_ids)
+-                    else "full_meta"
++                    else pool_key
+                 ),
+                 stage_family=str(
+                     plan.pool_stage_family[index]
+                     if index < len(plan.pool_stage_family)
+                     else "shared"
+                 ),
+-                construction=f"full_meta::{plan.pool_key}",
++                construction=f"{pool_key}::{plan.pool_key}",
+                 execution_mode=str(
+                     getattr(term, "execution_mode", "termwise_product")
+                     or "termwise_product"
+@@ -306,7 +396,12 @@
+             for record in records
+         )
+     nph = int(problem.request.n_ph_max)
+-    expected = EXPECTED_PARENT_COUNTS.get(nph)
++    family = str(problem.family_key).strip().lower()
++    expected = (
++        EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT
++        if family == H2O_LINEAR_FD_FAMILY
++        else EXPECTED_PARENT_COUNTS.get(nph)
++    )
+     if expected is not None and len(records) != expected:
+         raise RuntimeError(
+             f"Parent full_meta inventory drifted at nph={nph}: "
+@@ -337,6 +432,7 @@
+ ) -> CandidateInventory:
+     """Return the sector-safe 102/148 macro pool shared by RA and Append."""
+ 
++    _require_paper_i_problem(problem)
+     parent = build_parent_template_inventory(
+         problem, representation_id=CANDIDATE_REPRESENTATION_MACRO
+     )
+@@ -402,9 +498,366 @@
+             "prefilter_sector_audit": dict(audit),
+             "parent_sector_filter_policy": dict(policy),
+         },
++    )
++
++
++def build_h2o_symmetry_complete_generator_pool(
++    problem: ResolvedProblemContext,
++) -> CandidateInventory:
++    """Return all sector-preserving derivative-resolved H2O generators.
++
++    A single Jordan--Wigner Pauli child of a fermionic excitation generally
++    leaks from the fixed ``(N_alpha, N_beta)`` sector.  The complete grouped
++    generator restores the cancellation that makes the excitation physical.
++    This pool therefore keeps singleton *admission* while preserving each
++    symmetry-complete generator as the executable candidate.
++    """
++
++    _require_supported_singleton_problem(problem)
++    if str(problem.family_key).strip().lower() != H2O_LINEAR_FD_FAMILY:
++        raise ValueError(
++            "The H2O symmetry-complete pool requires the named molecular "
++            "vibronic linear-FD application."
++        )
++    parent = build_parent_template_inventory(
++        problem,
++        representation_id=CANDIDATE_REPRESENTATION_MACRO,
++    )
++    audit = audit_candidate_pool_sector_contract(
++        [candidate.term for candidate in parent.candidates],
++        resolved_problem=problem,
++    )
++    grouped_violations = tuple(
++        int(value)
++        for value in audit.get("grouped_violation_indices", ())
++    )
++    execution_violations = tuple(
++        int(value)
++        for value in audit.get("execution_violation_indices", ())
++    )
++    if grouped_violations or execution_violations:
++        raise RuntimeError(
++            "The derivative-resolved H2O generator pool is not fully "
++            "sector preserving: "
++            f"grouped={grouped_violations!r}, "
++            f"execution={execution_violations!r}."
++        )
++    return CandidateInventory(
++        candidates=parent.candidates,
++        receipt=_receipt(
++            schema=H2O_SYMMETRY_COMPLETE_POOL_SCHEMA,
++            representation_id=CANDIDATE_REPRESENTATION_MACRO,
++            candidates=parent.candidates,
++            source_parent_labels_sha256=(
++                parent.receipt.ordered_labels_sha256
++            ),
++        ),
++        metadata={
++            "parent_inventory": parent.receipt.to_dict(),
++            "sector_audit": dict(audit),
++            "admission_cardinality": 1,
++            "candidate_semantics": (
++                "one_symmetry_complete_generator_per_round_v1"
++            ),
++            "raw_single_pauli_children_rejected": True,
++        },
++    )
++
++
++def _clone_pauli_term(term: PauliTerm) -> PauliTerm:
++    return PauliTerm(
++        int(term.nqubit()),
++        pc=complex(term.p_coeff),
++        ps=str(term.pw2strng()),
++    )
++
++
++def _pauli_flip_support(word: str) -> tuple[int, ...]:
++    normalized = str(word).strip().lower().replace("i", "e")
++    unsupported = sorted(set(normalized) - {"e", "x", "y", "z"})
++    if unsupported:
++        raise ValueError(
++            "H2O sector-block construction received unsupported Pauli "
++            f"symbols {unsupported!r}."
++        )
++    return tuple(
++        index
++        for index, symbol in enumerate(normalized)
++        if symbol in {"x", "y"}
++    )
++
++
++def _sector_block_identity(
++    serialized_terms_exyz: Sequence[Mapping[str, Any]],
++) -> tuple[str, str]:
++    digest = canonical_sha256(
++        {
++            "schema": H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA,
++            "serialized_terms_exyz": [
++                dict(row) for row in serialized_terms_exyz
++            ],
++        }
++    )
++    return f"h2o_sector_block::{digest[:16]}", f"h2o-sector-block:{digest[:16]}"
++
++
++def build_h2o_sector_complete_pauli_block_pool(
++    problem: ResolvedProblemContext,
++    *,
++    retained_parents: Sequence[CandidateRecord],
++) -> CandidateInventory:
++    """Split retained H2O parents only at fixed-sector-safe boundaries.
++
++    A Pauli word that commutes with every declared fixed-count operator is a
++    valid singleton block.  Remaining words are grouped by their complete
++    X/Y flip support.  Distinct flip supports map a computational basis state
++    to distinct output states, so fixed-sector leakage cannot cancel between
++    them.  Because each source parent is sector preserving, every resulting
++    same-flip-support block must therefore be sector preserving as a grouped
++    generator; the executable audit below enforces that argument fail closed.
++    """
++
++    require_h2o_symmetry_complete_problem(problem)
++    source = tuple(retained_parents)
++    if not source:
++        raise ValueError(
++            "H2O sector-complete child exposure requires retained parents."
++        )
++    if any(
++        candidate.representation_id != CANDIDATE_REPRESENTATION_MACRO
++        for candidate in source
++    ):
++        raise ValueError(
++            "H2O sector-complete child exposure requires macro parent "
++            "records."
++        )
++
++    parent_audit = audit_candidate_pool_sector_contract(
++        [candidate.term for candidate in source],
++        resolved_problem=problem,
+     )
++    if not bool(parent_audit.get("passed")) or not bool(
++        parent_audit.get("execution_passed")
++    ):
++        raise RuntimeError(
++            "H2O sector-block construction received a nonphysical parent "
++            f"shortlist: {parent_audit!r}."
++        )
++
++    groups, unsupported = resolve_fixed_count_qubit_groups(problem)
++    if unsupported or not groups:
++        raise RuntimeError(
++            "H2O sector-block construction requires complete fixed-count "
++            f"qubit groups; unsupported={unsupported!r}."
++        )
++
++    drafts: dict[str, dict[str, Any]] = {}
++    source_labels: dict[str, str] = {
++        str(candidate.generator_identity): str(candidate.label)
++        for candidate in source
++    }
++    individually_safe_word_count = 0
++    cancellation_block_count = 0
++
++    for parent in source:
++        safe_components: list[PauliTerm] = []
++        unsafe_by_flip_support: dict[tuple[int, ...], list[PauliTerm]] = {}
++        for component in parent.term.polynomial.return_polynomial():
++            cloned = _clone_pauli_term(component)
++            singleton = AnsatzTerm(
++                label="h2o_sector_singleton_probe",
++                polynomial=PauliPolynomial("JW", [cloned]),
++                execution_mode="termwise_product",
++            )
++            singleton_audit = audit_generator_sector_contract(
++                singleton,
++                groups=groups,
++                total_qubits=int(problem.layout.total_qubits),
++            )
++            if bool(singleton_audit["execution_preserves_fixed_counts"]):
++                safe_components.append(cloned)
++            else:
++                support = _pauli_flip_support(str(cloned.pw2strng()))
++                unsafe_by_flip_support.setdefault(support, []).append(cloned)
++
++        component_groups: list[tuple[list[PauliTerm], bool]] = [
++            ([component], True) for component in safe_components
++        ]
++        component_groups.extend(
++            (components, False)
++            for _, components in sorted(
++                unsafe_by_flip_support.items(),
++                key=lambda item: item[0],
++            )
++        )
++        for components, individually_safe in component_groups:
++            execution_mode = (
++                "termwise_product"
++                if individually_safe and len(components) == 1
++                else "grouped_exact"
++            )
++            polynomial = PauliPolynomial(
++                "JW", [_clone_pauli_term(term) for term in components]
++            )
++            serialized = tuple(
++                dict(row)
++                for row in serialize_polynomial_terms_exyz(polynomial)
++            )
++            if not serialized:
++                continue
++            label, generator_identity = _sector_block_identity(serialized)
++            block_term = AnsatzTerm(
++                label=label,
++                polynomial=polynomial,
++                execution_mode=execution_mode,
++            )
++            block_audit = audit_generator_sector_contract(
++                block_term,
++                groups=groups,
++                total_qubits=int(problem.layout.total_qubits),
++            )
++            if not bool(block_audit["grouped_preserves_fixed_counts"]) or not bool(
++                block_audit["execution_preserves_fixed_counts"]
++            ):
++                raise RuntimeError(
++                    "Same-flip-support H2O block failed its fixed-sector "
++                    f"audit for parent {parent.label!r}: {block_audit!r}."
++                )
++
++            manifest_key = canonical_sha256(
++                {
++                    "serialized_terms_exyz": [dict(row) for row in serialized],
++                    "execution_mode": execution_mode,
++                }
++            )
++            draft = drafts.get(manifest_key)
++            if draft is None:
++                draft = {
++                    "label": label,
++                    "term": block_term,
++                    "generator_identity": generator_identity,
++                    "parent_identities": [],
++                    "family_id": str(parent.family_id),
++                    "stage_family": str(parent.stage_family),
++                    "construction": (
++                        "h2o_fixed_sector_pauli_block_from_retained_parent_v1"
++                    ),
++                    "execution_mode": execution_mode,
++                    "serialized_terms_exyz": serialized,
++                    "symmetry_receipt": block_audit,
++                    "generator_metadata": {
++                        "generator_id": generator_identity,
++                        "generator_identity_schema": (
++                            H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA
++                        ),
++                        "sector_complete_pauli_block": {
++                            "schema": (
++                                H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA
++                            ),
++                            "grouping_policy": (
++                                "individually_safe_else_complete_xy_flip_support_v1"
++                            ),
++                            "component_count": int(len(serialized)),
++                            "individually_sector_preserving": bool(
++                                individually_safe
++                            ),
++                            "raw_single_pauli_child": bool(
++                                individually_safe and len(serialized) == 1
++                            ),
++                        },
++                    },
++                }
++                drafts[manifest_key] = draft
++                if individually_safe:
++                    individually_safe_word_count += 1
++                else:
++                    cancellation_block_count += 1
++            parent_identities = draft["parent_identities"]
++            parent_identity = str(parent.generator_identity)
++            if parent_identity not in parent_identities:
++                parent_identities.append(parent_identity)
+ 
++    records: list[CandidateRecord] = []
++    for draft in drafts.values():
++        parent_identities = tuple(
++            str(value) for value in draft["parent_identities"]
++        )
++        metadata = dict(draft["generator_metadata"])
++        metadata["parent_generator_ids"] = list(parent_identities)
++        metadata["parent_labels"] = [
++            source_labels[parent_identity]
++            for parent_identity in parent_identities
++        ]
++        records.append(
++            CandidateRecord(
++                label=str(draft["label"]),
++                term=draft["term"],
++                representation_id=CANDIDATE_REPRESENTATION_MACRO,
++                generator_identity=str(draft["generator_identity"]),
++                parent_identities=parent_identities,
++                family_id=str(draft["family_id"]),
++                stage_family=str(draft["stage_family"]),
++                construction=str(draft["construction"]),
++                execution_mode=str(draft["execution_mode"]),
++                serialized_terms_exyz=tuple(
++                    dict(row) for row in draft["serialized_terms_exyz"]
++                ),
++                symmetry_receipt=dict(draft["symmetry_receipt"]),
++                generator_metadata=metadata,
++            )
++        )
++
++    if not records:
++        raise RuntimeError(
++            "H2O sector-complete child exposure produced no candidates."
++        )
++    final_audit = audit_candidate_pool_sector_contract(
++        [candidate.term for candidate in records],
++        resolved_problem=problem,
++    )
++    if not bool(final_audit.get("passed")) or not bool(
++        final_audit.get("execution_passed")
++    ):
++        raise RuntimeError(
++            "H2O sector-complete child inventory failed its final executable "
++            f"audit: {final_audit!r}."
++        )
+ 
++    return CandidateInventory(
++        candidates=tuple(records),
++        receipt=_receipt(
++            schema=H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA,
++            representation_id=CANDIDATE_REPRESENTATION_MACRO,
++            candidates=records,
++            source_parent_labels_sha256=canonical_sha256(
++                [candidate.label for candidate in source]
++            ),
++        ),
++        metadata={
++            "exposure_scope": "ra_retained_parent_shortlist_v1",
++            "exposure_policy": (
++                "sector_complete_pauli_blocks_from_retained_parents_v1"
++            ),
++            "grouping_policy": (
++                "individually_safe_else_complete_xy_flip_support_v1"
++            ),
++            "source_parent_count": int(len(source)),
++            "source_parent_labels": [
++                str(candidate.label) for candidate in source
++            ],
++            "source_parent_generator_identities": [
++                str(candidate.generator_identity) for candidate in source
++            ],
++            "individually_safe_word_count": int(
++                individually_safe_word_count
++            ),
++            "cancellation_block_count": int(cancellation_block_count),
++            "candidate_count": int(len(records)),
++            "raw_unsafe_single_pauli_words_rejected": True,
++            "parent_sector_audit": dict(parent_audit),
++            "final_sector_audit": dict(final_audit),
++        },
++    )
+ def _shared_parent(candidate: CandidateRecord) -> SharedPauliPoolParent:
+     return SharedPauliPoolParent(
+         label=str(candidate.label),
+@@ -456,6 +909,7 @@
+ ) -> CandidateInventory:
+     """Build guarded unit-Pauli children globally or from an RA shortlist."""
+ 
++    spec = _parent_pool_spec(problem)
+     parent = build_parent_template_inventory(
+         problem, representation_id=CANDIDATE_REPRESENTATION_SINGLE_PAULI
+     )
+@@ -482,12 +936,12 @@
+         symmetry_policy="hard_guard",
+         max_subset_size=1,
+         subset_sizes=(1,),
+-        problem_key="hh",
+-        num_sites=2,
++        problem_key=str(spec["problem_key"]),
++        num_sites=int(spec["num_sites"]),
+         ordering=str(problem.request.ordering),
+         qpb=int(
+             (int(problem.layout.total_qubits) - int(problem.layout.fermion_qubits))
+-            // 2
++            // int(spec["boson_mode_count"])
+         ),
+         n_ph_max=int(problem.request.n_ph_max),
+         boson_encoding=str(problem.request.boson_encoding),
+@@ -600,7 +1054,7 @@
+     canonicalization/deduplication.
+     """
+ 
+-    _require_paper_i_problem(problem)
++    _require_supported_singleton_problem(problem)
+     source = tuple(retained_parents)
+     if not source:
+         raise ValueError("Staged singleton exposure requires retained parents.")
+@@ -650,12 +1104,20 @@
+     "CandidateInventory",
+     "CandidateRecord",
+     "EXPECTED_EXECUTABLE_MACRO_COUNTS",
++    "EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT",
+     "EXPECTED_MACRO_REMOVED_COUNTS",
+     "EXPECTED_PARENT_COUNTS",
++    "H2O_DERIVATIVE_RESOLVED_POOL",
++    "H2O_LINEAR_FD_FAMILY",
++    "H2O_SECTOR_COMPLETE_PAULI_BLOCK_IDENTITY_SCHEMA",
++    "H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA",
++    "H2O_SYMMETRY_COMPLETE_POOL_SCHEMA",
+     "GUARDED_SINGLETON_GENERATOR_IDENTITY_SCHEMA",
+     "build_candidate_inventory_lineage_receipt",
+     "build_executable_macro_pool",
+     "build_guarded_single_pauli_pool",
++    "build_h2o_sector_complete_pauli_block_pool",
++    "build_h2o_symmetry_complete_generator_pool",
+     "build_staged_single_pauli_pool",
+     "build_parent_template_inventory",
+     "guarded_singleton_generator_identity",
+--- a/pipelines/static_adapt/route_a_child_padding.py
++++ b/pipelines/static_adapt/route_a_child_padding.py
+@@ -90,9 +90,14 @@
+                     raise ValueError(
+                         "full_binary_code_space_v1 requires binary encoding."
+                     )
+-                if int(self.n_ph_max if self.n_ph_max is not None else -1) != 1:
++                n_ph_max = int(
++                    self.n_ph_max if self.n_ph_max is not None else -1
++                )
++                level_count = n_ph_max + 1
++                if level_count < 1 or level_count & (level_count - 1):
+                     raise ValueError(
+-                        "full_binary_code_space_v1 requires n_ph_max=1."
++                        "full_binary_code_space_v1 requires n_ph_max + 1 "
++                        "to be a power of two."
+                     )
+             return
+         if str(self.problem_key).strip().lower() != "hh":
+--- a/pipelines/static_adapt/sector_invariants.py
++++ b/pipelines/static_adapt/sector_invariants.py
+@@ -465,7 +465,14 @@
+             joint_mask &= eigenvalues == int(group.target)
+         self._joint_target_mask = joint_mask
+         self._joint_target_indices = np.flatnonzero(joint_mask)
++        self._joint_target_indices.flags.writeable = False
+ 
++    @property
++    def joint_target_indices(self) -> np.ndarray:
++        """Return the immutable basis indices for the declared fixed-count sector."""
++
++        return self._joint_target_indices
++
+     def _coerce_state(self, state: np.ndarray, *, source: str) -> np.ndarray:
+         psi = np.asarray(state, dtype=complex).reshape(-1)
+         if int(psi.size) != int(self.dimension):
+--- a/pipelines/static_adapt/sr_snake/_context.py
++++ b/pipelines/static_adapt/sr_snake/_context.py
+@@ -685,10 +685,19 @@
+         raise TypeError("problem must be a ResolvedProblemContext.")
+     if not isinstance(request, SRRunRequest):
+         raise TypeError("request must be an SRRunRequest.")
+-    if (
+-        str(problem.family_key).strip().lower() != "hh"
+-        or int(problem.request.num_sites) != 2
+-    ):
++    family_key = str(problem.family_key).strip().lower()
++    ordinary_paper_i_problem = bool(
++        family_key == "hh" and int(problem.request.num_sites) == 2
++    )
++    application_family_key = str(
++        getattr(candidate_adapter, "application_family_key", "")
++    ).strip().lower()
++    lane_owned_application = bool(
++        route_override is not None
++        and candidate_adapter is not None
++        and application_family_key == family_key
++    )
++    if not ordinary_paper_i_problem and not lane_owned_application:
+         raise ValueError(
+             "The ordinary Paper-I SR-SNAKE facade is locked to the canonical "
+             "Hubbard--Holstein L=2 problem. Other families and sizes require "
+@@ -801,6 +810,7 @@
+         route_profile=route_profile,
+         route_contract=route_contract,
+         route_contract_sha256=route_contract_sha256,
++        gradient_tolerance=request.execution.stop.gradient_tolerance,
+     )
+ 
+     contract_raw = kwargs.get("sr_route_profile_contract")
+--- a/pipelines/static_adapt/sr_snake/_controller.py
++++ b/pipelines/static_adapt/sr_snake/_controller.py
+@@ -488,6 +488,8 @@
+ def _configured_stop_receipt(
+     policy: SRStopPolicy,
+     accepted_state: _AcceptedStateSnapshot,
++    *,
++    accepted_states: tuple[_AcceptedStateSnapshot, ...] = (),
+ ) -> StopReceipt:
+     """Evaluate every configured condition on one post-transition state."""
+ 
+@@ -502,11 +504,28 @@
+             - float(exact.energy)
+         )
+     )
++    exact_hit_rounds = (
++        ()
++        if exact is None
++        else tuple(
++            int(state.controller_round)
++            for state in accepted_states
++            if int(state.controller_round) > 0
++            and abs(float(state.accepted_energy) - float(exact.energy))
++            <= float(exact.absolute_tolerance)
++        )
++    )
++    exact_first_hit_round = (
++        None if not exact_hit_rounds else min(exact_hit_rounds)
++    )
+     exact_fired = bool(
+         exact is not None
+-        and completed > 0
++        and exact_first_hit_round is not None
+         and exact_difference is not None
+         and exact_difference <= float(exact.absolute_tolerance)
++        and completed
++        >= exact_first_hit_round
++        + int(exact.confirmation_controller_rounds)
+     )
+ 
+     conditions = [
+@@ -550,6 +569,12 @@
+         ),
+         exact_observed_absolute_difference=exact_difference,
+         exact_source=(None if exact is None else exact.source),
++        exact_confirmation_controller_rounds=(
++            None
++            if exact is None
++            else int(exact.confirmation_controller_rounds)
++        ),
++        exact_first_hit_controller_round=exact_first_hit_round,
+     )
+ 
+ 
+@@ -626,7 +651,11 @@
+             events.append(transition.checkpoint_event)
+             projected_rounds.append(projection)
+ 
+-            stop = _configured_stop_receipt(stop_policy, state)
++            stop = _configured_stop_receipt(
++                stop_policy,
++                state,
++                accepted_states=tuple(accepted_states),
++            )
+             if stop.fired_reasons:
+                 break
+ 
+@@ -732,7 +761,11 @@
+             events.append(transition.checkpoint_event)
+             projected_rounds.append(projection)
+ 
+-            stop = _configured_stop_receipt(stop_policy, state)
++            stop = _configured_stop_receipt(
++                stop_policy,
++                state,
++                accepted_states=tuple(accepted_states),
++            )
+             if stop.fired_reasons:
+                 break
+ 
+@@ -1085,6 +1118,10 @@
+                     stop = _configured_stop_receipt(
+                         stop_policy,
+                         next_state,
++                        accepted_states=(
++                            *parent.accepted_states,
++                            next_state,
++                        ),
+                     )
+                     child = _ForkLocalBeamBranch(
+                         runtime=child_runtime,
+--- a/pipelines/static_adapt/sr_snake/contracts.py
++++ b/pipelines/static_adapt/sr_snake/contracts.py
+@@ -56,6 +56,13 @@
+     resolved = int(value)
+     if isinstance(value, bool) or resolved != value or resolved < 1:
+         raise ValueError(f"{name} must be a positive integer.")
++    return resolved
++
++
++def _require_nonnegative_int(value: int, *, name: str) -> int:
++    resolved = int(value)
++    if isinstance(value, bool) or resolved != value or resolved < 0:
++        raise ValueError(f"{name} must be a nonnegative integer.")
+     return resolved
+ 
+ 
+@@ -541,6 +548,7 @@
+     energy: float
+     absolute_tolerance: float
+     source: ExactEDSourceReceipt
++    confirmation_controller_rounds: int = 0
+ 
+     def __post_init__(self) -> None:
+         object.__setattr__(
+@@ -558,12 +566,21 @@
+         )
+         if not isinstance(self.source, ExactEDSourceReceipt):
+             raise TypeError("source must be an ExactEDSourceReceipt.")
++        object.__setattr__(
++            self,
++            "confirmation_controller_rounds",
++            _require_nonnegative_int(
++                self.confirmation_controller_rounds,
++                name="confirmation_controller_rounds",
++            ),
++        )
+ 
+ 
+ @dataclass(frozen=True)
+ class SRStopPolicy(SerializableContract):
+     maximum_controller_rounds: int = 50
+     exact_ed_target: ExactEDStop | None = None
++    gradient_tolerance: float | None = None
+ 
+     def __post_init__(self) -> None:
+         object.__setattr__(
+@@ -579,6 +596,15 @@
+             ExactEDStop,
+         ):
+             raise TypeError("exact_ed_target must be an ExactEDStop or None.")
++        if self.gradient_tolerance is not None:
++            object.__setattr__(
++                self,
++                "gradient_tolerance",
++                _require_positive_finite(
++                    self.gradient_tolerance,
++                    name="gradient_tolerance",
++                ),
++            )
+ 
+ 
+ @dataclass(frozen=True)
+@@ -1592,6 +1618,8 @@
+     exact_absolute_tolerance: float | None = None
+     exact_observed_absolute_difference: float | None = None
+     exact_source: ExactEDSourceReceipt | None = None
++    exact_confirmation_controller_rounds: int | None = None
++    exact_first_hit_controller_round: int | None = None
+ 
+ 
+ @dataclass(frozen=True)
+--- a/src/quantum/compiled_ansatz.py
++++ b/src/quantum/compiled_ansatz.py
+@@ -7,6 +7,7 @@
+ from __future__ import annotations
+ 
+ from dataclasses import dataclass
++import hashlib
+ from typing import TYPE_CHECKING, Any, Literal, Sequence
+ 
+ import numpy as np
+@@ -26,8 +27,11 @@
+ from src.quantum.pauli_actions import (
+     CompiledPauliAction,
+     apply_compiled_pauli,
++    apply_compiled_pauli_to_columns,
+     apply_exp_term,
+     compile_pauli_action_exyz,
++    materialize_compiled_pauli_action,
++    materialize_compiled_pauli_action_on_inputs,
+ )
+ 
+ if TYPE_CHECKING:  # pragma: no cover
+@@ -59,13 +63,12 @@
+         raise ValueError(
+             f"Imaginary coefficient encountered for {action.label_exyz}: {coeff_c}"
+         )
+-    if int(matrix.shape[0]) != int(action.phase.size):
++    if int(matrix.shape[0]) != int(action.dimension):
+         raise ValueError(
+             "Pauli action dimension does not match tangent column matrix: "
+-            f"{action.phase.size} vs {matrix.shape[0]}."
++            f"{action.dimension} vs {matrix.shape[0]}."
+         )
+-    pauli_values = np.empty_like(matrix)
+-    pauli_values[action.perm, :] = action.phase[:, None] * matrix
++    pauli_values = apply_compiled_pauli_to_columns(matrix, action)
+     angle = float(dt) * float(coeff_c.real)
+     return np.asarray(
+         np.cos(angle) * matrix - 1.0j * np.sin(angle) * pauli_values,
+@@ -79,7 +82,7 @@
+     action: CompiledPauliAction
+ 
+ 
+-@dataclass(frozen=True)
++@dataclass
+ class CompiledPolynomialRotationPlan:
+     nq: int | None
+     label: str
+@@ -90,6 +93,8 @@
+     exact_eigvecs: np.ndarray | None = None
+     exact_eigvecs_dagger: np.ndarray | None = None
+     exact_sparse_matrix: Any | None = None
++    grouped_exact_cache_key: tuple[Any, ...] | None = None
++    grouped_exact_backend: str | None = None
+ 
+     @property
+     def runtime_count(self) -> int:
+@@ -123,12 +128,26 @@
+         parameterization_mode: Literal["logical_shared", "per_pauli_term"] = "logical_shared",
+         parameterization_layout: AnsatzParameterLayout | None = None,
+         enable_prefix_state_cache: bool = False,
++        invariant_basis_indices: np.ndarray | None = None,
+     ):
+         self.coefficient_tolerance = float(coefficient_tolerance)
+         self.ignore_identity = bool(ignore_identity)
+         self.sort_terms = bool(sort_terms)
+         self.parameterization_mode = str(parameterization_mode)
+         self.enable_prefix_state_cache = bool(enable_prefix_state_cache)
++        self.invariant_basis_indices = self._normalize_invariant_basis_indices(
++            invariant_basis_indices
++        )
++        self.invariant_basis_fingerprint = (
++            None
++            if self.invariant_basis_indices is None
++            else hashlib.sha256(
++                np.asarray(
++                    self.invariant_basis_indices,
++                    dtype="<i8",
++                ).tobytes()
++            ).hexdigest()
++        )
+         self.terms = list(terms)
+         self._prefix_cache_theta: np.ndarray | None = None
+         self._prefix_cache_states: tuple[np.ndarray, ...] | None = None
+@@ -198,6 +217,25 @@
+                     )
+             self._plans.append(plan)
+ 
++    @staticmethod
++    def _normalize_invariant_basis_indices(
++        indices: np.ndarray | None,
++    ) -> np.ndarray | None:
++        if indices is None:
++            return None
++        values = np.asarray(indices, dtype=np.int64)
++        if values.ndim != 1 or values.size == 0:
++            raise ValueError(
++                "invariant_basis_indices must be a nonempty one-dimensional array."
++            )
++        if values.size > 1 and np.any(values[1:] <= values[:-1]):
++            raise ValueError(
++                "invariant_basis_indices must be strictly increasing and unique."
++            )
++        normalized = np.asarray(values, dtype=np.int64).copy()
++        normalized.flags.writeable = False
++        return normalized
++
+     _MATH_COMPILE_POLYNOMIAL_PLAN = (
+         r"H=\\sum_j c_j P_j,\\ \\text{ordered as in runtime termwise execution},"
+         r"\\ \\text{skip }|c_j|<\\epsilon,\\ \\text{optional skip }I"
+@@ -242,36 +280,45 @@
+         exact_eigvecs: np.ndarray | None = None
+         exact_eigvecs_dagger: np.ndarray | None = None
+         exact_sparse_matrix: Any | None = None
++        grouped_exact_cache_key: tuple[Any, ...] | None = None
++        grouped_exact_backend: str | None = None
+         if mode == "grouped_exact":
+-            dim = 1 << int(specs[0].nq)
+-            cache_key = (
++            full_dim = 1 << int(specs[0].nq)
++            if self.invariant_basis_indices is not None and (
++                int(self.invariant_basis_indices[0]) < 0
++                or int(self.invariant_basis_indices[-1]) >= full_dim
++            ):
++                raise ValueError(
++                    "invariant_basis_indices lie outside the ansatz qubit dimension."
++                )
++            effective_dim = (
++                full_dim
++                if self.invariant_basis_indices is None
++                else int(self.invariant_basis_indices.size)
++            )
++            grouped_exact_backend = (
++                "dense"
++                if effective_dim <= int(self.GROUPED_EXACT_MAX_DIM)
++                else "sparse"
++            )
++            grouped_exact_cache_key = (
+                 self.GROUPED_EXACT_PLAN_CACHE_ID,
+                 int(specs[0].nq),
+                 float(self.coefficient_tolerance),
+                 tuple((str(spec.pauli_exyz), float(spec.coeff_real)) for spec in specs),
+-                "dense" if dim <= int(self.GROUPED_EXACT_MAX_DIM) else "sparse",
++                grouped_exact_backend,
++                self.invariant_basis_fingerprint,
+             )
+-            cached = self.grouped_exact_cache.get(cache_key)
+-            if cached is None:
+-                if dim <= int(self.GROUPED_EXACT_MAX_DIM):
+-                    exact_eigvals, exact_eigvecs = self._compile_grouped_exact_eigendecomposition(
+-                        tuple(compiled_steps),
+-                        nq=int(specs[0].nq),
+-                    )
+-                    exact_eigvecs_dagger = exact_eigvecs.conj().T
+-                else:
+-                    exact_sparse_matrix = self._compile_grouped_exact_sparse_matrix(
+-                        tuple(compiled_steps),
+-                        nq=int(specs[0].nq),
+-                    )
+-                cached = (
++            cached = self.grouped_exact_cache.get(
++                grouped_exact_cache_key
++            )
++            if cached is not None:
++                (
+                     exact_eigvals,
+                     exact_eigvecs,
+                     exact_eigvecs_dagger,
+                     exact_sparse_matrix,
+-                )
+-                self.grouped_exact_cache[cache_key] = cached
+-            exact_eigvals, exact_eigvecs, exact_eigvecs_dagger, exact_sparse_matrix = cached
++                ) = cached
+ 
+         return CompiledPolynomialRotationPlan(
+             nq=int(specs[0].nq),
+@@ -283,6 +330,8 @@
+             exact_eigvecs=exact_eigvecs,
+             exact_eigvecs_dagger=exact_eigvecs_dagger,
+             exact_sparse_matrix=exact_sparse_matrix,
++            grouped_exact_cache_key=grouped_exact_cache_key,
++            grouped_exact_backend=grouped_exact_backend,
+         )
+ 
+     def _compile_polynomial_plan(
+@@ -322,7 +371,9 @@
+         the local statevector simulator: exp(-i theta H).
+         """
+ 
+-        dim = 1 << int(nq)
++        full_dim = 1 << int(nq)
++        basis = self.invariant_basis_indices
++        dim = full_dim if basis is None else int(basis.size)
+         if dim > int(self.GROUPED_EXACT_MAX_DIM):
+             raise ValueError(
+                 "grouped_exact dense compilation exceeds safety limit: "
+@@ -330,8 +381,29 @@
+             )
+         cols = np.arange(dim, dtype=np.int64)
+         hmat = np.zeros((dim, dim), dtype=complex)
+-        for step in steps:
+-            hmat[step.action.perm, cols] += float(step.coeff_real) * step.action.phase
++        if basis is None:
++            for step in steps:
++                permutation, phase = materialize_compiled_pauli_action(
++                    step.action
++                )
++                hmat[permutation, cols] += (
++                    float(step.coeff_real) * phase
++                )
++        else:
++            lookup = np.full(full_dim, -1, dtype=np.int32)
++            lookup[basis] = np.arange(dim, dtype=np.int32)
++            for step in steps:
++                output_full, phase = (
++                    materialize_compiled_pauli_action_on_inputs(
++                        step.action,
++                        basis,
++                    )
++                )
++                rows = lookup[output_full]
++                valid = rows >= 0
++                hmat[rows[valid], cols[valid]] += (
++                    float(step.coeff_real) * phase[valid]
++                )
+         hermitian_error = float(np.max(np.abs(hmat - hmat.conj().T))) if dim else 0.0
+         hermitian_tol = max(1e-10, 100.0 * float(self.coefficient_tolerance))
+         if hermitian_error > hermitian_tol:
+@@ -361,23 +433,93 @@
+                 "grouped_exact sparse execution requires scipy.sparse.linalg.expm_multiply "
+                 f"for nq={int(nq)}"
+             )
+-        dim = 1 << int(nq)
++        full_dim = 1 << int(nq)
++        basis = self.invariant_basis_indices
++        dim = full_dim if basis is None else int(basis.size)
+         if not steps:
+             return _scipy_sparse.csr_matrix((dim, dim), dtype=complex)
+         cols = np.arange(dim, dtype=np.int64)
++        input_indices = (
++            np.arange(full_dim, dtype=np.int64)
++            if basis is None
++            else basis
++        )
++        lookup = None
++        if basis is not None:
++            lookup = np.full(full_dim, -1, dtype=np.int32)
++            lookup[basis] = np.arange(dim, dtype=np.int32)
++
++        steps_by_flip: dict[int, list[CompiledRotationStep]] = {}
++        for step in steps:
++            steps_by_flip.setdefault(
++                int(step.action.flip_mask),
++                [],
++            ).append(step)
++
++        hmat = _scipy_sparse.csr_matrix((dim, dim), dtype=complex)
+         rows: list[np.ndarray] = []
+         col_blocks: list[np.ndarray] = []
+         data: list[np.ndarray] = []
+-        for step in steps:
+-            rows.append(np.asarray(step.action.perm, dtype=np.int64))
+-            col_blocks.append(cols)
+-            data.append(float(step.coeff_real) * np.asarray(step.action.phase, dtype=complex))
+-        hmat = _scipy_sparse.coo_matrix(
+-            (np.concatenate(data), (np.concatenate(rows), np.concatenate(col_blocks))),
+-            shape=(dim, dim),
+-            dtype=complex,
+-        ).tocsr()
++        buffered_entries = 0
++        maximum_buffered_entries = 2_000_000
++
++        def flush_blocks() -> None:
++            nonlocal hmat, buffered_entries
++            if not rows:
++                return
++            chunk = _scipy_sparse.coo_matrix(
++                (
++                    np.concatenate(data),
++                    (
++                        np.concatenate(rows),
++                        np.concatenate(col_blocks),
++                    ),
++                ),
++                shape=(dim, dim),
++                dtype=complex,
++            ).tocsr()
++            chunk.sum_duplicates()
++            chunk.eliminate_zeros()
++            hmat = (hmat + chunk).tocsr()
++            rows.clear()
++            col_blocks.clear()
++            data.clear()
++            buffered_entries = 0
++
++        for flip_mask, grouped_steps in steps_by_flip.items():
++            output_full = np.bitwise_xor(
++                input_indices,
++                np.int64(flip_mask),
++            )
++            amplitudes = np.zeros(dim, dtype=complex)
++            for step in grouped_steps:
++                _, phase = materialize_compiled_pauli_action_on_inputs(
++                    step.action,
++                    input_indices,
++                )
++                amplitudes += float(step.coeff_real) * phase
++            if basis is None:
++                block_rows = output_full
++                block_cols = cols
++                block_data = amplitudes
++            else:
++                reduced_rows = lookup[output_full]
++                valid = reduced_rows >= 0
++                block_rows = np.asarray(
++                    reduced_rows[valid],
++                    dtype=np.int64,
++                )
++                block_cols = cols[valid]
++                block_data = amplitudes[valid]
++            rows.append(np.asarray(block_rows, dtype=np.int64))
++            col_blocks.append(np.asarray(block_cols, dtype=np.int64))
++            data.append(np.asarray(block_data, dtype=complex))
++            buffered_entries += int(block_data.size)
++            if buffered_entries >= maximum_buffered_entries:
++                flush_blocks()
++        flush_blocks()
+         hmat.sum_duplicates()
++        hmat.eliminate_zeros()
+         hermitian_delta = (hmat - hmat.getH()).tocoo()
+         hermitian_error = (
+             float(np.max(np.abs(hermitian_delta.data)))
+@@ -391,28 +533,114 @@
+             )
+         return (0.5 * (hmat + hmat.getH())).tocsr()
+ 
+-    @staticmethod
+     def _apply_grouped_exact(
++        self,
+         psi: np.ndarray,
+         plan: CompiledPolynomialRotationPlan,
+         dt: float,
+     ) -> np.ndarray:
++        self._ensure_grouped_exact_plan(plan)
++        state = np.asarray(psi, dtype=complex).reshape(-1)
++        basis = self.invariant_basis_indices
++        if basis is None:
++            working_state = state
++        else:
++            sector_state = np.asarray(state[basis], dtype=complex)
++            outside_norm_sq = max(
++                0.0,
++                float(np.vdot(state, state).real)
++                - float(np.vdot(sector_state, sector_state).real),
++            )
++            if outside_norm_sq > 1.0e-12:
++                raise ValueError(
++                    "Grouped exact invariant-basis execution received "
++                    f"out-of-sector norm squared {outside_norm_sq:.3e}."
++                )
++            working_state = sector_state
+         if plan.exact_eigvals is None or plan.exact_eigvecs is None:
+             if plan.exact_sparse_matrix is None:
+-                return psi
++                return state
+             if _scipy_expm_multiply is None:
+                 raise ValueError("grouped_exact sparse execution requires scipy.sparse.linalg.expm_multiply")
+-            return np.asarray(
+-                _scipy_expm_multiply((-1.0j * float(dt)) * plan.exact_sparse_matrix, psi),
++            evolved = np.asarray(
++                _scipy_expm_multiply(
++                    (-1.0j * float(dt)) * plan.exact_sparse_matrix,
++                    working_state,
++                ),
+                 dtype=complex,
+             )
+-        eigvecs_dagger = plan.exact_eigvecs_dagger
+-        if eigvecs_dagger is None:
+-            eigvecs_dagger = plan.exact_eigvecs.conj().T
+-        coeffs = np.asarray(eigvecs_dagger @ psi, dtype=complex)
+-        coeffs = np.exp(-1.0j * float(dt) * plan.exact_eigvals) * coeffs
+-        return np.asarray(plan.exact_eigvecs @ coeffs, dtype=complex)
++        else:
++            eigvecs_dagger = plan.exact_eigvecs_dagger
++            if eigvecs_dagger is None:
++                eigvecs_dagger = plan.exact_eigvecs.conj().T
++            coeffs = np.asarray(
++                eigvecs_dagger @ working_state,
++                dtype=complex,
++            )
++            coeffs = (
++                np.exp(-1.0j * float(dt) * plan.exact_eigvals)
++                * coeffs
++            )
++            evolved = np.asarray(
++                plan.exact_eigvecs @ coeffs,
++                dtype=complex,
++            )
++        if basis is None:
++            return evolved
++        out = np.zeros_like(state, dtype=complex)
++        out[basis] = evolved
++        return out
+ 
++    def _ensure_grouped_exact_plan(
++        self,
++        plan: CompiledPolynomialRotationPlan,
++    ) -> None:
++        if (
++            plan.exact_eigvals is not None
++            or plan.exact_sparse_matrix is not None
++        ):
++            return
++        cache_key = plan.grouped_exact_cache_key
++        backend = plan.grouped_exact_backend
++        if cache_key is None or backend not in {"dense", "sparse"}:
++            raise RuntimeError(
++                "Grouped exact plan omitted its lazy compilation identity."
++            )
++        cached = self.grouped_exact_cache.get(cache_key)
++        if cached is None:
++            exact_eigvals: np.ndarray | None = None
++            exact_eigvecs: np.ndarray | None = None
++            exact_eigvecs_dagger: np.ndarray | None = None
++            exact_sparse_matrix: Any | None = None
++            if backend == "dense":
++                exact_eigvals, exact_eigvecs = (
++                    self._compile_grouped_exact_eigendecomposition(
++                        plan.steps,
++                        nq=int(plan.nq),
++                    )
++                )
++                exact_eigvecs_dagger = exact_eigvecs.conj().T
++            else:
++                exact_sparse_matrix = (
++                    self._compile_grouped_exact_sparse_matrix(
++                        plan.steps,
++                        nq=int(plan.nq),
++                    )
++                )
++            cached = (
++                exact_eigvals,
++                exact_eigvecs,
++                exact_eigvecs_dagger,
++                exact_sparse_matrix,
++            )
++            self.grouped_exact_cache[cache_key] = cached
++        (
++            plan.exact_eigvals,
++            plan.exact_eigvecs,
++            plan.exact_eigvecs_dagger,
++            plan.exact_sparse_matrix,
++        ) = cached
++
+     def _apply_plan(
+         self,
+         psi: np.ndarray,
+--- a/src/quantum/pauli_actions.py
++++ b/src/quantum/pauli_actions.py
+@@ -1,10 +1,19 @@
+ """Compiled Pauli-string action helpers (exyz convention).
+ 
+-These utilities implement fast statevector action for a single Pauli string
+-without forming dense matrices.
++These utilities implement statevector action for a single Pauli string
++without forming dense matrices or retaining one ``2**n`` permutation and
++phase table per Pauli word.
+ 
++For an input basis index ``i``, a Pauli word acts as
++
++``P|i> = i**n_y (-1)**popcount(i & phase_mask) |i ^ flip_mask>``.
++
++The two integer masks are therefore a complete, constant-size compiled
++representation.  The index permutation is materialized only while applying
++the action or while explicitly constructing a grouped-exact matrix.
++
+ Math:
+-    P|psi>  via permutation + phase
++    P|psi>  via bit-mask permutation + phase
+     exp(-i * dt * c * P)|psi> = cos(theta)|psi> - i sin(theta) P|psi>
+     where theta = dt * Re(c)
+ """
+@@ -13,56 +22,204 @@
+ 
+ import math
+ from dataclasses import dataclass
++from functools import lru_cache
+ 
+ import numpy as np
+ 
+ 
+-@dataclass(frozen=True)
++@dataclass(frozen=True, slots=True)
+ class CompiledPauliAction:
+     label_exyz: str
+-    perm: np.ndarray
+-    phase: np.ndarray
++    nq: int
++    flip_mask: int
++    phase_mask: int
++    y_count_mod4: int
+ 
++    @property
++    def dimension(self) -> int:
++        return 1 << int(self.nq)
+ 
++    @property
++    def retained_bytes(self) -> int:
++        """Return the compact numeric payload size, excluding Python headers."""
++
++        mask_bytes = max(1, (int(self.nq) + 7) // 8)
++        return int(2 * mask_bytes + 1)
++
++    @property
++    def perm(self) -> np.ndarray:
++        """Materialize the legacy input-to-output permutation on demand."""
++
++        permutation, _ = materialize_compiled_pauli_action(self)
++        return permutation
++
++    @property
++    def phase(self) -> np.ndarray:
++        """Materialize the legacy input-index phase table on demand."""
++
++        _, phase = materialize_compiled_pauli_action(self)
++        return phase
++
++
++@lru_cache(maxsize=None)
++def _basis_indices(nq: int) -> np.ndarray:
++    indices = np.arange(1 << int(nq), dtype=np.int64)
++    indices.flags.writeable = False
++    return indices
++
++
++def _phase_prefactor(action: CompiledPauliAction) -> complex:
++    return (1.0 + 0.0j, 0.0 + 1.0j, -1.0 + 0.0j, 0.0 - 1.0j)[
++        int(action.y_count_mod4)
++    ]
++
++
++def _phase_signs(indices: np.ndarray, phase_mask: int) -> np.ndarray | None:
++    if int(phase_mask) == 0:
++        return None
++    masked = np.bitwise_and(indices, np.int64(phase_mask))
++    parity = np.bitwise_and(np.bitwise_count(masked), np.uint8(1)).astype(
++        np.int8,
++        copy=False,
++    )
++    return np.asarray(1 - 2 * parity, dtype=np.int8)
++
++
++def materialize_compiled_pauli_action(
++    action: CompiledPauliAction,
++) -> tuple[np.ndarray, np.ndarray]:
++    """Materialize legacy permutation/phase arrays for one transient use."""
++
++    indices = _basis_indices(int(action.nq))
++    return materialize_compiled_pauli_action_on_inputs(action, indices)
++
++
++def materialize_compiled_pauli_action_on_inputs(
++    action: CompiledPauliAction,
++    input_indices: np.ndarray,
++) -> tuple[np.ndarray, np.ndarray]:
++    """Return output indices and phases for selected full-space inputs."""
++
++    indices = np.asarray(input_indices, dtype=np.int64)
++    if indices.ndim != 1:
++        raise ValueError(
++            f"input_indices must be one-dimensional; got {indices.shape}."
++        )
++    if indices.size and (
++        int(np.min(indices)) < 0
++        or int(np.max(indices)) >= int(action.dimension)
++    ):
++        raise ValueError(
++            "input_indices lie outside the compiled Pauli action dimension."
++        )
++    permutation = np.bitwise_xor(indices, np.int64(action.flip_mask))
++    signs = _phase_signs(indices, int(action.phase_mask))
++    prefactor = _phase_prefactor(action)
++    if signs is None:
++        phase = np.full(indices.shape, prefactor, dtype=complex)
++    else:
++        phase = np.asarray(prefactor * signs, dtype=complex)
++    return np.asarray(permutation, dtype=np.int64), phase
++
++
+ def compile_pauli_action_exyz(label_exyz: str, nq: int) -> CompiledPauliAction:
+-    """Compile an exyz Pauli label into permutation/phase arrays.
++    """Compile an exyz Pauli label into constant-size action masks.
+ 
+     The label convention is q_(n-1)...q_0 (qubit 0 rightmost).
+     """
+-    dim = 1 << int(nq)
+-    idx = np.arange(dim, dtype=np.int64)
+-    perm = idx.copy()
+-    phase = np.ones(dim, dtype=complex)
+-
+-    for q in range(int(nq)):
+-        op = str(label_exyz)[int(nq) - 1 - q]
+-        bits = ((idx >> q) & 1).astype(np.int8)
+-        sign = (1 - 2 * bits).astype(np.int8)
+-
++    nq_value = int(nq)
++    label = str(label_exyz)
++    if nq_value < 0:
++        raise ValueError(f"nq must be nonnegative, got {nq_value}.")
++    if len(label) != nq_value:
++        raise ValueError(
++            f"Pauli label length mismatch: got {len(label)}, expected {nq_value}."
++        )
++    flip_mask = 0
++    phase_mask = 0
++    y_count = 0
++    for q, op in enumerate(reversed(label)):
++        bit = 1 << int(q)
+         if op == "e":
+             continue
+         if op == "x":
+-            perm ^= (1 << q)
++            flip_mask |= bit
+             continue
+         if op == "y":
+-            perm ^= (1 << q)
+-            phase *= 1j * sign
++            flip_mask |= bit
++            phase_mask |= bit
++            y_count += 1
+             continue
+         if op == "z":
+-            phase *= sign
++            phase_mask |= bit
+             continue
+-        raise ValueError(f"Unsupported Pauli symbol '{op}' in '{label_exyz}'.")
++        raise ValueError(f"Unsupported Pauli symbol '{op}' in '{label}'.")
+ 
+-    return CompiledPauliAction(label_exyz=str(label_exyz), perm=perm, phase=phase)
++    return CompiledPauliAction(
++        label_exyz=label,
++        nq=nq_value,
++        flip_mask=int(flip_mask),
++        phase_mask=int(phase_mask),
++        y_count_mod4=int(y_count % 4),
++    )
+ 
+ 
+ def apply_compiled_pauli(psi: np.ndarray, action: CompiledPauliAction) -> np.ndarray:
+     """Apply a compiled Pauli action to a statevector."""
+-    out = np.empty_like(psi)
+-    out[action.perm] = action.phase * psi
++    psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
++    if psi_vec.size != int(action.dimension):
++        raise ValueError(
++            "Statevector length does not match compiled Pauli action: "
++            f"{psi_vec.size} vs {action.dimension}."
++        )
++    indices = _basis_indices(int(action.nq))
++    source_indices = (
++        indices
++        if int(action.flip_mask) == 0
++        else np.bitwise_xor(indices, np.int64(action.flip_mask))
++    )
++    out = np.asarray(psi_vec[source_indices], dtype=complex)
++    signs = _phase_signs(source_indices, int(action.phase_mask))
++    if signs is not None:
++        out *= signs
++    prefactor = _phase_prefactor(action)
++    if prefactor != 1.0 + 0.0j:
++        out *= prefactor
+     return out
+ 
+ 
++def apply_compiled_pauli_to_columns(
++    values: np.ndarray,
++    action: CompiledPauliAction,
++) -> np.ndarray:
++    """Apply one compact Pauli action to statevector columns."""
++
++    matrix = np.asarray(values, dtype=complex)
++    if matrix.ndim != 2:
++        raise ValueError(
++            f"values must be a rank-2 column matrix; got {matrix.shape}."
++        )
++    if int(matrix.shape[0]) != int(action.dimension):
++        raise ValueError(
++            "Pauli action dimension does not match tangent column matrix: "
++            f"{action.dimension} vs {matrix.shape[0]}."
++        )
++    indices = _basis_indices(int(action.nq))
++    source_indices = (
++        indices
++        if int(action.flip_mask) == 0
++        else np.bitwise_xor(indices, np.int64(action.flip_mask))
++    )
++    out = np.asarray(matrix[source_indices, :], dtype=complex)
++    signs = _phase_signs(source_indices, int(action.phase_mask))
++    if signs is not None:
++        out *= signs[:, None]
++    prefactor = _phase_prefactor(action)
++    if prefactor != 1.0 + 0.0j:
++        out *= prefactor
++    return out
++
++
+ def apply_exp_term(
+     psi: np.ndarray,
+     action: CompiledPauliAction,
+@@ -83,6 +240,8 @@
+     "CompiledPauliAction",
+     "compile_pauli_action_exyz",
+     "apply_compiled_pauli",
++    "apply_compiled_pauli_to_columns",
++    "materialize_compiled_pauli_action",
++    "materialize_compiled_pauli_action_on_inputs",
+     "apply_exp_term",
+ ]
+-

@@ -1,0 +1,9 @@
+Holstein local active source snapshot backup
+Date: 2026-07-06
+Branch: codex/wip-local-active-source-snapshot-20260706-120000
+Files: 1129
+Bytes: 25610467
+
+Included: active source code, tests, scripts, TeX/Markdown manuscript sources, agent guidance, lightweight configs that are present locally.
+Excluded: generated outputs, result trees, logs, plots, raw_outputs, artifacts, conda-env, docs/reviews, large run/result JSON/CSV/TSV payloads, deletions, and 504 macOS dataless placeholder files.
+Restore model: overlay these files onto a normal checkout at the original base branch if needed.

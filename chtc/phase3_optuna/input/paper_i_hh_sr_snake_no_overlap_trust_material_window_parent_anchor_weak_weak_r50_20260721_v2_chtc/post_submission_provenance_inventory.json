@@ -1,0 +1,20 @@
+{
+  "schema": "paper_i_sr_material_window_anchor_post_submission_provenance_v1",
+  "status": "hash_closed",
+  "pre_submission_artifact_inventory": {
+    "path": "submission_artifact_hashes.json",
+    "sha256": "5fc73d0713423c86551f36761dc63804bbd25634c00c2ef4346479ec4045b20a",
+    "size_bytes": 4326
+  },
+  "post_submission_records": {
+    "remote_execution_gate.json": {
+      "sha256": "cedcd3a292b19afd856a1f688012131d0fae6a76279071e31842fa4d8428ecae",
+      "size_bytes": 496
+    },
+    "submission_receipt.json": {
+      "sha256": "483a600ec2741bd79576467f1b02154ecf605be13d7eece7fb83e43e604f39cc",
+      "size_bytes": 794
+    }
+  },
+  "scientific_input_artifacts_changed_after_preflight": false
+}

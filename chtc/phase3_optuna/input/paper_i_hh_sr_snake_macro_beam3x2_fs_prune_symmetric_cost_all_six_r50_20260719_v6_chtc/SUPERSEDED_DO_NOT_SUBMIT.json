@@ -1,0 +1,7 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v6_chtc",
+  "classification": "superseded_post_run_validator_policy_defect_v1",
+  "scientific_outputs_remain_revalidatable": true,
+  "scientific_setting_changes": [],
+  "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v9_chtc"
+}

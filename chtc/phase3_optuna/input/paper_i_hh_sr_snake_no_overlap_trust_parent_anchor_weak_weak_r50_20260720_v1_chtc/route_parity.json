@@ -1,0 +1,8 @@
+{
+  "anchor_changed_scientific_fields_vs_source": [],
+  "candidate_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "candidate_swept_field": "historical_singleton_trust_region_update_policy",
+  "parent_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_no_overlap_trust_anchor_route_parity_v1",
+  "status": "pass"
+}

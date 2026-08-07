@@ -1,0 +1,18 @@
+universe = vanilla
+executable = chtc/time_dynamics_optuna/build_image.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/time_dynamics_optuna/image.def, chtc/time_dynamics_optuna/requirements-chtc.txt
+transfer_output_files = chtc/time_dynamics_optuna/image.sif
+log = logs/td-optuna-image-build.$(Cluster).$(Process).log
+output = logs/td-optuna-image-build.$(Cluster).$(Process).out
+error = logs/td-optuna-image-build.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 8GB
+request_disk = 20GB
++MaxRuntime = 7200
++JobBatchName = "holstein-td-optuna-image-build"
+queue 1

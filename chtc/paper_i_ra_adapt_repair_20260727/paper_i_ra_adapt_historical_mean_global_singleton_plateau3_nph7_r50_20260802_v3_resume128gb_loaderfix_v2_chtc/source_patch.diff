@@ -1,0 +1,143 @@
+--- a/pipelines/static_adapt/sr_snake/_resume.py
++++ b/pipelines/static_adapt/sr_snake/_resume.py
+@@ -4441,7 +4441,25 @@
+         raise CanonicalResumeError(
+             "Accepted checkpoint has no estimator-prefix closure receipts."
+         )
+-    if len(receipts) < len(history_prefixes) + 1:
++    terminal_checkpoint_kind = _text(
++        terminal_receipt.get("checkpoint_kind"),
++        owner="terminal estimator receipt checkpoint_kind",
++    )
++    # Cadence checkpoints are published immediately after an accepted round.
++    # Their pointer and sibling sidecar close the full ledger, but they reuse
++    # the last signed round prefix and do not synthesize the later zero-delta
++    # terminal receipt/closure summary.  Keep that exact single-route shape
++    # distinct from finalized, beam, and prune-bearing checkpoints.
++    round_finalized_current_checkpoint = bool(
++        not beam_enabled
++        and not executed_prune_branch_ids
++        and not accepted_prune_branch_ids
++        and terminal_checkpoint_kind == "post_admission_prune"
++    )
++    minimum_receipt_count = len(history_prefixes) + (
++        0 if round_finalized_current_checkpoint else 1
++    )
++    if len(receipts) < minimum_receipt_count:
+         raise CanonicalResumeError(
+             "Accepted checkpoint estimator receipts omit a finalized history "
+             "or terminal prefix."
+@@ -4773,10 +4791,6 @@
+             "Beam diagnostics contain children without global estimator "
+             "prefix receipts."
+         )
+-    terminal_closure = _mapping(
+-        continuation.get("active_prefix_estimator_ledger_closure"),
+-        owner="active-prefix estimator-ledger closure",
+-    )
+     ledger_unique_components = {
+         component: int(
+             _mapping(
+@@ -4786,40 +4800,56 @@
+         )
+         for component in S_ALG_COMPONENTS
+     }
+-    if (
+-        terminal_closure.get("schema")
+-        != "paper_i_active_prefix_estimator_ledger_closure_v1"
+-        or terminal_closure.get("enabled") is not True
+-        or terminal_closure.get("status") != "complete"
+-        or terminal_closure.get("passed") is not True
+-        or terminal_closure.get("receipt_count") != len(receipts)
+-        or terminal_closure.get("summed_raw_occurrences")
+-        != {
+-            "components": raw_components,
+-            "total": cumulative_raw,
+-        }
+-        or terminal_closure.get("terminal_raw_occurrences")
+-        != {
+-            "components": components,
+-            "total": s_alg,
+-        }
+-        or terminal_closure.get("summed_unique_primitives")
+-        != {
+-            "components": unique_components,
+-            "S_unique": cumulative_unique,
+-        }
+-        or terminal_closure.get("terminal_unique_primitives")
+-        != {
+-            "components": ledger_unique_components,
+-            "S_unique": s_unique,
+-        }
+-        or terminal_closure.get("includes_discarded_branch_checkpoints")
+-        is not beam_enabled
+-    ):
+-        raise CanonicalResumeError(
+-            "Accepted checkpoint estimator-prefix closure summary is "
+-            "incomplete or inconsistent."
++    terminal_closure_raw = continuation.get(
++        "active_prefix_estimator_ledger_closure"
++    )
++    if terminal_closure_raw is None:
++        if not round_finalized_current_checkpoint:
++            raise CanonicalResumeError(
++                "Accepted checkpoint estimator-prefix closure summary is "
++                "incomplete or inconsistent."
++            )
++    else:
++        terminal_closure = _mapping(
++            terminal_closure_raw,
++            owner="active-prefix estimator-ledger closure",
+         )
++        if (
++            terminal_closure.get("schema")
++            != "paper_i_active_prefix_estimator_ledger_closure_v1"
++            or terminal_closure.get("enabled") is not True
++            or terminal_closure.get("status") != "complete"
++            or terminal_closure.get("passed") is not True
++            or terminal_closure.get("receipt_count") != len(receipts)
++            or terminal_closure.get("summed_raw_occurrences")
++            != {
++                "components": raw_components,
++                "total": cumulative_raw,
++            }
++            or terminal_closure.get("terminal_raw_occurrences")
++            != {
++                "components": components,
++                "total": s_alg,
++            }
++            or terminal_closure.get("summed_unique_primitives")
++            != {
++                "components": unique_components,
++                "S_unique": cumulative_unique,
++            }
++            or terminal_closure.get("terminal_unique_primitives")
++            != {
++                "components": ledger_unique_components,
++                "S_unique": s_unique,
++            }
++            or terminal_closure.get(
++                "includes_discarded_branch_checkpoints"
++            )
++            is not beam_enabled
++        ):
++            raise CanonicalResumeError(
++                "Accepted checkpoint estimator-prefix closure summary is "
++                "incomplete or inconsistent."
++            )
+     if (
+         cumulative_raw != s_alg
+         or cumulative_unique != s_unique
+@@ -4827,7 +4857,11 @@
+         or unique_components != ledger_unique_components
+         or receipts[-1] != dict(terminal_receipt)
+         or receipts[-1].get("checkpoint_kind")
+-        != "terminal_post_final_refit_and_prune"
++        != (
++            "post_admission_prune"
++            if round_finalized_current_checkpoint
++            else "terminal_post_final_refit_and_prune"
++        )
+         or _integer(
+             receipts[-1].get("outer_iteration"),
+             owner="terminal estimator receipt outer_iteration",

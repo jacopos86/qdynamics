@@ -1,0 +1,578 @@
+{
+  "classification": "diagnostic",
+  "data": {
+    "append": {
+      "costs": {
+        "D2q": 167,
+        "Dc": 860,
+        "N2q": 204,
+        "S_alg": 273183
+      },
+      "reported_error": 5.107216871635956e-10,
+      "reported_k": 40,
+      "trajectory": [
+        {
+          "error": 1.0355987014575032,
+          "k": 1
+        },
+        {
+          "error": 0.0433809199948223,
+          "k": 2
+        },
+        {
+          "error": 0.033000173295516744,
+          "k": 3
+        },
+        {
+          "error": 0.022571755033394147,
+          "k": 4
+        },
+        {
+          "error": 0.01244680074102511,
+          "k": 5
+        },
+        {
+          "error": 0.00227741925264191,
+          "k": 6
+        },
+        {
+          "error": 0.0014340379868728048,
+          "k": 7
+        },
+        {
+          "error": 0.0010470252213089504,
+          "k": 8
+        },
+        {
+          "error": 0.0006606968393060297,
+          "k": 9
+        },
+        {
+          "error": 0.0005600569144322831,
+          "k": 10
+        },
+        {
+          "error": 0.0004594422765056283,
+          "k": 11
+        },
+        {
+          "error": 0.0004457060362232923,
+          "k": 12
+        },
+        {
+          "error": 0.00043227893360597847,
+          "k": 13
+        },
+        {
+          "error": 0.00040531673757093767,
+          "k": 14
+        },
+        {
+          "error": 0.0003782234920695071,
+          "k": 15
+        },
+        {
+          "error": 0.0003749065378418903,
+          "k": 16
+        },
+        {
+          "error": 0.00037170218100246455,
+          "k": 17
+        },
+        {
+          "error": 0.0003716975248585497,
+          "k": 18
+        },
+        {
+          "error": 0.000371693029864395,
+          "k": 19
+        },
+        {
+          "error": 0.00037169296197914203,
+          "k": 20
+        },
+        {
+          "error": 1.260596348739984e-05,
+          "k": 21
+        },
+        {
+          "error": 5.419520750060691e-06,
+          "k": 22
+        },
+        {
+          "error": 1.181014598450325e-06,
+          "k": 23
+        },
+        {
+          "error": 9.386150919832303e-07,
+          "k": 24
+        },
+        {
+          "error": 4.4077080751936393e-07,
+          "k": 25
+        },
+        {
+          "error": 2.698053869210071e-07,
+          "k": 26
+        },
+        {
+          "error": 2.697393618467103e-07,
+          "k": 27
+        },
+        {
+          "error": 2.4377072793679844e-07,
+          "k": 28
+        },
+        {
+          "error": 4.9054368345125e-09,
+          "k": 29
+        },
+        {
+          "error": 2.392074205381789e-09,
+          "k": 30
+        },
+        {
+          "error": 1.1935155086462146e-09,
+          "k": 31
+        },
+        {
+          "error": 1.0850106368920365e-09,
+          "k": 32
+        },
+        {
+          "error": 8.615880231488404e-10,
+          "k": 33
+        },
+        {
+          "error": 8.222847958094803e-10,
+          "k": 34
+        },
+        {
+          "error": 8.214462443589809e-10,
+          "k": 35
+        },
+        {
+          "error": 8.106528781581801e-10,
+          "k": 36
+        },
+        {
+          "error": 8.098934856093365e-10,
+          "k": 37
+        },
+        {
+          "error": 6.34237551366823e-10,
+          "k": 38
+        },
+        {
+          "error": 5.115707857328289e-10,
+          "k": 39
+        },
+        {
+          "error": 5.107216871635956e-10,
+          "k": 40
+        }
+      ]
+    },
+    "exact_energy": -0.918380919994822,
+    "insertion": {
+      "costs": {
+        "D2q": 159,
+        "Dc": 700,
+        "N2q": 180,
+        "S_alg": 122691
+      },
+      "receipt_components": {
+        "N_H_outer": 40,
+        "N_H_refit": 36688,
+        "N_grad": 28267,
+        "N_metric": 57696
+      },
+      "reported_error": 2.7783320089014296e-10,
+      "reported_k": 40,
+      "trajectory": [
+        {
+          "error": 1.0355987014575034,
+          "k": 1
+        },
+        {
+          "error": 0.04338091999482374,
+          "k": 2
+        },
+        {
+          "error": 0.03300017329551708,
+          "k": 3
+        },
+        {
+          "error": 0.022571755033393814,
+          "k": 4
+        },
+        {
+          "error": 0.012446800741151787,
+          "k": 5
+        },
+        {
+          "error": 0.0022774192526423542,
+          "k": 6
+        },
+        {
+          "error": 0.0018517876957129253,
+          "k": 7
+        },
+        {
+          "error": 0.0010480621231513387,
+          "k": 8
+        },
+        {
+          "error": 0.000661073902832543,
+          "k": 9
+        },
+        {
+          "error": 0.0006604014259848912,
+          "k": 10
+        },
+        {
+          "error": 0.0005187615877165763,
+          "k": 11
+        },
+        {
+          "error": 0.00038355956583091544,
+          "k": 12
+        },
+        {
+          "error": 0.0003742320605338856,
+          "k": 13
+        },
+        {
+          "error": 0.0003724107740572524,
+          "k": 14
+        },
+        {
+          "error": 0.0003719114927819289,
+          "k": 15
+        },
+        {
+          "error": 0.0003717463388851483,
+          "k": 16
+        },
+        {
+          "error": 0.0003716645042197708,
+          "k": 17
+        },
+        {
+          "error": 0.00037166062980353853,
+          "k": 18
+        },
+        {
+          "error": 0.00037092255609549873,
+          "k": 19
+        },
+        {
+          "error": 0.00037083782937841203,
+          "k": 20
+        },
+        {
+          "error": 8.49033227916518e-05,
+          "k": 21
+        },
+        {
+          "error": 6.5463563910794775e-06,
+          "k": 22
+        },
+        {
+          "error": 1.4276203453844616e-06,
+          "k": 23
+        },
+        {
+          "error": 8.26643097640023e-07,
+          "k": 24
+        },
+        {
+          "error": 6.768645074428647e-07,
+          "k": 25
+        },
+        {
+          "error": 5.056137900583124e-07,
+          "k": 26
+        },
+        {
+          "error": 3.057646277282444e-07,
+          "k": 27
+        },
+        {
+          "error": 2.664249828532306e-07,
+          "k": 28
+        },
+        {
+          "error": 2.549991416911368e-07,
+          "k": 29
+        },
+        {
+          "error": 2.493131819880645e-07,
+          "k": 30
+        },
+        {
+          "error": 2.480227702106319e-07,
+          "k": 31
+        },
+        {
+          "error": 1.1472156147274148e-07,
+          "k": 32
+        },
+        {
+          "error": 9.880128526429388e-08,
+          "k": 33
+        },
+        {
+          "error": 8.917048543999329e-09,
+          "k": 34
+        },
+        {
+          "error": 5.245550549481948e-09,
+          "k": 35
+        },
+        {
+          "error": 4.9638632093618185e-09,
+          "k": 36
+        },
+        {
+          "error": 4.870273628831967e-09,
+          "k": 37
+        },
+        {
+          "error": 2.7366245936022437e-09,
+          "k": 38
+        },
+        {
+          "error": 8.489293712443668e-10,
+          "k": 39
+        },
+        {
+          "error": 2.7783320089014296e-10,
+          "k": 40
+        }
+      ]
+    },
+    "snake": {
+      "costs": {
+        "D2q": 94,
+        "Dc": 462,
+        "N2q": 116,
+        "S_alg": 40510
+      },
+      "reported_error": 3.021259087354622e-07,
+      "reported_k": 29,
+      "trajectory": [
+        {
+          "error": 1.0355987014575028,
+          "k": 1
+        },
+        {
+          "error": 0.043380919994822964,
+          "k": 2
+        },
+        {
+          "error": 0.033000173295516855,
+          "k": 3
+        },
+        {
+          "error": 0.022571755033392815,
+          "k": 4
+        },
+        {
+          "error": 0.012446800741023445,
+          "k": 5
+        },
+        {
+          "error": 0.00227741925264191,
+          "k": 6
+        },
+        {
+          "error": 0.0014340379884536514,
+          "k": 7
+        },
+        {
+          "error": 0.0010480621248428745,
+          "k": 8
+        },
+        {
+          "error": 0.0006610738864862853,
+          "k": 9
+        },
+        {
+          "error": 0.000660401333701377,
+          "k": 10
+        },
+        {
+          "error": 0.0006597287774516847,
+          "k": 11
+        },
+        {
+          "error": 0.0006592693016564954,
+          "k": 12
+        },
+        {
+          "error": 0.0006588098221289584,
+          "k": 13
+        },
+        {
+          "error": 0.000658809811578065,
+          "k": 14
+        },
+        {
+          "error": 0.0006588080455569578,
+          "k": 15
+        },
+        {
+          "error": 0.000515375664335127,
+          "k": 16
+        },
+        {
+          "error": 0.00037801820064919944,
+          "k": 17
+        },
+        {
+          "error": 0.0003717533958244035,
+          "k": 18
+        },
+        {
+          "error": 0.00037119936184959457,
+          "k": 19
+        },
+        {
+          "error": 0.00026318862874474824,
+          "k": 20
+        },
+        {
+          "error": 2.650989383079505e-05,
+          "k": 21
+        },
+        {
+          "error": 1.2247452866209763e-05,
+          "k": 22
+        },
+        {
+          "error": 4.655770080574939e-06,
+          "k": 23
+        },
+        {
+          "error": 8.463332212826913e-07,
+          "k": 24
+        },
+        {
+          "error": 8.247200806721366e-07,
+          "k": 25
+        },
+        {
+          "error": 6.781909266395658e-07,
+          "k": 26
+        },
+        {
+          "error": 5.915850005422385e-07,
+          "k": 27
+        },
+        {
+          "error": 5.311820959752467e-07,
+          "k": 28
+        },
+        {
+          "error": 3.021259087354622e-07,
+          "k": 29
+        },
+        {
+          "error": 2.997749801725291e-07,
+          "k": 30
+        },
+        {
+          "error": 2.997723731468227e-07,
+          "k": 31
+        },
+        {
+          "error": 2.997685627503799e-07,
+          "k": 32
+        },
+        {
+          "error": 2.997468464549513e-07,
+          "k": 33
+        },
+        {
+          "error": 2.9967372039418905e-07,
+          "k": 34
+        },
+        {
+          "error": 2.9966848114071354e-07,
+          "k": 35
+        },
+        {
+          "error": 2.9966647463464113e-07,
+          "k": 36
+        },
+        {
+          "error": 2.996661088161545e-07,
+          "k": 37
+        },
+        {
+          "error": 2.9947928636975263e-07,
+          "k": 38
+        },
+        {
+          "error": 2.9947111335193455e-07,
+          "k": 39
+        },
+        {
+          "error": 2.994706419512383e-07,
+          "k": 40
+        }
+      ]
+    }
+  },
+  "definition": "Weak-weak projected-singleton comparison at k=40 for repaired plateau-triggered insertion SNAKE and Append-ADAPT, with the append-only SNAKE plateau point retained from page 4.",
+  "generated": {
+    "combined_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723.pdf",
+      "sha256": "bf27414fd27295c9404a024c11529711b8c3cf3bf083c3a4c266ada910f158d5"
+    },
+    "page_pdf": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_plateau_insertion_page10.pdf",
+      "sha256": "e63f23ca900e46df283bdc8d2b85282480c227d69e0c7f3fbfc2854c3904b159"
+    },
+    "page_tex": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_plateau_insertion_page10.tex",
+      "sha256": "d722a17b599b648ecaecb19b16309ced5156fa659856c706191ff828815b3a40"
+    },
+    "plot_png": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_plateau_insertion_page10_plot.png",
+      "sha256": "e77e872df6e89b4af061e498db016f6a831eda398cad52956dde1375e8233e8f"
+    }
+  },
+  "schema": "paper_i_hh_singleton_plateau_insertion_page_v1",
+  "sources": {
+    "insertion_current": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_weak_weak_r50_20260725_v2_local_position_fix/json/current.json",
+      "sha256": "8c53d72276791d4b9dc6acccbb784af5dddf9fb4d8a68a05a9058859b08bb697"
+    },
+    "main_provenance": {
+      "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_provenance.json",
+      "sha256_before_update": "4d9394c9a2ac245395fd62f0b3c973d8b2a408c38bbadfecd15815cb44f91754"
+    },
+    "tracker": {
+      "path": "output/pdf/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715/paper_i_hh_sr_snake_no_prune_no_beam_no_ordinary_novelty_tracking_20260715.json",
+      "sha256": "8e057da082f9d81b308fc6563029ef9f1f309950b54191bd60bc47abfec95922"
+    }
+  },
+  "structural_validation": {
+    "new_page_content_sha256": "13f197ae67f04ee936ad274c14e22afe126c9dd65398908af02ec61a90c7fcbf",
+    "pages_after": 10,
+    "pages_before": 9,
+    "preserved_page_content_hashes": [
+      "f8d70d1e7b4524c42490a6d014e67d954c2f9fe44f5edf70054a063564bc669b",
+      "f3252d099a51e01af3ec1bf13030f454c7ac439c373ea95e8ddbf0b2227934a2",
+      "746a0cb62fbda7e8a1d28596644e4aa8c0fe209fd3bf8a350c33ee3a2e83e9b8",
+      "f560a6b27b88fbaf57d8afd1f58f34c8856fbcd83b350120449dc2a8bcd4e595",
+      "19aff9857853d4300f7093784fb9b0b42dc9e46cb91fed62ccbf3e15466e63da",
+      "b5cee927e6e9ed07ba8e8a7f938b34be9ea8c456138bcba62863e54364573a54",
+      "b97fd022c37da375f5216640ce4514f225ad944955d0e37d73b80caffdfa257e",
+      "3f8c2d5391dca9fcf6fcc2b55fd5c7dc5d3df291b2b345311ef359e0f0fb4dfc",
+      "73d9d327037fa7ee68d3b6717440f7131a9feb54ef5f68e21e9e8b1be1b74b19"
+    ]
+  }
+}

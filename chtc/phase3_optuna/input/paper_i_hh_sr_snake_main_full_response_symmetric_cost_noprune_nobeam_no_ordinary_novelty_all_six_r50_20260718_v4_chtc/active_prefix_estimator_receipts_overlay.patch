@@ -1,0 +1,302 @@
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -16736,6 +16778,132 @@ def _run_hardcoded_adapt_vqe(
+                 probability += float(abs(amplitude) ** 2)
+         return float(min(max(probability, 0.0), 1.0))
+ 
++    estimator_prefix_checkpoint_cursor: dict[str, Any] = {
++        "checkpoint_sequence": 0,
++        "raw_occurrence_count": 0,
++        "unique_primitive_count": 0,
++        "unique_components": {
++            component: 0
++            for component in ("N_H_outer", "N_H_refit", "N_grad", "N_metric")
++        },
++        "occurrence_components": {
++            component: 0
++            for component in ("N_H_outer", "N_H_refit", "N_grad", "N_metric")
++        },
++    }
++    estimator_active_prefix_ledger_receipts_all: list[dict[str, Any]] = []
++
++    def _active_prefix_estimator_ledger_receipt() -> dict[str, Any]:
++        """Snapshot exact cumulative and since-checkpoint estimator work."""
++
++        if estimator_call_ledger is None:
++            return {
++                "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1",
++                "enabled": False,
++                "status": "disabled_missing_required_estimator_ledger",
++            }
++        unique_summary = estimator_call_ledger.summary()
++        occurrence_summary = estimator_call_ledger.occurrence_summary()
++        components = ("N_H_outer", "N_H_refit", "N_grad", "N_metric")
++        current_unique = {
++            component: int(unique_summary.get(component, 0))
++            for component in components
++        }
++        current_occurrences = {
++            component: int(occurrence_summary.get(component, 0))
++            for component in components
++        }
++        current_raw_total = int(
++            occurrence_summary.get("total_call_occurrences", 0)
++        )
++        current_unique_total = int(
++            unique_summary.get("unique_primitive_count", 0)
++        )
++        previous_raw_total = int(
++            estimator_prefix_checkpoint_cursor["raw_occurrence_count"]
++        )
++        previous_unique_total = int(
++            estimator_prefix_checkpoint_cursor["unique_primitive_count"]
++        )
++        raw_component_delta = {
++            component: int(current_occurrences[component])
++            - int(
++                estimator_prefix_checkpoint_cursor["occurrence_components"][
++                    component
++                ]
++            )
++            for component in components
++        }
++        unique_component_delta = {
++            component: int(current_unique[component])
++            - int(
++                estimator_prefix_checkpoint_cursor["unique_components"][
++                    component
++                ]
++            )
++            for component in components
++        }
++        raw_total_delta = int(current_raw_total - previous_raw_total)
++        unique_total_delta = int(current_unique_total - previous_unique_total)
++        if (
++            raw_total_delta < 0
++            or unique_total_delta < 0
++            or any(value < 0 for value in raw_component_delta.values())
++            or any(value < 0 for value in unique_component_delta.values())
++        ):
++            raise RuntimeError(
++                "Estimator ledger counters regressed while constructing an "
++                "active-prefix receipt."
++            )
++        estimator_prefix_checkpoint_cursor["checkpoint_sequence"] = int(
++            estimator_prefix_checkpoint_cursor["checkpoint_sequence"]
++        ) + 1
++        estimator_prefix_checkpoint_cursor["raw_occurrence_count"] = int(
++            current_raw_total
++        )
++        estimator_prefix_checkpoint_cursor["unique_primitive_count"] = int(
++            current_unique_total
++        )
++        estimator_prefix_checkpoint_cursor["unique_components"] = dict(
++            current_unique
++        )
++        estimator_prefix_checkpoint_cursor["occurrence_components"] = dict(
++            current_occurrences
++        )
++        occurrence_sequences = list(
++            occurrence_summary.get("occurrence_sequences", [])
++        )
++        return {
++            "schema": "paper_i_active_prefix_estimator_ledger_receipt_v1",
++            "enabled": True,
++            "status": "complete",
++            "checkpoint_sequence": int(
++                estimator_prefix_checkpoint_cursor["checkpoint_sequence"]
++            ),
++            "occurrence_sequence_start_exclusive": int(previous_raw_total),
++            "occurrence_sequence_end_inclusive": (
++                0 if not occurrence_sequences else int(occurrence_sequences[-1])
++            ),
++            "raw_occurrence_delta": {
++                "components": dict(raw_component_delta),
++                "total": int(raw_total_delta),
++            },
++            "unique_primitive_delta": {
++                "components": dict(unique_component_delta),
++                "S_alg": int(unique_total_delta),
++            },
++            "cumulative_raw_occurrences": {
++                "components": dict(current_occurrences),
++                "total": int(current_raw_total),
++            },
++            "cumulative_unique_primitives": {
++                "components": dict(current_unique),
++                "S_alg": int(current_unique_total),
++            },
++            "canonical_same_state_deduplication_active": True,
++            "raw_occurrences_preserved": True,
++        }
++
+     def _active_prefix_checkpoint_payload(
+         *,
+         outer_iteration: int,
+@@ -16861,6 +17029,26 @@ def _run_hardcoded_adapt_vqe(
+             )
+         sector_probability = _fixed_spin_sector_probability(state_now)
+         source_history = dict(history_row) if isinstance(history_row, Mapping) else {}
++        estimator_ledger_receipt = _active_prefix_estimator_ledger_receipt()
++        estimator_ledger_receipt.update(
++            {
++                "outer_iteration": int(outer_iteration),
++                "checkpoint_kind": str(checkpoint_kind),
++                "branch_id": (
++                    None
++                    if source_history.get("branch_id") is None
++                    else str(source_history.get("branch_id"))
++                ),
++                "parent_branch_id": (
++                    None
++                    if source_history.get("parent_branch_id") is None
++                    else str(source_history.get("parent_branch_id"))
++                ),
++            }
++        )
++        estimator_active_prefix_ledger_receipts_all.append(
++            copy.deepcopy(estimator_ledger_receipt)
++        )
+         checkpoint = {
+             "schema": "paper_i_signed_active_prefix_checkpoint_v1",
+             "checkpoint_kind": str(checkpoint_kind),
+@@ -16918,6 +17106,7 @@ def _run_hardcoded_adapt_vqe(
+                     np.asarray(state_now, dtype=complex)
+                 )
+             ),
++            "estimator_ledger_receipt": dict(estimator_ledger_receipt),
+             "fixed_spin_sector_probability": sector_probability,
+             "fixed_spin_sector_illegal_probability": (
+                 None
+@@ -46196,6 +46551,131 @@ def _run_hardcoded_adapt_vqe(
+         continuation_payload["terminal_active_prefix_checkpoint"] = (
+             copy.deepcopy(terminal_active_prefix_checkpoint)
+         )
++        continuation_payload["all_active_prefix_estimator_ledger_receipts"] = (
++            copy.deepcopy(estimator_active_prefix_ledger_receipts_all)
++        )
++        if estimator_call_ledger is None:
++            active_prefix_estimator_ledger_closure = {
++                "schema": "paper_i_active_prefix_estimator_ledger_closure_v1",
++                "enabled": False,
++                "status": "disabled_missing_required_estimator_ledger",
++            }
++        else:
++            closure_components = (
++                "N_H_outer",
++                "N_H_refit",
++                "N_grad",
++                "N_metric",
++            )
++            enabled_receipts = [
++                receipt
++                for receipt in estimator_active_prefix_ledger_receipts_all
++                if bool(receipt.get("enabled", False))
++            ]
++            summed_raw_components = {
++                component: int(
++                    sum(
++                        int(
++                            dict(
++                                receipt.get("raw_occurrence_delta", {})
++                            ).get("components", {}).get(component, 0)
++                        )
++                        for receipt in enabled_receipts
++                    )
++                )
++                for component in closure_components
++            }
++            summed_unique_components = {
++                component: int(
++                    sum(
++                        int(
++                            dict(
++                                receipt.get("unique_primitive_delta", {})
++                            ).get("components", {}).get(component, 0)
++                        )
++                        for receipt in enabled_receipts
++                    )
++                )
++                for component in closure_components
++            }
++            summed_raw_total = int(
++                sum(
++                    int(
++                        dict(receipt.get("raw_occurrence_delta", {})).get(
++                            "total", 0
++                        )
++                    )
++                    for receipt in enabled_receipts
++                )
++            )
++            summed_unique_total = int(
++                sum(
++                    int(
++                        dict(receipt.get("unique_primitive_delta", {})).get(
++                            "S_alg", 0
++                        )
++                    )
++                    for receipt in enabled_receipts
++                )
++            )
++            terminal_unique_summary = estimator_call_ledger.summary()
++            terminal_occurrence_summary = (
++                estimator_call_ledger.occurrence_summary()
++            )
++            terminal_unique_components = {
++                component: int(terminal_unique_summary.get(component, 0))
++                for component in closure_components
++            }
++            terminal_raw_components = {
++                component: int(terminal_occurrence_summary.get(component, 0))
++                for component in closure_components
++            }
++            terminal_unique_total = int(
++                terminal_unique_summary.get("S_alg", 0)
++            )
++            terminal_raw_total = int(
++                terminal_occurrence_summary.get("total_call_occurrences", 0)
++            )
++            closure_passed = bool(
++                summed_raw_components == terminal_raw_components
++                and summed_unique_components == terminal_unique_components
++                and summed_raw_total == terminal_raw_total
++                and summed_unique_total == terminal_unique_total
++            )
++            if not closure_passed:
++                raise RuntimeError(
++                    "Active-prefix estimator-ledger receipts do not close to "
++                    "the terminal ledger totals."
++                )
++            active_prefix_estimator_ledger_closure = {
++                "schema": "paper_i_active_prefix_estimator_ledger_closure_v1",
++                "enabled": True,
++                "status": "complete",
++                "passed": True,
++                "receipt_count": int(len(enabled_receipts)),
++                "summed_raw_occurrences": {
++                    "components": dict(summed_raw_components),
++                    "total": int(summed_raw_total),
++                },
++                "summed_unique_primitives": {
++                    "components": dict(summed_unique_components),
++                    "S_alg": int(summed_unique_total),
++                },
++                "terminal_raw_occurrences": {
++                    "components": dict(terminal_raw_components),
++                    "total": int(terminal_raw_total),
++                },
++                "terminal_unique_primitives": {
++                    "components": dict(terminal_unique_components),
++                    "S_alg": int(terminal_unique_total),
++                },
++                "includes_discarded_branch_checkpoints": bool(
++                    beam_policy.beam_enabled
++                ),
++            }
++        continuation_payload["active_prefix_estimator_ledger_closure"] = dict(
++            active_prefix_estimator_ledger_closure
++        )
+ 
+         estimator_call_accounting: dict[str, Any] = {
+             "schema": "paper_i_current_s_alg_accounting_v1",

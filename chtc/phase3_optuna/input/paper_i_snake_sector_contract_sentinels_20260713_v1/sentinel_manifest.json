@@ -1,0 +1,78 @@
+{
+  "batch_id": "paper_i_snake_sector_contract_sentinels_20260713_v1",
+  "classification": "correctness_implementation_repair_diagnostic",
+  "code_bundle": {
+    "excludes": [
+      "__pycache__",
+      "*.pyc",
+      "*.pyo"
+    ],
+    "members": [
+      "chtc/__init__.py",
+      "chtc/phase3_optuna/__init__.py",
+      "pipelines",
+      "src",
+      "docs",
+      "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py"
+    ],
+    "path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "a4f5ef71b03fa8fe733739624a1ca2adf685f369bfc6117c900719854d05a7bc",
+    "size_bytes": 3192846
+  },
+  "exact_energy_manifest": {
+    "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/exact_energy_manifest.json",
+    "sha256": "5fff8c67abff10a229a1ecd82dc08a25bc211d723727a82257930447d920d296",
+    "size_bytes": 37120,
+    "source": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/exact_energy_manifest.json"
+  },
+  "generated_utc": "2026-07-13T22:10:31.592893+00:00",
+  "hh_cache_lock_manifest": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/hh_cache_lock_manifest.json",
+  "implementation_lock": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/implementation_lock.json",
+  "implementation_lock_entry_count": 21,
+  "implementation_lock_sha256": "c9c7e17744228e35786ab7584dda93f3e49b085f79d15cdad60c494eb3c8ef1e",
+  "parent_only_policy": {
+    "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_snake_sector_contract_parent_only_policy.json",
+    "sha256": "a07faa738ddfacda2f61c0a929cccc1915873458c82512e58c76c74e3b1f5059",
+    "size_bytes": 2279,
+    "source": "output/diagnostics/paper_i_snake_sector_repair_20260713/parent_only_policy.json"
+  },
+  "preflight_command": "python3 chtc/phase3_optuna/preflight_paper_i_snake_sector_contract_sentinels.py --input-dir chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1 --submit chtc/phase3_optuna/submit_paper_i_snake_sector_contract_sentinels_20260713_v1.sub",
+  "queue_path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_snake_sector_contract_sentinel_queue.tsv",
+  "record_count": 6,
+  "record_ids_path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_snake_sector_contract_sentinel_record_ids.txt",
+  "records_path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_snake_sector_contract_sentinel_records.tsv",
+  "resource_contract": {
+    "hh": {
+      "cpus": 4,
+      "disk_mb": 40960,
+      "memory_mb": 24576
+    },
+    "hubbard": {
+      "cpus": 4,
+      "disk_mb": 32768,
+      "memory_mb": 16384
+    }
+  },
+  "run_class": "diagnostic",
+  "schema": "paper_i_snake_sector_contract_sentinel_submission_audit_v1",
+  "sentinel_case_order": [
+    "hh_L4_nph1_scaling_strong_weak",
+    "hh_L4_nph1_scaling_intermediate_weak",
+    "hh_L3_nph2_scaling_weak_weak",
+    "hubbard_L3_scaling_strong",
+    "hubbard_L4_scaling_weak",
+    "hubbard_L2_scaling_weak"
+  ],
+  "source_evidence_manifest": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence_manifest.json",
+  "source_locked_sensitivity_claim": false,
+  "source_records": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+  "source_records_sha256": "63567b4a4e69ed7a03aa880fd18c85e0d6cf36dc50057def39a2281999d97e96",
+  "status": "prepared_not_submitted",
+  "submission_audit": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/submission_audit.json",
+  "submission_authority": "prepared_only_not_submitted",
+  "submit_log_streaming": {
+    "stderr": false,
+    "stdout": false
+  },
+  "submit_path": "chtc/phase3_optuna/submit_paper_i_snake_sector_contract_sentinels_20260713_v1.sub"
+}

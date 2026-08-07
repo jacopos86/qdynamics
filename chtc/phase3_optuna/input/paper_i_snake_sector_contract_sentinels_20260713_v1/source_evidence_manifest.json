@@ -1,0 +1,190 @@
+{
+  "records": {
+    "hh:hh_L3_nph2_scaling_weak_weak": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L3_nph2_scaling_weak_weak/cell_manifest.json",
+          "sha256": "a5907dbe48ee17a8a4169cccbdef4b7e800a3f54f7fa42c96794f7beae1cdc14",
+          "size_bytes": 11650,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L3_nph2_scaling_weak_weak__snake__parent_powell200__iter50/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L3_nph2_scaling_weak_weak/effective_command.json",
+          "sha256": "f28a46a6d83596b560fe6a3076a6839e38e769617a0f932bdd571519cd66af70",
+          "size_bytes": 512,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L3_nph2_scaling_weak_weak__snake__parent_powell200__iter50/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L3_nph2_scaling_weak_weak/effective_env_overlay.json",
+          "sha256": "7026003de9e9520e580c8b8a207a68069bcbb524fdbd052a5d54da3012399194",
+          "size_bytes": 3024,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L3_nph2_scaling_weak_weak__snake__parent_powell200__iter50/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L3_nph2_scaling_weak_weak/generic_static_single.json",
+          "sha256": "6a44258321f7c08bd27f0e55292e711a71df15f96155acd77f0d475e2c7bee59",
+          "size_bytes": 167704,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L3_nph2_scaling_weak_weak__snake__parent_powell200__iter50/result/generic_static_single.json"
+        }
+      },
+      "role": "healthy_hh_control",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L3_nph2_scaling_weak_weak__snake__parent_powell200__iter50"
+    },
+    "hh:hh_L4_nph1_scaling_intermediate_weak": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_intermediate_weak/cell_manifest.json",
+          "sha256": "e22a695a4ba5eb0aba0d071622b3bd79a851b1363756cb12d3cf428f10b727bc",
+          "size_bytes": 11784,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_intermediate_weak__snake__parent_powell200__iter50/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_intermediate_weak/effective_command.json",
+          "sha256": "d4901afcffcb1efbd6e02ebaa386bfa656d3a0caa3e85748d1c45fc077a72870",
+          "size_bytes": 528,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_intermediate_weak__snake__parent_powell200__iter50/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_intermediate_weak/effective_env_overlay.json",
+          "sha256": "d42bbd2f329898bd0ae3e93aece3693cce49852ce286850cbaea20f5095b3f99",
+          "size_bytes": 3038,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_intermediate_weak__snake__parent_powell200__iter50/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_intermediate_weak/generic_static_single.json",
+          "sha256": "14385a23ef50b92da7b135bf655c1bfa3bcd3772748cfddb9f484877c779c537",
+          "size_bytes": 168121,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_intermediate_weak__snake__parent_powell200__iter50/result/generic_static_single.json"
+        }
+      },
+      "role": "hh_l4_non_u8_contrast",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_intermediate_weak__snake__parent_powell200__iter50"
+    },
+    "hh:hh_L4_nph1_scaling_strong_weak": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_strong_weak/cell_manifest.json",
+          "sha256": "b3ec053c2d5b97c9a5a5d120944c385528473b28419c096e115443c980402639",
+          "size_bytes": 11682,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_strong_weak/effective_command.json",
+          "sha256": "428610d3a5a5391a07ec45e00bf9dfbc0c8284664c00f882948ea996fbcebf48",
+          "size_bytes": 516,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_strong_weak/effective_env_overlay.json",
+          "sha256": "c75bfaa8355d9c707ba972a93124fc4c20b4ef20c64571d900528084bb2c00d7",
+          "size_bytes": 3026,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hh_L4_nph1_scaling_strong_weak/generic_static_single.json",
+          "sha256": "654653178bb691801b6bb611c83306d85e0d25479652b14f13d360acb5494629",
+          "size_bytes": 167833,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50/result/generic_static_single.json"
+        }
+      },
+      "role": "failing_hh_sector_escape",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hh__hh_L4_nph1_scaling_strong_weak__snake__parent_powell200__iter50"
+    },
+    "hubbard:hubbard_L2_scaling_weak": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L2_scaling_weak/cell_manifest.json",
+          "sha256": "13a1ddc09703ab95a09381cfb835b9eae8645cf64e0ab6cb48846a258f5d7d5b",
+          "size_bytes": 10688,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L2_scaling_weak__snake__parent_powell200__iter20/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L2_scaling_weak/effective_command.json",
+          "sha256": "1a0b3bb099cb6dde914a96b4016a4088f18f11db7e08eabb2bae3cf862fbedf6",
+          "size_bytes": 512,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L2_scaling_weak__snake__parent_powell200__iter20/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L2_scaling_weak/effective_env_overlay.json",
+          "sha256": "9513400a0fda86e4c78d9a03facf95ba31740a1328f35df8f57cdb43d280ba2a",
+          "size_bytes": 2374,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L2_scaling_weak__snake__parent_powell200__iter20/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L2_scaling_weak/generic_static_single.json",
+          "sha256": "49ab4c80015b583cc1068e568bb44b41ab757eac919567982bbf6313f8849848",
+          "size_bytes": 154435,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L2_scaling_weak__snake__parent_powell200__iter20/result/generic_static_single.json"
+        }
+      },
+      "role": "healthy_hubbard_control",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L2_scaling_weak__snake__parent_powell200__iter20"
+    },
+    "hubbard:hubbard_L3_scaling_strong": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L3_scaling_strong/cell_manifest.json",
+          "sha256": "5e719c30e7096b6e70ede083a882d16f613cdf92fc561d641c062e218a170c2a",
+          "size_bytes": 10723,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L3_scaling_strong__snake__parent_powell200__iter30/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L3_scaling_strong/effective_command.json",
+          "sha256": "b87f166d36c46b7cb8335ea30f98c80208d2ecf1b6a8d0ccd38cf6ba648acb4e",
+          "size_bytes": 516,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L3_scaling_strong__snake__parent_powell200__iter30/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L3_scaling_strong/effective_env_overlay.json",
+          "sha256": "642e74c59ae76fc5eed5945dcb6a1b9c90fe5488f16bd8c99b4c119585231caa",
+          "size_bytes": 2378,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L3_scaling_strong__snake__parent_powell200__iter30/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L3_scaling_strong/generic_static_single.json",
+          "sha256": "8b16e4237b92d43798e668b203f8e22241b1bf4a7ae819bf3feaf9a2c2276a24",
+          "size_bytes": 158211,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L3_scaling_strong__snake__parent_powell200__iter30/result/generic_static_single.json"
+        }
+      },
+      "role": "failing_hubbard_no_accepted_prune",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L3_scaling_strong__snake__parent_powell200__iter30"
+    },
+    "hubbard:hubbard_L4_scaling_weak": {
+      "files": {
+        "cell_manifest": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L4_scaling_weak/cell_manifest.json",
+          "sha256": "9b456b953266e70bceedd1599163fdf66a2efc6dff4b313572c8869010ff2893",
+          "size_bytes": 10685,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L4_scaling_weak__snake__parent_powell200__iter30/cell_manifest.json"
+        },
+        "effective_command": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L4_scaling_weak/effective_command.json",
+          "sha256": "8c8349386871732f171edaa0c7974b02f76e813ee8818581e1f4ac0336252571",
+          "size_bytes": 512,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L4_scaling_weak__snake__parent_powell200__iter30/effective_command.json"
+        },
+        "effective_env_overlay": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L4_scaling_weak/effective_env_overlay.json",
+          "sha256": "971022028ada615e3e09fbf790fd57497a509b0a567d1732c84bde78e4aa9238",
+          "size_bytes": 2372,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L4_scaling_weak__snake__parent_powell200__iter30/effective_env_overlay.json"
+        },
+        "result": {
+          "packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/hubbard_L4_scaling_weak/generic_static_single.json",
+          "sha256": "47ceec472bbedb739cc0ad8e8e5a75c2cb6ed0e91bf55502df776f11db31c6bc",
+          "size_bytes": 158130,
+          "source": "output/chtc_retrievals/paper_i_append_snake_completed_20260711/raw_outputs/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L4_scaling_weak__snake__parent_powell200__iter30/result/generic_static_single.json"
+        }
+      },
+      "role": "failing_hubbard_l4_no_accepted_prune",
+      "source_record_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1__hubbard__hubbard_L4_scaling_weak__snake__parent_powell200__iter30"
+    }
+  },
+  "schema": "paper_i_snake_sector_contract_source_evidence_v1",
+  "source_batch_id": "paper_i_scaling_matrix_snake_overlay_repair_20260711_v1",
+  "source_records": "chtc/phase3_optuna/input/paper_i_scaling_matrix_snake_overlay_repair_20260711_v1/paper_i_scaling_matrix_records.tsv",
+  "source_records_packaged": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/source_evidence/paper_i_scaling_matrix_source_records.tsv",
+  "source_records_sha256": "63567b4a4e69ed7a03aa880fd18c85e0d6cf36dc50057def39a2281999d97e96",
+  "status": "pass"
+}

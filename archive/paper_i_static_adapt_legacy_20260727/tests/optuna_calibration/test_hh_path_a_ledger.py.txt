@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.exact_bench.hh_path_a_ledger import (
+    DEFAULT_OUTPUT_PATH,
+    _compile_json_from_result_json,
+    _path_status,
+    build_candidate_rows,
+    main,
+    render_ledger,
+)
+
+
+def test_build_candidate_rows_contains_expected_code_pinned_labels() -> None:
+    rows = build_candidate_rows()
+    assert [row.label for row in rows] == [
+        "public_anchor_apr05",
+        "current_98",
+        "current_118",
+        "legacy_75",
+        "legacy_81",
+    ]
+
+
+def test_path_helpers_derive_compile_json_and_absent_status(tmp_path: Path) -> None:
+    result_json = tmp_path / "trial_0000" / "json" / "result.json"
+    assert _compile_json_from_result_json(result_json) == tmp_path / "trial_0000" / "json" / "compile_scout_fake_marrakesh.json"
+    assert _path_status([result_json]) == "recorded paths absent locally in this checkout"
+    result_json.parent.mkdir(parents=True)
+    result_json.write_text("{}", encoding="utf-8")
+    assert _path_status([result_json]) == "all recorded paths present locally"
+
+
+def test_render_ledger_stays_neutral_and_mentions_refresh_command() -> None:
+    rendered = render_ledger(build_candidate_rows(), generated_utc="2026-04-15T00:00:00+00:00")
+    assert "python -m pipelines.exact_bench.hh_path_a_ledger" in rendered
+    assert "neutral candidate rows only" in rendered
+    assert "winner" not in rendered.lower()
+    assert "current_98" in rendered
+    assert "legacy_81" in rendered
+    assert "winner" not in rendered.lower()
+    assert "best " not in rendered.lower()
+    assert "runner-up" not in rendered.lower()
+    assert "incumbent" not in rendered.lower()
+
+
+def test_main_writes_override_output_path(tmp_path: Path) -> None:
+    output_path = tmp_path / "ledger.md"
+    written = main(["--output-path", str(output_path)])
+    assert written == output_path
+    text = output_path.read_text(encoding="utf-8")
+    assert output_path != DEFAULT_OUTPUT_PATH
+    assert "HH Path A Candidate Ledger" in text
+    assert "public_anchor_apr05" in text

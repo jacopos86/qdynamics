@@ -1,0 +1,27 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc",
+  "max_depth": 50,
+  "paper_target": "Paper-I HH always-insertion versus plateau-triggered insertion trajectory and resource comparison",
+  "parent_bundle": "paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc",
+  "parent_cluster_id": 9381198,
+  "profile_contract_sha256": "bfc4a66f81d0903a5b5b8f97fc97ec217d375c6eb4a05932ef78878c40e5a9f6",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1",
+  "profile_resolved": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_commutation_reduced_insertion_v1",
+  "regime_count": 6,
+  "representation": "projected_singleton",
+  "run_class": "diagnostic",
+  "schema": "paper_i_hh_always_insertion_from_plateau_bundle_v1",
+  "source_archive": {
+    "physics_reference_lock": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/physics_and_exact_reference_lock.json",
+    "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+    "source_archive": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/source_locked.tar.gz",
+    "source_archive_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/source_archive_manifest.json",
+    "source_archive_manifest_sha256": "c768e73cd6821b8b480ff7ac288931b408d416aff1320be96196598f426bd626",
+    "source_archive_sha256": "f32ddaa45e1281df670de6a16e77473aa267ec1f29e01069cb4e36a42a391a7b",
+    "source_revision_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/source_revision_manifest.json",
+    "source_revision_manifest_sha256": "7d9d51291a47acb1c8b44b1d19a3d5a4da89bd9febf6048022beff15855ea0f3"
+  },
+  "source_archive_reused_byte_for_byte": true,
+  "source_locked_sensitivity_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/source_locked_sensitivity_audit.json",
+  "status": "ready_for_preflight"
+}

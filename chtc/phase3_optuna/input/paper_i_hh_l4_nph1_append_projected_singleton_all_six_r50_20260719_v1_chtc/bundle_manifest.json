@@ -1,0 +1,80 @@
+{
+  "bundle_id": "paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v1_chtc",
+  "expected_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "generated_utc": "2026-07-19T19:17:23.932514+00:00",
+  "job_count": 6,
+  "operational_blockers": [],
+  "records": [
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__weak_weak__r50",
+      "job_manifest_sha256": "8be0bac425f56236ab24332dd4a4003fbec9d05a384d460fbfa063071d5a5a2d",
+      "normalized_manifest_sha256": "8be0bac425f56236ab24332dd4a4003fbec9d05a384d460fbfa063071d5a5a2d",
+      "regime": "weak-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__intermediate_weak__r50",
+      "job_manifest_sha256": "4cf788d365b6c699656ab9778cc3c782fffbad1059664909028366bb8e43d759",
+      "normalized_manifest_sha256": "4cf788d365b6c699656ab9778cc3c782fffbad1059664909028366bb8e43d759",
+      "regime": "intermediate-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__strong_weak__r50",
+      "job_manifest_sha256": "74d4ba3beedd21b41523ba77f4e14625321892fec5b812064b4ef3c8fb6f4c47",
+      "normalized_manifest_sha256": "74d4ba3beedd21b41523ba77f4e14625321892fec5b812064b4ef3c8fb6f4c47",
+      "regime": "strong-weak",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__weak_strong__r50",
+      "job_manifest_sha256": "7910861b1b6894883ea7c683d5c8ecc5a39d93e76c94058b3833b380ccf672e1",
+      "normalized_manifest_sha256": "7910861b1b6894883ea7c683d5c8ecc5a39d93e76c94058b3833b380ccf672e1",
+      "regime": "weak-strong",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__intermediate_strong__r50",
+      "job_manifest_sha256": "90cb73d35b43375756e8907f0909c4b5da8e8ceb52ca2a54b22b4124f2982f15",
+      "normalized_manifest_sha256": "90cb73d35b43375756e8907f0909c4b5da8e8ceb52ca2a54b22b4124f2982f15",
+      "regime": "intermediate-strong",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "append_projected_singleton__hh_L4_nph1__strong_strong__r50",
+      "job_manifest_sha256": "b3c0967d061559b2c2ee70a86b0e77aeea790d5d155be4f685795529ab0856c9",
+      "normalized_manifest_sha256": "b3c0967d061559b2c2ee70a86b0e77aeea790d5d155be4f685795529ab0856c9",
+      "regime": "strong-strong",
+      "variant": "projected_singleton"
+    }
+  ],
+  "regime_count_per_variant": 6,
+  "remote_image_gate": {
+    "checks": {
+      "fake_backend_identity": true,
+      "fake_backend_instantiation": true,
+      "fake_backend_qubits": true,
+      "image_path": true,
+      "image_sha256": true,
+      "qiskit_import": true,
+      "qiskit_version": true,
+      "schema": true,
+      "status": true
+    },
+    "gate_path": "remote_execution_gate.json",
+    "gate_sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+    "passed": true,
+    "reason": "pass",
+    "schema_expected": "paper_i_hh_sr_symcost_noprune_remote_execution_gate_v1"
+  },
+  "schema": "paper_i_hh_l4_nph1_append_projected_singleton_bundle_v1",
+  "scientific_blockers": [],
+  "source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v1_chtc/source_locked.tar.gz",
+    "sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd"
+  },
+  "status": "prepared_not_submitted",
+  "submission_enabled": true,
+  "submission_requirements": "TARGET.HasSIF",
+  "variant_count": 1
+}

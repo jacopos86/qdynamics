@@ -1,0 +1,32 @@
+{
+  "archive": "chtc/paper_i_ra_adapt_repair_20260727/live_safety_snapshots_20260803_9401106/9401106.0__weak_strong__20260804T012503Z.tar.gz",
+  "archive_sha256": "c0589600744902f276c479fa05d7de53b55345b11221bd544de5183d8eabaf9c",
+  "archive_size_bytes": 4903485221,
+  "checkpoint_depth": 49,
+  "members": {
+    "checkpoint.estimator_call_ledger_checkpoint.9e309954fe736957.json": {
+      "sha256": "9e309954fe736957a97efb620b2456030cd3ca9324db933f7defa5fbd83cd9eb",
+      "size_bytes": 13692250379
+    },
+    "checkpoint.json": {
+      "sha256": "87bef01a37fd578880b42f99347f8181d1abd038ce43e7a83a405b598052e167",
+      "size_bytes": 7565032541
+    },
+    "checkpoint.verified_singleton_resume.66d8d22c4c2070e5.json": {
+      "sha256": "66d8d22c4c2070e55d943d27084203c9f75e07d6404ef0fde76b3ce5dc955092",
+      "size_bytes": 5241
+    }
+  },
+  "pointers": {
+    "ledger": {
+      "path": "checkpoint.estimator_call_ledger_checkpoint.9e309954fe736957.json",
+      "sha256": "9e309954fe736957a97efb620b2456030cd3ca9324db933f7defa5fbd83cd9eb"
+    },
+    "resume": {
+      "path": "checkpoint.verified_singleton_resume.66d8d22c4c2070e5.json",
+      "sha256": "66d8d22c4c2070e55d943d27084203c9f75e07d6404ef0fde76b3ce5dc955092"
+    }
+  },
+  "schema": "paper_i_live_checkpoint_snapshot_validation_v1",
+  "validation": "passed"
+}

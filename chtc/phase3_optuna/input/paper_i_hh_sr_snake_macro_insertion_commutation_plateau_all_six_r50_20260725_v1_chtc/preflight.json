@@ -1,0 +1,15 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v1_chtc",
+  "checks": {
+    "outer_horizon": 50,
+    "profile_contract_sha256": "36be908d3e770675be338cba5e00460a7ea1415f53a6b53987bf2e51eb26bc94",
+    "requirements_has_sif": true,
+    "route_changes_only_insertion_mode": true,
+    "selected_job_count": 6,
+    "selected_regimes_match_request": true,
+    "source_archive_sha256": "a09394c79875e7beec4f3eb5a072d83f600cbca813471948389b3c96a7f0e140",
+    "source_parent_has_six_jobs": true
+  },
+  "schema": "paper_i_hh_commutation_reduced_insertion_preflight_v1",
+  "status": "pass"
+}

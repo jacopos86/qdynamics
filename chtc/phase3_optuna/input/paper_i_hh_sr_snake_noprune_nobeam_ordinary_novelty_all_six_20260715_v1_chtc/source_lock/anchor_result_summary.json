@@ -1,0 +1,25 @@
+{
+  "adapt_success": true,
+  "ansatz_depth": 30,
+  "controller_round_target": 30,
+  "n_ph_reference": 2,
+  "n_ph_work": 2,
+  "route_checks": {
+    "accepted_refit_base_chart": "expanded_runtime_projected_logical_v1",
+    "beam_enabled": false,
+    "beam_live_branches": 1,
+    "infeasible_model_novelty_fallback_retained": true,
+    "negative_curvature_escape": "disabled",
+    "phase2_gram_novelty_policy": "fallback_only_v1",
+    "phase3_gram_novelty_policy": "fallback_only_v1",
+    "pruning_enabled": false,
+    "regular_energy_response_model": "undamped"
+  },
+  "same_cutoff_absolute_error": 7.993605777301127e-15,
+  "same_cutoff_exact_energy": -0.9183531194991743,
+  "saved_energy": -0.9183531194991663,
+  "schema": "paper_i_hh_sr_successful_anchor_result_summary_v1",
+  "source_result_copied_into_bundle": false,
+  "source_result_path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+  "source_result_sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa"
+}

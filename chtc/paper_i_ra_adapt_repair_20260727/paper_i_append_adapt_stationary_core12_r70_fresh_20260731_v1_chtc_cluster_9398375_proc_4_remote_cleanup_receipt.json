@@ -1,0 +1,45 @@
+{
+  "execution": {
+    "attempt_ordinal": 1,
+    "cluster_id": 9398375,
+    "execution_id": "r70_fresh__strong_weak_u8__nph3__append_macro",
+    "proc_id": 4
+  },
+  "local_archive": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260731_append_r70_release_v1/r70_fresh__strong_weak_u8__nph3__append_macro__cluster_9398375__proc_4.tar.gz",
+    "sha256": "2c851288defcdeece034e62b5e7b63fb892d55d077bbd6176b7ba1a338da2c7a",
+    "size_bytes": 42233490
+  },
+  "paper_evidence_adopted": false,
+  "quota_after_cleanup": {
+    "home_hard_limit_gib": 50.0,
+    "home_soft_limit_gib": 40.0,
+    "home_used_gib": 33.6801,
+    "observed_utc": "2026-07-31T18:22:38Z",
+    "soft_limit_headroom_gib": 6.3199
+  },
+  "receipt_created_utc": "2026-07-31T18:22:47Z",
+  "remote_archive": {
+    "absence_observed_utc": "2026-07-31T18:20:53Z",
+    "disposition": "exact_path_deleted_after_local_hash_size_full_archive_and_authority_inventory_verification",
+    "exact_path_absence_confirmed": true,
+    "path": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/fetched/r70_fresh__strong_weak_u8__nph3__append_macro__cluster_9398375__proc_4.tar.gz",
+    "sha256": "2c851288defcdeece034e62b5e7b63fb892d55d077bbd6176b7ba1a338da2c7a",
+    "size_bytes": 42233490
+  },
+  "remote_identity": {
+    "host": "ap2001.chtc.wisc.edu",
+    "owner": "jsstrobel",
+    "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "schedd": "ap2001.chtc.wisc.edu"
+  },
+  "retrieval_authentication_receipt": {
+    "canonical_sha256": "e419e7c6646e3879f0c8b2026569842bd904116511243e3ddfa9fc178be82fbb",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_cluster_9398375_proc_4_retrieval_authentication_receipt.json",
+    "sha256": "2ab8a55ffeb4d3ff200502ceeece0baad3b14b5e30e243807550bee4c0c74704",
+    "size_bytes": 6190
+  },
+  "schema": "paper_i_append_adapt_stationary_core_r70_remote_cleanup_receipt_v1",
+  "sha256": "7501d9127bdbd864f71d93128a1fb1b28742193faf4464a2ee5276f338f8c416",
+  "status": "passed"
+}

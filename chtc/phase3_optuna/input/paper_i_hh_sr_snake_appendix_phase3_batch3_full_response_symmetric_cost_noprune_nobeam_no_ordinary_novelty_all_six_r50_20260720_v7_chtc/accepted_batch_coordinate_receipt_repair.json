@@ -1,0 +1,18 @@
+{
+  "accepted_subset_changed": false,
+  "changed_source_files": [
+    "pipelines/static_adapt/adapt_pipeline.py"
+  ],
+  "predecessor_adapt_pipeline_sha256": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v6_chtc",
+  "predecessor_source_archive_sha256": "f11607321e426d73627910a1da76a22a96f4d4bd82f66708b5b202b2e5a61453",
+  "repair": "recover the complete accepted commit order from the already certified selected_subset receipt when the caller supplies only the primary commit position",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_batch3_accepted_coordinate_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "selector_or_model_inputs_changed": false,
+  "source_archive_manifest_sha256": "81e971e7699b2de30f16d8cc8197b31462f354fdc5b40f821ffae9b8e8b25e17",
+  "source_revision_manifest_sha256": "42f675e43e3b9c00b01ba75021d17d730ee494a2f62d32d15932e8d35a1487a9",
+  "successor_adapt_pipeline_sha256": "3d48ea52143cf6e7421064f565a34f71530ab41018b1c0596b2d66baed90cba4",
+  "successor_source_archive_sha256": "be62f877537c4b88b154dbe0e802a1029197a94b84115997dca1820f2cedcc80"
+}

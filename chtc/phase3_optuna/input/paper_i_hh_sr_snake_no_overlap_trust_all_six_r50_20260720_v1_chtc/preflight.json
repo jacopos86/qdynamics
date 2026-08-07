@@ -1,0 +1,26 @@
+{
+  "batch_name": "paper-i-hh-sr-phase3-projected-generalized-six-r50-20260720-v1",
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "checks": {
+    "accepted_powell_refit_whitening_preserved": true,
+    "all_rows_exact_round_50": true,
+    "anchor_reproduces_source": true,
+    "fanout_authorized": true,
+    "phase3_raw_supported_projection": true,
+    "phase3_whitening_disabled": true,
+    "same_cutoff_all_rows": true,
+    "single_scientific_execution_field_changed": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "strong_holstein_n_ph_7": true,
+    "submission_not_performed": true,
+    "weak_holstein_n_ph_3": true
+  },
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_v1",
+  "route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_fanout_preflight_v1",
+  "source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "status": "pass"
+}

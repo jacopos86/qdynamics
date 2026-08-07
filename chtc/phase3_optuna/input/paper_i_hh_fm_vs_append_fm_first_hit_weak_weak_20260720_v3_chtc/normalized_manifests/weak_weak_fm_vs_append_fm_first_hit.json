@@ -1,0 +1,73 @@
+{
+  "bundle_id": "paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_20260720_v3_chtc",
+  "command": [
+    "python3",
+    "-m",
+    "pipelines.exact_bench.paper_i_hh_fm_vs_append_fm_first_hit",
+    "run-pair",
+    "--campaign-dir",
+    "CAMPAIGN_DIR",
+    "--regime",
+    "weak-weak"
+  ],
+  "comparison": {
+    "automatic_hh_seed_disabled": true,
+    "discarded_branch_work_reported": false,
+    "initial_ansatz": "empty_hf_reference_v1",
+    "line_search_max_steps": 15,
+    "max_controller_rounds": 30,
+    "optimizer_maxiter": 200,
+    "qbroyd_qbang_enabled": false,
+    "qiskit": {
+      "compile_convention": "table_i_basis_gate_transpile_v1",
+      "optimization_level": 0,
+      "seed_transpiler": 7
+    },
+    "reported_query_coordinate": "winning_lineage_S_alg_only",
+    "routes": [
+      "fm_snake",
+      "projected_singleton_append_fm"
+    ],
+    "sequential_within_one_proc": true,
+    "target_abs_delta_e": 0.0002
+  },
+  "job_id": "weak_weak_fm_vs_append_fm_first_hit",
+  "matched_contract_sha256": "38845bc25ea1810a0863c7f6d9e212a117606d334cdd7d916affe9299a9c064b",
+  "output_contract": {
+    "failure_recovery_snapshot": [
+      "fm_snake/current.json",
+      "projected_singleton_append_fm/partial_result.json",
+      "projected_singleton_append_fm/adapt_iteration_progress.jsonl"
+    ],
+    "full_worker_checkpoint_transfer": false,
+    "stream_error": false,
+    "stream_output": false,
+    "terminal_results_and_provenance_only": true,
+    "transfer_mode": "single_compressed_narrow_archive"
+  },
+  "physics": {
+    "L": 2,
+    "U_over_t": 0.25,
+    "family": "Hubbard-Holstein",
+    "lambda": 0.25,
+    "n_ph_reference": 3,
+    "n_ph_work": 3,
+    "same_cutoff": true
+  },
+  "regime": "weak-weak",
+  "resources": {
+    "max_runtime_seconds": 259200,
+    "request_cpus": 4,
+    "request_disk_mb": 40960,
+    "request_memory_mb": 24576
+  },
+  "run_class": "diagnostic",
+  "schema": "paper_i_hh_fm_vs_append_fm_first_hit_chtc_job_v1",
+  "shared_formal_manifold_config_sha256": "001e7ead7c4df48e4707c5f830a766e20214cf5724bca3d1ee6435d6205ac423",
+  "source_lock": {
+    "archive": "source_locked.tar.gz",
+    "archive_sha256": "30fa38030af0cb13515b31d506e52b350c84c4e109b17026b9c692576e08a280",
+    "campaign_module": "pipelines.exact_bench.paper_i_hh_fm_vs_append_fm_first_hit",
+    "campaign_module_sha256": "2aa43505121a36282b4c05963942278a7b8067508c3aefc7e6ec4b5fa17e8f62"
+  }
+}

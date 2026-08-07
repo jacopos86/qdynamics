@@ -1,0 +1,40 @@
+{
+  "schema": "paper_i_ra_adapt_chtc_submission_receipt_v1",
+  "submitted_utc": "2026-08-05T21:00:28Z",
+  "cluster_id": 9572720,
+  "proc_id": 0,
+  "batch_name": "paper-i-ra-global-singleton-plateau-nph7-r70-exact49-256gb-weak-v1",
+  "execution_id": "historical_mean_global_singleton_v2_nph7_r70__weak_strong__nph7__ra_global_singleton_plateau__resume_from_d49_to_r70_256gb_loaderfix_v2",
+  "regime_id": "weak_strong",
+  "resume_controller_round": 49,
+  "target_horizon": 70,
+  "scheduler_state_at_verification": "idle_unheld",
+  "num_job_starts_at_verification": 0,
+  "request_cpus": 4,
+  "request_memory_mb": 262144,
+  "request_disk_kb": 104857600,
+  "staging_input": {
+    "uri": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_historical_mean_global_singleton_r70_20260804_v1/inputs/9401106.0__weak_strong__20260804T012503Z.tar.gz",
+    "size_bytes": 4903485221,
+    "sha256": "c0589600744902f276c479fa05d7de53b55345b11221bd544de5183d8eabaf9c"
+  },
+  "output_destination": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_historical_mean_global_singleton_r70_20260804_v1/outputs/",
+  "activation_manifest_canonical_sha256": "6360e85c47764f1406c7df875fa9e05f25f1d63ba6070c53de948c2d19189e46",
+  "package_manifest_canonical_sha256": "6dba640133bbdfffc7e9be14af54b36781d3a3c684856a6c7c5fea80fb20e9bd",
+  "pre_submit_validation": {
+    "local_activation": "passed",
+    "submit_lifecycle": "passed",
+    "remote_exact_descriptor_dry_run": "passed",
+    "batch_collision_check": "passed_absent",
+    "remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "quota_after_cleanup": {
+    "chtc_home_used_gb": 31.2897,
+    "chtc_home_limit_gb": 40,
+    "chtc_staging_used_gb": 4.56673,
+    "chtc_staging_limit_gb": 100,
+    "mac_available_kb": 13922264
+  },
+  "intentional_hold": false,
+  "paper_evidence_adopted": false
+}

@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_paper_i_hh_u8_strong_strong_geo_no_target_continue_task_apptainer.sh
+arguments = geo raw_outputs/paper_i_hh_u8_strong_strong_geo_no_target_continue_20260614_v1/geo 60
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs/paper_i_hh_u8_strong_strong_geo_no_target_continue_20260614_v1/geo
+stream_output = False
+stream_error = False
+log = logs/phase3-paper-i-hh-u8-strong-strong-geo-no-target-continue-20260614-v1.$(Cluster).$(Process).log
+output = logs/phase3-paper-i-hh-u8-strong-strong-geo-no-target-continue-20260614-v1.$(Cluster).$(Process).out
+error = logs/phase3-paper-i-hh-u8-strong-strong-geo-no-target-continue-20260614-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 24GB
+request_disk = 40960MB
++MaxRuntime = 172800
++JobBatchName = "paper-i-hh-u8-strong-strong-geo-no-target-continue-20260614-v1"
+environment = "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1"
+queue 1

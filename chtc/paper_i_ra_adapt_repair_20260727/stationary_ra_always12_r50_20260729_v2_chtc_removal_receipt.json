@@ -1,0 +1,58 @@
+{
+  "batch_name": "paper-i-ra-adapt-stationary-ra-always12-r50-20260729-v2",
+  "cluster_id": 9395155,
+  "history_confirmation": {
+    "entered_current_status_epoch": 1785412608,
+    "entered_current_status_utc": "2026-07-30T11:56:48Z",
+    "job_status": 3,
+    "proc_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "remove_reason": "via condor_rm (by user jsstrobel)",
+    "removed_count": 12
+  },
+  "post_remove_queue_observation": {
+    "job_count": 0,
+    "observed_utc": "2026-07-30T12:22:41Z"
+  },
+  "pre_remove_queue_observation": {
+    "held_count": 0,
+    "idle_count": 12,
+    "job_status": 1,
+    "proc_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "removal_command": "condor_rm 9395155",
+  "removal_state": "removed",
+  "schema": "paper_i_ra_adapt_chtc_cluster_removal_receipt_v1",
+  "sha256": "7e4339141e7e68a7dd58c0216c85529100ad295c764259dc80e01d59720aa729",
+  "submission_receipt": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v2_chtc_submission_receipt.json",
+    "sha256": "1984bc14767beaa11d843c8ef71bc8900cfedbc742faccf74ae25fe229c3419a"
+  },
+  "submission_state": "removed",
+  "unrelated_jobs_touched": false
+}

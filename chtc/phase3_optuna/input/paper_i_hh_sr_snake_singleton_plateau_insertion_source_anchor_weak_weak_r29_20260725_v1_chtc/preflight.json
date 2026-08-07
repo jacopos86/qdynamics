@@ -1,0 +1,15 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_plateau_insertion_source_anchor_weak_weak_r29_20260725_v1_chtc",
+  "checks": {
+    "outer_horizon": 29,
+    "profile_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "requirements_has_sif": true,
+    "route_changes_only_insertion_mode": true,
+    "selected_job_count": 1,
+    "selected_regimes_match_request": true,
+    "source_archive_sha256": "7247c3a294ecc66b93e7c784c65902fe571cd9b5325ad1113cbeb07eda2f7563",
+    "source_parent_has_six_jobs": true
+  },
+  "schema": "paper_i_hh_commutation_reduced_insertion_preflight_v1",
+  "status": "pass"
+}

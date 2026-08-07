@@ -1,0 +1,45 @@
+{
+  "execution": {
+    "attempt_ordinal": 1,
+    "cluster_id": 9398375,
+    "execution_id": "r70_fresh__strong_strong_u8__nph7__append_singleton",
+    "proc_id": 11
+  },
+  "local_archive": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260731_append_r70_strong_strong/r70_fresh__strong_strong_u8__nph7__append_singleton__cluster_9398375__proc_11.tar.gz",
+    "sha256": "6028ddfdad557d5f28c4c3539ee7c957cd249efba1d5a3654a3625d5b4c5bbf6",
+    "size_bytes": 954111541
+  },
+  "paper_evidence_adopted": false,
+  "quota_after_cleanup": {
+    "home_hard_limit_gib": 50.0,
+    "home_soft_limit_gib": 40.0,
+    "home_used_gib": 37.6435546875,
+    "observed_utc": "2026-08-01T00:57:03Z",
+    "soft_limit_headroom_gib": 2.3564453125
+  },
+  "receipt_created_utc": "2026-08-01T00:57:20Z",
+  "remote_archive": {
+    "absence_observed_utc": "2026-08-01T00:56:36Z",
+    "disposition": "exact_path_deleted_after_local_hash_size_full_archive_and_authority_inventory_verification",
+    "exact_path_absence_confirmed": true,
+    "path": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_runtime/fetched/r70_fresh__strong_strong_u8__nph7__append_singleton__cluster_9398375__proc_11.tar.gz",
+    "sha256": "6028ddfdad557d5f28c4c3539ee7c957cd249efba1d5a3654a3625d5b4c5bbf6",
+    "size_bytes": 954111541
+  },
+  "remote_identity": {
+    "host": "ap2001.chtc.wisc.edu",
+    "owner": "jsstrobel",
+    "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "schedd": "ap2001.chtc.wisc.edu"
+  },
+  "retrieval_authentication_receipt": {
+    "canonical_sha256": "4cd699ad87b5599f7c5d805cbb55a50a155f3f23759d02589579e9adad4f5e02",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc_cluster_9398375_proc_11_retrieval_authentication_receipt.json",
+    "sha256": "a34d7e87abea51ec186a87f4dca0c9483bb11ab33c707fa0ead91b8788df2e33",
+    "size_bytes": 6224
+  },
+  "schema": "paper_i_append_adapt_stationary_core_r70_remote_cleanup_receipt_v1",
+  "sha256": "9682508924f48464b1ca3cd571d0dc1975b256247de8a6a6783621e14f5493fa",
+  "status": "passed"
+}

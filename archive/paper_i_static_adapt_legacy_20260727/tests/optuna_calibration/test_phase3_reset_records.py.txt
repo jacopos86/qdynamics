@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+import csv
+import io
+import json
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from chtc.phase3_optuna import check_tripartite_reset_outputs as checker
+from chtc.phase3_optuna import generate_tripartite_spsa_ab_l2nph1_reset_records as generator
+
+
+def _rows(tsv_text: str) -> list[dict[str, str]]:
+    return list(csv.DictReader(io.StringIO(tsv_text), delimiter="\t"))
+
+
+def test_tripartite_reset_generator_outputs_only_bounded_four_lane_records() -> None:
+    artifacts = generator.render_artifacts()
+    full_rows = _rows(artifacts[generator.FULL_RECORDS])
+    smoke_rows = _rows(artifacts[generator.SMOKE_RECORDS])
+    manifest = json.loads(artifacts[generator.MANIFEST])
+
+    assert len(full_rows) == 4
+    assert len(smoke_rows) == 4
+    assert len({row["record_id"] for row in full_rows + smoke_rows}) == 8
+    assert all("fermionic" not in row["record_id"] for row in full_rows + smoke_rows)
+    assert {row["families"] for row in full_rows + smoke_rows} == {"bose_hubbard", "hh"}
+    for row in full_rows + smoke_rows:
+        assert row["sizes"] == "2"
+        assert row["boson_cutoff"] == "1"
+        assert row["boson_cutoffs"] == ""
+        assert row["exact_reference_boson_cutoff"] == "0"
+        assert row["fixed_inner_optimizer"] == "SPSA"
+        assert row["canonical_lane"] == ""
+        assert row["phase2_novelty_mode"] in {"collective_span_v1", "legacy_pairwise_v1"}
+    assert {row["physics_grid_profile"] for row in full_rows} == {"small_robust"}
+    assert {row["physics_grid_profile"] for row in smoke_rows} == {"canonical"}
+    assert {row["n_trials"] for row in full_rows} == {"36"}
+    assert {row["n_trials"] for row in smoke_rows} == {"1"}
+    assert manifest["replaces"]["cluster_id"] == "6305147"
+    assert len(manifest["replaces"]["record_ids"]) == 4
+    assert len(manifest["preserves"]["record_ids"]) == 2
+
+
+def test_tripartite_reset_preflight_selects_no_l3_nph2_or_high_reference() -> None:
+    payload = checker.check_records(
+        generator.FULL_RECORDS,
+        Path("raw_outputs"),
+        require_complete=False,
+        preflight_only=True,
+    )
+
+    assert payload["ok"], payload["errors"]
+    assert payload["record_count"] == 4
+    for specs in payload["preflight_specs"].values():
+        assert specs
+        assert all(spec["L"] == 2 for spec in specs)
+        assert all(spec["n_ph_max"] == 1 for spec in specs)
+        assert all(spec["exact_reference_n_ph_max"] is None for spec in specs)

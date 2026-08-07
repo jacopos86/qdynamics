@@ -1,0 +1,165 @@
+--- a/pipelines/static_adapt/sr_snake_route_profile.py
++++ b/pipelines/static_adapt/sr_snake_route_profile.py
+@@ -57,7 +57,7 @@
+ )
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1 = (
+     "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
+-    "no_prune_phase3_batch_v1"
++    "no_prune_phase3_greedy_batch_v1"
+ )
+ SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1 = (
+     "supported_whitened_adaptive_trust_full_response_no_novelty_"
+@@ -72,7 +72,7 @@
+     "sr_snake_no_prune_symmetric_cost_v1"
+ )
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1 = (
+-    "sr_snake_no_prune_symmetric_cost_phase3_batch_v1"
++    "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1"
+ )
+ SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1 = (
+     "sr_snake_no_novelty_metric_prune_beam_v1"
+@@ -522,8 +522,8 @@
+     **CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS,
+     "phase2_enable_batching": False,
+     "phase3_enable_batching": True,
+-    "phase2_batch_selection_mode": "combinatorial_reduced_plane",
+-    "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++    "phase2_batch_selection_mode": "greedy_reduced_plane",
++    "phase3_batch_selection_mode": "greedy_reduced_plane",
+     "phase2_batch_target_size": 3,
+     "phase3_batch_target_size": 3,
+     "phase2_batch_size_cap": 3,
+@@ -1150,8 +1150,8 @@
+     return _json_sha256(canonical_sr_snake_no_prune_symmetric_cost_v1_contract())
+ 
+ 
+-def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract() -> dict[str, Any]:
+-    """Return the Phase-III-only combinatorial batching appendix contract."""
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract() -> dict[str, Any]:
++    """Return the Phase-III-only fixed-source greedy batching appendix contract."""
+ 
+     payload = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+     payload["route_profile"] = (
+@@ -1166,7 +1166,7 @@
+             "phase2_batching_active": False,
+             "phase3_batching_active": True,
+             "phase3_batching_scope": "post_shortlist_admission_only_v1",
+-            "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++            "phase3_batch_selection_mode": "greedy_reduced_plane",
+             "phase3_batch_target_size": 3,
+             "phase3_batch_size_cap": 3,
+             "phase3_runtime_child_subset_cap": 1,
+@@ -1186,9 +1186,9 @@
+     return json.loads(json.dumps(payload, sort_keys=True))
+ 
+ 
+-def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() -> str:
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256() -> str:
+     return _json_sha256(
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     )
+ 
+ 
+@@ -1267,7 +1267,7 @@
+     if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
+         return canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+     if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1:
+-        return canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++        return canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     if requested == SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1:
+         return canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract()
+     raise ValueError("The off SR route profile has no canonical contract.")
+@@ -1307,7 +1307,7 @@
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1: (
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+         ),
+-        "sr_snake_no_prune_symmetric_cost_phase3_batch_v1": (
++        "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1": (
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
+         ),
+         "no_prune_symmetric_cost_phase3_batch_v1": (
+@@ -1693,8 +1693,8 @@
+     "canonical_sr_snake_v4_contract_sha256",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256",
+-    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract",
+-    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract_sha256",
+     "normalize_phase3_response_coordinate_scope",
+--- a/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
++++ b/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
+@@ -32,8 +32,8 @@
+ from pipelines.static_adapt.sr_snake_route_profile import (
+     CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+-    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract,
+-    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
+ )
+ 
+@@ -46,7 +46,7 @@
+     return _parser().parse_args(
+         [
+             "--sr-route-profile",
+-            "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
++            "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1",
+             "--adapt-max-depth",
+             "50",
+             *extra,
+@@ -113,15 +113,15 @@
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
+     )
+     assert args.sr_route_profile_contract == (
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     )
+     assert args.sr_route_profile_contract_sha256 == (
+-        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256()
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256()
+     )
+     assert args.phase2_enable_batching is False
+     assert args.phase3_enable_batching is True
+-    assert args.phase2_batch_selection_mode == "combinatorial_reduced_plane"
+-    assert args.phase3_batch_selection_mode == "combinatorial_reduced_plane"
++    assert args.phase2_batch_selection_mode == "greedy_reduced_plane"
++    assert args.phase3_batch_selection_mode == "greedy_reduced_plane"
+     assert args.phase2_batch_target_size == 3
+     assert args.phase3_batch_target_size == 3
+     assert args.phase2_batch_size_cap == 3
+@@ -129,7 +129,7 @@
+     assert args.phase3_runtime_split_max_subset_size == 1
+     assert args.phase1_prune_enabled is False
+     assert args.adapt_beam_live_branches == 1
+-    assert canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() != (
++    assert canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract_sha256() != (
+         canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
+     )
+ 
+@@ -137,10 +137,10 @@
+     assert kwargs["phase2_enable_batching"] is False
+     assert kwargs["phase3_enable_batching"] is True
+     assert kwargs["phase2_batch_selection_mode"] == (
+-        "combinatorial_reduced_plane"
++        "greedy_reduced_plane"
+     )
+     assert kwargs["phase3_batch_selection_mode"] == (
+-        "combinatorial_reduced_plane"
++        "greedy_reduced_plane"
+     )
+     assert kwargs["phase2_batch_target_size"] == 3
+     assert kwargs["phase2_batch_size_cap"] == 3
+@@ -214,7 +214,7 @@
+ 
+ 
+ def test_phase3_batch_appendix_contract_is_exact_one_factor_delta() -> None:
+-    contract = canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    contract = canonical_sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1_contract()
+     settings = contract["execution_settings"]
+     assert settings == (
+         CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS

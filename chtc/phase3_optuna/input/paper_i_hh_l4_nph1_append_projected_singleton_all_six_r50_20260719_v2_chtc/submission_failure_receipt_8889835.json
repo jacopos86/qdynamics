@@ -1,0 +1,14 @@
+{
+  "schema": "paper_i_hh_l4_nph1_append_submission_failure_v1",
+  "cluster_id": 8889835,
+  "bundle_id": "paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v2_chtc",
+  "job_count": 6,
+  "job_status": "completed_with_exit_1",
+  "remote_wall_seconds_per_job": 5,
+  "failure_stage": "pre-iteration resource guard",
+  "reason": "Generic statevector ADAPT variant canonical case qubit count exceeds cap",
+  "default_qubit_cap": 10,
+  "canonical_case_qubits": 12,
+  "scientific_iterations_completed": 0,
+  "scientific_source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd"
+}

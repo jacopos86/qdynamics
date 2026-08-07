@@ -1,0 +1,182 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/paper-i-final-correctness-and-evidence-completion-plan-20260727.md",
+      "sha256": "a3174c9d33bfcfa97892ca1702369296456cd401f1f6101fcdf34bc7d2c93709"
+    },
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v7.json",
+      "sha256": "719e79d3055a6be460cbf244cc9292ba351871b8882194667ee9e4c3e5dca6aa"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/materialize_study1_v8.py",
+      "sha256": "bc45f2e13425a95d8dc8aed798438830ed9741e5e7083528884b11cd142c2a3d"
+    }
+  ],
+  "checks": [
+    {
+      "command": "python3 -m pytest -q test/test_ra_adapt_*.py test/test_static_adapt_commutation_metadata.py test/test_paper_i_sr_snake_resume_adapter.py test/test_static_adapt_insertion_commutation_plateau.py",
+      "id": "paper_i_p1_source_gate",
+      "observed": "145 passed",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_ra_adapt_facade.py::test_bundle_operational_controls_authenticate_singleton_continuation",
+      "id": "owner_bound_singleton_resume_and_tamper_gate",
+      "observed": "1 passed, 2 warnings; exact 2-round checkpoint resumed to 3 rounds; signed hard guard and retained-owner identity/label round-tripped; coherent alternate-ancestor tamper rejected",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/cross_file_loader_validation.json",
+      "id": "cross_file_loader_validation",
+      "observed": "116 passed; 0 failed",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/v7_v8_repair_semantics_receipt.json",
+      "id": "v7_v8_repair_semantics",
+      "observed": "Repeat-aware candidate-position identity/rank, signed actual retained-owner identity/label, hard-guard hydration, coherent alternate-ancestor rejection, and accepted-registry immutability are source-bound and passed",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/study1_objective_gate_authority_receipt.json",
+      "id": "objective_gate_authority",
+      "observed": "20 logical cells; G1/G2/G3/G8/G13 authority closed under authority v3",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/final_materialization_receipt.json",
+      "id": "implementation_inventory",
+      "observed": "13 roots; 148 current filesystem files; 0 rehash mismatches; stable canonical SHA-256 8ecd96b125e0a3ea957c76bdd20f56b8d465a209818ca9b89d36d1b66a436e6b",
+      "required_file_sha256": {
+        "pipelines/static_adapt/adapt_pipeline.py": "45cc380586a1f744b5065020c91b74947ec27f15622b9b59058f3d5dd3e241cb",
+        "pipelines/static_adapt/sr_snake/_resume.py": "1701ce168de7b3749b5ddb74f267a20a67c52adb2549329b70607497da6bbc6c",
+        "pipelines/static_adapt/sr_snake/_selection.py": "790e9a565b1f640c71f59497a628b6ed5201219ca86373e5b09048af933718b3"
+      },
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/final_materialization_receipt.json",
+      "id": "historical_materialization_preservation",
+      "observed": "v1-v7 pinned pre/post tree hashes byte-identical; v7 remains 375 files, 13592188 bytes, relative tree SHA-256 32397770a3fc903876cf467393f8d282d9fd814b84cc02b354dbb618c0bfcbae",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/source_materialization_inheritance_receipt.json",
+      "id": "source_materialization_inheritance",
+      "observed": "126 files; 5872172 bytes; byte-identical relative tree SHA-256 08ac8303870ba206493859e2037e53f0e32f758f235c06084681b149073e7c26",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/final_materialization_receipt.json",
+      "id": "execution_and_submission_state",
+      "observed": "execution_authorized=false; submission_state=not_submitted; submitted=false",
+      "status": "passed"
+    },
+    {
+      "id": "chtc_package_scope",
+      "observed": "The immutable-bundle materializer did not read, write, or publish any CHTC execution-package path",
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "canonical_sha256": "890ed51bd15499c7d1ea70665b18843de3e20058b9782fca99266851375890e2",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/final_materialization_receipt.json",
+      "sha256": "03db7513e7a033f5ae629bbcf0a316fe90224ad8e8ac49c3e803ffd7325f1e26"
+    },
+    {
+      "canonical_sha256": "a4f6b26c48c16c04b2abd35cd95132bd53695a962cb7b1a0c22a6f6ec328d394",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/study1_objective_gate_authority_receipt.json",
+      "sha256": "0e9bc10396913695813fe1d5a47d0e6b091341ae8f1d363e4041c77f385de5f8"
+    },
+    {
+      "canonical_sha256": "c7aa444f66cf087c4e732aa41da1a22f8346950ae602b05dda849a9058e9d129",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/cross_file_loader_validation.json",
+      "sha256": "b196cff3b9bc9d2d4a5aa5b9f0f9373f92a36fcbfa3a8ecd906ff76db5244582"
+    },
+    {
+      "canonical_sha256": "f7dbdb8a402b1108a1398a54610019d8f1ff830559a01eb3b43959ee0fb9e8df",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/v7_v8_repair_semantics_receipt.json",
+      "sha256": "118e673d118b0ec27977d8dd4befec06e4a0ef9ce631dc9cfa7207da6208fb5a"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "45987836921b06173538f91389c3d769d8f75777df01ac66de8d60344b8c324c",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "bundle_manifest_sha256": "81c810b3aa2ba3ed55d91f5c0ffc625f1b083ded8d890b51c53f08681ef790b8",
+      "protocol_count": 58
+    },
+    {
+      "bundle_manifest_canonical_sha256": "6983165b1ba147bda1d8093b0715df8ebd7b6f907307521ddf37e030e8a3d9cc",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v8/ra_repair_measured_late_v1/bundle_manifest.json",
+      "bundle_manifest_sha256": "9e3762c8b5bca88b6394717538f23f7662b363cb14645b0fda4ffa9d97e07dc1",
+      "protocol_count": 58
+    }
+  ],
+  "quarantined_cache_provenance": {
+    "file_count": 4,
+    "files": [
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/quarantine/v7_raw_cache_contamination_20260728/hh_generator_registry_cache_v1/77a269693759cd7d084254d19bb48e0fce7acd970b60304d0beb93bf3103fc91.pickle",
+        "sha256": "f2cd197751bcfe1194d66300f16cf12d454a1da4f77c771e4bfc3b9655744750",
+        "size_bytes": 275463
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/quarantine/v7_raw_cache_contamination_20260728/hh_generator_registry_cache_v1/8514f29a2b0e34cd360806a853d7f2cff0b39d9f7b2617fe963c5134c3bda53f.pickle",
+        "sha256": "518a14ad134d9c2b162c73f96e6dfa0d6055d90de88f11d07ca66075bc662821",
+        "size_bytes": 275463
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/quarantine/v7_raw_cache_contamination_20260728/hh_pool_cache_v1/5adf8fddee6937159f5333d2c4d9f2a98a8665bac8c358cab2c19840f3f13837.pickle",
+        "sha256": "59147734bf7b76d0cbe9794a0ff3252f69a38df1200540c72678fb28470d8ab6",
+        "size_bytes": 425541
+      },
+      {
+        "path": "chtc/paper_i_ra_adapt_repair_20260727/quarantine/v7_raw_cache_contamination_20260728/hh_pool_cache_v1/b2bdbd7126ad7c80bb5597a6ec4c46d361d6aa7739ffca68aa33b4e873eccdef.pickle",
+        "sha256": "b462ede46dfe3405d7980038011307a92b76ffa40c1f6be8ece739b7d722e84c",
+        "size_bytes": 419588
+      }
+    ],
+    "quarantine_policy": "recoverable_move_outside_immutable_materialization_v1",
+    "reason": "Generated raw HH pool/registry cache pickles were noncanonical runtime contamination and were moved recoverably out of immutable v7 before successor publication.",
+    "restored_v7_tree": {
+      "file_count": 375,
+      "total_size_bytes": 13592188,
+      "tree_sha256": "32397770a3fc903876cf467393f8d282d9fd814b84cc02b354dbb618c0bfcbae"
+    },
+    "v7_generated_cache_file_count": 0,
+    "v8_generated_cache_file_count": 0,
+    "v8_tree_contains_quarantine": false
+  },
+  "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v5",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "materialize-bundles",
+  "state": "complete",
+  "state_reason": "Immutable v8 binds the repeat-aware selection and authenticated singleton-resume repairs to the current 148-file implementation closure, loads all 116 protocols, preserves v1-v7 byte-identically, retains cache-contamination provenance outside the immutable tree, and remains non-authorizing and unsubmitted.",
+  "supersession_lineage": {
+    "lineage_type": "append_only_materialization_revision_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v7.json",
+      "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v4",
+      "sha256": "719e79d3055a6be460cbf244cc9292ba351871b8882194667ee9e4c3e5dca6aa",
+      "stage": "materialize-bundles"
+    },
+    "superseded_receipts": [
+      {
+        "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v7.json",
+        "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v4",
+        "sha256": "719e79d3055a6be460cbf244cc9292ba351871b8882194667ee9e4c3e5dca6aa",
+        "status": "superseded_for_execution_by_authenticated_v8"
+      }
+    ],
+    "successor_stage": "execute-study1"
+  },
+  "v8_complete_tree": {
+    "file_count": 375,
+    "total_size_bytes": 13597637,
+    "tree_sha256": "7c17616e7ffd93be15340b60c49511913211b6c1fbff3068d8a687d6e523b3c1"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

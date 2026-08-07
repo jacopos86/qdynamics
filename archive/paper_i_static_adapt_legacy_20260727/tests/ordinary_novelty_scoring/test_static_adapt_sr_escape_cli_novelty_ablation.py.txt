@@ -1,0 +1,99 @@
+def test_sr_gram_novelty_policies_default_and_round_trip() -> None:
+    defaults = _parser().parse_args([])
+    assert defaults.phase2_gram_novelty_policy == (
+        GRAM_NOVELTY_POLICY_ORDINARY_MULTIPLIER_V1
+    )
+    assert defaults.phase3_gram_novelty_policy == (
+        GRAM_NOVELTY_POLICY_ORDINARY_MULTIPLIER_V1
+    )
+
+    args = _parser().parse_args(
+        [
+            "--phase2-gram-novelty-policy",
+            GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            "--phase3-gram-novelty-policy",
+            GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+        ]
+    )
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=None,
+        resolved_problem_context=None,
+        cli_adapt_continuation_mode="legacy",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    assert kwargs["phase2_gram_novelty_policy"] == (
+        GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+    )
+    assert kwargs["phase3_gram_novelty_policy"] == (
+        GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+    )
+
+
+def test_sr_controller_ablation_contract_defaults_off_and_round_trips() -> None:
+    defaults = _parser().parse_args([])
+    assert defaults.sr_controller_ablation_contract == (
+        SR_CONTROLLER_ABLATION_CONTRACT_OFF
+    )
+
+    args = _parser().parse_args(
+        [
+            "--sr-controller-ablation-contract",
+            SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1,
+        ]
+    )
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=None,
+        resolved_problem_context=None,
+        cli_adapt_continuation_mode="legacy",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    assert kwargs["sr_controller_ablation_contract"] == (
+        SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_CONTROLS_V1
+    )
+
+
+def test_sr_controller_beam_ablation_contract_round_trips() -> None:
+    args = _parser().parse_args(
+        [
+            "--sr-controller-ablation-contract",
+            SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_BEAM_CONTROLS_V1,
+        ]
+    )
+    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+        args,
+        h_poly=None,
+        resolved_problem_context=None,
+        cli_adapt_continuation_mode="legacy",
+        adapt_ref_base_depth=0,
+        psi_ref_override=None,
+        psi_ref_source=None,
+        psi_ref_handoff_state_kind=None,
+        exact_gs_override=0.0,
+        phase3_oracle_gradient_config=None,
+        final_noise_audit_config=None,
+    )
+    assert kwargs["sr_controller_ablation_contract"] == (
+        SR_CONTROLLER_ABLATION_CONTRACT_NOVELTY_PRUNE_BEAM_CONTROLS_V1
+    )
+
+
+def test_sr_controller_ablation_contract_rejects_unknown_value() -> None:
+    with pytest.raises(SystemExit, match="2"):
+        _parser().parse_args(
+            ["--sr-controller-ablation-contract", "implicit_ablation"]
+        )
+

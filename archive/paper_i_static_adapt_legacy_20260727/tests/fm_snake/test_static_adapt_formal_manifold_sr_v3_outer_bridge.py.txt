@@ -1,0 +1,414 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import replace
+
+import numpy as np
+import pytest
+
+from pipelines.static_adapt.formal_manifold_sr_v3_outer_bridge import (
+    FULL_ACTIVE_PLUS_SINGLETON_SCOPE,
+    SRV3OuterGrowthObservation,
+    SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA,
+    build_sr_v3_outer_growth_observation,
+)
+from pipelines.static_adapt.joint_linear_solve import (
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2,
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+
+
+_STATE_FINGERPRINT = "a" * 64
+
+
+def _summary(**overrides):
+    payload = {
+        "schema": "historical_singleton_coordinate_model_v1",
+        "scope": "historical_phase3_whitening",
+        "authority": "historical_phase3_benefit_overlay_only",
+        "phase3_response_coordinate_scope": FULL_ACTIVE_PLUS_SINGLETON_SCOPE,
+        "joint_batch_context_mode": "full_ansatz_v1",
+        "geometry_mode": "full_residual_gram_hessian_v1",
+        "joint_linear_solve_policy_effective": (
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+        ),
+        "supported_metric_whitening_policy": (
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+        ),
+        "supported_metric_whitening_provenance_id": "whitening-receipt-7",
+        "feasible": True,
+        "reason": "supported_metric_whitened_full_joint_model_v1",
+        "active_coordinate_count": 2,
+        "batch_coordinate_count": 1,
+        "selected_count": 1,
+        "active_coordinate_identities": ["active-a", "active-b"],
+        "batch_coordinate_identities": [
+            {
+                "candidate_label": "candidate-c",
+                "candidate_pool_index": 17,
+                "position_id": 1,
+                "global_child_identity": "xzy",
+            }
+        ],
+        "selected_labels": ["candidate-c"],
+        "candidate_label": "candidate-c",
+        "candidate_pool_index": 17,
+        "position_id": 1,
+        "G_AA_raw": [[1.0, 0.2], [0.2, 1.4]],
+        "G_AB_raw": [[0.1], [-0.3]],
+        "G_BB_raw": [[0.9]],
+        "H_AA_raw": [[2.0, -0.4], [-0.4, 3.0]],
+        "H_AB_raw": [[0.7], [0.25]],
+        "H_BB_raw": [[-0.8]],
+        # These are SR descent gradients, not raw energy gradients.
+        "g_A": [0.6, -0.5],
+        "g_B": [0.2],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _build(**summary_overrides) -> SRV3OuterGrowthObservation:
+    return build_sr_v3_outer_growth_observation(
+        phase3_summary=_summary(**summary_overrides),
+        registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+        old_to_new_registry_mapping=(0, 2),
+        theta=(0.4, 0.0, -0.7),
+        physical_state_fingerprint=_STATE_FINGERPRINT,
+    )
+
+
+def test_adapter_assembles_same_ray_blocks_and_flips_gradient_sign() -> None:
+    observation = _build()
+
+    assert observation.schema == SR_V3_OUTER_GROWTH_OBSERVATION_SCHEMA
+    assert observation.candidate_position == 1
+    assert observation.registry == ("chart-id-0", "chart-id-2", "chart-id-1")
+    assert observation.active_coordinate_identities == ("active-a", "active-b")
+    assert observation.candidate_coordinate_identity["candidate_label"] == (
+        "candidate-c"
+    )
+    np.testing.assert_allclose(
+        observation.raw_metric,
+        [[1.0, 0.1, 0.2], [0.1, 0.9, -0.3], [0.2, -0.3, 1.4]],
+    )
+    np.testing.assert_allclose(
+        observation.raw_direct_curvature,
+        [[2.0, 0.7, -0.4], [0.7, -0.8, 0.25], [-0.4, 0.25, 3.0]],
+    )
+    np.testing.assert_allclose(observation.raw_energy_gradient, [-0.6, -0.2, 0.5])
+    np.testing.assert_allclose(observation.candidate_energy_gradient, [-0.2])
+    assert not observation.raw_metric.flags.writeable
+    assert not observation.raw_direct_curvature.flags.writeable
+    assert not observation.raw_energy_gradient.flags.writeable
+
+
+def test_outer_session_argument_bundle_is_query_free() -> None:
+    observation = _build()
+    kwargs = observation.outer_information_growth_kwargs()
+
+    assert kwargs["registry"] == observation.registry
+    assert kwargs["old_to_new_registry_mapping"] == (0, 2)
+    assert kwargs["candidate_positions"] == (1,)
+    np.testing.assert_allclose(kwargs["active_candidate_gram"], [[0.1], [-0.3]])
+    np.testing.assert_allclose(kwargs["candidate_candidate_gram"], [[0.9]])
+    np.testing.assert_allclose(kwargs["candidate_gradient"], [-0.2])
+    np.testing.assert_allclose(
+        kwargs["direct_curvature_raw"], observation.raw_direct_curvature
+    )
+    assert kwargs["source_primitive_ids"] == ()
+    assert kwargs["cache_observation_provenance_ids"] == (
+        observation.cache_provenance_id,
+    )
+    assert kwargs["cache_observation_provenance_role"] == (
+        "query_free_cached_sr_v3_phase3_observation"
+    )
+    assert observation.source_primitive_ids == ()
+    assert dict(observation.incremental_quantum_query_charge) == {
+        "N_E": 0,
+        "N_grad": 0,
+        "N_G": 0,
+        "N_Q": 0,
+        "N_Hv": 0,
+        "N_cross": 0,
+    }
+    assert observation.telemetry["query_ledger_registration_performed"] is False
+    assert observation.telemetry["incremental_quantum_query_charge_total"] == 0
+
+
+def test_active_growth_bundle_uses_only_acquired_candidate_blocks() -> None:
+    observation = _build()
+    primitive_ids = (
+        "candidate-hessian-self",
+        "candidate-gradient",
+        "candidate-gram-cross",
+        "candidate-hessian-cross",
+        "candidate-gram-self",
+        "candidate-gradient",
+    )
+    kwargs = observation.outer_information_active_growth_kwargs(
+        source_primitive_ids=primitive_ids
+    )
+
+    assert kwargs["source_primitive_ids"] == tuple(sorted(set(primitive_ids)))
+    assert kwargs["cache_observation_provenance_ids"] == (
+        observation.cache_provenance_id,
+    )
+    assert kwargs["cache_observation_provenance_role"] == (
+        "active_outer_reuse_predicted_old_acquired_candidate_blocks"
+    )
+    assert "direct_curvature_raw" not in kwargs
+    np.testing.assert_allclose(
+        kwargs["direct_curvature_active_candidate"], observation.H_AB
+    )
+    np.testing.assert_allclose(
+        kwargs["direct_curvature_candidate_candidate"], observation.H_BB
+    )
+    np.testing.assert_allclose(kwargs["active_candidate_gram"], observation.G_AB)
+    np.testing.assert_allclose(
+        kwargs["candidate_candidate_gram"], observation.G_BB
+    )
+    np.testing.assert_allclose(
+        kwargs["candidate_gradient"], observation.candidate_energy_gradient
+    )
+
+    # The conventional shadow adapter remains a separate, query-free full
+    # cached observation and does not inherit the active mixed-provenance API.
+    shadow_kwargs = observation.outer_information_growth_kwargs()
+    assert shadow_kwargs["source_primitive_ids"] == ()
+    assert "direct_curvature_raw" in shadow_kwargs
+    assert "direct_curvature_active_candidate" not in shadow_kwargs
+    assert shadow_kwargs["cache_observation_provenance_role"] == (
+        "query_free_cached_sr_v3_phase3_observation"
+    )
+
+
+@pytest.mark.parametrize("primitive_ids", [(), ("",), ("   ",)])
+def test_active_growth_bundle_requires_candidate_primitive_ids(
+    primitive_ids,
+) -> None:
+    with pytest.raises(ValueError, match="requires nonempty primitive identifiers"):
+        _build().outer_information_active_growth_kwargs(
+            source_primitive_ids=primitive_ids
+        )
+
+
+def test_global_trust_supported_whitening_policy_is_accepted() -> None:
+    observation = _build(
+        joint_linear_solve_policy_effective=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
+        ),
+        supported_metric_whitening_policy=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
+        ),
+    )
+    assert observation.joint_linear_solve_policy == (
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
+    )
+
+
+def test_zero_active_coordinate_round_is_supported() -> None:
+    summary = _summary(
+        active_coordinate_count=0,
+        active_coordinate_identities=[],
+        G_AA_raw=[],
+        G_AB_raw=[],
+        H_AA_raw=[],
+        H_AB_raw=[],
+        g_A=[],
+        position_id=0,
+        batch_coordinate_identities=[
+            {
+                "candidate_label": "candidate-c",
+                "candidate_pool_index": 17,
+                "position_id": 0,
+                "global_child_identity": "xzy",
+            }
+        ],
+    )
+    observation = build_sr_v3_outer_growth_observation(
+        phase3_summary=summary,
+        registry=("chart-id-0",),
+        old_to_new_registry_mapping=(),
+        theta=(0.0,),
+        physical_state_fingerprint=_STATE_FINGERPRINT,
+    )
+    assert observation.G_AA.shape == (0, 0)
+    assert observation.G_AB.shape == (0, 1)
+    np.testing.assert_allclose(observation.raw_metric, [[0.9]])
+    np.testing.assert_allclose(observation.raw_energy_gradient, [-0.2])
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("schema", "wrong", "schema"),
+        ("scope", "historical_phase2_whitening", "scope"),
+        ("authority", "not-authoritative", "authority"),
+        ("joint_batch_context_mode", "windowed_v1", "joint_batch_context_mode"),
+        ("geometry_mode", "reduced_v1", "geometry_mode"),
+        (
+            "phase3_response_coordinate_scope",
+            "windowed_v1",
+            "full_active_plus_singleton_v1",
+        ),
+    ],
+)
+def test_adapter_rejects_wrong_phase3_contract(field, value, match) -> None:
+    with pytest.raises(ValueError, match=match):
+        _build(**{field: value})
+
+
+def test_adapter_rejects_infeasible_or_non_whitened_model() -> None:
+    with pytest.raises(ValueError, match="feasible winning model"):
+        _build(feasible=False, reason="rank_gate")
+    with pytest.raises(ValueError, match="supported-metric whitening policy"):
+        _build(
+            joint_linear_solve_policy_effective="legacy_block_pseudoinverse_v1",
+            supported_metric_whitening_policy="legacy_block_pseudoinverse_v1",
+        )
+    with pytest.raises(ValueError, match="disagrees"):
+        _build(supported_metric_whitening_policy=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
+        ))
+    with pytest.raises(ValueError, match="provenance_id"):
+        _build(supported_metric_whitening_provenance_id="")
+
+
+def test_adapter_rejects_non_singleton_or_inconsistent_identities() -> None:
+    second = {
+        "candidate_label": "candidate-d",
+        "candidate_pool_index": 18,
+        "position_id": 2,
+        "global_child_identity": "xyz",
+    }
+    with pytest.raises(ValueError, match="exactly one singleton"):
+        _build(
+            batch_coordinate_identities=[
+                _summary()["batch_coordinate_identities"][0], second
+            ]
+        )
+    with pytest.raises(ValueError, match="candidate_label is inconsistent"):
+        _build(candidate_label="other")
+    with pytest.raises(ValueError, match="selected_labels"):
+        _build(selected_labels=["other"])
+
+
+def test_adapter_rejects_bad_dimensions_nonfinite_and_asymmetry() -> None:
+    with pytest.raises(ValueError, match="G_AB_raw must have shape"):
+        _build(G_AB_raw=[[0.1, 0.2], [-0.3, 0.4]])
+    with pytest.raises(ValueError, match="H_AA_raw must be symmetric"):
+        _build(H_AA_raw=[[2.0, 0.1], [-0.4, 3.0]])
+    with pytest.raises(ValueError, match="g_A must be finite"):
+        _build(g_A=[float("nan"), 0.0])
+
+
+def test_adapter_rejects_registry_mapping_or_nonzero_growth_drift() -> None:
+    summary = _summary()
+    with pytest.raises(ValueError, match="map every active coordinate once"):
+        build_sr_v3_outer_growth_observation(
+            phase3_summary=summary,
+            registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+            old_to_new_registry_mapping=(0, 0),
+            theta=(0.4, 0.0, -0.7),
+            physical_state_fingerprint=_STATE_FINGERPRINT,
+        )
+    with pytest.raises(ValueError, match="registry identities must be unique"):
+        build_sr_v3_outer_growth_observation(
+            phase3_summary=summary,
+            registry=("chart-id-0", "chart-id-0", "chart-id-1"),
+            old_to_new_registry_mapping=(0, 2),
+            theta=(0.4, 0.0, -0.7),
+            physical_state_fingerprint=_STATE_FINGERPRINT,
+        )
+    with pytest.raises(ValueError, match="zero singleton amplitude"):
+        build_sr_v3_outer_growth_observation(
+            phase3_summary=summary,
+            registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+            old_to_new_registry_mapping=(0, 2),
+            theta=(0.4, 1.0e-4, -0.7),
+            physical_state_fingerprint=_STATE_FINGERPRINT,
+        )
+
+
+def test_adapter_requires_a_real_state_fingerprint() -> None:
+    with pytest.raises(ValueError, match="64-character"):
+        build_sr_v3_outer_growth_observation(
+            phase3_summary=_summary(),
+            registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+            old_to_new_registry_mapping=(0, 2),
+            theta=(0.4, 0.0, -0.7),
+            physical_state_fingerprint="state",
+        )
+
+
+def test_portable_round_trip_is_tamper_evident() -> None:
+    observation = _build()
+    payload = observation.portable_payload()
+    restored = SRV3OuterGrowthObservation.from_portable_payload(payload)
+    assert restored.observation_fingerprint == observation.observation_fingerprint
+    assert restored.cache_provenance_id == observation.cache_provenance_id
+    np.testing.assert_allclose(restored.raw_metric, observation.raw_metric)
+
+    tampered = deepcopy(payload)
+    tampered["G_AB"][0][0] += 0.01
+    with pytest.raises(ValueError, match="does not match|fingerprint mismatch"):
+        SRV3OuterGrowthObservation.from_portable_payload(tampered)
+    tampered = deepcopy(payload)
+    tampered["source_summary_fingerprint"] = "b" * 64
+    with pytest.raises(ValueError, match="source summary fingerprint mismatch"):
+        SRV3OuterGrowthObservation.from_portable_payload(tampered)
+    tampered = deepcopy(payload)
+    tampered["incremental_quantum_query_charge"]["N_G"] = 1
+    with pytest.raises(ValueError, match="query charge"):
+        SRV3OuterGrowthObservation.from_portable_payload(tampered)
+
+
+def test_telemetry_is_immutable_portable_and_tamper_evident() -> None:
+    observation = _build()
+    telemetry = observation.telemetry
+    with pytest.raises(TypeError):
+        telemetry["registry_dimension"] = 9
+    with pytest.raises(TypeError):
+        telemetry["incremental_quantum_query_charge"]["N_G"] = 1
+
+    portable = observation.portable_telemetry()
+    observation.validate_portable_telemetry(portable)
+    tampered = deepcopy(portable)
+    tampered["candidate_position"] = 2
+    with pytest.raises(ValueError, match="fingerprint mismatch"):
+        observation.validate_portable_telemetry(tampered)
+
+
+def test_provenance_binds_state_chart_and_theta() -> None:
+    baseline = _build()
+    changed_theta = build_sr_v3_outer_growth_observation(
+        phase3_summary=_summary(),
+        registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+        old_to_new_registry_mapping=(0, 2),
+        theta=(0.41, 0.0, -0.7),
+        physical_state_fingerprint=_STATE_FINGERPRINT,
+    )
+    changed_state = build_sr_v3_outer_growth_observation(
+        phase3_summary=_summary(),
+        registry=("chart-id-0", "chart-id-2", "chart-id-1"),
+        old_to_new_registry_mapping=(0, 2),
+        theta=(0.4, 0.0, -0.7),
+        physical_state_fingerprint="b" * 64,
+    )
+    assert changed_theta.source_summary_fingerprint == (
+        baseline.source_summary_fingerprint
+    )
+    assert changed_state.source_summary_fingerprint == (
+        baseline.source_summary_fingerprint
+    )
+    assert changed_theta.cache_provenance_id != baseline.cache_provenance_id
+    assert changed_state.cache_provenance_id != baseline.cache_provenance_id
+
+
+def test_dataclass_rejects_derived_array_or_provenance_drift() -> None:
+    observation = _build()
+    with pytest.raises(ValueError, match="raw_energy_gradient"):
+        replace(observation, raw_energy_gradient=[0.6, 0.2, -0.5])
+    with pytest.raises(ValueError, match="cache provenance ID mismatch"):
+        replace(observation, cache_provenance_id="c" * 64)

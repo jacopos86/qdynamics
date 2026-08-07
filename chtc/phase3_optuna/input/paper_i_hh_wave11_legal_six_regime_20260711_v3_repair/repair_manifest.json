@@ -1,0 +1,42 @@
+{
+  "schema": "paper_i_hh_wave11_legal_chtc_operational_repair_v1",
+  "batch_name": "paper-i-hh-wave11-legal-6reg-20260711-v3",
+  "batch_output_root": "raw_outputs/paper_i_hh_wave11_legal_six_regime_20260711_v3",
+  "failed_parent_batch": "paper-i-hh-wave11-legal-6reg-20260711-v2",
+  "failed_parent_cluster": 8775432,
+  "failure_class": "worker_transfer_contract_missing_runtime_provenance_inputs",
+  "submitted_cluster": 8775444,
+  "submitted_utc": "2026-07-12T04:02:06Z",
+  "remote_root": "~/Holstein_wave11_legal_6regime_20260711_v3",
+  "post_submit_snapshot": {
+    "fresh_utc": "2026-07-12T04:02:14Z",
+    "idle": 6,
+    "running": 0,
+    "held": 0
+  },
+  "scientific_contract_change": false,
+  "scientific_contract_hash": "a142d1c4f3c7a40d36505cba34012397bb8026dca9b28f4cfe903c8455299b8b",
+  "worker_snapshot_policy": "byte_identical_remote_v2_worker_snapshot",
+  "immutable_input_bundle": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v3_repair/submit.sub",
+  "submit_sha256": "2cb511b9320415f4ef96b5b8e58146ae2ed48de3946ffa79ab993efb08264d80",
+  "required_runtime_provenance_inputs": [
+    {
+      "role": "wave11_unchecked_checkpoint",
+      "path": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave11_small_m64_m48_c128_c64_b2_l25_r15/current.json",
+      "sha256": "cdf0829f9ea351b3fd20bff7715e6b13d84ad2307ab676fa899f198ad73a8c85"
+    },
+    {
+      "role": "legal_projection_reference_plan",
+      "path": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave18_projected_normalized_m64_m48_c128_c64_b2_l25_uncapped_r7/plan.json",
+      "sha256": "da862e5df53732d80bdf7594783bcfd0c2df7d916091428cf8e6d3da0d0c0e3a"
+    }
+  ],
+  "repair_acceptance": [
+    "both runtime provenance inputs match the immutable scientific contract hashes",
+    "both runtime provenance inputs are explicit transfer_input_files entries",
+    "direct Apptainer run-cell dry-run passes from the repaired remote root",
+    "condor_submit dry-run materializes exactly six jobs",
+    "live submission reports six non-held jobs"
+  ]
+}

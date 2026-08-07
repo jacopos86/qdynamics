@@ -1,0 +1,1244 @@
+#!/usr/bin/env python3
+"""Strict first-hit comparison of two FM selectors and projected Append+FM.
+
+The two rows share the accepted-ansatz optimizer exactly: supported-FS
+whitening, inverse Riemannian BFGS, Armijo backtracking with at most fifteen
+line-search trials, and qBroyden/qBANG disabled.  They differ only in the outer
+ADAPT controller.  The FM-SNAKE row retains the source-locked Paper-I formal
+selector but uses singleton admission with batching disabled.  The
+singleton-refeed FM row uses
+macro Phase I/II screening, symmetry-projected child splitting, child Phase
+I/II/III rescoring, and singleton admission with beam, batching, and pruning
+disabled.  The Append+FM comparator uses projected-singleton append selection.
+Ordinary novelty is disabled throughout.  The comparison starts from the bare
+HH reference state, matching the successful historical FM source before the
+automatic HH quadrature seed bootstrap was added to the current core runner.
+
+The scientific endpoint is the first *completed* outer iteration satisfying
+the same-cutoff target ``abs(Delta E) <= 2e-4``.  A row that does not hit the
+target continues through thirty controller rounds.  The comparison surface
+reports only winning-lineage ``S_alg`` and Paper-I Qiskit basis-gate costs
+(optimization level 0, transpiler seed 7).
+"""
+
+from __future__ import annotations
+
+import argparse
+import gc
+import hashlib
+import json
+import math
+import os
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from pipelines.exact_bench import paper_i_hh_powell_pareto as fm_runner
+from pipelines.exact_bench.generic_static_adapt_variants import (
+    SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1,
+    STATIC_FULL_META_APPEND_ADAPT_VQE,
+    _resolve_context_from_spec,
+    _safe_exact_energy,
+    run_generic_static_adapt_variant_single,
+)
+from pipelines.exact_bench.table_i_canonical_cases import (
+    TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS,
+    TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+    table_i_canonical_spec_by_case_id,
+)
+from pipelines.exact_bench.table_i_qiskit_resource_compile import (
+    TABLE_I_COMPILED_BASIS_GATES,
+    TABLE_I_QISKIT_COMPILE_CONVENTION,
+)
+from pipelines.static_adapt.formal_manifold_warm_start import (
+    FORMAL_CURVATURE_INVERSE_RBFGS,
+    FORMAL_MANIFOLD_ROUTE,
+    FormalManifoldConfig,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCHEMA = "paper_i_hh_fm_vs_append_fm_first_hit_v1"
+RUN_CLASS = "diagnostic"
+TARGET_ABS_DELTA_E = 2.0e-4
+MAX_CONTROLLER_ROUNDS = 30
+OPTIMIZER_MAXITER = 200
+SCIPY_MAXFEV = 0
+SEED = 7
+LINE_SEARCH_MAX_STEPS = 15
+RESOURCE_QUBIT_CAP = 12
+RESOURCE_POOL_TERM_CAP = 16384
+EXACT_FIDELITY_MAX_QUBITS = 12
+OPTIMIZER_OVERLAY_SOURCE = "matched_fm_inverse_rbfgs_qbroyd_off_ls15_v1"
+FM_ROUTE_ID = "fm_snake"
+APPEND_ROUTE_ID = "projected_singleton_append_fm"
+FM_SINGLETON_REFEED_ROUTE_ID = "fm_singleton_refeed"
+ROUTE_IDS = (FM_ROUTE_ID, APPEND_ROUTE_ID, FM_SINGLETON_REFEED_ROUTE_ID)
+REGIME_ORDER = tuple(TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS)
+FM_REGIME_KEY = {
+    "weak-weak": "weak-weak",
+    "intermediate-weak": "intermediate-weak",
+    "strong-weak": "strong-weak-u8",
+    "weak-strong": "weak-strong",
+    "intermediate-strong": "intermediate-strong",
+    "strong-strong": "strong-strong-u8",
+}
+N_PH_BY_REGIME = {
+    "weak-weak": 3,
+    "intermediate-weak": 3,
+    "strong-weak": 3,
+    "weak-strong": 7,
+    "intermediate-strong": 7,
+    "strong-strong": 7,
+}
+
+# Immutable provenance for the successful historical qB-off FM source row.  A
+# checkout need not contain this external worktree; when it does, plan creation
+# verifies the files rather than silently treating their names as evidence.
+HISTORICAL_FM_SOURCE_DIR = Path(
+    "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3_fm_snake/"
+    "raw_outputs/chtc_retrievals/fm_snake_completed_rows_20260714T1103CDT/"
+    "recovered_terminal_resources_20260714/compiled/"
+    "paper_i_hh_fm_snake_qbroyd_pair_depth30_powell200_varprune_b3_ls15_"
+    "nosrb_20260712_v2__weak_weak__qbroyd_off__depth30__powell200"
+)
+HISTORICAL_FM_EXPECTED_SHA256 = {
+    "plan.json": "f03a170a12ec8cfc2089cc0c17b050622564560baeab570c29de7cded8a7149d",
+    "runner_manifest.json": "21e89acc2cf811c4ff2892eaf5476b3959adff90313de17c969db7977b05d331",
+    "recovered_result.json": "d9e913a094545450cd78b96bed263e54847b8d2e7e683ed65da5748465454461",
+}
+HISTORICAL_FM_CONFIG_RELATIVE_PATH = (
+    "pipelines/exact_bench/configs/"
+    "paper_i_hh_fm_historical_qbroyd_off_config_20260712.json"
+)
+HISTORICAL_FM_CONFIG_SHA256 = (
+    "76e7533ad534e5ff1cffdae4df41e1cdb79b6e0061d113b8cf07cf067ad01fe0"
+)
+
+SOURCE_FILES = (
+    "pipelines/exact_bench/paper_i_hh_fm_vs_append_fm_first_hit.py",
+    HISTORICAL_FM_CONFIG_RELATIVE_PATH,
+    "pipelines/exact_bench/paper_i_hh_powell_pareto.py",
+    "pipelines/exact_bench/generic_static_adapt_variants.py",
+    "pipelines/exact_bench/table_i_canonical_cases.py",
+    "pipelines/exact_bench/table_i_qiskit_resource_compile.py",
+    "pipelines/reporting/build_paper_i_selected_prefix_qiskit_sidecar.py",
+    "pipelines/static_adapt/adapt_pipeline.py",
+    "pipelines/static_adapt/formal_manifold_warm_start.py",
+    "pipelines/static_adapt/joint_linear_solve.py",
+    "pipelines/static_adapt/builders/shared_pauli_pool_contract.py",
+)
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _json_ready(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, Mapping):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_json_ready(item) for item in value]
+    if hasattr(value, "item"):
+        try:
+            return _json_ready(value.item())
+        except Exception:
+            pass
+    return str(value)
+
+
+def _atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(_json_ready(dict(payload)), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, path)
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(str(text), encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _payload_sha256(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        _json_ready(dict(payload)), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _finite_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _normalize_regime(value: str) -> str:
+    key = str(value).strip().lower().replace("_", "-")
+    key = {"strong-weak-u8": "strong-weak", "strong-strong-u8": "strong-strong"}.get(
+        key, key
+    )
+    if key not in REGIME_ORDER:
+        raise ValueError(f"Unknown regime {value!r}; expected one of {REGIME_ORDER}.")
+    return key
+
+
+def shared_formal_manifold_config() -> dict[str, Any]:
+    """Return the hash-locked configuration from the successful FM anchor.
+
+    Do not reconstruct this payload from current dataclass defaults.  The
+    historical FM result predates several later fields, and silently adding
+    those fields was one of the scientific-drift defects in the first
+    comparator campaign.
+    """
+
+    path = REPO_ROOT / HISTORICAL_FM_CONFIG_RELATIVE_PATH
+    if not path.is_file():
+        raise RuntimeError(f"Historical FM configuration is missing: {path}")
+    observed = _sha256(path)
+    if observed != HISTORICAL_FM_CONFIG_SHA256:
+        raise RuntimeError(
+            "Historical FM configuration hash mismatch: "
+            f"expected {HISTORICAL_FM_CONFIG_SHA256}, observed {observed}."
+        )
+    payload = _load_json(path)
+    if str(payload["curvature_branch"]) != FORMAL_CURVATURE_INVERSE_RBFGS:
+        raise RuntimeError("Matched contract requires inverse Riemannian BFGS.")
+    if float(payload.get("qbroyd_epsilon0", math.nan)) != 0.0:
+        raise RuntimeError("Historical matched contract requires qB/qBANG off.")
+    if int(payload.get("line_search_max_steps", -1)) != LINE_SEARCH_MAX_STEPS:
+        raise RuntimeError("Historical matched contract requires Armijo cap 15.")
+    return payload
+
+
+def lock_runtime_environment() -> dict[str, str]:
+    required = {
+        "TABLE_I_STATIC_SUITE_PROFILE": TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+        "GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP": str(RESOURCE_QUBIT_CAP),
+        "GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP": str(RESOURCE_POOL_TERM_CAP),
+        "GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS": str(
+            EXACT_FIDELITY_MAX_QUBITS
+        ),
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact",
+    }
+    for name, expected in required.items():
+        inherited = str(os.environ.get(name, "")).strip()
+        if inherited and inherited != expected:
+            raise ValueError(
+                f"Matched campaign requires {name}={expected!r}; inherited {inherited!r}."
+            )
+        os.environ[name] = expected
+    return required
+
+
+@contextmanager
+def scoped_runtime_environment():
+    """Apply the campaign environment without polluting library callers."""
+
+    names = (
+        "TABLE_I_STATIC_SUITE_PROFILE",
+        "GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP",
+        "GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP",
+        "GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS",
+        "STATIC_ADAPT_HH_POOL_CACHE",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE",
+    )
+    previous = {name: os.environ.get(name) for name in names}
+    required = lock_runtime_environment()
+    try:
+        yield required
+    finally:
+        for name, value in previous.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
+def _source_lock_payload() -> dict[str, Any]:
+    current = {
+        relative: _sha256(REPO_ROOT / relative)
+        for relative in SOURCE_FILES
+        if (REPO_ROOT / relative).is_file()
+    }
+    missing = [relative for relative in SOURCE_FILES if relative not in current]
+    historical: dict[str, Any] = {}
+    all_historical_match = True
+    for filename, expected in HISTORICAL_FM_EXPECTED_SHA256.items():
+        path = HISTORICAL_FM_SOURCE_DIR / filename
+        observed = _sha256(path) if path.is_file() else None
+        match = observed == expected if observed is not None else None
+        if match is False:
+            all_historical_match = False
+        historical[filename] = {
+            "path": str(path),
+            "expected_sha256": expected,
+            "observed_sha256": observed,
+            "match": match,
+        }
+    return {
+        "schema": "paper_i_hh_fm_vs_append_source_lock_v1",
+        "generated_utc": _utc_now(),
+        "current_source_hashes": current,
+        "missing_current_source_files": missing,
+        "current_source_complete": not missing,
+        "historical_successful_fm_qboff_anchor": {
+            "source_dir": str(HISTORICAL_FM_SOURCE_DIR),
+            "files": historical,
+            "status": (
+                "present_and_verified"
+                if historical and all(row["match"] is True for row in historical.values())
+                else "present_hash_mismatch"
+                if not all_historical_match
+                else "external_anchor_unavailable_in_this_checkout"
+            ),
+        },
+    }
+
+
+def campaign_rows(regimes: Sequence[str] | None = None) -> tuple[dict[str, Any], ...]:
+    selected = tuple(_normalize_regime(item) for item in (regimes or REGIME_ORDER))
+    if len(set(selected)) != len(selected):
+        raise ValueError("Regime list must not contain duplicates.")
+    rows: list[dict[str, Any]] = []
+    for regime in selected:
+        n_ph = int(N_PH_BY_REGIME[regime])
+        rows.append(
+            {
+                "regime": regime,
+                "fm_regime": FM_REGIME_KEY[regime],
+                "case_id": TABLE_I_PAPER_I_HH_COMPLETION_REGIME_CASE_IDS[regime],
+                "n_ph_work": n_ph,
+                "n_ph_reference": n_ph,
+                "same_cutoff": True,
+                "target_abs_delta_e": TARGET_ABS_DELTA_E,
+                "max_controller_rounds": MAX_CONTROLLER_ROUNDS,
+            }
+        )
+    return tuple(rows)
+
+
+def matched_contract(regimes: Sequence[str] | None = None) -> dict[str, Any]:
+    formal_config = shared_formal_manifold_config()
+    return {
+        "schema": SCHEMA,
+        "run_class": RUN_CLASS,
+        "generated_utc": _utc_now(),
+        "comparison_question": (
+            "outer_controller_ablation_with_identical_formal_manifold_accepted_ansatz_optimizer"
+        ),
+        "rows": list(campaign_rows(regimes)),
+        "shared": {
+            "initial_ansatz": "bare_problem_reference_state_v1",
+            "automatic_hh_seed_disabled": True,
+            "hh_seed_preconditioning_shared_across_controllers": False,
+            "hh_seed_source": None,
+            "hh_seed_disable_reason": (
+                "successful_historical_fm_qboff_anchor_predates_automatic_seed_v1"
+            ),
+            "accepted_ansatz_optimizer": FORMAL_MANIFOLD_ROUTE,
+            "formal_manifold_config": formal_config,
+            "formal_manifold_config_sha256": _payload_sha256(formal_config),
+            "curvature_branch": FORMAL_CURVATURE_INVERSE_RBFGS,
+            "qbroyd_epsilon0": 0.0,
+            "qbang_momentum_active": False,
+            "armijo_backtracking": True,
+            "line_search_max_steps": LINE_SEARCH_MAX_STEPS,
+            "supported_metric_whitening": "supported_metric_whitened_eigh_v1",
+            "optimizer_maxiter": OPTIMIZER_MAXITER,
+            "scipy_maxfev": SCIPY_MAXFEV,
+            "seed": SEED,
+            "stop_policy": "first_completed_outer_iteration_at_or_below_target_else_round_30",
+            "target_abs_delta_e": TARGET_ABS_DELTA_E,
+            "primary_energy_metric": "same_cutoff_abs_delta_e",
+            "qiskit_compile": {
+                "compile_convention": TABLE_I_QISKIT_COMPILE_CONVENTION,
+                "basis_gates": list(TABLE_I_COMPILED_BASIS_GATES),
+                "optimization_level": 0,
+                "seed_transpiler": 7,
+            },
+            "reported_query_coordinate": "winning_lineage_S_alg_only",
+        },
+        "route_specific": {
+            FM_ROUTE_ID: {
+                "outer_selector": "formal_manifold_query_closed_combinatorial_v1",
+                "beam": {"enabled": True, "width": 3, "children_per_parent": 2},
+                "batching": {
+                    "enabled": False,
+                    "mode": "off",
+                    "requested_target_size": 1,
+                    "effective_size_cap": 1,
+                    "search_pool_size": 15,
+                },
+                "pruning_enabled": True,
+                "phase2_novelty_mode": "collective_span_v1",
+                "novelty_policy_source": "historical_formal_manifold_route_profile",
+                "macro_shortlists": {"phase1": 32, "phase2": 24},
+                "child_shortlists": {"phase1": 32, "phase2": 25, "phase3": 4096},
+                "child_padding_policy": "exact_projected_grouped_v1",
+            },
+            APPEND_ROUTE_ID: {
+                "outer_selector": "largest_absolute_commutator_gradient_v1",
+                "candidate_pool": SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1,
+                "beam_enabled": False,
+                "batching_enabled": False,
+                "pruning_enabled": False,
+                "ordinary_novelty_enabled": False,
+                "position_policy": "append",
+                "repeat_policy": "with_replacement",
+            },
+            FM_SINGLETON_REFEED_ROUTE_ID: {
+                "outer_selector": "formal_manifold_macro_child_singleton_refeed_v1",
+                "macro_phase1": "exact_first_order_adapt_gradient",
+                "macro_phase2": "candidate_only_scalar_gradient_hessian_trust_model",
+                "runtime_split": "all_legal_symmetry_projected_pauli_singletons",
+                "child_phase1": "recomputed_exact_commutator_gradient",
+                "child_phase2": "candidate_only_scalar_gradient_hessian_trust_model",
+                "child_phase3": "full_active_plus_singleton_supported_whitened_trust",
+                "ordinary_novelty_enabled": False,
+                "all_energy_models_infeasible_novelty_fallback": True,
+                "hardware_cost_policy": "family_robust_symmetric_arctan_v1",
+                "beam_enabled": False,
+                "batching_enabled": False,
+                "pruning_enabled": False,
+                "macro_shortlists": {"phase1": 32, "phase2": 24},
+                "child_shortlists": {"phase1": 35, "phase2": 20, "phase3": 20},
+                "admission_batch_size": 1,
+            },
+        },
+        "allowed_scientific_differences": [
+            "outer_selector",
+            "outer_beam",
+            "outer_batching",
+            "outer_pruning",
+            "outer_candidate_exposure_and_admission",
+        ],
+    }
+
+
+def _formal_config_path(campaign_dir: Path) -> Path:
+    return Path(campaign_dir) / "source_lock" / "formal_manifold_config.json"
+
+
+def build_fm_cli_args(
+    *,
+    campaign_dir: Path,
+    row: Mapping[str, Any],
+    dry_run: bool,
+    route_id: str = FM_ROUTE_ID,
+) -> list[str]:
+    if route_id not in {FM_ROUTE_ID, FM_SINGLETON_REFEED_ROUTE_ID}:
+        raise ValueError(f"Unsupported FM route_id={route_id!r}.")
+    singleton_refeed = bool(route_id == FM_SINGLETON_REFEED_ROUTE_ID)
+    output_dir = Path(campaign_dir) / str(row["regime"]) / str(route_id)
+    argv = [
+        "run",
+        "--regime",
+        str(row["fm_regime"]),
+        "--n-ph-work",
+        str(int(row["n_ph_work"])),
+        "--output-json",
+        str(output_dir / "result.json"),
+        "--current-json",
+        str(output_dir / "current.json"),
+        "--max-depth",
+        str(MAX_CONTROLLER_ROUNDS),
+        "--optimizer-maxiter",
+        str(OPTIMIZER_MAXITER),
+        "--scipy-maxfev",
+        str(SCIPY_MAXFEV),
+        "--seed",
+        str(SEED),
+        "--benchmark-target-abs-delta-e",
+        str(TARGET_ABS_DELTA_E),
+        "--eps-grad",
+        "1e-4",
+        "--eps-energy",
+        "1e-8",
+        "--geometry-window-size",
+        "99",
+        "--subset-sizes",
+        "1",
+        "--child-symmetry-policy",
+        "hard_guard",
+        "--child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--batch-mode",
+        "off",
+        "--batch-target-size",
+        "1",
+        "--batch-size-cap",
+        "1",
+        "--batch-search-pool-size",
+        "15",
+        "--batch-search-feasibility-policy",
+        "joint_subset_gate_v1",
+        "--batch-additivity-policy",
+        "soft_penalty_v1",
+        "--batch-additivity-lambda",
+        "0",
+        "--batch-score-tie-tolerance",
+        "1e-12",
+        "--batch-rank-relative-tolerance",
+        "1e-6",
+        "--batch-max-gram-condition-number",
+        "1e12",
+        "--batch-metric-regularization",
+        "1e-9",
+        "--batch-energy-regularization",
+        "1e-9",
+        "--joint-linear-solve-policy",
+        "supported_metric_whitened_eigh_v1",
+        "--batch-state-consistency-tolerance",
+        "1e-8",
+        "--max-fubini-study-step",
+        "0.25",
+        "--joint-step-warm-start-mode",
+        "off",
+        "--trust-region-update-policy",
+        "displacement_calibrated_unbounded_v2",
+        "--trust-region-radius-min",
+        "0",
+        "--joint-batch-context-mode",
+        "full_ansatz_v1",
+        "--beam-width",
+        "3",
+        "--beam-children-per-parent",
+        "2",
+        "--phase0-shortlist-size",
+        "256",
+        "--phase1-shortlist-size",
+        "32",
+        "--phase2-shortlist-size",
+        "24",
+        "--child-phase1-shortlist-size",
+        "35" if singleton_refeed else "32",
+        "--child-phase2-shortlist-size",
+        "20" if singleton_refeed else "25",
+        "--child-phase3-shortlist-size",
+        "20" if singleton_refeed else "4096",
+        "--funnel-mode",
+        "hierarchical_child_123_v1" if singleton_refeed else "child_12_joint_schur_v1",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--disable-hh-seed",
+        "--adapt-reoptimization-route",
+        FORMAL_MANIFOLD_ROUTE,
+        "--adapt-formal-manifold-config-json",
+        str(_formal_config_path(Path(campaign_dir))),
+        "--gradient-workers",
+        "1",
+        "--beam-parent-workers",
+        "1",
+        "--runtime-split-child-workers",
+        "1",
+        "--joint-pair-workers",
+        "1",
+        "--joint-pair-cache-max-entries",
+        "4096",
+        "--pool-cache-mode",
+        "disk",
+        "--candidate-cache-mode",
+        "memory",
+        "--result-payload-mode",
+        "summary_checkpoint_v1",
+        "--current-json-keep-history-tail",
+        "3",
+    ]
+    if singleton_refeed:
+        argv.extend(
+            [
+                "--formal-selector-phase-model",
+                "macro_child_singleton_refeed_v1",
+                "--phase0-policy",
+                "disabled",
+                "--disable-beam",
+                "--disable-pruning",
+            ]
+        )
+    if dry_run:
+        argv.append("--dry-run")
+    return argv
+
+
+def _exact_reference(row: Mapping[str, Any]) -> tuple[float, Any]:
+    spec = table_i_canonical_spec_by_case_id(
+        "hh",
+        str(row["case_id"]),
+        TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
+    )
+    context = _resolve_context_from_spec(spec)
+    exact = _safe_exact_energy(context)
+    if exact is None:
+        raise RuntimeError(
+            f"Could not resolve same-cutoff exact energy for {row['regime']}."
+        )
+    return float(exact), spec
+
+
+def build_append_run_kwargs(
+    *, campaign_dir: Path, row: Mapping[str, Any], exact_energy: float
+) -> dict[str, Any]:
+    output_dir = Path(campaign_dir) / str(row["regime"]) / APPEND_ROUTE_ID
+    return {
+        "family": "hh",
+        "case_id": str(row["case_id"]),
+        "algorithm_id": STATIC_FULL_META_APPEND_ADAPT_VQE,
+        "output_dir": output_dir,
+        "max_adapt_iterations": MAX_CONTROLLER_ROUNDS,
+        "optimizer_maxiter": OPTIMIZER_MAXITER,
+        "gradient_threshold": 0.0,
+        "seed": SEED,
+        "energy_stop_target": TARGET_ABS_DELTA_E,
+        "first_hit_thresholds": (TARGET_ABS_DELTA_E,),
+        "same_cutoff_exact_gs_energy": float(exact_energy),
+        "exact_reference_energy": float(exact_energy),
+        "exact_reference_n_ph_max": int(row["n_ph_reference"]),
+        "primary_energy_metric": "same_cutoff_abs_delta_e",
+        "same_cutoff_error_role": "primary",
+        "allow_repeats": True,
+        "progress_jsonl_path": output_dir / "adapt_iteration_progress.jsonl",
+        "generic_adapt_stop_policy": "default",
+        "generic_adapt_runtime_split_mode": "off",
+        "generic_adapt_runtime_split_symmetry_policy": "off",
+        "generic_adapt_runtime_split_max_subset_size": 1,
+        "shared_pauli_pool_mode": SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1,
+        "shared_pauli_pool_symmetry_policy": "hard_guard",
+        "shared_pauli_pool_max_subset_size": 1,
+        "adapt_optimizer_kind": "formal_manifold",
+        "optimizer_overlay_source": OPTIMIZER_OVERLAY_SOURCE,
+        "formal_manifold_config": shared_formal_manifold_config(),
+        "hh_seed_preopt_enabled": False,
+        "hh_adaptive_pool_profile": "full_meta_unfiltered",
+    }
+
+
+def _settings_diff_payload(contract: Mapping[str, Any]) -> dict[str, Any]:
+    route_specific = dict(contract["route_specific"])
+    return {
+        "schema": "paper_i_hh_fm_vs_append_settings_diff_v1",
+        "status": "pass",
+        "common_settings_sha256": _payload_sha256(dict(contract["shared"])),
+        "common_settings": dict(contract["shared"]),
+        "route_specific_settings": route_specific,
+        "differences": [
+            {
+                "family": name,
+                "authorized": True,
+                "reason": "outer-controller mechanism under test",
+            }
+            for name in contract["allowed_scientific_differences"]
+        ],
+        "unauthorized_differences": [],
+    }
+
+
+def _plan_campaign_locked(
+    *, campaign_dir: Path, regimes: Sequence[str] | None = None
+) -> dict[str, Any]:
+    campaign_dir = Path(campaign_dir)
+    runtime_environment = lock_runtime_environment()
+    contract = matched_contract(regimes)
+    formal_config = dict(contract["shared"]["formal_manifold_config"])
+    _atomic_write_json(_formal_config_path(campaign_dir), formal_config)
+    source_lock = _source_lock_payload()
+    if not source_lock["current_source_complete"]:
+        raise RuntimeError(
+            "Source lock is incomplete: "
+            + ", ".join(source_lock["missing_current_source_files"])
+        )
+    _atomic_write_json(campaign_dir / "source_lock" / "source_lock.json", source_lock)
+    settings_diff = _settings_diff_payload(contract)
+    _atomic_write_json(campaign_dir / "settings_diff.json", settings_diff)
+
+    row_plans: list[dict[str, Any]] = []
+    for row in contract["rows"]:
+        regime_dir = campaign_dir / str(row["regime"])
+        fm_plan_paths: dict[str, str] = {}
+        for fm_route_id in (FM_ROUTE_ID, FM_SINGLETON_REFEED_ROUTE_ID):
+            fm_args = fm_runner.build_parser().parse_args(
+                build_fm_cli_args(
+                    campaign_dir=campaign_dir,
+                    row=row,
+                    dry_run=True,
+                    route_id=fm_route_id,
+                )
+            )
+            fm_plan = fm_runner.run_once(fm_args)
+            fm_run_kwargs = fm_plan.get("scientific_settings", {}).get("run_kwargs", {})
+            if fm_run_kwargs.get("disable_hh_seed") is not True:
+                raise RuntimeError(
+                    "FM matched-pair plan did not disable the post-source HH seed bootstrap."
+                )
+            fm_plan_path = regime_dir / fm_route_id / "plan.json"
+            _atomic_write_json(fm_plan_path, fm_plan)
+            fm_plan_paths[fm_route_id] = str(fm_plan_path)
+        exact_energy, _spec = _exact_reference(row)
+        append_plan = {
+            "schema": "paper_i_hh_projected_append_fm_plan_v1",
+            "status": "planned",
+            "run_class": RUN_CLASS,
+            **dict(row),
+            "same_cutoff_exact_gs_energy": exact_energy,
+            "algorithm_id": STATIC_FULL_META_APPEND_ADAPT_VQE,
+            "candidate_selector": "projected_singleton_append_only_v1",
+            "beam_enabled": False,
+            "batching_enabled": False,
+            "pruning_enabled": False,
+            "ordinary_novelty_enabled": False,
+            "accepted_ansatz_optimizer": FORMAL_MANIFOLD_ROUTE,
+            "formal_manifold_config": formal_config,
+            "formal_manifold_config_sha256": _payload_sha256(formal_config),
+            "run_kwargs": build_append_run_kwargs(
+                campaign_dir=campaign_dir, row=row, exact_energy=exact_energy
+            ),
+        }
+        if append_plan["run_kwargs"].get("hh_seed_preopt_enabled") is not False:
+            raise RuntimeError(
+                "Append+FM plan enabled the post-source HH seed bootstrap."
+            )
+        _atomic_write_json(regime_dir / APPEND_ROUTE_ID / "plan.json", append_plan)
+        pair_manifest = {
+            "schema": "paper_i_hh_fm_vs_append_pair_manifest_v1",
+            "generated_utc": _utc_now(),
+            "campaign_contract_sha256": _payload_sha256(contract),
+            "source_lock_sha256": _payload_sha256(source_lock),
+            "settings_diff_sha256": _payload_sha256(settings_diff),
+            "row": dict(row),
+            "shared_formal_manifold_config_sha256": _payload_sha256(formal_config),
+            "fm_plan": fm_plan_paths[FM_ROUTE_ID],
+            "fm_singleton_refeed_plan": fm_plan_paths[
+                FM_SINGLETON_REFEED_ROUTE_ID
+            ],
+            "append_plan": str(regime_dir / APPEND_ROUTE_ID / "plan.json"),
+        }
+        _atomic_write_json(regime_dir / "pair_manifest.json", pair_manifest)
+        row_plans.append(pair_manifest)
+
+    manifest = {
+        **contract,
+        "status": "planned",
+        "runtime_environment": runtime_environment,
+        "source_lock": str(campaign_dir / "source_lock" / "source_lock.json"),
+        "settings_diff": str(campaign_dir / "settings_diff.json"),
+        "row_manifests": row_plans,
+    }
+    _atomic_write_json(campaign_dir / "campaign_manifest.json", manifest)
+    return manifest
+
+
+def plan_campaign(
+    *, campaign_dir: Path, regimes: Sequence[str] | None = None
+) -> dict[str, Any]:
+    """Plan one campaign while restoring every inherited environment value."""
+
+    with scoped_runtime_environment():
+        return _plan_campaign_locked(campaign_dir=campaign_dir, regimes=regimes)
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"Expected a JSON object: {path}")
+    return dict(payload)
+
+
+def _verify_current_source_lock(campaign_dir: Path) -> None:
+    source_path = Path(campaign_dir) / "source_lock" / "source_lock.json"
+    stored = _load_json(source_path)
+    expected = stored.get("current_source_hashes")
+    observed = _source_lock_payload().get("current_source_hashes")
+    if expected != observed:
+        raise RuntimeError(
+            "Current source hashes differ from the planned source lock; rerun plan explicitly."
+        )
+
+
+def _fm_history_position(payload: Mapping[str, Any]) -> int:
+    summary = payload.get("summary")
+    if not isinstance(summary, Mapping):
+        raise ValueError("FM result lacks summary.")
+    position = int(summary.get("controller_round_count", 0))
+    if position <= 0:
+        raise ValueError("FM result contains no completed controller round.")
+    return position
+
+
+def _build_fm_qiskit_sidecar(
+    result_path: Path,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    from pipelines.reporting.build_paper_i_selected_prefix_qiskit_sidecar import (
+        build_sidecar,
+    )
+
+    return build_sidecar(
+        result_json=result_path,
+        history_position=_fm_history_position(payload),
+        output_json=result_path.with_name("qiskit_sidecar.json"),
+        threshold=TARGET_ABS_DELTA_E,
+        result_payload=payload,
+        source_result_sha256=_sha256(result_path),
+        source_result_hash_convention="raw_file_sha256_v1",
+    )
+
+
+def _first_hit_record(row: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    first_hits = row.get("benchmark_first_hits")
+    if not isinstance(first_hits, Mapping):
+        return None
+    for key in ("2e-04", "2e-4", f"{TARGET_ABS_DELTA_E:.0e}"):
+        value = first_hits.get(key)
+        if isinstance(value, Mapping):
+            return value
+    for raw_threshold, value in first_hits.items():
+        try:
+            if math.isclose(float(raw_threshold), TARGET_ABS_DELTA_E):
+                return value if isinstance(value, Mapping) else None
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _append_qiskit_sidecar(payload: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
+    row = payload.get("result")
+    if not isinstance(row, Mapping):
+        raise ValueError("Append result lacks result row.")
+    first_hit = _first_hit_record(row)
+    source = first_hit if first_hit is not None else row
+    fields = (
+        "compiled_circuit_stats_status",
+        "compiled_resource_qiskit_validated",
+        "qiskit_first_hit_cost_validated",
+        "compile_convention",
+        "compiled_basis_gates",
+        "qiskit_transpile_optimization_level",
+        "qiskit_transpile_seed",
+        "compiled_count_2q_total",
+        "compiled_depth_2q_total",
+        "compiled_depth_total",
+        "num_qubits",
+        "logical_operator_count",
+        "runtime_rotation_count",
+    )
+    sidecar = {
+        "schema": "paper_i_hh_append_fm_first_hit_qiskit_sidecar_v1",
+        "source_result": str(output_path.with_name("result.json")),
+        "source_scope": "first_hit" if first_hit is not None else "terminal_round_30",
+        **{key: _json_ready(source.get(key)) for key in fields},
+    }
+    _atomic_write_json(output_path, sidecar)
+    return sidecar
+
+
+def _fm_row_summary(
+    payload: Mapping[str, Any], qiskit: Mapping[str, Any], *, route_id: str
+) -> dict[str, Any]:
+    summary = payload.get("summary")
+    if not isinstance(summary, Mapping):
+        raise ValueError("FM result lacks summary.")
+    adapt = payload.get("adapt_vqe")
+    if not isinstance(adapt, Mapping):
+        adapt = {}
+    error = _finite_float(summary.get("abs_delta_e"))
+    s_alg = _finite_float(summary.get("query_work_total"))
+    warm_start = summary.get("formal_manifold_warm_start")
+    qbang_momentum_active = (
+        warm_start.get("qbang_momentum_active")
+        if isinstance(warm_start, Mapping)
+        else None
+    )
+    return {
+        "route_id": str(route_id),
+        "status": payload.get("status"),
+        "target_hit": bool(
+            summary.get("stop_reason") == "benchmark_abs_delta_e_target"
+            and error is not None
+            and error <= TARGET_ABS_DELTA_E
+        ),
+        "stop_reason": summary.get("stop_reason"),
+        "controller_rounds": int(summary.get("controller_round_count", 0)),
+        "ansatz_depth": int(summary.get("ansatz_depth", 0)),
+        "energy": _finite_float(summary.get("energy")),
+        "abs_delta_e": error,
+        "winning_lineage_S_alg": s_alg,
+        "winning_lineage_S_alg_scope": summary.get("query_work_scope"),
+        "exact_S_alg_accounting_complete": bool(
+            adapt.get("formal_manifold_query_accounting_complete") is True
+            and
+            isinstance(summary.get("formal_manifold_query_accounting"), Mapping)
+            and summary["formal_manifold_query_accounting"].get("status") == "complete"
+        ),
+        "qbang_momentum_active": qbang_momentum_active,
+        "qiskit": {
+            "status": qiskit.get("compiled_circuit_stats_status"),
+            "compile_convention": qiskit.get("compile_convention_expected")
+            or qiskit.get("compile_convention"),
+            "optimization_level": qiskit.get("qiskit_transpile_optimization_level"),
+            "seed_transpiler": qiskit.get("qiskit_transpile_seed"),
+            "count_2q": qiskit.get("compiled_count_2q_total"),
+            "depth_2q": qiskit.get("compiled_depth_2q_total"),
+            "depth_total": qiskit.get("compiled_depth_total"),
+        },
+    }
+
+
+def _append_row_summary(
+    payload: Mapping[str, Any], qiskit: Mapping[str, Any]
+) -> dict[str, Any]:
+    row = payload.get("result")
+    if not isinstance(row, Mapping):
+        raise ValueError("Append result lacks result row.")
+    hit = _first_hit_record(row)
+    source = hit if hit is not None else row
+    error = _finite_float(source.get("abs_delta_e"))
+    stop_reason = row.get("adapt_stop_reason")
+    controller_rounds = (
+        int(source.get("iteration", -1)) + 1
+        if hit is not None
+        else int(row.get("adapt_iterations", len(row.get("adapt_history", []))))
+    )
+    overlay = payload.get("formal_manifold_optimizer_overlay")
+    session_summary = row.get("formal_manifold_session_summary")
+    qbang_momentum_active = (
+        session_summary.get("qbang_momentum_active")
+        if isinstance(session_summary, Mapping)
+        else None
+    )
+    accounting_complete = bool(source.get("formal_manifold_query_accounting_complete"))
+    return {
+        "route_id": APPEND_ROUTE_ID,
+        "status": "complete",
+        "source_status": payload.get("status"),
+        "target_hit": bool(
+            hit is not None
+            and stop_reason == "benchmark_abs_delta_e_target"
+            and error is not None
+            and error <= TARGET_ABS_DELTA_E
+        ),
+        "stop_reason": stop_reason,
+        "controller_rounds": controller_rounds,
+        "ansatz_depth": int(
+            source.get("selected_operator_count", source.get("ansatz_depth", 0))
+        ),
+        "energy": _finite_float(source.get("energy")),
+        "abs_delta_e": error,
+        "winning_lineage_S_alg": _finite_float(source.get("S_alg")),
+        "winning_lineage_S_alg_scope": (
+            source.get("S_alg_work_scope") or "accepted_single_frontier_prefix"
+        ),
+        "exact_S_alg_accounting_complete": accounting_complete,
+        "exact_cross_route_S_alg_available": bool(
+            source.get("exact_cross_route_s_alg_available")
+        ),
+        "qbang_momentum_active": qbang_momentum_active,
+        "formal_manifold_config": (
+            dict(overlay.get("config", {})) if isinstance(overlay, Mapping) else None
+        ),
+        "qiskit": {
+            "status": qiskit.get("compiled_circuit_stats_status"),
+            "validated": qiskit.get("compiled_resource_qiskit_validated"),
+            "compile_convention": qiskit.get("compile_convention"),
+            "optimization_level": qiskit.get("qiskit_transpile_optimization_level"),
+            "seed_transpiler": qiskit.get("qiskit_transpile_seed"),
+            "count_2q": qiskit.get("compiled_count_2q_total"),
+            "depth_2q": qiskit.get("compiled_depth_2q_total"),
+            "depth_total": qiskit.get("compiled_depth_total"),
+        },
+    }
+
+
+def _run_row_locked(
+    *, campaign_dir: Path, regime: str, route_id: str, force: bool = False
+) -> dict[str, Any]:
+    campaign_dir = Path(campaign_dir)
+    normalized = _normalize_regime(regime)
+    if route_id not in ROUTE_IDS:
+        raise ValueError(f"route_id must be one of {ROUTE_IDS}; got {route_id!r}.")
+    manifest_path = campaign_dir / "campaign_manifest.json"
+    if not manifest_path.is_file():
+        plan_campaign(campaign_dir=campaign_dir, regimes=(normalized,))
+    lock_runtime_environment()
+    _verify_current_source_lock(campaign_dir)
+    manifest = _load_json(manifest_path)
+    row = next(
+        item for item in manifest["rows"] if str(item["regime"]) == normalized
+    )
+    output_dir = campaign_dir / normalized / route_id
+    result_path = output_dir / "result.json"
+    if result_path.is_file() and not force:
+        existing = _load_json(result_path)
+        if str(existing.get("status")) in {"complete", "completed"}:
+            return existing
+        raise RuntimeError(f"Nonterminal result already exists at {result_path}; use --force.")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if route_id in {FM_ROUTE_ID, FM_SINGLETON_REFEED_ROUTE_ID}:
+        args = fm_runner.build_parser().parse_args(
+            build_fm_cli_args(
+                campaign_dir=campaign_dir,
+                row=row,
+                dry_run=False,
+                route_id=route_id,
+            )
+        )
+        payload = fm_runner.run_once(args)
+        if str(payload.get("status")) != "complete":
+            raise RuntimeError(f"FM row ended with status={payload.get('status')!r}.")
+        qiskit = _build_fm_qiskit_sidecar(result_path, payload)
+        summary = _fm_row_summary(payload, qiskit, route_id=route_id)
+    else:
+        exact_energy, _spec = _exact_reference(row)
+        payload = run_generic_static_adapt_variant_single(
+            **build_append_run_kwargs(
+                campaign_dir=campaign_dir, row=row, exact_energy=exact_energy
+            )
+        )
+        if str(payload.get("status")) not in {
+            "completed",
+            "complete",
+            "completed_quality_nonpassing",
+        }:
+            raise RuntimeError(
+                f"Append+FM row ended with status={payload.get('status')!r}: "
+                f"{payload.get('failure_reason') or payload.get('error')}"
+            )
+        qiskit = _append_qiskit_sidecar(payload, output_dir / "qiskit_sidecar.json")
+        summary = _append_row_summary(payload, qiskit)
+    _atomic_write_json(output_dir / "row_summary.json", summary)
+    return payload
+
+
+def run_row(
+    *, campaign_dir: Path, regime: str, route_id: str, force: bool = False
+) -> dict[str, Any]:
+    """Run one row under the locked environment, then restore the caller."""
+
+    with scoped_runtime_environment():
+        return _run_row_locked(
+            campaign_dir=campaign_dir,
+            regime=regime,
+            route_id=route_id,
+            force=force,
+        )
+
+
+def _result_markdown(result: Mapping[str, Any]) -> str:
+    lines = [
+        "# FM-SNAKE versus projected-singleton Append+FM",
+        "",
+        f"Regime: `{result['regime']}`; same-cutoff target: `{TARGET_ABS_DELTA_E:.1e}`.",
+        "",
+        "| Method | Target | Rounds | Ansatz | abs(Delta E) | 2Q count | 2Q depth | Total depth | Winning S_alg |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in result["rows"]:
+        qiskit = row.get("qiskit", {})
+        error = row.get("abs_delta_e")
+        s_alg = row.get("winning_lineage_S_alg")
+        lines.append(
+            "| {route} | {target} | {rounds} | {depth} | {error} | {n2q} | {d2q} | {dt} | {salg} |".format(
+                route=row.get("route_id"),
+                target="hit" if row.get("target_hit") else "not hit",
+                rounds=row.get("controller_rounds"),
+                depth=row.get("ansatz_depth"),
+                error="--" if error is None else f"{float(error):.8e}",
+                n2q=qiskit.get("count_2q", "--"),
+                d2q=qiskit.get("depth_2q", "--"),
+                dt=qiskit.get("depth_total", "--"),
+                salg="--" if s_alg is None else f"{float(s_alg):.0f}",
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "`S_alg` is the exact winning-lineage estimator-oracle total. Discarded-branch work is intentionally not displayed.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def validate_pair(*, campaign_dir: Path, regime: str) -> dict[str, Any]:
+    campaign_dir = Path(campaign_dir)
+    normalized = _normalize_regime(regime)
+    regime_dir = campaign_dir / normalized
+    fm_payload = _load_json(regime_dir / FM_ROUTE_ID / "result.json")
+    append_payload = _load_json(regime_dir / APPEND_ROUTE_ID / "result.json")
+    fm_qiskit = _load_json(regime_dir / FM_ROUTE_ID / "qiskit_sidecar.json")
+    append_qiskit = _load_json(
+        regime_dir / APPEND_ROUTE_ID / "qiskit_sidecar.json"
+    )
+    fm = _fm_row_summary(fm_payload, fm_qiskit, route_id=FM_ROUTE_ID)
+    append = _append_row_summary(append_payload, append_qiskit)
+    expected_config = shared_formal_manifold_config()
+    expected_hash = _payload_sha256(expected_config)
+    fm_contract = (
+        fm_payload.get("scientific_settings", {})
+        .get("accepted_ansatz_reoptimization", {})
+    )
+    fm_config = fm_contract.get("formal_manifold_config_effective")
+    append_config = append.get("formal_manifold_config")
+    checks = {
+        "both_rows_complete": bool(
+            fm.get("status") == "complete"
+            and append.get("status") in {"completed", "complete"}
+        ),
+        "shared_formal_config_exact": bool(
+            isinstance(fm_config, Mapping)
+            and isinstance(append_config, Mapping)
+            and _payload_sha256(dict(fm_config)) == expected_hash
+            and _payload_sha256(dict(append_config)) == expected_hash
+        ),
+        "qbroyd_disabled": bool(
+            float(expected_config["qbroyd_epsilon0"]) == 0.0
+        ),
+        "qbang_disabled_in_emitted_route_telemetry": bool(
+            fm.get("qbang_momentum_active") is False
+            and append.get("qbang_momentum_active") is False
+        ),
+        "inverse_rbfgs": bool(
+            expected_config["curvature_branch"] == FORMAL_CURVATURE_INVERSE_RBFGS
+        ),
+        "line_search_cap_15": bool(
+            int(expected_config["line_search_max_steps"]) == LINE_SEARCH_MAX_STEPS
+        ),
+        "first_hit_or_round_cap": all(
+            bool(row["target_hit"])
+            or int(row["controller_rounds"]) == MAX_CONTROLLER_ROUNDS
+            for row in (fm, append)
+        ),
+        "exact_winning_lineage_S_alg": all(
+            row.get("exact_S_alg_accounting_complete") is True
+            and _finite_float(row.get("winning_lineage_S_alg")) is not None
+            for row in (fm, append)
+        ),
+        "append_cross_route_S_alg_available": bool(
+            append.get("exact_cross_route_S_alg_available") is True
+        ),
+        "qiskit_basis_opt0_seed7": all(
+            row.get("qiskit", {}).get("compile_convention")
+            == TABLE_I_QISKIT_COMPILE_CONVENTION
+            and int(row.get("qiskit", {}).get("optimization_level")) == 0
+            and int(row.get("qiskit", {}).get("seed_transpiler")) == 7
+            for row in (fm, append)
+        ),
+        "query_surface_winning_only": all(
+            "discarded" not in key.lower()
+            for row in (fm, append)
+            for key in row
+        ),
+    }
+    result = {
+        "schema": "paper_i_hh_fm_vs_append_fm_first_hit_result_v1",
+        "generated_utc": _utc_now(),
+        "regime": normalized,
+        "status": "pass" if all(checks.values()) else "fail",
+        "target_abs_delta_e": TARGET_ABS_DELTA_E,
+        "same_cutoff": True,
+        "checks": checks,
+        "rows": [fm, append],
+        "reporting_scope": {
+            "query_coordinate": "winning_lineage_S_alg_only",
+            "discarded_branch_work_reported": False,
+        },
+    }
+    _atomic_write_json(regime_dir / "results.json", result)
+    _atomic_write_text(regime_dir / "results.md", _result_markdown(result))
+    _atomic_write_json(regime_dir / "validation.json", result)
+    if result["status"] != "pass":
+        failed = [name for name, passed in checks.items() if not passed]
+        raise RuntimeError("Matched pair validation failed: " + ", ".join(failed))
+    return result
+
+
+def run_pair(
+    *, campaign_dir: Path, regime: str, force: bool = False
+) -> dict[str, Any]:
+    normalized = _normalize_regime(regime)
+    if not (Path(campaign_dir) / "campaign_manifest.json").is_file():
+        plan_campaign(campaign_dir=campaign_dir, regimes=(normalized,))
+    for route_id in ROUTE_IDS:
+        run_row(
+            campaign_dir=campaign_dir,
+            regime=normalized,
+            route_id=route_id,
+            force=force,
+        )
+        gc.collect()
+    return validate_pair(campaign_dir=campaign_dir, regime=normalized)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    plan = subparsers.add_parser("plan")
+    plan.add_argument("--campaign-dir", type=Path, required=True)
+    plan.add_argument("--regime", action="append", default=[])
+    row = subparsers.add_parser("run-row")
+    row.add_argument("--campaign-dir", type=Path, required=True)
+    row.add_argument("--regime", required=True)
+    row.add_argument("--route", choices=ROUTE_IDS, required=True)
+    row.add_argument("--force", action="store_true")
+    pair = subparsers.add_parser("run-pair")
+    pair.add_argument("--campaign-dir", type=Path, required=True)
+    pair.add_argument("--regime", default="weak-weak")
+    pair.add_argument("--force", action="store_true")
+    validate = subparsers.add_parser("validate-pair")
+    validate.add_argument("--campaign-dir", type=Path, required=True)
+    validate.add_argument("--regime", default="weak-weak")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if args.command == "plan":
+        result = plan_campaign(
+            campaign_dir=args.campaign_dir,
+            regimes=tuple(args.regime) if args.regime else None,
+        )
+    elif args.command == "run-row":
+        payload = run_row(
+            campaign_dir=args.campaign_dir,
+            regime=args.regime,
+            route_id=args.route,
+            force=bool(args.force),
+        )
+        result = {"status": payload.get("status"), "route": args.route}
+    elif args.command == "run-pair":
+        result = run_pair(
+            campaign_dir=args.campaign_dir,
+            regime=args.regime,
+            force=bool(args.force),
+        )
+    else:
+        result = validate_pair(
+            campaign_dir=args.campaign_dir,
+            regime=args.regime,
+        )
+    print(json.dumps(_json_ready(result), sort_keys=True), flush=True)
+    return 0 if str(result.get("status")) in {"planned", "pass", "complete", "completed"} else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

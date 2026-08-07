@@ -1,0 +1,64 @@
+from __future__ import annotations
+
+from pipelines.static_adapt import adapt_pipeline
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_hamiltonian
+
+
+def test_disabled_batching_with_terminal_phase_one_has_empty_batch_telemetry(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_controller_terminal_phase",
+        lambda *_args, **_kwargs: 1,
+    )
+    h_poly = build_hubbard_hamiltonian(
+        dims=2,
+        t=1.0,
+        U=4.0,
+        v=0.0,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=True,
+    )
+
+    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-8,
+        eps_energy=1.0e-12,
+        maxiter=2,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        adapt_continuation_mode="phase3_v1",
+        phase2_enable_batching=False,
+        phase3_enable_rescue=False,
+        adapt_final_full_refit=False,
+    )
+
+    assert payload["success"] is True
+    assert payload["continuation"]["phase2"]["batching_enabled"] is False
+    assert payload["continuation"]["phase2"]["phase3_batching_enabled"] is False
+    assert len(payload["history"]) == 1
+    row = payload["history"][0]
+    assert row["selection_mode"].endswith("_terminal_phase1")
+    assert row["phase3_batch_summary"] is None
+    assert row["route_a_joint_selector_active"] is False

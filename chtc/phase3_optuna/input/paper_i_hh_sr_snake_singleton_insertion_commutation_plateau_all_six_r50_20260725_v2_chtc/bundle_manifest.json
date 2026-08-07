@@ -1,0 +1,26 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc",
+  "git_commit": "8a746d244a15e2cb16099a732e78e1110a8e59f2",
+  "git_tree": "6cb596ab953386a9c9a3b0698e7b1489e3b0f02e",
+  "max_depth": 50,
+  "paper_target": "Paper-I HH insertion trajectory/resource comparison review",
+  "parent_bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc",
+  "profile_contract_sha256": "eecd11fccf8f34b5e89042fb75949b54546a297ea5fe4f9969ad91ec569ff08a",
+  "profile_request": "insertion_commutation_plateau_v1",
+  "profile_resolved": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_insertion_commutation_plateau_v1",
+  "regime_count": 6,
+  "run_class": "diagnostic",
+  "schema": "paper_i_hh_commutation_reduced_insertion_r50_bundle_v1",
+  "source_archive": {
+    "physics_reference_lock": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc/physics_and_exact_reference_lock.json",
+    "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+    "source_archive": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc/source_locked.tar.gz",
+    "source_archive_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc/source_archive_manifest.json",
+    "source_archive_manifest_sha256": "5300c03c1a5ef00435673bfc8facdedf017451c8d9dd6c0714028138de9f319e",
+    "source_archive_sha256": "7247c3a294ecc66b93e7c784c65902fe571cd9b5325ad1113cbeb07eda2f7563",
+    "source_revision_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc/source_revision_manifest.json",
+    "source_revision_manifest_sha256": "7364489a152217ffd2f197f1923631077f4a67d5e573acccb9d35281408b578b"
+  },
+  "source_locked_sensitivity_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v2_chtc/source_locked_sensitivity_audit.json",
+  "status": "ready_for_preflight"
+}

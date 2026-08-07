@@ -1,0 +1,204 @@
+{
+  "schema": "paper_i_hh_snake_vs_append_equal_oracle_ceiling_diagnostic_v1",
+  "generated_date": "2026-07-18",
+  "status": "four_regimes_complete_two_regimes_blocked",
+  "question": "At a common logical estimator-query ceiling, how do SNAKE and the displayed append-only ADAPT endpoint differ in same-cutoff error and compiled circuit cost?",
+  "comparison_rule": {
+    "budget": "minimum of the two displayed endpoint S_alg values",
+    "prefix_selection": "best source-backed observed prefix with S_alg less than or equal to the common budget",
+    "interpolation": false,
+    "equal_cost_semantics": "equal S_alg ceiling; actual prefix counts need not be numerically identical because prefixes are discrete",
+    "error_metric": "absolute same-cutoff energy error",
+    "compile_convention": "table_i_basis_gate_transpile_v1",
+    "optimization_level": 0,
+    "transpile_seed": 7
+  },
+  "rows": [
+    {
+      "regime": "strong-weak",
+      "status": "complete",
+      "common_s_alg_ceiling": 2137,
+      "snake": {
+        "history_position": 3,
+        "s_alg": 1656,
+        "next_history_position": 4,
+        "next_s_alg": 2366,
+        "absolute_same_cutoff_error": 0.0014053442007520012,
+        "N2q": 10,
+        "D2q": 8,
+        "Dc": 58
+      },
+      "append_adapt": {
+        "displayed_k": 6,
+        "s_alg": 2137,
+        "absolute_same_cutoff_error": 2.3546519453132575e-6,
+        "N2q": 146,
+        "D2q": 118,
+        "Dc": 762
+      },
+      "comparison": {
+        "error_winner": "Append-ADAPT",
+        "append_error_percent_lower": 99.83245016103149,
+        "snake_over_append_error_ratio": 596.8373387621997,
+        "snake_N2q_percent_lower": 93.15068493150685,
+        "snake_N2q_absolute_reduction": 136,
+        "snake_D2q_percent_lower": 93.22033898305084,
+        "snake_D2q_absolute_reduction": 110,
+        "snake_Dc_percent_lower": 92.38845144356955,
+        "snake_Dc_absolute_reduction": 704
+      },
+      "snake_sources": {
+        "result_json": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_weak_u8/json/result.json",
+        "result_json_sha256": "b62f89ef9271a2ff42eab2057e9183f48900355967adcabc1fbc9491d22a21f6",
+        "estimator_ledger": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_weak_u8/json/estimator_call_ledger.json",
+        "estimator_ledger_sha256": "a8ee0b1fa439049ea91c95c832e7a961af5a9795ef60ca830b8c565e64975389"
+      }
+    },
+    {
+      "regime": "weak-strong",
+      "status": "complete",
+      "common_s_alg_ceiling": 136947,
+      "snake": {
+        "history_position": 41,
+        "s_alg": 131235,
+        "next_history_position": 42,
+        "next_s_alg": 146828,
+        "absolute_same_cutoff_error": 0.00034068406030995924,
+        "N2q": 610,
+        "D2q": 556,
+        "Dc": 2372
+      },
+      "append_adapt": {
+        "displayed_k": 23,
+        "s_alg": 136947,
+        "absolute_same_cutoff_error": 0.023007750483881706,
+        "N2q": 32596,
+        "D2q": 31946,
+        "Dc": 94899
+      },
+      "comparison": {
+        "error_winner": "SNAKE",
+        "snake_error_percent_lower": 98.51926393000208,
+        "snake_over_append_error_ratio": 0.01480736069997928,
+        "snake_N2q_percent_lower": 98.12860473677752,
+        "snake_N2q_absolute_reduction": 31986,
+        "snake_D2q_percent_lower": 98.25956301258374,
+        "snake_D2q_absolute_reduction": 31390,
+        "snake_Dc_percent_lower": 97.5005005321447,
+        "snake_Dc_absolute_reduction": 92527
+      },
+      "snake_sources": {
+        "transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong_transfer.tar.gz",
+        "transfer_archive_sha256": "dcde3bd74b2d0c41e15c31cc51e890793d8c34148341feef751e15e6348b7aee",
+        "result_member_sha256": "327a4c01f2e40f49364734ab474ffc9d7da874e339323552a9fd57c8876c011b",
+        "estimator_ledger_member_sha256": "64c2545adb765c284200d6bbb3adacf9460f25b353dd3f978a9495c4fff221e6"
+      }
+    },
+    {
+      "regime": "intermediate-strong",
+      "status": "complete",
+      "common_s_alg_ceiling": 167416,
+      "snake": {
+        "history_position": 46,
+        "s_alg": 129290,
+        "next_history_position": 47,
+        "next_s_alg": 181336,
+        "absolute_same_cutoff_error": 0.00012657335121224467,
+        "N2q": 720,
+        "D2q": 673,
+        "Dc": 2986
+      },
+      "append_adapt": {
+        "displayed_k": 25,
+        "s_alg": 167416,
+        "absolute_same_cutoff_error": 0.009295831578261082,
+        "N2q": 33340,
+        "D2q": 32457,
+        "Dc": 97248
+      },
+      "comparison": {
+        "error_winner": "SNAKE",
+        "snake_error_percent_lower": 98.63838592441536,
+        "snake_over_append_error_ratio": 0.013616140755846398,
+        "snake_N2q_percent_lower": 97.84043191361728,
+        "snake_N2q_absolute_reduction": 32620,
+        "snake_D2q_percent_lower": 97.92648735249715,
+        "snake_D2q_absolute_reduction": 31784,
+        "snake_Dc_percent_lower": 96.9294998354722,
+        "snake_Dc_absolute_reduction": 94262
+      },
+      "snake_sources": {
+        "result_json": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/result.json",
+        "result_json_sha256": "2091eb72dcd374fa2727d7cf9b2dd204fc0ba826d767f9e0269930a3af271448",
+        "estimator_ledger": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/estimator_call_ledger.json",
+        "estimator_ledger_sha256": "9ba5cd7452d68dcef09390e7f73df487c1b94de39570c759a356806a3e3b0411"
+      }
+    },
+    {
+      "regime": "strong-strong",
+      "status": "complete",
+      "common_s_alg_ceiling": 6378,
+      "snake": {
+        "history_position": 6,
+        "s_alg": 5465,
+        "next_history_position": 7,
+        "next_s_alg": 6580,
+        "absolute_same_cutoff_error": 0.0028211658428226594,
+        "N2q": 40,
+        "D2q": 36,
+        "Dc": 201
+      },
+      "append_adapt": {
+        "displayed_k": 8,
+        "history_prefix_k_1based": 9,
+        "s_alg": 6378,
+        "absolute_same_cutoff_error": 3.61579243989274e-5,
+        "N2q": 7976,
+        "D2q": 7833,
+        "Dc": 26219
+      },
+      "comparison": {
+        "error_winner": "Append-ADAPT",
+        "append_error_percent_lower": 98.71833396498413,
+        "snake_over_append_error_ratio": 78.02344547482785,
+        "snake_N2q_percent_lower": 99.49849548645938,
+        "snake_N2q_absolute_reduction": 7936,
+        "snake_D2q_percent_lower": 99.54040597472232,
+        "snake_D2q_absolute_reduction": 7797,
+        "snake_Dc_percent_lower": 99.23338037301194,
+        "snake_Dc_absolute_reduction": 26018
+      },
+      "snake_sources": {
+        "result_json": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_strong_u8/json/result.json",
+        "result_json_sha256": "c0211bcfad1a7518857d17736ce3f7eccc9da9a2f993a8a7770208ac071b4a88",
+        "estimator_ledger": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/strong_strong_u8/json/estimator_call_ledger.json",
+        "estimator_ledger_sha256": "5f59101a70d5ad06004f8b9e5003ec7fd4ebfb78a4a1f880ca1137d264ce0328"
+      },
+      "append_source": {
+        "prefix_receipt": "output/pdf/paper_i_hh_append_k8_prefix_qiskit_20260708/paper_i_hh_append_plot_iteration8_qiskit_20260708.json",
+        "prefix_receipt_sha256": "a44aeaac6e04780ca3d60d3fd0fec48866c80e8d22a9ca2c684218712e2a7878"
+      }
+    },
+    {
+      "regime": "weak-weak",
+      "status": "blocked_missing_append_prefix_receipts",
+      "common_s_alg_ceiling": 39947,
+      "blocker": "The displayed Append endpoint has S_alg=108633, but its retained source JSON is absent locally. The trajectory supplies errors only; it does not supply the per-prefix S_alg and compiled-cost receipts needed to choose the best feasible Append prefix without interpolation."
+    },
+    {
+      "regime": "intermediate-weak",
+      "status": "blocked_missing_append_prefix_receipts",
+      "common_s_alg_ceiling": 33814,
+      "blocker": "The displayed Append endpoint has S_alg=231208, but its retained source JSON is absent locally. The trajectory supplies errors only; it does not supply the per-prefix S_alg and compiled-cost receipts needed to choose the best feasible Append prefix without interpolation."
+    }
+  ],
+  "shared_sources": {
+    "displayed_comparator_support_csv": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_comparator_support_source.csv",
+    "displayed_comparator_support_csv_sha256": "6409dd077cb4ab0fceaa15d62e7570a70549a49f1ed9989abcea6435767c521c",
+    "checkpoint_compile_tool": "pipelines/exact_bench/paper_i_hh_recovery_prefix_qiskit_sidecar.py",
+    "checkpoint_compile_tool_sha256": "5486c285deffcb47fd0f5ef0314a9e3ab2fd1c83ebb7e0bb72d629d6a81dd044",
+    "snake_prefix_s_policy": "count unique estimator primitives with ledger first_seen_sequence strictly before the next outer_state_refresh sequence",
+    "qiskit_version": "2.3.1"
+  },
+  "claim_boundary": "This is a source-backed diagnostic. It does not replace the descriptive mixed-endpoint main table and does not fill the two blocked regimes by interpolation or approximation."
+}

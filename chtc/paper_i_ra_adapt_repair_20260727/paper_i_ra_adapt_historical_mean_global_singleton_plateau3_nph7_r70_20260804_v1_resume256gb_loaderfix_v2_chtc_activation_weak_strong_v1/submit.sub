@@ -1,0 +1,35 @@
+# Weak--strong exact-prefix k49 to r70, staging-backed and unheld.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_activation_weak_strong_v1/execute_resume_job.sh chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_activation_weak_strong_v1 chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc $(job_path) $(job_file_sha256) $(authorization_path) $(authorization_file_sha256) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v2_chtc/source/source_locked.tar.gz 7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01 chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(resume_archive_basename) $(resume_archive_sha256) attempt
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v2_chtc, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_activation_weak_strong_v1, chtc/phase3_optuna/image.sif, $(resume_input_uri)
+output_destination = osdf:///chtc/staging/j/jsstrobel/paper_i_ra_historical_mean_global_singleton_r70_20260804_v1/outputs/
+
+request_cpus = $(cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+requirements = (TARGET.HasSIF == true) && (TARGET.HasCHTCStaging == true)
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-ra-global-singleton-plateau-nph7-r70-exact49-256gb-weak-v1"
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+kill_sig = SIGTERM
+kill_sig_timeout = 600
+
+log = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).err
+
+queue execution_id,job_path,job_file_sha256,authorization_path,authorization_file_sha256,resume_input_uri,resume_archive_basename,resume_archive_sha256,cpus,memory_mb,disk_mb,max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r70_20260804_v1_resume256gb_loaderfix_v2_chtc_activation_weak_strong_v1/queue.tsv

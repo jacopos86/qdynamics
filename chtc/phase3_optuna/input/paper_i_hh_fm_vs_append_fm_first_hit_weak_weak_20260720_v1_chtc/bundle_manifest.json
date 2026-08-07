@@ -1,0 +1,223 @@
+{
+  "bundle_id": "paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_20260720_v1_chtc",
+  "condor_proc_count": 1,
+  "expected_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "generated_utc": "2026-07-20T23:21:43.870378+00:00",
+  "job_count": 1,
+  "matched_contract": {
+    "allowed_scientific_differences": [
+      "outer_selector",
+      "outer_beam",
+      "outer_batching",
+      "outer_pruning",
+      "outer_candidate_exposure_and_admission"
+    ],
+    "comparison_question": "outer_controller_ablation_with_identical_formal_manifold_accepted_ansatz_optimizer",
+    "generated_utc": "2026-07-20T23:21:43.869488+00:00",
+    "route_specific": {
+      "fm_snake": {
+        "batching": {
+          "effective_size_cap": 3,
+          "enabled": true,
+          "mode": "combinatorial_reduced_plane",
+          "requested_target_size": 2,
+          "search_pool_size": 15
+        },
+        "beam": {
+          "children_per_parent": 2,
+          "enabled": true,
+          "width": 3
+        },
+        "child_padding_policy": "exact_projected_grouped_v1",
+        "child_shortlists": {
+          "phase1": 32,
+          "phase2": 25,
+          "phase3": 4096
+        },
+        "macro_shortlists": {
+          "phase1": 32,
+          "phase2": 24
+        },
+        "novelty_policy_source": "historical_formal_manifold_route_profile",
+        "outer_selector": "formal_manifold_query_closed_combinatorial_v1",
+        "phase2_novelty_mode": "collective_span_v1",
+        "pruning_enabled": true
+      },
+      "projected_singleton_append_fm": {
+        "batching_enabled": false,
+        "beam_enabled": false,
+        "candidate_pool": "projected_singleton_children_only_v1",
+        "ordinary_novelty_enabled": false,
+        "outer_selector": "largest_absolute_commutator_gradient_v1",
+        "position_policy": "append",
+        "pruning_enabled": false,
+        "repeat_policy": "with_replacement"
+      }
+    },
+    "rows": [
+      {
+        "case_id": "hh_L2_nph3_completion_weak_weak",
+        "fm_regime": "weak-weak",
+        "max_controller_rounds": 30,
+        "n_ph_reference": 3,
+        "n_ph_work": 3,
+        "regime": "weak-weak",
+        "same_cutoff": true,
+        "target_abs_delta_e": 0.0002
+      }
+    ],
+    "run_class": "diagnostic",
+    "schema": "paper_i_hh_fm_vs_append_fm_first_hit_v1",
+    "shared": {
+      "accepted_ansatz_optimizer": "formal_manifold_warm_start_v1",
+      "armijo_backtracking": true,
+      "curvature_branch": "inverse_rbfgs_raised_covariant_hessian_v1",
+      "formal_manifold_config": {
+        "alignment_sigma_min": 1e-07,
+        "armijo_c1": 0.0001,
+        "curvature_branch": "inverse_rbfgs_raised_covariant_hessian_v1",
+        "curvature_guard": 1e-10,
+        "gradient_tol": 1e-08,
+        "growth_identity_tol": 2e-07,
+        "inherited_geometry_tol": 2e-07,
+        "initial_inverse_curvature": 1.0,
+        "initial_trust_radius": 0.25,
+        "inverse_curvature_max": 1000000.0,
+        "inverse_curvature_min": 1e-06,
+        "line_search_max_steps": 15,
+        "line_search_shrink": 0.5,
+        "max_rejections": 3,
+        "max_trust_radius": 2.0,
+        "metric_innovation_hard": 0.5,
+        "metric_innovation_soft": 0.1,
+        "metric_mode": "full_refresh_exact_reference_v1",
+        "min_trust_radius": 1e-08,
+        "numerical_floor": 1e-14,
+        "post_anchor_exact_gram_budget": 4,
+        "postcondition_tol": 2e-08,
+        "powell_eta": 0.2,
+        "qbroyd_epsilon0": 0.0,
+        "rank_rule": {
+          "tau_abs": 1e-12,
+          "tau_gap": 1e-08,
+          "tau_rel": 1e-10
+        },
+        "rank_rule_effective_fields": [
+          "tau_gap"
+        ],
+        "step_tol": 1e-11,
+        "supported_metric": {
+          "energy_regularization": 1e-09,
+          "global_trust_kkt_residual_accuracy": 1e-08,
+          "global_trust_metric_distortion_budget": 0.05,
+          "max_fubini_study_step": 0.25,
+          "metric_regularization": 1e-09,
+          "policy": "supported_metric_whitened_eigh_v1",
+          "rank_relative_tolerance": 1e-06
+        },
+        "transport_policy": "exact_endpoint_procrustes_v1",
+        "trust_expand": 1.5,
+        "trust_shrink": 0.5
+      },
+      "formal_manifold_config_sha256": "001e7ead7c4df48e4707c5f830a766e20214cf5724bca3d1ee6435d6205ac423",
+      "line_search_max_steps": 15,
+      "optimizer_maxiter": 200,
+      "primary_energy_metric": "same_cutoff_abs_delta_e",
+      "qbang_momentum_active": false,
+      "qbroyd_epsilon0": 0.0,
+      "qiskit_compile": {
+        "basis_gates": [
+          "id",
+          "x",
+          "sx",
+          "rx",
+          "ry",
+          "rz",
+          "h",
+          "s",
+          "sdg",
+          "cx",
+          "cz"
+        ],
+        "compile_convention": "table_i_basis_gate_transpile_v1",
+        "optimization_level": 0,
+        "seed_transpiler": 7
+      },
+      "reported_query_coordinate": "winning_lineage_S_alg_only",
+      "scipy_maxfev": 0,
+      "seed": 7,
+      "stop_policy": "first_completed_outer_iteration_at_or_below_target_else_round_30",
+      "supported_metric_whitening": "supported_metric_whitened_eigh_v1",
+      "target_abs_delta_e": 0.0002
+    }
+  },
+  "matched_contract_sha256": "71b4c9076a4766329d86e932c67c87eb8ab267b9e6acdea872019faf4d20faaa",
+  "operational_blockers": [],
+  "reporting_scope": {
+    "discarded_branch_work_reported": false,
+    "query_coordinate": "winning_lineage_S_alg_only"
+  },
+  "resources": {
+    "max_runtime_seconds": 259200,
+    "request_cpus": 4,
+    "request_disk_mb": 40960,
+    "request_memory_mb": 24576
+  },
+  "schema": "paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_chtc_bundle_v1",
+  "scientific_blockers": [],
+  "sequential_route_count_within_proc": 2,
+  "shared_formal_manifold_config": {
+    "alignment_sigma_min": 1e-07,
+    "armijo_c1": 0.0001,
+    "curvature_branch": "inverse_rbfgs_raised_covariant_hessian_v1",
+    "curvature_guard": 1e-10,
+    "gradient_tol": 1e-08,
+    "growth_identity_tol": 2e-07,
+    "inherited_geometry_tol": 2e-07,
+    "initial_inverse_curvature": 1.0,
+    "initial_trust_radius": 0.25,
+    "inverse_curvature_max": 1000000.0,
+    "inverse_curvature_min": 1e-06,
+    "line_search_max_steps": 15,
+    "line_search_shrink": 0.5,
+    "max_rejections": 3,
+    "max_trust_radius": 2.0,
+    "metric_innovation_hard": 0.5,
+    "metric_innovation_soft": 0.1,
+    "metric_mode": "full_refresh_exact_reference_v1",
+    "min_trust_radius": 1e-08,
+    "numerical_floor": 1e-14,
+    "post_anchor_exact_gram_budget": 4,
+    "postcondition_tol": 2e-08,
+    "powell_eta": 0.2,
+    "qbroyd_epsilon0": 0.0,
+    "rank_rule": {
+      "tau_abs": 1e-12,
+      "tau_gap": 1e-08,
+      "tau_rel": 1e-10
+    },
+    "rank_rule_effective_fields": [
+      "tau_gap"
+    ],
+    "step_tol": 1e-11,
+    "supported_metric": {
+      "energy_regularization": 1e-09,
+      "global_trust_kkt_residual_accuracy": 1e-08,
+      "global_trust_metric_distortion_budget": 0.05,
+      "max_fubini_study_step": 0.25,
+      "metric_regularization": 1e-09,
+      "policy": "supported_metric_whitened_eigh_v1",
+      "rank_relative_tolerance": 1e-06
+    },
+    "transport_policy": "exact_endpoint_procrustes_v1",
+    "trust_expand": 1.5,
+    "trust_shrink": 0.5
+  },
+  "shared_formal_manifold_config_sha256": "001e7ead7c4df48e4707c5f830a766e20214cf5724bca3d1ee6435d6205ac423",
+  "source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_20260720_v1_chtc/source_locked.tar.gz",
+    "sha256": "521ccf43ddf6bed38cf446264ce86dd7fea733d823dd4f153980c758920b80ca"
+  },
+  "status": "prepared_not_submitted",
+  "submission_performed": false
+}

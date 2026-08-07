@@ -1,0 +1,20 @@
+{
+  "archive_only_rows_passed": 6,
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v6_chtc",
+  "checks": {
+    "archive_only_worker_validation": true,
+    "artifact_hash_closure_pending_inventory_write": false,
+    "artifact_inventory_count": 36,
+    "exact_remote_image_rows_passed": 6,
+    "exact_remote_image_smoke_passed": true,
+    "focused_material_window_index_mapping_tests": true,
+    "local_bundle_validation": true,
+    "route_contract_unchanged": true,
+    "scientific_settings_changed": false
+  },
+  "focused_tests_passed": 3,
+  "route_contract_sha256": "b43b23181ab1d93294fd2fb4ab96b32f7669c82db38082c86af39636cdf05201",
+  "schema": "paper_i_sr_material_window_fs_prune_verify_preflight_v1",
+  "source_archive_sha256": "be10a6caff476b8917aa53cbb38fc1b1510073813e96c9dd8476244a350c0306",
+  "status": "pass"
+}

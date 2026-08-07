@@ -1,0 +1,971 @@
+"""First-class noiseless Paper-I Route-A runner.
+
+This facade accepts resolved problem physics and typed Paper-I run controls. It
+translates those objects into the compatibility runner while keeping legacy
+routes, noise/oracle controls, and historical score switches off the public
+surface.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field, replace
+import math
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from pipelines.contracts.problem import ResolvedProblemContext, canonical_problem_key
+from pipelines.scaffold.hh_continuation_pruning import (
+    PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
+    PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
+    PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
+    PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
+)
+from pipelines.scaffold.hh_continuation_scoring import (
+    PHASE1_SCORE_MODE_TRUST_REGION_V1,
+    PHASE2_NOVELTY_COLLECTIVE_SPAN_V1,
+    PHASE2_SELECTOR_GAIN_TRUST_REGION_V1,
+)
+from pipelines.static_adapt.builders.shared_pauli_pool_contract import (
+    SHARED_PAULI_POOL_MODE_CHILD_SETS_V1,
+    SHARED_PAULI_POOL_MODE_OFF,
+)
+from pipelines.static_adapt.route_a_child_padding import (
+    ROUTE_A_CHILD_PADDING_HARD_FILTER_POLICIES,
+    ROUTE_A_CHILD_PADDING_POLICIES,
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_POLICIES,
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+    ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
+    RouteAChildPaddingConfig,
+)
+from pipelines.static_adapt.lane_routes import (
+    STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+    normalize_physical_lane_shortlist_aggressiveness,
+    resolve_static_shortlist_lane_spec,
+)
+from pipelines.static_adapt.optimizer_routes import (
+    AdaptInnerOptimizerConfig,
+    AdaptSPSAConfig,
+    adapt_spsa_params_payload,
+    resolve_adapt_inner_optimizer_config,
+)
+from pipelines.static_adapt.joint_step_warm_start import (
+    ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1,
+    ROUTE_A_JOINT_STEP_WARM_START_OFF,
+    RouteAJointStepWarmStartConfig,
+)
+from pipelines.static_adapt.paper_i_config import (
+    PAPER_I_CONFIGURATION,
+    PaperIConfiguration,
+    PaperIMechanismOverrides,
+)
+from pipelines.static_adapt.route_identity import (
+    ROUTE_ID_A,
+    STATIC_META_FEATURE_PROFILE_PAPER_I_PRODUCTION_V1,
+)
+from pipelines.static_adapt.route_a_funnel import (
+    ROUTE_A_BATCHING_OFF,
+    ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+    ROUTE_A_FUNNEL_CHILD_12_MODES,
+    ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+    ROUTE_A_FUNNEL_DIRECT_CHILD_PHASE3_V1,
+    ROUTE_A_FUNNEL_MODES,
+    ROUTE_A_PHASE0_DISABLED,
+    ROUTE_A_PHASE0_LEGACY_MACRO_PRESCREEN_V1,
+    ROUTE_A_PHASE0_POLICIES,
+    ROUTE_A_PHASE3_POPULATION_CHILD_ONLY_V1,
+    ROUTE_A_PHASE3_POPULATION_MODES,
+    RouteAFunnelConfig,
+)
+from pipelines.static_adapt.route_a_shortlists import (
+    CHILD_IDENTITY_POLICIES,
+    CHILD_IDENTITY_POLICY_GLOBAL_PAULI_WORD_V1,
+    CHILD_IDENTITY_POLICY_PARENT_QUALIFIED_LEGACY_V1,
+    PAULI_CHILD_IDENTITY_NORMALIZATION_PROJECTIVE_V1,
+)
+from pipelines.static_adapt.route_a_schur_selector import (
+    RouteASchurSelectorConfig,
+)
+from pipelines.static_adapt.resume_scaffold import (
+    build_resume_import_summary,
+    load_static_resume_source,
+    validate_static_hh_resume_source,
+)
+from pipelines.static_adapt.runtime_split import (
+    ROUTE_A_CHILD_SYMMETRY_GUARD_FIXED_SECTOR_V1,
+)
+
+
+PAPER_I_ROUTE_A_INVOCATION_SCHEMA = "paper_i_route_a_invocation_v1"
+PAPER_I_PROFILE_CANONICAL = "canonical"
+PAPER_I_PROFILE_HH_DISPLAYED_RESULTS = "hh_displayed_results"
+PAPER_I_PROFILE_CHOICES = (
+    PAPER_I_PROFILE_CANONICAL,
+    PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+)
+
+_DEFAULT_SPSA = AdaptSPSAConfig(
+    a=0.2,
+    c=0.1,
+    alpha=0.602,
+    gamma=0.101,
+    A=10.0,
+    avg_last=0,
+    eval_repeats=1,
+    eval_agg="mean",
+    callback_every=1,
+    progress_every_s=60.0,
+    parallel_evaluations=1,
+)
+
+
+def build_paper_i_optimizer_config(
+    *,
+    optimizer: str = "POWELL",
+    max_function_evaluations: int | None = None,
+    spsa: AdaptSPSAConfig = _DEFAULT_SPSA,
+) -> AdaptInnerOptimizerConfig:
+    """Build the single optimizer object consumed by the Route-A facade."""
+
+    return resolve_adapt_inner_optimizer_config(
+        adapt_inner_optimizer=str(optimizer),
+        adapt_scipy_maxfev=max_function_evaluations,
+        adapt_spsa_a=float(spsa.a),
+        adapt_spsa_c=float(spsa.c),
+        adapt_spsa_alpha=float(spsa.alpha),
+        adapt_spsa_gamma=float(spsa.gamma),
+        adapt_spsa_A=float(spsa.A),
+        adapt_spsa_avg_last=int(spsa.avg_last),
+        adapt_spsa_eval_repeats=int(spsa.eval_repeats),
+        adapt_spsa_eval_agg=str(spsa.eval_agg),
+        adapt_spsa_callback_every=int(spsa.callback_every),
+        adapt_spsa_progress_every_s=float(spsa.progress_every_s),
+        adapt_spsa_parallel_evaluations=int(spsa.parallel_evaluations),
+    )
+
+
+@dataclass(frozen=True)
+class PaperISnakeRunConfig:
+    profile: str = PAPER_I_PROFILE_CANONICAL
+    max_adapt_iterations: int = 30
+    optimizer_maxiter: int = 200
+    seed: int = 7
+    optimizer: AdaptInnerOptimizerConfig = field(
+        default_factory=build_paper_i_optimizer_config
+    )
+    mechanism_overrides: PaperIMechanismOverrides = field(
+        default_factory=PaperIMechanismOverrides
+    )
+    batch_target_size: int = 2
+    batch_size_cap: int = 3
+    beam_width: int = 3
+    beam_children_per_parent: int = 2
+    eps_grad: float = 1e-4
+    eps_energy: float = 1e-8
+    finite_angle: float = 0.1
+    finite_angle_min_improvement: float = 1e-12
+    current_json: Path | None = None
+    resume_scaffold_json: Path | None = None
+    current_json_every_depth: int = 1
+    current_json_keep_history_tail: int = 100
+    gradient_workers: int = 1
+    beam_parent_workers: int = 1
+    phase0_shortlist_size: int | None = None
+    phase1_shortlist_size: int | None = None
+    phase2_shortlist_size: int | None = None
+    phase2_shortlist_fraction: float = 1.0
+    child_phase1_shortlist_size: int | None = None
+    child_phase2_shortlist_size: int | None = None
+    child_phase3_shortlist_size: int | None = None
+    funnel_mode: str | None = None
+    phase3_population_mode: str = ROUTE_A_PHASE3_POPULATION_CHILD_ONLY_V1
+    child_identity_policy: str | None = None
+    phase0_policy: str | None = None
+    schur_selector: RouteASchurSelectorConfig = field(
+        default_factory=RouteASchurSelectorConfig
+    )
+    joint_step_warm_start_mode: str | None = None
+    child_padding_policy: str | None = None
+    physical_lane_shortlist_aggressiveness: int = 3
+
+    def __post_init__(self) -> None:
+        profile_key = str(self.profile).strip().lower()
+        if profile_key not in PAPER_I_PROFILE_CHOICES:
+            raise ValueError(
+                f"profile must be one of {PAPER_I_PROFILE_CHOICES}; got {self.profile!r}."
+            )
+        object.__setattr__(self, "profile", profile_key)
+        shortlist_defaults = (
+            {
+                "phase0_shortlist_size": 256,
+                "phase1_shortlist_size": 256,
+                "phase2_shortlist_size": 256,
+                "child_phase1_shortlist_size": 4096,
+                "child_phase2_shortlist_size": 4096,
+                "child_phase3_shortlist_size": 4096,
+            }
+            if profile_key == PAPER_I_PROFILE_CANONICAL
+            else {
+                "phase0_shortlist_size": 87,
+                "phase1_shortlist_size": 24,
+                "phase2_shortlist_size": 12,
+                "child_phase1_shortlist_size": 48,
+                "child_phase2_shortlist_size": 32,
+                "child_phase3_shortlist_size": 24,
+            }
+        )
+        for name, default in shortlist_defaults.items():
+            if getattr(self, name) is None:
+                object.__setattr__(self, name, int(default))
+        if int(self.max_adapt_iterations) < 1:
+            raise ValueError("max_adapt_iterations must be >= 1.")
+        if int(self.optimizer_maxiter) < 1:
+            raise ValueError("optimizer_maxiter must be >= 1.")
+        if int(self.batch_target_size) < 1:
+            raise ValueError("batch_target_size must be >= 1.")
+        legacy_batch_target_active = bool(
+            self.profile == PAPER_I_PROFILE_HH_DISPLAYED_RESULTS
+            or (
+                self.funnel_mode is not None
+                and str(self.funnel_mode) not in ROUTE_A_FUNNEL_CHILD_12_MODES
+            )
+        )
+        if (
+            legacy_batch_target_active
+            and int(self.batch_size_cap) < int(self.batch_target_size)
+        ):
+            raise ValueError("batch_size_cap must be >= batch_target_size.")
+        if int(self.beam_width) < 2:
+            raise ValueError("beam_width must be >= 2 when the beam mechanism is enabled.")
+        if int(self.beam_children_per_parent) < 1:
+            raise ValueError("beam_children_per_parent must be >= 1.")
+        for name, value in (
+            ("eps_grad", self.eps_grad),
+            ("eps_energy", self.eps_energy),
+            ("finite_angle_min_improvement", self.finite_angle_min_improvement),
+        ):
+            if not math.isfinite(float(value)) or float(value) < 0.0:
+                raise ValueError(f"{name} must be finite and nonnegative.")
+        if not math.isfinite(float(self.finite_angle)) or float(self.finite_angle) <= 0.0:
+            raise ValueError("finite_angle must be finite and positive.")
+        if int(self.current_json_every_depth) < 1:
+            raise ValueError("current_json_every_depth must be >= 1.")
+        if int(self.current_json_keep_history_tail) < 0:
+            raise ValueError("current_json_keep_history_tail must be >= 0.")
+        if int(self.gradient_workers) < 1 or int(self.beam_parent_workers) < 1:
+            raise ValueError("worker counts must be >= 1.")
+        if int(self.phase1_shortlist_size) < 1:
+            raise ValueError("phase1_shortlist_size must be >= 1.")
+        if int(self.phase0_shortlist_size) < 1:
+            raise ValueError("phase0_shortlist_size must be >= 1.")
+        if int(self.phase2_shortlist_size) < 1:
+            raise ValueError("phase2_shortlist_size must be >= 1.")
+        for name in (
+            "child_phase1_shortlist_size",
+            "child_phase2_shortlist_size",
+            "child_phase3_shortlist_size",
+        ):
+            if int(getattr(self, name)) < 1:
+                raise ValueError(f"{name} must be >= 1.")
+        if self.funnel_mode is not None and str(self.funnel_mode) not in ROUTE_A_FUNNEL_MODES:
+            raise ValueError(f"funnel_mode must be one of {sorted(ROUTE_A_FUNNEL_MODES)}.")
+        if str(self.phase3_population_mode) not in ROUTE_A_PHASE3_POPULATION_MODES:
+            raise ValueError(
+                "phase3_population_mode must be one of "
+                f"{sorted(ROUTE_A_PHASE3_POPULATION_MODES)}."
+            )
+        if self.child_identity_policy is not None and str(self.child_identity_policy) not in CHILD_IDENTITY_POLICIES:
+            raise ValueError(
+                f"child_identity_policy must be one of {sorted(CHILD_IDENTITY_POLICIES)}."
+            )
+        if self.phase0_policy is not None and str(self.phase0_policy) not in ROUTE_A_PHASE0_POLICIES:
+            raise ValueError(
+                f"phase0_policy must be one of {sorted(ROUTE_A_PHASE0_POLICIES)}."
+            )
+        if (
+            self.child_padding_policy is not None
+            and str(self.child_padding_policy)
+            not in ROUTE_A_CHILD_PADDING_POLICIES
+        ):
+            raise ValueError(
+                "child_padding_policy must be one of "
+                f"{sorted(ROUTE_A_CHILD_PADDING_POLICIES)}."
+            )
+        if not isinstance(self.schur_selector, RouteASchurSelectorConfig):
+            raise TypeError("schur_selector must be a RouteASchurSelectorConfig.")
+        if self.joint_step_warm_start_mode is not None:
+            RouteAJointStepWarmStartConfig(
+                mode=str(self.joint_step_warm_start_mode)
+            )
+        if not 0.0 < float(self.phase2_shortlist_fraction) <= 1.0:
+            raise ValueError("phase2_shortlist_fraction must be in (0, 1].")
+        normalize_physical_lane_shortlist_aggressiveness(
+            self.physical_lane_shortlist_aggressiveness
+        )
+
+
+@dataclass(frozen=True)
+class PaperIRouteAInvocation:
+    run_kwargs: Mapping[str, Any]
+    manifest: Mapping[str, Any]
+
+
+def _profile_mechanism_defaults(
+    *,
+    profile: str,
+    configuration: PaperIConfiguration,
+) -> dict[str, Any]:
+    canonical = configuration.canonical
+    if profile == PAPER_I_PROFILE_CANONICAL:
+        return {
+            "cost_enabled": bool(canonical.cost_enabled),
+            "batching_enabled": bool(canonical.batching_enabled),
+            "batch_selection_mode": str(canonical.batch_selection_mode),
+            "beam_enabled": bool(canonical.beam_enabled),
+            "pruning_enabled": bool(canonical.pruning_enabled),
+            "pauli_child_pool_enabled": bool(canonical.pauli_child_pool_enabled),
+            "pauli_word_subset_sizes": tuple(canonical.pauli_word_subset_sizes),
+            "child_symmetry_policy": str(canonical.child_symmetry_policy),
+        }
+    hh = configuration.hh_displayed_results
+    return {
+        "cost_enabled": bool(canonical.cost_enabled),
+        "batching_enabled": bool(hh.batching_enabled),
+        "batch_selection_mode": str(canonical.batch_selection_mode),
+        "beam_enabled": bool(hh.beam_enabled),
+        "pruning_enabled": bool(hh.pruning_enabled),
+        "pauli_child_pool_enabled": bool(hh.pauli_child_pool_enabled),
+        "pauli_word_subset_sizes": tuple(hh.pauli_word_subset_sizes),
+        "child_symmetry_policy": str(hh.child_symmetry_policy),
+    }
+
+
+def _apply_mechanism_overrides(
+    defaults: Mapping[str, Any],
+    overrides: PaperIMechanismOverrides,
+) -> dict[str, Any]:
+    resolved = dict(defaults)
+    for key in (
+        "cost_enabled",
+        "batching_enabled",
+        "beam_enabled",
+        "pruning_enabled",
+        "pauli_child_pool_enabled",
+        "batch_selection_mode",
+        "pauli_word_subset_sizes",
+        "child_symmetry_policy",
+    ):
+        value = getattr(overrides, key)
+        if value is not None:
+            resolved[key] = value
+    return resolved
+
+
+def build_paper_i_route_a_invocation(
+    problem_context: ResolvedProblemContext,
+    *,
+    run_config: PaperISnakeRunConfig | None = None,
+    configuration: PaperIConfiguration = PAPER_I_CONFIGURATION,
+) -> PaperIRouteAInvocation:
+    """Resolve a typed Paper-I request into the existing core-runner contract."""
+
+    run = run_config or PaperISnakeRunConfig()
+    request = problem_context.request
+    problem_key = canonical_problem_key(problem_context.family_key)
+    if canonical_problem_key(request.problem_key) != problem_key:
+        raise ValueError(
+            "Resolved problem family and request disagree: "
+            f"family={problem_context.family_key!r}, request={request.problem_key!r}."
+        )
+    if str(request.problem_key) != problem_key:
+        raise ValueError("Paper-I Route A requires a canonicalized ProblemRequest.problem_key.")
+    if "full_meta" not in set(problem_context.admissible_pool_keys):
+        raise ValueError(
+            f"Paper-I Route A requires the full_meta pool for problem {problem_key!r}."
+        )
+    resolve_static_shortlist_lane_spec(
+        STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        problem=problem_key,
+    )
+    if run.profile == PAPER_I_PROFILE_HH_DISPLAYED_RESULTS and problem_key != "hh":
+        raise ValueError("The hh_displayed_results profile is only valid for problem='hh'.")
+
+    mechanisms = _apply_mechanism_overrides(
+        _profile_mechanism_defaults(
+            profile=str(run.profile),
+            configuration=configuration,
+        ),
+        run.mechanism_overrides,
+    )
+    canonical_profile = bool(run.profile == PAPER_I_PROFILE_CANONICAL)
+    subset_sizes = tuple(int(value) for value in mechanisms["pauli_word_subset_sizes"])
+    child_symmetry_policy = str(mechanisms["child_symmetry_policy"])
+    if child_symmetry_policy not in {"off", "hard_guard"}:
+        raise ValueError("child_symmetry_policy must be one of {'off','hard_guard'}.")
+    child_pool_enabled = bool(mechanisms["pauli_child_pool_enabled"])
+    if child_pool_enabled and problem_key not in {"hh", "hubbard"}:
+        raise ValueError(
+            "The current shared Pauli-child pool implementation supports only "
+            "problem in {'hh','hubbard'}."
+        )
+    geometry_window_size = (
+        int(run.mechanism_overrides.geometry_window_size)
+        if run.mechanism_overrides.geometry_window_size is not None
+        else (99 if canonical_profile else int(run.max_adapt_iterations) + 1)
+    )
+    cost_enabled = bool(mechanisms["cost_enabled"])
+    cost_weights = configuration.cost_weights(enabled=cost_enabled)
+    lambdas = cost_weights.as_lambda_dict()
+    batching_enabled = bool(mechanisms["batching_enabled"])
+    beam_enabled = bool(mechanisms["beam_enabled"])
+    pruning_enabled = bool(mechanisms["pruning_enabled"])
+    batch_selection_mode = str(mechanisms["batch_selection_mode"])
+    optimizer = run.optimizer
+    spsa = optimizer.spsa
+    funnel_mode = str(
+        run.funnel_mode
+        or (
+            ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1
+            if canonical_profile
+            else ROUTE_A_FUNNEL_DIRECT_CHILD_PHASE3_V1
+        )
+    )
+    phase0_policy = str(
+        run.phase0_policy
+        or (
+            ROUTE_A_PHASE0_DISABLED
+            if funnel_mode in ROUTE_A_FUNNEL_CHILD_12_MODES
+            else ROUTE_A_PHASE0_LEGACY_MACRO_PRESCREEN_V1
+        )
+    )
+    child_identity_policy = str(
+        run.child_identity_policy
+        or (
+            CHILD_IDENTITY_POLICY_GLOBAL_PAULI_WORD_V1
+            if funnel_mode in ROUTE_A_FUNNEL_CHILD_12_MODES
+            else CHILD_IDENTITY_POLICY_PARENT_QUALIFIED_LEGACY_V1
+        )
+    )
+    child_padding_policy = str(
+        run.child_padding_policy
+        or (
+            ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+            if (
+                canonical_profile
+                and problem_key == "hh"
+                and int(request.n_ph_max) >= 1
+                and str(request.boson_encoding).strip().lower() == "binary"
+            )
+            else ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1
+        )
+    )
+    child_padding = RouteAChildPaddingConfig(
+        policy=child_padding_policy,
+        problem_key=str(problem_key),
+        num_sites=int(request.num_sites),
+        n_ph_max=int(request.n_ph_max),
+        boson_encoding=str(request.boson_encoding),
+        total_register_width=int(problem_context.layout.total_qubits),
+    )
+    effective_batch_size_cap = int(run.batch_size_cap if batching_enabled else 1)
+    schur_selector = replace(
+        run.schur_selector,
+        mode=str(batch_selection_mode),
+        batch_size_cap=int(effective_batch_size_cap),
+    )
+    joint_step_warm_start = RouteAJointStepWarmStartConfig(
+        mode=str(
+            run.joint_step_warm_start_mode
+            or (
+                ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1
+                if funnel_mode == ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2
+                else ROUTE_A_JOINT_STEP_WARM_START_OFF
+            )
+        )
+    )
+    funnel_config = RouteAFunnelConfig(
+        mode=str(funnel_mode),
+        population_mode=str(run.phase3_population_mode),
+        child_identity_policy=str(child_identity_policy),
+        macro_phase0_cap=int(run.phase0_shortlist_size),
+        macro_phase1_cap=int(run.phase1_shortlist_size),
+        macro_phase2_cap=int(run.phase2_shortlist_size),
+        child_phase1_cap=int(run.child_phase1_shortlist_size),
+        child_phase2_cap=int(run.child_phase2_shortlist_size),
+        child_phase3_cap=int(run.child_phase3_shortlist_size),
+        batching_mode=(
+            str(batch_selection_mode) if batching_enabled else ROUTE_A_BATCHING_OFF
+        ),
+        batch_size_cap=int(run.batch_size_cap),
+        phase0_policy=str(phase0_policy),
+        schur_selector_config=schur_selector,
+        joint_step_warm_start=joint_step_warm_start,
+        child_padding=child_padding,
+    )
+
+    resume_source = None
+    resume_import_summary: dict[str, Any] | None = None
+    resume_source_path = (
+        None
+        if run.resume_scaffold_json is None
+        else Path(run.resume_scaffold_json).expanduser().resolve()
+    )
+    if resume_source_path is not None:
+        resume_source = load_static_resume_source(
+            resume_source_path,
+            loader_mode="replay_family",
+            settings_overrides={
+                "molecular_vibronic_h2_fixture_json": (
+                    request.molecular_vibronic_h2_fixture_json
+                ),
+                "molecular_vibronic_h2o_fixture_json": (
+                    request.molecular_vibronic_h2o_fixture_json
+                ),
+                "molecular_vibronic_h2o_linear_fd_fixture_json": (
+                    request.molecular_vibronic_h2o_linear_fd_fixture_json
+                ),
+            },
+        )
+        resume_validation = validate_static_hh_resume_source(
+            resume_source,
+            args={
+                "problem": str(problem_key),
+                "adapt_resume_mode": "scaffold_v1",
+                "L": int(request.num_sites),
+                "t": float(request.t),
+                "u": float(request.u),
+                "dv": float(request.dv),
+                "omega0": float(request.omega0),
+                "g_ep": float(request.g_ep),
+                "n_ph_max": int(request.n_ph_max),
+                "boson_encoding": str(request.boson_encoding),
+                "ordering": str(request.ordering),
+                "boundary": str(request.boundary),
+                "include_zero_point": bool(request.include_zero_point),
+                "adapt_pool": "full_meta",
+                "molecular_vibronic_h2o_linear_fd_fixture_json": (
+                    request.molecular_vibronic_h2o_linear_fd_fixture_json
+                ),
+            },
+            continuation_mode="phase3_v1",
+        )
+        resume_import_summary = build_resume_import_summary(
+            resume_source,
+            validation=resume_validation,
+        )
+
+    kwargs: dict[str, Any] = {
+        "h_poly": problem_context.hamiltonian,
+        "resolved_problem_context": problem_context,
+        "num_sites": int(request.num_sites),
+        "ordering": str(request.ordering),
+        "problem": str(problem_key),
+        "molecular_problem_json": request.molecular_problem_json,
+        "molecular_vibronic_h2_fixture_json": request.molecular_vibronic_h2_fixture_json,
+        "molecular_vibronic_h2o_fixture_json": request.molecular_vibronic_h2o_fixture_json,
+        "molecular_vibronic_h2o_linear_fd_fixture_json": (
+            request.molecular_vibronic_h2o_linear_fd_fixture_json
+        ),
+        "adapt_pool": "full_meta",
+        "t": float(request.t),
+        "u": float(request.u),
+        "dv": float(request.dv),
+        "boundary": str(request.boundary),
+        "omega0": float(request.omega0),
+        "g_ep": float(request.g_ep),
+        "n_ph_max": int(request.n_ph_max),
+        "boson_encoding": str(request.boson_encoding),
+        "include_zero_point": bool(request.include_zero_point),
+        "v_nn": float(request.v_nn),
+        "t_prime": float(request.t_prime),
+        "n_fermions": request.n_fermions,
+        "max_depth": int(run.max_adapt_iterations),
+        "eps_grad": float(run.eps_grad),
+        "eps_energy": float(run.eps_energy),
+        "maxiter": int(run.optimizer_maxiter),
+        "adapt_scipy_maxfev": (
+            0 if optimizer.scipy_maxfev is None else int(optimizer.scipy_maxfev)
+        ),
+        "seed": int(run.seed),
+        "adapt_current_json": run.current_json,
+        "adapt_current_json_every_depth": int(run.current_json_every_depth),
+        "adapt_current_json_keep_history_tail": int(run.current_json_keep_history_tail),
+        "adapt_ref_base_depth": int(
+            0
+            if resume_import_summary is None
+            else resume_import_summary.get("source_ansatz_depth", 0)
+        ),
+        "psi_ref_override": (
+            None
+            if resume_source is None
+            else np.asarray(resume_source.runtime_input.psi_ref, dtype=complex).reshape(-1)
+        ),
+        "psi_ref_source": (
+            None if resume_source is None else "adapt_resume_scaffold_json"
+        ),
+        "psi_ref_handoff_state_kind": (
+            None if resume_source is None else "reference_state"
+        ),
+        "adapt_resume_scaffold_json": resume_source_path,
+        "adapt_resume_mode": "scaffold_v1",
+        "adapt_resume_source": resume_source,
+        "adapt_resume_import_summary": resume_import_summary,
+        "adapt_resume_compile_smoke": "off",
+        "adapt_inner_optimizer": str(optimizer.inner_optimizer_key),
+        "adapt_spsa_a": float(spsa.a),
+        "adapt_spsa_c": float(spsa.c),
+        "adapt_spsa_alpha": float(spsa.alpha),
+        "adapt_spsa_gamma": float(spsa.gamma),
+        "adapt_spsa_A": float(spsa.A),
+        "adapt_spsa_avg_last": int(spsa.avg_last),
+        "adapt_spsa_eval_repeats": int(spsa.eval_repeats),
+        "adapt_spsa_eval_agg": str(spsa.eval_agg),
+        "adapt_spsa_callback_every": int(spsa.callback_every),
+        "adapt_spsa_progress_every_s": float(spsa.progress_every_s),
+        "adapt_spsa_parallel_evaluations": int(spsa.parallel_evaluations),
+        "adapt_analytic_noise_std": 0.0,
+        "adapt_analytic_noise_seed": None,
+        "allow_repeats": True,
+        "finite_angle_fallback": False,
+        "finite_angle": float(run.finite_angle),
+        "finite_angle_min_improvement": float(run.finite_angle_min_improvement),
+        "adapt_drop_floor": -1.0,
+        "adapt_drop_patience": 0,
+        "adapt_drop_min_depth": 0,
+        "adapt_grad_floor": -1.0,
+        "adapt_noise_floor_stop_policy": "off",
+        "adapt_parallel_gradient_workers": int(run.gradient_workers),
+        "adapt_state_backend": "compiled",
+        "adapt_reopt_policy": "full",
+        "adapt_window_size": int(geometry_window_size),
+        "adapt_window_topk": 0,
+        "phase3_geometry_window_size": int(geometry_window_size),
+        "adapt_full_refit_every": 1,
+        "adapt_final_full_refit": True,
+        "adapt_final_refit_maxiter": int(run.optimizer_maxiter),
+        "adapt_insertion_mode": "always",
+        "adapt_continuation_mode": "phase3_v1",
+        "static_route_id": ROUTE_ID_A,
+        "static_meta_feature_profile": STATIC_META_FEATURE_PROFILE_PAPER_I_PRODUCTION_V1,
+        "static_lane_route": STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
+        "route_a_funnel_config": funnel_config,
+        "physical_lane_shortlist_aggressiveness": int(
+            run.physical_lane_shortlist_aggressiveness
+        ),
+        "phase1_shortlist_size": int(run.phase1_shortlist_size),
+        "phase2_shortlist_size": int(run.phase2_shortlist_size),
+        "phase2_shortlist_fraction": float(run.phase2_shortlist_fraction),
+        "phase3_shortlist_size": int(run.child_phase3_shortlist_size),
+        "phase1_lambda_compile": float(0.05 if cost_enabled else 0.0),
+        "phase1_lambda_measure": float(0.02 if cost_enabled else 0.0),
+        "phase1_lambda_leak": 0.0,
+        "phase1_lambda_2q": float(lambdas["2q"]),
+        "phase1_lambda_d": float(lambdas["d"]),
+        "phase1_lambda_1q": float(lambdas["1q"]),
+        "phase1_lambda_theta": float(lambdas["theta"]),
+        "phase1_lambda_shot": float(lambdas["shot"]),
+        "phase1_score_mode": PHASE1_SCORE_MODE_TRUST_REGION_V1,
+        "phase0_pilot_enabled": bool(
+            str(phase0_policy) != ROUTE_A_PHASE0_DISABLED
+        ),
+        "phase0_pilot_max_records": 0,
+        "phase0_pilot_max_operators": int(run.phase0_shortlist_size),
+        "phase0_algebraic_lane_mode": "off",
+        "phase1_probe_max_positions": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase1_trough_margin_ratio": 1.0,
+        "phase1_prune_enabled": bool(pruning_enabled),
+        "phase1_prune_policy": PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
+        "phase1_prune_mode": "both",
+        "phase1_prune_schur_nomination_route": PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
+        "phase1_prune_metric_schur_mu": 0.01,
+        "phase1_prune_metric_schur_solve_mode": (
+            PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1
+        ),
+        "phase1_prune_metric_schur_cost_weighting": (
+            PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1
+        ),
+        "phase1_prune_amplitude_witness_required": False,
+        "phase1_maturity_cap_min": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase1_maturity_cap_max": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase2_maturity_cap_min": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase2_maturity_cap_max": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase3_maturity_cap_min": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase3_maturity_cap_max": int(
+            999999 if canonical_profile else geometry_window_size
+        ),
+        "phase_maturity_shot_min": 1,
+        "phase_maturity_shot_max": 1,
+        "phase1_maturity_shot_cap": 1,
+        "phase2_maturity_shot_cap": 1,
+        "phase3_maturity_shot_cap": 1,
+        "phase_live_hysteresis_enabled": False,
+        "phase2_novelty_mode": PHASE2_NOVELTY_COLLECTIVE_SPAN_V1,
+        "phase2_selector_gain_mode": PHASE2_SELECTOR_GAIN_TRUST_REGION_V1,
+        "phase2_lambda_2q": float(lambdas["2q"]),
+        "phase2_lambda_d": float(lambdas["d"]),
+        "phase2_lambda_1q": float(lambdas["1q"]),
+        "phase2_lambda_theta": float(lambdas["theta"]),
+        "phase2_lambda_shot": float(lambdas["shot"]),
+        "phase2_w_depth": float(0.2 if cost_enabled else 0.0),
+        "phase2_w_group": float(0.15 if cost_enabled else 0.0),
+        "phase2_w_shot": float(0.15 if cost_enabled else 0.0),
+        "phase2_w_optdim": float(0.1 if cost_enabled else 0.0),
+        "phase2_w_reuse": float(0.1 if cost_enabled else 0.0),
+        "phase2_w_lifetime": float(0.05 if cost_enabled else 0.0),
+        "phase2_motif_bonus_weight": 0.0,
+        "phase2_duplicate_penalty_weight": 0.0,
+        "phase2_enable_batching": bool(effective_batch_size_cap > 1),
+        "phase2_batch_selection_mode": str(batch_selection_mode),
+        "phase2_batch_target_size": int(effective_batch_size_cap),
+        "phase2_batch_size_cap": int(effective_batch_size_cap),
+        "phase3_batch_selection_mode": str(batch_selection_mode),
+        "phase3_batch_prefilter_mode": "off",
+        "phase3_batch_order_selection_mode": "finite_step_v1",
+        "phase3_motif_source_json": None,
+        "phase3_symmetry_mitigation_mode": "off",
+        "phase3_enable_rescue": False,
+        "phase3_lifetime_cost_mode": "off",
+        "phase3_hardware_cost_normalization_mode": "family_robust_v1",
+        "phase3_source_lock_preferred_sequence": None,
+        "phase3_runtime_split_mode": (
+            "shortlist_pauli_children_v1" if child_pool_enabled else "off"
+        ),
+        "phase3_runtime_split_selection_mode": (
+            "global_child_only_v1"
+            if child_pool_enabled
+            else "proxy_child_set_preselection"
+        ),
+        "phase3_runtime_split_child_set_symmetry_policy": str(
+            child_symmetry_policy
+        ),
+        "phase3_runtime_split_subset_sizes": tuple(subset_sizes),
+        "adapt_child_pool_expansion_mode": "off",
+        "shared_pauli_pool_mode": SHARED_PAULI_POOL_MODE_OFF,
+        "shared_pauli_pool_symmetry_policy": str(child_symmetry_policy),
+        "shared_pauli_pool_max_subset_size": int(max(subset_sizes)),
+        "shared_pauli_pool_subset_sizes": tuple(subset_sizes),
+        "hardware_resolution_mode": "ideal",
+        "gradient_hw_floor": 0.0,
+        "gradient_drift_floor": 0.0,
+        "phase3_selector_policy": "algebraic_nested_v1",
+        "phase3_selector_geometry_mode": "reduced",
+        "phase3_novelty_ablation_mode": "off",
+        "phase3_window_relaxation_mode": "reduced",
+        "phase3_plateau_acquisition_mode": "off",
+        "phase3_shadow_legacy_geometry_mode": "off",
+        "phase3_parent_collapse_debug_max_depth": 0,
+        "phase3_backend_cost_mode": "proxy",
+        "phase3_backend_name": None,
+        "phase3_oracle_gradient_config": None,
+        "final_noise_audit_config": None,
+        "phase3_oracle_inner_objective_mode": "exact",
+        "phase3_selector_debug_topk": 0,
+        "phase3_selector_debug_max_depth": 0,
+        "adapt_beam_live_branches": int(run.beam_width) if beam_enabled else 1,
+        "adapt_beam_children_per_parent": (
+            int(run.beam_children_per_parent) if beam_enabled else None
+        ),
+        "adapt_beam_terminated_keep": 0,
+        "adapt_beam_terminal_archive_mode": "disabled",
+        "adapt_beam_lambda": 0.0,
+        "adapt_beam_parent_workers": int(run.beam_parent_workers),
+    }
+    manifest = {
+        "schema": PAPER_I_ROUTE_A_INVOCATION_SCHEMA,
+        "profile": str(run.profile),
+        "route_id": ROUTE_ID_A,
+        "problem_family": str(problem_key),
+        "pool_key": "full_meta",
+        "optimizer": {
+            "inner_optimizer": str(optimizer.inner_optimizer_key),
+            "maxiter": int(run.optimizer_maxiter),
+            **adapt_spsa_params_payload(optimizer),
+        },
+        "max_adapt_iterations": int(run.max_adapt_iterations),
+        "resume": {
+            "enabled": bool(resume_source is not None),
+            "source_json": (
+                None if resume_source is None else str(resume_source.artifact_json)
+            ),
+            "source_sha256": (
+                None if resume_source is None else str(resume_source.artifact_sha256)
+            ),
+            "source_controller_round": (
+                0
+                if resume_import_summary is None
+                else int(resume_import_summary.get("source_controller_round", 0))
+            ),
+            "source_ansatz_depth": (
+                0
+                if resume_import_summary is None
+                else int(resume_import_summary.get("source_ansatz_depth", 0))
+            ),
+            "requested_additional_controller_rounds": int(
+                run.max_adapt_iterations
+            ),
+        },
+        "shortlists": {
+            "phase0_size": int(run.phase0_shortlist_size),
+            "phase0_enabled": bool(
+                str(phase0_policy) != ROUTE_A_PHASE0_DISABLED
+            ),
+            "phase1_size": int(run.phase1_shortlist_size),
+            "phase2_size": int(run.phase2_shortlist_size),
+            "phase2_fraction": float(run.phase2_shortlist_fraction),
+            "child_phase1_size": int(run.child_phase1_shortlist_size),
+            "child_phase2_size": int(run.child_phase2_shortlist_size),
+            "child_phase3_size": int(run.child_phase3_shortlist_size),
+            "child_phase3_enabled": bool(
+                str(funnel_mode) not in ROUTE_A_FUNNEL_CHILD_12_MODES
+            ),
+            "cap_unit_phases_0_2": "macro_operator_identity",
+            "cap_unit_phase3": "pauli_child_identity",
+            "physical_lane_aggressiveness": int(
+                run.physical_lane_shortlist_aggressiveness
+            ),
+        },
+        "mechanisms": {
+            "cost_enabled": bool(cost_enabled),
+            "cost_weights": dict(lambdas),
+            "selection_burden_weights": {
+                "phase1_lambda_compile": float(
+                    kwargs["phase1_lambda_compile"]
+                ),
+                "phase1_lambda_measure": float(
+                    kwargs["phase1_lambda_measure"]
+                ),
+                "phase1_lambda_leak": float(kwargs["phase1_lambda_leak"]),
+                "phase2_w_depth": float(kwargs["phase2_w_depth"]),
+                "phase2_w_group": float(kwargs["phase2_w_group"]),
+                "phase2_w_shot": float(kwargs["phase2_w_shot"]),
+                "phase2_w_optdim": float(kwargs["phase2_w_optdim"]),
+                "phase2_w_reuse": float(kwargs["phase2_w_reuse"]),
+                "phase2_w_lifetime": float(kwargs["phase2_w_lifetime"]),
+            },
+            "selection_cost_steering_disabled": bool(not cost_enabled),
+            "batching_enabled": bool(batching_enabled),
+            "batch_selection_mode": str(batch_selection_mode),
+            "batch_size_cap": int(effective_batch_size_cap),
+            "batch_search_pool_size": int(
+                schur_selector.batch_search_pool_size
+            ),
+            "batch_additivity_policy": str(
+                schur_selector.additivity_policy
+            ),
+            "batch_additivity_lambda": float(schur_selector.lambda_add),
+            "joint_batch_geometry_mode": str(schur_selector.geometry_mode),
+            "joint_batch_context_mode": str(
+                schur_selector.joint_batch_context_mode
+            ),
+            "trust_region_initial_radius": float(
+                schur_selector.max_fubini_study_step
+            ),
+            "trust_region_update": (
+                schur_selector.trust_region_update.as_dict()
+            ),
+            "joint_step_warm_start": joint_step_warm_start.as_dict(),
+            **(
+                {
+                    "phase2_selector_mode": str(
+                        funnel_config.phase2_selector_mode
+                    )
+                }
+                if str(funnel_mode)
+                == ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2
+                else {}
+            ),
+            "final_selection_authority": (
+                "joint_ansatz_plus_batch_schur"
+                if funnel_mode in ROUTE_A_FUNNEL_CHILD_12_MODES
+                else "legacy_phase3_selector"
+            ),
+            "beam_enabled": bool(beam_enabled),
+            "pruning_enabled": bool(pruning_enabled),
+            "pauli_child_pool_enabled": bool(child_pool_enabled),
+            "phase3_candidate_population": (
+                "global_child_only_after_phase2_v1"
+                if child_pool_enabled
+                else "macro_only_ablation"
+            ),
+            "pauli_word_subset_sizes": [int(value) for value in subset_sizes],
+            "child_symmetry_policy": str(child_symmetry_policy),
+            "child_identity_normalization": (
+                PAULI_CHILD_IDENTITY_NORMALIZATION_PROJECTIVE_V1
+            ),
+            "child_symmetry_guard_semantics": (
+                ROUTE_A_CHILD_SYMMETRY_GUARD_FIXED_SECTOR_V1
+                if child_symmetry_policy == "hard_guard"
+                else "disabled"
+            ),
+            "child_padding_policy": str(child_padding_policy),
+            "child_padding_guard_semantics": (
+                "pre_score_exact_projection_then_global_projected_identity_dedup_v1"
+                if child_padding_policy
+                in ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_POLICIES
+                else (
+                    "post_global_dedup_pre_child_phase1_legal_codeword_filter_v1"
+                    if child_padding_policy
+                    in ROUTE_A_CHILD_PADDING_HARD_FILTER_POLICIES
+                    else "unchecked_diagnostic_compatibility_v1"
+                )
+            ),
+            "geometry_window_size": int(geometry_window_size),
+            "route_a_funnel": funnel_config.as_dict(),
+        },
+        "noiseless_core": True,
+        "qiskit_costing": "post_run_only",
+        "legacy_route_controls_exposed": False,
+    }
+    return PaperIRouteAInvocation(run_kwargs=kwargs, manifest=manifest)
+
+
+def _load_route_a_core_runner() -> Callable[..., tuple[dict[str, Any], Any]]:
+    from pipelines.static_adapt.adapt_pipeline import _run_hardcoded_adapt_vqe
+
+    return _run_hardcoded_adapt_vqe
+
+
+def run_paper_i_route_a(
+    problem_context: ResolvedProblemContext,
+    *,
+    run_config: PaperISnakeRunConfig | None = None,
+    configuration: PaperIConfiguration = PAPER_I_CONFIGURATION,
+) -> tuple[dict[str, Any], Any]:
+    """Run canonical noiseless Paper-I SNAKE Route A."""
+
+    invocation = build_paper_i_route_a_invocation(
+        problem_context,
+        run_config=run_config,
+        configuration=configuration,
+    )
+    payload, state = _load_route_a_core_runner()(**dict(invocation.run_kwargs))
+    payload_out = dict(payload)
+    payload_out["paper_i_runner"] = dict(invocation.manifest)
+    return payload_out, state
+
+
+__all__ = [
+    "PAPER_I_PROFILE_CANONICAL",
+    "PAPER_I_PROFILE_CHOICES",
+    "PAPER_I_PROFILE_HH_DISPLAYED_RESULTS",
+    "PAPER_I_ROUTE_A_INVOCATION_SCHEMA",
+    "PaperIRouteAInvocation",
+    "PaperISnakeRunConfig",
+    "build_paper_i_optimizer_config",
+    "build_paper_i_route_a_invocation",
+    "run_paper_i_route_a",
+]

@@ -1,0 +1,31 @@
+{
+  "cell_id": "trial_000010__strong_strong_u8",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-11T17:45:50.886149+00:00",
+  "manifest_sha256": "1dc9d11aa156b7d20846ef92170fc09687c1dde3e3335c702bafa112b6f6c4d2",
+  "max_depth": 15,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000010/strong-strong-u8",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 10,
+    "batch_size_cap": 2,
+    "child_phase1_cap": 32,
+    "child_phase2_cap": "all",
+    "lambda_add": 0.1,
+    "macro_phase1_cap": 24,
+    "macro_phase2_cap": "all"
+  },
+  "policy_sha256": "4f0745066f2644587e03919a1862046cda571f08148bc60e306c316e688a3b99",
+  "regime": "strong-strong-u8",
+  "run_class": "diagnostic_pareto_search",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "trial_number": 10
+}

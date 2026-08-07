@@ -1,0 +1,165 @@
+def test_all_infeasible_novelty_fallback_telemetry_records_zero_fire() -> None:
+    receipt = (
+        adapt_pipeline._all_energy_models_infeasible_novelty_fallback_telemetry(
+            [{"depth": 1, "selected_op": "safe"}],
+            phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            hardware_cost_normalization_mode=(
+                "family_robust_symmetric_arctan_v1"
+            ),
+        )
+    )
+    assert receipt == {
+        "schema": (
+            "sr_all_energy_models_infeasible_novelty_fallback_telemetry_v1"
+        ),
+        "policy": "collective_span_novelty_over_symmetric_cost_v1",
+        "enabled": True,
+        "fired": False,
+        "activation_count": 0,
+        "controller_rounds": [],
+        "selected_operators": [],
+        "reason_counts": {},
+        "query_charge_total": 0,
+        "ordinary_phase2_multiplier_active": False,
+        "ordinary_phase3_multiplier_active": False,
+        "phase2_curvature_failure_can_trigger": False,
+        "paper_reporting_scope": "telemetry_gate_only_v1",
+    }
+
+
+def test_all_infeasible_novelty_fallback_telemetry_counts_ordered_rounds() -> None:
+    receipt = (
+        adapt_pipeline._all_energy_models_infeasible_novelty_fallback_telemetry(
+            [
+                {
+                    "depth": 2,
+                    "depth_cumulative": 12,
+                    "selected_op": "a",
+                    "all_energy_models_infeasible_novelty_fallback_fired": True,
+                    "route_a_geometry_expansion_reason": (
+                        "all_whitened_energy_models_infeasible"
+                    ),
+                },
+                {
+                    "depth": 3,
+                    "depth_cumulative": 13,
+                    "selected_op": "b",
+                    "selected_feature_rows": [
+                        {
+                            "route_a_geometry_expansion_mode": (
+                                "collective_span_novelty_over_cost_v1"
+                            ),
+                            "route_a_geometry_expansion_reason": (
+                                "all_whitened_energy_models_infeasible"
+                            ),
+                            "route_a_geometry_expansion_novelty_query_charge": 0,
+                        }
+                    ],
+                },
+            ],
+            phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            hardware_cost_normalization_mode=(
+                "family_robust_symmetric_arctan_v1"
+            ),
+        )
+    )
+    assert receipt["enabled"] is True
+    assert receipt["fired"] is True
+    assert receipt["activation_count"] == 2
+    assert receipt["controller_rounds"] == [12, 13]
+    assert receipt["selected_operators"] == ["a", "b"]
+    assert receipt["reason_counts"] == {
+        "all_whitened_energy_models_infeasible": 2
+    }
+    assert receipt["query_charge_total"] == 0
+
+
+def test_retained_only_novelty_fallback_does_not_count_as_admission() -> None:
+    receipt = (
+        adapt_pipeline._all_energy_models_infeasible_novelty_fallback_telemetry(
+            [
+                {
+                    "depth": 1,
+                    "selected_op": "ordinary_winner",
+                    "retained_shortlist_records": [
+                        {
+                            "route_a_geometry_expansion_mode": (
+                                "collective_span_novelty_over_cost_v1"
+                            ),
+                            "route_a_geometry_expansion_reason": (
+                                "all_whitened_energy_models_infeasible"
+                            ),
+                        }
+                    ],
+                }
+            ],
+            phase2_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            phase3_gram_novelty_policy=GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+            hardware_cost_normalization_mode=(
+                "family_robust_symmetric_arctan_v1"
+            ),
+        )
+    )
+    assert receipt["fired"] is False
+    assert receipt["activation_count"] == 0
+
+
+def test_selected_admission_novelty_fallback_receipt_uses_record_metadata() -> None:
+    receipt = adapt_pipeline._selected_admission_novelty_fallback_receipt(
+        [
+            {
+                "candidate_label": "winner",
+                "route_a_geometry_expansion_mode": (
+                    "collective_span_novelty_over_cost_v1"
+                ),
+                "route_a_geometry_expansion_reason": (
+                    "all_whitened_energy_models_infeasible"
+                ),
+                "route_a_geometry_expansion_novelty_query_charge": 0,
+            }
+        ],
+        enabled=True,
+    )
+    assert receipt == {
+        "enabled": True,
+        "fired": True,
+        "mode": "collective_span_novelty_over_cost_v1",
+        "reason": "all_whitened_energy_models_infeasible",
+        "query_charge": 0,
+    }
+
+
+def test_selected_admission_novelty_fallback_fails_closed_when_disabled() -> None:
+    with pytest.raises(RuntimeError, match="normalized policy was disabled"):
+        adapt_pipeline._selected_admission_novelty_fallback_receipt(
+            [
+                {
+                    "route_a_geometry_expansion_mode": (
+                        "collective_span_novelty_over_cost_v1"
+                    ),
+                    "route_a_geometry_expansion_reason": (
+                        "all_whitened_energy_models_infeasible"
+                    ),
+                }
+            ],
+            enabled=False,
+        )
+
+
+def test_all_infeasible_novelty_fallback_cannot_fire_when_disabled() -> None:
+    with pytest.raises(RuntimeError, match="fired while its normalized policy"):
+        adapt_pipeline._all_energy_models_infeasible_novelty_fallback_telemetry(
+            [
+                {
+                    "depth": 1,
+                    "route_a_geometry_expansion_mode": (
+                        "collective_span_novelty_over_cost_v1"
+                    ),
+                }
+            ],
+            phase2_gram_novelty_policy="ordinary_multiplier_v1",
+            phase3_gram_novelty_policy="ordinary_multiplier_v1",
+            hardware_cost_normalization_mode="family_robust_v1",
+        )

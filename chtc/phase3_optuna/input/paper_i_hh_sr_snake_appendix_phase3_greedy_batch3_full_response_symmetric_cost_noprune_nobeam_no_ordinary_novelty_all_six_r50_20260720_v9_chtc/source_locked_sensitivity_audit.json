@@ -1,0 +1,52 @@
+{
+  "allowed_execution_setting_diff": {
+    "phase2_batch_selection_mode": {
+      "child": "greedy_reduced_plane",
+      "parent": "combinatorial_reduced_plane"
+    },
+    "phase3_batch_selection_mode": {
+      "child": "greedy_reduced_plane",
+      "parent": "combinatorial_reduced_plane"
+    }
+  },
+  "child_bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v9_chtc",
+  "child_route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "child_source_archive_sha256": "5b5fd8d1f478778ecbee612ae3b0cb61da9267851ad90c4c5add6fe77e8b4789",
+  "conceptual_change": "phase3_fixed_source_combinatorial_to_marginal_greedy",
+  "created_utc": "2026-07-20T17:24:42.758758+00:00",
+  "derivation": {
+    "batch_target_and_cap_unchanged_three": true,
+    "changed_source_files": {
+      "pipelines/static_adapt/sr_snake_route_profile.py": "70b08e297de94c0c9eba511a4717dbad83f4977a574982bbe81b3fac671d9645",
+      "test/test_static_adapt_sr_phase3_batch_appendix_profile.py": "8518af52ef6cadc55ffb9c6c53e5dfe828df319c5b4cb73a3865d55d49b04f1c"
+    },
+    "child_route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+    "child_source_archive_sha256": "5b5fd8d1f478778ecbee612ae3b0cb61da9267851ad90c4c5add6fe77e8b4789",
+    "child_value": "greedy_reduced_plane",
+    "classification": "scientific_one_mechanism_phase3_batch_selector_ablation",
+    "fixed_source_marginal_greedy": true,
+    "only_scientific_setting_changed": "phase3_batch_selection_mode",
+    "overlay_path": "phase3_greedy_batch_mode_overlay.patch",
+    "overlay_sha256": "d5feaaafcb2a597730db5e574a4fbf8557f4548190f2cc9c77b2d161e3ad5cb0",
+    "parent_route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "parent_source_archive_sha256": "f11607321e426d73627910a1da76a22a96f4d4bd82f66708b5b202b2e5a61453",
+    "parent_value": "combinatorial_reduced_plane",
+    "phase2_batching_unchanged_off": true,
+    "schema": "paper_i_hh_sr_phase3_greedy_batch_derivation_v1",
+    "single_joint_refit_after_selection": true
+  },
+  "parent_bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v6_chtc",
+  "parent_route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "parent_source_archive_sha256": "f11607321e426d73627910a1da76a22a96f4d4bd82f66708b5b202b2e5a61453",
+  "schema": "paper_i_hh_sr_source_locked_sensitivity_audit_v1",
+  "status": "pass_exact_one_mechanism_change",
+  "unchanged": {
+    "accepted_refit": "full_supported_fs_whitened",
+    "cutoffs": "n_ph3_weak_holstein_n_ph7_strong_holstein_same_cutoff",
+    "phase2_batching": "off",
+    "phase3_batch_cap": 3,
+    "phase3_batch_target": 3,
+    "phase3_response_scope": "full_active_plus_batch_v1",
+    "round_horizon": 50
+  }
+}

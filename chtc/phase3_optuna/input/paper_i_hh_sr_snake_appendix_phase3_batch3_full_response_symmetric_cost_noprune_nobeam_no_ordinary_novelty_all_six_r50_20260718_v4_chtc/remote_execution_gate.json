@@ -1,0 +1,32 @@
+{
+  "basis": "same_container_and_dependencies_narrow_python_route_profile_change_v1",
+  "blockers": [],
+  "confirmation": {
+    "checked_by": "codex_main_agent_authenticated_ssh",
+    "checked_utc": "2026-07-18T17:14:55Z",
+    "evidence": {
+      "container_runtime": "apptainer",
+      "host": "ap2001.chtc.wisc.edu",
+      "image_sha256_command": "sha256sum chtc/phase3_optuna/image.sif",
+      "python_executable": "python3",
+      "qiskit_backend_class": "qiskit_ibm_runtime.fake_provider.FakeMarrakesh",
+      "remote_root": "Holstein_phase3_optuna_chtc"
+    }
+  },
+  "passed": true,
+  "predecessor_gate_sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+  "remote_execution_preflight": {
+    "fake_backend_instantiation_passed": true,
+    "fake_backend_qubits": 156,
+    "fake_backend_resolved": "fake_marrakesh",
+    "image_path": "chtc/phase3_optuna/image.sif",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "qiskit_import_passed": true,
+    "qiskit_version": "2.3.1"
+  },
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_hysteresis_successor_inherited_remote_gate_v1",
+  "source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+  "status": "pass",
+  "submission_performed": false
+}

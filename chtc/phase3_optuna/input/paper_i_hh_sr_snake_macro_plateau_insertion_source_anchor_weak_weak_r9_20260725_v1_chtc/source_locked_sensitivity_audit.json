@@ -1,0 +1,45 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": false,
+    "anchor_result_json": null,
+    "non_swept_settings_diff": [],
+    "value": "append_only"
+  },
+  "child_bundle": "paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v1_chtc",
+  "planned_rows": [
+    {
+      "changed_fields_vs_source": [],
+      "non_swept_settings_diff": [],
+      "settings_hash": "3a7313fde8e737fa3bb8c6784d8474734f8e2710558850d2e741352a6f51fffd",
+      "value": "append_only"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SNAKE",
+    "page": 2,
+    "regime_or_case": "weak_weak",
+    "route_or_profile_id": "sr_snake_macro_only_physical_lanes_v1",
+    "runner_mode": "direct_source_profile",
+    "settings_hash": "3a7313fde8e737fa3bb8c6784d8474734f8e2710558850d2e741352a6f51fffd",
+    "source_json": "raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/macro_8890778_post_run_recovery_20260719/8890778.0__weak_weak_reporting_recovered_v1.tar.gz",
+    "source_sha256": "14a2fa6d55c137bd5b7067cc04851d294ed5f02d53abfc7d825a7cd0f9ce5b15",
+    "source_variable_value": "append_only",
+    "table_or_figure": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723.pdf"
+  },
+  "status": "pending_anchor",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      "append_only"
+    ],
+    "run_class": "diagnostic",
+    "runner_mode": "direct_source_profile",
+    "settings_changed": [],
+    "unresolved_source_fields": [],
+    "variable": "adapt_insertion_mode",
+    "wrapper_kind": null,
+    "wrapper_used": false
+  }
+}

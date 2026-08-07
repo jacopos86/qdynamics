@@ -1,0 +1,134 @@
+{
+  "bundle_id": "paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc",
+  "expected_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "generated_utc": "2026-07-19T01:07:32.019750+00:00",
+  "job_count": 12,
+  "operational_blockers": [],
+  "records": [
+    {
+      "job_id": "geo_macro__weak_weak__r50",
+      "job_manifest_sha256": "755ccb9bc1176ecc9dc8e106be548df54d47cccbec4535a0244cd99c36267825",
+      "normalized_manifest_sha256": "755ccb9bc1176ecc9dc8e106be548df54d47cccbec4535a0244cd99c36267825",
+      "regime": "weak-weak",
+      "route_contract_sha256": "755ccb9bc1176ecc9dc8e106be548df54d47cccbec4535a0244cd99c36267825",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_macro__intermediate_weak__r50",
+      "job_manifest_sha256": "9d9857cfc572bf58a48980f91a5d91cd4077b0bcdbef7ad24d63ca0bacf7424f",
+      "normalized_manifest_sha256": "9d9857cfc572bf58a48980f91a5d91cd4077b0bcdbef7ad24d63ca0bacf7424f",
+      "regime": "intermediate-weak",
+      "route_contract_sha256": "9d9857cfc572bf58a48980f91a5d91cd4077b0bcdbef7ad24d63ca0bacf7424f",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_macro__strong_weak__r50",
+      "job_manifest_sha256": "700eabbcc8a7ab25914c1883952f82c4d598b93f429b6bccfbd8cd4ee5a904a3",
+      "normalized_manifest_sha256": "700eabbcc8a7ab25914c1883952f82c4d598b93f429b6bccfbd8cd4ee5a904a3",
+      "regime": "strong-weak",
+      "route_contract_sha256": "700eabbcc8a7ab25914c1883952f82c4d598b93f429b6bccfbd8cd4ee5a904a3",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_macro__weak_strong__r50",
+      "job_manifest_sha256": "3346cbde9c648869f21a1b3ac180f1e3605c33087be50cb0eed052a1e3eaa0a9",
+      "normalized_manifest_sha256": "3346cbde9c648869f21a1b3ac180f1e3605c33087be50cb0eed052a1e3eaa0a9",
+      "regime": "weak-strong",
+      "route_contract_sha256": "3346cbde9c648869f21a1b3ac180f1e3605c33087be50cb0eed052a1e3eaa0a9",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_macro__intermediate_strong__r50",
+      "job_manifest_sha256": "c64e85ebfc0107380b506700b38e810f9287d2ca447f94f3825315f54125a09a",
+      "normalized_manifest_sha256": "c64e85ebfc0107380b506700b38e810f9287d2ca447f94f3825315f54125a09a",
+      "regime": "intermediate-strong",
+      "route_contract_sha256": "c64e85ebfc0107380b506700b38e810f9287d2ca447f94f3825315f54125a09a",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_macro__strong_strong__r50",
+      "job_manifest_sha256": "79a63b867ab8f610a052a915c460729a70a4a8b14d3a78666a5f6ef761d288c7",
+      "normalized_manifest_sha256": "79a63b867ab8f610a052a915c460729a70a4a8b14d3a78666a5f6ef761d288c7",
+      "regime": "strong-strong",
+      "route_contract_sha256": "79a63b867ab8f610a052a915c460729a70a4a8b14d3a78666a5f6ef761d288c7",
+      "variant": "macro"
+    },
+    {
+      "job_id": "geo_projected_singleton__weak_weak__r50",
+      "job_manifest_sha256": "a1365085ae042b9779ca500c1327efbb22ee23a6ed2499719b5f62bddfb57802",
+      "normalized_manifest_sha256": "a1365085ae042b9779ca500c1327efbb22ee23a6ed2499719b5f62bddfb57802",
+      "regime": "weak-weak",
+      "route_contract_sha256": "a1365085ae042b9779ca500c1327efbb22ee23a6ed2499719b5f62bddfb57802",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "geo_projected_singleton__intermediate_weak__r50",
+      "job_manifest_sha256": "55056629513b427fd15a2f55e9bad176a5c6284c2652d73c2072b063fbae29e3",
+      "normalized_manifest_sha256": "55056629513b427fd15a2f55e9bad176a5c6284c2652d73c2072b063fbae29e3",
+      "regime": "intermediate-weak",
+      "route_contract_sha256": "55056629513b427fd15a2f55e9bad176a5c6284c2652d73c2072b063fbae29e3",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "geo_projected_singleton__strong_weak__r50",
+      "job_manifest_sha256": "bae9f785da7975b882344cbe6b5f6a6e000a0741e1451bf991985f8a078b2112",
+      "normalized_manifest_sha256": "bae9f785da7975b882344cbe6b5f6a6e000a0741e1451bf991985f8a078b2112",
+      "regime": "strong-weak",
+      "route_contract_sha256": "bae9f785da7975b882344cbe6b5f6a6e000a0741e1451bf991985f8a078b2112",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "geo_projected_singleton__weak_strong__r50",
+      "job_manifest_sha256": "0cebaad97491038e5b2a4fcf1a5384c99e6c3c89d7dc32bdeaf1b72969bcae4a",
+      "normalized_manifest_sha256": "0cebaad97491038e5b2a4fcf1a5384c99e6c3c89d7dc32bdeaf1b72969bcae4a",
+      "regime": "weak-strong",
+      "route_contract_sha256": "0cebaad97491038e5b2a4fcf1a5384c99e6c3c89d7dc32bdeaf1b72969bcae4a",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "geo_projected_singleton__intermediate_strong__r50",
+      "job_manifest_sha256": "d3908754dda1930c534492c9ea5dd8b22aa4ac33c880a89149ef1e9cbe52d3da",
+      "normalized_manifest_sha256": "d3908754dda1930c534492c9ea5dd8b22aa4ac33c880a89149ef1e9cbe52d3da",
+      "regime": "intermediate-strong",
+      "route_contract_sha256": "d3908754dda1930c534492c9ea5dd8b22aa4ac33c880a89149ef1e9cbe52d3da",
+      "variant": "projected_singleton"
+    },
+    {
+      "job_id": "geo_projected_singleton__strong_strong__r50",
+      "job_manifest_sha256": "c0e8020942b198aeae2652beaae63d445c44baf7a98e56126102efa24e6f2b70",
+      "normalized_manifest_sha256": "c0e8020942b198aeae2652beaae63d445c44baf7a98e56126102efa24e6f2b70",
+      "regime": "strong-strong",
+      "route_contract_sha256": "c0e8020942b198aeae2652beaae63d445c44baf7a98e56126102efa24e6f2b70",
+      "variant": "projected_singleton"
+    }
+  ],
+  "regime_count_per_variant": 6,
+  "remote_image_gate": {
+    "checks": {
+      "fake_backend_identity": true,
+      "fake_backend_instantiation": true,
+      "fake_backend_qubits": true,
+      "image_path": true,
+      "image_sha256": true,
+      "qiskit_import": true,
+      "qiskit_version": true,
+      "schema": true,
+      "status": true
+    },
+    "gate_path": "remote_execution_gate.json",
+    "gate_sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+    "passed": true,
+    "reason": "pass",
+    "schema_expected": "paper_i_hh_sr_symcost_noprune_remote_execution_gate_v1"
+  },
+  "schema": "paper_i_hh_geo_completion_bundle_v1",
+  "scientific_blockers": [],
+  "source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_geo_comparators_macro_projected_singleton_all_six_r50_20260718_v4_chtc/source_locked.tar.gz",
+    "sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd"
+  },
+  "status": "prepared_not_submitted",
+  "submission_enabled": true,
+  "submission_requirements": "TARGET.HasSIF",
+  "variant_count": 2
+}

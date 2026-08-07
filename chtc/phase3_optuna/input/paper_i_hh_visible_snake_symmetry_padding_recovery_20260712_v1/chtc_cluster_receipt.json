@@ -1,0 +1,105 @@
+{
+  "schema": "paper_i_hh_visible_snake_recovery_cluster_receipt_v1",
+  "bundle_id": "paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1",
+  "completion_state": "pending_chtc",
+  "cluster_id": 8775598,
+  "submitted_utc": "2026-07-12T17:20:48Z",
+  "last_observed_utc": "2026-07-12T17:29:07Z",
+  "active_monitoring": false,
+  "monitoring_note": "Active polling was stopped at the user's request. The submitted jobs were not cancelled, held, edited, or otherwise modified.",
+  "source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/src_sanitized.tar.gz",
+    "sha256": "df54ea579624f12e4efc640072c99d266da156159fe7b92d118c47fbf855b61f"
+  },
+  "execution_image": {
+    "remote_path": "chtc/phase3_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "submit": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/submit.sub",
+    "sha256": "8b5367cdff8a5ac74380a913ba0f6d9198156da10e373d3492355a92dd8fd7a2",
+    "dry_run_remote_path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/condor_dry_run.log",
+    "dry_run_sha256": "af663e39fc019082b278953f0d45097f5729e10b0bc737880d404855d757003a",
+    "dry_run_job_count": 6
+  },
+  "queue_snapshot": {
+    "remote_path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/condor_queue_snapshot_20260712T172907Z.json",
+    "sha256": "c6c91f123f8b5d263465ee90dd8a3619ee720bc1ab10eafff653b404c87ec509",
+    "fetched_locally": false
+  },
+  "rows": [
+    {
+      "regime": "weak-weak",
+      "regime_slug": "weak_weak",
+      "cluster_id": 8775598,
+      "proc_id": 0,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    },
+    {
+      "regime": "intermediate-weak",
+      "regime_slug": "intermediate_weak",
+      "cluster_id": 8775598,
+      "proc_id": 1,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    },
+    {
+      "regime": "strong-weak",
+      "regime_slug": "strong_weak",
+      "cluster_id": 8775598,
+      "proc_id": 2,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    },
+    {
+      "regime": "weak-strong",
+      "regime_slug": "weak_strong",
+      "cluster_id": 8775598,
+      "proc_id": 3,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    },
+    {
+      "regime": "intermediate-strong",
+      "regime_slug": "intermediate_strong",
+      "cluster_id": 8775598,
+      "proc_id": 4,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    },
+    {
+      "regime": "strong-strong",
+      "regime_slug": "strong_strong",
+      "cluster_id": 8775598,
+      "proc_id": 5,
+      "current_status": "idle",
+      "current_status_code": 1,
+      "terminal_status": "pending",
+      "return_code": null,
+      "fetched_artifacts": []
+    }
+  ],
+  "required_terminal_artifacts_per_row": [
+    "result_json",
+    "current_json",
+    "estimator_ledger_json",
+    "qiskit_same_horizon_json",
+    "qiskit_terminal_json"
+  ]
+}

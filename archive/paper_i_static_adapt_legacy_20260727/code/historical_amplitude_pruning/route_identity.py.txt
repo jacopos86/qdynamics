@@ -1,0 +1,19 @@
+    "phase1_prune_enabled": ("phase1_prune_enabled",),
+    "phase1_prune_policy": ("phase1_prune_policy", "prune_policy"),
+    "phase1_prune_mode": ("phase1_prune_mode", "prune_mode"),
+    "phase1_prune_amplitude_witness_required": (
+        "phase1_prune_amplitude_witness_required",
+        "amplitude_witness_required",
+    ),
+    phase1_prune_enabled: bool
+    phase1_prune_policy: Any
+    phase1_prune_mode: Any
+    phase1_prune_amplitude_witness_required: bool
+    static_lane_route: Any = "algebraic"
+        "phase1_prune_enabled": bool(config.phase1_prune_enabled),
+        "phase1_prune_policy": str(config.phase1_prune_policy),
+        "phase1_prune_mode": str(config.phase1_prune_mode),
+        "phase1_prune_amplitude_witness_required": bool(
+            config.phase1_prune_amplitude_witness_required
+        ),
+    }

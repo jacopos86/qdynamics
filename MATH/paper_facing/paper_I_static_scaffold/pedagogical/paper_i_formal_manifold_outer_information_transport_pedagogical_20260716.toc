@@ -1,0 +1,112 @@
+\contentsline {section}{\numberline {1}The global mathematical architecture}{2}{section.1}%
+\contentsline {section}{\numberline {2}Anchored split-connection prediction}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Why the prediction is split}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}The metric polar lift}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}The skew frame connection}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}What qBANG does and does not certify}{4}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Deterministic geometric closure}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Minimum-change correction and escalation}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Sensitivity of downstream quantities}{6}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Pancharatnam gauge and Procrustes anchors}{6}{section.4}%
+\contentsline {section}{\numberline {5}Projective support and exact whitening}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Horizontal tangents and the real pullback metric}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Vectors, covectors, and coordinate covariance}{7}{subsection.5.2}%
+\contentsline {section}{\numberline {6}The SR projected-logical route}{8}{section.6}%
+\contentsline {section}{\numberline {7}Exact same-ray structural growth}{8}{section.7}%
+\contentsline {section}{\numberline {8}Why endpoint metrics do not transport frames}{9}{section.8}%
+\contentsline {section}{\numberline {9}Outer secants and objective-curvature reuse}{10}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Transport laws from invariant pairings}{10}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}A target-fiber outer secant}{10}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Fusion with acquired Hessian information}{11}{subsection.9.3}%
+\contentsline {section}{\numberline {10}Rank changes and common-support logic}{11}{section.10}%
+\contentsline {section}{\numberline {11}Energy trust and geometry confidence}{12}{section.11}%
+\contentsline {section}{\numberline {12}The minimal persistent state and its recursion}{12}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Typed persistent state}{12}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}Complete outer recursion}{12}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}Transactional scientific semantics}{12}{subsection.12.3}%
+\contentsline {section}{\numberline {13}Measurement closure and the unique-primitive ledger}{13}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Acquired primitives and classical consequences}{13}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}Symbolic per-outer cost}{13}{subsection.13.2}%
+\contentsline {section}{\numberline {14}Specializations and limiting cases}{13}{section.14}%
+\contentsline {paragraph}{No structural growth.}{13}{section*.7}%
+\contentsline {paragraph}{Zero refit displacement.}{14}{section*.8}%
+\contentsline {paragraph}{Fixed supported rank.}{14}{section*.9}%
+\contentsline {paragraph}{One newly independent direction.}{14}{section*.10}%
+\contentsline {paragraph}{One newly Gram-null direction.}{14}{section*.11}%
+\contentsline {paragraph}{A complete anchor at every iteration.}{14}{section*.12}%
+\contentsline {paragraph}{Sparse anchors.}{14}{section*.13}%
+\contentsline {paragraph}{Exact connection data.}{14}{section*.14}%
+\contentsline {paragraph}{No endpoint differential.}{14}{section*.15}%
+\contentsline {paragraph}{Coordinate rescaling.}{14}{section*.16}%
+\contentsline {paragraph}{Runtime equals logical coordinates.}{14}{section*.17}%
+\contentsline {paragraph}{Rank loss after refit.}{14}{section*.18}%
+\contentsline {section}{\numberline {15}Relation to prior methods and choice of construction}{14}{section.15}%
+\contentsline {section}{\numberline {16}Concluding synthesis}{14}{section.16}%
+\contentsline {section}{\numberline {A}Type discipline, quotient identities, and invariants}{15}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}Four tangent representations}{15}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Variance and base-point typing}{16}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}Coordinate covariance}{16}{subsection.A.3}%
+\contentsline {section}{\numberline {B}Exact same-ray growth: full derivation and edge cases}{17}{appendix.B}%
+\contentsline {subsection}{\numberline {B.1}Block factorization}{17}{subsection.B.1}%
+\contentsline {subsection}{\numberline {B.2}Dependent and nearly dependent candidates}{17}{subsection.B.2}%
+\contentsline {subsection}{\numberline {B.3}Compensation and window recovery}{17}{subsection.B.3}%
+\contentsline {section}{\numberline {C}Identifiability of tangent orientation}{18}{appendix.C}%
+\contentsline {subsection}{\numberline {C.1}An ambient stabilizer construction}{18}{subsection.C.1}%
+\contentsline {subsection}{\numberline {C.2}What additional information suffices}{18}{subsection.C.2}%
+\contentsline {subsection}{\numberline {C.3}A dimensional lower bound}{18}{subsection.C.3}%
+\contentsline {section}{\numberline {D}Split-connection prediction in continuous and discrete time}{19}{appendix.D}%
+\contentsline {subsection}{\numberline {D.1}Metric strain on the positive cone}{19}{subsection.D.1}%
+\contentsline {subsection}{\numberline {D.2}The metric polar lift}{19}{subsection.D.2}%
+\contentsline {subsection}{\numberline {D.3}Skew connection and path ordering}{19}{subsection.D.3}%
+\contentsline {subsection}{\numberline {D.4}Composition, calibration, and local error}{20}{subsection.D.4}%
+\contentsline {section}{\numberline {E}Deterministic closure as an observation problem}{20}{appendix.E}%
+\contentsline {subsection}{\numberline {E.1}Whitened defect and observation operators}{20}{subsection.E.1}%
+\contentsline {subsection}{\numberline {E.2}Probe design for a structured defect}{20}{subsection.E.2}%
+\contentsline {subsection}{\numberline {E.3}Support-changing residuals}{21}{subsection.E.3}%
+\contentsline {subsection}{\numberline {E.4}Acceptance, correction, and escalation}{21}{subsection.E.4}%
+\contentsline {subsection}{\numberline {E.5}Downstream sensitivity}{21}{subsection.E.5}%
+\contentsline {section}{\numberline {F}Gauge-fixed anchoring, partial polar factors, and rank change}{21}{appendix.F}%
+\contentsline {subsection}{\numberline {F.1}Phase before frame registration}{21}{subsection.F.1}%
+\contentsline {subsection}{\numberline {F.2}Square and rectangular Procrustes}{21}{subsection.F.2}%
+\contentsline {subsection}{\numberline {F.3}Distinguishing three rank events}{22}{subsection.F.3}%
+\contentsline {section}{\numberline {G}Outer secants and curvature fusion in one target fiber}{22}{appendix.G}%
+\contentsline {subsection}{\numberline {G.1}The path-integrated displacement}{22}{subsection.G.1}%
+\contentsline {subsection}{\numberline {G.2}Direct BFGS and inverse BFGS}{22}{subsection.G.2}%
+\contentsline {subsection}{\numberline {G.3}Measured Hessian actions and subspace fusion}{23}{subsection.G.3}%
+\contentsline {subsection}{\numberline {G.4}Sensitivity induced by transport}{23}{subsection.G.4}%
+\contentsline {subsection}{\numberline {G.5}Energy trust is a scalar objective diagnostic}{23}{subsection.G.5}%
+\contentsline {section}{\numberline {H}Persistent state, transactions, and information accounting}{23}{appendix.H}%
+\contentsline {subsection}{\numberline {H.1}Immutable anchor and speculative branch}{23}{subsection.H.1}%
+\contentsline {subsection}{\numberline {H.2}Provenance algebra}{24}{subsection.H.2}%
+\contentsline {subsection}{\numberline {H.3}Unique-primitive ledger}{24}{subsection.H.3}%
+\contentsline {subsection}{\numberline {H.4}Failure taxonomy}{24}{subsection.H.4}%
+\contentsline {section}{\numberline {I}Closed specializations and diagnostic limits}{24}{appendix.I}%
+\contentsline {subsection}{\numberline {I.1}No structural growth}{25}{subsection.I.1}%
+\contentsline {subsection}{\numberline {I.2}Growth without physical rank increase}{25}{subsection.I.2}%
+\contentsline {subsection}{\numberline {I.3}No refit motion}{25}{subsection.I.3}%
+\contentsline {subsection}{\numberline {I.4}One-dimensional support}{25}{subsection.I.4}%
+\contentsline {subsection}{\numberline {I.5}Stationary endpoint}{25}{subsection.I.5}%
+\contentsline {subsection}{\numberline {I.6}Exact anchor at every outer step}{25}{subsection.I.6}%
+\contentsline {subsection}{\numberline {I.7}Pure surrogate geometry}{25}{subsection.I.7}%
+\contentsline {subsection}{\numberline {I.8}Orthogonal endpoints}{25}{subsection.I.8}%
+\contentsline {subsection}{\numberline {I.9}Commuting strain and connection}{25}{subsection.I.9}%
+\contentsline {section}{\numberline {J}Quantum-geometric primitives and generator formulas}{25}{appendix.J}%
+\contentsline {subsection}{\numberline {J.1}Quantum geometric tensor}{26}{subsection.J.1}%
+\contentsline {subsection}{\numberline {J.2}Energy differential and Hessian}{26}{subsection.J.2}%
+\contentsline {subsection}{\numberline {J.3}Logical tying and generator aggregation}{26}{subsection.J.3}%
+\contentsline {subsection}{\numberline {J.4}Phase-gauged cross-state primitives}{26}{subsection.J.4}%
+\contentsline {subsection}{\numberline {J.5}Primitive identity and derivation identity}{27}{subsection.J.5}%
+\contentsline {section}{\numberline {K}The complete outer recursion as a mathematical protocol}{27}{appendix.K}%
+\contentsline {subsection}{\numberline {K.1}Committed inputs}{27}{subsection.K.1}%
+\contentsline {subsection}{\numberline {K.2}Exact growth transition}{27}{subsection.K.2}%
+\contentsline {subsection}{\numberline {K.3}Refit-path prediction}{27}{subsection.K.3}%
+\contentsline {subsection}{\numberline {K.4}Closure transition}{27}{subsection.K.4}%
+\contentsline {subsection}{\numberline {K.5}Objective-curvature transition}{27}{subsection.K.5}%
+\contentsline {subsection}{\numberline {K.6}Commit and learning}{28}{subsection.K.6}%
+\contentsline {section}{\numberline {L}Dominant-construction decision and claim boundaries}{28}{appendix.L}%
+\contentsline {subsection}{\numberline {L.1}Why endpoint polar transport is insufficient}{28}{subsection.L.1}%
+\contentsline {subsection}{\numberline {L.2}The reference role of full remeasurement}{28}{subsection.L.2}%
+\contentsline {subsection}{\numberline {L.3}Why gradient Broyden is a surrogate}{28}{subsection.L.3}%
+\contentsline {subsection}{\numberline {L.4}Geometric closure for Hessian recycling}{28}{subsection.L.4}%
+\contentsline {subsection}{\numberline {L.5}Why the anchored split connection is selected}{28}{subsection.L.5}%
+\contentsline {section}{\numberline {M}Falsifiable consequences and certificate audit}{29}{appendix.M}%

@@ -1,0 +1,222 @@
+{
+  "artifacts": {
+    "figure_pdf": "advisor_project_overview_assets/paper_v/paper_v_archive_observable_spectra.pdf",
+    "figure_png": "advisor_project_overview_assets/paper_v/paper_v_archive_observable_spectra.png"
+  },
+  "classification": "diagnostic_postprocessing",
+  "endpoint_sensitivity": {
+    "10_to_100": {
+      "electron_phonon_energy": {
+        "corrected": 0.8144890883834629,
+        "raw": 0.6978494895653362
+      },
+      "electronic_energy": {
+        "corrected": 0.8628612962670328,
+        "raw": 0.8014005200000031
+      },
+      "phonon_energy": {
+        "corrected": 0.7800791730788208,
+        "raw": 0.6231826303561747
+      },
+      "site_occupation": {
+        "corrected": 0.17823710470466972,
+        "raw": 0.6380736382375508
+      }
+    },
+    "10_to_120": {
+      "electron_phonon_energy": {
+        "corrected": 0.8523666066982116,
+        "raw": 0.7406390266532417
+      },
+      "electronic_energy": {
+        "corrected": 0.8853566884649242,
+        "raw": 0.8256408523035018
+      },
+      "phonon_energy": {
+        "corrected": 0.8197983761922933,
+        "raw": 0.7022135501787681
+      },
+      "site_occupation": {
+        "corrected": 0.21542117312006748,
+        "raw": 0.6869771423317674
+      }
+    },
+    "10_to_80": {
+      "electron_phonon_energy": {
+        "corrected": 0.7786149365619002,
+        "raw": 0.5721828956273788
+      },
+      "electronic_energy": {
+        "corrected": 0.832244394466882,
+        "raw": 0.7271499313160348
+      },
+      "phonon_energy": {
+        "corrected": 0.7469306691226865,
+        "raw": 0.4853275409948322
+      },
+      "site_occupation": {
+        "corrected": 0.17643818653234686,
+        "raw": 0.5016224623324479
+      }
+    }
+  },
+  "evidence_status": "paper_facing_analysis_of_existing_trajectory",
+  "long_metrics": {
+    "electron_phonon_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.13325276858288357,
+        "hellinger_distance": 0.9885917270797682,
+        "oscillation_rms_ratio_to_exact": 1.6379680867132231
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.32995923649094977,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      }
+    },
+    "electronic_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.13325276858288357,
+        "hellinger_distance": 0.9773206567759649,
+        "oscillation_rms_ratio_to_exact": 0.717267902528484
+      },
+      "exact": {
+        "dominant_angular_frequency": 2.271642435841539,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      }
+    },
+    "phonon_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.13325276858288357,
+        "hellinger_distance": 0.9874537730731102,
+        "oscillation_rms_ratio_to_exact": 2.054602160114137
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.32995923649094977,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      }
+    },
+    "site_occupation": {
+      "corrected": {
+        "dominant_angular_frequency": 0.13325276858288357,
+        "hellinger_distance": 0.9662865491605391,
+        "oscillation_rms_ratio_to_exact": 0.5263328166472886
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.08248980912273744,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      }
+    }
+  },
+  "method": {
+    "endpoint_sensitivity": [
+      80.0,
+      100.0,
+      120.0
+    ],
+    "long_interval": [
+      10.0,
+      1000.0
+    ],
+    "mean_subtracted": true,
+    "plot_maximum_angular_frequency": 4.0,
+    "power_normalization": "unit sum over positive frequencies",
+    "primary_interval": [
+      10.0,
+      120.0
+    ],
+    "sample_step": 0.2,
+    "spectral_distance": "Hellinger distance; zero is exact",
+    "window": "Hann",
+    "zero_frequency_excluded": true
+  },
+  "primary_metrics": {
+    "electron_phonon_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.11403240121923025,
+        "hellinger_distance": 0.8523666066982116,
+        "oscillation_rms_ratio_to_exact": 2.086245067002286
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.34209720365769075,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.057016200609615125,
+        "hellinger_distance": 0.7406390266532417,
+        "oscillation_rms_ratio_to_exact": 2.7455095228535535
+      }
+    },
+    "electronic_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.11403240121923025,
+        "hellinger_distance": 0.8853566884649242,
+        "oscillation_rms_ratio_to_exact": 0.9052582531274654
+      },
+      "exact": {
+        "dominant_angular_frequency": 2.280648024384605,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "raw": {
+        "dominant_angular_frequency": 1.995567021336529,
+        "hellinger_distance": 0.8256408523035018,
+        "oscillation_rms_ratio_to_exact": 2.7373269658799098
+      }
+    },
+    "phonon_energy": {
+      "corrected": {
+        "dominant_angular_frequency": 0.11403240121923025,
+        "hellinger_distance": 0.8197983761922933,
+        "oscillation_rms_ratio_to_exact": 2.6147263175131426
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.34209720365769075,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.057016200609615125,
+        "hellinger_distance": 0.7022135501787681,
+        "oscillation_rms_ratio_to_exact": 3.1431968649430586
+      }
+    },
+    "site_occupation": {
+      "corrected": {
+        "dominant_angular_frequency": 0.057016200609615125,
+        "hellinger_distance": 0.21542117312006748,
+        "oscillation_rms_ratio_to_exact": 0.8484091098389142
+      },
+      "exact": {
+        "dominant_angular_frequency": 0.057016200609615125,
+        "hellinger_distance": 0.0,
+        "oscillation_rms_ratio_to_exact": 1.0
+      },
+      "raw": {
+        "dominant_angular_frequency": 0.17104860182884538,
+        "hellinger_distance": 0.6869771423317674,
+        "oscillation_rms_ratio_to_exact": 0.871384657735807
+      }
+    }
+  },
+  "question": "Does the physicality correction improve post-pulse observable frequency content relative to the raw archive closure?",
+  "schema_version": 1,
+  "source_files": {
+    "corrected": {
+      "path": "output/local_runs/paper_v_archive_observable_trajectories_t1000_20260803_v1/corrected_trajectory.npz",
+      "sha256": "3a2225779ba5dab36a5e643b5a09cce54c43d69bebad57d06cb3f0b9d8827318"
+    },
+    "exact": {
+      "path": "output/local_runs/paper_v_archive_observable_trajectories_t1000_20260803_v1/exact_trajectory.npz",
+      "sha256": "4b26513e2e278c1d2f6276ceb8b0fa644639578291f7dcfa2c8c818e62c6e477"
+    },
+    "raw": {
+      "path": "output/local_runs/paper_v_archive_observable_trajectories_t1000_20260803_v1/raw_refined_rk4_dt005_trajectory.npz",
+      "sha256": "dbe18d3d5d3302eb17170614c0d14ec647c46b7a74b4482edacec6b31b2ee177"
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "artifacts": {
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/README.md": {
+      "sha256": "a8c7c2a10387abaa7e082d6ce746970f8054a743bd0d5f1e4dad506918cc8046",
+      "size_bytes": 3603
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/archive_only_preflight.json": {
+      "sha256": "be6fdb3e0a233c7c5e96f78b30a0e1b8dc4af9aa2ac550355c106a59b05448be",
+      "size_bytes": 3767
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/build_bundle.py": {
+      "sha256": "19bd9e45657c93777b872f96302f93f57ad90957a4c53f9e9fe0ff527f9ed20b",
+      "size_bytes": 106439
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/bundle_manifest.json": {
+      "sha256": "2d82858ec4119666888d17bdf8311a3504237a451018281d51d3111ba8018b5d",
+      "size_bytes": 114180
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/evidence_validation.py": {
+      "sha256": "845b03e6c2215c5a6f34b10260f23540e0ac206b2be7025ce0ada5c207c38efe",
+      "size_bytes": 77709
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/execute_source_locked_job.sh": {
+      "sha256": "0b5386db547e30d55e928bd75e7774c4f9feaf32f2b9784d3b6e39915938683b",
+      "size_bytes": 2354
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/intermediate_strong.json": {
+      "sha256": "f3535ec3236a4051e516f8cad1b2fddb84724858ad2036153b3668d930c13118",
+      "size_bytes": 24912
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/intermediate_weak.json": {
+      "sha256": "2c90cbbb5e7435dba013bfbe938319b64f38dc63cac93efb77d696ddee3fdaf4",
+      "size_bytes": 24870
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/strong_strong_u8.json": {
+      "sha256": "5492530de26956917599963a9ec4719ccb1e022898a0f9688809e0176565c8d5",
+      "size_bytes": 24845
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/strong_weak_u8.json": {
+      "sha256": "78da3e231f808b6bf6cd1fa1cda4253c0ed140912bfa0a328e2f119d06655f0d",
+      "size_bytes": 24803
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/weak_strong.json": {
+      "sha256": "6d203e8da1ac106bc147177a7ff4ec3555039d469c49b8d7dbac37be01044874",
+      "size_bytes": 24744
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/jobs/weak_weak.json": {
+      "sha256": "b1aad4ab37c4feee02e87a15b59087a34555a14570979313e5fd5bde321668f8",
+      "size_bytes": 24710
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/intermediate_strong.json": {
+      "sha256": "a6c4d979b4549c8ca670f2e284df92063747fb76c76dced33aedbcfe58d37499",
+      "size_bytes": 22205
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/intermediate_weak.json": {
+      "sha256": "804bc4706c114945812df61bb3ea4d01280489819998088be8edabf6d73c8ec0",
+      "size_bytes": 22183
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/strong_strong_u8.json": {
+      "sha256": "aa5fa1b1bd721b54c8ea0e695f872767058bbb3e41adefd2836069c7e7d779ae",
+      "size_bytes": 22168
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/strong_weak_u8.json": {
+      "sha256": "9b1a0ab1a006def879ad2e6f7cff54de5a589bccada962c0b4141c14bb6ee930",
+      "size_bytes": 22146
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/weak_strong.json": {
+      "sha256": "a88b83b231e70a2454a4d86b7a5dc2c24b8430374c19ba9d27e62f30a28b72f3",
+      "size_bytes": 22117
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/normalized_manifests/weak_weak.json": {
+      "sha256": "0e0ce3379b44ada59350c1b8e158785661593ccee90e3b3a96bab5a2f2e3c686",
+      "size_bytes": 22103
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/phase3_batch_appendix_overlay.patch": {
+      "sha256": "8be89354853f9df3bc810d38bd4a9982e7195d4de27b894b0b405403bb7f2113",
+      "size_bytes": 64881
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/physics_and_exact_reference_lock.json": {
+      "sha256": "d151078291c575812396102c33b9bb26644f92734581022a2c779d007406f591",
+      "size_bytes": 6685
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/preflight.json": {
+      "sha256": "9a7e223e4227994db25526787fc4839a4ae15f97c0955b5ce19e2f31c033f506",
+      "size_bytes": 3768
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/queue.tsv": {
+      "sha256": "1b18adfb89c90d22b5502b0be83e5b6100e8465efecec1d4ccf2fb0422dab94a",
+      "size_bytes": 2496
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/remote_execution_gate.json": {
+      "sha256": "8f083e0662f2214642ad4913f83997de28fe5201bc8562cfddc50e1f94636672",
+      "size_bytes": 978
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/remote_preflight_and_cleanup_receipt.json": {
+      "sha256": "ba53d7d722d0dc9f3deed018d0a49db6f16efab9627c3488aff91e2c4cde427f",
+      "size_bytes": 989
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/route_parity.json": {
+      "sha256": "0a5756817840470433e2119c36322003c032ac1acb521965e982bb1848559f7f",
+      "size_bytes": 13372
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/run_job.py": {
+      "sha256": "fd3f5c93ddeca89ad721c6b3553de417ec2cda2709133aedefbd0e77f8abc0af",
+      "size_bytes": 43017
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/scientific_settings_audit.json": {
+      "sha256": "cbe743e21d8410c32ac37d673b657f7792d59bca2abade3e575d9cf1a5ce496f",
+      "size_bytes": 8341
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/source_archive_manifest.json": {
+      "sha256": "254b7b2ef1a809ca9c8db6696360d4d30a2434b9e943ef69dbefe6f8c4eaad91",
+      "size_bytes": 73283
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/source_lock/local_smoke_evidence.json": {
+      "sha256": "5899041980cb8f9ec5c4727e7b66aaf7cb91530ea202fbc8b0383c1d3f2ddd7e",
+      "size_bytes": 3593
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/source_locked.tar.gz": {
+      "sha256": "d9f583bb22aaed57219eb06e5d2258e08c657494d17d4b436233874e94a4b77c",
+      "size_bytes": 3237816
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/source_revision_manifest.json": {
+      "sha256": "688203a0d38d88cc4adac6d58069728f056df7ee7d170b51033ca1ba09a2be34",
+      "size_bytes": 9874
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/submit.sub": {
+      "sha256": "e535ff178094a6ef8d30db3d1da6d197076c7d9060dd0ec357f60172b5eebc0f",
+      "size_bytes": 4533
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/test_bundle.py": {
+      "sha256": "22ac0f3cbde6031a028d319bbf0aeaffae30548438dcf2ebc09d95c9983fe29b",
+      "size_bytes": 21876
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/upload_artifact_list.txt": {
+      "sha256": "431099b3bd02225daa9ef0b6e119f59090fbe44503e06117df9a58d82be848f2",
+      "size_bytes": 5672
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v2_chtc/validate_fetched.py": {
+      "sha256": "cc2f395c21d45fb53e9df9073d52fab9330371230d2af77e9fd96fb6ae2e4323",
+      "size_bytes": 29210
+    }
+  },
+  "schema": "paper_i_hh_sr_symcost_noprune_submission_artifact_hashes_v1"
+}

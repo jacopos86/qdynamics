@@ -1,0 +1,555 @@
+    args = parse_args(argv)
+    _ai_log("hardcoded_adapt_main_start", settings=vars(args))
+    run_command = current_command_string()
+    artifacts_dir = REPO_ROOT / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    json_dir = artifacts_dir / "json"
+    pdf_dir = artifacts_dir / "pdf"
+    json_dir.mkdir(parents=True, exist_ok=True)
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+
+    resolved_problem = resolve_problem_context_from_namespace(
+        args,
+        exact_energy_impl=_exact_gs_energy_for_problem,
+    )
+    args.L = int(resolved_problem.request.num_sites)
+    args.n_ph_max = int(resolved_problem.request.n_ph_max)
+    prob = str(resolved_problem.family_key)
+    output_json = args.output_json or (json_dir / f"adapt_{prob}_L{args.L}.json")
+    output_pdf = args.output_pdf or (pdf_dir / f"adapt_{prob}_L{args.L}.pdf")
+
+    # 1) Build Hamiltonian
+    problem_key = str(resolved_problem.family_key)
+    h_poly = resolved_problem.hamiltonian
+
+    native_order, coeff_map_exyz = _collect_hardcoded_terms_exyz(h_poly)
+    _ai_log("hardcoded_adapt_hamiltonian_built", L=int(args.L), num_terms=int(len(coeff_map_exyz)))
+    if args.term_order == "native":
+        ordered_labels_exyz = list(native_order)
+    else:
+        ordered_labels_exyz = sorted(coeff_map_exyz)
+    nq_total = len(ordered_labels_exyz[0]) if ordered_labels_exyz else 2 * int(args.L)
+    hilbert_dim = 1 << int(nq_total)
+    dense_eigh_enabled = _dense_hamiltonian_matrix_required(
+        hilbert_dim=int(hilbert_dim),
+        dense_eigh_max_dim=int(args.dense_eigh_max_dim),
+        skip_trajectory=bool(args.skip_trajectory),
+    )
+    hmat: np.ndarray | None = None
+    if dense_eigh_enabled:
+        hmat = _build_hamiltonian_matrix(coeff_map_exyz)
+    elif bool(args.skip_trajectory):
+        _ai_log(
+            "hardcoded_adapt_dense_hmat_skipped_no_consumer",
+            hilbert_dim=int(hilbert_dim),
+            dense_eigh_max_dim=int(args.dense_eigh_max_dim),
+            skip_trajectory=True,
+        )
+    else:
+        _ai_log(
+            "hardcoded_adapt_dense_eigh_skipped",
+            hilbert_dim=int(hilbert_dim),
+            dense_eigh_max_dim=int(args.dense_eigh_max_dim),
+        )
+
+    psi_ref_override_for_adapt: np.ndarray | None = None
+    adapt_ref_import: dict[str, Any] | None = None
+    adapt_ref_meta: Mapping[str, Any] | None = None
+    adapt_ref_base_depth = 0
+    ansatz_input_state_for_adapt: np.ndarray | None = None
+    ansatz_input_state_source = "hf"
+    ansatz_input_state_kind: str | None = "reference_state"
+    resolved_main_cli_configs = _resolve_main_cli_configs(
+        args,
+        problem=str(problem_key),
+        continuation_mode_resolver=_resolve_cli_adapt_continuation_mode,
+        phase3_config_cls=Phase3OracleGradientConfig,
+        phase3_resolver=_resolve_phase3_oracle_gradient_config,
+        phase3_validator=_validate_phase3_oracle_gradient_config,
+        final_audit_config_cls=FinalNoiseAuditConfig,
+        final_audit_resolver=_resolve_final_noise_audit_config,
+        final_audit_validator=_validate_final_noise_audit_config,
+    )
+    cli_adapt_continuation_mode = str(resolved_main_cli_configs.continuation_mode)
+    phase3_oracle_gradient_config = resolved_main_cli_configs.phase3_oracle_gradient_config
+    final_noise_audit_config = resolved_main_cli_configs.final_noise_audit_config
+    adapt_resume_source: ResumeScaffoldSource | None = None
+    adapt_resume_import_summary: dict[str, Any] | None = None
+    adapt_resume_compile_smoke_payload: dict[str, Any] | None = None
+    if args.adapt_resume_scaffold_json is not None:
+        resume_settings_overrides = {
+            "molecular_vibronic_h2_fixture_json": getattr(
+                args,
+                "molecular_vibronic_h2_fixture_json",
+                None,
+            ),
+            "molecular_vibronic_h2o_fixture_json": getattr(
+                args,
+                "molecular_vibronic_h2o_fixture_json",
+                None,
+            ),
+            "molecular_vibronic_h2o_linear_fd_fixture_json": getattr(
+                args,
+                "molecular_vibronic_h2o_linear_fd_fixture_json",
+                None,
+            ),
+        }
+        adapt_resume_source = load_static_resume_source(
+            Path(args.adapt_resume_scaffold_json),
+            loader_mode="replay_family",
+            settings_overrides=resume_settings_overrides,
+        )
+        resume_coordinate_policy = str(
+            getattr(
+                args,
+                "historical_singleton_coordinate_solve_policy",
+                "archival_reduced_scalar_v1",
+            )
+        ).strip().lower()
+        resume_coordinate_scope = str(
+            getattr(
+                args,
+                "historical_singleton_coordinate_solve_scope",
+                SR_COORDINATE_SOLVE_SCOPE_PHASE3_ONLY_V1,
+            )
+        ).strip().lower()
+        resume_trust_policy = str(
+            getattr(
+                args,
+                "historical_singleton_trust_region_update_policy",
+                ROUTE_A_TRUST_REGION_FIXED,
+            )
+        ).strip().lower()
+        resume_escape_mode = str(
+            getattr(args, "sr_escape_mode", SR_ESCAPE_DISABLED)
+        ).strip().lower()
+        resume_sr_overlay_active = bool(
+            resume_coordinate_policy
+            in {
+                JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+                JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1,
+                JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2,
+            }
+            or resume_coordinate_scope
+            == SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1
+            or resume_trust_policy
+            in {
+                ROUTE_A_TRUST_REGION_DISPLACEMENT_CALIBRATED_UNBOUNDED_V2,
+                ROUTE_A_TRUST_REGION_SOURCE_METRIC_INVERSE_SQRT_NO_OVERLAP_V1,
+            }
+            or resume_escape_mode != SR_ESCAPE_DISABLED
+        )
+        resume_chart_resolution = (
+            _resolve_sr_powell_coordinate_chart_runtime_policy(
+                historical_singleton_overlay_active=bool(
+                    resume_sr_overlay_active
+                ),
+                sr_escape_mode=resume_escape_mode,
+                coordinate_solve_scope=resume_coordinate_scope,
+                requested_policy=str(
+                    getattr(
+                        args,
+                        "sr_powell_coordinate_chart_policy",
+                        SR_POWELL_COORDINATE_CHART_AUTO,
+                    )
+                ),
+                source_locked_replay=False,
+            )
+        )
+        resume_validation = validate_static_hh_resume_source(
+            adapt_resume_source,
+            args=args,
+            continuation_mode=str(cli_adapt_continuation_mode),
+            expected_powell_coordinate_chart_policy=(
+                str(resume_chart_resolution["runtime_policy"])
+                if resume_sr_overlay_active
+                else None
+            ),
+            expected_phase3_response_coordinate_scope=str(
+                getattr(
+                    args,
+                    "phase3_response_coordinate_scope",
+                    PHASE3_RESPONSE_COORDINATE_SCOPE_LEGACY_REOPT_COUPLED_V1,
+                )
+            ),
+        )
+        adapt_resume_import_summary = build_resume_import_summary(
+            adapt_resume_source,
+            validation=resume_validation,
+        )
+        adapt_ref_base_depth = int(
+            adapt_resume_import_summary.get(
+                "source_ansatz_depth",
+                len(adapt_resume_source.runtime_input.selected_terms),
+            )
+        )
+        psi_ref_override_for_adapt = np.asarray(
+            adapt_resume_source.runtime_input.psi_ref,
+            dtype=complex,
+        ).reshape(-1)
+        ansatz_input_state_for_adapt = np.asarray(
+            adapt_resume_source.runtime_input.psi_ref,
+            dtype=complex,
+        ).reshape(-1)
+        ansatz_payload = adapt_resume_source.payload.get("ansatz_input_state", {})
+        ansatz_input_state_source = "adapt_resume_scaffold_json"
+        if isinstance(ansatz_payload, Mapping):
+            ansatz_input_state_source = str(
+                ansatz_payload.get("source", "adapt_resume_scaffold_json")
+            )
+            raw_kind = ansatz_payload.get("handoff_state_kind", "reference_state")
+            ansatz_input_state_kind = None if raw_kind in {None, ""} else str(raw_kind)
+        smoke_result = run_resume_compile_smoke(
+            adapt_resume_source,
+            mode=str(args.adapt_resume_compile_smoke),
+            backend_name=str(args.adapt_resume_smoke_backend),
+            seed_transpiler=int(args.phase3_backend_transpile_seed),
+            optimization_level=int(args.phase3_backend_optimization_level),
+        )
+        adapt_resume_compile_smoke_payload = smoke_result.to_payload()
+        resume_runtime_requested = bool(
+            str(getattr(args, "phase3_oracle_gradient_mode", "off")).strip().lower() == "runtime"
+            or str(getattr(args, "final_noise_audit_mode", "off")).strip().lower() == "runtime"
+        )
+        smoke_must_pass = bool(
+            str(args.adapt_resume_compile_smoke).strip().lower() == "required"
+            or (
+                str(args.adapt_resume_compile_smoke).strip().lower() == "auto"
+                and resume_runtime_requested
+            )
+        )
+        if smoke_must_pass and not bool(smoke_result.success):
+            raise RuntimeError(
+                "Required structural-resume compile smoke failed: "
+                f"{smoke_result.error or 'no compiled backend selected'}"
+            )
+        _ai_log(
+            "hardcoded_adapt_resume_scaffold_json_loaded",
+            path=str(Path(args.adapt_resume_scaffold_json)),
+            adapt_ref_base_depth=int(adapt_ref_base_depth),
+            compile_smoke=adapt_resume_compile_smoke_payload,
+        )
+    elif args.adapt_ref_json is not None:
+        psi_ref_override_for_adapt, adapt_ref_meta = _load_adapt_initial_state(
+            Path(args.adapt_ref_json),
+            int(nq_total),
+        )
+        ansatz_input_state_for_adapt = np.asarray(psi_ref_override_for_adapt, dtype=complex).reshape(-1)
+        adapt_ref_vqe = adapt_ref_meta.get("adapt_vqe", {})
+        if isinstance(adapt_ref_vqe, dict):
+            ref_depth_raw = adapt_ref_vqe.get("ansatz_depth")
+            try:
+                ref_depth_val = int(ref_depth_raw)
+                if ref_depth_val >= 0:
+                    adapt_ref_base_depth = int(ref_depth_val)
+            except (TypeError, ValueError):
+                adapt_ref_base_depth = 0
+        adapt_ref_import = {
+            "path": str(Path(args.adapt_ref_json)),
+            "initial_state_source": adapt_ref_meta.get("initial_state_source"),
+            "initial_state_handoff_state_kind": adapt_ref_meta.get("initial_state_handoff_state_kind"),
+            "settings": adapt_ref_meta.get("settings", {}),
+            "adapt_vqe": adapt_ref_meta.get("adapt_vqe", {}),
+            "adapt_ref_base_depth": int(adapt_ref_base_depth),
+        }
+        ansatz_input_state_source = str(adapt_ref_meta.get("initial_state_source") or "adapt_ref_json")
+        raw_kind = adapt_ref_meta.get("initial_state_handoff_state_kind")
+        ansatz_input_state_kind = None if raw_kind in {None, ""} else str(raw_kind)
+        _ai_log(
+            "hardcoded_adapt_ref_json_loaded",
+            path=str(Path(args.adapt_ref_json)),
+            initial_state_source=adapt_ref_meta.get("initial_state_source"),
+            adapt_ref_base_depth=int(adapt_ref_base_depth),
+        )
+    else:
+        ansatz_input_state_for_adapt = resolved_problem.reference_state.build_state()
+        ansatz_input_state_source = str(resolved_problem.reference_state.source_label)
+        ansatz_input_state_kind = str(resolved_problem.reference_state.state_kind)
+
+
+    # Sector-filtered exact ground state:
+    # the resolved problem context owns the comparison-space / sector semantics.
+    exact_reference_import: dict[str, Any] | None = None
+    gs_energy_exact, gs_energy_source, exact_energy_reuse_mismatches = _resolve_exact_energy_override_from_adapt_ref(
+        adapt_ref_meta=adapt_ref_meta,
+        args=args,
+        problem=problem_key,
+        continuation_mode=str(cli_adapt_continuation_mode),
+    )
+    if args.adapt_exact_gs_override is not None:
+        gs_energy_exact = float(args.adapt_exact_gs_override)
+        gs_energy_source = "adapt_exact_gs_override"
+        exact_energy_reuse_mismatches = []
+        exact_reference_import = {
+            "source": "adapt_exact_gs_override",
+            "exact_energy": float(gs_energy_exact),
+        }
+        _ai_log("hardcoded_adapt_exact_energy_override_cli_used", exact_energy=float(gs_energy_exact))
+    elif args.adapt_exact_gs_reference_json is not None:
+        gs_energy_exact, exact_reference_import = _resolve_exact_gs_energy_from_reference_json(
+            Path(args.adapt_exact_gs_reference_json),
+            args,
+        )
+        gs_energy_source = "adapt_exact_gs_reference_json"
+        exact_energy_reuse_mismatches = []
+        exact_reference_import["exact_energy"] = float(gs_energy_exact)
+        _ai_log(
+            "hardcoded_adapt_exact_energy_reference_json_used",
+            exact_energy=float(gs_energy_exact),
+            path=str(Path(args.adapt_exact_gs_reference_json)),
+            entry_id=exact_reference_import.get("entry_id"),
+        )
+    elif gs_energy_exact is None:
+        gs_energy_exact = resolved_problem.exact_target.resolve_energy(ai_log=_ai_log)
+        gs_energy_source = "computed"
+    if adapt_ref_import is not None:
+        adapt_ref_import["exact_energy_reused"] = bool(gs_energy_source == "adapt_ref_json")
+        adapt_ref_import["exact_energy_reuse_mismatches"] = list(exact_energy_reuse_mismatches)
+        if gs_energy_source == "adapt_ref_json":
+            adapt_ref_import["reused_exact_energy"] = float(gs_energy_exact)
+            _ai_log(
+                "hardcoded_adapt_exact_energy_reused",
+                path=str(Path(args.adapt_ref_json)),
+                exact_energy=float(gs_energy_exact),
+            )
+        elif (
+            problem_key == "hh"
+            and str(cli_adapt_continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
+        ):
+            _ai_log(
+                "hardcoded_adapt_exact_energy_reuse_skipped",
+                path=str(Path(args.adapt_ref_json)),
+                mismatch_count=int(len(exact_energy_reuse_mismatches)),
+                has_candidate=bool(_resolve_exact_energy_from_payload(adapt_ref_meta or {})),
+            )
+
+    # Full-spectrum eigenvectors are optional (memory heavy for large spaces).
+    psi_exact_ground: np.ndarray
+    exact_ground_state_vector_required = bool(str(args.initial_state_source).strip().lower() == "exact")
+    if exact_ground_state_vector_required:
+        psi_exact_ground = _resolve_required_exact_initial_state(
+            h_poly,
+            resolved_problem=resolved_problem,
+            exact_energy=float(gs_energy_exact),
+        )
+    else:
+        psi_exact_ground = resolved_problem.exact_target.build_fallback_anchor_state()
+
+    # 2) Run ADAPT-VQE
+    adapt_payload: dict[str, Any]
+    try:
+        adapt_kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
+            args,
+            h_poly=h_poly,
+            resolved_problem_context=resolved_problem,
+            cli_adapt_continuation_mode=str(cli_adapt_continuation_mode),
+            adapt_ref_base_depth=int(adapt_ref_base_depth),
+            psi_ref_override=psi_ref_override_for_adapt,
+            psi_ref_source=str(ansatz_input_state_source),
+            psi_ref_handoff_state_kind=ansatz_input_state_kind,
+            exact_gs_override=float(gs_energy_exact),
+            phase3_oracle_gradient_config=phase3_oracle_gradient_config,
+            final_noise_audit_config=final_noise_audit_config,
+        )
+        adapt_kwargs.update(
+            {
+                "adapt_resume_source": adapt_resume_source,
+                "adapt_resume_import_summary": adapt_resume_import_summary,
+                "adapt_resume_compile_smoke_result": adapt_resume_compile_smoke_payload,
+            }
+        )
+        raise RuntimeError(
+            "Unreachable retired CLI dispatch; use a validated typed bundle."
+        )
+    except Exception as exc:
+        _ai_log("hardcoded_adapt_vqe_failed", L=int(args.L), error=str(exc))
+        adapt_payload = {
+            "success": False,
+            "method": f"hardcoded_adapt_vqe_{str(args.adapt_pool).lower()}",
+            "energy": None,
+            "adapt_inner_optimizer": str(args.adapt_inner_optimizer),
+            "adapt_reoptimization_route": str(
+                getattr(args, "adapt_reoptimization_route", "off")
+            ),
+            "analytic_noise_applied": bool(float(args.adapt_analytic_noise_std) > 0.0),
+            "analytic_noise_std": float(args.adapt_analytic_noise_std),
+            "analytic_noise_seed": (
+                None
+                if args.adapt_analytic_noise_seed is None
+                else int(args.adapt_analytic_noise_seed)
+            ),
+            "error": str(exc),
+        }
+        if str(args.adapt_inner_optimizer).strip().upper() == "SPSA":
+            adapt_payload["adapt_spsa"] = {
+                "a": float(args.adapt_spsa_a),
+                "c": float(args.adapt_spsa_c),
+                "alpha": float(args.adapt_spsa_alpha),
+                "gamma": float(args.adapt_spsa_gamma),
+                "A": float(args.adapt_spsa_A),
+                "avg_last": int(args.adapt_spsa_avg_last),
+                "eval_repeats": int(args.adapt_spsa_eval_repeats),
+                "eval_agg": str(args.adapt_spsa_eval_agg),
+            }
+        psi_adapt = psi_exact_ground
+
+    _attach_boson_chain_subspace_diagnostics(
+        adapt_payload,
+        problem_key=str(problem_key),
+        psi_adapt=np.asarray(psi_adapt, dtype=complex).reshape(-1),
+        psi_reference=np.asarray(resolved_problem.reference_state.build_state(), dtype=complex).reshape(-1),
+        num_sites=int(args.L),
+        n_ph_max=int(args.n_ph_max),
+        boson_encoding=str(args.boson_encoding),
+    )
+    estimator_ledger_path = getattr(
+        args, "adapt_estimator_call_ledger_json", None
+    )
+    if estimator_ledger_path is not None:
+        accounting_payload = adapt_payload.get("estimator_call_accounting")
+        accounting_payload = (
+            dict(accounting_payload)
+            if isinstance(accounting_payload, Mapping)
+            else {
+                "schema": "paper_i_current_s_alg_accounting_v1",
+                "enabled": True,
+                "status": "missing_after_failed_adapt_run",
+                "complete": False,
+                "exact_blockers": [
+                    "adaptive_run_failed_before_estimator_ledger_finalization"
+                ],
+            }
+        )
+        full_ledger_payload = accounting_payload.get("full_ledger")
+        sidecar_payload = {
+            "schema": "paper_i_estimator_call_ledger_sidecar_v2",
+            "accounting": {
+                str(key): value
+                for key, value in accounting_payload.items()
+                if str(key) != "full_ledger"
+            },
+            "ledger": (
+                dict(full_ledger_payload)
+                if isinstance(full_ledger_payload, Mapping)
+                else None
+            ),
+            "adapt_success": bool(adapt_payload.get("success", False)),
+            "adapt_error": adapt_payload.get("error"),
+        }
+        output_path = Path(estimator_ledger_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = output_path.with_name(
+            f".{output_path.name}.tmp-{os.getpid()}"
+        )
+        sidecar_bytes = (
+            json.dumps(sidecar_payload, sort_keys=True, indent=2) + "\n"
+        ).encode("utf-8")
+        tmp_path.write_bytes(sidecar_bytes)
+        os.replace(tmp_path, output_path)
+        sidecar_metadata = {
+            "schema": "paper_i_estimator_call_ledger_sidecar_pointer_v1",
+            "path": str(output_path),
+            "sha256": hashlib.sha256(sidecar_bytes).hexdigest(),
+            "size_bytes": int(len(sidecar_bytes)),
+        }
+        accounting_payload.pop("full_ledger", None)
+        accounting_payload["sidecar"] = dict(sidecar_metadata)
+        adapt_payload["estimator_call_accounting"] = dict(
+            accounting_payload
+        )
+        continuation_runtime = adapt_payload.get("continuation")
+        if isinstance(continuation_runtime, dict):
+            continuation_runtime["estimator_call_accounting"] = dict(
+                accounting_payload
+            )
+        _ai_log(
+            "hardcoded_adapt_estimator_call_ledger_written",
+            **dict(sidecar_metadata),
+        )
+
+    # 3) Select initial state for dynamics
+    psi_hf = resolved_problem.reference_state.build_state()
+
+    if args.initial_state_source == "adapt_vqe" and bool(adapt_payload.get("success", False)):
+        psi0 = psi_adapt
+        _ai_log("hardcoded_adapt_initial_state_selected", source="adapt_vqe")
+    elif args.initial_state_source == "adapt_vqe":
+        raise RuntimeError("Requested --initial-state-source adapt_vqe but ADAPT-VQE failed.")
+    elif args.initial_state_source == "hf":
+        psi0 = psi_hf
+        _ai_log("hardcoded_adapt_initial_state_selected", source="hf")
+    else:
+        psi0 = psi_exact_ground
+        _ai_log("hardcoded_adapt_initial_state_selected", source="exact")
+
+    # 4) Trajectory
+    if bool(args.skip_trajectory):
+        trajectory = []
+        _ai_log("hardcoded_adapt_trajectory_skipped_by_flag")
+    elif hmat is None:
+        trajectory = []
+        _ai_log(
+            "hardcoded_adapt_trajectory_skipped_no_dense_hmat",
+            hilbert_dim=int(hilbert_dim),
+            dense_eigh_max_dim=int(args.dense_eigh_max_dim),
+        )
+    else:
+        trajectory, _exact_states = _simulate_trajectory(
+            problem_key=str(problem_key),
+            num_sites=int(args.L),
+            psi0=psi0,
+            hmat=hmat,
+            ordered_labels_exyz=ordered_labels_exyz,
+            coeff_map_exyz=coeff_map_exyz,
+            trotter_steps=int(args.trotter_steps),
+            t_final=float(args.t_final),
+            num_times=int(args.num_times),
+            suzuki_order=int(args.suzuki_order),
+            n_ph_max=int(args.n_ph_max),
+            boson_encoding=str(args.boson_encoding),
+            ordering=str(args.ordering),
+        )
+
+    # 5) Emit JSON / PDF via canonical artifact helpers
+    initial_state_source_resolved = str(
+        args.initial_state_source if args.initial_state_source != "adapt_vqe" or adapt_payload.get("success") else "exact"
+    )
+    initial_state_kind_resolved = (
+        "prepared_state"
+        if (args.initial_state_source == "adapt_vqe" and bool(adapt_payload.get("success", False)))
+        else "reference_state"
+    )
+
+    payload = build_output_payload(
+        args=args,
+        cli_adapt_continuation_mode=str(cli_adapt_continuation_mode),
+        adapt_payload=adapt_payload,
+        ordered_labels_exyz=ordered_labels_exyz,
+        coeff_map_exyz=coeff_map_exyz,
+        hmat=hmat,
+        gs_energy_exact=float(gs_energy_exact),
+        gs_energy_source=str(gs_energy_source),
+        psi0=psi0,
+        ansatz_input_state_for_adapt=np.asarray(ansatz_input_state_for_adapt, dtype=complex).reshape(-1),
+        ansatz_input_state_source=str(ansatz_input_state_source),
+        ansatz_input_state_kind=ansatz_input_state_kind,
+        trajectory=trajectory,
+        adapt_ref_import=adapt_ref_import,
+        dense_eigh_enabled=bool(dense_eigh_enabled),
+        hilbert_dim=int(hilbert_dim),
+        adapt_ref_base_depth=int(adapt_ref_base_depth),
+        initial_state_source_resolved=str(initial_state_source_resolved),
+        initial_state_kind_resolved=str(initial_state_kind_resolved),
+        resolved_problem_context=resolved_problem,
+        exact_reference_import=exact_reference_import,
+    )
+    persist_output_artifacts(
+        output_json=output_json,
+        output_pdf=output_pdf,
+        payload=payload,
+        run_command=run_command,
+        skip_pdf=bool(args.skip_pdf),
+        ai_log=_ai_log,
+        safe_stdout_print=_safe_stdout_print,
+    )
+

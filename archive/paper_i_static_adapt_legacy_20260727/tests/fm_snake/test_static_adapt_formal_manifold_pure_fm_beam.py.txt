@@ -1,0 +1,988 @@
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import replace
+import json
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+from pipelines.static_adapt.formal_manifold_warm_start import FORMAL_MANIFOLD_ROUTE
+from pipelines.static_adapt.route_a_funnel import RouteAFunnelConfig
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_hamiltonian
+
+
+def _formal_beam_carrier_config() -> RouteAFunnelConfig:
+    """Return the preserved pure-FM child-exposure carrier configuration."""
+
+    return RouteAFunnelConfig(
+        mode="child_12_joint_schur_v1",
+        population_mode="child_only_v1",
+        child_identity_policy="global_pauli_word_v1",
+        macro_phase0_cap=8,
+        macro_phase1_cap=8,
+        macro_phase2_cap=8,
+        child_phase1_cap=8,
+        child_phase2_cap=8,
+        child_phase3_cap=8,
+        batching_mode="off",
+        batch_size_cap=1,
+        phase0_policy="disabled",
+    )
+
+
+def _two_site_hubbard_hamiltonian():
+    return build_hubbard_hamiltonian(
+        dims=2,
+        t=1.0,
+        U=4.0,
+        v=0.0,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=True,
+    )
+
+
+def test_projected_child_route_defers_execution_only_parent_sector_filter() -> None:
+    """Legal child templates survive until the executed child hard guard."""
+
+    policy = adapt_pipeline._resolve_parent_sector_filter_policy(
+        grouped_violation_indices={4},
+        execution_violation_indices={4, 7, 11},
+        problem_key="hh",
+        runtime_split_mode="shortlist_pauli_children_v1",
+        runtime_split_selection_mode="global_child_only_v1",
+        runtime_split_symmetry_policy="hard_guard",
+    )
+
+    assert policy["projected_child_only_runtime_guard"] is True
+    assert policy["removed_indices"] == [4]
+    assert policy["deferred_execution_indices"] == [7, 11]
+    assert policy["admission_contract"] == (
+        "hard_guarded_sector_projected_children_only"
+    )
+
+
+def test_parent_sector_filter_never_defers_without_projected_child_guard() -> None:
+    """Directly exposed generators retain the strict execution contract."""
+
+    policy = adapt_pipeline._resolve_parent_sector_filter_policy(
+        grouped_violation_indices=set(),
+        execution_violation_indices={7, 11},
+        problem_key="hh",
+        runtime_split_mode="off",
+        runtime_split_selection_mode="global_child_only_v1",
+        runtime_split_symmetry_policy="hard_guard",
+    )
+
+    assert policy["projected_child_only_runtime_guard"] is False
+    assert policy["removed_indices"] == [7, 11]
+    assert policy["deferred_execution_indices"] == []
+
+
+def test_formal_selector_prefilter_rejects_scoring_only_parent_templates() -> None:
+    """An execution-unsafe parent may be scored, but it cannot be admitted."""
+
+    records = [
+        {"candidate_label": "safe-child"},
+        {"candidate_label": "unsafe-parent-template"},
+    ]
+
+    def _assert_safe(record) -> None:
+        if record["candidate_label"] == "unsafe-parent-template":
+            raise RuntimeError("execution representation violates sector")
+
+    retained, rejected = adapt_pipeline._filter_sector_safe_admission_records(
+        records,
+        assert_safe=_assert_safe,
+    )
+
+    assert [row["candidate_label"] for row in retained] == ["safe-child"]
+    assert rejected == ["unsafe-parent-template"]
+
+
+def test_pure_fm_beam_three_is_branch_local_query_closed_and_jr_isolated(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """The preserved 3x2 pure-FM beam owns disjoint branch-local ledgers."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+
+    class _ForbiddenJointResponseEvaluator:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("FM-SNAKE invoked Joint-Response selection logic")
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "RouteAJointResponseEvaluator",
+        _ForbiddenJointResponseEvaluator,
+    )
+
+    def _forbidden_generic_tie_beam_prefilter(*args, **kwargs):
+        raise AssertionError(
+            "pure FM truncated its population before the formal selector"
+        )
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_phase3_tie_beam_selection_pool",
+        _forbidden_generic_tie_beam_prefilter,
+    )
+
+    formal_population_sizes: list[int] = []
+    real_formal_selector = adapt_pipeline.select_combinatorial_query_closed_batch
+
+    def _record_formal_population_size(*args, **kwargs):
+        workspace = kwargs["workspace"]
+        formal_population_sizes.append(len(workspace.candidate_records))
+        return real_formal_selector(*args, **kwargs)
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "select_combinatorial_query_closed_batch",
+        _record_formal_population_size,
+    )
+    current_json = tmp_path / "pure_fm_beam_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=2,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=3,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase1_prune_enabled=False,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        # A one-record Phase-III carrier must not truncate the authoritative
+        # Phase-II population supplied to the formal selector.
+        route_a_funnel_config=replace(
+            _formal_beam_carrier_config(),
+            child_phase3_cap=1,
+        ),
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    assert payload["success"] is True
+    assert payload["adapt_reoptimization_route"] == FORMAL_MANIFOLD_ROUTE
+    assert payload["adapt_beam_enabled"] is True
+    assert payload["adapt_beam_live_branches"] == 3
+    assert formal_population_sizes
+    assert max(formal_population_sizes) > 1
+    beam = payload["continuation"]["beam_search"]
+    assert beam["beam_enabled"] is True
+    assert beam["rounds"]
+    assert int(payload["nfev_total"]) == int(beam["winning_branch_nfev"]) + int(
+        beam["discarded_branch_nfev_operational_overhead"]
+    )
+    assert int(payload["nfev_winning_lineage"]) == int(
+        beam["winning_branch_nfev"]
+    )
+    assert int(payload["nfev_discarded_operational_overhead"]) == int(
+        beam["discarded_branch_nfev_operational_overhead"]
+    )
+
+    winner_id = int(beam["winner_branch_id"])
+    winner_branch = f"beam_branch:{winner_id}"
+    formal_summary = payload["formal_manifold_warm_start"]
+    assert formal_summary["branch_id"] == winner_branch
+    assert all(
+        row["formal_manifold_warm_start"]["route"] == FORMAL_MANIFOLD_ROUTE
+        and str(row["formal_manifold_warm_start"]["branch_id"]).startswith(
+            "beam_branch:"
+        )
+        for row in payload["history"]
+    )
+
+    query_closure = payload["formal_manifold_query_closure"]
+    assert query_closure["joint_response_selector_invoked"] is False
+    winning_ids = set(query_closure["winning_branch"]["unique_primitive_ids"])
+    discarded_ids = set(
+        query_closure["discarded_branch_operational_overhead"][
+            "unique_primitive_ids"
+        ]
+    )
+    assert winning_ids
+    assert winning_ids.isdisjoint(discarded_ids)
+    all_ids = set(query_closure["all_executed"]["unique_primitive_ids"])
+    assert winning_ids | discarded_ids == all_ids
+    route_energy_occurrences = query_closure[
+        "energy_evaluation_occurrence_ids"
+    ]
+    assert set(query_closure["energy_evaluation_occurrence_ids"]) == set(
+        query_closure["all_executed"]["primitive_ids_by_category"]["N_E"]
+    )
+    shared_hamiltonian = payload["estimator_call_accounting"][
+        "executed_occurrence_accounting"
+    ]["all_hamiltonian_execution"]
+    shared_scope_counts = shared_hamiltonian[
+        "occurrence_count_by_consumer_scope"
+    ]
+    assert any(
+        str(scope).startswith("energy:formal_manifold_beam_local_reopt:")
+        and int(count) > 0
+        for scope, count in shared_scope_counts.items()
+    )
+    shared_formal_occurrences = sum(
+        int(count)
+        for scope, count in shared_scope_counts.items()
+        if str(scope).startswith("energy:formal_manifold_")
+        or str(scope) == "energy:initial_state"
+    )
+    assert shared_formal_occurrences == int(payload["nfev_total"])
+    assert len(route_energy_occurrences) == int(payload["nfev_total"]) + int(
+        shared_scope_counts.get("outer_state_refresh", 0)
+    )
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
+    adapt_checkpoint = checkpoint["adapt_vqe"]
+    checkpoint_branch = f"beam_branch:{int(adapt_checkpoint['branch_id'])}"
+    warm_checkpoint = adapt_checkpoint["formal_manifold_warm_state_checkpoint"]
+    query_checkpoint = adapt_checkpoint[
+        "formal_manifold_query_closure_checkpoint"
+    ]
+    assert warm_checkpoint["branch_id"] == checkpoint_branch
+    assert query_checkpoint["selected_branch_id"] == checkpoint_branch
+    checkpoint_winning_ids = set(
+        query_checkpoint["winning_branch_ledger"]["kind_by_id"]
+    )
+    checkpoint_discarded_ids = set(
+        query_checkpoint["discarded_branch_operational_ledger"]["kind_by_id"]
+    )
+    assert checkpoint_winning_ids.isdisjoint(checkpoint_discarded_ids)
+    assert len(
+        query_checkpoint["energy_evaluation_occurrence_ids_winning"]
+    ) + len(query_checkpoint["energy_evaluation_occurrence_ids_discarded"]) >= int(
+        adapt_checkpoint["nfev_total"]
+    )
+
+
+def test_pure_fm_preflight_allows_repeats_with_nonappend_insertion(
+    monkeypatch,
+) -> None:
+    """Stable FM coordinate instances remove the old append-only restriction."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=True,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        adapt_insertion_mode="always",
+        phase1_prune_enabled=False,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+    )
+
+    assert payload["success"] is True
+    assert payload["allow_repeats"] is True
+    assert payload["adapt_insertion_mode"] == "always"
+    checkpoint = payload["formal_manifold_warm_state_checkpoint"]
+    assert checkpoint["coordinate_registry_override"]["coordinate_ids"] == (
+        checkpoint["registry"]
+    )
+    assert checkpoint["transaction_state"]["pending"] is False
+    accounting = payload["estimator_call_accounting"]
+    assert accounting["enabled"] is False
+    assert accounting["complete"] is False
+    assert accounting["exact_blockers"] == ["estimator_call_ledger_disabled"]
+    assert payload["formal_manifold_query_accounting_complete"] is False
+    assert payload["exact_cross_route_s_alg_available"] is False
+
+
+def test_pure_fm_filters_one_redundant_phase2_candidate_and_selects_another(
+    monkeypatch,
+) -> None:
+    """A typed rank-gate rejection is local to one pure-FM candidate."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+
+    def _forbidden_selector(*args, **kwargs):
+        raise AssertionError("pure FM invoked JR or SR selection logic")
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "select_route_a_schur_proposals",
+        "evaluate_historical_singleton_phase2_coordinate_models",
+        "evaluate_historical_singleton_coordinate_models",
+        "historical_singleton_scalar_selector_summary",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    original_selector = adapt_pipeline.select_combinatorial_query_closed_batch
+    audit = {
+        "forced_rank_gate_count": 0,
+        "feasible_singleton_count": 0,
+        "forced_candidate_key": None,
+    }
+
+    def _one_rank_gate_then_delegate(**kwargs):
+        selection = original_selector(**kwargs)
+        workspace = kwargs["workspace"]
+        if (
+            audit["forced_rank_gate_count"] == 0
+            and len(workspace.candidate_records) == 1
+            and selection.ordered_results
+        ):
+            result = selection.ordered_results[0]
+            failed = replace(
+                result,
+                feasible=False,
+                reason="candidate_subset_supported_rank_gate_failed",
+                joint_step=np.zeros_like(result.joint_step),
+                predicted_reduction=0.0,
+                score=0.0,
+                supported_candidate_rank=0,
+                query_free_derived_fields=(),
+                solve_result=None,
+            )
+            audit["forced_rank_gate_count"] = 1
+            audit["forced_candidate_key"] = str(
+                workspace.candidate_keys[0]
+            )
+            return replace(
+                selection,
+                feasible=False,
+                reason="no_feasible_second_order_subset",
+                selected=None,
+                feasible_subset_count=0,
+                ordered_results=(failed,),
+            )
+        if len(workspace.candidate_records) == 1 and selection.feasible:
+            audit["feasible_singleton_count"] += 1
+        return selection
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "select_combinatorial_query_closed_batch",
+        _one_rank_gate_then_delegate,
+    )
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=True,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        adapt_insertion_mode="always",
+        phase1_prune_enabled=False,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+    )
+
+    assert audit["forced_rank_gate_count"] == 1
+    assert audit["forced_candidate_key"] is not None
+    assert audit["feasible_singleton_count"] >= 1
+    assert payload["success"] is True
+    assert len(payload["history"]) == 1
+    history_payload = json.dumps(payload["history"], sort_keys=True)
+    assert "candidate_subset_supported_rank_gate_failed" in history_payload
+    assert "authoritative_phase2_ineligible_reason_counts" in history_payload
+    assert payload["formal_manifold_query_closure"][
+        "joint_response_selector_invoked"
+    ] is False
+
+
+def test_pure_fm_no_beam_filters_one_redundant_candidate_and_selects_another(
+    monkeypatch,
+) -> None:
+    """The non-beam pure-FM path filters a typed local rank failure."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+
+    def _forbidden_selector(*args, **kwargs):
+        raise AssertionError("pure FM invoked JR or SR selection logic")
+
+    for name in (
+        "RouteAJointResponseEvaluator",
+        "select_route_a_schur_proposals",
+        "evaluate_historical_singleton_phase2_coordinate_models",
+        "evaluate_historical_singleton_coordinate_models",
+        "historical_singleton_scalar_selector_summary",
+    ):
+        monkeypatch.setattr(adapt_pipeline, name, _forbidden_selector)
+
+    original_selector = adapt_pipeline.select_combinatorial_query_closed_batch
+    audit = {
+        "forced_rank_gate_count": 0,
+        "feasible_singleton_count": 0,
+        "forced_candidate_key": None,
+        "singleton_candidate_keys": set(),
+    }
+
+    def _one_rank_gate_then_delegate(**kwargs):
+        selection = original_selector(**kwargs)
+        workspace = kwargs["workspace"]
+        if len(workspace.candidate_records) == 1:
+            audit["singleton_candidate_keys"].add(
+                str(workspace.candidate_keys[0])
+            )
+        if (
+            audit["forced_rank_gate_count"] == 0
+            and len(workspace.candidate_records) == 1
+            and selection.ordered_results
+        ):
+            result = selection.ordered_results[0]
+            failed = replace(
+                result,
+                feasible=False,
+                reason="candidate_subset_supported_rank_gate_failed",
+                joint_step=np.zeros_like(result.joint_step),
+                predicted_reduction=0.0,
+                score=0.0,
+                supported_candidate_rank=0,
+                query_free_derived_fields=(),
+                solve_result=None,
+            )
+            audit["forced_rank_gate_count"] = 1
+            audit["forced_candidate_key"] = str(workspace.candidate_keys[0])
+            return replace(
+                selection,
+                feasible=False,
+                reason="no_feasible_second_order_subset",
+                selected=None,
+                feasible_subset_count=0,
+                ordered_results=(failed,),
+            )
+        if len(workspace.candidate_records) == 1 and selection.feasible:
+            audit["feasible_singleton_count"] += 1
+        return selection
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "select_combinatorial_query_closed_batch",
+        _one_rank_gate_then_delegate,
+    )
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=1,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=True,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        adapt_insertion_mode="always",
+        phase1_prune_enabled=False,
+        phase2_enable_batching=True,
+        phase2_batch_target_size=2,
+        phase2_batch_size_cap=3,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=1,
+        adapt_beam_children_per_parent=1,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+    )
+
+    assert audit["forced_rank_gate_count"] == 1
+    assert audit["forced_candidate_key"] is not None
+    assert audit["feasible_singleton_count"] >= 1
+    assert payload["success"] is True
+    assert payload["adapt_beam_enabled"] is False
+    assert len(payload["history"]) == 1
+    history_payload = json.dumps(payload["history"], sort_keys=True)
+    assert "candidate_subset_supported_rank_gate_failed" in history_payload
+    assert "authoritative_phase2_ineligible_reason_counts" in history_payload
+    query_closure = payload["formal_manifold_query_closure"]
+    assert query_closure["joint_response_selector_invoked"] is False
+    charged_second_derivatives = query_closure["all_executed"][
+        "primitive_ids_by_category"
+    ]["N_Q"]
+    assert len(charged_second_derivatives) >= len(
+        audit["singleton_candidate_keys"]
+    ) + 1
+
+
+def test_pure_fm_phase2_filter_reasons_are_exact_and_other_failures_close() -> None:
+    assert set(
+        adapt_pipeline._FORMAL_PHASE2_CHILD_EXPOSURE_RANK_ELIGIBILITY
+    ) == {
+        "candidate_subset_supported_rank_gate_failed",
+        "supported_direct_schur_or_shared_parity_failed",
+    }
+    unknown = SimpleNamespace(
+        feasible=False,
+        selected=None,
+        reason="no_feasible_second_order_subset",
+        ordered_results=(
+            SimpleNamespace(reason="ordinary_hessian_workspace_fingerprint_mismatch"),
+        ),
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="required Phase-II second-order response failed closed",
+    ):
+        adapt_pipeline._formal_phase2_authoritative_candidate_result(unknown)
+
+
+def test_pure_fm_no_beam_terminal_refits_close_energy_occurrences(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """No-beam refits partition every executed energy occurrence exactly."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_history_row_was_full_prefix_reopt",
+        lambda *args, **kwargs: False,
+    )
+    current_json = tmp_path / "pure_fm_no_beam_terminal_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=2,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase1_prune_enabled=True,
+        phase1_prune_mode="final",
+        phase1_prune_checkpoint_period=1,
+        phase1_prune_maturity_threshold=0.0,
+        phase1_prune_snr_threshold=1.0e12,
+        phase1_prune_fraction=1.0,
+        phase1_prune_min_candidates=1,
+        phase1_prune_max_candidates=1,
+        phase1_prune_max_regression=1.0e6,
+        phase1_prune_retained_gain_ratio=0.0,
+        phase1_prune_protect_steps=0,
+        phase1_prune_stale_age=0,
+        phase1_prune_stagnation_threshold=0.0,
+        phase1_prune_small_theta_abs=10.0,
+        phase1_prune_small_theta_relative=0.0,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=1,
+        adapt_beam_children_per_parent=1,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=True,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    assert payload["adapt_beam_enabled"] is False
+    assert len(payload["history"]) == 2
+    assert payload["final_full_refit"]["executed"] is True
+    terminal_prune = payload["continuation"]["selected_scaffold_audit"][
+        "last_prune"
+    ]
+    assert terminal_prune["executed"] is True
+    assert int(terminal_prune["accepted_count"]) == 1
+    assert terminal_prune["formal_manifold_post_prune_reanchor"]
+    assert payload["formal_manifold_warm_start"]["pending"] is False
+
+    closure = payload["formal_manifold_query_closure"]
+    assert closure["formal_combinatorial_selector_invoked"] is True
+    assert closure["singleton_response_selector_invoked"] is False
+    assert closure["joint_response_selector_invoked"] is False
+    occurrence_ids = closure["energy_evaluation_occurrence_ids"]
+    assert payload["formal_manifold_query_accounting_complete"] is True
+    assert len(occurrence_ids) >= int(payload["nfev_total"])
+    assert set(occurrence_ids) == set(
+        closure["all_executed"]["primitive_ids_by_category"]["N_E"]
+    )
+    assert int(payload["nfev_winning_lineage"]) + int(
+        payload["nfev_discarded_operational_overhead"]
+    ) == int(payload["nfev_total"])
+    # Boundary/final refits on the surviving no-beam lineage are scientific
+    # winning-branch work under the shared Paper-I convention, even when the
+    # transactional FM state labels an intermediate proposal as rolled back.
+    assert int(payload["nfev_discarded_operational_overhead"]) == 0
+
+    checkpoint = payload["formal_manifold_query_closure_checkpoint"]
+    checkpoint_occurrences = [
+        *checkpoint["energy_evaluation_occurrence_ids_winning"],
+        *checkpoint["energy_evaluation_occurrence_ids_discarded"],
+    ]
+    assert len(checkpoint_occurrences) == int(payload["nfev_total"])
+    assert any(
+        "terminal_prune_frozen" in phases
+        for phases in checkpoint["all_executed_ledger"][
+            "consumer_phases_by_id"
+        ].values()
+    )
+
+
+def test_pure_fm_beam_live_prune_closes_every_accepted_probe_occurrence(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """Accepted prune probes from every 3x2 child remain in the closed multiset."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    current_json = tmp_path / "pure_fm_beam_live_prune_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=3,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+        phase1_prune_checkpoint_period=1,
+        phase1_prune_maturity_threshold=0.0,
+        phase1_prune_snr_threshold=1.0e12,
+        phase1_prune_fraction=1.0,
+        phase1_prune_min_candidates=1,
+        phase1_prune_max_candidates=1,
+        phase1_prune_max_regression=1.0e6,
+        phase1_prune_retained_gain_ratio=0.0,
+        phase1_prune_protect_steps=0,
+        phase1_prune_stale_age=0,
+        phase1_prune_stagnation_threshold=0.0,
+        phase1_prune_small_theta_abs=10.0,
+        phase1_prune_small_theta_relative=0.0,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=False,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    beam = payload["continuation"]["beam_search"]
+    assert beam["beam_enabled"] is True
+    assert int(beam["live_branches"]) == 3
+    assert int(beam["children_per_parent"]) == 2
+    assert any(
+        int(round_row["proposals_selected_count"])
+        > int(round_row["frontier_input_count"])
+        for round_row in beam["rounds"]
+    )
+    assert all(
+        int(round_row["frontier_input_count"]) <= 3
+        and int(round_row["frontier_kept_count"]) <= 3
+        and int(round_row["proposals_selected_count"])
+        <= 2 * int(round_row["frontier_input_count"])
+        for round_row in beam["rounds"]
+    )
+    assert any(
+        row["post_admission_prune"].get("accepted_count", 0) > 0
+        for row in payload["history"]
+    )
+    closure = payload["formal_manifold_query_closure"]
+    occurrence_ids = closure["energy_evaluation_occurrence_ids"]
+    assert payload["formal_manifold_query_accounting_complete"] is True
+    # The route-local N_E ledger also retains chargeable state-refresh probes;
+    # raw optimizer/guard nfev is the narrower shared-estimator scope.
+    assert len(occurrence_ids) >= int(payload["nfev_total"])
+    assert set(occurrence_ids) == set(
+        closure["all_executed"]["primitive_ids_by_category"]["N_E"]
+    )
+    assert int(payload["nfev_winning_lineage"]) + int(
+        payload["nfev_discarded_operational_overhead"]
+    ) == int(payload["nfev_total"])
+
+    final_checkpoint = payload["formal_manifold_query_closure_checkpoint"]
+    final_winning_occurrences = Counter(
+        final_checkpoint["energy_evaluation_occurrence_ids_winning"]
+    )
+    final_discarded_occurrences = Counter(
+        final_checkpoint["energy_evaluation_occurrence_ids_discarded"]
+    )
+    final_winning_prune_ids = {
+        primitive_id
+        for primitive_id, phases in final_checkpoint["winning_branch_ledger"][
+            "consumer_phases_by_id"
+        ].items()
+        if "prune_frozen" in phases
+    }
+    final_discarded_prune_ids = {
+        primitive_id
+        for primitive_id, phases in final_checkpoint[
+            "discarded_branch_operational_ledger"
+        ]["consumer_phases_by_id"].items()
+        if "prune_frozen" in phases
+    }
+    assert final_winning_prune_ids
+    assert final_discarded_prune_ids
+    assert all(
+        final_winning_occurrences[primitive_id] == 1
+        for primitive_id in final_winning_prune_ids
+    )
+    assert all(
+        final_discarded_occurrences[primitive_id] == 1
+        for primitive_id in final_discarded_prune_ids
+    )
+
+    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))["adapt_vqe"]
+    checkpoint_closure = checkpoint["formal_manifold_query_closure_checkpoint"]
+    checkpoint_occurrences = [
+        *checkpoint_closure["energy_evaluation_occurrence_ids_winning"],
+        *checkpoint_closure["energy_evaluation_occurrence_ids_discarded"],
+    ]
+    checkpoint_energy_ids = {
+        primitive_id
+        for primitive_id, kind in checkpoint_closure["all_executed_ledger"][
+            "kind_by_id"
+        ].items()
+        if kind == "energy"
+    }
+    assert len(checkpoint_occurrences) >= int(checkpoint["nfev_total"])
+    assert set(checkpoint_occurrences) == checkpoint_energy_ids
+
+
+def test_pure_fm_beam_first_hit_skips_prune_and_later_sibling_refits(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """A target-hitting child closes the round before sibling materialization."""
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *args, **kwargs: None)
+    current_json = tmp_path / "pure_fm_beam_first_hit_current.json"
+
+    payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
+        h_poly=_two_site_hubbard_hamiltonian(),
+        num_sites=2,
+        ordering="blocked",
+        problem="hubbard",
+        adapt_pool="uccsd",
+        t=1.0,
+        u=4.0,
+        dv=0.0,
+        boundary="periodic",
+        omega0=0.0,
+        g_ep=0.0,
+        n_ph_max=1,
+        boson_encoding="binary",
+        max_depth=3,
+        eps_grad=1.0e-12,
+        eps_energy=0.0,
+        maxiter=1,
+        seed=7,
+        allow_repeats=False,
+        finite_angle_fallback=False,
+        finite_angle=0.1,
+        finite_angle_min_improvement=1.0e-12,
+        adapt_state_backend="compiled",
+        adapt_reopt_policy="full",
+        phase1_prune_enabled=True,
+        phase1_prune_mode="live",
+        phase1_prune_checkpoint_period=1,
+        phase1_prune_maturity_threshold=0.0,
+        phase1_prune_snr_threshold=1.0e12,
+        phase1_prune_fraction=1.0,
+        phase1_prune_min_candidates=1,
+        phase1_prune_max_candidates=1,
+        phase1_prune_max_regression=1.0e6,
+        phase1_prune_retained_gain_ratio=0.0,
+        phase1_prune_protect_steps=0,
+        phase1_prune_stale_age=0,
+        phase1_prune_stagnation_threshold=0.0,
+        phase1_prune_small_theta_abs=10.0,
+        phase1_prune_small_theta_relative=0.0,
+        phase2_enable_batching=False,
+        phase3_runtime_split_mode="shortlist_pauli_children_v1",
+        phase3_runtime_split_selection_mode="global_child_only_v1",
+        phase3_runtime_split_subset_sizes=(1,),
+        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
+        route_a_funnel_config=_formal_beam_carrier_config(),
+        adapt_beam_live_branches=3,
+        adapt_beam_children_per_parent=2,
+        adapt_beam_terminated_keep=0,
+        adapt_reoptimization_route=FORMAL_MANIFOLD_ROUTE,
+        adapt_final_full_refit=True,
+        benchmark_target_abs_delta_e=1.0e6,
+        benchmark_target_reference_energy=0.0,
+        adapt_current_json=current_json,
+        adapt_current_json_every_depth=1,
+        adapt_estimator_call_ledger_enabled=True,
+    )
+
+    assert payload["stop_reason"] == "benchmark_abs_delta_e_target"
+    assert len(payload["history"]) == 1
+    live_prune = payload["history"][0]["post_admission_prune"]
+    assert live_prune["executed"] is False
+    assert live_prune["permission_open"] is False
+    assert live_prune["permission_reason"] == "benchmark_target_hit_pre_prune"
+    assert int(live_prune["accepted_count"]) == 0
+
+    beam = payload["continuation"]["beam_search"]
+    assert beam["benchmark_target_hit_depth"] == 1
+    assert len(beam["rounds"]) == 1
+    first_round = beam["rounds"][0]
+    assert int(first_round["proposals_selected_count"]) >= 2
+    assert int(first_round["children_materialized_count"]) == 1
+    assert int(first_round["round_terminals_raw_count"]) == 1
+    assert int(first_round["prune_child_count"]) == 1
+    assert int(first_round["prune_executed_count"]) == 0
+    assert first_round["prune_permission_reason_counts"] == {
+        "benchmark_target_hit_pre_prune": 1
+    }
+
+    assert payload["final_full_refit"]["requested"] is True
+    assert payload["final_full_refit"]["executed"] is False
+    terminal_prune = payload["prune_summary"]
+    assert terminal_prune["terminal_pass_skipped_reason"] == (
+        "benchmark_abs_delta_e_target"
+    )
+    assert payload["exact_energy_from_final_state_source"] == (
+        "accepted_target_hit_exact_energy_reuse"
+    )
+    final_scope_counts = payload["estimator_call_accounting"][
+        "executed_occurrence_accounting"
+    ]["all_hamiltonian_execution"]["occurrence_count_by_consumer_scope"]
+    assert int(final_scope_counts.get("final_state_verification", 0)) == 0

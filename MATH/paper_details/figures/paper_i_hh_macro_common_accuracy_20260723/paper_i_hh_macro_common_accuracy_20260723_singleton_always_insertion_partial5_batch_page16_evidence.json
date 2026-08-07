@@ -1,0 +1,1641 @@
+{
+  "cluster_id": 9381298,
+  "insertion_policy": "always",
+  "partial_batch": true,
+  "representation": "projected_singleton",
+  "rows": [
+    {
+      "regime": "intermediate_strong",
+      "source": {
+        "archive": "9381298.0__intermediate_strong_transfer.tar.gz",
+        "archive_sha256": "7421bb71f20a3877ffdaaf11b9bcbb11f7f8a96cf691331b0ab42d612ce4344b",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.0__intermediate_strong_compact.json.gz",
+        "compact_evidence_sha256": "fc89f1962bea16a56575fe6d73c96a3a5578a19b0c76fe6781dca5d4038ffc74",
+        "member": "raw_outputs/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/intermediate_strong/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 500,
+        "D2q": 249,
+        "Dc": 989,
+        "N2q": 296,
+        "S_alg": 517370,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 77614,
+          "N_grad": 175160,
+          "N_metric": 264546
+        },
+        "S_alg_receipt": {
+          "S_alg": 517370,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 77614,
+            "N_grad": 175160,
+            "N_metric": 264546
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 517370,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "projected_singleton",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 550,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[70]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[105]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[112]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[3]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[113]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[114]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[2]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[120]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[10]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[169]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[9]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[69]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[40]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[9]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[31]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[8]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[30]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[230]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[9]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[2]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[9]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[127]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[70]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[69]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[112]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[254]::legal_projected",
+            "hh_phonon::xp_sym(site=0)::child_set[6]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "hh_phonon::xp_sym(site=1)::child_set[0]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[4]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[127]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[6]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[18]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[1]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[10]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[126]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[125]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[2]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[112]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[2]::legal_projected",
+            "hh_phonon::xp_sym(site=0)::child_set[4]::legal_projected"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 4.249211402074238e-06,
+      "terminal_k": 50,
+      "title": "Intermediate--strong",
+      "trajectory": [
+        {
+          "delta_E": 1.0696919722447729,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2489396137518497,
+          "k": 2
+        },
+        {
+          "delta_E": 0.19773040800300523,
+          "k": 3
+        },
+        {
+          "delta_E": 0.14538267399224913,
+          "k": 4
+        },
+        {
+          "delta_E": 0.09979493953524865,
+          "k": 5
+        },
+        {
+          "delta_E": 0.047922027664860645,
+          "k": 6
+        },
+        {
+          "delta_E": 0.02593329743671191,
+          "k": 7
+        },
+        {
+          "delta_E": 0.02076608656397083,
+          "k": 8
+        },
+        {
+          "delta_E": 0.015095199287398664,
+          "k": 9
+        },
+        {
+          "delta_E": 0.011903648520086518,
+          "k": 10
+        },
+        {
+          "delta_E": 0.009287260070771186,
+          "k": 11
+        },
+        {
+          "delta_E": 0.008523249373853514,
+          "k": 12
+        },
+        {
+          "delta_E": 0.008203053393765591,
+          "k": 13
+        },
+        {
+          "delta_E": 0.00803704109600123,
+          "k": 14
+        },
+        {
+          "delta_E": 0.008036384764202542,
+          "k": 15
+        },
+        {
+          "delta_E": 0.007949469997982739,
+          "k": 16
+        },
+        {
+          "delta_E": 0.007865959975776438,
+          "k": 17
+        },
+        {
+          "delta_E": 0.007813013486492548,
+          "k": 18
+        },
+        {
+          "delta_E": 0.007790358873623893,
+          "k": 19
+        },
+        {
+          "delta_E": 0.0077717445560044895,
+          "k": 20
+        },
+        {
+          "delta_E": 0.007755886347405094,
+          "k": 21
+        },
+        {
+          "delta_E": 0.007481330401762021,
+          "k": 22
+        },
+        {
+          "delta_E": 0.002739618329360427,
+          "k": 23
+        },
+        {
+          "delta_E": 0.0011396589036916094,
+          "k": 24
+        },
+        {
+          "delta_E": 0.00047264935432367317,
+          "k": 25
+        },
+        {
+          "delta_E": 0.00026376403037176033,
+          "k": 26
+        },
+        {
+          "delta_E": 0.00021774341256808327,
+          "k": 27
+        },
+        {
+          "delta_E": 0.00014480377561287838,
+          "k": 28
+        },
+        {
+          "delta_E": 9.600076066829111e-05,
+          "k": 29
+        },
+        {
+          "delta_E": 8.14523323298122e-05,
+          "k": 30
+        },
+        {
+          "delta_E": 6.673887906749609e-05,
+          "k": 31
+        },
+        {
+          "delta_E": 6.394890142658038e-05,
+          "k": 32
+        },
+        {
+          "delta_E": 4.8665017288285206e-05,
+          "k": 33
+        },
+        {
+          "delta_E": 4.4297751576660716e-05,
+          "k": 34
+        },
+        {
+          "delta_E": 3.641616565208672e-05,
+          "k": 35
+        },
+        {
+          "delta_E": 3.52747663986408e-05,
+          "k": 36
+        },
+        {
+          "delta_E": 3.44679448229801e-05,
+          "k": 37
+        },
+        {
+          "delta_E": 3.317856176132672e-05,
+          "k": 38
+        },
+        {
+          "delta_E": 3.2389819716538426e-05,
+          "k": 39
+        },
+        {
+          "delta_E": 1.3644471231311073e-05,
+          "k": 40
+        },
+        {
+          "delta_E": 1.3153542765764747e-05,
+          "k": 41
+        },
+        {
+          "delta_E": 1.2910331575577416e-05,
+          "k": 42
+        },
+        {
+          "delta_E": 8.797634624690964e-06,
+          "k": 43
+        },
+        {
+          "delta_E": 8.138201029517234e-06,
+          "k": 44
+        },
+        {
+          "delta_E": 7.361051409304764e-06,
+          "k": 45
+        },
+        {
+          "delta_E": 6.835128951498959e-06,
+          "k": 46
+        },
+        {
+          "delta_E": 6.70422246273894e-06,
+          "k": 47
+        },
+        {
+          "delta_E": 6.182781274954863e-06,
+          "k": 48
+        },
+        {
+          "delta_E": 4.308989436263566e-06,
+          "k": 49
+        },
+        {
+          "delta_E": 4.249211402074238e-06,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "intermediate_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.1__intermediate_weak_transfer.tar.gz",
+        "archive_sha256": "10d723df1c394e250f1a6a5970b8e64609bee472bef2f80bc56431d92db9e7aa",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.1__intermediate_weak_compact.json.gz",
+        "compact_evidence_sha256": "ba368cf5aaf92f439fc8a71c72ec144aa22e5e3ed7185242c598d2b1343b08d8",
+        "member": "raw_outputs/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/intermediate_weak/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 382,
+        "D2q": 195,
+        "Dc": 1000,
+        "N2q": 222,
+        "S_alg": 296896,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 30987,
+          "N_grad": 104620,
+          "N_metric": 161239
+        },
+        "S_alg_receipt": {
+          "S_alg": 296896,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 30987,
+            "N_grad": 104620,
+            "N_metric": 161239
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 296896,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "projected_singleton",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 432,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[17]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[13]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[28]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[10]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[7]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[1]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[1]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[10]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[13]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[29]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[0]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[41]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[31]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[10]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[13]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[2]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=1)::child_set[15]::legal_projected",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=1)::child_set[15]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[5]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[7]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[31]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[3]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[5]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[5]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[4]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[1]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[1]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[1]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[4]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[0]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[5]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[7]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[3]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[1]::legal_projected"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 1.3111600694060144e-10,
+      "terminal_k": 50,
+      "title": "Intermediate--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.9407577076742832,
+          "k": 1
+        },
+        {
+          "delta_E": 0.12000534918135913,
+          "k": 2
+        },
+        {
+          "delta_E": 0.10962460248205397,
+          "k": 3
+        },
+        {
+          "delta_E": 0.041400005547657104,
+          "k": 4
+        },
+        {
+          "delta_E": 0.00724120862087807,
+          "k": 5
+        },
+        {
+          "delta_E": 0.004020791240083144,
+          "k": 6
+        },
+        {
+          "delta_E": 0.0006781227453894201,
+          "k": 7
+        },
+        {
+          "delta_E": 0.0005270615372486298,
+          "k": 8
+        },
+        {
+          "delta_E": 0.0003757939641185204,
+          "k": 9
+        },
+        {
+          "delta_E": 0.0002863129351492466,
+          "k": 10
+        },
+        {
+          "delta_E": 0.00019680105825514715,
+          "k": 11
+        },
+        {
+          "delta_E": 0.00016974114823770092,
+          "k": 12
+        },
+        {
+          "delta_E": 0.00016961454071034998,
+          "k": 13
+        },
+        {
+          "delta_E": 0.0001694889747149153,
+          "k": 14
+        },
+        {
+          "delta_E": 0.00016943980180356144,
+          "k": 15
+        },
+        {
+          "delta_E": 0.0001693926806884405,
+          "k": 16
+        },
+        {
+          "delta_E": 0.0001687872125784029,
+          "k": 17
+        },
+        {
+          "delta_E": 0.00016807960116271836,
+          "k": 18
+        },
+        {
+          "delta_E": 0.0001680466557717475,
+          "k": 19
+        },
+        {
+          "delta_E": 5.061670642181326e-06,
+          "k": 20
+        },
+        {
+          "delta_E": 2.3779145225111264e-06,
+          "k": 21
+        },
+        {
+          "delta_E": 4.2706802005909594e-07,
+          "k": 22
+        },
+        {
+          "delta_E": 9.235163433984894e-08,
+          "k": 23
+        },
+        {
+          "delta_E": 9.226977981668938e-08,
+          "k": 24
+        },
+        {
+          "delta_E": 6.26554002014501e-08,
+          "k": 25
+        },
+        {
+          "delta_E": 6.001829011559323e-08,
+          "k": 26
+        },
+        {
+          "delta_E": 5.322979268473915e-08,
+          "k": 27
+        },
+        {
+          "delta_E": 1.1143625577858529e-08,
+          "k": 28
+        },
+        {
+          "delta_E": 6.985522771341124e-09,
+          "k": 29
+        },
+        {
+          "delta_E": 3.431916417717673e-09,
+          "k": 30
+        },
+        {
+          "delta_E": 3.1370073760861317e-09,
+          "k": 31
+        },
+        {
+          "delta_E": 3.118589442241415e-09,
+          "k": 32
+        },
+        {
+          "delta_E": 3.099765000236232e-09,
+          "k": 33
+        },
+        {
+          "delta_E": 3.0992811650421004e-09,
+          "k": 34
+        },
+        {
+          "delta_E": 3.099248191418269e-09,
+          "k": 35
+        },
+        {
+          "delta_E": 3.0883721136021336e-09,
+          "k": 36
+        },
+        {
+          "delta_E": 2.7864145435430032e-09,
+          "k": 37
+        },
+        {
+          "delta_E": 2.7840303395976207e-09,
+          "k": 38
+        },
+        {
+          "delta_E": 2.7836998262031898e-09,
+          "k": 39
+        },
+        {
+          "delta_E": 2.7836529192803994e-09,
+          "k": 40
+        },
+        {
+          "delta_E": 2.7317599293752437e-09,
+          "k": 41
+        },
+        {
+          "delta_E": 2.731450066129071e-09,
+          "k": 42
+        },
+        {
+          "delta_E": 1.4768897216299592e-10,
+          "k": 43
+        },
+        {
+          "delta_E": 1.4327500297284246e-10,
+          "k": 44
+        },
+        {
+          "delta_E": 1.397379989498404e-10,
+          "k": 45
+        },
+        {
+          "delta_E": 1.3113532482122991e-10,
+          "k": 46
+        },
+        {
+          "delta_E": 1.3111689511902114e-10,
+          "k": 47
+        },
+        {
+          "delta_E": 1.3111600694060144e-10,
+          "k": 48
+        },
+        {
+          "delta_E": 1.3111600694060144e-10,
+          "k": 49
+        },
+        {
+          "delta_E": 1.3111600694060144e-10,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_strong_u8",
+      "source": {
+        "archive": "9381298.2__strong_strong_u8_transfer.tar.gz",
+        "archive_sha256": "6b543d06dfdb71f1558a48caad2302f69ec4b05d7cbf7c55e4e6ef86eaacff0b",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.2__strong_strong_u8_compact.json.gz",
+        "compact_evidence_sha256": "0e074412f4e69219724b8cc6f22f117c26b9b251a4d42dcbe7bd7cb5c06d8960",
+        "member": "raw_outputs/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/strong_strong_u8/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 452,
+        "D2q": 203,
+        "Dc": 891,
+        "N2q": 254,
+        "S_alg": 458826,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 38567,
+          "N_grad": 166765,
+          "N_metric": 253444
+        },
+        "S_alg_receipt": {
+          "S_alg": 458826,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 38567,
+            "N_grad": 166765,
+            "N_metric": 253444
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 458826,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "projected_singleton",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 502,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[88]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[8]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[0]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[10]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[8]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[242]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[9]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[243]::legal_projected",
+            "hh_phonon::xp_sym(site=0)::child_set[0]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[10]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[32]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[80]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[73]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[39]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[34]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[27]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[9]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[231]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[295]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[230]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[242]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[127]::legal_projected",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)::child_set[3]::legal_projected",
+            "hh_phonon::xp_sym(site=0)::child_set[4]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "hh_phonon::xp_sym(site=1)::child_set[6]::legal_projected",
+            "hh_phonon::xp_sym(site=1)::child_set[2]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[127]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[20]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[112]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[6]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[31]::legal_projected",
+            "hh_termwise_ham_quadrature_term(yyyeeeeeze)",
+            "paop_sq_full:paop_hop_sq(0,1)::child_set[31]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[8]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "paop_full:paop_disp(site=1)::child_set[18]::legal_projected",
+            "hh_termwise_ham_quadrature_term(yyyeeezeee)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 3.6954160176350115e-08,
+      "terminal_k": 50,
+      "title": "Strong--strong",
+      "trajectory": [
+        {
+          "delta_E": 0.3563180978140814,
+          "k": 1
+        },
+        {
+          "delta_E": 0.22942372343174,
+          "k": 2
+        },
+        {
+          "delta_E": 0.007287768432162389,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0038123779437411187,
+          "k": 4
+        },
+        {
+          "delta_E": 0.002852841973014719,
+          "k": 5
+        },
+        {
+          "delta_E": 0.00018823848793658726,
+          "k": 6
+        },
+        {
+          "delta_E": 0.0001372387291623811,
+          "k": 7
+        },
+        {
+          "delta_E": 8.546450055058052e-05,
+          "k": 8
+        },
+        {
+          "delta_E": 7.101623122118816e-05,
+          "k": 9
+        },
+        {
+          "delta_E": 3.647921776162022e-05,
+          "k": 10
+        },
+        {
+          "delta_E": 3.1496231692740295e-05,
+          "k": 11
+        },
+        {
+          "delta_E": 2.642563131893816e-05,
+          "k": 12
+        },
+        {
+          "delta_E": 2.5027707079905426e-05,
+          "k": 13
+        },
+        {
+          "delta_E": 2.3619471534175318e-05,
+          "k": 14
+        },
+        {
+          "delta_E": 2.356970598160757e-05,
+          "k": 15
+        },
+        {
+          "delta_E": 2.306894772474699e-05,
+          "k": 16
+        },
+        {
+          "delta_E": 2.2971883396838422e-05,
+          "k": 17
+        },
+        {
+          "delta_E": 2.292375494516996e-05,
+          "k": 18
+        },
+        {
+          "delta_E": 2.292326980035675e-05,
+          "k": 19
+        },
+        {
+          "delta_E": 1.1796854530565781e-05,
+          "k": 20
+        },
+        {
+          "delta_E": 1.160658774979062e-05,
+          "k": 21
+        },
+        {
+          "delta_E": 1.0362652159812136e-05,
+          "k": 22
+        },
+        {
+          "delta_E": 1.7727787149368623e-07,
+          "k": 23
+        },
+        {
+          "delta_E": 1.7721762413103193e-07,
+          "k": 24
+        },
+        {
+          "delta_E": 1.7719050338094178e-07,
+          "k": 25
+        },
+        {
+          "delta_E": 1.7356935733126022e-07,
+          "k": 26
+        },
+        {
+          "delta_E": 1.5362789052009163e-07,
+          "k": 27
+        },
+        {
+          "delta_E": 1.530387337966843e-07,
+          "k": 28
+        },
+        {
+          "delta_E": 1.4272520143521206e-07,
+          "k": 29
+        },
+        {
+          "delta_E": 1.4270825776652174e-07,
+          "k": 30
+        },
+        {
+          "delta_E": 1.1796714671774566e-07,
+          "k": 31
+        },
+        {
+          "delta_E": 1.1740711869379084e-07,
+          "k": 32
+        },
+        {
+          "delta_E": 1.1733087357246319e-07,
+          "k": 33
+        },
+        {
+          "delta_E": 1.1704377289589729e-07,
+          "k": 34
+        },
+        {
+          "delta_E": 1.1700528923519471e-07,
+          "k": 35
+        },
+        {
+          "delta_E": 1.1531585009105783e-07,
+          "k": 36
+        },
+        {
+          "delta_E": 1.1516350739704251e-07,
+          "k": 37
+        },
+        {
+          "delta_E": 1.1492971230264715e-07,
+          "k": 38
+        },
+        {
+          "delta_E": 1.1491044338285406e-07,
+          "k": 39
+        },
+        {
+          "delta_E": 1.1456132753551174e-07,
+          "k": 40
+        },
+        {
+          "delta_E": 1.1445284142652667e-07,
+          "k": 41
+        },
+        {
+          "delta_E": 1.1400388932880645e-07,
+          "k": 42
+        },
+        {
+          "delta_E": 5.297201011167374e-08,
+          "k": 43
+        },
+        {
+          "delta_E": 4.2677835487836546e-08,
+          "k": 44
+        },
+        {
+          "delta_E": 3.8634973997808686e-08,
+          "k": 45
+        },
+        {
+          "delta_E": 3.7998455271193166e-08,
+          "k": 46
+        },
+        {
+          "delta_E": 3.7940632968691546e-08,
+          "k": 47
+        },
+        {
+          "delta_E": 3.7937816554922676e-08,
+          "k": 48
+        },
+        {
+          "delta_E": 3.793642167071454e-08,
+          "k": 49
+        },
+        {
+          "delta_E": 3.6954160176350115e-08,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_weak_u8",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.3__strong_weak_u8_transfer.tar.gz",
+        "archive_sha256": "ff10916f9560e1c5ed2c4d3a207d4da636bf33457069c92fe8885dcc475e22a2",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.3__strong_weak_u8_compact.json.gz",
+        "compact_evidence_sha256": "94916ec62f187cc5a8c75757b3f7ea874a81a6ef77608292834974e382eca053",
+        "member": "raw_outputs/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/strong_weak_u8/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 464,
+        "D2q": 305,
+        "Dc": 1264,
+        "N2q": 318,
+        "S_alg": 313199,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 21060,
+          "N_grad": 114650,
+          "N_metric": 177439
+        },
+        "S_alg_receipt": {
+          "S_alg": 313199,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 21060,
+            "N_grad": 114650,
+            "N_metric": 177439
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 313199,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "projected_singleton",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 514,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[10]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[10]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[0]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[2]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[41]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[41]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[11]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[31]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::child_set[0]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eyeezeee)",
+            "paop_full:paop_disp(site=1)::child_set[7]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[3]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[2]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[6]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[31]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[5]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[3]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[28]::legal_projected"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 8.006738110299949e-07,
+      "terminal_k": 50,
+      "title": "Strong--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.35043568958836335,
+          "k": 1
+        },
+        {
+          "delta_E": 0.22354131520609766,
+          "k": 2
+        },
+        {
+          "delta_E": 0.0014053602078547556,
+          "k": 3
+        },
+        {
+          "delta_E": 0.001221308269547583,
+          "k": 4
+        },
+        {
+          "delta_E": 0.0005284068448327961,
+          "k": 5
+        },
+        {
+          "delta_E": 1.1729368885937674e-05,
+          "k": 6
+        },
+        {
+          "delta_E": 9.796621053714816e-06,
+          "k": 7
+        },
+        {
+          "delta_E": 7.895513734812454e-06,
+          "k": 8
+        },
+        {
+          "delta_E": 1.760840619646764e-06,
+          "k": 9
+        },
+        {
+          "delta_E": 1.1897804947924584e-06,
+          "k": 10
+        },
+        {
+          "delta_E": 1.0098441057815322e-06,
+          "k": 11
+        },
+        {
+          "delta_E": 8.306771430710569e-07,
+          "k": 12
+        },
+        {
+          "delta_E": 8.185373923108585e-07,
+          "k": 13
+        },
+        {
+          "delta_E": 8.168376859352122e-07,
+          "k": 14
+        },
+        {
+          "delta_E": 8.110203066902244e-07,
+          "k": 15
+        },
+        {
+          "delta_E": 8.105867486118967e-07,
+          "k": 16
+        },
+        {
+          "delta_E": 8.057970758423849e-07,
+          "k": 17
+        },
+        {
+          "delta_E": 8.009064731417936e-07,
+          "k": 18
+        },
+        {
+          "delta_E": 8.007409963983747e-07,
+          "k": 19
+        },
+        {
+          "delta_E": 8.006750119582406e-07,
+          "k": 20
+        },
+        {
+          "delta_E": 8.006744744992744e-07,
+          "k": 21
+        },
+        {
+          "delta_E": 8.006744272037736e-07,
+          "k": 22
+        },
+        {
+          "delta_E": 8.006743990041087e-07,
+          "k": 23
+        },
+        {
+          "delta_E": 8.006743739130684e-07,
+          "k": 24
+        },
+        {
+          "delta_E": 8.006743614785705e-07,
+          "k": 25
+        },
+        {
+          "delta_E": 8.006743473787381e-07,
+          "k": 26
+        },
+        {
+          "delta_E": 8.006743137389805e-07,
+          "k": 27
+        },
+        {
+          "delta_E": 8.006742719945947e-07,
+          "k": 28
+        },
+        {
+          "delta_E": 8.006742476807105e-07,
+          "k": 29
+        },
+        {
+          "delta_E": 8.006742316934989e-07,
+          "k": 30
+        },
+        {
+          "delta_E": 8.006741962773845e-07,
+          "k": 31
+        },
+        {
+          "delta_E": 8.006741829547082e-07,
+          "k": 32
+        },
+        {
+          "delta_E": 8.006741516464189e-07,
+          "k": 33
+        },
+        {
+          "delta_E": 8.00674133327739e-07,
+          "k": 34
+        },
+        {
+          "delta_E": 8.006741193389288e-07,
+          "k": 35
+        },
+        {
+          "delta_E": 8.006740950250446e-07,
+          "k": 36
+        },
+        {
+          "delta_E": 8.006740668253798e-07,
+          "k": 37
+        },
+        {
+          "delta_E": 8.006740442878524e-07,
+          "k": 38
+        },
+        {
+          "delta_E": 8.006740223054365e-07,
+          "k": 39
+        },
+        {
+          "delta_E": 8.006739966592846e-07,
+          "k": 40
+        },
+        {
+          "delta_E": 8.006739778965155e-07,
+          "k": 41
+        },
+        {
+          "delta_E": 8.006739644628169e-07,
+          "k": 42
+        },
+        {
+          "delta_E": 8.006739469212931e-07,
+          "k": 43
+        },
+        {
+          "delta_E": 8.006739372623528e-07,
+          "k": 44
+        },
+        {
+          "delta_E": 8.00673923384565e-07,
+          "k": 45
+        },
+        {
+          "delta_E": 8.00673887413339e-07,
+          "k": 46
+        },
+        {
+          "delta_E": 8.006738556609605e-07,
+          "k": 47
+        },
+        {
+          "delta_E": 8.006738299037863e-07,
+          "k": 48
+        },
+        {
+          "delta_E": 8.006738205779129e-07,
+          "k": 49
+        },
+        {
+          "delta_E": 8.006738110299949e-07,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "weak_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.5__weak_weak_transfer.tar.gz",
+        "archive_sha256": "6ae7ef7eccccc0d76a353a7f05c7319a8836faf88b056b41097d72cccf8d1368",
+        "compact_evidence": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381298.5__weak_weak_compact.json.gz",
+        "compact_evidence_sha256": "0f743a5ffeb33c5e08236b94af58bbe986780d26072d2a39a21e364290914fcc",
+        "member": "raw_outputs/paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260726_v5_chtc/weak_weak/json/current.json",
+        "source_mode": "validated_compact_transfer_evidence"
+      },
+      "terminal_costs": {
+        "B1q": 398,
+        "D2q": 190,
+        "Dc": 924,
+        "N2q": 220,
+        "S_alg": 304601,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 34197,
+          "N_grad": 106514,
+          "N_metric": 163840
+        },
+        "S_alg_receipt": {
+          "S_alg": 304601,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 34197,
+            "N_grad": 106514,
+            "N_metric": 163840
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 304601,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "projected_singleton",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 448,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "hh_phonon::p(site=0)::child_set[2]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[0]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[22]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[13]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[10]::legal_projected",
+            "hh_fermionic_reusable::opp_spin_assist_current_nn_up(0,1)::child_set[1]::legal_projected",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=1)::child_set[3]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[1]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[28]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[10]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[39]::legal_projected",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=0)::child_set[13]::legal_projected",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=0)::child_set[3]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[14]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[0]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[29]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)::child_set[3]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[3]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[5]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[5]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=0)::child_set[0]::legal_projected",
+            "paop_bond_disp_std:paop_bond_disp(0,1)::child_set[8]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::child_set[1]::legal_projected",
+            "paop_full:paop_hopdrag(0,1)::child_set[25]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[0]::legal_projected",
+            "hh_phonon::s(site=1)::child_set[1]::legal_projected",
+            "paop_sq_std:paop_dens_sq(site=1)::child_set[2]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[4]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[1]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "paop_full:paop_disp(site=1)::child_set[2]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[16]::legal_projected",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::child_set[0]::legal_projected",
+            "paop_full:paop_disp(site=1)::child_set[2]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[1]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[13]::legal_projected",
+            "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)::paop_lf2_std::phonon_delta_p2(0,1)::child_set[7]::legal_projected",
+            "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::child_set[0]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[1]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[4]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[7]::legal_projected",
+            "paop_full:paop_cloud_p(site=1->phonon=0)::child_set[3]::legal_projected",
+            "paop_sq_full:paop_pair_sq(0,1)::child_set[28]::legal_projected",
+            "hh_phonon::s(site=0)::child_set[0]::legal_projected"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 3.017892602485972e-10,
+      "terminal_k": 50,
+      "title": "Weak--weak",
+      "trajectory": [
+        {
+          "delta_E": 1.0355987014575028,
+          "k": 1
+        },
+        {
+          "delta_E": 0.04338091999483262,
+          "k": 2
+        },
+        {
+          "delta_E": 0.03300017329551719,
+          "k": 3
+        },
+        {
+          "delta_E": 0.022571755033713226,
+          "k": 4
+        },
+        {
+          "delta_E": 0.012446800761331644,
+          "k": 5
+        },
+        {
+          "delta_E": 0.010383374056722072,
+          "k": 6
+        },
+        {
+          "delta_E": 0.0014340379876818243,
+          "k": 7
+        },
+        {
+          "delta_E": 0.0010480621278285973,
+          "k": 8
+        },
+        {
+          "delta_E": 0.0006610738873483735,
+          "k": 9
+        },
+        {
+          "delta_E": 0.0005169552838347746,
+          "k": 10
+        },
+        {
+          "delta_E": 0.00037277234141797067,
+          "k": 11
+        },
+        {
+          "delta_E": 0.0003721693951044269,
+          "k": 12
+        },
+        {
+          "delta_E": 0.0003721565065206711,
+          "k": 13
+        },
+        {
+          "delta_E": 0.0003719314671655205,
+          "k": 14
+        },
+        {
+          "delta_E": 4.500095702941742e-05,
+          "k": 15
+        },
+        {
+          "delta_E": 3.443966412453037e-05,
+          "k": 16
+        },
+        {
+          "delta_E": 3.299098970521719e-05,
+          "k": 17
+        },
+        {
+          "delta_E": 1.4473871464915078e-05,
+          "k": 18
+        },
+        {
+          "delta_E": 8.565036098695522e-06,
+          "k": 19
+        },
+        {
+          "delta_E": 3.3980640814501584e-06,
+          "k": 20
+        },
+        {
+          "delta_E": 2.5222127804092054e-06,
+          "k": 21
+        },
+        {
+          "delta_E": 1.625555759332542e-06,
+          "k": 22
+        },
+        {
+          "delta_E": 6.219189292444582e-07,
+          "k": 23
+        },
+        {
+          "delta_E": 6.201135588357332e-07,
+          "k": 24
+        },
+        {
+          "delta_E": 5.156437935527336e-07,
+          "k": 25
+        },
+        {
+          "delta_E": 5.141696661770112e-07,
+          "k": 26
+        },
+        {
+          "delta_E": 3.7641276895428177e-07,
+          "k": 27
+        },
+        {
+          "delta_E": 1.8809038793143884e-07,
+          "k": 28
+        },
+        {
+          "delta_E": 1.804441746022789e-07,
+          "k": 29
+        },
+        {
+          "delta_E": 1.5028457611698798e-07,
+          "k": 30
+        },
+        {
+          "delta_E": 2.3668071946758573e-09,
+          "k": 31
+        },
+        {
+          "delta_E": 2.3223378775583114e-09,
+          "k": 32
+        },
+        {
+          "delta_E": 2.319466618772026e-09,
+          "k": 33
+        },
+        {
+          "delta_E": 1.4620534782849859e-09,
+          "k": 34
+        },
+        {
+          "delta_E": 1.4417234073249574e-09,
+          "k": 35
+        },
+        {
+          "delta_E": 1.2480936284475774e-09,
+          "k": 36
+        },
+        {
+          "delta_E": 1.227205226328465e-09,
+          "k": 37
+        },
+        {
+          "delta_E": 1.1376545261398974e-09,
+          "k": 38
+        },
+        {
+          "delta_E": 1.0998781885263043e-09,
+          "k": 39
+        },
+        {
+          "delta_E": 6.713487543663632e-10,
+          "k": 40
+        },
+        {
+          "delta_E": 3.07986081082845e-10,
+          "k": 41
+        },
+        {
+          "delta_E": 3.0761082570052167e-10,
+          "k": 42
+        },
+        {
+          "delta_E": 3.032829543059279e-10,
+          "k": 43
+        },
+        {
+          "delta_E": 3.031919160179086e-10,
+          "k": 44
+        },
+        {
+          "delta_E": 3.0318347832292147e-10,
+          "k": 45
+        },
+        {
+          "delta_E": 3.0316282817466345e-10,
+          "k": 46
+        },
+        {
+          "delta_E": 3.0314328824943004e-10,
+          "k": 47
+        },
+        {
+          "delta_E": 3.0185698385309934e-10,
+          "k": 48
+        },
+        {
+          "delta_E": 3.017895933155046e-10,
+          "k": 49
+        },
+        {
+          "delta_E": 3.017892602485972e-10,
+          "k": 50
+        }
+      ]
+    }
+  ],
+  "schema": "paper_i_hh_insertion_batch_evidence_v2",
+  "selected_regimes": [
+    "weak_weak",
+    "intermediate_weak",
+    "strong_weak_u8",
+    "intermediate_strong",
+    "strong_strong_u8"
+  ]
+}

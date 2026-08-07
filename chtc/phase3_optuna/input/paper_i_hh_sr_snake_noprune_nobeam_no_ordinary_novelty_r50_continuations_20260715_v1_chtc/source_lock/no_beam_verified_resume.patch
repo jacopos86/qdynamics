@@ -1,0 +1,1251 @@
+--- a/pipelines/static_adapt/resume_scaffold.py
++++ b/pipelines/static_adapt/resume_scaffold.py
+@@ -12,7 +12,7 @@
+ import json
+ import math
+ import re
+-from dataclasses import asdict, dataclass
++from dataclasses import asdict, dataclass, fields
+ from pathlib import Path
+ from typing import Any, Callable, Mapping, Sequence
+ 
+@@ -23,16 +23,25 @@
+ from pipelines.scaffold.runtime_loader import (
+     load_scaffold_runtime_input_from_payload,
+ )
++from pipelines.scaffold.hh_continuation_types import PhaseControllerSnapshot
+ from pipelines.static_adapt.formal_manifold_route_profile import (
+     FORMAL_MANIFOLD_ROUTE_PROFILE_OFF,
+     resolve_formal_manifold_route_profile,
+ )
++from pipelines.static_adapt.estimator_call_ledger import (
++    EstimatorCallKey,
++    EstimatorCallLedger,
++    projective_state_fingerprint,
++)
+ from pipelines.static_adapt.formal_manifold_warm_start import (
+     FORMAL_MANIFOLD_ROUTE,
+     FORMAL_MANIFOLD_ROUTE_FAMILY,
+     FORMAL_MANIFOLD_SR_SELECTOR_FAMILY,
+     FormalManifoldRouteComposition,
+ )
++from pipelines.static_adapt.selector_measurement_proxy import (
++    controller_proxy_from_history_rows,
++)
+ from pipelines.static_adapt.sr_snake_escape_controller import (
+     SR_COORDINATE_SOLVE_SCOPE_PHASE2_AND_PHASE3_V1,
+     SR_POWELL_COORDINATE_CHART_AUTO,
+@@ -60,7 +69,7 @@
+     serialize_layout,
+ )
+ from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
+-from src.quantum.vqe_latex_python_pairs import AnsatzTerm
++from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
+ 
+ 
+ _SECRET_MARKER_RE = re.compile(
+@@ -196,6 +205,7 @@
+     theta_runtime: np.ndarray
+     theta_logical: np.ndarray | None
+     selected_pool_indices: tuple[int, ...]
++    selected_generator_contracts: Mapping[str, Mapping[str, Any]]
+     validation: Mapping[str, Any]
+ 
+ 
+@@ -228,6 +238,41 @@
+ 
+ 
+ @dataclass(frozen=True)
++class ResumeVerifiedSingletonCheckpoint:
++    """Strict state for one complete beam-disabled singleton checkpoint."""
++
++    history: tuple[Mapping[str, Any], ...]
++    controller_round: int
++    ansatz_depth: int
++    branch_id: None
++    parent_branch_id: None
++    operator_labels: tuple[str, ...]
++    theta_runtime: tuple[float, ...]
++    theta_logical: tuple[float, ...]
++    route_a_trust_region_state: Mapping[str, Any]
++    controller_measurement_work_summary: Mapping[str, Any]
++    phase1_residual_opened: bool
++    phase1_stage_name: str
++    maturity_controller_snapshot: Mapping[str, Any]
++    maturity_controller_state_provenance: Mapping[str, Any]
++    selection_parent_pool_size: int
++    selected_parent_pool_indices: tuple[int, ...]
++    selected_logical_candidate_indices: tuple[int, ...]
++    selection_count_state_provenance: Mapping[str, Any]
++    estimator_call_ledger_payload: Mapping[str, Any]
++    estimator_call_ledger_provenance: Mapping[str, Any]
++    source_energy: float
++    strict_replay: Mapping[str, Any]
++    initial_state_digest: str
++    ansatz_input_state_digest: str
++    powell_coordinate_chart_policy: str | None
++    route_profile_conformance: str | None
++    sr_route_profile_request: str | None
++    sr_route_profile_contract_sha256: str | None
++    validation: Mapping[str, Any]
++
++
++@dataclass(frozen=True)
+ class ResumeCompileSmokeResult:
+     required: bool
+     executed: bool
+@@ -1765,17 +1810,384 @@
+         "checkpoint_state_norm": float(checkpoint_norm),
+         "replayed_state_norm": float(replay_norm),
+         "overlap_abs": float(abs(overlap)),
++    }
++
++
++def _load_verified_active_prefix_sidecar(
++    source: ResumeScaffoldSource,
++) -> dict[str, Any]:
++    path = source.artifact_json.with_name("signed_active_prefix_checkpoint.json")
++    if not path.is_file():
++        raise ValueError(
++            "Verified no-refit resume requires sibling "
++            "signed_active_prefix_checkpoint.json."
++        )
++    wrapper = _read_json_object(path)
++    if wrapper.get("schema") != "static_adapt_signed_active_prefix_resume_sidecar_v1":
++        raise ValueError("Signed-prefix resume sidecar schema is unsupported.")
++    source_result = wrapper.get("source_result_json")
++    source_result_sha = str(wrapper.get("source_result_sha256", ""))
++    if (
++        not isinstance(source_result, str)
++        or not source_result.strip()
++        or re.fullmatch(r"[0-9a-f]{64}", source_result_sha) is None
++    ):
++        raise ValueError("Signed-prefix sidecar source-result provenance is invalid.")
++    raw = wrapper.get("checkpoint")
++    if not isinstance(raw, Mapping):
++        raise ValueError("Signed-prefix sidecar checkpoint is missing.")
++    checkpoint = dict(raw)
++    expected_sha = str(checkpoint.get("checkpoint_sha256", ""))
++    hash_input = dict(checkpoint)
++    hash_input.pop("checkpoint_sha256", None)
++    if not expected_sha or digest_jsonable(hash_input) != expected_sha:
++        raise ValueError("Signed-prefix checkpoint SHA-256 mismatch.")
++    labels = tuple(str(term.label) for term in source.runtime_input.selected_terms)
++    depth = len(labels)
++    adapt = _adapt_block(source.payload)
++    if (
++        checkpoint.get("schema") != "paper_i_signed_active_prefix_checkpoint_v1"
++        or checkpoint.get("checkpoint_kind") != "post_admission_prune"
++        or int(checkpoint.get("outer_iteration", -1)) != depth
++        or int(checkpoint.get("active_ansatz_depth", -1)) != depth
++        or tuple(str(x) for x in checkpoint.get("ordered_active_operator_labels", [])) != labels
++        or tuple(str(x) for x in adapt.get("operators", [])) != labels
++    ):
++        raise ValueError("Signed-prefix checkpoint identity disagrees with current.json.")
++    runtime_theta = np.asarray(
++        checkpoint.get("signed_unwrapped_runtime_parameters", []), dtype=float
++    ).reshape(-1)
++    logical_theta = np.asarray(
++        checkpoint.get("signed_unwrapped_logical_parameters", []), dtype=float
++    ).reshape(-1)
++    source_logical = np.asarray(source.runtime_input.theta_logical, dtype=float).reshape(-1)
++    if (
++        runtime_theta.shape != source.runtime_input.theta_runtime.shape
++        or logical_theta.shape != source_logical.shape
++        or not np.allclose(runtime_theta, source.runtime_input.theta_runtime, atol=1e-12, rtol=0.0)
++        or not np.allclose(logical_theta, source_logical, atol=1e-12, rtol=0.0)
++        or str(checkpoint.get("parameterization_execution_mode", ""))
++        != str(adapt.get("parameterization_execution_mode", ""))
++    ):
++        raise ValueError("Signed-prefix checkpoint coordinates disagree with current.json.")
++    active_sector = checkpoint.get("active_generator_sector_contract", {})
++    state_sector = checkpoint.get("state_sector_contract", {})
++    strict_replay = checkpoint.get("strict_replay", {})
++    if not (
++        isinstance(active_sector, Mapping)
++        and active_sector.get("passed_with_parameterization") is True
++        and isinstance(state_sector, Mapping)
++        and state_sector.get("passed") is True
++        and isinstance(strict_replay, Mapping)
++        and strict_replay.get("passed") is True
++    ):
++        raise ValueError("Signed-prefix checkpoint scientific audits did not pass.")
++    fingerprint = str(checkpoint.get("projective_state_fingerprint", ""))
++    if fingerprint != projective_state_fingerprint(source.runtime_input.psi_initial):
++        raise ValueError("Signed-prefix checkpoint state disagrees with current.json.")
++    rows = checkpoint.get("ordered_active_operators", [])
++    if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)) or len(rows) != depth:
++        raise ValueError("Signed-prefix ordered operator rows are incomplete.")
++    terms: list[AnsatzTerm] = []
++    contracts: list[dict[str, Any]] = []
++    for position, row in enumerate(rows):
++        if not isinstance(row, Mapping):
++            raise ValueError("Signed-prefix operator row is invalid.")
++        label = str(row.get("label", ""))
++        mode = str(row.get("execution_mode", ""))
++        if int(row.get("active_position", -1)) != position or label != labels[position]:
++            raise ValueError("Signed-prefix operator ordering is invalid.")
++        if mode not in {"grouped_exact", "termwise_product"}:
++            raise ValueError("Signed-prefix operator execution mode is invalid.")
++        serialized = row.get("serialized_terms_exyz_in_execution_order", [])
++        if not isinstance(serialized, Sequence) or isinstance(serialized, (str, bytes)) or not serialized:
++            raise ValueError("Signed-prefix operator terms are missing.")
++        poly = PauliPolynomial("JW")
++        normalized: list[dict[str, Any]] = []
++        for term in serialized:
++            if not isinstance(term, Mapping):
++                raise ValueError("Signed-prefix Pauli term is invalid.")
++            nq = int(term.get("nq", 0))
++            word = str(term.get("pauli_exyz", "")).lower()
++            real = float(term.get("coeff_re", 0.0))
++            imag = float(term.get("coeff_im", 0.0))
++            if nq <= 0 or len(word) != nq or any(c not in "exyz" for c in word) or not math.isfinite(real) or abs(imag) > 1e-14:
++                raise ValueError("Signed-prefix Pauli term is invalid.")
++            poly.add_term(PauliTerm(nq, ps=word, pc=real))
++            normalized.append({"pauli_exyz": word, "coeff_re": real, "coeff_im": imag, "nq": nq})
++        poly._reduce()
++        terms.append(AnsatzTerm(label=label, polynomial=poly, execution_mode=mode))
++        runtime_split = dict(row["runtime_split"]) if isinstance(row.get("runtime_split"), Mapping) else None
++        lineage = dict(row["route_a_child_padding_lineage"]) if isinstance(row.get("route_a_child_padding_lineage"), Mapping) else None
++        gate = runtime_split.get("symmetry_gate", {}) if isinstance(runtime_split, Mapping) else {}
++        hard_guard = bool(
++            isinstance(gate, Mapping)
++            and gate.get("hard_guard_required") is True
++            and gate.get("hard_guard_present") is True
++            and gate.get("passed") is True
++        )
++        if isinstance(runtime_split, Mapping) and runtime_split.get("recommended_execution_mode") not in {None, "", mode}:
++            raise ValueError("Signed-prefix runtime-split execution mode disagrees.")
++        if isinstance(lineage, Mapping) and lineage.get("selected_execution_mode") not in {None, "", mode}:
++            raise ValueError("Signed-prefix padding execution mode disagrees.")
++        contracts.append({
++            "schema": "resume_selected_generator_contract_v1",
++            "generator_id": row.get("generator_id"),
++            "label": label,
++            "parent_generator_id": row.get("parent_generator_id"),
++            "execution_mode": mode,
++            "symmetry_spec": {
++                "particle_number_mode": "preserving" if hard_guard else "off",
++                "spin_sector_mode": "preserving" if hard_guard else "off",
++                "hard_guard": hard_guard,
++                "source": "signed_active_prefix_checkpoint_v1",
++            },
++            "compile_metadata": {
++                "serialized_terms_exyz": normalized,
++                "runtime_terms_exyz": normalized,
++                "runtime_split": runtime_split,
++                "route_a_child_padding_lineage": lineage,
++            },
++        })
++    expected_guarded = [str(x) for x in active_sector.get("fixed_sector_guarded_generator_labels", [])]
++    observed_guarded = [str(c["label"]) for c in contracts if c["symmetry_spec"]["hard_guard"]]
++    if int(active_sector.get("fixed_sector_guarded_generator_count", -1)) != len(expected_guarded) or observed_guarded != expected_guarded:
++        raise ValueError("Signed-prefix hard-guard order/multiplicity does not close.")
++    return {
++        "terms": tuple(terms),
++        "contracts": tuple(contracts),
++        "provenance": {
++            "schema": "verified_resume_signed_active_prefix_sidecar_v1",
++            "source_result_json": source_result,
++            "source_result_sha256": source_result_sha,
++            "resume_sidecar_json": str(path),
++            "resume_sidecar_sha256": file_sha256(path),
++            "checkpoint_sha256": expected_sha,
++            "outer_iteration": depth,
++            "operator_count": depth,
++            "projective_state_fingerprint": fingerprint,
++        },
+     }
+ 
+ 
++def _load_verified_singleton_controller_and_selection_state(
++    source: ResumeScaffoldSource,
++) -> dict[str, Any]:
++    """Restore exact controller hysteresis, residual, and selection counters."""
++
++    context = "Verified singleton controller resume"
++    path = source.artifact_json.with_name("signed_active_prefix_checkpoint.json")
++    if not path.is_file():
++        raise ValueError(f"{context} requires sibling signed-prefix sidecar.")
++    sidecar = _read_json_object(path)
++    if sidecar.get("schema") != "static_adapt_signed_active_prefix_resume_sidecar_v1":
++        raise ValueError(f"{context} sidecar schema is unsupported.")
++    source_result = sidecar.get("source_result_json")
++    source_result_sha = str(sidecar.get("source_result_sha256", ""))
++    if (
++        not isinstance(source_result, str)
++        or not source_result.strip()
++        or re.fullmatch(r"[0-9a-f]{64}", source_result_sha) is None
++    ):
++        raise ValueError(f"{context} lacks source-result provenance.")
++    adapt = _adapt_block(source.payload)
++    try:
++        controller_round = int(source.payload["checkpoint"]["depth"])
++        source_pool_size = int(adapt["pool_size"])
++    except (KeyError, TypeError, ValueError):
++        raise ValueError(f"{context} round/pool size is invalid.") from None
++    if controller_round <= 0 or source_pool_size <= 0:
++        raise ValueError(f"{context} round/pool size is invalid.")
++
++    snapshot_raw = sidecar.get("controller_snapshot")
++    if not isinstance(snapshot_raw, Mapping):
++        raise ValueError(f"{context} lacks controller_snapshot.")
++    snapshot = dict(snapshot_raw)
++    snapshot_sha = str(sidecar.get("controller_snapshot_sha256", ""))
++    if (
++        re.fullmatch(r"[0-9a-f]{64}", snapshot_sha) is None
++        or digest_jsonable(snapshot) != snapshot_sha
++    ):
++        raise ValueError(f"{context} controller snapshot digest mismatch.")
++    expected_fields = {str(field.name) for field in fields(PhaseControllerSnapshot)}
++    if set(snapshot) != expected_fields:
++        raise ValueError(f"{context} controller snapshot fields disagree.")
++    try:
++        typed_snapshot = PhaseControllerSnapshot(**snapshot)
++    except (TypeError, ValueError):
++        raise ValueError(f"{context} controller snapshot is not typed.") from None
++    if (
++        typed_snapshot.snapshot_version != "phase123_controller_maturity_v2"
++        or int(typed_snapshot.step_index) != controller_round - 1
++        or int(typed_snapshot.depth_local) != controller_round - 1
++        or int(typed_snapshot.depth_left) != 1
++    ):
++        raise ValueError(f"{context} snapshot is not the unique last-round state.")
++    phase_live = dict(typed_snapshot.phase_live)
++    null_streaks = dict(typed_snapshot.phase_null_streaks)
++    null_reasons = dict(typed_snapshot.phase_null_reasons)
++    if (
++        set(phase_live) != {"phase1", "phase2", "phase3"}
++        or phase_live.get("phase1") is not True
++        or set(null_streaks) != {"phase2", "phase3"}
++        or any(int(value) < 0 for value in null_streaks.values())
++        or set(null_reasons) != {"phase1", "phase2", "phase3"}
++    ):
++        raise ValueError(f"{context} phase-live hysteresis state is invalid.")
++    expected_terminal_phase = 1 + int(bool(phase_live["phase2"])) + int(
++        bool(phase_live["phase2"]) and bool(phase_live["phase3"])
++    )
++    if int(typed_snapshot.terminal_phase) != expected_terminal_phase:
++        raise ValueError(f"{context} terminal phase is inconsistent.")
++    for phase_name in ("phase1", "phase2", "phase3"):
++        if not bool(phase_live[phase_name]) and (
++            int(typed_snapshot.phase_caps.get(phase_name, -1)) != 0
++            or int(typed_snapshot.phase_shots.get(phase_name, -1)) != 0
++            or int(typed_snapshot.phase_shots_effective.get(phase_name, -1)) != 0
++        ):
++            raise ValueError(f"{context} inactive phase retains live work.")
++
++    controller_state_raw = sidecar.get("controller_state")
++    if not isinstance(controller_state_raw, Mapping):
++        raise ValueError(f"{context} lacks controller_state evidence.")
++    controller_state = dict(controller_state_raw)
++    if controller_state.get("schema") != "static_adapt_singleton_controller_resume_state_v1":
++        raise ValueError(f"{context} controller_state schema is unsupported.")
++    evidence_raw = controller_state.get("source_history_row_evidence")
++    if not isinstance(evidence_raw, Mapping):
++        raise ValueError(f"{context} lacks history-row evidence.")
++    evidence = dict(evidence_raw)
++    evidence_sha = str(controller_state.get("source_history_row_evidence_sha256", ""))
++    if (
++        re.fullmatch(r"[0-9a-f]{64}", evidence_sha) is None
++        or digest_jsonable(evidence) != evidence_sha
++    ):
++        raise ValueError(f"{context} history-row evidence digest mismatch.")
++    if evidence != {
++        "depth": controller_round,
++        "drop_policy_enabled": False,
++        "drop_plateau_hits": 0,
++        "stage_name": "core",
++        "stage_transition_reason": "stay_core",
++        "controller_snapshot_count": 1,
++        "selected_feature_row_index": 0,
++    }:
++        raise ValueError(f"{context} cannot prove residual lane stayed closed.")
++    if (
++        int(controller_state.get("controller_round", -1)) != controller_round
++        or int(controller_state.get("source_max_depth", -1)) != controller_round
++        or controller_state.get("phase1_residual_opened") is not False
++        or controller_state.get("phase1_stage_name") != "core"
++    ):
++        raise ValueError(f"{context} controller_state is inconsistent.")
++
++    selection_raw = sidecar.get("selection_state")
++    if not isinstance(selection_raw, Mapping):
++        raise ValueError(f"{context} lacks selection_state evidence.")
++    selection = dict(selection_raw)
++    if selection.get("schema") != "static_adapt_singleton_selection_count_resume_state_v1":
++        raise ValueError(f"{context} selection_state schema is unsupported.")
++    if (
++        int(selection.get("controller_round", -1)) != controller_round
++        or int(selection.get("pool_size", -1)) != source_pool_size
++        or selection.get("seq2p_logical_mode") is not False
++    ):
++        raise ValueError(f"{context} selection_state route identity disagrees.")
++    parent_raw = selection.get("ordered_parent_pool_indices")
++    if not isinstance(parent_raw, Sequence) or isinstance(parent_raw, (str, bytes)):
++        raise ValueError(f"{context} parent-index sequence is invalid.")
++    try:
++        parent_indices = tuple(int(value) for value in parent_raw)
++    except (TypeError, ValueError):
++        raise ValueError(f"{context} parent-index sequence is invalid.") from None
++    parent_sha = str(selection.get("ordered_parent_pool_indices_sha256", ""))
++    if (
++        len(parent_indices) != controller_round
++        or any(index < 0 or index >= source_pool_size for index in parent_indices)
++        or re.fullmatch(r"[0-9a-f]{64}", parent_sha) is None
++        or digest_jsonable(list(parent_indices)) != parent_sha
++    ):
++        raise ValueError(f"{context} parent-index lineage is incomplete or invalid.")
++    feature_counts = selection.get("selected_feature_row_count_per_round")
++    if (
++        not isinstance(feature_counts, Sequence)
++        or isinstance(feature_counts, (str, bytes))
++        or tuple(int(value) for value in feature_counts)
++        != tuple(1 for _ in range(controller_round))
++    ):
++        raise ValueError(f"{context} requires one selected feature row per round.")
++    logical_raw = selection.get("ordered_logical_candidate_indices")
++    if not isinstance(logical_raw, Sequence) or isinstance(logical_raw, (str, bytes)):
++        raise ValueError(f"{context} logical-index sequence is invalid.")
++    logical_indices = tuple(int(value) for value in logical_raw)
++    logical_sha = str(selection.get("ordered_logical_candidate_indices_sha256", ""))
++    if logical_indices or digest_jsonable([]) != logical_sha:
++        raise ValueError(f"{context} non-seq2p logical lineage must be empty.")
++
++    provenance = {
++        "schema": "verified_singleton_controller_and_selection_resume_state_v1",
++        "source_result_json": source_result,
++        "source_result_sha256": source_result_sha,
++        "resume_sidecar_json": str(path),
++        "resume_sidecar_sha256": file_sha256(path),
++        "controller_snapshot_sha256": snapshot_sha,
++        "source_history_row_evidence_sha256": evidence_sha,
++        "ordered_parent_pool_indices_sha256": parent_sha,
++        "ordered_logical_candidate_indices_sha256": logical_sha,
++        "controller_round": controller_round,
++        "pool_size": source_pool_size,
++        "phase1_residual_opened": False,
++        "phase1_stage_name": "core",
++        "selection_count_total": len(parent_indices),
++        "seq2p_logical_mode": False,
++        "no_credentials_serialized": True,
++    }
++    assert_no_secret_material(provenance, context=context)
++    return {
++        "phase1_residual_opened": False,
++        "phase1_stage_name": "core",
++        "controller_snapshot": asdict(typed_snapshot),
++        "pool_size": source_pool_size,
++        "ordered_parent_pool_indices": parent_indices,
++        "ordered_logical_candidate_indices": logical_indices,
++        "provenance": provenance,
++    }
++
++
++def _assert_repeated_resume_contract_consistency(
++    contracts: Sequence[Mapping[str, Any]],
++) -> None:
++    by_label: dict[str, dict[str, Any]] = {}
++    for raw_contract in contracts:
++        contract = dict(raw_contract)
++        label = str(contract.get("label", ""))
++        previous = by_label.get(label)
++        if previous is not None and digest_jsonable(previous) != digest_jsonable(contract):
++            raise ValueError(
++                "Repeated signed-prefix label has conflicting execution/guard "
++                f"contracts: {label!r}."
++            )
++        by_label[label] = contract
++
++
+ def match_resume_scaffold_to_pool(
+     source: ResumeScaffoldSource,
+     *,
+     pool: Sequence[AnsatzTerm],
+     build_selected_layout: Callable[[list[AnsatzTerm]], AnsatzParameterLayout],
+     expected_parameterization_mode: str,
++    require_source_generator_contract: bool = False,
+ ) -> ResumeMatchedScaffold:
+-    selected_terms = tuple(source.runtime_input.selected_terms)
++    signed_prefix = (
++        _load_verified_active_prefix_sidecar(source)
++        if require_source_generator_contract
++        else None
++    )
++    selected_terms = tuple(
++        signed_prefix["terms"]
++        if isinstance(signed_prefix, Mapping)
++        else source.runtime_input.selected_terms
++    )
+     if len(selected_terms) == 0:
+         raise ValueError("Structural resume requires at least one selected scaffold generator.")
+     by_label: dict[str, list[int]] = {}
+@@ -1785,13 +2197,19 @@
+     selected_pool_indices: list[int] = []
+     missing: list[str] = []
+     selected_outside_pool_labels: list[str] = []
+-    for term in selected_terms:
++    selected_generator_contracts: dict[str, dict[str, Any]] = {}
++    signed_contracts = tuple(signed_prefix["contracts"]) if isinstance(signed_prefix, Mapping) else ()
++    _assert_repeated_resume_contract_consistency(signed_contracts)
++    for position, term in enumerate(selected_terms):
+         label = str(term.label)
+         matches = by_label.get(label, [])
+         if not matches:
+             if "::child_set[" in label:
+                 selected_ops.append(term)
+                 selected_outside_pool_labels.append(label)
++                if require_source_generator_contract:
++                    contract = signed_contracts[position]
++                    selected_generator_contracts[label] = dict(contract)
+             else:
+                 missing.append(label)
+             continue
+@@ -1804,8 +2222,15 @@
+             + ", ".join(missing[:8])
+         )
+     selected_layout = build_selected_layout(list(selected_ops))
+-    artifact_layout_digest = digest_jsonable(serialize_layout(source.runtime_input.base_layout))
+-    current_layout_digest = digest_jsonable(serialize_layout(selected_layout))
++    artifact_layout_payload = serialize_layout(source.runtime_input.base_layout)
++    current_layout_payload = serialize_layout(selected_layout)
++    if require_source_generator_contract:
++        for layout_payload in (artifact_layout_payload, current_layout_payload):
++            for block in layout_payload.get("blocks", []):
++                if isinstance(block, dict):
++                    block.pop("execution_mode", None)
++    artifact_layout_digest = digest_jsonable(artifact_layout_payload)
++    current_layout_digest = digest_jsonable(current_layout_payload)
+     if artifact_layout_digest != current_layout_digest:
+         raise ValueError(
+             "Resume scaffold layout does not match current pool reconstruction "
+@@ -1899,6 +2324,12 @@
+             else "runtime_split_child_set_terms_are_terminal_scaffold_terms"
+         ),
+         "selected_terms_outside_pool_labels": [str(x) for x in selected_outside_pool_labels],
++        "selected_generator_contract_restore_count": int(len(selected_generator_contracts)),
++        "signed_active_prefix_sidecar": (
++            dict(signed_prefix["provenance"])
++            if isinstance(signed_prefix, Mapping)
++            else None
++        ),
+         "runtime_parameter_count": int(theta_runtime.size),
+         "expected_parameterization_mode": str(expected_mode),
+         "source_parameterization_mode": str(source_mode or expected_mode),
+@@ -1923,6 +2354,7 @@
+         theta_runtime=theta_runtime,
+         theta_logical=theta_logical,
+         selected_pool_indices=tuple(int(x) for x in selected_pool_indices),
++        selected_generator_contracts=selected_generator_contracts,
+         validation=validation,
+     )
+ 
+@@ -2718,7 +3150,294 @@
+             None
+             if formal_manifold_route_composition_resolved is None
+             else dict(formal_manifold_route_composition_resolved)
++        ),
++        validation=validation,
++    )
++
++
++_TERMINAL_ESTIMATOR_CONSUMER_SCOPES = frozenset({
++    "accepted_refit:terminal_full_refit",
++    "energy:final_full_refit",
++    "final_state_verification",
++})
++
++
++def _load_verified_singleton_estimator_ledger(
++    source: ResumeScaffoldSource,
++) -> tuple[dict[str, Any], dict[str, Any]]:
++    path = source.artifact_json.with_name("estimator_call_ledger.json")
++    if not path.is_file():
++        raise ValueError("Verified singleton resume requires estimator_call_ledger.json.")
++    sidecar = _read_json_object(path)
++    accounting = sidecar.get("accounting", {})
++    ledger_raw = sidecar.get("ledger", {})
++    if (
++        sidecar.get("schema") != "paper_i_estimator_call_ledger_sidecar_v1"
++        or sidecar.get("adapt_success") is not True
++        or sidecar.get("adapt_error") not in {None, ""}
++        or not isinstance(accounting, Mapping)
++        or accounting.get("enabled") is not True
++        or accounting.get("complete") is not True
++        or list(accounting.get("exact_blockers", []))
++        or not isinstance(ledger_raw, Mapping)
++    ):
++        raise ValueError("Verified singleton estimator-ledger sidecar is unresolved.")
++    full = EstimatorCallLedger.from_payload(ledger_raw)
++    full_payload = full.to_payload()
++    identities: dict[str, EstimatorCallKey] = {}
++    for entry in full_payload.get("entries", []):
++        if not isinstance(entry, Mapping) or not isinstance(entry.get("identity"), Mapping):
++            raise ValueError("Verified singleton estimator-ledger entry is invalid.")
++        key = EstimatorCallKey.from_dict(entry["identity"])
++        primitive_id = str(entry.get("primitive_id", ""))
++        if primitive_id != key.primitive_id or primitive_id in identities:
++            raise ValueError("Verified singleton estimator-ledger identity is invalid.")
++        identities[primitive_id] = key
++    occurrences = full_payload.get("occurrences", [])
++    if not isinstance(occurrences, list) or not occurrences:
++        raise ValueError("Verified singleton estimator-ledger occurrences are missing.")
++    terminal_index = next(
++        (
++            i for i, row in enumerate(occurrences)
++            if isinstance(row, Mapping)
++            and str(row.get("consumer_scope", "")) in _TERMINAL_ESTIMATOR_CONSUMER_SCOPES
++        ),
++        None,
++    )
++    prefix_rows = occurrences if terminal_index is None else occurrences[:terminal_index]
++    terminal_rows = [] if terminal_index is None else occurrences[terminal_index:]
++    if not prefix_rows or any(
++        not isinstance(row, Mapping)
++        or str(row.get("consumer_scope", "")) not in _TERMINAL_ESTIMATOR_CONSUMER_SCOPES
++        for row in terminal_rows
++    ):
++        raise ValueError("Verified singleton estimator-ledger terminal suffix is invalid.")
++    prefix = EstimatorCallLedger()
++    for sequence, row in enumerate(prefix_rows, start=1):
++        if not isinstance(row, Mapping) or int(row.get("sequence", 0)) != sequence:
++            raise ValueError("Verified singleton estimator-ledger sequence is invalid.")
++        key = identities.get(str(row.get("primitive_id", "")))
++        if key is None:
++            raise ValueError("Verified singleton estimator-ledger identity is missing.")
++        receipt = prefix.record_call(
++            key,
++            component=str(row.get("component", "")),
++            consumer_scope=str(row.get("consumer_scope", "")),
++            branch_id=None if row.get("branch_id") is None else str(row.get("branch_id")),
++        )
++        if bool(receipt.charged) != bool(row.get("charged", False)):
++            raise ValueError("Verified singleton estimator-ledger charge replay failed.")
++    full_summary = full.summary()
++    prefix_summary = prefix.summary()
++    all_work = accounting.get("all_branch_search_work", {})
++    if not isinstance(all_work, Mapping) or int(all_work.get("S_alg", -1)) != int(full_summary["S_alg"]):
++        raise ValueError("Verified singleton estimator-ledger accounting does not close.")
++    prefix_payload = prefix.to_payload()
++    return prefix_payload, {
++        "schema_version": "static_adapt_verified_singleton_estimator_ledger_v1",
++        "path": str(path),
++        "sha256": file_sha256(path),
++        "full_ledger_fingerprint": str(full_payload["ledger_fingerprint"]),
++        "restored_prefix_ledger_fingerprint": str(prefix_payload["ledger_fingerprint"]),
++        "full_occurrence_count": len(occurrences),
++        "restored_prefix_occurrence_count": len(prefix_rows),
++        "excluded_terminal_occurrence_count": len(terminal_rows),
++        "full_S_alg": int(full_summary["S_alg"]),
++        "restored_prefix_S_alg": int(prefix_summary["S_alg"]),
++        "discarded_frontier_reconstructed": False,
++        "no_credentials_serialized": True,
++    }
++
++
++def extract_verified_singleton_resume_checkpoint(
++    source: ResumeScaffoldSource,
++    *,
++    expected_powell_coordinate_chart_policy: str | None = None,
++    expected_route_profile_conformance: str | None = None,
++    expected_sr_route_profile_request: str | None = None,
++    expected_sr_route_profile_contract: Mapping[str, Any] | None = None,
++    expected_sr_route_profile_contract_sha256: str | None = None,
++) -> ResumeVerifiedSingletonCheckpoint:
++    payload = source.payload
++    context = "Verified singleton resume"
++    _assert_no_unsupported_modeled_minimum_execution_checkpoint(payload, context=context)
++    chart = validate_resume_powell_coordinate_chart_policy(
++        payload,
++        expected_policy=expected_powell_coordinate_chart_policy,
++        expected_route_profile_conformance=expected_route_profile_conformance,
++        context=context,
++    )
++    profile = validate_resume_sr_route_profile_contract(
++        payload,
++        expected_profile_request=expected_sr_route_profile_request,
++        expected_contract=expected_sr_route_profile_contract,
++        expected_contract_sha256=expected_sr_route_profile_contract_sha256,
++        context=context,
++    )
++    if extract_formal_manifold_route_composition(payload) is not None:
++        raise ValueError(f"{context} does not support Formal-Manifold checkpoints.")
++    adapt = _adapt_block(payload)
++    checkpoint = payload.get("checkpoint", {})
++    if not isinstance(checkpoint, Mapping):
++        raise ValueError(f"{context} requires checkpoint metadata.")
++    if (
++        checkpoint.get("reason") != "iteration_done"
++        or checkpoint.get("beam_enabled") is not False
++        or checkpoint.get("complete") is not False
++        or checkpoint.get("branch_id") is not None
++        or checkpoint.get("parent_branch_id") is not None
++        or checkpoint.get("checkpoint_branch_policy") not in {None, ""}
++        or adapt.get("partial_checkpoint") is not True
++        or adapt.get("adapt_beam_enabled") is not False
++        or adapt.get("branch_id") is not None
++        or adapt.get("parent_branch_id") is not None
++        or adapt.get("history_checkpoint_complete") is not True
++        or adapt.get("stop_reason") not in {None, ""}
++    ):
++        raise ValueError(f"{context} checkpoint is not a live beam-disabled current checkpoint.")
++    final_refit = adapt.get("final_full_refit", {})
++    if not isinstance(final_refit, Mapping) or final_refit.get("attempted") is True or final_refit.get("executed") is True or int(final_refit.get("nfev", 0) or 0) != 0:
++        raise ValueError(f"{context} rejects terminal final-refit state.")
++    history_raw = adapt.get("history", [])
++    tail_raw = adapt.get("history_tail", [])
++    if (
++        not isinstance(history_raw, Sequence) or isinstance(history_raw, (str, bytes))
++        or not isinstance(tail_raw, Sequence) or isinstance(tail_raw, (str, bytes))
++        or any(not isinstance(row, Mapping) for row in history_raw)
++    ):
++        raise ValueError(f"{context} complete history is missing.")
++    history = [dict(row) for row in history_raw]
++    depth = int(checkpoint.get("depth", 0))
++    labels = tuple(str(x) for x in adapt.get("operators", []))
++    if (
++        depth <= 0
++        or int(adapt.get("history_count", -1)) != depth
++        or len(history) != depth
++        or int(adapt.get("history_tail_count", -1)) != depth
++        or digest_jsonable(tail_raw) != digest_jsonable(history)
++        or int(checkpoint.get("ansatz_depth", -1)) != depth
++        or int(adapt.get("ansatz_depth", -1)) != depth
++        or len(labels) != depth
++    ):
++        raise ValueError(f"{context} depth/history/operator counts disagree.")
++    for index, row in enumerate(history):
++        prune = row.get("post_admission_prune", {})
++        if (
++            int(row.get("depth", -1)) != index + 1
++            or int(row.get("batch_size", -1)) != 1
++            or int(row.get("selected_position", -1)) != index
++            or str(row.get("selected_op", "")) != labels[index]
++            or row.get("branch_id") is not None
++            or row.get("parent_branch_id") is not None
++            or not isinstance(prune, Mapping)
++            or int(prune.get("accepted_count", 0) or 0) != 0
++        ):
++            raise ValueError(f"{context} history is not append-only singleton lineage.")
++    theta_runtime = np.asarray(adapt.get("optimal_point", []), dtype=float).reshape(-1)
++    theta_logical = np.asarray(adapt.get("logical_optimal_point", []), dtype=float).reshape(-1)
++    if (
++        not theta_runtime.size or not np.all(np.isfinite(theta_runtime))
++        or theta_logical.size != depth or not np.all(np.isfinite(theta_logical))
++        or tuple(str(term.label) for term in source.runtime_input.selected_terms) != labels
++        or not np.array_equal(theta_runtime, source.runtime_input.theta_runtime)
++        or source.runtime_input.theta_logical is None
++        or not np.array_equal(theta_logical, source.runtime_input.theta_logical)
++    ):
++        raise ValueError(f"{context} runtime reconstruction disagrees.")
++    strict = adapt.get("strict_replay", {})
++    if not isinstance(strict, Mapping) or strict.get("passed") is not True or float(strict.get("phase_aligned_l2", 1.0)) > float(strict.get("tolerance", 0.0)):
++        raise ValueError(f"{context} strict replay is invalid.")
++    trust = adapt.get("route_a_trust_region_state", {})
++    if not isinstance(trust, Mapping) or trust.get("schema") != "route_a_trust_region_state_v1":
++        raise ValueError(f"{context} trust state is invalid.")
++    source_energy = float(adapt.get("energy"))
++    if not math.isfinite(source_energy) or abs(source_energy - float(history[-1].get("energy_after_opt"))) > 1e-12:
++        raise ValueError(f"{context} source energy does not close.")
++    if int(adapt.get("nfev_total", -1)) != int(history[-1].get("nfev_total_after_step", -2)):
++        raise ValueError(f"{context} nfev does not close.")
++    work = adapt.get("controller_measurement_work_summary", {})
++    if not isinstance(work, Mapping) or work.get("schema") != "controller_measurement_work_proxy_v1" or work.get("beam_run_scope") != "single_route" or int(work.get("checkpoint_depth", -1)) != depth:
++        raise ValueError(f"{context} controller-work summary is invalid.")
++    replay_work = controller_proxy_from_history_rows(history)
++    for field in ("events_count", "records_evaluated", "groups_total", "groups_new", "shots_total", "shots_new", "candidate_count_total", "evaluated_count_total"):
++        if not math.isclose(float(work.get(field)), float(replay_work.get(field)), rel_tol=0.0, abs_tol=1e-9):
++            raise ValueError(f"{context} controller work does not close for {field}.")
++    controller_state = _load_verified_singleton_controller_and_selection_state(
++        source
++    )
++    ledger, ledger_provenance = _load_verified_singleton_estimator_ledger(source)
++    initial_digest = _state_digest(payload, "initial_state")
++    reference_digest = _state_digest(payload, "ansatz_input_state")
++    validation = {
++        "schema_version": "static_adapt_verified_singleton_resume_checkpoint_v1",
++        "checkpoint_reason": "iteration_done",
++        "history_count": depth,
++        "history_digest": digest_jsonable(history),
++        "controller_round": depth,
++        "ansatz_depth": depth,
++        "operator_labels_digest": digest_jsonable(labels),
++        "theta_runtime_digest": digest_jsonable(theta_runtime.tolist()),
++        "theta_logical_digest": digest_jsonable(theta_logical.tolist()),
++        "saved_energy": source_energy,
++        "saved_energy_reconstruction_tolerance": 1e-8,
++        "controller_measurement_work_closed": True,
++        "phase1_residual_opened": bool(controller_state["phase1_residual_opened"]),
++        "phase1_stage_name": str(controller_state["phase1_stage_name"]),
++        "maturity_controller_snapshot_digest": digest_jsonable(
++            controller_state["controller_snapshot"]
+         ),
++        "selection_parent_pool_size": int(controller_state["pool_size"]),
++        "selected_parent_pool_indices_digest": digest_jsonable(
++            list(controller_state["ordered_parent_pool_indices"])
++        ),
++        "selected_logical_candidate_indices_digest": digest_jsonable(
++            list(controller_state["ordered_logical_candidate_indices"])
++        ),
++        "controller_and_selection_state_provenance": dict(
++            controller_state["provenance"]
++        ),
++        "estimator_call_ledger_provenance": ledger_provenance,
++        "powell_coordinate_chart_policy": chart["resolved_policy"],
++        "route_profile_conformance": chart["route_profile_conformance"],
++        "sr_route_profile_request": profile["artifact_profile_request"],
++        "sr_route_profile_contract_sha256": profile["contract_sha256"],
++        "discarded_frontier_reconstructed": False,
++        "lineage_scope": "complete_singleton_branch_only",
++        "no_credentials_serialized": True,
++    }
++    return ResumeVerifiedSingletonCheckpoint(
++        history=tuple(history),
++        controller_round=depth,
++        ansatz_depth=depth,
++        branch_id=None,
++        parent_branch_id=None,
++        operator_labels=labels,
++        theta_runtime=tuple(float(x) for x in theta_runtime),
++        theta_logical=tuple(float(x) for x in theta_logical),
++        route_a_trust_region_state=dict(trust),
++        controller_measurement_work_summary=dict(work),
++        phase1_residual_opened=bool(controller_state["phase1_residual_opened"]),
++        phase1_stage_name=str(controller_state["phase1_stage_name"]),
++        maturity_controller_snapshot=dict(controller_state["controller_snapshot"]),
++        maturity_controller_state_provenance=dict(controller_state["provenance"]),
++        selection_parent_pool_size=int(controller_state["pool_size"]),
++        selected_parent_pool_indices=tuple(
++            int(value) for value in controller_state["ordered_parent_pool_indices"]
++        ),
++        selected_logical_candidate_indices=tuple(
++            int(value) for value in controller_state["ordered_logical_candidate_indices"]
++        ),
++        selection_count_state_provenance=dict(controller_state["provenance"]),
++        estimator_call_ledger_payload=ledger,
++        estimator_call_ledger_provenance=ledger_provenance,
++        source_energy=source_energy,
++        strict_replay=dict(strict),
++        initial_state_digest=initial_digest,
++        ansatz_input_state_digest=reference_digest,
++        powell_coordinate_chart_policy=chart["resolved_policy"],
++        route_profile_conformance=chart["route_profile_conformance"],
++        sr_route_profile_request=profile["artifact_profile_request"],
++        sr_route_profile_contract_sha256=profile["contract_sha256"],
+         validation=validation,
+     )
+ 
+@@ -2856,6 +3575,7 @@
+     "ResumeCompileSmokeResult",
+     "ResumeMatchedScaffold",
+     "ResumeScaffoldSource",
++    "ResumeVerifiedSingletonCheckpoint",
+     "assert_no_secret_cli_values",
+     "assert_no_secret_material",
+     "build_credential_audit",
+@@ -2863,6 +3583,7 @@
+     "contains_secret_marker",
+     "digest_jsonable",
+     "extract_best_frontier_resume_checkpoint",
++    "extract_verified_singleton_resume_checkpoint",
+     "extract_formal_manifold_route_composition",
+     "extract_resume_history",
+     "extract_resume_optimizer_memory",
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -334,11 +334,13 @@
+ from pipelines.static_adapt.resume_scaffold import (
+     ResumeBestFrontierCheckpoint,
+     ResumeScaffoldSource,
++    ResumeVerifiedSingletonCheckpoint,
+     assert_no_secret_cli_values,
+     build_credential_audit,
+     build_resume_import_summary,
+     digest_jsonable,
+     extract_best_frontier_resume_checkpoint,
++    extract_verified_singleton_resume_checkpoint,
+     load_static_resume_source,
+     match_resume_scaffold_to_pool,
+     run_resume_compile_smoke,
+@@ -8421,6 +8423,8 @@
+     )
+     resume_pool_match_payload: dict[str, Any] | None = None
+     resume_best_frontier_checkpoint: ResumeBestFrontierCheckpoint | None = None
++    resume_verified_singleton_checkpoint: ResumeVerifiedSingletonCheckpoint | None = None
++    resume_verified_checkpoint: ResumeBestFrontierCheckpoint | ResumeVerifiedSingletonCheckpoint | None = None
+     resume_source_controller_round = 0
+     resume_boundary_refit_meta: dict[str, Any] = {
+         "schema_version": "resume_boundary_refit_v1",
+@@ -8449,7 +8453,14 @@
+             pool=pool,
+             build_selected_layout=_build_selected_layout,
+             expected_parameterization_mode=selected_parameterization_mode,
++            require_source_generator_contract=bool(
++                adapt_resume_boundary_refit_policy_key
++                == "verified_checkpoint_no_refit_v1"
++            ),
+         )
++        for resume_label, resume_contract in resume_match.selected_generator_contracts.items():
++            pool_generator_registry[str(resume_label)] = dict(resume_contract)
++            history_pool_generator_registry[str(resume_label)] = dict(resume_contract)
+         selected_ops = list(resume_match.selected_ops)
+         selected_layout = resume_match.selected_layout
+         theta = np.asarray(resume_match.theta_runtime, dtype=float).reshape(-1)
+@@ -8481,37 +8492,95 @@
+             adapt_resume_boundary_refit_policy_key
+             == "verified_checkpoint_no_refit_v1"
+         ):
+-            resume_best_frontier_checkpoint = (
+-                extract_best_frontier_resume_checkpoint(
++            checkpoint_block = adapt_resume_source.payload.get("checkpoint")
++            if not isinstance(checkpoint_block, Mapping):
++                raise RuntimeError("Verified no-refit resume requires checkpoint metadata.")
++            if checkpoint_block.get("beam_enabled") is True:
++                resume_best_frontier_checkpoint = extract_best_frontier_resume_checkpoint(
+                     adapt_resume_source,
+                     expected_powell_coordinate_chart_policy=(
+                         optimizer_powell_coordinate_chart_policy_key
+-                        if historical_singleton_overlay_active
+-                        else None
++                        if historical_singleton_overlay_active else None
+                     ),
+-                    expected_sr_route_profile_request=(
+-                        sr_route_profile_request
+-                    ),
+-                    expected_sr_route_profile_contract=(
+-                        sr_route_profile_contract_resolved
+-                    ),
+-                    expected_sr_route_profile_contract_sha256=(
+-                        sr_route_profile_contract_sha256
++                    expected_sr_route_profile_request=sr_route_profile_request,
++                    expected_sr_route_profile_contract=sr_route_profile_contract_resolved,
++                    expected_sr_route_profile_contract_sha256=sr_route_profile_contract_sha256,
++                )
++                resume_verified_checkpoint = resume_best_frontier_checkpoint
++            elif checkpoint_block.get("beam_enabled") is False:
++                resume_verified_singleton_checkpoint = extract_verified_singleton_resume_checkpoint(
++                    adapt_resume_source,
++                    expected_powell_coordinate_chart_policy=(
++                        optimizer_powell_coordinate_chart_policy_key
++                        if historical_singleton_overlay_active else None
+                     ),
++                    expected_sr_route_profile_request=sr_route_profile_request,
++                    expected_sr_route_profile_contract=sr_route_profile_contract_resolved,
++                    expected_sr_route_profile_contract_sha256=sr_route_profile_contract_sha256,
+                 )
+-            )
++                resume_verified_checkpoint = resume_verified_singleton_checkpoint
++                if int(resume_verified_singleton_checkpoint.selection_parent_pool_size) != int(len(pool)):
++                    raise RuntimeError(
++                        "Verified singleton resume parent-pool size disagrees."
++                    )
++                if bool(seq2p_logical_mode):
++                    raise RuntimeError(
++                        "Verified singleton seq2p resume lacks typed logical counters."
++                    )
++                if resume_verified_singleton_checkpoint.selected_logical_candidate_indices:
++                    raise RuntimeError(
++                        "Verified full-meta resume unexpectedly contains logical selections."
++                    )
++                selected_parent_pool_indices = np.asarray(
++                    resume_verified_singleton_checkpoint.selected_parent_pool_indices,
++                    dtype=np.int64,
++                ).reshape(-1)
++                if (
++                    int(selected_parent_pool_indices.size)
++                    != int(resume_verified_singleton_checkpoint.controller_round)
++                    or np.any(selected_parent_pool_indices < 0)
++                    or np.any(selected_parent_pool_indices >= int(len(pool)))
++                ):
++                    raise RuntimeError(
++                        "Verified singleton parent selection lineage is invalid."
++                    )
++                selection_counts = np.bincount(
++                    selected_parent_pool_indices,
++                    minlength=int(len(pool)),
++                ).astype(np.int64, copy=False)
++                if int(np.sum(selection_counts)) != int(
++                    resume_verified_singleton_checkpoint.controller_round
++                ):
++                    raise RuntimeError(
++                        "Verified singleton selection counters do not close."
++                    )
++                logical_selection_counts = np.zeros(0, dtype=np.int64)
++                if estimator_call_ledger is None:
++                    raise RuntimeError("Verified singleton resume requires estimator-call ledger output.")
++                estimator_call_ledger = EstimatorCallLedger.from_payload(
++                    resume_verified_singleton_checkpoint.estimator_call_ledger_payload
++                )
++                nfev_total = int(
++                    resume_verified_singleton_checkpoint.history[-1].get(
++                        "nfev_total_after_step", 0
++                    ) or 0
++                )
++            else:
++                raise RuntimeError("Verified no-refit resume requires explicit beam_enabled boolean.")
++            if resume_verified_checkpoint is None:
++                raise RuntimeError("Verified no-refit resume lost its typed checkpoint.")
+             if tuple(str(op.label) for op in selected_ops) != tuple(
+-                resume_best_frontier_checkpoint.operator_labels
++                resume_verified_checkpoint.operator_labels
+             ):
+                 raise RuntimeError(
+                     "Verified best-frontier operators disagree with the matched "
+                     "resume scaffold."
+                 )
+             history = [
+-                dict(row) for row in resume_best_frontier_checkpoint.history
++                dict(row) for row in resume_verified_checkpoint.history
+             ]
+             resume_source_controller_round = int(
+-                resume_best_frontier_checkpoint.controller_round
++                resume_verified_checkpoint.controller_round
+             )
+             phase1_stage.begin_core()
+             for source_history_row in history:
+@@ -8541,21 +8610,34 @@
+                     energy_before=float(source_energy_before),
+                     energy_after_refit=float(source_energy_after),
+                 )
++            if resume_verified_singleton_checkpoint is not None:
++                maturity_snapshot = PhaseControllerSnapshot(
++                    **dict(
++                        resume_verified_singleton_checkpoint.maturity_controller_snapshot
++                    )
++                )
++                restored_stage_snapshot = phase1_stage.snapshot()
++                restored_stage_snapshot.update({
++                    "stage": str(resume_verified_singleton_checkpoint.phase1_stage_name),
++                    "last_snapshot": maturity_snapshot,
++                    "phase_live": dict(maturity_snapshot.phase_live),
++                    "phase_null_streaks": dict(maturity_snapshot.phase_null_streaks),
++                    "phase_null_reasons": dict(maturity_snapshot.phase_null_reasons),
++                })
++                phase1_stage = StageController.from_snapshot(restored_stage_snapshot)
+             resume_boundary_refit_meta.update(
+                 {
+                     "required": False,
+                     "source_controller_round": int(
+                         resume_source_controller_round
+                     ),
+-                    "source_branch_id": int(
+-                        resume_best_frontier_checkpoint.branch_id
+-                    ),
++                    "source_branch_id": resume_verified_checkpoint.branch_id,
+                     "source_parent_branch_id": (
+-                        resume_best_frontier_checkpoint.parent_branch_id
++                        resume_verified_checkpoint.parent_branch_id
+                     ),
+                     "source_history_count": int(len(history)),
+                     "source_history_digest": str(
+-                        resume_best_frontier_checkpoint.validation[
++                        resume_verified_checkpoint.validation[
+                             "history_digest"
+                         ]
+                     ),
+@@ -8563,26 +8645,56 @@
+                     "source_nfev_total_at_checkpoint": int(
+                         history[-1].get("nfev_total_after_step", 0) or 0
+                     ),
+-                    "nfev_counter_scope": "continuation_segment_only",
+-                    "nfev_counter_restarts_after_checkpoint": True,
++                    "nfev_counter_scope": (
++                        "cumulative_rounds_1_to_final"
++                        if resume_verified_singleton_checkpoint is not None
++                        else "continuation_segment_only"
++                    ),
++                    "nfev_counter_restarts_after_checkpoint": bool(
++                        resume_verified_singleton_checkpoint is None
++                    ),
+                     "discarded_frontier_reconstructed": False,
+-                    "lineage_scope": "preserved_best_frontier_branch_only",
++                    "lineage_scope": str(
++                        resume_verified_checkpoint.validation["lineage_scope"]
++                    ),
+                     "controller_restore_scope": (
+-                        "ordered_prefix_history_and_trust_state_v1"
++                        "ordered_prefix_history_trust_maturity_and_query_ledger_v2"
+                     ),
+                     "controller_restore_limitations": [
+-                        "last_phase_controller_snapshot_not_serialized",
+-                        "phase_null_streaks_not_serialized",
+-                        "phase1_residual_open_state_not_serialized",
+                         "prune_peak_motion_history_not_serialized",
+                         "optimizer_memory_not_serialized",
+                     ],
+                 }
+             )
+-            if adapt_resume_import_summary_payload is not None:
+-                adapt_resume_import_summary_payload[
++            if resume_verified_singleton_checkpoint is not None:
++                resume_boundary_refit_meta.update({
++                    "state_keyed_estimator_ledger_restored": True,
++                    "phase1_residual_opened_restored": bool(
++                        resume_verified_singleton_checkpoint.phase1_residual_opened
++                    ),
++                    "phase1_stage_name_restored": str(
++                        resume_verified_singleton_checkpoint.phase1_stage_name
++                    ),
++                    "maturity_controller_state_restored": True,
++                    "selection_counts_restored": True,
++                    "selection_count_total_restored": int(np.sum(selection_counts)),
++                    "controller_and_selection_state_provenance": dict(
++                        resume_verified_singleton_checkpoint.selection_count_state_provenance
++                    ),
++                    "estimator_call_ledger_provenance": dict(
++                        resume_verified_singleton_checkpoint.estimator_call_ledger_provenance
++                    ),
++                    "controller_measurement_work_closed": True,
++                })
++            if adapt_resume_import_summary_payload is not None:
++                checkpoint_key = (
+                     "best_frontier_checkpoint"
+-                ] = dict(resume_best_frontier_checkpoint.validation)
++                    if resume_best_frontier_checkpoint is not None
++                    else "verified_singleton_checkpoint"
++                )
++                adapt_resume_import_summary_payload[checkpoint_key] = dict(
++                    resume_verified_checkpoint.validation
++                )
+         if phase2_enabled:
+             phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                 method=str(adapt_inner_optimizer_key),
+@@ -9368,7 +9480,13 @@
+         )
+         return phase0_result
+ 
+-    phase1_residual_opened = False
++    phase1_residual_opened = bool(
++        resume_verified_singleton_checkpoint.phase1_residual_opened
++        if resume_verified_singleton_checkpoint is not None
++        else False
++    )
++    if phase1_residual_opened:
++        available_indices |= set(int(i) for i in phase1_residual_indices)
+     phase1_last_probe_reason = "none"
+     phase1_last_positions_considered: list[int] = []
+     phase1_last_trough_detected = False
+@@ -13652,13 +13770,13 @@
+                 adapt_resume_boundary_refit_policy_key
+                 == "verified_checkpoint_no_refit_v1"
+             ):
+-                if resume_best_frontier_checkpoint is None:
++                if resume_verified_checkpoint is None:
+                     raise RuntimeError(
+-                        "Verified no-refit resume lost its typed best-frontier "
++                        "Verified no-refit resume lost its typed "
+                         "checkpoint."
+                     )
+                 source_energy = float(
+-                    resume_best_frontier_checkpoint.source_energy
++                    resume_verified_checkpoint.source_energy
+                 )
+                 replay_abs_discrepancy = float(
+                     abs(float(energy_before_refit) - float(source_energy))
+@@ -13666,7 +13784,7 @@
+                 replay_abs_tolerance = 1.0e-8
+                 if replay_abs_discrepancy > replay_abs_tolerance:
+                     raise RuntimeError(
+-                        "Verified best-frontier prefix energy replay exceeded "
++                        "Verified checkpoint prefix energy replay exceeded "
+                         f"tolerance: discrepancy={replay_abs_discrepancy:.16e}, "
+                         f"tolerance={replay_abs_tolerance:.16e}."
+                     )
+@@ -13700,9 +13818,7 @@
+                 _ai_log(
+                     "hardcoded_adapt_resume_boundary_refit_verified_skip",
+                     source_controller_round=int(resume_source_controller_round),
+-                    source_branch_id=int(
+-                        resume_best_frontier_checkpoint.branch_id
+-                    ),
++                    source_branch_id=resume_verified_checkpoint.branch_id,
+                     energy=float(energy_before_refit),
+                     replay_abs_discrepancy=float(replay_abs_discrepancy),
+                     replay_abs_tolerance=float(replay_abs_tolerance),
+@@ -14714,6 +14830,20 @@
+                 if controller_measurement_work_snapshot is not None
+                 else {}
+             )
++            if resume_verified_singleton_checkpoint is not None:
++                checkpoint_controller_work_summary = controller_proxy_from_history_rows(
++                    history_rows
++                )
++                checkpoint_controller_work_summary.update(
++                    {
++                        "accounting_scope": "cumulative_complete_history",
++                        "source_controller_round_start": int(resume_source_controller_round),
++                        "source_rounds_measurement_work_status": "validated_from_complete_history",
++                        "source_controller_measurement_work_summary": dict(
++                            resume_verified_singleton_checkpoint.controller_measurement_work_summary
++                        ),
++                    }
++                )
+             if checkpoint_controller_work_summary:
+                 checkpoint_controller_work_summary.update(
+                     {
+@@ -36705,7 +36835,24 @@
+                         resume_source_controller_round
+                     ),
+                     "source_rounds_measurement_work_status": "unresolved",
++                    "discarded_source_frontier_work_included": False,
++                }
++            )
++        elif resume_verified_singleton_checkpoint is not None:
++            controller_measurement_work_summary.update(
++                {
++                    "accounting_scope": "cumulative_complete_history",
++                    "source_controller_round_start": int(
++                        resume_source_controller_round
++                    ),
++                    "source_rounds_measurement_work_status": (
++                        "validated_from_complete_history"
++                    ),
++                    "source_controller_measurement_work_summary": dict(
++                        resume_verified_singleton_checkpoint.controller_measurement_work_summary
++                    ),
+                     "discarded_source_frontier_work_included": False,
++                    "discarded_source_frontier_work_status": "not_applicable",
+                 }
+             )
+         continuation_payload["controller_measurement_work_summary"] = dict(
+@@ -36726,12 +36873,16 @@
+                 adapt_resume_boundary_refit_policy_key
+             )
+             validation_block["controller_state_reinitialized"] = bool(
+-                resume_best_frontier_checkpoint is None
++                resume_verified_checkpoint is None
+             )
+             validation_block["controller_state_reconstruction_status"] = (
+-                "partial_reconstruction_from_history_and_trust_state"
+-                if resume_best_frontier_checkpoint is not None
+-                else "boundary_refit_reinitialized_controller_state"
++                "verified_singleton_history_trust_and_query_ledger_restored"
++                if resume_verified_singleton_checkpoint is not None
++                else (
++                    "partial_reconstruction_from_history_and_trust_state"
++                    if resume_verified_checkpoint is not None
++                    else "boundary_refit_reinitialized_controller_state"
++                )
+             )
+             validation_block["controller_state_fully_reconstructed"] = False
+             validation_block["controller_admission_deltas_replayed"] = int(
+@@ -37029,6 +37180,19 @@
+                     ],
+                     "discarded_source_frontier_work_included": False,
+                     "discarded_source_frontier_work_status": "unreconstructible",
++                }
++            )
++        elif resume_verified_singleton_checkpoint is not None:
++            estimator_call_accounting.update(
++                {
++                    "accounting_scope": "cumulative_rounds_1_to_final",
++                    "source_controller_round_start": int(resume_source_controller_round),
++                    "source_rounds_accounting_status": "restored_from_state_keyed_ledger_prefix",
++                    "source_estimator_call_ledger_provenance": dict(
++                        resume_verified_singleton_checkpoint.estimator_call_ledger_provenance
++                    ),
++                    "discarded_source_frontier_work_included": False,
++                    "discarded_source_frontier_work_status": "not_applicable",
+                 }
+             )
+         continuation_payload["estimator_call_accounting"] = dict(

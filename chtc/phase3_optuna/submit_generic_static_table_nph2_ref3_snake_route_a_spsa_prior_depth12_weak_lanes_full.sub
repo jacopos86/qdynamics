@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_generic_static_table_task_apptainer.sh
+arguments = $(record_id) chtc/phase3_optuna/input/table_i_nph2_ref3_v1_snake_route_a_spsa_prior_depth12_weak_lanes_v1/generic_static_table_records.tsv raw_outputs/generic_static_table_nph2_ref3_v1_snake_route_a_spsa_prior_depth12_weak_lanes/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/generic-static-table-nph2-ref3-snake-route-a-spsa-prior-depth12-weak-lanes-full.$(Cluster).$(Process).log
+output = logs/generic-static-table-nph2-ref3-snake-route-a-spsa-prior-depth12-weak-lanes-full.$(Cluster).$(Process).out
+error = logs/generic-static-table-nph2-ref3-snake-route-a-spsa-prior-depth12-weak-lanes-full.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 4
+request_memory = 16GB
+request_disk = 122880MB
++MaxRuntime = 43200
++JobBatchName = "holstein-generic-static-table-nph2-ref3-snake-route-a-spsa-prior-depth12-weak-lanes-full"
+queue record_id from chtc/phase3_optuna/input/table_i_nph2_ref3_v1_snake_route_a_spsa_prior_depth12_weak_lanes_v1/generic_static_table_record_ids.txt

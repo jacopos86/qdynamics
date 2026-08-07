@@ -1,0 +1,320 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from pipelines.static_adapt import formal_manifold_pareto_campaign as campaign
+
+
+def _write(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _settings(*, damping: float = 0.1) -> dict[str, object]:
+    return {
+        "run_kwargs": {
+            "adapt_reoptimization_route": campaign.FORMAL_MANIFOLD_ROUTE,
+            "adapt_pool": "full_meta",
+            "optimizer": "POWELL",
+        },
+        "formal_manifold": {
+            "curvature_branch": "inverse_rbfgs",
+            "secant_damping": damping,
+        },
+    }
+
+
+def _regimes() -> list[dict[str, object]]:
+    return [
+        {
+            "id": "weak-weak",
+            "u_over_t": 0.25,
+            "lambda": 0.25,
+            "n_ph_work": 2,
+            "exact_energy_same_cutoff": -1.0,
+            "source": "locked-test-provenance.json",
+        }
+    ]
+
+
+def _compile_contract() -> dict[str, object]:
+    return {
+        "compile_convention": "test_qiskit_v1",
+        "optimization_level": 1,
+        "seed_transpiler": 7,
+        "backend_name": "FakeMarrakesh",
+    }
+
+
+def _init(tmp_path: Path) -> Path:
+    root = tmp_path / "fm_campaign"
+    campaign.initialize_campaign(
+        campaign_dir=root,
+        campaign_id="fm-test",
+        baseline_settings=_settings(),
+        regimes=_regimes(),
+        compile_contract=_compile_contract(),
+        baseline_source="locked-baseline.json",
+    )
+    return root
+
+
+def _primitive_telemetry(**counts: int) -> dict[str, object]:
+    normalized = {key: int(counts.get(key, 0)) for key in campaign.QUERY_PRIMITIVE_FIELDS}
+    actual = sum(normalized.values())
+    return {
+        **normalized,
+        "actual_operator_probe_count": actual,
+        "unique_primitive_ids_requested": [f"requested-{index}" for index in range(actual)],
+        # Reuse is intentionally nonempty and must not add to the query count.
+        "unique_primitive_ids_reused": ["requested-0"] if actual else [],
+        "matrix_element_diagnostics": {"G_CC_entries": 99},
+        "primitive_count_reconciliation": {
+            "actual_operator_probe_count": actual,
+            "expected_actual_operator_probe_count": actual,
+            "count_equal": True,
+        },
+    }
+
+
+def _shared_s_alg_view(
+    *,
+    n_h_outer: int = 0,
+    n_h_refit: int = 0,
+    n_grad: int = 0,
+    n_metric: int = 0,
+) -> dict[str, object]:
+    components = {
+        "N_H_outer": int(n_h_outer),
+        "N_H_refit": int(n_h_refit),
+        "N_grad": int(n_grad),
+        "N_metric": int(n_metric),
+    }
+    return {"components": components, "S_alg": sum(components.values())}
+
+
+def _result(*, energy: float, settings_hash: str | None = None) -> dict[str, object]:
+    result: dict[str, object] = {
+        "summary": {"success": True},
+        "adapt_vqe": {
+            "success": True,
+            "history_checkpoint_complete": True,
+            "adapt_reoptimization_route": campaign.FORMAL_MANIFOLD_ROUTE,
+            "energy": energy,
+            "abs_delta_e": abs(energy + 1.0),
+            "nfev_total": 20,
+            "formal_manifold_query_accounting_complete": True,
+            "exact_cross_route_s_alg_available": True,
+            "estimator_call_accounting": {
+                "complete": True,
+                "winning_lineage": _shared_s_alg_view(
+                    n_h_outer=1, n_h_refit=9, n_grad=2, n_metric=2
+                ),
+                "discarded_branch_only_by_unique_set_difference": (
+                    _shared_s_alg_view(n_grad=1, n_metric=1)
+                ),
+                "all_branch_search_work": _shared_s_alg_view(
+                    n_h_outer=1, n_h_refit=9, n_grad=3, n_metric=3
+                ),
+            },
+            "history": [
+                {
+                    "depth": 1,
+                    "nfev_step_total_delta": 9,
+                },
+                {
+                    "depth": 2,
+                    "nfev_step_total_delta": 4,
+                },
+            ],
+            "final_full_refit": {"executed": True, "nfev": 3},
+            "formal_manifold_query_closure": {
+                "schema": "formal_manifold_query_closure_telemetry_v1",
+                "joint_response_selector_invoked": False,
+                "winning_branch": _primitive_telemetry(N_E=1, N_grad=2, N_G=1, N_Q=1),
+                "discarded_branch_operational_overhead": _primitive_telemetry(N_grad=1, N_Q=1),
+            },
+            "formal_manifold_warm_state_checkpoint": {
+                "whitening_id": "w",
+                "frame_id": "f",
+                "logical_range_id": "r",
+                "curvature_whitening_id": "w",
+                "curvature_frame_id": "f",
+                "qbroyd_whitening_id": "w",
+                "qbroyd_logical_range_id": "r",
+            },
+        },
+    }
+    if settings_hash is not None:
+        result["scientific_settings_hash"] = settings_hash
+    return result
+
+
+def _qiskit(*, n2q: int, d2q: int, dc: int) -> dict[str, object]:
+    return {
+        "schema": "paper_i_selected_prefix_qiskit_cost_sidecar_v1",
+        "history_position": 2,
+        "compiled_resource_qiskit_validated": True,
+        "compiled_circuit_stats_status": "ok",
+        "compile_convention": "test_qiskit_v1",
+        "qiskit_transpile_optimization_level": 1,
+        "qiskit_transpile_seed": 7,
+        "qiskit_backend_name": "FakeMarrakesh",
+        "compiled_count_2q_total": n2q,
+        "compiled_depth_2q_total": d2q,
+        "compiled_depth_total": dc,
+    }
+
+
+def _plan(root: Path, *, cell_id: str, policy_id: str, damping: float) -> dict[str, object]:
+    changed = [] if damping == 0.1 else ["formal_manifold.secant_damping"]
+    return campaign.plan_cell(
+        campaign_dir=root,
+        cell_id=cell_id,
+        policy_id=policy_id,
+        regime="weak-weak",
+        mechanism_family="secant_damping",
+        scientific_settings=_settings(damping=damping),
+        command=["python3", "synthetic.py", "{result_json}", "{current_json}"],
+        approved_changed_paths=changed,
+    )
+
+
+def test_exact_diff_distinguishes_missing_from_explicit_null() -> None:
+    diff = campaign.exact_settings_diff({"a": None}, {})
+    assert diff["changed_field_count"] == 1
+    row = diff["changed_fields"][0]
+    assert row["path"] == "a"
+    assert row["left_present"] is True
+    assert row["right_present"] is False
+
+
+def test_regimes_enforce_one_same_cutoff_and_reject_distinct_reference() -> None:
+    normalized = campaign._normalize_regimes(_regimes())
+    assert "n_ph_ref" not in normalized[0]
+    assert normalized[0]["cutoff_contract"] == {
+        "schema": "paper_i_same_cutoff_v1",
+        "variational_n_ph": 2,
+        "exact_n_ph": 2,
+        "same_cutoff": True,
+        "higher_cutoff_diagnostic_required": False,
+    }
+
+    mismatched = _regimes()
+    mismatched[0]["n_ph_ref"] = 5
+    with pytest.raises(ValueError, match="violates the same-cutoff contract"):
+        campaign._normalize_regimes(mismatched)
+
+
+def test_plan_requires_explicit_fm_route_and_approved_exact_diff(tmp_path: Path) -> None:
+    root = _init(tmp_path)
+    with pytest.raises(ValueError, match="unapproved scientific setting changes"):
+        campaign.plan_cell(
+            campaign_dir=root,
+            cell_id="bad-diff",
+            policy_id="p1",
+            regime="weak-weak",
+            mechanism_family="secant_damping",
+            scientific_settings=_settings(damping=0.2),
+            command=["python3", "run.py"],
+            approved_changed_paths=[],
+        )
+    non_fm = _settings()
+    non_fm["run_kwargs"]["adapt_reoptimization_route"] = "joint_response"
+    with pytest.raises(ValueError, match="non-FM"):
+        campaign.plan_cell(
+            campaign_dir=root,
+            cell_id="bad-route",
+            policy_id="p1",
+            regime="weak-weak",
+            mechanism_family="route",
+            scientific_settings=non_fm,
+            command=["python3", "run.py"],
+            approved_changed_paths=["run_kwargs.adapt_reoptimization_route"],
+        )
+
+    cell = _plan(root, cell_id="good", policy_id="p1", damping=0.2)
+    assert cell["settings_diff"]["changed_paths"] == ["formal_manifold.secant_damping"]
+    assert cell["status"] == "queued"
+
+
+def test_query_sidecar_separates_rollbacks_and_charges_reuse_once(tmp_path: Path) -> None:
+    result_path = tmp_path / "result.json"
+    _write(result_path, _result(energy=-0.9))
+
+    sidecar = campaign.build_query_work_sidecar(result_json=result_path)
+
+    # The route-local N_E diagnostic is already represented by the shared
+    # Hamiltonian primitives; raw nfev must not be added a second time.
+    assert sidecar["winning_branch"]["objective_unique_logical_primitives"] == 10
+    assert sidecar["winning_branch"]["expanded_query_work"] == 14
+    assert sidecar["raw_optimizer_nfev_diagnostic_not_added_to_s_alg"] == 20
+    assert sidecar["discarded_branch_operational_overhead"]["expanded_query_work"] == 2
+    assert sidecar["all_executed_work_reconciliation"]["expanded_query_work"] == 16
+    assert sidecar["matrix_element_diagnostics_charge"] == 0
+    assert sidecar["joint_response_selector_invoked"] is False
+
+
+def test_query_sidecar_fails_closed_without_shared_scalar_ledger(tmp_path: Path) -> None:
+    result_path = tmp_path / "result.json"
+    payload = _result(energy=-0.9)
+    payload["adapt_vqe"]["formal_manifold_query_accounting_complete"] = False
+    _write(result_path, payload)
+
+    with pytest.raises(ValueError, match="complete shared S_alg"):
+        campaign.build_query_work_sidecar(result_json=result_path)
+
+
+def test_ingest_builds_five_axis_front_and_preserves_provenance(tmp_path: Path) -> None:
+    root = _init(tmp_path)
+    manifest_path = root / "campaign_manifest.json"
+    legacy_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    legacy_manifest["regimes"][0].pop("cutoff_contract")
+    legacy_manifest["regimes"][0]["n_ph_ref"] = 5
+    manifest_path.write_text(json.dumps(legacy_manifest), encoding="utf-8")
+    better = _plan(root, cell_id="better", policy_id="policy-better", damping=0.1)
+    worse = _plan(root, cell_id="worse", policy_id="policy-worse", damping=0.2)
+    for cell, energy, costs in (
+        (better, -0.99, (10, 8, 20)),
+        (worse, -0.95, (20, 16, 40)),
+    ):
+        paths = cell["paths"]
+        _write(
+            Path(paths["result_json"]),
+            _result(energy=energy, settings_hash=cell["scientific_settings_sha256"]),
+        )
+        _write(Path(paths["qiskit_sidecar"]), _qiskit(n2q=costs[0], d2q=costs[1], dc=costs[2]))
+        campaign.ingest_cell(campaign_dir=root, cell_id=cell["cell_id"])
+
+    ledger = json.loads((root / "pareto_ledger.json").read_text(encoding="utf-8"))
+    assert ledger["objective_axes_ordered"] == list(campaign.OBJECTIVE_AXES)
+    assert ledger["pareto_front_by_regime"]["weak-weak"] == ["better"]
+    assert ledger["complete_transferable_policy_front"] == ["policy-better"]
+    row = next(item for item in ledger["cells"] if item["cell_id"] == "better")
+    coords = row["evidence"]["pareto_coordinates"]
+    assert row["evidence"]["pareto_coordinate_order"] == list(campaign.OBJECTIVE_AXES)
+    assert coords["abs_delta_e_same_cutoff"] == pytest.approx(0.01)
+    assert row["evidence"]["cutoff_contract"]["same_cutoff"] is True
+    assert "n_ph_ref" not in row["evidence"]
+    assert coords["expanded_winning_branch_query_work"] == 14
+    assert row["evidence"]["discarded_branch_operational_overhead"]["expanded_query_work"] == 2
+    assert row["evidence"]["whitening_provenance"]["whitening_id"] == "w"
+    assert row["evidence"]["route_separation"]["joint_response_selector_invoked"] is False
+
+
+def test_qiskit_contract_mismatch_fails_closed() -> None:
+    sidecar = _qiskit(n2q=1, d2q=1, dc=1)
+    sidecar["qiskit_transpile_seed"] = 8
+    with pytest.raises(ValueError, match="seed_transpiler"):
+        campaign.validate_qiskit_sidecar(sidecar, compile_contract=_compile_contract())
+
+
+def test_campaign_lock_prevents_a_second_scientific_owner(tmp_path: Path) -> None:
+    root = _init(tmp_path)
+    with campaign._CampaignLock(root, cell_id="one"):
+        with pytest.raises(RuntimeError, match="scientific-job lock"):
+            with campaign._CampaignLock(root, cell_id="two"):
+                pass

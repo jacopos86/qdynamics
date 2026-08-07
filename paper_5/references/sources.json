@@ -1,0 +1,60 @@
+{
+  "downloaded_at_utc": "2026-06-27T00:41:57Z",
+  "sources": [
+    {
+      "arxiv_id": "2606.22233",
+      "version": "v1",
+      "title": "Open-quantum-system theory of non-Markovian electron-phonon dynamics",
+      "authors": [
+        "Gabriele Riva",
+        "Jacopo Simoni",
+        "Yuan Ping"
+      ],
+      "published": "2026-06-20T21:21:09Z",
+      "updated": "2026-06-20T21:21:09Z",
+      "primary_category": "cond-mat.mtrl-sci",
+      "abstract_url": "https://arxiv.org/abs/2606.22233",
+      "pdf_url": "https://arxiv.org/pdf/2606.22233",
+      "local_pdf": "references/pdfs/arxiv_2606_22233.pdf",
+      "pages": 7,
+      "sha256": "474cec78184fc092e0dedceb583d26e52f22449b6af29f94e62e4cc781ce7115"
+    },
+    {
+      "arxiv_id": "2411.19310",
+      "version": "v2",
+      "title": "Solving the Nonlinear Vlasov Equation on a Quantum Computer",
+      "authors": [
+        "Tamas Vaszary",
+        "Animesh Datta",
+        "Tom Goffrey",
+        "Brian Appelbe"
+      ],
+      "published": "2024-11-28T18:32:30Z",
+      "updated": "2025-05-26T09:54:51Z",
+      "primary_category": "quant-ph",
+      "abstract_url": "https://arxiv.org/abs/2411.19310",
+      "pdf_url": "https://arxiv.org/pdf/2411.19310",
+      "local_pdf": "references/pdfs/arxiv_2411_19310.pdf",
+      "pages": 40,
+      "sha256": "04fb6f86170996937acf5322c7d765eaaa78c57c5d408ba3b6c711c08b714274"
+    },
+    {
+      "arxiv_id": "2410.03985",
+      "version": "v2",
+      "title": "Quantum algorithm for the advection-diffusion equation and the Koopman-von Neumann approach to nonlinear dynamical systems",
+      "authors": [
+        "Ivan Novikau",
+        "Ilon Joseph"
+      ],
+      "published": "2024-10-04T23:58:12Z",
+      "updated": "2025-01-18T16:59:58Z",
+      "primary_category": "physics.comp-ph",
+      "doi": "10.1016/j.cpc.2025.109498",
+      "abstract_url": "https://arxiv.org/abs/2410.03985",
+      "pdf_url": "https://arxiv.org/pdf/2410.03985",
+      "local_pdf": "references/pdfs/arxiv_2410_03985.pdf",
+      "pages": 29,
+      "sha256": "04be5c5f3e68d8da4896a433ab1a93908a8769fbe3591a3e6e91214a74f82a95"
+    }
+  ]
+}

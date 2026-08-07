@@ -1,0 +1,32 @@
+{
+  "cell_id": "trial_000000__intermediate_weak",
+  "execution_profile": "wave11_l25_adaptive_whitened_r30_v1",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-12T20:31:57.003138+00:00",
+  "manifest_sha256": "417caa46ce6370adb145507d038c63a43a7d11af2ee94fb4704fddbd185a19ea",
+  "max_depth": 30,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000000/intermediate-weak",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 25,
+    "batch_size_cap": 2,
+    "child_phase1_cap": 128,
+    "child_phase2_cap": 64,
+    "lambda_add": 0.0,
+    "macro_phase1_cap": 64,
+    "macro_phase2_cap": 48
+  },
+  "policy_sha256": "f23334b9b56017d36f93d240c8a899ee2381fd9ad5890ad10fe7ddfb7f9dc1c7",
+  "regime": "intermediate-weak",
+  "run_class": "candidate_fixed_policy_matrix",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "74c037ad3777d3a98463de14c9421d0117c75cdbc8fa20341ac4da2b9cc784cc",
+  "study_name": "paper_i_hh_wave11_l25_adaptive_whitened_r30_v1",
+  "trial_number": 0
+}

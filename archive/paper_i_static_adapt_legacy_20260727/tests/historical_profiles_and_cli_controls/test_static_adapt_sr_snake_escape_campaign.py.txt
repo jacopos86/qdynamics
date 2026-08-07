@@ -1,0 +1,759 @@
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import sys
+
+import pytest
+
+from pipelines.static_adapt import sr_snake_escape_campaign as campaign
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _result_payload(regime: str, *, energy: float = -1.0) -> dict[str, object]:
+    exact = -1.1
+    return {
+        "regime": regime,
+        "adapt_vqe": {
+            "success": True,
+            "stop_reason": "max_depth",
+            "history": [{"outer_iteration": 1}, {"outer_iteration": 2}],
+            "ansatz_depth": 2,
+            "operators": [
+                {"label": "first", "terms": [{"pauli_exyz": "xy"}]},
+                {"label": "second", "terms": [{"pauli_exyz": "yx"}]},
+            ],
+            "energy": energy,
+            "exact_gs_energy": exact,
+            "abs_delta_e": abs(energy - exact),
+        },
+    }
+
+
+def _source_argv(
+    result_json: Path, *, u: str, estimator_ledger_json: Path | None = None
+) -> list[str]:
+    return [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--u",
+        u,
+        "--adapt-estimator-call-ledger-json",
+        str(
+            estimator_ledger_json
+            if estimator_ledger_json is not None
+            else result_json.with_name("estimator_call_ledger.json")
+        ),
+        "--output-json",
+        str(result_json),
+    ]
+
+
+def _write_source_commands(tmp_path: Path) -> tuple[Path, dict[str, Path]]:
+    results: dict[str, Path] = {}
+    rows = []
+    for regime, u in (("weak-weak", "0.25"), ("strong-weak", "8.0")):
+        result = tmp_path / regime.replace("-", "_") / "json" / "result.json"
+        result.parent.mkdir(parents=True)
+        result.write_text(
+            json.dumps(_result_payload(regime)) + "\n",
+            encoding="utf-8",
+        )
+        estimator_ledger = result.with_name("estimator_call_ledger.json")
+        estimator_ledger.write_text("{}\n", encoding="utf-8")
+        argv = _source_argv(
+            result, u=u, estimator_ledger_json=estimator_ledger
+        )
+        rows.append(
+            {
+                "regime": regime,
+                "argv": argv,
+                "shell": shlex.join(argv),
+                "output_json": str(result),
+            }
+        )
+        results[regime] = result
+    source = tmp_path / "commands.json"
+    source.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    return source, results
+
+
+def _options(argv: list[str]) -> dict[str, str | None]:
+    _prefix, values = campaign._parse_argv(argv)
+    return values
+
+
+def test_build_campaign_selects_regime_and_emits_audited_profile_pair(
+    tmp_path: Path,
+) -> None:
+    source, results = _write_source_commands(tmp_path)
+    source_payload_before = json.loads(source.read_text(encoding="utf-8"))
+    output_root = tmp_path / "planned-runs"
+
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak_weak"],
+        campaign_root=output_root,
+        repo_root=tmp_path,
+    )
+
+    assert payload["status"] == "pass"
+    assert payload["generator_only"] is True
+    assert payload["execution_authorized"] is False
+    assert payload["launch_count"] == 0
+    assert payload["requested_regimes"] == ["weak-weak"]
+    assert payload["source_commands_json_sha256"] == _sha256(source)
+    assert payload["runtime_source_lock"]["schema"] == (
+        campaign.RUNTIME_SOURCE_LOCK_SCHEMA
+    )
+    assert payload["runtime_source_lock"]["aggregate_sha256"]
+    assert {
+        row["path"] for row in payload["runtime_source_lock"]["files"]
+    } == set(campaign.RUNTIME_SOURCE_LOCK_PATHS)
+    assert len(payload["records"]) == 2
+    assert len(payload["pair_audits"]) == 1
+
+    by_profile = {row["profile_key"]: row for row in payload["records"]}
+    baseline = by_profile["disabled"]
+    saddle = by_profile["saddle_only"]
+    baseline_options = _options(baseline["argv"])
+    saddle_options = _options(saddle["argv"])
+
+    assert baseline["source_result_sha256"] == _sha256(results["weak-weak"])
+    assert baseline["source_anchor_reference"]["schema"] == (
+        campaign.SOURCE_ANCHOR_REFERENCE_SCHEMA
+    )
+    assert baseline["source_anchor_reference"]["history_length"] == 2
+    assert baseline["source_anchor_reference"]["ansatz_depth"] == 2
+    assert baseline["runtime_source_lock_sha256"] == payload[
+        "runtime_source_lock"
+    ]["aggregate_sha256"]
+    assert saddle["runtime_source_lock_sha256"] == baseline[
+        "runtime_source_lock_sha256"
+    ]
+    assert baseline["source_command_argv_sha256"] == campaign.payload_sha256(
+        source_payload_before[0]["argv"]
+    )
+    assert baseline_options["--u"] == "0.25"
+    assert saddle_options["--u"] == "0.25"
+
+    for options in (baseline_options, saddle_options):
+        assert options["--phase0-no-pilot"] is None
+        assert options["--phase2-no-batching"] is None
+        assert options["--phase3-no-batching"] is None
+        assert options["--phase3-runtime-split-max-subset-size"] == "1"
+        assert options["--phase3-runtime-split-subset-sizes"] == "1"
+        assert (
+            options["--phase3-runtime-split-child-padding-policy"]
+            == "exact_projected_grouped_v1"
+        )
+        assert (
+            options["--historical-singleton-trust-region-update-policy"]
+            == "displacement_calibrated_unbounded_v2"
+        )
+        assert options["--sr-powell-coordinate-chart-policy"] == (
+            "logical_shared_reduced_v1"
+        )
+        assert options["--skip-trajectory"] is None
+        assert "--adapt-current-json" in options
+        assert "--adapt-estimator-call-ledger-json" in options
+        assert "--phase0-pilot-enabled" not in options
+
+    assert (
+        baseline_options["--historical-singleton-coordinate-solve-policy"]
+        == "supported_metric_whitened_eigh_v1"
+    )
+    assert baseline_options["--sr-escape-mode"] == "disabled"
+    assert baseline["sr_powell_coordinate_chart_policy"] == (
+        "logical_shared_reduced_v1"
+    )
+    assert baseline["route_profile"] == (
+        "supported_whitened_adaptive_trust_reduced_powell_v2"
+    )
+    assert (
+        saddle_options["--historical-singleton-coordinate-solve-policy"]
+        == "supported_metric_global_trust_eigh_v2"
+    )
+    assert saddle_options["--sr-escape-mode"] == "saddle_only"
+    assert baseline["allowed_diff_audit"]["status"] == "pass"
+    assert baseline["allowed_diff_audit"]["nonprofile_diff_flags"] == [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--skip-trajectory",
+    ]
+    assert (
+        baseline["allowed_diff_audit"]["unexpected_nonprofile_diff_empty"]
+        is True
+    )
+    assert baseline["execution_path_audit"]["status"] == "pass"
+    assert baseline["execution_path_audit"]["unexpected_path_fields"] == []
+    assert saddle["allowed_diff_audit"]["unexpected_diff_flags"] == []
+    assert payload["pair_audits"][0]["status"] == "pass"
+    assert payload["pair_audits"][0]["nonprofile_diff_flags"] == [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+    ]
+    assert (
+        payload["pair_audits"][0]["unexpected_nonprofile_diff_empty"] is True
+    )
+    assert payload["pair_audits"][0]["unexpected_nonprofile_diff_flags"] == []
+    assert baseline["effective_settings_audit"]["status"] == "pass"
+    assert baseline["effective_settings_audit"]["all_defaults_resolved"] is True
+    assert baseline["effective_settings_audit"][
+        "unexpected_changed_destinations"
+    ] == []
+    assert payload["pair_audits"][0]["effective_settings_audit"][
+        "status"
+    ] == "pass"
+    assert baseline["launch_argv"][0] == str(Path(sys.executable).resolve())
+    assert baseline["launch_cwd"] == str(campaign.REPO_ROOT)
+    assert baseline["runtime_python_executable"] == str(
+        Path(sys.executable).resolve()
+    )
+    assert set(baseline["launch_environment_overrides"]) == set(
+        campaign.RECORD_CACHE_ENVIRONMENT_VARIABLES
+    )
+    assert all(
+        str(output_root.resolve()) in value
+        for value in baseline["launch_environment_overrides"].values()
+    )
+    assert baseline["execution_dependencies"] == []
+    assert saddle["execution_dependencies"] == [baseline["record_id"]]
+    assert saddle["dependency_gate_status"] == (
+        "blocked_pending_disabled_anchor_completion_and_validation"
+    )
+    assert payload["execution_dependency_gates"][0][
+        "disabled_anchor_must_complete_first"
+    ] is True
+    assert baseline["estimator_call_ledger_json"] != saddle[
+        "estimator_call_ledger_json"
+    ]
+    assert set(baseline["required_parent_directories"]) == {
+        str(output_root.resolve() / "weak_weak" / "disabled"),
+        str(output_root.resolve() / "weak_weak" / "disabled" / "json"),
+        str(output_root.resolve() / "weak_weak" / "disabled" / "cache"),
+    }
+    assert "mkdir -p" in baseline["shell_with_log_redirect"]
+    assert "test ! -e" in baseline["shell_with_log_redirect"]
+    assert source_payload_before == json.loads(source.read_text(encoding="utf-8"))
+
+
+def test_argv_audit_fails_closed_on_unexpected_nonprofile_change() -> None:
+    source = ["python3", "-m", "runner", "--problem", "hh"]
+    changed = [*source, "--adapt-max-depth", "2"]
+
+    with pytest.raises(ValueError, match="source-lock argv audit failed"):
+        campaign.audit_argv_diff(source, changed)
+
+
+def test_effective_settings_audit_rejects_unknown_actual_cli_flag(
+    tmp_path: Path,
+) -> None:
+    result = tmp_path / "result.json"
+    source = _source_argv(result, u="0.25")
+    source.extend(["--opaque-source-knob", "not-a-real-parser-setting"])
+
+    with pytest.raises(ValueError, match="adapt CLI parser rejected command argv"):
+        campaign.audit_effective_settings_diff(
+            source,
+            source,
+            launch_cwd=campaign.REPO_ROOT,
+        )
+
+
+def test_single_command_object_uses_explicit_requested_regime_and_cache_env(
+    tmp_path: Path,
+) -> None:
+    result = tmp_path / "source" / "result.json"
+    result.parent.mkdir(parents=True)
+    result.write_text(
+        json.dumps(_result_payload("weak-weak")) + "\n",
+        encoding="utf-8",
+    )
+    argv = _source_argv(result, u="0.25")
+    source_cache = tmp_path / "source" / "cache" / "candidate_records"
+    source = tmp_path / "command.json"
+    source.write_text(
+        json.dumps(
+            {
+                "schema": "exact_source_command_v1",
+                "argv": argv,
+                "environment": {
+                    "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": str(source_cache)
+                },
+                "working_directory": str(campaign.REPO_ROOT),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=tmp_path / "planned",
+    )
+
+    assert payload["requested_regimes"] == ["weak-weak"]
+    assert len(payload["records"]) == 2
+    assert payload["records"][0]["source_environment"] == {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": str(source_cache)
+    }
+
+
+def test_prelaunch_verification_and_parent_preparation_are_no_clobber(
+    tmp_path: Path,
+) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    campaign_root = tmp_path / "planned"
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=campaign_root,
+    )
+    record = payload["records"][0]
+
+    receipt = campaign.verify_campaign_manifest_prelaunch(
+        payload,
+        record_id=record["record_id"],
+        current_cwd=campaign.REPO_ROOT,
+    )
+    assert receipt["status"] == "pass"
+    assert receipt["execution_authorized"] is False
+    assert receipt["target_paths_absent"] is True
+    assert set(receipt["verified_target_paths"]) == {
+        *campaign.RECORD_TARGET_PATH_FIELDS,
+        *(f"cache:{name}" for name in campaign.RECORD_CACHE_ENVIRONMENT_VARIABLES),
+    }
+
+    prepared = campaign.prepare_record_parent_directories(
+        record, campaign_root=campaign_root
+    )
+    assert prepared == record["required_parent_directories"]
+    assert all(Path(path).is_dir() for path in prepared)
+    assert not Path(record["log_path"]).exists()
+
+    Path(record["log_path"]).write_text("occupied\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no-clobber"):
+        campaign.verify_campaign_manifest_prelaunch(
+            payload,
+            record_id=record["record_id"],
+            current_cwd=campaign.REPO_ROOT,
+        )
+    with pytest.raises(ValueError, match="no-clobber"):
+        campaign.prepare_record_parent_directories(
+            record, campaign_root=campaign_root
+        )
+
+
+def test_disabled_anchor_validation_passes_exact_regression_and_fails_drift(
+    tmp_path: Path,
+) -> None:
+    source, results = _write_source_commands(tmp_path)
+    campaign_root = tmp_path / "planned"
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=campaign_root,
+    )
+    record = next(
+        row for row in payload["records"] if row["profile_key"] == "disabled"
+    )
+    output = Path(record["output_json"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        results["weak-weak"].read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    receipt = campaign.validate_disabled_anchor_result(
+        payload, record_id=record["record_id"]
+    )
+    assert receipt["status"] == "pass"
+    assert all(receipt["checks"].values())
+    assert receipt["execution_authorized"] is False
+
+    drifted = _result_payload("weak-weak", energy=-0.99)
+    output.write_text(json.dumps(drifted) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="anchor validation failed"):
+        campaign.validate_disabled_anchor_result(
+            payload, record_id=record["record_id"]
+        )
+
+
+def test_current_revision_control_validation_binds_pair_without_historical_claim(
+    tmp_path: Path,
+) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=tmp_path / "planned-current",
+    )
+    record = next(
+        row for row in payload["records"] if row["profile_key"] == "disabled"
+    )
+    output = Path(record["output_json"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # This intentionally differs from the historical source result.  The
+    # current-revision receipt binds the fresh control without claiming that
+    # it reproduced the historical anchor.
+    completed = _result_payload("weak-weak", energy=-0.97)
+    completed["settings"] = {
+        "sr_escape_mode": "disabled",
+        "historical_singleton_coordinate_solve_policy": record[
+            "historical_singleton_coordinate_solve_policy"
+        ],
+        "historical_singleton_trust_region_update_policy": record[
+            "historical_singleton_trust_region_update_policy"
+        ],
+        "sr_powell_coordinate_chart_policy": record[
+            "sr_powell_coordinate_chart_policy"
+        ],
+    }
+    output.write_text(json.dumps(completed) + "\n", encoding="utf-8")
+
+    receipt = campaign.validate_current_revision_disabled_result(
+        payload, record_id=record["record_id"]
+    )
+    assert receipt["status"] == "pass"
+    assert receipt["schema"] == (
+        campaign.CURRENT_REVISION_CONTROL_VALIDATION_SCHEMA
+    )
+    assert receipt["historical_equivalence_claimed"] is False
+    assert receipt["execution_authorized"] is False
+    assert receipt["combined_mode_authorized"] is False
+    assert receipt["paired_saddle_output_absent"] is True
+    assert all(receipt["result_profile_checks"].values())
+
+    completed["settings"]["sr_escape_mode"] = "saddle_only"
+    output.write_text(json.dumps(completed) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="control profile mismatch"):
+        campaign.validate_current_revision_disabled_result(
+            payload, record_id=record["record_id"]
+        )
+
+
+def test_current_revision_control_validation_rejects_ambiguous_or_cross_regime_pair(
+    tmp_path: Path,
+) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=tmp_path / "planned-current-pair",
+    )
+    record = next(
+        row for row in payload["records"] if row["profile_key"] == "disabled"
+    )
+    output = Path(record["output_json"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    completed = _result_payload("weak-weak")
+    completed["settings"] = {
+        "sr_escape_mode": "disabled",
+        "historical_singleton_coordinate_solve_policy": record[
+            "historical_singleton_coordinate_solve_policy"
+        ],
+        "historical_singleton_trust_region_update_policy": record[
+            "historical_singleton_trust_region_update_policy"
+        ],
+        "sr_powell_coordinate_chart_policy": record[
+            "sr_powell_coordinate_chart_policy"
+        ],
+    }
+    output.write_text(json.dumps(completed) + "\n", encoding="utf-8")
+
+    duplicate = copy.deepcopy(payload)
+    duplicate["records"].append(copy.deepcopy(record))
+    with pytest.raises(ValueError, match="record_id values must be unique"):
+        campaign.validate_current_revision_disabled_result(
+            duplicate, record_id=record["record_id"]
+        )
+
+    cross_regime = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in cross_regime["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle["regime"] = "strong-weak"
+    with pytest.raises(ValueError, match="paired saddle record contract"):
+        campaign.validate_current_revision_disabled_result(
+            cross_regime, record_id=record["record_id"]
+        )
+
+
+def test_current_revision_control_validation_rejects_authorized_or_combined_saddle(
+    tmp_path: Path,
+) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=tmp_path / "planned-current-mode",
+    )
+    record = next(
+        row for row in payload["records"] if row["profile_key"] == "disabled"
+    )
+    output = Path(record["output_json"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    completed = _result_payload("weak-weak")
+    completed["settings"] = {
+        "sr_escape_mode": "disabled",
+        "historical_singleton_coordinate_solve_policy": record[
+            "historical_singleton_coordinate_solve_policy"
+        ],
+        "historical_singleton_trust_region_update_policy": record[
+            "historical_singleton_trust_region_update_policy"
+        ],
+        "sr_powell_coordinate_chart_policy": record[
+            "sr_powell_coordinate_chart_policy"
+        ],
+    }
+    output.write_text(json.dumps(completed) + "\n", encoding="utf-8")
+
+    authorized = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in authorized["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle["execution_authorized"] = True
+    with pytest.raises(ValueError, match="paired saddle record contract"):
+        campaign.validate_current_revision_disabled_result(
+            authorized, record_id=record["record_id"]
+        )
+
+    combined_record = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in combined_record["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle["sr_escape_mode"] = "combined"
+    with pytest.raises(ValueError, match="paired saddle record contract"):
+        campaign.validate_current_revision_disabled_result(
+            combined_record, record_id=record["record_id"]
+        )
+
+    combined_argv = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in combined_argv["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    argv = list(saddle["argv"])
+    argv[argv.index("--sr-escape-mode") + 1] = "combined"
+    saddle["argv"] = argv
+    saddle["argv_sha256"] = campaign.payload_sha256(argv)
+    launch_argv = list(saddle["launch_argv"])
+    launch_argv[launch_argv.index("--sr-escape-mode") + 1] = "combined"
+    saddle["launch_argv"] = launch_argv
+    saddle["launch_argv_sha256"] = campaign.payload_sha256(launch_argv)
+    with pytest.raises(ValueError, match="--sr-escape-mode mismatch"):
+        campaign.validate_current_revision_disabled_result(
+            combined_argv, record_id=record["record_id"]
+        )
+
+
+def test_current_revision_control_validation_recomputes_saddle_contract_and_pair_audit(
+    tmp_path: Path,
+) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    payload = campaign.build_campaign(
+        source_commands_json=source,
+        regimes=["weak-weak"],
+        campaign_root=tmp_path / "planned-current-audit",
+    )
+    record = next(
+        row for row in payload["records"] if row["profile_key"] == "disabled"
+    )
+    output = Path(record["output_json"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    completed = _result_payload("weak-weak")
+    completed["settings"] = {
+        "sr_escape_mode": "disabled",
+        "historical_singleton_coordinate_solve_policy": record[
+            "historical_singleton_coordinate_solve_policy"
+        ],
+        "historical_singleton_trust_region_update_policy": record[
+            "historical_singleton_trust_region_update_policy"
+        ],
+        "sr_powell_coordinate_chart_policy": record[
+            "sr_powell_coordinate_chart_policy"
+        ],
+    }
+    output.write_text(json.dumps(completed) + "\n", encoding="utf-8")
+
+    invalid_launch = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in invalid_launch["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle["launch_argv"] = "not-an-array"
+    with pytest.raises(ValueError, match="saddle_only launch_argv is invalid"):
+        campaign.validate_current_revision_disabled_result(
+            invalid_launch, record_id=record["record_id"]
+        )
+
+    stale_effective_audit = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in stale_effective_audit["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle["effective_settings_audit"]["source_settings_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="effective-settings audit does not recompute"):
+        campaign.validate_current_revision_disabled_result(
+            stale_effective_audit, record_id=record["record_id"]
+        )
+
+    stale_pair_audit = copy.deepcopy(payload)
+    stale_pair_audit["pair_audits"][0]["argv_audit"]["changed_flags"] = []
+    with pytest.raises(ValueError, match="pair audit does not recompute"):
+        campaign.validate_current_revision_disabled_result(
+            stale_pair_audit, record_id=record["record_id"]
+        )
+
+    occupied_saddle_target = copy.deepcopy(payload)
+    saddle = next(
+        row
+        for row in occupied_saddle_target["records"]
+        if row["profile_key"] == "saddle_only"
+    )
+    saddle_log = Path(saddle["log_path"])
+    saddle_log.parent.mkdir(parents=True, exist_ok=True)
+    saddle_log.write_text("occupied\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no-clobber"):
+        campaign.validate_current_revision_disabled_result(
+            occupied_saddle_target, record_id=record["record_id"]
+        )
+
+
+def test_runtime_source_lock_verification_fails_on_tampered_hash() -> None:
+    lock = campaign.build_runtime_source_lock()
+    lock["files"][0]["sha256"] = "0" * 64
+
+    with pytest.raises(ValueError, match="source-lock verification failed"):
+        campaign.verify_runtime_source_lock(lock)
+
+
+def test_build_campaign_rejects_unknown_regime_and_missing_source_result(
+    tmp_path: Path,
+) -> None:
+    source, results = _write_source_commands(tmp_path)
+    with pytest.raises(ValueError, match="absent from source commands"):
+        campaign.build_campaign(
+            source_commands_json=source,
+            regimes=["intermediate-strong"],
+            campaign_root=tmp_path / "planned",
+            repo_root=tmp_path,
+        )
+
+    results["weak-weak"].unlink()
+    with pytest.raises(ValueError, match="source result JSON.*missing"):
+        campaign.build_campaign(
+            source_commands_json=source,
+            regimes=["weak-weak"],
+            campaign_root=tmp_path / "planned",
+            repo_root=tmp_path,
+        )
+
+
+def test_source_row_integrity_fails_closed_before_generation(tmp_path: Path) -> None:
+    source, _results = _write_source_commands(tmp_path)
+    rows = json.loads(source.read_text(encoding="utf-8"))
+    rows[0]["shell"] = "python3 -m wrong.module"
+    source.write_text(json.dumps(rows), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="shell does not reproduce argv"):
+        campaign.build_campaign(
+            source_commands_json=source,
+            regimes=["weak-weak"],
+            campaign_root=tmp_path / "planned",
+            repo_root=tmp_path,
+        )
+
+
+def test_cli_writes_only_the_manifest_and_reports_fail_closed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source, results = _write_source_commands(tmp_path)
+    manifest = tmp_path / "campaign.json"
+
+    assert (
+        campaign.main(
+            [
+                "--source-commands-json",
+                str(source),
+                "--regime",
+                "strong_weak",
+                "--campaign-root",
+                str(tmp_path / "planned"),
+                "--output-manifest",
+                str(manifest),
+            ]
+        )
+        == 0
+    )
+    written = json.loads(manifest.read_text(encoding="utf-8"))
+    assert written["launch_count"] == 0
+    assert written["requested_regimes"] == ["strong-weak"]
+    assert (
+        campaign.main(
+            [
+                "--verify-manifest",
+                str(manifest),
+                "--record-id",
+                "strong_weak__sr_disabled",
+            ]
+        )
+        == 0
+    )
+
+    results["strong-weak"].unlink()
+    blocked_manifest = tmp_path / "blocked.json"
+    assert (
+        campaign.main(
+            [
+                "--source-commands-json",
+                str(source),
+                "--regime",
+                "strong-weak",
+                "--campaign-root",
+                str(tmp_path / "planned-blocked"),
+                "--output-manifest",
+                str(blocked_manifest),
+            ]
+        )
+        == 2
+    )
+    assert not blocked_manifest.exists()
+    assert "FAIL CLOSED" in capsys.readouterr().err

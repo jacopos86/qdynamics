@@ -1,0 +1,6 @@
+trial_000000__weak_weak
+trial_000000__intermediate_weak
+trial_000000__strong_weak_u8
+trial_000000__weak_strong
+trial_000000__intermediate_strong
+trial_000000__strong_strong_u8

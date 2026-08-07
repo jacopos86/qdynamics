@@ -1,0 +1,60 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.33in]{geometry}
+\usepackage{amsmath,graphicx,booktabs,xcolor}
+\usepackage[T1]{fontenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\Large\bfseries RA-ADAPT--Append singleton costs at shared pre-plateau accuracy}\par
+\vspace{2pt}
+{\small For each regime, $K_\cap$ is the earlier selected singleton plateau and
+$\Delta E_\cap=\max\{\min_{k\leq K_\cap}\Delta E_{\mathrm{RA\text{-}ADAPT}}(k),
+\min_{k\leq K_\cap}\Delta E_{\rm Append}(k)\}$.
+Each cost is evaluated at that method's first stored prefix satisfying
+$\Delta E(k)\leq\Delta E_\cap$ within this shared window.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_page3_plot.png}
+\vspace{3pt}
+\scriptsize
+\setlength{\tabcolsep}{3.0pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}ccc l r c rrrrr@{}}
+\toprule
+Reg. & $K_\cap$ & $\Delta E_\cap$ & Method & $k_\cap$ & $\Delta E(k_\cap)$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $W_{1q}$ & $S_{\rm alg}$ \\
+\midrule
+WW & 29 & $3.021\times 10^{-7}$ & RA-ADAPT & 29 & $3.021\times 10^{-7}$ & 116 & 94 & 462 & 265 & 40,510 \\
+WW & 29 & $3.021\times 10^{-7}$ & Append-ADAPT & 26 & $2.698\times 10^{-7}$ & 130 & 108 & 514 & 264 & 144,599 \\
+\addlinespace[1.5pt]
+IW & 30 & $7.091\times 10^{-8}$ & RA-ADAPT & 30 & $7.091\times 10^{-8}$ & 110 & 92 & 504 & 260 & 52,038 \\
+IW & 30 & $7.091\times 10^{-8}$ & Append-ADAPT & 29 & $8.141\times 10^{-9}$ & 140 & 112 & 572 & 273 & 282,997 \\
+\addlinespace[1.5pt]
+SW & 11 & $1.414\times 10^{-6}$ & RA-ADAPT & 11 & $1.413\times 10^{-6}$ & 30 & 17 & 138 & 81 & 7,851 \\
+SW & 11 & $1.414\times 10^{-6}$ & Append-ADAPT & 11 & $1.414\times 10^{-6}$ & 44 & 37 & 207 & 105 & 23,987 \\
+\addlinespace[1.5pt]
+WS & 48 & $6.388\times 10^{-4}$ & RA-ADAPT & 37 & $6.057\times 10^{-4}$ & 124 & 83 & 486 & 271 & 150,680 \\
+WS & 48 & $6.388\times 10^{-4}$ & Append-ADAPT & 48 & $6.388\times 10^{-4}$ & 276 & 223 & 870 & 512 & 1,202,525 \\
+\addlinespace[1.5pt]
+IS & 49 & $4.812\times 10^{-5}$ & RA-ADAPT & 49 & $4.812\times 10^{-5}$ & 160 & 87 & 609 & 333 & 256,486 \\
+IS & 49 & $4.812\times 10^{-5}$ & Append-ADAPT & 49 & $4.675\times 10^{-5}$ & 288 & 228 & 919 & 513 & 1,470,894 \\
+\addlinespace[1.5pt]
+SS & 18 & $6.847\times 10^{-5}$ & RA-ADAPT & 18 & $6.847\times 10^{-5}$ & 54 & 36 & 226 & 108 & 21,790 \\
+SS & 18 & $6.847\times 10^{-5}$ & Append-ADAPT & 9 & $5.346\times 10^{-5}$ & 28 & 17 & 127 & 71 & 83,349 \\
+\bottomrule
+\end{tabular}
+\par\vspace{4pt}
+\begin{minipage}{0.96\textwidth}
+\footnotesize
+$N_{2q}$, $D_{2q}$, and $D_c$ are exact Qiskit-compiled costs for the
+selected active prefix (optimization level 0, transpiler seed 7, reference
+state included). $W_{1q}$ is the genuine Qiskit-emitted Pauli-rotation
+one-qubit work before transpilation: basis changes plus the central
+$R_z$ rotation, excluding reference preparation. $S_{\rm alg}$ is cumulative
+logical estimator work, not physical shots or circuits. The canonical tuple is
+$(N_{2q},D_{2q},D_c,W_{1q},S_{\rm alg})$. RA-ADAPT is the active Paper-I support-projected
+Phase-III configuration with no-overlap trust calibration and singleton
+Pauli-child admission; Append-ADAPT uses the matched projected-singleton pool.
+\end{minipage}
+\end{center}
+\end{document}

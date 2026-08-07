@@ -1,0 +1,22 @@
+def test_alias_loaded_hardcoded_wrapper_resolves_engine_support_identities() -> None:
+    spec = importlib.util.spec_from_file_location(
+        "hardcoded_adapt_pipeline_identity_check",
+        str(REPO_ROOT / "pipelines" / "hardcoded" / "adapt_pipeline.py"),
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        for name in (
+            "AdaptVQEResult",
+            "_BeamBranchState",
+            "_BranchExpansionPlan",
+            "_BranchStepScratch",
+            *_BEAM_HELPER_NAMES,
+        ):
+            assert getattr(module, name) is getattr(engine_support, name)
+        for name in _CLI_CONFIG_BEAM_POLICY_NAMES:
+            assert getattr(module, name) is getattr(cli_config, name)
+    finally:
+        sys.modules.pop(spec.name, None)

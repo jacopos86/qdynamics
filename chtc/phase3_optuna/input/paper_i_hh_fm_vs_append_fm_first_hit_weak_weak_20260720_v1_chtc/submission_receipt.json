@@ -1,0 +1,24 @@
+{
+  "schema": "paper_i_hh_fm_vs_append_fm_first_hit_chtc_submission_receipt_v1",
+  "submitted_at_utc": "2026-07-20T23:27:45Z",
+  "submit_host": "ap2001.chtc.wisc.edu",
+  "remote_checkout": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_20260720_v1_chtc/submit.sub",
+  "job_batch_name": "paper-i-hh-fm-vs-append-fm-first-hit-weak-weak-v1",
+  "cluster_id": 8957360,
+  "proc_id": 0,
+  "submitted_proc_count": 1,
+  "queue_admission": {
+    "job_status_code": 1,
+    "job_status": "idle",
+    "num_job_starts": 0,
+    "hold_reason": null
+  },
+  "transfer_archive_sha256": "c80732c047cb8bc142a23205d0a3e209a503d089b3aac9797e6b0d4a2508756a",
+  "source_archive_sha256": "521ccf43ddf6bed38cf446264ce86dd7fea733d823dd4f153980c758920b80ca",
+  "container_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_integrity_checks_passed": true,
+  "dry_run_proc_count": 1,
+  "duplicate_batch_present_before_submit": false,
+  "stale_monitor_or_autopilot_present_before_submit": false
+}

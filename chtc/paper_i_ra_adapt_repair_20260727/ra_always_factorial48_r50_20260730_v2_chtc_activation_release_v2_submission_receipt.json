@@ -1,0 +1,149 @@
+{
+  "schema": "paper_i_checkpoint_retention_ordinary_held_submission_receipt_v1",
+  "receipt_created_utc": "2026-07-30T19:12:40Z",
+  "status": "passed",
+  "cluster_id": 9397758,
+  "campaign_id": "paper_i_ra_adapt_always_stationarity_phase1_cost_factorial_v1",
+  "activation_id": "paper_i_ra_adapt_always_factorial48_r50_20260730_v2_chtc_activation_v1_release_v2",
+  "operational_package_id": "paper_i_ra_adapt_always_factorial48_r50_20260730_v2_chtc",
+  "batch_name": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "submitted_utc": "2026-07-30T19:02:05Z",
+  "initial_state_observed_utc": "2026-07-30T19:02:53Z",
+  "owner": "jsstrobel",
+  "submit_host": "ap2001.chtc.wisc.edu",
+  "schedd": "ap2001.chtc.wisc.edu",
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "lifecycle": {
+    "mode": "ordinary_held_exact_proc_release_v1",
+    "late_materialization": false,
+    "submit_hold": true,
+    "automatic_release": false,
+    "release_scope": "exact_cluster_proc_only",
+    "one_proc_per_quota_cycle": true,
+    "cluster_wide_release_forbidden": true
+  },
+  "initial_state": {
+    "expected_proc_count": 45,
+    "observed_proc_count": 45,
+    "proc_ids": [
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+      10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+      30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+      40, 41, 42, 43, 44
+    ],
+    "job_status_counts": {
+      "5": 45
+    },
+    "num_job_starts_counts": {
+      "0": 45
+    },
+    "all_held": true,
+    "all_never_started": true,
+    "batch_name_match": true,
+    "lifecycle_mode_match": true,
+    "submit_file_match": true
+  },
+  "bindings": {
+    "activation_manifest": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/activation_manifest.json",
+      "sha256": "c7039b055638f52f0c3f56de3ed7043a0e3d9c836ca3f39af498c7ee7808aca6",
+      "canonical_sha256": "52af3b787c90fc347f7386e45401a23cb1cee7f5d21c39616dd89c027074c90c",
+      "size_bytes": 90917
+    },
+    "package_manifest": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc/package_manifest.json",
+      "sha256": "4f30b4b7750372a5324fa7c2b56ea70a607e8909d5bba34176bb14631d1d6d41",
+      "canonical_sha256": "25f5a69da1c74c721e1e2061cd901b0465e49c32b5f328f4c64029d44f46a80a",
+      "size_bytes": 60869
+    },
+    "submit_file": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/submit.sub",
+      "sha256": "3730578b0029fc5d078fa1135fdc9395b1ba5b0249f87b444847e3fcdf494f4b",
+      "size_bytes": 2596
+    },
+    "queue_manifest": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_activation_release_v2/queue.tsv",
+      "sha256": "f691fa7a28af69a94c738cb0cdad4fe0facf8a5a9c6c8fdfa0b73e31fda8300c",
+      "size_bytes": 27612
+    },
+    "source_archive": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc/source_locked.tar.gz",
+      "sha256": "584896ed11f4c0469e064d0b6279302798e477ef4b3f7bd44d8e646d7d17a8eb",
+      "size_bytes": 2583413
+    },
+    "parent_cluster_retirement_receipt": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_parent_cluster_retirement_9395481_9395482_20260730_v1.json",
+      "sha256": "9ed8966737459d0585c621438c3f1c6ceea35394886b91132f31fcabc89dd613",
+      "canonical_sha256": "4c53f41da94099771410d5a6c58add633bdd2c88010fc2068c113db0f9f11941",
+      "size_bytes": 1520
+    },
+    "completed_v1_preservation_snapshot": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_completed_v1_preservation_9395481_9395482_20260730_v1.json",
+      "sha256": "17b7c1657046c01e7686c98d1fec36a23ddbeb4b479aabf2eab3dd2bf913a973",
+      "canonical_sha256": "7d606f18d8343e988d0595654a4353e028e298ff2bbc6f579a8066616e83c4e6",
+      "size_bytes": 7928
+    }
+  },
+  "submission_evidence": [
+    {
+      "role": "successful_submit_stdout",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit_attempt2.stdout",
+      "sha256": "d00ce55f8265212cfd653b365061734626cf373903fa322c6146d77b9d963df2",
+      "size_bytes": 103
+    },
+    {
+      "role": "successful_submit_stderr",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit_attempt2.stderr",
+      "sha256": "0745e6449b9e9fb77118bf23a8acd4829c9c6bbda96d3b3e5c31f96494520cdb",
+      "size_bytes": 62
+    },
+    {
+      "role": "successful_submit_exit_code",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit_attempt2.exit_code",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size_bytes": 2
+    },
+    {
+      "role": "initial_condor_q_json",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_postsubmit.json",
+      "sha256": "bdd732ef217f6e361db9bec6307783ef218dcccd426716693a36a88bc78f5ea0",
+      "size_bytes": 22807
+    },
+    {
+      "role": "initial_state_gate_exit_code",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_postsubmit_gate.exit_code",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size_bytes": 2
+    }
+  ],
+  "failed_invocation_attempt": {
+    "cause": "submit file was invoked from inside its activation directory even though its sealed paths are repository-root-relative",
+    "cluster_created": false,
+    "partial_cluster_query_ad_count": 0,
+    "corrected_by": "resubmitted the same sealed submit file from the remote repository root",
+    "stdout_path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit.stdout",
+    "stderr_path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit.stderr",
+    "exit_code_path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_release_v2_submit.exit_code",
+    "partial_cluster_query_path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_after_failed_invocation.json"
+  },
+  "superseded_factory_attempt": {
+    "cluster_id": 9397643,
+    "receipt_path": "chtc/paper_i_ra_adapt_repair_20260727/ra_always_factorial48_r50_20260730_v2_chtc_submission_receipt.json",
+    "receipt_file_sha256": "bb872f96dea104006024ce826c76d23fac174b0385e7714553dfe1016574703a",
+    "receipt_canonical_sha256": "bb91c22c732d56b56a8d0908c370bea07e5c4362f8a0ef0d274d994691aa743d",
+    "disposition": "removal_commands_accepted_but_error_factory_ad_remained_visible_with_zero_materialized_procs_and_is_superseded",
+    "post_removal_factory_ad_visible": true,
+    "remote_state_known_removed": false,
+    "jobs_present": 0,
+    "next_proc_id": 0,
+    "job_factory_total_procs": -42,
+    "current_campaign_cluster": false,
+    "post_removal_query_evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/broken_base_factories_post_remove.json",
+    "post_removal_query_evidence_sha256": "b8a0918f7a194a387af81076d333c9f0ac115df64d8d573d24c46269586da48c"
+  },
+  "scientific_settings_changed_from_v1": false,
+  "paper_evidence_adopted": false,
+  "unrelated_clusters_touched": false,
+  "sha256": "0461c710da18c46590bac9192d46a19537113cd0cc827bc05d7926c9b9bcd63e"
+}

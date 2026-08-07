@@ -1,0 +1,2670 @@
+#!/usr/bin/env python3
+"""Powell-only local Paper-I HH SNAKE parity and Pareto harness."""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import shutil
+import sys
+import time
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.contracts.problem import ProblemRequest  # noqa: E402
+from pipelines.static_adapt.builders.problem_registry import (  # noqa: E402
+    resolve_problem_context,
+)
+from pipelines.static_adapt.builders.legal_subspace_filter import (  # noqa: E402
+    legal_subspace_basis_for_problem,
+)
+from pipelines.static_adapt.paper_i_config import (  # noqa: E402
+    PaperIMechanismOverrides,
+)
+from pipelines.static_adapt.paper_i_runner import (  # noqa: E402
+    PAPER_I_PROFILE_CANONICAL,
+    PaperISnakeRunConfig,
+    build_paper_i_optimizer_config,
+    build_paper_i_route_a_invocation,
+    run_paper_i_route_a,
+)
+from pipelines.static_adapt.joint_step_warm_start import (  # noqa: E402
+    ROUTE_A_JOINT_STEP_WARM_START_MODES,
+)
+from pipelines.static_adapt.joint_linear_solve import (  # noqa: E402
+    JOINT_LINEAR_SOLVE_POLICIES,
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+from pipelines.static_adapt.estimator_call_ledger import (  # noqa: E402
+    FORMAL_QUERY_CLOSURE_SCHEMA as ESTIMATOR_FORMAL_QUERY_CLOSURE_SCHEMA,
+)
+from pipelines.static_adapt.route_a_funnel import (  # noqa: E402
+    ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+    ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+    ROUTE_A_FUNNEL_DIRECT_CHILD_PHASE3_V1,
+    ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+)
+from pipelines.static_adapt.route_a_child_padding import (  # noqa: E402
+    ROUTE_A_CHILD_PADDING_HARD_FILTER_NPH2_V1,
+    ROUTE_A_CHILD_PADDING_POLICIES,
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_NPH2_V1,
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+)
+from pipelines.static_adapt.route_a_schur_selector import (  # noqa: E402
+    BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
+    BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
+    BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+    ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1,
+    ROUTE_A_ADDITIVITY_HARD_GATE_LEGACY_V1,
+    ROUTE_A_ADDITIVITY_OFF,
+    ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1,
+    ROUTE_A_SELECTOR_EXHAUSTION_POLICIES,
+    ROUTE_A_SELECTOR_EXHAUSTION_STOP,
+    ROUTE_A_TRUST_REGION_DISPLACEMENT_CALIBRATED_V1,
+    ROUTE_A_TRUST_REGION_DISPLACEMENT_CALIBRATED_UNBOUNDED_V2,
+    ROUTE_A_TRUST_REGION_FIXED,
+    ROUTE_A_TRUST_REGION_UPDATE_POLICIES,
+    RouteASchurSelectorConfig,
+    TrustRegionUpdateConfig,
+)
+from pipelines.scaffold.hh_continuation_scoring import (  # noqa: E402
+    BATCH_SEARCH_FEASIBILITY_JOINT_SUBSET_GATE_V1,
+    BATCH_SEARCH_FEASIBILITY_POLICIES,
+)
+from pipelines.exact_bench.snake_table_i_measurement_work import (  # noqa: E402
+    snake_algorithmic_work_from_payload,
+)
+from src.quantum.hubbard_latex_python_pairs import (  # noqa: E402
+    SPIN_DN,
+    SPIN_UP,
+    mode_index,
+)
+
+
+SCHEMA = "paper_i_hh_powell_pareto_run_v1"
+PARITY_SCHEMA = "paper_i_hh_powell_worker_parity_v1"
+PLAN_DIFF_SCHEMA = "paper_i_hh_powell_pareto_plan_diff_v1"
+REOPTIMIZATION_ROUTE_CONTRACT_SCHEMA = (
+    "paper_i_hh_powell_pareto_reoptimization_route_contract_v1"
+)
+REOPTIMIZATION_ROUTE_OFF = "off"
+# Parse-only identities for preserved historical result payloads.  These are
+# deliberately not accepted by the active runner or CLI.
+HISTORICAL_FORMAL_MANIFOLD_ROUTE = "formal_manifold_warm_start_v1"
+FORMAL_QUERY_ACCOUNTING_SCHEMA = (
+    "paper_i_hh_formal_manifold_query_work_sidecar_v2"
+)
+FORMAL_QUERY_PRIMITIVE_FIELDS = (
+    "N_E",
+    "N_grad",
+    "N_G",
+    "N_Q",
+    "N_Hv",
+    "N_cross",
+)
+RESULT_PAYLOAD_FULL_V1 = "full_v1"
+RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1 = "summary_checkpoint_v1"
+RESULT_PAYLOAD_RECONSTRUCTIBLE_CONTINUATION_KEYS = (
+    "phase1_feature_rows",
+    "phase1_retained_rows",
+    "phase2_scored_rows",
+    "phase2_shortlist_rows",
+    "phase2_geometric_shortlist_rows",
+    "phase2_retained_shortlist_rows",
+)
+RESULT_PAYLOAD_MODES = (
+    RESULT_PAYLOAD_FULL_V1,
+    RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1,
+)
+TERMINAL_INTERNAL_GRAPH_PROXY_MODE = "proxy_logical_ladder_span_v1"
+TERMINAL_INTERNAL_GRAPH_PROXY_SOURCE = (
+    "adapt_vqe.continuation.selected_generator_metadata."
+    "compile_metadata.serialized_terms_exyz"
+)
+TERMINAL_INTERNAL_GRAPH_PROXY_COEFFICIENT_TOLERANCE = 1.0e-12
+DISK_WARNING_GIB = 15.0
+DISK_LAUNCH_FLOOR_GIB = 10.0
+SOURCE_DOCS = (
+    "MATH/paper_facing/paper_I_static_scaffold/"
+    "paper_i_hh_powell_visible_recovery_candidate_settings_20260706.md",
+    "MATH/paper_facing/paper_I_static_scaffold/"
+    "paper_i_hh_snake_canonical_runtime_settings_draft_20260627.md",
+)
+PAPER_I_REFERENCE_FRONT_JSON = (
+    REPO_ROOT
+    / "output/pdf/paper_i_hh_corrected_vs_current_20260710"
+    / "paper_i_hh_corrected_vs_current_onepage_20260710.json"
+)
+
+REGIMES: dict[str, dict[str, float | int]] = {
+    "weak-weak": {"u": 0.25, "lambda": 0.25, "n_ph_work": 2},
+    "intermediate-weak": {
+        "u": 1.25,
+        "lambda": 0.25,
+        "n_ph_work": 2,
+    },
+    "strong-weak-u8": {"u": 8.0, "lambda": 0.25, "n_ph_work": 2},
+    "weak-strong": {"u": 0.25, "lambda": 1.25, "n_ph_work": 4},
+    "intermediate-strong": {
+        "u": 1.25,
+        "lambda": 1.25,
+        "n_ph_work": 4,
+    },
+    "strong-strong-u8": {
+        "u": 8.0,
+        "lambda": 1.25,
+        "n_ph_work": 4,
+    },
+}
+PAPER_I_REFERENCE_REGIME_KEYS = {
+    "strong-weak-u8": "strong-weak",
+    "strong-strong-u8": "strong-strong",
+}
+
+_BATCH_SELECTION_MODES = {
+    "off": "combinatorial_reduced_plane",
+    "greedy": "greedy_reduced_plane",
+    "combinatorial": "combinatorial_reduced_plane",
+}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _disk_preflight(path: Path = REPO_ROOT) -> dict[str, Any]:
+    usage = shutil.disk_usage(path)
+    free_gib = float(usage.free / (1024**3))
+    if free_gib < DISK_LAUNCH_FLOOR_GIB:
+        status = "launch_blocked"
+    elif free_gib < DISK_WARNING_GIB:
+        status = "warning"
+    else:
+        status = "ok"
+    return {
+        "schema": "paper_i_hh_pareto_disk_preflight_v1",
+        "path": str(path),
+        "free_bytes": int(usage.free),
+        "free_gib": float(free_gib),
+        "warning_below_gib": float(DISK_WARNING_GIB),
+        "launch_block_below_gib": float(DISK_LAUNCH_FLOOR_GIB),
+        "status": str(status),
+    }
+
+
+def _json_ready(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, np.generic):
+        return _json_ready(value.item())
+    if isinstance(value, np.ndarray):
+        return [_json_ready(item) for item in value.tolist()]
+    if isinstance(value, complex):
+        return {"real": float(value.real), "imag": float(value.imag)}
+    if isinstance(value, Mapping):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_json_ready(item) for item in value]
+    if hasattr(value, "__dict__"):
+        return _json_ready(vars(value))
+    return str(value)
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(_json_ready(dict(payload)), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _payload_hash(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        _json_ready(dict(payload)),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _resolve_reoptimization_route(
+    args: argparse.Namespace,
+) -> tuple[str, None, dict[str, Any]]:
+    """Return the sole active accepted-ansatz route for this legacy harness."""
+
+    route_contract = {
+        "schema": REOPTIMIZATION_ROUTE_CONTRACT_SCHEMA,
+        "requested_route": REOPTIMIZATION_ROUTE_OFF,
+        "effective_route": REOPTIMIZATION_ROUTE_OFF,
+        "route_family": "paper_i_route_a",
+        "static_route_id": "route_a",
+        "accepted_ansatz_reoptimization_state": (
+            "legacy_paper_i_route_a_refit_state_v1"
+        ),
+        "route_specific_mutable_state_shared_with_joint_response": None,
+        "candidate_exposure": {
+            "requested_funnel_mode": str(args.funnel_mode),
+            "requested_macro_phase1_cap": int(args.phase1_shortlist_size),
+            "requested_macro_phase2_cap": int(args.phase2_shortlist_size),
+            "requested_child_phase1_cap": int(args.child_phase1_shortlist_size),
+            "requested_child_phase2_cap": int(args.child_phase2_shortlist_size),
+            "effective_selection_policy": str(args.funnel_mode),
+            "effective_phase_model": (
+                "paper_i_route_a_configured_phase_models_v1"
+            ),
+            "joint_response_selector_invoked": bool(
+                str(args.funnel_mode)
+                == ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2
+            ),
+            "route_a_global_child_exposure_carrier_invoked": bool(
+                str(args.funnel_mode)
+                in {
+                    ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+                    ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+                }
+            ),
+        },
+        "query_contract": {
+            "winning_branch_scope": "accepted_terminal_lineage",
+            "discarded_branch_work_separate": True,
+            "reuse_charge_policy": "primitive_id_union_charge_once_v1",
+        },
+        "qiskit_contract": {
+            "status_after_scientific_run": "post_run_pending",
+            "compile_selected_surviving_prefix_only": True,
+        },
+    }
+    return REOPTIMIZATION_ROUTE_OFF, None, route_contract
+
+def _flatten_settings(value: Any, *, prefix: str = "") -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        flattened: dict[str, Any] = {}
+        for key in sorted(value, key=str):
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            flattened.update(
+                _flatten_settings(value[key], prefix=child_prefix)
+            )
+        return flattened
+    return {str(prefix): _json_ready(value)}
+
+
+def compare_plans(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> dict[str, Any]:
+    left_settings = left.get("scientific_settings")
+    right_settings = right.get("scientific_settings")
+    if not isinstance(left_settings, Mapping) or not isinstance(
+        right_settings, Mapping
+    ):
+        raise ValueError("Both plans must contain scientific_settings objects.")
+    left_flat = _flatten_settings(left_settings)
+    right_flat = _flatten_settings(right_settings)
+    changed = []
+    for path in sorted(set(left_flat) | set(right_flat)):
+        left_value = left_flat.get(path, "<missing>")
+        right_value = right_flat.get(path, "<missing>")
+        if left_value != right_value:
+            changed.append(
+                {
+                    "path": str(path),
+                    "left": left_value,
+                    "right": right_value,
+                }
+            )
+    return {
+        "schema": PLAN_DIFF_SCHEMA,
+        "generated_utc": _utc_now(),
+        "left_scientific_settings_hash": left.get(
+            "scientific_settings_hash"
+        ),
+        "right_scientific_settings_hash": right.get(
+            "scientific_settings_hash"
+        ),
+        "changed_field_count": int(len(changed)),
+        "changed_fields": changed,
+        "execution_settings_excluded": True,
+    }
+
+
+def _parse_subset_sizes(raw: str) -> tuple[int, ...]:
+    values = tuple(int(token.strip()) for token in str(raw).split(",") if token.strip())
+    if not values:
+        raise argparse.ArgumentTypeError("subset sizes must contain at least one integer")
+    if any(value < 1 for value in values):
+        raise argparse.ArgumentTypeError("subset sizes must be positive")
+    if len(set(values)) != len(values):
+        raise argparse.ArgumentTypeError("subset sizes must not contain duplicates")
+    return values
+
+
+def _positive_int(raw: str) -> int:
+    value = int(raw)
+    if value < 1:
+        raise argparse.ArgumentTypeError("value must be at least 1")
+    return value
+
+
+def _nonnegative_int(raw: str) -> int:
+    value = int(raw)
+    if value < 0:
+        raise argparse.ArgumentTypeError("value must be nonnegative")
+    return value
+
+
+def _positive_float(raw: str) -> float:
+    value = float(raw)
+    if not math.isfinite(value) or value <= 0.0:
+        raise argparse.ArgumentTypeError("value must be finite and positive")
+    return value
+
+
+def _regime_payload(
+    name: str,
+    *,
+    n_ph_work_override: int | None = None,
+) -> dict[str, float | int | str]:
+    values = dict(REGIMES[str(name)])
+    values.update({"name": str(name), "t": 1.0, "omega0": 1.0})
+    if n_ph_work_override is not None:
+        values["n_ph_work"] = int(n_ph_work_override)
+    n_ph_work = int(values["n_ph_work"])
+    values["cutoff_contract"] = {
+        "schema": "paper_i_same_cutoff_v1",
+        "variational_n_ph": n_ph_work,
+        "exact_n_ph": n_ph_work,
+        "same_cutoff": True,
+        "higher_cutoff_diagnostic_required": False,
+    }
+    values["g_ep"] = math.sqrt(
+        float(values["lambda"]) * float(values["t"]) * float(values["omega0"]) / 2.0
+    )
+    return values
+
+
+def _build_problem_context(regime: Mapping[str, Any]) -> Any:
+    return resolve_problem_context(
+        ProblemRequest(
+            problem_key="hh",
+            num_sites=2,
+            t=float(regime["t"]),
+            u=float(regime["u"]),
+            dv=0.0,
+            omega0=float(regime["omega0"]),
+            g_ep=float(regime["g_ep"]),
+            n_ph_max=int(regime["n_ph_work"]),
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+            include_zero_point=True,
+        )
+    )
+
+
+def _reference_basis_bitstring(context: Any) -> str | None:
+    num_qubits = int(context.layout.total_qubits)
+    state = np.asarray(context.reference_state.build_state(), dtype=complex).reshape(-1)
+    if int(state.size) != 1 << num_qubits:
+        return None
+    support = np.flatnonzero(np.abs(state) > 1e-12)
+    if int(support.size) != 1:
+        return None
+    return format(int(support[0]), f"0{num_qubits}b")
+
+
+def _reference_state_manifest(context: Any) -> dict[str, Any] | None:
+    bitstring = _reference_basis_bitstring(context)
+    if bitstring is None:
+        return None
+    return {
+        "source": str(context.reference_state.source_label),
+        "handoff_state_kind": str(context.reference_state.state_kind),
+        "nq_total": int(context.layout.total_qubits),
+        "amplitudes_qn_to_q0": {
+            str(bitstring): {"re": 1.0, "im": 0.0},
+        },
+    }
+
+
+def _build_run_config(args: argparse.Namespace, *, current_json: Path | None) -> PaperISnakeRunConfig:
+    batching_enabled = str(args.batch_mode) != "off"
+    batch_selection_mode = _BATCH_SELECTION_MODES[str(args.batch_mode)]
+    context_mode = str(args.joint_batch_context_mode)
+    active_window_size = (
+        int(args.active_window_size)
+        if context_mode == BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1
+        else None
+    )
+    schur_selector = RouteASchurSelectorConfig(
+        mode=str(batch_selection_mode),
+        batch_size_cap=int(args.batch_size_cap if batching_enabled else 1),
+        batch_search_pool_size=int(args.batch_search_pool_size),
+        batch_search_feasibility_policy=str(
+            args.batch_search_feasibility_policy
+        ),
+        additivity_policy=str(args.batch_additivity_policy),
+        lambda_add=float(args.batch_additivity_lambda),
+        score_tie_tolerance=float(args.batch_score_tie_tolerance),
+        rank_relative_tolerance=float(args.batch_rank_relative_tolerance),
+        max_gram_condition_number=float(
+            args.batch_max_gram_condition_number
+        ),
+        metric_regularization=float(args.batch_metric_regularization),
+        energy_regularization=float(args.batch_energy_regularization),
+        joint_linear_solve_policy=str(args.joint_linear_solve_policy),
+        state_consistency_tolerance=float(
+            args.batch_state_consistency_tolerance
+        ),
+        max_fubini_study_step=float(args.max_fubini_study_step),
+        joint_batch_context_mode=context_mode,
+        active_context_policy=ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1,
+        active_window_size=active_window_size,
+        trust_region_update=TrustRegionUpdateConfig(
+            policy=str(args.trust_region_update_policy),
+            radius_min=float(args.trust_region_radius_min),
+            contraction_factor_min=float(
+                args.trust_region_contraction_factor_min
+            ),
+            expansion_factor_max=float(
+                args.trust_region_expansion_factor_max
+            ),
+            displacement_epsilon=float(
+                args.trust_region_displacement_epsilon
+            ),
+            direction_cosine_min=float(
+                args.trust_region_direction_cosine_min
+            ),
+            require_direction_for_expansion=bool(
+                args.trust_region_require_direction_for_expansion
+            ),
+        ),
+        exhaustion_retry_policy=str(args.selector_exhaustion_retry_policy),
+    )
+    return PaperISnakeRunConfig(
+        profile=PAPER_I_PROFILE_CANONICAL,
+        max_adapt_iterations=int(args.max_depth),
+        optimizer_maxiter=int(args.optimizer_maxiter),
+        seed=int(args.seed),
+        optimizer=build_paper_i_optimizer_config(
+            optimizer="POWELL",
+            max_function_evaluations=(
+                None if int(args.scipy_maxfev) <= 0 else int(args.scipy_maxfev)
+            ),
+        ),
+        mechanism_overrides=PaperIMechanismOverrides(
+            cost_enabled=True,
+            batching_enabled=bool(batching_enabled),
+            beam_enabled=not bool(args.disable_beam),
+            pruning_enabled=not bool(args.disable_pruning),
+            pauli_child_pool_enabled=True,
+            batch_selection_mode=str(batch_selection_mode),
+            geometry_window_size=int(args.geometry_window_size),
+            pauli_word_subset_sizes=tuple(int(value) for value in args.subset_sizes),
+            child_symmetry_policy=str(args.child_symmetry_policy),
+        ),
+        batch_target_size=int(args.batch_target_size),
+        batch_size_cap=int(args.batch_size_cap),
+        beam_width=int(args.beam_width),
+        beam_children_per_parent=int(args.beam_children_per_parent),
+        eps_grad=float(args.eps_grad),
+        eps_energy=float(args.eps_energy),
+        current_json=current_json,
+        resume_scaffold_json=args.resume_scaffold_json,
+        current_json_every_depth=1,
+        current_json_keep_history_tail=int(args.current_json_keep_history_tail),
+        gradient_workers=int(args.gradient_workers),
+        beam_parent_workers=int(args.beam_parent_workers),
+        phase0_shortlist_size=int(args.phase0_shortlist_size),
+        phase1_shortlist_size=int(args.phase1_shortlist_size),
+        phase2_shortlist_size=int(args.phase2_shortlist_size),
+        phase2_shortlist_fraction=float(args.phase2_shortlist_fraction),
+        child_phase1_shortlist_size=int(args.child_phase1_shortlist_size),
+        child_phase2_shortlist_size=int(args.child_phase2_shortlist_size),
+        child_phase3_shortlist_size=int(args.child_phase3_shortlist_size),
+        funnel_mode=str(args.funnel_mode),
+        phase0_policy=(
+            None if args.phase0_policy is None else str(args.phase0_policy)
+        ),
+        child_padding_policy=str(args.child_padding_policy),
+        schur_selector=schur_selector,
+        joint_step_warm_start_mode=(
+            None
+            if args.joint_step_warm_start_mode is None
+            else str(args.joint_step_warm_start_mode)
+        ),
+        physical_lane_shortlist_aggressiveness=int(
+            args.physical_lane_shortlist_aggressiveness
+        ),
+        benchmark_target_abs_delta_e=(
+            None
+            if args.benchmark_target_abs_delta_e is None
+            else float(args.benchmark_target_abs_delta_e)
+        ),
+    )
+
+
+def _configure_runtime(args: argparse.Namespace) -> dict[str, Any]:
+    os.environ["STATIC_ADAPT_HH_POOL_CACHE"] = str(args.pool_cache_mode)
+    os.environ["STATIC_ADAPT_HH_POOL_CACHE_SCOPE"] = "paper_i_holstein_sector"
+    os.environ["STATIC_ADAPT_CANDIDATE_RECORD_CACHE"] = str(
+        args.candidate_cache_mode
+    )
+    if args.pool_cache_dir is not None:
+        os.environ["STATIC_ADAPT_HH_POOL_CACHE_DIR"] = str(args.pool_cache_dir)
+    if args.candidate_cache_dir is not None:
+        os.environ["STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR"] = str(
+            args.candidate_cache_dir
+        )
+    if int(args.runtime_split_child_workers) > 0:
+        os.environ["STATIC_ADAPT_RUNTIME_SPLIT_CHILD_WORKER_CAP"] = str(
+            int(args.runtime_split_child_workers)
+        )
+    else:
+        os.environ.pop("STATIC_ADAPT_RUNTIME_SPLIT_CHILD_WORKER_CAP", None)
+    os.environ["STATIC_ADAPT_JOINT_PAIR_WORKERS"] = str(
+        int(args.joint_pair_workers)
+    )
+    os.environ["STATIC_ADAPT_JOINT_PAIR_CACHE_MAX_ENTRIES"] = str(
+        int(args.joint_pair_cache_max_entries)
+    )
+    return {
+        "gradient_workers": int(args.gradient_workers),
+        "beam_parent_workers": int(args.beam_parent_workers),
+        "runtime_split_child_workers": int(args.runtime_split_child_workers),
+        "joint_pair_workers": int(args.joint_pair_workers),
+        "joint_pair_cache_max_entries": int(
+            args.joint_pair_cache_max_entries
+        ),
+        "pool_cache_mode": str(args.pool_cache_mode),
+        "pool_cache_dir": (
+            None if args.pool_cache_dir is None else str(args.pool_cache_dir)
+        ),
+        "candidate_cache_mode": str(args.candidate_cache_mode),
+        "candidate_cache_dir": (
+            None if args.candidate_cache_dir is None else str(args.candidate_cache_dir)
+        ),
+        "result_payload_mode": str(args.result_payload_mode),
+        "cpu_count": int(os.cpu_count() or 1),
+    }
+
+
+def _scientific_kwargs(run_kwargs: Mapping[str, Any]) -> dict[str, Any]:
+    excluded = {
+        "h_poly",
+        "resolved_problem_context",
+        "adapt_current_json",
+        "adapt_parallel_gradient_workers",
+        "adapt_beam_parent_workers",
+        "adapt_resume_source",
+        "psi_ref_override",
+    }
+    return {
+        str(key): _json_ready(value)
+        for key, value in run_kwargs.items()
+        if str(key) not in excluded
+    }
+
+
+def _route_invocation(
+    context: Any,
+    run_config: PaperISnakeRunConfig,
+    *,
+    route_contract: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build the retained Paper-I route invocation."""
+
+    invocation = build_paper_i_route_a_invocation(
+        context,
+        run_config=run_config,
+    )
+    manifest = dict(invocation.manifest)
+    manifest["accepted_ansatz_reoptimization"] = _json_ready(route_contract)
+    return dict(invocation.run_kwargs), manifest
+
+def _build_plan(args: argparse.Namespace) -> tuple[Any, PaperISnakeRunConfig, dict[str, Any]]:
+    regime = _regime_payload(
+        str(args.regime),
+        n_ph_work_override=(
+            None if args.n_ph_work is None else int(args.n_ph_work)
+        ),
+    )
+    context = _build_problem_context(regime)
+    current_json = (
+        Path(args.current_json)
+        if args.current_json is not None
+        else Path(args.output_json).with_name("current.json")
+    )
+    run_config = _build_run_config(args, current_json=current_json)
+    _, _, route_contract = _resolve_reoptimization_route(args)
+    run_kwargs, invocation_manifest = _route_invocation(
+        context,
+        run_config,
+        route_contract=route_contract,
+    )
+    # The HH core historically inserts an automatic seed unless explicitly
+    # disabled.  Keep this choice in the normalized scientific settings so a
+    # matched empty-reference comparison cannot silently start from a seeded
+    # scaffold at execution time.
+    run_kwargs["disable_hh_seed"] = bool(args.disable_hh_seed)
+    scientific = {
+        "regime": dict(regime),
+        "route_a_invocation": invocation_manifest,
+        "accepted_ansatz_reoptimization": dict(route_contract),
+        "run_kwargs": _scientific_kwargs(run_kwargs),
+    }
+    execution = _configure_runtime(args)
+    disk_preflight = _disk_preflight(REPO_ROOT)
+    plan = {
+        "schema": SCHEMA,
+        "run_class": "diagnostic_pareto_search",
+        "provenance_layer": "diagnostic_rerun",
+        "generated_utc": _utc_now(),
+        "source_docs": list(SOURCE_DOCS),
+        "scientific_settings": scientific,
+        "scientific_settings_hash": _payload_hash(scientific),
+        "execution_settings": execution,
+        "disk_preflight": disk_preflight,
+        "reference_bitstring_qn_to_q0": _reference_basis_bitstring(context),
+        "ansatz_input_state": _reference_state_manifest(context),
+        "output_json": str(args.output_json),
+        "current_json": str(current_json),
+        "command": [sys.executable, "-m", "pipelines.exact_bench.paper_i_hh_powell_pareto", *sys.argv[1:]],
+    }
+    return context, run_config, plan
+
+
+def _float_or_none(value: Any) -> float | None:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    return out if math.isfinite(out) else None
+
+
+def terminal_internal_graph_proxy_from_payload(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Reconstruct the terminal Wave-1 internal 2Q/depth proxy.
+
+    Wave 1 intentionally ran the in-loop ``proxy`` cost surface, so no
+    ``backend_compile_cost_summary`` exists.  The authoritative terminal
+    generators and their Pauli terms are retained in
+    ``continuation.selected_generator_metadata``.  Applying the same logical
+    ladder formula used by ``Phase1CompileCostOracle`` recovers the two
+    screening coordinates without replaying or changing the trajectory.
+
+    ``parameterization.blocks`` is deliberately not used here: a terminal
+    prune can leave that checkpoint-oriented structure one operator ahead of
+    the surviving terminal lineage.
+    """
+
+    raw_operators = payload.get("operators")
+    if not isinstance(raw_operators, Sequence) or isinstance(
+        raw_operators, (str, bytes, bytearray)
+    ):
+        raise ValueError("Terminal payload has no operators array.")
+    operators = [str(value) for value in raw_operators]
+
+    continuation = payload.get("continuation")
+    if not isinstance(continuation, Mapping):
+        if operators:
+            raise ValueError(
+                "Terminal payload has operators but no continuation metadata."
+            )
+        continuation = {}
+    raw_metadata = continuation.get("selected_generator_metadata", [])
+    if not isinstance(raw_metadata, Sequence) or isinstance(
+        raw_metadata, (str, bytes, bytearray)
+    ):
+        raise ValueError("selected_generator_metadata must be an array.")
+    metadata = list(raw_metadata)
+    if len(metadata) != len(operators):
+        raise ValueError(
+            "Terminal operator/metadata count mismatch: "
+            f"{len(operators)} operators versus {len(metadata)} metadata rows."
+        )
+
+    total_count_2q = 0.0
+    total_depth = 0.0
+    serialized_term_count = 0
+    active_pauli_term_count = 0
+    num_qubits: int | None = None
+    tolerance = float(TERMINAL_INTERNAL_GRAPH_PROXY_COEFFICIENT_TOLERANCE)
+
+    for operator_index, (operator_label, raw_row) in enumerate(
+        zip(operators, metadata, strict=True)
+    ):
+        if not isinstance(raw_row, Mapping):
+            raise ValueError(
+                f"Terminal metadata row {operator_index} is not an object."
+            )
+        metadata_label = str(raw_row.get("candidate_label", ""))
+        if metadata_label != operator_label:
+            raise ValueError(
+                "Terminal operator/metadata order mismatch at index "
+                f"{operator_index}: {operator_label!r} != {metadata_label!r}."
+            )
+        compile_metadata = raw_row.get("compile_metadata")
+        if not isinstance(compile_metadata, Mapping):
+            raise ValueError(
+                f"Terminal metadata row {operator_index} has no compile_metadata."
+            )
+        raw_terms = compile_metadata.get("serialized_terms_exyz")
+        if not isinstance(raw_terms, Sequence) or isinstance(
+            raw_terms, (str, bytes, bytearray)
+        ) or not raw_terms:
+            raise ValueError(
+                f"Terminal metadata row {operator_index} has no serialized terms."
+            )
+
+        operator_active_terms = 0
+        for term_index, raw_term in enumerate(raw_terms):
+            if not isinstance(raw_term, Mapping):
+                raise ValueError(
+                    "Serialized terminal term is not an object at operator "
+                    f"{operator_index}, term {term_index}."
+                )
+            coeff_re = _float_or_none(raw_term.get("coeff_re"))
+            coeff_im = _float_or_none(raw_term.get("coeff_im"))
+            if coeff_re is None or coeff_im is None:
+                raise ValueError(
+                    "Serialized terminal term has nonfinite coefficient at operator "
+                    f"{operator_index}, term {term_index}."
+                )
+            try:
+                term_num_qubits = int(raw_term.get("nq"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "Serialized terminal term has invalid nq at operator "
+                    f"{operator_index}, term {term_index}."
+                ) from exc
+            if term_num_qubits <= 0:
+                raise ValueError(
+                    "Serialized terminal term nq must be positive at operator "
+                    f"{operator_index}, term {term_index}."
+                )
+            if num_qubits is None:
+                num_qubits = int(term_num_qubits)
+            elif int(term_num_qubits) != int(num_qubits):
+                raise ValueError(
+                    "Inconsistent terminal Pauli widths: "
+                    f"{num_qubits} != {term_num_qubits}."
+                )
+
+            pauli_label = (
+                str(raw_term.get("pauli_exyz", ""))
+                .strip()
+                .lower()
+                .replace("i", "e")
+            )
+            if len(pauli_label) != int(term_num_qubits):
+                raise ValueError(
+                    "Serialized terminal Pauli length mismatch at operator "
+                    f"{operator_index}, term {term_index}."
+                )
+            invalid = sorted(set(pauli_label) - {"e", "x", "y", "z"})
+            if invalid:
+                raise ValueError(
+                    "Serialized terminal Pauli has invalid characters at operator "
+                    f"{operator_index}, term {term_index}: {invalid}."
+                )
+            serialized_term_count += 1
+            if math.hypot(float(coeff_re), float(coeff_im)) <= tolerance:
+                continue
+            pauli_weight = int(sum(ch in {"x", "y", "z"} for ch in pauli_label))
+            if pauli_weight <= 0:
+                raise ValueError(
+                    "Selected terminal generator contains only an identity term at "
+                    f"operator {operator_index}, term {term_index}."
+                )
+            burden = float(2 * max(pauli_weight - 1, 0))
+            total_count_2q += burden
+            total_depth += burden
+            active_pauli_term_count += 1
+            operator_active_terms += 1
+        if operator_active_terms <= 0:
+            raise ValueError(
+                f"Terminal operator {operator_index} has no active Pauli terms."
+            )
+
+    return {
+        "count_2q": float(total_count_2q),
+        "depth": float(total_depth),
+        "mode": TERMINAL_INTERNAL_GRAPH_PROXY_MODE,
+        "source": TERMINAL_INTERNAL_GRAPH_PROXY_SOURCE,
+        "status": "reconstructed_from_terminal_selected_generator_metadata",
+        "operator_count": int(len(operators)),
+        "serialized_term_count": int(serialized_term_count),
+        "active_pauli_term_count": int(active_pauli_term_count),
+        "num_qubits": None if num_qubits is None else int(num_qubits),
+        "coefficient_tolerance": float(tolerance),
+        "terminal_operator_metadata_alignment": "count_label_order_exact",
+    }
+
+
+def _paper_i_reference_front(regime: str) -> dict[str, Any]:
+    path = Path(PAPER_I_REFERENCE_FRONT_JSON)
+    requested_regime = str(regime)
+    reference_regime = str(
+        PAPER_I_REFERENCE_REGIME_KEYS.get(requested_regime, requested_regime)
+    )
+    if not path.is_file():
+        return {
+            "schema": "paper_i_hh_reference_front_v1",
+            "status": "reference_artifact_missing",
+            "regime": requested_regime,
+            "reference_regime_key": reference_regime,
+            "source_json": str(path),
+            "rows": [],
+        }
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    corrected_rows = payload.get("corrected_and_snake_rows")
+    current_rows = payload.get("current_paper_i_comparator_rows")
+    raw_rows: list[dict[str, Any]] = []
+    seen_methods: set[str] = set()
+    for source_kind, source_rows in (
+        ("corrected_matched", corrected_rows),
+        ("current_paper_i_fallback", current_rows),
+    ):
+        if not isinstance(source_rows, Sequence) or isinstance(
+            source_rows,
+            (str, bytes, bytearray),
+        ):
+            continue
+        for source_row in source_rows:
+            if not isinstance(source_row, Mapping):
+                continue
+            if str(source_row.get("regime")) != reference_regime:
+                continue
+            method = str(source_row.get("method") or "")
+            if method not in {"snake", "geo", "append"} or method in seen_methods:
+                continue
+            seen_methods.add(method)
+            raw_rows.append(
+                {
+                    **dict(source_row),
+                    "reference_source_kind": str(source_kind),
+                }
+            )
+    rows = []
+    if raw_rows:
+        for raw_row in raw_rows:
+            method = str(raw_row.get("method") or "")
+            source_kind = str(raw_row.get("reference_source_kind") or "")
+            rows.append(
+                {
+                    "method": method,
+                    "method_display": str(
+                        raw_row.get("method_display") or method
+                    ),
+                    "reference_role": (
+                        "paper_i_visible_locked"
+                        if method == "snake"
+                        else (
+                            "corrected_matched_comparator"
+                            if source_kind == "corrected_matched"
+                            else "current_paper_i_comparator_fallback"
+                        )
+                    ),
+                    "reference_source_kind": source_kind,
+                    "k_pl": raw_row.get("k_pl"),
+                    "logical_depth": raw_row.get("logical_depth"),
+                    "abs_delta_e": _float_or_none(
+                        raw_row.get("abs_delta_e")
+                        if raw_row.get("abs_delta_e") is not None
+                        else raw_row.get("plot_marker_abs_delta_e")
+                        if raw_row.get("plot_marker_abs_delta_e") is not None
+                        else raw_row.get("table_abs_delta_e")
+                    ),
+                    "N2q": raw_row.get("N2q"),
+                    "D2q": raw_row.get("D2q"),
+                    "Dc": raw_row.get("Dc"),
+                    "S_alg": _float_or_none(raw_row.get("S_alg")),
+                    "source_json": raw_row.get("source_json"),
+                    "source_sha256": raw_row.get("source_sha256"),
+                    "cost_source": raw_row.get("cost_source"),
+                    "validation": _json_ready(raw_row.get("validation")),
+                }
+            )
+            trajectory = raw_row.get("trajectory_points")
+            if method == "snake" and isinstance(trajectory, Sequence) and not isinstance(
+                trajectory,
+                (str, bytes, bytearray),
+            ):
+                trajectory_rows = [
+                    row
+                    for row in trajectory
+                    if isinstance(row, Mapping)
+                    and _float_or_none(row.get("error")) is not None
+                    and _float_or_none(row.get("k")) is not None
+                ]
+                if trajectory_rows:
+                    tail = max(
+                        trajectory_rows,
+                        key=lambda row: float(row.get("k")),
+                    )
+                    tail_k = int(float(tail.get("k")))
+                    if tail_k != int(raw_row.get("k_pl") or -1):
+                        rows.append(
+                            {
+                                "method": "snake_source_tail",
+                                "method_display": "SNAKE source tail",
+                                "reference_role": "paper_i_source_tail",
+                                "k_pl": tail_k,
+                                "logical_depth": tail_k,
+                                "abs_delta_e": _float_or_none(
+                                    tail.get("error")
+                                ),
+                                "N2q": None,
+                                "D2q": None,
+                                "Dc": None,
+                                "S_alg": None,
+                                "source_json": raw_row.get("source_json"),
+                                "source_sha256": raw_row.get("source_sha256"),
+                                "cost_source": "pending_prefix_reconstruction",
+                                "validation": _json_ready(
+                                    raw_row.get("validation")
+                                ),
+                            }
+                        )
+    source_json = (
+        str(path.relative_to(REPO_ROOT))
+        if path.is_relative_to(REPO_ROOT)
+        else str(path)
+    )
+    return {
+        "schema": "paper_i_hh_reference_front_v1",
+        "status": "ok" if rows else "regime_rows_missing",
+        "regime": requested_regime,
+        "reference_regime_key": reference_regime,
+        "source_json": source_json,
+        "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "rows": rows,
+    }
+
+
+def _paper_i_reference_comparison(
+    summary: Mapping[str, Any],
+    *,
+    regime: str,
+) -> dict[str, Any]:
+    front = _paper_i_reference_front(str(regime))
+    run_error = _float_or_none(summary.get("abs_delta_e"))
+    run_s_alg = _float_or_none(summary.get("query_work_total"))
+    run_round_count = _float_or_none(summary.get("controller_round_count"))
+    run_ansatz_depth = _float_or_none(summary.get("ansatz_depth"))
+    comparisons = []
+    for row in front.get("rows", []):
+        if not isinstance(row, Mapping):
+            continue
+        reference_error = _float_or_none(row.get("abs_delta_e"))
+        reference_s_alg = _float_or_none(row.get("S_alg"))
+        reference_round = _float_or_none(row.get("k_pl"))
+        if run_round_count is None or reference_round is None:
+            horizon_relation = "unknown"
+        elif run_round_count < reference_round:
+            horizon_relation = "run_before_reference_horizon"
+        elif run_round_count > reference_round:
+            horizon_relation = "run_after_reference_horizon"
+        else:
+            horizon_relation = "matched_reference_horizon"
+        energy_better = bool(
+            run_error is not None
+            and reference_error is not None
+            and run_error < reference_error
+        )
+        query_better = bool(
+            run_s_alg is not None
+            and reference_s_alg is not None
+            and run_s_alg < reference_s_alg
+        )
+        comparisons.append(
+            {
+                "method": row.get("method"),
+                "method_display": row.get("method_display"),
+                "reference_role": row.get("reference_role"),
+                "reference_k_pl": row.get("k_pl"),
+                "reference_logical_depth": row.get("logical_depth"),
+                "run_controller_round_count": run_round_count,
+                "run_ansatz_depth": run_ansatz_depth,
+                "horizon_relation": horizon_relation,
+                "candidate_evidence_status": (
+                    "provisional_pre_reference_horizon"
+                    if horizon_relation == "run_before_reference_horizon"
+                    else "matched_or_later_horizon"
+                    if horizon_relation
+                    in {
+                        "matched_reference_horizon",
+                        "run_after_reference_horizon",
+                    }
+                    else "horizon_unknown"
+                ),
+                "reference_abs_delta_e": reference_error,
+                "run_minus_reference_abs_delta_e": (
+                    None
+                    if run_error is None or reference_error is None
+                    else float(run_error - reference_error)
+                ),
+                "abs_delta_e_ratio_run_over_reference": (
+                    None
+                    if run_error is None or reference_error in {None, 0.0}
+                    else float(run_error / reference_error)
+                ),
+                "reference_S_alg": reference_s_alg,
+                "run_minus_reference_S_alg": (
+                    None
+                    if run_s_alg is None or reference_s_alg is None
+                    else float(run_s_alg - reference_s_alg)
+                ),
+                "S_alg_ratio_run_over_reference": (
+                    None
+                    if run_s_alg is None or reference_s_alg in {None, 0.0}
+                    else float(run_s_alg / reference_s_alg)
+                ),
+                "energy_error_better": energy_better,
+                "winning_branch_S_alg_better": query_better,
+                "dominates_energy_and_S_alg": bool(
+                    energy_better and query_better
+                ),
+                "qiskit_comparison_status": "pending_run_qiskit_compile",
+                "full_pareto_dominance_status": "pending_qiskit_compile",
+            }
+        )
+    return {
+        "paper_i_reference_front": front,
+        "paper_i_reference_comparisons": comparisons,
+    }
+
+
+def _fixed_fermion_sector_diagnostics(
+    state: np.ndarray,
+    context: Any | None,
+) -> dict[str, Any]:
+    sector = getattr(context, "sector", None)
+    request = getattr(context, "request", None)
+    raw_particles = getattr(sector, "num_particles", None)
+    if request is None or raw_particles is None:
+        return {
+            "status": "unavailable",
+            "probability": None,
+            "leak_probability": None,
+        }
+    particles = tuple(int(value) for value in raw_particles)
+    if len(particles) != 2:
+        return {
+            "status": "unavailable",
+            "probability": None,
+            "leak_probability": None,
+        }
+    num_sites = int(request.num_sites)
+    ordering = str(request.ordering)
+    up_qubits = tuple(
+        int(mode_index(site, SPIN_UP, indexing=ordering, n_sites=num_sites))
+        for site in range(num_sites)
+    )
+    dn_qubits = tuple(
+        int(mode_index(site, SPIN_DN, indexing=ordering, n_sites=num_sites))
+        for site in range(num_sites)
+    )
+    state_arr = np.asarray(state, dtype=complex).reshape(-1)
+    norm = float(np.vdot(state_arr, state_arr).real)
+    if norm <= 0.0:
+        raise ValueError("Cannot evaluate a zero-norm state sector.")
+    probability = 0.0
+    for basis_index, weight in enumerate(np.abs(state_arr) ** 2):
+        if float(weight) <= 0.0:
+            continue
+        n_up = sum((int(basis_index) >> qubit) & 1 for qubit in up_qubits)
+        n_dn = sum((int(basis_index) >> qubit) & 1 for qubit in dn_qubits)
+        if int(n_up) == int(particles[0]) and int(n_dn) == int(particles[1]):
+            probability += float(weight) / float(norm)
+    probability = min(1.0, max(0.0, float(probability)))
+    return {
+        "status": "ok",
+        "policy": "fixed_spin_count_probability_v1",
+        "probability": float(probability),
+        "leak_probability": float(1.0 - probability),
+        "n_up": int(particles[0]),
+        "n_dn": int(particles[1]),
+        "up_qubits": [int(qubit) for qubit in up_qubits],
+        "dn_qubits": [int(qubit) for qubit in dn_qubits],
+    }
+
+
+def _boson_codeword_legal_diagnostics(
+    state: np.ndarray,
+    context: Any | None,
+) -> dict[str, Any]:
+    request = getattr(context, "request", None)
+    layout_spec = getattr(context, "layout", None)
+    family_key = str(getattr(context, "family_key", "")).strip().lower()
+    if request is None or layout_spec is None or family_key != "hh":
+        return {
+            "status": "unavailable",
+            "legal_probability": None,
+            "illegal_probability": None,
+        }
+    try:
+        layout = legal_subspace_basis_for_problem(
+            problem_key=family_key,
+            num_sites=int(request.num_sites),
+            n_ph_max=int(request.n_ph_max),
+            boson_encoding=str(request.boson_encoding),
+            total_register_width=int(layout_spec.total_qubits),
+        )
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "legal_probability": None,
+            "illegal_probability": None,
+        }
+    state_arr = np.asarray(state, dtype=complex).reshape(-1)
+    norm = float(np.vdot(state_arr, state_arr).real)
+    if norm <= 0.0:
+        raise ValueError("Cannot evaluate a zero-norm boson codeword state.")
+    legal_indices = np.asarray(layout["legal_indices"], dtype=int)
+    legal_probability = float(
+        np.sum(np.abs(state_arr[legal_indices]) ** 2) / norm
+    )
+    legal_probability = min(1.0, max(0.0, legal_probability))
+    return {
+        "status": "ok",
+        "diagnostic_only": True,
+        "policy": "prepared_state_binary_codeword_probability_v1",
+        "n_ph_max": int(request.n_ph_max),
+        "boson_encoding": str(request.boson_encoding),
+        "legal_probability": float(legal_probability),
+        "illegal_probability": float(1.0 - legal_probability),
+        "legal_state_count": int(layout["legal_state_count"]),
+        "illegal_state_count": int(layout["illegal_state_count"]),
+        "total_register_width": int(layout["total_register_width"]),
+    }
+
+
+def _formal_nonnegative_count(value: Any, *, name: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be a nonnegative integer.")
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a nonnegative integer.") from exc
+    if (
+        not math.isfinite(parsed)
+        or parsed < 0.0
+        or not math.isclose(parsed, round(parsed))
+    ):
+        raise ValueError(f"{name} must be a nonnegative integer.")
+    return int(round(parsed))
+
+
+def _formal_primitive_telemetry(
+    raw: Any,
+    *,
+    label: str,
+) -> dict[str, int]:
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"{label} formal primitive telemetry is missing.")
+    counts = {
+        key: _formal_nonnegative_count(
+            raw.get(key),
+            name=f"{label}.{key}",
+        )
+        for key in FORMAL_QUERY_PRIMITIVE_FIELDS
+    }
+    actual = _formal_nonnegative_count(
+        raw.get("actual_operator_probe_count"),
+        name=f"{label}.actual_operator_probe_count",
+    )
+    if sum(counts.values()) != actual:
+        raise ValueError(
+            f"{label} formal primitive category sum does not equal actual count."
+        )
+    reconciliation = raw.get("primitive_count_reconciliation")
+    if (
+        not isinstance(reconciliation, Mapping)
+        or reconciliation.get("count_equal") is not True
+    ):
+        raise ValueError(
+            f"{label} formal primitive reconciliation did not pass."
+        )
+    return {**counts, "actual_operator_probe_count": actual}
+
+
+def _formal_query_accounting_from_payload(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the FM winning/discarded query axis from query-closure ledgers."""
+
+    if (
+        str(
+            payload.get(
+                "adapt_reoptimization_route",
+                REOPTIMIZATION_ROUTE_OFF,
+            )
+        )
+        .strip()
+        .lower()
+        != HISTORICAL_FORMAL_MANIFOLD_ROUTE
+    ):
+        raise ValueError("Formal query accounting requires the FM route.")
+    closure = payload.get("formal_manifold_query_closure")
+    if not isinstance(closure, Mapping):
+        raise ValueError("FM result is missing formal_manifold_query_closure.")
+    if closure.get("joint_response_selector_invoked") is not False:
+        raise ValueError(
+            "FM result does not prove Joint-Response selector isolation."
+        )
+    if str(closure.get("schema", "")) == ESTIMATOR_FORMAL_QUERY_CLOSURE_SCHEMA:
+        def estimator_view(raw: Any, *, label: str) -> dict[str, int]:
+            if not isinstance(raw, Mapping):
+                raise ValueError(f"{label} estimator primitive view is missing.")
+            counts = {
+                key: _formal_nonnegative_count(
+                    raw.get(key), name=f"{label}.{key}"
+                )
+                for key in FORMAL_QUERY_PRIMITIVE_FIELDS
+            }
+            s_alg = _formal_nonnegative_count(
+                raw.get("S_alg"), name=f"{label}.S_alg"
+            )
+            if sum(counts.values()) != s_alg:
+                raise ValueError(
+                    f"{label} estimator S_alg does not equal its primitive union."
+                )
+            return {
+                **counts,
+                "S_alg": int(s_alg),
+                "actual_operator_probe_count": int(s_alg),
+            }
+
+        winning_primitives = estimator_view(
+            closure.get("winning_branch"), label="winning_branch"
+        )
+        discarded_primitives = estimator_view(
+            closure.get("discarded_branch_operational_overhead"),
+            label="discarded_branch_operational_overhead",
+        )
+        all_primitives = estimator_view(
+            closure.get("all_executed"), label="all_executed"
+        )
+        reconciliation = closure.get("primitive_set_reconciliation")
+        if not (
+            isinstance(reconciliation, Mapping)
+            and reconciliation.get("winning_discarded_disjoint") is True
+            and reconciliation.get("union_equals_all_executed") is True
+            and int(winning_primitives["S_alg"])
+            + int(discarded_primitives["S_alg"])
+            == int(all_primitives["S_alg"])
+        ):
+            raise ValueError(
+                "FM estimator primitive union did not reconcile."
+            )
+        winning_nfev = _formal_nonnegative_count(
+            closure.get("nfev_winning_lineage"),
+            name="nfev_winning_lineage",
+        )
+        discarded_nfev = _formal_nonnegative_count(
+            closure.get("nfev_discarded_operational_overhead"),
+            name="nfev_discarded_operational_overhead",
+        )
+        return {
+            "schema": FORMAL_QUERY_ACCOUNTING_SCHEMA,
+            "formal_manifold_query_accounting_schema": (
+                FORMAL_QUERY_ACCOUNTING_SCHEMA
+            ),
+            "status": "complete",
+            "science_valid": True,
+            "route": HISTORICAL_FORMAL_MANIFOLD_ROUTE,
+            "query_unit": "unique_scalar_estimator_primitive_v1",
+            "winning_branch": {
+                "scope": "accepted_terminal_lineage",
+                "objective_evaluations": int(winning_nfev),
+                "objective_evaluation_occurrences": int(winning_nfev),
+                "unique_energy_primitives": int(winning_primitives["N_E"]),
+                "unique_nonenergy_primitives": int(
+                    winning_primitives["S_alg"] - winning_primitives["N_E"]
+                ),
+                "primitive_components": winning_primitives,
+                "selector_primitive_components": winning_primitives,
+                "selector_unique_logical_primitives": int(
+                    winning_primitives["S_alg"]
+                ),
+                "expanded_query_work": int(winning_primitives["S_alg"]),
+            },
+            "discarded_branch_operational_overhead": {
+                "scope": "discarded_execution_only",
+                "objective_evaluations": int(discarded_nfev),
+                "objective_evaluation_occurrences": int(discarded_nfev),
+                "primitive_components": discarded_primitives,
+                "selector_primitive_components": discarded_primitives,
+                "selector_unique_logical_primitives": int(
+                    discarded_primitives["S_alg"]
+                ),
+                "expanded_query_work": int(discarded_primitives["S_alg"]),
+            },
+            "all_executed_work_reconciliation": {
+                "objective_evaluations": int(
+                    winning_nfev + discarded_nfev
+                ),
+                "primitive_components": all_primitives,
+                "selector_unique_logical_primitives": int(
+                    all_primitives["S_alg"]
+                ),
+                "expanded_query_work": int(all_primitives["S_alg"]),
+                "winning_plus_discarded_equal": True,
+            },
+            "reuse_charge_policy": (
+                "state_keyed_scalar_primitive_union_charge_once_v1"
+            ),
+            "matrix_element_diagnostics_charge": 0,
+            "classical_algebra_charge": 0,
+            "joint_response_selector_invoked": False,
+            "source_query_closure": _json_ready(closure),
+        }
+    winning_primitives = _formal_primitive_telemetry(
+        closure.get("winning_branch"),
+        label="winning_branch",
+    )
+    discarded_primitives = _formal_primitive_telemetry(
+        closure.get("discarded_branch_operational_overhead"),
+        label="discarded_branch_operational_overhead",
+    )
+    nfev_total = _formal_nonnegative_count(
+        payload.get("nfev_total"),
+        name="nfev_total",
+    )
+    winning_selector = int(winning_primitives["actual_operator_probe_count"])
+    discarded_selector = int(
+        discarded_primitives["actual_operator_probe_count"]
+    )
+    winning_total = int(nfev_total + winning_selector)
+    discarded_total = int(discarded_selector)
+    all_total = int(nfev_total + winning_selector + discarded_selector)
+    return {
+        "schema": FORMAL_QUERY_ACCOUNTING_SCHEMA,
+        "formal_manifold_query_accounting_schema": (
+            FORMAL_QUERY_ACCOUNTING_SCHEMA
+        ),
+        "status": "complete",
+        "science_valid": True,
+        "route": HISTORICAL_FORMAL_MANIFOLD_ROUTE,
+        "query_unit": (
+            "unique_logical_estimator_primitive_or_objective_evaluation_v1"
+        ),
+        "winning_branch": {
+            "scope": "accepted_terminal_lineage",
+            "objective_evaluations": int(nfev_total),
+            "selector_unique_logical_primitives": int(winning_selector),
+            "selector_primitive_components": winning_primitives,
+            "expanded_query_work": int(winning_total),
+        },
+        "discarded_branch_operational_overhead": {
+            "scope": "discarded_selector_branches_only",
+            "objective_evaluations": 0,
+            "selector_unique_logical_primitives": int(discarded_selector),
+            "selector_primitive_components": discarded_primitives,
+            "expanded_query_work": int(discarded_total),
+        },
+        "all_executed_work_reconciliation": {
+            "objective_evaluations": int(nfev_total),
+            "selector_unique_logical_primitives": int(
+                winning_selector + discarded_selector
+            ),
+            "expanded_query_work": int(all_total),
+            "winning_plus_discarded_equal": bool(
+                winning_total + discarded_total == all_total
+            ),
+        },
+        "reuse_charge_policy": "primitive_id_union_charge_once_v1",
+        "matrix_element_diagnostics_charge": 0,
+        "classical_algebra_charge": 0,
+        "joint_response_selector_invoked": False,
+        "source_query_closure": _json_ready(closure),
+    }
+
+
+def _result_summary(
+    payload: Mapping[str, Any],
+    state: np.ndarray,
+    elapsed_s: float,
+    *,
+    context: Any | None = None,
+) -> dict[str, Any]:
+    route = str(
+        payload.get(
+            "adapt_reoptimization_route",
+            REOPTIMIZATION_ROUTE_OFF,
+        )
+    ).strip().lower()
+    beam_enabled = bool(payload.get("adapt_beam_enabled", False))
+    formal_query_accounting: dict[str, Any] | None = None
+    if route == HISTORICAL_FORMAL_MANIFOLD_ROUTE:
+        formal_query_accounting = _formal_query_accounting_from_payload(payload)
+        winning_query = formal_query_accounting["winning_branch"]
+        discarded_query = formal_query_accounting[
+            "discarded_branch_operational_overhead"
+        ]
+        all_query = formal_query_accounting[
+            "all_executed_work_reconciliation"
+        ]
+        winning_primitives = winning_query["selector_primitive_components"]
+        query_work_total = _float_or_none(winning_query["expanded_query_work"])
+        query_work_status = "ok"
+        query_work_source = (
+            "formal_manifold_query_accounting.winning_branch.expanded_query_work"
+        )
+        query_work_scope = "accepted_terminal_lineage"
+        query_axis_contract = (
+            "formal_manifold_expanded_winning_branch_query_work_v1"
+        )
+        query_work_components = {
+            "N_H_outer": None,
+            "N_H_refit": None,
+            "N_grad": _float_or_none(winning_primitives.get("N_grad")),
+            "N_metric": _float_or_none(winning_primitives.get("N_G")),
+            "N_hessian": _float_or_none(winning_primitives.get("N_Q")),
+            "N_hessian_vector": _float_or_none(
+                winning_primitives.get("N_Hv")
+            ),
+            "N_cross": _float_or_none(winning_primitives.get("N_cross")),
+            "selector_N_E": _float_or_none(winning_primitives.get("N_E")),
+            "chargeable_objective_evaluations": _float_or_none(
+                winning_query.get("objective_evaluations")
+            ),
+        }
+        all_branch_query_work_total = _float_or_none(
+            all_query.get("expanded_query_work")
+        )
+        all_branch_query_work_status = "ok"
+        all_branch_query_work_components = {
+            "N_H_outer": None,
+            "N_H_refit": None,
+            "N_grad": None,
+            "N_metric": None,
+            "chargeable_objective_evaluations": _float_or_none(
+                all_query.get("objective_evaluations")
+            ),
+            "selector_unique_logical_primitives": _float_or_none(
+                all_query.get("selector_unique_logical_primitives")
+            ),
+            "discarded_expanded_query_work": _float_or_none(
+                discarded_query.get("expanded_query_work")
+            ),
+        }
+        query_audit = {
+            "status": "formal_manifold_route_specific_accounting",
+            "formal_manifold_query_accounting_schema": (
+                FORMAL_QUERY_ACCOUNTING_SCHEMA
+            ),
+            "legacy_full_S_alg_computed": False,
+            "formal_manifold_query_accounting": formal_query_accounting,
+        }
+    else:
+        algorithmic_work, query_audit = snake_algorithmic_work_from_payload(
+            payload,
+            scope="terminal",
+            source_label="paper_i_hh_powell_pareto",
+        )
+        query_work_total = _float_or_none(algorithmic_work.get("S_alg"))
+        query_work_status = str(
+            algorithmic_work.get("S_alg_status", "missing")
+        )
+        query_work_source = "snake_algorithmic_work_from_payload.S_alg"
+        query_work_scope = str(
+            algorithmic_work.get("S_alg_work_scope")
+            or algorithmic_work.get("work_scope")
+            or ("winner_lineage_terminal" if beam_enabled else "terminal")
+        )
+        query_axis_contract = "snake_winning_branch_S_alg_v1"
+        query_work_components = {
+            "N_H_outer": _float_or_none(
+                algorithmic_work.get("S_alg_N_H_outer_eval")
+            ),
+            "N_H_refit": _float_or_none(
+                algorithmic_work.get("S_alg_N_H_refit_eval")
+            ),
+            "N_grad": _float_or_none(
+                algorithmic_work.get("S_alg_N_grad_probe")
+            ),
+            "N_metric": _float_or_none(
+                algorithmic_work.get("S_alg_N_metric_probe")
+            ),
+        }
+        all_branch_query_work_total = (
+            _float_or_none(query_audit.get("S_beam_search_total"))
+            if beam_enabled
+            else None
+        )
+        all_branch_query_work_status = (
+            str(query_audit.get("S_beam_search_total_status", "missing"))
+            if beam_enabled
+            else "not_applicable"
+        )
+        raw_all_branch_components = query_audit.get(
+            "S_beam_search_components"
+        )
+        all_branch_components = (
+            dict(raw_all_branch_components)
+            if isinstance(raw_all_branch_components, Mapping)
+            else {}
+        )
+        all_branch_query_work_components = {
+            "N_H_outer": _float_or_none(
+                all_branch_components.get("N_H_outer_eval")
+            ),
+            "N_H_refit": _float_or_none(
+                all_branch_components.get("N_H_refit_eval")
+            ),
+            "N_grad": _float_or_none(all_branch_components.get("N_grad")),
+            "N_metric": _float_or_none(
+                all_branch_components.get("N_metric")
+            ),
+        }
+    compile_summary = payload.get("backend_compile_cost_summary")
+    compile_map = dict(compile_summary) if isinstance(compile_summary, Mapping) else {}
+    state_arr = np.asarray(state, dtype=complex).reshape(-1)
+    operators = [str(value) for value in payload.get("operators", [])]
+    direct_graph_count_2q = _float_or_none(
+        compile_map.get("absolute_c_hat_2q")
+    )
+    direct_graph_depth = _float_or_none(compile_map.get("absolute_c_hat_d"))
+    if direct_graph_count_2q is not None and direct_graph_depth is not None:
+        graph_cost_proxy = {
+            "count_2q": float(direct_graph_count_2q),
+            "depth": float(direct_graph_depth),
+            "mode": compile_map.get("mode"),
+            "source": "backend_compile_cost_summary",
+            "status": "emitted_by_backend_compile_oracle",
+        }
+    elif direct_graph_count_2q is None and direct_graph_depth is None:
+        try:
+            graph_cost_proxy = terminal_internal_graph_proxy_from_payload(payload)
+        except ValueError as exc:
+            graph_cost_proxy = {
+                "count_2q": None,
+                "depth": None,
+                "mode": None,
+                "source": TERMINAL_INTERNAL_GRAPH_PROXY_SOURCE,
+                "status": "terminal_proxy_reconstruction_unavailable",
+                "reason": f"{type(exc).__name__}: {exc}",
+            }
+    else:
+        graph_cost_proxy = {
+            "count_2q": direct_graph_count_2q,
+            "depth": direct_graph_depth,
+            "mode": compile_map.get("mode"),
+            "source": "backend_compile_cost_summary",
+            "status": "partial_backend_compile_cost_summary",
+        }
+    theta = [float(value) for value in payload.get("logical_optimal_point", [])]
+    raw_history = payload.get("history")
+    history = (
+        [dict(row) for row in raw_history if isinstance(row, Mapping)]
+        if isinstance(raw_history, Sequence)
+        and not isinstance(raw_history, (str, bytes, bytearray))
+        else []
+    )
+    continuation = payload.get("continuation")
+    continuation_map = (
+        dict(continuation) if isinstance(continuation, Mapping) else {}
+    )
+    runtime_split = continuation_map.get("runtime_split_summary")
+    runtime_split_map = (
+        dict(runtime_split) if isinstance(runtime_split, Mapping) else {}
+    )
+    funnel = runtime_split_map.get("route_a_funnel_last_round")
+    funnel_map = dict(funnel) if isinstance(funnel, Mapping) else {}
+    child_padding = funnel_map.get("child_padding_filter")
+    child_padding_map = (
+        dict(child_padding) if isinstance(child_padding, Mapping) else {}
+    )
+    selector = funnel_map.get("joint_selector_summary")
+    selector_map = dict(selector) if isinstance(selector, Mapping) else {}
+    workspace = selector_map.get("geometry_workspace")
+    workspace_map = dict(workspace) if isinstance(workspace, Mapping) else {}
+    batch_sizes = [
+        int(max(1, int(row.get("batch_size", 1))))
+        for row in history
+        if row.get("batch_size") not in {None, ""}
+    ]
+    raw_stages = funnel_map.get("stages")
+    stages = {
+        str(stage.get("stage")): dict(stage)
+        for stage in raw_stages
+        if isinstance(stage, Mapping)
+    } if isinstance(raw_stages, Sequence) else {}
+    return {
+        "success": bool(payload.get("success", False)),
+        "elapsed_s": float(elapsed_s),
+        "energy": _float_or_none(payload.get("energy")),
+        "abs_delta_e": _float_or_none(payload.get("abs_delta_e")),
+        "stop_reason": payload.get("stop_reason"),
+        "controller_round_count": int(len(history)),
+        "ansatz_depth": int(payload.get("ansatz_depth", len(operators))),
+        "max_admitted_batch_size": int(max(batch_sizes, default=0)),
+        "operators": operators,
+        "operator_path_hash": hashlib.sha256(
+            json.dumps(operators, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "logical_optimal_point": theta,
+        "nfev_total": int(payload.get("nfev_total", 0)),
+        "nfev_winning_lineage": payload.get("nfev_winning_lineage"),
+        "nfev_discarded_operational_overhead": payload.get(
+            "nfev_discarded_operational_overhead"
+        ),
+        "raw_optimizer_nfev": payload.get("raw_optimizer_nfev"),
+        "chargeable_unique_energy_evaluations": payload.get(
+            "chargeable_unique_energy_evaluations"
+        ),
+        "query_work_total": query_work_total,
+        "query_work_source": query_work_source,
+        "query_work_status": query_work_status,
+        "query_work_scope": query_work_scope,
+        "query_axis_contract": query_axis_contract,
+        "query_work_components": query_work_components,
+        "all_branch_query_work_total_diagnostic": all_branch_query_work_total,
+        "all_branch_query_work_status_diagnostic": all_branch_query_work_status,
+        "all_branch_query_work_scope_diagnostic": (
+            "all_executed_fm_work"
+            if formal_query_accounting is not None
+            else "all_expanded_scored_branches"
+            if beam_enabled
+            else "not_applicable"
+        ),
+        "all_branch_query_work_components_diagnostic": (
+            all_branch_query_work_components
+        ),
+        "query_work_audit": _json_ready(query_audit),
+        "formal_manifold_query_accounting": _json_ready(
+            formal_query_accounting
+        ),
+        "adapt_reoptimization_route": payload.get(
+            "adapt_reoptimization_route",
+            REOPTIMIZATION_ROUTE_OFF,
+        ),
+        "formal_manifold_warm_start": _json_ready(
+            payload.get("formal_manifold_warm_start")
+        ),
+        "formal_manifold_query_closure": _json_ready(
+            payload.get("formal_manifold_query_closure")
+        ),
+        "paper_i_reoptimization_route_contract": _json_ready(
+            payload.get("paper_i_reoptimization_route_contract")
+        ),
+        "graph_cost_proxy": graph_cost_proxy,
+        "qiskit_compiled_cost": None,
+        "qiskit_compiled_cost_status": "post_run_pending",
+        "route_a_population_counts": {
+            "initial_macro_population": funnel_map.get(
+                "initial_macro_identity_count"
+            ),
+            "phase0_executed": funnel_map.get("phase0_executed"),
+            "macro_phase1_survivors": funnel_map.get(
+                "macro_phase1_survivor_identity_count"
+            ),
+            "macro_phase2_survivors": funnel_map.get(
+                "macro_phase2_identity_count"
+            ),
+            "children_generated": funnel_map.get(
+                "children_generated_record_count"
+            ),
+            "children_removed_by_symmetry": funnel_map.get(
+                "children_removed_by_symmetry_count"
+            ),
+            "child_padding_policy": funnel_map.get(
+                "child_padding_policy",
+                child_padding_map.get("policy_effective"),
+            ),
+            "children_before_padding_filter": funnel_map.get(
+                "child_padding_prefilter_record_count",
+                child_padding_map.get("input_record_count"),
+            ),
+            "children_removed_by_padding": funnel_map.get(
+                "children_removed_by_padding_count",
+                child_padding_map.get("rejected_record_count"),
+            ),
+            "children_after_padding_filter": funnel_map.get(
+                "child_padding_remaining_record_count",
+                child_padding_map.get("remaining_record_count"),
+            ),
+            "child_padding_rejected_identity_count": funnel_map.get(
+                "child_padding_rejected_identity_count",
+                child_padding_map.get("rejected_identity_count"),
+            ),
+            "child_padding_rejected_identities": funnel_map.get(
+                "child_padding_rejected_identities",
+                child_padding_map.get("rejected_identities", []),
+            ),
+            "globally_unique_eligible_children": funnel_map.get(
+                "globally_unique_eligible_child_identity_count"
+            ),
+            "child_phase1_survivors": funnel_map.get(
+                "child_phase1_survivor_record_count",
+                stages.get("child_phase1", {}).get("survivor_record_count"),
+            ),
+            "child_phase2_survivors": funnel_map.get(
+                "child_phase2_survivor_record_count",
+                stages.get("child_phase2", {}).get("survivor_record_count"),
+            ),
+            "stage_order": funnel_map.get("stage_order"),
+        },
+        "joint_selector_summary": {
+            "proposal_count": selector_map.get("proposal_count"),
+            "selected_cardinality": selector_map.get(
+                "selected_cardinality",
+                selector_map.get("selected_count"),
+            ),
+            "batch_search_pool_size_requested": selector_map.get(
+                "batch_search_pool_size_requested"
+            ),
+            "batch_search_pool_size_effective": selector_map.get(
+                "batch_search_pool_size_effective"
+            ),
+            "child_phase2_rank_feasible_count": selector_map.get(
+                "child_phase2_rank_feasible_count"
+            ),
+            "rank_prefilter_rejection_count": selector_map.get(
+                "rank_prefilter_rejection_count"
+            ),
+            "rank_feasibility_prefilter": _json_ready(
+                selector_map.get("rank_feasibility_prefilter")
+            ),
+            "subset_counts_considered": selector_map.get(
+                "subset_counts_considered"
+            ),
+            "rejection_counts": selector_map.get("rejection_counts"),
+            "joint_batch_context_mode": workspace_map.get(
+                "joint_batch_context_mode_effective"
+            ),
+            "joint_linear_solve_policy_requested": selector_map.get(
+                "joint_linear_solve_policy_requested",
+                workspace_map.get("joint_linear_solve_policy_requested"),
+            ),
+            "joint_linear_solve_policy_effective": selector_map.get(
+                "joint_linear_solve_policy_effective"
+            ),
+            "selected_numerical_certificates": {
+                key: _json_ready(selector_map.get(key))
+                for key in (
+                    "raw_metric_eigenvalues",
+                    "metric_support_threshold",
+                    "metric_retained_mask",
+                    "retained_metric_eigenvalues",
+                    "active_metric_support_rank",
+                    "joint_metric_support_rank",
+                    "batch_metric_rank_increment",
+                    "raw_metric_condition_number",
+                    "retained_metric_condition_number",
+                    "H_w_eigenvalues",
+                    "trust_lambda",
+                    "denominator_floor",
+                    "applied_whitened_condition_number",
+                    "whitened_step_norm",
+                    "joint_fubini_study_displacement_sq",
+                    "full_direct_residual",
+                    "supported_direct_residual",
+                    "discarded_gradient_norm",
+                    "active_parameter_relaxation",
+                    "batch_coordinate_step",
+                    "applied_predicted_reduction",
+                    "classical_quantum_query_charge",
+                )
+                if key in selector_map
+            },
+            "query_chargeable_unique_geometry_element_count": (
+                workspace_map.get(
+                    "query_chargeable_unique_geometry_element_count"
+                )
+            ),
+            "query_chargeable_gradient_repair_count": workspace_map.get(
+                "query_chargeable_gradient_repair_count"
+            ),
+        },
+        "state_norm": float(np.vdot(state_arr, state_arr).real),
+        "state_sha256": hashlib.sha256(state_arr.tobytes()).hexdigest(),
+        "fixed_fermion_sector": _fixed_fermion_sector_diagnostics(
+            state_arr,
+            context,
+        ),
+        "boson_codeword_legal_subspace": (
+            _boson_codeword_legal_diagnostics(state_arr, context)
+        ),
+    }
+
+
+def _compact_adapt_payload_from_checkpoint(
+    adapt_payload: Mapping[str, Any],
+    *,
+    current_json: Path,
+) -> dict[str, Any]:
+    """Preserve reader-facing terminal fields without embedding raw matrices."""
+
+    raw_current = json.loads(current_json.read_text(encoding="utf-8"))
+    current_adapt = raw_current.get("adapt_vqe") if isinstance(raw_current, Mapping) else None
+    if not isinstance(current_adapt, Mapping):
+        raise ValueError(
+            "summary_checkpoint_v1 requires a current JSON containing adapt_vqe."
+        )
+    compact = dict(current_adapt)
+    raw_continuation = compact.get("continuation")
+    dropped_continuation_rows: dict[str, int | None] = {}
+    if isinstance(raw_continuation, Mapping):
+        continuation = dict(raw_continuation)
+        for key in RESULT_PAYLOAD_RECONSTRUCTIBLE_CONTINUATION_KEYS:
+            value = continuation.pop(key, None)
+            if value is None:
+                continue
+            dropped_continuation_rows[key] = (
+                int(len(value))
+                if isinstance(value, Sequence)
+                and not isinstance(value, (str, bytes, bytearray))
+                else None
+            )
+        compact["continuation"] = continuation
+    history_tail = compact.get("history_tail")
+    if "history" not in compact and isinstance(history_tail, Sequence) and not isinstance(
+        history_tail,
+        (str, bytes, bytearray),
+    ):
+        compact["history"] = [
+            dict(row) for row in history_tail if isinstance(row, Mapping)
+        ]
+    for key in (
+        "success",
+        "energy",
+        "abs_delta_e",
+        "benchmark_target_abs_delta_e_current",
+        "stop_reason",
+        "operators",
+        "logical_optimal_point",
+        "optimal_point",
+        "parameterization",
+        "parameterization_mode",
+        "ansatz_depth",
+        "num_parameters",
+        "logical_num_parameters",
+        "nfev_total",
+        "nfev_winning_lineage",
+        "nfev_discarded_operational_overhead",
+        "raw_optimizer_nfev",
+        "chargeable_unique_energy_evaluations",
+        "chargeable_unique_energy_evaluation_ids",
+        "energy_evaluation_occurrence_ids",
+        "formal_manifold_query_accounting_schema",
+        "formal_manifold_query_accounting_complete",
+        "formal_manifold_query_accounting_incomplete_reason",
+        "adapt_beam_enabled",
+        "continuation",
+        "final_full_refit",
+        "resume_boundary_refit",
+        "backend_compile_cost_summary",
+        "route_a_trust_region_state",
+        "adapt_reoptimization_route",
+        "adapt_formal_manifold_config",
+        "formal_manifold_warm_start",
+        "formal_manifold_seed_bootstrap",
+        "formal_manifold_warm_state_checkpoint",
+        "formal_manifold_resume_policy",
+        "formal_manifold_query_closure",
+        "formal_manifold_query_closure_checkpoint",
+        "paper_i_reoptimization_route_contract",
+    ):
+        if key in adapt_payload:
+            compact[key] = _json_ready(adapt_payload[key])
+    compact["result_payload_compaction"] = {
+        "schema": "paper_i_hh_adapt_result_payload_compaction_v1",
+        "mode": RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1,
+        "source_current_json": str(current_json),
+        "raw_selector_matrices_embedded": False,
+        "exact_checkpoint_retained_separately": True,
+        "legacy_full_payload_mode_available": True,
+        "reconstructible_continuation_rows_dropped": (
+            dropped_continuation_rows
+        ),
+    }
+    return compact
+
+
+def _write_result_sidecars(
+    output_json: Path,
+    *,
+    status: str,
+    scientific_settings_hash: Any,
+    summary: Mapping[str, Any],
+    current_json: Path,
+) -> dict[str, str]:
+    compact_path = output_json.with_name("compact_summary.json")
+    query_path = output_json.with_name("query_work_sidecar.json")
+    compact_payload = {
+        "schema": "paper_i_hh_powell_pareto_compact_summary_v1",
+        "status": str(status),
+        "source_result_json": str(output_json),
+        "source_current_json": str(current_json),
+        "scientific_settings_hash": scientific_settings_hash,
+        "summary": _json_ready(summary),
+    }
+    query_payload = {
+        "schema": "paper_i_hh_powell_pareto_query_work_sidecar_v1",
+        "status": str(status),
+        "source_result_json": str(output_json),
+        "source_current_json": str(current_json),
+        "scientific_settings_hash": scientific_settings_hash,
+        "operator_path_hash": summary.get("operator_path_hash"),
+        "controller_round_count": summary.get("controller_round_count"),
+        "ansatz_depth": summary.get("ansatz_depth"),
+        "nfev_total": summary.get("nfev_total"),
+        "nfev_winning_lineage": summary.get("nfev_winning_lineage"),
+        "nfev_discarded_operational_overhead": summary.get(
+            "nfev_discarded_operational_overhead"
+        ),
+        "raw_optimizer_nfev": summary.get("raw_optimizer_nfev"),
+        "chargeable_unique_energy_evaluations": summary.get(
+            "chargeable_unique_energy_evaluations"
+        ),
+        "query_work_total": summary.get("query_work_total"),
+        "query_work_scope": summary.get("query_work_scope"),
+        "query_work_status": summary.get("query_work_status"),
+        "query_axis_contract": summary.get("query_axis_contract"),
+        "query_work_components": summary.get("query_work_components"),
+        "adapt_reoptimization_route": summary.get(
+            "adapt_reoptimization_route"
+        ),
+        "formal_manifold_query_closure": summary.get(
+            "formal_manifold_query_closure"
+        ),
+        "formal_manifold_query_accounting": summary.get(
+            "formal_manifold_query_accounting"
+        ),
+        "paper_i_reoptimization_route_contract": summary.get(
+            "paper_i_reoptimization_route_contract"
+        ),
+        "all_branch_query_work_total_diagnostic": summary.get(
+            "all_branch_query_work_total_diagnostic"
+        ),
+        "all_branch_query_work_status_diagnostic": summary.get(
+            "all_branch_query_work_status_diagnostic"
+        ),
+        "all_branch_query_work_scope_diagnostic": summary.get(
+            "all_branch_query_work_scope_diagnostic"
+        ),
+        "all_branch_query_work_components_diagnostic": summary.get(
+            "all_branch_query_work_components_diagnostic"
+        ),
+        "joint_selector_summary": summary.get("joint_selector_summary"),
+        "route_a_population_counts": summary.get("route_a_population_counts"),
+        "paper_i_reference_front": summary.get("paper_i_reference_front"),
+        "paper_i_reference_comparisons": summary.get(
+            "paper_i_reference_comparisons"
+        ),
+    }
+    _write_json(compact_path, compact_payload)
+    _write_json(query_path, query_payload)
+    return {
+        "compact_summary_json": str(compact_path),
+        "query_work_sidecar_json": str(query_path),
+    }
+
+
+def _run_scientific_route(
+    context: Any,
+    run_config: PaperISnakeRunConfig,
+    plan: Mapping[str, Any],
+) -> tuple[dict[str, Any], Any]:
+    """Run the retained Paper-I route; FM execution is author-retired."""
+
+    scientific = plan.get("scientific_settings")
+    if isinstance(scientific, Mapping):
+        raw_contract = scientific.get("accepted_ansatz_reoptimization")
+        if isinstance(raw_contract, Mapping):
+            route = str(
+                raw_contract.get("effective_route", REOPTIMIZATION_ROUTE_OFF)
+            ).strip().lower()
+            if route != REOPTIMIZATION_ROUTE_OFF:
+                raise ValueError(
+                    "This harness no longer executes author-retired "
+                    "accepted-ansatz reoptimization routes."
+                )
+    return run_paper_i_route_a(context, run_config=run_config)
+
+def run_once(args: argparse.Namespace) -> dict[str, Any]:
+    context, run_config, plan = _build_plan(args)
+    if bool(args.dry_run):
+        return {**plan, "status": "planned"}
+    disk_preflight = dict(plan.get("disk_preflight", {}))
+    if str(disk_preflight.get("status")) == "launch_blocked":
+        blocked = {
+            **plan,
+            "status": "blocked_disk_preflight",
+            "finished_utc": _utc_now(),
+        }
+        _write_json(Path(args.output_json), blocked)
+        raise RuntimeError(
+            "Paper-I HH Pareto launch blocked because free disk space is "
+            f"{float(disk_preflight.get('free_gib', 0.0)):.2f} GiB, below "
+            f"the {DISK_LAUNCH_FLOOR_GIB:.0f} GiB launch floor."
+        )
+    started_utc = _utc_now()
+    started = time.perf_counter()
+    started_process = time.process_time()
+    loadavg_start = [float(value) for value in os.getloadavg()]
+    try:
+        payload, state = _run_scientific_route(context, run_config, plan)
+    except Exception as exc:
+        failed = {
+            **plan,
+            "status": "failed",
+            "started_utc": started_utc,
+            "finished_utc": _utc_now(),
+            "elapsed_s": float(time.perf_counter() - started),
+            "process_cpu_s": float(time.process_time() - started_process),
+            "host_loadavg_start": loadavg_start,
+            "host_loadavg_finish": [float(value) for value in os.getloadavg()],
+            "disk_postflight": _disk_preflight(REPO_ROOT),
+            "error": {"type": type(exc).__name__, "message": str(exc)},
+        }
+        _write_json(Path(args.output_json), failed)
+        raise
+    elapsed_s = float(time.perf_counter() - started)
+    adapt_payload = dict(payload)
+    terminal_abs_delta_e = _float_or_none(adapt_payload.get("abs_delta_e"))
+    if terminal_abs_delta_e is not None:
+        # The last checkpoint precedes terminal pruning/refit in some beam runs.
+        # Keep the compatibility alias synchronized with the terminal payload.
+        adapt_payload["benchmark_target_abs_delta_e_current"] = float(
+            terminal_abs_delta_e
+        )
+    reference_bitstring = plan.get("reference_bitstring_qn_to_q0")
+    if reference_bitstring:
+        adapt_payload.setdefault(
+            "reference_bitstring_qn_to_q0",
+            str(reference_bitstring),
+        )
+    summary = _result_summary(
+        payload,
+        np.asarray(state),
+        elapsed_s,
+        context=context,
+    )
+    summary.update(
+        _paper_i_reference_comparison(
+            summary,
+            regime=str(args.regime),
+        )
+    )
+    result_payload_mode = str(args.result_payload_mode)
+    current_json_path = Path(
+        plan.get("current_json")
+        or args.current_json
+        or Path(args.output_json).with_name("current.json")
+    )
+    result_adapt_payload = adapt_payload
+    if result_payload_mode == RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1:
+        result_adapt_payload = _compact_adapt_payload_from_checkpoint(
+            adapt_payload,
+            current_json=current_json_path,
+        )
+    sidecars = _write_result_sidecars(
+        Path(args.output_json),
+        status="complete",
+        scientific_settings_hash=plan.get("scientific_settings_hash"),
+        summary=summary,
+        current_json=current_json_path,
+    )
+    output = {
+        **plan,
+        "status": "complete",
+        "started_utc": started_utc,
+        "finished_utc": _utc_now(),
+        "process_cpu_s": float(time.process_time() - started_process),
+        "host_loadavg_start": loadavg_start,
+        "host_loadavg_finish": [float(value) for value in os.getloadavg()],
+        "disk_postflight": _disk_preflight(REPO_ROOT),
+        "result_payload_mode": str(result_payload_mode),
+        "sidecars": sidecars,
+        "summary": summary,
+        "adapt_vqe": result_adapt_payload,
+    }
+    _write_json(Path(args.output_json), output)
+    return output
+
+
+def _load_run(path: Path) -> dict[str, Any]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"Run payload must be an object: {path}")
+    return dict(raw)
+
+
+def _stored_winning_branch_query_fields(
+    summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    audit = summary.get("query_work_audit")
+    if not isinstance(audit, Mapping):
+        raise ValueError("Stored summary has no query_work_audit object.")
+    s_alg = _float_or_none(audit.get("S_alg"))
+    if s_alg is None:
+        raise ValueError("Stored query_work_audit has no finite S_alg value.")
+    raw_components = audit.get("components")
+    components = (
+        dict(raw_components) if isinstance(raw_components, Mapping) else {}
+    )
+    raw_all_branch_components = audit.get("S_beam_search_components")
+    all_branch_components = (
+        dict(raw_all_branch_components)
+        if isinstance(raw_all_branch_components, Mapping)
+        else {}
+    )
+    all_branch_total = _float_or_none(audit.get("S_beam_search_total"))
+    return {
+        "query_work_total": float(s_alg),
+        "query_work_source": "summary.query_work_audit.S_alg",
+        "query_work_status": str(audit.get("status") or "ok"),
+        "query_work_scope": str(
+            audit.get("S_alg_work_scope") or "winner_lineage_terminal"
+        ),
+        "query_work_components": {
+            "N_H_outer": _float_or_none(components.get("N_H_outer_eval")),
+            "N_H_refit": _float_or_none(components.get("N_H_refit_eval")),
+            "N_grad": _float_or_none(components.get("N_grad")),
+            "N_metric": _float_or_none(components.get("N_metric")),
+        },
+        "all_branch_query_work_total_diagnostic": all_branch_total,
+        "all_branch_query_work_status_diagnostic": str(
+            audit.get("S_beam_search_total_status")
+            or ("ok" if all_branch_total is not None else "not_applicable")
+        ),
+        "all_branch_query_work_scope_diagnostic": str(
+            audit.get("S_beam_search_scope") or "not_applicable"
+        ),
+        "all_branch_query_work_components_diagnostic": {
+            "N_H_outer": _float_or_none(
+                all_branch_components.get("N_H_outer_eval")
+            ),
+            "N_H_refit": _float_or_none(
+                all_branch_components.get("N_H_refit_eval")
+            ),
+            "N_grad": _float_or_none(all_branch_components.get("N_grad")),
+            "N_metric": _float_or_none(all_branch_components.get("N_metric")),
+        },
+        "query_axis_contract": "paper_i_winning_branch_s_alg_v1",
+    }
+
+
+def repair_stored_result_query_axis(result_json: Path) -> dict[str, Any]:
+    """Repair a completed harness artifact to the Paper-I winning-branch axis."""
+
+    result_path = Path(result_json)
+    payload = _load_run(result_path)
+    summary = payload.get("summary")
+    if not isinstance(summary, Mapping):
+        raise ValueError(f"Run payload has no summary object: {result_path}")
+    repaired_summary = {
+        **dict(summary),
+        **_stored_winning_branch_query_fields(summary),
+    }
+    scientific_settings = payload.get("scientific_settings")
+    regime_payload = (
+        scientific_settings.get("regime")
+        if isinstance(scientific_settings, Mapping)
+        else None
+    )
+    regime_name = (
+        regime_payload.get("name")
+        if isinstance(regime_payload, Mapping)
+        else None
+    )
+    if regime_name:
+        repaired_summary.update(
+            _paper_i_reference_comparison(
+                repaired_summary,
+                regime=str(regime_name),
+            )
+        )
+    repair_payload = {
+        "schema": "paper_i_hh_pareto_query_axis_repair_v1",
+        "generated_utc": _utc_now(),
+        "policy": "winning_branch_s_alg_primary_all_branches_diagnostic",
+        "previous_query_work_total": summary.get("query_work_total"),
+        "query_work_total": repaired_summary.get("query_work_total"),
+        "query_work_scope": repaired_summary.get("query_work_scope"),
+    }
+    payload["summary"] = repaired_summary
+    payload["query_axis_repair"] = repair_payload
+    _write_json(result_path, payload)
+
+    compact_path = result_path.with_name("compact_summary.json")
+    if compact_path.is_file():
+        compact = _load_run(compact_path)
+        compact["summary"] = repaired_summary
+        compact["query_axis_repair"] = repair_payload
+        _write_json(compact_path, compact)
+
+    query_path = result_path.with_name("query_work_sidecar.json")
+    if query_path.is_file():
+        query_sidecar = _load_run(query_path)
+        for key in (
+            "query_work_total",
+            "query_work_source",
+            "query_work_status",
+            "query_work_scope",
+            "query_work_components",
+            "all_branch_query_work_total_diagnostic",
+            "all_branch_query_work_status_diagnostic",
+            "all_branch_query_work_scope_diagnostic",
+            "all_branch_query_work_components_diagnostic",
+            "query_axis_contract",
+            "paper_i_reference_front",
+            "paper_i_reference_comparisons",
+        ):
+            query_sidecar[key] = repaired_summary.get(key)
+        query_sidecar["query_axis_repair"] = repair_payload
+        _write_json(query_path, query_sidecar)
+    return repair_payload
+
+
+def compare_runs(left: Mapping[str, Any], right: Mapping[str, Any], *, atol: float) -> dict[str, Any]:
+    left_summary = dict(left.get("summary", {}))
+    right_summary = dict(right.get("summary", {}))
+    left_theta = np.asarray(left_summary.get("logical_optimal_point", []), dtype=float)
+    right_theta = np.asarray(right_summary.get("logical_optimal_point", []), dtype=float)
+    theta_shape_match = left_theta.shape == right_theta.shape
+    theta_max_abs_diff = (
+        float(np.max(np.abs(left_theta - right_theta)))
+        if theta_shape_match and left_theta.size
+        else (0.0 if theta_shape_match else math.inf)
+    )
+    energy_left = _float_or_none(left_summary.get("energy"))
+    energy_right = _float_or_none(right_summary.get("energy"))
+    energy_abs_diff = (
+        abs(float(energy_left) - float(energy_right))
+        if energy_left is not None and energy_right is not None
+        else math.inf
+    )
+    query_work_left = _float_or_none(left_summary.get("query_work_total"))
+    query_work_right = _float_or_none(right_summary.get("query_work_total"))
+    left_execution = left.get("execution_settings")
+    right_execution = right.get("execution_settings")
+    left_cache_capacity = (
+        left_execution.get("joint_pair_cache_max_entries")
+        if isinstance(left_execution, Mapping)
+        else None
+    )
+    right_cache_capacity = (
+        right_execution.get("joint_pair_cache_max_entries")
+        if isinstance(right_execution, Mapping)
+        else None
+    )
+    checks = {
+        "both_complete": left.get("status") == right.get("status") == "complete",
+        "scientific_settings_match": (
+            left.get("scientific_settings_hash") == right.get("scientific_settings_hash")
+        ),
+        "operator_path_match": (
+            left_summary.get("operator_path_hash") == right_summary.get("operator_path_hash")
+        ),
+        "energy_match": bool(energy_abs_diff <= float(atol)),
+        "theta_match": bool(theta_max_abs_diff <= float(atol)),
+        "query_work_match": bool(
+            query_work_left is not None
+            and query_work_right is not None
+            and query_work_left == query_work_right
+        ),
+        "joint_pair_cache_capacity_match": bool(
+            (left_cache_capacity is None and right_cache_capacity is None)
+            or (
+                left_cache_capacity is not None
+                and right_cache_capacity is not None
+                and int(left_cache_capacity) == int(right_cache_capacity)
+            )
+        ),
+    }
+    left_elapsed = _float_or_none(left_summary.get("elapsed_s"))
+    right_elapsed = _float_or_none(right_summary.get("elapsed_s"))
+    left_process_cpu = _float_or_none(left.get("process_cpu_s"))
+    right_process_cpu = _float_or_none(right.get("process_cpu_s"))
+    speedup = (
+        float(left_elapsed) / float(right_elapsed)
+        if left_elapsed is not None and right_elapsed not in {None, 0.0}
+        else None
+    )
+    process_cpu_ratio = (
+        float(right_process_cpu) / float(left_process_cpu)
+        if right_process_cpu is not None and left_process_cpu not in {None, 0.0}
+        else None
+    )
+    return {
+        "schema": PARITY_SCHEMA,
+        "generated_utc": _utc_now(),
+        "status": "pass" if all(checks.values()) else "fail",
+        "checks": checks,
+        "energy_abs_diff": float(energy_abs_diff),
+        "theta_max_abs_diff": float(theta_max_abs_diff),
+        "serial_elapsed_s": left_elapsed,
+        "parallel_elapsed_s": right_elapsed,
+        "parallel_speedup": speedup,
+        "serial_process_cpu_s": left_process_cpu,
+        "parallel_process_cpu_s": right_process_cpu,
+        "parallel_to_serial_process_cpu_ratio": process_cpu_ratio,
+        "serial_host_loadavg_start": left.get("host_loadavg_start"),
+        "parallel_host_loadavg_start": right.get("host_loadavg_start"),
+        "left_execution_settings": left.get("execution_settings"),
+        "right_execution_settings": right.get("execution_settings"),
+    }
+
+
+def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--regime", choices=sorted(REGIMES), default="weak-weak")
+    parser.add_argument("--output-json", type=Path, required=True)
+    parser.add_argument("--current-json", type=Path, default=None)
+    parser.add_argument(
+        "--resume-scaffold-json",
+        type=Path,
+        default=None,
+        help=(
+            "Exact structural checkpoint to continue. With this option, "
+            "--max-depth is the number of additional controller rounds."
+        ),
+    )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--max-depth", type=int, default=15)
+    parser.add_argument("--optimizer-maxiter", type=int, default=50)
+    parser.add_argument("--scipy-maxfev", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument(
+        "--disable-hh-seed",
+        action="store_true",
+        help=(
+            "Start from the bare problem reference state instead of inserting "
+            "the historical automatic Hubbard--Holstein seed scaffold."
+        ),
+    )
+    parser.add_argument(
+        "--n-ph-work",
+        type=_positive_int,
+        default=None,
+        help="Optional same-cutoff phonon truncation override for a diagnostic cell.",
+    )
+    parser.add_argument(
+        "--benchmark-target-abs-delta-e",
+        type=_positive_float,
+        default=None,
+        help=(
+            "Stop after the first completed outer iteration whose same-cutoff "
+            "absolute energy error is at or below this threshold."
+        ),
+    )
+    parser.add_argument("--eps-grad", type=float, default=1e-4)
+    parser.add_argument("--eps-energy", type=float, default=1e-8)
+    parser.add_argument("--geometry-window-size", type=int, default=99)
+    parser.add_argument("--subset-sizes", type=_parse_subset_sizes, default=(1,))
+    parser.add_argument("--child-symmetry-policy", choices=["off", "hard_guard"], default="hard_guard")
+    parser.add_argument(
+        "--child-padding-policy",
+        choices=sorted(ROUTE_A_CHILD_PADDING_POLICIES),
+        default=ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+    )
+    parser.add_argument("--batch-mode", choices=sorted(_BATCH_SELECTION_MODES), default="off")
+    parser.add_argument("--batch-target-size", type=int, default=1)
+    parser.add_argument("--batch-size-cap", type=int, default=1)
+    parser.add_argument(
+        "--batch-search-pool-size",
+        type=int,
+        default=10,
+        help="L_search; zero exposes every child Phase-2 survivor.",
+    )
+    parser.add_argument(
+        "--batch-search-feasibility-policy",
+        choices=sorted(BATCH_SEARCH_FEASIBILITY_POLICIES),
+        default=BATCH_SEARCH_FEASIBILITY_JOINT_SUBSET_GATE_V1,
+        help=(
+            "Canonical runs use joint_subset_gate_v1; raw_ranked_legacy_v1 "
+            "is retained only for exact historical continuation."
+        ),
+    )
+    parser.add_argument(
+        "--batch-additivity-policy",
+        choices=(
+            ROUTE_A_ADDITIVITY_OFF,
+            ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1,
+            ROUTE_A_ADDITIVITY_HARD_GATE_LEGACY_V1,
+        ),
+        default=ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1,
+    )
+    parser.add_argument("--batch-additivity-lambda", type=float, default=0.0)
+    parser.add_argument("--batch-score-tie-tolerance", type=float, default=1e-12)
+    parser.add_argument("--batch-rank-relative-tolerance", type=float, default=1e-6)
+    parser.add_argument("--batch-max-gram-condition-number", type=float, default=1e12)
+    parser.add_argument("--batch-metric-regularization", type=float, default=1e-9)
+    parser.add_argument("--batch-energy-regularization", type=float, default=1e-9)
+    parser.add_argument(
+        "--joint-linear-solve-policy",
+        choices=sorted(JOINT_LINEAR_SOLVE_POLICIES),
+        default=JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+        help=(
+            "Numerical policy for the full active-ansatz-plus-batch trust solve. "
+            "Supported-metric whitening is canonical; block pseudoinverse is "
+            "retained for historical replay."
+        ),
+    )
+    parser.add_argument("--batch-state-consistency-tolerance", type=float, default=1e-8)
+    parser.add_argument("--max-fubini-study-step", type=float, default=0.25)
+    parser.add_argument(
+        "--joint-step-warm-start-mode",
+        choices=sorted(ROUTE_A_JOINT_STEP_WARM_START_MODES),
+        default=None,
+        help=(
+            "Explicit joint-selector seed policy. Omit to use the typed route "
+            "default; child_12_joint_response_v2 currently resolves to "
+            "exact_applied_joint_step_guarded_v1."
+        ),
+    )
+    parser.add_argument(
+        "--trust-region-update-policy",
+        choices=sorted(ROUTE_A_TRUST_REGION_UPDATE_POLICIES),
+        default=ROUTE_A_TRUST_REGION_DISPLACEMENT_CALIBRATED_UNBOUNDED_V2,
+        help=(
+            "displacement_calibrated_unbounded_v2 is canonical for JR-SNAKE: "
+            "rho follows the direct square-root displacement ratio with zero "
+            "scientific lower bound and no upper/rate cap. v1 and fixed are "
+            "diagnostic compatibility policies."
+        ),
+    )
+    parser.add_argument("--trust-region-radius-min", type=float, default=0.0)
+    parser.add_argument(
+        "--selector-exhaustion-retry-policy",
+        choices=sorted(ROUTE_A_SELECTOR_EXHAUSTION_POLICIES),
+        default=ROUTE_A_SELECTOR_EXHAUSTION_STOP,
+        help=(
+            "Canonical selector exhaustion handling. The retry policy first "
+            "re-evaluates all child-Phase-2 survivors and, if necessary, "
+            "continues with an explicitly flagged geometry-ranked singleton."
+        ),
+    )
+    parser.add_argument(
+        "--trust-region-contraction-factor-min",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
+        "--trust-region-expansion-factor-max",
+        type=float,
+        default=math.sqrt(2.0),
+    )
+    parser.add_argument(
+        "--trust-region-displacement-epsilon",
+        type=float,
+        default=1e-12,
+    )
+    parser.add_argument(
+        "--trust-region-direction-cosine-min",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
+        "--trust-region-require-direction-for-expansion",
+        action="store_true",
+        help=(
+            "Require a validated local-coordinate direction cosine before "
+            "expansion; unavailable diagnostics hold the radius."
+        ),
+    )
+    parser.add_argument(
+        "--joint-batch-context-mode",
+        choices=(
+            BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+            BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
+            BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
+        ),
+        default=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+    )
+    parser.add_argument("--active-window-size", type=int, default=8)
+    parser.add_argument("--beam-width", type=int, default=3)
+    parser.add_argument("--beam-children-per-parent", type=int, default=2)
+    parser.add_argument(
+        "--disable-beam",
+        action="store_true",
+        help=(
+            "Disable structural beam search while preserving the configured "
+            "single-frontier selector, batching, and reoptimization policy."
+        ),
+    )
+    parser.add_argument(
+        "--disable-pruning",
+        action="store_true",
+        help="Disable live and terminal structural pruning for this cell.",
+    )
+    parser.add_argument("--phase0-shortlist-size", type=int, default=256)
+    parser.add_argument(
+        "--phase0-policy",
+        choices=("disabled", "legacy_macro_prescreen_v1"),
+        default=None,
+    )
+    parser.add_argument("--phase1-shortlist-size", type=int, default=256)
+    parser.add_argument("--phase2-shortlist-size", type=int, default=256)
+    parser.add_argument("--phase2-shortlist-fraction", type=float, default=1.0)
+    parser.add_argument("--child-phase1-shortlist-size", type=int, default=4096)
+    parser.add_argument("--child-phase2-shortlist-size", type=int, default=4096)
+    parser.add_argument("--child-phase3-shortlist-size", type=int, default=4096)
+    parser.add_argument(
+        "--funnel-mode",
+        choices=(
+            ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+            ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+            ROUTE_A_FUNNEL_DIRECT_CHILD_PHASE3_V1,
+            ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+        ),
+        default=ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+    )
+    parser.add_argument(
+        "--physical-lane-shortlist-aggressiveness",
+        type=int,
+        choices=[2, 3],
+        default=3,
+    )
+    parser.add_argument("--gradient-workers", type=int, default=1)
+    parser.add_argument("--beam-parent-workers", type=int, default=1)
+    parser.add_argument("--runtime-split-child-workers", type=int, default=0)
+    parser.add_argument("--joint-pair-workers", type=_positive_int, default=1)
+    parser.add_argument(
+        "--joint-pair-cache-max-entries",
+        type=_nonnegative_int,
+        default=4096,
+    )
+    parser.add_argument("--pool-cache-mode", choices=["disk", "memory", "off"], default="disk")
+    parser.add_argument("--pool-cache-dir", type=Path, default=None)
+    parser.add_argument(
+        "--candidate-cache-mode",
+        choices=["disk", "memory", "off"],
+        default="disk",
+    )
+    parser.add_argument("--candidate-cache-dir", type=Path, default=None)
+    parser.add_argument(
+        "--result-payload-mode",
+        choices=RESULT_PAYLOAD_MODES,
+        default=RESULT_PAYLOAD_FULL_V1,
+        help=(
+            "full_v1 preserves the historical embedded payload; "
+            "summary_checkpoint_v1 stores the compact terminal checkpoint "
+            "and keeps the exact current JSON as the resume authority."
+        ),
+    )
+    parser.add_argument("--current-json-keep-history-tail", type=int, default=100)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    run_parser = subparsers.add_parser("run", help="Plan or run one Powell Route-A cell.")
+    _add_run_arguments(run_parser)
+    compare_parser = subparsers.add_parser("compare", help="Compare serial and parallel cells.")
+    compare_parser.add_argument("left", type=Path)
+    compare_parser.add_argument("right", type=Path)
+    compare_parser.add_argument("--atol", type=float, default=1e-10)
+    compare_parser.add_argument("--output-json", type=Path, default=None)
+    diff_parser = subparsers.add_parser(
+        "diff-plans",
+        help="Report scientific-setting differences between two dry-run plans.",
+    )
+    diff_parser.add_argument("left", type=Path)
+    diff_parser.add_argument("right", type=Path)
+    diff_parser.add_argument("--output-json", type=Path, default=None)
+    repair_parser = subparsers.add_parser(
+        "repair-query-axis",
+        help="Rewrite a completed result and sidecars to winning-branch S_alg.",
+    )
+    repair_parser.add_argument("result_json", type=Path)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if args.command == "run":
+        output = run_once(args)
+        if bool(args.dry_run):
+            _write_json(Path(args.output_json), output)
+        print(json.dumps({"status": output["status"], "output_json": str(args.output_json), "summary": output.get("summary")}, sort_keys=True))
+        return 0
+    if args.command == "repair-query-axis":
+        report = repair_stored_result_query_axis(Path(args.result_json))
+        print(json.dumps(report, sort_keys=True))
+        return 0
+    left = _load_run(Path(args.left))
+    right = _load_run(Path(args.right))
+    if args.command == "diff-plans":
+        report = compare_plans(left, right)
+        if args.output_json is not None:
+            _write_json(Path(args.output_json), report)
+        print(json.dumps(report, sort_keys=True))
+        return 0
+    report = compare_runs(left, right, atol=float(args.atol))
+    if args.output_json is not None:
+        _write_json(Path(args.output_json), report)
+    print(json.dumps(report, sort_keys=True))
+    return 0 if report["status"] == "pass" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

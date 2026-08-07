@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "all_round50": true,
+    "archive_only_focused_tests": true,
+    "archive_only_six_validate_only": true,
+    "cutoffs_nph3_and_nph7": true,
+    "fixed_population_progressive_shortlisting": true,
+    "one_admission_smoke": true,
+    "route_contract_and_digest": true,
+    "same_cutoff_references": true,
+    "six_jobs": true
+  },
+  "created_utc": "2026-07-19T20:12:10.010245+00:00",
+  "remote_image_gate_pending": true,
+  "remote_image_sha256_expected": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "schema": "paper_i_hh_sr_pool_complement_preflight_v1",
+  "status": "pass_local_remote_image_gate_pending",
+  "submission_authorized_after_remote_gate": true
+}

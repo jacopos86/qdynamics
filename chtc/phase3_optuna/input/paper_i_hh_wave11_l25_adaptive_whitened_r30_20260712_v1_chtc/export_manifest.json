@@ -1,0 +1,74 @@
+{
+  "batch_name": "paper-i-hh-wave11-l25-adaptive-whitened-r30-20260712-v1",
+  "batch_output_root": "raw_outputs/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1",
+  "cell_count": 6,
+  "cell_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/cell_manifests/trial_000000__strong_strong_u8.json"
+  ],
+  "execution_profile": "wave11_l25_adaptive_whitened_r30_v1",
+  "generated_utc": "2026-07-12T20:33:36.430660+00:00",
+  "manifest_sha256": "95170f5ad68a8fc574a6a721f0b3ebbed40548a8da8e3087e5efd020fadde979",
+  "max_runtime_s": 259200,
+  "queue_sha256": "6f4055d0f7fcf12d3b55493592d7d3d0378e56c76235feb0548c677ec4428582",
+  "queue_tsv": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/queue.tsv",
+  "requested_cpus_per_cell": 4,
+  "resource_policy": {
+    "nph2_non_u8": {
+      "disk_mb": 40960,
+      "memory_mb": 24576
+    },
+    "nph4_or_u8": {
+      "disk_mb": 61440,
+      "memory_mb": 32768
+    }
+  },
+  "run_class": "candidate_fixed_policy_matrix",
+  "runtime_provenance_inputs": [
+    {
+      "path": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave18_projected_normalized_m64_m48_c128_c64_b2_l25_uncapped_r7/plan.json",
+      "role": "legal_projection_reference_plan",
+      "sha256": "da862e5df53732d80bdf7594783bcfd0c2df7d916091428cf8e6d3da0d0c0e3a"
+    },
+    {
+      "path": "raw_outputs/paper_i_hh_joint_selector_pareto_20260711/wave11_small_m64_m48_c128_c64_b2_l25_r15/current.json",
+      "role": "wave11_unchecked_checkpoint",
+      "sha256": "cdf0829f9ea351b3fd20bff7715e6b13d84ad2307ab676fa899f198ad73a8c85"
+    }
+  ],
+  "schema": "paper_i_hh_route_a_optuna_chtc_export_v1",
+  "scientific_contract_hash": "74c037ad3777d3a98463de14c9421d0117c75cdbc8fa20341ac4da2b9cc784cc",
+  "source_hashes": {
+    "chtc/phase3_optuna/run_paper_i_hh_route_a_optuna_cell_apptainer.sh": "84d8aaa82b0e64288478966d9fd4d4166880bb8abf1dae80f4e69e365cbee657",
+    "docs/reports/pdf_utils.py": "884d5b19dcdd01f34b6af8f2b2b9523140da5175ca7b2af8efe76c657800e72c",
+    "pipelines/exact_bench/paper_i_hh_powell_pareto.py": "d47a272c4d8cdc5cd51f1fa0eed68ba2a34e3b0f63ab5ef327f127e7df090262",
+    "pipelines/exact_bench/paper_i_hh_route_a_optuna.py": "95ab4902af01f16f2d52d382b07ea1230065aed4df01a06581f4161301904c85",
+    "pipelines/exact_bench/snake_table_i_measurement_work.py": "296f7be6dab0746ecc9494c797269c9d930d2c12b212d60897104725f609a143",
+    "pipelines/scaffold/hh_continuation_scoring.py": "1a4306806ea48ae999cfa91b1183ca8ba12c81f2a3f8cc7ae0507b41443898cd",
+    "pipelines/static_adapt/adapt_pipeline.py": "6088f6b2c3366d28e49708a189ce96c311499ae09483edcf2367e8301d35c603",
+    "pipelines/static_adapt/builders/legal_subspace_filter.py": "ef703de200a231f65abcf2e6656b2d431447b0292ed7f298391984cca87c1bb1",
+    "pipelines/static_adapt/joint_linear_solve.py": "5268750d68f3e6453278c97b196f05ba2c2a9ad417c4c58ca0524bad1e8132ef",
+    "pipelines/static_adapt/optimizer_routes.py": "ec515f9d56ad38ebafec1174a7c6881e9e17854af38d2d37e5debfdd6445b452",
+    "pipelines/static_adapt/paper_i_config.py": "9f54e1fcd226e768061e974df4b5fba68841848406bad41caa9d3790e5ae54cb",
+    "pipelines/static_adapt/paper_i_runner.py": "78dbaec458ca2b6cd15e5f8fad516758bcb59c4b7e70c49ad80000e138f75f03",
+    "pipelines/static_adapt/route_a_child_padding.py": "85ffb862e05cc5c2c3a866909ef365b5afd4904673baf0124e8ef47ab2b827ae",
+    "pipelines/static_adapt/route_a_funnel.py": "ad2005cf25c8bd279a4ec750ce61287b2871d4dc6059a78fba6621804d77acdd",
+    "pipelines/static_adapt/route_a_schur_selector.py": "2ce75687f2bdda107c33de12a9347b93643b2cc9c695246f5d02b1d69a2e3c68",
+    "pipelines/static_adapt/route_a_shortlists.py": "b483b300aec23f4ee759720f394606b33ee353ff090e330e3473d467ce52f710",
+    "pipelines/static_adapt/route_a_trust_region.py": "89d6e0fab44bdffa25bd71b07af6cc869ee1f82c1aea57b5733b8f8dc490eb5f",
+    "pipelines/static_adapt/runtime_split.py": "5aa99009ee16759ee947169950c4d7ee37541329afa5646c39088c3ce93178ac"
+  },
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/submit.sub",
+  "submit_sha256": "28c360cc47878349ffe8af80f8135b4ae1c5dfdd09b631fd71c7c087276c3887",
+  "trial_count": 1,
+  "trial_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/trial_manifests/trial_000000.json"
+  ],
+  "wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1_chtc/wave_manifest.json",
+  "wave_manifest_sha256": "7540d2a1d9ea3f0704e87653d8923f63262f823c61e338db04d598285ceb9056",
+  "worker_optuna_storage_access": false
+}

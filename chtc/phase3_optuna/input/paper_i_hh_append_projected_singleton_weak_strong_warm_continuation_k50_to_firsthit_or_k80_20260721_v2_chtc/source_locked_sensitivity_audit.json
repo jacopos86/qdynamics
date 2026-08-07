@@ -1,0 +1,161 @@
+{
+  "candidate_source_archive_sha256": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+  "created_utc": "2026-07-21T21:45:03+00:00",
+  "manifest_diff": [
+    {
+      "after": "paper_i_hh_append_projected_singleton_weak_strong_warm_continuation_k50_to_firsthit_or_k80_20260721_v2_chtc",
+      "before": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+      "path": "bundle_id"
+    },
+    {
+      "after": {
+        "authorized_changes": [
+          "warm_start_state_at_exact_validated_k50_endpoint",
+          "max_total_iterations_50_to_80",
+          "stop_at_first_same_cutoff_abs_error_le_2e-4"
+        ],
+        "cumulative_S_alg_formula": "1276060 + continuation_incremental_S_alg",
+        "incremental_ledger_required": true,
+        "mode": "warm_start_selected_theta_v1",
+        "prefix_identity_sha256": "190c782d30d695d938de5390953eb4b2d05494b572bbcdaef57b159fbd8166c7",
+        "source_S_alg": 1276060.0,
+        "source_depth": 50,
+        "source_iterations": 50,
+        "source_job_id": "append_projected_singleton__weak_strong__r50",
+        "source_terminal_error": 0.0006059547584833513,
+        "warm_start_state_sha256": "2f8cf43b8d6a77b8387ca97ed61e247083a776c0a0d867196f465db7480bf329"
+      },
+      "before": "__MISSING__",
+      "path": "continuation"
+    },
+    {
+      "after": 0.0002,
+      "before": null,
+      "path": "controller.energy_stop_target"
+    },
+    {
+      "after": [
+        0.0002
+      ],
+      "before": "__MISSING__",
+      "path": "controller.first_hit_thresholds"
+    },
+    {
+      "after": false,
+      "before": true,
+      "path": "controller.fresh_round_zero"
+    },
+    {
+      "after": 50,
+      "before": "__MISSING__",
+      "path": "controller.initial_history_count"
+    },
+    {
+      "after": 50,
+      "before": 0,
+      "path": "controller.initial_selected_operator_count"
+    },
+    {
+      "after": 50,
+      "before": 0,
+      "path": "controller.initial_theta_count"
+    },
+    {
+      "after": 80,
+      "before": 50,
+      "path": "controller.max_adapt_iterations"
+    },
+    {
+      "after": "append_warm_start_first_hit_or_max_iterations_v1",
+      "before": "fixed_horizon_no_target_v1",
+      "path": "controller.stop_policy"
+    },
+    {
+      "after": "warm_start_state.json",
+      "before": "__MISSING__",
+      "path": "controller.warm_start_state"
+    },
+    {
+      "after": "post_iteration_adaptive_stop_decision",
+      "before": "reporting_only_after_optimization",
+      "path": "exact_reference.usage"
+    },
+    {
+      "after": "append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80",
+      "before": "append_projected_singleton__weak_strong__r50",
+      "path": "job_id"
+    },
+    {
+      "after": "continuation_accounting.json",
+      "before": "__MISSING__",
+      "path": "output_contract.continuation_accounting"
+    },
+    {
+      "after": "source_prefix_identity.json",
+      "before": "__MISSING__",
+      "path": "output_contract.prefix_identity"
+    },
+    {
+      "after": "append_projected_singleton__weak_strong__warm_k50_firsthit2e4_k80_transfer.tar.gz",
+      "before": "append_projected_singleton__weak_strong__r50_transfer.tar.gz",
+      "path": "output_contract.transfer_archive"
+    },
+    {
+      "after": "paper_i_hh_append_warm_continuation_job_v1",
+      "before": "paper_i_hh_append_completion_job_v1",
+      "path": "schema"
+    },
+    {
+      "after": "128f41b7d35b76fcc00203f6457be752b22d8b9fdb18a64b46f421dfccf96d63",
+      "before": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+      "path": "source_lock.archive_sha256"
+    },
+    {
+      "after": "71833e5851449494a9fcd1b6b82e53a910fbf28ac61ff02ce3c95892c7776373",
+      "before": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d",
+      "path": "source_lock.generic_static_adapt_variants_sha256"
+    },
+    {
+      "after": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+      "before": "__MISSING__",
+      "path": "source_lock.parent_archive_sha256"
+    }
+  ],
+  "parent_bundle_id": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+  "parent_job_id": "append_projected_singleton__weak_strong__r50",
+  "parent_source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+  "schema": "source_locked_sensitivity_audit_v1",
+  "scientific_settings_preserved": {
+    "algorithm_id": true,
+    "candidate_pool": true,
+    "optimizer": true,
+    "physics": true,
+    "qiskit_cost": true,
+    "seed": true,
+    "variant": true
+  },
+  "source_locked": true,
+  "source_member_diff": [
+    {
+      "after_sha256": "71833e5851449494a9fcd1b6b82e53a910fbf28ac61ff02ce3c95892c7776373",
+      "before_sha256": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d",
+      "change": "explicit warm-continuation first-hit stop contract only",
+      "path": "pipelines/exact_bench/generic_static_adapt_variants.py"
+    },
+    {
+      "after_sha256": "63daf9e5a6ee78cf7c83101beb03853a4e16a8a35670c272224c3683172a0812",
+      "before_sha256": "790fd3bea888c444883d7677ba0418b2112781fec65e8283fe6a88a9935d1c19",
+      "change": "focused fail-closed stop-contract tests only",
+      "path": "test/test_generic_static_adapt_variants.py"
+    }
+  ],
+  "status": "pass",
+  "submission_authorized": true,
+  "submission_blocker": "exact uploaded v2 archive/image preflight required externally before condor_submit",
+  "unauthorized_manifest_diff": [],
+  "user_authorized_changes": [
+    "warm_start_state_at_exact_validated_k50_endpoint",
+    "max_total_iterations_50_to_80",
+    "stop_at_first_same_cutoff_abs_error_le_2e-4"
+  ]
+}

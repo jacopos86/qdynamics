@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_hh_adapt_resume_to60_task_apptainer.sh
+arguments = $(method) 60 raw_outputs/paper_i_hh_strong_weak_adapt_resume_to60_20260530_v1/$(method)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+stream_output = False
+stream_error = False
+log = logs/paper-i-hh-strong-weak-adapt-resume-to60-20260530-v1.$(Cluster).$(Process).log
+output = logs/paper-i-hh-strong-weak-adapt-resume-to60-20260530-v1.$(Cluster).$(Process).out
+error = logs/paper-i-hh-strong-weak-adapt-resume-to60-20260530-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 8GB
+request_disk = 10240MB
++MaxRuntime = 86400
++JobBatchName = "paper-i-hh-strong-weak-adapt-resume-to60-20260530-v1"
+queue method from chtc/phase3_optuna/input/paper_i_hh_strong_weak_adapt_resume_to60_20260530_v1/methods.txt

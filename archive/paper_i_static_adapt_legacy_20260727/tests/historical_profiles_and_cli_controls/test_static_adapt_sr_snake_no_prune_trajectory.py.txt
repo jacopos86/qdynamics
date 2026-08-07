@@ -1,0 +1,1579 @@
+from __future__ import annotations
+
+from dataclasses import replace
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
+import pipelines.static_adapt.sr_snake._controller as sr_controller
+import pipelines.static_adapt.sr_snake._selection as sr_selection
+import pipelines.static_adapt.sr_snake._transition as sr_transition
+import pipelines.static_adapt.sr_snake.runner as sr_runner
+from pipelines.static_adapt.sr_snake._cli_compatibility import (
+    _active_cli_compatibility_reason,
+    _validate_normalized_cli_segment_round_lock,
+    _validate_paper_i_replay_round_lock,
+)
+import pipelines.exact_bench.paper_i_hh_recovery_prefix_qiskit_sidecar as recovery_qiskit
+import pipelines.reporting.build_paper_i_selected_prefix_qiskit_sidecar as selected_qiskit
+from pipelines.exact_bench.paper_i_s_alg_accounting import (
+    SNAKE_REPRESENTATION_PROJECTED_SINGLETON,
+    snake_clean_prefix_work,
+)
+from pipelines.static_adapt.resume_scaffold import (
+    extract_verified_singleton_resume_checkpoint,
+    load_checkpoint_estimator_call_ledger,
+    load_static_resume_source,
+)
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_ALIAS_V1,
+    canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256,
+)
+from pipelines.static_adapt.sr_snake.contracts import (
+    AppendOnlyInsertion,
+    SRExecutionPolicy,
+    SRMethodPolicy,
+    SRRunRequest,
+    SRStopPolicy,
+)
+
+
+ROUTE_PROFILE = (
+    "supported_projected_generalized_source_metric_no_overlap_trust_"
+    "full_response_symmetric_cost_no_prune_v1"
+)
+ROUTE_DIGEST = (
+    "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2"
+)
+EXPECTED_OPERATORS = [
+    (
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::"
+        "child_set[0]::legal_projected"
+    ),
+    (
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)::"
+        "child_set[0]::legal_projected"
+    ),
+]
+EXPECTED_GENERATOR_IDS = [
+    "gen:edc1a5f152a274be",
+    "gen:6758ef9dd23ce33b",
+]
+EXPECTED_ACCEPTED_REFIT_CONFIG = {
+    "base_chart_applied": "expanded_runtime_projected_logical_v1",
+    "base_chart_policy": "expanded_runtime_projected_logical_v1",
+    "coordinate_chart": "supported_fs_whitened_fixed_v1",
+    "full_ansatz": True,
+    "schema": "accepted_ansatz_refit_config_v1",
+    "scope": "full_ansatz_v1",
+    "supported_fs_whitened": True,
+    "supported_metric": {
+        "energy_regularization": 1.0e-9,
+        "global_trust_kkt_residual_accuracy": 1.0e-8,
+        "global_trust_metric_distortion_budget": 5.0e-2,
+        "max_fubini_study_step": 0.25,
+        "metric_regularization": 1.0e-9,
+        "policy": "supported_metric_whitened_eigh_v1",
+        "rank_relative_tolerance": 1.0e-6,
+    },
+}
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    return payload
+
+
+def _small_route_argv(
+    output_dir: Path,
+    *,
+    checkpoint_every_depth: int,
+    keep_history_tail: int,
+    max_depth: int = 2,
+    segment_round_lock: bool = False,
+) -> list[str]:
+    result_path = output_dir / "result.json"
+    current_path = output_dir / "current.json"
+    ledger_path = output_dir / "ledger.json"
+    argv = [
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--u",
+        "0.5",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--g-ep",
+        "0.2",
+        "--n-ph-max",
+        "1",
+        "--boson-encoding",
+        "binary",
+        "--sr-route-profile",
+        "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
+        "--adapt-max-depth",
+        str(max_depth),
+        "--adapt-current-json-every-depth",
+        str(checkpoint_every_depth),
+        "--adapt-current-json-keep-history-tail",
+        str(keep_history_tail),
+        "--adapt-current-json",
+        str(current_path),
+        "--adapt-estimator-call-ledger-json",
+        str(ledger_path),
+        "--num-times",
+        "2",
+        "--output-json",
+        str(result_path),
+        "--skip-pdf",
+    ]
+    if segment_round_lock:
+        argv.extend(
+            [
+                "--adapt-segment-id",
+                "issue13-fixture-r0-r2",
+                "--adapt-segment-target-controller-round",
+                str(max_depth),
+                "--adapt-segment-target-depth",
+                str(max_depth),
+                "--adapt-segment-max-new-admissions",
+                str(max_depth),
+            ]
+        )
+    return argv
+
+
+def _run_small_complete_route(
+    output_dir: Path,
+    *,
+    checkpoint_every_depth: int,
+    keep_history_tail: int,
+    segment_round_lock: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    output_dir.mkdir()
+    argv = _small_route_argv(
+        output_dir,
+        checkpoint_every_depth=checkpoint_every_depth,
+        keep_history_tail=keep_history_tail,
+        segment_round_lock=segment_round_lock,
+    )
+    adapt_pipeline.main(argv)
+    return (
+        _read_json(output_dir / "result.json"),
+        _read_json(output_dir / "current.json"),
+        _read_json(output_dir / "ledger.json"),
+    )
+
+
+def _discrete_trajectory_signature(payload: dict[str, Any]) -> dict[str, Any]:
+    adapt = payload["adapt_vqe"]
+    return {
+        "route_family": adapt["route_family"],
+        "route_profile": adapt["route_profile"],
+        "route_digest": adapt["sr_route_profile_contract_sha256"],
+        "operators": adapt["operators"],
+        "history": [
+            {
+                "generator_id": row["generator_id"],
+                "selected_op": row["selected_op"],
+                "selected_position": row["selected_position"],
+                "selected_positions": row["selected_positions"],
+                "phase3_response_coordinate_indices": row[
+                    "phase3_response_coordinate_indices"
+                ],
+                "phase3_response_pre_support_count": row[
+                    "phase3_response_pre_support_count"
+                ],
+                "phase3_response_supported_rank": row[
+                    "phase3_response_supported_rank"
+                ],
+                "accepted_refit_policy": row["accepted_refit"]["policy"],
+                "accepted_refit_config": row["accepted_refit"][
+                    "accepted_refit_invocation"
+                ]["config"],
+                "trust_policy": row["route_a_trust_region_update"]["policy"],
+            }
+            for row in adapt["history"]
+        ],
+        "checkpoints": [
+            {
+                "outer_iteration": checkpoint["outer_iteration"],
+                "active_ansatz_depth": checkpoint["active_ansatz_depth"],
+                "ordered_active_operator_labels": checkpoint[
+                    "ordered_active_operator_labels"
+                ],
+                "route_profile": checkpoint["sr_route_profile"],
+                "route_digest": checkpoint["sr_route_profile_contract_sha256"],
+                "ledger_receipt": checkpoint["estimator_ledger_receipt"],
+                "parameterization": checkpoint["parameterization"],
+                "projective_state_fingerprint": checkpoint[
+                    "projective_state_fingerprint"
+                ],
+                "signed_unwrapped_logical_parameters": checkpoint[
+                    "signed_unwrapped_logical_parameters"
+                ],
+                "signed_unwrapped_runtime_parameters": checkpoint[
+                    "signed_unwrapped_runtime_parameters"
+                ],
+                "strict_replay": checkpoint["strict_replay"],
+            }
+            for checkpoint in adapt["active_prefix_checkpoints"]
+        ],
+        "all_work": adapt["estimator_call_accounting"]["all_branch_search_work"][
+            "components"
+        ],
+        "all_work_s_alg": adapt["estimator_call_accounting"][
+            "all_branch_search_work"
+        ]["S_alg"],
+    }
+
+
+def test_private_paper_i_replay_round_lock_fails_closed() -> None:
+    request = SRRunRequest(
+        method=SRMethodPolicy(insertion=AppendOnlyInsertion()),
+        execution=SRExecutionPolicy(
+            stop=SRStopPolicy(maximum_controller_rounds=2)
+        )
+    )
+    record = {
+        "source_controller_round": 0,
+        "source_depth": 0,
+        "target_controller_round": 2,
+        "target_depth": 2,
+        "max_new_admissions": 2,
+        "terminal_qiskit_sidecar_outer_iteration": 2,
+        "exact_round_horizon_required": True,
+        "route_profile": ROUTE_PROFILE,
+        "route_profile_contract_sha256": ROUTE_DIGEST,
+    }
+    lock = _validate_paper_i_replay_round_lock(request, record)
+    assert lock.requested_new_rounds == 2
+    assert lock.target_controller_round == 2
+
+    inconsistent_fields = {
+        "source_depth": 1,
+        "target_depth": 3,
+        "max_new_admissions": 3,
+        "terminal_qiskit_sidecar_outer_iteration": 3,
+        "exact_round_horizon_required": False,
+    }
+    for key, value in inconsistent_fields.items():
+        with pytest.raises(ValueError, match="Paper-I replay"):
+            _validate_paper_i_replay_round_lock(
+                request,
+                {**record, key: value},
+            )
+    with pytest.raises(ValueError, match="requested round limit"):
+        _validate_paper_i_replay_round_lock(
+            replace(
+                request,
+                execution=SRExecutionPolicy(
+                    stop=SRStopPolicy(maximum_controller_rounds=1)
+                ),
+            ),
+            record,
+        )
+    for key, value in (
+        ("route_profile", "historical_profile"),
+        ("route_profile_contract_sha256", "0" * 64),
+    ):
+        with pytest.raises(ValueError, match="profile or digest"):
+            _validate_paper_i_replay_round_lock(
+                request,
+                {**record, key: value},
+            )
+    cli_record = {
+        "record_id": "weak-weak-r0-r2",
+        "target_controller_round": 2,
+        "target_depth": 2,
+        "max_new_admissions": 2,
+        "route_profile": ROUTE_PROFILE,
+        "route_profile_contract_sha256": ROUTE_DIGEST,
+    }
+    cli_lock = _validate_normalized_cli_segment_round_lock(
+        request,
+        cli_record,
+    )
+    assert cli_lock.requested_rounds == 2
+    for key, value in (
+        ("target_controller_round", 3),
+        ("target_depth", 3),
+        ("max_new_admissions", 3),
+    ):
+        with pytest.raises(ValueError, match="CLI segment"):
+            _validate_normalized_cli_segment_round_lock(
+                request,
+                {**cli_record, key: value},
+            )
+    for validator, source, field in (
+        (
+            _validate_paper_i_replay_round_lock,
+            record,
+            "target_controller_round",
+        ),
+        (
+            _validate_normalized_cli_segment_round_lock,
+            cli_record,
+            "target_controller_round",
+        ),
+    ):
+        with pytest.raises(ValueError, match="must be an integer"):
+            validator(request, {**source, field: 2.5})
+
+
+def test_active_cli_gate_routes_nonexact_policies_to_compatibility() -> None:
+    active = {
+        "sr_route_profile_request": ROUTE_PROFILE,
+        "sr_route_profile_resolved": ROUTE_PROFILE,
+        "sr_route_profile_contract_sha256": ROUTE_DIGEST,
+        "adapt_pool": "full_meta",
+        "adapt_child_pool_expansion_mode": "off",
+        "shared_pauli_pool_mode": "off",
+        "adapt_selected_logical_mode": "off",
+        "phase3_plateau_acquisition_mode": "off",
+        "phase3_novelty_ablation_mode": "off",
+        "hardware_resolution_mode": "ideal",
+        "adapt_state_backend": "compiled",
+        "phase0_pilot_enabled": False,
+        "phase1_prune_enabled": False,
+        "phase2_enable_batching": False,
+        "phase3_enable_batching": False,
+        "phase_live_hysteresis_enabled": False,
+        "adapt_final_full_refit": False,
+        "adapt_beam_live_branches": 1,
+        "adapt_beam_children_per_parent": 1,
+        "adapt_ref_base_depth": 0,
+        "adapt_analytic_noise_std": 0.0,
+        "max_depth": 2,
+    }
+    assert {
+        "adapt_reoptimization_route",
+        "adapt_formal_manifold_route_profile",
+        "adapt_formal_outer_exact_control_mode",
+    }.isdisjoint(active)
+    assert _active_cli_compatibility_reason(active) is None
+
+    fallback_cases = {
+        # The frozen July-18 six-regime bundle is a historical compatibility
+        # fixture, not the active fd5ec projected/no-overlap route.
+        "historical_july18_bundle": {
+            "sr_route_profile_request": (
+                "supported_whitened_adaptive_trust_full_response_"
+                "symmetric_cost_no_prune_v1"
+            ),
+            "sr_route_profile_resolved": (
+                "supported_whitened_adaptive_trust_full_response_"
+                "symmetric_cost_no_prune_v1"
+            ),
+            "sr_route_profile_contract_sha256": (
+                "69dcf6d5711a05b54cc143562bc6f437511d781164319b270"
+                "5857b22deda1538"
+            ),
+        },
+        "profile": {"sr_route_profile_resolved": "historical"},
+        "digest": {"sr_route_profile_contract_sha256": "0" * 64},
+        "analytic_noise": {"adapt_analytic_noise_std": 1.0e-3},
+        "oracle_noise": {"phase3_oracle_gradient_config": {}},
+        "final_noise_audit": {"final_noise_audit_config": {}},
+        "resume": {"adapt_resume_source": object()},
+        "reference_override": {"psi_ref_override": object()},
+        "pruning": {"phase1_prune_enabled": True},
+        "phase2_batching": {"phase2_enable_batching": True},
+        "phase3_batching": {"phase3_enable_batching": True},
+        "beam": {"adapt_beam_live_branches": 2},
+        "plateau": {"phase3_plateau_acquisition_mode": "active"},
+        "novelty_ablation": {
+            "phase3_novelty_ablation_mode": "active"
+        },
+        "child_expansion": {
+            "adapt_child_pool_expansion_mode": "child_sets"
+        },
+        "hardware": {"hardware_resolution_mode": "backend"},
+        "partial_segment": {
+            "adapt_segment_id": "incomplete-record"
+        },
+    }
+    for updates in fallback_cases.values():
+        assert (
+            _active_cli_compatibility_reason(
+                {**active, **updates}
+            )
+            is not None
+        )
+    exact_rejection_reasons = {
+        "drop_floor": (
+            {"adapt_drop_floor": 1.0e-8},
+            "normalized_adapt_drop_floor_requires_legacy_compatibility",
+        ),
+        "drop_patience": (
+            {"adapt_drop_patience": 2},
+            "normalized_adapt_drop_patience_requires_legacy_compatibility",
+        ),
+        "drop_min_depth": (
+            {"adapt_drop_min_depth": 2},
+            "normalized_adapt_drop_min_depth_requires_legacy_compatibility",
+        ),
+        "grad_floor": (
+            {"adapt_grad_floor": 1.0e-5},
+            "normalized_adapt_grad_floor_requires_legacy_compatibility",
+        ),
+        "noise_floor": (
+            {"adapt_noise_floor_stop_policy": "snr_v1"},
+            (
+                "normalized_adapt_noise_floor_stop_policy_requires_"
+                "legacy_compatibility"
+            ),
+        ),
+        "gradient_parity": (
+            {"adapt_gradient_parity_check": True},
+            (
+                "normalized_adapt_gradient_parity_check_requires_"
+                "legacy_compatibility"
+            ),
+        ),
+        "parallel_workers": (
+            {"adapt_parallel_gradient_workers": 2},
+            (
+                "normalized_adapt_parallel_gradient_workers_requires_"
+                "legacy_compatibility"
+            ),
+        ),
+    }
+    for updates, expected_reason in exact_rejection_reasons.values():
+        assert _active_cli_compatibility_reason(
+            {**active, **updates}
+        ) == expected_reason
+    locked_segment = {
+        **active,
+        "adapt_segment_id": "issue13-fixture-r0-r2",
+        "adapt_segment_target_controller_round": 2,
+        "adapt_segment_target_depth": 2,
+        "adapt_segment_max_new_admissions": 2,
+    }
+    assert _active_cli_compatibility_reason(locked_segment) is None
+
+
+def test_named_legacy_compatibility_dispatch_preserves_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = object()
+    log_records: list[tuple[str, dict[str, Any]]] = []
+
+    def _fake_legacy_executor(**kwargs: Any) -> tuple[dict[str, Any], object]:
+        assert kwargs == {"sentinel": 7}
+        return {"success": True}, state
+
+    def _capture_log(event_name: str, **kwargs: Any) -> None:
+        log_records.append((event_name, dict(kwargs)))
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe",
+        _fake_legacy_executor,
+    )
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", _capture_log)
+    payload, observed_state = (
+        adapt_pipeline._run_hardcoded_adapt_vqe_compatibility(
+            compatibility_reason=(
+                "normalized_adapt_drop_floor_requires_legacy_compatibility"
+            ),
+            sentinel=7,
+        )
+    )
+    expected_receipt = {
+        "schema": "sr_snake_legacy_compatibility_dispatch_v1",
+        "reason": (
+            "normalized_adapt_drop_floor_requires_legacy_compatibility"
+        ),
+        "executor": "_run_hardcoded_adapt_vqe",
+        "no_credentials_serialized": True,
+    }
+    assert observed_state is state
+    assert payload["compatibility_dispatch"] == expected_receipt
+    assert log_records == [
+        (
+            "sr_snake_legacy_compatibility_dispatch",
+            expected_receipt,
+        )
+    ]
+
+
+def test_round_one_checkpoint_survives_forced_postpublication_interruption(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.chdir(tmp_path)
+    output_dir = Path("interrupted_after_round_one")
+    output_dir.mkdir()
+    original_public_run = sr_runner.run_sr_snake
+    completed_results: list[Any] = []
+
+    def _interrupt_after_publication(*args: Any, **kwargs: Any) -> Any:
+        result = original_public_run(*args, **kwargs)
+        completed_results.append(result)
+        raise RuntimeError("issue13_forced_after_round_one_checkpoint")
+
+    monkeypatch.setattr(
+        sr_runner,
+        "run_sr_snake",
+        _interrupt_after_publication,
+    )
+    argv = _small_route_argv(
+        output_dir,
+        checkpoint_every_depth=1,
+        keep_history_tail=1,
+        max_depth=1,
+    )
+    argv.extend(["--initial-state-source", "hf"])
+    with pytest.raises(
+        ValueError,
+        match="Output SR-SNAKE route contract disagrees",
+    ):
+        adapt_pipeline.main(argv)
+
+    assert len(completed_results) == 1
+    current_path = output_dir / "current.json"
+    current = _read_json(current_path)
+    adapt = current["adapt_vqe"]
+    checkpoint = adapt["terminal_active_prefix_checkpoint"]
+    assert adapt["history_count"] == 1
+    assert adapt["history_tail_count"] == 1
+    assert len(adapt["history"]) == 1
+    assert adapt["history_checkpoint_complete"] is True
+    assert adapt["history_tail_retention"] == {
+        "schema": "static_adapt_verified_resume_history_retention_v1",
+        "requested_limit": 1,
+        "requested_window_count": 1,
+        "serialized_complete_history_count": 1,
+        "normalized_for_verified_singleton_resume": True,
+        "no_credentials_serialized": True,
+    }
+    assert adapt["operators"] == EXPECTED_OPERATORS[:1]
+    assert checkpoint["outer_iteration"] == 1
+    assert checkpoint["active_ansatz_depth"] == 1
+    assert (
+        checkpoint["checkpoint_sha256"]
+        == "01bcaa44acbd6a01e360673fa76229fe8918fe3c17e3ffe90a18eb8f26d08635"
+    )
+    assert (
+        adapt["history"][0]["active_prefix_checkpoint"]["checkpoint_sha256"]
+        == "a60bdf2845dfde9a40325da13b8652265ce56951ddc91ad01ab33f7ba2537e53"
+    )
+    assert checkpoint["checkpoint_kind"] == (
+        "terminal_post_final_refit_and_prune"
+    )
+
+    resume_pointer = adapt["verified_singleton_resume_sidecar"]
+    resume_sidecar = _read_json(
+        current_path.with_name(resume_pointer["path"])
+    )
+    recorded_source_path = Path(resume_sidecar["source_result_json"])
+    assert recorded_source_path.is_absolute()
+    assert recorded_source_path.resolve() == current_path.resolve()
+    resume_source = load_static_resume_source(current_path)
+    resumed_ledger = load_checkpoint_estimator_call_ledger(resume_source)
+    assert resumed_ledger is not None
+    ledger_payload, provenance = resumed_ledger
+    assert provenance["restored_prefix_S_alg"] == 299
+    assert provenance["restored_prefix_S_unique"] == 250
+    assert ledger_payload["occurrence_summary"][
+        "total_call_occurrences"
+    ] == 299
+    assert ledger_payload["summary"]["S_unique"] == 250
+    verified_resume = extract_verified_singleton_resume_checkpoint(
+        resume_source
+    )
+    assert verified_resume.controller_round == 1
+    assert verified_resume.ansatz_depth == 1
+    assert verified_resume.operator_labels == tuple(EXPECTED_OPERATORS[:1])
+    assert verified_resume.selected_parent_pool_indices == (0,)
+    assert verified_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_alg"
+    ] == 299
+    assert verified_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_unique"
+    ] == 250
+    pointer = adapt["estimator_call_ledger_checkpoint"]
+    sidecar_path = current_path.with_name(pointer["path"])
+    sidecar_bytes = sidecar_path.read_bytes()
+    assert hashlib.sha256(sidecar_bytes).hexdigest() == pointer["sha256"]
+    current_artifact = next(
+        artifact
+        for artifact in completed_results[0].observation.artifacts
+        if artifact.kind == "accepted_state_checkpoint"
+    )
+    current_bytes = current_path.read_bytes()
+    assert current_artifact.sha256 == hashlib.sha256(current_bytes).hexdigest()
+    assert current_artifact.size_bytes == len(current_bytes)
+
+
+def test_current_no_prune_sr_snake_complete_trajectory_and_observation_invariance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+
+    def _legacy_executor_forbidden(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError(
+            "the exact singleton/no-prune CLI route must bypass legacy executors"
+        )
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe",
+        _legacy_executor_forbidden,
+    )
+    monkeypatch.setattr(
+        selected_qiskit,
+        "compile_table_i_ansatz_terms",
+        _legacy_executor_forbidden,
+    )
+    monkeypatch.setattr(
+        recovery_qiskit,
+        "compile_table_i_pauli_label_groups",
+        _legacy_executor_forbidden,
+    )
+    monkeypatch.setattr(
+        recovery_qiskit,
+        "compile_circuit_for_backend",
+        _legacy_executor_forbidden,
+    )
+    normalized_route_pairs: list[tuple[str, str]] = []
+    route_receipt_requests: list[str] = []
+    original_compatibility_reason = (
+        adapt_pipeline._active_cli_compatibility_reason
+    )
+    original_active_cli_run = adapt_pipeline._run_active_cli_sr_snake
+    original_public_run = sr_runner.run_sr_snake
+    public_results: list[Any] = []
+    adapter_projection_keys: list[set[str]] = []
+
+    def _compatibility_reason_spy(
+        executor_kwargs: dict[str, Any],
+    ) -> str | None:
+        normalized_route_pairs.append(
+            (
+                str(executor_kwargs["sr_route_profile_request"]),
+                str(executor_kwargs["sr_route_profile_resolved"]),
+            )
+        )
+        return original_compatibility_reason(executor_kwargs)
+
+    def _active_cli_run_spy(*args: Any, **kwargs: Any) -> Any:
+        projection = original_active_cli_run(*args, **kwargs)
+        route_receipt_requests.append(
+            projection.result.route.profile_request
+        )
+        adapter_projection_keys.append(set(projection.payload))
+        return projection
+
+    def _public_run_spy(*args: Any, **kwargs: Any) -> Any:
+        result = original_public_run(*args, **kwargs)
+        public_results.append(result)
+        return result
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_active_cli_compatibility_reason",
+        _compatibility_reason_spy,
+    )
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_active_cli_sr_snake",
+        _active_cli_run_spy,
+    )
+    monkeypatch.setattr(sr_runner, "run_sr_snake", _public_run_spy)
+    transition_active = False
+    observations_inside_transition: list[str] = []
+
+    def _observation_spy(event_name: str, **_kwargs: Any) -> None:
+        if transition_active:
+            observations_inside_transition.append(str(event_name))
+
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", _observation_spy)
+    selection_rounds: list[int] = []
+    callback_rounds: list[int] = []
+    transition_rounds: list[int] = []
+    transition_callback_rounds: list[int] = []
+    transition_results: list[
+        sr_transition._AcceptedSingletonTransition
+    ] = []
+
+    def _selection_spy(
+        state: sr_selection._SRControllerState,
+        workspace: sr_selection._SelectionWorkspace,
+    ) -> sr_selection._SingletonAdmissionDecision:
+        selection_rounds.append(state.controller_round)
+
+        class _KernelSpy:
+            def accepted_state_snapshot(self) -> object:
+                return workspace.kernel.accepted_state_snapshot()
+
+            def evaluate(
+                self,
+                domain: tuple[
+                    sr_selection._CandidatePositionRecord, ...
+                ],
+            ) -> sr_selection._SelectionEvaluation:
+                callback_rounds.append(state.controller_round)
+                return workspace.kernel.evaluate(domain)
+
+        return sr_selection._select_singleton(
+            state,
+            replace(workspace, kernel=_KernelSpy()),
+        )
+
+    monkeypatch.setattr(
+        sr_controller,
+        "_select_singleton",
+        _selection_spy,
+    )
+
+    def _transition_spy(
+        state: sr_transition._AcceptedStateSnapshot,
+        decision: sr_selection._SingletonAdmissionDecision,
+        workspace: sr_transition._TransitionWorkspace,
+    ) -> sr_transition._AcceptedSingletonTransition:
+        nonlocal transition_active
+        transition_rounds.append(state.controller_round)
+
+        class _KernelSpy:
+            def execute(
+                self,
+                exact_decision: sr_selection._SingletonAdmissionDecision,
+                live_record: object,
+                runtime: sr_transition._TransitionNumericalRuntime,
+            ) -> sr_transition._TransitionEvaluation:
+                transition_callback_rounds.append(state.controller_round)
+                assert exact_decision is decision
+                assert (
+                    runtime.accepted_state_snapshot()
+                    == state
+                )
+                return workspace.kernel.execute(
+                    exact_decision,
+                    live_record,
+                    runtime,
+                )
+
+        transition_active = True
+        try:
+            result = sr_transition._transition_singleton(
+                state,
+                decision,
+                replace(workspace, kernel=_KernelSpy()),
+            )
+        finally:
+            transition_active = False
+        transition_results.append(result)
+        return result
+
+    monkeypatch.setattr(
+        sr_controller,
+        "_transition_singleton",
+        _transition_spy,
+    )
+
+    baseline, baseline_current, baseline_ledger = _run_small_complete_route(
+        tmp_path / "checkpoint_every_round",
+        checkpoint_every_depth=1,
+        keep_history_tail=2,
+        segment_round_lock=True,
+    )
+    observed, observed_current, observed_ledger = _run_small_complete_route(
+        tmp_path / "checkpoint_every_two_rounds",
+        checkpoint_every_depth=2,
+        keep_history_tail=0,
+    )
+    assert len(public_results) == 2
+    assert selection_rounds == [0, 1, 0, 1]
+    assert normalized_route_pairs == [
+        (ROUTE_PROFILE, ROUTE_PROFILE),
+        (ROUTE_PROFILE, ROUTE_PROFILE),
+    ]
+    assert route_receipt_requests == [
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_ALIAS_V1,
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_ALIAS_V1,
+    ]
+    assert callback_rounds == selection_rounds
+    assert transition_rounds == selection_rounds
+    assert transition_callback_rounds == transition_rounds
+    assert observations_inside_transition == []
+    assert all(
+        result.admission.initial_logical_value == 0.0
+        and result.admission.selection_count_after
+        == result.admission.selection_count_before + 1
+        and result.admission.available_before
+        and result.admission.available_after
+        and len(result.admission.old_to_new_logical_indices)
+        == result.admission.logical_parameter_count_before
+        and len(result.admission.old_to_new_runtime_indices)
+        == result.admission.runtime_parameter_count_before
+        and len(result.admission.inserted_runtime_indices)
+        == (
+            result.admission.runtime_parameter_count_after
+            - result.admission.runtime_parameter_count_before
+        )
+        and result.refit.scope_identity == "full_ansatz_v1"
+        and result.refit.optimizer_identity == "POWELL"
+        and result.refit.external_gram_reused
+        and result.trust.policy_identity
+        == "source_metric_inverse_sqrt_no_overlap_v1"
+        and result.trust.update_count_after
+        == result.trust.update_count_before + 1
+        and result.trust.endpoint_overlap_query_charge == 0
+        and result.non_worsening.accepted
+        and result.ledger.close_count == 1
+        and result.operation_audit.admission_calls == 1
+        and result.operation_audit.supported_fs_chart_calls == 1
+        and result.operation_audit.optimizer_dispatch_calls == 1
+        and result.operation_audit.trust_update_calls == 1
+        and result.operation_audit.ledger_close_calls == 1
+        and result.operation_audit.checkpoint_event_count == 1
+        for result in transition_results
+    )
+    assert [
+        result.refit.supported_rank for result in transition_results
+    ] == [1, 2, 1, 2]
+    assert [
+        result.next_state.accepted_energy for result in transition_results
+    ] == pytest.approx(
+        [
+            0.2192235935955847,
+            -0.749999999999968,
+            0.2192235935955847,
+            -0.749999999999968,
+        ],
+        abs=1.0e-10,
+    )
+    assert [
+        result.ledger.cumulative_s_alg for result in transition_results
+    ] == [299, 709, 299, 709]
+    assert [
+        result.ledger.cumulative_s_unique for result in transition_results
+    ] == [250, 564, 250, 564]
+    assert [
+        len(result.ledger.occurrence_ids) for result in transition_results
+    ] == [299, 410, 299, 410]
+
+    adapt = baseline["adapt_vqe"]
+    settings = baseline["settings"]
+    contract = adapt["sr_route_profile_contract"]
+    contract_settings = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+
+    assert adapt["success"] is True
+    assert adapt["stop_reason"] == "max_depth"
+    assert settings["problem"] == "hh"
+    assert settings["L"] == 2
+    assert settings["ordering"] == "blocked"
+    assert settings["boundary"] == "open"
+    assert settings["t"] == 1.0
+    assert settings["u"] == 0.5
+    assert settings["dv"] == 0.0
+    assert settings["omega0"] == 1.0
+    assert settings["g_ep"] == 0.2
+    assert settings["n_ph_max"] == 1
+    assert settings["boson_encoding"] == "binary"
+    assert adapt["num_particles"] == {"n_up": 1, "n_dn": 1}
+    assert adapt["analytic_noise_applied"] is False
+    assert adapt["analytic_noise_std"] == 0.0
+
+    assert adapt["route_family"] == "singleton_response_snake"
+    assert adapt["route_profile"] == ROUTE_PROFILE
+    assert adapt["sr_route_profile_resolved"] == ROUTE_PROFILE
+    assert adapt["sr_route_profile_contract_sha256"] == ROUTE_DIGEST
+    assert (
+        canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256()
+        == ROUTE_DIGEST
+    )
+    assert contract_settings["adapt_pool"] == "full_meta"
+    assert contract_settings["adapt_pool_class_filter_json"] is None
+    assert contract_settings["adapt_pool_label_filter_json"] is None
+    assert contract_settings["adapt_inner_optimizer"] == "POWELL"
+    assert contract_settings["adapt_seed"] == 7
+    assert contract_settings["phase0_pilot_enabled"] is False
+    assert contract_settings["phase2_enable_batching"] is False
+    assert contract_settings["phase3_enable_batching"] is False
+    assert contract_settings["adapt_beam_live_branches"] == 1
+    assert contract_settings["adapt_beam_children_per_parent"] == 1
+    assert contract_settings["phase1_prune_enabled"] is False
+    assert contract_settings["phase_live_hysteresis_enabled"] is False
+    assert invariants["full_meta_hva_policy"] == "included_no_filters_v1"
+    assert invariants["pruning_active"] is False
+    assert adapt["adapt_pool_class_filter_json"] is None
+    assert adapt["adapt_pool_label_filter_json"] is None
+    assert adapt["adapt_beam_enabled"] is False
+    assert (
+        adapt["static_route_identity"]["observed_components"]["base_pool_key"]
+        == "full_meta"
+    )
+    assert "hva_hamiltonian_blocks" in adapt["continuation"][
+        "physical_operator_lane_policy"
+    ]["lanes"]
+
+    history = adapt["history"]
+    assert len(history) == 2
+    assert adapt["operators"] == EXPECTED_OPERATORS
+    assert [row["generator_id"] for row in history] == EXPECTED_GENERATOR_IDS
+    assert [row["selected_op"] for row in history] == EXPECTED_OPERATORS
+    assert [row["selected_position"] for row in history] == [0, 1]
+    assert [row["selected_positions"] for row in history] == [[0], [1]]
+    assert all(float(row["max_grad"]) > 0.0 for row in history)
+    assert [row["energy_after_opt"] for row in history] == pytest.approx(
+        [0.2192235935955847, -0.749999999999968],
+        abs=1.0e-10,
+    )
+    assert [row["phase1_energy_model"] for row in history] == [
+        "first_order_fs_trust_v1",
+        "first_order_fs_trust_v1",
+    ]
+    assert [row["phase2_curvature_receipt"]["status"] for row in history] == [
+        "computed_finite",
+        "computed_finite",
+    ]
+    assert [row["phase3_response_coordinate_indices"] for row in history] == [
+        [0],
+        [0, 1],
+    ]
+    assert [row["phase3_response_pre_support_count"] for row in history] == [
+        1,
+        2,
+    ]
+    assert [row["phase3_response_supported_rank"] for row in history] == [1, 2]
+    assert all(
+        row["phase3_response_coordinate_scope"]
+        == "full_active_plus_singleton_v1"
+        for row in history
+    )
+    assert all(
+        row["selected_feature_rows"][0]["controller_snapshot"]["phase_live"]
+        == {"phase1": True, "phase2": True, "phase3": True}
+        for row in history
+    )
+
+    trust_receipts = [row["route_a_trust_region_update"] for row in history]
+    assert [receipt["policy"] for receipt in trust_receipts] == [
+        "source_metric_inverse_sqrt_no_overlap_v1",
+        "source_metric_inverse_sqrt_no_overlap_v1",
+    ]
+    assert [receipt["endpoint_overlap_query_charge"] for receipt in trust_receipts] == [
+        0,
+        0,
+    ]
+    first_transaction = trust_receipts[0]["source_metric_trust_transaction"]
+    assert first_transaction is None
+    assert trust_receipts[0]["source_metric_trust_transaction_failure"] == (
+        "ValueError:Projected trust transaction is missing square G_AA_raw."
+    )
+    assert trust_receipts[0]["update_reason"] == (
+        "source_metric_transaction_failure_hold"
+    )
+    assert trust_receipts[0]["predicted_source_metric_displacement"] is None
+    assert trust_receipts[0]["realized_source_metric_displacement"] is None
+    second_transaction = trust_receipts[1]["source_metric_trust_transaction"]
+    assert second_transaction["transaction_complete"] is True
+    assert second_transaction["supported_rank"] == 2
+    assert second_transaction["supported_metric_whitening_active"] is False
+    assert second_transaction["supported_metric_inverse_sqrt_constructed"] is False
+    assert second_transaction["predicted_source_metric_displacement"] == pytest.approx(
+        0.25000000001249995,
+        abs=1.0e-10,
+    )
+    assert second_transaction["realized_source_metric_displacement"] == pytest.approx(
+        0.7948922645973943,
+        abs=1.0e-10,
+    )
+
+    accepted_refits = [row["accepted_refit"] for row in history]
+    assert [receipt["policy"] for receipt in accepted_refits] == [
+        "supported_fs_whitened_fixed_v1",
+        "supported_fs_whitened_fixed_v1",
+    ]
+    assert [receipt["supported_rank"] for receipt in accepted_refits] == [1, 2]
+    assert [receipt["final_energy"] for receipt in accepted_refits] == pytest.approx(
+        [0.2192235935955847, -0.749999999999968],
+        abs=1.0e-10,
+    )
+    assert [
+        receipt["accepted_refit_invocation"]["config"] for receipt in accepted_refits
+    ] == [
+        EXPECTED_ACCEPTED_REFIT_CONFIG,
+        EXPECTED_ACCEPTED_REFIT_CONFIG,
+    ]
+    refit_metric_queries = [
+        receipt["accepted_refit_invocation"]["metric_query_accounting"]
+        for receipt in accepted_refits
+    ]
+    assert [
+        receipt["metric_element_count_reused"]
+        for receipt in refit_metric_queries
+    ] == [1, 3]
+    assert [
+        receipt["metric_element_count_acquired"]
+        for receipt in refit_metric_queries
+    ] == [0, 0]
+    assert [
+        receipt["metric_backend_evaluation_performed"]
+        for receipt in refit_metric_queries
+    ] == [False, False]
+    assert [
+        receipt["incremental_quantum_query_charge"]
+        for receipt in refit_metric_queries
+    ] == [0, 0]
+    assert [
+        len(receipt["source_primitive_ids"])
+        for receipt in refit_metric_queries
+    ] == [1, 3]
+    assert all(
+        receipt["source_primitive_ids_validated_against_estimator_ledger"]
+        is True
+        for receipt in refit_metric_queries
+    )
+
+    phase3_population_receipts = [
+        row["projected_phase3_population_receipt"] for row in history
+    ]
+    assert [
+        receipt["phase1_retained_parent_count"]
+        for receipt in phase3_population_receipts
+    ] == [8, 8]
+    assert [
+        receipt["phase2_input_child_count"]
+        for receipt in phase3_population_receipts
+    ] == [28, 44]
+    assert [
+        receipt["phase2_retained_child_count"]
+        for receipt in phase3_population_receipts
+    ] == [4, 4]
+    assert [
+        (
+            receipt["split_parent_count"],
+            receipt["split_child_count"],
+            receipt["unsplit_singleton_count"],
+        )
+        for receipt in phase3_population_receipts
+    ] == [(6, 26, 2), (8, 44, 0)]
+    assert [
+        receipt["candidate_identity_digest"]
+        for receipt in phase3_population_receipts
+    ] == [
+        "2bb2f13d6b6cb9ed2fd25fa4c339c9ff790f6c8eed1867d318221d4ccdb6ec3b",
+        "2bb2f13d6b6cb9ed2fd25fa4c339c9ff790f6c8eed1867d318221d4ccdb6ec3b",
+    ]
+    assert all(
+        receipt["phase_order"]
+        == (
+            "phase1_parent_shortlist_then_split_then_"
+            "phase2_children_then_phase3"
+        )
+        for receipt in phase3_population_receipts
+    )
+    assert all(
+        receipt["parent_phase3_measurement_count"] == 0
+        and receipt["child_primitive_reuse_count"]
+        == 3 * receipt["phase3_evaluated_candidate_count"]
+        and receipt["cross_outer_iteration_reuse_count"] == 0
+        for receipt in phase3_population_receipts
+    )
+    assert all(
+        expansion["phase_order"]
+        == (
+            "phase1_parent_shortlist_then_split_then_"
+            "phase2_children_then_phase3"
+        )
+        and expansion.get("child_primitive_reuse_count", 0) == 0
+        for receipt in phase3_population_receipts
+        for expansion in receipt["parent_expansions"]
+    )
+    assert all(
+        evaluation["phase2_child_local_reuse_count"] == 3
+        and evaluation["cross_outer_iteration_reuse_count"] == 0
+        for receipt in phase3_population_receipts
+        for evaluation in receipt["phase3_child_evaluations"]
+    )
+
+    checkpoints = adapt["active_prefix_checkpoints"]
+    assert [checkpoint["outer_iteration"] for checkpoint in checkpoints] == [1, 2]
+    assert [checkpoint["active_ansatz_depth"] for checkpoint in checkpoints] == [
+        1,
+        2,
+    ]
+    assert [
+        checkpoint["ordered_active_operator_labels"] for checkpoint in checkpoints
+    ] == [EXPECTED_OPERATORS[:1], EXPECTED_OPERATORS]
+    assert checkpoints[0]["signed_unwrapped_logical_parameters"] == pytest.approx(
+        [0.9078874980073425],
+        abs=1.0e-10,
+    )
+    assert checkpoints[1]["signed_unwrapped_logical_parameters"] == pytest.approx(
+        [0.7853981672776273, 0.7853980367776333],
+        abs=1.0e-10,
+    )
+    expected_runtime_terms = [["eeeeyx"], ["eeeeyx", "eeyxee"]]
+    expected_checkpoint_hashes = [
+        "a60bdf2845dfde9a40325da13b8652265ce56951ddc91ad01ab33f7ba2537e53",
+        "189299ff63ade8b7372116107fb859a056a6ef9371ac72b76c4fd4794ba9402b",
+    ]
+    expected_state_fingerprints = [
+        "projective_state_v1:29fb06a983b18d0dd3725e548849284661327d2a5a60638b4b2bde6e53e6d3b8",
+        "projective_state_v1:5c70c41c23638804132c35f41509a4a24722b55a91d4b3aa735ca92db1f77381",
+    ]
+    for round_index, (checkpoint, row) in enumerate(
+        zip(checkpoints, history, strict=True)
+    ):
+        assert checkpoint["checkpoint_sha256"] == expected_checkpoint_hashes[
+            round_index
+        ]
+        assert checkpoint["projective_state_fingerprint"] == (
+            expected_state_fingerprints[round_index]
+        )
+        assert checkpoint["projective_state_fingerprint"].startswith(
+            "projective_state_v1:"
+        )
+        assert checkpoint["strict_replay"]["passed"] is True
+        assert checkpoint["strict_replay"]["fidelity"] == pytest.approx(
+            1.0,
+            abs=1.0e-12,
+        )
+        assert checkpoint["signed_unwrapped_runtime_parameters"] == pytest.approx(
+            checkpoint["signed_unwrapped_logical_parameters"],
+            abs=1.0e-12,
+        )
+        parameterization = checkpoint["parameterization"]
+        assert parameterization["mode"] == "per_pauli_term_v1"
+        assert parameterization["term_order"] == "sorted"
+        assert [
+            block["candidate_label"] for block in parameterization["blocks"]
+        ] == EXPECTED_OPERATORS[: round_index + 1]
+        assert [
+            block["logical_index"] for block in parameterization["blocks"]
+        ] == list(range(round_index + 1))
+        assert [
+            block["runtime_start"] for block in parameterization["blocks"]
+        ] == list(range(round_index + 1))
+        assert [
+            term["pauli_exyz"]
+            for block in parameterization["blocks"]
+            for term in block["runtime_terms_exyz"]
+        ] == expected_runtime_terms[round_index]
+        assert row["energy_after_opt"] == pytest.approx(
+            row["accepted_refit"]["final_energy"],
+            abs=1.0e-12,
+        )
+    assert [
+        checkpoint["estimator_ledger_receipt"]["cumulative_executed_queries"][
+            "S_alg"
+        ]
+        for checkpoint in checkpoints
+    ] == [299, 709]
+    assert [
+        checkpoint["estimator_ledger_receipt"]["cumulative_unique_primitives"][
+            "S_unique"
+        ]
+        for checkpoint in checkpoints
+    ] == [250, 564]
+    assert all(
+        checkpoint["estimator_ledger_receipt"]["status"] == "complete"
+        for checkpoint in checkpoints
+    )
+    assert all(
+        checkpoint["sr_route_profile_contract_sha256"] == ROUTE_DIGEST
+        for checkpoint in checkpoints
+    )
+
+    accounting = adapt["estimator_call_accounting"]
+    expected_components = {
+        "N_H_outer": 2,
+        "N_H_refit": 124,
+        "N_grad": 251,
+        "N_metric": 332,
+    }
+    assert accounting["complete"] is True
+    assert accounting["exact_blockers"] == []
+    assert accounting["status"] == "resolved_from_live_state_keyed_instrumentation"
+    assert accounting["S_alg"] == 709
+    assert accounting["S_unique"] == 564
+    assert adapt["S_alg"] == 709
+    assert adapt["S_alg_components"] == expected_components
+    assert adapt["S_unique"] == 564
+    assert accounting["all_branch_search_work"]["S_alg"] == 709
+    assert accounting["winning_lineage"]["S_alg"] == 709
+    assert accounting["all_branch_search_work"]["components"] == expected_components
+    assert accounting["winning_lineage"]["components"] == expected_components
+    assert accounting["all_branch_unique_primitive_diagnostic"]["S_unique"] == 564
+    assert "S_alg" not in accounting["all_branch_unique_primitive_diagnostic"]
+    assert accounting["executed_occurrence_accounting"]["all_execution"][
+        "component_occurrence_counts"
+    ] == expected_components
+    assert (
+        accounting["executed_occurrence_accounting"][
+            "canonical_s_alg_is_unique_primitive_based"
+        ]
+        is False
+    )
+    clean_recount = snake_clean_prefix_work(
+        history=history,
+        accepted_prefix_length=2,
+        representation=SNAKE_REPRESENTATION_PROJECTED_SINGLETON,
+        estimator_ledger_receipt=adapt[
+            "terminal_active_prefix_checkpoint"
+        ]["estimator_ledger_receipt"],
+    )
+    assert clean_recount["components"] == expected_components
+    assert clean_recount["S_alg"] == accounting["S_alg"] == 709
+    prefix_closure = adapt["continuation"][
+        "active_prefix_estimator_ledger_closure"
+    ]
+    assert prefix_closure["passed"] is True
+    assert prefix_closure["status"] == "complete"
+    assert prefix_closure["receipt_count"] == 3
+    assert prefix_closure["summed_unique_primitives"] == (
+        prefix_closure["terminal_unique_primitives"]
+    )
+    assert prefix_closure["summed_raw_occurrences"] == (
+        prefix_closure["terminal_raw_occurrences"]
+    )
+    assert prefix_closure["terminal_unique_primitives"] == {
+        "S_unique": 564,
+        "components": {
+            "N_H_outer": 1,
+            "N_H_refit": 110,
+            "N_grad": 207,
+            "N_metric": 246,
+        },
+    }
+    assert prefix_closure["terminal_raw_occurrences"] == {
+        "components": expected_components,
+        "total": 709,
+    }
+    assert adapt["terminal_active_prefix_checkpoint"]["estimator_ledger_receipt"][
+        "cumulative_executed_queries"
+    ]["S_alg"] == 709
+    assert baseline_current["adapt_vqe"]["operators"] == EXPECTED_OPERATORS
+    assert baseline_current["adapt_vqe"]["history_count"] == 2
+    assert baseline_current["adapt_vqe"]["history_tail_count"] == 2
+    assert len(baseline_current["adapt_vqe"]["history"]) == 2
+    assert len(baseline_current["adapt_vqe"]["history_tail"]) == 2
+    assert baseline_current["adapt_vqe"]["estimator_call_ledger_checkpoint"][
+        "S_alg"
+    ] == 709
+    assert baseline_current["adapt_vqe"]["estimator_call_ledger_checkpoint"][
+        "S_unique"
+    ] == 564
+    assert baseline_ledger["schema"] == "paper_i_estimator_call_ledger_sidecar_v2"
+    assert baseline_ledger["accounting"]["complete"] is True
+    assert baseline_ledger["accounting"]["all_branch_search_work"]["S_alg"] == 709
+    assert baseline_ledger["ledger"]["summary"]["S_unique"] == 564
+    assert "S_alg" not in baseline_ledger["ledger"]["summary"]
+    assert len(baseline_ledger["ledger"]["occurrences"]) == 709
+    current_path = (
+        tmp_path / "checkpoint_every_round" / "current.json"
+    )
+    resume_source = load_static_resume_source(current_path)
+    resumed_ledger = load_checkpoint_estimator_call_ledger(
+        resume_source
+    )
+    assert resumed_ledger is not None
+    _resumed_payload, resumed_provenance = resumed_ledger
+    assert resumed_provenance["restored_prefix_S_alg"] == 709
+    assert resumed_provenance["restored_prefix_S_unique"] == 564
+    verified_final_resume = extract_verified_singleton_resume_checkpoint(
+        resume_source
+    )
+    assert verified_final_resume.controller_round == 2
+    assert verified_final_resume.ansatz_depth == 2
+    assert verified_final_resume.operator_labels == tuple(
+        EXPECTED_OPERATORS
+    )
+    assert verified_final_resume.selected_parent_pool_indices == (0, 1)
+    assert verified_final_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_alg"
+    ] == 709
+    assert verified_final_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_unique"
+    ] == 564
+    current_artifact = next(
+        artifact
+        for artifact in public_results[0].observation.artifacts
+        if artifact.kind == "accepted_state_checkpoint"
+    )
+    current_bytes = current_path.read_bytes()
+    assert current_artifact.sha256 == hashlib.sha256(current_bytes).hexdigest()
+    assert current_artifact.size_bytes == len(current_bytes)
+
+    segment = adapt["adapt_segment"]
+    assert segment == adapt["continuation"]["adapt_segment"]
+    assert segment["schema_version"] == "static_hh_adapt_segment_v1"
+    assert segment["segment_id"] == "issue13-fixture-r0-r2"
+    assert segment["source_controller_round"] == 0
+    assert segment["target_controller_round"] == 2
+    assert segment["target_depth"] == 2
+    assert segment["max_new_admissions"] == 2
+    assert segment["final_controller_round"] == 2
+    assert segment["stop_reason"] == "segment_target_controller_round"
+    assert "terminal_qiskit_sidecar_outer_iteration" not in segment
+    assert "exact_round_horizon_required" not in segment
+    assert [
+        (
+            row["segment_id"],
+            row["segment_new_admissions_committed"],
+            row["segment_new_admissions_total"],
+        )
+        for row in history
+    ] == [
+        ("issue13-fixture-r0-r2", 1, 1),
+        ("issue13-fixture-r0-r2", 1, 2),
+    ]
+
+    result_path = tmp_path / "checkpoint_every_round" / "result.json"
+    ledger_path = tmp_path / "checkpoint_every_round" / "ledger.json"
+    result_bytes_before_consumers = result_path.read_bytes()
+    ledger_bytes_before_consumers = ledger_path.read_bytes()
+    selected_labels, selected_ops, selected_meta = (
+        selected_qiskit.reconstruct_prefix_ansatz(
+            baseline,
+            history_position=2,
+            source_path=result_path,
+        )
+    )
+    assert selected_labels == EXPECTED_OPERATORS
+    assert len(selected_ops) == 2
+    assert len(selected_meta["selected_operator_group_sources"]) == 2
+    checkpoint_resolution = (
+        recovery_qiskit.resolve_active_prefix_checkpoint(
+            baseline,
+            outer_iteration=2,
+            checkpoint_kind="post_admission_prune",
+        )
+    )
+    validated_checkpoint = (
+        recovery_qiskit.validate_active_prefix_checkpoint(
+            checkpoint_resolution.checkpoint,
+            expected_outer_iteration=2,
+        )
+    )
+    assert (
+        validated_checkpoint.checkpoint_sha256
+        == expected_checkpoint_hashes[1]
+    )
+    replay_receipt = recovery_qiskit.replay_fixed_prefix(
+        baseline,
+        result_json=result_path,
+        validated=validated_checkpoint,
+    )
+    assert replay_receipt["status"] == "pass"
+    assert replay_receipt[
+        "projective_state_fingerprint_matches"
+    ] is True
+    assert result_path.read_bytes() == result_bytes_before_consumers
+    assert ledger_path.read_bytes() == ledger_bytes_before_consumers
+
+    assert _discrete_trajectory_signature(observed) == _discrete_trajectory_signature(
+        baseline
+    )
+    assert [
+        row["energy_after_opt"] for row in observed["adapt_vqe"]["history"]
+    ] == pytest.approx(
+        [row["energy_after_opt"] for row in history],
+        abs=1.0e-12,
+    )
+    observed_checkpoints = observed["adapt_vqe"]["active_prefix_checkpoints"]
+    for observed_checkpoint, baseline_checkpoint in zip(
+        observed_checkpoints,
+        checkpoints,
+        strict=True,
+    ):
+        assert observed_checkpoint[
+            "signed_unwrapped_logical_parameters"
+        ] == pytest.approx(
+            baseline_checkpoint["signed_unwrapped_logical_parameters"],
+            abs=1.0e-12,
+        )
+    assert observed_current["adapt_vqe"]["operators"] == baseline_current["adapt_vqe"][
+        "operators"
+    ]
+    assert observed_current["adapt_vqe"]["energy"] == pytest.approx(
+        baseline_current["adapt_vqe"]["energy"],
+        abs=1.0e-12,
+    )
+    assert observed_current["adapt_vqe"]["history_count"] == 2
+    assert observed_current["adapt_vqe"]["history_tail_count"] == 2
+    assert len(observed_current["adapt_vqe"]["history"]) == 2
+    assert len(observed_current["adapt_vqe"]["history_tail"]) == 2
+    assert (
+        observed_current["adapt_vqe"]["history_checkpoint_complete"]
+        is True
+    )
+    assert observed_current["adapt_vqe"]["history_tail_retention"] == {
+        "schema": "static_adapt_verified_resume_history_retention_v1",
+        "requested_limit": 0,
+        "requested_window_count": 0,
+        "serialized_complete_history_count": 2,
+        "normalized_for_verified_singleton_resume": True,
+        "no_credentials_serialized": True,
+    }
+    observed_resume = load_static_resume_source(
+        tmp_path / "checkpoint_every_two_rounds" / "current.json"
+    )
+    observed_resumed_ledger = load_checkpoint_estimator_call_ledger(
+        observed_resume
+    )
+    assert observed_resumed_ledger is not None
+    assert observed_resumed_ledger[1]["restored_prefix_S_alg"] == 709
+    assert observed_resumed_ledger[1]["restored_prefix_S_unique"] == 564
+    observed_verified_resume = extract_verified_singleton_resume_checkpoint(
+        observed_resume
+    )
+    assert observed_verified_resume.controller_round == 2
+    assert observed_verified_resume.ansatz_depth == 2
+    assert observed_verified_resume.operator_labels == tuple(
+        EXPECTED_OPERATORS
+    )
+    assert observed_verified_resume.selected_parent_pool_indices == (0, 1)
+    assert observed_verified_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_alg"
+    ] == 709
+    assert observed_verified_resume.estimator_call_ledger_provenance[
+        "restored_prefix_S_unique"
+    ] == 564
+    observed_current_artifact = next(
+        artifact
+        for artifact in public_results[1].observation.artifacts
+        if artifact.kind == "accepted_state_checkpoint"
+    )
+    observed_current_path = (
+        tmp_path / "checkpoint_every_two_rounds" / "current.json"
+    )
+    observed_current_bytes = observed_current_path.read_bytes()
+    assert observed_current_artifact.sha256 == hashlib.sha256(
+        observed_current_bytes
+    ).hexdigest()
+    assert observed_current_artifact.size_bytes == len(
+        observed_current_bytes
+    )
+    assert observed_ledger["accounting"]["all_branch_search_work"][
+        "S_alg"
+    ] == baseline_ledger["accounting"]["all_branch_search_work"]["S_alg"]
+    assert observed_ledger["ledger"]["occurrences"] == baseline_ledger[
+        "ledger"
+    ]["occurrences"]
+    assert [len(keys) for keys in adapter_projection_keys] == [52, 51]
+    assert "adapt_segment" in adapter_projection_keys[0]
+    assert "adapt_segment" not in adapter_projection_keys[1]
+    assert len(observed["adapt_vqe"]) == 52
+    assert len(baseline["adapt_vqe"]) == 53
+    assert "boson_subspace_diagnostics" in observed["adapt_vqe"]
+    assert {
+        "branch_id",
+        "controller_measurement_work_summary",
+        "parent_branch_id",
+        "pool_size",
+        "route_a_trust_region_state",
+        "strict_replay",
+    }.isdisjoint(observed["adapt_vqe"])
+
+    resume_pointer = observed_current["adapt_vqe"][
+        "verified_singleton_resume_sidecar"
+    ]
+    assert resume_pointer["schema"] == (
+        "static_adapt_verified_singleton_resume_sidecar_pointer_v1"
+    )
+    resume_sidecar_path = observed_current_path.with_name(
+        resume_pointer["path"]
+    )
+    resume_sidecar_bytes = resume_sidecar_path.read_bytes()
+    assert hashlib.sha256(resume_sidecar_bytes).hexdigest() == (
+        resume_pointer["sha256"]
+    )
+    tampered_resume_sidecar = json.loads(resume_sidecar_bytes)
+    tampered_resume_sidecar["source_result_sha256"] = "0" * 64
+    resume_sidecar_path.write_text(
+        json.dumps(tampered_resume_sidecar, sort_keys=True),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        ValueError,
+        match="v2 sidecar SHA-256 mismatch",
+    ):
+        extract_verified_singleton_resume_checkpoint(observed_resume)
+    resume_sidecar_path.write_bytes(resume_sidecar_bytes)
+
+    tampered_current = json.loads(observed_current_bytes)
+    tampered_current["adapt_vqe"]["verified_singleton_resume_sidecar"][
+        "source_projection_sha256"
+    ] = "0" * 64
+    observed_current_path.write_text(
+        json.dumps(tampered_current, sort_keys=True),
+        encoding="utf-8",
+    )
+    tampered_resume_source = load_static_resume_source(observed_current_path)
+    with pytest.raises(
+        ValueError,
+        match="v2 source-projection SHA-256 mismatch",
+    ):
+        extract_verified_singleton_resume_checkpoint(
+            tampered_resume_source
+        )
+    observed_current_path.write_bytes(observed_current_bytes)
+
+    ledger_pointer = observed_current["adapt_vqe"][
+        "estimator_call_ledger_checkpoint"
+    ]
+    ledger_sidecar_path = observed_current_path.with_name(
+        ledger_pointer["path"]
+    )
+    ledger_sidecar_bytes = ledger_sidecar_path.read_bytes()
+    ledger_sidecar_path.write_bytes(ledger_sidecar_bytes + b" ")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        load_checkpoint_estimator_call_ledger(observed_resume)
+    ledger_sidecar_path.write_bytes(ledger_sidecar_bytes)
+
+    fixed_v1_path = observed_current_path.with_name(
+        "signed_active_prefix_checkpoint.json"
+    )
+    downgraded_v1 = json.loads(resume_sidecar_bytes)
+    downgraded_v1["schema"] = (
+        "static_adapt_signed_active_prefix_resume_sidecar_v1"
+    )
+    fixed_v1_path.write_text(
+        json.dumps(downgraded_v1, sort_keys=True),
+        encoding="utf-8",
+    )
+    downgraded_current = json.loads(observed_current_bytes)
+    del downgraded_current["adapt_vqe"][
+        "verified_singleton_resume_sidecar"
+    ]
+    observed_current_path.write_text(
+        json.dumps(downgraded_current, sort_keys=True),
+        encoding="utf-8",
+    )
+    downgraded_resume_source = load_static_resume_source(
+        observed_current_path
+    )
+    with pytest.raises(
+        ValueError,
+        match="legacy v1 downgrade is forbidden",
+    ):
+        extract_verified_singleton_resume_checkpoint(
+            downgraded_resume_source
+        )
+    observed_current_path.write_bytes(observed_current_bytes)
+    fixed_v1_path.unlink()

@@ -1,0 +1,1183 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from pipelines.exact_bench import paper_i_hh_powell_pareto as harness
+
+
+def _run_args(*extra: str):
+    return harness.build_parser().parse_args(
+        ["run", "--output-json", "result.json", *extra]
+    )
+
+
+def test_hh_regimes_expose_one_same_cutoff_only() -> None:
+    for regime_id, raw in harness.REGIMES.items():
+        assert "n_ph_ref" not in raw, regime_id
+        payload = harness._regime_payload(regime_id)
+        n_ph_work = int(payload["n_ph_work"])
+        assert payload["cutoff_contract"] == {
+            "schema": "paper_i_same_cutoff_v1",
+            "variational_n_ph": n_ph_work,
+            "exact_n_ph": n_ph_work,
+            "same_cutoff": True,
+            "higher_cutoff_diagnostic_required": False,
+        }
+
+
+def test_powell_harness_propagates_same_cutoff_override_and_first_hit_target() -> None:
+    args = _run_args(
+        "--n-ph-work",
+        "3",
+        "--benchmark-target-abs-delta-e",
+        "2e-4",
+    )
+
+    context, config, plan = harness._build_plan(args)
+
+    assert context.request.n_ph_max == 3
+    assert config.benchmark_target_abs_delta_e == pytest.approx(2.0e-4)
+    assert plan["scientific_settings"]["regime"]["cutoff_contract"] == {
+        "schema": "paper_i_same_cutoff_v1",
+        "variational_n_ph": 3,
+        "exact_n_ph": 3,
+        "same_cutoff": True,
+        "higher_cutoff_diagnostic_required": False,
+    }
+    run_kwargs = plan["scientific_settings"]["run_kwargs"]
+    assert run_kwargs["n_ph_max"] == 3
+    assert run_kwargs["benchmark_target_abs_delta_e"] == pytest.approx(2.0e-4)
+    invocation = plan["scientific_settings"]["route_a_invocation"]
+    assert invocation["benchmark_target_abs_delta_e"] == pytest.approx(2.0e-4)
+
+
+def test_powell_harness_uses_exact_child_sizes_and_typed_controls() -> None:
+    args = _run_args(
+        "--subset-sizes",
+        "1,2",
+        "--batch-mode",
+        "greedy",
+        "--batch-target-size",
+        "2",
+        "--batch-size-cap",
+        "3",
+        "--phase1-shortlist-size",
+        "36",
+        "--phase0-shortlist-size",
+        "80",
+        "--phase2-shortlist-size",
+        "18",
+        "--phase2-shortlist-fraction",
+        "0.375",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--gradient-workers",
+        "8",
+        "--beam-parent-workers",
+        "3",
+        "--geometry-window-size",
+        "99",
+        "--child-phase1-shortlist-size",
+        "30",
+        "--child-phase2-shortlist-size",
+        "20",
+        "--child-phase3-shortlist-size",
+        "10",
+        "--funnel-mode",
+        "hierarchical_child_123_v1",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+
+    assert config.optimizer.inner_optimizer_key == "POWELL"
+    assert config.mechanism_overrides.pauli_word_subset_sizes == (1, 2)
+    assert config.mechanism_overrides.batch_selection_mode == "greedy_reduced_plane"
+    assert config.mechanism_overrides.batching_enabled is True
+    assert config.mechanism_overrides.beam_enabled is True
+    assert config.mechanism_overrides.pauli_child_pool_enabled is True
+    assert config.mechanism_overrides.geometry_window_size == 99
+    assert config.batch_target_size == 2
+    assert config.batch_size_cap == 3
+    assert config.phase0_shortlist_size == 80
+    assert config.phase1_shortlist_size == 36
+    assert config.phase2_shortlist_size == 18
+    assert config.phase2_shortlist_fraction == pytest.approx(0.375)
+    assert config.child_phase1_shortlist_size == 30
+    assert config.child_phase2_shortlist_size == 20
+    assert config.child_phase3_shortlist_size == 10
+    assert config.funnel_mode == "hierarchical_child_123_v1"
+    assert config.schur_selector.batch_size_cap == 3
+    assert config.schur_selector.batch_search_pool_size == 10
+    assert config.schur_selector.batch_search_feasibility_policy == (
+        "joint_subset_gate_v1"
+    )
+    assert config.schur_selector.joint_batch_context_mode == "full_ansatz_v1"
+    assert config.schur_selector.joint_linear_solve_policy == (
+        harness.JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+    assert config.schur_selector.additivity_policy == "soft_penalty_v1"
+    assert config.schur_selector.trust_region_update.policy == (
+        "displacement_calibrated_unbounded_v2"
+    )
+    assert config.schur_selector.trust_region_update.radius_min == 0.0
+    assert config.gradient_workers == 8
+    assert config.beam_parent_workers == 3
+
+
+def test_powell_harness_can_disable_beam_without_disabling_batching() -> None:
+    args = _run_args(
+        "--disable-beam",
+        "--batch-mode",
+        "combinatorial",
+        "--batch-target-size",
+        "2",
+        "--batch-size-cap",
+        "3",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+
+    assert config.mechanism_overrides.beam_enabled is False
+    assert config.mechanism_overrides.batching_enabled is True
+    assert config.batch_target_size == 2
+    assert config.batch_size_cap == 3
+    assert config.beam_width == 3
+    assert config.beam_children_per_parent == 2
+
+
+def test_powell_harness_defaults_to_new_child12_joint_route() -> None:
+    args = _run_args()
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+
+    assert config.max_adapt_iterations == 15
+    assert config.optimizer_maxiter == 50
+    assert config.funnel_mode == "child_12_joint_schur_v1"
+    assert config.phase0_shortlist_size == 256
+    assert config.phase1_shortlist_size == 256
+    assert config.phase2_shortlist_size == 256
+    assert config.child_phase1_shortlist_size == 4096
+    assert config.child_phase2_shortlist_size == 4096
+    assert config.schur_selector.batch_size_cap == 1
+    assert config.schur_selector.batch_search_pool_size == 10
+    assert config.schur_selector.joint_batch_context_mode == "full_ansatz_v1"
+    assert config.schur_selector.joint_linear_solve_policy == (
+        harness.JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+    assert config.child_padding_policy == (
+        harness.ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+
+
+def test_powell_harness_exposes_joint_response_as_explicit_route() -> None:
+    args = _run_args(
+        "--funnel-mode",
+        "child_12_joint_response_v2",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+    _context, planned_config, plan = harness._build_plan(args)
+
+    assert config.funnel_mode == "child_12_joint_response_v2"
+    assert planned_config.funnel_mode == "child_12_joint_response_v2"
+    funnel = plan["scientific_settings"]["route_a_invocation"]["mechanisms"][
+        "route_a_funnel"
+    ]
+    assert funnel["mode"] == "child_12_joint_response_v2"
+    assert funnel["phase2_selector_mode"] == "joint_response_singleton_v1"
+    assert funnel["joint_step_warm_start"]["mode"] == (
+        "exact_applied_joint_step_guarded_v1"
+    )
+    assert funnel["schur_selector"]["joint_linear_solve_policy"] == (
+        harness.JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+
+
+def test_powell_harness_defaults_reoptimization_route_off() -> None:
+    args = _run_args()
+
+    assert not hasattr(args, "adapt_reoptimization_route")
+    assert not hasattr(args, "adapt_formal_manifold_config_json")
+
+    _context, config, plan = harness._build_plan(args)
+    scientific = plan["scientific_settings"]
+    contract = scientific["accepted_ansatz_reoptimization"]
+    assert contract["effective_route"] == harness.REOPTIMIZATION_ROUTE_OFF
+    assert contract["route_family"] == "paper_i_route_a"
+    assert "adapt_reoptimization_route" not in scientific["run_kwargs"]
+    assert "adapt_formal_manifold_config" not in scientific["run_kwargs"]
+    # The support patch must not alter the active selector-exhaustion policy.
+    assert config.schur_selector.exhaustion_retry_policy == (
+        harness.ROUTE_A_SELECTOR_EXHAUSTION_STOP
+    )
+
+
+def test_powell_harness_exposes_legacy_joint_solver_only_explicitly() -> None:
+    args = _run_args(
+        "--joint-linear-solve-policy",
+        "block_pinv_legacy_v1",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+    _context, _planned_config, plan = harness._build_plan(args)
+    funnel = plan["scientific_settings"]["route_a_invocation"]["mechanisms"][
+        "route_a_funnel"
+    ]
+
+    assert config.schur_selector.joint_linear_solve_policy == (
+        "block_pinv_legacy_v1"
+    )
+    assert funnel["schur_selector"]["joint_linear_solve_policy"] == (
+        "block_pinv_legacy_v1"
+    )
+
+
+def test_powell_harness_exposes_explicit_joint_step_warm_start_mode() -> None:
+    args = _run_args(
+        "--funnel-mode",
+        "child_12_joint_response_v2",
+        "--joint-step-warm-start-mode",
+        "off",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+    _context, _planned_config, plan = harness._build_plan(args)
+
+    assert config.joint_step_warm_start_mode == "off"
+    funnel = plan["scientific_settings"]["route_a_invocation"]["mechanisms"][
+        "route_a_funnel"
+    ]
+    assert funnel["joint_step_warm_start"]["mode"] == "off"
+
+
+def test_powell_harness_strong_holstein_plan_uses_generic_padding(tmp_path: Path) -> None:
+    args = harness.build_parser().parse_args(
+        [
+            "run",
+            "--output-json",
+            str(tmp_path / "result.json"),
+            "--regime",
+            "strong-strong-u8",
+            "--dry-run",
+        ]
+    )
+
+    context, config, plan = harness._build_plan(args)
+
+    assert context.request.n_ph_max == 4
+    assert config.child_padding_policy == (
+        harness.ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+    assert plan["scientific_settings"]["route_a_invocation"]["mechanisms"][
+        "child_padding_policy"
+    ] == harness.ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+
+
+@pytest.mark.parametrize(
+    ("regime", "expected_n_ph_max", "expected_qubits"),
+    [
+        ("weak-weak", 2, 8),
+        ("intermediate-weak", 2, 8),
+        ("strong-weak-u8", 2, 8),
+        ("weak-strong", 4, 10),
+        ("intermediate-strong", 4, 10),
+        ("strong-strong-u8", 4, 10),
+    ],
+)
+def test_powell_harness_all_regimes_share_one_route_a_contract(
+    tmp_path: Path,
+    regime: str,
+    expected_n_ph_max: int,
+    expected_qubits: int,
+) -> None:
+    args = harness.build_parser().parse_args(
+        [
+            "run",
+            "--output-json",
+            str(tmp_path / f"{regime}.json"),
+            "--regime",
+            regime,
+            "--dry-run",
+        ]
+    )
+
+    context, config, plan = harness._build_plan(args)
+    invocation = plan["scientific_settings"]["route_a_invocation"]
+    mechanisms = invocation["mechanisms"]
+    funnel = mechanisms["route_a_funnel"]
+
+    assert context.request.n_ph_max == expected_n_ph_max
+    assert context.layout.total_qubits == expected_qubits
+    assert config.funnel_mode == "child_12_joint_schur_v1"
+    assert invocation["route_id"] == "route_a"
+    assert invocation["pool_key"] == "full_meta"
+    assert invocation["profile"] == "canonical"
+    assert mechanisms["batch_selection_mode"] == "combinatorial_reduced_plane"
+    assert mechanisms["child_padding_policy"] == (
+        harness.ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+    assert funnel["mode"] == "child_12_joint_schur_v1"
+    assert funnel["phase0_policy"] == "disabled"
+    assert funnel["population_mode"] == "child_only_v1"
+    assert funnel["child_identity_policy"] == "global_pauli_word_v1"
+    assert funnel["child_padding"]["n_ph_max"] == expected_n_ph_max
+    assert "regime" not in invocation
+
+
+def test_powell_harness_resolves_active_joint_context_window() -> None:
+    args = _run_args(
+        "--joint-batch-context-mode",
+        "active_window_v1",
+        "--active-window-size",
+        "5",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+
+    assert config.schur_selector.joint_batch_context_mode == "active_window_v1"
+    assert config.schur_selector.active_context_policy == "tail_window_v1"
+    assert config.schur_selector.active_window_size == 5
+
+
+def test_powell_harness_exposes_typed_adaptive_trust_policy() -> None:
+    args = _run_args(
+        "--trust-region-update-policy",
+        "displacement_calibrated_v1",
+        "--max-fubini-study-step",
+        "0.5",
+        "--trust-region-radius-min",
+        "0.03125",
+        "--trust-region-contraction-factor-min",
+        "0.4",
+        "--trust-region-expansion-factor-max",
+        "1.5",
+    )
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+    trust = config.schur_selector.trust_region_update
+
+    assert config.schur_selector.max_fubini_study_step == pytest.approx(0.5)
+    assert trust.policy == "displacement_calibrated_v1"
+    assert trust.radius_min == pytest.approx(0.03125)
+    assert trust.contraction_factor_min == pytest.approx(0.4)
+    assert trust.expansion_factor_max == pytest.approx(1.5)
+
+
+def test_powell_harness_defaults_jr_snake_to_adaptive_trust_policy() -> None:
+    args = _run_args()
+
+    config = harness._build_run_config(args, current_json=Path("current.json"))
+
+    assert config.schur_selector.trust_region_update.policy == (
+        "displacement_calibrated_unbounded_v2"
+    )
+    assert config.schur_selector.trust_region_update.radius_min == 0.0
+
+
+def test_powell_harness_scientific_kwargs_exclude_execution_controls() -> None:
+    scientific = harness._scientific_kwargs(
+        {
+            "adapt_inner_optimizer": "POWELL",
+            "phase1_shortlist_size": 24,
+            "adapt_parallel_gradient_workers": 8,
+            "adapt_beam_parent_workers": 3,
+            "adapt_current_json": Path("current.json"),
+            "h_poly": object(),
+            "resolved_problem_context": object(),
+        }
+    )
+
+    assert scientific == {
+        "adapt_inner_optimizer": "POWELL",
+        "phase1_shortlist_size": 24,
+    }
+
+
+def test_powell_harness_resolves_weak_weak_reference_basis_bitstring() -> None:
+    context = harness._build_problem_context(harness._regime_payload("weak-weak"))
+
+    assert harness._reference_basis_bitstring(context) == "00000101"
+    assert harness._reference_state_manifest(context) == {
+        "source": "hf",
+        "handoff_state_kind": "reference_state",
+        "nq_total": 8,
+        "amplitudes_qn_to_q0": {
+            "00000101": {"re": 1.0, "im": 0.0},
+        },
+    }
+
+
+def test_powell_harness_reports_fixed_fermion_sector_probability() -> None:
+    context = harness._build_problem_context(harness._regime_payload("weak-weak"))
+    good = np.zeros(256, dtype=complex)
+    good[int("00000101", 2)] = 1.0
+    leaking = np.zeros(256, dtype=complex)
+    leaking[int("00000001", 2)] = 1.0
+
+    good_diag = harness._fixed_fermion_sector_diagnostics(good, context)
+    leak_diag = harness._fixed_fermion_sector_diagnostics(leaking, context)
+
+    assert good_diag["status"] == "ok"
+    assert good_diag["probability"] == pytest.approx(1.0)
+    assert good_diag["leak_probability"] == pytest.approx(0.0)
+    assert leak_diag["probability"] == pytest.approx(0.0)
+    assert leak_diag["leak_probability"] == pytest.approx(1.0)
+
+
+def test_powell_harness_reports_binary_codeword_legal_probability() -> None:
+    context = harness._build_problem_context(harness._regime_payload("weak-weak"))
+    state = np.zeros(256, dtype=complex)
+    state[int("00000101", 2)] = np.sqrt(0.75)
+    state[int("00110101", 2)] = np.sqrt(0.25)
+
+    diagnostics = harness._boson_codeword_legal_diagnostics(state, context)
+
+    assert diagnostics["status"] == "ok"
+    assert diagnostics["diagnostic_only"] is True
+    assert diagnostics["n_ph_max"] == 2
+    assert diagnostics["legal_probability"] == pytest.approx(0.75)
+    assert diagnostics["illegal_probability"] == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize(
+    ("runtime_regime", "reference_regime"),
+    [
+        ("strong-weak-u8", "strong-weak"),
+        ("strong-strong-u8", "strong-strong"),
+    ],
+)
+def test_powell_harness_maps_u8_runtime_regimes_to_reference_rows(
+    runtime_regime: str,
+    reference_regime: str,
+) -> None:
+    front = harness._paper_i_reference_front(runtime_regime)
+
+    assert front["status"] == "ok"
+    assert front["regime"] == runtime_regime
+    assert front["reference_regime_key"] == reference_regime
+    assert {row["method"] for row in front["rows"]} >= {
+        "snake",
+        "geo",
+        "append",
+    }
+
+
+def test_powell_harness_surfaces_child_padding_population_telemetry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        harness,
+        "snake_algorithmic_work_from_payload",
+        lambda *_args, **_kwargs: (
+            {
+                "S_alg": 0.0,
+                "S_alg_status": "ok",
+                "S_alg_work_scope": "terminal",
+            },
+            {},
+        ),
+    )
+    payload = {
+        "success": True,
+        "operators": [],
+        "logical_optimal_point": [],
+        "continuation": {
+            "runtime_split_summary": {
+                "route_a_funnel_last_round": {
+                    "globally_unique_eligible_child_identity_count": 7,
+                    "child_padding_filter": {
+                        "policy_effective": (
+                            harness.ROUTE_A_CHILD_PADDING_HARD_FILTER_NPH2_V1
+                        ),
+                        "input_record_count": 10,
+                        "remaining_record_count": 8,
+                        "rejected_record_count": 2,
+                        "rejected_identity_count": 1,
+                        "rejected_identities": [{"identity": "pauli:test"}],
+                    },
+                    "joint_selector_summary": {
+                        "child_phase2_rank_feasible_count": 6,
+                        "rank_prefilter_rejection_count": 2,
+                        "rank_feasibility_prefilter": {
+                            "policy": "rank_feasible_fill_v1",
+                            "input_record_count": 8,
+                        },
+                    },
+                }
+            }
+        },
+    }
+
+    summary = harness._result_summary(
+        payload,
+        np.asarray([1.0 + 0.0j]),
+        1.0,
+    )
+
+    counts = summary["route_a_population_counts"]
+    assert counts["child_padding_policy"] == (
+        harness.ROUTE_A_CHILD_PADDING_HARD_FILTER_NPH2_V1
+    )
+    assert counts["children_before_padding_filter"] == 10
+    assert counts["children_removed_by_padding"] == 2
+    assert counts["children_after_padding_filter"] == 8
+    assert counts["child_padding_rejected_identity_count"] == 1
+    assert counts["child_padding_rejected_identities"] == [
+        {"identity": "pauli:test"}
+    ]
+    selector = summary["joint_selector_summary"]
+    assert selector["child_phase2_rank_feasible_count"] == 6
+    assert selector["rank_prefilter_rejection_count"] == 2
+    assert selector["rank_feasibility_prefilter"]["policy"] == (
+        "rank_feasible_fill_v1"
+    )
+
+
+def test_powell_harness_worker_parity_report() -> None:
+    summary = {
+        "energy": -1.0,
+        "elapsed_s": 10.0,
+        "operator_path_hash": "same",
+        "logical_optimal_point": [0.1, 0.2],
+        "query_work_total": 123.0,
+    }
+    left = {
+        "status": "complete",
+        "scientific_settings_hash": "settings",
+        "execution_settings": {"gradient_workers": 1},
+        "process_cpu_s": 9.0,
+        "host_loadavg_start": [0.5, 0.4, 0.3],
+        "summary": dict(summary),
+    }
+    right = {
+        "status": "complete",
+        "scientific_settings_hash": "settings",
+        "execution_settings": {"gradient_workers": 8},
+        "process_cpu_s": 18.0,
+        "host_loadavg_start": [0.6, 0.5, 0.4],
+        "summary": {**summary, "elapsed_s": 4.0},
+    }
+
+    report = harness.compare_runs(left, right, atol=1e-12)
+
+    assert report["status"] == "pass"
+    assert report["parallel_speedup"] == pytest.approx(2.5)
+    assert report["parallel_to_serial_process_cpu_ratio"] == pytest.approx(2.0)
+    assert all(report["checks"].values())
+
+
+def test_powell_harness_plan_diff_excludes_execution_settings() -> None:
+    left = {
+        "scientific_settings_hash": "left",
+        "scientific_settings": {
+            "run_kwargs": {"batch_size_cap": 1, "seed": 7},
+        },
+        "execution_settings": {
+            "gradient_workers": 1,
+            "joint_pair_workers": 1,
+            "joint_pair_cache_max_entries": 4096,
+        },
+    }
+    right = {
+        "scientific_settings_hash": "right",
+        "scientific_settings": {
+            "run_kwargs": {"batch_size_cap": 2, "seed": 7},
+        },
+        "execution_settings": {
+            "gradient_workers": 8,
+            "joint_pair_workers": 4,
+            "joint_pair_cache_max_entries": 2048,
+        },
+    }
+
+    report = harness.compare_plans(left, right)
+
+    assert report["changed_field_count"] == 1
+    assert report["changed_fields"] == [
+        {
+            "path": "run_kwargs.batch_size_cap",
+            "left": 1,
+            "right": 2,
+        }
+    ]
+    assert report["execution_settings_excluded"] is True
+
+
+def test_powell_harness_parity_fails_when_query_work_is_missing() -> None:
+    summary = {
+        "energy": -1.0,
+        "logical_optimal_point": [0.1],
+        "operator_path_hash": "same-path",
+        "elapsed_s": 1.0,
+    }
+    left = {
+        "status": "complete",
+        "scientific_settings_hash": "same-settings",
+        "summary": summary,
+    }
+    right = {
+        "status": "complete",
+        "scientific_settings_hash": "same-settings",
+        "summary": summary,
+    }
+
+    report = harness.compare_runs(left, right, atol=1e-12)
+
+    assert report["checks"]["query_work_match"] is False
+    assert report["status"] == "fail"
+
+
+def test_powell_harness_parity_requires_matched_pair_cache_capacity() -> None:
+    summary = {
+        "energy": -1.0,
+        "logical_optimal_point": [0.1],
+        "operator_path_hash": "same-path",
+        "query_work_total": 100.0,
+        "elapsed_s": 1.0,
+    }
+    left = {
+        "status": "complete",
+        "scientific_settings_hash": "same-settings",
+        "execution_settings": {"joint_pair_cache_max_entries": 4096},
+        "summary": summary,
+    }
+    right = {
+        "status": "complete",
+        "scientific_settings_hash": "same-settings",
+        "execution_settings": {"joint_pair_cache_max_entries": 2048},
+        "summary": summary,
+    }
+
+    report = harness.compare_runs(left, right, atol=1e-12)
+
+    assert report["checks"]["joint_pair_cache_capacity_match"] is False
+    assert report["status"] == "fail"
+
+
+def test_powell_harness_configures_joint_pair_execution_only_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("STATIC_ADAPT_JOINT_PAIR_WORKERS", raising=False)
+    monkeypatch.delenv(
+        "STATIC_ADAPT_JOINT_PAIR_CACHE_MAX_ENTRIES",
+        raising=False,
+    )
+    args = _run_args(
+        "--joint-pair-workers",
+        "3",
+        "--joint-pair-cache-max-entries",
+        "512",
+    )
+
+    execution = harness._configure_runtime(args)
+
+    assert execution["joint_pair_workers"] == 3
+    assert execution["joint_pair_cache_max_entries"] == 512
+    assert os.environ["STATIC_ADAPT_JOINT_PAIR_WORKERS"] == "3"
+    assert os.environ["STATIC_ADAPT_JOINT_PAIR_CACHE_MAX_ENTRIES"] == "512"
+
+
+@pytest.mark.parametrize(
+    ("flag", "value"),
+    [
+        ("--joint-pair-workers", "0"),
+        ("--joint-pair-cache-max-entries", "-1"),
+    ],
+)
+def test_powell_harness_rejects_invalid_joint_pair_execution_controls(
+    flag: str,
+    value: str,
+) -> None:
+    with pytest.raises(SystemExit):
+        _run_args(flag, value)
+
+
+def test_powell_harness_rejects_duplicate_subset_sizes() -> None:
+    with pytest.raises(SystemExit):
+        harness.build_parser().parse_args(
+            [
+                "run",
+                "--output-json",
+                "result.json",
+                "--subset-sizes",
+                "1,1",
+            ]
+        )
+
+
+def test_powell_harness_uses_winning_branch_s_alg_for_beam_query_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _accounting(payload, *, scope, source_label):
+        nfev = float(payload["nfev_total"])
+        return (
+            {
+                "S_alg": nfev + 20.0,
+                "S_alg_status": "ok",
+                "S_alg_work_scope": "winner_lineage_terminal",
+                "S_alg_N_H_outer_eval": nfev - 10.0,
+                "S_alg_N_H_refit_eval": 10.0,
+                "S_alg_N_grad_probe": 5.0,
+                "S_alg_N_metric_probe": 15.0,
+            },
+            {
+                "S_beam_search_total": nfev + 80.0,
+                "S_beam_search_total_status": "ok",
+                "S_beam_search_components": {
+                    "N_H_outer_eval": nfev - 10.0,
+                    "N_H_refit_eval": 10.0,
+                    "N_grad": 30.0,
+                    "N_metric": 50.0,
+                },
+            },
+        )
+
+    monkeypatch.setattr(harness, "snake_algorithmic_work_from_payload", _accounting)
+    base_payload = {
+        "success": True,
+        "adapt_beam_enabled": True,
+        "operators": [],
+        "logical_optimal_point": [],
+    }
+
+    low = harness._result_summary(
+        {**base_payload, "nfev_total": 100}, np.asarray([1.0 + 0.0j]), 1.0
+    )
+    high = harness._result_summary(
+        {**base_payload, "nfev_total": 200}, np.asarray([1.0 + 0.0j]), 1.0
+    )
+
+    assert low["query_work_total"] == pytest.approx(120.0)
+    assert high["query_work_total"] == pytest.approx(220.0)
+    assert high["query_work_total"] - low["query_work_total"] == pytest.approx(100.0)
+    assert low["query_work_scope"] == "winner_lineage_terminal"
+    assert low["query_work_components"] == {
+        "N_H_outer": 90.0,
+        "N_H_refit": 10.0,
+        "N_grad": 5.0,
+        "N_metric": 15.0,
+    }
+    assert low["all_branch_query_work_total_diagnostic"] == pytest.approx(180.0)
+    assert high["all_branch_query_work_total_diagnostic"] == pytest.approx(280.0)
+    assert low["all_branch_query_work_scope_diagnostic"] == (
+        "all_expanded_scored_branches"
+    )
+
+
+def test_powell_harness_repairs_stored_query_axis_and_sidecars(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference_path = tmp_path / "paper_i_reference.json"
+    harness._write_json(
+        reference_path,
+        {
+            "corrected_and_snake_rows": [
+                {
+                    "regime": "weak-weak",
+                    "method": "snake",
+                    "method_display": "SNAKE",
+                    "k_pl": 13,
+                    "logical_depth": 13,
+                    "abs_delta_e": 0.2,
+                    "N2q": 48,
+                    "D2q": 34,
+                    "Dc": 183,
+                    "S_alg": 100.0,
+                    "trajectory_points": [
+                        {"k": 13, "error": 0.2},
+                        {"k": 30, "error": 0.08},
+                    ],
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        harness,
+        "PAPER_I_REFERENCE_FRONT_JSON",
+        reference_path,
+    )
+    result_path = tmp_path / "result.json"
+    summary = {
+        "abs_delta_e": 0.1,
+        "controller_round_count": 12,
+        "ansatz_depth": 12,
+        "query_work_total": 180.0,
+        "query_work_scope": "all_expanded_scored_branches",
+        "query_work_audit": {
+            "status": "ok",
+            "S_alg": 120.0,
+            "S_alg_work_scope": "winner_lineage_terminal",
+            "components": {
+                "N_H_outer_eval": 90.0,
+                "N_H_refit_eval": 10.0,
+                "N_grad": 5.0,
+                "N_metric": 15.0,
+            },
+            "S_beam_search_total": 180.0,
+            "S_beam_search_total_status": "ok",
+            "S_beam_search_scope": "all_expanded_scored_branches",
+            "S_beam_search_components": {
+                "N_H_outer_eval": 90.0,
+                "N_H_refit_eval": 10.0,
+                "N_grad": 30.0,
+                "N_metric": 50.0,
+            },
+        },
+    }
+    harness._write_json(
+        result_path,
+        {
+            "status": "complete",
+            "scientific_settings": {"regime": {"name": "weak-weak"}},
+            "summary": summary,
+        },
+    )
+    harness._write_json(
+        tmp_path / "compact_summary.json",
+        {"status": "complete", "summary": summary},
+    )
+    harness._write_json(
+        tmp_path / "query_work_sidecar.json",
+        {"status": "complete", "query_work_total": 180.0},
+    )
+
+    repair = harness.repair_stored_result_query_axis(result_path)
+
+    repaired_result = json.loads(result_path.read_text())
+    repaired_compact = json.loads((tmp_path / "compact_summary.json").read_text())
+    repaired_query = json.loads((tmp_path / "query_work_sidecar.json").read_text())
+    assert repair["previous_query_work_total"] == pytest.approx(180.0)
+    assert repair["query_work_total"] == pytest.approx(120.0)
+    for repaired_summary in (
+        repaired_result["summary"],
+        repaired_compact["summary"],
+    ):
+        assert repaired_summary["query_work_total"] == pytest.approx(120.0)
+        assert repaired_summary["query_work_scope"] == "winner_lineage_terminal"
+        assert repaired_summary["all_branch_query_work_total_diagnostic"] == (
+            pytest.approx(180.0)
+        )
+        assert repaired_summary["query_axis_contract"] == (
+            "paper_i_winning_branch_s_alg_v1"
+        )
+        comparison = repaired_summary["paper_i_reference_comparisons"][0]
+        assert comparison["energy_error_better"] is True
+        assert comparison["winning_branch_S_alg_better"] is False
+        assert comparison["dominates_energy_and_S_alg"] is False
+        assert comparison["run_minus_reference_abs_delta_e"] == pytest.approx(-0.1)
+        assert comparison["run_minus_reference_S_alg"] == pytest.approx(20.0)
+        assert comparison["horizon_relation"] == "run_before_reference_horizon"
+        assert comparison["candidate_evidence_status"] == (
+            "provisional_pre_reference_horizon"
+        )
+        source_tail = repaired_summary["paper_i_reference_comparisons"][1]
+        assert source_tail["reference_role"] == "paper_i_source_tail"
+        assert source_tail["reference_k_pl"] == 30
+        assert source_tail["energy_error_better"] is False
+        assert source_tail["reference_S_alg"] is None
+    assert repaired_query["query_work_total"] == pytest.approx(120.0)
+    assert repaired_query["query_work_scope"] == "winner_lineage_terminal"
+    assert repaired_query["paper_i_reference_front"]["status"] == "ok"
+    assert repaired_query["paper_i_reference_comparisons"][0][
+        "reference_role"
+    ] == "paper_i_visible_locked"
+
+
+def test_powell_harness_writes_adapt_vqe_compatibility_envelope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output_json = tmp_path / "result.json"
+    args = _run_args("--output-json", str(output_json))
+    core_payload = {
+        "success": True,
+        "energy": -1.0,
+        "abs_delta_e": 0.01,
+        "operators": ["xeyi"],
+        "logical_optimal_point": [0.2],
+    }
+    monkeypatch.setattr(
+        harness,
+        "_build_plan",
+        lambda _args: (object(), object(), {"schema": harness.SCHEMA}),
+    )
+    monkeypatch.setattr(
+        harness,
+        "run_paper_i_route_a",
+        lambda _context, *, run_config: (
+            dict(core_payload),
+            np.asarray([1.0 + 0.0j]),
+        ),
+    )
+
+    output = harness.run_once(args)
+
+    assert output["adapt_vqe"] == {
+        **core_payload,
+        "benchmark_target_abs_delta_e_current": 0.01,
+    }
+    assert output["status"] == "complete"
+    assert output["process_cpu_s"] >= 0.0
+    assert len(output["host_loadavg_start"]) == 3
+    assert len(output["host_loadavg_finish"]) == 3
+    assert output_json.is_file()
+    assert (tmp_path / "compact_summary.json").is_file()
+    assert (tmp_path / "query_work_sidecar.json").is_file()
+
+
+def test_powell_harness_compact_result_uses_checkpoint_envelope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output_json = tmp_path / "result.json"
+    current_json = tmp_path / "current.json"
+    current_json.write_text(
+        json.dumps(
+            {
+                "adapt_vqe": {
+                    "success": True,
+                    "energy": -1.0,
+                    "benchmark_target_abs_delta_e_current": 0.02,
+                    "operators": ["xeyi"],
+                    "parameterization": {"source": "stale_checkpoint"},
+                    "formal_manifold_query_closure_checkpoint": {
+                        "source": "stale_checkpoint"
+                    },
+                    "history_tail": [{"depth": 1, "selected_op": "xeyi"}],
+                    "continuation": {
+                        "phase2_scored_rows": [
+                            {"raw_selector_matrix": [[1.0] * 20] * 20}
+                        ],
+                        "static_route_identity": {"route_id": "route_a"},
+                    },
+                },
+                "checkpoint": {"complete": True, "depth": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+    args = _run_args(
+        "--output-json",
+        str(output_json),
+        "--current-json",
+        str(current_json),
+        "--result-payload-mode",
+        harness.RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1,
+    )
+    core_payload = {
+        "success": True,
+        "energy": -1.0,
+        "abs_delta_e": 0.01,
+        "operators": ["xeyi"],
+        "logical_optimal_point": [0.2],
+        "parameterization": {"source": "terminal_payload"},
+        "formal_manifold_query_accounting_schema": (
+            "formal_manifold_query_accounting_closed_v1"
+        ),
+        "formal_manifold_query_accounting_complete": True,
+        "formal_manifold_query_closure_checkpoint": {
+            "source": "terminal_payload",
+            "current_round_finalized": True,
+        },
+        "history": [{"raw_selector_matrix": [[1.0] * 50] * 50}],
+    }
+    monkeypatch.setattr(
+        harness,
+        "_build_plan",
+        lambda _args: (
+            object(),
+            object(),
+            {
+                "schema": harness.SCHEMA,
+                "current_json": str(current_json),
+                "scientific_settings_hash": "settings-hash",
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        harness,
+        "run_paper_i_route_a",
+        lambda _context, *, run_config: (
+            dict(core_payload),
+            np.asarray([1.0 + 0.0j]),
+        ),
+    )
+
+    output = harness.run_once(args)
+
+    compact = output["adapt_vqe"]
+    assert output["result_payload_mode"] == (
+        harness.RESULT_PAYLOAD_SUMMARY_CHECKPOINT_V1
+    )
+    assert compact["history"] == [{"depth": 1, "selected_op": "xeyi"}]
+    assert compact["parameterization"] == {"source": "terminal_payload"}
+    assert compact["abs_delta_e"] == pytest.approx(0.01)
+    assert compact["benchmark_target_abs_delta_e_current"] == pytest.approx(
+        0.01
+    )
+    assert compact["formal_manifold_query_accounting_complete"] is True
+    assert compact["formal_manifold_query_accounting_schema"] == (
+        "formal_manifold_query_accounting_closed_v1"
+    )
+    assert compact["formal_manifold_query_closure_checkpoint"] == {
+        "source": "terminal_payload",
+        "current_round_finalized": True,
+    }
+    assert "raw_selector_matrix" not in json.dumps(compact)
+    assert compact["continuation"] == {
+        "static_route_identity": {"route_id": "route_a"}
+    }
+    assert compact["result_payload_compaction"][
+        "reconstructible_continuation_rows_dropped"
+    ] == {"phase2_scored_rows": 1}
+    assert compact["result_payload_compaction"][
+        "exact_checkpoint_retained_separately"
+    ] is True
+    assert output["sidecars"] == {
+        "compact_summary_json": str(tmp_path / "compact_summary.json"),
+        "query_work_sidecar_json": str(tmp_path / "query_work_sidecar.json"),
+    }
+
+
+def _terminal_proxy_payload() -> dict:
+    return {
+        "success": True,
+        "operators": ["op-a", "op-b"],
+        "logical_optimal_point": [0.1, 0.2],
+        "parameterization": {
+            "blocks": [
+                {"candidate_label": "op-a"},
+                {"candidate_label": "stale-pre-prune-op"},
+                {"candidate_label": "op-b"},
+            ]
+        },
+        "continuation": {
+            "selected_generator_metadata": [
+                {
+                    "candidate_label": "op-a",
+                    "compile_metadata": {
+                        "serialized_terms_exyz": [
+                            {
+                                "coeff_re": 1.0,
+                                "coeff_im": 0.0,
+                                "nq": 4,
+                                "pauli_exyz": "xyze",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "candidate_label": "op-b",
+                    "compile_metadata": {
+                        "serialized_terms_exyz": [
+                            {
+                                "coeff_re": 0.5,
+                                "coeff_im": 0.0,
+                                "nq": 4,
+                                "pauli_exyz": "xxee",
+                            },
+                            {
+                                "coeff_re": 0.25,
+                                "coeff_im": 0.0,
+                                "nq": 4,
+                                "pauli_exyz": "zeee",
+                            },
+                            {
+                                "coeff_re": 0.0,
+                                "coeff_im": 0.0,
+                                "nq": 4,
+                                "pauli_exyz": "yyyy",
+                            },
+                        ]
+                    },
+                },
+            ]
+        },
+    }
+
+
+def test_terminal_internal_graph_proxy_uses_terminal_metadata_not_stale_blocks() -> None:
+    proxy = harness.terminal_internal_graph_proxy_from_payload(
+        _terminal_proxy_payload()
+    )
+
+    # xyze contributes 4, xxee contributes 2, and zeee contributes 0.
+    assert proxy["count_2q"] == pytest.approx(6.0)
+    assert proxy["depth"] == pytest.approx(6.0)
+    assert proxy["mode"] == harness.TERMINAL_INTERNAL_GRAPH_PROXY_MODE
+    assert proxy["operator_count"] == 2
+    assert proxy["serialized_term_count"] == 4
+    assert proxy["active_pauli_term_count"] == 3
+    assert proxy["num_qubits"] == 4
+    assert proxy["terminal_operator_metadata_alignment"] == (
+        "count_label_order_exact"
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("wrong_label", "order mismatch"),
+        ("missing_terms", "no serialized terms"),
+        ("bad_pauli", "invalid characters"),
+        ("inconsistent_nq", "Inconsistent terminal Pauli widths"),
+        ("nonfinite_coefficient", "nonfinite coefficient"),
+    ],
+)
+def test_terminal_internal_graph_proxy_fails_closed(
+    mutation: str,
+    message: str,
+) -> None:
+    payload = _terminal_proxy_payload()
+    metadata = payload["continuation"]["selected_generator_metadata"]
+    if mutation == "wrong_label":
+        metadata[1]["candidate_label"] = "wrong"
+    elif mutation == "missing_terms":
+        metadata[1]["compile_metadata"]["serialized_terms_exyz"] = []
+    elif mutation == "bad_pauli":
+        metadata[1]["compile_metadata"]["serialized_terms_exyz"][0][
+            "pauli_exyz"
+        ] = "xxqe"
+    elif mutation == "inconsistent_nq":
+        metadata[1]["compile_metadata"]["serialized_terms_exyz"][0]["nq"] = 5
+    elif mutation == "nonfinite_coefficient":
+        metadata[1]["compile_metadata"]["serialized_terms_exyz"][0][
+            "coeff_re"
+        ] = float("nan")
+    with pytest.raises(ValueError, match=message):
+        harness.terminal_internal_graph_proxy_from_payload(payload)
+
+
+def test_result_summary_emits_terminal_internal_proxy_for_proxy_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        harness,
+        "snake_algorithmic_work_from_payload",
+        lambda *_args, **_kwargs: (
+            {
+                "S_alg": 10.0,
+                "S_alg_status": "ok",
+                "S_alg_work_scope": "terminal",
+            },
+            {},
+        ),
+    )
+
+    summary = harness._result_summary(
+        _terminal_proxy_payload(),
+        np.asarray([1.0 + 0.0j]),
+        1.0,
+    )
+
+    assert summary["graph_cost_proxy"]["count_2q"] == pytest.approx(6.0)
+    assert summary["graph_cost_proxy"]["depth"] == pytest.approx(6.0)
+    assert summary["graph_cost_proxy"]["status"] == (
+        "reconstructed_from_terminal_selected_generator_metadata"
+    )

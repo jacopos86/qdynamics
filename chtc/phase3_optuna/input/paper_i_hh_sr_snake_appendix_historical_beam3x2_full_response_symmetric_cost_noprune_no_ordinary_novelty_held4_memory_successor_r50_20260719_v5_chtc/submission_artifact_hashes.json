@@ -1,0 +1,78 @@
+{
+  "artifacts": {
+    "README.md": {
+      "sha256": "e550375af164b222e004bed99360976f2cc597a6efbeff82542d896d85bab658",
+      "size_bytes": 557
+    },
+    "__pycache__/build_bundle.cpython-312.pyc": {
+      "sha256": "f3ad17c472cf496e50436aadcb0ce6a082aeeb1b976a6beb13c3f96049811b63",
+      "size_bytes": 1343
+    },
+    "build_bundle.py": {
+      "sha256": "188cc2ceb408b9b3b62d61d8410ce848667c93bb1b3f4fc772d67f75db0756af",
+      "size_bytes": 557
+    },
+    "jobs/intermediate_weak.json": {
+      "sha256": "3025d2661cd9fee1472781bc185a46649cd2ecfbc32d567776d6236b9254f684",
+      "size_bytes": 25802
+    },
+    "jobs/strong_strong_u8.json": {
+      "sha256": "8d8c5029d6ad3beafe70e495103bbcddfbfa686b5ca1d1f76989cdbb84568cd6",
+      "size_bytes": 25777
+    },
+    "jobs/strong_weak_u8.json": {
+      "sha256": "b621e32e44db3a54ba61336532cb26b96aac562e292cc2b36759d973a08bb49e",
+      "size_bytes": 25735
+    },
+    "jobs/weak_weak.json": {
+      "sha256": "3a72dec13d2e9ed868683c520183a1fc85b44c08b8a5ccc18cfaaa0f687b6ac9",
+      "size_bytes": 25642
+    },
+    "normalized_manifests/intermediate_weak.json": {
+      "sha256": "583c40453aef8efb343bc00edf267468c16f41f263edecb847262d5bff0f5c7c",
+      "size_bytes": 23251
+    },
+    "normalized_manifests/strong_strong_u8.json": {
+      "sha256": "8392c61475d1e612c19b31462be905bb52eb008a929ecd7cef176e2a1e6560b3",
+      "size_bytes": 23236
+    },
+    "normalized_manifests/strong_weak_u8.json": {
+      "sha256": "fce16be70b275a5e3721857975199b3782cc781c3c2717aacc84081e23179f8e",
+      "size_bytes": 23214
+    },
+    "normalized_manifests/weak_weak.json": {
+      "sha256": "af0d4585b06a8fe096e0749fe4c5728aa4dfda17efd2e50784ec545677a133ca",
+      "size_bytes": 23171
+    },
+    "operational_memory_successor_receipt.json": {
+      "sha256": "339a27b7e415dece96584fb0f4e1cec9a5c890d5a872484dfac5d22c1c0fe2cb",
+      "size_bytes": 9531
+    },
+    "parent_artifact_requirements.json": {
+      "sha256": "647e88c66f818fa19d280683ca53f53fa2cf410b33726cd3430453196ac123b7",
+      "size_bytes": 4078
+    },
+    "preflight.json": {
+      "sha256": "5886000c245a8da44d2e2124bd2155afdd41b944ea9f167ee7065854ec0ef2f8",
+      "size_bytes": 1490
+    },
+    "queue.tsv": {
+      "sha256": "2f84ca7a80d0236b7f7642625485bc830931228d3ae245b9a7168c984ba441c9",
+      "size_bytes": 1764
+    },
+    "submit.sub": {
+      "sha256": "f7a2ed343ae2bd7e3c1ff304838661395d71cef4a6faa5283b696965784c9ac8",
+      "size_bytes": 4583
+    },
+    "test_bundle.py": {
+      "sha256": "a1778f219fbd10b8cb599b0cfcb1cd0923ad3ca9f4a7e3a17e9f79bdfae1a68c",
+      "size_bytes": 260
+    },
+    "upload_artifact_list.txt": {
+      "sha256": "d7655ce4fef0be821cf6ab9fc25827bc147122585d7781f839ed43ad3d7d3bb0",
+      "size_bytes": 3407
+    }
+  },
+  "schema": "paper_i_hh_sr_beam_memory_successor_hashes_v1",
+  "successor_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_held4_memory_successor_r50_20260719_v5_chtc"
+}

@@ -1,0 +1,29 @@
+"""Compatibility re-export for the retired formal-manifold module name.
+
+The neutral exact-geometry implementation lives in
+``pipelines.static_adapt.exact_geometry_backend``.  This shim remains
+importable until the formal-manifold route is archived.
+"""
+
+from pipelines.static_adapt.exact_geometry_backend import (
+    COORDINATE_REGISTRY_OVERRIDE_SCHEMA,
+    COORDINATE_REGISTRY_SCHEMA,
+    EXACT_BACKEND_SCHEMA,
+    EXACT_STATE_PROVENANCE,
+    CompiledExactManifoldAdapter,
+    CoordinateRegistryOverride,
+    build_compiled_exact_manifold_adapter,
+    build_coordinate_registry_override,
+)
+
+
+__all__ = [
+    "COORDINATE_REGISTRY_SCHEMA",
+    "COORDINATE_REGISTRY_OVERRIDE_SCHEMA",
+    "CompiledExactManifoldAdapter",
+    "CoordinateRegistryOverride",
+    "EXACT_BACKEND_SCHEMA",
+    "EXACT_STATE_PROVENANCE",
+    "build_coordinate_registry_override",
+    "build_compiled_exact_manifold_adapter",
+]

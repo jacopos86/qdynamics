@@ -1,0 +1,35 @@
+# Generated outputs and evidence
+artifacts/
+raw_outputs/
+output/
+tmp/
+logs/
+plots/
+docs/
+prompt-exports/
+archive/
+MATH/**/*.pdf
+MATH/paper_details/figures/
+chtc/**/input/
+chtc/**/output/
+chtc/**/runtime_inputs/
+chtc/**/runtime_source/
+chtc/**/raw_outputs/
+chtc/**/bundles/
+*.pdf
+*.png
+*.svg
+*.log
+
+# Environments, caches, and editor state
+.venv*/
+__pycache__/
+*.pyc
+.obsidian/
+.vscode*/
+.claude/
+claude_code_adapt_wave/
+
+# Self-referential workflow receipts (not runtime code or scientific config)
+agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/
+agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json

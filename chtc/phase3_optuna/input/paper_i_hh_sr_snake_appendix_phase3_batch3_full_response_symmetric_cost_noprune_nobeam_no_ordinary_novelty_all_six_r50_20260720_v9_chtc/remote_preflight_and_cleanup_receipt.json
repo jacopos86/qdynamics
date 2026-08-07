@@ -1,0 +1,13 @@
+{
+  "remote_execution_gate": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v9_chtc/remote_execution_gate.json",
+  "remote_execution_gate_sha256": "1a3f26227512e6d0a01e9be943d3dcf9c3d4d72f4ab69d9a313d5899cd9d07ce",
+  "remote_execution_preflight": "pending_for_exact_v6_archive",
+  "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_v6_remote_receipt_v1",
+  "status": "pending_v6_remote_archive_validation",
+  "storage_cleanup": {
+    "remote_removed_paths": [],
+    "scope": "no_cleanup_authorized_or_required_by_bundle_builder",
+    "unrelated_remote_paths_modified": false
+  },
+  "submission_performed": false
+}

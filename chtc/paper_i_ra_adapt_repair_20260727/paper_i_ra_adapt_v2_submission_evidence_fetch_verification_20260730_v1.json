@@ -1,0 +1,16 @@
+{
+  "schema": "paper_i_chtc_evidence_fetch_verification_v1",
+  "verified_utc": "2026-07-30T19:23:19Z",
+  "status": "passed",
+  "transfer_method": "interactive_scp",
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z",
+  "local_root": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z",
+  "file_count": 45,
+  "closure_digest_method": "LC_ALL=C find <root> -maxdepth 1 -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum",
+  "remote_closure_sha256": "fe570d3ee55dddf42aa4819bd50d4c1bfa89fcf3eb1db743d21b3cb8289e5221",
+  "local_closure_sha256": "fe570d3ee55dddf42aa4819bd50d4c1bfa89fcf3eb1db743d21b3cb8289e5221",
+  "closures_match": true,
+  "remote_files_deleted": false,
+  "unrelated_remote_files_touched": false,
+  "sha256": "4fdfcf138a5ee978eb6e3eee9e26b756bcbd13f7ecc26ace2221597c1a105456"
+}

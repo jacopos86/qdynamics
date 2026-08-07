@@ -1,0 +1,10 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "job_count": 6,
+  "route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "schema": "paper_i_sr_phase3_projection_fanout_submission_gate_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "status": "ready_for_authenticated_remote_preflight",
+  "submission_performed": false
+}

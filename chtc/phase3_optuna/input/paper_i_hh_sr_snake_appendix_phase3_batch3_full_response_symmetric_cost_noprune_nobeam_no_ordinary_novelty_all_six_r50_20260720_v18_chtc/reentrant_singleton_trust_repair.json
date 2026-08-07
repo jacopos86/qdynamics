@@ -1,0 +1,38 @@
+{
+  "completed_utc": "2026-07-21T01:36:58.898922+00:00",
+  "failed_predecessor_error": "Phase-III batching appendix requires the supported-metric global trust solve for its complete batch response.",
+  "measurements_added": 0,
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+  "proof": {
+    "archive_only_job_gates_passed": 6,
+    "exact_remote_image_gate": "pass",
+    "exact_remote_image_rows_passed": 6,
+    "exact_round1_smoke": "pass",
+    "exact_round1_smoke_receipt": {
+      "admissions": 1,
+      "controller_rounds": 1,
+      "query_measurements_added_by_repair": 0,
+      "radius_after": 0.4603193619307535,
+      "radius_before": 0.25,
+      "regime": "weak_weak",
+      "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+      "schema": "paper_i_sr_batch3_exact_round1_smoke_v1",
+      "selected_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::child_set[0]::legal_projected",
+      "status": "pass",
+      "trust_update_applied": true
+    },
+    "frozen_source_tests_passed": 4,
+    "multi_record_global_trust_still_required": true,
+    "route_digest_unchanged": true
+  },
+  "query_charge_added": 0,
+  "remote_preflight_completed_utc": "2026-07-21T01:42:38.396490+00:00",
+  "repair": "preserve the authoritative singleton identity receipt across the required pre-commit and post-refit trust validations",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_phase3_batch_reentrant_singleton_trust_repair_v1",
+  "scientific_settings_changed": false,
+  "selection_changed": false,
+  "source_archive_sha256": "9d47b1ddb6e3754f173f51e35762543116c3d79cd56a0c895b1a5f75b6e3879b",
+  "status": "pass_exact_remote_image_validated_not_submitted",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v18_chtc"
+}

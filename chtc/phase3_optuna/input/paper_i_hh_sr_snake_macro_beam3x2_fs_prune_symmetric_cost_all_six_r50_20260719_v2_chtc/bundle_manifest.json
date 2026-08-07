@@ -1,0 +1,38 @@
+{
+  "batch_name": "paper-i-hh-sr-macro-beam3x2-fsprune-symcost-six-r50-20260719-v2",
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc",
+  "created_utc": "2026-07-19T20:12:10.235266+00:00",
+  "jobs": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v2_chtc/jobs/strong_strong_u8.json"
+  ],
+  "route_identity": {
+    "profile_contract_sha256": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+    "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1"
+  },
+  "run_class": "fresh_round0_macro_beam3x2_live_fs_prune_cost_ablation_v1",
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_bundle_v1",
+  "source_archive_sha256": "69d15c1bc7f2b704d8bf658696a551b5a15a34c2140971c6c382f0cae385cec2",
+  "submission_scope": {
+    "cutoffs": {
+      "strong_holstein": 7,
+      "weak_holstein": 3
+    },
+    "fresh_round0_to_round50": true,
+    "job_count": 6,
+    "regimes": [
+      "weak_weak",
+      "intermediate_weak",
+      "strong_weak_u8",
+      "weak_strong",
+      "intermediate_strong",
+      "strong_strong_u8"
+    ]
+  },
+  "submission_status": "built_not_submitted"
+}

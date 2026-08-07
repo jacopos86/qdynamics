@@ -1,0 +1,89 @@
+{
+  "campaigns": [
+    {
+      "activation_manifest_sha256": "9dfee684e47ba79f93261a6c69671d11c49eebf7b8c9ec3008991be6f2fe0f86",
+      "batch_name": "paper-i-ra-adapt-always-factorial48-r50-20260730-v1",
+      "direct_execution_count": 48,
+      "dry_run": {
+        "ad_count": 48,
+        "classad_file_sha256": "bf27797cbf2c474b70bb0c3c79fd24f5a41c1b8ffc348e51765f06c336176c4b",
+        "classad_file_size_bytes": 107566,
+        "proc_ids": "0..47",
+        "status": "passed",
+        "validation_receipt_sha256": "30a6462904a6b42ccd3cc407d01554d1d215b91546a32973c25f25da14073755"
+      },
+      "package_manifest_sha256": "9f66b50958001a359229ed2d70c90465f716f239c327a81c987d7fb6b7581092",
+      "remote_stage": true,
+      "staging_archive": {
+        "path": "/tmp/paper_i_ra_always_factorial48_r50_20260730_v1_final_stage.tgz",
+        "sha256": "3ecc81438a6c074c95925eaa322af0774e241b46aa8d44e63eecff66eb4620b6",
+        "size_bytes": 3307598
+      }
+    },
+    {
+      "activation_manifest_sha256": "6e48d0dfce059a5871a152bd02c4f5fa8dc7cbb29d9aef6e965ac9743c87ab85",
+      "batch_name": "paper-i-ra-adapt-global-singleton-insertion12-r50-20260730-v1",
+      "direct_execution_count": 12,
+      "dry_run": {
+        "ad_count": 12,
+        "classad_file_sha256": "18e5436073043913abaf0eaa3150faa49ed1be3c0816d00fe43b1e8b9fdd7ed8",
+        "classad_file_size_bytes": 31262,
+        "proc_ids": "0..11",
+        "status": "passed",
+        "validation_receipt_sha256": "26d348d46ebb62de7e0b0181caf5189e6737221fbefbbb2a3e94a6c405d6b4b8"
+      },
+      "package_manifest_sha256": "a7e8663e0b9daa3b7589652179e8e6ec6ebb7d4ad47925a294beed232b268940",
+      "remote_stage": true,
+      "resource_status": "provisional_not_demonstrated",
+      "staging_archive": {
+        "path": "/tmp/paper_i_ra_global_singleton_insertion12_r50_20260730_v1_final_stage.tgz",
+        "sha256": "0f91676714d8f970307c739f306af5756ed95cb3a3ed0577ff09d66d73626475",
+        "size_bytes": 2525267
+      }
+    }
+  ],
+  "condor_submit": false,
+  "observed_utc": "2026-07-30T12:26:13Z",
+  "remote_environment": {
+    "access_point": "ap2001.chtc.wisc.edu",
+    "container_python": "3.12.13",
+    "htcondor": "25.13.0",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "repo_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "system_python": "3.9.25"
+  },
+  "schema": "paper_i_ra_adapt_chtc_remote_preflight_receipt_v1",
+  "sha256": "e3573bb832effaa414d65d872866ec71a9110564c8c6150f9cd2bc0badd2e1ab",
+  "storage_gate": {
+    "existing_fetched_archive_bytes": 5980572508,
+    "existing_fetched_archive_count": 12,
+    "hard_limit_mib": 51200,
+    "headroom_bytes": 11544821760,
+    "headroom_mib": 11010,
+    "projection": {
+      "combined_estimate_bytes": 29892139332,
+      "factorial48_estimate_bytes": 21660196076,
+      "global_singleton12_estimate_bytes": 8231943256,
+      "status": "nonbinding_storage_planning_estimate_from_completed_archive_sizes"
+    },
+    "projection_basis": {
+      "macro_all_regime_archive_bytes": 1299077391,
+      "macro_all_regime_archive_count": 6,
+      "singleton_nph3_archive_bytes": 2108517074,
+      "singleton_nph3_archive_count": 3,
+      "singleton_nph7_archive_bytes": 1338303036,
+      "singleton_nph7_archive_count": 2
+    },
+    "post_temporary_cleanup": {
+      "headroom_bytes": 11551113216,
+      "headroom_mib": 11016,
+      "observed_utc": "2026-07-30T12:27:59Z",
+      "used_mib": 40184
+    },
+    "soft_quota_mib": 40960,
+    "status": "insufficient_for_unattended_combined_submission",
+    "used_mib": 40190
+  },
+  "submission_state": "validated_not_submitted_storage_gate",
+  "submission_safety_requirement": "bounded_concurrency_with_verified_rolling_fetch_and_remote_cleanup_or_additional_storage"
+}

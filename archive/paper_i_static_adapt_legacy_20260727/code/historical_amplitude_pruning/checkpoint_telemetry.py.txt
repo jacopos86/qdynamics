@@ -1,0 +1,17 @@
+        "prune_prefilter_blocked_indices": [
+            int(x) for x in summary.get("prune_prefilter_blocked_indices", [])
+        ],
+        "prune_prefilter_blocked_labels": [
+            str(x) for x in summary.get("prune_prefilter_blocked_labels", [])
+        ],
+        "selected_index": summary.get("selected_index"),
+        "selected_label": summary.get("selected_label"),
+        "snr_adm": float(summary.get("snr_adm", 0.0) or 0.0),
+        "u_sat": float(summary.get("u_sat", 0.0) or 0.0),
+        "probe_indices": [int(x) for x in summary.get("probe_indices", [])],
+        "small_angle_pool_indices": [int(x) for x in summary.get("small_angle_pool_indices", [])],
+        "max_regression": float(summary.get("max_regression", 0.0) or 0.0),
+        "max_regression_effective": float(
+            summary.get("max_regression_effective", summary.get("max_regression", 0.0)) or 0.0
+        ),
+        "phase1_prune_tolerance_mode": str(summary.get("phase1_prune_tolerance_mode", "fixed")),

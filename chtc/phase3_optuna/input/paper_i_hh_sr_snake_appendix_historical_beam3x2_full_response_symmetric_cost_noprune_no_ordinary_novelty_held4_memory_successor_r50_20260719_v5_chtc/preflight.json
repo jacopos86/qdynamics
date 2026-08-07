@@ -1,0 +1,33 @@
+{
+  "checks": {
+    "exactly_four_held_rows": true,
+    "memory_policy_applied_exactly": true,
+    "parent_procs_3_4_not_duplicated": true,
+    "parent_source_archive_hash_exact": true,
+    "route_digest_exact_all_rows": true,
+    "scientific_manifest_views_byte_equivalent": true,
+    "source_archive_not_duplicated": true,
+    "submission_not_performed": true
+  },
+  "parent_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "parent_cluster": 8887576,
+  "queued_regimes": [
+    "weak_weak",
+    "intermediate_weak",
+    "strong_weak_u8",
+    "strong_strong_u8"
+  ],
+  "remote_gates_pending": [
+    "parent_artifact_hashes_on_submit_host",
+    "container_image_hash_and_import_preflight",
+    "home_quota_below_hard_limit",
+    "condor_submit_four_row_acceptance"
+  ],
+  "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+  "schema": "paper_i_hh_sr_beam_memory_successor_preflight_v1",
+  "scientific_settings_changed": false,
+  "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04",
+  "status": "pass_local_not_submitted",
+  "successor_batch_name": "paper-i-hh-sr-appendix-historical-beam3x2-memory-repair-held4-r50-20260719-v5",
+  "successor_bundle_id": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_held4_memory_successor_r50_20260719_v5_chtc"
+}

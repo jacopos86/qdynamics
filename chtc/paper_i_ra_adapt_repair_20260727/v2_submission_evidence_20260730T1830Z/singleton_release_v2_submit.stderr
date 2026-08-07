@@ -1,0 +1,1 @@
+To monitor your job(s), run: condor_watch_q -clusters 9397760

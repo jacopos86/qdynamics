@@ -1,0 +1,29 @@
+{
+  "schema": "paper_i_higher_l_append_remote_submission_receipt_v1",
+  "submitted_utc": "2026-07-19T19:58:14Z",
+  "cluster_id": 8890685,
+  "job_count": 5,
+  "batch_name": "paper-i-higher-l-append-projected-singleton-r50-20260719-v1",
+  "remote_submit_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_l3nph3_hubbard_l6_append_projected_singleton_r50_20260719_v1_chtc/submit.sub",
+  "submit_file_sha256": "e087c15f5d93f31d534f4d0287a9ea0c11e20e7d2115ac454426e61afa23d7b0",
+  "bundle_manifest_sha256": "0313a5e83f11e83577bfd856cc4173802d0b4736139b4c6a56095ea9fd50df83",
+  "execute_wrapper_sha256": "42a336231b1275ab88c94d91c09af018ae548691e20fe2cae0701985292308a8",
+  "submission_artifact_hashes_sha256": "4030ad30248f5e7b05a8aa416ef4a925a1dc8e4363540b104b3f5bfe812f7a35",
+  "source_archive_sha256": "36bddec0e2f533d674e61318087de3ced1d9108aeaf127ed263a15024457e2a0",
+  "remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_artifact_hashes_verified": 29,
+  "duplicate_active_jobs_before_submit": 0,
+  "scheduler_acceptance": {
+    "checked_utc": "2026-07-19T20:00:02Z",
+    "proc_ids": [0, 1, 2, 3, 4],
+    "running_jobs": 0,
+    "idle_jobs": 5,
+    "held_jobs": 0,
+    "num_job_starts_all_jobs": 0,
+    "request_cpus_all_jobs": 1,
+    "request_memory_mb_all_jobs": 32768,
+    "request_disk_kb_all_jobs": 62914560
+  },
+  "receipt_role": "post-submission receipt; not part of the pre-submit artifact hash manifest"
+}

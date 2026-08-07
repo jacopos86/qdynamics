@@ -1,0 +1,129 @@
+{
+  "artifacts": {
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/README.md": {
+      "sha256": "3899d8f69d7afa5ea58dd16742650826f4f478518186c6dc0ae255aa7adca483",
+      "size_bytes": 854
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/archive_only_preflight.json": {
+      "sha256": "ef89fdadfd6dd6c1886b5065b81945be05d2d5f264d3cac06b755ca16a24c700",
+      "size_bytes": 1078
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/build_bundle.py": {
+      "sha256": "63027606a303b7f60f8ca0e0368d63da10517e64d02645acf5b4fbac2485dc19",
+      "size_bytes": 2535
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/bundle_manifest.json": {
+      "sha256": "f44d9f6cfa1f5f81826d7a4754a67ef1161a7707f2713e9e44da6532e29e6798",
+      "size_bytes": 2103
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/evidence_validation.py": {
+      "sha256": "6844a773f288a56c0efade6e50ea85f620b14e718f9b871406fd6c4cbc7694fb",
+      "size_bytes": 77929
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/execute_source_locked_job.sh": {
+      "sha256": "8590812f425d72d16c0d53c2074a5c7be6201a988fa73fe4386187241f02094a",
+      "size_bytes": 2305
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/intermediate_strong.json": {
+      "sha256": "74e8cd9b2cd7327e97bfcb7431d9f1c9a38357c0fc9dbdec9248b855d974a585",
+      "size_bytes": 26410
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/intermediate_weak.json": {
+      "sha256": "e91b5b9b03cd2a4a0ada0cadb4c7b7b4a44f5d22b3c980397e6ed2cedde82d8e",
+      "size_bytes": 26368
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/strong_strong_u8.json": {
+      "sha256": "61ec4f9f99d8e36474fc7db577d6eeb02c91e06710feb11110f61a4a930afac0",
+      "size_bytes": 26343
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/strong_weak_u8.json": {
+      "sha256": "5c27479a8127df2e2a077a4af501ff6d8f45ddb7631c7937549449767140c612",
+      "size_bytes": 26301
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/weak_strong.json": {
+      "sha256": "c462469458b67f1bc2f196d6d7c222238a84cc8cd131285b8d6504004a8c12ba",
+      "size_bytes": 26242
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/weak_weak.json": {
+      "sha256": "377140542ca9fe37747e32addc5e321953e4c0fd403485169fc536ef192f9f78",
+      "size_bytes": 26208
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/intermediate_strong.json": {
+      "sha256": "a624afe2bec362669a3a7c479a802d54bf702b73bdf85cd79128a6c59a291fc2",
+      "size_bytes": 24306
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/intermediate_weak.json": {
+      "sha256": "b7bd67c617e6d45fced871f039f70f743d0ec27632b01c62c31e6c9eafd3aa9b",
+      "size_bytes": 24284
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/strong_strong_u8.json": {
+      "sha256": "52a7d4b411da60d5536fddbac366d9b1389da0e9a204cec8c9f48f35ae05f170",
+      "size_bytes": 24269
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/strong_weak_u8.json": {
+      "sha256": "1cd3f8973e2f28c58bb884227a47cb65c82f58eb0c41b28e39f8d86ed0d5554f",
+      "size_bytes": 24247
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/weak_strong.json": {
+      "sha256": "3ba3a395a94e03db6df8f50cedf48c249f5241b5e2e3ba50b0fdebd5eecb6a43",
+      "size_bytes": 24218
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/normalized_manifests/weak_weak.json": {
+      "sha256": "bf1e74ae73ebab0d2beeefce81b5d6c4948e406b9cf7d7616f09c28abc48ffa1",
+      "size_bytes": 24204
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/physics_and_exact_reference_lock.json": {
+      "sha256": "c6474dce7372ac862d51a1ba8ea72e46072de474a1ca4c4c480b131df9267737",
+      "size_bytes": 6681
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/preflight.json": {
+      "sha256": "8f018f0c0c88b7de456e86a8413a352420f23b355c848548c42b68fba98e73ed",
+      "size_bytes": 970
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/queue.tsv": {
+      "sha256": "a2a9e9aa87f002100d7c002baaacf33e17c0858c908cac811a21c5482ccb9b4f",
+      "size_bytes": 1908
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/route_parity.json": {
+      "sha256": "a1f39b03b1f88b271b007879129c18226eded441db2d6c16efd006f45c1f3edb",
+      "size_bytes": 1154
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/run_job.py": {
+      "sha256": "f934b5cbf307bd2a1db6eac58774dd8a24777d1104985f7cf41115861d703879",
+      "size_bytes": 43950
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/scientific_settings_audit.json": {
+      "sha256": "ece7bb83534899fb59b64b84606878235448ea3e248efe74a28714d61a16a411",
+      "size_bytes": 1646
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/source_archive_manifest.json": {
+      "sha256": "f7a923eca0f9fb2019f52bac6f9a2875f10acbef4aa05f8f90806c2fda9e7b03",
+      "size_bytes": 125495
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/source_locked.tar.gz": {
+      "sha256": "42d574d61a1ffcc724edf9cfd7113fa764cebb30804dd1438d813d5df89d88ff",
+      "size_bytes": 3690944
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/source_revision_manifest.json": {
+      "sha256": "cbc7292c23e580517c97e309bbb95fd1c4b1a9c441317b19e0f8e0d4c15ea63b",
+      "size_bytes": 54715
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/submit.sub": {
+      "sha256": "fb55bb404229b1ec172ff213cd75323fbdad52d8fd3616dbfbfaf6df0e780157",
+      "size_bytes": 3448
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/test_bundle.py": {
+      "sha256": "9a2480f8ed342b13aa0d641823cff7c3ee9929388ca2c8b8a14c002b88aabae0",
+      "size_bytes": 239
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/upload_artifact_list.txt": {
+      "sha256": "1dfd740fa7c6b822afa546da91cc9634998df9e38d30a7a045d56f10c6d86298",
+      "size_bytes": 3759
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/validate_fetched.py": {
+      "sha256": "f32eeed7503c3ab4466cb8f4eb5eb88b38c1f9a1bd1cbf27630d2ceb44ddf152",
+      "size_bytes": 25919
+    }
+  },
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_artifact_hashes_v1"
+}

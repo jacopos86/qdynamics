@@ -1,0 +1,7 @@
+{
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "schema": "paper_i_query_neutral_prune_anchor_remote_gate_v1",
+  "source_archive_sha256": "5747f73be5b6f4a050c5c33c12c87099db7e2edb57ca2eb9a41d9e4a783207e4",
+  "status": "pending_authenticated_remote_preflight",
+  "submission_performed": false
+}

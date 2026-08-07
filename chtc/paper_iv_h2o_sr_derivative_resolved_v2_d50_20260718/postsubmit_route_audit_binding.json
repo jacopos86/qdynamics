@@ -1,0 +1,36 @@
+{
+  "schema": "paper_iv_h2o_sr_depth50_postsubmit_route_audit_binding_v1",
+  "created_utc": "2026-07-17T20:23:36Z",
+  "status": "pass",
+  "cluster_id": 8884415,
+  "process_id": 0,
+  "record_id": "paper_iv_h2o_sr_v3_no_novelty_metric_prune_beam_from_zero_d50_20260717_v1",
+  "submitted_package": {
+    "archive_path": "/private/tmp/paper_iv_h2o_sr_d50_20260717_v4.tgz",
+    "archive_sha256": "3312504895f99854993585bc125286b7ad259962bf3b58f052014542a1ff57d4",
+    "command_sha256": "4a14314d01eeea770c6e28c019d6abb2aefce5ee8907cbec0af9f536cd36a3c8",
+    "route_audit_sha256": "1cc337af07031b1fdaff7e78bff101243557ac3b946bad182d351bc4d911ee52"
+  },
+  "expanded_local_audit": {
+    "command_path": "chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/command.json",
+    "command_sha256": "a67e6317aed47bede1c0a81a50fdd9b6894d6cc713f6d4205b53018fce81ac08",
+    "route_audit_path": "chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/route_settings_diff_audit.json",
+    "route_audit_sha256": "eb5c23aca5e885f598fe511bc3c11ae6e102ecd423e9619bc1e356cef7375244",
+    "added_explanatory_difference": "phase3_response_window"
+  },
+  "scientific_identity_checks": {
+    "argv_identical": true,
+    "route_contract_identical": true,
+    "route_contract_sha256_identical": true,
+    "route_contract_sha256": "4b495a6c23263ddaa5b77e121570c34a041d1faf708e635f7957ab81f83b09c8",
+    "scientific_settings_changed_after_submit": false
+  },
+  "live_startup_observation": {
+    "job_status": "running",
+    "remote_host": "slot1_7@e4073.chtc.wisc.edu",
+    "runtime_preflight_status": "pass",
+    "stderr_nonempty": false,
+    "observed_utc": "2026-07-17T20:23:00Z"
+  },
+  "scope_note": "The post-submit audit adds direct Paper-I result evidence for the historical reduced Phase-III response window. It does not change the running command or route contract."
+}

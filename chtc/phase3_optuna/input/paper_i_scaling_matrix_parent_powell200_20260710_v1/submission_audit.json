@@ -1,0 +1,111 @@
+{
+  "batch_id": "paper_i_scaling_matrix_parent_powell200_20260710_v1",
+  "code_bundle": {
+    "excludes": [
+      "__pycache__",
+      "*.pyc",
+      "*.pyo"
+    ],
+    "members": [
+      "chtc/__init__.py",
+      "chtc/phase3_optuna/__init__.py",
+      "pipelines",
+      "src",
+      "docs",
+      "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py"
+    ],
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "d0982f4696eaecdde533aaf2194af0900fb5fa7c4adde301056cbab80354c3fb",
+    "size_bytes": 2852596
+  },
+  "durability": {
+    "condor_transfer_policy": "ON_EXIT_OR_EVICT",
+    "per_record_output_transfer": true,
+    "restartable_from_iteration_checkpoint": false
+  },
+  "exact_energy_manifest": {
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/exact_energy_manifest.json",
+    "record_count": 34,
+    "sha256": "5fff8c67abff10a229a1ecd82dc08a25bc211d723727a82257930447d920d296"
+  },
+  "generated_utc": "2026-07-11T04:10:15.480073+00:00",
+  "git_head": "e1478cfbd6aa1792cd271c1c4f39b4d7f64ce8e8",
+  "git_worktree_note": "Exact file hashes identify the prepared worktree, including uncommitted corrections.",
+  "guard_caps": {
+    "exact_fidelity_max_qubits": 10,
+    "resource_pool_term_cap": 1024,
+    "resource_qubit_cap": 16
+  },
+  "hh_cache_prewarm_status": "pass",
+  "hh_generator_registry_cache": {
+    "cache_dir": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_generator_registry_cache_v1",
+    "mode": "disk",
+    "prewarm_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_cache_prewarm_manifest.json",
+    "required": true,
+    "status": "pass"
+  },
+  "hh_pool_cache": {
+    "cache_dir": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_pool_cache_v1",
+    "mode": "disk",
+    "prewarm_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/hh_cache_prewarm_manifest.json",
+    "required": true,
+    "scope": "exact",
+    "status": "pass"
+  },
+  "hh_pool_cache_prewarm_status": "pass",
+  "horizons": {
+    "bose_hubbard": 30,
+    "hh": 50,
+    "hubbard_L2": 20,
+    "hubbard_L3_L4": 30,
+    "spin_boson": 30
+  },
+  "implementation_lock": {
+    "entry_count": 11,
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/implementation_lock.json",
+    "sha256": "737fc83467002beaa820f1e411563c9877b5eaafb3dc203027c1e0d56fddff05"
+  },
+  "method_contract": {
+    "append_only": true,
+    "comparator_request_cpus": 1,
+    "final_refit_maxiter": 200,
+    "geo_immediate_repeat": "disabled_only_for_adjacent_repeat",
+    "methods": [
+      "static_family_native_adapt_phase3",
+      "static_geo_adapt_vqe",
+      "static_full_meta_append_adapt_vqe"
+    ],
+    "optimizer": "POWELL",
+    "optimizer_maxiter": 200,
+    "parent_generators_only": true,
+    "pool": "full_meta_unfiltered",
+    "runtime_pauli_child_split": "off_all_methods",
+    "shared_pauli_pool": "off_all_methods",
+    "snake_adapt_beam_parent_workers": 2,
+    "snake_adapt_parallel_gradient_workers": 2,
+    "snake_phase2_phase3_batching": "off",
+    "snake_repeat_policy": "operator_reuse_enabled",
+    "snake_request_cpus": 4
+  },
+  "method_count": 3,
+  "ordered_pair_policy": "explicit_pairs_not_cartesian_product",
+  "physical_case_count": 34,
+  "preflight": {
+    "failed_record_count": 0,
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/preflight.json",
+    "record_count": 102,
+    "sha256": "6d9e2680d7b4c19451d7fe084ff3e30e68041aabfdded9538ef35b3859d6b5ca",
+    "status": "pass"
+  },
+  "record_count": 102,
+  "reference_contract": "same_working_cutoff_exact_reference_for_all_bosonic_rows",
+  "run_class": "candidate",
+  "schema": "paper_i_scaling_matrix_submission_audit_v1",
+  "snake_policy": {
+    "path": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_snake_policy.json",
+    "sha256": "65f535e90f932615d3e448ca92807c90b0af4657f2776916865c81111a0bcc4b"
+  },
+  "source_lock_status": "not_applicable_user_requested_new_size_cutoff_matrix",
+  "status": "preflight_pass",
+  "suite_profile": "paper_i_scaling_matrix_20260710_v1"
+}

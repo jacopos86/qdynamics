@@ -1,0 +1,1186 @@
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -784,6 +784,8 @@
+ from pipelines.static_adapt.sr_snake_route_profile import (
+     INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS,
+     INSERTION_COMMUTATION_PLATEAU_CUMULATIVE_DECREASE_RATIO_THRESHOLD,
++    INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS,
++    INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD,
+     PHASE3_RESPONSE_COORDINATE_SCOPE_CANDIDATE_MATERIAL_COUPLING_WINDOW_V1,
+     PHASE3_RESPONSE_COORDINATE_SCOPE_FIXED_LOCAL_WINDOW_V1,
+     PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1,
+@@ -797,6 +799,7 @@
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -816,13 +819,15 @@
+     SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2,
+     SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3,
+     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+     SR_ROUTE_PROFILE_REQUEST_OFF,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256 as _canonical_default_sr_controller_contract_sha256,
+     canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract,
+     canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+     canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract,
+     canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+-    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256 as _canonical_insertion_sr_controller_contract_sha256,
++    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256 as _canonical_insertion_v1_sr_controller_contract_sha256,
++    canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256 as _canonical_insertion_sr_controller_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract_sha256 as _canonical_commutation_reduced_insertion_sr_controller_contract_sha256,
+     canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256 as _canonical_prune_sr_controller_contract_sha256,
+     normalize_phase3_response_coordinate_scope,
+@@ -905,6 +910,7 @@
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+@@ -913,6 +919,8 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -936,6 +944,7 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -948,8 +957,10 @@
+     {
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+     }
+ )
+ from pipelines.static_adapt.query_neutral_full_geometry_prune import (
+@@ -10777,6 +10788,7 @@
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+             SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+             SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+             SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
+@@ -10784,6 +10796,7 @@
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -11371,6 +11384,7 @@
+         "adaptive",
+         "full_commutation_reduced",
+         "insertion_commutation_plateau_v1",
++        "insertion_commutation_plateau_v2",
+     }
+ )
+ _VALID_BATCH_ORDER_SELECTION_MODES = frozenset({"finite_step_v1", "score_sorted"})
+@@ -11387,17 +11401,29 @@
+ def _insertion_commutation_plateau_round_policy(
+     *,
+     history: Sequence[Mapping[str, Any]],
++    policy: str = "insertion_commutation_plateau_v2",
+ ) -> dict[str, Any]:
+-    """Resolve insertion from marginal progress over prior cumulative progress."""
+-
+-    threshold = float(
+-        INSERTION_COMMUTATION_PLATEAU_CUMULATIVE_DECREASE_RATIO_THRESHOLD
+-    )
++    """Resolve insertion from marginal progress over prior mean progress."""
++
++    policy_key = str(policy).strip().lower()
++    if policy_key == "insertion_commutation_plateau_v1":
++        threshold = float(
++            INSERTION_COMMUTATION_PLATEAU_CUMULATIVE_DECREASE_RATIO_THRESHOLD
++        )
++    elif policy_key == "insertion_commutation_plateau_v2":
++        threshold = float(
++            INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD
++        )
++    else:
++        raise ValueError(f"Unsupported plateau insertion policy: {policy!r}")
+     trigger_before: float | None = None
+     trigger_after: float | None = None
+     trigger_decrease: float | None = None
+     cumulative_decrease_before: float | None = None
++    prior_accepted_transition_count = 0
++    prior_mean_decrease: float | None = None
+     marginal_to_cumulative_ratio: float | None = None
++    marginal_to_prior_mean_ratio: float | None = None
+     trigger_source = "first_round_no_preceding_accepted_transition"
+ 
+     def accepted_decrease(
+@@ -11460,22 +11486,41 @@
+             cumulative = float(sum(prior_decreases))
+             if math.isfinite(cumulative) and cumulative > 0.0:
+                 cumulative_decrease_before = cumulative
++                prior_accepted_transition_count = len(prior_decreases)
++                mean_decrease = cumulative / float(
++                    prior_accepted_transition_count
++                )
++                if math.isfinite(mean_decrease) and mean_decrease > 0.0:
++                    prior_mean_decrease = mean_decrease
+         if (
+             trigger_decrease is not None
+             and cumulative_decrease_before is not None
+         ):
+-            ratio = float(trigger_decrease) / float(
++            cumulative_ratio = float(trigger_decrease) / float(
+                 cumulative_decrease_before
+             )
+-            if math.isfinite(ratio):
+-                marginal_to_cumulative_ratio = ratio
++            if math.isfinite(cumulative_ratio):
++                marginal_to_cumulative_ratio = cumulative_ratio
++        if trigger_decrease is not None and prior_mean_decrease is not None:
++            mean_ratio = float(trigger_decrease) / float(prior_mean_decrease)
++            if math.isfinite(mean_ratio):
++                marginal_to_prior_mean_ratio = mean_ratio
++    decision_ratio = (
++        marginal_to_cumulative_ratio
++        if policy_key == "insertion_commutation_plateau_v1"
++        else marginal_to_prior_mean_ratio
++    )
+     domain_open = bool(
+-        marginal_to_cumulative_ratio is not None
+-        and float(marginal_to_cumulative_ratio) < float(threshold)
++        decision_ratio is not None
++        and float(decision_ratio) < float(threshold)
+     )
+-    return {
+-        "schema": "insertion_commutation_plateau_round_policy_v1",
+-        "policy": "insertion_commutation_plateau_v1",
++    receipt = {
++        "schema": (
++            "insertion_commutation_plateau_round_policy_v1"
++            if policy_key == "insertion_commutation_plateau_v1"
++            else "insertion_commutation_plateau_round_policy_v2"
++        ),
++        "policy": policy_key,
+         "domain_state": "open" if domain_open else "closed",
+         "domain_open": bool(domain_open),
+         "effective_insertion_mode": (
+@@ -11485,21 +11530,46 @@
+         "trigger_energy_after": trigger_after,
+         "trigger_energy_decrease": trigger_decrease,
+         "prior_cumulative_energy_decrease": cumulative_decrease_before,
+-        "marginal_to_prior_cumulative_decrease_ratio": (
+-            marginal_to_cumulative_ratio
+-        ),
+         "trigger_source": str(trigger_source),
+-        "cumulative_decrease_ratio_threshold": float(threshold),
+-        "threshold_comparison": (
+-            "marginal_to_prior_cumulative_strictly_below"
+-        ),
+-        "calibration_status": str(
+-            INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS
+-        ),
+         "patience": 1,
+         "hysteresis_active": False,
+         "exact_reference_used": False,
+     }
++    if policy_key == "insertion_commutation_plateau_v1":
++        receipt.update(
++            {
++                "marginal_to_prior_cumulative_decrease_ratio": (
++                    marginal_to_cumulative_ratio
++                ),
++                "cumulative_decrease_ratio_threshold": float(threshold),
++                "threshold_comparison": (
++                    "marginal_to_prior_cumulative_strictly_below"
++                ),
++                "calibration_status": str(
++                    INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS
++                ),
++            }
++        )
++    else:
++        receipt.update(
++            {
++                "prior_accepted_transition_count": int(
++                    prior_accepted_transition_count
++                ),
++                "prior_mean_energy_decrease": prior_mean_decrease,
++                "marginal_to_prior_mean_decrease_ratio": (
++                    marginal_to_prior_mean_ratio
++                ),
++                "prior_mean_decrease_ratio_threshold": float(threshold),
++                "threshold_comparison": (
++                    "marginal_to_prior_mean_strictly_below_v2"
++                ),
++                "calibration_status": str(
++                    INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS
++                ),
++            }
++        )
++    return receipt
+ 
+ 
+ def _phase1_position_probe_plan(
+@@ -11531,7 +11601,11 @@
+             "use 'full_commutation_reduced' for always-open insertion."
+         )
+     append_pos = int(append_position)
+-    if mode in {"append_only", "insertion_commutation_plateau_v1"}:
++    if mode in {
++        "append_only",
++        "insertion_commutation_plateau_v1",
++        "insertion_commutation_plateau_v2",
++    }:
+         reason = (
+             "append_only"
+             if mode == "append_only"
+@@ -15021,6 +15095,7 @@
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -15033,7 +15108,9 @@
+         )
+         in {
+             SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         }
+     )
+     profile_owned_nonappend_insertion_active = bool(
+@@ -15082,6 +15159,7 @@
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++                        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+                         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -15683,6 +15761,7 @@
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -15854,6 +15933,7 @@
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+                     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -59066,8 +59146,12 @@
+         insertion_round_policy = (
+             _insertion_commutation_plateau_round_policy(
+                 history=self.cursor.history,
+-            )
+-            if insertion_mode == "insertion_commutation_plateau_v1"
++                policy=insertion_mode,
++            )
++            if insertion_mode in {
++                "insertion_commutation_plateau_v1",
++                "insertion_commutation_plateau_v2",
++            }
+             else None
+         )
+         if insertion_mode == "append_commutation_reduced":
+@@ -65316,6 +65400,10 @@
+         ),
+         (
+             SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++            _canonical_insertion_v1_sr_controller_contract_sha256(),
++        ),
++        (
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+             _canonical_insertion_sr_controller_contract_sha256(),
+         ),
+         (
+--- a/pipelines/static_adapt/sr_snake_route_profile.py
++++ b/pipelines/static_adapt/sr_snake_route_profile.py
+@@ -56,6 +56,10 @@
+ INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS = (
+     "source_locked_completed_trajectory_replay_v1"
+ )
++INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD = 1.0e-4
++INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS = (
++    "source_locked_counterfactual_trigger_replay_v2"
++)
+ SR_ROUTE_PROFILE_CANONICAL_V1 = "supported_whitened_adaptive_trust_v1"
+ SR_ROUTE_PROFILE_CONVENTIONAL_V2 = (
+     "supported_whitened_adaptive_trust_full_accepted_refit_v2"
+@@ -96,6 +100,10 @@
+ SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1 = (
+     "supported_projected_generalized_source_metric_no_overlap_trust_"
+     "full_response_symmetric_cost_no_prune_insertion_commutation_plateau_v1"
++)
++SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2 = (
++    "supported_projected_generalized_source_metric_no_overlap_trust_"
++    "full_response_symmetric_cost_no_prune_insertion_commutation_plateau_v2"
+ )
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1 = (
+     "supported_projected_generalized_source_metric_no_overlap_trust_"
+@@ -129,6 +137,10 @@
+ SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1 = (
+     "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
+     "no_prune_macro_only_physical_lanes_insertion_commutation_plateau_v1"
++)
++SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2 = (
++    "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
++    "no_prune_macro_only_physical_lanes_insertion_commutation_plateau_v2"
+ )
+ SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1 = (
+     "supported_whitened_adaptive_trust_full_response_one_sided_cost_"
+@@ -184,6 +196,9 @@
+ SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1 = (
+     "insertion_commutation_plateau_v1"
+ )
++SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2 = (
++    "insertion_commutation_plateau_v2"
++)
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_ALIAS_V1 = (
+     "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_"
+     "material_window_v1"
+@@ -212,6 +227,9 @@
+ )
+ SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1 = (
+     "sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1"
++)
++SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2 = (
++    "sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2"
+ )
+ SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_ALIAS_V1 = (
+     "sr_snake_macro_only_physical_lanes_one_sided_cost_v1"
+@@ -279,6 +297,8 @@
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1,
+     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2,
++    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_ALIAS_V1,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+     SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_ALIAS_V1,
+@@ -295,6 +315,8 @@
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2,
++    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_ALIAS_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ALIAS_V1,
+@@ -775,6 +797,16 @@
+ }
+ 
+ 
++CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS: dict[
++    str, Any
++] = {
++    **CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1_EXECUTION_SETTINGS,
++    # V2 compares the latest accepted decrease with the mean of all prior
++    # accepted decreases.  Every other parent setting remains unchanged.
++    "adapt_insertion_mode": "insertion_commutation_plateau_v2",
++}
++
++
+ CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1_EXECUTION_SETTINGS: dict[
+     str, Any
+ ] = {
+@@ -945,6 +977,16 @@
+ }
+ 
+ 
++CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS: dict[
++    str, Any
++] = {
++    # Apply the same historical-average trigger to the macro parent without
++    # changing its pool, selection, trust, or refit settings.
++    **CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS,
++    "adapt_insertion_mode": "insertion_commutation_plateau_v2",
++}
++
++
+ CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1_EXECUTION_SETTINGS: dict[
+     str, Any
+ ] = {
+@@ -2178,6 +2220,68 @@
+     )
+ 
+ 
++def canonical_sr_snake_insertion_commutation_plateau_v2_contract() -> dict[
++    str, Any
++]:
++    """Return the prior-historical-mean plateau insertion experiment."""
++
++    payload = (
++        canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract()
++    )
++    payload["route_profile"] = SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2
++    payload["execution_settings"] = dict(
++        CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS
++    )
++    payload["semantic_invariants"].update(
++        {
++            "experimental_insertion_policy": (
++                "insertion_commutation_plateau_v2"
++            ),
++            "insertion_position_scope": (
++                "append_only_or_immediate_plateau_full_logical_domain_v1"
++            ),
++            "insertion_equivalence_policy": (
++                "termwise_cross_component_commutation_earliest_representative_v1"
++            ),
++            "plateau_trigger_source": (
++                "immediately_preceding_marginal_over_prior_mean_"
++                "accepted_post_full_refit_energy_decrease_v2"
++            ),
++            "plateau_prior_mean_decrease_ratio_threshold": (
++                INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD
++            ),
++            "plateau_threshold_comparison": (
++                "marginal_to_prior_mean_strictly_below_v2"
++            ),
++            "plateau_threshold_calibration_status": (
++                INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS
++            ),
++            "plateau_patience": 1,
++            "plateau_hysteresis_active": False,
++            "online_exact_reference_used": False,
++        }
++    )
++    payload["lineage_authority"] = {
++        "parent_route_profile": (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
++        ),
++        "parent_contract_sha256": (
++            canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256()
++        ),
++        "only_intended_parent_setting_changes": {
++            "adapt_insertion_mode": "insertion_commutation_plateau_v2",
++        },
++        "scientific_result_anchor_claimed": False,
++    }
++    return json.loads(json.dumps(payload, sort_keys=True))
++
++
++def canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256() -> str:
++    return _json_sha256(
++        canonical_sr_snake_insertion_commutation_plateau_v2_contract()
++    )
++
++
+ def canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_query_neutral_prune_v1_contract() -> dict[
+     str, Any
+ ]:
+@@ -2785,6 +2889,62 @@
+ def canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256() -> str:
+     return _json_sha256(
+         canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract()
++    )
++
++
++def canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract() -> dict[str, Any]:
++    """Return the macro route with the prior-historical-mean trigger."""
++
++    payload = canonical_sr_snake_macro_only_physical_lanes_v1_contract()
++    payload["route_profile"] = (
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
++    )
++    payload["execution_settings"] = dict(
++        CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS
++    )
++    payload["semantic_invariants"].update(
++        {
++            "experimental_insertion_policy": "insertion_commutation_plateau_v2",
++            "insertion_position_scope": (
++                "append_only_or_immediate_plateau_full_logical_domain_v1"
++            ),
++            "insertion_equivalence_policy": (
++                "termwise_cross_component_commutation_earliest_representative_v1"
++            ),
++            "plateau_trigger_source": (
++                "immediately_preceding_marginal_over_prior_mean_"
++                "accepted_post_full_refit_energy_decrease_v2"
++            ),
++            "plateau_prior_mean_decrease_ratio_threshold": (
++                INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD
++            ),
++            "plateau_threshold_comparison": (
++                "marginal_to_prior_mean_strictly_below_v2"
++            ),
++            "plateau_threshold_calibration_status": (
++                INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS
++            ),
++            "plateau_patience": 1,
++            "plateau_hysteresis_active": False,
++            "online_exact_reference_used": False,
++        }
++    )
++    payload["lineage_authority"] = {
++        "parent_route_profile": SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
++        "parent_contract_sha256": (
++            canonical_sr_snake_macro_only_physical_lanes_v1_contract_sha256()
++        ),
++        "only_intended_parent_setting_changes": {
++            "adapt_insertion_mode": "insertion_commutation_plateau_v2",
++        },
++        "scientific_result_anchor_claimed": False,
++    }
++    return json.loads(json.dumps(payload, sort_keys=True))
++
++
++def canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256() -> str:
++    return _json_sha256(
++        canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract()
+     )
+ 
+ 
+@@ -3228,6 +3388,8 @@
+         return canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract()
+     if requested == SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1:
+         return canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++    if requested == SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2:
++        return canonical_sr_snake_insertion_commutation_plateau_v2_contract()
+     if requested == (
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
+     ):
+@@ -3256,6 +3418,10 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1
+     ):
+         return canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract()
++    if requested == (
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
++    ):
++        return canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract()
+     if requested == SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1:
+         return canonical_sr_snake_macro_only_physical_lanes_one_sided_cost_v1_contract()
+     if requested == SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1:
+@@ -3353,6 +3519,12 @@
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1: (
+             SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1
+         ),
++        "insertion_commutation_plateau_v2": (
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2
++        ),
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2: (
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2
++        ),
+         "sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_query_neutral_prune_v1": (
+             SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
+         ),
+@@ -3424,6 +3596,15 @@
+         ),
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1: (
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1
++        ),
++        "sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2": (
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
++        ),
++        "macro_only_physical_lanes_insertion_commutation_plateau_v2": (
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
++        ),
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2: (
++            SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
+         ),
+         "sr_snake_macro_only_physical_lanes_one_sided_cost_v1": (
+             SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1
+@@ -3513,6 +3694,7 @@
+             SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+             SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+@@ -3521,6 +3703,7 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -3641,6 +3824,10 @@
+     elif requested == SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1:
+         execution_settings = (
+             CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V1_EXECUTION_SETTINGS
++        )
++    elif requested == SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2:
++        execution_settings = (
++            CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS
+         )
+     elif requested == (
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
+@@ -3685,6 +3872,12 @@
+     ):
+         execution_settings = (
+             CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1_EXECUTION_SETTINGS
++        )
++    elif requested == (
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
++    ):
++        execution_settings = (
++            CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS
+         )
+     elif requested == SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1:
+         execution_settings = (
+@@ -3769,6 +3962,7 @@
+         SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+@@ -3777,6 +3971,7 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -3815,6 +4010,7 @@
+         SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+@@ -3823,6 +4019,7 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -3992,6 +4189,7 @@
+         SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
+         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
+@@ -4000,6 +4198,7 @@
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
++        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
+         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
+@@ -4080,6 +4279,7 @@
+     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V1_EXECUTION_SETTINGS",
++    "CANONICAL_SR_SNAKE_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1_EXECUTION_SETTINGS",
+@@ -4088,6 +4288,7 @@
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1_EXECUTION_SETTINGS",
++    "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1_EXECUTION_SETTINGS",
+@@ -4101,6 +4302,8 @@
+     "HISTORICAL_SR_SNAKE_RESPONSE_SCOPE_SETTINGS",
+     "INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS",
+     "INSERTION_COMMUTATION_PLATEAU_CUMULATIVE_DECREASE_RATIO_THRESHOLD",
++    "INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS",
++    "INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD",
+     "PHASE3_RESPONSE_COORDINATE_SCOPE_CHOICES",
+     "PHASE3_RESPONSE_COORDINATE_SCOPE_CANDIDATE_MATERIAL_COUPLING_WINDOW_V1",
+     "PHASE3_RESPONSE_COORDINATE_SCOPE_FIXED_LOCAL_WINDOW_V1",
+@@ -4126,6 +4329,8 @@
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1",
+     "SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1",
+     "SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1",
++    "SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2",
++    "SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_ALIAS_V1",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1",
+     "SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_ALIAS_V1",
+@@ -4142,6 +4347,8 @@
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2",
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V1",
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1",
++    "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_ALIAS_V2",
++    "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2",
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_ALIAS_V1",
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1",
+     "SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ALIAS_V1",
+@@ -4191,6 +4398,8 @@
+     "canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract_sha256",
+     "canonical_sr_snake_insertion_commutation_plateau_v1_contract",
+     "canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256",
++    "canonical_sr_snake_insertion_commutation_plateau_v2_contract",
++    "canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256",
+     "canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_query_neutral_prune_v1_contract",
+     "canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_query_neutral_prune_v1_contract_sha256",
+     "canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract",
+@@ -4207,6 +4416,8 @@
+     "canonical_sr_snake_macro_only_physical_lanes_commutation_reduced_insertion_diagnostic_v2_contract_sha256",
+     "canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract",
+     "canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256",
++    "canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract",
++    "canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256",
+     "canonical_sr_snake_macro_only_physical_lanes_one_sided_cost_v1_contract",
+     "canonical_sr_snake_macro_only_physical_lanes_one_sided_cost_v1_contract_sha256",
+     "canonical_sr_snake_macro_only_physical_lanes_fs_prune_beam_v1_contract",
+--- a/pipelines/static_adapt/sr_snake/_context.py
++++ b/pipelines/static_adapt/sr_snake/_context.py
+@@ -39,7 +39,7 @@
+     as _ACTIVE_COMBINATORIAL_PROFILE,
+     SR_ROUTE_PROFILE_GREEDY_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+     as _ACTIVE_GREEDY_PROFILE,
+-    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1
++    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2
+     as _ACTIVE_INSERTION_PROFILE,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1
+     as _ACTIVE_ALWAYS_INSERTION_PROFILE,
+@@ -55,8 +55,8 @@
+     canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+     canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract,
+     canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+-    canonical_sr_snake_insertion_commutation_plateau_v1_contract,
+-    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256,
++    canonical_sr_snake_insertion_commutation_plateau_v2_contract,
++    canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract,
+@@ -383,12 +383,12 @@
+         and isinstance(pruning, PruningOff)
+         and isinstance(beam, BeamOff)
+     ):
+-        contract = canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++        contract = canonical_sr_snake_insertion_commutation_plateau_v2_contract()
+         return (
+             _ACTIVE_INSERTION_PROFILE,
+             _ACTIVE_INSERTION_PROFILE,
+             contract,
+-            canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256(),
++            canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256(),
+         )
+     if (
+         isinstance(admission, SingletonAdmission)
+@@ -504,7 +504,7 @@
+         insertion_tag = "always_commutation_reduced"
+     elif isinstance(insertion, PlateauCommutationInsertion):
+         insertion_contract = (
+-            canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++            canonical_sr_snake_insertion_commutation_plateau_v2_contract()
+         )
+         execution_settings["adapt_insertion_mode"] = (
+             insertion_contract["execution_settings"]["adapt_insertion_mode"]
+@@ -514,7 +514,7 @@
+             "insertion_position_scope",
+             "insertion_equivalence_policy",
+             "plateau_trigger_source",
+-            "plateau_cumulative_decrease_ratio_threshold",
++            "plateau_prior_mean_decrease_ratio_threshold",
+             "plateau_threshold_comparison",
+             "plateau_threshold_calibration_status",
+             "plateau_patience",
+--- a/pipelines/static_adapt/sr_snake/_selection.py
++++ b/pipelines/static_adapt/sr_snake/_selection.py
+@@ -15,10 +15,12 @@
+ 
+ from pipelines.static_adapt.sr_snake_route_profile import (
+     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
++    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+     SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+-    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256 as _canonical_insertion_selection_contract_sha256,
++    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256 as _canonical_insertion_v1_selection_contract_sha256,
++    canonical_sr_snake_insertion_commutation_plateau_v2_contract_sha256 as _canonical_insertion_v2_selection_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract_sha256 as _canonical_commutation_reduced_insertion_selection_contract_sha256,
+     canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256 as _canonical_default_selection_contract_sha256,
+     canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256 as _canonical_prune_selection_contract_sha256,
+@@ -48,7 +50,11 @@
+         ),
+         (
+             SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
+-            _canonical_insertion_selection_contract_sha256(),
++            _canonical_insertion_v1_selection_contract_sha256(),
++        ),
++        (
++            SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
++            _canonical_insertion_v2_selection_contract_sha256(),
+         ),
+         (
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
+--- a/pipelines/static_adapt/sr_snake/_resume.py
++++ b/pipelines/static_adapt/sr_snake/_resume.py
+@@ -32,6 +32,11 @@
+ from pipelines.static_adapt.ra_adapt.contracts import (
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
++)
++from pipelines.static_adapt.sr_snake_route_profile import (
++    INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS,
++    INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS,
++    INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD,
+ )
+ 
+ 
+@@ -349,6 +354,7 @@
+             ),
+             "full_commutation_reduced": "always_commutation_reduced",
+             "insertion_commutation_plateau_v1": "plateau_commutation",
++            "insertion_commutation_plateau_v2": "plateau_commutation",
+         }.get(insertion_mode, insertion_mode)
+     insertion_policy = _text(
+         insertion_policy_raw,
+@@ -368,15 +374,22 @@
+         raise CanonicalResumeError(
+             "Authenticated route insertion policy is unsupported."
+         )
+-    expected_mode = {
+-        "append_only": "append_only",
+-        AppendCommutationReducedInsertion.kind: (
+-            AppendCommutationReducedInsertion.runtime_mode
++    expected_modes = {
++        "append_only": frozenset({"append_only"}),
++        AppendCommutationReducedInsertion.kind: frozenset(
++            {AppendCommutationReducedInsertion.runtime_mode}
+         ),
+-        "always_commutation_reduced": "full_commutation_reduced",
+-        "plateau_commutation": "insertion_commutation_plateau_v1",
++        "always_commutation_reduced": frozenset(
++            {"full_commutation_reduced"}
++        ),
++        "plateau_commutation": frozenset(
++            {
++                "insertion_commutation_plateau_v1",
++                "insertion_commutation_plateau_v2",
++            }
++        ),
+     }[insertion_policy]
+-    if insertion_mode is None or insertion_mode != expected_mode:
++    if insertion_mode is None or insertion_mode not in expected_modes:
+         raise CanonicalResumeError(
+             "Authenticated route insertion policy and execution mode "
+             "disagree."
+@@ -2291,6 +2304,32 @@
+     insertion_policy = _resolve_authenticated_insertion_policy(
+         route_contract
+     )
++    route_execution_settings = _mapping(
++        route_contract.get("execution_settings"),
++        owner="route execution settings",
++    )
++    insertion_mode = _text(
++        route_execution_settings.get("adapt_insertion_mode"),
++        owner="route insertion mode",
++    )
++    plateau_receipt_identities = {
++        "insertion_commutation_plateau_v1": (
++            "insertion_commutation_plateau_round_policy_v1",
++            INSERTION_COMMUTATION_PLATEAU_CALIBRATION_STATUS,
++        ),
++        "insertion_commutation_plateau_v2": (
++            "insertion_commutation_plateau_round_policy_v2",
++            INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_CALIBRATION_STATUS,
++        ),
++    }
++    plateau_receipt_identity = plateau_receipt_identities.get(insertion_mode)
++    if (
++        insertion_policy == "plateau_commutation"
++        and plateau_receipt_identity is None
++    ):
++        raise CanonicalResumeError(
++            "Authenticated plateau route has no supported receipt identity."
++        )
+     batch_maximum: int | None = None
+     batch_search_window: int | None = None
+     if route_family != "singleton_response_snake":
+@@ -2595,6 +2634,13 @@
+                         "plan."
+                     )
+         else:
++            if plateau_receipt_identity is None:
++                raise CanonicalResumeError(
++                    "Authenticated plateau route has no receipt identity."
++                )
++            plateau_receipt_schema, plateau_calibration_status = (
++                plateau_receipt_identity
++            )
+             insertion_receipt = _mapping(
+                 insertion_receipt_raw,
+                 owner=(
+@@ -2619,10 +2665,8 @@
+                     f"history[{round_index - 1}]."
+                     "insertion_commutation_plateau"
+                 ),
+-                expected_schema=(
+-                    "insertion_commutation_plateau_round_policy_v1"
+-                ),
+-                expected_policy="insertion_commutation_plateau_v1",
++                expected_schema=plateau_receipt_schema,
++                expected_policy=insertion_mode,
+                 expected_requested_positions=(
+                     tuple(range(pre_round_depth + 1))
+                     if domain_open
+@@ -2738,13 +2782,42 @@
+                     ),
+                     minimum=0,
+                 )
++            if insertion_mode == "insertion_commutation_plateau_v2":
++                _integer(
++                    insertion_receipt.get(
++                        "prior_accepted_transition_count"
++                    ),
++                    owner=(
++                        f"history[{round_index - 1}] insertion prior "
++                        "accepted transition count"
++                    ),
++                    minimum=0,
++                )
++                if (
++                    _finite(
++                        insertion_receipt.get(
++                            "prior_mean_decrease_ratio_threshold"
++                        ),
++                        owner=(
++                            f"history[{round_index - 1}] insertion prior "
++                            "mean decrease ratio threshold"
++                        ),
++                    )
++                    != INSERTION_COMMUTATION_PLATEAU_PRIOR_MEAN_DECREASE_RATIO_THRESHOLD
++                    or insertion_receipt.get("threshold_comparison")
++                    != "marginal_to_prior_mean_strictly_below_v2"
++                ):
++                    raise CanonicalResumeError(
++                        f"Accepted round {round_index} prior-mean plateau "
++                        "receipt is incomplete."
++                    )
+             if (
+                 insertion_receipt.get("schema")
+-                != "insertion_commutation_plateau_round_policy_v1"
++                != plateau_receipt_schema
+                 or insertion_receipt.get("policy")
+-                != "insertion_commutation_plateau_v1"
++                != insertion_mode
+                 or insertion_receipt.get("calibration_status")
+-                != "source_locked_completed_trajectory_replay_v1"
++                != plateau_calibration_status
+                 or insertion_receipt.get("exact_reference_used") is not False
+                 or _integer(
+                     insertion_receipt.get("candidate_count"),
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -298,9 +298,21 @@
+                 "commutation-reduced domain."
+             )
+     elif isinstance(insertion, PlateauCommutationInsertion):
++        declared_plateau_policy = str(
++            invariants.get("experimental_insertion_policy", "")
++        ).strip()
++        expected_plateau_mode = (
++            declared_plateau_policy
++            if declared_plateau_policy
++            in {
++                "insertion_commutation_plateau_v1",
++                "insertion_commutation_plateau_v2",
++            }
++            else "insertion_commutation_plateau_v2"
++        )
+         if (
+             execution.get("adapt_insertion_mode")
+-            != "insertion_commutation_plateau_v1"
++            != expected_plateau_mode
+             or invariants.get("insertion_equivalence_policy")
+             != ALWAYS_REDUCED_INSERTION_EQUIVALENCE
+         ):
+@@ -1901,10 +1913,22 @@
+         }
+         plateau = raw_row.get("insertion_commutation_plateau")
+         if plateau is not None:
++            plateau_policy = (
++                str(plateau.get("policy", "")).strip()
++                if isinstance(plateau, Mapping)
++                else ""
++            )
++            if plateau_policy not in {
++                "insertion_commutation_plateau_v1",
++                "insertion_commutation_plateau_v2",
++            }:
++                raise RuntimeError(
++                    "Accepted RA plateau-insertion policy is unknown."
++                )
+             try:
+                 validate_commutation_reduced_insertion_receipt(
+                     plateau,
+-                    expected_policy="insertion_commutation_plateau_v1",
++                    expected_policy=plateau_policy,
+                     expected_requested_positions=(
+                         list(range(append_position + 1))
+                         if isinstance(plateau, Mapping)
+--- a/pipelines/static_adapt/ra_adapt/insertion_geometry.py
++++ b/pipelines/static_adapt/ra_adapt/insertion_geometry.py
+@@ -509,8 +509,19 @@
+             != "full_commutation_reduced"
+         ):
+             raise ValueError("Always-reduced receipt domain state drifted.")
+-    elif policy == "insertion_commutation_plateau_v1":
+-        if schema != "insertion_commutation_plateau_round_policy_v1":
++    elif policy in {
++        "insertion_commutation_plateau_v1",
++        "insertion_commutation_plateau_v2",
++    }:
++        expected_schema = {
++            "insertion_commutation_plateau_v1": (
++                "insertion_commutation_plateau_round_policy_v1"
++            ),
++            "insertion_commutation_plateau_v2": (
++                "insertion_commutation_plateau_round_policy_v2"
++            ),
++        }[policy]
++        if schema != expected_schema:
+             raise ValueError("Plateau-reduced receipt schema drifted.")
+         domain_open = receipt.get("domain_open")
+         expected_mode = (
+--- a/pipelines/static_adapt/ra_adapt/bundles.py
++++ b/pipelines/static_adapt/ra_adapt/bundles.py
+@@ -1385,7 +1385,7 @@
+             },
+             ROUTE_RA_GLOBAL_SINGLETON_PLATEAU: {
+                 "typed_kind": PlateauCommutationInsertion.kind,
+-                "runtime_mode": "insertion_commutation_plateau_v1",
++                "runtime_mode": "insertion_commutation_plateau_v2",
+                 "position_scope": (
+                     "append_only_or_immediate_plateau_full_logical_"
+                     "domain_v1"
+@@ -1394,9 +1394,9 @@
+                     "termwise_cross_component_commutation_"
+                     "earliest_representative_v1"
+                 ),
+-                "cumulative_decrease_ratio_threshold": 1e-4,
++                "prior_mean_decrease_ratio_threshold": 1e-4,
+                 "threshold_comparison": (
+-                    "marginal_to_prior_cumulative_strictly_below_v1"
++                    "marginal_to_prior_mean_strictly_below_v2"
+                 ),
+                 "patience": 1,
+                 "hysteresis_active": False,
+@@ -2968,17 +2968,17 @@
+         )
+     if cell.route_id == ROUTE_RA_GLOBAL_SINGLETON_PLATEAU and (
+         route_execution.get("adapt_insertion_mode")
+-        != "insertion_commutation_plateau_v1"
++        != "insertion_commutation_plateau_v2"
+         or route_invariants.get("insertion_position_scope")
+         != "append_only_or_immediate_plateau_full_logical_domain_v1"
+         or route_invariants.get("insertion_equivalence_policy")
+         != AppendCommutationReducedInsertion.equivalence_policy
+         or route_invariants.get(
+-            "plateau_cumulative_decrease_ratio_threshold"
++            "plateau_prior_mean_decrease_ratio_threshold"
+         )
+         != 1e-4
+         or route_invariants.get("plateau_threshold_comparison")
+-        != "marginal_to_prior_cumulative_strictly_below_v1"
++        != "marginal_to_prior_mean_strictly_below_v2"
+         or route_invariants.get("plateau_patience") != 1
+         or route_invariants.get("plateau_hysteresis_active") is not False
+     ):
+@@ -4386,6 +4386,7 @@
+         "insertion_equivalence_policy",
+         "online_exact_reference_used",
+         "plateau_cumulative_decrease_ratio_threshold",
++        "plateau_prior_mean_decrease_ratio_threshold",
+         "plateau_hysteresis_active",
+         "plateau_patience",
+         "plateau_threshold_calibration_status",
+--- a/pipelines/reporting/paper_i_run_summary.py
++++ b/pipelines/reporting/paper_i_run_summary.py
+@@ -590,6 +590,24 @@
+                 )
+                 parent_profile = str(
+                     parent_contract.get("route_profile", "")
++                )
++            elif (
++                algorithm_id == RA_ADAPT_LEGACY_ALGORITHM_ID
++                and str(method.insertion.kind) == "plateau_commutation"
++            ):
++                from pipelines.static_adapt.sr_snake_route_profile import (
++                    canonical_sr_snake_insertion_commutation_plateau_v1_contract,
++                    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256,
++                )
++
++                parent_contract = (
++                    canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++                )
++                parent_profile = str(
++                    parent_contract.get("route_profile", "")
++                )
++                parent_sha256 = (
++                    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256()
+                 )
+             else:
+                 (
+@@ -823,7 +841,32 @@
+             expected_profile,
+             expected_contract_sha256,
+         )
+-        route_identity_matches = observed_identity == expected_identity
++        expected_identities = {expected_identity}
++        if str(method.insertion.kind) == "plateau_commutation":
++            from pipelines.static_adapt.sr_snake_route_profile import (
++                canonical_sr_snake_insertion_commutation_plateau_v1_contract,
++                canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256,
++            )
++
++            legacy_contract = (
++                canonical_sr_snake_insertion_commutation_plateau_v1_contract()
++            )
++            legacy_profile = _nonempty(
++                legacy_contract.get("route_profile"),
++                name="legacy canonical route profile",
++            )
++            expected_identities.add(
++                (
++                    _nonempty(
++                        legacy_contract.get("route_family"),
++                        name="legacy canonical route family",
++                    ),
++                    legacy_profile,
++                    legacy_profile,
++                    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256(),
++                )
++            )
++        route_identity_matches = observed_identity in expected_identities
+         representation_matches = (
+             representation == CANONICAL_CANDIDATE_REPRESENTATION
+         )
+
+

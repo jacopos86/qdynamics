@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "archive_only_tests_complete": true,
+    "exact_settings_diff": true,
+    "main_anchor_complete": true,
+    "remote_image_gate_complete": true,
+    "source_freeze_complete": true
+  },
+  "preparation_status": "pass",
+  "schema": "paper_i_hh_sr_prune_appendix_preflight_v1",
+  "scientific_blockers": [],
+  "status": "pass_submission_ready_not_yet_submitted",
+  "submission_authorized": true,
+  "submission_blockers": [],
+  "submission_performed": false,
+  "submission_status": "submission_ready_not_yet_submitted"
+}

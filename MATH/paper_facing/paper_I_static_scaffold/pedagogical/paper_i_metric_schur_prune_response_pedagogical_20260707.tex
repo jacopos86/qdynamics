@@ -1,0 +1,1947 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=0.58in,columnsep=0.22in]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{3pt}
+\allowdisplaybreaks
+\sloppy
+
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\FS}{\mathrm{FS}}
+\newcommand{\Schur}{\mathrm{Schur}}
+\newcommand{\rhs}{\mathrm{rhs}}
+
+\newcommand{\blocktitle}[1]{\vspace{2pt}\noindent\textbf{#1}\space}
+\newcommand{\micro}[1]{\blocktitle{Micro-intuition:} #1}
+\newcommand{\deriv}{\blocktitle{Mathematical derivation:}}
+\newcommand{\phys}[1]{\blocktitle{Physical interpretation:} #1}
+
+\title{\vspace{-2.2em}Metric-Regularized Schur Prune Response}
+\author{}
+\date{\vspace{-2.8em}}
+
+\begin{document}
+\maketitle
+\vspace{-1.5em}
+
+This note derives only the metric-regularized Schur response used to nominate a generator deletion in Paper I SNAKE. The object is a ranking surrogate; the measured delete/refit energy test remains the acceptance authority.
+
+\section*{Executive Reading}
+
+The implemented prune route is best read as a local blocked quadratic elimination problem. Deleting coordinate \(j\) forces \(\Delta\theta_j=-\theta_j\); the survivor set \(D\) then tries to compensate through \(\delta\theta_D\), and the nomination score measures how much of the frozen deletion burden is recovered by that local survivor response.
+
+The implementation forms the metric-regularized block \(\mathcal Q=H+\eta G\) before blocking the deleted coordinate from the survivors. Thus \(H\) is the physical energy Hessian block at the current refit ansatz, \(G\) is the real horizontally projected Fubini--Study Gram block on the ansatz tangents, and \(\mathcal Q_{Dj}=H_{Dj}+\eta G_{Dj}\) enters the right-hand side of the survivor solve. This is the full deleted-coordinate recoverability surrogate. It is not the response-only damping model in which \(G\) appears only as \(G_{DD}\) on the left-hand side.
+
+Two audit points are the useful mental guardrails. First, the scalar \(\Lambda(A_j)\) is a metric-regularized Schur nomination surrogate, because the score is computed from \(\mathcal Q\), not from \(H\) alone. Second, the Schur-complement language is exact only for an invertible survivor block; with a pseudoinverse or ridge it is a generalized or regularized Schur-reduced burden. The measured delete/refit branch remains the object that decides whether deletion is actually accepted.
+
+The algorithmic chain is: forced deletion, survivor-response quadratic, stationary blocked solve, Schur-reduced frozen-minus-credit score, nomination, measured delete/refit acceptance. The geometric chain is: horizontal projection, projected tangent Gram \(G\), deleted-tangent residual, metric regularization, full recoverability surrogate. These chains coincide only in the metric-only least-squares projection problem; in the implemented prune route they are coupled through \(\mathcal Q=H+\eta G\).
+
+
+\subsection*{Paper-I Notation Bridge}
+
+The manuscript writes the metric-regularized curvature as
+\[
+\mathcal Q:=H+\eta G,
+\]
+and denotes the deletion score and removed-cost normalization by
+\[
+\Lambda(A_j),
+\qquad
+\frac{\Lambda(A_j)}{K_j}.
+\]
+Those symbols are used throughout this note. The index \(j\) fixes the generator proposed for deletion, so the survivor set is written simply as \(D=\{1,\ldots,n_k\}\setminus\{j\}\), rather than carrying a redundant \(D_j\) subscript through every block. Likewise, the manuscript evaluates the construction at the optimized point \(\boldsymbol\theta_k^\star\). To keep the component derivation readable, the note suppresses the star after this declaration: every \(\theta_i\), \(H\), \(G\), and \(\mathcal Q\) below is evaluated at \(\boldsymbol\theta_k^\star\) unless a trial displacement is shown explicitly.
+
+\section*{Local Deletion Geometry}
+
+\micro{Deleting coordinate \(j\) fixes one parameter displacement and asks the surviving coordinates to compensate it.}
+
+\deriv
+At adaptive step \(k\), write the current refit ansatz and state as
+\[
+\begin{aligned}
+U_k(\boldsymbol\theta_k)
+&=
+\prod_{i=1}^{n_k}\exp(\theta_iA_i),
+&
+\mathbf A_k&=(A_1,\ldots,A_{n_k}),
+\\
+\ket{\psi_k}
+&=
+\ket{\psi(U_k,\boldsymbol\theta_k)}\in\mathcal H,
+&
+\boldsymbol\theta_k&=(\theta_1,\ldots,\theta_{n_k})^{\mathsf T}\in\mathbb R^{n_k}.
+\end{aligned}
+\]
+For \(j\in\{1,\ldots,n_k\}\), define
+\[
+D:=\{1,\ldots,n_k\}\setminus\{j\},
+\qquad
+d:=|D|=n_k-1.
+\]
+Writing the inherited increasing order of \(D\) as
+\[
+D=(d_\alpha)_{\alpha=1}^{d},
+\qquad
+1\le d_1<\cdots<d_d\le n_k ,
+\]
+the deleted and survivor parameters obey
+\[
+\theta_j'=0,
+\qquad
+\theta_{d_\alpha}'=\theta_{d_\alpha}+\delta\theta_{d_\alpha},
+\qquad
+1\le\alpha\le d.
+\]
+The deletion displacement and survivor response are
+\[
+-\theta_j\in\mathbb R,
+\qquad
+\delta\theta_D=(\delta\theta_u)_{u\in D}\in\mathbb R^d.
+\]
+Equivalently,
+\[
+\Delta\theta_a
+=
+-\theta_j\,\mathbf 1\{a=j\}
++
+\sum_{\alpha=1}^{d}\delta\theta_{d_\alpha}\mathbf 1\{a=d_\alpha\},
+\qquad
+1\le a\le n_k .
+\]
+The combined displacement over \(\{j\}\cup D\) is
+\[
+x_j(\delta\theta_D)
+=
+\begin{bmatrix}
+-\theta_j\\
+\delta\theta_D
+\end{bmatrix}
+\in\mathbb R^{1+d}.
+\]
+
+\phys{The ablation decision is not a small perturbation in the deleted coordinate: it deterministically removes \(\theta_j\). The local approximation asks whether the survivor generators can mimic that deletion through \(\delta\theta_D\).}
+
+\micro{The implementation builds one symmetric quadratic block that combines energy curvature with Fubini--Study geometry.}
+
+\deriv
+For \(a,b\in\{j\}\cup D\), define
+\[
+\tau_a
+=
+\partial_{\theta_a}\ket{\psi(U_k,\boldsymbol\theta_k)}
+\in\mathcal H,
+\]
+\[
+H_{ab}
+=
+\partial_{\theta_a}\partial_{\theta_b}
+E(U_k,\boldsymbol\theta_k)
+\in\mathbb R,
+\]
+\[
+G_{ab}
+=
+\operatorname{Re}\langle \Pi\tau_a,\Pi\tau_b\rangle
+\in\mathbb R,
+\]
+with \(\Pi:\mathcal H\to\mathcal H\) the horizontal projector at the current state,
+\[
+\Pi=I_{\mathcal H}-\ket{\psi_k}\bra{\psi_k},
+\qquad
+\Pi^\dagger=\Pi,
+\qquad
+\Pi^2=\Pi .
+\]
+For real coordinates,
+\[
+\begin{aligned}
+G_{ba}
+&=
+\operatorname{Re}\langle \Pi\tau_b,\Pi\tau_a\rangle
+=
+\operatorname{Re}\overline{\langle \Pi\tau_a,\Pi\tau_b\rangle}
+=G_{ab},
+\\
+H_{ba}&=H_{ab}.
+\end{aligned}
+\]
+The projected Gram block is positive semidefinite because, for \(x=(x_a)\in\mathbb R^{n_k}\),
+\[
+\begin{aligned}
+x^{\mathsf T}Gx
+&=
+\sum_{a,b=1}^{n_k}x_aG_{ab}x_b
+\\
+&=
+\operatorname{Re}
+\left\langle
+\sum_{a=1}^{n_k}x_a\Pi\tau_a,
+\sum_{b=1}^{n_k}x_b\Pi\tau_b
+\right\rangle
+\\
+&=
+\left\|
+\sum_{a=1}^{n_k}x_a\Pi\tau_a
+\right\|_{\mathcal H}^{2}
+\ge0 .
+\end{aligned}
+\]
+The implemented metric Schur route first forms symmetrized positive-semidefinite blocks, still denoted \(H\) and \(G\), and then sets
+\[
+\begin{aligned}
+\mathcal Q&:=H+\eta G,
+&
+\eta&\ge 0,
+\\
+H&\succeq0,
+&
+G&\succeq0,
+\\
+\mathcal Q&=\mathcal Q^{\mathsf T}\succeq0.
+\end{aligned}
+\]
+Restrict \(\mathcal Q\) to \(\{j\}\cup D\):
+\[
+\mathcal Q_{\{j\}\cup D,\{j\}\cup D}
+=
+\begin{bmatrix}
+\mathcal Q_{jj} & \mathcal Q_{jD}\\
+\mathcal Q_{Dj} & \mathcal Q_{DD}
+\end{bmatrix},
+\]
+\[
+\mathcal Q_{Dj}=(\mathcal Q_{uj})_{u\in D}\in\mathbb R^d,
+\qquad
+\mathcal Q_{DD}=(\mathcal Q_{uv})_{u,v\in D}\in\mathbb R^{d\times d}.
+\]
+In the ordered survivor labels \(D=(d_\alpha)_{\alpha=1}^{d}\),
+\[
+\begin{aligned}
+\mathcal Q_{Dj}
+&=
+\begin{bmatrix}
+\mathcal Q_{d_1j}\\
+\mathcal Q_{d_2j}\\
+\vdots\\
+\mathcal Q_{d_dj}
+\end{bmatrix},
+\\
+\mathcal Q_{DD}
+&=
+\begin{bmatrix}
+\mathcal Q_{d_1d_1} & \mathcal Q_{d_1d_2} & \cdots & \mathcal Q_{d_1d_d}\\
+\mathcal Q_{d_2d_1} & \mathcal Q_{d_2d_2} & \cdots & \mathcal Q_{d_2d_d}\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathcal Q_{d_dd_1} & \mathcal Q_{d_dd_2} & \cdots & \mathcal Q_{d_dd_d}
+\end{bmatrix}.
+\end{aligned}
+\]
+Because \(\mathcal Q=\mathcal Q^{\mathsf T}\),
+\[
+\mathcal Q_{jD}=\mathcal Q_{Dj}^{\mathsf T}.
+\]
+Expanding \(\mathcal Q=H+\eta G\) inside the deletion blocks,
+\[
+\begin{aligned}
+\mathcal Q_{jj}&=H_{jj}+\eta G_{jj},
+&
+\mathcal Q_{Dj}&=H_{Dj}+\eta G_{Dj},
+\\
+\mathcal Q_{jD}&=H_{jD}+\eta G_{jD},
+&
+\mathcal Q_{DD}&=H_{DD}+\eta G_{DD}.
+\end{aligned}
+\]
+
+\phys{The metric contribution is a geometric nomination penalty. It adds Fubini--Study deleted-tangent recoverability to the Schur curvature model.}
+
+\section*{Quadratic Surrogate}
+
+\micro{The score starts from the quadratic form induced by the block \(\mathcal Q=H+\eta G\).}
+
+\deriv
+Define the local metric-Schur deletion surrogate
+\[
+\Phi_j^\ominus(\delta\theta_D)
+:=
+\frac12
+x_j(\delta\theta_D)^{\mathsf T}
+\begin{bmatrix}
+\mathcal Q_{jj} & \mathcal Q_{jD}\\
+\mathcal Q_{Dj} & \mathcal Q_{DD}
+\end{bmatrix}
+x_j(\delta\theta_D).
+\]
+Substitute \(x_j(\delta\theta_D)=(-\theta_j,\delta\theta_D)^{\mathsf T}\):
+{\scriptsize
+\[
+\begin{aligned}
+\Phi_j^\ominus(\delta\theta_D)
+&=
+\frac12
+\begin{bmatrix}
+-\theta_j & \delta\theta_D^{\mathsf T}
+\end{bmatrix}
+\begin{bmatrix}
+\mathcal Q_{jj} & \mathcal Q_{jD}\\
+\mathcal Q_{Dj} & \mathcal Q_{DD}
+\end{bmatrix}
+\begin{bmatrix}
+-\theta_j\\
+\delta\theta_D
+\end{bmatrix}
+\\
+&=
+\frac12
+\begin{bmatrix}
+-\theta_j & \delta\theta_D^{\mathsf T}
+\end{bmatrix}
+\begin{bmatrix}
+-\theta_j\mathcal Q_{jj}+\mathcal Q_{jD}\delta\theta_D\\
+-\theta_j\mathcal Q_{Dj}+\mathcal Q_{DD}\delta\theta_D
+\end{bmatrix}
+\\
+&=
+\frac12\theta_j^2\mathcal Q_{jj}
+-\frac12\theta_j\mathcal Q_{jD}\delta\theta_D
+-\frac12\theta_j\delta\theta_D^{\mathsf T}\mathcal Q_{Dj}
++\frac12\delta\theta_D^{\mathsf T}\mathcal Q_{DD}\delta\theta_D
+\\
+&=
+\frac12\theta_j^2\mathcal Q_{jj}
+-\theta_j\mathcal Q_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}\mathcal Q_{DD}\delta\theta_D .
+\end{aligned}
+\]
+}
+The component form is
+\[
+\Phi_j^\ominus(\delta\theta_D)
+=
+\frac12\theta_j^2\mathcal Q_{jj}
+-\theta_j\sum_{u\in D}\mathcal Q_{uj}\delta\theta_u
++\frac12\sum_{u\in D}\sum_{v\in D}
+\delta\theta_u\mathcal Q_{uv}\delta\theta_v.
+\]
+The multiplications are shape-compatible because
+\[
+\begin{aligned}
+\mathcal Q_{jD}\delta\theta_D
+&\in \mathbb R^{1\times d}\mathbb R^d=\mathbb R,
+\\
+\mathcal Q_{DD}\delta\theta_D
+&\in \mathbb R^{d\times d}\mathbb R^d=\mathbb R^d,
+\\
+\mathcal Q_{Dj}^{\mathsf T}\delta\theta_D
+&\in \mathbb R^{1\times d}\mathbb R^d=\mathbb R .
+\end{aligned}
+\]
+
+\phys{The first term is the frozen deletion burden. The middle term is the recoverability credit from coupling the deleted coordinate to survivors. The last term is the quadratic cost of moving survivors.}
+
+\micro{The same expression expands into energy curvature and Fubini--Study geometry by substituting \(\mathcal Q=H+\eta G\).}
+
+\deriv
+\[
+\begin{aligned}
+\Phi_j^\ominus(\delta\theta_D)
+={}&
+\frac12\theta_j^2(H_{jj}+\eta G_{jj})
+\\
+&-\theta_j
+(H_{Dj}+\eta G_{Dj})^{\mathsf T}\delta\theta_D
+\\
+&+\frac12
+\delta\theta_D^{\mathsf T}
+(H_{DD}+\eta G_{DD})
+\delta\theta_D .
+\end{aligned}
+\]
+The Fubini--Study part alone is
+\[
+\begin{aligned}
+\Phi_{j,G}^\ominus(\delta\theta_D)
+&=
+\frac12
+\left\|
+\Pi\left(
+-\theta_j\tau_j+\sum_{u\in D}\delta\theta_u\tau_u
+\right)
+\right\|^2
+\\
+&=
+\frac12\theta_j^2G_{jj}
+-\theta_jG_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D .
+\end{aligned}
+\]
+Thus
+\[
+\Phi_j^\ominus(\delta\theta_D)
+=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++\eta\Phi_{j,G}^\ominus(\delta\theta_D).
+\]
+
+\phys{The \(G_{Dj}\) cross block appears because the implemented model penalizes the full deleted-coordinate plus survivor-response displacement. This is the deleted-tangent recoverability model.}
+
+\section*{Schur Response}
+
+\micro{The Schur response is the survivor displacement that minimizes the local surrogate.}
+
+\deriv
+The optimization variable and objective are
+\[
+\delta\theta_D\in\mathbb R^d,
+\qquad
+\delta\theta_D^\star
+\in
+\arg\min_{\delta\theta_D\in\mathbb R^d}
+\Phi_j^\ominus(\delta\theta_D).
+\]
+The derivative shapes are
+\[
+\mathcal Q_{Dj}\in\mathbb R^d,
+\qquad
+\mathcal Q_{DD}\delta\theta_D\in\mathbb R^d,
+\qquad
+\nabla_{\delta\theta_D}\Phi_j^\ominus\in\mathbb R^d.
+\]
+Differentiate the component form:
+{\small
+\[
+\begin{aligned}
+\frac{\partial \Phi_j^\ominus}{\partial \delta\theta_w}
+&=
+\frac{\partial}{\partial\delta\theta_w}
+\left[
+\frac12\theta_j^2\mathcal Q_{jj}
+-\theta_j\sum_{u\in D}\mathcal Q_{uj}\delta\theta_u
++\frac12\sum_{u,v\in D}
+\delta\theta_u\mathcal Q_{uv}\delta\theta_v
+\right]
+\\
+&=
+-\theta_j\mathcal Q_{wj}
++\frac12\sum_{v\in D}\mathcal Q_{wv}\delta\theta_v
++\frac12\sum_{u\in D}\delta\theta_u\mathcal Q_{uw}
+\\
+&=
+-\theta_j\mathcal Q_{wj}
++\sum_{v\in D}\mathcal Q_{wv}\delta\theta_v,
+\qquad w\in D.
+\end{aligned}
+\]
+}
+In vector form,
+\[
+\nabla_{\delta\theta_D}\Phi_j^\ominus
+=
+-\theta_j\mathcal Q_{Dj}
++\mathcal Q_{DD}\delta\theta_D.
+\]
+Stationarity gives
+\[
+-\theta_j\mathcal Q_{Dj}+\mathcal Q_{DD}\delta\theta_D^\star=0,
+\qquad
+\mathcal Q_{DD}\delta\theta_D^\star=\theta_j\mathcal Q_{Dj}.
+\]
+With the pseudoinverse convention used in the manuscript display,
+\[
+\boxed{
+\delta\theta_D^\star
+=
+\theta_j\mathcal Q_{DD}^{+}\mathcal Q_{Dj}
+}
+\]
+and, after substituting \(\mathcal Q=H+\eta G\),
+\[
+\boxed{
+\delta\theta_D^\star
+=
+\theta_j
+\left(H_{DD}+\eta G_{DD}\right)^+
+\left(H_{Dj}+\eta G_{Dj}\right).
+}
+\]
+
+\phys{The survivor coordinates move in the direction that best explains the deleted coordinate under the metric-regularized curvature block. The term \(G_{Dj}\) is required because the deleted tangent participates in the implemented surrogate.}
+
+\micro{The code uses the same normal equation with an explicit ridge block and a right-hand side.}
+
+\deriv
+The implementation-level objects are
+\[
+R:=\mathcal Q_{DD}+\lambda I_d\in\mathbb R^{d\times d},
+\qquad
+\rhs:=\theta_j\mathcal Q_{Dj}\in\mathbb R^d,
+\]
+\[
+\delta\theta_D^\star=R^+\rhs.
+\]
+When \(\lambda=0\), this reduces to the displayed manuscript convention:
+\[
+R=\mathcal Q_{DD},
+\qquad
+\delta\theta_D^\star
+=
+\theta_j\mathcal Q_{DD}^{+}\mathcal Q_{Dj}.
+\]
+When the gradient-corrected route is enabled, the code changes only the right-hand side:
+\[
+\begin{aligned}
+\Phi_{j,\mathrm{grad}}^\ominus(\delta\theta_D)
+&=
+g_D^{\mathsf T}\delta\theta_D
+-\theta_j\mathcal Q_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}\mathcal Q_{DD}\delta\theta_D,
+\\
+\nabla_{\delta\theta_D}\Phi_{j,\mathrm{grad}}^\ominus
+&=
+g_D-\theta_j\mathcal Q_{Dj}+\mathcal Q_{DD}\delta\theta_D,
+\\
+\mathcal Q_{DD}\delta\theta_D^\star
+&=
+\theta_j\mathcal Q_{Dj}-g_D .
+\end{aligned}
+\]
+Thus
+\[
+\rhs_{\mathrm{grad}}
+=
+\theta_j\mathcal Q_{Dj}-g_D,
+\qquad
+\delta\theta_D^\star
+=
+R^+\rhs_{\mathrm{grad}}.
+\]
+The stationary default used for the current route sets
+\[
+g_D=0.
+\]
+
+\phys{The manuscript can suppress \(\lambda I_d\) in the displayed equations because the inverse-notation convention states that pseudoinverses are regularized. The implemented default is stationary, so no survivor-gradient term belongs in the main formula.}
+
+\section*{Normal-Equation Reading}
+
+\micro{The Fubini--Study part alone is a literal least-squares reconstruction of the deleted tangent by survivor tangents.}
+
+\deriv
+Define the survivor tangent synthesis map \(T_D:\mathbb R^d\to\mathcal H\) by
+\[
+T_D\delta\theta_D
+:=
+\sum_{u\in D}\delta\theta_u\Pi\tau_u,
+\qquad
+y_j:=\theta_j\Pi\tau_j\in\mathcal H .
+\]
+The metric-only recovery problem is
+\[
+\begin{aligned}
+\mathcal J_G(\delta\theta_D)
+&:=
+\left\|
+y_j-T_D\delta\theta_D
+\right\|_{\mathcal H}^2,
+\\
+\delta_G^\star
+&\in
+\arg\min_{\delta\theta_D\in\mathbb R^d}
+\mathcal J_G(\delta\theta_D).
+\end{aligned}
+\]
+Expanding,
+\[
+\begin{aligned}
+\mathcal J_G(\delta\theta_D)
+&=
+\theta_j^2G_{jj}
+-2\theta_jG_{Dj}^{\mathsf T}\delta\theta_D
++\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D,
+\\
+\nabla_{\delta\theta_D}\mathcal J_G
+&=
+-2\theta_jG_{Dj}
++2G_{DD}\delta\theta_D .
+\end{aligned}
+\]
+Thus the metric-only normal equation is
+\[
+G_{DD}\delta_G^\star=\theta_jG_{Dj}.
+\]
+
+\phys{Least squares is exact for the \(G\)-only residual: survivors synthesize a projected tangent vector that approximates the deleted projected tangent. The implemented metric-Schur solve has the same normal-equation shape, but with \(G\) blended with energy curvature.}
+
+\micro{The full route can be read as a Lagrange-style metric damping of the local energy curvature model.}
+
+\deriv
+Under the stationary convention, the Hessian-only deletion quadratic is
+\[
+\Phi_{j,H}^\ominus(\delta\theta_D)
+=
+\frac12\theta_j^2H_{jj}
+-\theta_jH_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}H_{DD}\delta\theta_D.
+\]
+A metric trust-region relaxation uses
+\[
+\Phi_{j,H}^\ominus(\delta\theta_D)
+\quad
+\text{with}
+\quad
+\mathcal R_j^G(\delta\theta_D)\le\rho^2 .
+\]
+The Lagrangian objective is
+\[
+\mathcal L_j(\delta\theta_D;\eta)
+=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++
+\frac{\eta}{2}
+\left(
+\mathcal R_j^G(\delta\theta_D)-\rho^2
+\right).
+\]
+The constant \(-\eta\rho^2/2\) does not change the minimizer, so stationarity gives
+\[
+\begin{aligned}
+0
+&=
+-\theta_jH_{Dj}
++H_{DD}\delta\theta_D
+\\
+&\quad
++\eta\left(-\theta_jG_{Dj}+G_{DD}\delta\theta_D\right),
+\\
+(H_{DD}+\eta G_{DD})
+\delta\theta_D
+&=
+\theta_jH_{Dj}+\eta\theta_jG_{Dj}.
+\end{aligned}
+\]
+
+\phys{The parameter \(\eta\) weights geometric recoverability inside the nomination model. Because the metric penalty is applied to the full deleted-coordinate plus survivor-response displacement, the cross block \(G_{Dj}\) appears on the right-hand side.}
+
+\section*{Nomination Score}
+
+\micro{The optimized score is the frozen deletion burden minus the recoverability credit, clipped below at zero.}
+
+\deriv
+Using \(R=\mathcal Q_{DD}+\lambda I_d\), \(\rhs=\theta_j\mathcal Q_{Dj}\), and \(\delta=R^+\rhs\), the code-level quantities are
+\[
+\mathrm{frozen}
+:=
+\frac12\theta_j^2\mathcal Q_{jj},
+\]
+\[
+\mathrm{credit}
+:=
+\rhs^{\mathsf T}\delta
+-\frac12\delta^{\mathsf T}R\delta,
+\]
+\[
+\Lambda(A_j)
+:=
+\max\{0,\mathrm{frozen}-\mathrm{credit}\}.
+\]
+The scalar shapes are
+\[
+\begin{aligned}
+\rhs^{\mathsf T}\delta
+&\in\mathbb R^{1\times d}\mathbb R^d=\mathbb R,
+\\
+\delta^{\mathsf T}R\delta
+&\in
+\mathbb R^{1\times d}\mathbb R^{d\times d}\mathbb R^d
+=\mathbb R,
+\\
+\mathrm{frozen},\mathrm{credit},\Lambda(A_j)&\in\mathbb R .
+\end{aligned}
+\]
+If \(R\delta=\rhs\), then
+\[
+\begin{aligned}
+\mathrm{credit}
+&=
+\rhs^{\mathsf T}\delta
+-\frac12\delta^{\mathsf T}R\delta
+\\
+&=
+\delta^{\mathsf T}R\delta
+-\frac12\delta^{\mathsf T}R\delta
+\\
+&=
+\frac12\delta^{\mathsf T}R\delta
+\\
+&=
+\frac12\rhs^{\mathsf T}R^+\rhs .
+\end{aligned}
+\]
+With displayed ridge suppressed, \(\rhs=\theta_j\mathcal Q_{Dj}\) and \(R=\mathcal Q_{DD}\), so
+\[
+\begin{aligned}
+\mathrm{credit}^\star
+&=
+\frac12\rhs^{\mathsf T}\mathcal Q_{DD}^{+}\rhs
+\\
+&=
+\frac12
+(\theta_j\mathcal Q_{Dj})^{\mathsf T}
+\mathcal Q_{DD}^{+}
+(\theta_j\mathcal Q_{Dj})
+\\
+&=
+\frac12\theta_j^2\mathcal Q_{Dj}^{\mathsf T}\mathcal Q_{DD}^{+}\mathcal Q_{Dj}.
+\end{aligned}
+\]
+Thus
+\[
+\boxed{
+\Lambda(A_j)
+=
+\max\left\{
+0,\,
+\frac12\theta_j^2\mathcal Q_{jj}
+-\frac12\theta_j^2\mathcal Q_{Dj}^{\mathsf T}\mathcal Q_{DD}^{+}\mathcal Q_{Dj}
+\right\}.
+}
+\]
+Equivalently, the optimized scalar block is
+\[
+\boxed{
+\Lambda(A_j)
+=
+\frac12\theta_j^2
+\max\left\{
+0,\,
+\mathcal Q_{jj}-\mathcal Q_{jD}\mathcal Q_{DD}^{+}\mathcal Q_{Dj}
+\right\}.
+}
+\]
+If \(\mathcal Q_{DD}\) is invertible, then
+\[
+S_{j\mid D}
+:=
+\mathcal Q_{jj}-\mathcal Q_{jD}\mathcal Q_{DD}^{-1}\mathcal Q_{Dj}
+\]
+is the scalar Schur complement of \(\mathcal Q_{DD}\) in the block on \(\{j\}\cup D\). With a pseudoinverse or explicit ridge, the same phrase means the regularized Schur-reduced burden used for nomination:
+\[
+\begin{aligned}
+S_{j\mid D}^{+}
+&:=
+\mathcal Q_{jj}-\mathcal Q_{jD}\mathcal Q_{DD}^{+}\mathcal Q_{Dj},
+\\
+\Lambda(A_j)
+&=
+\frac12\theta_j^2\max\{0,S_{j\mid D}^{+}\}.
+\end{aligned}
+\]
+Substituting \(\mathcal Q=H+\eta G\) gives
+{\small
+\[
+\boxed{
+\begin{aligned}
+\Lambda(A_j)
+=
+\max\Bigl\{
+0,\,
+&\frac12\theta_j^2(H_{jj}+\eta G_{jj})
+\\
+&-\frac12\theta_j^2
+\Bigl[
+(H_{Dj}+\eta G_{Dj})^{\mathsf T}
+\\
+&\qquad\qquad
+(H_{DD}+\eta G_{DD})^+
+(H_{Dj}+\eta G_{Dj})
+\Bigr]
+\Bigr\}.
+\end{aligned}
+}
+\]
+}
+
+\phys{\(\Lambda(A_j)\) is the metric-regularized Schur nomination surrogate. It is low when deleting \(A_j\) has small frozen burden or when survivor coordinates recover a large fraction of that burden.}
+
+\micro{The cost denominator turns the surrogate into a deletion ranking score.}
+
+\deriv
+For \(K_j\in\mathbb R_{>0}\), define
+\[
+\widetilde{\Lambda}_j^\ominus
+:=
+\frac{\Lambda(A_j)}{K_j}.
+\]
+The ranking order is
+\[
+i\prec j
+\quad\Longleftrightarrow\quad
+\widetilde{\Lambda}_i^\ominus
+<
+\widetilde{\Lambda}_j^\ominus .
+\]
+
+\phys{A low-cost deletion surrogate and a large removed hardware/estimator burden both make \(j\) easier to nominate for the measured delete/refit test.}
+
+\section*{Energy Loss, Surrogate, and Telemetry}
+
+\micro{The paper should separate physical energy prediction from the metric-regularized ranking surrogate.}
+
+\deriv
+The physical Taylor energy model uses \(H\) alone. With
+\[
+g_a=\partial_{\theta_a}E(U_k,\boldsymbol\theta_k),
+\qquad
+g=(g_1,\ldots,g_{n_k})^{\mathsf T}\in\mathbb R^{n_k},
+\]
+the local expansion is
+\[
+\begin{aligned}
+E(\boldsymbol\theta_k+\Delta\boldsymbol\theta)
+-
+E(\boldsymbol\theta_k)
+&=
+g^{\mathsf T}\Delta\boldsymbol\theta
++
+\frac12
+\Delta\boldsymbol\theta^{\mathsf T}H\Delta\boldsymbol\theta
++
+O(\|\Delta\boldsymbol\theta\|_2^3),
+\\
+\Delta E_{j,H}^{(2)}(\delta\theta_D)
+&=
+-g_j\theta_j
++
+g_D^{\mathsf T}\delta\theta_D
++
+\frac12\theta_j^2H_{jj}
+\\
+&\quad
+-\theta_jH_{Dj}^{\mathsf T}\delta\theta_D
++
+\frac12\delta\theta_D^{\mathsf T}H_{DD}\delta\theta_D .
+\end{aligned}
+\]
+At the stationary refit convention used for the displayed route,
+\[
+g_j\approx0,
+\qquad
+g_D\approx0,
+\]
+so the Taylor loss reduces to
+\[
+\Delta E_{j,H}^{(2)}(\delta\theta_D)
+\approx
+\frac12\theta_j^2H_{jj}
+-\theta_jH_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}H_{DD}\delta\theta_D .
+\]
+The implemented nomination surrogate uses \(\mathcal Q=H+\eta G\):
+\[
+\Phi_j^\ominus(\delta\theta_D)
+=
+\frac12\theta_j^2\mathcal Q_{jj}
+-\theta_j\mathcal Q_{Dj}^{\mathsf T}\delta\theta_D
++\frac12\delta\theta_D^{\mathsf T}\mathcal Q_{DD}\delta\theta_D.
+\]
+The measured delete/refit acceptance test reoptimizes the nonlinear branch:
+\[
+\begin{aligned}
+U_k^{\ominus j}(\vartheta_D)
+&=
+\prod_{i\in D}^{\mathrm{inherited}}
+\exp(\vartheta_iA_i),
+\\
+\vartheta_D^\star
+&\in
+\operatorname*{arg\,min}_{\vartheta_D\in\mathbb R^d}
+E(U_k^{\ominus j},\vartheta_D).
+\end{aligned}
+\]
+The measured regression is
+\[
+\Delta E_j^{\mathrm{meas}}
+=
+E(U_k^{\ominus j},\vartheta_D^\star)
+-
+E(\mathbf A_k,\boldsymbol\theta_k).
+\]
+
+\phys{\(\Delta E_{j,H}^{(2)}\) is the physical Taylor energy approximation, \(\Phi_j^\ominus\) is the metric-regularized nomination surrogate, and \(\Delta E_j^{\mathrm{meas}}\) is the acceptance authority. The Schur score chooses what to test; it does not certify deletion.}
+
+\micro{The metric residual measures deleted-tangent recoverability directly, but it is telemetry in this route.}
+
+\deriv
+For \(\delta\theta_D\in\mathbb R^d\), define
+\[
+\mathcal R_j^G(\delta\theta_D)
+:=
+\left\|
+\Pi\left(
+-\theta_j\tau_j+\sum_{u\in D}\delta\theta_u\tau_u
+\right)
+\right\|^2.
+\]
+Expanding gives
+\[
+\begin{aligned}
+\mathcal R_j^G(\delta\theta_D)
+&=
+\theta_j^2G_{jj}
+-2\theta_jG_{Dj}^{\mathsf T}\delta\theta_D
++\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D
+\\
+&=
+\theta_j^2G_{jj}
+-2\theta_j\sum_{u\in D}G_{uj}\delta\theta_u
++\sum_{u,v\in D}\delta\theta_uG_{uv}\delta\theta_v.
+\end{aligned}
+\]
+
+\phys{This residual reports how well the surviving tangent span reconstructs the removed tangent displacement. The current route records it as diagnostic information rather than replacing \(\Lambda(A_j)\).}
+
+\section*{Response-Only Damping Versus Full Recoverability}
+
+\micro{The algebra changes depending on whether \(G\) damps only survivor motion or also measures recovery of the deleted tangent.}
+
+\deriv
+The response-only objective uses \(G_{DD}\) only:
+\[
+\Psi_{j,\mathrm{resp}}^\ominus(\delta\theta_D)
+:=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++
+\frac{\eta}{2}
+\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D.
+\]
+With stationary survivors, its derivative is
+\[
+\begin{aligned}
+\nabla_{\delta\theta_D}\Psi_{j,\mathrm{resp}}^\ominus
+&=
+-\theta_jH_{Dj}
++
+H_{DD}\delta\theta_D
++
+\eta G_{DD}\delta\theta_D
+\\
+&=
+-\theta_jH_{Dj}
++
+(H_{DD}+\eta G_{DD})\delta\theta_D .
+\end{aligned}
+\]
+Therefore
+\[
+(H_{DD}+\eta G_{DD})
+\delta\theta_{D,\mathrm{resp}}^\star
+=
+\theta_jH_{Dj},
+\]
+\[
+\boxed{
+\delta\theta_{D,\mathrm{resp}}^\star
+=
+\theta_j
+(H_{DD}+\eta G_{DD})^+H_{Dj}.
+}
+\]
+The full deleted-tangent recoverability objective uses the full projected displacement:
+\[
+\Psi_{j,\mathrm{full}}^\ominus(\delta\theta_D)
+:=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++
+\frac{\eta}{2}
+\left\|
+\Pi\left(
+-\theta_j\tau_j+\sum_{u\in D}\delta\theta_u\tau_u
+\right)
+\right\|^2 .
+\]
+Its derivative is
+{\small
+\[
+\begin{aligned}
+\nabla_{\delta\theta_D}\Psi_{j,\mathrm{full}}^\ominus
+&=
+-\theta_jH_{Dj}
++
+H_{DD}\delta\theta_D
++
+\eta(-\theta_jG_{Dj}+G_{DD}\delta\theta_D)
+\\
+&=
+-\theta_j(H_{Dj}+\eta G_{Dj})
++
+(H_{DD}+\eta G_{DD})\delta\theta_D .
+\end{aligned}
+\]
+}
+Thus
+\[
+(H_{DD}+\eta G_{DD})
+\delta\theta_{D,\mathrm{full}}^\star
+=
+\theta_j(H_{Dj}+\eta G_{Dj}),
+\]
+\[
+\boxed{
+\delta\theta_{D,\mathrm{full}}^\star
+=
+\theta_j
+(H_{DD}+\eta G_{DD})^+
+(H_{Dj}+\eta G_{Dj}).
+}
+\]
+
+\phys{The current implementation is the second route. The cross block \(G_{Dj}\) is not an optional decoration: it is the term that says the survivor response should geometrically reproduce the deleted tangent, not merely keep survivor motion small.}
+
+\micro{The two routes also produce different scalar scores after the response is substituted back.}
+
+\deriv
+For response-only damping, define
+\[
+\mathcal Q_{\mathrm{resp},DD}:=H_{DD}+\eta G_{DD},
+\qquad
+b_{\mathrm{resp}}:=H_{Dj}.
+\]
+Then
+\[
+\delta\theta_{D,\mathrm{resp}}^\star
+=
+\theta_j \mathcal Q_{\mathrm{resp},DD}^+b_{\mathrm{resp}},
+\]
+\[
+\Psi_{j,\mathrm{resp}}^\ominus(\delta\theta_{D,\mathrm{resp}}^\star)
+=
+\frac12\theta_j^2H_{jj}
+-
+\frac12\theta_j^2
+b_{\mathrm{resp}}^{\mathsf T}
+\mathcal Q_{\mathrm{resp},DD}^{+}
+b_{\mathrm{resp}} .
+\]
+For full recoverability, define
+\[
+\mathcal Q_{\mathrm{full},jj}:=H_{jj}+\eta G_{jj},
+\]
+\[
+\mathcal Q_{\mathrm{full},Dj}:=H_{Dj}+\eta G_{Dj},
+\qquad
+\mathcal Q_{\mathrm{full},DD}:=H_{DD}+\eta G_{DD}.
+\]
+Then
+\[
+\delta\theta_{D,\mathrm{full}}^\star
+=
+\theta_j\mathcal Q_{\mathrm{full},DD}^+\mathcal Q_{\mathrm{full},Dj},
+\]
+\[
+\Psi_{j,\mathrm{full}}^\ominus(\delta\theta_{D,\mathrm{full}}^\star)
+=
+\frac12\theta_j^2\mathcal Q_{\mathrm{full},jj}
+-
+\frac12\theta_j^2
+\mathcal Q_{\mathrm{full},Dj}^{\mathsf T}
+\mathcal Q_{\mathrm{full},DD}^{+}
+\mathcal Q_{\mathrm{full},Dj}.
+\]
+
+\phys{Response-only damping regularizes the Schur solve. Full recoverability changes both the solve and the reduced score because the deleted tangent itself is part of the geometric object being recovered.}
+
+\section*{Physical Energy Versus Nomination Surrogate}
+
+\micro{The physical Taylor energy and the metric-Schur score share variables but are different objects.}
+
+\deriv
+The physical second-order energy model is
+{\scriptsize
+\setlength{\arraycolsep}{1pt}
+\[
+\begin{aligned}
+x_{jD}
+&:=
+\begin{psmallmatrix}
+-\theta_j\\
+\delta\theta_D
+\end{psmallmatrix},
+\\
+B_{jD}
+&:=
+\begin{psmallmatrix}
+H_{jj} & H_{jD}\\
+H_{Dj} & H_{DD}
+\end{psmallmatrix},
+\\[1mm]
+\Delta E_{j,H}^{(2)}(\delta\theta_D)
+&=
+g_j(-\theta_j)
++
+g_D^{\mathsf T}\delta\theta_D
++
+\tfrac12 x_{jD}^{\mathsf T}B_{jD}x_{jD}
+\\
+&=
+-g_j\theta_j
++
+g_D^{\mathsf T}\delta\theta_D
++
+\frac12\theta_j^2H_{jj}
+-
+\theta_jH_{Dj}^{\mathsf T}\delta\theta_D
++
+\frac12\delta\theta_D^{\mathsf T}H_{DD}\delta\theta_D .
+\end{aligned}
+\]
+}
+The full metric-Schur nomination surrogate is
+{\small
+\[
+\begin{aligned}
+\Phi_j^\ominus(\delta\theta_D)
+&=
+\frac12
+\begin{bmatrix}
+-\theta_j\\
+\delta\theta_D
+\end{bmatrix}^{\mathsf T}
+\begin{bmatrix}
+H_{jj}+\eta G_{jj} & H_{jD}+\eta G_{jD}\\
+H_{Dj}+\eta G_{Dj} & H_{DD}+\eta G_{DD}
+\end{bmatrix}
+\begin{bmatrix}
+-\theta_j\\
+\delta\theta_D
+\end{bmatrix}
+\\
+&=
+\frac12\theta_j^2(H_{jj}+\eta G_{jj})
+-
+\theta_j(H_{Dj}+\eta G_{Dj})^{\mathsf T}\delta\theta_D
+\\
+&\quad
++
+\frac12
+\delta\theta_D^{\mathsf T}
+(H_{DD}+\eta G_{DD})
+\delta\theta_D .
+\end{aligned}
+\]
+}
+After solving the metric-Schur response, the pure Taylor energy evaluated at that response is
+\[
+\widehat{\Delta E}_{j,H}^{(2)}
+:=
+\Delta E_{j,H}^{(2)}(\delta\theta_D^\star),
+\]
+whereas the implemented nomination scalar is
+\[
+\Lambda(A_j)
+:=
+\max\{0,\Phi_j^\ominus(\delta\theta_D^\star)\}.
+\]
+
+\phys{The manuscript should not call \(\Lambda(A_j)\) a pure physical energy loss. It is a nomination score formed from energy curvature plus a geometric recoverability penalty. The measured delete/refit energy remains the physical safety test.}
+
+\micro{The Fubini--Study term has energy units only through the scalar weight \(\eta\).}
+
+\deriv
+The tangent Gram entries are dimensionless in the local parameter convention:
+\[
+G_{ab}
+=
+\operatorname{Re}\langle \Pi\tau_a,\Pi\tau_b\rangle
+\in\mathbb R.
+\]
+The Hessian entries carry energy units:
+\[
+H_{ab}
+=
+\partial_{\theta_a}\partial_{\theta_b}E
+\in \mathrm{Energy}.
+\]
+For the sum
+\[
+\mathcal Q_{ab}:=H_{ab}+\eta G_{ab}
+\]
+to have energy units,
+\[
+\eta\in\mathrm{Energy}.
+\]
+Then
+\[
+\Phi_j^\ominus(\delta\theta_D)\in\mathrm{Energy},
+\qquad
+\Lambda(A_j)\in\mathrm{Energy}.
+\]
+
+\phys{\(\eta\) is the exchange rate between geometric displacement and energy-scale caution in the nomination model. It is not a claim that Fubini--Study distance is itself Hamiltonian energy.}
+
+\section*{Trust-Region Reading}
+
+\micro{The metric term can be read as the Lagrange multiplier form of a geometric trust-region restriction.}
+
+\deriv
+Let the full deleted-plus-survivor metric residual be
+\[
+\mathcal R_j^G(\delta\theta_D)
+=
+\theta_j^2G_{jj}
+-2\theta_jG_{Dj}^{\mathsf T}\delta\theta_D
++
+\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D .
+\]
+A constrained local nomination problem is
+\[
+\begin{aligned}
+\delta\theta_D^\star
+&\in
+\arg\min_{\delta\theta_D\in\mathbb R^d}
+\Phi_{j,H}^\ominus(\delta\theta_D),
+\\
+&\text{subject to}
+\qquad
+\mathcal R_j^G(\delta\theta_D)\le \rho_\ominus^2 .
+\end{aligned}
+\]
+For \(\eta\ge0\), the Lagrangian is
+\[
+\mathcal L_j^\ominus(\delta\theta_D,\eta)
+=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++
+\frac{\eta}{2}
+\left(
+\mathcal R_j^G(\delta\theta_D)-\rho_\ominus^2
+\right).
+\]
+The KKT conditions are
+\[
+\nabla_{\delta\theta_D}\mathcal L_j^\ominus(\delta\theta_D,\eta)=0,
+\]
+\[
+\mathcal R_j^G(\delta\theta_D)\le\rho_\ominus^2,
+\qquad
+\eta\ge0,
+\]
+\[
+\eta\left(\mathcal R_j^G(\delta\theta_D)-\rho_\ominus^2\right)=0.
+\]
+The stationarity equation expands to
+\[
+\begin{aligned}
+0
+&=
+-\theta_jH_{Dj}
++
+H_{DD}\delta\theta_D
++
+\eta(-\theta_jG_{Dj}+G_{DD}\delta\theta_D)
+\\
+&=
+-\theta_j(H_{Dj}+\eta G_{Dj})
++
+(H_{DD}+\eta G_{DD})\delta\theta_D .
+\end{aligned}
+\]
+Therefore
+\[
+\delta\theta_D^\star(\eta)
+=
+\theta_j(H_{DD}+\eta G_{DD})^+
+(H_{Dj}+\eta G_{Dj}).
+\]
+
+\phys{This trust-region reading is the most direct way to state the model: among local Schur responses, prefer responses that keep the deleted-plus-survivor tangent displacement geometrically recoverable.}
+
+\micro{The response-only trust region gives a different KKT equation.}
+
+\deriv
+If the constrained displacement is only survivor motion, then
+\[
+\mathcal R_{D}^{G}(\delta\theta_D)
+:=
+\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D.
+\]
+The Lagrangian is
+\[
+\mathcal L_{j,\mathrm{resp}}^\ominus
+=
+\Phi_{j,H}^\ominus(\delta\theta_D)
++
+\frac{\eta}{2}
+\left(
+\delta\theta_D^{\mathsf T}G_{DD}\delta\theta_D-\rho_\ominus^2
+\right).
+\]
+The stationarity equation is
+\[
+0
+=
+-\theta_jH_{Dj}
++
+(H_{DD}+\eta G_{DD})\delta\theta_D ,
+\]
+so
+\[
+\delta\theta_{D,\mathrm{resp}}^\star(\eta)
+=
+\theta_j(H_{DD}+\eta G_{DD})^+H_{Dj}.
+\]
+
+\phys{This is not the implemented Paper-I metric route. It is a useful comparison because it shows exactly where the \(G_{Dj}\) cross block enters the current full recoverability route.}
+
+\section*{Implementation Score Decomposition}
+
+\micro{The code score is a completed-square Schur reduction written as frozen burden minus recovered credit.}
+
+\deriv
+With
+\[
+\mathcal Q=H+\eta G,
+\qquad
+R=\mathcal Q_{DD}+\lambda I_d,
+\qquad
+\rhs=\theta_j\mathcal Q_{Dj},
+\]
+the code solves
+\[
+\delta=R^+\rhs.
+\]
+The code-level objective represented by \(R\) and \(\rhs\) is
+\[
+\Phi_{j,R}^\ominus(\delta)
+=
+\frac12\theta_j^2\mathcal Q_{jj}
+-
+\rhs^{\mathsf T}\delta
++
+\frac12\delta^{\mathsf T}R\delta.
+\]
+Complete the square on the supported range of \(R\):
+{\small
+\[
+\begin{aligned}
+\Phi_{j,R}^\ominus(\delta)
+&=
+\frac12\theta_j^2\mathcal Q_{jj}
+-
+\frac12\rhs^{\mathsf T}R^+\rhs
+\\
+&\quad
++
+\frac12
+(\delta-R^+\rhs)^{\mathsf T}
+R
+(\delta-R^+\rhs),
+\end{aligned}
+\]
+}
+provided \(\rhs\) lies in the supported range of \(R\), with ridge/pseudoinverse conventions handling numerical support. At \(\delta=R^+\rhs\),
+\[
+\Phi_{j,R}^\ominus(\delta^\star)
+=
+\frac12\theta_j^2\mathcal Q_{jj}
+-
+\frac12\rhs^{\mathsf T}R^+\rhs.
+\]
+The same scalar is computed by
+\[
+\mathrm{frozen}
+=
+\frac12\theta_j^2\mathcal Q_{jj},
+\]
+\[
+\mathrm{credit}
+=
+\rhs^{\mathsf T}\delta
+-
+\frac12\delta^{\mathsf T}R\delta,
+\]
+\[
+\Lambda(A_j)
+=
+\max\{0,\mathrm{frozen}-\mathrm{credit}\}.
+\]
+
+\phys{The code does not need to explicitly write a Schur complement. It computes the same reduced scalar by solving the survivor response and subtracting the recovered credit from the frozen deleted-coordinate burden.}
+
+\micro{The metric residual recorded by the route is a diagnostic, not the scalar used for nomination.}
+
+\deriv
+Using the same \(\delta=R^+\rhs\), the full residual telemetry is
+\[
+\mathcal R_j^G(\delta)
+=
+\theta_j^2G_{jj}
+-2\theta_jG_{Dj}^{\mathsf T}\delta
++
+\delta^{\mathsf T}G_{DD}\delta.
+\]
+The nomination scalar is
+\[
+\Lambda(A_j)
+=
+\max\{0,\mathrm{frozen}-\mathrm{credit}\}.
+\]
+The cost-weighted nomination scalar is
+\[
+\widetilde{\Lambda}_j^\ominus
+=
+\frac{\Lambda(A_j)}{K_j}.
+\]
+These are not algebraically identical:
+\[
+\mathcal R_j^G(\delta)
+\ne
+\Lambda(A_j)
+\ne
+\widetilde{\Lambda}_j^\ominus
+\quad
+\text{in general}.
+\]
+
+\phys{The residual tells whether the survivor tangents geometrically reconstruct the deleted tangent. The score tells whether the metric-Schur local model thinks deletion is cheap enough, especially after dividing by the saved-cost denominator.}
+
+\section*{Schur Complement As Elimination}
+
+\micro{The Schur-complement expression is what remains after the survivor response has been optimized out of a block quadratic.}
+
+\deriv
+Let
+\[
+a\in\mathbb R,
+\qquad
+b\in\mathbb R^d,
+\qquad
+C\in\mathbb R^{d\times d},
+\qquad
+C=C^{\mathsf T}.
+\]
+For fixed \(\theta_j\in\mathbb R\) and free \(y\in\mathbb R^d\), define
+\[
+Q(y)
+:=
+\frac12
+\begin{bmatrix}
+-\theta_j\\
+y
+\end{bmatrix}^{\mathsf T}
+\begin{bmatrix}
+a & b^{\mathsf T}\\
+b & C
+\end{bmatrix}
+\begin{bmatrix}
+-\theta_j\\
+y
+\end{bmatrix}.
+\]
+Expanding,
+\[
+Q(y)
+=
+\frac12\theta_j^2a
+-
+\theta_jb^{\mathsf T}y
++
+\frac12y^{\mathsf T}Cy.
+\]
+The first-order condition is
+\[
+\nabla_yQ(y)
+=
+-\theta_jb+Cy=0,
+\qquad
+Cy^\star=\theta_jb.
+\]
+With pseudoinverse convention,
+\[
+y^\star=\theta_jC^+b.
+\]
+Substitution gives
+\[
+\begin{aligned}
+Q(y^\star)
+&=
+\frac12\theta_j^2a
+-
+\theta_jb^{\mathsf T}(\theta_jC^+b)
++
+\frac12(\theta_jC^+b)^{\mathsf T}C(\theta_jC^+b)
+\\
+&=
+\frac12\theta_j^2a
+-
+\theta_j^2b^{\mathsf T}C^+b
++
+\frac12\theta_j^2b^{\mathsf T}C^+CC^+b
+\\
+&=
+\frac12\theta_j^2
+\left(
+a-b^{\mathsf T}C^+b
+\right),
+\end{aligned}
+\]
+where \(C^+CC^+ = C^+\) for the Moore--Penrose pseudoinverse. The eliminated scalar is
+\[
+S_{a\mid C}^+
+:=
+a-b^{\mathsf T}C^+b.
+\]
+
+\phys{This is the generic Schur step. In prune notation, \(a\) is the deleted-coordinate frozen block, \(b\) is the deleted-survivor coupling, \(C\) is the survivor block, and \(y\) is the compensating survivor response.}
+
+\micro{The implemented prune model is exactly this elimination pattern after substituting \(\mathcal Q=H+\eta G\).}
+
+\deriv
+Use the substitution
+\[
+a=\mathcal Q_{jj},
+\qquad
+b=\mathcal Q_{Dj},
+\qquad
+C=\mathcal Q_{DD},
+\qquad
+y=\delta\theta_D .
+\]
+Then
+\[
+Q(y)=\Phi_j^\ominus(\delta\theta_D),
+\]
+\[
+\delta\theta_D^\star
+=
+\theta_j\mathcal Q_{DD}^+\mathcal Q_{Dj},
+\]
+\[
+\Phi_j^\ominus(\delta\theta_D^\star)
+=
+\frac12\theta_j^2
+\left(
+\mathcal Q_{jj}
+-
+\mathcal Q_{Dj}^{\mathsf T}\mathcal Q_{DD}^+\mathcal Q_{Dj}
+\right).
+\]
+With the explicit metric substitution,
+\[
+\mathcal Q_{jj}=H_{jj}+\eta G_{jj},
+\]
+\[
+\mathcal Q_{Dj}=H_{Dj}+\eta G_{Dj},
+\qquad
+\mathcal Q_{DD}=H_{DD}+\eta G_{DD}.
+\]
+Therefore
+{\small
+\[
+\begin{aligned}
+\Phi_j^\ominus(\delta\theta_D^\star)
+&=
+\frac12\theta_j^2
+\left[
+H_{jj}+\eta G_{jj}
+-
+(H_{Dj}+\eta G_{Dj})^{\mathsf T}
+ \right.
+\\
+&\qquad\left.
+(H_{DD}+\eta G_{DD})^+
+(H_{Dj}+\eta G_{Dj})
+\right].
+\end{aligned}
+\]
+}
+
+\phys{This is why the score has the form frozen burden minus Schur credit. The survivor coordinates were not ignored; they were optimized out of the local quadratic.}
+
+\micro{The least-squares reading is exact only when the block being eliminated is a Gram block.}
+
+\deriv
+If
+\[
+C=T_D^{\mathsf T}T_D,
+\qquad
+b=T_D^{\mathsf T}y_j,
+\qquad
+a=y_j^{\mathsf T}y_j,
+\]
+then
+\[
+S_{a\mid C}^+
+=
+y_j^{\mathsf T}y_j
+-
+y_j^{\mathsf T}T_D
+(T_D^{\mathsf T}T_D)^+
+T_D^{\mathsf T}y_j.
+\]
+The least-squares residual is
+\[
+\min_{\beta\in\mathbb R^d}
+\|y_j-T_D\beta\|^2
+=
+S_{a\mid C}^+.
+\]
+For the metric-only prune residual,
+\[
+y_j=\theta_j\Pi\tau_j,
+\qquad
+T_D\beta=\sum_{u\in D}\beta_u\Pi\tau_u,
+\]
+\[
+C=G_{DD},
+\qquad
+b=\theta_jG_{Dj},
+\qquad
+a=\theta_j^2G_{jj}.
+\]
+
+\phys{The phrase ``least squares'' is literal for tangent recoverability under \(G\). The phrase ``Schur elimination'' is literal for the block quadratic. The implemented metric-Schur model combines these ideas by building \(\mathcal Q=H+\eta G\) before elimination.}
+
+\section*{Measured Delete/Refit Authority}
+
+\micro{Nomination chooses a deletion to test; acceptance uses the actual branch energy after delete/refit.}
+
+\deriv
+Let \(j^\star\) be the nominated coordinate:
+\[
+j^\star
+\in
+\operatorname*{arg\,min}_{j\in\mathcal E_k^\ominus}
+\widetilde{\Lambda}_j^\ominus .
+\]
+The pruned ansatz sequence is
+\[
+\mathbf A_k^{\ominus j^\star}
+=
+(A_1,\ldots,A_{j^\star-1},A_{j^\star+1},\ldots,A_{n_k}).
+\]
+The corresponding nonlinear refit is
+\[
+\boldsymbol\vartheta_{D_{j^\star}}^\star
+\in
+\operatorname*{arg\,min}_{\boldsymbol\vartheta\in\mathbb R^{n_k-1}}
+E(\mathbf A_k^{\ominus j^\star},\boldsymbol\vartheta).
+\]
+The measured energy regression is
+\[
+\Delta E_{j^\star}^{\mathrm{meas}}
+=
+E(\mathbf A_k^{\ominus j^\star},\boldsymbol\vartheta_{D_{j^\star}}^\star)
+-
+E(\mathbf A_k,\boldsymbol\theta_k).
+\]
+If the recent admitted energy gain is
+\[
+G_k^{\mathrm{adm}}
+:=
+E(\mathbf A_{k-1},\boldsymbol\theta_{k-1})
+-
+E(\mathbf A_k,\boldsymbol\theta_k),
+\]
+then a retained-gain style safety condition can be written as
+\[
+\Delta E_{j^\star}^{\mathrm{meas}}
+\le
+\epsilon_k^\ominus,
+\qquad
+\epsilon_k^\ominus
+=
+\min\{\epsilon_{\mathrm{abs}},\rho G_k^{\mathrm{adm}}\}
+\]
+or with the run-specific tolerance convention replacing the displayed \(\epsilon_k^\ominus\).
+
+\phys{The exact threshold convention is a run setting, but the authority structure is stable: the surrogate nominates; the measured nonlinear delete/refit energy accepts or rejects.}
+
+\section*{Stabilization Vocabulary}
+
+\micro{The numerical linear algebra terms describe how the survivor block is solved when local tangent and curvature data are rank deficient or nearly flat.}
+
+\deriv
+The survivor block can fail to be a clean inverse target:
+\[
+\operatorname{rank}(\mathcal Q_{DD})<d,
+\qquad
+\lambda_{\min}(\mathcal Q_{DD})\approx0,
+\qquad
+\lambda_{\min}(\mathcal Q_{DD})<0 .
+\]
+Horizontal tangent redundancy gives a concrete source:
+\[
+\sum_{u\in D}c_u\Pi\tau_u=0,
+\qquad
+c=(c_u)_{u\in D}\in\mathbb R^d,
+\qquad
+G_{DD}c=0 .
+\]
+Flat or saddle-like local energy geometry gives another:
+\[
+c^{\mathsf T}H_{DD}c\approx0
+\qquad
+\text{or}
+\qquad
+c^{\mathsf T}H_{DD}c<0 .
+\]
+The ideal displayed solve is therefore
+\[
+\delta\theta_D^\star
+=
+\theta_j\mathcal Q_{DD}^{+}\mathcal Q_{Dj},
+\]
+while the implemented ridge-stabilized solve is
+\[
+\delta
+=
+(\mathcal Q_{DD}+\lambda I_d)^+(\theta_j\mathcal Q_{Dj}).
+\]
+If a positive-semidefinite projection is applied to a symmetric block, write
+\[
+\mathcal Q_{DD}
+=
+Q\operatorname{diag}(\alpha_1,\ldots,\alpha_d)Q^{\mathsf T},
+\]
+\[
+\mathcal Q_{DD}^{\mathrm{psd}}
+:=
+Q\operatorname{diag}(\max\{\alpha_1,0\},\ldots,\max\{\alpha_d,0\})Q^{\mathsf T}.
+\]
+
+\phys{The pseudoinverse solves on the supported range of the survivor block; the ridge solves a nearby damped problem; the PSD projection replaces an indefinite local block by a convexified surrogate. These are stabilization choices for nomination, not proofs that the nonlinear pruned branch will be good.}
+
+\micro{The local terminology becomes compact once each score component is attached to its role.}
+
+\deriv
+The frozen local burden is
+\[
+B_j^{\mathrm{frozen}}
+:=
+\frac12\theta_j^2\mathcal Q_{jj}.
+\]
+The recoverability credit is
+\[
+\begin{aligned}
+C_j^{\mathrm{rec}}
+&:=
+\rhs^{\mathsf T}\delta
+-
+\frac12\delta^{\mathsf T}R\delta,
+\\
+R&=\mathcal Q_{DD}+\lambda I_d,
+\qquad
+\rhs=\theta_j\mathcal Q_{Dj}.
+\end{aligned}
+\]
+The regularized Schur-reduced burden is
+\[
+\Lambda(A_j)
+=
+\max\{0,B_j^{\mathrm{frozen}}-C_j^{\mathrm{rec}}\}.
+\]
+The metric-only least-squares residual is
+\[
+\mathcal R_j^G(\delta)
+=
+\left\|
+\theta_j\Pi\tau_j-\sum_{u\in D}\delta\theta_u\Pi\tau_u
+\right\|^2.
+\]
+The measured nonlinear regression is
+\[
+\Delta E_j^{\mathrm{meas}}
+=
+E(U_k^{\ominus j},\vartheta_D^\star)
+-
+E(U_k,\boldsymbol\theta_k).
+\]
+
+\phys{\(B_j^{\mathrm{frozen}}\) is the local damage before compensation, \(C_j^{\mathrm{rec}}\) is the Schur recovery credited to survivor motion, \(\Lambda(A_j)\) is the nomination score, \(\mathcal R_j^G\) is geometry telemetry, and \(\Delta E_j^{\mathrm{meas}}\) is the delete/refit safety observable.}
+
+\section*{Estimator-Query Accounting}
+
+\micro{The Schur solve is classical; estimator queries enter only when the scalar entries used to build \(H\), \(G\), and the measured delete/refit energies are acquired.}
+
+\deriv
+Let \(B=\{j\}\cup D\) and \(m=|B|=d+1\). Write \(N_{\rm est}(X_B)\) for the number of scalar estimator primitives used to obtain the distinct entries of a symmetric block \(X_B\), after cache reuse. Then the nomination-stage query count is
+\[
+N_{\rm est}^{\rm nom}(B)
+=
+N_{\rm est}(H_B)+N_{\rm est}(G_B).
+\]
+Symmetry means that only entries with \(a\le b\) are acquired. If one bookkeeping unit is assigned to each distinct scalar entry, a previously uncached \(m\times m\) block contributes
+\[
+\begin{aligned}
+N_{\rm est}(H_B)
+&=N_{\rm est}(G_B)=\frac{m(m+1)}{2},
+\\
+N_{\rm est}^{\rm nom}(B)
+&=m(m+1).
+\end{aligned}
+\]
+This entry-count identity is a bookkeeping convention, not a claim that every entry requires the same number of circuits or shots. A backend decomposition may expand one scalar entry into several Pauli-term, parameter-shift, or overlap measurements; those lower-level costs belong in the estimator primitive attached to that entry.
+
+When the same full \(n_k\times n_k\) blocks are reused to score every possible deletion, they are measured once:
+\[
+N_{\rm est}^{\rm all\ deletions}
+=
+N_{\rm est}(H)+N_{\rm est}(G),
+\]
+not \(n_k\) times this quantity. Forming \(\mathcal Q=H+\eta G\), extracting blocks, computing a pseudoinverse or ridge solve, evaluating the Schur credit, and ranking \(\Lambda(A_j)/K_j\) are classical operations and add zero estimator queries. Cached entries likewise add zero new queries.
+
+The measured nonlinear delete/refit test is a separate stage. Its energy evaluations must be charged to the optimizer or validation routine that actually requests them; they are not hidden inside the Schur nomination count. Thus a transparent ledger separates
+\[
+N_{\rm est}^{\rm total}
+=
+N_{\rm est}^{\rm nom,new}
++
+N_{\rm est}^{\rm delete/refit}
++
+N_{\rm est}^{\rm validation},
+\]
+with cache hits and classical linear algebra recorded independently.
+
+\phys{The important audit rule is that one deletion candidate does not receive a fresh charge for a matrix entry already measured for another candidate. Conversely, the nonlinear acceptance branch cannot be declared free merely because its candidate was nominated by a cached Schur block.}
+
+\section*{Citation Candidates For Paper I}
+
+The Paper-I manuscript already has the core adaptive-ansatz and variational-geometry citations. For this prune paragraph, the strongest citation use is narrow: cite only the standard objects the sentence actually invokes.
+
+For the Fubini--Study/quantum-geometric-tensor language, \href{https://quantum-journal.org/papers/q-2020-05-25-269/}{Stokes, Izaac, Killoran, and Carleo, \emph{Quantum} \textbf{4}, 269 (2020)} is already a good Paper-I citation because it identifies the real part of the quantum geometric tensor with the Fubini--Study metric tensor on variational circuits. The existing Paper-I key is \(\texttt{Stokes2020QNG}\).
+
+For ADAPT-style generator acquisition, the existing Paper-I citations \(\texttt{Grimsley2019}\) and \(\texttt{Tang2021}\) remain sufficient: Grimsley et al. introduce ADAPT-VQE as ansatz growth by operator selection, and Tang et al. give the qubit-ADAPT hardware-efficient generator-pool neighborhood.
+
+For Schur-complement terminology, \href{https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf}{Boyd and Vandenberghe, \emph{Convex Optimization}} is a useful standard reference. Appendix A.5.5 explicitly presents the minimization view: eliminating one block of variables in a quadratic form yields a Schur complement, and the singular-block case uses a pseudoinverse with a range condition.
+
+For the Moore--Penrose notation \(A^+\), \href{https://www.cambridge.org/core/journals/mathematical-proceedings-of-the-cambridge-philosophical-society/article/generalized-inverse-for-matrices/5F4516D6B9989BB6563A4B267CC7D615}{Penrose, \emph{Proc. Cambridge Philos. Soc.} \textbf{51}, 406--413 (1955)} is the direct generalized-inverse anchor. This is probably only needed if the main text expands the inverse convention beyond the current short paragraph.
+
+For damping and trust-region language, \href{https://link.springer.com/book/10.1007/b98874}{Nocedal and Wright, \emph{Numerical Optimization}} is already cited in Paper I and is the cleaner manuscript citation than Levenberg--Marquardt for this use. The \href{https://epubs.siam.org/doi/10.1137/0111030}{Marquardt 1963 SIAM paper} is useful only if the text explicitly compares the prune solve to damped least squares; the implemented route is more specifically a full \(\mathcal Q=H+\eta G\) blocked recoverability surrogate.
+
+\section*{Toy Examples}
+
+\micro{The boundary case with no survivors shows the meaning of the frozen term.}
+
+\deriv
+If \(D=\varnothing\), then
+\[
+\mathcal Q_{DD}\in\mathbb R^{0\times0},
+\qquad
+\mathcal Q_{Dj}\in\mathbb R^0,
+\qquad
+\delta\theta_D^\star=0,
+\]
+\[
+\Lambda(A_j)
+=
+\max\left\{
+0,\frac12\theta_j^2\mathcal Q_{jj}
+\right\}
+=
+\frac12\theta_j^2\mathcal Q_{jj}
+\quad
+(\mathcal Q_{jj}\ge0).
+\]
+\[
+\mathcal R_j^G
+=
+\theta_j^2G_{jj}.
+\]
+
+\phys{With no survivor coordinates, the deleted generator cannot be locally recovered. The nomination score is just the frozen metric-Schur burden.}
+
+\micro{The one-survivor case shows the Schur credit as a scalar explained-burden term.}
+
+\deriv
+Let \(D=\{\ell\}\). Then
+\[
+\begin{aligned}
+\mathcal Q_{DD}&=[\mathcal Q_{\ell\ell}],
+&
+\mathcal Q_{Dj}&=[\mathcal Q_{\ell j}],
+\\
+R&=[\mathcal Q_{\ell\ell}+\lambda],
+&
+\rhs&=[\theta_j\mathcal Q_{\ell j}].
+\end{aligned}
+\]
+For \(\mathcal Q_{\ell\ell}+\lambda\ne0\),
+\[
+\delta\theta_\ell^\star
+=
+\frac{\theta_j\mathcal Q_{\ell j}}{\mathcal Q_{\ell\ell}+\lambda}.
+\]
+The ridge-stabilized credit is
+\[
+\begin{aligned}
+\mathrm{credit}
+&=
+\theta_j\mathcal Q_{\ell j}\delta\theta_\ell^\star
+-\frac12(\mathcal Q_{\ell\ell}+\lambda)(\delta\theta_\ell^\star)^2
+\\
+&=
+\frac12
+\frac{\theta_j^2\mathcal Q_{\ell j}^2}{\mathcal Q_{\ell\ell}+\lambda}.
+\end{aligned}
+\]
+Thus the score is
+\[
+\Lambda(A_j)
+=
+\max\left\{
+0,\,
+\frac12\theta_j^2\mathcal Q_{jj}
+-\frac12
+\frac{\theta_j^2\mathcal Q_{\ell j}^2}{\mathcal Q_{\ell\ell}+\lambda}
+\right\}.
+\]
+With displayed ridge suppressed,
+\[
+\Lambda(A_j)
+=
+\max\left\{
+0,\,
+\frac12\theta_j^2\mathcal Q_{jj}
+-\frac12\theta_j^2\mathcal Q_{\ell j}^2\mathcal Q_{\ell\ell}^{+}
+\right\}.
+\]
+
+\phys{The deletion is attractive when the survivor direction strongly couples to the removed direction relative to the ridge-stabilized survivor stiffness \(\mathcal Q_{\ell\ell}+\lambda\).}
+
+\micro{The zero-metric case recovers the ordinary Hessian Schur nomination surrogate.}
+
+\deriv
+If \(\eta=0\), then
+\[
+\mathcal Q=H,
+\qquad
+\delta\theta_D^\star
+=
+\theta_jH_{DD}^{+}H_{Dj},
+\]
+\[
+\Lambda(A_j)
+=
+\max\left\{
+0,\,
+\frac12\theta_j^2H_{jj}
+-\frac12\theta_j^2H_{Dj}^{\mathsf T}H_{DD}^{+}H_{Dj}
+\right\}.
+\]
+
+\phys{The metric route reduces to a pure Hessian Schur deletion surrogate when Fubini--Study weighting is disabled.}
+
+\end{document}
+

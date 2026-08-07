@@ -1,0 +1,26 @@
+{
+  "checks": {
+    "accepted_powell_refit_whitening_preserved": true,
+    "acquisition_identity_closure_required": true,
+    "all_rows_exact_round_50": true,
+    "anchor_reproduces_source": true,
+    "archive_focused_tests": true,
+    "archive_only_worker_validation": true,
+    "closure_rank_refresh_telemetry_required": true,
+    "deterministic_result_evidence_validation": true,
+    "endpoint_overlap_measurement_disabled": true,
+    "endpoint_overlap_query_charge_zero_required": true,
+    "material_window_receipt_required": true,
+    "phase3_raw_supported_projection": true,
+    "phase3_whitening_disabled": true,
+    "same_cutoff_all_rows": true,
+    "single_scientific_execution_field_changed": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "strong_holstein_n_ph_7": true,
+    "submission_not_performed": true,
+    "weak_holstein_n_ph_3": true
+  },
+  "schema": "paper_i_sr_material_window_fanout_preflight_v1",
+  "status": "pass"
+}

@@ -1,0 +1,108 @@
+{
+  "figure_label": "paper_i_physical_lane_snake_duplicate_20260708_append_parent_only",
+  "generated_utc": "2026-07-09T23:45:13.621279+00:00",
+  "manuscript_tex": "MATH/paper_details/Paper_I.tex",
+  "regimes": {
+    "intermediate-strong": {
+      "methods": {
+        "Append-ADAPT": {
+          "algorithm_id": "static_full_meta_append_adapt_vqe",
+          "case_id": "hh_L2_nph4_three_model_sym_strong_strong",
+          "matrix_label": "C_macro_only",
+          "method_id": "static_full_meta_append_adapt_vqe",
+          "n_ph_ref": 7,
+          "n_ph_work": 4,
+          "policy": {
+            "child_policy": "macro_only",
+            "generic_adapt_stop_policy": "fixed_horizon_no_target_v1",
+            "optimizer": "POWELL",
+            "optimizer_maxiter": 200,
+            "source_depth": 30,
+            "target_depth": 45
+          },
+          "pool_contract": "full_meta_unfiltered",
+          "reference_energy": -0.6239396137518906,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "1c24d47f5376fe6950ceb1e78b833cf4a6da5e318760b9caee395e3e45b3b257",
+          "visible_value": "0.009295831578261082"
+        },
+        "Geo-ADAPT": {
+          "algorithm_id": "static_geo_adapt_vqe",
+          "case_id": "hh_L2_nph4_three_model_sym_strong_strong",
+          "matrix_label": "C_macro_only",
+          "method_id": "static_geo_adapt_vqe",
+          "n_ph_ref": 7,
+          "n_ph_work": 4,
+          "policy": {
+            "child_policy": "macro_only",
+            "generic_adapt_stop_policy": "fixed_horizon_no_target_v1",
+            "optimizer": "POWELL",
+            "optimizer_maxiter": 200,
+            "source_depth": 30,
+            "target_depth": 45
+          },
+          "pool_contract": "full_meta_unfiltered",
+          "reference_energy": -0.6239396137518906,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e",
+          "visible_value": "0.02897791863102661"
+        }
+      }
+    },
+    "weak-strong": {
+      "methods": {
+        "Append-ADAPT": {
+          "algorithm_id": "static_full_meta_append_adapt_vqe",
+          "case_id": "hh_L2_nph4_three_model_sym_weak_strong",
+          "matrix_label": "C_macro_only",
+          "method_id": "static_full_meta_append_adapt_vqe",
+          "n_ph_ref": 7,
+          "n_ph_work": 4,
+          "policy": {
+            "child_policy": "macro_only",
+            "generic_adapt_stop_policy": "fixed_horizon_no_target_v1",
+            "optimizer": "POWELL",
+            "optimizer_maxiter": 200,
+            "source_depth": 30,
+            "target_depth": 50
+          },
+          "pool_contract": "full_meta_unfiltered",
+          "reference_energy": -1.138720638074999,
+          "role_key": "append_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "22618c3753c502121b4aeb03d07a76368b0ae8fb948054b827e1284c4def6579",
+          "visible_value": "0.023007750483881706"
+        },
+        "Geo-ADAPT": {
+          "algorithm_id": "static_geo_adapt_vqe",
+          "case_id": "hh_L2_nph4_three_model_sym_weak_strong",
+          "matrix_label": "C_macro_only",
+          "method_id": "static_geo_adapt_vqe",
+          "n_ph_ref": 7,
+          "n_ph_work": 4,
+          "policy": {
+            "child_policy": "macro_only",
+            "generic_adapt_stop_policy": "fixed_horizon_no_target_v1",
+            "optimizer": "POWELL",
+            "optimizer_maxiter": 200,
+            "source_depth": 30,
+            "target_depth": 50
+          },
+          "pool_contract": "full_meta_unfiltered",
+          "reference_energy": -1.138720638074999,
+          "role_key": "geo_macro_c",
+          "source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259",
+          "visible_value": "0.043646714159213396"
+        }
+      }
+    }
+  },
+  "rerun_batch_id": "paper_i_hh_comparator_continuations_local_rerun_20260710_v1",
+  "rerun_generated_utc": "2026-07-10T15:15:13.091413+00:00",
+  "rerun_parent_batch_id": "paper_i_hh_comparator_continuations_local_20260709_v1",
+  "schema": "paper_i_hh_comparator_continuations_visible_source_map_v1",
+  "source_map_origin": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708_append_parent_only_provenance.csv"
+}

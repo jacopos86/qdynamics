@@ -1,0 +1,74 @@
+{
+  "classification": "supplemental_diagnostic_projection_not_adopted_evidence",
+  "execution_authorized": true,
+  "jobs": [
+    {
+      "archive_sha256": "827d00380d7f294592f6741477f54a8616d5da284932b2db57e1ab07fcc49d16",
+      "archive_size_bytes": 2083797308,
+      "execution_id": "historical_mean_global_singleton_v3_nph3_r50__intermediate_weak__nph3__ra_global_singleton_plateau",
+      "regime_id": "intermediate_weak",
+      "source_cluster_id": 9400779,
+      "source_proc_id": 1
+    },
+    {
+      "archive_sha256": "cb19bc7de8bb0ff4715cd42aa0d056f329551c9d1bb383282d8c4b1b76cafacf",
+      "archive_size_bytes": 2090271409,
+      "execution_id": "historical_mean_global_singleton_v3_nph3_r50__strong_weak_u8__nph3__ra_global_singleton_plateau",
+      "regime_id": "strong_weak_u8",
+      "source_cluster_id": 9400779,
+      "source_proc_id": 2
+    }
+  ],
+  "paper_evidence_adopted": false,
+  "package_id": "paper_i_historical_mean_global_singleton_page7_projection_20260802_v1_chtc",
+  "row_count": 2,
+  "schema": "paper_i_historical_mean_global_singleton_page7_projection_package_v1",
+  "sha256": "8486723b2022ee2aa3bf4c0ba0c49c301f13d4193f4073f886b2f93554bdd777",
+  "source_bindings": {
+    "append_adapter": {
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_append_singleton_r70_all6_adapter.json",
+      "sha256": "d43ac93e881db1149196d8be0442200e8723982605a1353dbca3e2f7550357cc",
+      "size_bytes": 59093
+    },
+    "archive_validator": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/validate_nph3_v3_attempt_archive.py",
+      "sha256": "8f6f8f0a3b3da6363602f388da94f8b232ca2dfb7ac44a12742041c8b49e1aad",
+      "size_bytes": 52091
+    },
+    "projection_builder": {
+      "path": "pipelines/reporting/build_paper_i_historical_mean_global_singleton_ra_projection.py",
+      "sha256": "11e06bbfc648e444417f1d9357002ba741e28dddd879d8aa2e866a22455c2f46",
+      "size_bytes": 2721
+    },
+    "projection_updater": {
+      "path": "pipelines/reporting/add_paper_i_historical_mean_global_singleton_full6_page.py",
+      "sha256": "f3a353fc7a1341ae0b456ea83f1cc4d17b1b0a6009d7d75a89563a6feb38306b",
+      "size_bytes": 142314
+    },
+    "sealed_image": {
+      "path": "chtc/phase3_optuna/image.sif",
+      "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+      "size_bytes": 216371200
+    },
+    "source_archive": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph3_r50_20260802_v3_chtc/source/source_locked.tar.gz",
+      "sha256": "7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01",
+      "size_bytes": 2008121
+    }
+  },
+  "submission_authorized": true,
+  "submission_files": {
+    "execute_projection.sh": {
+      "sha256": "ded3c654f73df8a3c07cb4ae69ced6d22f6f0df05faa11ae1f8b2c3b2d1859b7",
+      "size_bytes": 3878
+    },
+    "queue.tsv": {
+      "sha256": "98ad8904cb51719d4bda00a3288a3afea7682c237b305bb8dde4fefd57641915",
+      "size_bytes": 1909
+    },
+    "submit.sub": {
+      "sha256": "dbb82049e15ee2a7ab0a3a0376052f69ada9832b2d917dc09c1379a606399dfd",
+      "size_bytes": 3977
+    }
+  }
+}

@@ -1,0 +1,1466 @@
+"""Private active-CLI routing and legacy-payload compatibility projection."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import math
+import tempfile
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.current_checkpoint import (
+    _publish_active_cli_current_checkpoint,
+    _stable_json_digest,
+)
+from pipelines.static_adapt.estimator_call_ledger import (
+    projective_state_fingerprint,
+)
+from pipelines.static_adapt.sr_snake.contracts import (
+    AppendOnlyInsertion,
+    CheckpointObservation,
+    CombinatorialBatchAdmission,
+    EstimatorLedgerObservation,
+    ExactEDSourceReceipt,
+    ExactEDStop,
+    FullCombinatorialSearchWindow,
+    GreedyBatchAdmission,
+    PruningOff,
+    PlateauCommutationInsertion,
+    RecoverabilityPruning,
+    SRExecutionPolicy,
+    SRMethodPolicy,
+    SRObservationPolicy,
+    SRRunRequest,
+    SRRunResult,
+    SRStopPolicy,
+)
+import pipelines.static_adapt.sr_snake.runner as sr_runner
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+    SR_ROUTE_PROFILE_GREEDY_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
+    canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract,
+    canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+    canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract,
+    canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract_sha256,
+    canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256,
+    canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256,
+    canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256,
+)
+from src.quantum.ansatz_parameterization import deserialize_layout
+from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
+from src.quantum.pauli_polynomial_class import PauliPolynomial
+from src.quantum.qubitization_module import PauliTerm
+from src.quantum.vqe_latex_python_pairs import (
+    AnsatzTerm,
+    expval_pauli_polynomial,
+)
+
+
+_ACTIVE_PROFILE = (
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+)
+_ACTIVE_PRUNE_PROFILE = (
+    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
+)
+_ACTIVE_GREEDY_PROFILE = (
+    SR_ROUTE_PROFILE_GREEDY_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+)
+_ACTIVE_COMBINATORIAL_PROFILE = (
+    SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+)
+_ACTIVE_INSERTION_PROFILE = (
+    SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1
+)
+
+
+def _has_explicit_greedy_batch_cli_intent(
+    executor_kwargs: Mapping[str, Any],
+) -> bool:
+    """Recognize Issue-15 intent even when one coupled identity was tampered."""
+
+    profile_markers = (
+        executor_kwargs.get("sr_route_profile_request"),
+        executor_kwargs.get("sr_route_profile_resolved"),
+    )
+    if any(
+        str(value or "").strip().lower() == _ACTIVE_GREEDY_PROFILE
+        for value in profile_markers
+    ):
+        return True
+    contract_raw = executor_kwargs.get("sr_route_profile_contract")
+    if not isinstance(contract_raw, Mapping):
+        return False
+    if str(contract_raw.get("route_profile", "")).strip().lower() == (
+        _ACTIVE_GREEDY_PROFILE
+    ):
+        return True
+    if str(contract_raw.get("route_family", "")).strip().lower() == (
+        "greedy_batch_response_snake"
+    ):
+        return True
+    invariants = contract_raw.get("semantic_invariants")
+    return bool(
+        isinstance(invariants, Mapping)
+        and str(invariants.get("admission_policy", "")).strip().lower()
+        == "cost_weighted_greedy_reduced_plane_v1"
+    )
+
+
+def _enforce_explicit_greedy_batch_cli_boundary(
+    executor_kwargs: Mapping[str, Any],
+    *,
+    compatibility_reason: str | None,
+) -> None:
+    """Reject malformed Issue-15 intent before any legacy compatibility loop."""
+
+    if compatibility_reason is None or not _has_explicit_greedy_batch_cli_intent(
+        executor_kwargs
+    ):
+        return
+    reason = str(compatibility_reason).strip()
+    raise ValueError(
+        "Explicit Issue-15 greedy-batch SR-SNAKE route failed exact active "
+        f"CLI validation; reason={reason}. Legacy compatibility dispatch is "
+        "forbidden."
+    )
+
+
+def _has_explicit_combinatorial_batch_cli_intent(
+    executor_kwargs: Mapping[str, Any],
+) -> bool:
+    """Recognize Issue-16 intent even when a coupled field was tampered."""
+
+    profile_markers = (
+        executor_kwargs.get("sr_route_profile_request"),
+        executor_kwargs.get("sr_route_profile_resolved"),
+    )
+    if any(
+        str(value or "").strip().lower()
+        == _ACTIVE_COMBINATORIAL_PROFILE
+        for value in profile_markers
+    ):
+        return True
+    contract_raw = executor_kwargs.get("sr_route_profile_contract")
+    if not isinstance(contract_raw, Mapping):
+        return False
+    if str(contract_raw.get("route_profile", "")).strip().lower() == (
+        _ACTIVE_COMBINATORIAL_PROFILE
+    ):
+        return True
+    if str(contract_raw.get("route_family", "")).strip().lower() == (
+        "combinatorial_batch_response_snake"
+    ):
+        return True
+    invariants = contract_raw.get("semantic_invariants")
+    return bool(
+        isinstance(invariants, Mapping)
+        and str(invariants.get("admission_policy", "")).strip().lower()
+        == "cost_weighted_combinatorial_reduced_plane_v1"
+    )
+
+
+def _enforce_explicit_combinatorial_batch_cli_boundary(
+    executor_kwargs: Mapping[str, Any],
+    *,
+    compatibility_reason: str | None,
+) -> None:
+    """Reject malformed Issue-16 intent before legacy compatibility."""
+
+    if (
+        compatibility_reason is None
+        or not _has_explicit_combinatorial_batch_cli_intent(
+            executor_kwargs
+        )
+    ):
+        return
+    reason = str(compatibility_reason).strip()
+    raise ValueError(
+        "Explicit Issue-16 combinatorial-batch SR-SNAKE route failed exact "
+        f"active CLI validation; reason={reason}. Legacy compatibility "
+        "dispatch is forbidden."
+    )
+
+
+def _active_greedy_batch_admission_from_executor_kwargs(
+    executor_kwargs: Mapping[str, Any],
+) -> GreedyBatchAdmission:
+    """Recover typed greedy controls only from their normalized exact contract."""
+
+    contract_raw = executor_kwargs.get("sr_route_profile_contract")
+    if not isinstance(contract_raw, Mapping):
+        raise ValueError(
+            "Normalized greedy route is missing its route-profile contract."
+        )
+    invariants_raw = contract_raw.get("semantic_invariants")
+    if not isinstance(invariants_raw, Mapping):
+        raise ValueError(
+            "Normalized greedy route contract is missing semantic invariants."
+        )
+    if "greedy_batch_maximum_size" not in invariants_raw:
+        raise ValueError(
+            "Normalized greedy route contract is missing maximum batch size."
+        )
+    if "greedy_batch_search_window_size" not in invariants_raw:
+        raise ValueError(
+            "Normalized greedy route contract is missing search-window size."
+        )
+    admission = GreedyBatchAdmission(
+        maximum_size=invariants_raw["greedy_batch_maximum_size"],
+        search_window_size=invariants_raw["greedy_batch_search_window_size"],
+    )
+    expected_contract = (
+        canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract(
+            maximum_size=admission.maximum_size,
+            search_window_size=admission.search_window_size,
+        )
+    )
+    if dict(contract_raw) != expected_contract:
+        raise ValueError(
+            "Normalized greedy route contract differs from its canonical "
+            "request-specific contract."
+        )
+    return admission
+
+
+def _active_combinatorial_batch_admission_from_executor_kwargs(
+    executor_kwargs: Mapping[str, Any],
+) -> CombinatorialBatchAdmission:
+    """Recover typed subset controls only from their exact route contract."""
+
+    contract_raw = executor_kwargs.get("sr_route_profile_contract")
+    if not isinstance(contract_raw, Mapping):
+        raise ValueError(
+            "Normalized combinatorial route is missing its contract."
+        )
+    invariants_raw = contract_raw.get("semantic_invariants")
+    if not isinstance(invariants_raw, Mapping):
+        raise ValueError(
+            "Normalized combinatorial contract lacks semantic invariants."
+        )
+    required = (
+        "combinatorial_batch_maximum_size",
+        "combinatorial_batch_search_window_size",
+    )
+    if any(key not in invariants_raw for key in required):
+        raise ValueError(
+            "Normalized combinatorial contract lacks batch/window controls."
+        )
+    window_raw = invariants_raw[
+        "combinatorial_batch_search_window_size"
+    ]
+    admission = CombinatorialBatchAdmission(
+        maximum_size=invariants_raw[
+            "combinatorial_batch_maximum_size"
+        ],
+        search_window_size=(
+            FullCombinatorialSearchWindow()
+            if window_raw is None
+            else window_raw
+        ),
+    )
+    expected_contract = (
+        canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract(
+            maximum_size=admission.maximum_size,
+            search_window_size=(
+                admission.resolved_search_window_size
+            ),
+        )
+    )
+    if dict(contract_raw) != expected_contract:
+        raise ValueError(
+            "Normalized combinatorial contract differs from its canonical "
+            "request-specific contract."
+        )
+    return admission
+
+
+def _active_route_identity_for_request(
+    request: SRRunRequest,
+) -> tuple[str, str]:
+    """Return the one exact active route identity selected by the request."""
+
+    if isinstance(request.method.admission, GreedyBatchAdmission):
+        admission = request.method.admission
+        return (
+            _ACTIVE_GREEDY_PROFILE,
+            canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract_sha256(
+                maximum_size=admission.maximum_size,
+                search_window_size=admission.search_window_size,
+            ),
+        )
+    if isinstance(
+        request.method.admission,
+        CombinatorialBatchAdmission,
+    ):
+        admission = request.method.admission
+        return (
+            _ACTIVE_COMBINATORIAL_PROFILE,
+            canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract_sha256(
+                maximum_size=admission.maximum_size,
+                search_window_size=(
+                    admission.resolved_search_window_size
+                ),
+            ),
+        )
+    if isinstance(request.method.pruning, RecoverabilityPruning):
+        return (
+            _ACTIVE_PRUNE_PROFILE,
+            canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256(),
+        )
+    if isinstance(
+        request.method.insertion,
+        PlateauCommutationInsertion,
+    ):
+        return (
+            _ACTIVE_INSERTION_PROFILE,
+            canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256(),
+        )
+    return (
+        _ACTIVE_PROFILE,
+        canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256(),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _CLICompatibilityProjection:
+    payload: dict[str, Any]
+    final_statevector: np.ndarray
+    result: SRRunResult
+    estimator_call_ledger_payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class _AcceptedCheckpointObservation:
+    envelope: Mapping[str, Any]
+    consumer_projection: Mapping[str, Any]
+    estimator_call_ledger_payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class _PaperIReplayRoundLock:
+    source_controller_round: int
+    source_depth: int
+    target_controller_round: int
+    target_depth: int
+    max_new_admissions: int
+    terminal_qiskit_sidecar_outer_iteration: int
+    requested_new_rounds: int
+    route_profile: str
+    route_contract_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class _NormalizedCLISegmentRoundLock:
+    record_id: str
+    target_controller_round: int
+    target_depth: int
+    max_new_admissions: int
+    requested_rounds: int
+    route_profile: str
+    route_contract_sha256: str
+
+
+def _required_nonnegative_integer(
+    record: Mapping[str, Any],
+    key: str,
+) -> int:
+    raw = record.get(key)
+    if isinstance(raw, bool):
+        raise ValueError(f"Paper-I replay round lock {key} must be an integer.")
+    if isinstance(raw, (float, np.floating)) and (
+        not math.isfinite(float(raw)) or not float(raw).is_integer()
+    ):
+        raise ValueError(f"Paper-I replay round lock {key} must be an integer.")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Paper-I replay round lock {key} must be an integer."
+        ) from exc
+    if value < 0:
+        raise ValueError(
+            f"Paper-I replay round lock {key} must be nonnegative."
+        )
+    return value
+
+
+def _validate_paper_i_replay_round_lock(
+    request: SRRunRequest,
+    source_record: Mapping[str, Any],
+) -> _PaperIReplayRoundLock:
+    """Validate an immutable Paper-I replay horizon before execution."""
+
+    source_round = _required_nonnegative_integer(
+        source_record,
+        "source_controller_round",
+    )
+    source_depth = _required_nonnegative_integer(
+        source_record,
+        "source_depth",
+    )
+    target_round = _required_nonnegative_integer(
+        source_record,
+        "target_controller_round",
+    )
+    target_depth = _required_nonnegative_integer(
+        source_record,
+        "target_depth",
+    )
+    max_new = _required_nonnegative_integer(
+        source_record,
+        "max_new_admissions",
+    )
+    terminal_qiskit_round = _required_nonnegative_integer(
+        source_record,
+        "terminal_qiskit_sidecar_outer_iteration",
+    )
+    if source_record.get("exact_round_horizon_required") is not True:
+        raise ValueError(
+            "Paper-I replay round lock requires an exact immutable horizon."
+        )
+    if source_round != source_depth:
+        raise ValueError(
+            "Paper-I replay source controller round and depth disagree."
+        )
+    if not (
+        target_round == target_depth == terminal_qiskit_round
+    ):
+        raise ValueError(
+            "Paper-I replay target round, depth, and terminal Qiskit round "
+            "disagree."
+        )
+    requested_new_rounds = int(
+        request.execution.stop.maximum_controller_rounds
+    )
+    source_new_rounds = int(target_round - source_round)
+    if source_new_rounds < 0 or max_new != source_new_rounds:
+        raise ValueError(
+            "Paper-I replay max-new-admissions disagrees with its source "
+            "and target rounds."
+        )
+    if requested_new_rounds != source_new_rounds:
+        raise ValueError(
+            "Paper-I replay requested round limit disagrees with the "
+            "immutable source horizon."
+        )
+    route_profile = str(source_record.get("route_profile", ""))
+    route_digest = str(
+        source_record.get("route_profile_contract_sha256", "")
+    )
+    expected_profile, expected_digest = (
+        _active_route_identity_for_request(request)
+    )
+    if (
+        route_profile != expected_profile
+        or route_digest != expected_digest
+    ):
+        raise ValueError(
+            "Paper-I replay route profile or digest disagrees with the "
+            "active facade contract."
+        )
+    return _PaperIReplayRoundLock(
+        source_controller_round=source_round,
+        source_depth=source_depth,
+        target_controller_round=target_round,
+        target_depth=target_depth,
+        max_new_admissions=max_new,
+        terminal_qiskit_sidecar_outer_iteration=terminal_qiskit_round,
+        requested_new_rounds=requested_new_rounds,
+        route_profile=route_profile,
+        route_contract_sha256=route_digest,
+    )
+
+
+def _normalized_cli_replay_record(
+    executor_kwargs: Mapping[str, Any],
+) -> Mapping[str, Any] | None:
+    """Freeze the exact fresh segment controls carried by Paper-I replays."""
+
+    keys = (
+        "adapt_segment_id",
+        "adapt_segment_target_depth",
+        "adapt_segment_target_controller_round",
+        "adapt_segment_max_new_admissions",
+    )
+    values = {key: executor_kwargs.get(key) for key in keys}
+    present = {
+        key for key, value in values.items() if value is not None
+    }
+    if not present:
+        return None
+    if present != set(keys):
+        raise ValueError(
+            "Paper-I replay round lock requires the complete normalized "
+            "segment record."
+        )
+    return {
+        "record_id": str(values["adapt_segment_id"]),
+        "target_controller_round": values[
+            "adapt_segment_target_controller_round"
+        ],
+        "target_depth": values["adapt_segment_target_depth"],
+        "max_new_admissions": values[
+            "adapt_segment_max_new_admissions"
+        ],
+        "route_profile": executor_kwargs.get(
+            "sr_route_profile_resolved"
+        ),
+        "route_profile_contract_sha256": executor_kwargs.get(
+            "sr_route_profile_contract_sha256"
+        ),
+    }
+
+
+def _validate_normalized_cli_segment_round_lock(
+    request: SRRunRequest,
+    segment_record: Mapping[str, Any],
+) -> _NormalizedCLISegmentRoundLock:
+    """Validate only the round fields actually carried by the CLI segment."""
+
+    record_id = str(segment_record.get("record_id", "")).strip()
+    if not record_id:
+        raise ValueError("Paper-I CLI segment round lock has no record id.")
+    target_round = _required_nonnegative_integer(
+        segment_record,
+        "target_controller_round",
+    )
+    target_depth = _required_nonnegative_integer(
+        segment_record,
+        "target_depth",
+    )
+    max_new = _required_nonnegative_integer(
+        segment_record,
+        "max_new_admissions",
+    )
+    requested_rounds = int(
+        request.execution.stop.maximum_controller_rounds
+    )
+    if not (
+        target_round
+        == target_depth
+        == max_new
+        == requested_rounds
+    ):
+        raise ValueError(
+            "Paper-I CLI segment target round, target depth, max-new "
+            "admissions, and requested rounds disagree."
+        )
+    route_profile = str(segment_record.get("route_profile", ""))
+    route_digest = str(
+        segment_record.get("route_profile_contract_sha256", "")
+    )
+    expected_profile, expected_digest = (
+        _active_route_identity_for_request(request)
+    )
+    if (
+        route_profile != expected_profile
+        or route_digest != expected_digest
+    ):
+        raise ValueError(
+            "Paper-I CLI segment route profile or digest disagrees with "
+            "the active facade contract."
+        )
+    return _NormalizedCLISegmentRoundLock(
+        record_id=record_id,
+        target_controller_round=target_round,
+        target_depth=target_depth,
+        max_new_admissions=max_new,
+        requested_rounds=requested_rounds,
+        route_profile=route_profile,
+        route_contract_sha256=route_digest,
+    )
+
+
+def _active_cli_compatibility_reason(
+    executor_kwargs: Mapping[str, Any],
+) -> str | None:
+    """Return ``None`` only for an exact fresh active facade contract."""
+
+    if not bool(
+        executor_kwargs.get("phase1_lane_retention_enabled", True)
+    ):
+        return (
+            "phase1_lane_retention_ablation_requires_legacy_"
+            "compatibility"
+        )
+    route_profile = str(
+        executor_kwargs.get("sr_route_profile_request", "")
+    )
+    resolved_profile = str(
+        executor_kwargs.get("sr_route_profile_resolved", "")
+    )
+    expected_digests = {
+        _ACTIVE_PROFILE: (
+            canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256()
+        ),
+        _ACTIVE_PRUNE_PROFILE: (
+            canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_full_geometry_fs_prune_verify_v1_contract_sha256()
+        ),
+        _ACTIVE_INSERTION_PROFILE: (
+            canonical_sr_snake_insertion_commutation_plateau_v1_contract_sha256()
+        ),
+    }
+    if route_profile == _ACTIVE_GREEDY_PROFILE:
+        try:
+            greedy_admission = (
+                _active_greedy_batch_admission_from_executor_kwargs(
+                    executor_kwargs
+                )
+            )
+        except (TypeError, ValueError):
+            return (
+                "normalized_greedy_batch_contract_is_not_active_"
+                "facade_contract"
+            )
+        expected_digests[route_profile] = (
+            canonical_sr_snake_greedy_batch_projected_phase3_no_overlap_trust_v1_contract_sha256(
+                maximum_size=greedy_admission.maximum_size,
+                search_window_size=greedy_admission.search_window_size,
+            )
+        )
+    elif route_profile == _ACTIVE_COMBINATORIAL_PROFILE:
+        try:
+            combinatorial_admission = (
+                _active_combinatorial_batch_admission_from_executor_kwargs(
+                    executor_kwargs
+                )
+            )
+        except (TypeError, ValueError):
+            return (
+                "normalized_combinatorial_batch_contract_is_not_active_"
+                "facade_contract"
+            )
+        expected_digests[route_profile] = (
+            canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_contract_sha256(
+                maximum_size=combinatorial_admission.maximum_size,
+                search_window_size=(
+                    combinatorial_admission.resolved_search_window_size
+                ),
+            )
+        )
+    elif route_profile not in expected_digests:
+        return (
+            "normalized_sr_route_profile_request_is_not_active_"
+            "facade_contract"
+        )
+    if resolved_profile != route_profile:
+        return (
+            "normalized_sr_route_profile_resolved_is_not_active_"
+            "facade_contract"
+        )
+    expected_digest = expected_digests[route_profile]
+    if (
+        str(executor_kwargs.get("sr_route_profile_contract_sha256", ""))
+        != expected_digest
+    ):
+        return (
+            "normalized_sr_route_profile_contract_sha256_is_not_active_"
+            "facade_contract"
+        )
+    pruning_enabled = route_profile == _ACTIVE_PRUNE_PROFILE
+    exact_values = {
+        "adapt_pool": "full_meta",
+        "adapt_child_pool_expansion_mode": "off",
+        "shared_pauli_pool_mode": "off",
+        "adapt_selected_logical_mode": "off",
+        "phase3_plateau_acquisition_mode": "off",
+        "hardware_resolution_mode": "ideal",
+        "adapt_state_backend": "compiled",
+    }
+    for key, expected in exact_values.items():
+        if executor_kwargs.get(key) != expected:
+            return f"normalized_{key}_is_not_active_facade_contract"
+
+    false_flags = (
+        "phase0_pilot_enabled",
+        "phase2_enable_batching",
+        "phase3_enable_batching",
+        "adapt_final_full_refit",
+        "adapt_gradient_parity_check",
+    )
+    for key in false_flags:
+        if bool(executor_kwargs.get(key, False)):
+            return f"normalized_{key}_requires_legacy_compatibility"
+    if bool(
+        executor_kwargs.get("phase1_prune_enabled", False)
+    ) != pruning_enabled:
+        return (
+            "normalized_phase1_prune_enabled_is_not_active_facade_contract"
+        )
+    if pruning_enabled:
+        exact_prune_values = {
+            "phase1_prune_policy": "recoverability_ladder_v1",
+            "phase1_prune_mode": "live",
+            "phase1_prune_max_candidates": 1,
+            "phase1_prune_local_window_size": 0,
+            "phase1_prune_max_regression": 1.0e-8,
+            "phase1_prune_retained_gain_ratio": 0.5,
+            "phase1_prune_protect_steps": 2,
+            "phase1_prune_schur_nomination_route": (
+                "full_logical_fs_trust_delete_refit_v1"
+            ),
+            "phase1_prune_recovery_trust_radius": 0.125,
+            "phase1_prune_metric_schur_solve_mode": (
+                "affine_deletion_global_trust_v1"
+            ),
+            "phase1_prune_metric_schur_mu": 0.0,
+            "phase1_prune_metric_schur_cost_weighting": "off",
+            "phase1_prune_trust_update_policy": (
+                "modeled_local_fs_conservative_v1"
+            ),
+            "phase1_prune_metric_mu_update_policy": "off",
+            "phase1_prune_endpoint_overlap_policy": "off",
+        }
+        for key, expected in exact_prune_values.items():
+            if executor_kwargs.get(key) != expected:
+                return (
+                    f"normalized_{key}_is_not_active_facade_contract"
+                )
+
+    if (
+        int(executor_kwargs.get("adapt_beam_live_branches", 1) or 1) != 1
+        or int(executor_kwargs.get("adapt_beam_children_per_parent", 1) or 1)
+        != 1
+    ):
+        return "normalized_beam_policy_requires_legacy_compatibility"
+
+    absent_values = (
+        "adapt_resume_scaffold_json",
+        "adapt_resume_source",
+        "adapt_resume_import_summary",
+        "adapt_resume_compile_smoke_result",
+        "psi_ref_override",
+        "adapt_formal_manifold_config",
+        "phase3_oracle_gradient_config",
+        "final_noise_audit_config",
+        "adapt_pool_class_filter_json",
+        "adapt_pool_label_filter_json",
+        "adapt_selected_logical_source_json",
+        "phase3_motif_source_json",
+        "adapt_segment_wallclock_cap_s",
+    )
+    for key in absent_values:
+        if executor_kwargs.get(key) is not None:
+            return f"normalized_{key}_requires_legacy_compatibility"
+
+    if int(executor_kwargs.get("adapt_ref_base_depth", 0)) != 0:
+        return "normalized_adapt_ref_base_depth_requires_legacy_compatibility"
+    for key in (
+        "adapt_drop_floor",
+        "adapt_drop_patience",
+        "adapt_drop_min_depth",
+        "adapt_grad_floor",
+    ):
+        if executor_kwargs.get(key) is not None:
+            return f"normalized_{key}_requires_legacy_compatibility"
+    if str(
+        executor_kwargs.get("adapt_noise_floor_stop_policy", "off")
+    ).strip().lower() != "off":
+        return (
+            "normalized_adapt_noise_floor_stop_policy_requires_"
+            "legacy_compatibility"
+        )
+    if int(executor_kwargs.get("adapt_parallel_gradient_workers", 1)) != 1:
+        return (
+            "normalized_adapt_parallel_gradient_workers_requires_"
+            "legacy_compatibility"
+        )
+    segment_keys = (
+        "adapt_segment_id",
+        "adapt_segment_target_depth",
+        "adapt_segment_target_controller_round",
+        "adapt_segment_max_new_admissions",
+    )
+    segment_present = tuple(
+        executor_kwargs.get(key) is not None for key in segment_keys
+    )
+    if route_profile == _ACTIVE_GREEDY_PROFILE and any(segment_present):
+        return "normalized_greedy_batch_segment_requires_issue_19"
+    if (
+        route_profile == _ACTIVE_COMBINATORIAL_PROFILE
+        and any(segment_present)
+    ):
+        return "normalized_combinatorial_batch_segment_requires_issue_19"
+    if any(segment_present) and not all(segment_present):
+        return "partial_segment_controls_require_legacy_compatibility"
+    if float(executor_kwargs.get("adapt_analytic_noise_std", 0.0)) != 0.0:
+        return "normalized_analytic_noise_requires_legacy_compatibility"
+    if int(executor_kwargs.get("max_depth", 0)) < 1:
+        return "normalized_max_depth_is_not_positive"
+    return None
+
+
+def _build_active_cli_request(
+    problem: ResolvedProblemContext,
+    executor_kwargs: Mapping[str, Any],
+    *,
+    checkpoint_path: Path,
+    estimator_ledger_path: Path | None,
+) -> SRRunRequest:
+    maximum_rounds = int(executor_kwargs["max_depth"])
+    target_tolerance = executor_kwargs.get("benchmark_target_abs_delta_e")
+    exact_target = None
+    if target_tolerance is not None:
+        target_energy = executor_kwargs.get(
+            "benchmark_target_reference_energy"
+        )
+        if target_energy is None:
+            target_energy = executor_kwargs["exact_gs_override"]
+        exact_target = ExactEDStop(
+            energy=float(target_energy),
+            absolute_tolerance=float(target_tolerance),
+            source=ExactEDSourceReceipt.from_problem(
+                problem,
+                source_id="adapt_pipeline_cli_resolved_exact_target_v1",
+            ),
+        )
+
+    checkpoint = CheckpointObservation(
+        path=Path(checkpoint_path),
+        every_controller_rounds=int(
+            executor_kwargs["adapt_current_json_every_depth"]
+        ),
+        keep_history_tail=int(
+            executor_kwargs["adapt_current_json_keep_history_tail"]
+        ),
+    )
+    ledger = (
+        None
+        if estimator_ledger_path is None
+        else EstimatorLedgerObservation(path=Path(estimator_ledger_path))
+    )
+    pruning = (
+        RecoverabilityPruning()
+        if str(executor_kwargs["sr_route_profile_resolved"])
+        == _ACTIVE_PRUNE_PROFILE
+        else PruningOff()
+    )
+    resolved_profile = str(
+        executor_kwargs["sr_route_profile_resolved"]
+    )
+    insertion = (
+        PlateauCommutationInsertion()
+        if resolved_profile == _ACTIVE_INSERTION_PROFILE
+        else AppendOnlyInsertion()
+    )
+    admission = (
+        _active_greedy_batch_admission_from_executor_kwargs(
+            executor_kwargs
+        )
+        if resolved_profile == _ACTIVE_GREEDY_PROFILE
+        else (
+            _active_combinatorial_batch_admission_from_executor_kwargs(
+                executor_kwargs
+            )
+            if resolved_profile == _ACTIVE_COMBINATORIAL_PROFILE
+            else None
+        )
+    )
+    return SRRunRequest(
+        method=(
+            SRMethodPolicy(
+                insertion=insertion,
+                pruning=pruning,
+            )
+            if admission is None
+            else SRMethodPolicy(
+                admission=admission,
+                insertion=insertion,
+                pruning=pruning,
+            )
+        ),
+        execution=SRExecutionPolicy(
+            stop=SRStopPolicy(
+                maximum_controller_rounds=maximum_rounds,
+                exact_ed_target=exact_target,
+            )
+        ),
+        observation=SRObservationPolicy(
+            checkpoint=checkpoint,
+            estimator_ledger=ledger,
+        ),
+    )
+
+
+def _require_mapping(value: Any, *, name: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"SR-SNAKE compatibility projection is missing {name}.")
+    return value
+
+
+def _require_sequence(value: Any, *, name: str) -> Sequence[Any]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise RuntimeError(f"SR-SNAKE compatibility projection is missing {name}.")
+    return value
+
+
+def _validate_consumer_complete_projection(
+    result: SRRunResult,
+    payload: Mapping[str, Any],
+) -> None:
+    """Validate the scientific and provenance surfaces used by live readers."""
+    checkpoints = _require_sequence(
+        payload.get("active_prefix_checkpoints"),
+        name="active-prefix checkpoints",
+    )
+    history = _require_sequence(payload.get("history"), name="accepted history")
+    if len(checkpoints) != len(result.scientific_replay) or len(history) != len(
+        result.accepted_trajectory
+    ):
+        raise RuntimeError(
+            "SR-SNAKE compatibility projection cardinalities disagree with "
+            "the typed result."
+        )
+    if (
+        str(payload.get("route_family")) != result.route.family
+        or str(payload.get("route_profile")) != result.route.profile
+        or str(payload.get("sr_route_profile_contract_sha256"))
+        != result.route.contract_sha256
+    ):
+        raise RuntimeError(
+            "SR-SNAKE compatibility route identity disagrees with the typed result."
+        )
+    if tuple(str(value) for value in payload.get("operators", ())) != tuple(
+        result.final_state.operators
+    ):
+        raise RuntimeError(
+            "SR-SNAKE compatibility operators disagree with the typed result."
+        )
+    if not math.isclose(
+        float(payload["energy"]),
+        float(result.final_state.energy),
+        rel_tol=0.0,
+        abs_tol=1.0e-12,
+    ):
+        raise RuntimeError(
+            "SR-SNAKE compatibility energy disagrees with the typed result."
+        )
+    for raw_checkpoint, replay in zip(
+        checkpoints,
+        result.scientific_replay,
+        strict=True,
+    ):
+        checkpoint = _require_mapping(
+            raw_checkpoint,
+            name="active-prefix checkpoint",
+        )
+        if (
+            str(checkpoint.get("checkpoint_sha256"))
+            != replay.checkpoint.checkpoint_sha256
+            or str(checkpoint.get("projective_state_fingerprint"))
+            != replay.checkpoint.projective_state_fingerprint
+        ):
+            raise RuntimeError(
+                "SR-SNAKE compatibility checkpoint disagrees with the typed "
+                "scientific replay."
+            )
+    accounting = _require_mapping(
+        payload.get("estimator_call_accounting"),
+        name="estimator accounting",
+    )
+    if (
+        int(accounting.get("S_alg", -1))
+        != result.estimator_accounting.all_work.s_alg
+        or bool(accounting.get("complete", False))
+        != result.estimator_accounting.complete
+        or not isinstance(accounting.get("full_ledger"), Mapping)
+    ):
+        raise RuntimeError(
+            "SR-SNAKE compatibility accounting disagrees with the typed result "
+            "or lacks its private full ledger."
+        )
+
+
+def _reconstruct_final_state(
+    problem: ResolvedProblemContext,
+    result: SRRunResult,
+    payload: Mapping[str, Any],
+) -> np.ndarray:
+    checkpoint = _require_mapping(
+        payload.get("terminal_active_prefix_checkpoint"),
+        name="terminal active-prefix checkpoint",
+    )
+    layout_payload = _require_mapping(
+        checkpoint.get("parameterization"),
+        name="terminal parameterization",
+    )
+    layout = deserialize_layout(layout_payload)
+    terms: list[AnsatzTerm] = []
+    for block in layout.blocks:
+        polynomial = PauliPolynomial(
+            "JW",
+            [
+                PauliTerm(
+                    int(spec.nq),
+                    ps=str(spec.pauli_exyz),
+                    pc=complex(float(spec.coeff_real), 0.0),
+                )
+                for spec in block.terms
+            ],
+        )
+        terms.append(
+            AnsatzTerm(
+                label=str(block.candidate_label),
+                polynomial=polynomial,
+                execution_mode=str(block.execution_mode),
+            )
+        )
+    parameterization_mode = str(
+        checkpoint.get("parameterization_execution_mode", "logical_shared")
+    )
+    executor = CompiledAnsatzExecutor(
+        terms,
+        coefficient_tolerance=float(layout.coefficient_tolerance),
+        ignore_identity=bool(layout.ignore_identity),
+        sort_terms=str(layout.term_order) == "sorted",
+        parameterization_mode=parameterization_mode,
+        parameterization_layout=layout,
+    )
+    theta_key = (
+        "signed_unwrapped_logical_parameters"
+        if parameterization_mode == "logical_shared"
+        else "signed_unwrapped_runtime_parameters"
+    )
+    theta = np.asarray(checkpoint[theta_key], dtype=float)
+    state = executor.prepare_state(
+        theta,
+        np.asarray(problem.reference_state.build_state(), dtype=complex),
+    )
+    fingerprint = projective_state_fingerprint(state)
+    expected_fingerprint = result.final_state.projective_state_fingerprint
+    if fingerprint != expected_fingerprint:
+        raise RuntimeError(
+            "Projected final state does not match the typed SR-SNAKE fingerprint."
+        )
+    energy = expval_pauli_polynomial(state, problem.hamiltonian)
+    if not math.isclose(
+        float(energy),
+        float(result.final_state.energy),
+        rel_tol=0.0,
+        abs_tol=1.0e-10,
+    ):
+        raise RuntimeError(
+            "Projected final state does not match the typed SR-SNAKE energy."
+        )
+    return np.asarray(state, dtype=complex)
+
+
+def _project_completed_run_to_legacy(
+    problem: ResolvedProblemContext,
+    result: SRRunResult,
+    observation: _AcceptedCheckpointObservation,
+    executor_kwargs: Mapping[str, Any],
+    *,
+    segment_lock: _NormalizedCLISegmentRoundLock | None,
+) -> _CLICompatibilityProjection:
+    """Project typed authority plus private live-consumer compatibility data.
+
+    The historical executor emitted a much wider diagnostic union.  This
+    adapter deliberately preserves the scientific, provenance, checkpoint,
+    accounting, resume, and reporting surfaces still consumed in-tree.  The
+    omitted historical diagnostic union is unresolved Issue-20 reachability
+    and retirement debt.
+    """
+
+    payload = copy.deepcopy(dict(observation.consumer_projection))
+    accounting_with_ledger = dict(
+        _require_mapping(
+            payload.get("estimator_call_accounting"),
+            name="estimator accounting",
+        )
+    )
+    accounting_with_ledger["full_ledger"] = copy.deepcopy(
+        dict(observation.estimator_call_ledger_payload)
+    )
+    payload["estimator_call_accounting"] = accounting_with_ledger
+    continuation_raw = payload.get("continuation")
+    if isinstance(continuation_raw, Mapping):
+        continuation_copy = copy.deepcopy(dict(continuation_raw))
+        continuation_accounting = continuation_copy.get(
+            "estimator_call_accounting"
+        )
+        if isinstance(continuation_accounting, Mapping):
+            continuation_accounting_copy = dict(continuation_accounting)
+            continuation_accounting_copy["full_ledger"] = copy.deepcopy(
+                dict(observation.estimator_call_ledger_payload)
+            )
+            continuation_copy["estimator_call_accounting"] = (
+                continuation_accounting_copy
+            )
+        payload["continuation"] = continuation_copy
+    _validate_consumer_complete_projection(result, payload)
+    checkpoint = _require_mapping(
+        payload["terminal_active_prefix_checkpoint"],
+        name="terminal active-prefix checkpoint",
+    )
+    parameterization = _require_mapping(
+        checkpoint["parameterization"],
+        name="terminal parameterization",
+    )
+    accounting = _require_mapping(
+        payload["estimator_call_accounting"],
+        name="estimator accounting",
+    )
+    execution_mode = str(
+        checkpoint.get("parameterization_execution_mode", "logical_shared")
+    )
+    logical_parameters = [
+        float(value) for value in result.final_state.logical_parameters
+    ]
+    runtime_parameters = [
+        float(value) for value in result.final_state.runtime_parameters
+    ]
+    exact_energy = float(executor_kwargs["exact_gs_override"])
+    components = dict(
+        _require_mapping(
+            accounting.get("components"),
+            name="estimator components",
+        )
+    )
+    contract = dict(
+        _require_mapping(
+            payload.get("sr_route_profile_contract"),
+            name="route contract",
+        )
+    )
+    contract_settings = _require_mapping(
+        contract.get("execution_settings"),
+        name="route execution settings",
+    )
+    num_particles = problem.sector.num_particles
+    if num_particles is None:
+        num_particles = problem.default_num_particles
+    route_identity = {
+        "route_family": result.route.family,
+        "route_profile": result.route.profile,
+        "sr_route_family": result.route.family,
+        "sr_route_profile": result.route.profile,
+        "sr_route_profile_request": result.route.profile_request,
+        "sr_route_profile_resolved": result.route.profile,
+        "sr_route_profile_contract": contract,
+        "sr_route_profile_contract_sha256": result.route.contract_sha256,
+        "phase3_response_coordinate_scope": (
+            result.route.execution.phase3_response_coordinate_scope
+        ),
+        "phase1_score_mode": str(executor_kwargs["phase1_score_mode"]),
+        "phase1_energy_model": str(executor_kwargs["phase1_energy_model"]),
+        "phase2_curvature_policy": str(
+            executor_kwargs["phase2_curvature_policy"]
+        ),
+        "phase2_cheap_curvature_proxy_policy": str(
+            executor_kwargs["phase2_cheap_curvature_proxy_policy"]
+        ),
+        "observed_components": {
+            "base_pool_key": str(result.route.execution.pool),
+        },
+    }
+    continuation = dict(
+        _require_mapping(payload.get("continuation"), name="continuation")
+    )
+    continuation["physical_operator_lane_policy"] = {
+        "schema": "hh_physical_operator_lane_policy_v1",
+        "lanes": [
+            "uccsd_singles",
+            "uccsd_doubles",
+            "hva_hamiltonian_blocks",
+        ],
+        "base_pool_key": str(result.route.execution.pool),
+    }
+    payload.update(
+        {
+            "success": True,
+            "method": (
+                "hardcoded_adapt_vqe_"
+                + str(result.route.execution.pool).lower()
+            ),
+            "route_family": result.route.family,
+            "route_profile": result.route.profile,
+            "sr_route_profile_request": result.route.profile_request,
+            "sr_route_profile_resolved": result.route.profile,
+            "sr_route_profile_contract": contract,
+            "sr_route_profile_contract_sha256": result.route.contract_sha256,
+            "energy": float(result.final_state.energy),
+            "exact_gs_energy": exact_energy,
+            "delta_e": float(result.final_state.energy - exact_energy),
+            "abs_delta_e": abs(float(result.final_state.energy - exact_energy)),
+            "operators": list(result.final_state.operators),
+            "ansatz_depth": len(result.final_state.operators),
+            "num_parameters": len(runtime_parameters),
+            "logical_num_parameters": len(logical_parameters),
+            "optimal_point": runtime_parameters,
+            "logical_optimal_point": logical_parameters,
+            "parameterization": dict(parameterization),
+            "parameterization_mode": execution_mode,
+            "parameterization_execution_mode": execution_mode,
+            "parameterization_execution_mode_source": str(
+                checkpoint.get(
+                    "parameterization_execution_mode_source",
+                    "active_prefix_checkpoint",
+                )
+            ),
+            "num_particles": {
+                "n_up": int(num_particles[0]),
+                "n_dn": int(num_particles[1]),
+            },
+            "analytic_noise_applied": False,
+            "analytic_noise_std": 0.0,
+            "analytic_noise_seed": None,
+            "adapt_pool_class_filter_json": None,
+            "adapt_pool_label_filter_json": None,
+            "adapt_beam_enabled": bool(
+                payload.get("adapt_beam_enabled", False)
+            ),
+            "adapt_inner_optimizer": result.route.execution.optimizer,
+            "adapt_reoptimization_route": "off",
+            "adapt_reopt_policy": str(executor_kwargs["adapt_reopt_policy"]),
+            "accepted_refit": {
+                "policy": result.route.execution.accepted_refit_policy,
+                "scope": result.route.execution.accepted_refit_scope,
+                "coordinate_chart": (
+                    result.route.execution.accepted_refit_coordinate_chart
+                ),
+            },
+            "phase3_response_coordinate_scope": (
+                result.route.execution.phase3_response_coordinate_scope
+            ),
+            "phase1_score_mode": str(executor_kwargs["phase1_score_mode"]),
+            "phase1_energy_model": str(executor_kwargs["phase1_energy_model"]),
+            "phase2_curvature_policy": str(
+                executor_kwargs["phase2_curvature_policy"]
+            ),
+            "phase2_cheap_curvature_proxy_policy": str(
+                executor_kwargs["phase2_cheap_curvature_proxy_policy"]
+            ),
+            "S_alg": int(result.estimator_accounting.all_work.s_alg),
+            "S_alg_components": components,
+            "S_unique": int(accounting["S_unique"]),
+            "static_route_identity": route_identity,
+            "continuation": continuation,
+            "pool_type": str(contract_settings["adapt_pool"]),
+        }
+    )
+    if segment_lock is not None:
+        segment_payload = {
+            "schema_version": "static_hh_adapt_segment_v1",
+            "segment_id": segment_lock.record_id,
+            "resume_enabled": False,
+            "resume_mode": "fresh",
+            "base_depth": 0,
+            "base_runtime_parameter_count": 0,
+            "final_depth": int(segment_lock.target_depth),
+            "final_runtime_parameter_count": len(runtime_parameters),
+            "target_depth": int(segment_lock.target_depth),
+            "source_controller_round": 0,
+            "target_controller_round": int(
+                segment_lock.target_controller_round
+            ),
+            "final_controller_round": int(
+                result.final_state.controller_round
+            ),
+            "max_new_admissions": int(segment_lock.max_new_admissions),
+            "wallclock_cap_s": None,
+            "new_admission_records": len(result.accepted_trajectory),
+            "segment_cap_truncated_batch": False,
+            "stop_reason": "segment_target_controller_round",
+            "boundary_refit_executed": False,
+            "compile_smoke": None,
+            "route_profile": segment_lock.route_profile,
+            "route_profile_contract_sha256": (
+                segment_lock.route_contract_sha256
+            ),
+            "no_credentials_serialized": True,
+        }
+        payload["adapt_segment"] = segment_payload
+        continuation_segment = dict(
+            _require_mapping(
+                payload.get("continuation"),
+                name="continuation",
+            )
+        )
+        continuation_segment["adapt_segment"] = copy.deepcopy(
+            segment_payload
+        )
+        payload["continuation"] = continuation_segment
+        for index, row_raw in enumerate(
+            _require_sequence(payload.get("history"), name="accepted history"),
+            start=1,
+        ):
+            if not isinstance(row_raw, dict):
+                raise RuntimeError(
+                    "SR-SNAKE compatibility history row is not mutable."
+                )
+            row_raw.update(
+                {
+                    "segment_id": segment_lock.record_id,
+                    "segment_new_admissions_committed": 1,
+                    "segment_new_admissions_total": index,
+                    "segment_cap_truncated_batch": False,
+                }
+            )
+    state = _reconstruct_final_state(problem, result, payload)
+    return _CLICompatibilityProjection(
+        payload=payload,
+        final_statevector=state,
+        result=result,
+        estimator_call_ledger_payload=copy.deepcopy(
+            dict(observation.estimator_call_ledger_payload)
+        ),
+    )
+
+
+def _load_active_cli_checkpoint_observation(
+    path: Path,
+    result: SRRunResult,
+) -> _AcceptedCheckpointObservation:
+    envelope_raw = json.loads(path.read_text(encoding="utf-8"))
+    envelope = _require_mapping(
+        envelope_raw,
+        name="accepted-checkpoint envelope",
+    )
+    adapt = _require_mapping(
+        envelope.get("adapt_vqe"),
+        name="accepted-checkpoint ADAPT block",
+    )
+    pointer = _require_mapping(
+        adapt.get("estimator_call_ledger_checkpoint"),
+        name="accepted-checkpoint ledger pointer",
+    )
+    relative_path = str(pointer.get("path", "")).strip()
+    if (
+        not relative_path
+        or Path(relative_path).is_absolute()
+        or Path(relative_path).name != relative_path
+    ):
+        raise RuntimeError(
+            "Accepted-checkpoint ledger pointer is not a sibling path."
+        )
+    sidecar_path = path.with_name(relative_path)
+    sidecar_bytes = sidecar_path.read_bytes()
+    if hashlib.sha256(sidecar_bytes).hexdigest() != str(
+        pointer.get("sha256", "")
+    ):
+        raise RuntimeError("Accepted-checkpoint ledger sidecar hash mismatch.")
+    sidecar_raw = json.loads(sidecar_bytes)
+    sidecar = _require_mapping(
+        sidecar_raw,
+        name="accepted-checkpoint ledger sidecar",
+    )
+    projection = _require_mapping(
+        sidecar.get("consumer_complete_projection"),
+        name="consumer-complete projection",
+    )
+    ledger = _require_mapping(
+        sidecar.get("ledger"),
+        name="accepted-checkpoint estimator ledger",
+    )
+    if (
+        int(_require_mapping(sidecar.get("checkpoint"), name="checkpoint").get(
+            "depth",
+            -1,
+        ))
+        != result.final_state.controller_round
+    ):
+        raise RuntimeError(
+            "Accepted-checkpoint observation round disagrees with typed result."
+        )
+    return _AcceptedCheckpointObservation(
+        envelope=copy.deepcopy(dict(envelope)),
+        consumer_projection=copy.deepcopy(dict(projection)),
+        estimator_call_ledger_payload=copy.deepcopy(dict(ledger)),
+    )
+
+
+def _run_active_cli_sr_snake_at_checkpoint(
+    problem: ResolvedProblemContext,
+    executor_kwargs: Mapping[str, Any],
+    *,
+    estimator_ledger_path: Path | None,
+    checkpoint_path: Path,
+) -> _CLICompatibilityProjection:
+    request = _build_active_cli_request(
+        problem,
+        executor_kwargs,
+        checkpoint_path=checkpoint_path,
+        estimator_ledger_path=estimator_ledger_path,
+    )
+    replay_record = _normalized_cli_replay_record(executor_kwargs)
+    segment_lock = (
+        None
+        if replay_record is None
+        else _validate_normalized_cli_segment_round_lock(
+            request,
+            replay_record,
+        )
+    )
+    result = sr_runner.run_sr_snake(problem, request)
+    observation = _load_active_cli_checkpoint_observation(
+        checkpoint_path,
+        result,
+    )
+    return _project_completed_run_to_legacy(
+        problem,
+        result,
+        observation,
+        executor_kwargs,
+        segment_lock=segment_lock,
+    )
+
+
+def _run_active_cli_sr_snake(
+    problem: ResolvedProblemContext,
+    executor_kwargs: Mapping[str, Any],
+    *,
+    estimator_ledger_path: Path | None,
+) -> _CLICompatibilityProjection:
+    reason = _active_cli_compatibility_reason(executor_kwargs)
+    if reason is not None:
+        raise ValueError(
+            "Active CLI SR-SNAKE adapter received a compatibility-only route: "
+            + reason
+        )
+    public_checkpoint_raw = executor_kwargs.get("adapt_current_json")
+    if public_checkpoint_raw is not None:
+        return _run_active_cli_sr_snake_at_checkpoint(
+            problem,
+            executor_kwargs,
+            estimator_ledger_path=estimator_ledger_path,
+            checkpoint_path=Path(public_checkpoint_raw),
+        )
+    with tempfile.TemporaryDirectory(
+        prefix="sr-snake-cli-observation-"
+    ) as temporary_directory:
+        checkpoint_path = Path(temporary_directory) / "current.json"
+        projection = _run_active_cli_sr_snake_at_checkpoint(
+            problem,
+            executor_kwargs,
+            estimator_ledger_path=estimator_ledger_path,
+            checkpoint_path=checkpoint_path,
+        )
+        retained_artifacts = tuple(
+            artifact
+            for artifact in projection.result.observation.artifacts
+            if artifact.path != checkpoint_path
+        )
+        return replace(
+            projection,
+            result=replace(
+                projection.result,
+                observation=replace(
+                    projection.result.observation,
+                    artifacts=retained_artifacts,
+                ),
+            ),
+        )
+
+
+__all__: list[str] = []

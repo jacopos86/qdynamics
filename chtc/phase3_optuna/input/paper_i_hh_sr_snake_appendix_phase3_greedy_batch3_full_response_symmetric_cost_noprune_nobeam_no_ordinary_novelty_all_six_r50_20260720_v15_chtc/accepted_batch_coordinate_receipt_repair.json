@@ -1,0 +1,40 @@
+{
+  "accepted_subset_changed": false,
+  "changed_source_files": [
+    "pipelines/static_adapt/adapt_pipeline.py"
+  ],
+  "phase3_batch_singleton_coordinate_receipt_retention": {
+    "accepted_subset_changed": false,
+    "authoritative_identity_fields": [
+      "candidate_pool_index",
+      "position_id",
+      "candidate_label"
+    ],
+    "predecessor_adapt_pipeline_sha256": "9abf45d1c49e0e1edee246d550e5672c220fe3f54f4dda3764c757705d254e64",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v14_chtc",
+    "predecessor_source_archive_sha256": "228b9d2793cdda7ca08af9cfdff48511039c4e047e6769389bab74f06dc09fcc",
+    "raw_phase2_fallback_forbidden": true,
+    "restored_fields": [
+      "phase2_joint_geometry_reuse",
+      "phase3_response_supported_rank"
+    ],
+    "schema": "paper_i_sr_phase3_batch_singleton_coordinate_receipt_retention_v1",
+    "scientific_settings_changed": false,
+    "selector_or_model_inputs_changed": false,
+    "successor_adapt_pipeline_sha256": "ae5ba83e664730c97b5b18b605dc55c28f58a23ee4f8c1f3506e9800ab377aa2",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v15_chtc",
+    "successor_source_archive_sha256": "31d8001eba07d5d1f7a3e44d0465f7bcae934aaebbc6e472e982ffb259b41485"
+  },
+  "predecessor_adapt_pipeline_sha256": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v5_chtc",
+  "predecessor_source_archive_sha256": "0b7b7230d3109008f2881afc9b08790c7e31f0cd39cf6d78115ab5d552c9806a",
+  "repair": "preserve the prior accepted-coordinate and typed-zero-row repair; for canonical Phase-III batching, forbid raw Phase-II fallback and restore only the already measured full-active-plus-singleton coordinate receipt from the exact authoritative admission identity",
+  "route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "schema": "paper_i_sr_batch3_accepted_coordinate_receipt_repair_v1",
+  "scientific_settings_changed": false,
+  "selector_or_model_inputs_changed": false,
+  "source_archive_manifest_sha256": "19daf4a168dd0841299197acef5e7a7e6aa9134518b38b1d2911eec95f0a55a8",
+  "source_revision_manifest_sha256": "c429f36ee91bacbab9529b03b179c2752a7defb0acd231c9b5cae7423651cba5",
+  "successor_adapt_pipeline_sha256": "ae5ba83e664730c97b5b18b605dc55c28f58a23ee4f8c1f3506e9800ab377aa2",
+  "successor_source_archive_sha256": "31d8001eba07d5d1f7a3e44d0465f7bcae934aaebbc6e472e982ffb259b41485"
+}

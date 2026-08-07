@@ -1,0 +1,22 @@
+{
+  "schema": "paper_i_ra_adapt_invalid_package_quarantine_v1",
+  "package_id": "paper_i_ra_adapt_stationary_ra_always12_r50_20260729_v1_chtc",
+  "package_path": "chtc/paper_i_ra_adapt_repair_20260727/stationary_ra_always12_r50_20260729_v1_chtc",
+  "package_manifest_sha256": "591e91cc220915acad6382e7ffc29c10e745522870c2e767a8048d15f1c67cd6",
+  "package_manifest_file_sha256": "73e1a41cf8e0920b1970957e6ab2415a5f7d3771429eb22d29cf393b4a835ae7",
+  "source_archive_sha256": "387fde6ce8cb241860a0b942fbd43cfefcb26f9dc501ac7d8896d1beb98d1a0f",
+  "invalid_reason": "raw_unreduced_adapt_insertion_mode_full",
+  "paper_i_evidence_eligible": false,
+  "execution_authorized": false,
+  "submission_authorized": false,
+  "submitted": false,
+  "required_action": "do_not_execute_or_submit",
+  "removed_mutable_authority_overlay": {
+    "original_path": "authority/submission_authorization_receipt.json",
+    "quarantine_path": "chtc/paper_i_ra_adapt_repair_20260727/quarantine/stationary_ra_always12_r50_20260729_v1_submission_authorization_receipt.invalid.json",
+    "file_sha256": "70b7e013a902bc7db9f792de0e08d0b2fc44254029985d2426ac448d34d1e66b",
+    "exact_bytes_preserved": true
+  },
+  "superseding_package_id": "paper_i_ra_adapt_stationary_ra_always12_r50_20260729_v2_chtc",
+  "scheduler_contacted": false
+}

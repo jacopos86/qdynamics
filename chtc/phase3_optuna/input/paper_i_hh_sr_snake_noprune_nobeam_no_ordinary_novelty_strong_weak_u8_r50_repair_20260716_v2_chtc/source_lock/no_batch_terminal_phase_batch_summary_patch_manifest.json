@@ -1,0 +1,34 @@
+{
+  "changed_files": [
+    {
+      "base_sha256": "0b74f979efc8e00074a4526dd7a4e3968b2746883c3899fe7c8b970593d5e7a1",
+      "patched_sha256": "7c1a580a7627e40541d38c63302bbdeccd19bd96fecee36d24c2db8a5acb86af",
+      "path": "pipelines/static_adapt/adapt_pipeline.py"
+    }
+  ],
+  "created_utc": "2026-07-16T13:12:51Z",
+  "parent_source_archive": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/source_locked.tar.gz",
+    "sha256": "070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a"
+  },
+  "patch": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260716_v2_source_fix/source_lock/no_batch_terminal_phase_batch_summary.patch",
+    "sha256": "33fce0f0eb608437b6d329eccd598b9252336d4b13126435b067f54475d00b0b"
+  },
+  "schema": "paper_i_hh_sr_no_batch_terminal_phase_batch_summary_patch_v1",
+  "scientific_settings_changed": [],
+  "status": "verified",
+  "verification": {
+    "archive_execution_probe": {
+      "batching_enabled": false,
+      "phase3_batch_summary": null,
+      "phase3_batching_enabled": false,
+      "route_a_joint_selector_active": false,
+      "selection_mode": "simple_v1_terminal_phase1",
+      "status": "pass",
+      "success": true
+    },
+    "changed_member_count": 1,
+    "unchanged_member_count": 431
+  }
+}

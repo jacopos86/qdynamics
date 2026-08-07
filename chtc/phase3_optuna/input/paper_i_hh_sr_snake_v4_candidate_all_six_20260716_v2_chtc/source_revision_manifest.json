@@ -1,0 +1,22 @@
+{
+  "critical_source_sha256": {
+    "agent_guidance/shared/run-guide.md": "5b69a0655af49e449b8ac9f6dc4c12a8ac027cda700ca8a3551eaea83cba4ff9",
+    "pipelines/exact_bench/paper_i_hh_recovery_prefix_qiskit_sidecar.py": "5486c285deffcb47fd0f5ef0314a9e3ab2fd1c83ebb7e0bb72d629d6a81dd044",
+    "pipelines/exact_bench/table_i_qiskit_resource_compile.py": "cdc182772288593de6087049470a8b6bb47a00c254cd6176276eda63320d19cd",
+    "pipelines/hardcoded/adapt_circuit_execution.py": "1b569d31a45f98522b615fba0bb5645a6fba8af63ecc338f1059f14623364a0e",
+    "pipelines/qiskit_backend_tools.py": "46fcfcce70479b5cad5346b456b689531d4f28fbc1200fe5ef22b5c68494c05b",
+    "pipelines/scaffold/hh_continuation_pruning.py": "3b8be9adce5e52d7beab8fc66bcb4e2252327821c50eb4a2e82c5a1aee0f7ada",
+    "pipelines/scaffold/hh_continuation_scoring.py": "562b5a84494eaa16c50ec8897f1cede392ac7cfef4c5d9b40be058d7993235b2",
+    "pipelines/static_adapt/adapt_pipeline.py": "efea1f3628918d312eba8ec148036c4dbaccc50b83bcdf3347a367d537f98c6e",
+    "pipelines/static_adapt/cli_config.py": "7fc8fa85d598163043759422ea1038e16f3dc9261419671d18d55f19eedebb55",
+    "pipelines/static_adapt/resume_scaffold.py": "9006345e4042b305d5342a4b01fb77c7cf8962cfa3242e4684dc9d3eaf6fd628",
+    "pipelines/static_adapt/sr_snake_route_profile.py": "6c6b8de448beaafa44066e4585ecf6c948431015ef8c491cea183868361f6034",
+    "test/test_static_adapt_sr_trust_prune.py": "38c5787ac4362d02fff6413e2a1675aabc7206a974aff2906c4eb619b96c0616"
+  },
+  "git_commit": "c33039c66838bf6f058c2fa0c5bb58945feeaa9e",
+  "git_tree": "084c6f38f9847383d30b15f267c9453f4f1b677d",
+  "profile_contract_sha256": "7f99682678c1c338ad73142e604c2cc6757dbb4db311a3b0bb8cb7b23e8436be",
+  "profile_request": "sr_snake_v4",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+  "schema": "paper_i_hh_sr_snake_v4_source_revision_v2"
+}

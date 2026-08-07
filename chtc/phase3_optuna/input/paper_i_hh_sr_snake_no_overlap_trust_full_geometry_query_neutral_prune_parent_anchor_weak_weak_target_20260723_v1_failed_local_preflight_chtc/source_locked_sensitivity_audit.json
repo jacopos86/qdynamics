@@ -1,0 +1,34 @@
+{
+  "anchor": {
+    "anchor_reproduces_source_prefix_through_first_hit": false,
+    "anchor_result_json": null,
+    "checkpoint_sequence_match": null,
+    "controller_energy_history_exact_match": null,
+    "ledger_prefix_match": null,
+    "operator_sequence_match": null
+  },
+  "fanout_authorized": false,
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "first_hit_energy": -0.9183544101009906,
+    "first_hit_round": 21,
+    "method": "Paper-I no-overlap SR-SNAKE full geometry",
+    "regime_or_case": "weak_weak",
+    "route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "route_or_profile_id": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_v1",
+    "source_result_archive_member": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc/weak_weak/json/result.json",
+    "source_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.0__weak_weak_transfer.tar.gz",
+    "source_transfer_archive_sha256": "2fd2a69556298d0ff3d5d2478c9d58ba8958a82514a251f9b0c60bf34f4dc46e"
+  },
+  "status": "anchor_pending",
+  "sweep": {
+    "candidate_route": "supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_query_neutral_fs_prune_v1",
+    "candidate_route_contract_sha256": "326ae05091b24fcb580d33f86f25add4c1252bcdd64316b82ae14c14c6bb3372",
+    "explicit_user_approved_operational_change": "stop_at_first_E_T_2e-4_hit_with_50_round_safety_cap",
+    "grid": [
+      false,
+      true
+    ],
+    "variable": "phase1_prune_enabled"
+  }
+}

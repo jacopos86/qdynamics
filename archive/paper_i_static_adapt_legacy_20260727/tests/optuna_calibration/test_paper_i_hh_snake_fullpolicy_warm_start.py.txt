@@ -1,0 +1,187 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from pipelines.exact_bench import paper_i_hh_snake_fullpolicy_warm_start as warm_start
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_payload(*, u: float = 8.0, n_ph_max: int = 2) -> dict:
+    return {
+        "settings": {
+            "u": u,
+            "g_ep": 0.353553390593,
+            "n_ph_max": n_ph_max,
+            "adapt_max_depth": 30,
+            "adapt_final_refit_maxiter": 200,
+            "phase1_shortlist_size": 24,
+            "phase2_shortlist_fraction": 0.25,
+            "phase2_shortlist_size": 12,
+            "adapt_window_size": 999999,
+            "phase3_geometry_window_size": 0,
+            "phase2_w_shot": 0.15,
+            "phase2_rho": 0.5,
+            "phase2_batch_target_size": 8,
+            "phase2_batch_size_cap": 16,
+            "phase2_batch_near_degenerate_ratio": 0.914354284671342,
+            "phase2_batch_rank_rel_tol": 7.703203666118798e-7,
+            "phase2_batch_additivity_tol": 0.010276490515218235,
+            "phase2_frontier_ratio": 0.9,
+            "phase3_frontier_ratio": 0.9,
+            "phase3_tie_beam_score_ratio": 1.0,
+            "phase3_tie_beam_abs_tol": 0.0,
+            "phase3_tie_beam_max_branches": 1,
+            "phase1_prune_policy": "recoverability_ladder_v1",
+            "phase1_prune_mode": "both",
+            "phase1_prune_fraction": 0.4101910583864897,
+            "phase1_prune_min_candidates": 1,
+            "phase1_prune_max_candidates": 6,
+            "phase1_prune_max_regression": 1e-8,
+            "phase1_prune_tolerance_mode": "auto",
+            "phase1_prune_tolerance_shot_coeff": 0.0,
+            "phase1_prune_tolerance_screen_coeff": 0.01,
+            "phase1_prune_tolerance_chem": 0.0,
+            "phase1_prune_tolerance_rel_coeff": 0.0,
+            "phase1_prune_retained_gain_ratio": 0.5,
+            "phase1_prune_protect_steps": 5,
+            "phase1_prune_stale_age": 2,
+            "phase1_prune_stagnation_threshold": 0.0,
+            "phase1_prune_small_theta_abs": 0.001,
+            "phase1_prune_small_theta_relative": 0.5,
+            "phase1_prune_cooldown_steps": 2,
+            "phase1_prune_local_window_size": 4,
+            "phase1_prune_old_fraction": 0.25,
+            "phase1_prune_checkpoint_period": 3,
+            "phase1_prune_maturity_threshold": 0.5,
+            "phase1_prune_snr_threshold": 1.0,
+            "adapt_spsa": {
+                "a": 0.1,
+                "c": 0.02,
+                "alpha": 0.602,
+                "gamma": 0.101,
+                "A": 5.0,
+                "avg_last": 0,
+                "eval_repeats": 1,
+                "callback_every": 5,
+            },
+        },
+        "adapt_vqe": {
+            "static_route_identity": {
+                "route_id": "route_a",
+                "meta_feature_profile": "paper_i_production_v1",
+            }
+        },
+    }
+
+
+def _baseline_json(tmp_path: Path, *, row_regime: str = "strong-weak", u: float = 8.0, n_ph_max: int = 2) -> Path:
+    source = tmp_path / "strong_weak_u8" / "json" / "result.json"
+    _write_json(source, _source_payload(u=u, n_ph_max=n_ph_max))
+    baseline = tmp_path / "visible_alignment.json"
+    _write_json(
+        baseline,
+        {
+            "schema": "paper_i_hh_native200_qiskit_table_plot_alignment_v1",
+            "updated_date": "2026-06-22",
+            "snake_rows": [
+                {
+                    "method": "SNAKE",
+                    "regime": row_regime,
+                    "display": {
+                        "k_pl": 29,
+                        "DeltaE": "1.09e-4",
+                        "one_minus_F": "8.73e-5",
+                        "N2q": 140,
+                        "D2q": 125,
+                        "Dc": 873,
+                        "S": 35944,
+                    },
+                    "one_minus_F_display": "8.73e-5",
+                    "source_json": str(source),
+                    "plot_source_json": str(source),
+                    "source_sha256": _sha256(source),
+                }
+            ],
+        },
+    )
+    return baseline
+
+
+def test_warm_start_audit_resolves_current_visible_u8_row_and_emits_manifest(tmp_path: Path) -> None:
+    baseline = _baseline_json(tmp_path)
+
+    audit = warm_start.build_warm_start_audit(
+        baseline_json=baseline,
+        regimes=("strong-weak-u8",),
+        optuna_storage="sqlite:///tmp/fullpolicy.db",
+        study_name_prefix="unit_fullpolicy",
+    )
+    enqueue = warm_start.enqueue_manifest_from_audit(audit)
+    manifest = warm_start.search_space_manifest_from_audit(
+        audit,
+        warm_start_audit_json=tmp_path / "warm_start_audit.json",
+        enqueue_params_json=tmp_path / "enqueue_params.json",
+        search_space_manifest_json=tmp_path / "search_space_manifest.json",
+    )
+
+    entry = audit["regimes"]["strong-weak-u8"]
+    params = entry["enqueue_params"][0]
+    assert entry["display_regime"] == "strong-weak"
+    assert entry["visible_metrics"]["DeltaE"] == "1.09e-4"
+    assert params["full_phase1_prune_mode"] == "both"
+    assert params["full_phase2_batch_target_size"] == "8"
+    assert params["full_phase3_batch_target_size"] == "8"
+    assert params["full_batch_near_degenerate_ratio"] == "0.90"
+    assert params["full_batch_additivity_tol"] == "0.01"
+    assert enqueue["regimes"]["strong-weak-u8"]["enqueue_params"][0] == params
+    assert manifest["schema"] == "paper_i_hh_snake_fullpolicy_search_space_manifest_v1"
+    assert manifest["fixed_locks"]["route_id"] == "route_a"
+    assert "full_phase3_batch_target_size" in manifest["sampled_ranges"]
+    assert "spsa_schedule_param_ranges" in manifest["phase3_policy_optuna_reuse"]
+
+
+def test_warm_start_rejects_ambiguous_legacy_label_without_u8_source(tmp_path: Path) -> None:
+    baseline = _baseline_json(tmp_path, row_regime="strong-weak", u=1.25, n_ph_max=2)
+
+    with pytest.raises(ValueError, match="Ambiguous legacy HH regime label"):
+        warm_start.build_warm_start_audit(baseline_json=baseline, regimes=("strong-weak-u8",))
+
+
+def test_warm_start_fails_closed_on_missing_source_json(tmp_path: Path) -> None:
+    missing = tmp_path / "missing.json"
+    baseline = tmp_path / "visible_alignment.json"
+    _write_json(
+        baseline,
+        {
+            "schema": "paper_i_hh_native200_qiskit_table_plot_alignment_v1",
+            "snake_rows": [
+                {
+                    "method": "SNAKE",
+                    "regime": "strong-weak",
+                    "display": {"k_pl": 29},
+                    "source_json": str(missing),
+                    "source_sha256": "not-present",
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(FileNotFoundError, match="Missing local SNAKE baseline source JSON"):
+        warm_start.build_warm_start_audit(baseline_json=baseline, regimes=("strong-weak-u8",))
+
+
+def test_canonical_campaign_regime_rejects_bare_legacy_label() -> None:
+    with pytest.raises(ValueError, match="Ambiguous legacy HH regime label"):
+        warm_start.canonical_campaign_regime("strong-strong")

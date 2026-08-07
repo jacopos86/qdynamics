@@ -1,0 +1,104 @@
+{
+  "accounting": {
+    "S_alg_definition": "N_H_outer+N_H_refit+N_grad+N_metric",
+    "cache_policy": "cache_off_but_measurement_occurrences_preserved",
+    "exact_reference_and_fidelity_charged": false,
+    "round_receipts_required": true,
+    "state_keyed_estimator_call_ledger_required": true
+  },
+  "algorithm_id": "static_full_meta_append_adapt_vqe",
+  "bundle_id": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+  "candidate_pool": {
+    "expanded_pool_term_cap": 9000,
+    "generic_runtime_split_mode": "off",
+    "hva_included": true,
+    "macro_and_projected_singleton_mixing": false,
+    "parent_pool": "full_meta_unfiltered",
+    "shared_pauli_pool_max_subset_size": 1,
+    "shared_pauli_pool_mode": "projected_singleton_children_only_v1",
+    "shared_pauli_pool_symmetry_policy": "hard_guard"
+  },
+  "controller": {
+    "allow_repeats": true,
+    "energy_stop_target": null,
+    "fresh_round_zero": true,
+    "gradient_threshold": 0.0,
+    "hh_preseed": "off",
+    "initial_selected_operator_count": 0,
+    "initial_theta_count": 0,
+    "max_adapt_iterations": 50,
+    "selected_logical_route": "standard",
+    "selection_with_replacement": true,
+    "stop_policy": "fixed_horizon_no_target_v1"
+  },
+  "exact_reference": {
+    "energy": -0.6239396137518493,
+    "n_ph_max": 7,
+    "primary_metric": "same_cutoff_abs_delta_e",
+    "reference_hash": "99397703afad40a7bd87403c",
+    "usage": "reporting_only_after_optimization"
+  },
+  "family": "hh",
+  "fidelity": {
+    "reporting_only": true,
+    "required": true,
+    "same_cutoff_ground_space_convention_required": true
+  },
+  "job_id": "append_projected_singleton__intermediate_strong__r50",
+  "method_id": "static_full_meta_append_adapt_vqe",
+  "optimizer": {
+    "kind": "powell",
+    "maxiter": 200,
+    "overlay_source": "paper_i_completion_tracker_20260717",
+    "powell_maxiter_cap_policy": "accept_finite_nonincreasing_v1"
+  },
+  "output_contract": {
+    "progress_jsonl": "adapt_iteration_progress.jsonl",
+    "result_json": "generic_static_single.json",
+    "runtime_seed_json": "runtime_seed.json",
+    "transfer_archive": "append_projected_singleton__intermediate_strong__r50_transfer.tar.gz",
+    "validation_receipt": "validation_receipt.json"
+  },
+  "physics": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "g_ep": 0.790569415042,
+    "n_ph_ref": 7,
+    "n_ph_work": 7,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "same_cutoff_reference": true,
+    "suite_profile": "paper_i_hh_completion_samecutoff_nph3_nph7_20260718_v1",
+    "t": 1.0,
+    "u": 1.25
+  },
+  "qiskit_cost": {
+    "metrics": [
+      "compiled_count_2q_total",
+      "compiled_depth_2q_total",
+      "compiled_depth_total"
+    ],
+    "optimization_level": 0,
+    "qiskit_version": "2.3.1",
+    "required": true,
+    "transpile_seed": 7
+  },
+  "regime": {
+    "case_id": "hh_L2_nph7_completion_intermediate_strong",
+    "label": "intermediate-strong",
+    "slug": "intermediate_strong"
+  },
+  "schema": "paper_i_hh_append_completion_job_v1",
+  "seed": 7,
+  "source_lock": {
+    "archive": "source_locked.tar.gz",
+    "archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+    "generic_static_adapt_variants_sha256": "33f0e8ffba1d532e86037077e99d8578423fc7a52842e2479a40afea1588ed3d"
+  },
+  "variant": {
+    "candidate_representation": "symmetry_and_padding_valid_projected_singleton_child",
+    "display": "Append-ADAPT projected singleton",
+    "slug": "projected_singleton"
+  }
+}

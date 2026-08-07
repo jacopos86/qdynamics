@@ -1,0 +1,27 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260725_v3_chtc",
+  "checks": {
+    "implementation_repair_only": true,
+    "outer_horizon": 50,
+    "profile_contract_sha256": "bfc4a66f81d0903a5b5b8f97fc97ec217d375c6eb4a05932ef78878c40e5a9f6",
+    "requirements_has_sif": true,
+    "route_changes_only_insertion_mode": true,
+    "scientific_settings_changed": [],
+    "six_jobs": true,
+    "source_archive_sha256": "0e224f491ca79105de3bf9e0cc57e9d117fe2c22b2664d143b9518039e1278ed"
+  },
+  "implementation_repair": {
+    "failed_cluster": 9379376,
+    "failure": "supported_refit_nonappend_profile_ownership_missing",
+    "parent_bundle": "paper_i_hh_sr_snake_singleton_commutation_reduced_insertion_all_six_r50_20260724_v2_chtc",
+    "patched_file_sha256": "823f3e8243a28fd8523ec5f9493252ad07fe766a8a2070e4501a760250e4b5ba",
+    "proof_test": "test_static_adapt_projected_phase3_route_profile.py::test_commutation_reduced_insertion_profile_owns_nonappend_insertion_gate",
+    "runtime_files_changed": [
+      "pipelines/static_adapt/adapt_pipeline.py"
+    ],
+    "schema": "paper_i_source_locked_runtime_repair_v1",
+    "scientific_settings_changed": []
+  },
+  "schema": "paper_i_hh_commutation_reduced_insertion_preflight_v1",
+  "status": "pass"
+}

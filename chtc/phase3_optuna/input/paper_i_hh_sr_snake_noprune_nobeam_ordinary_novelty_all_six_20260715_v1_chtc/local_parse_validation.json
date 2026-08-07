@@ -1,0 +1,100 @@
+{
+  "created_utc": "2026-07-16T04:17:50.511007+00:00",
+  "jobs": [
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_weak.json",
+      "job_manifest_sha256": "24b8c50be54acc6eda506b38e9cd0583bd0ef88b1db6dac47e850b88040dc0b0",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_weak.json",
+      "job_manifest_sha256": "7ee0d9b6aea0f12418426a232e42a6962e2ef7cfa47f6dc3ba71061f139b1573",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 30,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_weak_u8.json",
+      "job_manifest_sha256": "67ff7a01a5cc1a33b34982e0a3511d889e4cc7aa7f93b7ea042d80bcf3ce5c0e",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 50,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_strong.json",
+      "job_manifest_sha256": "6862cab52ebc8b49e15cdeada67c873b066918e5260b0e578244b36e52549c56",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 50,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_strong.json",
+      "job_manifest_sha256": "ec5d436919af666fdfe1c28e8f243d44163637348451f46a368a73fb4eefd021",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 50,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    },
+    {
+      "frozen_cli_parse": "pass",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_strong_u8.json",
+      "job_manifest_sha256": "097bd59aff835fbfa39d5b603f384503b3372d0e3df2d480cb94d338399a902d",
+      "resolved_fields": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_live_branches": 1,
+        "adapt_max_depth": 50,
+        "phase1_prune_enabled": false,
+        "phase2_gram_novelty_policy": "ordinary_multiplier_v1",
+        "phase3_gram_novelty_policy": "ordinary_multiplier_v1",
+        "sr_controller_ablation_contract": "novelty_prune_beam_controls_v1",
+        "sr_escape_mode": "disabled"
+      }
+    }
+  ],
+  "runner_manifest_validation_all_rows": true,
+  "schema": "paper_i_hh_sr_novelty_on_six_local_parse_validation_v1",
+  "scientific_execution_performed": false,
+  "status": "pass",
+  "validation_kind": "frozen_cli_parse_and_job_manifest_validation_only"
+}

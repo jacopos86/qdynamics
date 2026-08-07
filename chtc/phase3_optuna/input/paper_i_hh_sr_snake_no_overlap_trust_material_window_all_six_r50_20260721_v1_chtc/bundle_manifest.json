@@ -1,0 +1,31 @@
+{
+  "anchor_result_sha256": "aff319cbe4b7d5ab85c2d430df994c4a19cdced47853955d506650dde76b181b",
+  "batch_name": "paper-i-hh-sr-material-window-six-r50-20260721-v1",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+  "fanout_authorized": true,
+  "job_count": 6,
+  "jobs": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/strong_strong_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/jobs/weak_weak.json"
+  ],
+  "material_window_route_contract_sha256": "9d6cfae3fda84eb6a24232358c45a8f25b42c6147bfa4250905910eff687a417",
+  "normalized_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/strong_strong_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc/normalized_manifests/weak_weak.json"
+  ],
+  "parent_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "schema": "paper_i_sr_material_window_fanout_bundle_v1",
+  "source_archive_manifest_sha256": "1630fe8334067aadaeb280d284b18153b08b38f165a278540afc43c88d71b52d",
+  "source_archive_sha256": "ced6b10d6bfbe4ae6a54495ff2ef4747a90036fa2027b0386555d016d5869a05",
+  "source_revision_manifest_sha256": "89b07a408bcb20c3e443d6643282a8f7d6fd06dfc08daf0cb8206d67857b4137",
+  "submission_performed": false
+}

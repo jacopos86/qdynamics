@@ -1,0 +1,110 @@
+{
+  "all_max_new_admissions_30": true,
+  "all_six_commands_parse": true,
+  "all_targets_round_30": true,
+  "lambda_f_proxy_flags_forbidden": true,
+  "no_profile_method_flag_repetition": true,
+  "non_scientific_archive_overlays": {
+    "pipelines/hardcoded/adapt_pipeline.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "93c0e91cd01981f5bfa1e9d1434b74296395ca0837f2901ca66ad18ac63dd42f",
+      "size_bytes": 1807,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_generators.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "8c6292c5c71f67312bdc32afc8d3908a83cb550b8f2d8871ed7f7183824e6570",
+      "size_bytes": 664,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_scoring.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "f25b2ae3f4037758c5f1942e6e3e0c75df04f9c5c7008d8b8dacfa9f150aa492",
+      "size_bytes": 658,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_symmetry.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "5f61b9c43c253fb81bc354aace4e015f0c4f06a1e8aa8a48b24a43a11b341e01",
+      "size_bytes": 668,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_types.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "f24b1a670179ec17c05132b3b65f9541db54ffd888429951f7e17d6aaaf41f4c",
+      "size_bytes": 654,
+      "tracked_in_frozen_commit": false
+    }
+  },
+  "parse_rows": [
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_weak_u8.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_strong_u8.json",
+        "status": "pass"
+      }
+    }
+  ],
+  "phase1_energy_model": "first_order_fs_trust_v1",
+  "phase2_cheap_curvature_proxy_policy": "off",
+  "phase2_curvature_policy": "measured_required_fail_closed_v1",
+  "profile_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc",
+  "profile_request": "sr_snake_v4",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+  "same_cutoff_lock_pass": true,
+  "schema": "paper_i_hh_sr_snake_v4_route_parity_v3",
+  "status": "pass",
+  "worker_source_mode": "exact_git_archive_plus_hashed_nonscientific_overlays_v1"
+}

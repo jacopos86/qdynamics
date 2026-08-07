@@ -1,0 +1,60 @@
+/*
+ * File-scoped two-column preview for
+ * qiskit_marginal_transpilation_for_paper_i_cost.md.
+ *
+ * The inert marker in that note keeps every other Markdown preview on the
+ * default single-column layout.
+ */
+
+.qiskit-two-column-note-marker {
+  display: none;
+}
+
+body:has(.qiskit-two-column-note-marker) {
+  column-count: 2;
+  column-gap: 2.5rem;
+  column-rule: 1px solid var(--vscode-editorWidget-border);
+  max-width: 1600px !important;
+  column-fill: balance;
+}
+
+body:has(.qiskit-two-column-note-marker) > h1 {
+  column-span: all;
+  margin-bottom: 1.25rem;
+}
+
+body:has(.qiskit-two-column-note-marker) h2 {
+  break-before: column;
+}
+
+body:has(.qiskit-two-column-note-marker) h2:first-of-type {
+  break-before: auto;
+}
+
+body:has(.qiskit-two-column-note-marker) h2,
+body:has(.qiskit-two-column-note-marker) h3,
+body:has(.qiskit-two-column-note-marker) p,
+body:has(.qiskit-two-column-note-marker) li {
+  orphans: 3;
+  widows: 3;
+}
+
+body:has(.qiskit-two-column-note-marker) .katex-display,
+body:has(.qiskit-two-column-note-marker) pre,
+body:has(.qiskit-two-column-note-marker) table,
+body:has(.qiskit-two-column-note-marker) blockquote {
+  break-inside: avoid;
+  overflow-x: auto;
+}
+
+@media (max-width: 1050px) {
+  body:has(.qiskit-two-column-note-marker) {
+    column-count: 1;
+    column-rule: none;
+    max-width: 980px !important;
+  }
+
+  body:has(.qiskit-two-column-note-marker) h2 {
+    break-before: auto;
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v2_chtc",
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "schema": "paper_i_sr_no_overlap_trust_fanout_remote_gate_v1",
+  "source_archive_sha256": "86d97bf54024c721b189c80c9439a1e7b567df3ed2318f0904d13afd3bb6b4ac",
+  "status": "pending_authenticated_remote_preflight",
+  "submission_performed": false
+}

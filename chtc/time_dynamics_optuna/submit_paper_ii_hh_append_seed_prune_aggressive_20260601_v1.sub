@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/time_dynamics_optuna/run_task_apptainer.sh
+arguments = $(record_id) chtc/time_dynamics_optuna/input/paper_ii_hh_append_seed_prune_aggressive_20260601_v1_records.tsv
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/time_dynamics_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/paper-ii-hh-append-prune-aggressive-20260601-v1.$(Cluster).$(Process).log
+output = logs/paper-ii-hh-append-prune-aggressive-20260601-v1.$(Cluster).$(Process).out
+error = logs/paper-ii-hh-append-prune-aggressive-20260601-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 16GB
+request_disk = 60GB
++MaxRuntime = 28800
++JobBatchName = "holstein-paper-ii-hh-append-prune-aggressive-20260601-v1"
+queue record_id from chtc/time_dynamics_optuna/input/paper_ii_hh_append_seed_prune_aggressive_20260601_v1_record_ids.txt

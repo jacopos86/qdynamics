@@ -1,0 +1,31 @@
+{
+  "cell_id": "trial_000017__weak_strong",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-11T17:45:51.194000+00:00",
+  "manifest_sha256": "75660253b5547ac2d9b2aa3f5cc2120809a4152587ca1082592a6d25e4f3c728",
+  "max_depth": 15,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000017/weak-strong",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 10,
+    "batch_size_cap": 1,
+    "child_phase1_cap": 64,
+    "child_phase2_cap": 64,
+    "lambda_add": 0.75,
+    "macro_phase1_cap": 48,
+    "macro_phase2_cap": "all"
+  },
+  "policy_sha256": "ff58afcbc164807e01db86a6f9efa51bba16eee5f9dd1cdc8cec20bda26231ae",
+  "regime": "weak-strong",
+  "run_class": "diagnostic_pareto_search",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "799a67468c81b27a23956ecec43fd510caf01f1968042b901e0a2d3da5ed830e",
+  "study_name": "paper_i_hh_route_a_global_policy_v1",
+  "trial_number": 17
+}

@@ -1,0 +1,55 @@
+{
+  "depth": 9,
+  "energies": [
+    0.11721778146268161,
+    -0.875,
+    -0.895640586269443,
+    -0.9163705051644737,
+    -0.9166349420807158,
+    -0.9168995755680924,
+    -0.9169639973309083,
+    -0.9170284203749015,
+    -0.9170906195755615
+  ],
+  "energy_abs_tolerance": 1e-10,
+  "execution_settings_sha256": "3a7313fde8e737fa3bb8c6784d8474734f8e2710558850d2e741352a6f51fffd",
+  "final_error": 0.0012903004192599266,
+  "final_error_abs_tolerance": 1e-10,
+  "profile_contract_sha256": "82b3e678a550d1b6926807e22892f00d79b92be98d7566e7efd951b8ff0b3f92",
+  "profile_request": "sr_snake_macro_only_physical_lanes_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_macro_only_physical_lanes_v1",
+  "regime": "weak_weak",
+  "route_id": "sr_macro_physical_lanes_nph3_7",
+  "schema": "paper_i_source_value_anchor_expectation_v1",
+  "selected_labels": [
+    "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+    "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+    "paop_full:paop_cloud_p(site=1->phonon=0)",
+    "paop_full:paop_disp(site=1)",
+    "paop_full:paop_cloud_p(site=1->phonon=0)",
+    "paop_full:paop_disp(site=1)",
+    "hh_phonon::s(site=0)",
+    "hh_phonon::s(site=1)",
+    "paop_full:paop_cloud_p(site=1->phonon=0)"
+  ],
+  "source": {
+    "parser_nonfinite_tokens_normalized_to_null": {
+      "nan": 0,
+      "negative_infinity": 5,
+      "positive_infinity": 0
+    },
+    "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/macro_8890778_post_run_recovery_20260719/8890778.0__weak_weak_reporting_recovered_v1.tar.gz",
+    "result_member": "raw_outputs/paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc/weak_weak/json/result.json",
+    "result_member_sha256": "86ef618807be9d41e040f8d862f94761776f617c4af88ca11f16d7dab1bb2090",
+    "runtime_seed_member": null,
+    "runtime_seed_member_sha256": null,
+    "runtime_seed_parser_nonfinite_tokens_normalized_to_null": {
+      "nan": 0,
+      "negative_infinity": 0,
+      "positive_infinity": 0
+    },
+    "sha256": "14a2fa6d55c137bd5b7067cc04851d294ed5f02d53abfc7d825a7cd0f9ce5b15"
+  },
+  "visible_artifact": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723.pdf",
+  "visible_page": 2
+}

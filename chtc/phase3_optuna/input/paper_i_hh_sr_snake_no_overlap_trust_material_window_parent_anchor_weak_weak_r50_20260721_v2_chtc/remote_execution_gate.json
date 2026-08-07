@@ -1,0 +1,13 @@
+{
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "schema": "paper_i_sr_material_window_anchor_remote_gate_v1",
+  "source_archive_sha256": "7b4526fcd26655512dfd219dc53d3ab8ba064a79a1385985eb24dd263639458d",
+  "status": "pass_submitted",
+  "exact_remote_image_validate_rows_passed": 1,
+  "submission_performed": true,
+  "cluster_id": 9288076,
+  "scheduler_row_count": 1,
+  "initial_job_status": 1,
+  "initial_num_job_starts": 0,
+  "initial_hold_count": 0
+}

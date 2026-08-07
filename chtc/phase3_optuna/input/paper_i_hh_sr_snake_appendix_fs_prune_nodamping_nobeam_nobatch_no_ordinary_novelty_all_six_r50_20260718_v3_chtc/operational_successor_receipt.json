@@ -1,0 +1,42 @@
+{
+  "created_utc": "2026-07-19T00:54:10.760958+00:00",
+  "known_scientific_blocker": "missing_phase3_supported_rank_on_phase2_raw_rounds_requires_scientific_route_resolution",
+  "predecessor_batch_name": "paper-i-hh-sr-appendix-fsprune-nodamp-nobeam-nobatch-nonovelty-six-r50-20260718-v2",
+  "predecessor_bundle_id": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v2_chtc",
+  "repair_scope": [
+    "complete_ledger_active_prefix_receipt_closure",
+    "explicit_phase2_raw_full_response_contract_failure",
+    "focused_bundle_tests",
+    "operational_identity_and_artifact_hash_refresh"
+  ],
+  "route_contract_sha256": "272ede635558edb4acc2507ac3a9803d8ccec062b96c98634b8d6407df9fbc21",
+  "route_contract_unchanged": true,
+  "schema": "paper_i_hh_sr_operational_successor_receipt_v1",
+  "scientific_settings_changed": false,
+  "scientific_source_archive_sha256": "1d6e93bd59f97f74cc444c6c3559b15d48053b2c4914736a3c32b0e0869a196a",
+  "scientific_source_archive_unchanged": true,
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-appendix-fsprune-nodamp-nobeam-nobatch-nonovelty-six-r50-20260718-v3",
+  "successor_bundle_id": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+  "validated_v2_failure_evidence": {
+    "proc0_weak_weak": {
+      "all_branch_s_alg": 220815,
+      "discarded_only_s_alg": 3428,
+      "raw_occurrences": 277793,
+      "repair_class": "validator_complete_vs_winning_view",
+      "winning_lineage_s_alg": 217387
+    },
+    "proc1_intermediate_weak": {
+      "fallback_fired": false,
+      "first_missing_supported_rank_round": 39,
+      "last_missing_supported_rank_round": 50,
+      "repair_class": "scientific_contract_blocker"
+    },
+    "proc2_strong_weak": {
+      "fallback_fired": false,
+      "first_missing_supported_rank_round": 27,
+      "last_missing_supported_rank_round": 50,
+      "repair_class": "scientific_contract_blocker"
+    }
+  }
+}

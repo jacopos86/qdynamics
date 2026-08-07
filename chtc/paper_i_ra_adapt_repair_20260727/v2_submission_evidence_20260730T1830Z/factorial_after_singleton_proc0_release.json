@@ -1,0 +1,406 @@
+[
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 0
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 1
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 2
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 3
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 4
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 5
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 6
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 7
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 8
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 9
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 10
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 11
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 12
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 13
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 14
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 15
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 16
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 17
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 18
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 19
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 20
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 21
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 22
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 23
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 24
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 25
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 26
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 27
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 28
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 29
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 30
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 31
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 32
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 33
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 34
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 35
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 36
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 37
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 38
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 39
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 40
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 41
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 42
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 43
+}
+,
+{
+  "ClusterId": 9397758,
+  "HolsteinLifecycleMode": "ordinary_held_exact_proc_release_v1",
+  "JobBatchName": "paper-i-ra-adapt-always-factorial48-r50-20260730-v2-checkpoint-retention-ordinary-held-release-v2",
+  "JobStatus": 5,
+  "NumJobStarts": 0,
+  "ProcId": 44
+}
+]

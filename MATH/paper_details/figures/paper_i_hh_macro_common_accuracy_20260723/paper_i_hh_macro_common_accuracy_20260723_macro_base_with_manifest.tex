@@ -1,0 +1,155 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.33in]{geometry}
+\usepackage{amsmath,graphicx,booktabs,xcolor,longtable,array}
+\makeatletter
+\providecommand{\vcenter@text}{\vcenter}
+\makeatother
+\usepackage[T1]{fontenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\Large\bfseries Macro-generator plateau-prefix comparison}\par
+\vspace{2pt}
+{\small Each trajectory terminates at the selected plateau prefix whose
+compiled circuit resources and cumulative logical estimator work are reported
+below. The panel-specific horizontal range includes a 15\% blank margin beyond
+the latest displayed prefix.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_page1_plot.png}
+\vspace{3pt}
+\scriptsize
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{0.94}
+\begin{tabular}{@{}cl r c rrrrr@{}}
+\toprule
+Reg. & Method & $k_{\rm pl}$ & $\Delta E(k_{\rm pl})$
+& $N_{2q}$ & $D_{2q}$ & $D_c$ & $W_{1q}$ & $S_{\rm alg}$ \\
+\midrule
+WW & RA-ADAPT & 10 & $1.228\times 10^{-3}$ & 180 & 162 & 1,105 & 336 & 6,473 \\
+WW & Append-ADAPT & 32 & $5.096\times 10^{-4}$ & 2,752 & 2,560 & 10,731 & 5,218 & 636,849 \\
+\addlinespace[1.5pt]
+IW & RA-ADAPT & 4 & $7.863\times 10^{-2}$ & 64 & 58 & 429 & 124 & 1,561 \\
+IW & Append-ADAPT & 30 & $2.842\times 10^{-2}$ & 3,150 & 2,952 & 12,979 & 6,042 & 660,040 \\
+\addlinespace[1.5pt]
+SW & RA-ADAPT & 9 & $1.411\times 10^{-6}$ & 172 & 161 & 1,049 & 344 & 5,245 \\
+SW & Append-ADAPT & 10 & $1.411\times 10^{-6}$ & 284 & 231 & 1,542 & 576 & 6,492 \\
+\addlinespace[1.5pt]
+WS & RA-ADAPT & 10 & $4.095\times 10^{-2}$ & 304 & 266 & 1,592 & 496 & 8,010 \\
+WS & Append-ADAPT & 10 & $4.345\times 10^{-2}$ & 724 & 519 & 2,915 & 1,272 & 8,255 \\
+\addlinespace[1.5pt]
+IS & RA-ADAPT & 16 & $7.916\times 10^{-3}$ & 420 & 316 & 2,018 & 754 & 19,873 \\
+IS & Append-ADAPT & 12 & $2.576\times 10^{-2}$ & 2,088 & 1,865 & 7,029 & 3,624 & 15,031 \\
+\addlinespace[1.5pt]
+SS & RA-ADAPT & 12 & $4.330\times 10^{-5}$ & 936 & 881 & 4,721 & 1,460 & 9,045 \\
+SS & Append-ADAPT & 35 & $3.440\times 10^{-5}$ & 10,394 & 9,090 & 38,704 & 18,491 & 707,425 \\
+\bottomrule
+\end{tabular}
+\par\vspace{4pt}
+\begin{minipage}{0.96\textwidth}
+\footnotesize
+$N_{2q}$, $D_{2q}$, and $D_c$ are exact Qiskit-compiled costs for the
+selected active prefix (optimization level 0, transpiler seed 7, reference
+state included). $W_{1q}$ is the genuine Qiskit-emitted Pauli-rotation
+one-qubit work before transpilation: basis changes plus the central
+$R_z$ rotation, excluding reference preparation. $S_{\rm alg}$ is cumulative
+logical estimator work, not physical shots or circuits. Panel tuples follow
+$(N_{2q},D_{2q},D_c,W_{1q},S_{\rm alg})$. Both methods use intact macro generators.
+\end{minipage}
+\end{center}
+\newpage
+\begin{center}
+{\Large\bfseries Macro-generator costs at shared pre-plateau accuracy}\par
+\vspace{2pt}
+{\small For each regime, $K_\cap$ is the earlier selected plateau and
+$\Delta E_\cap=\max\{\min_{k\leq K_\cap}\Delta E_{\mathrm{RA\text{-}ADAPT}}(k),
+\min_{k\leq K_\cap}\Delta E_{\rm Append}(k)\}$.
+Each cost is evaluated at that method's first stored prefix satisfying
+$\Delta E(k)\leq\Delta E_\cap$ within this shared window. Each displayed
+trajectory terminates at that costed prefix.}\par
+\vspace{5pt}
+\includegraphics[width=7.75in]{/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_page2_plot.png}
+\end{center}
+\clearpage
+\section*{Parameter manifest}
+\small
+All energies use same-cutoff exact diagonalization. Reference, fidelity,
+plotting, and compilation are reporting-only. Canonical SNAKE and Append rows
+use logical-estimator accounting
+\texttt{paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3} under
+\texttt{required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1}. Any historical Geo-ADAPT
+support accounting is labelled noncanonical in its method contract.
+Bosons use \texttt{binary} encoding; Pauli words use
+\texttt{blocked} ordering with
+\texttt{open} boundaries. Drive enabled:
+\texttt{false}. Same-cutoff reference:
+\texttt{true}.
+
+\vspace{4pt}
+\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\begin{longtable}{@{}llrrrrrrrr@{}}
+\toprule
+Reg. & Method & $L$ & $t$ & $U$ & $\Delta v$ & $\omega_0$ & $g$
+& $n_{\rm ph}$ & $E_{\rm exact}$ \\
+\midrule
+WW & RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+WW & Append-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+IW & RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+IW & Append-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+SW & RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+SW & Append-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+WS & RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+WS & Append-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+IS & RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+IS & Append-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+SS & RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+SS & Append-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.9in}>{\raggedright\arraybackslash}p{1.65in}>{\raggedright\arraybackslash}p{4.7in}@{}}
+\toprule
+Method & Contract field & Value \\
+\midrule
+RA-ADAPT & Route & sr\_\allowbreak{}macro\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & POWELL/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & supported\_\allowbreak{}whitened\_\allowbreak{}adaptive\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}macro\_\allowbreak{}only\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}v1 \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} intact\_\allowbreak{}macro \\
+ & HVA/sector/padding & included\_\allowbreak{}no\_\allowbreak{}filters\_\allowbreak{}v1;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Append-ADAPT & Route & append\_\allowbreak{}adapt\_\allowbreak{}macro\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & powell/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta\_\allowbreak{}unfiltered;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & HVA/sector/padding & included;\allowbreak{} off;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+\bottomrule
+\end{longtable}
+
+\tiny
+\begin{longtable}{@{}llp{2.55in}p{2.55in}@{}}
+\toprule
+Reg. & Method & Source artifact SHA-256 & Normalized contract SHA-256 \\
+\midrule
+WW & RA-ADAPT & \texttt{14a2fa6d}\allowbreak{}\texttt{55c137bd}\allowbreak{}\texttt{5b7067cc}\allowbreak{}\texttt{04851d29}\allowbreak{}\texttt{4ed5f02d}\allowbreak{}\texttt{53abfc7d}\allowbreak{}\texttt{825a7cd0}\allowbreak{}\texttt{f9ce5b15}\allowbreak{} & \texttt{8339700b}\allowbreak{}\texttt{62f65396}\allowbreak{}\texttt{e9c42999}\allowbreak{}\texttt{ad6f8c7e}\allowbreak{}\texttt{7e5cea65}\allowbreak{}\texttt{3a8dbe00}\allowbreak{}\texttt{f3094060}\allowbreak{}\texttt{53e4a130}\allowbreak{} \\
+WW & Append-ADAPT & \texttt{5ce3ca6b}\allowbreak{}\texttt{555bde9d}\allowbreak{}\texttt{8e81bffc}\allowbreak{}\texttt{e7608dbe}\allowbreak{}\texttt{e595b610}\allowbreak{}\texttt{74c67421}\allowbreak{}\texttt{dfc0d51f}\allowbreak{}\texttt{dc58d64f}\allowbreak{} & \texttt{ace76860}\allowbreak{}\texttt{89fa3a77}\allowbreak{}\texttt{c20012b7}\allowbreak{}\texttt{5a167fff}\allowbreak{}\texttt{9ce4791b}\allowbreak{}\texttt{3178643b}\allowbreak{}\texttt{1fed6123}\allowbreak{}\texttt{9195a803}\allowbreak{} \\
+IW & RA-ADAPT & \texttt{9885f1c7}\allowbreak{}\texttt{6705679e}\allowbreak{}\texttt{fdffdaa5}\allowbreak{}\texttt{200d63e7}\allowbreak{}\texttt{203bb7b5}\allowbreak{}\texttt{42057ac3}\allowbreak{}\texttt{22875ce7}\allowbreak{}\texttt{ec32ff8a}\allowbreak{} & \texttt{04617d88}\allowbreak{}\texttt{60324fac}\allowbreak{}\texttt{7d01e2c7}\allowbreak{}\texttt{c8c6f2f1}\allowbreak{}\texttt{a6bf9d7b}\allowbreak{}\texttt{76c6caa9}\allowbreak{}\texttt{094ba596}\allowbreak{}\texttt{2628c2d1}\allowbreak{} \\
+IW & Append-ADAPT & \texttt{bda7dc30}\allowbreak{}\texttt{fb65326a}\allowbreak{}\texttt{a9629177}\allowbreak{}\texttt{839e488b}\allowbreak{}\texttt{24aac393}\allowbreak{}\texttt{00ebc17f}\allowbreak{}\texttt{4946f0c0}\allowbreak{}\texttt{dd4a2ffc}\allowbreak{} & \texttt{28ec1986}\allowbreak{}\texttt{49bf0f82}\allowbreak{}\texttt{87a4b788}\allowbreak{}\texttt{fa4fe135}\allowbreak{}\texttt{a2db8b2a}\allowbreak{}\texttt{99ab7e4f}\allowbreak{}\texttt{71bfec14}\allowbreak{}\texttt{ae5fe6cc}\allowbreak{} \\
+SW & RA-ADAPT & \texttt{c048dc3e}\allowbreak{}\texttt{6a74c7bc}\allowbreak{}\texttt{7eb1fec5}\allowbreak{}\texttt{10892c4a}\allowbreak{}\texttt{c4b2e032}\allowbreak{}\texttt{4a5c8e31}\allowbreak{}\texttt{ae5f7aa6}\allowbreak{}\texttt{4d4598ea}\allowbreak{} & \texttt{a979c211}\allowbreak{}\texttt{7573b18d}\allowbreak{}\texttt{18499b3f}\allowbreak{}\texttt{1bcc03a9}\allowbreak{}\texttt{7854c7c8}\allowbreak{}\texttt{e5781007}\allowbreak{}\texttt{252e3864}\allowbreak{}\texttt{d332f55f}\allowbreak{} \\
+SW & Append-ADAPT & \texttt{5e29c2a6}\allowbreak{}\texttt{d94091cb}\allowbreak{}\texttt{3d5fbed9}\allowbreak{}\texttt{7a451c1e}\allowbreak{}\texttt{cdf7abfd}\allowbreak{}\texttt{a8ab976b}\allowbreak{}\texttt{e85b1e55}\allowbreak{}\texttt{5659481e}\allowbreak{} & \texttt{3ae720f1}\allowbreak{}\texttt{0b8fc68f}\allowbreak{}\texttt{be0f36b5}\allowbreak{}\texttt{6163252b}\allowbreak{}\texttt{c5cc367e}\allowbreak{}\texttt{14ef1c3a}\allowbreak{}\texttt{749a6e81}\allowbreak{}\texttt{a04ec31f}\allowbreak{} \\
+WS & RA-ADAPT & \texttt{d909c5fc}\allowbreak{}\texttt{e889a573}\allowbreak{}\texttt{a464c62b}\allowbreak{}\texttt{bfaa6c1b}\allowbreak{}\texttt{32abb3b1}\allowbreak{}\texttt{1cdabd96}\allowbreak{}\texttt{74580b9e}\allowbreak{}\texttt{6d99abfc}\allowbreak{} & \texttt{836f557f}\allowbreak{}\texttt{76e27287}\allowbreak{}\texttt{1a7a1ba1}\allowbreak{}\texttt{df1b182c}\allowbreak{}\texttt{ed3bb8aa}\allowbreak{}\texttt{b3caa977}\allowbreak{}\texttt{42fee717}\allowbreak{}\texttt{e9608abc}\allowbreak{} \\
+WS & Append-ADAPT & \texttt{87b885be}\allowbreak{}\texttt{93e27a9d}\allowbreak{}\texttt{a89ea90b}\allowbreak{}\texttt{d50c15c9}\allowbreak{}\texttt{e244deda}\allowbreak{}\texttt{7112ebcb}\allowbreak{}\texttt{36eef8d7}\allowbreak{}\texttt{b6910198}\allowbreak{} & \texttt{36d9bb73}\allowbreak{}\texttt{4a66b840}\allowbreak{}\texttt{96999e0a}\allowbreak{}\texttt{4af97abb}\allowbreak{}\texttt{646bed68}\allowbreak{}\texttt{4e965559}\allowbreak{}\texttt{436201f0}\allowbreak{}\texttt{d06d64ed}\allowbreak{} \\
+IS & RA-ADAPT & \texttt{d07be029}\allowbreak{}\texttt{0f60bc14}\allowbreak{}\texttt{45db6154}\allowbreak{}\texttt{4f9fd818}\allowbreak{}\texttt{31c6fac8}\allowbreak{}\texttt{789ee8f6}\allowbreak{}\texttt{5fdc91bf}\allowbreak{}\texttt{54951f4f}\allowbreak{} & \texttt{241c7bfc}\allowbreak{}\texttt{60dbf760}\allowbreak{}\texttt{2dbfb674}\allowbreak{}\texttt{188808e8}\allowbreak{}\texttt{75113cc1}\allowbreak{}\texttt{803ced3c}\allowbreak{}\texttt{9d2cfb15}\allowbreak{}\texttt{d63941d3}\allowbreak{} \\
+IS & Append-ADAPT & \texttt{c5ca1dcf}\allowbreak{}\texttt{6e955ded}\allowbreak{}\texttt{9c834901}\allowbreak{}\texttt{89335047}\allowbreak{}\texttt{0ccd2f98}\allowbreak{}\texttt{d16ec867}\allowbreak{}\texttt{097af762}\allowbreak{}\texttt{a65e1b6b}\allowbreak{} & \texttt{ca357c6a}\allowbreak{}\texttt{fd1e902d}\allowbreak{}\texttt{f844cc3d}\allowbreak{}\texttt{407d5a8e}\allowbreak{}\texttt{d9c9637e}\allowbreak{}\texttt{926a1137}\allowbreak{}\texttt{1459e1a2}\allowbreak{}\texttt{f5519fd8}\allowbreak{} \\
+SS & RA-ADAPT & \texttt{19ab432d}\allowbreak{}\texttt{c9fbd0d9}\allowbreak{}\texttt{eb471b10}\allowbreak{}\texttt{5445cf6e}\allowbreak{}\texttt{c0451977}\allowbreak{}\texttt{92ef9396}\allowbreak{}\texttt{2b32c435}\allowbreak{}\texttt{c82b2866}\allowbreak{} & \texttt{1b41cae9}\allowbreak{}\texttt{d1ea96d5}\allowbreak{}\texttt{236a816a}\allowbreak{}\texttt{cb5e1227}\allowbreak{}\texttt{9429406b}\allowbreak{}\texttt{f6cfc8ce}\allowbreak{}\texttt{0fef1f73}\allowbreak{}\texttt{49a94e40}\allowbreak{} \\
+SS & Append-ADAPT & \texttt{d770083c}\allowbreak{}\texttt{67565034}\allowbreak{}\texttt{a1fe6b6f}\allowbreak{}\texttt{9d6461ed}\allowbreak{}\texttt{6fc40a31}\allowbreak{}\texttt{777d442c}\allowbreak{}\texttt{066c9a5f}\allowbreak{}\texttt{4626293f}\allowbreak{} & \texttt{f3508faa}\allowbreak{}\texttt{522f1efb}\allowbreak{}\texttt{4e5531be}\allowbreak{}\texttt{1eda27d5}\allowbreak{}\texttt{ddd233b9}\allowbreak{}\texttt{747b81f8}\allowbreak{}\texttt{0d6de00a}\allowbreak{}\texttt{7ab441e0}\allowbreak{} \\
+\bottomrule
+\end{longtable}
+\end{document}

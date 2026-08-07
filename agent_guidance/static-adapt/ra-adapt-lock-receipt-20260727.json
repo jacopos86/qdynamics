@@ -1,0 +1,261 @@
+{
+  "schema": "paper_i_ra_adapt_lock_receipt_v1",
+  "receipt_id": "paper_i_ra_adapt_lock_20260727",
+  "state": "complete",
+  "updated_utc": "2026-07-28T03:54:46Z",
+  "checkout": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3",
+    "git_commit_at_lock": "a42de3b64b094a9920a131f6396fd41cff56a692",
+    "scoped_worktree_dirty": true,
+    "unrelated_dirty_work_preserved": true,
+    "icloud_fileprovider_checkout_used": false,
+    "dataless_python_sources_found": false
+  },
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-unification-refactor-decisions-20260727.md",
+      "sha256": "a10b9ff1dbb210601972f44dc030cf9fceb35d5b95225404a722b397906cb8fe"
+    },
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-unification-implementation-spec-20260727.md",
+      "sha256": "5a43c07897a46703f88de6dfba745bcf8537b92c8fb1a5439d7265abe79977a5"
+    },
+    {
+      "path": "/Users/jakestrobel/Documents/Code math bijection./docs/paper-i-ra-adapt-refactor-readiness-20260727.md",
+      "sha256": "d11d805e01ff31f7ac3d82fab85119468873316acf5d0f268ff40564eb70fdec"
+    }
+  ],
+  "characterization_fixtures": [
+    {
+      "path": "test/fixtures/ra_adapt_pool_inventory_3.json",
+      "sha256": "b00cd25950831ca292946529fa69165275a8f23bf48ce9788c4935b5d2e86615",
+      "parent_count": 123,
+      "executable_count": 102,
+      "removed_parent_count": 21
+    },
+    {
+      "path": "test/fixtures/ra_adapt_pool_inventory_7.json",
+      "sha256": "371ab504786f9adf449c3e4fd35f3205c7f80c5eac2b3160e93b9cc42193d8aa",
+      "parent_count": 171,
+      "executable_count": 148,
+      "removed_parent_count": 23
+    },
+    {
+      "path": "test/fixtures/ra_adapt_singleton_trajectory_nph3.json",
+      "sha256": "722ff9e3503c46a577d18ef9206b5914b8ad7a5b965a6510e42e69ed645ac220"
+    }
+  ],
+  "displayed_evidence_checks": {
+    "interior_insertion_with_append_chart": {
+      "answer": true,
+      "page_provenance": {
+        "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_plateau_insertion_batch_page11_provenance.json",
+        "sha256": "6adacd5ecbd7a97eb9a3184b2b2b4b76d2ded298e8aa24181a419e634162bd75"
+      },
+      "page_evidence": {
+        "path": "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_plateau_insertion_batch_page11_evidence.json",
+        "sha256": "7e42c5312b24615f302c5f2bcfa5dc64a63d8788b167b86714b0e77a7d86f421"
+      },
+      "source_archive": {
+        "path": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.3__strong_weak_u8_transfer.tar.gz",
+        "sha256": "fbc9f0dc4ad276e6d0437fba60dc2fbe4c33de3b3fc44eb7664e006d2cd41c96"
+      },
+      "accepted_record": {
+        "member_suffix": "strong_weak_u8/json/current.json",
+        "member_sha256": "83cd8015d6f946fa9a9af66b8dbfde8946eee776b0d3d8165009b0eac47c8093",
+        "history_index": 12,
+        "pre_admission_depth": 12,
+        "selected_position": 1
+      },
+      "scored_record": {
+        "member_suffix": "strong_weak_u8/cache/candidate_records/c3/c3bdaa9c0e21c4c6bd6d85cc15126076613d3a7c32cdc04fa9fb509f00f9dafe.pkl",
+        "member_sha256": "ae8f5fedc4f8cb3689db004d2e3f2e90522204d6f2c2cab340153a900b8f7fa7",
+        "position": 1,
+        "append_position": 12,
+        "coordinate_chart": "append_candidate_after_current_ansatz_v1"
+      }
+    },
+    "macro_singleton_accepted_refit_policy_equal": {
+      "answer": true,
+      "regime_count_per_representation": 6,
+      "manifest_roots": [
+        "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/normalized_manifests",
+        "chtc/phase3_optuna/input/paper_i_hh_sr_snake_singleton_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/normalized_manifests"
+      ],
+      "manifest_sha256_by_regime": {
+        "intermediate_strong": {
+          "macro": "48b2ad8079459387ddcc1cdc4dd7eadae68409a733f660b6f5856dd989d9cfd6",
+          "singleton": "3f264d089ab43fc9d3795af3bda8705e9c64704e9fce743ca5a6b0e0884f47b4"
+        },
+        "intermediate_weak": {
+          "macro": "6afce2a1d9ce928813ffa0710c03dff8c23bbde07a1bfe6222c83cd98cb73dc9",
+          "singleton": "961f6e8439845f62bf783f386c3b1d12efe0d3dce8d74a6617271b2143419c2a"
+        },
+        "strong_strong": {
+          "macro": "6222c866f79a2ca73881a4b4266d924647b66f25ff496faf11c9a14a6b26d359",
+          "singleton": "b470921dd65d1331cb77e4ca434b8f6c16041ade1bfb5f5309c1a8a5b17e84fc"
+        },
+        "strong_weak": {
+          "macro": "7ac19e20cd0bed4a949bab9d84f1185addb3fcac0377899b26ec779d18db6ad2",
+          "singleton": "03ea4fb6a41fa37951eb2d3664a3bac39af6f6a865f658f104e448e2470ade9f"
+        },
+        "weak_strong": {
+          "macro": "442635c09b7487d0bd585cb6ccbc74b4e745bfe6bf3c75069d5055243d61ce3a",
+          "singleton": "cd62ddbf12a99cf2346b16d6a94841d63dddb2648e813759d54004952f142c1f"
+        },
+        "weak_weak": {
+          "macro": "8add2c5b6855fb91fc8c0fc1ce5d3ae6aea8eeea82941b22f1bcaebd246ae336",
+          "singleton": "1600dac5512c73998fc55855e8d817646acdaba3d35e2eaabffd31e19d69b006"
+        }
+      },
+      "fields_checked": [
+        "adapt_accepted_refit_scope",
+        "adapt_accepted_refit_coordinate_chart",
+        "adapt_accepted_refit_base_chart_policy"
+      ],
+      "weak_weak_output_receipt_spotcheck": {
+        "macro_member_sha256": "ffd51fcd5adb390c3fdec331c84d9a8a8bf31b1b08d1cd40e7d9af4d5f21e700",
+        "singleton_member_sha256": "327c79e3e8b0a79d09278cc55f7695f52d88f997bce8ff98913121a6ad675cc5"
+      }
+    },
+    "macro_pool_exclusions_serialized": {
+      "answer": true,
+      "fixture_paths": [
+        "test/fixtures/ra_adapt_pool_inventory_3.json",
+        "test/fixtures/ra_adapt_pool_inventory_7.json"
+      ]
+    }
+  },
+  "scheduler_precondition_for_old_runner_retirement": {
+    "state": "verified_read_only",
+    "jobs_observed": [
+      "8811693",
+      "8900508.1",
+      "8900508.2",
+      "8900508.3",
+      "8900508.4",
+      "9379287.5",
+      "9381297.2",
+      "9381297.4",
+      "9381298.4"
+    ],
+    "answer": "No active, queued, held, or outstanding source-locked job observed in the read-only queue audit invoked paper_i_runner.py or paper_i_hh_powell_pareto.py; observed Paper-I jobs used source-locked run_job.py payloads that enter pipelines.static_adapt.adapt_pipeline.",
+    "action_taken": "none"
+  },
+  "gitnexus": {
+    "mode": "index_only",
+    "setup_used": false,
+    "strict_ignore_path": ".gitnexusignore",
+    "strict_ignore_sha256": "4d4808e8f16a80c9129de7a9ccdf184aabff7f23a8ed01cf2aa2cf26c4de005a",
+    "analyze_command": "gitnexus analyze --force --index-only --skip-agents-md --skip-skills --max-file-size 8192 --worker-timeout 120 --workers 2 /Users/jakestrobel/local_repos/Holstein_test_fullclone_3",
+    "candidate_set": {
+      "walker_max_file_size_kb": 8192,
+      "path_count": 1592,
+      "sorted_newline_list_sha256": "fb5de6d1d099ab233f77c7e55f505c741525646735df8360021feff6ff390177",
+      "maximum_file_bytes": 5720427,
+      "forbidden_candidate_count": 0,
+      "self_referential_receipt_candidate_count": 0
+    },
+    "final_index_state": "up_to_date",
+    "meta": {
+      "path": ".gitnexus/meta.json",
+      "file_sha256": "d99d792d243cb63d3e6cbcd3080a28860fa076e82babd48c9518e1a61f3054a5",
+      "indexed_at": "2026-07-28T03:54:46.458Z",
+      "head_and_last_commit": "a42de3b64b094a9920a131f6396fd41cff56a692",
+      "schema_version": 5,
+      "file_count": 1592,
+      "node_count": 52682,
+      "edge_count": 95921,
+      "community_count": 1776,
+      "process_count": 300,
+      "forbidden_indexed_file_count": 0,
+      "forbidden_indexed_node_count": 0
+    },
+    "agent_surface_preservation": {
+      "agents_md_sha256_before_and_after": "025a83bc90d680a275da7cb3ab8a7bae14f14e948b6023d8b3ca771054356394",
+      "claude_md_sha256_before_and_after": "1d8c6d2982cae6960d55a8f1ea1de06724ba6f0aa59f46c00b8f00f0d2bcd981",
+      "gitnexus_skill_directory_before_and_after": "absent",
+      "generated_skill_directory_before_and_after": "absent"
+    },
+    "reachability_answers": [
+      {
+        "id": 1,
+        "question": "Which callers reach run_sr_snake and run_ra_adapt?",
+        "answer": "The graph has one direct facade edge: pipelines/static_adapt/sr_snake/runner.py:run_sr_snake calls pipelines/static_adapt/ra_adapt/engine.py:run_ra_adapt. run_ra_adapt is the canonical production and bundle seam; run_sr_snake is a thin historical compatibility alias used by compatibility, parity, and resume tests.",
+        "graph_counts": {
+          "run_ra_adapt_upstream_impact": 1,
+          "run_ra_adapt_direct_callers": 1,
+          "run_sr_snake_upstream_impact": 0
+        }
+      },
+      {
+        "id": 2,
+        "question": "Which modules import the monolith and which helpers do they use?",
+        "answer": "The graph records 39 monolith importers: 6 production import edges and 33 test import edges. Production AST inspection records 10 modules that consume explicit legacy helpers or the canonical monolith entrypoint. The validation-only cross_check_suite HVA caller now imports and calls builders/primitive_pools.py:_build_hva_pool; no bare or pipelines/hardcoded adapt_pipeline import remains.",
+        "source_confirmed": true
+      },
+      {
+        "id": 3,
+        "question": "What is caller concentration and dependency direction for each retired family?",
+        "answer": "The 142-entry archive contains 11 manifested families. Active retired-module-string sweeps across pipelines and src have zero hits. Dependencies now point from compatibility consumers toward concentrated neutral owners; archive-excluded pre-migration topology is preserved in movement and reachability receipts rather than reconstructed from the final graph.",
+        "manifest_family_counts": {
+          "algebraic_lane_partition": 5,
+          "fm_snake": 37,
+          "historical_amplitude_pruning": 10,
+          "historical_profiles_and_cli_controls": 19,
+          "legacy_adapt_executors": 5,
+          "old_paper_i_runners": 4,
+          "optuna_calibration": 39,
+          "ordinary_novelty_scoring": 8,
+          "paper_i_hardcoded_aliases": 8,
+          "phase_live_hysteresis": 3,
+          "tetris_disjoint_batching": 4
+        }
+      },
+      {
+        "id": 4,
+        "question": "Where are duplicate support, ridge, tolerance, whitening, and eigensolve policies?",
+        "answer": "There are three relevant definitions: canonical ra_adapt/support.py:factor_retained_support, the delegating joint_linear_solve.py:factor_supported_metric compatibility wrapper, and the historical selectable _solve_supported_metric_whitened. Canonical Phase III and accepted refit use the canonical owner with their distinct receipt-bound ridge contracts. Remaining eigensolves are compatibility, curvature, diagnostic, or Hamiltonian diagonalization paths, not duplicate canonical selector-support owners.",
+        "focused_test_result": "15 passed"
+      },
+      {
+        "id": 5,
+        "question": "Do all archival candidates have zero active reachability?",
+        "answer": "Yes for every whole-file candidate: 92 retired Python files are absent from active disk and graph, with zero indexed files or nodes. One separately classified Path-A test fragment preserves its unrelated Path-B owner file and is source-span tested. The inert archive itself has zero indexed files and nodes.",
+        "focused_test_result": "49 passed"
+      }
+    ],
+    "known_index_boundary": "The strict final graph intentionally excludes archive content and therefore does not reconstruct pre-archive topology; the archive manifest movement receipts are the authority for that history."
+  },
+  "checks": [
+    {
+      "id": "strict_candidate_set",
+      "status": "passed",
+      "observed": "1592 candidates; zero forbidden or self-referential receipt candidates"
+    },
+    {
+      "id": "fresh_index_only_analysis",
+      "status": "passed",
+      "observed": "52682 nodes; 95921 edges; up to date"
+    },
+    {
+      "id": "no_agent_or_skill_injection",
+      "status": "passed"
+    },
+    {
+      "id": "five_source_confirmed_reachability_answers",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=. pytest -q test/test_ra_adapt_retired_reachability.py test/test_static_adapt_commutation_metadata.py test/test_static_adapt_historical_route_identity.py",
+      "id": "archive_and_compatibility_reachability",
+      "observed": "49 passed",
+      "status": "passed"
+    },
+    {
+      "id": "numerical_outcome_or_winner_selection",
+      "observed": "not_performed",
+      "status": "passed"
+    }
+  ]
+}

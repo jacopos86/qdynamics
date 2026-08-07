@@ -1,0 +1,59 @@
+{
+  "all_horizons_explicit_in_argv": true,
+  "all_six_commands_parse": true,
+  "batching_active": false,
+  "beam_shape": "effective_1x1_v1",
+  "exact_settings_diff": {
+    "allowed_changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "changed_fields": [
+      "phase1_prune_enabled",
+      "phase1_prune_endpoint_overlap_policy",
+      "phase1_prune_local_window_size",
+      "phase1_prune_max_candidates",
+      "phase1_prune_metric_mu_update_policy",
+      "phase1_prune_metric_schur_cost_weighting",
+      "phase1_prune_metric_schur_mu",
+      "phase1_prune_metric_schur_solve_mode",
+      "phase1_prune_mode",
+      "phase1_prune_recovery_trust_radius",
+      "phase1_prune_schur_nomination_route",
+      "phase1_prune_trust_update_policy"
+    ],
+    "unexpected_non_prune_differences": []
+  },
+  "infeasible_model_novelty_fallback_active": true,
+  "infeasible_model_novelty_fallback_telemetry_required": true,
+  "metric_damping_active": false,
+  "ordinary_novelty_multiplier_active": false,
+  "per_regime_horizons": {
+    "intermediate_strong": 50,
+    "intermediate_weak": 50,
+    "strong_strong_u8": 50,
+    "strong_weak_u8": 50,
+    "weak_strong": 50,
+    "weak_weak": 50
+  },
+  "profile_contract_sha256": "272ede635558edb4acc2507ac3a9803d8ccec062b96c98634b8d6407df9fbc21",
+  "profile_request": "sr_snake_symmetric_cost_fs_prune_nodamping_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_v1",
+  "pruning_active": true,
+  "same_cutoff_lock_pass": true,
+  "schema": "paper_i_hh_sr_prune_appendix_route_parity_v1",
+  "scientific_settings_audit": "scientific_settings_audit.json",
+  "source_profile_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+  "status": "pass",
+  "submission_authorized": false
+}

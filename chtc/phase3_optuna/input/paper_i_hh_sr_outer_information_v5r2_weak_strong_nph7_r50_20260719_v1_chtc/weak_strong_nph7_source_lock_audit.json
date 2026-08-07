@@ -1,0 +1,24 @@
+{
+  "exact_energy_tolerance": 1e-12,
+  "historical_repaired_failure": {
+    "error": "Source-locked SR outer reuse requires exactly one authoritative singleton admission.",
+    "id": "sr_outer_reuse_suppressed_gradient_singleton_record_gap_v1",
+    "observed_controller_round": 30,
+    "observed_regime": "strong_weak_u8_nph3",
+    "repair_id": "canonical_sr_suppressed_eps_grad_singleton_exact_metric_v1",
+    "repaired_in_source_runtime_revision": "v5r2",
+    "run_id": "20260719T125934Z-c91f6f34"
+  },
+  "n_ph_reference": 7,
+  "n_ph_work": 7,
+  "regime": "weak_strong",
+  "same_cutoff_exact_energy": -1.1387206380749124,
+  "schema": "paper_i_weak_strong_nph7_source_lock_audit_v1",
+  "source_archive_sha256": "79c1f4b058d6f2ea7fb963975b63ee3e98358f9f463d128115b55fd99b4352d1",
+  "source_job_lock_sha256": "33e22e62eb23f756d1a20d2597529a1085bbc695b8832e65212b2ae031bc36f7",
+  "source_runtime_revision": "v5r2",
+  "sr_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+  "status": "pass",
+  "suppressed_eps_grad_fallback_support": "required_and_verified_in_v5r2",
+  "target_controller_round": 50
+}

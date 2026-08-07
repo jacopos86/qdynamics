@@ -1,0 +1,224 @@
+{
+  "archive_validate_evidence": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc/source_lock/receipt_retention_archive_validate_evidence.json",
+  "archive_validate_evidence_sha256": "861b22bda2a77e0f43d538beaa6feef39511c6984658c24d5c210d94fb73daa9",
+  "batch_name": "paper-i-hh-sr-appendix-phase3-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260720-v17",
+  "batch_selector_workspace_receipt_repair": {
+    "classification": "non_scientific_selected_proposal_workspace_telemetry_preservation_v1",
+    "derived_file_sha256": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "3684ae46dfd07cc5f0fdfc8809e29dc47bf1709da62754c88acf5cc3500b5bf8"
+    },
+    "failure_mode": "The non-beam batch selector wrappers returned the selected proposal's partial summary instead of the complete selector summary, dropping the already-computed geometry_workspace trust receipt.",
+    "model_inputs_or_selection_changed": false,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc/batch_selector_workspace_receipt_overlay.patch",
+    "overlay_sha256": "1da782d0d14355f22de3152961ce7f1d12f602920464fec916362f4643785bdf",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "predecessor_cluster": 8887596,
+    "predecessor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1",
+    "repair_scope": [
+      "pipelines/scaffold/hh_continuation_scoring.py::greedy_reduced_plane_batch_select",
+      "pipelines/scaffold/hh_continuation_scoring.py::combinatorial_reduced_plane_batch_select"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "selected_records_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+    "successor_source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "telemetry_preserved": [
+      "geometry_workspace",
+      "proposal_count",
+      "selection-level response receipts"
+    ]
+  },
+  "beam_singleton_trust_repair": {
+    "completed_utc": "2026-07-21T01:30:36.875876+00:00",
+    "failed_predecessor_error": "Phase-III batching appendix requires the supported-metric global trust solve for its complete batch response.",
+    "measurements_added": 0,
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v16_chtc",
+    "proof": {
+      "archive_only_job_gates_passed": 6,
+      "exact_remote_image_gate": "pending",
+      "frozen_source_tests_passed": 3,
+      "multi_record_global_trust_still_required": true,
+      "route_digest_unchanged": true
+    },
+    "query_charge_added": 0,
+    "repair": "propagate the authoritative one-record full-response receipt through 1x1 beam proposal and singleton-fallback plans",
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_phase3_batch_beam_singleton_trust_repair_v1",
+    "scientific_settings_changed": false,
+    "selection_changed": false,
+    "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "status": "pass_built_not_submitted_pending_exact_remote_image_gate",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+  },
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+  "cardinality_one_trust_repair": {
+    "candidate_selection_changed": false,
+    "completed_utc": "2026-07-20T23:57:08.667550+00:00",
+    "failed_predecessor_errors": [
+      "Phase-III batching appendix requires the supported-metric global trust solve for its complete batch response.",
+      "Whitened historical singleton trust update received an infeasible energy-model summary outside geometry-expansion mode: 'rank_gate'."
+    ],
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v15_chtc",
+    "proof": {
+      "archive_only_job_gates_passed": 6,
+      "exact_remote_image_gate": "pass",
+      "exact_remote_image_rows_passed": 6,
+      "frozen_source_tests_passed": 5,
+      "multi_record_global_trust_still_required": true,
+      "route_digest_unchanged": true
+    },
+    "query_measurements_added": 0,
+    "remote_preflight_completed_utc": "2026-07-21T00:09:48.965864+00:00",
+    "repair": "route an authoritative cardinality-one batch through its already measured singleton response; retain the existing geometry-expansion flag for all-infeasible novelty fallback",
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_phase3_batch_cardinality_one_trust_repair_v1",
+    "scientific_settings_changed": false,
+    "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "status": "pass_exact_remote_image_validated_not_submitted",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+  },
+  "checks": {
+    "batch_selector_workspace_receipt_repair_present": true,
+    "canonical_raw_phase2_batch_fallback_forbidden": true,
+    "explicit_disabled_argv_all_rows": true,
+    "only_contract_diff_is_hysteresis_false": true,
+    "receipt_retention_focused_tests_pass": true,
+    "runtime_route_validation_in_archive": true,
+    "serialized_zero_extent_matrix_receipt_repair_present": true,
+    "six_archive_only_validate_rows_pass": true,
+    "six_current_archive_only_validate_rows_pass": true,
+    "six_exact_remote_image_validate_rows_pass": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "submission_not_performed": true,
+    "v4_predecessor_archive_unchanged": true,
+    "v5_predecessor_archive_unchanged": true
+  },
+  "empty_gram_receipt_repair": {
+    "classification": "non_scientific_serialized_zero_extent_matrix_shape_restoration_v1",
+    "derived_file_sha256": {
+      "pipelines/static_adapt/adapt_pipeline.py": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+      "pipelines/static_adapt/selector_query_closure.py": "bcdd57c621f0b9688ae97537e63dcfa804371115e871a2b57543668fabd73b34"
+    },
+    "failure_mode": "JSON ndarray.tolist() collapses zero-row matrices such as (0,0) and (0,b) to [] with inferred reload shape (0,)",
+    "malformed_nonempty_or_nonfinite_payloads_fail_closed": true,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc/empty_gram_receipt_overlay.patch",
+    "overlay_sha256": "fcbba1e050c894316eeba7bf4468aabbd7e64be69a6d22ab7ebe72add05cc478",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+    "predecessor_source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+    "repair_scope": [
+      "pipelines/static_adapt/selector_query_closure.py::normalize_serialized_matrix_payload",
+      "pipelines/static_adapt/adapt_pipeline.py::_phase3_batch_appendix_trust_update_inputs._finite_matrix"
+    ],
+    "restoration_authority": "typed receipt expected_shape",
+    "restored_shapes": [
+      "(0,0)",
+      "(0,b)",
+      "(a,0)"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch3_empty_gram_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "successor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+  },
+  "empty_selection_fallback_repair": {
+    "completed_utc": "2026-07-20T22:51:12.673581+00:00",
+    "failed_predecessor_error": "Whitened historical singleton plan has the wrong coordinate schema.",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v13_chtc",
+    "proof": {
+      "archive_only_job_gates_passed": 6,
+      "exact_remote_image_gate": "pass",
+      "exact_remote_image_rows_passed": 6,
+      "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+      "focused_local_regressions_passed": 6,
+      "route_digest_unchanged": true
+    },
+    "remote_preflight_completed_utc": "2026-07-20T22:59:01.724539+00:00",
+    "repair": "when the batch selector returns no records, retain the top record from its authoritative measured Phase-III input domain instead of jumping to a raw Phase-II record",
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_phase3_batch3_empty_selection_repair_v1",
+    "scientific_settings_changed": false,
+    "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "status": "pass_exact_remote_image_validated_not_submitted",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+  },
+  "order_rescue_receipt_repair": {
+    "batch_target_or_order_policy_changed": false,
+    "completed_utc": "2026-07-20T22:08:42.707593+00:00",
+    "failed_predecessor_error": "Whitened historical singleton plan has the wrong coordinate schema.",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v12_chtc",
+    "proof": {
+      "archive_only_job_gates_passed": 6,
+      "exact_remote_image_gate": "pending",
+      "local_focused_tests_passed": 9,
+      "new_order_rescue_receipt_test_passed": true,
+      "source_topology_gate_passed": true
+    },
+    "repair": "restrict finite-step rescue fill to the authoritative full-response admission domain and restore its typed singleton receipt after every ordering/rescue transformation",
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_phase3_batch3_order_rescue_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "selection_scores_changed": false,
+    "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "status": "pass_built_not_submitted_pending_exact_remote_image_gate",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+  },
+  "phase3_batch_singleton_coordinate_receipt_retention": {
+    "accepted_subset_changed": false,
+    "authoritative_identity_fields": [
+      "candidate_pool_index",
+      "position_id",
+      "candidate_label"
+    ],
+    "predecessor_adapt_pipeline_sha256": "ae5ba83e664730c97b5b18b605dc55c28f58a23ee4f8c1f3506e9800ab377aa2",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v16_chtc",
+    "predecessor_source_archive_sha256": "cf506350d367bd32d4b7aef967af876feb41af8dfc5c7a5084ecabba3cfcefa6",
+    "raw_phase2_fallback_forbidden": true,
+    "restored_fields": [
+      "phase2_joint_geometry_reuse",
+      "phase3_response_supported_rank"
+    ],
+    "schema": "paper_i_sr_phase3_batch_singleton_coordinate_receipt_retention_v1",
+    "scientific_settings_changed": false,
+    "selector_or_model_inputs_changed": false,
+    "successor_adapt_pipeline_sha256": "872acacfe91906972becdbcc47acaaec42b286bac856bff93363028eb7dc895d",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+    "successor_source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b"
+  },
+  "profile_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_hysteresis_disabled_bundle_preflight_v1",
+  "singleton_fallback_trust_repair": {
+    "completed_utc": "2026-07-20T23:30:44.410905+00:00",
+    "failed_predecessor_error": "Phase-III batching appendix trust update received an infeasible response summary: 'singleton_shell'.",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v14_chtc",
+    "proof": {
+      "archive_only_job_gates_passed": 6,
+      "exact_remote_image_gate": "pass",
+      "exact_remote_image_rows_passed": 6,
+      "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+      "frozen_source_tests_passed": 2,
+      "route_digest_unchanged": true
+    },
+    "query_measurements_added": 0,
+    "remote_preflight_completed_utc": "2026-07-20T23:34:13.827588+00:00",
+    "repair": "carry the selected authoritative singleton's already measured full-response coordinate receipt into the degenerate one-record batch adaptive-trust transaction",
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_phase3_batch_singleton_trust_repair_v1",
+    "scientific_settings_changed": false,
+    "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+    "status": "pass_exact_remote_image_validated_not_submitted",
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc"
+  },
+  "source_archive_manifest_sha256": "c369335da1a3dbb71e9b9954879eb53bd020c9ac3973d017342bfb7c3382b3ff",
+  "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+  "status": "pass_built_not_submitted_pending_exact_remote_image_gate",
+  "submission_performed": false
+}

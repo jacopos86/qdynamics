@@ -1,0 +1,254 @@
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+import pytest
+
+from pipelines.static_adapt.estimator_call_ledger import (
+    EstimatorCallKey,
+    EstimatorCallLedger,
+)
+from pipelines.static_adapt.reclose_formal_manifold_query_accounting import (
+    SIDECAR_SCHEMA,
+    SOURCE_SIDECAR_SCHEMA,
+    build_correction_sidecar,
+)
+
+
+def _key(*, state: str, kind: str, formula: str) -> EstimatorCallKey:
+    return EstimatorCallKey(
+        projective_state_fingerprint=state,
+        hamiltonian_fingerprint="hh-hamiltonian",
+        backend_fingerprint="exact-statevector",
+        precision_contract="float64-exact",
+        primitive_kind=kind,
+        observable_or_formula_identity=formula,
+    )
+
+
+def test_build_correction_sidecar_hash_links_immutable_sources_and_corrects_nfev():
+    ledger = EstimatorCallLedger()
+    ledger.record_call(
+        _key(
+            state="state-initial",
+            kind="hamiltonian_expectation",
+            formula="initial-energy",
+        ),
+        component="N_H_outer",
+        consumer_scope="energy:initial",
+        branch_id=None,
+    )
+    ledger.record_call(
+        _key(
+            state="state-winner-guard",
+            kind="hamiltonian_expectation",
+            formula="finite-angle-guard",
+        ),
+        component="N_H_refit",
+        consumer_scope="finite_angle_objective_guard",
+        branch_id="winner",
+    )
+    ledger.record_call(
+        _key(
+            state="state-discarded-hessian",
+            kind="coordinate_second_derivative",
+            formula="discarded-hessian",
+        ),
+        component="N_metric",
+        consumer_scope="hessian_build",
+        branch_id="discarded",
+    )
+
+    ledger_payload = ledger.to_payload()
+    source_accounting = {
+        "complete": True,
+        "exact_blockers": [],
+        "winning_branch_ids": ["winner"],
+        "executed_occurrence_accounting": {
+            # The immutable result omitted the finite-angle guard from nfev.
+            "optimizer_and_guard_nfev_reported": 1,
+        },
+        "all_branch_search_work": ledger.summary(),
+        "winning_lineage": ledger.summary(
+            branch_ids=("winner",), include_unbranched=True
+        ),
+    }
+    source_payload = {
+        "schema": SOURCE_SIDECAR_SCHEMA,
+        "accounting": source_accounting,
+        "ledger": ledger_payload,
+    }
+    result_payload = {
+        "adapt_vqe": {
+            "nfev_total": 1,
+            "estimator_call_accounting": copy.deepcopy(source_accounting),
+        }
+    }
+    estimator_path = Path("/immutable/run/json/estimator_call_ledger.json")
+    result_path = Path("/immutable/run/json/result.json")
+    estimator_sha = "a" * 64
+    result_sha = "b" * 64
+
+    corrected = build_correction_sidecar(
+        estimator_ledger_sidecar=source_payload,
+        estimator_ledger_sidecar_path=estimator_path,
+        estimator_ledger_sidecar_sha256=estimator_sha,
+        source_result_payload=result_payload,
+        source_result_path=result_path,
+        source_result_sha256=result_sha,
+    )
+
+    assert corrected["schema"] == SIDECAR_SCHEMA
+    assert corrected["status"] == "passed_hash_linked_posthoc_correction"
+    assert corrected["source"] == {
+        "estimator_ledger_sidecar": {
+            "path": str(estimator_path),
+            "sha256": estimator_sha,
+            "schema": SOURCE_SIDECAR_SCHEMA,
+        },
+        "result": {
+            "path": str(result_path),
+            "sha256": result_sha,
+        },
+    }
+    assert corrected["mutation_policy"] == {
+        "source_result_rewritten": False,
+        "source_estimator_ledger_rewritten": False,
+        "scientific_trajectory_changed": False,
+    }
+
+    receipt = corrected["correction_receipt"]
+    assert receipt["stored_optimizer_and_guard_nfev"] == 1
+    assert receipt["corrected_optimizer_and_guard_nfev"] == 2
+    assert receipt["nfev_correction"] == 1
+    assert receipt["correction_reason_code"] == (
+        "reconciled_to_authoritative_estimator_occurrence_ledger"
+    )
+    assert receipt["unique_query_oracle_work_changed"] is False
+
+    closure = corrected["query_closure"]
+    assert closure["stored_nfev_total"] == 1
+    assert closure["corrected_nfev_total"] == 2
+    assert closure["nfev_correction"] == 1
+    assert closure["nfev_winning_lineage"] == 2
+    assert closure["nfev_discarded_operational_overhead"] == 0
+    assert closure["winning_branch"]["S_alg"] == 2
+    assert closure["discarded_branch_operational_overhead"]["S_alg"] == 1
+    assert closure["all_executed"]["S_alg"] == 3
+
+    validation = corrected["validation"]
+    assert validation["source_ledger_fingerprint"] == ledger_payload[
+        "ledger_fingerprint"
+    ]
+    assert validation["source_ledger_roundtrip_valid"] is True
+    assert validation["winning_unique_count_matches_source"] is True
+    assert validation["all_unique_count_matches_source"] is True
+    assert validation["all_primitive_ids_match_source"] is True
+    assert validation["winning_primitive_ids_match_source"] is True
+    assert validation["source_result_winning_branch_ids_match"] is True
+    assert validation["source_result_all_primitive_ids_match"] is True
+    assert validation["source_result_winning_primitive_ids_match"] is True
+    assert validation["source_result_nfev_matches_sidecar"] is True
+    assert validation["primitive_kind_legacy_component_compatible"] is True
+    assert validation["primitive_set_reconciled"] is True
+    assert validation["nfev_partition_reconciled"] is True
+    assert validation["passed"] is True
+
+
+def test_build_correction_sidecar_rejects_lineage_not_authenticated_by_result():
+    ledger = EstimatorCallLedger()
+    ledger.record_call(
+        _key(state="state-winner", kind="hamiltonian_expectation", formula="winner"),
+        component="N_H_refit",
+        consumer_scope="energy:winner",
+        branch_id="winner",
+    )
+    ledger.record_call(
+        _key(state="state-other", kind="hamiltonian_expectation", formula="other"),
+        component="N_H_refit",
+        consumer_scope="energy:other",
+        branch_id="other",
+    )
+    ledger_payload = ledger.to_payload()
+    source_accounting = {
+        "complete": True,
+        "exact_blockers": [],
+        "winning_branch_ids": ["other"],
+        "executed_occurrence_accounting": {
+            "optimizer_and_guard_nfev_reported": 2,
+        },
+        "all_branch_search_work": ledger.summary(),
+        "winning_lineage": ledger.summary(
+            branch_ids=("other",), include_unbranched=True
+        ),
+    }
+    authoritative_result_accounting = copy.deepcopy(source_accounting)
+    authoritative_result_accounting["winning_branch_ids"] = ["winner"]
+    authoritative_result_accounting["winning_lineage"] = ledger.summary(
+        branch_ids=("winner",), include_unbranched=True
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="failed source reconciliation",
+    ):
+        build_correction_sidecar(
+            estimator_ledger_sidecar={
+                "schema": SOURCE_SIDECAR_SCHEMA,
+                "accounting": source_accounting,
+                "ledger": ledger_payload,
+            },
+            estimator_ledger_sidecar_path=Path("/immutable/ledger.json"),
+            estimator_ledger_sidecar_sha256="a" * 64,
+            source_result_payload={
+                "adapt_vqe": {
+                    "nfev_total": 2,
+                    "estimator_call_accounting": authoritative_result_accounting,
+                }
+            },
+            source_result_path=Path("/immutable/result.json"),
+            source_result_sha256="b" * 64,
+        )
+
+
+def test_build_correction_sidecar_zero_delta_has_truthful_reason():
+    ledger = EstimatorCallLedger()
+    ledger.record_call(
+        _key(state="state", kind="hamiltonian_expectation", formula="energy"),
+        component="N_H_refit",
+        consumer_scope="energy:optimizer",
+        branch_id=None,
+    )
+    accounting = {
+        "complete": True,
+        "exact_blockers": [],
+        "winning_branch_ids": [],
+        "executed_occurrence_accounting": {
+            "optimizer_and_guard_nfev_reported": 1,
+        },
+        "all_branch_search_work": ledger.summary(),
+        "winning_lineage": ledger.summary(),
+    }
+    corrected = build_correction_sidecar(
+        estimator_ledger_sidecar={
+            "schema": SOURCE_SIDECAR_SCHEMA,
+            "accounting": accounting,
+            "ledger": ledger.to_payload(),
+        },
+        estimator_ledger_sidecar_path=Path("/immutable/ledger.json"),
+        estimator_ledger_sidecar_sha256="a" * 64,
+        source_result_payload={
+            "adapt_vqe": {
+                "nfev_total": 1,
+                "estimator_call_accounting": copy.deepcopy(accounting),
+            }
+        },
+        source_result_path=Path("/immutable/result.json"),
+        source_result_sha256="b" * 64,
+    )
+    receipt = corrected["correction_receipt"]
+    assert receipt["nfev_correction"] == 0
+    assert receipt["correction_reason_code"] == "no_scalar_correction_required"
+    assert "already matches" in receipt["correction_reason"]
+    assert "omitted" not in receipt["correction_reason"]

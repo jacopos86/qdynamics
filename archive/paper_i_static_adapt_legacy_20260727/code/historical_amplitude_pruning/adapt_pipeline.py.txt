@@ -1,0 +1,860 @@
+    select_phase2_batch_records,
+    validate_phase2_feature_curvature,
+)
+from pipelines.scaffold.hh_continuation_pruning import (
+    AFFINE_DELETION_FS_TRUST_TRIAL_RECEIPT_V1,
+    AffineDeletionFSTrustState,
+    PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1,
+    PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
+    PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
+    PRUNE_METRIC_COST_WEIGHT_OFF,
+    PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1,
+    PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1,
+    PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
+    PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1,
+    PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
+    PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
+    PRUNE_TOLERANCE_AUTO,
+    PruneConfig,
+    amplitude_collapse_witness,
+    apply_pruning,
+    build_metric_regularized_prune_surrogate_scores,
+    build_static_prune_surrogate_scores,
+    cheap_prune_score,
+    compute_prune_regression_tolerance,
+    evaluate_prune_permission,
+    initialize_affine_deletion_fs_trust_state,
+    post_prune_refit,
+    rank_prune_candidates,
+    recoverability_prune_ladder,
+    resolve_prune_tolerance_mode,
+    phase0_pilot_max_operators: int = 0,
+    phase0_lane_quota_pressure: float = 1.0,
+    phase0_algebraic_lane_mode: str = "weak",
+    phase1_probe_max_positions: int = 6,
+    phase1_plateau_patience: int = 2,
+    phase1_trough_margin_ratio: float = 1.0,
+    phase1_prune_enabled: bool = True,
+    phase1_prune_policy: str = PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1,
+    phase1_prune_mode: str = "live",
+    phase1_prune_fraction: float = 0.25,
+    phase1_prune_min_candidates: int = 1,
+    phase1_prune_max_candidates: int = 6,
+    phase1_prune_max_regression: float = 1e-8,
+    phase1_prune_tolerance_mode: str = PRUNE_TOLERANCE_AUTO,
+    phase1_prune_tolerance_shot_coeff: float = 0.0,
+    phase1_prune_tolerance_screen_coeff: float = 0.01,
+    phase1_prune_tolerance_chem: float = 0.0,
+    phase1_prune_tolerance_rel_coeff: float = 0.0,
+    phase1_prune_tolerance_target_energy: float | None = None,
+    phase1_prune_retained_gain_ratio: float = 0.5,
+    phase1_prune_protect_steps: int = 2,
+    phase1_prune_stale_age: int = 2,
+    phase1_prune_stagnation_threshold: float = 0.0,
+    phase1_prune_small_theta_abs: float = 1e-3,
+    phase1_prune_small_theta_relative: float = 0.5,
+    phase1_prune_cooldown_steps: int = 2,
+    phase1_prune_local_window_size: int = 4,
+    phase1_prune_recovery_trust_radius: float = 0.0,
+    phase1_prune_schur_nomination_route: str = PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
+    phase1_prune_metric_schur_mu: float = 1e-6,
+    phase1_prune_metric_schur_solve_mode: str = PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
+    phase1_prune_metric_schur_cost_weighting: str = PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
+    phase1_prune_trust_update_policy: str = "off",
+    phase1_prune_metric_mu_update_policy: str = "off",
+    phase1_prune_endpoint_overlap_policy: str = "off",
+    phase1_prune_old_fraction: float = 0.25,
+    phase1_prune_checkpoint_period: int = 3,
+    phase1_prune_live_min_depth: int = 0,
+    phase1_prune_maturity_threshold: float = 0.5,
+    phase1_prune_snr_threshold: float = 1.0,
+    phase1_prune_prefilter_policy: str = PRUNE_PREFILTER_OFF,
+    phase1_prune_prefilter_json: Path | str | None = None,
+    phase1_prune_risk_threshold: float = 0.0,
+    phase1_prune_prefilter_max_candidates: int = 1,
+    phase1_prune_amplitude_witness_required: bool = True,
+    phase1_prune_collapse_peak_abs_min: float | None = None,
+    phase1_prune_collapse_current_abs_max: float | None = None,
+    phase1_prune_collapse_ratio: float = 0.25,
+    phase1_prune_collapse_min_abs_drop: float | None = None,
+    phase1_prune_collapse_min_observations: int = 3,
+    phase2_shortlist_fraction: float = 0.2,
+    phase2_shortlist_size: int = 12,
+    if phase2_null_nrem_high_threshold_val > phase2_live_nrem_low_threshold_val:
+        raise ValueError("phase2 null high threshold must be <= live low threshold.")
+    if phase3_null_nrem_high_threshold_val > phase3_live_nrem_low_threshold_val:
+        raise ValueError("phase3 null high threshold must be <= live low threshold.")
+    phase1_prune_collapse_peak_abs_min_val = float(
+        phase1_prune_small_theta_abs
+        if phase1_prune_collapse_peak_abs_min is None
+        else phase1_prune_collapse_peak_abs_min
+    )
+    phase1_prune_collapse_current_abs_max_val = float(
+        phase1_prune_small_theta_abs
+        if phase1_prune_collapse_current_abs_max is None
+        else phase1_prune_collapse_current_abs_max
+    )
+    phase1_prune_collapse_min_abs_drop_val = float(
+        phase1_prune_small_theta_abs
+        if phase1_prune_collapse_min_abs_drop is None
+        else phase1_prune_collapse_min_abs_drop
+    )
+    phase1_prune_collapse_ratio_val = float(phase1_prune_collapse_ratio)
+    phase1_prune_collapse_min_observations_val = int(phase1_prune_collapse_min_observations)
+    for witness_name, witness_val in (
+        ("phase1_prune_collapse_peak_abs_min", phase1_prune_collapse_peak_abs_min_val),
+        ("phase1_prune_collapse_current_abs_max", phase1_prune_collapse_current_abs_max_val),
+        ("phase1_prune_collapse_min_abs_drop", phase1_prune_collapse_min_abs_drop_val),
+        ("phase1_prune_collapse_ratio", phase1_prune_collapse_ratio_val),
+    ):
+        if (not math.isfinite(witness_val)) or witness_val < 0.0:
+            raise ValueError(f"{witness_name} must be finite and >= 0.")
+    if phase1_prune_collapse_min_observations_val < 1:
+        raise ValueError("phase1_prune_collapse_min_observations must be >= 1.")
+    phase1_depth_ref_val = float(phase1_depth_ref)
+        phase1_prune_tolerance_mode or PRUNE_TOLERANCE_AUTO
+    ).strip().lower()
+    phase1_prune_tolerance_mode_effective = resolve_prune_tolerance_mode(
+        mode=phase1_prune_tolerance_mode_requested,
+        prune_policy=str(phase1_prune_policy or PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1),
+    )
+    phase1_prune_schur_nomination_route = str(
+        phase1_prune_schur_nomination_route or PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1
+
+    def _build_phase1_prune_cfg() -> PruneConfig:
+        recoverability_prune_policy = bool(
+            str(phase1_prune_policy or PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1)
+            == PRUNE_POLICY_RECOVERABILITY_LADDER_V1
+        )
+        return PruneConfig(
+            policy=str(phase1_prune_policy or PRUNE_POLICY_LEGACY_SMALL_ANGLE_V1),
+            max_candidates=int(max(1, phase1_prune_max_candidates)),
+            min_candidates=int(max(1, phase1_prune_min_candidates)),
+            fraction_candidates=float(max(0.0, phase1_prune_fraction)),
+            max_regression=float(max(0.0, phase1_prune_max_regression)),
+            tolerance_mode_requested=str(phase1_prune_tolerance_mode_requested),
+            tolerance_mode=str(phase1_prune_tolerance_mode_effective),
+            tolerance_shot_coeff=float(phase1_prune_tolerance_shot_coeff),
+            tolerance_screen_coeff=float(phase1_prune_tolerance_screen_coeff),
+            tolerance_chem=float(phase1_prune_tolerance_chem),
+            tolerance_rel_coeff=float(phase1_prune_tolerance_rel_coeff),
+            tolerance_target_energy=(
+                None
+                if phase1_prune_tolerance_target_energy is None
+                else float(phase1_prune_tolerance_target_energy)
+            ),
+            retained_gain_ratio=float(max(0.0, phase1_prune_retained_gain_ratio)),
+            protect_steps=int(max(0, phase1_prune_protect_steps)),
+            stale_age=int(max(0, phase1_prune_stale_age)),
+            stagnation_threshold=float(phase1_prune_stagnation_threshold),
+            small_theta_abs=float(max(0.0, phase1_prune_small_theta_abs)),
+            small_theta_relative=float(max(0.0, phase1_prune_small_theta_relative)),
+            cooldown_steps=int(max(0, phase1_prune_cooldown_steps)),
+            local_window_size=int(max(0, phase1_prune_local_window_size)),
+            surrogate_recovery_trust_radius=float(
+                max(0.0, phase1_prune_recovery_trust_radius)
+            ),
+            schur_nomination_route=str(phase1_prune_schur_nomination_route),
+            metric_schur_mu=float(max(0.0, phase1_prune_metric_schur_mu)),
+            metric_schur_solve_mode=str(phase1_prune_metric_schur_solve_mode),
+            metric_schur_cost_weighting=str(phase1_prune_metric_schur_cost_weighting),
+            old_fraction=float(min(1.0, max(0.0, phase1_prune_old_fraction))),
+            amplitude_witness_required=bool(phase1_prune_amplitude_witness_required),
+            collapse_peak_abs_min=float(max(0.0, phase1_prune_collapse_peak_abs_min_val)),
+            collapse_current_abs_max=float(max(0.0, phase1_prune_collapse_current_abs_max_val)),
+            collapse_ratio=float(max(0.0, phase1_prune_collapse_ratio_val)),
+            collapse_min_abs_drop=float(max(0.0, phase1_prune_collapse_min_abs_drop_val)),
+            collapse_min_observations=int(max(1, phase1_prune_collapse_min_observations_val)),
+            surrogate_enabled=bool(recoverability_prune_policy),
+                    None
+                    if phase1_prune_cfg.tolerance_target_energy is None
+                    else float(phase1_prune_cfg.tolerance_target_energy)
+                ),
+                "retained_gain_ratio": float(phase1_prune_cfg.retained_gain_ratio),
+                "protect_steps": int(phase1_prune_cfg.protect_steps),
+                "stale_age": int(phase1_prune_cfg.stale_age),
+                "stagnation_threshold": float(phase1_prune_cfg.stagnation_threshold),
+                "cooldown_steps": int(phase1_prune_cfg.cooldown_steps),
+                "small_theta_abs": float(phase1_prune_cfg.small_theta_abs),
+                "small_theta_relative": float(phase1_prune_cfg.small_theta_relative),
+                "local_window_size": int(phase1_prune_cfg.local_window_size),
+                "schur_surrogate_recovery_trust_radius": float(
+                    phase1_prune_cfg.surrogate_recovery_trust_radius
+                ),
+                "old_fraction": float(phase1_prune_cfg.old_fraction),
+                "phase1_prune_metric_mu_update_policy": str(
+                    phase1_prune_metric_mu_update_policy_key
+                ),
+                "phase1_prune_endpoint_overlap_policy": str(
+                    phase1_prune_endpoint_overlap_policy_key
+                ),
+                "theta_small": float(max(0.0, phase1_prune_cfg.small_theta_abs)),
+                "amplitude_witness_required": False,
+                "amplitude_witness_config_required": bool(phase1_prune_cfg.amplitude_witness_required),
+                "collapse_peak_abs_min": float(phase1_prune_cfg.collapse_peak_abs_min),
+                "collapse_current_abs_max": float(phase1_prune_cfg.collapse_current_abs_max),
+                "collapse_ratio": float(phase1_prune_cfg.collapse_ratio),
+                "collapse_min_abs_drop": float(phase1_prune_cfg.collapse_min_abs_drop),
+                "collapse_min_observations": int(phase1_prune_cfg.collapse_min_observations),
+            }
+        )
+                {
+                    "label": str(raw.get("candidate_label", "")),
+                    "selector_score": float(raw.get("selector_score", 0.0) or 0.0),
+                    "selector_burden": float(raw.get("selector_burden", 0.0) or 0.0),
+                    "stagnation_score": float(raw.get("stagnation_score", 0.0) or 0.0),
+                    "theta_abs": float(raw.get("current_abs_theta", 0.0) or 0.0),
+                    "previous_abs_theta": float(raw.get("previous_abs_theta", 0.0) or 0.0),
+                    "peak_abs_theta": float(raw.get("peak_abs_theta", 0.0) or 0.0),
+                    "amplitude_observation_count": int(raw.get("amplitude_observation_count", 0) or 0),
+                    "cooldown_remaining": int(raw.get("cooldown_remaining", 0) or 0),
+                    "selector_value_per_burden": float(raw.get("selector_score", 0.0) or 0.0)
+                    / float(1.0 + max(0.0, float(raw.get("selector_burden", 0.0) or 0.0))),
+                }
+            "gain_floor": 0.0,
+            "gain_ewma_recent": 0.0,
+            "snr_adm": 0.0,
+            "snr_low_enough": True,
+            "gate_rows": [],
+            "stale_age_pass_indices": [],
+            "stagnation_pass_indices": [],
+            "protected_indices": [],
+            "cooldown_blocked_indices": [],
+            "mature_eligible_indices": [],
+            "recoverability_eligible_indices": [],
+            "small_angle_pool_indices": [],
+            "accepted_count": 0,
+            "candidate_count": 0,
+            "prune_prefilter_input_count": 0,
+            "prune_prefilter_allowed_count": 0,
+            "prune_prefilter_blocked_count": 0,
+            "prune_prefilter_rows": [],
+            "prune_prefilter_blocked_indices": [],
+            "prune_prefilter_blocked_labels": [],
+            "probe_indices": [],
+            "probe_labels": [],
+            "frozen_scores": [],
+            "amplitude_witness_rows": [],
+            "selected_index": None,
+            "selected_label": None,
+            "selected_amplitude_witness": None,
+            "decisions": [],
+            "trial": None,
+            generator_id=None,
+            admission_step=0,
+            first_seen_step=0,
+            selector_score=0.0,
+            selector_burden=0.0,
+            cooldown_remaining=0,
+            cumulative_abs_motion=0.0,
+            recent_abs_motion=0.0,
+            stagnation_score=float(1.0 / (1.0 + theta_abs + 1e-12)),
+            current_abs_theta=float(theta_abs),
+            previous_abs_theta=float(theta_abs),
+            peak_abs_theta=float(theta_abs),
+            amplitude_observation_count=1,
+        )
+
+                    first_seen_step=int(first_seen_by_label.setdefault(str(label_step), int(step_idx))),
+                    selector_score=float(_selector_score_value(feature_mapping)),
+                    selector_burden=float(_selector_burden_value(feature_mapping)),
+                    cooldown_remaining=0,
+                    cumulative_abs_motion=0.0,
+                    recent_abs_motion=0.0,
+                    stagnation_score=0.0,
+                    current_abs_theta=0.0,
+                    previous_abs_theta=0.0,
+                    peak_abs_theta=0.0,
+                    amplitude_observation_count=0,
+                )
+                entries.insert(max(0, min(int(pos_eff), len(entries))), meta)
+                original_positions_seen.append(int(pos_orig))
+        aligned: list[ScaffoldCoordinateMetadata] = []
+            )
+            aligned.append(
+                ScaffoldCoordinateMetadata(
+                    **{
+                        **base_meta.__dict__,
+                        "first_seen_step": int(first_seen_by_label.setdefault(str(label_now), int(base_meta.first_seen_step))),
+                        "stagnation_score": float(max(0.0, 1.0 - theta_abs / theta_scale)),
+                        "current_abs_theta": float(theta_abs),
+                        "previous_abs_theta": float(theta_abs),
+                        "peak_abs_theta": float(max(theta_abs, float(base_meta.peak_abs_theta))),
+                        "amplitude_observation_count": int(max(1, int(base_meta.amplitude_observation_count))),
+                    }
+                )
+            )
+        return aligned, first_seen_by_label
+
+    def _refresh_prune_metadata_stagnation(
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        theta_logical_now: np.ndarray,
+    ) -> list[ScaffoldCoordinateMetadata]:
+        theta_vals = np.asarray(theta_logical_now, dtype=float).reshape(-1)
+        theta_scale = float(max(np.median(np.abs(theta_vals)) if theta_vals.size > 0 else 0.0, 1e-12))
+        out: list[ScaffoldCoordinateMetadata] = []
+        for idx, meta in enumerate(metadata_rows):
+            theta_raw = float(theta_vals[idx]) if idx < int(theta_vals.size) else 0.0
+            theta_abs = float(abs((theta_raw + math.pi) % (2.0 * math.pi) - math.pi))
+            obs_count_prev = int(max(0, int(meta.amplitude_observation_count)))
+            previous_abs = float(meta.current_abs_theta) if obs_count_prev > 0 else float(theta_abs)
+            recent_abs_motion = float(abs(theta_abs - previous_abs))
+            cumulative_abs_motion = float(max(0.0, float(meta.cumulative_abs_motion)) + recent_abs_motion)
+            peak_abs = float(max(float(meta.peak_abs_theta), theta_abs, previous_abs))
+            out.append(
+                ScaffoldCoordinateMetadata(
+                    **{
+                        **meta.__dict__,
+                        "stagnation_score": float(max(0.0, 1.0 - theta_abs / theta_scale)),
+                        "current_abs_theta": float(theta_abs),
+                        "previous_abs_theta": float(previous_abs),
+                        "peak_abs_theta": float(peak_abs),
+                        "amplitude_observation_count": int(obs_count_prev + 1),
+                        "recent_abs_motion": float(recent_abs_motion),
+                        "cumulative_abs_motion": float(cumulative_abs_motion),
+                    }
+                )
+            )
+        return out
+
+    def _prune_amplitude_witness_row(
+        *,
+        index: int,
+        label: str,
+        metadata: ScaffoldCoordinateMetadata,
+    ) -> dict[str, Any]:
+        witness = amplitude_collapse_witness(
+            current_abs_theta=float(metadata.current_abs_theta),
+            peak_abs_theta=float(metadata.peak_abs_theta),
+            observation_count=int(metadata.amplitude_observation_count),
+            previous_abs_theta=float(metadata.previous_abs_theta),
+            peak_abs_min=float(phase1_prune_cfg.collapse_peak_abs_min),
+            current_abs_max=float(phase1_prune_cfg.collapse_current_abs_max),
+            collapse_ratio=float(phase1_prune_cfg.collapse_ratio),
+            min_abs_drop=float(phase1_prune_cfg.collapse_min_abs_drop),
+            min_observations=int(phase1_prune_cfg.collapse_min_observations),
+        )
+        return {
+            "index": int(index),
+            "label": str(label),
+            **dict(witness),
+        }
+
+    def _transport_prune_metadata_after_admission(
+        *,
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        labels_added: Sequence[str],
+        positions_added: Sequence[int],
+        feature_rows_added: Sequence[Mapping[str, Any]],
+        theta_logical_now = np.asarray(_logical_theta_alias(theta_runtime_now, layout_now), dtype=float)
+        metadata_live = _refresh_prune_metadata_stagnation(
+            [ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in metadata_rows],
+            theta_logical_now,
+        )
+        summary["metadata"] = [dict(x.__dict__) for x in metadata_live]
+        theta_abs_wrapped = [
+            float(abs((float(theta_val) + math.pi) % (2.0 * math.pi) - math.pi))
+            for theta_val in np.asarray(theta_logical_now, dtype=float).reshape(-1).tolist()
+        ]
+        stale_age_pass_indices: list[int] = []
+        stagnation_pass_indices: list[int] = []
+        protected_indices: list[int] = []
+        cooldown_blocked_indices: list[int] = []
+        mature_eligible_indices: list[int] = []
+        recoverability_eligible_indices: list[int] = []
+        gate_rows: list[dict[str, Any]] = []
+        for idx_meta, meta in enumerate(metadata_live):
+            first_seen_age = int(max(0, int(selector_step) - int(meta.first_seen_step)))
+            admission_age = int(max(0, int(selector_step) - int(meta.admission_step)))
+            stale_age_pass = bool(first_seen_age >= int(phase1_prune_cfg.stale_age))
+            stagnation_pass = bool(float(meta.stagnation_score) >= float(phase1_prune_cfg.stagnation_threshold))
+            protected = bool(admission_age < int(phase1_prune_cfg.protect_steps))
+            cooldown_blocked = bool(int(meta.cooldown_remaining) > 0)
+            mature_eligible = bool(stale_age_pass and stagnation_pass and (not protected) and (not cooldown_blocked))
+            recoverability_eligible = bool((not protected) and (not cooldown_blocked))
+            if stale_age_pass:
+                stale_age_pass_indices.append(int(idx_meta))
+            if stagnation_pass:
+                stagnation_pass_indices.append(int(idx_meta))
+            if protected:
+                protected_indices.append(int(idx_meta))
+            if cooldown_blocked:
+                cooldown_blocked_indices.append(int(idx_meta))
+            if mature_eligible:
+                mature_eligible_indices.append(int(idx_meta))
+            if recoverability_eligible:
+                recoverability_eligible_indices.append(int(idx_meta))
+            gate_rows.append(
+                {
+                    "index": int(idx_meta),
+                    "label": str(meta.candidate_label),
+                    "theta_abs_wrapped": (
+                        float(theta_abs_wrapped[idx_meta])
+                        if idx_meta < len(theta_abs_wrapped)
+                        else 0.0
+                    ),
+                    "first_seen_age": int(first_seen_age),
+                    "admission_age": int(admission_age),
+                    "cooldown_remaining": int(meta.cooldown_remaining),
+                    "stagnation_score": float(meta.stagnation_score),
+                    "selector_burden": float(meta.selector_burden),
+                    "stale_age_pass": bool(stale_age_pass),
+                    "stagnation_pass": bool(stagnation_pass),
+                    "protected": bool(protected),
+                    "cooldown_blocked": bool(cooldown_blocked),
+                    "mature_eligible": bool(mature_eligible),
+                    "recoverability_eligible": bool(recoverability_eligible),
+                }
+            )
+        theta_small = (
+            float(
+                max(
+                    float(max(0.0, phase1_prune_cfg.small_theta_abs)),
+                    float(max(0.0, phase1_prune_cfg.small_theta_relative))
+                    * float(np.median([theta_abs_wrapped[i] for i in mature_eligible_indices])),
+                )
+            )
+            if mature_eligible_indices
+            else float(max(0.0, phase1_prune_cfg.small_theta_abs))
+        )
+        small_angle_pool_indices = [
+            int(i)
+            for i in mature_eligible_indices
+            if float(theta_abs_wrapped[i]) <= float(theta_small) + 1e-15
+        ]
+        summary["protect_steps"] = int(phase1_prune_cfg.protect_steps)
+        summary["stale_age"] = int(phase1_prune_cfg.stale_age)
+        summary["stagnation_threshold"] = float(phase1_prune_cfg.stagnation_threshold)
+        summary["cooldown_steps"] = int(phase1_prune_cfg.cooldown_steps)
+        summary["theta_small"] = float(theta_small)
+        summary["gate_rows"] = [dict(x) for x in gate_rows]
+        summary["stale_age_pass_indices"] = [int(x) for x in stale_age_pass_indices]
+        summary["stagnation_pass_indices"] = [int(x) for x in stagnation_pass_indices]
+        summary["protected_indices"] = [int(x) for x in protected_indices]
+        summary["cooldown_blocked_indices"] = [int(x) for x in cooldown_blocked_indices]
+        summary["mature_eligible_indices"] = [int(x) for x in mature_eligible_indices]
+        summary["recoverability_eligible_indices"] = [int(x) for x in recoverability_eligible_indices]
+        summary["small_angle_pool_indices"] = [int(x) for x in small_angle_pool_indices]
+        if not permission_open:
+            if bool(typed_live_prune_active):
+            selector_burden=[float(meta.selector_burden) for meta in metadata_live],
+            admission_steps=[int(meta.admission_step) for meta in metadata_live],
+            first_seen_steps=[int(meta.first_seen_step) for meta in metadata_live],
+            cooldown_remaining=[int(meta.cooldown_remaining) for meta in metadata_live],
+            stagnation_scores=[float(meta.stagnation_score) for meta in metadata_live],
+            current_step=int(selector_step),
+            protect_steps=int(phase1_prune_cfg.protect_steps),
+            stale_age=int(phase1_prune_cfg.stale_age),
+            stagnation_threshold=float(phase1_prune_cfg.stagnation_threshold),
+            small_theta_abs=float(phase1_prune_cfg.small_theta_abs),
+            small_theta_relative=float(phase1_prune_cfg.small_theta_relative),
+            policy=str(phase1_prune_cfg.policy),
+            surrogate_scores=prune_schur_scores if prune_schur_scores else None,
+            surrogate_score_primary_only=bool(phase1_prune_metric_route_active),
+        )
+        candidate_indices = rank_prune_candidates(
+            theta=np.asarray(theta_logical_now, dtype=float),
+            labels=list(labels_now),
+            marginal_proxy_benefit=list(prune_proxy_benefit),
+            max_candidates=int(phase1_prune_cfg.max_candidates),
+            min_candidates=int(phase1_prune_cfg.min_candidates),
+            fraction_candidates=float(phase1_prune_cfg.fraction_candidates),
+            selector_burden=[float(meta.selector_burden) for meta in metadata_live],
+            admission_steps=[int(meta.admission_step) for meta in metadata_live],
+            first_seen_steps=[int(meta.first_seen_step) for meta in metadata_live],
+            cooldown_remaining=[int(meta.cooldown_remaining) for meta in metadata_live],
+            stagnation_scores=[float(meta.stagnation_score) for meta in metadata_live],
+            current_step=int(selector_step),
+            protect_steps=int(phase1_prune_cfg.protect_steps),
+            stale_age=int(phase1_prune_cfg.stale_age),
+            stagnation_threshold=float(phase1_prune_cfg.stagnation_threshold),
+            small_theta_abs=float(phase1_prune_cfg.small_theta_abs),
+            small_theta_relative=float(phase1_prune_cfg.small_theta_relative),
+            policy=str(phase1_prune_cfg.policy),
+            surrogate_scores=prune_schur_scores if prune_schur_scores else None,
+            surrogate_score_threshold=schur_gate_threshold,
+            surrogate_candidate_cap=(
+                int(phase1_prune_cfg.surrogate_exact_trial_cap)
+                if schur_gate_threshold is not None
+                else None
+            ),
+            surrogate_score_primary_only=bool(phase1_prune_metric_route_active),
+        )
+        _update_prune_schur_gate_payload(
+            summary,
+            prune_cfg=phase1_prune_cfg,
+            threshold=schur_gate_threshold,
+            pre_gate_candidate_count=int(len(candidate_indices_pre_schur_gate)),
+            post_gate_candidate_count=int(len(candidate_indices)),
+        )
+        candidate_indices = _apply_prune_prefilter(
+            candidate_indices=[int(x) for x in candidate_indices],
+            labels_now=list(labels_now),
+            summary=summary,
+        )
+        pre_guard_candidate_indices = [int(x) for x in candidate_indices]
+        repeat_guard_blocked_labels = _accepted_live_prune_labels_from_history(history_source)
+        (
+            candidate_indices,
+            repeat_label_blocked_rows,
+            repeat_label_guard_payload,
+        ) = _apply_repeat_live_prune_guard(
+            candidate_indices=pre_guard_candidate_indices,
+            labels_now=list(labels_now),
+            blocked_labels=list(repeat_guard_blocked_labels),
+            bypass_for_model_nominated_single_trial=bool(
+                phase1_prune_affine_trust_route_active
+            ),
+        )
+        repeat_label_blocked_indices = {
+            int(row["index"]) for row in repeat_label_blocked_rows
+        }
+        for row in gate_rows:
+            idx_gate = int(row.get("index", -1))
+            blocked_by_repeat = bool(idx_gate in repeat_label_blocked_indices)
+            row["repeat_label_blocked"] = bool(blocked_by_repeat)
+            if blocked_by_repeat:
+                row["repeat_label_guard_reason"] = "previous_live_prune_acceptance_same_label"
+        summary["gate_rows"] = [dict(x) for x in gate_rows]
+        summary["repeat_label_guard"] = dict(repeat_label_guard_payload)
+        amplitude_witness_rows = [
+            _prune_amplitude_witness_row(
+                index=int(i),
+                label=str(labels_now[int(i)]),
+                metadata=metadata_live[int(i)],
+            )
+            for i in candidate_indices
+        ]
+        amplitude_witness_by_index = {
+            int(row["index"]): dict(row) for row in amplitude_witness_rows
+        }
+        summary["candidate_count"] = int(len(candidate_indices))
+        summary["probe_indices"] = [int(x) for x in candidate_indices]
+        summary["probe_labels"] = [str(labels_now[int(i)]) for i in candidate_indices]
+        summary["amplitude_witness_rows"] = [dict(x) for x in amplitude_witness_rows]
+        live_amplitude_effective_required = False
+        summary.update(
+            )
+            summary["nfev_formal_frozen_prune_energy_probes"] = 0
+            summary["selected_index"] = int(selected_index)
+            summary["selected_label"] = str(selected_label)
+            summary["selected_amplitude_witness"] = (
+                dict(amplitude_witness_by_index[int(selected_index)])
+                if int(selected_index) in amplitude_witness_by_index
+                else None
+            )
+                        float(gain_floor),
+                        1.0e-12,
+                    )
+                ),
+                amplitude_witness_by_index=dict(amplitude_witness_by_index),
+                amplitude_witness_required=False,
+                curvature_guard_mode="off",
+                curvature_guard_context={
+                    accepted=bool(decision.accepted),
+                    rollback_reason=(
+                        None if bool(decision.accepted) else str(decision.reason)
+                    ),
+                    amplitude_witness_ok=bool(
+                        decision.amplitude_witness_ok
+                    ),
+                    amplitude_witness_reason=str(
+                        decision.amplitude_witness_reason
+                    ),
+                    amplitude_witness=(
+                        dict(amplitude_witness_by_index[int(selected_index)])
+                        if int(selected_index) in amplitude_witness_by_index
+                        else None
+                    ),
+        summary["frozen_scores"] = [dict(x) for x in frozen_rows]
+        summary["selected_index"] = int(best_candidate_index) if best_candidate_index is not None else None
+        summary["selected_label"] = str(best_candidate_label) if best_candidate_label is not None else None
+        summary["selected_amplitude_witness"] = (
+            dict(amplitude_witness_by_index[int(best_candidate_index)])
+            if best_candidate_index is not None and int(best_candidate_index) in amplitude_witness_by_index
+            else None
+        )
+        retained_reference_energy = float(energy_now + max(0.0, admitted_gain))
+                max_regression=float(max_regression_effective),
+                retained_reference_energy=float(retained_reference_energy),
+                admitted_gain=float(max(0.0, admitted_gain)),
+                retained_gain_ratio=float(phase1_prune_cfg.retained_gain_ratio),
+                retained_gain_activation=float(max(float(phase1_prune_cfg.max_regression), float(gain_floor), 1e-12)),
+                amplitude_witness_by_index=dict(amplitude_witness_by_index),
+                amplitude_witness_required=bool(live_amplitude_effective_required),
+                curvature_guard_mode=(
+                    "conservative_v1" if bool(typed_live_prune_active) else "off"
+                ),
+                best_candidate_index = int(last_idx)
+                best_candidate_label = str(labels_now[int(last_idx)])
+        else:
+            theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
+                theta=np.asarray(theta_runtime_now, dtype=float),
+                labels=list(labels_now),
+                candidate_indices=([int(best_candidate_index)] if best_candidate_index is not None else []),
+                eval_with_removal=_eval_with_removal_live,
+                energy_before=float(energy_now),
+                max_regression=float(max_regression_effective),
+                retained_reference_energy=float(retained_reference_energy),
+                admitted_gain=float(max(0.0, admitted_gain)),
+                retained_gain_ratio=float(phase1_prune_cfg.retained_gain_ratio),
+                amplitude_witness_by_index=dict(amplitude_witness_by_index),
+                amplitude_witness_required=False,
+            )
+            summary["recoverability_ladder_rows"] = []
+        accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
+            best_candidate_label = str(selected_decision.label)
+            summary["selected_index"] = int(best_candidate_index)
+            summary["selected_label"] = str(best_candidate_label)
+            summary["selected_amplitude_witness"] = (
+                dict(amplitude_witness_by_index[int(best_candidate_index)])
+                if int(best_candidate_index) in amplitude_witness_by_index
+                else None
+            )
+        summary["trial"] = dict(MaturePruneTrial(
+            selector_step=int(selector_step),
+            gate_open=bool(summary.get("permission_open", False)),
+            probe_indices=[int(x) for x in candidate_indices],
+            selected_index=(int(best_candidate_index) if best_candidate_index is not None else None),
+            selected_label=(str(best_candidate_label) if best_candidate_label is not None else None),
+            frozen_regression=(float(best_frozen_regression) if best_candidate_index is not None and math.isfinite(best_frozen_regression) else None),
+            refit_energy=(float(energy_after_prune) if best_candidate_index is not None else None),
+            retained_gain=(float(retained_reference_energy - float(energy_after_prune)) if best_candidate_index is not None else None),
+            accepted=bool(accepted_count > 0),
+            rollback_reason=(
+                None
+                if accepted_count > 0
+                else (str(selected_decision.reason) if selected_decision is not None else None)
+            ),
+            amplitude_witness_ok=(bool(selected_decision.amplitude_witness_ok) if selected_decision is not None else False),
+            amplitude_witness_reason=(str(selected_decision.amplitude_witness_reason) if selected_decision is not None else None),
+            amplitude_witness=(
+                dict(amplitude_witness_by_index[int(best_candidate_index)])
+                if best_candidate_index is not None and int(best_candidate_index) in amplitude_witness_by_index
+                else None
+                    selector_score=0.0,
+                    selector_burden=0.0,
+                    cooldown_remaining=0,
+                    cumulative_abs_motion=0.0,
+                    recent_abs_motion=0.0,
+                    stagnation_score=float(1.0 / (1.0 + theta_abs + 1e-12)),
+                    current_abs_theta=float(theta_abs),
+                    previous_abs_theta=float(theta_abs),
+                    peak_abs_theta=float(theta_abs),
+                    amplitude_observation_count=1,
+                )
+
+            def _reconstruct_prune_coordinate_metadata(
+                *,
+                            selector_burden=float(_selector_burden_value(feature_mapping)),
+                            cooldown_remaining=0,
+                            cumulative_abs_motion=0.0,
+                            recent_abs_motion=0.0,
+                            stagnation_score=0.0,
+                            current_abs_theta=0.0,
+                            previous_abs_theta=0.0,
+                            peak_abs_theta=0.0,
+                            amplitude_observation_count=0,
+                        )
+                        pos_clamped = max(0, min(int(pos_eff), len(entries)))
+                        entries.insert(pos_clamped, meta)
+                        if idx_now < int(theta_vals.size)
+                        else 0.0
+                    )
+                    stagnation_score = float(max(0.0, 1.0 - theta_abs / theta_scale))
+                    aligned.append(
+                        ScaffoldCoordinateMetadata(
+                            **{
+                                **base_meta.__dict__,
+                                "stagnation_score": float(stagnation_score),
+                                "current_abs_theta": float(theta_abs),
+                                "previous_abs_theta": float(theta_abs),
+                                "peak_abs_theta": float(max(theta_abs, float(base_meta.peak_abs_theta))),
+                                "amplitude_observation_count": int(max(1, int(base_meta.amplitude_observation_count))),
+                            }
+                        )
+            )
+            live_metadata_labels = [str(meta.candidate_label) for meta in phase1_prune_metadata_state]
+            selected_labels_now = [str(op.label) for op in selected_ops]
+            if len(phase1_prune_metadata_state) == len(selected_ops) and live_metadata_labels == selected_labels_now:
+                prune_metadata = _refresh_prune_metadata_stagnation(
+                    [ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in phase1_prune_metadata_state],
+                    np.asarray(theta_logical_prune_current, dtype=float),
+                )
+                selector_burden=[float(meta.selector_burden) for meta in prune_metadata],
+                admission_steps=[int(meta.admission_step) for meta in prune_metadata],
+                first_seen_steps=[int(meta.first_seen_step) for meta in prune_metadata],
+                cooldown_remaining=[int(meta.cooldown_remaining) for meta in prune_metadata],
+                stagnation_scores=[float(meta.stagnation_score) for meta in prune_metadata],
+                current_step=int(len(history)),
+                protect_steps=int(prune_cfg.protect_steps),
+                stale_age=int(prune_cfg.stale_age),
+                stagnation_threshold=float(prune_cfg.stagnation_threshold),
+                small_theta_abs=float(prune_cfg.small_theta_abs),
+                small_theta_relative=float(prune_cfg.small_theta_relative),
+                policy=str(prune_cfg.policy),
+                surrogate_scores=prune_schur_scores if prune_schur_scores else None,
+                surrogate_score_primary_only=bool(phase1_prune_metric_route_active),
+            )
+            candidate_indices = rank_prune_candidates(
+                theta=np.asarray(theta_logical_prune_current, dtype=float),
+                labels=[str(op.label) for op in selected_ops],
+                marginal_proxy_benefit=list(prune_proxy_benefit),
+                max_candidates=int(prune_cfg.max_candidates),
+                min_candidates=int(prune_cfg.min_candidates),
+                fraction_candidates=float(prune_cfg.fraction_candidates),
+                selector_burden=[float(meta.selector_burden) for meta in prune_metadata],
+                admission_steps=[int(meta.admission_step) for meta in prune_metadata],
+                first_seen_steps=[int(meta.first_seen_step) for meta in prune_metadata],
+                cooldown_remaining=[int(meta.cooldown_remaining) for meta in prune_metadata],
+                stagnation_scores=[float(meta.stagnation_score) for meta in prune_metadata],
+                current_step=int(len(history)),
+                protect_steps=int(prune_cfg.protect_steps),
+                stale_age=int(prune_cfg.stale_age),
+                stagnation_threshold=float(prune_cfg.stagnation_threshold),
+                small_theta_abs=float(prune_cfg.small_theta_abs),
+                small_theta_relative=float(prune_cfg.small_theta_relative),
+                policy=str(prune_cfg.policy),
+                surrogate_scores=prune_schur_scores if prune_schur_scores else None,
+                surrogate_score_threshold=schur_gate_threshold,
+                surrogate_candidate_cap=(
+                    int(prune_cfg.surrogate_exact_trial_cap)
+                    if schur_gate_threshold is not None
+                    else None
+                ),
+                surrogate_score_primary_only=bool(phase1_prune_metric_route_active),
+            )
+            _update_prune_schur_gate_payload(
+                prune_summary,
+                prune_cfg=prune_cfg,
+                threshold=schur_gate_threshold,
+                pre_gate_candidate_count=int(len(candidate_indices_pre_schur_gate)),
+                post_gate_candidate_count=int(len(candidate_indices)),
+            )
+            candidate_indices = _apply_prune_prefilter(
+                candidate_indices=[int(x) for x in candidate_indices],
+                labels_now=[str(op.label) for op in selected_ops],
+                summary=prune_summary,
+            )
+            amplitude_witness_rows = [
+                _prune_amplitude_witness_row(
+                    index=int(i),
+                    label=str(selected_ops[int(i)].label),
+                    metadata=prune_metadata[int(i)],
+                )
+                for i in candidate_indices
+            ]
+            amplitude_witness_by_index = {
+                int(row["index"]): dict(row) for row in amplitude_witness_rows
+            }
+            final_permission = evaluate_prune_permission(
+                policy=str(prune_cfg.policy),
+                mode_enabled=bool(phase1_prune_final_mode),
+                has_min_scaffold=bool(int(len(selected_ops)) > 1),
+                stable_refit=True,
+                mature_open=bool(int(len(history)) >= int(prune_cfg.stale_age)),
+                accepted_admission=False,
+                plateau=False,
+                checkpoint_due=False,
+                terminal=True,
+                snr_low_enough=False,
+                snr_adm=None,
+            )
+            prune_summary.update(dict(final_permission))
+            # Preserve the public final-checkpoint label while exposing the new
+            # terminal cadence through permission_triggers["terminal"].
+            prune_summary["permission_open"] = bool(int(len(history)) >= int(prune_cfg.stale_age))
+            prune_summary["permission_reason"] = "final_checkpoint"
+            prune_summary["permission_cadence_reason"] = "terminal"
+            prune_summary["candidate_count"] = int(len(candidate_indices))
+            prune_summary["marginal_proxy_benefit"] = [float(x) for x in prune_proxy_benefit]
+            prune_summary["probe_indices"] = [int(x) for x in candidate_indices]
+            prune_summary["probe_labels"] = [str(selected_ops[int(i)].label) for i in candidate_indices]
+            prune_summary["amplitude_witness_rows"] = [dict(x) for x in amplitude_witness_rows]
+            prune_summary["metadata"] = [dict(meta.__dict__) for meta in prune_metadata]
+            final_amplitude_effective_required = False
+                float(abs((float(theta_val) + math.pi) % (2.0 * math.pi) - math.pi))
+                for theta_val in np.asarray(theta_logical_prune_current, dtype=float).reshape(-1).tolist()
+            ]
+            theta_small_final = float(max(0.0, prune_cfg.small_theta_abs))
+            if theta_abs_final:
+                theta_small_final = float(
+                    max(
+                        theta_small_final,
+                        float(max(0.0, prune_cfg.small_theta_relative))
+                        * float(np.median(theta_abs_final)),
+                    )
+                )
+            final_amplitude_members = (
+            prune_summary["selected_label"] = (
+                str(best_candidate_label) if best_candidate_label is not None else None
+            )
+            prune_summary["selected_amplitude_witness"] = (
+                dict(amplitude_witness_by_index[int(best_candidate_index)])
+                if best_candidate_index is not None and int(best_candidate_index) in amplitude_witness_by_index
+                else None
+            )
+            retained_reference_energy = (
+                    retained_reference_energy=float(retained_reference_energy),
+                    admitted_gain=float(admitted_gain),
+                    retained_gain_ratio=float(prune_cfg.retained_gain_ratio),
+                    retained_gain_activation=float(max(float(prune_cfg.max_regression), 1e-12)),
+                    amplitude_witness_by_index=dict(amplitude_witness_by_index),
+                    amplitude_witness_required=bool(final_amplitude_effective_required),
+                    max_trial_evaluations=(
+                        int(prune_cfg.surrogate_exact_trial_cap)
+                        if schur_gate_threshold is not None
+                        else None
+                    ),
+                )
+                prune_summary["recoverability_ladder_rows"] = [dict(x) for x in ladder_rows]
+                accepted_decision = next((d for d in prune_decisions if bool(d.accepted)), None)
+                if accepted_decision is not None:
+                    best_candidate_index = int(accepted_decision.index)
+                    best_candidate_label = str(accepted_decision.label)
+                    trial_row = trial_rows_by_index.get(int(best_candidate_index), {})
+                    best_trial_window_logical = [int(x) for x in trial_row.get("refit_window_indices", [])]
+                    if trial_row:
+                        best_frozen_score = float(trial_row.get("cheap_prune_score", best_frozen_score))
+                        best_frozen_regression = float(trial_row.get("frozen_regression", best_frozen_regression))
+                elif candidate_indices:
+                    last_idx = int(candidate_indices[-1])
+                    best_candidate_index = int(last_idx)
+                    best_candidate_label = str(selected_ops[int(last_idx)].label)
+            else:
+                theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
+                    theta=np.asarray(theta, dtype=float),
+                    labels=[str(op.label) for op in selected_ops],
+                    candidate_indices=([int(best_candidate_index)] if best_candidate_index is not None else []),
+                    eval_with_removal=_eval_with_removal,
+                    energy_before=float(energy_current),
+                    max_regression=float(max_regression_effective),
+                    retained_reference_energy=float(retained_reference_energy),
+                    admitted_gain=float(admitted_gain),
+                    retained_gain_ratio=float(prune_cfg.retained_gain_ratio),
+                    amplitude_witness_by_index=dict(amplitude_witness_by_index),
+                    amplitude_witness_required=False,
+                )
+                prune_summary["recoverability_ladder_rows"] = []
+            accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
+                best_candidate_label = str(selected_decision.label)
+                prune_summary["selected_index"] = int(best_candidate_index)
+                prune_summary["selected_label"] = str(best_candidate_label)
+                prune_summary["selected_amplitude_witness"] = (
+                    dict(amplitude_witness_by_index[int(best_candidate_index)])
+                    if int(best_candidate_index) in amplitude_witness_by_index
+                    else None
+                )
+            prune_summary["trial"] = dict(
+                        None
+                        if accepted_count > 0
+                        else (str(selected_decision.reason) if selected_decision is not None else None)
+                    ),
+                    amplitude_witness_ok=(bool(selected_decision.amplitude_witness_ok) if selected_decision is not None else False),
+                    amplitude_witness_reason=(str(selected_decision.amplitude_witness_reason) if selected_decision is not None else None),
+                    amplitude_witness=(
+                        dict(amplitude_witness_by_index[int(best_candidate_index)])
+                        if best_candidate_index is not None and int(best_candidate_index) in amplitude_witness_by_index
+                        else None
+                    ),
+                ).__dict__

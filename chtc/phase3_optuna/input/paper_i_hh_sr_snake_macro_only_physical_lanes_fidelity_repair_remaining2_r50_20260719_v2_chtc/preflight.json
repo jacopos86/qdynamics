@@ -1,0 +1,14 @@
+{
+  "archive_only_validate_rows_passed": 2,
+  "exact_parent_rows": [
+    4,
+    5
+  ],
+  "focused_fidelity_test_passed": true,
+  "job_count": 2,
+  "route_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+  "schema": "paper_i_hh_sr_macro_fidelity_remaining2_preflight_v1",
+  "source_archive_sha256": "a3a80c964ba2925de1c14843c75dd2c9b8440f4e27f3f713341c96c95e40e2fc",
+  "status": "pass_built_not_submitted",
+  "submission_performed": false
+}

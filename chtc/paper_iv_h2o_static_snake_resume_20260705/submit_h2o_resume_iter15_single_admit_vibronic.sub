@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/paper_iv_h2o_static_snake_resume_20260705/run_h2o_resume_apptainer.sh
+arguments = paper_iv_h2o_resume_depth8_iter15_single_admit_vibronic_powell_maxfev20000
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna, chtc/paper_iv_h2o_static_snake_resume_20260705, tmp/h2o_linear_fd_valence_psi4_optimized/h2o_linear_fd_sparse_fixture_nph1_ref2.json, tmp/h2o_linear_fd_valence_psi4_optimized/adapt_paper_i_current_powell_anchor_d15/h2o_depth6_checkpoint_for_chtc_20260705T001649Z.json
+transfer_output_files = raw_outputs, logs
+log = logs/paper-iv-h2o-resume-iter15-single-admit-vibronic.$(Cluster).$(Process).log
+output = logs/paper-iv-h2o-resume-iter15-single-admit-vibronic.$(Cluster).$(Process).out
+error = logs/paper-iv-h2o-resume-iter15-single-admit-vibronic.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 32GB
+request_disk = 204800MB
++MaxRuntime = 172800
++JobBatchName = "paper-iv-h2o-snake-resume-depth8-iter15-single-admit-vibronic"
+environment = "H2O_SHELL_HEARTBEAT_SEC=300 H2O_RESUME_DEPTH=8 H2O_ADAPT_MAX_DEPTH=23 H2O_ADAPT_SEGMENT_ID=paper_iv_h2o_depth8_iter15_single_admit_vibronic_powell_maxfev20000 H2O_ADAPT_SEGMENT_TARGET_DEPTH=23 H2O_ADAPT_SEGMENT_MAX_NEW_ADMISSIONS=15 H2O_PHASE2_ENABLE_BATCHING=0 H2O_SHORTLIST_CHANGE_REASON=depth8_15_outer_iterations_single_admit_no_batching OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1"
+queue 1

@@ -1,0 +1,197 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.33in]{geometry}
+\usepackage{amsmath,booktabs,longtable,array}
+\makeatletter
+\providecommand{\vcenter@text}{\vcenter}
+\makeatother
+\usepackage[T1]{fontenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+\section*{Parameter manifest}
+\small
+All energies use same-cutoff exact diagonalization. Reference, fidelity,
+plotting, and compilation are reporting-only. Canonical SNAKE and Append rows
+use logical-estimator accounting
+\texttt{paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3} under
+\texttt{required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1}. Any historical Geo-ADAPT
+support accounting is labelled noncanonical in its method contract.
+Bosons use \texttt{binary} encoding; Pauli words use
+\texttt{blocked} ordering with
+\texttt{open} boundaries. Drive enabled:
+\texttt{false}. Same-cutoff reference:
+\texttt{true}.
+
+\vspace{4pt}
+\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\begin{longtable}{@{}llrrrrrrrr@{}}
+\toprule
+Reg. & Method & $L$ & $t$ & $U$ & $\Delta v$ & $\omega_0$ & $g$
+& $n_{\rm ph}$ & $E_{\rm exact}$ \\
+\midrule
+WW & RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+WW & Append-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+WW & Geo-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+WW & RA-ADAPT singleton & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+WW & Append-ADAPT singleton & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+IW & RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+IW & Append-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+IW & Geo-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+IW & RA-ADAPT singleton & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+IW & Append-ADAPT singleton & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+SW & RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+SW & Append-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+SW & Geo-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+SW & RA-ADAPT singleton & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+SW & Append-ADAPT singleton & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+WS & RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+WS & Append-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+WS & Geo-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+WS & RA-ADAPT singleton & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+WS & Append-ADAPT singleton & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+IS & RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+IS & Append-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+IS & Geo-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+IS & RA-ADAPT singleton & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+IS & Append-ADAPT singleton & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+SS & RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+SS & Append-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+SS & Geo-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+SS & RA-ADAPT singleton & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+SS & Append-ADAPT singleton & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+WW & Macro insertion RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+IW & Macro insertion RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.353553 & 3 & -0.495005349 \\
+SW & Macro insertion RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.353553 & 3 & 0.526458685 \\
+WS & Macro insertion RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.790569 & 7 & -1.13872064 \\
+IS & Macro insertion RA-ADAPT & 2 & 1 & 1.25 & 0 & 1 & 0.790569 & 7 & -0.623939614 \\
+SS & Macro insertion RA-ADAPT & 2 & 1 & 8 & 0 & 1 & 0.790569 & 7 & 0.520576277 \\
+WW & Singleton plateau-insertion RA-ADAPT & 2 & 1 & 0.25 & 0 & 1 & 0.353553 & 3 & -0.91838092 \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.9in}>{\raggedright\arraybackslash}p{1.65in}>{\raggedright\arraybackslash}p{4.7in}@{}}
+\toprule
+Method & Contract field & Value \\
+\midrule
+RA-ADAPT & Route & sr\_\allowbreak{}macro\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & POWELL/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & supported\_\allowbreak{}whitened\_\allowbreak{}adaptive\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}macro\_\allowbreak{}only\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}v1 \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} intact\_\allowbreak{}macro \\
+ & HVA/sector/padding & included\_\allowbreak{}no\_\allowbreak{}filters\_\allowbreak{}v1;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Append-ADAPT & Route & append\_\allowbreak{}adapt\_\allowbreak{}macro\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & powell/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta\_\allowbreak{}unfiltered;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & HVA/sector/padding & included;\allowbreak{} off;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Geo-ADAPT & Route & geo\_\allowbreak{}adapt\_\allowbreak{}macro\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & powell/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta\_\allowbreak{}unfiltered;\allowbreak{} append;\allowbreak{} unsplit\_\allowbreak{}full\_\allowbreak{}meta\_\allowbreak{}macro\_\allowbreak{}parent \\
+ & HVA/sector/padding & included;\allowbreak{} off;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & historical/\allowbreak{}noncanonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}historical\_\allowbreak{}geo\_\allowbreak{}accounting\_\allowbreak{}v1;\allowbreak{} closed\_\allowbreak{}cumulative\_\allowbreak{}unique\_\allowbreak{}estimator\_\allowbreak{}prefix \\
+\addlinespace[2pt]
+RA-ADAPT singleton & Route & no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}projected\_\allowbreak{}phase3\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & POWELL/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & supported\_\allowbreak{}projected\_\allowbreak{}generalized\_\allowbreak{}source\_\allowbreak{}metric\_\allowbreak{}no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}v1 \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} projected\_\allowbreak{}singleton \\
+ & HVA/sector/padding & included\_\allowbreak{}no\_\allowbreak{}filters\_\allowbreak{}v1;\allowbreak{} hard\_\allowbreak{}guard;\allowbreak{} exact\_\allowbreak{}projected\_\allowbreak{}grouped\_\allowbreak{}v1 \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Append-ADAPT singleton & Route & append\_\allowbreak{}adapt\_\allowbreak{}projected\_\allowbreak{}singleton\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & powell/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & symmetry\_\allowbreak{}and\_\allowbreak{}padding\_\allowbreak{}valid\_\allowbreak{}projected\_\allowbreak{}singleton\_\allowbreak{}child \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta\_\allowbreak{}unfiltered;\allowbreak{} append\_\allowbreak{}only;\allowbreak{} symmetry\_\allowbreak{}and\_\allowbreak{}padding\_\allowbreak{}valid\_\allowbreak{}projected\_\allowbreak{}singleton\_\allowbreak{}child \\
+ & HVA/sector/padding & included;\allowbreak{} hard\_\allowbreak{}guard;\allowbreak{} authenticated\_\allowbreak{}by\_\allowbreak{}projected\_\allowbreak{}child\_\allowbreak{}identity \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Macro insertion RA-ADAPT & Route & sr\_\allowbreak{}macro\_\allowbreak{}commutation\_\allowbreak{}reduced\_\allowbreak{}insertion\_\allowbreak{}nph3\_\allowbreak{}7 \\
+ & Optimizer/maxiter/seed & POWELL/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & supported\_\allowbreak{}whitened\_\allowbreak{}adaptive\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}macro\_\allowbreak{}only\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}commutation\_\allowbreak{}reduced\_\allowbreak{}insertion\_\allowbreak{}diagnostic\_\allowbreak{}v2 \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta;\allowbreak{} full\_\allowbreak{}commutation\_\allowbreak{}reduced;\allowbreak{} intact\_\allowbreak{}macro \\
+ & HVA/sector/padding & included\_\allowbreak{}no\_\allowbreak{}filters\_\allowbreak{}v1;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro;\allowbreak{} not\_\allowbreak{}applicable\_\allowbreak{}intact\_\allowbreak{}macro \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+Singleton plateau-insertion RA-ADAPT & Route & supported\_\allowbreak{}projected\_\allowbreak{}generalized\_\allowbreak{}source\_\allowbreak{}metric\_\allowbreak{}no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}insertion\_\allowbreak{}commutation\_\allowbreak{}plateau\_\allowbreak{}v1 \\
+ & Optimizer/maxiter/seed & POWELL/\allowbreak{}200/\allowbreak{}7 \\
+ & Candidate identity & supported\_\allowbreak{}projected\_\allowbreak{}generalized\_\allowbreak{}source\_\allowbreak{}metric\_\allowbreak{}no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}insertion\_\allowbreak{}commutation\_\allowbreak{}plateau\_\allowbreak{}v1 \\
+ & Pool/insertion/representation & full\_\allowbreak{}meta;\allowbreak{} insertion\_\allowbreak{}commutation\_\allowbreak{}plateau\_\allowbreak{}v1;\allowbreak{} projected\_\allowbreak{}singleton \\
+ & HVA/sector/padding & included\_\allowbreak{}no\_\allowbreak{}filters\_\allowbreak{}v1;\allowbreak{} hard\_\allowbreak{}guard;\allowbreak{} exact\_\allowbreak{}projected\_\allowbreak{}grouped\_\allowbreak{}v1 \\
+ & Compile convention & table\_\allowbreak{}i\_\allowbreak{}basis\_\allowbreak{}gate\_\allowbreak{}transpile\_\allowbreak{}v1;\allowbreak{} opt=0;\allowbreak{} seed=7;\allowbreak{} ref=True \\
+ & Exact-reference use & reporting\_\allowbreak{}only\_\allowbreak{}after\_\allowbreak{}optimization \\
+ & Estimator accounting & canonical:\allowbreak{} paper\_\allowbreak{}i\_\allowbreak{}clean\_\allowbreak{}algorithm\_\allowbreak{}s\_\allowbreak{}alg\_\allowbreak{}v3;\allowbreak{} required\_\allowbreak{}executed\_\allowbreak{}logical\_\allowbreak{}scalar\_\allowbreak{}estimator\_\allowbreak{}invocations\_\allowbreak{}v1 \\
+\addlinespace[2pt]
+\bottomrule
+\end{longtable}
+
+\tiny
+\begin{longtable}{@{}llp{2.55in}p{2.55in}@{}}
+\toprule
+Reg. & Method & Source artifact SHA-256 & Normalized contract SHA-256 \\
+\midrule
+WW & RA-ADAPT & \texttt{14a2fa6d}\allowbreak{}\texttt{55c137bd}\allowbreak{}\texttt{5b7067cc}\allowbreak{}\texttt{04851d29}\allowbreak{}\texttt{4ed5f02d}\allowbreak{}\texttt{53abfc7d}\allowbreak{}\texttt{825a7cd0}\allowbreak{}\texttt{f9ce5b15}\allowbreak{} & \texttt{8339700b}\allowbreak{}\texttt{62f65396}\allowbreak{}\texttt{e9c42999}\allowbreak{}\texttt{ad6f8c7e}\allowbreak{}\texttt{7e5cea65}\allowbreak{}\texttt{3a8dbe00}\allowbreak{}\texttt{f3094060}\allowbreak{}\texttt{53e4a130}\allowbreak{} \\
+WW & Append-ADAPT & \texttt{5ce3ca6b}\allowbreak{}\texttt{555bde9d}\allowbreak{}\texttt{8e81bffc}\allowbreak{}\texttt{e7608dbe}\allowbreak{}\texttt{e595b610}\allowbreak{}\texttt{74c67421}\allowbreak{}\texttt{dfc0d51f}\allowbreak{}\texttt{dc58d64f}\allowbreak{} & \texttt{ace76860}\allowbreak{}\texttt{89fa3a77}\allowbreak{}\texttt{c20012b7}\allowbreak{}\texttt{5a167fff}\allowbreak{}\texttt{9ce4791b}\allowbreak{}\texttt{3178643b}\allowbreak{}\texttt{1fed6123}\allowbreak{}\texttt{9195a803}\allowbreak{} \\
+WW & Geo-ADAPT & \texttt{fcc7bde3}\allowbreak{}\texttt{a7f5147d}\allowbreak{}\texttt{b690d809}\allowbreak{}\texttt{d2a62189}\allowbreak{}\texttt{5039cd7b}\allowbreak{}\texttt{ab6af462}\allowbreak{}\texttt{8348cb4e}\allowbreak{}\texttt{be500be6}\allowbreak{} & \texttt{755ccb9b}\allowbreak{}\texttt{c1176ecc}\allowbreak{}\texttt{9dc8e106}\allowbreak{}\texttt{be548df5}\allowbreak{}\texttt{4d47cccb}\allowbreak{}\texttt{ec4535a0}\allowbreak{}\texttt{244cd99c}\allowbreak{}\texttt{36267825}\allowbreak{} \\
+WW & RA-ADAPT singleton & \texttt{2fd2a695}\allowbreak{}\texttt{56298d0f}\allowbreak{}\texttt{f3d5d247}\allowbreak{}\texttt{8c9d58ba}\allowbreak{}\texttt{8958a825}\allowbreak{}\texttt{14a251f9}\allowbreak{}\texttt{b0c60bf3}\allowbreak{}\texttt{4f4dc46e}\allowbreak{} & \texttt{b4a0a220}\allowbreak{}\texttt{c32bc2e0}\allowbreak{}\texttt{713133b2}\allowbreak{}\texttt{9ad97df5}\allowbreak{}\texttt{121615f8}\allowbreak{}\texttt{45e091d1}\allowbreak{}\texttt{59b1bf64}\allowbreak{}\texttt{fd3e0456}\allowbreak{} \\
+WW & Append-ADAPT singleton & \texttt{659e240b}\allowbreak{}\texttt{1eb696b7}\allowbreak{}\texttt{4d47a710}\allowbreak{}\texttt{036b93ca}\allowbreak{}\texttt{173f9890}\allowbreak{}\texttt{8dd5fb3b}\allowbreak{}\texttt{be8def83}\allowbreak{}\texttt{5171b210}\allowbreak{} & \texttt{86fa6e97}\allowbreak{}\texttt{c34bd711}\allowbreak{}\texttt{d1dfcfb4}\allowbreak{}\texttt{40e94898}\allowbreak{}\texttt{95197b67}\allowbreak{}\texttt{e08abb8f}\allowbreak{}\texttt{664ddaff}\allowbreak{}\texttt{afd1bdcd}\allowbreak{} \\
+IW & RA-ADAPT & \texttt{9885f1c7}\allowbreak{}\texttt{6705679e}\allowbreak{}\texttt{fdffdaa5}\allowbreak{}\texttt{200d63e7}\allowbreak{}\texttt{203bb7b5}\allowbreak{}\texttt{42057ac3}\allowbreak{}\texttt{22875ce7}\allowbreak{}\texttt{ec32ff8a}\allowbreak{} & \texttt{04617d88}\allowbreak{}\texttt{60324fac}\allowbreak{}\texttt{7d01e2c7}\allowbreak{}\texttt{c8c6f2f1}\allowbreak{}\texttt{a6bf9d7b}\allowbreak{}\texttt{76c6caa9}\allowbreak{}\texttt{094ba596}\allowbreak{}\texttt{2628c2d1}\allowbreak{} \\
+IW & Append-ADAPT & \texttt{bda7dc30}\allowbreak{}\texttt{fb65326a}\allowbreak{}\texttt{a9629177}\allowbreak{}\texttt{839e488b}\allowbreak{}\texttt{24aac393}\allowbreak{}\texttt{00ebc17f}\allowbreak{}\texttt{4946f0c0}\allowbreak{}\texttt{dd4a2ffc}\allowbreak{} & \texttt{28ec1986}\allowbreak{}\texttt{49bf0f82}\allowbreak{}\texttt{87a4b788}\allowbreak{}\texttt{fa4fe135}\allowbreak{}\texttt{a2db8b2a}\allowbreak{}\texttt{99ab7e4f}\allowbreak{}\texttt{71bfec14}\allowbreak{}\texttt{ae5fe6cc}\allowbreak{} \\
+IW & Geo-ADAPT & \texttt{cbb8a2ce}\allowbreak{}\texttt{2efd2131}\allowbreak{}\texttt{00a3e932}\allowbreak{}\texttt{5c5f9c1f}\allowbreak{}\texttt{fc231ccc}\allowbreak{}\texttt{ace5d2dd}\allowbreak{}\texttt{05b2fe00}\allowbreak{}\texttt{2afe9c60}\allowbreak{} & \texttt{9d9857cf}\allowbreak{}\texttt{c572bf58}\allowbreak{}\texttt{a48980f9}\allowbreak{}\texttt{1a5d91cd}\allowbreak{}\texttt{4077b0bc}\allowbreak{}\texttt{dbef7ad2}\allowbreak{}\texttt{4d63ca0b}\allowbreak{}\texttt{acf7424f}\allowbreak{} \\
+IW & RA-ADAPT singleton & \texttt{098e5ba2}\allowbreak{}\texttt{57d92946}\allowbreak{}\texttt{aa3e5a07}\allowbreak{}\texttt{e275a229}\allowbreak{}\texttt{e56bde36}\allowbreak{}\texttt{96114350}\allowbreak{}\texttt{5b8061e9}\allowbreak{}\texttt{5e1fee07}\allowbreak{} & \texttt{6ec0c0dc}\allowbreak{}\texttt{d3c986be}\allowbreak{}\texttt{98a6da95}\allowbreak{}\texttt{840051dc}\allowbreak{}\texttt{fd4b7ccc}\allowbreak{}\texttt{b86b3d37}\allowbreak{}\texttt{1ffe96cd}\allowbreak{}\texttt{dcd5b4d0}\allowbreak{} \\
+IW & Append-ADAPT singleton & \texttt{9f480f1e}\allowbreak{}\texttt{65fcba51}\allowbreak{}\texttt{2b853400}\allowbreak{}\texttt{383e06d6}\allowbreak{}\texttt{a552c076}\allowbreak{}\texttt{27ea2342}\allowbreak{}\texttt{73f13151}\allowbreak{}\texttt{5ba0f43d}\allowbreak{} & \texttt{813ec328}\allowbreak{}\texttt{3d164e45}\allowbreak{}\texttt{0dcefff8}\allowbreak{}\texttt{a6078a20}\allowbreak{}\texttt{01ceeda8}\allowbreak{}\texttt{6d546250}\allowbreak{}\texttt{36e00217}\allowbreak{}\texttt{332800c8}\allowbreak{} \\
+SW & RA-ADAPT & \texttt{c048dc3e}\allowbreak{}\texttt{6a74c7bc}\allowbreak{}\texttt{7eb1fec5}\allowbreak{}\texttt{10892c4a}\allowbreak{}\texttt{c4b2e032}\allowbreak{}\texttt{4a5c8e31}\allowbreak{}\texttt{ae5f7aa6}\allowbreak{}\texttt{4d4598ea}\allowbreak{} & \texttt{a979c211}\allowbreak{}\texttt{7573b18d}\allowbreak{}\texttt{18499b3f}\allowbreak{}\texttt{1bcc03a9}\allowbreak{}\texttt{7854c7c8}\allowbreak{}\texttt{e5781007}\allowbreak{}\texttt{252e3864}\allowbreak{}\texttt{d332f55f}\allowbreak{} \\
+SW & Append-ADAPT & \texttt{5e29c2a6}\allowbreak{}\texttt{d94091cb}\allowbreak{}\texttt{3d5fbed9}\allowbreak{}\texttt{7a451c1e}\allowbreak{}\texttt{cdf7abfd}\allowbreak{}\texttt{a8ab976b}\allowbreak{}\texttt{e85b1e55}\allowbreak{}\texttt{5659481e}\allowbreak{} & \texttt{3ae720f1}\allowbreak{}\texttt{0b8fc68f}\allowbreak{}\texttt{be0f36b5}\allowbreak{}\texttt{6163252b}\allowbreak{}\texttt{c5cc367e}\allowbreak{}\texttt{14ef1c3a}\allowbreak{}\texttt{749a6e81}\allowbreak{}\texttt{a04ec31f}\allowbreak{} \\
+SW & Geo-ADAPT & \texttt{54295844}\allowbreak{}\texttt{8ab385cb}\allowbreak{}\texttt{9759e315}\allowbreak{}\texttt{bf06294c}\allowbreak{}\texttt{51b7a0e5}\allowbreak{}\texttt{307622e2}\allowbreak{}\texttt{96d15df7}\allowbreak{}\texttt{488fc46d}\allowbreak{} & \texttt{700eabbc}\allowbreak{}\texttt{c8a7ab25}\allowbreak{}\texttt{914c1883}\allowbreak{}\texttt{952f82c4}\allowbreak{}\texttt{d598b93f}\allowbreak{}\texttt{429b6bcc}\allowbreak{}\texttt{fbd8cd4e}\allowbreak{}\texttt{e5a904a3}\allowbreak{} \\
+SW & RA-ADAPT singleton & \texttt{f48658c7}\allowbreak{}\texttt{06069efe}\allowbreak{}\texttt{40e57474}\allowbreak{}\texttt{fc7fc495}\allowbreak{}\texttt{86d9e0dc}\allowbreak{}\texttt{b3413a0a}\allowbreak{}\texttt{f9643751}\allowbreak{}\texttt{44d108e2}\allowbreak{} & \texttt{92e5dd6a}\allowbreak{}\texttt{e7693dcd}\allowbreak{}\texttt{1290d843}\allowbreak{}\texttt{b17cb5c0}\allowbreak{}\texttt{54b305d0}\allowbreak{}\texttt{28bee73b}\allowbreak{}\texttt{236010d0}\allowbreak{}\texttt{901c6332}\allowbreak{} \\
+SW & Append-ADAPT singleton & \texttt{134955fa}\allowbreak{}\texttt{6aa9d0e0}\allowbreak{}\texttt{ba2ed6af}\allowbreak{}\texttt{b9b2e296}\allowbreak{}\texttt{e6b370da}\allowbreak{}\texttt{f9964f65}\allowbreak{}\texttt{2134037f}\allowbreak{}\texttt{f98e3939}\allowbreak{} & \texttt{8547dbf0}\allowbreak{}\texttt{0185fa43}\allowbreak{}\texttt{b4d04546}\allowbreak{}\texttt{08f111d5}\allowbreak{}\texttt{aa7649ac}\allowbreak{}\texttt{03c2da83}\allowbreak{}\texttt{819fc6b9}\allowbreak{}\texttt{2c03afcd}\allowbreak{} \\
+WS & RA-ADAPT & \texttt{d909c5fc}\allowbreak{}\texttt{e889a573}\allowbreak{}\texttt{a464c62b}\allowbreak{}\texttt{bfaa6c1b}\allowbreak{}\texttt{32abb3b1}\allowbreak{}\texttt{1cdabd96}\allowbreak{}\texttt{74580b9e}\allowbreak{}\texttt{6d99abfc}\allowbreak{} & \texttt{836f557f}\allowbreak{}\texttt{76e27287}\allowbreak{}\texttt{1a7a1ba1}\allowbreak{}\texttt{df1b182c}\allowbreak{}\texttt{ed3bb8aa}\allowbreak{}\texttt{b3caa977}\allowbreak{}\texttt{42fee717}\allowbreak{}\texttt{e9608abc}\allowbreak{} \\
+WS & Append-ADAPT & \texttt{87b885be}\allowbreak{}\texttt{93e27a9d}\allowbreak{}\texttt{a89ea90b}\allowbreak{}\texttt{d50c15c9}\allowbreak{}\texttt{e244deda}\allowbreak{}\texttt{7112ebcb}\allowbreak{}\texttt{36eef8d7}\allowbreak{}\texttt{b6910198}\allowbreak{} & \texttt{36d9bb73}\allowbreak{}\texttt{4a66b840}\allowbreak{}\texttt{96999e0a}\allowbreak{}\texttt{4af97abb}\allowbreak{}\texttt{646bed68}\allowbreak{}\texttt{4e965559}\allowbreak{}\texttt{436201f0}\allowbreak{}\texttt{d06d64ed}\allowbreak{} \\
+WS & Geo-ADAPT & \texttt{d3b6deb7}\allowbreak{}\texttt{0753042d}\allowbreak{}\texttt{b4b08dd6}\allowbreak{}\texttt{d981d3e5}\allowbreak{}\texttt{aff6d1dc}\allowbreak{}\texttt{464655e6}\allowbreak{}\texttt{5024cfde}\allowbreak{}\texttt{006660e1}\allowbreak{} & \texttt{3346cbde}\allowbreak{}\texttt{9c648869}\allowbreak{}\texttt{f21a1b3a}\allowbreak{}\texttt{c180f1e3}\allowbreak{}\texttt{605c3308}\allowbreak{}\texttt{7be50cb0}\allowbreak{}\texttt{eed052a1}\allowbreak{}\texttt{e3eaa0a9}\allowbreak{} \\
+WS & RA-ADAPT singleton & \texttt{6bbddb31}\allowbreak{}\texttt{f44fd6bd}\allowbreak{}\texttt{25c222d5}\allowbreak{}\texttt{feead4c7}\allowbreak{}\texttt{85967e9b}\allowbreak{}\texttt{777c20df}\allowbreak{}\texttt{f7b831b5}\allowbreak{}\texttt{864d89f6}\allowbreak{} & \texttt{0f0d87f3}\allowbreak{}\texttt{26845461}\allowbreak{}\texttt{62f5cb52}\allowbreak{}\texttt{0bb94855}\allowbreak{}\texttt{c8d091ca}\allowbreak{}\texttt{20033208}\allowbreak{}\texttt{01dc3581}\allowbreak{}\texttt{21cff551}\allowbreak{} \\
+WS & Append-ADAPT singleton & \texttt{e6be4d44}\allowbreak{}\texttt{18d116d0}\allowbreak{}\texttt{5a668c2d}\allowbreak{}\texttt{bfda6a13}\allowbreak{}\texttt{523ae789}\allowbreak{}\texttt{3bb555e0}\allowbreak{}\texttt{03883b64}\allowbreak{}\texttt{739ee467}\allowbreak{} & \texttt{e6218582}\allowbreak{}\texttt{0aa6f69d}\allowbreak{}\texttt{388c178a}\allowbreak{}\texttt{54eab17a}\allowbreak{}\texttt{5effeabd}\allowbreak{}\texttt{ddc793d7}\allowbreak{}\texttt{936097b0}\allowbreak{}\texttt{c736c565}\allowbreak{} \\
+IS & RA-ADAPT & \texttt{d07be029}\allowbreak{}\texttt{0f60bc14}\allowbreak{}\texttt{45db6154}\allowbreak{}\texttt{4f9fd818}\allowbreak{}\texttt{31c6fac8}\allowbreak{}\texttt{789ee8f6}\allowbreak{}\texttt{5fdc91bf}\allowbreak{}\texttt{54951f4f}\allowbreak{} & \texttt{241c7bfc}\allowbreak{}\texttt{60dbf760}\allowbreak{}\texttt{2dbfb674}\allowbreak{}\texttt{188808e8}\allowbreak{}\texttt{75113cc1}\allowbreak{}\texttt{803ced3c}\allowbreak{}\texttt{9d2cfb15}\allowbreak{}\texttt{d63941d3}\allowbreak{} \\
+IS & Append-ADAPT & \texttt{c5ca1dcf}\allowbreak{}\texttt{6e955ded}\allowbreak{}\texttt{9c834901}\allowbreak{}\texttt{89335047}\allowbreak{}\texttt{0ccd2f98}\allowbreak{}\texttt{d16ec867}\allowbreak{}\texttt{097af762}\allowbreak{}\texttt{a65e1b6b}\allowbreak{} & \texttt{ca357c6a}\allowbreak{}\texttt{fd1e902d}\allowbreak{}\texttt{f844cc3d}\allowbreak{}\texttt{407d5a8e}\allowbreak{}\texttt{d9c9637e}\allowbreak{}\texttt{926a1137}\allowbreak{}\texttt{1459e1a2}\allowbreak{}\texttt{f5519fd8}\allowbreak{} \\
+IS & Geo-ADAPT & \texttt{8606794b}\allowbreak{}\texttt{63472bf7}\allowbreak{}\texttt{e13523ad}\allowbreak{}\texttt{f7d2a678}\allowbreak{}\texttt{d47444a7}\allowbreak{}\texttt{81117e1c}\allowbreak{}\texttt{1c7fcc0b}\allowbreak{}\texttt{a59e568a}\allowbreak{} & \texttt{c64e85eb}\allowbreak{}\texttt{fc010738}\allowbreak{}\texttt{0b506700}\allowbreak{}\texttt{b38e810f}\allowbreak{}\texttt{9287d2ca}\allowbreak{}\texttt{447f94f3}\allowbreak{}\texttt{825315f5}\allowbreak{}\texttt{4125a09a}\allowbreak{} \\
+IS & RA-ADAPT singleton & \texttt{996b42ec}\allowbreak{}\texttt{1cbd2d5e}\allowbreak{}\texttt{109a93f8}\allowbreak{}\texttt{b02ddad1}\allowbreak{}\texttt{d13a7e5b}\allowbreak{}\texttt{c5c49734}\allowbreak{}\texttt{8b07db55}\allowbreak{}\texttt{85072445}\allowbreak{} & \texttt{6d055fef}\allowbreak{}\texttt{eb050e4d}\allowbreak{}\texttt{f54dfc79}\allowbreak{}\texttt{16b7451e}\allowbreak{}\texttt{a696c664}\allowbreak{}\texttt{6d22da7f}\allowbreak{}\texttt{b8b9d549}\allowbreak{}\texttt{caeef111}\allowbreak{} \\
+IS & Append-ADAPT singleton & \texttt{f47dc22f}\allowbreak{}\texttt{11ef820c}\allowbreak{}\texttt{7a7d3228}\allowbreak{}\texttt{56c52d68}\allowbreak{}\texttt{953b3e8a}\allowbreak{}\texttt{4cb7e081}\allowbreak{}\texttt{580b39b0}\allowbreak{}\texttt{1527bccb}\allowbreak{} & \texttt{a5a47360}\allowbreak{}\texttt{0e7565a3}\allowbreak{}\texttt{6d7a204b}\allowbreak{}\texttt{95ab4105}\allowbreak{}\texttt{df07d320}\allowbreak{}\texttt{771b7b20}\allowbreak{}\texttt{7a3e0af7}\allowbreak{}\texttt{114384f7}\allowbreak{} \\
+SS & RA-ADAPT & \texttt{19ab432d}\allowbreak{}\texttt{c9fbd0d9}\allowbreak{}\texttt{eb471b10}\allowbreak{}\texttt{5445cf6e}\allowbreak{}\texttt{c0451977}\allowbreak{}\texttt{92ef9396}\allowbreak{}\texttt{2b32c435}\allowbreak{}\texttt{c82b2866}\allowbreak{} & \texttt{1b41cae9}\allowbreak{}\texttt{d1ea96d5}\allowbreak{}\texttt{236a816a}\allowbreak{}\texttt{cb5e1227}\allowbreak{}\texttt{9429406b}\allowbreak{}\texttt{f6cfc8ce}\allowbreak{}\texttt{0fef1f73}\allowbreak{}\texttt{49a94e40}\allowbreak{} \\
+SS & Append-ADAPT & \texttt{d770083c}\allowbreak{}\texttt{67565034}\allowbreak{}\texttt{a1fe6b6f}\allowbreak{}\texttt{9d6461ed}\allowbreak{}\texttt{6fc40a31}\allowbreak{}\texttt{777d442c}\allowbreak{}\texttt{066c9a5f}\allowbreak{}\texttt{4626293f}\allowbreak{} & \texttt{f3508faa}\allowbreak{}\texttt{522f1efb}\allowbreak{}\texttt{4e5531be}\allowbreak{}\texttt{1eda27d5}\allowbreak{}\texttt{ddd233b9}\allowbreak{}\texttt{747b81f8}\allowbreak{}\texttt{0d6de00a}\allowbreak{}\texttt{7ab441e0}\allowbreak{} \\
+SS & Geo-ADAPT & \texttt{288e7d96}\allowbreak{}\texttt{5625b2b5}\allowbreak{}\texttt{125bbab6}\allowbreak{}\texttt{1831e02c}\allowbreak{}\texttt{ef60c9a2}\allowbreak{}\texttt{b8c5f34b}\allowbreak{}\texttt{6ae39bc8}\allowbreak{}\texttt{281aa7a5}\allowbreak{} & \texttt{79a63b86}\allowbreak{}\texttt{7ab8f610}\allowbreak{}\texttt{a052a915}\allowbreak{}\texttt{c460729a}\allowbreak{}\texttt{70a4a8b1}\allowbreak{}\texttt{4d3a7866}\allowbreak{}\texttt{6a5f6ef7}\allowbreak{}\texttt{61d288c7}\allowbreak{} \\
+SS & RA-ADAPT singleton & \texttt{e24329b8}\allowbreak{}\texttt{1e124d17}\allowbreak{}\texttt{f5ae0134}\allowbreak{}\texttt{55c390a6}\allowbreak{}\texttt{fb2a7be5}\allowbreak{}\texttt{da1a9d76}\allowbreak{}\texttt{f3b8a8d8}\allowbreak{}\texttt{3595d02e}\allowbreak{} & \texttt{8cba1ad5}\allowbreak{}\texttt{ee18bbb5}\allowbreak{}\texttt{cb9e569d}\allowbreak{}\texttt{d664bcd1}\allowbreak{}\texttt{15feb457}\allowbreak{}\texttt{34c173d1}\allowbreak{}\texttt{813fad83}\allowbreak{}\texttt{bba2ddaf}\allowbreak{} \\
+SS & Append-ADAPT singleton & \texttt{2089d907}\allowbreak{}\texttt{3166fb78}\allowbreak{}\texttt{d3cc01e3}\allowbreak{}\texttt{29e7811f}\allowbreak{}\texttt{351bc5ad}\allowbreak{}\texttt{1fbd4e25}\allowbreak{}\texttt{6b9b1a5e}\allowbreak{}\texttt{6f6a7b1c}\allowbreak{} & \texttt{39b81179}\allowbreak{}\texttt{095c4c3b}\allowbreak{}\texttt{5b32212f}\allowbreak{}\texttt{4caddfea}\allowbreak{}\texttt{33137e56}\allowbreak{}\texttt{d7bf5305}\allowbreak{}\texttt{cfc1d68c}\allowbreak{}\texttt{ca60e88a}\allowbreak{} \\
+WW & Macro insertion RA-ADAPT & \texttt{caf04c9d}\allowbreak{}\texttt{18a650d2}\allowbreak{}\texttt{4bf871b3}\allowbreak{}\texttt{b39fc36d}\allowbreak{}\texttt{05bbf0bf}\allowbreak{}\texttt{f3490509}\allowbreak{}\texttt{3a3ceebd}\allowbreak{}\texttt{f1ae2336}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+IW & Macro insertion RA-ADAPT & \texttt{80164529}\allowbreak{}\texttt{e2dc4943}\allowbreak{}\texttt{1454e267}\allowbreak{}\texttt{34763b2e}\allowbreak{}\texttt{fc2401d5}\allowbreak{}\texttt{987ca260}\allowbreak{}\texttt{4e1f4acb}\allowbreak{}\texttt{445bd1c8}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+SW & Macro insertion RA-ADAPT & \texttt{49a1821f}\allowbreak{}\texttt{b1bfbba5}\allowbreak{}\texttt{33354168}\allowbreak{}\texttt{ad5220de}\allowbreak{}\texttt{339f4645}\allowbreak{}\texttt{c9dc8750}\allowbreak{}\texttt{7e3fc6aa}\allowbreak{}\texttt{9624de6a}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+WS & Macro insertion RA-ADAPT & \texttt{60ed035a}\allowbreak{}\texttt{984d78c9}\allowbreak{}\texttt{bcef17d2}\allowbreak{}\texttt{de77065a}\allowbreak{}\texttt{4c70018e}\allowbreak{}\texttt{fbe11338}\allowbreak{}\texttt{29a5f5e2}\allowbreak{}\texttt{139a4b0e}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+IS & Macro insertion RA-ADAPT & \texttt{52b3c095}\allowbreak{}\texttt{53992db6}\allowbreak{}\texttt{60e780d8}\allowbreak{}\texttt{030a5c73}\allowbreak{}\texttt{5d812d82}\allowbreak{}\texttt{d4d4b705}\allowbreak{}\texttt{36bef055}\allowbreak{}\texttt{2016a10e}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+SS & Macro insertion RA-ADAPT & \texttt{dc8ea7f3}\allowbreak{}\texttt{dbcd7811}\allowbreak{}\texttt{2adf7f22}\allowbreak{}\texttt{406ccc83}\allowbreak{}\texttt{d3aa063c}\allowbreak{}\texttt{3af2e53e}\allowbreak{}\texttt{79dee0e0}\allowbreak{}\texttt{8ea263db}\allowbreak{} & \texttt{9086af07}\allowbreak{}\texttt{111a0b23}\allowbreak{}\texttt{3da798dd}\allowbreak{}\texttt{ce9a6082}\allowbreak{}\texttt{d5627d5c}\allowbreak{}\texttt{3753fd43}\allowbreak{}\texttt{7610fefb}\allowbreak{}\texttt{003ddcbb}\allowbreak{} \\
+WW & Singleton plateau-insertion RA-ADAPT & \texttt{8c53d722}\allowbreak{}\texttt{76791d4b}\allowbreak{}\texttt{9dc6accc}\allowbreak{}\texttt{bb784af5}\allowbreak{}\texttt{dddf9fb4}\allowbreak{}\texttt{d8a68a05}\allowbreak{}\texttt{a9058859}\allowbreak{}\texttt{b08bb697}\allowbreak{} & \texttt{eecd11fc}\allowbreak{}\texttt{cf8f34b5}\allowbreak{}\texttt{e89042fb}\allowbreak{}\texttt{75949b54}\allowbreak{}\texttt{546a297e}\allowbreak{}\texttt{a5fe4f99}\allowbreak{}\texttt{69ad91ec}\allowbreak{}\texttt{569ff08a}\allowbreak{} \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.35in}>{\raggedright\arraybackslash}p{1.0in}>{\raggedright\arraybackslash}p{2.15in}>{\raggedright\arraybackslash}p{2.45in}>{\raggedright\arraybackslash}p{1.4in}@{}}
+\toprule
+Pages & Diagnostic & Routes & Provenance & SHA-256 \\
+\midrule
+7 & Macro insertion trajectory & append\_\allowbreak{}adapt\_\allowbreak{}macro\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} sr\_\allowbreak{}macro\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} sr\_\allowbreak{}macro\_\allowbreak{}commutation\_\allowbreak{}reduced\_\allowbreak{}insertion\_\allowbreak{}nph3\_\allowbreak{}7 & MATH/\allowbreak{}paper\_\allowbreak{}details/\allowbreak{}figures/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723\_\allowbreak{}macro\_\allowbreak{}commutation\_\allowbreak{}reduced\_\allowbreak{}insertion\_\allowbreak{}provenance.json & \texttt{776c057f}\allowbreak{}\texttt{f96b1a47}\allowbreak{}\texttt{1dbf8d90}\allowbreak{}\texttt{69c7a88b}\allowbreak{}\texttt{6778af2a}\allowbreak{}\texttt{58a7830e}\allowbreak{}\texttt{d8fc14f7}\allowbreak{}\texttt{e8963fd4}\allowbreak{} \\
+8--9 & Macro insertion costs & append\_\allowbreak{}adapt\_\allowbreak{}macro\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} sr\_\allowbreak{}macro\_\allowbreak{}physical\_\allowbreak{}lanes\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} sr\_\allowbreak{}macro\_\allowbreak{}commutation\_\allowbreak{}reduced\_\allowbreak{}insertion\_\allowbreak{}nph3\_\allowbreak{}7 & MATH/\allowbreak{}paper\_\allowbreak{}details/\allowbreak{}figures/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723\_\allowbreak{}macro\_\allowbreak{}insertion\_\allowbreak{}cost\_\allowbreak{}provenance.json & \texttt{1917680f}\allowbreak{}\texttt{12337d8b}\allowbreak{}\texttt{3d2d06b2}\allowbreak{}\texttt{a2784902}\allowbreak{}\texttt{192a9ecc}\allowbreak{}\texttt{ba3a0cc1}\allowbreak{}\texttt{e446be4b}\allowbreak{}\texttt{e3cc1154}\allowbreak{} \\
+10 & Singleton plateau insertion & no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}projected\_\allowbreak{}phase3\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} append\_\allowbreak{}adapt\_\allowbreak{}projected\_\allowbreak{}singleton\_\allowbreak{}nph3\_\allowbreak{}7;\allowbreak{} supported\_\allowbreak{}projected\_\allowbreak{}generalized\_\allowbreak{}source\_\allowbreak{}metric\_\allowbreak{}no\_\allowbreak{}overlap\_\allowbreak{}trust\_\allowbreak{}full\_\allowbreak{}response\_\allowbreak{}symmetric\_\allowbreak{}cost\_\allowbreak{}no\_\allowbreak{}prune\_\allowbreak{}insertion\_\allowbreak{}commutation\_\allowbreak{}plateau\_\allowbreak{}v1 & MATH/\allowbreak{}paper\_\allowbreak{}details/\allowbreak{}figures/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723/\allowbreak{}paper\_\allowbreak{}i\_\allowbreak{}hh\_\allowbreak{}macro\_\allowbreak{}common\_\allowbreak{}accuracy\_\allowbreak{}20260723\_\allowbreak{}singleton\_\allowbreak{}plateau\_\allowbreak{}insertion\_\allowbreak{}page10\_\allowbreak{}provenance.json & \texttt{aca5e65e}\allowbreak{}\texttt{a0fbe949}\allowbreak{}\texttt{c1d8a38e}\allowbreak{}\texttt{7c7e8909}\allowbreak{}\texttt{caaa98e7}\allowbreak{}\texttt{10ffa54e}\allowbreak{}\texttt{db56d829}\allowbreak{}\texttt{62a397c6}\allowbreak{} \\
+\bottomrule
+\end{longtable}
+\end{document}

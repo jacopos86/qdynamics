@@ -1,0 +1,64 @@
+{
+  "batch_name": "paper-i-hh-sr-no-ordinary-novelty-six-20260715-v1",
+  "cluster_id": 8810407,
+  "generated_utc": "2026-07-16T00:54:31Z",
+  "initial_scheduler_state": {
+    "job_count": 6,
+    "job_status": 1,
+    "meaning": "idle",
+    "proc_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "hold_reasons": []
+  },
+  "local_bundle": {
+    "bundle_manifest_sha256": "4c8f06239d0e51d83da4a6031ce563adc2c6abdbed9eaec89b41d322212bc386",
+    "builder_sha256": "aaaf65ca5d5a0d0a2d941a75b43f59a80fb7cba344d85f1e9ff24250f22e49ed",
+    "execute_wrapper_sha256": "81591cb87afd1117205ab1aedf010257f554a6200cb2c51d290229c09bbbe3e9",
+    "local_smoke_validation_sha256": "c39fe7e4adcd8d528300e62fb010e39c5136c66668780db5642e685d66a03c04",
+    "settings_diff_sha256": "5eda9f09e9e927b4d1eeda1591f1dfa1cc75b7935b8751083038399b19e3b95c",
+    "submission_artifact_hashes_sha256": "cb5980b1abacafe09b36ac9863ef97a3d41ab08e9db2c9e9865d6305dcadf0a9",
+    "submit_file_sha256": "7841498cdbfa393e6376e9db504b4f089d60a4266316989d01f4f858ead2ca28",
+    "upload_archive_sha256": "6a85f4e4df374d99a5e1c776bf0c5571a44eef4b43b7f05dd3b9967f1670e864",
+    "worker_sha256": "41e01fb37a1ecc13c7a60cfea31a308f89030f7d0d8ce17581a1aa1d30d3978f"
+  },
+  "remote_bundle": {
+    "execution_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "path": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc",
+    "source_archive_sha256": "f0ced05fb7c4ab242ef10323c13ac0e3e3d5be2c15b255c931b73aa8a980cbae",
+    "validation": {
+      "artifact_hash_manifest": "passed",
+      "condor_dry_run": "passed_for_six_jobs",
+      "container_import_smoke": "passed",
+      "duplicate_batch_check": "no_match_before_submission",
+      "manifest_and_scientific_contract": "passed_for_all_six_regimes",
+      "stale_submitter_check": "no_match"
+    }
+  },
+  "route_ablation": {
+    "canonical_identity_changed": false,
+    "label": "no_ordinary_phase2_or_phase3_gram_novelty_v1",
+    "method_differences": {
+      "phase2_gram_novelty_policy": {
+        "from": "ordinary_multiplier_v1",
+        "to": "fallback_only_v1"
+      },
+      "phase3_gram_novelty_policy": {
+        "from": "ordinary_multiplier_v1",
+        "to": "fallback_only_v1"
+      },
+      "sr_controller_ablation_contract": {
+        "from": "off",
+        "to": "novelty_prune_controls_v1"
+      }
+    },
+    "novelty_fallback_retained": true,
+    "novelty_telemetry_retained": true
+  },
+  "schema": "paper_i_hh_sr_no_ordinary_novelty_remote_submission_receipt_v1"
+}

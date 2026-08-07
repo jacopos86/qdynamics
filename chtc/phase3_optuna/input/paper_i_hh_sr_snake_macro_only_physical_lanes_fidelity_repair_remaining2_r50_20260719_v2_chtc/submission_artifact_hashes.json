@@ -1,0 +1,97 @@
+{
+  "artifacts": {
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/README.md": {
+      "sha256": "2a415100add4f57ea796ea953917fc936636e07ad7dc54ea5991e82d4350101b",
+      "size_bytes": 579
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/archive_only_preflight.json": {
+      "sha256": "0aaa408dd1a39fc54803b240b3838c564d5709d265364cfc369632c895fcb39c",
+      "size_bytes": 797
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/build_bundle.py": {
+      "sha256": "4b2250f67e49d428e65e42ab9aaba90251860ed7dda8fa2684d0b25c84370315",
+      "size_bytes": 551
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/bundle_manifest.json": {
+      "sha256": "20a4275f8c76fd274b61179bf89bf08188903e3d1fcfa6ff0b71ab91b788021d",
+      "size_bytes": 1365
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/evidence_validation.py": {
+      "sha256": "567273813b5c89c94a0f2b459c0c16762a95bd537db4df426799110e5f37c3e3",
+      "size_bytes": 76793
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/execute_source_locked_job.sh": {
+      "sha256": "1e6aed055ffbea90f1436c4a5dbf93c7446fb6337a958262aa6c003d95f22431",
+      "size_bytes": 2312
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/jobs/intermediate_strong.json": {
+      "sha256": "4e02aa3e87a3fea6dbf25ac62ba3dcca33b9b716d78cfd40d147134857107770",
+      "size_bytes": 25326
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/jobs/strong_strong_u8.json": {
+      "sha256": "60fa8e57de0c72c18484bd2f151b7b8fb8a470d6384700168df0473e79c9420a",
+      "size_bytes": 25259
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/normalized_manifests/intermediate_strong.json": {
+      "sha256": "4eac48fdb74381661c1dd36a1ff83b250d032604da703b307634c12e1299c508",
+      "size_bytes": 23050
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/normalized_manifests/strong_strong_u8.json": {
+      "sha256": "0b3375d5774e1abf252cba5c38251365c2bac077096be7c91c295b4df3fa886c",
+      "size_bytes": 23013
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/operational_successor_receipt.json": {
+      "sha256": "714d8deaab454833d1eb7a76c3393d1498ad10fec529f20e91a96e386e14afe6",
+      "size_bytes": 2625
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/physics_and_exact_reference_lock.json": {
+      "sha256": "c6474dce7372ac862d51a1ba8ea72e46072de474a1ca4c4c480b131df9267737",
+      "size_bytes": 6681
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/preflight.json": {
+      "sha256": "3ed210b6d1f418d407509e2da5a649421ba06fb3321c50d92fe177dfc352f846",
+      "size_bytes": 477
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/queue.tsv": {
+      "sha256": "77053f8ff7c54b7009acb1332418ac3eae277164ddbe34aa98a831ae78cfa1dc",
+      "size_bytes": 683
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/route_parity.json": {
+      "sha256": "b306f875b377a9d54bd4a0af244f78bdb0b207df66aa6c9e60686ad8659a4faa",
+      "size_bytes": 1642
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/run_job.py": {
+      "sha256": "05f234d20f4b4a07f3dc5baae3dd2c767e281ae01d3e6877a0287bc6f2b0e5dc",
+      "size_bytes": 43137
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/scientific_settings_audit.json": {
+      "sha256": "4ce88d1672e7eba228350d1ecd6677e2c56863dc88c02c86321aa6c9f5c90832",
+      "size_bytes": 1052
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/source_archive_manifest.json": {
+      "sha256": "94069d5a20e235ea4191fb64a660daf43b492dd35fcb318dea3495536136ad5c",
+      "size_bytes": 126122
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/source_locked.tar.gz": {
+      "sha256": "a3a80c964ba2925de1c14843c75dd2c9b8440f4e27f3f713341c96c95e40e2fc",
+      "size_bytes": 3689645
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/source_revision_manifest.json": {
+      "sha256": "b70b7ce7ee1739bfd3399a4265795f5e389737d44509a4810a9dd096c9f44c1b",
+      "size_bytes": 54405
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/submit.sub": {
+      "sha256": "36f5866cf03455c179bbcc09ae85c9198a19b39cc6fb6a71475b3b0338ed6c09",
+      "size_bytes": 3682
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/test_bundle.py": {
+      "sha256": "028e6f487e2918a57a953af4d34faf47db0616dcbbeabb2a8f451b2d3d2d05c5",
+      "size_bytes": 324
+    },
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc/validate_fetched.py": {
+      "sha256": "0bd42db2dcd5099c078d30ec1ef0ea8f5a069194131a98cade50eac7b7cdbfc3",
+      "size_bytes": 26120
+    }
+  },
+  "schema": "paper_i_hh_sr_macro_fidelity_remaining2_artifact_hashes_v1"
+}

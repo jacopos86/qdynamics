@@ -1,0 +1,11 @@
+{
+  "schema": "paper_i_hh_l4_nph1_append_zero_start_v1",
+  "cluster_id": 8890181,
+  "bundle_id": "paper_i_hh_l4_nph1_append_projected_singleton_all_six_r50_20260719_v3_chtc",
+  "job_count": 6,
+  "observed_job_status": "idle",
+  "num_job_starts": 0,
+  "scientific_iterations_completed": 0,
+  "action": "removed before execution to explicitly lock the separate exact-fidelity cap",
+  "scientific_source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd"
+}

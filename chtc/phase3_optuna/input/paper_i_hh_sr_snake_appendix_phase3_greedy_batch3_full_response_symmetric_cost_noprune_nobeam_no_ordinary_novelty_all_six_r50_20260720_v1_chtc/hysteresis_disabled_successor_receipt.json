@@ -1,0 +1,21 @@
+{
+  "corrected_main_parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "family": "phase3_batch3_1x1",
+  "only_scientific_contract_diff": [
+    {
+      "field": "phase_live_hysteresis_enabled",
+      "new": false,
+      "old": null
+    }
+  ],
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+  "predecessor_cluster": 8887548,
+  "predecessor_route_contract_sha256": "04662940a5c9b6cf20afb5484cd7359de2a93a65d6dba2028e4412dcba0416c6",
+  "predecessor_source_archive_sha256": "34995b62a80de4e8f966c877143f2c621c2c4d9c1ab4ad3e6f4d5f38eae8883a",
+  "route_contract_sha256": "7554bb2488a26573039eb94a74e2697b38d883a53698515a9b3ed0e5ea0fef9f",
+  "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+  "source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-appendix-phase3-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260718-v4",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc"
+}

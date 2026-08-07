@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/phase3_optuna/run_generic_static_table_task_apptainer.sh
+arguments = $(record_id) chtc/phase3_optuna/input/paper_i_three_model_comparators_full_meta_20260526_v1/generic_static_table_records.tsv raw_outputs/paper_i_three_model_comparators_full_meta_20260526_v1/$(record_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, docs, test_support, chtc/phase3_optuna
+transfer_output_files = raw_outputs, logs
+log = logs/paper-i-three-model-comparators-full-meta-20260526-v1-full.$(Cluster).$(Process).log
+output = logs/paper-i-three-model-comparators-full-meta-20260526-v1-full.$(Cluster).$(Process).out
+error = logs/paper-i-three-model-comparators-full-meta-20260526-v1-full.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 16GB
+request_disk = 122880MB
++MaxRuntime = 86400
++JobBatchName = "holstein-paper-i-three-model-comparators-full-meta-20260526-v1-full"
+queue record_id from chtc/phase3_optuna/input/paper_i_three_model_comparators_full_meta_20260526_v1/generic_static_table_record_ids.txt

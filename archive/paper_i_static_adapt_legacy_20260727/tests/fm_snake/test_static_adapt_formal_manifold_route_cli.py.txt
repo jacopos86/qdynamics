@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
+from pipelines.static_adapt.formal_manifold_warm_start import (
+    FORMAL_MANIFOLD_ROUTE,
+    FORMAL_MANIFOLD_WARM_START_OFF,
+)
+
+
+def _parse(*extra: str):
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
+    return parser.parse_args(["--L", "2", "--skip-pdf", *extra])
+
+
+def test_formal_manifold_reoptimization_route_defaults_off() -> None:
+    args = _parse()
+
+    assert args.adapt_reoptimization_route == FORMAL_MANIFOLD_WARM_START_OFF
+
+
+def test_formal_manifold_reoptimization_route_is_a_separate_cli_lane() -> None:
+    args = _parse(
+        "--adapt-reoptimization-route",
+        FORMAL_MANIFOLD_ROUTE,
+        "--adapt-reopt-policy",
+        "full",
+        "--adapt-state-backend",
+        "compiled",
+    )
+
+    assert args.adapt_reoptimization_route == FORMAL_MANIFOLD_ROUTE
+    assert args.adapt_reopt_policy == "full"
+    assert args.adapt_state_backend == "compiled"
+
+
+def test_formal_manifold_cli_accepts_a_typed_config_json_path(tmp_path) -> None:
+    config_path = tmp_path / "formal_config.json"
+    config_path.write_text('{"initial_trust_radius": 0.2}', encoding="utf-8")
+    args = _parse(
+        "--adapt-reoptimization-route",
+        FORMAL_MANIFOLD_ROUTE,
+        "--adapt-formal-manifold-config-json",
+        str(config_path),
+    )
+    assert args.adapt_formal_manifold_config_json == config_path

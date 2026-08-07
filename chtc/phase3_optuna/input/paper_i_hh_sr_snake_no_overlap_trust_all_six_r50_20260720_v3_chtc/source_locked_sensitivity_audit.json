@@ -1,0 +1,109 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": true,
+    "anchor_result_json": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/priority_20260720T2125Z/anchor_core/raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_parent_anchor_weak_weak_r50_20260720_v2_chtc/weak_weak/json/result.json",
+    "anchor_result_sha256": "f6ca0114a04945d511701ba533ddb36802f462b4967927a2a6d17afdfddd9c64",
+    "anchor_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/priority_20260720T2125Z/8913832.0__weak_weak_transfer.tar.gz",
+    "anchor_transfer_archive_sha256": "6e42da009d045d50cbb41ad8902af5fba143c3d9091730820376dd4ceff34dd3",
+    "anchor_validation_receipt": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/priority_20260720T2125Z/anchor_core/raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_parent_anchor_weak_weak_r50_20260720_v2_chtc/weak_weak/validation.reporting_recovered.json",
+    "anchor_validation_receipt_sha256": "4a642529054ba8000b131ad733a78ede6326ea79a861db3d9409bdd74855b6b7",
+    "controller_energy_history_exact_match": true,
+    "metric_abs_diff": 0.0,
+    "non_swept_settings_diff": [],
+    "operator_count": 50,
+    "operator_sequence_match": true,
+    "operator_sequence_sha256": "83445d7ef53bd858c3bcb4077b98511cac72313575b94a0442f4b7fc15a5f2a3",
+    "settings_exact_match": true,
+    "settings_sha256": "38621907f34f405d601d809ba743c88089404d12bfac724e4ac3393ef49c98e1",
+    "source_abs_delta_e": 2.9947037827326994e-07,
+    "source_terminal_energy": -0.9183806205244431,
+    "terminal_abs_delta_e": 2.9947037827326994e-07,
+    "terminal_energy": -0.9183806205244431,
+    "value": "displacement_calibrated_unbounded_v2"
+  },
+  "fanout_authorized": true,
+  "fanout_bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+  "fanout_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "fanout_source_archive_sha256": "589c85f3bd33ea1fbc7115d3eb8273bb88ccb6e36f57f763d025095dbb43ffc1",
+  "planned_rows": [
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_weak",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_weak",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_weak_u8",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_strong",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_strong",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v3_chtc",
+      "changed_fields_vs_source": [
+        "historical_singleton_trust_region_update_policy"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_strong_u8",
+      "value": "source_metric_inverse_sqrt_no_overlap_v1"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SR-SNAKE projected Phase III",
+    "regime_or_case": "weak_weak",
+    "route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+    "route_or_profile_id": "sr_snake_no_prune_symmetric_cost_projected_phase3_v1",
+    "source_json": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/projected_8908614_core/raw_outputs/paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc/weak_weak/json/result.json",
+    "source_sha256": "868be021a60fb824fb6a1abf8ab3f6b953d34cfdcccf65eba3c355ab6f0adc42",
+    "source_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/clusters_8908613_8908614_8908617/8908614.0__weak_weak_transfer.tar.gz",
+    "source_transfer_archive_sha256": "f343b4dfe15cc1ff0fd10997241040ecd7225319d0ac93e72aef64b048135c31",
+    "source_variable_value": "displacement_calibrated_unbounded_v2"
+  },
+  "status": "anchor_pass_fanout_authorized",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      "displacement_calibrated_unbounded_v2",
+      "source_metric_inverse_sqrt_no_overlap_v1"
+    ],
+    "run_class": "candidate",
+    "runner_mode": "direct_source_locked_replay",
+    "unresolved_source_fields": [],
+    "variable": "historical_singleton_trust_region_update_policy"
+  }
+}

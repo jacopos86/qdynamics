@@ -1,0 +1,26 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc",
+  "git_commit": "8a746d244a15e2cb16099a732e78e1110a8e59f2",
+  "git_tree": "6cb596ab953386a9c9a3b0698e7b1489e3b0f02e",
+  "max_depth": 9,
+  "paper_target": "Paper-I HH insertion trajectory/resource comparison review",
+  "parent_bundle": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+  "profile_contract_sha256": "82b3e678a550d1b6926807e22892f00d79b92be98d7566e7efd951b8ff0b3f92",
+  "profile_request": "sr_snake_macro_only_physical_lanes_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_macro_only_physical_lanes_v1",
+  "regime_count": 1,
+  "run_class": "diagnostic",
+  "schema": "paper_i_hh_commutation_reduced_insertion_r50_bundle_v1",
+  "source_archive": {
+    "physics_reference_lock": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc/physics_and_exact_reference_lock.json",
+    "physics_reference_lock_sha256": "c6474dce7372ac862d51a1ba8ea72e46072de474a1ca4c4c480b131df9267737",
+    "source_archive": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc/source_locked.tar.gz",
+    "source_archive_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc/source_archive_manifest.json",
+    "source_archive_manifest_sha256": "c5d2d279118128b5f557b3a77618e9c9a4bad41a48ed8ff42ee4ef8a6ae19233",
+    "source_archive_sha256": "a09394c79875e7beec4f3eb5a072d83f600cbca813471948389b3c96a7f0e140",
+    "source_revision_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc/source_revision_manifest.json",
+    "source_revision_manifest_sha256": "fd832cb96b2ca3b17ccf919417b72eb431e24b9b0f5262a4d4251c948032f9a0"
+  },
+  "source_locked_sensitivity_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc/source_locked_sensitivity_audit.json",
+  "status": "ready_for_preflight"
+}

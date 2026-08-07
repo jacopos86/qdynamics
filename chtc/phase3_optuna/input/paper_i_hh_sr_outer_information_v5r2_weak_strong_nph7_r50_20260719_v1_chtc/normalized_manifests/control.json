@@ -1,0 +1,79 @@
+{
+  "job_manifest": "jobs/control.json",
+  "job_manifest_sha256": "2406be51042c4dd10cd381a7ba6881067ecbc8e897af3d30ee113a1ea07f4041",
+  "mode": "control",
+  "pair_id": "weak_strong_nph7_r50_control_then_outer_reuse_v1",
+  "schema": "paper_i_sr_outer_information_pair_prelaunch_manifest_v1",
+  "scientific_command_view": {
+    "environment_policy": {
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONNOUSERSITE": "1",
+      "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+      "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+      "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+    },
+    "options": {
+      "--L": "2",
+      "--adapt-current-json": "<operational-path>",
+      "--adapt-current-json-every-depth": "1",
+      "--adapt-disable-hh-seed": true,
+      "--adapt-estimator-call-ledger-json": "<operational-path>",
+      "--adapt-formal-manifold-route-profile": "off",
+      "--adapt-max-depth": "50",
+      "--adapt-segment-id": "<operational-segment-id>",
+      "--adapt-segment-max-new-admissions": "50",
+      "--adapt-segment-target-controller-round": "50",
+      "--adapt-segment-target-depth": "50",
+      "--boson-encoding": "binary",
+      "--boundary": "open",
+      "--dv": "0.0",
+      "--g-ep": "0.790569415042",
+      "--n-ph-max": "7",
+      "--omega0": "1.0",
+      "--ordering": "blocked",
+      "--output-json": "<operational-path>",
+      "--problem": "hh",
+      "--skip-pdf": true,
+      "--sr-route-profile": "sr_snake_no_prune_symmetric_cost_v1",
+      "--t": "1.0",
+      "--u": "0.25"
+    },
+    "physics": {
+      "L": 2,
+      "boundary": "open",
+      "dv": 0.0,
+      "exact_energy_tolerance": 1e-12,
+      "expected_exact_energy": -1.1387206380749124,
+      "g_ep": 0.790569415042,
+      "lambda": 1.25,
+      "n_ph_reference": 7,
+      "n_ph_work": 7,
+      "omega0": 1.0,
+      "ordering": "blocked",
+      "problem": "hh",
+      "same_cutoff_reference": true,
+      "t": 1.0,
+      "u_over_t": 0.25
+    },
+    "resource_request": {
+      "cpus": 4,
+      "disk_mb": 81920,
+      "max_runtime_s": 259200,
+      "memory_mb": 49152
+    },
+    "segment": {
+      "max_new_admissions": 50,
+      "source_controller_round": 0,
+      "source_depth": 0,
+      "target_controller_round": 50,
+      "target_depth": 50
+    },
+    "sr_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "sr_profile_request": "sr_snake_no_prune_symmetric_cost_v1",
+    "sr_profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_v1"
+  },
+  "source_archive_sha256": "79c1f4b058d6f2ea7fb963975b63ee3e98358f9f463d128115b55fd99b4352d1",
+  "source_audit_sha256": "ed436bae8e36da693af28bb0c066e128f6fd697c9854f534c22d042aa85387e5",
+  "source_runtime_revision": "v5r2",
+  "status": "pass"
+}

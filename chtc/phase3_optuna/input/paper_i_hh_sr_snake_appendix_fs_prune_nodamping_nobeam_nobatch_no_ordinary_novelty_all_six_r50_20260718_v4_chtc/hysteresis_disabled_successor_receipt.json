@@ -1,0 +1,21 @@
+{
+  "corrected_main_parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "family": "fs_trust_prune_1x1",
+  "only_scientific_contract_diff": [
+    {
+      "field": "phase_live_hysteresis_enabled",
+      "new": false,
+      "old": null
+    }
+  ],
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+  "predecessor_cluster": 8887537,
+  "predecessor_route_contract_sha256": "272ede635558edb4acc2507ac3a9803d8ccec062b96c98634b8d6407df9fbc21",
+  "predecessor_source_archive_sha256": "1d6e93bd59f97f74cc444c6c3559b15d48053b2c4914736a3c32b0e0869a196a",
+  "route_contract_sha256": "81b072c03f9866817a4fc6173017788223ab8b5ba007d6015315e39d3fb4c30e",
+  "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+  "source_archive_sha256": "43a39a30d75fd3524e4f61a8339bde31f75465cf3dbbe6244f09eeaecef940f8",
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-appendix-fsprune-nodamp-nobeam-nobatch-nonovelty-six-r50-20260718-v4",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_fs_prune_nodamping_nobeam_nobatch_no_ordinary_novelty_all_six_r50_20260718_v4_chtc"
+}

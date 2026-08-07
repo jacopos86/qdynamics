@@ -1,0 +1,100 @@
+{
+  "exact_blockers": [],
+  "note": "Diagnostic energies are not production comparisons; these records establish executable route/profile, checkpoint, trust, and prune-path health. The prune transaction gate is a source-locked production-composition regression, not a threshold-modified scientific smoke.",
+  "passed_gates": [
+    "route_profile_and_contract_digest",
+    "phase1_first_order_fs_trust_only",
+    "phase2_measured_curvature_required",
+    "phase2_curvature_receipt_count_closure",
+    "zero_phase1_phase2_lambda_f_proxy_occurrences",
+    "zero_missing_curvature_fallback_occurrences",
+    "finite_angle_fallback_disabled_no_guard_probes",
+    "phase3_rescue_disabled",
+    "phase3_oracle_gradient_mode_off",
+    "full_phase3_pre_support_coordinate_count",
+    "phase3_response_supported_rank_recorded",
+    "full_accepted_refit_coordinate_count",
+    "adaptive_trust_one_update_per_accepted_refit",
+    "symmetry_and_padding_leakage",
+    "checkpoint_roundtrip_and_fixed_prefix_replay",
+    "estimator_ledger_closure",
+    "shadow_damping_explicit_diagnostic_noop",
+    "safe_all_infeasible_prune_skip",
+    "production_composition_one_nominee_one_measured_prune_trial"
+  ],
+  "production_composition_prune_gate": {
+    "added_quantum_query_count": 0,
+    "archive_only_execution_record": "archive_only_preflight.json",
+    "conservative_rho_mu_update": true,
+    "kind": "focused_source_locked_regression",
+    "live_only_no_terminal_pruning": true,
+    "measured_energy_is_acceptance_authority": true,
+    "one_measured_delete_refit_trial": true,
+    "one_nominee": true,
+    "test_file": "test/test_static_adapt_sr_trust_prune.py",
+    "test_file_sha256": "38c5787ac4362d02fff6413e2a1675aabc7206a974aff2906c4eb619b96c0616"
+  },
+  "records": [
+    {
+      "S_alg_all_branch_search_work": 6903,
+      "admissions": 8,
+      "evidence_sha256": {
+        "json/current.json": "27ba10027bcd1277f6e5bf73bfe9e266915a737714d15a0ed0cacb24207d1652",
+        "json/estimator_call_ledger.json": "28129229d72b6f0d7503ab1ecbfff98b668bb022de998f56b29068c86821b735",
+        "json/result.json": "fd8a71526cd189cd71176bd56f6fd793e992a795b1a3a0a7a7ef06e3f7729c89"
+      },
+      "exit_success": true,
+      "label": "eight_admission_cache_off_no_lambda_f_proxy_v4",
+      "phase12_energy_model_telemetry": {
+        "candidate_cache_hit_validated_receipt_occurrences": 0,
+        "phase1_energy_model": "first_order_fs_trust_v1",
+        "phase1_lambda_f_proxy_occurrences": 0,
+        "phase1_score_mode": "trust_region_v1",
+        "phase2_cheap_curvature_proxy_policy": "off",
+        "phase2_curvature_policy": "measured_required_fail_closed_v1",
+        "phase2_full_candidate_occurrences": 400,
+        "phase2_lambda_f_proxy_occurrences": 0,
+        "phase2_missing_curvature_fallback_occurrences": 0,
+        "schema": "sr_snake_phase12_energy_model_runtime_v1",
+        "validated_phase2_curvature_receipt_occurrences": 400
+      },
+      "profile_contract_sha256": "835841f4a2d9b348ce9af6df7364d85a5e4b0696b84696252e73cc8d2f3eb02d",
+      "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+      "root": "raw_outputs/paper_i_hh_sr_snake_v4_phase12_no_lambda_f_archive_smoke_20260716/weak_weak_8_admissions_cache_off_exact_f_v4",
+      "same_cutoff_exact_energy": -0.9183531194991743,
+      "scientific_evidence_validation": {
+        "adaptive_trust_updates": 8,
+        "controller_rounds": 8,
+        "final_active_depth": 8,
+        "ledger": {
+          "all_branch_s_alg": 6903,
+          "finite_angle_guard_occurrence_count": 0,
+          "ledger_fingerprint": "d4707bb5b84454a6b3227791d53e6263b8525a5fe7044fff13c5415046f9baf9",
+          "raw_entry_count": 6903,
+          "raw_occurrence_count": 8898,
+          "winning_lineage_s_alg": 6903
+        },
+        "live_prune_rounds_accepted": 0,
+        "live_prune_rounds_executed": 0,
+        "max_binary_padding_leakage": 2.220446049250313e-15,
+        "max_fixed_sector_leakage": 2.1094237467877974e-15,
+        "new_admissions": 8,
+        "phase1_energy_model": "first_order_fs_trust_v1",
+        "phase1_lambda_f_proxy_occurrences": 0,
+        "phase2_cheap_curvature_proxy_policy": "off",
+        "phase2_curvature_policy": "measured_required_fail_closed_v1",
+        "phase2_full_candidate_occurrences": 400,
+        "phase2_lambda_f_proxy_occurrences": 0,
+        "phase2_missing_curvature_fallback_occurrences": 0,
+        "phase3_response_scope": "full_active_plus_singleton_v1",
+        "shadow_damping_diagnostic_only_each_round": true,
+        "supported_rank_recorded_each_round": true,
+        "terminal_checkpoint_sha256": "cdee99f948a38b66b00bcf6b1f657e3f0c016a4a48250e741cd854830bfac6e5",
+        "terminal_state_unchanged_from_last_ordinary_round": true,
+        "validated_phase2_curvature_receipt_occurrences": 400
+      }
+    }
+  ],
+  "schema": "paper_i_hh_sr_snake_v4_local_smoke_evidence_v3",
+  "status": "pass_for_bundle_construction_not_a_production_result"
+}

@@ -1,0 +1,59 @@
+{
+  "interpretation": "Conservative source-derived starting thresholds; closure and rank gates remain authoritative at runtime.",
+  "offline_replay": {
+    "closure_refresh_count": 28,
+    "estimated_old_old_pair_savings": 221,
+    "feasibility_labels_compared": 506,
+    "feasibility_labels_preserved": 506,
+    "retained_coordinate_or_pair_fraction_before_closure": 0.9941,
+    "within_round_winner_order_comparisons": 300,
+    "within_round_winner_order_comparisons_preserved": 300
+  },
+  "policy_source": "pipelines/static_adapt/phase3_material_window.py",
+  "policy_source_sha256": "d63501a90365bbe3a7116a3f184c79c30cf5079f6b43aec931392854061a5e24",
+  "schema": "paper_i_sr_material_window_threshold_source_audit_v1",
+  "source_archives": [
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.0__weak_weak_transfer.tar.gz",
+      "archive_sha256": "2fd2a69556298d0ff3d5d2478c9d58ba8958a82514a251f9b0c60bf34f4dc46e",
+      "size_bytes": 554910687
+    },
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.1__intermediate_weak_transfer.tar.gz",
+      "archive_sha256": "098e5ba257d92946aa3e5a07e275a229e56bde36961143505b8061e95e1fee07",
+      "size_bytes": 525120073
+    },
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.2__strong_weak_u8_transfer.tar.gz",
+      "archive_sha256": "f48658c706069efe40e57474fc7fc49586d9e0dcb3413a0af964375144d108e2",
+      "size_bytes": 447398938
+    },
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/status_20260721T0732Z/8958273.3__weak_strong_transfer.tar.gz",
+      "archive_sha256": "6bbddb31f44fd6bd25c222d5feead4c785967e9b777c20dff7b831b5864d89f6",
+      "size_bytes": 862584272
+    },
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/status_20260721T0502Z/8958273.4__intermediate_strong_transfer.tar.gz",
+      "archive_sha256": "996b42ec1cbd2d5e109a93f8b02ddad1d13a7e5bc5c497348b07db5585072445",
+      "size_bytes": 912640100
+    },
+    {
+      "archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/status_20260721T0149Z/8958273.5__strong_strong_u8_transfer.tar.gz",
+      "archive_sha256": "e24329b81e124d17f5ae013455c390a6fb2a7be5da1a9d76f3b8a8d83595d02e",
+      "size_bytes": 645928750
+    }
+  ],
+  "source_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "source_route_profile": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
+  "status": "source_locked_offline_replay_complete",
+  "thresholds": {
+    "epsilon": 1e-12,
+    "gram_cross_block_tolerance": 0.1,
+    "gram_entry_threshold": 0.004,
+    "gram_omitted_l2_tolerance": 1.0,
+    "hessian_cross_block_tolerance": 0.1,
+    "hessian_entry_threshold": 2e-22,
+    "hessian_omitted_l2_tolerance": 1.0
+  }
+}

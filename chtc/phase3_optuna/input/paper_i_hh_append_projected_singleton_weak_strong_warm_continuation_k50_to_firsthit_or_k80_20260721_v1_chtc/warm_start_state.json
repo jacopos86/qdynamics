@@ -1,0 +1,2423 @@
+{
+  "adapt_history": [
+    {
+      "abs_delta_e_after": 1.2559384195375929,
+      "abs_delta_e_same_cutoff_after": 1.2559384195375929,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[0]::eeeeeexyee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 2.0,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 1.2559384195375929,
+      "depth_after": 1,
+      "depth_before": 0,
+      "eligible_for_first_hit": true,
+      "energy_after": 0.1172177814626805,
+      "energy_before": 1.25,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 26.07680962080894,
+      "history_position": 0,
+      "iteration": 0,
+      "max_abs_gradient": 2.0,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 39,
+      "optimizer_nit": 2,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 39,
+      "prefix_nit_total_after": 2,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[0]::eeeeeexyee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[0]::eeeeeexyee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.2637206380749121,
+      "abs_delta_e_same_cutoff_after": 0.2637206380749121,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::split[0]::eeeeeeeexy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 1.9999999999999996,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.2637206380749121,
+      "depth_after": 2,
+      "depth_before": 1,
+      "eligible_for_first_hit": true,
+      "energy_after": -0.8750000000000003,
+      "energy_before": 0.1172177814626805,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 21.663437331242854,
+      "history_position": 1,
+      "iteration": 1,
+      "max_abs_gradient": 1.9999999999999996,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 143,
+      "optimizer_nit": 4,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 182,
+      "prefix_nit_total_after": 6,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::split[0]::eeeeeeeexy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::split[0]::eeeeeeeexy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.21251143232606728,
+      "abs_delta_e_same_cutoff_after": 0.21251143232606728,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeeeeze)::split[0]::eeyeeeeeze::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.7905694150419997,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.21251143232606728,
+      "depth_after": 3,
+      "depth_before": 2,
+      "eligible_for_first_hit": true,
+      "energy_after": -0.9262092057488451,
+      "energy_before": -0.8750000000000003,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 7.14142842854201,
+      "history_position": 2,
+      "iteration": 2,
+      "max_abs_gradient": 0.7905694150419997,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 186,
+      "optimizer_nit": 3,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 368,
+      "prefix_nit_total_after": 9,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeeeeze)::split[0]::eeyeeeeeze::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeeeeze)::split[0]::eeyeeeeeze::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.16016369831531152,
+      "abs_delta_e_same_cutoff_after": 0.16016369831531152,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyeeez)::split[0]::eeeeeyeeez::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.7905694150419991,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.16016369831531152,
+      "depth_after": 4,
+      "depth_before": 3,
+      "eligible_for_first_hit": true,
+      "energy_after": -0.9785569397596009,
+      "energy_before": -0.9262092057488451,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 6.197025671755201,
+      "history_position": 3,
+      "iteration": 3,
+      "max_abs_gradient": 0.7905694150419991,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 255,
+      "optimizer_nit": 3,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 623,
+      "prefix_nit_total_after": 12,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyeeez)::split[0]::eeeeeyeeez::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyeeez)::split[0]::eeeeeyeeez::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.11457596384607727,
+      "abs_delta_e_same_cutoff_after": 0.11457596384607727,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyezee)::split[0]::eeeeeyezee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.763290982768277,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.11457596384607727,
+      "depth_after": 5,
+      "depth_before": 4,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.0241446742288352,
+      "energy_before": -0.9785569397596009,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 5.138129873860632,
+      "history_position": 4,
+      "iteration": 4,
+      "max_abs_gradient": 0.763290982768277,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 506,
+      "optimizer_nit": 5,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 1129,
+      "prefix_nit_total_after": 17,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyezee)::split[0]::eeeeeyezee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeeeeyezee)::split[0]::eeeeeyezee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.06813814229364179,
+      "abs_delta_e_same_cutoff_after": 0.06813814229364179,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeezeee)::split[0]::eeyeeezeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.763465121207223,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.06813814229364179,
+      "depth_after": 6,
+      "depth_before": 5,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.0705824957812706,
+      "energy_before": -1.0241446742288352,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 4.166576600343225,
+      "history_position": 5,
+      "iteration": 5,
+      "max_abs_gradient": 0.763465121207223,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 510,
+      "optimizer_nit": 5,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 1639,
+      "prefix_nit_total_after": 22,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeezeee)::split[0]::eeyeeezeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeyeeezeee)::split[0]::eeyeeezeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.058463889636888755,
+      "abs_delta_e_same_cutoff_after": 0.058463889636888755,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[2]::eeeeeexyze::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.35041473150496844,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.058463889636888755,
+      "depth_after": 7,
+      "depth_before": 6,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.0802567484380237,
+      "energy_before": -1.0705824957812706,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 3.072091493740239,
+      "history_position": 6,
+      "iteration": 6,
+      "max_abs_gradient": 0.35041473150496844,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 1105,
+      "optimizer_nit": 10,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 2744,
+      "prefix_nit_total_after": 32,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[2]::eeeeeexyze::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[2]::eeeeeexyze::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.04445456976324391,
+      "abs_delta_e_same_cutoff_after": 0.04445456976324391,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=0)::split[0]::eeeeyeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.30280357408398473,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.04445456976324391,
+      "depth_after": 8,
+      "depth_before": 7,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.0942660683116685,
+      "energy_before": -1.0802567484380237,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 3.06105025190131,
+      "history_position": 7,
+      "iteration": 7,
+      "max_abs_gradient": 0.30280357408398473,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 1461,
+      "optimizer_nit": 12,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 4205,
+      "prefix_nit_total_after": 44,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=0)::split[0]::eeeeyeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=0)::split[0]::eeeeyeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.029335214642227436,
+      "abs_delta_e_same_cutoff_after": 0.029335214642227436,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=1)::split[0]::eyeeeeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.3133853944322863,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.029335214642227436,
+      "depth_after": 9,
+      "depth_before": 8,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.109385423432685,
+      "energy_before": -1.0942660683116685,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 2.5119583687646343,
+      "history_position": 8,
+      "iteration": 8,
+      "max_abs_gradient": 0.3133853944322863,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 1931,
+      "optimizer_nit": 14,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 6136,
+      "prefix_nit_total_after": 58,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=1)::split[0]::eyeeeeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=1)::split[0]::eyeeeeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.02593761855883714,
+      "abs_delta_e_same_cutoff_after": 0.02593761855883714,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[108]::eeezyexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.30117796276797143,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.02593761855883714,
+      "depth_after": 10,
+      "depth_before": 9,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1127830195160753,
+      "energy_before": -1.109385423432685,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 1.7557800633362242,
+      "history_position": 9,
+      "iteration": 9,
+      "max_abs_gradient": 0.30117796276797143,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 1672,
+      "optimizer_nit": 11,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 7808,
+      "prefix_nit_total_after": 69,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[108]::eeezyexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[108]::eeezyexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.02261863821301957,
+      "abs_delta_e_same_cutoff_after": 0.02261863821301957,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[16]::eyeeeeyxyx::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.2980201860659291,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.02261863821301957,
+      "depth_after": 11,
+      "depth_before": 10,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1161019998618928,
+      "energy_before": -1.1127830195160753,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 1.3161667675753443,
+      "history_position": 10,
+      "iteration": 10,
+      "max_abs_gradient": 0.2980201860659291,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 1961,
+      "optimizer_nit": 11,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 9769,
+      "prefix_nit_total_after": 80,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[16]::eyeeeeyxyx::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[16]::eyeeeeyxyx::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.02094653367677668,
+      "abs_delta_e_same_cutoff_after": 0.02094653367677668,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[124]::eeezyexxxx::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.09881760645788237,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.02094653367677668,
+      "depth_after": 12,
+      "depth_before": 11,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1177741043981357,
+      "energy_before": -1.1161019998618928,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.6673464198098866,
+      "history_position": 11,
+      "iteration": 11,
+      "max_abs_gradient": 0.09881760645788237,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 2042,
+      "optimizer_nit": 11,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 11811,
+      "prefix_nit_total_after": 91,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[124]::eeezyexxxx::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[124]::eeezyexxxx::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.019224882912330044,
+      "abs_delta_e_same_cutoff_after": 0.019224882912330044,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.10089877092942563,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.019224882912330044,
+      "depth_after": 13,
+      "depth_before": 12,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1194957551625824,
+      "energy_before": -1.1177741043981357,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.5255929021050635,
+      "history_position": 12,
+      "iteration": 12,
+      "max_abs_gradient": 0.10089877092942563,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 2366,
+      "optimizer_nit": 12,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 14177,
+      "prefix_nit_total_after": 103,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.019138378338190876,
+      "abs_delta_e_same_cutoff_after": 0.019138378338190876,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[1]::zxyeeeeeez::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.03626831568862504,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.019138378338190876,
+      "depth_after": 14,
+      "depth_before": 13,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1195822597367215,
+      "energy_before": -1.1194957551625824,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.317649283688359,
+      "history_position": 13,
+      "iteration": 13,
+      "max_abs_gradient": 0.03626831568862504,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 2922,
+      "optimizer_nit": 14,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 17099,
+      "prefix_nit_total_after": 117,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[1]::zxyeeeeeez::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[1]::zxyeeeeeez::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.019051297518719812,
+      "abs_delta_e_same_cutoff_after": 0.019051297518719812,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[1]::eeezxyeeze::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.03642634335304143,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.019051297518719812,
+      "depth_after": 15,
+      "depth_before": 14,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1196693405561926,
+      "energy_before": -1.1195822597367215,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.28450515408464144,
+      "history_position": 14,
+      "iteration": 14,
+      "max_abs_gradient": 0.03642634335304143,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 3286,
+      "optimizer_nit": 15,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 20385,
+      "prefix_nit_total_after": 132,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[1]::eeezxyeeze::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[1]::eeezxyeeze::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018972088482070992,
+      "abs_delta_e_same_cutoff_after": 0.018972088482070992,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[13]::eeezxyzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.034740541579452645,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018972088482070992,
+      "depth_after": 16,
+      "depth_before": 15,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1197485495928414,
+      "energy_before": -1.1196693405561926,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.24569172221005173,
+      "history_position": 15,
+      "iteration": 15,
+      "max_abs_gradient": 0.034740541579452645,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 2622,
+      "optimizer_nit": 11,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 23007,
+      "prefix_nit_total_after": 143,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[13]::eeezxyzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[13]::eeezxyzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018893065978137225,
+      "abs_delta_e_same_cutoff_after": 0.018893065978137225,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[13]::zxyeeeezee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.034740663259617374,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018893065978137225,
+      "depth_after": 17,
+      "depth_before": 16,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1198275720967752,
+      "energy_before": -1.1197485495928414,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.18744995415470614,
+      "history_position": 16,
+      "iteration": 16,
+      "max_abs_gradient": 0.034740663259617374,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 3124,
+      "optimizer_nit": 12,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 26131,
+      "prefix_nit_total_after": 155,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[13]::zxyeeeezee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[13]::zxyeeeezee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018851679169525015,
+      "abs_delta_e_same_cutoff_after": 0.018851679169525015,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[104]::eeeeyzxyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.008295290974484866,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018851679169525015,
+      "depth_after": 18,
+      "depth_before": 17,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1198689589053874,
+      "energy_before": -1.1198275720967752,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.09834987549109006,
+      "history_position": 17,
+      "iteration": 17,
+      "max_abs_gradient": 0.008295290974484866,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 3857,
+      "optimizer_nit": 14,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 29988,
+      "prefix_nit_total_after": 169,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[104]::eeeeyzxyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[104]::eeeeyzxyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0188108039604038,
+      "abs_delta_e_same_cutoff_after": 0.0188108039604038,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[100]::zyzeeexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.008238729760487043,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0188108039604038,
+      "depth_after": 19,
+      "depth_before": 18,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1199098341145086,
+      "energy_before": -1.1198689589053874,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.09104191172052467,
+      "history_position": 18,
+      "iteration": 18,
+      "max_abs_gradient": 0.008238729760487043,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 3817,
+      "optimizer_nit": 13,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 33805,
+      "prefix_nit_total_after": 182,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[100]::zyzeeexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[100]::zyzeeexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018808090555621604,
+      "abs_delta_e_same_cutoff_after": 0.018808090555621604,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007824619314517592,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018808090555621604,
+      "depth_after": 20,
+      "depth_before": 19,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1199125475192908,
+      "energy_before": -1.1199098341145086,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.0832117444693891,
+      "history_position": 19,
+      "iteration": 19,
+      "max_abs_gradient": 0.007824619314517592,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 3817,
+      "optimizer_nit": 10,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 37622,
+      "prefix_nit_total_after": 192,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018422594198652442,
+      "abs_delta_e_same_cutoff_after": 0.018422594198652442,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=1)::split[2]::yxeeeeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.015444196680473796,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018422594198652442,
+      "depth_after": 21,
+      "depth_before": 20,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.12029804387626,
+      "energy_before": -1.1199125475192908,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.09599430146997542,
+      "history_position": 20,
+      "iteration": 20,
+      "max_abs_gradient": 0.015444196680473796,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 5645,
+      "optimizer_nit": 18,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 43267,
+      "prefix_nit_total_after": 210,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=1)::split[2]::yxeeeeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=1)::split[2]::yxeeeeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.01842116537805505,
+      "abs_delta_e_same_cutoff_after": 0.01842116537805505,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.00800693986054547,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.01842116537805505,
+      "depth_after": 22,
+      "depth_before": 21,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1202994726968574,
+      "energy_before": -1.12029804387626,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.0757873634241534,
+      "history_position": 21,
+      "iteration": 21,
+      "max_abs_gradient": 0.00800693986054547,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 6739,
+      "optimizer_nit": 17,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 50006,
+      "prefix_nit_total_after": 227,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018418358131215617,
+      "abs_delta_e_same_cutoff_after": 0.018418358131215617,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=0)::split[2]::eeeyxeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007854632373986006,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018418358131215617,
+      "depth_after": 23,
+      "depth_before": 22,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1203022799436968,
+      "energy_before": -1.1202994726968574,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.07158069183886859,
+      "history_position": 22,
+      "iteration": 22,
+      "max_abs_gradient": 0.007854632373986006,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 4485,
+      "optimizer_nit": 10,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 54491,
+      "prefix_nit_total_after": 237,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=0)::split[2]::eeeyxeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=0)::split[2]::eeeyxeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.01803107210748034,
+      "abs_delta_e_same_cutoff_after": 0.01803107210748034,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=0)::split[1]::eeexyeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.01570643036969825,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.01803107210748034,
+      "depth_after": 24,
+      "depth_before": 23,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.120689565967432,
+      "energy_before": -1.1203022799436968,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.08662691408107648,
+      "history_position": 23,
+      "iteration": 23,
+      "max_abs_gradient": 0.01570643036969825,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 8516,
+      "optimizer_nit": 22,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 63007,
+      "prefix_nit_total_after": 259,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=0)::split[1]::eeexyeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=0)::split[1]::eeexyeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.018029641038814326,
+      "abs_delta_e_same_cutoff_after": 0.018029641038814326,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[109]::eeeyxexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.008015471546556293,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.018029641038814326,
+      "depth_after": 25,
+      "depth_before": 24,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.120690997036098,
+      "energy_before": -1.120689565967432,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.06268773356950617,
+      "history_position": 24,
+      "iteration": 24,
+      "max_abs_gradient": 0.008015471546556293,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 7489,
+      "optimizer_nit": 16,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 70496,
+      "prefix_nit_total_after": 275,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[109]::eeeyxexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[109]::eeeyxexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.017825798826130557,
+      "abs_delta_e_same_cutoff_after": 0.017825798826130557,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeezeyezee)::split[0]::eeezeyezee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007801757881774175,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.017825798826130557,
+      "depth_after": 26,
+      "depth_before": 25,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1208948392487819,
+      "energy_before": -1.120690997036098,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.057519293889068505,
+      "history_position": 25,
+      "iteration": 25,
+      "max_abs_gradient": 0.007801757881774175,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 11954,
+      "optimizer_nit": 31,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 82450,
+      "prefix_nit_total_after": 306,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeezeyezee)::split[0]::eeezeyezee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeezeyezee)::split[0]::eeezeyezee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.017380434341371043,
+      "abs_delta_e_same_cutoff_after": 0.017380434341371043,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[19]::zyeeeexxee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.014280137858306674,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.017380434341371043,
+      "depth_after": 27,
+      "depth_before": 26,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1213402037335414,
+      "energy_before": -1.1208948392487819,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.06727627918470534,
+      "history_position": 26,
+      "iteration": 26,
+      "max_abs_gradient": 0.014280137858306674,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 17390,
+      "optimizer_nit": 45,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 99840,
+      "prefix_nit_total_after": 351,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[19]::zyeeeexxee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[19]::zyeeeexxee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.017379003497378198,
+      "abs_delta_e_same_cutoff_after": 0.017379003497378198,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.006649250019612209,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.017379003497378198,
+      "depth_after": 28,
+      "depth_before": 27,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1213416345775342,
+      "energy_before": -1.1213402037335414,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.053485150591267565,
+      "history_position": 27,
+      "iteration": 27,
+      "max_abs_gradient": 0.006649250019612209,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 16441,
+      "optimizer_nit": 33,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 116281,
+      "prefix_nit_total_after": 384,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.017273897720880838,
+      "abs_delta_e_same_cutoff_after": 0.017273897720880838,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[22]::eeeyxxzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.009766950862324356,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.017273897720880838,
+      "depth_after": 29,
+      "depth_before": 28,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1214467403540316,
+      "energy_before": -1.1213416345775342,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.05670093529114003,
+      "history_position": 28,
+      "iteration": 28,
+      "max_abs_gradient": 0.009766950862324356,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 20827,
+      "optimizer_nit": 48,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 137108,
+      "prefix_nit_total_after": 432,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[22]::eeeyxxzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[22]::eeeyxxzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.017193912164149783,
+      "abs_delta_e_same_cutoff_after": 0.017193912164149783,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007839433159253811,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.017193912164149783,
+      "depth_after": 30,
+      "depth_before": 29,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1215267259107626,
+      "energy_before": -1.1214467403540316,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.04750088676584518,
+      "history_position": 29,
+      "iteration": 29,
+      "max_abs_gradient": 0.007839433159253811,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 20308,
+      "optimizer_nit": 46,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 157416,
+      "prefix_nit_total_after": 478,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.002561864573285,
+      "abs_delta_e_same_cutoff_after": 0.002561864573285,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[103]::eyzeeexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007075859543825273,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.002561864573285,
+      "depth_after": 31,
+      "depth_before": 30,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1361587735016274,
+      "energy_before": -1.1215267259107626,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.03488071695902158,
+      "history_position": 30,
+      "iteration": 30,
+      "max_abs_gradient": 0.007075859543825273,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 45872,
+      "optimizer_nit": 133,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 203288,
+      "prefix_nit_total_after": 611,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[103]::eyzeeexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[103]::eyzeeexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0015754820168318862,
+      "abs_delta_e_same_cutoff_after": 0.0015754820168318862,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[6]::eeeexyeeze::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.09932184005700401,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0015754820168318862,
+      "depth_after": 32,
+      "depth_before": 31,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1371451560580805,
+      "energy_before": -1.1361587735016274,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.4681845902553312,
+      "history_position": 31,
+      "iteration": 31,
+      "max_abs_gradient": 0.09932184005700401,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 22049,
+      "optimizer_nit": 50,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 225337,
+      "prefix_nit_total_after": 661,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[6]::eeeexyeeze::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[6]::eeeexyeeze::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0014715189128176043,
+      "abs_delta_e_same_cutoff_after": 0.0014715189128176043,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[102]::xyzeeexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.03354873639735795,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0014715189128176043,
+      "depth_after": 33,
+      "depth_before": 32,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1372491191620948,
+      "energy_before": -1.1371451560580805,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.20804266802484006,
+      "history_position": 32,
+      "iteration": 32,
+      "max_abs_gradient": 0.03354873639735795,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 20922,
+      "optimizer_nit": 45,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 246259,
+      "prefix_nit_total_after": 706,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[102]::xyzeeexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[102]::xyzeeexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0013978171670443462,
+      "abs_delta_e_same_cutoff_after": 0.0013978171670443462,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[22]::yxxeeeezee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.040616877424779124,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0013978171670443462,
+      "depth_after": 34,
+      "depth_before": 33,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.137322820907868,
+      "energy_before": -1.1372491191620948,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.2671082111167649,
+      "history_position": 33,
+      "iteration": 33,
+      "max_abs_gradient": 0.040616877424779124,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 18426,
+      "optimizer_nit": 33,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 264685,
+      "prefix_nit_total_after": 739,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[22]::yxxeeeezee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[22]::yxxeeeezee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.001290565384794773,
+      "abs_delta_e_same_cutoff_after": 0.001290565384794773,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[10]::yxxeeeeeez::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.04622951074093619,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.001290565384794773,
+      "depth_after": 35,
+      "depth_before": 34,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1374300726901176,
+      "energy_before": -1.137322820907868,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.24643986740212045,
+      "history_position": 34,
+      "iteration": 34,
+      "max_abs_gradient": 0.04622951074093619,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 19597,
+      "optimizer_nit": 40,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 284282,
+      "prefix_nit_total_after": 779,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[10]::yxxeeeeeez::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[10]::yxxeeeeeez::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0012107172768776042,
+      "abs_delta_e_same_cutoff_after": 0.0012107172768776042,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[20]::eeeeyxzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.028797348521434687,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0012107172768776042,
+      "depth_after": 36,
+      "depth_before": 35,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1375099207980348,
+      "energy_before": -1.1374300726901176,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.150581831352428,
+      "history_position": 35,
+      "iteration": 35,
+      "max_abs_gradient": 0.028797348521434687,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 26710,
+      "optimizer_nit": 50,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 310992,
+      "prefix_nit_total_after": 829,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[20]::eeeeyxzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[20]::eeeeyxzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0010532108760323844,
+      "abs_delta_e_same_cutoff_after": 0.0010532108760323844,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[40]::eeeeyzeeyy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.01792531225111919,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0010532108760323844,
+      "depth_after": 37,
+      "depth_before": 36,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.13766742719888,
+      "energy_before": -1.1375099207980348,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.11658376479690669,
+      "history_position": 36,
+      "iteration": 36,
+      "max_abs_gradient": 0.01792531225111919,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 27291,
+      "optimizer_nit": 51,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 338283,
+      "prefix_nit_total_after": 880,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[40]::eeeeyzeeyy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[40]::eeeeyzeeyy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0010214010998323975,
+      "abs_delta_e_same_cutoff_after": 0.0010214010998323975,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[110]::eeexyexyxy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.01239994686226803,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0010214010998323975,
+      "depth_after": 38,
+      "depth_before": 37,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.13769923697508,
+      "energy_before": -1.13766742719888,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.09423953952054394,
+      "history_position": 37,
+      "iteration": 37,
+      "max_abs_gradient": 0.01239994686226803,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 32844,
+      "optimizer_nit": 53,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 371127,
+      "prefix_nit_total_after": 933,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[110]::eeexyexyxy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[110]::eeexyexyxy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0010176457863726451,
+      "abs_delta_e_same_cutoff_after": 0.0010176457863726451,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[16]::eeexxyzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.01077579624260153,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0010176457863726451,
+      "depth_after": 39,
+      "depth_before": 38,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1377029922885398,
+      "energy_before": -1.13769923697508,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.09615158439701962,
+      "history_position": 38,
+      "iteration": 38,
+      "max_abs_gradient": 0.01077579624260153,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 23713,
+      "optimizer_nit": 37,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 394840,
+      "prefix_nit_total_after": 970,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[16]::eeexxyzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[16]::eeexxyzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0010000821297635465,
+      "abs_delta_e_same_cutoff_after": 0.0010000821297635465,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[113]::xyeeeexxxx::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.010344797164378788,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0010000821297635465,
+      "depth_after": 40,
+      "depth_before": 39,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1377205559451489,
+      "energy_before": -1.1377029922885398,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.08714986221808026,
+      "history_position": 39,
+      "iteration": 39,
+      "max_abs_gradient": 0.010344797164378788,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 26679,
+      "optimizer_nit": 42,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 421519,
+      "prefix_nit_total_after": 1012,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[113]::xyeeeexxxx::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[113]::xyeeeexxxx::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0008647245469008968,
+      "abs_delta_e_same_cutoff_after": 0.0008647245469008968,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[6]::exyeeeeeez::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.008659167229464089,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0008647245469008968,
+      "depth_after": 41,
+      "depth_before": 40,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1378559135280115,
+      "energy_before": -1.1377205559451489,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.0825602215648141,
+      "history_position": 40,
+      "iteration": 40,
+      "max_abs_gradient": 0.008659167229464089,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 36624,
+      "optimizer_nit": 69,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 458143,
+      "prefix_nit_total_after": 1081,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[6]::exyeeeeeez::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=0->phonon=1)::split[6]::exyeeeeeez::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0008355159283308655,
+      "abs_delta_e_same_cutoff_after": 0.0008355159283308655,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=1)::split[5]::yxzeeeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.00942023253142954,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0008355159283308655,
+      "depth_after": 42,
+      "depth_before": 41,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1378851221465816,
+      "energy_before": -1.1378559135280115,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.06640698979029042,
+      "history_position": 41,
+      "iteration": 41,
+      "max_abs_gradient": 0.00942023253142954,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 45554,
+      "optimizer_nit": 67,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 503697,
+      "prefix_nit_total_after": 1148,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=1)::split[5]::yxzeeeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=1)::split[5]::yxzeeeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0007899184060042863,
+      "abs_delta_e_same_cutoff_after": 0.0007899184060042863,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[22]::xyzeeexxee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.012355122548538534,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0007899184060042863,
+      "depth_after": 43,
+      "depth_before": 42,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1379307196689081,
+      "energy_before": -1.1378851221465816,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.06793001148733127,
+      "history_position": 42,
+      "iteration": 42,
+      "max_abs_gradient": 0.012355122548538534,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 55746,
+      "optimizer_nit": 83,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 559443,
+      "prefix_nit_total_after": 1231,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[22]::xyzeeexxee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[22]::xyzeeexxee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0007801039619559358,
+      "abs_delta_e_same_cutoff_after": 0.0007801039619559358,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[45]::eeeyxeeeyy::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007823236545629398,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0007801039619559358,
+      "depth_after": 44,
+      "depth_before": 43,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1379405341129565,
+      "energy_before": -1.1379307196689081,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.056313709412413857,
+      "history_position": 43,
+      "iteration": 43,
+      "max_abs_gradient": 0.007823236545629398,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 46045,
+      "optimizer_nit": 66,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 605488,
+      "prefix_nit_total_after": 1297,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[45]::eeeyxeeeyy::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[45]::eeeyxeeeyy::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0007766775861357544,
+      "abs_delta_e_same_cutoff_after": 0.0007766775861357544,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eeeyyyeeez)::split[0]::eeeyyyeeez::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.006251736703649483,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0007766775861357544,
+      "depth_after": 45,
+      "depth_before": 44,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1379439604887767,
+      "energy_before": -1.1379405341129565,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.04992446413563117,
+      "history_position": 44,
+      "iteration": 44,
+      "max_abs_gradient": 0.006251736703649483,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 21444,
+      "optimizer_nit": 27,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 626932,
+      "prefix_nit_total_after": 1324,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_termwise_ham_quadrature_term(eeeyyyeeez)::split[0]::eeeyyyeeez::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_termwise_ham_quadrature_term(eeeyyyeeez)::split[0]::eeeyyyeeez::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0007287575361973886,
+      "abs_delta_e_same_cutoff_after": 0.0007287575361973886,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[4]::eeexxyeeze::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.00804937875913578,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0007287575361973886,
+      "depth_after": 46,
+      "depth_before": 45,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.137991880538715,
+      "energy_before": -1.1379439604887767,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.05101069966165321,
+      "history_position": 45,
+      "iteration": 45,
+      "max_abs_gradient": 0.00804937875913578,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 50059,
+      "optimizer_nit": 66,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 676991,
+      "prefix_nit_total_after": 1390,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[4]::eeexxyeeze::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[4]::eeexxyeeze::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0006692245636861216,
+      "abs_delta_e_same_cutoff_after": 0.0006692245636861216,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.006206348148556088,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0006692245636861216,
+      "depth_after": 47,
+      "depth_before": 46,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1380514135112263,
+      "energy_before": -1.137991880538715,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.044518428121975324,
+      "history_position": 46,
+      "iteration": 46,
+      "max_abs_gradient": 0.006206348148556088,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 44640,
+      "optimizer_nit": 65,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 721631,
+      "prefix_nit_total_after": 1455,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0006387518062542785,
+      "abs_delta_e_same_cutoff_after": 0.0006387518062542785,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007803093762543098,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0006387518062542785,
+      "depth_after": 48,
+      "depth_before": 47,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1380818862686581,
+      "energy_before": -1.1380514135112263,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.04900883864954814,
+      "history_position": 47,
+      "iteration": 47,
+      "max_abs_gradient": 0.007803093762543098,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 60942,
+      "optimizer_nit": 86,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 782573,
+      "prefix_nit_total_after": 1541,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0006290042401160267,
+      "abs_delta_e_same_cutoff_after": 0.0006290042401160267,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.005790617889182571,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0006290042401160267,
+      "depth_after": 49,
+      "depth_before": 48,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.1380916338347964,
+      "energy_before": -1.1380818862686581,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.04279860889101323,
+      "history_position": 48,
+      "iteration": 48,
+      "max_abs_gradient": 0.005790617889182571,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 47354,
+      "optimizer_nit": 59,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 829927,
+      "prefix_nit_total_after": 1600,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+      ]
+    },
+    {
+      "abs_delta_e_after": 0.0006059547584833513,
+      "abs_delta_e_same_cutoff_after": 0.0006059547584833513,
+      "appended_operator_count": 1,
+      "appended_operator_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[13]::eeeyxeyyee::legal_projected"
+      ],
+      "batch_size": 1,
+      "best_selector_score": 0.007240254271934295,
+      "candidate_count_scored": 8748,
+      "delta_E_abs_after": 0.0006059547584833513,
+      "depth_after": 50,
+      "depth_before": 49,
+      "eligible_for_first_hit": true,
+      "energy_after": -1.138114683316429,
+      "energy_before": -1.1380916338347964,
+      "estimator_call_round_receipt_included": false,
+      "gradient_l2_norm": 0.04843752713004389,
+      "history_position": 49,
+      "iteration": 49,
+      "max_abs_gradient": 0.007240254271934295,
+      "optimizer": "scipy.optimize.minimize:Powell",
+      "optimizer_cap_acceptance_reason": "optimizer_success",
+      "optimizer_cap_policy": "accept_finite_nonincreasing_v1",
+      "optimizer_capped": false,
+      "optimizer_capped_accepted": false,
+      "optimizer_nfev": 70894,
+      "optimizer_nit": 95,
+      "optimizer_raw_success": true,
+      "optimizer_success": true,
+      "prefix_nfev_total_after": 900821,
+      "prefix_nit_total_after": 1695,
+      "prefix_source": "validated_r50_iteration_progress_v1",
+      "primary_energy_metric_after": "same_cutoff_abs_delta_e",
+      "schema": "paper_i_append_warm_prefix_history_row_v1",
+      "selected_batch_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[13]::eeeyxeyyee::legal_projected"
+      ],
+      "selected_candidate_labels": [
+        "paop_sq_full:paop_hop_sq(0,1)::split[13]::eeeyxeyyee::legal_projected"
+      ]
+    }
+  ],
+  "created_utc": "2026-07-21T21:23:38+00:00",
+  "prefix_identity": {
+    "compact_history_sha256": "a8ae1ebdf768dbf9d5c39d1e8a1903de583aec905cae9a47d66918d8bf36e770",
+    "determinism_basis": [
+      "exact_statevector_backend",
+      "Powell_seed_7",
+      "frozen_source_archive",
+      "frozen_container_image"
+    ],
+    "ordered_operator_labels_sha256": "e037a38c92c48cce84dca0eaa951d1ffe4b26717c4820204b334fdfb2e203775",
+    "prefix_identity_sha256": "190c782d30d695d938de5390953eb4b2d05494b572bbcdaef57b159fbd8166c7",
+    "rng_state_serialized": false,
+    "schema": "paper_i_append_warm_prefix_identity_v1",
+    "selected_generator_semantics_sha256": "defb513880ec12fe35bfffdc0ba582342a93b347953fd5961cc6dc57090b1b55",
+    "selected_operator_batches_sha256": "5b6c6efe48ee14fe4039d344787c04504d4936b30e42a6cabdb8f50eddc976ba",
+    "source_S_alg": 1276060.0,
+    "source_bundle_id": "paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc",
+    "source_depth": 50,
+    "source_iterations": 50,
+    "source_job_id": "append_projected_singleton__weak_strong__r50",
+    "source_members": {
+      "manifest": {
+        "name": "raw_outputs/paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc/append_projected_singleton__weak_strong__r50/normalized_job_manifest.json",
+        "sha256": "e62185820aa6f69d388c178a54eab17a5effeabdddc793d7936097b0c736c565",
+        "size_bytes": 3473
+      },
+      "progress": {
+        "name": "raw_outputs/paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc/append_projected_singleton__weak_strong__r50/adapt_iteration_progress.jsonl",
+        "sha256": "edb03ab5df39d5284db9c3eabd62f50f4b2e9f7255219b218e8c80c4bdb403dc",
+        "size_bytes": 175323
+      },
+      "runtime_seed": {
+        "name": "raw_outputs/paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc/append_projected_singleton__weak_strong__r50/runtime_seed.json",
+        "sha256": "b3d52b466b3820a29c5be6b01915c5e6fa6a53455926af6742641afeba054152",
+        "size_bytes": 132898
+      },
+      "validation": {
+        "name": "raw_outputs/paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc/append_projected_singleton__weak_strong__r50/validation_receipt.json",
+        "sha256": "a70421244e40935ca259123e8c1ed37d1dd19925f4de26c5d157c824507dd03f",
+        "size_bytes": 648
+      }
+    },
+    "source_result_member": {
+      "name": "raw_outputs/paper_i_hh_append_projected_singleton_all_six_r50_20260719_v4_chtc/append_projected_singleton__weak_strong__r50/result.json",
+      "sha256": "38531e74e1beb25b11e497b1ed23cae0cca4c820327c19e1da21b2d8a5091a6e",
+      "size_bytes": 5199975930
+    },
+    "source_same_cutoff_abs_error": 0.0006059547584833513,
+    "source_terminal_energy": -1.138114683316429,
+    "source_tracking_summary": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/retrieval_20260720T131959Z/append_projected_singleton__weak_strong__r50_tracking_summary.json",
+      "sha256": "ff124406acc3ec35c6c4cfa1381cad268a169acee542bf4ea11d68bb6b6e9575"
+    },
+    "source_transfer_archive": {
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260720/retrieval_20260720T131959Z/append_projected_singleton__weak_strong__r50_transfer.tar.gz",
+      "sha256": "e6be4d4418d116d05a668c2dbfda6a13523ae7893bb555e003883b64739ee467",
+      "size_bytes": 2504351239
+    },
+    "status": "pass",
+    "theta_sha256": "a69b6e76b9393cc8c12f04f796bbae67ff50975c5f008538b76bf266484caf3f"
+  },
+  "schema": "paper_i_append_projected_singleton_warm_start_state_v1",
+  "selected_operator_batches": [
+    [
+      "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[0]::eeeeeexyee::legal_projected"
+    ],
+    [
+      "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::split[0]::eeeeeeeexy::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeyeeeeeze)::split[0]::eeyeeeeeze::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeeeeyeeez)::split[0]::eeeeeyeeez::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeeeeyezee)::split[0]::eeeeeyezee::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeyeeezeee)::split[0]::eeyeeezeee::legal_projected"
+    ],
+    [
+      "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[2]::eeeeeexyze::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=0)::split[0]::eeeeyeeeee::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=1)::split[0]::eyeeeeeeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[108]::eeezyexyxy::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[16]::eyeeeeyxyx::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[124]::eeezyexxxx::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=0->phonon=1)::split[1]::zxyeeeeeez::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[1]::eeezxyeeze::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[13]::eeezxyzeee::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=0->phonon=1)::split[13]::zxyeeeezee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[104]::eeeeyzxyxy::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[100]::zyzeeexyxy::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=1)::split[2]::yxeeeeeeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=0)::split[2]::eeeyxeeeee::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=0)::split[1]::eeexyeeeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[109]::eeeyxexyxy::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeezeyezee)::split[0]::eeezeyezee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_hop_sq(0,1)::split[19]::zyeeeexxee::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[22]::eeeyxxzeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[103]::eyzeeexyxy::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[6]::eeeexyeeze::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[102]::xyzeeexyxy::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=0->phonon=1)::split[22]::yxxeeeezee::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=0->phonon=1)::split[10]::yxxeeeeeez::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[20]::eeeeyxzeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_hop_sq(0,1)::split[40]::eeeeyzeeyy::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[110]::eeexyexyxy::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[16]::eeexxyzeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[113]::xyeeeexxxx::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=0->phonon=1)::split[6]::exyeeeeeez::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=1)::split[5]::yxzeeeeeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_hop_sq(0,1)::split[22]::xyzeeexxee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_hop_sq(0,1)::split[45]::eeeyxeeeyy::legal_projected"
+    ],
+    [
+      "hh_termwise_ham_quadrature_term(eeeyyyeeez)::split[0]::eeeyyyeeez::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[4]::eeexxyeeze::legal_projected"
+    ],
+    [
+      "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected"
+    ],
+    [
+      "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected"
+    ],
+    [
+      "paop_sq_full:paop_hop_sq(0,1)::split[13]::eeeyxeyyee::legal_projected"
+    ]
+  ],
+  "selected_operator_labels": [
+    "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[0]::eeeeeexyee::legal_projected",
+    "hh_fermionic_reusable::bond_charge_current_nn_up(0,1)::split[0]::eeeeeeeexy::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeyeeeeeze)::split[0]::eeyeeeeeze::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeeeeyeeez)::split[0]::eeeeeyeeez::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeeeeyezee)::split[0]::eeeeeyezee::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeyeeezeee)::split[0]::eeyeeezeee::legal_projected",
+    "hh_fermionic_reusable::bond_charge_current_nn_dn(0,1)::split[2]::eeeeeexyze::legal_projected",
+    "hh_phonon::s(site=0)::split[0]::eeeeyeeeee::legal_projected",
+    "hh_phonon::s(site=1)::split[0]::eyeeeeeeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[108]::eeezyexyxy::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[16]::eyeeeeyxyx::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[124]::eeezyexxxx::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected",
+    "paop_full:paop_cloud_p(site=0->phonon=1)::split[1]::zxyeeeeeez::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[1]::eeezxyeeze::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[13]::eeezxyzeee::legal_projected",
+    "paop_full:paop_cloud_p(site=0->phonon=1)::split[13]::zxyeeeezee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[104]::eeeeyzxyxy::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[100]::zyzeeexyxy::legal_projected",
+    "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected",
+    "hh_phonon::s(site=1)::split[2]::yxeeeeeeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected",
+    "hh_phonon::s(site=0)::split[2]::eeeyxeeeee::legal_projected",
+    "hh_phonon::s(site=0)::split[1]::eeexyeeeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[109]::eeeyxexyxy::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeezeyezee)::split[0]::eeezeyezee::legal_projected",
+    "paop_sq_full:paop_hop_sq(0,1)::split[19]::zyeeeexxee::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[22]::eeeyxxzeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[0]::eyeeeeyyyy::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[103]::eyzeeexyxy::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[6]::eeeexyeeze::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[102]::xyzeeexyxy::legal_projected",
+    "paop_full:paop_cloud_p(site=0->phonon=1)::split[22]::yxxeeeezee::legal_projected",
+    "paop_full:paop_cloud_p(site=0->phonon=1)::split[10]::yxxeeeeeez::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[20]::eeeeyxzeee::legal_projected",
+    "paop_sq_full:paop_hop_sq(0,1)::split[40]::eeeeyzeeyy::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[110]::eeexyexyxy::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[16]::eeexxyzeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[113]::xyeeeexxxx::legal_projected",
+    "paop_full:paop_cloud_p(site=0->phonon=1)::split[6]::exyeeeeeez::legal_projected",
+    "hh_phonon::s(site=1)::split[5]::yxzeeeeeee::legal_projected",
+    "paop_sq_full:paop_hop_sq(0,1)::split[22]::xyzeeexxee::legal_projected",
+    "paop_sq_full:paop_hop_sq(0,1)::split[45]::eeeyxeeeyy::legal_projected",
+    "hh_termwise_ham_quadrature_term(eeeyyyeeez)::split[0]::eeeyyyeeez::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[4]::eeexxyeeze::legal_projected",
+    "hh_phonon::s(site=1)::split[1]::xyeeeeeeee::legal_projected",
+    "paop_sq_full:paop_pair_sq(0,1)::split[18]::yxeeeeyxyx::legal_projected",
+    "paop_full:paop_cloud_p(site=1->phonon=0)::split[21]::eeexyxzeee::legal_projected",
+    "paop_sq_full:paop_hop_sq(0,1)::split[13]::eeeyxeyyee::legal_projected"
+  ],
+  "state_core_sha256": "fb922858f999190b4123dbb4ca6ecb90c1bff06d196d1a564352e20cdef8c960",
+  "theta": [
+    -0.7853981604790958,
+    -0.7853981630547731,
+    0.22472187045230996,
+    0.23818822811953827,
+    0.22357196132945284,
+    0.18762982819980795,
+    -0.14097905521675622,
+    0.16547156501794927,
+    0.2521052406818764,
+    -0.046674236575641355,
+    -0.06641337943736542,
+    -0.06422985328232635,
+    0.827235368680238,
+    -0.002795296156230906,
+    0.0008450939350094701,
+    -0.0031647199484222286,
+    0.02157748699766089,
+    0.013591597400987589,
+    -0.8440604010052858,
+    -0.009752075821692952,
+    -0.008495976709234429,
+    0.003440757896724746,
+    0.06428594506666481,
+    -0.05374837585056195,
+    -0.007624803926035492,
+    0.13318128896310918,
+    0.25171062951714784,
+    0.006765638649049488,
+    -0.0065904736472808985,
+    -0.9103539388901951,
+    0.8641321087633836,
+    0.02034786838840871,
+    0.007268828758136207,
+    -0.013647647426085636,
+    -0.012460845018139974,
+    -0.01295134708898301,
+    0.017114364844611,
+    0.0040302869112380235,
+    -0.0074218241415496015,
+    0.016782719138636826,
+    0.03334720883726073,
+    0.018647302291978425,
+    -0.005417044897170525,
+    0.002834766480079797,
+    -0.01628637990828765,
+    0.017854079040510094,
+    -0.026822301442846384,
+    0.007613948247423028,
+    0.009596011024551022,
+    -0.006398289165884594
+  ]
+}

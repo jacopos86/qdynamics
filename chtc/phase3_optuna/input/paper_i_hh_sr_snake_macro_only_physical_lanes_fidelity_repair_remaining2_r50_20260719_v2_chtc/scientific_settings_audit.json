@@ -1,0 +1,25 @@
+{
+  "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+  "rows": [
+    {
+      "command_argv_sha256_after_path_normalization": "12f79aa65bf31cee336abfe4593f5380ef0c59eb2e36a152f37d12a5c603b25a",
+      "parent_proc": 4,
+      "regime_slug": "intermediate_strong",
+      "science_projection_sha256": "80e67ec40903ecb035042aa9dffb8629cb08b7c7d77a3bc734e0cc00bfb8835e",
+      "scientific_settings_changed": false
+    },
+    {
+      "command_argv_sha256_after_path_normalization": "f4d237a4ed49385a8a1acfcc439314390c1a49d2587e6ea943298c19e18811c7",
+      "parent_proc": 5,
+      "regime_slug": "strong_strong_u8",
+      "science_projection_sha256": "68821e39c6c9962be65fccc6ca57e1f804cb5ac4d54c6e8af433b05a8af2edc2",
+      "scientific_settings_changed": false
+    }
+  ],
+  "same_cutoff_reference": true,
+  "schema": "paper_i_hh_sr_macro_fidelity_remaining2_science_audit_v1",
+  "scientific_settings_changed": false,
+  "status": "pass",
+  "target_controller_round": 50,
+  "unexpected_executable_differences": []
+}

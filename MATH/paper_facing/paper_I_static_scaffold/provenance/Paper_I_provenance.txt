@@ -1,0 +1,6 @@
+Paper_I duplicate provenance
+generated_utc: 2026-07-09T02:06:12+00:00
+duplicate_tex: MATH/paper_details/Paper_I.tex sha256=a9aaaaca8f0908b3c4a5424b782b32746f80dcc42eb75f1460628c859128086c
+duplicate_pdf_local: MATH/paper_details/Paper_I.pdf sha256=dac017edff9dcb541f0a12977e071d76db37da122dd60f67c71b2dcb24fd8a26
+final_pdf: Paper_I.pdf sha256=dac017edff9dcb541f0a12977e071d76db37da122dd60f67c71b2dcb24fd8a26
+last_manuscript_edit: Displayed the lane-wise r_l star maximizer between lane-record and lane-retention equations.

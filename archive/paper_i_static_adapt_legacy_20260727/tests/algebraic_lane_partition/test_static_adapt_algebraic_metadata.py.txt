@@ -1,0 +1,536 @@
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+from types import SimpleNamespace
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.static_adapt.algebraic_metadata import (
+    LANE_CURV,
+    LANE_DISJ,
+    LANE_FLAT,
+    LANE_MIX,
+    AlgebraicMetadataIndex,
+    algebraic_lane_quota_pressure_budgets,
+    assign_lane,
+    build_phase0_weak_algebraic_index,
+    lane_phase1_shortlist_records,
+    lane_phase2_health_shortlist_records,
+    lane_quota_pressure_budgets,
+    phase0_lane_shortlist_records,
+    phase0_weak_lane_payload,
+    phase1_lane_shortlist_records,
+    phase2_lane_health_shortlist_records,
+)
+from pipelines.static_adapt.commutation_metadata import (
+    EXACTNESS_APPROX,
+    EXACTNESS_EXACT,
+    AlgebraicMetadataError,
+    GeneratorAlgebraicExpansion,
+    SerializedPauliExpansionTerm,
+    build_exact_expansion_index,
+    build_pair_metadata,
+    exact_expansions_commute,
+    expansion_from_generator_metadata,
+    pauli_words_commute,
+    support_qubits_from_pauli_word,
+)
+from pipelines.contracts.static_provenance import (
+    classify_hh_physical_operator_lane,
+    classify_static_physical_operator_lane,
+    summarize_static_physical_operator_pool_labels,
+)
+from src.quantum.pauli_polynomial_class import PauliPolynomial
+from src.quantum.qubitization_module import PauliTerm
+
+
+def _term(word: str, coeff: complex = 1.0) -> SerializedPauliExpansionTerm:
+    coeff_c = complex(coeff)
+    return SerializedPauliExpansionTerm(
+        pauli_exyz=word,
+        coeff_re=float(coeff_c.real),
+        coeff_im=float(coeff_c.imag),
+        nq=len(word),
+    )
+
+
+def _exp(key: str, label: str, words: list[str]) -> GeneratorAlgebraicExpansion:
+    terms = tuple(_term(word) for word in words)
+    support = sorted({q for term in terms for q in support_qubits_from_pauli_word(term.pauli_exyz)})
+    return GeneratorAlgebraicExpansion(
+        key=key,
+        label=label,
+        generator_id=key,
+        terms=terms,
+        support_qubits=tuple(support),
+        exactness=EXACTNESS_EXACT,
+        source="test",
+    )
+
+
+def test_hubbard_qeb_hva_physical_operator_lane_classifier_and_audit() -> None:
+    assert classify_static_physical_operator_lane("qeb_pair(0,1)", problem="hubbard")["physical_operator_lane"] == "qeb_excitation"
+    assert classify_static_physical_operator_lane("qeb_double(0,3->1,2)", problem="hubbard")["physical_operator_lane"] == "qeb_excitation"
+    assert classify_static_physical_operator_lane("hva_block::hop_layer", problem="hubbard")["physical_operator_lane"] == "hva_hamiltonian_blocks"
+    assert classify_static_physical_operator_lane("hva_block::onsite_layer", problem="hubbard")["physical_operator_lane"] == "hva_hamiltonian_blocks"
+    assert classify_static_physical_operator_lane("hva_block::potential_layer", problem="hubbard")["physical_operator_lane"] == "hva_hamiltonian_blocks"
+    assert classify_static_physical_operator_lane("uccsd_sing(alpha:0->1)::child_set[0,1]", problem="hubbard")["physical_operator_lane"] == "uccsd_single"
+    assert classify_static_physical_operator_lane("uccsd_dbl(ab:0,2->1,3)::child_set[0,1,2]", problem="hubbard")["physical_operator_lane"] == "uccsd_double"
+    assert classify_static_physical_operator_lane("qeb_double(0,3->1,2)::child_set[0,2,3]", problem="hubbard")["physical_operator_lane"] == "qeb_excitation"
+    assert classify_static_physical_operator_lane("hva_block::hop_layer::child_set[0,1]", problem="hubbard")["physical_operator_lane"] == "hva_hamiltonian_blocks"
+    assert classify_static_physical_operator_lane("hva_block::onsite_layer::child_set[0,1,2]", problem="hubbard")["physical_operator_lane"] == "hva_hamiltonian_blocks"
+    assert classify_static_physical_operator_lane("qeb_pair_alt(0,1)", problem="hubbard")["physical_operator_lane"] == "other"
+    audit = summarize_static_physical_operator_pool_labels(
+        [
+            "uccsd_sing(alpha:0->1)",
+            "uccsd_dbl(ab:0,2->1,3)",
+            "qeb_pair(0,1)",
+            "qeb_double(0,3->1,2)::child_set[0,2,3]",
+            "hva_block::hop_layer",
+            "hva_block::onsite_layer",
+            "hva_block::hop_layer::child_set[0,1]",
+        ],
+        problem="hubbard",
+    )
+    assert audit["other_count"] == 0
+    assert audit["exact_other_labels"] == []
+    assert audit["lane_counts"]["uccsd_single"] == 1
+    assert audit["lane_counts"]["uccsd_double"] == 1
+    assert audit["lane_counts"]["qeb_excitation"] == 2
+    assert audit["lane_counts"]["hva_hamiltonian_blocks"] == 3
+
+
+def test_pauli_commutation_parity_and_repo_support_order() -> None:
+    assert pauli_words_commute("x", "x") is True
+    assert pauli_words_commute("x", "y") is False
+    assert pauli_words_commute("xe", "ey") is True
+    assert support_qubits_from_pauli_word("xeyz") == (0, 1, 3)
+    with pytest.raises(AlgebraicMetadataError):
+        pauli_words_commute("x", "xx")
+
+
+def test_exact_composite_commutation_uses_full_commutator_not_pairwise_terms() -> None:
+    lhs = _exp("a", "A", ["x", "y"])
+    rhs = _exp("b", "B", ["x", "y"])
+
+    commutes, l1_norm = exact_expansions_commute(lhs, rhs)
+    pair = build_pair_metadata(lhs, rhs)
+
+    assert commutes is True
+    assert l1_norm == pytest.approx(0.0)
+    assert pair.support_overlap is True
+    assert pair.commutes is True
+    assert pair.relation == "flat_comm"
+
+
+def test_pair_metadata_distinguishes_curvature_and_disjoint_commutation() -> None:
+    curv = build_pair_metadata(_exp("x", "X", ["x"]), _exp("y", "Y", ["y"]))
+    disj = build_pair_metadata(_exp("xe", "XE", ["xe"]), _exp("ey", "EY", ["ey"]))
+
+    assert curv.support_overlap is True
+    assert curv.commutes is False
+    assert curv.relation == "curv_noncomm"
+    assert disj.support_overlap is False
+    assert disj.commutes is True
+    assert disj.relation == "disj_comm"
+
+
+def test_missing_exact_registry_metadata_raises_not_label_fallback() -> None:
+    with pytest.raises(AlgebraicMetadataError, match="serialized_terms_exyz"):
+        expansion_from_generator_metadata(
+            {
+                "candidate_label": "label_only",
+                "generator_id": "gen:label-only",
+                "support_qubits": [0],
+                "compile_metadata": {},
+            }
+        )
+    with pytest.raises(AlgebraicMetadataError, match="coeff_re/coeff_im"):
+        expansion_from_generator_metadata(
+            {
+                "candidate_label": "bad_coeff",
+                "generator_id": "gen:bad-coeff",
+                "compile_metadata": {
+                    "serialized_terms_exyz": [{"pauli_exyz": "x", "coeff_re": 1.0, "nq": 1}]
+                },
+            }
+        )
+
+    approx = expansion_from_generator_metadata(
+        {
+            "candidate_label": "label_only",
+            "generator_id": "gen:label-only",
+            "support_qubits": [0],
+            "compile_metadata": {},
+        },
+        require_exact=False,
+    )
+    assert approx.exactness == EXACTNESS_APPROX
+    assert approx.terms == ()
+
+
+def test_malformed_serialized_registry_terms_are_not_silently_masked_by_polynomial() -> None:
+    poly = PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)])
+    term = SimpleNamespace(label="bad_coeff", polynomial=poly)
+    with pytest.raises(AlgebraicMetadataError, match="coeff_re/coeff_im"):
+        build_exact_expansion_index(
+            pool=[term],
+            registry_by_label={
+                "bad_coeff": {
+                    "candidate_label": "bad_coeff",
+                    "generator_id": "gen:bad-coeff",
+                    "compile_metadata": {
+                        "serialized_terms_exyz": [{"pauli_exyz": "x", "coeff_re": 1.0, "nq": 1}]
+                    },
+                }
+            },
+            allow_polynomial_source=True,
+        )
+
+
+
+def test_registry_and_polynomial_sources_build_exact_expansion_index() -> None:
+    registry = {
+        "reg_op": {
+            "candidate_label": "reg_op",
+            "generator_id": "gen:reg",
+            "support_qubits": [0],
+            "compile_metadata": {
+                "serialized_terms_exyz": [
+                    {"pauli_exyz": "ez", "coeff_re": 2.0, "coeff_im": 0.0, "nq": 2}
+                ]
+            },
+        }
+    }
+    idx = build_exact_expansion_index(registry_by_label=registry)
+    assert idx.resolve_key("reg_op") == "gen:reg"
+    assert idx.expansions_by_key["gen:reg"].source == "registry_serialized_terms"
+
+    poly = PauliPolynomial("JW", [PauliTerm(2, ps="xe", pc=1.0)])
+    term = SimpleNamespace(label="poly_op", polynomial=poly)
+    idx2 = build_exact_expansion_index(pool=[term], registry_by_label={}, allow_polynomial_source=True)
+    exp = idx2.expansions_by_key["poly_op"]
+    assert exp.source == "ansatz_term_polynomial"
+    assert exp.support_qubits == (1,)
+
+
+def test_phase0_weak_algebraic_index_degrades_malformed_metadata_to_mix() -> None:
+    poly = PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)])
+    term = SimpleNamespace(label="bad_coeff", polynomial=poly)
+
+    idx, summary = build_phase0_weak_algebraic_index(
+        pool=[term],
+        registry_by_label={
+            "bad_coeff": {
+                "candidate_label": "bad_coeff",
+                "generator_id": "gen:bad-coeff",
+                "support_qubits": [0],
+                "compile_metadata": {
+                    "serialized_terms_exyz": [{"pauli_exyz": "x", "coeff_re": 1.0, "nq": 1}]
+                },
+            }
+        },
+    )
+
+    assert summary["strict_exact"] is False
+    assert summary["approx_count"] == 1
+    exp = idx.expansions_by_key[idx.resolve_key("bad_coeff")]
+    assert exp.exactness == EXACTNESS_APPROX
+    assert exp.source == "phase0_malformed_serialized_terms_approx"
+    payload = phase0_weak_lane_payload(idx, candidate_label="bad_coeff", context_labels=["bad_coeff"])
+    assert payload["phase0_algebraic_lane"] == LANE_MIX
+    assert payload["phase0_algebraic_quality"] == EXACTNESS_APPROX
+    assert payload["phase0_algebraic_context_counts"]["n_approx"] == 1
+
+
+def test_phase0_weak_lane_payload_uses_existing_lane_values_without_strict_policy() -> None:
+    idx = AlgebraicMetadataIndex(
+        expansions_by_key={
+            "flat": _exp("flat", "Flat", ["xe"]),
+            "curv": _exp("curv", "Curv", ["ye"]),
+            "disj": _exp("disj", "Disj", ["ex"]),
+        }
+    )
+
+    flat = phase0_weak_lane_payload(idx, candidate_label="Flat", context_labels=["Flat"])
+    curv = phase0_weak_lane_payload(idx, candidate_label="Flat", context_labels=["Curv"])
+    disj = phase0_weak_lane_payload(idx, candidate_label="Flat", context_labels=["Disj"])
+    missing = phase0_weak_lane_payload(idx, candidate_label="Missing", context_labels=["Flat"])
+
+    assert flat["phase0_algebraic_lane"] == LANE_FLAT
+    assert curv["phase0_algebraic_lane"] == LANE_CURV
+    assert disj["phase0_algebraic_lane"] == LANE_DISJ
+    assert missing["phase0_algebraic_lane"] == LANE_MIX
+    assert missing["phase0_algebraic_quality"] == "missing_candidate_metadata"
+
+
+def test_phase0_lane_shortlist_uncapped_ranks_by_score_and_cap_preserves_lanes() -> None:
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "phase0_algebraic_lane": LANE_CURV, "phase0_delta_e_upper_hw": 1.0, "phase0_raw_gradient_abs": 1.0},
+        {"candidate_pool_index": 2, "position_id": 0, "phase0_algebraic_lane": LANE_FLAT, "phase0_delta_e_upper_hw": 2.0, "phase0_raw_gradient_abs": 2.0},
+        {"candidate_pool_index": 1, "position_id": 0, "phase0_algebraic_lane": LANE_DISJ, "phase0_delta_e_upper_hw": 0.5, "phase0_raw_gradient_abs": 0.5},
+    ]
+
+    uncapped = phase0_lane_shortlist_records(records, threshold=0.0, cap=0, pressure=1.0)
+    assert [row["candidate_pool_index"] for row in uncapped] == [2, 0, 1]
+    assert all(row["phase0_pilot_retained"] is True for row in uncapped)
+
+    capped = phase0_lane_shortlist_records(records, threshold=0.0, cap=3, pressure=1.0)
+    assert {row["phase0_algebraic_lane"] for row in capped} == {LANE_FLAT, LANE_CURV, LANE_DISJ}
+    assert [row["phase0_pilot_rank"] for row in capped] == [1, 2, 3]
+
+
+def test_lane_assignment_allows_disjoint_coexistence_and_approx_forces_mix() -> None:
+    assert assign_lane(n_flat=1, n_disj=3, n_curv=0, n_approx=0) == LANE_FLAT
+    assert assign_lane(n_curv=1, n_disj=3, n_flat=0, n_approx=0) == LANE_CURV
+    assert assign_lane(n_disj=2, n_flat=0, n_curv=0, n_approx=0) == LANE_DISJ
+    assert assign_lane(n_flat=1, n_curv=1, n_disj=0, n_approx=0) == LANE_MIX
+    assert assign_lane(n_flat=1, n_curv=0, n_disj=0, n_approx=1) == LANE_MIX
+
+
+def test_algebraic_lane_quota_pressure_budgets_preserve_or_relax_lane_coverage() -> None:
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 10.0},
+        {"candidate_pool_index": 1, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 9.0},
+        {"candidate_pool_index": 2, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 8.0},
+        {"candidate_pool_index": 3, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 7.0},
+        {"candidate_pool_index": 4, "position_id": 0, "algebraic_lane": LANE_CURV, "simple_score": 6.0},
+        {"candidate_pool_index": 5, "position_id": 0, "algebraic_lane": LANE_DISJ, "simple_score": 5.0},
+        {"candidate_pool_index": 6, "position_id": 0, "algebraic_lane": LANE_MIX, "simple_score": 4.0},
+    ]
+
+    coverage = algebraic_lane_quota_pressure_budgets(
+        records,
+        cap=4,
+        score_key="simple_score",
+        threshold=0.0,
+        pressure=1.0,
+    )
+    assert sum(coverage.values()) == 4
+    assert all(coverage[lane] == 1 for lane in (LANE_FLAT, LANE_CURV, LANE_DISJ, LANE_MIX))
+
+    relaxed = algebraic_lane_quota_pressure_budgets(
+        records,
+        cap=4,
+        score_key="simple_score",
+        threshold=0.0,
+        pressure=0.25,
+    )
+    assert sum(relaxed.values()) == 4
+    assert relaxed[LANE_FLAT] == 4
+    assert all(relaxed[lane] == 0 for lane in (LANE_CURV, LANE_DISJ, LANE_MIX))
+    for lane in (LANE_FLAT, LANE_CURV, LANE_DISJ, LANE_MIX):
+        available = sum(1 for row in records if row["algebraic_lane"] == lane)
+        assert relaxed[lane] <= available
+
+    tail_ranked = algebraic_lane_quota_pressure_budgets(
+        [
+            {"candidate_pool_index": 10, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 10.0},
+            {"candidate_pool_index": 11, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 1.0},
+            {"candidate_pool_index": 12, "position_id": 0, "algebraic_lane": LANE_CURV, "simple_score": 9.0},
+            {"candidate_pool_index": 13, "position_id": 0, "algebraic_lane": LANE_DISJ, "simple_score": 8.0},
+        ],
+        cap=3,
+        score_key="simple_score",
+        threshold=0.0,
+        pressure=0.25,
+    )
+    assert tail_ranked[LANE_FLAT] == 1
+    assert tail_ranked[LANE_CURV] == 1
+    assert tail_ranked[LANE_DISJ] == 1
+    assert tail_ranked[LANE_MIX] == 0
+
+
+def test_phase1_lane_shortlist_records_refills_after_frontier_underfill() -> None:
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 10.0},
+        {"candidate_pool_index": 1, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 9.0},
+        {"candidate_pool_index": 2, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 8.0},
+        {"candidate_pool_index": 3, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 7.0},
+        {"candidate_pool_index": 4, "position_id": 0, "algebraic_lane": LANE_CURV, "simple_score": 6.0},
+    ]
+
+    selected = phase1_lane_shortlist_records(
+        records,
+        score_key="simple_score",
+        threshold=0.0,
+        cap=4,
+        frontier_ratio=0.95,
+        lane_budgets={LANE_FLAT: 4, LANE_CURV: 0, LANE_DISJ: 0, LANE_MIX: 0},
+        tie_break_score_key="simple_score",
+    )
+
+    assert len(selected) == 4
+    assert [row["candidate_pool_index"] for row in selected] == [0, 1, 2, 3]
+
+
+def test_phase1_lane_shortlist_records_preserves_lane_frontier_geometry_order() -> None:
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 10.0},
+        {"candidate_pool_index": 1, "position_id": 0, "algebraic_lane": LANE_FLAT, "simple_score": 1.0},
+        {"candidate_pool_index": 2, "position_id": 0, "algebraic_lane": LANE_CURV, "simple_score": 8.0},
+        {"candidate_pool_index": 3, "position_id": 0, "algebraic_lane": LANE_DISJ, "simple_score": 6.0},
+    ]
+
+    selected = phase1_lane_shortlist_records(
+        records,
+        score_key="simple_score",
+        threshold=0.0,
+        cap=3,
+        frontier_ratio=1.0,
+        tie_break_score_key="simple_score",
+        shortlist_flag="phase1_shortlisted",
+    )
+
+    assert {row["algebraic_lane"] for row in selected} == {LANE_FLAT, LANE_CURV, LANE_DISJ}
+    assert [row["candidate_pool_index"] for row in selected] == [0, 2, 3]
+    assert [row["shortlist_rank"] for row in selected] == [1, 2, 3]
+    assert all(row["phase1_shortlisted"] is True for row in selected)
+
+
+def test_generic_lane_shortlist_records_support_physical_lane_keys() -> None:
+    lanes = ("uccsd_correlation", "phonon_displacement", "dressed_phonon_correlation", "other")
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "physical_operator_lane": "uccsd_correlation", "simple_score": 10.0, "phase2_raw_score": 10.0, "feature": {"id": "u"}},
+        {"candidate_pool_index": 1, "position_id": 0, "physical_operator_lane": "phonon_displacement", "simple_score": 9.0, "phase2_raw_score": 9.0, "feature": {"id": "p"}},
+        {"candidate_pool_index": 2, "position_id": 0, "physical_operator_lane": "dressed_phonon_correlation", "simple_score": 8.0, "phase2_raw_score": 1.0, "feature": {"id": "d"}},
+    ]
+
+    budgets = lane_quota_pressure_budgets(
+        records,
+        cap=2,
+        score_key="simple_score",
+        pressure=1.0,
+        lane_key="physical_operator_lane",
+        lanes=lanes,
+        fallback_lane="other",
+    )
+    selected = lane_phase1_shortlist_records(
+        records,
+        score_key="simple_score",
+        cap=2,
+        threshold=0.0,
+        frontier_ratio=1.0,
+        lane_key="physical_operator_lane",
+        lanes=lanes,
+        fallback_lane="other",
+        lane_budgets=budgets,
+    )
+
+    assert [row["physical_operator_lane"] for row in selected] == [
+        "uccsd_correlation",
+        "phonon_displacement",
+    ]
+
+    phase2 = lane_phase2_health_shortlist_records(
+        records,
+        score_key="phase2_raw_score",
+        cap=2,
+        threshold=0.0,
+        frontier_ratio=1.0,
+        lane_key="physical_operator_lane",
+        lanes=lanes,
+        fallback_lane="other",
+        lane_rel_threshold=0.5,
+        health_key_prefix="physical_operator",
+    )
+
+    assert [row["candidate_pool_index"] for row in phase2] == [0, 1]
+    assert all(row["physical_operator_lane_live"] is True for row in phase2)
+    assert phase2[0]["physical_operator_lane_health"] == pytest.approx(10.0)
+
+
+def test_hh_physical_operator_lane_classifier_keeps_operator_families_separate() -> None:
+    assert (
+        classify_hh_physical_operator_lane("uccsd_ferm_lifted::uccsd_dbl(i=0,j=1)")[
+            "physical_operator_lane"
+        ]
+        == "uccsd_double"
+    )
+    assert (
+        classify_hh_physical_operator_lane("hh_phonon::x(site=0)")[
+            "physical_operator_lane"
+        ]
+        == "phonon_displacement"
+    )
+    assert (
+        classify_hh_physical_operator_lane("hh_phonon::x_sq(site=0)")[
+            "physical_operator_lane"
+        ]
+        == "phonon_squeeze_relaxation"
+    )
+    assert (
+        classify_hh_physical_operator_lane("paop_0:paop_hopdrag(i=0,j=1)")[
+            "physical_operator_lane"
+        ]
+        == "dressed_phonon_correlation"
+    )
+    assert (
+        classify_hh_physical_operator_lane("ham_block::phonon")[
+            "physical_operator_lane"
+        ]
+        == "hva_hamiltonian_blocks"
+    )
+
+
+def test_phase2_lane_health_shortlist_records_prunes_unhealthy_lanes_by_geometry() -> None:
+    records = [
+        {"candidate_pool_index": 0, "position_id": 0, "algebraic_lane": LANE_FLAT, "phase2_raw_score": 10.0, "feature": {"id": "flat0"}},
+        {"candidate_pool_index": 1, "position_id": 0, "algebraic_lane": LANE_FLAT, "phase2_raw_score": 9.0, "feature": {"id": "flat1"}},
+        {"candidate_pool_index": 2, "position_id": 0, "algebraic_lane": LANE_CURV, "phase2_raw_score": 1.0, "feature": {"id": "curv"}},
+        {"candidate_pool_index": 3, "position_id": 0, "algebraic_lane": LANE_DISJ, "phase2_raw_score": 0.5, "feature": {"id": "disj"}},
+    ]
+
+    def _merge_feature(feat: object, updates: object) -> object:
+        return {**dict(feat), **dict(updates)}
+
+    selected = phase2_lane_health_shortlist_records(
+        records,
+        score_key="phase2_raw_score",
+        threshold=0.0,
+        cap=3,
+        frontier_ratio=1.0,
+        lane_rel_threshold=0.2,
+        tie_break_score_key="phase2_raw_score",
+        shortlist_flag="phase2_shortlisted",
+        feature_updater=_merge_feature,
+    )
+
+    assert [row["candidate_pool_index"] for row in selected] == [0, 1]
+    assert {row["algebraic_lane"] for row in selected} == {LANE_FLAT}
+    assert all(row["algebraic_lane_live"] is True for row in selected)
+    assert selected[0]["algebraic_lane_health"] == pytest.approx(10.0)
+    assert selected[0]["feature"]["algebraic_lane_relative_health"] == pytest.approx(1.0)
+    assert all(row["phase2_shortlisted"] is True for row in selected)
+
+
+def test_local_context_summary_counts_exact_relations() -> None:
+    candidate = _exp("cand", "candidate", ["xe"])
+    flat = _exp("flat", "flat", ["xe"])
+    curv = _exp("curv", "curv", ["ze"])
+    disj = _exp("disj", "disj", ["ey"])
+
+    idx = AlgebraicMetadataIndex(
+        expansions_by_key={
+            "cand": candidate,
+            "flat": flat,
+            "curv": curv,
+            "disj": disj,
+        }
+    )
+
+    summary = idx.summarize_local_context("cand", ["flat", "disj"])
+    assert summary.n_flat == 1
+    assert summary.n_disj == 1
+    assert summary.n_curv == 0
+    assert summary.lane == LANE_FLAT
+
+    mixed = idx.summarize_local_context("cand", ["flat", "curv"])
+    assert mixed.n_flat == 1
+    assert mixed.n_curv == 1
+    assert mixed.lane == LANE_MIX

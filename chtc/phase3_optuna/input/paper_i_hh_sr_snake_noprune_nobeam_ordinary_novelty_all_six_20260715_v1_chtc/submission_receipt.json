@@ -1,0 +1,29 @@
+{
+  "schema": "paper_i_hh_sr_novelty_on_six_submission_receipt_v1",
+  "submitted_utc": "2026-07-16T04:21:35Z",
+  "cluster_id": 8811165,
+  "job_count": 6,
+  "batch_name": "paper-i-hh-sr-noprune-nobeam-novelty-on-six-20260715-v1",
+  "remote_submit_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/submit.sub",
+  "submit_file_sha256": "bc61e48195268660423d758f2361bcb53b3d5bbf3d4b941693c1c043b0ed7015",
+  "source_archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+  "remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "remote_artifact_hashes_verified": 23,
+  "duplicate_active_jobs_before_submit": 0,
+  "scheduler_acceptance": {
+    "checked": true,
+    "job_status": 1,
+    "held_jobs": 0,
+    "request_cpus_all_jobs": 4,
+    "request_memory_mb_by_proc": [
+      32768,
+      32768,
+      32768,
+      40960,
+      40960,
+      40960
+    ],
+    "request_disk_kb_all_jobs": 62914560
+  }
+}

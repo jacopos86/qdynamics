@@ -1,0 +1,64 @@
+{
+  "artifacts": {
+    "command": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/preflight_smoke_weak_weak_depth1/command.json",
+      "sha256": "22808e9f5e9c6dfd416338e2684b950477809d846a89a5417b57833f9de8a5cb",
+      "size_bytes": 4954
+    },
+    "current": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/preflight_smoke_weak_weak_depth1/json/current.json",
+      "sha256": "adf6a7793587ca8ffb70952674fd941dd1e058e6cab5a1bdaafb937aef00f84b",
+      "size_bytes": 745136
+    },
+    "estimator_call_ledger": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/preflight_smoke_weak_weak_depth1/json/estimator_call_ledger.json",
+      "sha256": "45e85c9bc0a83533c205ebec6f19b1e0af2fac00ef0203c1ae86ab1bf873b385",
+      "size_bytes": 1054783
+    },
+    "result": {
+      "path": "raw_outputs/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/preflight_smoke_weak_weak_depth1/json/result.json",
+      "sha256": "b8dc028becf8cb34cb411483bb8df2e1f4d371b4325369172c81e5d76c103f40",
+      "size_bytes": 6836373
+    }
+  },
+  "checks": {
+    "adapt_success": true,
+    "all_branch_search_work_S_alg": {
+      "N_H_outer": 1,
+      "N_H_refit": 81,
+      "N_grad": 133,
+      "N_metric": 180,
+      "S_alg": 395
+    },
+    "completed_controller_rounds": 1,
+    "estimator_accounting_complete": true,
+    "estimator_accounting_status": "resolved_from_live_state_keyed_instrumentation",
+    "estimator_exact_blockers": [],
+    "max_sector_leakage": 0.0,
+    "ordered_active_operator_count": 1,
+    "padding_projection_policy_values": [
+      "exact_projected_grouped_v1"
+    ],
+    "phase0_enabled": false,
+    "phase2_batching_enabled": false,
+    "phase2_gram_novelty_policy": "fallback_only_v1",
+    "phase3_batching_enabled": false,
+    "phase3_gram_novelty_policy": "fallback_only_v1",
+    "phase3_novelty_ablation_mode": "off",
+    "process_exit_code": 0,
+    "sr_controller_ablation_contract": "novelty_prune_controls_v1",
+    "sr_escape_mode": "disabled",
+    "terminal_checkpoint_present": true,
+    "winning_lineage_S_alg": {
+      "N_H_outer": 1,
+      "N_H_refit": 55,
+      "N_grad": 133,
+      "N_metric": 179,
+      "S_alg": 368
+    }
+  },
+  "created_utc": "2026-07-16T00:46:38.366161+00:00",
+  "schema": "paper_i_hh_sr_no_ordinary_novelty_local_smoke_validation_v1",
+  "smoke_root": "raw_outputs/paper_i_hh_sr_snake_no_ordinary_novelty_all_six_20260715_v1_chtc/preflight_smoke_weak_weak_depth1",
+  "status": "pass"
+}

@@ -1,0 +1,21 @@
+{
+  "corrected_main_parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "family": "historical_beam_3x2",
+  "only_scientific_contract_diff": [
+    {
+      "field": "phase_live_hysteresis_enabled",
+      "new": false,
+      "old": null
+    }
+  ],
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+  "predecessor_cluster": 8887539,
+  "predecessor_route_contract_sha256": "f932974ad3cdbd3b1b38239794cc9e7ab96a94502b53238bcdf5c5760f814a80",
+  "predecessor_source_archive_sha256": "942838bf460a1804e98c1b9893d89a8dd1001aa8beefe4bbac0c3b6a625dbe2e",
+  "route_contract_sha256": "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168",
+  "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+  "source_archive_sha256": "77ef031ced6906718c8426ff703ec4c6c528495d956910a9a64a213d68432a04",
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-appendix-historical-beam3x2-fullresp-symcost-noprune-nonovelty-six-r50-20260718-v4",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_historical_beam3x2_full_response_symmetric_cost_noprune_no_ordinary_novelty_all_six_r50_20260718_v4_chtc"
+}

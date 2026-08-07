@@ -1,0 +1,19 @@
+{
+  "batch_name": "paper-i-hh-sr-appendix-phase3-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260718-v4",
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "checks": {
+    "explicit_disabled_argv_all_rows": true,
+    "only_contract_diff_is_hysteresis_false": true,
+    "runtime_route_validation_in_archive": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "submission_not_performed": true
+  },
+  "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_hysteresis_disabled_bundle_preflight_v1",
+  "source_archive_manifest_sha256": "36b4d9ee434658df2558bf4d8af823c7ad03555abdcf44c4470fdec63a33b60b",
+  "source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+  "status": "pass"
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_submission_v1",
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v2_chtc",
+  "batch_name": "paper-i-hh-sr-macro-beam3x2-fsprune-onesided-six-r50-20260719-v2",
+  "cluster_id": 8893084,
+  "job_count": 6,
+  "submitted_utc": "2026-07-19T21:57:03Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_state": {
+    "idle": 6,
+    "running": 0,
+    "held": 0,
+    "completed": 0
+  },
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "source_lock": {
+    "source_archive_sha256": "69d15c1bc7f2b704d8bf658696a551b5a15a34c2140971c6c382f0cae385cec2",
+    "route_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096"
+  },
+  "failed_predecessor": {
+    "cluster_id": 8892216,
+    "classification": "removed_pre_science_stale_runtime_profile_registration"
+  },
+  "pre_submission_validation": {
+    "live_focused_tests": "190_passed",
+    "archive_isolated_focused_tests": "188_passed",
+    "local_validate_only_rows": 6,
+    "remote_image_validate_only_rows_across_both_arms": 12,
+    "remote_image_runtime_startup_registration": "pass",
+    "remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "scientific_setting_changes_in_repair": []
+  },
+  "submit_inputs": {
+    "submit_sub_sha256": "b4ca6488b6b0b597242ae37d363a99f1ad6b73a57b7c40b466fb8a4e47b17d1c",
+    "queue_tsv_sha256": "3d3cd46a6f46812e6049f02280a669da2264d051fed354f8f44611e2402612e7",
+    "bundle_manifest_sha256": "4ded7eaf955a3a9679f8e1db5be72eda500f762b141629ef4e8617dce0c3a04d",
+    "preflight_sha256": "aa796a33d11828a87d7dcc666a40709ba6723c88bedc00ce5b7f67bede0096df",
+    "runtime_registration_repair_sha256": "b8a4bfd32bc84982651662bcb86e3bac82a304dc4a6d00d64db0d4fbd356dbdf"
+  }
+}

@@ -1,0 +1,23 @@
+universe = vanilla
+executable = chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/run_apptainer.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/source_tree.tar.gz, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/h2o_fixture.json, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/command.json, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/route_settings_diff_audit.json, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/command_preflight.json, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/input/input_manifest.json, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/run_payload.py, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/runtime_preflight.py, chtc/paper_iv_h2o_sr_no_novelty_metric_prune_beam_d50_20260717/validate_result.py, chtc/phase3_optuna/image.sif
+transfer_output_files = deliverables/paper_iv_h2o_sr_v3_no_novelty_metric_prune_beam_from_zero_d50_20260717_v1
+log = logs/paper-iv-h2o-sr-v3-no-novelty-metric-prune-beam-d50.$(Cluster).$(Process).log
+output = logs/paper-iv-h2o-sr-v3-no-novelty-metric-prune-beam-d50.$(Cluster).$(Process).out
+error = logs/paper-iv-h2o-sr-v3-no-novelty-metric-prune-beam-d50.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 64GB
+request_disk = 80GB
++MaxRuntime = 1209600
+kill_sig = SIGTERM
+kill_sig_timeout = 900
++JobBatchName = "paper-iv-h2o-sr-v3-no-novelty-metric-prune-beam-d50-20260717-v1"
+environment = "H2O_HEARTBEAT_SEC=300 STATIC_ADAPT_CANDIDATE_RECORD_CACHE=memory OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1"
+queue 1

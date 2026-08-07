@@ -1,0 +1,42 @@
+{
+  "schema_version": "open_dynamics.riva_ping_dimer_protocol.v1",
+  "benchmark_id": "riva_simoni_ping_driven_holstein_dimer_source_anchored_v1",
+  "citations": [
+    "https://arxiv.org/html/2606.22233v1",
+    "https://arxiv.org/html/2504.17936v2"
+  ],
+  "paper_stated": {
+    "model.t_hop": 1.0,
+    "model.gamma": 0.5,
+    "model.lambda": 0.5,
+    "drive.v_over_t_hop": 1.0,
+    "drive.Tp_times_t_hop": 1.0,
+    "drive.carrier_angular_frequency_over_t_hop": 0.7853981633974483,
+    "exact.propagation": "full_density_matrix_RK4",
+    "exact.maximum_phonon_occupation": 30,
+    "spectrum.final_time_times_t_hop": 400.0,
+    "spectrum.window": "Hann",
+    "observable.polarization": "0.5*(rho_22-rho_11)",
+    "source.spin_reduced_supplement_present_in_public_v1_archive": false
+  },
+  "repository_choices": {
+    "numerics.sample_start": 0.0,
+    "numerics.sample_stop": 0.5,
+    "numerics.sample_step": 0.05,
+    "numerics.phonon_cutoff": 4,
+    "numerics.phonon_cutoff_semantics": "maximum_local_occupation_inclusive",
+    "numerics.integrator": "DOP853",
+    "numerics.relative_tolerance": 1e-09,
+    "numerics.absolute_tolerance": 1e-11,
+    "numerics.maximum_step": 0.05,
+    "initialization.protocol": "shared_exact_zero_field_ground_state_contractions",
+    "coherent.center_mode_protocol": "hold_initial_exact_center_amplitude",
+    "equal_time.protocol": "independent_archive_31_coordinate_rhs",
+    "fourier.window_implementation": "numpy.hanning_symmetric",
+    "fourier.normalization": "forward_divide_by_sample_count",
+    "fourier.detrend": "none",
+    "fourier.sided": "one_sided_angular_frequency",
+    "validation.scope": "short_local_fixture_not_published_curve_reproduction"
+  },
+  "claim_boundary": "Source-anchored independent invariant benchmark. Not an ab initio result, published-curve reproduction, collaborator-reviewed result, or quantum-advantage claim."
+}

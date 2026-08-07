@@ -1,0 +1,13 @@
+def test_run_single_static_route_env_rejects_non_phase3_static_record(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("GENERIC_STATIC_TABLE_STATIC_ROUTE_ID", "route_a")
+
+    with pytest.raises(ValueError, match="static-route CHTC env overlay is only valid.*phase3_static_adapt"):
+        run_single(
+            family="hh",
+            case_id="hh_L2",
+            algorithm_id="static_hea_qiskit_vqe",
+            output_dir=tmp_path / "hea",
+        )

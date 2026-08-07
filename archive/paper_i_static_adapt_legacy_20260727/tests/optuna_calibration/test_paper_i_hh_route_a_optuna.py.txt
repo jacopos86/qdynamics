@@ -1,0 +1,842 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import optuna
+import pytest
+
+from pipelines.exact_bench import paper_i_hh_powell_pareto as pareto_runner
+from pipelines.exact_bench import paper_i_hh_route_a_optuna as route_optuna
+
+
+def _policy(**overrides):
+    values = {
+        "macro_phase1_cap": 48,
+        "macro_phase2_cap": 24,
+        "child_phase1_cap": 64,
+        "child_phase2_cap": 32,
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "lambda_add": 0.1,
+        "batch_mode": "combinatorial",
+    }
+    values.update(overrides)
+    return route_optuna.RouteAPolicy(**values)
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_policy_covers_all_four_shortlists_and_excludes_zero_additivity() -> None:
+    policy = _policy(
+        macro_phase1_cap=route_optuna.ALL,
+        macro_phase2_cap=route_optuna.ALL,
+        child_phase1_cap=route_optuna.ALL,
+        child_phase2_cap=route_optuna.ALL,
+        batch_search_pool_size=route_optuna.ALL,
+    )
+
+    assert policy.as_dict() == {
+        "macro_phase1_cap": "all",
+        "macro_phase2_cap": "all",
+        "child_phase1_cap": "all",
+        "child_phase2_cap": "all",
+        "batch_search_pool_size": "all",
+        "batch_size_cap": 2,
+        "lambda_add": 0.1,
+        "batch_mode": "combinatorial",
+    }
+    assert policy.resolved_caps() == {
+        "macro_phase1_cap": route_optuna.UNBOUNDED_SHORTLIST_CAP,
+        "macro_phase2_cap": route_optuna.UNBOUNDED_SHORTLIST_CAP,
+        "child_phase1_cap": route_optuna.UNBOUNDED_SHORTLIST_CAP,
+        "child_phase2_cap": route_optuna.UNBOUNDED_SHORTLIST_CAP,
+        "batch_search_pool_size": 0,
+    }
+    with pytest.raises(ValueError, match="unpenalized zero route is excluded"):
+        _policy(lambda_add=0.0)
+
+
+def test_policy_rejects_downstream_finite_cap_larger_than_upstream() -> None:
+    with pytest.raises(ValueError, match="child_phase2_cap=64 exceeds"):
+        _policy(child_phase1_cap=32, child_phase2_cap=64)
+
+
+def test_wave11_legal_policy_is_fixed_and_keeps_zero_additivity() -> None:
+    policy = route_optuna.Wave11LegalPolicy()
+
+    assert policy.as_dict() == {
+        "macro_phase1_cap": 64,
+        "macro_phase2_cap": 48,
+        "child_phase1_cap": 128,
+        "child_phase2_cap": 64,
+        "batch_search_pool_size": 25,
+        "batch_size_cap": 2,
+        "lambda_add": 0.0,
+        "batch_mode": "combinatorial",
+    }
+    with pytest.raises(ValueError, match="fixed"):
+        route_optuna.Wave11LegalPolicy(lambda_add=0.1)
+
+
+def test_jr_l10_rollback_free_policy_is_fixed() -> None:
+    policy = route_optuna.JrL10RollbackFreePolicy()
+
+    assert policy.as_dict() == {
+        "macro_phase1_cap": 32,
+        "macro_phase2_cap": 24,
+        "child_phase1_cap": 32,
+        "child_phase2_cap": 25,
+        "batch_search_pool_size": 10,
+        "batch_size_cap": 2,
+        "lambda_add": 0.0,
+        "batch_mode": "combinatorial",
+    }
+    with pytest.raises(ValueError, match="fixed"):
+        route_optuna.JrL10RollbackFreePolicy(batch_search_pool_size=15)
+
+
+@pytest.mark.parametrize(
+    ("regime", "expected_n_ph_max"),
+    [("weak-weak", 2), ("weak-strong", 4)],
+)
+def test_wave11_legal_plan_uses_cutoff_generic_projected_children(
+    tmp_path: Path,
+    regime: str,
+    expected_n_ph_max: int,
+) -> None:
+    policy = route_optuna.Wave11LegalPolicy()
+    argv = route_optuna.build_wave11_legal_pareto_argv(
+        policy,
+        regime=regime,
+        output_json=tmp_path / f"{regime}.json",
+        current_json=tmp_path / f"{regime}.current.json",
+        max_depth=15,
+        dry_run=True,
+    )
+    plan = pareto_runner.run_once(pareto_runner.build_parser().parse_args(argv))
+    validation = route_optuna.validate_locked_pareto_plan(
+        plan,
+        policy=policy,
+        max_depth=15,
+        expected_scipy_maxfev=0,
+        expected_child_padding_policy="exact_projected_grouped_v1",
+        expected_batch_search_feasibility_policy="raw_ranked_legacy_v1",
+    )
+
+    mechanisms = plan["scientific_settings"]["route_a_invocation"]["mechanisms"]
+    assert validation["status"] == "pass"
+    assert mechanisms["child_padding_policy"] == "exact_projected_grouped_v1"
+    assert mechanisms["route_a_funnel"]["child_padding"]["n_ph_max"] == expected_n_ph_max
+    assert mechanisms["route_a_funnel"]["macro_phase0_cap"] == 256
+    assert mechanisms["route_a_funnel"]["child_phase3_cap"] == 4096
+    assert mechanisms["route_a_funnel"]["schur_selector"][
+        "batch_search_feasibility_policy"
+    ] == "raw_ranked_legacy_v1"
+    assert plan["scientific_settings"]["run_kwargs"]["adapt_scipy_maxfev"] == 0
+
+
+def test_wave11_adaptive_whitened_r30_plan_locks_all_approved_changes(
+    tmp_path: Path,
+) -> None:
+    policy = route_optuna.Wave11LegalPolicy()
+    argv = route_optuna.build_wave11_adaptive_whitened_r30_pareto_argv(
+        policy,
+        regime="weak-weak",
+        output_json=tmp_path / "result.json",
+        current_json=tmp_path / "current.json",
+        max_depth=30,
+        dry_run=True,
+    )
+    args = pareto_runner.build_parser().parse_args(argv)
+    plan = pareto_runner.run_once(args)
+    validation = route_optuna.validate_locked_pareto_plan(
+        plan,
+        policy=policy,
+        max_depth=30,
+        expected_scipy_maxfev=0,
+        expected_child_padding_policy="exact_projected_grouped_v1",
+        expected_batch_search_feasibility_policy="raw_ranked_legacy_v1",
+        expected_joint_linear_solve_policy="supported_metric_whitened_eigh_v1",
+        expected_trust_region_update_policy="displacement_calibrated_unbounded_v2",
+        expected_selector_exhaustion_retry_policy=(
+            "expand_all_then_force_singleton_v1"
+        ),
+    )
+
+    assert validation["status"] == "pass"
+    invocation = plan["scientific_settings"]["route_a_invocation"]
+    assert invocation["max_adapt_iterations"] == 30
+    schur = invocation["mechanisms"]["route_a_funnel"]["schur_selector"]
+    assert schur["batch_search_pool_size"] == 25
+    assert schur["joint_linear_solve_policy"] == (
+        "supported_metric_whitened_eigh_v1"
+    )
+    assert schur["trust_region_update"]["policy"] == (
+        "displacement_calibrated_unbounded_v2"
+    )
+    assert schur["exhaustion_retry_policy"] == (
+        "expand_all_then_force_singleton_v1"
+    )
+
+
+@pytest.mark.parametrize(
+    ("regime", "expected_padding"),
+    [
+        ("weak-weak", "nph2_exact_projected_grouped_v1"),
+        ("weak-strong", "exact_projected_grouped_v1"),
+    ],
+)
+def test_jr_l10_rollback_free_r50_plan_locks_canonical_route(
+    tmp_path: Path,
+    regime: str,
+    expected_padding: str,
+) -> None:
+    policy = route_optuna.JrL10RollbackFreePolicy()
+    argv = route_optuna.build_jr_l10_rollback_free_r50_pareto_argv(
+        policy,
+        regime=regime,
+        output_json=tmp_path / "result.json",
+        current_json=tmp_path / "current.json",
+        max_depth=50,
+        dry_run=True,
+    )
+    plan = pareto_runner.run_once(pareto_runner.build_parser().parse_args(argv))
+    validation = route_optuna.validate_locked_pareto_plan(
+        plan,
+        policy=policy,
+        max_depth=50,
+        expected_scipy_maxfev=200,
+        expected_child_padding_policy=expected_padding,
+        expected_batch_search_feasibility_policy="joint_subset_gate_v1",
+        expected_joint_linear_solve_policy="supported_metric_whitened_eigh_v1",
+        expected_trust_region_update_policy="displacement_calibrated_unbounded_v2",
+        expected_selector_exhaustion_retry_policy="stop",
+        expected_funnel_mode="child_12_joint_response_v2",
+        expected_joint_step_warm_start_mode=(
+            "exact_applied_joint_step_guarded_v1"
+        ),
+        require_rollback_controls_absent=True,
+    )
+
+    invocation = plan["scientific_settings"]["route_a_invocation"]
+    funnel = invocation["mechanisms"]["route_a_funnel"]
+    run_kwargs = plan["scientific_settings"]["run_kwargs"]
+    assert validation["status"] == "pass"
+    assert invocation["max_adapt_iterations"] == 50
+    assert funnel["mode"] == "child_12_joint_response_v2"
+    assert funnel["child_padding"]["policy"] == expected_padding
+    assert funnel["schur_selector"]["batch_search_pool_size"] == 10
+    assert funnel["schur_selector"]["exhaustion_retry_policy"] == "stop"
+    assert funnel["joint_step_warm_start"]["mode"] == (
+        "exact_applied_joint_step_guarded_v1"
+    )
+    assert "duplicate_cooldown_policy" not in funnel
+    assert "adapt_rollback_mode" not in run_kwargs
+    assert "adapt_rollback_tolerance" not in run_kwargs
+
+
+def test_plan_jr_l10_rollback_free_r50_writes_diff_and_six_cells(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_repo = tmp_path / "repo"
+    old_wave_rel = Path("old/wave_manifest.json")
+    _write_json(
+        fake_repo / old_wave_rel,
+        {
+            "scientific_contract": {
+                "execution": {"max_controller_rounds": 30},
+                "policy": {"batch_search_pool_size": 25},
+            }
+        },
+    )
+    monkeypatch.setattr(route_optuna, "REPO_ROOT", fake_repo)
+    monkeypatch.setattr(route_optuna, "REMOVED_WAVE11_R30_EXPORT", old_wave_rel)
+    output_dir = tmp_path / "jr-l10-r50"
+
+    wave = route_optuna.plan_jr_l10_rollback_free_r50_matrix(
+        output_dir=output_dir,
+        max_depth=50,
+    )
+    diff = json.loads(
+        (output_dir / "settings_diff_vs_removed_cluster_8775666.json").read_text()
+    )
+
+    assert wave["cell_count"] == 6
+    assert wave["execution_profile"] == (
+        route_optuna.JR_L10_ROLLBACK_FREE_R50_EXECUTION_PROFILE
+    )
+    assert wave["scientific_contract"]["route"]["structural_rollback_control"] == (
+        "absent"
+    )
+    assert diff["status"] == "pass"
+    assert diff["removed_cluster_id"] == 8775666
+    assert diff["critical_contract"]["max_controller_rounds"] == 50
+    assert diff["critical_contract"]["selector_exhaustion_retry_policy"] == "stop"
+    assert len(list((output_dir / "cell_manifests").glob("*.json"))) == 6
+
+
+def test_pareto_plan_locks_new_route_and_beam_on(tmp_path: Path) -> None:
+    policy = _policy()
+    argv = route_optuna.build_pareto_argv(
+        policy,
+        regime="weak-weak",
+        output_json=tmp_path / "result.json",
+        current_json=tmp_path / "current.json",
+        max_depth=15,
+        dry_run=True,
+    )
+    args = pareto_runner.build_parser().parse_args(argv)
+    plan = pareto_runner.run_once(args)
+
+    validation = route_optuna.validate_locked_pareto_plan(
+        plan,
+        policy=policy,
+        max_depth=15,
+    )
+
+    invocation = plan["scientific_settings"]["route_a_invocation"]
+    assert validation["status"] == "pass"
+    assert invocation["shortlists"]["phase0_enabled"] is False
+    assert invocation["shortlists"]["child_phase3_enabled"] is False
+    assert invocation["shortlists"]["phase1_size"] == 48
+    assert invocation["shortlists"]["phase2_size"] == 24
+    assert invocation["shortlists"]["child_phase1_size"] == 64
+    assert invocation["shortlists"]["child_phase2_size"] == 32
+    assert invocation["mechanisms"]["beam_enabled"] is True
+    assert invocation["mechanisms"]["pruning_enabled"] is True
+    assert invocation["mechanisms"]["final_selection_authority"] == (
+        "joint_ansatz_plus_batch_schur"
+    )
+    assert invocation["mechanisms"]["route_a_funnel"]["mode"] == (
+        "child_12_joint_schur_v1"
+    )
+    assert "duplicate_cooldown_policy" not in invocation["mechanisms"]["route_a_funnel"]
+
+    invocation["mechanisms"]["beam_enabled"] = False
+    with pytest.raises(ValueError, match="mechanisms.beam_enabled"):
+        route_optuna.validate_locked_pareto_plan(
+            plan,
+            policy=policy,
+            max_depth=15,
+        )
+
+
+def test_plan_wave_writes_one_policy_across_all_six_regimes(tmp_path: Path) -> None:
+    database = tmp_path / "study.sqlite3"
+    wave_root = tmp_path / "wave"
+
+    wave = route_optuna.plan_wave(
+        database=database,
+        study_name="route-a-test",
+        output_dir=wave_root,
+        n_trials=2,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=7,
+        population_size=4,
+    )
+
+    assert wave["trial_count"] == 2
+    assert wave["cell_count"] == 12
+    assert wave["scientific_contract"]["beam"]["enabled"] is True
+    assert wave["scientific_contract"]["optuna_variables_only"] == [
+        "macro_phase1_cap",
+        "macro_phase2_cap",
+        "child_phase1_cap",
+        "child_phase2_cap",
+        "batch_search_pool_size",
+        "batch_size_cap",
+        "lambda_add",
+    ]
+    for trial_ref in wave["trials"]:
+        trial_manifest = json.loads(
+            (wave_root / trial_ref["trial_manifest"]).read_text(encoding="utf-8")
+        )
+        assert trial_manifest["regime_order"] == list(route_optuna.REGIME_ORDER)
+        assert len(trial_manifest["cells"]) == 6
+        assert trial_manifest["policy"]["lambda_add"] in {0.1, 0.75}
+        assert "macro_phase1_cap" in trial_manifest["policy"]
+        assert "macro_phase2_cap" in trial_manifest["policy"]
+        assert "child_phase1_cap" in trial_manifest["policy"]
+        assert "child_phase2_cap" in trial_manifest["policy"]
+        assert len({cell["regime"] for cell in trial_manifest["cells"]}) == 6
+    study = optuna.load_study(
+        study_name="route-a-test",
+        storage=route_optuna._storage_url(database),
+    )
+    assert sum(trial.state == optuna.trial.TrialState.RUNNING for trial in study.trials) == 2
+
+
+def test_plan_wave11_legal_writes_one_fixed_candidate_matrix(tmp_path: Path) -> None:
+    wave_root = tmp_path / "wave11-legal"
+
+    wave = route_optuna.plan_wave11_legal_matrix(output_dir=wave_root)
+
+    assert wave["run_class"] == "candidate_fixed_policy_matrix"
+    assert wave["execution_profile"] == route_optuna.WAVE11_LEGAL_EXECUTION_PROFILE
+    assert wave["trial_count"] == 1
+    assert wave["cell_count"] == 6
+    assert wave["study_database"] is None
+    assert wave["scientific_contract"]["route"]["child_padding_policy"] == (
+        "exact_projected_grouped_v1"
+    )
+    trial = json.loads(
+        (wave_root / wave["trials"][0]["trial_manifest"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert trial["policy"] == route_optuna.Wave11LegalPolicy().as_dict()
+    assert [cell["regime"] for cell in trial["cells"]] == list(
+        route_optuna.REGIME_ORDER
+    )
+    for cell_ref in trial["cells"]:
+        cell = json.loads(
+            (wave_root / cell_ref["manifest"]).read_text(encoding="utf-8")
+        )
+        assert cell["run_class"] == "candidate_fixed_policy_matrix"
+        assert cell["execution_profile"] == route_optuna.WAVE11_LEGAL_EXECUTION_PROFILE
+
+
+def _fake_result(regime: str, index: int) -> dict:
+    return {
+        "status": "complete",
+        "scientific_settings": {"regime": {"name": regime}},
+        "summary": {
+            "success": True,
+            "abs_delta_e": 0.01 * (index + 1),
+            "query_work_total": 100.0 + index,
+            "query_work_status": "ok",
+            "all_branch_query_work_total_diagnostic": 1_000.0 + index,
+            "all_branch_query_work_status_diagnostic": "ok",
+            "graph_cost_proxy": {
+                "count_2q": 10.0 + index,
+                "depth": 20.0 + index,
+            },
+            "controller_round_count": 15,
+            "ansatz_depth": 20 + index,
+            "nfev_total": 200 + index,
+            "joint_selector_summary": {"selected_cardinality": 2},
+        },
+    }
+
+
+def test_aggregate_wave_uses_worst_error_arithmetic_mean_and_resource_sums(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "study.sqlite3"
+    wave_root = tmp_path / "wave"
+    result_root = wave_root / "results"
+    aggregate_root = tmp_path / "aggregate"
+    wave = route_optuna.plan_wave(
+        database=database,
+        study_name="aggregate-test",
+        output_dir=wave_root,
+        n_trials=1,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=11,
+        population_size=4,
+    )
+    monkeypatch.setattr(
+        route_optuna,
+        "validate_locked_pareto_plan",
+        lambda *args, **kwargs: {"status": "pass"},
+    )
+    trial_manifest_path = wave_root / wave["trials"][0]["trial_manifest"]
+    trial_manifest = json.loads(trial_manifest_path.read_text(encoding="utf-8"))
+    for index, cell_ref in enumerate(trial_manifest["cells"]):
+        cell_manifest = json.loads(
+            (wave_root / cell_ref["manifest"]).read_text(encoding="utf-8")
+        )
+        output_dir = result_root / cell_manifest["output_relative_dir"]
+        _write_json(
+            output_dir / "result.json",
+            _fake_result(str(cell_ref["regime"]), index),
+        )
+
+    summary = route_optuna.aggregate_wave(
+        database=database,
+        study_name="aggregate-test",
+        wave_manifest=wave_root / "wave_manifest.json",
+        result_root=result_root,
+        output_dir=aggregate_root,
+    )
+
+    assert summary["status"] == "complete"
+    assert summary["told_complete"] == 1
+    aggregate_path = Path(summary["trial_aggregates"][0]["aggregate_json"])
+    aggregate = json.loads(aggregate_path.read_text(encoding="utf-8"))
+    assert aggregate["objectives"] == {
+        "worst_regime_abs_delta_e": pytest.approx(0.06),
+        "total_expanded_query_work": pytest.approx(
+            sum(1_000.0 + i for i in range(6))
+        ),
+        "total_graph_count_2q_proxy": pytest.approx(sum(10.0 + i for i in range(6))),
+        "total_graph_depth_proxy": pytest.approx(sum(20.0 + i for i in range(6))),
+    }
+    assert aggregate["query_axis_contract"] == "all_expanded_scored_branches_v1"
+    assert aggregate["secondary_diagnostics"]["arithmetic_mean_abs_delta_e"] == pytest.approx(0.035)
+    assert aggregate["secondary_diagnostics"][
+        "total_winning_branch_query_work"
+    ] == pytest.approx(sum(100.0 + i for i in range(6)))
+    study = optuna.load_study(
+        study_name="aggregate-test",
+        storage=route_optuna._storage_url(database),
+    )
+    complete = [
+        trial for trial in study.trials if trial.state == optuna.trial.TrialState.COMPLETE
+    ]
+    assert len(complete) == 1
+    assert complete[0].values == pytest.approx(
+        [
+            0.06,
+            sum(1_000.0 + i for i in range(6)),
+            sum(10.0 + i for i in range(6)),
+            sum(20.0 + i for i in range(6)),
+        ]
+    )
+    assert all(
+        row["graph_cost_proxy_provenance"]["posthoc_fallback_used"] is False
+        for row in aggregate["regime_results"]
+    )
+
+
+def test_aggregate_trial_reconstructs_frozen_proxy_mode_graph_costs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "study.sqlite3"
+    wave_root = tmp_path / "wave"
+    result_root = wave_root / "results"
+    wave = route_optuna.plan_wave(
+        database=database,
+        study_name="proxy-reconstruction-test",
+        output_dir=wave_root,
+        n_trials=1,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=12,
+        population_size=4,
+    )
+    monkeypatch.setattr(
+        route_optuna,
+        "validate_locked_pareto_plan",
+        lambda *args, **kwargs: {"status": "pass"},
+    )
+    trial_manifest_path = wave_root / wave["trials"][0]["trial_manifest"]
+    trial_manifest = json.loads(trial_manifest_path.read_text(encoding="utf-8"))
+    for index, cell_ref in enumerate(trial_manifest["cells"]):
+        cell_manifest = json.loads(
+            (wave_root / cell_ref["manifest"]).read_text(encoding="utf-8")
+        )
+        result = _fake_result(str(cell_ref["regime"]), index)
+        result["scientific_settings"]["run_kwargs"] = {
+            "phase3_backend_cost_mode": "proxy"
+        }
+        result["summary"]["graph_cost_proxy"] = {
+            "count_2q": None,
+            "depth": None,
+            "mode": None,
+        }
+        result["adapt_vqe"] = {
+            "operators": ["terminal-op"],
+            "continuation": {
+                "selected_generator_metadata": [
+                    {
+                        "candidate_label": "terminal-op",
+                        "compile_metadata": {
+                            "serialized_terms_exyz": [
+                                {
+                                    "coeff_re": 1.0,
+                                    "coeff_im": 0.0,
+                                    "nq": 4,
+                                    "pauli_exyz": "xxee",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+        output_dir = result_root / cell_manifest["output_relative_dir"]
+        _write_json(output_dir / "result.json", result)
+
+    aggregate = route_optuna.aggregate_trial_results(
+        trial_manifest=trial_manifest_path,
+        wave_root=wave_root,
+        result_root=result_root,
+    )
+
+    assert aggregate["status"] == "complete"
+    assert aggregate["objectives"]["total_graph_count_2q_proxy"] == pytest.approx(
+        12.0
+    )
+    assert aggregate["objectives"]["total_graph_depth_proxy"] == pytest.approx(
+        12.0
+    )
+    assert aggregate["graph_proxy_contract"] == (
+        "proxy_logical_ladder_span_v1_from_terminal_selected_"
+        "generator_metadata_v1"
+    )
+    assert all(
+        row["graph_cost_proxy_provenance"]["posthoc_fallback_used"] is True
+        for row in aggregate["regime_results"]
+    )
+    assert all(
+        row["graph_cost_proxy_provenance"]["mode"]
+        == pareto_runner.TERMINAL_INTERNAL_GRAPH_PROXY_MODE
+        for row in aggregate["regime_results"]
+    )
+
+
+def test_aggregate_trial_rejects_null_graph_costs_outside_proxy_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "study.sqlite3"
+    wave_root = tmp_path / "wave"
+    result_root = wave_root / "results"
+    wave = route_optuna.plan_wave(
+        database=database,
+        study_name="invalid-null-graph-test",
+        output_dir=wave_root,
+        n_trials=1,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=14,
+        population_size=4,
+    )
+    monkeypatch.setattr(
+        route_optuna,
+        "validate_locked_pareto_plan",
+        lambda *args, **kwargs: {"status": "pass"},
+    )
+    trial_manifest_path = wave_root / wave["trials"][0]["trial_manifest"]
+    trial_manifest = json.loads(trial_manifest_path.read_text(encoding="utf-8"))
+    for index, cell_ref in enumerate(trial_manifest["cells"]):
+        cell_manifest = json.loads(
+            (wave_root / cell_ref["manifest"]).read_text(encoding="utf-8")
+        )
+        result = _fake_result(str(cell_ref["regime"]), index)
+        result["scientific_settings"]["run_kwargs"] = {
+            "phase3_backend_cost_mode": "marrakesh_graph_span_v1"
+        }
+        result["summary"]["graph_cost_proxy"] = {
+            "count_2q": None,
+            "depth": None,
+            "mode": None,
+        }
+        output_dir = result_root / cell_manifest["output_relative_dir"]
+        _write_json(output_dir / "result.json", result)
+
+    with pytest.raises(ValueError, match="outside the known proxy-mode"):
+        route_optuna.aggregate_trial_results(
+            trial_manifest=trial_manifest_path,
+            wave_root=wave_root,
+            result_root=result_root,
+        )
+
+
+def test_aggregate_trial_fails_closed_without_all_branch_query_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "study.sqlite3"
+    wave_root = tmp_path / "wave"
+    result_root = wave_root / "results"
+    wave = route_optuna.plan_wave(
+        database=database,
+        study_name="missing-expanded-query-test",
+        output_dir=wave_root,
+        n_trials=1,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=13,
+        population_size=4,
+    )
+    monkeypatch.setattr(
+        route_optuna,
+        "validate_locked_pareto_plan",
+        lambda *args, **kwargs: {"status": "pass"},
+    )
+    trial_manifest_path = wave_root / wave["trials"][0]["trial_manifest"]
+    trial_manifest = json.loads(trial_manifest_path.read_text(encoding="utf-8"))
+    for index, cell_ref in enumerate(trial_manifest["cells"]):
+        cell_manifest = json.loads(
+            (wave_root / cell_ref["manifest"]).read_text(encoding="utf-8")
+        )
+        result = _fake_result(str(cell_ref["regime"]), index)
+        if index == 0:
+            result["summary"].pop("all_branch_query_work_total_diagnostic")
+        output_dir = result_root / cell_manifest["output_relative_dir"]
+        _write_json(output_dir / "result.json", result)
+
+    with pytest.raises(
+        ValueError,
+        match="all_branch_query_work_total_diagnostic",
+    ):
+        route_optuna.aggregate_trial_results(
+            trial_manifest=trial_manifest_path,
+            wave_root=wave_root,
+            result_root=result_root,
+        )
+
+
+def test_chtc_export_has_one_hashed_record_per_cell_and_no_worker_database(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_repo = tmp_path / "repo"
+    fake_repo.mkdir()
+    database = fake_repo / "study.sqlite3"
+    wave_root = fake_repo / "wave"
+    route_optuna.plan_wave(
+        database=database,
+        study_name="chtc-export-test",
+        output_dir=wave_root,
+        n_trials=1,
+        max_depth=15,
+        batch_mode="combinatorial",
+        sampler_seed=19,
+        population_size=4,
+    )
+    wrapper = fake_repo / "wrapper.sh"
+    wrapper.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    source = fake_repo / "source.py"
+    source.write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.setattr(route_optuna, "REPO_ROOT", fake_repo)
+    monkeypatch.setattr(route_optuna, "CHTC_WRAPPER", Path("wrapper.sh"))
+    monkeypatch.setattr(
+        route_optuna,
+        "CHTC_SOURCE_HASH_PATHS",
+        ("source.py", "wrapper.sh"),
+    )
+    export_dir = fake_repo / "chtc" / "input" / "wave_001"
+
+    export = route_optuna.export_chtc_wave(
+        wave_manifest=wave_root / "wave_manifest.json",
+        output_dir=export_dir,
+        batch_output_root=Path("raw_outputs/route_a_optuna_wave_001"),
+        batch_name="route-a-optuna-test",
+    )
+    preflight = route_optuna.validate_chtc_export(
+        export_dir / "export_manifest.json"
+    )
+
+    assert export["cell_count"] == 6
+    assert export["worker_optuna_storage_access"] is False
+    assert preflight["status"] == "pass"
+    assert preflight["cell_count"] == 6
+    queue_lines = (export_dir / "queue.tsv").read_text(encoding="utf-8").splitlines()
+    assert len(queue_lines) == 6
+    assert all(len(line.split("\t")) == 5 for line in queue_lines)
+    submit = (export_dir / "submit.sub").read_text(encoding="utf-8")
+    assert "request_cpus = 4" in submit
+    assert "queue cell_id, cell_manifest, output_relative_dir" in submit
+    assert "study.sqlite3" not in submit
+
+
+def test_wave11_legal_chtc_export_transfers_and_preflights_runtime_provenance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_repo = tmp_path / "repo"
+    fake_repo.mkdir()
+    checkpoint_rel = Path("raw_outputs/source/wave11/current.json")
+    legal_plan_rel = Path("raw_outputs/source/wave18/plan.json")
+    checkpoint = fake_repo / checkpoint_rel
+    legal_plan = fake_repo / legal_plan_rel
+    checkpoint.parent.mkdir(parents=True)
+    legal_plan.parent.mkdir(parents=True)
+    checkpoint.write_text('{"checkpoint": true}\n', encoding="utf-8")
+    legal_plan.write_text('{"legal_plan": true}\n', encoding="utf-8")
+    wrapper = fake_repo / "wrapper.sh"
+    wrapper.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    source = fake_repo / "source.py"
+    source.write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.setattr(route_optuna, "REPO_ROOT", fake_repo)
+    monkeypatch.setattr(route_optuna, "WAVE11_SOURCE_CHECKPOINT", checkpoint_rel)
+    monkeypatch.setattr(route_optuna, "WAVE11_LEGAL_SOURCE_PLAN", legal_plan_rel)
+    monkeypatch.setattr(route_optuna, "CHTC_WRAPPER", Path("wrapper.sh"))
+    monkeypatch.setattr(
+        route_optuna,
+        "CHTC_SOURCE_HASH_PATHS",
+        ("source.py", "wrapper.sh"),
+    )
+    wave_root = fake_repo / "wave"
+    route_optuna.plan_wave11_legal_matrix(output_dir=wave_root)
+    export_dir = fake_repo / "chtc" / "input" / "wave11_legal"
+
+    export = route_optuna.export_chtc_wave(
+        wave_manifest=wave_root / "wave_manifest.json",
+        output_dir=export_dir,
+        batch_output_root=Path("raw_outputs/wave11_legal_results"),
+        batch_name="wave11-legal-test",
+    )
+    preflight = route_optuna.validate_chtc_export(
+        export_dir / "export_manifest.json"
+    )
+
+    assert preflight["status"] == "pass"
+    assert export["runtime_provenance_inputs"] == [
+        {
+            "role": "legal_projection_reference_plan",
+            "path": str(legal_plan_rel),
+            "sha256": route_optuna._sha256_file(legal_plan),
+        },
+        {
+            "role": "wave11_unchecked_checkpoint",
+            "path": str(checkpoint_rel),
+            "sha256": route_optuna._sha256_file(checkpoint),
+        },
+    ]
+    transfer_inputs = route_optuna._submit_transfer_inputs(
+        (export_dir / "submit.sub").read_text(encoding="utf-8")
+    )
+    assert str(checkpoint_rel) in transfer_inputs
+    assert str(legal_plan_rel) in transfer_inputs
+
+    missing_manifest_entry = dict(export)
+    missing_manifest_entry.pop("runtime_provenance_inputs")
+    route_optuna._write_json(
+        export_dir / "export_manifest.json",
+        route_optuna._manifest_with_hash(missing_manifest_entry),
+    )
+    with pytest.raises(ValueError, match="runtime provenance manifest"):
+        route_optuna.validate_chtc_export(export_dir / "export_manifest.json")
+
+    submit_path = export_dir / "submit.sub"
+    submit_text = submit_path.read_text(encoding="utf-8")
+    submit_path.write_text(
+        submit_text.replace(f", {checkpoint_rel}", ""),
+        encoding="utf-8",
+    )
+    missing_transfer = dict(export)
+    missing_transfer["submit_sha256"] = route_optuna._sha256_file(submit_path)
+    route_optuna._write_json(
+        export_dir / "export_manifest.json",
+        route_optuna._manifest_with_hash(missing_transfer),
+    )
+    with pytest.raises(ValueError, match='"worker_visible": false'):
+        route_optuna.validate_chtc_export(export_dir / "export_manifest.json")
+
+
+def test_chtc_source_lock_includes_matrix_reuse_owner() -> None:
+    assert (
+        "pipelines/scaffold/hh_continuation_scoring.py"
+        in route_optuna.CHTC_SOURCE_HASH_PATHS
+    )
+    assert (
+        "pipelines/static_adapt/route_a_child_padding.py"
+        in route_optuna.CHTC_SOURCE_HASH_PATHS
+    )
+    assert (
+        "pipelines/static_adapt/builders/legal_subspace_filter.py"
+        in route_optuna.CHTC_SOURCE_HASH_PATHS
+    )

@@ -1,0 +1,138 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": true,
+    "anchor_result_json": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/chtc_fetch_paper_i_hh_sr_material_window_20260722/anchor_9308471/extracted/raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/json/result.json",
+    "anchor_result_sha256": "aff319cbe4b7d5ab85c2d430df994c4a19cdced47853955d506650dde76b181b",
+    "anchor_source_archive_sha256": "ced6b10d6bfbe4ae6a54495ff2ef4747a90036fa2027b0386555d016d5869a05",
+    "anchor_transfer_archive": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/chtc_fetch_paper_i_hh_sr_material_window_20260722/anchor_9308471/9308471.0__weak_weak_transfer.tar.gz",
+    "anchor_transfer_archive_sha256": "b8bc14447d68d243638647ed0f5f14e366a6b766b16fecc4c8ef906bfa80ae0c",
+    "anchor_transfer_exact_members": {
+      "execution": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/execution.json",
+        "sha256": "e7a672fcf9854e87b3c0f816be7c25815cdae36adb3ca92caf615aabacb6c5ff"
+      },
+      "normalized": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/normalized_run_manifest.json",
+        "sha256": "27f661ab6513f40e7e337c825e2c198509e0cf47e6d5a6d08d0b5ffe9d406657"
+      },
+      "result": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/json/result.json",
+        "sha256": "aff319cbe4b7d5ab85c2d430df994c4a19cdced47853955d506650dde76b181b"
+      },
+      "validation": {
+        "path": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/validation.json",
+        "sha256": "036d37c3a211308faf8f6385350143612566458f7a5e3009fad3355f10732728"
+      }
+    },
+    "anchor_validation_contract": {
+      "S_alg": 256262,
+      "controller_rounds": 50,
+      "endpoint_overlap_query_charge": 0,
+      "fallback_count": 22,
+      "projected_feasible_count": 28,
+      "raw_occurrence_count": 362947,
+      "schema": "paper_i_material_window_anchor_validation_contract_v1",
+      "status": "pass",
+      "validation_schema": "paper_i_hh_sr_symcost_noprune_validation_v1"
+    },
+    "anchor_validation_receipt": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/chtc_fetch_paper_i_hh_sr_material_window_20260722/anchor_9308471/extracted/raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_material_window_parent_anchor_weak_weak_r50_20260721_v4_chtc/weak_weak/validation.json",
+    "anchor_validation_receipt_sha256": "036d37c3a211308faf8f6385350143612566458f7a5e3009fad3355f10732728",
+    "checkpoint_sequence_match": true,
+    "checkpoint_sequence_sha256": "defea93a4bcbd1e7e673ed1d462dc7c424d634e4feacbb19c7c2fb9e74f45015",
+    "controller_energies_sha256": "efb98c8f9c23f96b5af338742e3eb5f1292cdd369293832a705f37010df80706",
+    "controller_energy_history_exact_match": true,
+    "non_swept_settings_diff": [],
+    "operator_sequence_match": true,
+    "operator_sequence_sha256": "83445d7ef53bd858c3bcb4077b98511cac72313575b94a0442f4b7fc15a5f2a3",
+    "settings_exact_match": true,
+    "settings_sha256": "a8418b9237b1cdee1bc9fb60864d08504ebd6b5d79addd5031a030cb29fe9383",
+    "source_result_sha256": "d52252041099621813e96a271264c30dd01edbd701c9190b295a629e89a0214d",
+    "terminal_abs_delta_e": 2.9947037827326994e-07,
+    "terminal_energy": -0.9183806205244431,
+    "terminal_metric_exact_match": true
+  },
+  "fanout_authorized": true,
+  "fanout_bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+  "fanout_route_contract_sha256": "9d6cfae3fda84eb6a24232358c45a8f25b42c6147bfa4250905910eff687a417",
+  "fanout_source_archive_sha256": "ced6b10d6bfbe4ae6a54495ff2ef4747a90036fa2027b0386555d016d5869a05",
+  "planned_rows": [
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_strong",
+      "value": "candidate_material_coupling_window_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "intermediate_weak",
+      "value": "candidate_material_coupling_window_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_strong_u8",
+      "value": "candidate_material_coupling_window_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "strong_weak_u8",
+      "value": "candidate_material_coupling_window_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_strong",
+      "value": "candidate_material_coupling_window_v1"
+    },
+    {
+      "bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_all_six_r50_20260721_v1_chtc",
+      "changed_fields_vs_source": [
+        "phase3_response_coordinate_scope"
+      ],
+      "non_swept_settings_diff": [],
+      "regime_or_case": "weak_weak",
+      "value": "candidate_material_coupling_window_v1"
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SR-SNAKE no-overlap full geometry",
+    "regime_or_case": "weak_weak",
+    "route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "route_or_profile_id": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
+    "source_result_archive_member": "raw_outputs/paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc/weak_weak/json/result.json",
+    "source_transfer_archive": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260721/priority_20260721T0037Z/8958273.0__weak_weak_transfer.tar.gz",
+    "source_transfer_archive_sha256": "2fd2a69556298d0ff3d5d2478c9d58ba8958a82514a251f9b0c60bf34f4dc46e",
+    "source_variable_value": "full_active_plus_singleton_v1"
+  },
+  "status": "anchor_pass_fanout_authorized",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      "full_active_plus_singleton_v1",
+      "candidate_material_coupling_window_v1"
+    ],
+    "run_class": "candidate",
+    "runner_mode": "direct_source_locked_replay",
+    "unresolved_source_fields": [],
+    "variable": "phase3_response_coordinate_scope"
+  }
+}

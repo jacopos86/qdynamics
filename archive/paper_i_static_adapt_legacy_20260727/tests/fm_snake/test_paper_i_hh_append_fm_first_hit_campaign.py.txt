@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from pipelines.exact_bench.paper_i_hh_append_fm_first_hit_campaign import (
+    EXACT_FIDELITY_MAX_QUBITS,
+    REGIME_ORDER,
+    RESOURCE_POOL_TERM_CAP,
+    RESOURCE_QUBIT_CAP,
+    TARGET_ABS_DELTA_E,
+    campaign_plan,
+    lock_runtime_environment,
+)
+
+
+def test_append_fm_first_hit_campaign_locks_six_nph3_nph7_rows() -> None:
+    rows = campaign_plan()
+
+    assert tuple(row["regime"] for row in rows) == REGIME_ORDER
+    assert len(rows) == 6
+    assert [row["n_ph_work"] for row in rows] == [3, 3, 3, 7, 7, 7]
+    assert [row["n_ph_ref"] for row in rows] == [3, 3, 3, 7, 7, 7]
+    assert all(row["same_cutoff"] is True for row in rows)
+    assert all(row["target_abs_delta_e"] == TARGET_ABS_DELTA_E for row in rows)
+
+
+def test_append_fm_first_hit_campaign_locks_required_runtime_guards(monkeypatch) -> None:
+    for name in (
+        "TABLE_I_STATIC_SUITE_PROFILE",
+        "GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP",
+        "GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP",
+        "GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS",
+        "STATIC_ADAPT_HH_POOL_CACHE",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    required = lock_runtime_environment()
+
+    assert required["GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP"] == str(
+        RESOURCE_QUBIT_CAP
+    )
+    assert required["GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP"] == str(
+        RESOURCE_POOL_TERM_CAP
+    )
+    assert required["GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS"] == str(
+        EXACT_FIDELITY_MAX_QUBITS
+    )
+    assert required["STATIC_ADAPT_HH_POOL_CACHE"] == "disk"
+    assert required["STATIC_ADAPT_HH_POOL_CACHE_SCOPE"] == "exact"

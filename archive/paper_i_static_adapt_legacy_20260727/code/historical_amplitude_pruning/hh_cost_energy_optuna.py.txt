@@ -1,0 +1,95 @@
+    "--phase1-prune-min-candidates",
+    "--phase1-prune-max-candidates",
+    "--phase1-prune-max-regression",
+    "--phase1-prune-tolerance-mode",
+    "--phase1-prune-tolerance-shot-coeff",
+    "--phase1-prune-tolerance-screen-coeff",
+    "--phase1-prune-tolerance-chem",
+    "--phase1-prune-tolerance-rel-coeff",
+    "--phase1-prune-retained-gain-ratio",
+    "--phase1-prune-protect-steps",
+    "--phase1-prune-stale-age",
+    "--phase1-prune-stagnation-threshold",
+    "--phase1-prune-small-theta-abs",
+    "--phase1-prune-small-theta-relative",
+    "--phase1-prune-cooldown-steps",
+    "--phase1-prune-local-window-size",
+    "full_phase1_prune_max_candidates": ["base", "2", "4", "6", "8", "10"],
+    "full_phase1_prune_max_regression": ["base", "1e-10", "1e-9", "1e-8", "1e-7", "1e-6"],
+    "full_phase1_prune_tolerance_mode": ["base", "auto", "fixed", "adaptive_v1"],
+    "full_phase1_prune_tolerance_shot_coeff": ["base", "0.0", "0.5", "1.0", "2.0", "5.0"],
+    "full_phase1_prune_tolerance_screen_coeff": ["base", "0.0001", "0.001", "0.01", "0.05", "0.10"],
+    "full_phase1_prune_tolerance_chem": ["base", "0.0", "1e-8", "1e-6", "1e-4"],
+    "full_phase1_prune_tolerance_rel_coeff": ["base", "0.0", "0.05", "0.10", "0.25"],
+    "full_phase1_prune_retained_gain_ratio": ["base", "0.10", "0.25", "0.50", "0.60"],
+    "full_phase1_prune_protect_steps": ["base", "1", "2", "3", "4", "5"],
+    "full_phase1_prune_stale_age": ["base", "1", "2", "3", "4", "6"],
+    "full_phase1_prune_stagnation_threshold": ["base", "0.0", "1e-6", "1e-5", "1e-4"],
+    "full_phase1_prune_small_theta_abs": ["base", "1e-5", "1e-4", "1e-3", "1e-2", "1e-1"],
+    "full_phase1_prune_small_theta_relative": ["base", "0.0", "0.25", "0.50", "0.75", "1.0"],
+    "full_phase1_prune_cooldown_steps": ["base", "0", "1", "2", "4", "8", "16"],
+    "full_phase1_prune_local_window_size": ["base", "1", "2", "4", "8", "16", "32"],
+    "full_phase1_prune_recovery_trust_radius": ["base", "0.0", "0.10", "0.25", "0.50", "1.0"],
+    "full_phase1_prune_old_fraction": ["base", "0.0", "0.25", "0.50", "0.75", "1.0"],
+    "full_phase1_prune_checkpoint_period": ["base", "2", "3", "4", "6"],
+    "full_phase1_prune_live_min_depth": ["base", "0", "4", "8", "12", "16"],
+    "full_phase1_prune_maturity_threshold": ["base", "0.35", "0.50", "0.65", "0.80"],
+    "full_phase1_prune_snr_threshold": ["base", "0.0", "0.5", "1.0", "2.0", "3.0"],
+    "full_phase1_prune_collapse_peak_abs_min": ["base", "1e-5", "1e-4", "1e-3", "1e-2"],
+    "full_phase1_prune_collapse_current_abs_max": ["base", "1e-6", "1e-4", "1e-3", "1e-2"],
+    "full_phase1_prune_collapse_ratio": ["base", "0.05", "0.25", "0.50", "0.75", "0.95"],
+    "full_phase1_prune_collapse_min_abs_drop": ["base", "1e-6", "1e-4", "1e-3", "1e-2"],
+    "full_phase1_prune_collapse_min_observations": ["base", "2", "3", "4", "6"],
+    "full_phase3_backend_w_2q": ["base", "0.5", "1.0", "1.5", "2.0"],
+    full_phase1_prune_max_candidates: str = "base"
+    full_phase1_prune_max_regression: str = "base"
+    full_phase1_prune_tolerance_mode: str = "base"
+    full_phase1_prune_tolerance_shot_coeff: str = "base"
+    full_phase1_prune_tolerance_screen_coeff: str = "base"
+    full_phase1_prune_tolerance_chem: str = "base"
+    full_phase1_prune_tolerance_rel_coeff: str = "base"
+    full_phase1_prune_retained_gain_ratio: str = "base"
+    full_phase1_prune_protect_steps: str = "base"
+    full_phase1_prune_stale_age: str = "base"
+    full_phase1_prune_stagnation_threshold: str = "base"
+    full_phase1_prune_small_theta_abs: str = "base"
+    full_phase1_prune_small_theta_relative: str = "base"
+    full_phase1_prune_cooldown_steps: str = "base"
+    full_phase1_prune_local_window_size: str = "base"
+    full_phase1_prune_recovery_trust_radius: str = "base"
+    full_phase1_prune_old_fraction: str = "base"
+    full_phase1_prune_checkpoint_period: str = "base"
+    full_phase1_prune_live_min_depth: str = "base"
+    full_phase1_prune_maturity_threshold: str = "base"
+    full_phase1_prune_snr_threshold: str = "base"
+    full_phase1_prune_collapse_peak_abs_min: str = "base"
+    full_phase1_prune_collapse_current_abs_max: str = "base"
+    full_phase1_prune_collapse_ratio: str = "base"
+    full_phase1_prune_collapse_min_abs_drop: str = "base"
+    full_phase1_prune_collapse_min_observations: str = "base"
+    full_phase3_backend_w_2q: str = "base"
+        args = _set_option(args, "--phase1-prune-tolerance-mode", str(tolerance_mode))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_tolerance_shot_coeff", ("--phase1-prune-tolerance-shot-coeff",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_tolerance_screen_coeff", ("--phase1-prune-tolerance-screen-coeff",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_tolerance_chem", ("--phase1-prune-tolerance-chem",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_tolerance_rel_coeff", ("--phase1-prune-tolerance-rel-coeff",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_retained_gain_ratio", ("--phase1-prune-retained-gain-ratio",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_protect_steps", ("--phase1-prune-protect-steps",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_stale_age", ("--phase1-prune-stale-age",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_stagnation_threshold", ("--phase1-prune-stagnation-threshold",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_small_theta_abs", ("--phase1-prune-small-theta-abs",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_small_theta_relative", ("--phase1-prune-small-theta-relative",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_cooldown_steps", ("--phase1-prune-cooldown-steps",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_local_window_size", ("--phase1-prune-local-window-size",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_recovery_trust_radius", ("--phase1-prune-recovery-trust-radius",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_old_fraction", ("--phase1-prune-old-fraction",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_checkpoint_period", ("--phase1-prune-checkpoint-period",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_live_min_depth", ("--phase1-prune-live-min-depth",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_maturity_threshold", ("--phase1-prune-maturity-threshold",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_snr_threshold", ("--phase1-prune-snr-threshold",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_collapse_peak_abs_min", ("--phase1-prune-collapse-peak-abs-min",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_collapse_current_abs_max", ("--phase1-prune-collapse-current-abs-max",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_collapse_ratio", ("--phase1-prune-collapse-ratio",))
+    args = _set_full_policy_float(args, params, "full_phase1_prune_collapse_min_abs_drop", ("--phase1-prune-collapse-min-abs-drop",))
+    args = _set_full_policy_int(args, params, "full_phase1_prune_collapse_min_observations", ("--phase1-prune-collapse-min-observations",))
+

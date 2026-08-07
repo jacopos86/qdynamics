@@ -1,0 +1,24 @@
+{
+  "schema": "paper_i_hh_sr_snake_v4_remote_execution_gate_v3",
+  "status": "blocked_pending_authenticated_remote_preflight",
+  "remote_execution_preflight": {
+    "image_path": "chtc/phase3_optuna/image.sif",
+    "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "qiskit_import_passed": false,
+    "qiskit_version": null,
+    "fake_backend_instantiation_passed": false,
+    "fake_backend_resolved": null,
+    "fake_backend_qubits": null
+  },
+  "confirmation": {
+    "checked_utc": null,
+    "checked_by": null,
+    "evidence": null
+  },
+  "submission_performed": false,
+  "blockers": [
+    "authenticated remote image SHA-256 recheck pending",
+    "remote Qiskit import pending",
+    "remote FakeMarrakesh instantiation pending"
+  ]
+}

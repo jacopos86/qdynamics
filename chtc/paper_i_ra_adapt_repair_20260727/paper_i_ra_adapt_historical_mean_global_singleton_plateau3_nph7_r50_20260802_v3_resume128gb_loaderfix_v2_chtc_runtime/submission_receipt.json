@@ -1,0 +1,136 @@
+{
+  "schema": "paper_i_ra_adapt_historical_mean_global_singleton_resume128gb_submission_receipt_v2",
+  "status": "passed_submitted_three_authenticated_resumes",
+  "submitted_utc": "2026-08-03T00:41:53Z",
+  "cluster_id": 9401106,
+  "batch_name": "paper-i-ra-global-singleton-plateau-nph7-r50-resume128gb-loaderfix-v2",
+  "direct_job_count": 3,
+  "submission_authorized": true,
+  "execution_authorized": true,
+  "initial_queue_state": {
+    "idle": 3,
+    "running": 0,
+    "held": 0,
+    "removed": 0,
+    "completed": 0
+  },
+  "current_queue_state_at_receipt": {
+    "observed_utc": "2026-08-03T00:44:46Z",
+    "idle": 0,
+    "running": 3,
+    "held": 0,
+    "removed": 0,
+    "completed": 0,
+    "remote_hosts": {
+      "0": "slot2_1@mem2003.chtc.wisc.edu",
+      "1": "slot2_2@mem2003.chtc.wisc.edu",
+      "2": "slot2_3@mem2003.chtc.wisc.edu"
+    }
+  },
+  "package": {
+    "id": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc",
+    "manifest_canonical_sha256": "84d8f7bdcc79e986c8bbd22af8f3c1c5ed2d5c1b95aeb1e84affb5c3ae87e1a1",
+    "manifest_file_sha256": "0b81923cbc691fb18ca58bb78da73d6ce9ba501e6717ee315b2a2fb8744b293d",
+    "source_package_manifest_canonical_sha256": "fe7fd6f5f572c3ca90dbf43ec43c69f35282d4c699cd271d8cd6564555bb495f",
+    "source_package_manifest_file_sha256": "1b5bf20d8754fdf66a48727d857a7ef2e090e5f541afa303e453bbb4ea3ec8c3",
+    "source_archive_sha256": "7e7fa374f629ce684035d318176f354b24cfdf7cf4ac9548be921c790bf57d01"
+  },
+  "activation": {
+    "id": "paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc_activation_ordinary_v1",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc_activation_ordinary_v1",
+    "manifest_canonical_sha256": "36bd7278293f4a32f010e1a6b733a35159ac8785a420113a3980276d4ee935c5",
+    "manifest_file_sha256": "9d4a32527557cf6abe328113aa5ce0e608cfa3e5a6344bc56f17ee0aef720edc",
+    "submit_descriptor_sha256": "2b819e7ca196c54b79569f6ace30f50a6f0eb80d78dfd38a35f70d6ed5fc8d4b"
+  },
+  "implementation_repair": {
+    "repair_id": "accepted_round_current_checkpoint_receipt_loader_fix_v2",
+    "path": "pipelines/static_adapt/sr_snake/_resume.py",
+    "before_sha256": "6d3753f22071cae21eb5eb006e634655be0fb4a9ec60054d61dfef2a3625e37f",
+    "after_sha256": "173fcbc219453b4a90d604afdfe117718a34318bc621a11ab178a63304e72032",
+    "scientific_protocol_changed": false,
+    "scientific_settings_changed": []
+  },
+  "remote_image": {
+    "path": "chtc/phase3_optuna/image.sif",
+    "size_bytes": 216371200,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "resources_per_row": {
+    "request_cpus": 4,
+    "request_memory_mb": 131072,
+    "request_disk_mb": 81920,
+    "max_runtime_seconds": 259200
+  },
+  "rows": [
+    {
+      "proc_id": 0,
+      "regime_id": "weak_strong",
+      "resume_controller_round": 35,
+      "resume_archive_path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.0__weak_strong__20260802T192821Z.tar.gz",
+      "resume_archive_size_bytes": 1227663445,
+      "resume_archive_sha256": "06efd350c3c188d8e5af75f385ede22d340b71355c48b38516294ec17af6b6c7"
+    },
+    {
+      "proc_id": 1,
+      "regime_id": "intermediate_strong",
+      "resume_controller_round": 31,
+      "resume_archive_path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.1__intermediate_strong__20260802T192821Z.tar.gz",
+      "resume_archive_size_bytes": 1083965298,
+      "resume_archive_sha256": "2daba25929aae14889e22b968e8da24c0e2c396749b155bd985d9363e480c049"
+    },
+    {
+      "proc_id": 2,
+      "regime_id": "strong_strong_u8",
+      "resume_controller_round": 17,
+      "resume_archive_path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_inputs_v1/9400751.2__strong_strong__20260802T192821Z.tar.gz",
+      "resume_archive_size_bytes": 1142566246,
+      "resume_archive_sha256": "80941a839ae950b90e30c1da7b82aefcee8ce61d87790329fbb8117454145ed9"
+    }
+  ],
+  "preflight": {
+    "full_resume_archive_member_scan_count": 3,
+    "local_source_preflight_count": 3,
+    "remote_source_preflight_count": 3,
+    "activation_validation": "passed_in_source_locked_execution_image_python_3_12",
+    "access_point_system_python": "3.9.25_incompatible_with_zip_strict_validator",
+    "submit_lifecycle_validation": "passed",
+    "condor_dry_run_job_count": 3,
+    "condor_dry_run_path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_historical_mean_global_singleton_plateau3_nph7_r50_20260802_v3_resume128gb_loaderfix_v2_chtc_runtime/preflight/submit_dry_run.ads",
+    "condor_dry_run_size_bytes": 15400,
+    "condor_dry_run_sha256": "75bcbc2976d632102a093da9242457ce582bf13b395bfbfb56e4beafb032d0b0",
+    "resolved_ad_validation_count": 3,
+    "batch_collision_count": 0,
+    "destination_collision_count": 0,
+    "fetched_output_collision_count": 0,
+    "remote_control_directory_byte_match_count": 2,
+    "remote_resume_archive_hash_size_match_count": 3,
+    "compatible_large_memory_slots_observed": 180,
+    "immediately_willing_slots_at_submission": 154
+  },
+  "source_held_jobs": {
+    "cluster_id": 9400751,
+    "proc_ids": [
+      0,
+      1,
+      2
+    ],
+    "preserved_held": true,
+    "removal_authorized": false
+  },
+  "prior_failed_cluster": {
+    "cluster_id": 9401082,
+    "scheduler_mutated_by_this_submission": false,
+    "released_by_this_submission": false,
+    "removed_by_this_submission": false
+  },
+  "remote_quota_at_preflight": {
+    "used_mb": 44900,
+    "soft_limit_mb": 40960,
+    "hard_limit_mb": 51200
+  },
+  "scientific_protocol_changed": false,
+  "scientific_settings_changed": [],
+  "paper_evidence_adopted": false,
+  "sha256": "0506a91bcd187253c6e96f31481caf78a927e38322f66a5a1552f44751b0b2e1"
+}

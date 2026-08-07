@@ -1,0 +1,904 @@
+\documentclass[10pt]{article}
+
+\usepackage[letterpaper,margin=0.62in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,microtype,tabularx}
+\usepackage[table]{xcolor}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{navy}{HTML}{17365D}
+\definecolor{brick}{HTML}{A33A2B}
+\definecolor{green}{HTML}{236C5B}
+\definecolor{purple}{HTML}{4E2A84}
+\definecolor{amber}{HTML}{FFF2CC}
+\definecolor{pale}{HTML}{F2F4F7}
+\definecolor{muted}{HTML}{5F6670}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\color{navy}\textbf{Paper V scalar-stability diagnostic}}
+\rhead{\small\color{muted}working evidence}
+\cfoot{\small\thepage}
+\setlength{\headheight}{14pt}
+
+\newcommand{\statusbanner}{%
+  \colorbox{amber}{%
+    \parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+      \centering\small\textbf{WORKING DIAGNOSTIC --- NOT PROMOTED PAPER EVIDENCE}%
+    }%
+  }%
+}
+\newcommand{\findingbox}[2]{%
+  \colorbox{pale}{%
+    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+      \textcolor{navy}{\textbf{#1}}\quad #2%
+    }%
+  }%
+}
+\newcommand{\sourcepath}[1]{\texttt{\detokenize{#1}}}
+
+\input{generated_results.tex}
+
+\begin{document}
+
+\statusbanner
+\begin{center}
+  \vspace{0.35em}
+  {\LARGE\bfseries Regularized equal-time electron--phonon dynamics}\\[0.2em]
+  {\Large Scalar instability reproduction and diagnosis}\\[0.35em]
+  {\small Paper V working report \(\mid\) generated \ReportGeneratedAt
+  \(\mid\) commit \ReportGitCommit}
+\end{center}
+
+\findingbox{Outcome.}{The 13-variable scalar Fan--Migdal system reproducibly
+crosses \(\max_i|x_i|=10^4\) at
+\(t=\BaselineFailureTime\,t_{\mathrm{hop}}^{-1}\) for
+\(\lambda=1.5\), \(\gamma=0.5\), and \(v/t_{\mathrm{hop}}=1\).
+However, electronic positivity is already lost at
+\(t=\BaselinePositivityLoss\,t_{\mathrm{hop}}^{-1}\). Exact-ground-state
+contractions plus the Eq.~(112) residual subtraction remain bounded and
+    basic-PSD through \(t=400\) in the 13-scalar projection. After adding the two
+    real Eq.~(14c) coordinates, however, the relative-mode bosonic uncertainty
+    condition is violated at early time. The complete 31-dimensional invariant
+    closure confirms the physicality failure. At its first regularized boundary
+    crossing, Eq.~(14b)'s correlation source supplies the net outward flux.
+    Its causal history is a near-cancellation between the Eq.~(112)
+    correlation subtraction and Eq.~(14d)'s bare Pauli-blocking source.}
+
+\findingbox{Correction update.}{A structured full-matrix barrier preserves the
+sampled physical cones through \(t=20\); its energy-neutral realization also
+retains the post-pulse energy stability of Eq.~(112).}
+
+\vspace{0.25em}
+\begin{minipage}[t]{0.49\textwidth}
+\textbf{What is supported}
+\begin{itemize}
+  \item The scalar failure is not a coarse-RK4 artifact.
+  \item The Hartree--Fock/zero-correlation state leaves the physical electronic
+        domain long before its amplitudes diverge.
+  \item The 13 retained scalar derivatives match the direct matrix projection
+        of Eqs.~(14a), (14b), (14d), and (14e).
+  \item Matrix Eq.~(14c) generates an omitted anomalous two-phonon field.
+  \item A two-real-coordinate Eq.~(14c) extension matches the direct matrix
+        projection to floating-point precision and delays the HF amplitude
+        threshold beyond \(t=360\).
+  \item A 31-real-coordinate invariant closure reproduces every generated
+        matrix direction and exposes full two-mode bosonic positivity loss.
+  \item The first regularized bosonic boundary crossing is driven outward by
+        the Eq.~(14b) correlation source.
+  \item The boundary-driving correlation is a \(98.9956\%\) causal
+        cancellation dominated by Eq.~(112) and the opposing bare
+        Pauli-blocking source.
+  \item The energy-neutral structured barrier preserves the sampled fermionic
+        and bosonic cones through \(t=20\).
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\textbf{What is not yet supported}
+\begin{itemize}
+  \item Equivalence of either the 13D or 15D scalar projection to the complete
+        Eqs.~(14a)--(14e); correlation trace/mode-sum sectors remain omitted.
+  \item A global minimum-energy root satisfying all higher-moment
+        representability constraints.
+  \item Long-time and parameter-robust validation of the new
+        positivity-preserving correction.
+  \item A conclusion that Eq.~(14d) alone causes the failure.
+  \item A high-\(U\) conclusion from evidence that currently varies
+        electron--phonon coupling \(\lambda\).
+  \item Chaos or a strange attractor; the reproduced trajectory is unbounded.
+\end{itemize}
+\end{minipage}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.84\linewidth]{trajectory_max_abs.pdf}
+  \caption{Maximum scalar-state magnitude for the pinned strong-coupling
+  reproduction and weak-coupling control. The threshold is a declared
+  diagnostic boundary, not a physical singularity definition.}
+\end{figure}
+
+\newpage
+\textbf{Immediate decision.}
+Treat Eq.~(112) as the amplitude-stabilizing background of a corrected
+physical flow. The scalar closure, first boundary flux, Eq.~(14d) causal
+history, and a short-time energy-neutral cone correction are resolved for the
+pinned protocol. The next classical task is long-time and parameter-robust
+validation against exact dimer observables, followed by a correlation-sector
+correction that acts on the diagnosed memory channel.
+
+\section*{1.\ Scalar model and deterministic feedback loop}
+
+The scalar-first program has two nested levels. The five-variable Ehrenfest
+system uses
+\[
+x_{\mathrm E}
+=
+\left(
+\Delta n,\,
+\operatorname{Re}\rho,\,
+\operatorname{Im}\rho,\,
+\Delta\operatorname{Re}B,\,
+\Delta\operatorname{Im}B
+\right),
+\]
+with the documented invariant
+\[
+1=\Delta n^2
++4\left[
+(\operatorname{Re}\rho)^2+(\operatorname{Im}\rho)^2
+\right].
+\]
+For \(\lambda>1\), the stationary branch changes to
+\[
+\Delta n_\ast=\pm\sqrt{1-\lambda^{-2}},
+\qquad
+\operatorname{Re}\rho_\ast=\frac{1}{2\lambda},
+\qquad
+\Delta\operatorname{Re}B_\ast
+=-\frac{2g}{\omega_{\mathrm{ph}}}\Delta n_\ast.
+\]
+
+The divergence harness propagates the 13-variable extension in scalar
+Eqs.~(87)--(99), adding phonon population/coherence and six real
+electron--phonon-correlation coordinates. The pinned initial state is the
+Hartree--Fock electronic density,
+\(\Delta n=0\), \(\operatorname{Re}\rho=1/2\), with every other coordinate
+zero.
+
+\subsection*{Initial residual}
+
+This state has
+\[
+\lVert F(x_0,0)\rVert_2=\BaselineResidualNorm,
+\]
+with only two nonzero components:
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Component & Initial derivative \\
+\midrule
+\ResidualRows
+\bottomrule
+\end{tabular}
+\end{center}
+The instantaneous Jacobian has
+\[
+\max\operatorname{Re}\sigma[J(x_0,0)]
+=\BaselineInitialMaxReal.
+\]
+Because \(F(x_0,0)\ne0\), this number is not a fixed-point stability
+certificate. It only shows that the failure is not explained by an immediately
+positive eigenvalue at the uncorrelated starting coordinate.
+
+\subsection*{Red-capable command}
+
+\small
+\begin{verbatim}
+cd paper_5
+PYTHONPATH=src python3 -m paper5.stability.reproduce \
+  --lambda-ep 1.5 --gamma 0.5 --drive 1.0 \
+  --time-step 0.01 --final-time 140 --expect-bounded
+\end{verbatim}
+\normalsize
+The command exits nonzero because the boundedness expectation fails; the first
+threshold-crossing component is \BaselineFailureComponent.
+
+\findingbox{Earlier failure.}{The electronic 1-RDM reaches a zero minimum
+eigenvalue at \(t=\BaselinePositivityLoss\), approximately \(115\) time units
+before the amplitude threshold. The late blow-up therefore occurs after the
+trajectory has already escaped the basic physical density-matrix domain.}
+
+\section*{2.\ Solver convergence and growth of local instability}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Integrator & Step or relative/absolute tolerance & Failure time \\
+\midrule
+\IntegratorRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+The three RK4 step sizes and three adaptive solvers agree at the scale relevant
+to the declared threshold. DOP853 and Radau agree to the displayed seventh
+decimal; BDF differs by approximately \(1.4\times10^{-4}\). This strongly
+disfavors fixed-step RK4 instability as the sole cause of the scalar failure.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{jacobian_growth.pdf}
+  \caption{Maximum real part of the instantaneous scalar Jacobian spectrum
+  along the baseline trajectory. These are local eigenvalues, not Lyapunov
+  exponents.}
+\end{figure}
+
+The largest instantaneous real part is approximately \(1.39\) at \(t=128\),
+\(5.19\) at \(t=130\), and \(14.39\) at \(t=130.4\). The trajectory therefore
+enters a region of rapidly increasing local amplification before the declared
+failure.
+
+\findingbox{Interpretation.}{The ODE solver is tracking a rapidly amplifying
+solution of the transcribed scalar equations. This does not yet distinguish a
+true finite-time singularity from escape out of the physically admissible
+closure manifold.}
+
+\subsection*{Weak-coupling control}
+
+At the same \(\gamma=0.5\), pulse, integration interval, and initial-state
+convention, the \(\lambda=0.5\) trajectory remains bounded through \(t=140\),
+with \(\max_i|x_i|=\WeakMaximum\). The failure is therefore
+coupling-regime-dependent within the scalar model.
+
+\newpage
+\section*{3.\ Source ablations and near-failure term balance}
+
+\begin{minipage}[t]{0.51\textwidth}
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Case & \(a_{95}\) & \(a_{97}\) & \(\lVert F_0\rVert\) & \(t_{\mathrm f}\) \\
+\midrule
+\AblationRows
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\textwidth}
+\centering
+\includegraphics[width=\linewidth]{ablation_failure_times.pdf}
+\end{minipage}
+
+Here \(a_{95}\) and \(a_{97}\) scale the initially active density-blocking and
+population-source products in scalar Eqs.~(95) and (97). These are diagnostic
+ablations, not candidate physical equations. Their retained-coordinate mapping
+to the two Pauli-blocking products in matrix Eq.~(14d) is now covered by the
+matrix--scalar parity test in Sec.~4.
+
+Deleting either product advances the failure. Deleting both makes
+\(F(x_0,0)=0\), yet the strong pulse still triggers failure at \(t=59.92\).
+Thus the nonzero initial residual is not the sole cause, and the physical pair
+provides a material stabilizing balance.
+
+\subsection*{Large right-hand-side terms near \(t=130\)}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Contribution & Value \\
+\midrule
+\CriticalRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+The largest contributions span several equations and include
+coherent-displacement/correlation products, electronic-density products, and
+phonon-population/coherence products. No single addend dominates every failing
+coordinate.
+
+\findingbox{Leading diagnosis.}{The late scalar blow-up is a network-level
+nonlinear feedback instability with important cancellation between terms, but
+it is downstream of an earlier physical-domain escape. Neither the initial
+residual nor either tested source product explains the complete failure chain
+alone.}
+
+\newpage
+\section*{4.\ Matrix--scalar parity, Eq.~(14c), and invariant closure}
+
+The direct two-site embedding used for the audit is
+\[
+\rho=
+\begin{pmatrix}
+(1+\Delta n)/2 & \rho_{\mathrm R}+i\rho_{\mathrm I}\\
+\rho_{\mathrm R}-i\rho_{\mathrm I} & (1-\Delta n)/2
+\end{pmatrix},
+\quad
+B=(\Delta B/2,-\Delta B/2),
+\quad
+\delta\rho_{\mathrm{ph}}=
+\begin{pmatrix}n_{\mathrm{ph}}&\rho_{\mathrm{ph}}\\
+\rho_{\mathrm{ph}}&n_{\mathrm{ph}}\end{pmatrix}.
+\]
+For the electron--phonon correlation matrices,
+\(C^{(2)}=-C^{(1)}\), \(\operatorname{tr}C^{(1)}=0\), and the real and
+imaginary sums/differences of \(C^{(1)}_{12}\) and \(C^{(1)}_{21}\) are the
+six coordinates in Eqs.~(102)--(107).
+
+A direct loop implementation of primary Eqs.~(14a)--(14e), with the documented
+two-spin factors for the dimer, was evaluated independently of the simplified
+scalar formulas. Across \(\ParitySamples\) seeded, basic-admissible random
+states, the largest retained-component difference was
+\[
+\max_{\mathrm{sample},i}
+\left|F^{\mathrm{scalar}}_i-
+\Pi_iF^{\mathrm{matrix}}\right|
+=\ParityMaximumError.
+\]
+
+\findingbox{Parity result.}{The signs, conjugations, local Holstein couplings,
+spin factors, and normalization of all 13 retained derivatives agree to
+floating-point precision. A transcription error inside those retained
+coordinates is therefore strongly disfavored.}
+
+\subsection*{Why this is not yet the complete scalarization}
+
+The 13-variable model embeds the anomalous two-phonon fluctuation matrix
+\(\delta\bar\rho\) as zero. Matrix Eq.~(14c) does not preserve that condition.
+After a first-order \(10^{-3}\) step from the pinned initial state, the norm of
+the omitted Eq.~(14c) derivative is already
+\(\EqFourteenCNormal\). Thus the model is an exact projection of the retained
+equations, but its 13-dimensional slice is not an invariant manifold of the
+complete EOM.
+
+\subsection*{Minimal Eq.~(14c) projection}
+
+Dimer symmetry reduces the dynamically generated anomalous relative-mode
+field to one complex scalar,
+\[
+m_-=\delta\bar\rho_{00}-\delta\bar\rho_{01}
+    =m_{\mathrm R}+i m_{\mathrm I},
+\qquad
+\delta\bar\rho=\frac{m_-}{2}
+\begin{pmatrix}1&-1\\-1&1\end{pmatrix}.
+\]
+Its two real equations and its new feedback into the retained correlation
+sector are
+\[
+\dot m_{\mathrm R}=2\omega_{\mathrm{ph}}m_{\mathrm I}
++8g\,\delta_{\mathrm{Im}},
+\qquad
+\dot m_{\mathrm I}=-2\omega_{\mathrm{ph}}m_{\mathrm R}
+-8g\,\delta_{\mathrm{Re}},
+\]
+\[
+\Delta\dot{\mathrm{Im}}^{+}\mapsto
+\Delta\dot{\mathrm{Im}}^{+}+2g\,\operatorname{Im}\rho\,m_{\mathrm I},
+\qquad
+\Delta\dot{\mathrm{Re}}^{+}\mapsto
+\Delta\dot{\mathrm{Re}}^{+}+2g\,\operatorname{Im}\rho\,m_{\mathrm R}.
+\]
+Across the same 100-state audit, all 15 projected derivatives agree with the
+matrix RHS to \(\ExtendedParityMaximumError\).
+
+\findingbox{Closure boundary.}{The two coordinates make the Eq.~(14c) sector
+tangent to the projected manifold, but do not close the full matrix system.
+The pre-existing assumptions \(C^{(2)}=-C^{(1)}\) and
+\(\operatorname{tr}C^{(1)}=0\) have a maximum normal derivative
+\(\ExtendedPreexistingNormal\) in the random-state audit. The 15D model is
+therefore a source-faithful projection, not a complete scalarization.}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+15D protocol & Amplitude \(t_{\mathrm f}\) & Electronic PSD &
+Normal-phonon PSD & Boson uncertainty \\
+\midrule
+\ExtendedRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+The one-mode second-moment condition is
+\[
+n_-(n_-+1)-|m_-|^2\ge0,
+\qquad n_-=n_{\mathrm{ph}}-\rho_{\mathrm{ph}}.
+\]
+For HF/zero correlations, adding Eq.~(14c) moves the pinned amplitude threshold
+from \(130.47\) to \(\ExtendedBaselineFailure\), but the uncertainty condition
+fails first. Exact contractions alone still diverge. Exact contractions plus
+Eq.~(112) remain amplitude-bounded through \(t=400\), with
+\(\max|x_i|=\ExtendedRegularizedMaximum\), but cross the uncertainty boundary
+at \(t=\ExtendedRegularizedUncertaintyLoss\) and reach margin
+\(\ExtendedRegularizedUncertaintyMinimum\).
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{eq14c_protocols.pdf}
+  \caption{Matched strong-pulse amplitude diagnostics after adding the two
+  Eq.~(14c) coordinates. The late threshold is delayed, not eliminated, for
+  HF/zero correlations.}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{eq14c_uncertainty.pdf}
+  \caption{Relative-mode bosonic uncertainty margin for the 15D protocols.
+  Negative values cannot represent physical one-mode second moments.}
+\end{figure}
+
+\subsection*{Complete 31-scalar invariant closure}
+
+Iterative SVD closure starts from the 15D tangent space, evaluates normal
+matrix derivatives at random polynomial probes, and adds every independent
+generated direction. It converges from the ambient
+\(\ClosedAmbientDimension\)-real-coordinate matrix representation to
+\(\ClosedScalarDimension\) coordinates, with disjoint-sample validation
+residual \(\ClosedValidationResidual\). The explicit count is
+\[
+\underbrace{3}_{\rho=\rho^\dagger,\ {\rm tr}\rho=1}
++\underbrace{4}_{B\in\mathbb C^2}
++\underbrace{4}_{N=N^\dagger}
++\underbrace{6}_{A=A^T}
++\underbrace{14}_{C^{(0)},C^{(1)},\
+{\rm tr}C^{(0)}={\rm tr}C^{(1)}}
+=31.
+\]
+Here \(N\) is the normal phonon density and \(A\) the anomalous density. No
+relative/center or zero-trace correlation component is discarded.
+
+The full two-mode second-moment condition is
+\[
+\mathcal M_{\rm B}=
+\begin{pmatrix}
+N^T&A^*\\
+A&I+N
+\end{pmatrix}\succeq0.
+\]
+This includes both normal-phonon positivity and anomalous uncertainty in one
+test.
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+31D protocol & Amplitude \(t_{\mathrm f}\) & Electronic PSD &
+Normal-phonon PSD & Full boson moment \\
+\midrule
+\ClosedRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+The complete HF/zero-correlation closure reaches the amplitude threshold near
+\(t=54.46\), but \(\mathcal M_{\rm B}\) loses positivity near \(t=1.33\).
+Exact contractions alone reach the amplitude threshold near \(t=141.41\).
+Exact contractions plus Eq.~(112) remain bounded through \(t=400\), with
+\(\max|x_i|=\ClosedRegularizedMaximum\) and electronic minimum
+\(\ClosedRegularizedElectronMinimum\), but the normal-phonon and full
+boson-moment minima reach \(\ClosedRegularizedPhononMinimum\) and
+\(\ClosedRegularizedBosonMinimum\). The full moment matrix crosses zero at
+\(t=\ClosedRegularizedBosonLoss\).
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{closed_scalar_protocols.pdf}
+  \caption{Amplitude diagnostics for the invariant 31-scalar closure. Only
+  exact contractions plus Eq.~(112) remain amplitude-bounded through
+  \(t=400\).}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{closed_scalar_physicality.pdf}
+  \caption{Early physicality diagnostics for the residual-subtracted 31D
+  closure. Electronic positivity survives, while normal and full bosonic
+  positivity fail near \(t=1.49\).}
+\end{figure}
+
+\findingbox{Complete-closure result.}{The 31-scalar and complete matrix
+trajectories agree. The amplitude instability changes with initialization, but
+every unregularized strong protocol exits a physical cone first. Eq.~(112)
+removes amplitude divergence and preserves the electronic 1-RDM through
+\(t=400\), yet does not preserve the bosonic moment cone.}
+
+The earlier full-matrix probes are recovered exactly: HF/zero reaches the
+threshold at \(t=\FullMatrixBaselineFailure\), while exact contractions plus
+residual subtraction have electronic minimum
+\(\FullMatrixRegularizedElectronMinimum\) and normal-phonon minimum
+\(\FullMatrixRegularizedPhononMinimum\) through \(t=140\).
+
+\newpage
+\section*{5.\ Bosonic boundary-flux decomposition}
+
+For the 31D exact-contraction plus Eq.~(112) protocol, the first zero of
+\(\mathcal M_{\rm B}\) occurs at
+\(t_\partial=\BoundaryFluxTime\,t_{\mathrm{hop}}^{-1}\). At this point
+\(\lambda_{\min}=\BoundaryFluxMinimum\) and the gap to the next eigenvalue is
+\(\BoundaryFluxGap\), so the crossing eigenvalue is simple. If
+\(\mathcal M_{\rm B}v=0\), first-order eigenvalue perturbation theory gives
+\[
+\dot\lambda_{\min}
+=v^\dagger\dot{\mathcal M}_{\rm B}v.
+\]
+
+\begin{center}
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Projected contribution & \(v^\dagger\dot{\mathcal M}_{\rm B}^{(k)}v\) \\
+\midrule
+Eq.~(14b), correlation source & \(\BoundaryFluxEqFourteenB\) \\
+Eq.~(14c), correlation source & \(+\BoundaryFluxEqFourteenC\) \\
+Eq.~(14d), direct & \(\BoundaryFluxEqFourteenD\) \\
+Eq.~(112), residual subtraction & \(+\BoundaryFluxEqOneTwelve\) \\
+\midrule
+Total & \(\BoundaryFluxTotal\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The two correlation branches in Eq.~(14b) each contribute
+\(\BoundaryFluxEqFourteenBMinus\) and \(\BoundaryFluxEqFourteenBPlus\).
+The free Eq.~(14b) and Eq.~(14c) rotations project to zero at the reported
+precision. Direct term summation reconstructs the full matrix derivative with
+error \(\BoundaryFluxReconstructionError\). A centered finite difference gives
+\(\BoundaryFluxFiniteDifference\), with discrepancy
+\(\BoundaryFluxFiniteDifferenceError\).
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.82\linewidth]{boson_boundary_flux.pdf}
+  \caption{Signed equation-group contributions to
+  \(v^\dagger\dot{\mathcal M}_{\rm B}v\) at the first full-boson boundary
+  crossing of the residual-subtracted 31D protocol. Negative values point out
+  of the positive-semidefinite moment cone.}
+\end{figure}
+
+\findingbox{Boundary-flux result.}{The instantaneous outward flux is supplied
+by the electron--phonon-correlation source in Eq.~(14b). Eq.~(14c) and the
+Eq.~(112) subtraction weakly oppose the crossing. Eq.~(14d) has no direct
+first-derivative contribution because \(\mathcal M_{\rm B}\) depends only on
+\(N\) and \(A\); it acts indirectly by creating the correlation field entering
+Eqs.~(14b) and (14c).}
+
+\subsection*{Causal history through Eq.~(14d)}
+
+Along the realized trajectory, prescribe the other moment sectors and write
+Eq.~(14d) as
+\[
+\dot C=L(t)C+\sum_k S_k(t).
+\]
+The initial correlation and each independent source are propagated through
+the same time-ordered homogeneous evolution generated by \(L(t)\). Their sum
+reconstructs the boundary correlation with error
+\(\EqFourteenDHistoryReconstruction\); applying the linear Eq.~(14b) flux
+functional reconstructs its boundary value with error
+\(\EqFourteenDHistoryFluxReconstruction\).
+
+\begin{center}
+\small
+\begin{tabularx}{0.88\linewidth}{@{}Xr@{}}
+\toprule
+Causal correlation history & Eq.~(14b) boundary flux \\
+\midrule
+Eq.~(112), correlation-sector subtraction &
+  \(\EqFourteenDHistoryEqOneTwelve\) \\
+Eq.~(14d), bare Pauli-blocking source &
+  \(+\EqFourteenDHistoryBarePauli\) \\
+Eq.~(14d), first anomalous source &
+  \(\EqFourteenDHistoryAnomalousOne\) \\
+Eq.~(14d), second anomalous source &
+  \(+\EqFourteenDHistoryAnomalousTwo\) \\
+Eq.~(14d), normal particle source &
+  \(+\EqFourteenDHistoryNormalParticle\) \\
+Eq.~(14d), normal hole source &
+  \(\EqFourteenDHistoryNormalHole\) \\
+Propagated initial correlation &
+  \(+\EqFourteenDHistoryInitial\) \\
+\midrule
+Dominant-pair signed sum & \(\EqFourteenDHistoryPairNet\) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.90\linewidth]{eq14d_history_flux.pdf}
+  \caption{Variation-of-constants attribution of the correlation field
+  entering the Eq.~(14b) boundary flux. The upper panel exposes the dominant
+  cancellation; the lower panel rescales the smaller paired histories. These
+  are accumulated causal histories, not direct contributions to
+  \(\dot{\mathcal M}_{\rm B}\).}
+\end{figure}
+
+The absolute history contributions cancel by
+\(\EqFourteenDHistoryCancellationPercent\). The anomalous and
+normal-occupation pairs each cancel to approximately \(10^{-8}\); thus the two
+paired nonlinear sources are active but do not supply the net outward flux.
+The initial Eq.~(112) residual has correlation-sector norm
+\(\EqFourteenDHistoryResidualNorm\). Removing only that sector from the
+subtraction delays the first crossing from \(\BoundaryFluxTime\) to
+\(\EqFourteenDAblatedCrossing\), a delay of
+\(\EqFourteenDAblationDelay\,t_{\mathrm{hop}}^{-1}\).
+
+\findingbox{Causal diagnosis.}{For this pinned protocol, the large constant
+Eq.~(112) correlation subtraction produces the dominant outward correlation
+history, while Eq.~(14d)'s bare Pauli-blocking source nearly cancels it.
+Eq.~(112) remains successful as an amplitude regularizer, but applying it
+unchanged to the correlation sector advances the bosonic-cone crossing.}
+
+\section*{6.\ Initial conditions, positivity, and residual subtraction}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Initial-state protocol & \(\lVert F_0\rVert_2\) &
+Amplitude \(t_{\mathrm f}\) & Electronic PSD loss & \(\max|x_i|\) \\
+\midrule
+\InitializationRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+Here \(>400\) means no event through the requested final time. ``Electronic
+PSD loss'' is the first zero of the smaller eigenvalue of the \(2\times2\)
+electronic 1-RDM. The corresponding retained phonon check uses the eigenvalues
+\(n_{\mathrm{ph}}\pm|\rho_{\mathrm{ph}}|\).
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{initialization_protocols.pdf}
+  \caption{Matched strong-pulse scalar protocols. Correlated initialization
+  changes the late-time behavior, while exact contractions plus Eq.~(112)
+  remain bounded through \(t=400\).}
+\end{figure}
+
+\subsection*{Source-connected stationary root}
+
+Exact ground-state contractions at phonon cutoff 16 seed a deterministic
+least-squares solve of \(F(x_\ast,0)=0\). The selected root has residual
+\(\StationaryResidual\), basic electronic and phonon positivity, and energy
+\(\StationaryEnergy\), compared with exact truncated ground-state energy
+\(\ExactSeedEnergy\). It is bounded through \(t=400\), but loses electronic
+positivity at \(t=30.56\). Because higher-moment representability constraints
+are not yet parameterized, this is a source-connected physical candidate, not
+a proof of the global minimum over every algebraic root.
+
+\subsection*{Eq.~(112) diagnostic regularization}
+
+The working source proposes
+\[
+\dot x(t)=F(x(t),t)-F(x_0,0),
+\]
+with \(x_0\) obtained from exact ground-state contractions. This makes that
+contracted initialization stationary by construction. For the strong
+\(\lambda=1.5\) scalar protocol, the maximum magnitude through \(t=400\) is
+\(\RegularizedMaximum\); the minimum electronic and retained phonon
+eigenvalues are respectively \(\RegularizedElectronMinimum\) and
+\(\RegularizedPhononMinimum\).
+This 13D check omits \(m_-\), so it does not test the bosonic uncertainty
+condition exposed by the 15D extension.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.89\linewidth]{regularized_physicality.pdf}
+  \caption{Basic positivity diagnostics for the residual-subtracted strong
+  scalar protocol. Both displayed minima remain above zero through \(t=400\).}
+\end{figure}
+
+\findingbox{Isolation result.}{The \(t\approx130.47\) blow-up is not an
+irreducible numerical singularity. In the scalar projection it can be removed
+by a source-documented correlated initialization plus residual subtraction.
+The unresolved problem is upgrading this successful amplitude correction into
+a representability-preserving evolution of the now-complete 31D closure.}
+
+\section*{7.\ Structured cone correction}
+
+The direct correction uses the ten real coordinates of a Hermitian
+\(\Delta\dot N\) and complex-symmetric \(\Delta\dot A\).  Their structured
+lift \(\mathcal S(y)\) obeys the same block identity as the bosonic moment
+matrix.  With barrier rate \(\beta=5\), safety margin
+\(h_\star=10^{-5}\), and \(\kappa=0\), each right-hand-side evaluation solves
+\[
+\begin{aligned}
+\underset{y\in\mathbb R^{10}}{\operatorname{minimize}}\quad&
+\frac12\lVert y\rVert_2^2,\\
+\operatorname{subject\ to}\quad&
+D+\mathcal S(y)
++\beta\!\left(\mathcal M_{\rm B}-h_\star I\right)
+-\kappa I\succeq0.
+\end{aligned}
+\]
+The matrix inequality constrains the complete active eigenspace.  A
+single-minimum-eigenvector rule reaches a near degeneracy of the two lowest
+bosonic eigenvalues near \(t=3.60\), where eigenvector switching produces
+solver chattering.  Constraint generation over violated eigenvectors removes
+that coordinate singularity and supplies a minimum-norm point for the
+accumulated half-spaces.
+
+For a correction confined to \(N\) and \(A\), Eq.~(22) receives the
+instantaneous contribution
+\[
+\Delta\dot E
+=\omega_{\rm ph}
+\left(\Delta\dot N_{00}+\Delta\dot N_{11}\right).
+\]
+The energy-neutral chart therefore imposes
+\(\Delta\dot N_{00}+\Delta\dot N_{11}=0\) by optimizing in the null space of
+this row.
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Protocol & \(\min\lambda(\mathcal M_{\rm B})\) &
+\(\min\lambda(\rho)\) & \(\max|x_i|\) &
+\(\max_{t\geq4}|E(t)-E(4)|\)\\
+\midrule
+\ConeCorrectionRows
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.91\linewidth]{cone_correction_audit.pdf}
+  \caption{Pinned 31D correction audit through \(t=20\).  The direct and
+  energy-neutral matrix barriers preserve the bosonic cone.  The middle panel
+  exposes the energy cost of the unconstrained correction and the recovery
+  obtained by the trace-neutral moment velocity.}
+\end{figure}
+
+\findingbox{Short-time correction result.}{The unconstrained direct barrier is
+active on \(\ConeDirectActiveFraction\) of sampled times and reaches correction
+norm \(\ConeDirectMaximumCorrection\), but its post-pulse energy drift is
+\(\ConeDirectEnergyDrift\).  The energy-neutral barrier is active on
+\(\ConeEnergyActiveFraction\) of samples, reaches norm
+\(\ConeEnergyMaximumCorrection\), has maximum direct energy injection
+\(\ConeEnergyFlux\), and reduces post-pulse drift to
+\(\ConeEnergyDrift\).  All sampled energy-neutral subproblems converged
+(\(\ConeEnergyNonconverged\) unresolved samples).}
+
+\section*{8.\ Diagnosis boundaries and next calculations}
+
+\begin{enumerate}
+  \item \textbf{Extend the energy-neutral run.} Repeat the \(t=20\) result
+  through the amplitude-validation horizon and across step, tolerance,
+  cutoff, pulse, and coupling refinements.
+
+  \item \textbf{Parameterize representability.} Enforce electronic
+  \(0\preceq\rho\preceq I\), the full bosonic covariance uncertainty
+  condition---including \(n_-(n_-+1)\ge|m_-|^2\)---and compatible
+  electron--phonon moment constraints during both root selection and time
+  propagation.
+
+  \item \textbf{Separate correction mechanisms.} Compare residual subtraction,
+  the energy-neutral moment barrier, and a regularized Eq.~(14d) correction
+  one at a time against exact dimer dynamics.
+
+  \item \textbf{Repeat across \(\lambda\).} The strong scalar case is
+  encouraging, but the same correction has small late-time positivity
+  violations in the weak control and the complete matrix probe. It is not yet
+  a universal prescription.
+
+  \item \textbf{Only then test chaos.} A strange attractor requires bounded
+  attraction, a robust positive largest Lyapunov exponent, volume contraction,
+  and fractal geometry on a validated physical flow.
+\end{enumerate}
+
+\subsection*{Closed-form opportunity}
+
+Equations (14b), (14c), and (14e) have forced-oscillator integral forms, and
+Eq.~(14d) has a time-ordered propagator form when the other sectors are
+prescribed. The most useful analytic target is not a general elementary
+trajectory; it is the scalar fixed-point system, its exact Jacobian, and the
+stability boundaries of each physical branch:
+\[
+F(x_\ast,0)=0,
+\qquad
+J_\ast=\left.\frac{\partial F}{\partial x}\right|_{x_\ast},
+\qquad
+\delta x(t)=e^{J_\ast(t-t_0)}\delta x(t_0).
+\]
+
+\subsection*{Evidence boundary}
+
+The explicit local reproduction varies electron--phonon coupling
+\(\lambda=2g^2/(t_{\mathrm{hop}}\omega_{\mathrm{ph}})\). It must not be
+reported as a high-\(U\) result until a separate Hubbard interaction \(U\) is
+defined in the scalar model and varied under a matched protocol.
+
+\section*{9.\ Reproducibility and parameter manifest}
+
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Field & Recorded value \\
+\midrule
+Artifact status & Working diagnostic; not promoted paper evidence \\
+Generated & \ReportGeneratedAt \\
+Git commit & \ReportGitCommit \\
+Baseline & \(t_{\mathrm{hop}}=1\), \(\gamma=0.5\),
+\(\lambda=1.5\), \(v/t_{\mathrm{hop}}=1\),
+\(\Delta t=0.01\), \(t_{\mathrm f}=140\) \\
+Initial state & Hartree--Fock electronic density,
+\(\Delta n=0\), \(\operatorname{Re}\rho=1/2\), all remaining scalar
+coordinates zero \\
+Failure definition & First time \(\max_i|x_i|>10^4\) or a nonfinite scalar
+component appears \\
+Weak control & Same protocol with \(\lambda=0.5\) \\
+Scalar source & \sourcepath{/Users/jakestrobel/Downloads/Dynamics_on_the_Hubbard_DIMER.pdf},
+Eqs.~(78)--(82), (84)--(107), and (112) \\
+Supporting derivation & \sourcepath{/Users/jakestrobel/Downloads/Electron_phonon_interactions___chiral_phonons.pdf} \\
+Primary matrix source & G. Riva, J. Simoni, and Y. Ping,
+\href{https://arxiv.org/abs/2606.22233}{arXiv:2606.22233},
+Eqs.~(14a)--(14e) \\
+Matrix-to-scalar status & Retained 13D projection verified; 15D Eq.~(14c)
+projection verified but incomplete; invariant 31D coordinate system matches
+the complete matrix flow \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Short source hashes}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+Source & SHA-256 prefix \\
+\midrule
+Scalar implementation & \CodeHashShort \\
+Working note & \NoteHashShort \\
+Hubbard-dimer PDF & \HubbardPdfHashShort \\
+Chiral-phonon PDF & \ChiralPdfHashShort \\
+\bottomrule
+\end{tabular}
+
+\subsection*{Stable paths}
+
+\small
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Role & Path \\
+\midrule
+LaTeX source &
+\sourcepath{MATH/paper_facing/paper_V_high_u_gkba/paper_v_scalar_stability_diagnostic.tex} \\
+Numerical generator &
+\sourcepath{paper_5/src/paper5/stability/report.py} \\
+Scalar model &
+\sourcepath{paper_5/src/paper5/stability/hubbard_dimer.py} \\
+Matrix reference &
+\sourcepath{paper_5/src/paper5/stability/matrix_reference.py} \\
+Exact contractions &
+\sourcepath{paper_5/src/paper5/stability/exact_reference.py} \\
+Initial-state and Eq.~(112) workflow &
+\sourcepath{paper_5/src/paper5/stability/initial_conditions.py} \\
+Final PDF &
+\sourcepath{output/pdf/paper_v_scalar_stability_diagnostic.pdf} \\
+Full manifest &
+\sourcepath{output/pdf/paper_v_scalar_stability_diagnostic_manifest.json} \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\subsection*{Build and validation commands}
+
+\small
+\begin{verbatim}
+cd paper_5
+python3 -m pytest -q
+PYTHONPATH=src python3 -m paper5.stability.report
+\end{verbatim}
+\normalsize
+
+\findingbox{Append policy.}{Add new numerical results through the scalar
+harness and report generator, preserve prior completed evidence in the
+manifest, and keep hypotheses visibly separate from confirmed diagnostics.
+Manuscript adoption remains a user decision.}
+
+\end{document}

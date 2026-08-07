@@ -1,0 +1,48 @@
+def _prune_authority_telemetry(
+    *,
+    prune_cfg: PruneConfig,
+    algebraic_lane_policy_active: bool,
+    amplitude_effective_required: bool,
+    typed_compensator_active: bool | None = None,
+) -> dict[str, Any]:
+    recoverability_policy = bool(
+        str(prune_cfg.policy) == PRUNE_POLICY_RECOVERABILITY_LADDER_V1
+    )
+    typed_active = (
+        bool(algebraic_lane_policy_active and recoverability_policy)
+        if typed_compensator_active is None
+        else bool(typed_compensator_active)
+    )
+    amplitude_effective_required = False
+    amplitude_authority = "diagnostic_only"
+    return {
+        "screen_authority": "nomination_only",
+        "deletion_authority": "remove_refit_energy_safety",
+        "surrogate_used_for_acceptance": False,
+        "amplitude_witness_config_required": bool(prune_cfg.amplitude_witness_required),
+        "amplitude_witness_effective_required": False,
+        "amplitude_witness_authority": str(amplitude_authority),
+        "nomination_lanes": {
+            "amplitude_activity": {
+                "active": True,
+                "authority": "nomination_only",
+            },
+            "recoverability_broad_rank": {
+                "active": recoverability_policy,
+                "authority": "nomination_only",
+            },
+            "schur_surrogate": {
+                "active": bool(prune_cfg.surrogate_enabled and recoverability_policy),
+                "authority": "nomination_only",
+                "reason": (
+                    "exact_current_hessian_schur_nomination"
+                    if bool(prune_cfg.surrogate_enabled and recoverability_policy)
+                    else "requires_recoverability_ladder_policy_and_surrogate_enabled"
+                ),
+            },
+            "cached_tangent_fubini": {
+                "active": False,
+                "authority": "nomination_only",
+                "reason": "no_valid_tangent_fubini_cache_wired_in_this_slice",
+            },
+        },

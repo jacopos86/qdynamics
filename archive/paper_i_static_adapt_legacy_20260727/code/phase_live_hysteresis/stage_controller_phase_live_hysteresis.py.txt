@@ -1,0 +1,175 @@
+    phase_live_hysteresis_enabled: bool = True
+    phase2_null_nrem_high_threshold: float = 0.0
+    phase2_live_nrem_low_threshold: float = 0.25
+    phase3_null_nrem_high_threshold: float = 0.5
+    phase3_live_nrem_low_threshold: float = 1.0
+    phase2_hysteresis_steps: int = 2
+    phase3_hysteresis_steps: int = 2
+    def __init__(self, cfg: StageControllerConfig) -> None:
+        self.cfg = cfg
+        self._validate_phase_hysteresis()
+        self._stage = "core"
+        self._admission_deltas: list[float] = []
+        self._last_snapshot: PhaseControllerSnapshot | None = None
+        self._phase_live: dict[str, bool] = {"phase1": True, "phase2": True, "phase3": True}
+        self._phase_null_streaks: dict[str, int] = {"phase2": 0, "phase3": 0}
+        self._phase_null_reasons: dict[str, str] = {
+            "phase1": "always_live",
+            "phase2": "live",
+            "phase3": "live",
+        }
+
+    def _validate_phase_hysteresis(self) -> None:
+        if not bool(self.cfg.phase_live_hysteresis_enabled):
+            return
+        values = (
+            float(self.cfg.phase2_null_nrem_high_threshold),
+            float(self.cfg.phase2_live_nrem_low_threshold),
+            float(self.cfg.phase3_null_nrem_high_threshold),
+            float(self.cfg.phase3_live_nrem_low_threshold),
+        )
+        if not (0.0 <= values[0] <= values[1] < values[2] <= values[3]):
+            raise ValueError(
+                "Phase-live hysteresis thresholds must satisfy "
+                "0 <= phase2_null <= phase2_live < phase3_null <= phase3_live."
+            )
+    def clone(self) -> "StageController":
+        cloned = StageController(self.cfg)
+        cloned._stage = str(self._stage)
+        cloned._admission_deltas = [float(x) for x in self._admission_deltas]
+        cloned._last_snapshot = self._last_snapshot
+        cloned._phase_live = {str(k): bool(v) for k, v in self._phase_live.items()}
+        cloned._phase_null_streaks = {str(k): int(v) for k, v in self._phase_null_streaks.items()}
+        cloned._phase_null_reasons = {str(k): str(v) for k, v in self._phase_null_reasons.items()}
+        return cloned
+
+    def snapshot(self) -> dict[str, object]:
+        return {
+            "cfg": self.cfg,
+            "stage": str(self._stage),
+            "admission_deltas": [float(x) for x in self._admission_deltas],
+            "last_snapshot": self._last_snapshot,
+            "phase_live": {str(k): bool(v) for k, v in self._phase_live.items()},
+            "phase_null_streaks": {str(k): int(v) for k, v in self._phase_null_streaks.items()},
+            "phase_null_reasons": {str(k): str(v) for k, v in self._phase_null_reasons.items()},
+        }
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, object]) -> "StageController":
+        cfg = snapshot.get("cfg")
+        if not isinstance(cfg, StageControllerConfig):
+            raise TypeError("StageController snapshot missing StageControllerConfig.")
+        out = cls(cfg)
+        out._stage = str(snapshot.get("stage", "core"))
+        out._admission_deltas = [float(x) for x in snapshot.get("admission_deltas", [])]
+        last_snapshot = snapshot.get("last_snapshot")
+        out._last_snapshot = last_snapshot if isinstance(last_snapshot, PhaseControllerSnapshot) else None
+        phase_live = snapshot.get("phase_live", {})
+        if isinstance(phase_live, dict):
+            out._phase_live.update({str(k): bool(v) for k, v in phase_live.items()})
+        phase_null_streaks = snapshot.get("phase_null_streaks", {})
+        if isinstance(phase_null_streaks, dict):
+            out._phase_null_streaks.update({str(k): int(v) for k, v in phase_null_streaks.items()})
+        phase_null_reasons = snapshot.get("phase_null_reasons", {})
+        if isinstance(phase_null_reasons, dict):
+            out._phase_null_reasons.update({str(k): str(v) for k, v in phase_null_reasons.items()})
+        out._phase_live["phase1"] = True
+        out._phase_live["phase3"] = bool(out._phase_live.get("phase2", True)) and bool(
+            out._phase_live.get("phase3", True)
+        )
+        return out
+    def _phase_thresholds_caps_shots(
+        self,
+        *,
+        early: float,
+        late: float,
+        u_front: float,
+        phase_uncertainty: dict[str, float],
+        phase_live: dict[str, bool] | None = None,
+    ) -> dict[str, dict[str, float | int]]:
+        raw_live = phase_live if phase_live is not None else self._phase_live
+        phase2_live = bool(raw_live.get("phase2", True))
+        live = {
+            "phase1": True,
+            "phase2": phase2_live,
+            "phase3": bool(phase2_live) and bool(raw_live.get("phase3", True)),
+        }
+        cap_effective = {
+            phase: (int(max(0, cap_scheduled[phase])) if bool(live.get(phase, True)) else 0)
+            for phase in ("phase1", "phase2", "phase3")
+        }
+            effective[phase] = (
+                int(min(self._phase_shot_cap(phase), max(scheduled[phase], snr[phase])))
+                if bool(live.get(phase, True))
+                else 0
+            )
+    def _terminal_phase(self) -> int:
+        phase2_live = bool(self._phase_live.get("phase2", True))
+        phase3_live = bool(self._phase_live.get("phase3", True)) and phase2_live
+        return int(1 + int(phase2_live) + int(phase3_live))
+
+    def _update_phase_live(self, *, n_rem_low: float, n_rem_high: float) -> None:
+        if not bool(self.cfg.phase_live_hysteresis_enabled):
+            self._phase_live = {"phase1": True, "phase2": True, "phase3": True}
+            self._phase_null_streaks = {"phase2": 0, "phase3": 0}
+            self._phase_null_reasons = {"phase1": "always_live", "phase2": "hysteresis_disabled", "phase3": "hysteresis_disabled"}
+            return
+        for phase in ("phase2", "phase3"):
+            null_threshold = (
+                float(self.cfg.phase2_null_nrem_high_threshold)
+                if phase == "phase2"
+                else float(self.cfg.phase3_null_nrem_high_threshold)
+            )
+            live_threshold = (
+                float(self.cfg.phase2_live_nrem_low_threshold)
+                if phase == "phase2"
+                else float(self.cfg.phase3_live_nrem_low_threshold)
+            )
+            patience = (
+                int(max(1, self.cfg.phase2_hysteresis_steps))
+                if phase == "phase2"
+                else int(max(1, self.cfg.phase3_hysteresis_steps))
+            )
+            if float(n_rem_low) > live_threshold:
+                self._phase_live[phase] = True
+                self._phase_null_streaks[phase] = 0
+                self._phase_null_reasons[phase] = "live_threshold"
+            elif float(n_rem_high) <= null_threshold:
+                self._phase_null_streaks[phase] = int(self._phase_null_streaks.get(phase, 0)) + 1
+                if int(self._phase_null_streaks[phase]) >= patience:
+                    self._phase_live[phase] = False
+                    self._phase_null_reasons[phase] = "null_hysteresis"
+                else:
+                    self._phase_null_reasons[phase] = "null_pending"
+            else:
+                self._phase_null_streaks[phase] = 0
+                self._phase_null_reasons[phase] = "hold"
+        self._phase_live["phase1"] = True
+        if not bool(self._phase_live.get("phase2", True)):
+            self._phase_live["phase3"] = False
+            self._phase_null_reasons["phase3"] = "phase2_dead"
+        phase_laws = self._phase_thresholds_caps_shots(
+            early=float(early),
+            late=float(late),
+            u_front=float(runway["u_front"]),
+            phase_uncertainty=phase_uncertainty,
+            phase_live=self._phase_live,
+            phase_live={str(k): bool(v) for k, v in self._phase_live.items()},
+            terminal_phase=self._terminal_phase(),
+            phase_null_reasons={str(k): str(v) for k, v in self._phase_null_reasons.items()},
+            phase_null_streaks={str(k): int(v) for k, v in self._phase_null_streaks.items()},
+        self._update_phase_live(
+            n_rem_low=float(runway["n_rem_low"]),
+            n_rem_high=float(runway["n_rem_high"]),
+        )
+        phase_laws = self._phase_thresholds_caps_shots(
+            early=float(early),
+            late=float(late),
+            u_front=float(runway["u_front"]),
+            phase_uncertainty=phase_uncertainty,
+            phase_live=self._phase_live,
+        )
+            phase_live={str(k): bool(v) for k, v in self._phase_live.items()},
+            terminal_phase=self._terminal_phase(),
+            phase_null_reasons={str(k): str(v) for k, v in self._phase_null_reasons.items()},
+            phase_null_streaks={str(k): int(v) for k, v in self._phase_null_streaks.items()},

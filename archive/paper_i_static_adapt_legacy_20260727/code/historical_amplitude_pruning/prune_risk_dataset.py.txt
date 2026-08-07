@@ -1,0 +1,239 @@
+        feature_map={
+            "generator_id": "generator_id",
+            "admission_step": "admission_step",
+            "first_seen_step": "first_seen_step",
+            "selector_score": "selector_score",
+            "selector_burden": "selector_burden",
+            "cooldown_remaining": "cooldown_remaining",
+            "cumulative_abs_motion": "cumulative_abs_motion",
+            "recent_abs_motion": "recent_abs_motion",
+            "stagnation_score": "stagnation_score",
+            "current_abs_theta": "theta_abs",
+            "previous_abs_theta": "previous_abs_theta",
+            "peak_abs_theta": "peak_abs_theta",
+            "amplitude_observation_count": "amplitude_observation_count",
+        },
+        extra={"feature_source_metadata": True},
+    )
+    add_rows(
+        "gate_rows",
+        fallback_index_from_position=False,
+        feature_map={
+            "theta_abs_wrapped": "theta_abs",
+            "first_seen_age": "first_seen_age",
+            "admission_age": "admission_age",
+            "cooldown_remaining": "cooldown_remaining",
+            "stagnation_score": "stagnation_score",
+            "selector_burden": "selector_burden",
+            "stale_age_pass": "stale_age_pass",
+            "stagnation_pass": "stagnation_pass",
+            "protected": "protected",
+            "cooldown_blocked": "cooldown_blocked",
+            "mature_eligible": "mature_eligible",
+            "recoverability_eligible": "recoverability_eligible",
+        },
+        extra={"feature_source_gate": True},
+    )
+    add_rows(
+        "amplitude_witness_rows",
+        fallback_index_from_position=False,
+        feature_map={
+            "ok": "amplitude_witness_ok",
+            "reason": "amplitude_witness_reason",
+            "current_abs_theta": "theta_abs",
+            "peak_abs_theta": "peak_abs_theta",
+            "drop_abs_theta": "amplitude_drop_abs",
+            "collapse_ratio_observed": "amplitude_collapse_ratio",
+            "previous_abs_theta": "previous_abs_theta",
+            "observation_count": "amplitude_observation_count",
+        },
+        extra={"feature_source_amplitude_witness": True},
+    )
+        features: dict[str, Any] = {}
+        if int(index) >= 0:
+            features.update(by_index.get(int(index), {}))
+        if label:
+            features.update(by_label.get(str(label), {}))
+        theta_abs = _maybe_float(features.get("theta_abs"), None)
+        if theta_abs is None:
+            for key in ("current_abs_theta", "amplitude_current_abs", "theta_abs_wrapped"):
+                theta_abs = _maybe_float(features.get(key), None)
+                if theta_abs is not None:
+                    features["theta_abs"] = float(theta_abs)
+                    break
+        selector_score = _maybe_float(features.get("selector_score"), None)
+        selector_burden = _maybe_float(features.get("selector_burden"), 0.0)
+            "regression": "delete_refit_regression",
+            "energy_before": "delete_refit_energy_before",
+            "energy_after": "delete_refit_energy_after",
+            "regression_threshold": "delete_refit_regression_threshold",
+            "retained_gain": "delete_refit_retained_gain",
+            "retained_gain_threshold": "delete_refit_retained_gain_threshold",
+            "rung_index": "delete_refit_rung_index",
+            "rung_kind": "delete_refit_rung_kind",
+            "safe_regression_ok": "delete_refit_safe_regression_ok",
+            "retained_gain_ok": "delete_refit_retained_gain_ok",
+            "curvature_guard_ok": "delete_refit_curvature_guard_ok",
+            "confidence_guard_ok": "delete_refit_confidence_guard_ok",
+            "amplitude_witness_ok": "amplitude_witness_ok",
+            "amplitude_witness_reason": "amplitude_witness_reason",
+            "amplitude_current_abs": "theta_abs",
+            "amplitude_peak_abs": "peak_abs_theta",
+            "amplitude_drop_abs": "amplitude_drop_abs",
+            "amplitude_collapse_ratio": "amplitude_collapse_ratio",
+            "amplitude_observation_count": "amplitude_observation_count",
+        }.items():
+            _copy_feature(row, decision, source_key, target_key)
+    for key in keys:
+        if key in record:
+            value = _maybe_float(record.get(key), None)
+            if value is not None:
+                return float(value)
+    return None
+
+
+def _rule_numeric_checks(record: Mapping[str, Any], rule: Mapping[str, Any]) -> tuple[bool, str]:
+    checks: list[tuple[str, Sequence[str], str]] = [
+        ("theta_abs_max", ("theta_abs", "theta_abs_wrapped", "current_abs_theta"), "theta_abs_above_max"),
+        ("selector_burden_max", ("selector_burden",), "selector_burden_above_max"),
+        (
+            "selector_value_per_burden_max",
+            ("selector_value_per_burden",),
+            "selector_value_per_burden_above_max",
+        ),
+        ("schur_score_max", ("schur_score", "schur_min"), "schur_score_above_max"),
+        (
+            "amplitude_observation_count_min",
+            ("amplitude_observation_count",),
+            "amplitude_observation_count_below_min",
+        ),
+    ]
+    for rule_key, record_keys, reason in checks:
+        if rule.get(rule_key) is None:
+            continue
+        threshold = _maybe_float(rule.get(rule_key), None)
+        value = _value_from_record(record, record_keys)
+        if threshold is None or value is None:
+            return False, f"{reason}_missing"
+        if rule_key.endswith("_min"):
+            if float(value) < float(threshold) - 1e-15:
+                return False, reason
+        elif float(value) > float(threshold) + 1e-15:
+            return False, reason
+    if rule.get("stagnation_score_min") is not None:
+        threshold = _maybe_float(rule.get("stagnation_score_min"), None)
+        value = _value_from_record(record, ("stagnation_score",))
+        if threshold is None or value is None:
+            return False, "stagnation_score_missing"
+        if float(value) < float(threshold) - 1e-15:
+            return False, "stagnation_score_below_min"
+    if bool(rule.get("require_amplitude_witness_ok", False)) and not bool(
+        record.get("amplitude_witness_ok", False)
+    ):
+        return False, "amplitude_witness_not_ok"
+    return True, "allowed"
+
+        return finite
+    picks: list[float] = []
+    for frac in (0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0):
+        pos = int(round(float(frac) * float(len(finite) - 1)))
+        picks.append(float(finite[max(0, min(pos, len(finite) - 1))]))
+    return sorted({float(x) for x in picks})
+
+
+def _nomination_rule_candidates(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    theta_thresholds = _threshold_candidates(
+        _feature_values(records, ("theta_abs", "theta_abs_wrapped", "current_abs_theta"))
+    )
+    stagnation_thresholds = _threshold_candidates(_feature_values(records, ("stagnation_score",)))
+    selector_value_thresholds = _threshold_candidates(
+        _feature_values(records, ("selector_value_per_burden",))
+    )
+    schur_thresholds = _threshold_candidates(_feature_values(records, ("schur_score", "schur_min")))
+    obs_thresholds = [
+        int(x)
+        for x in _threshold_candidates(
+            _feature_values(records, ("amplitude_observation_count",)),
+            max_count=4,
+        )
+        if int(x) >= 0
+    ]
+
+    rules: list[dict[str, Any]] = []
+
+    def add(rule: Mapping[str, Any]) -> None:
+        clean = {k: v for k, v in dict(rule).items() if v is not None}
+        clean.setdefault("schema", PRUNE_NOMINATION_RULE_SCHEMA)
+        clean.setdefault("risk_threshold", 0.0)
+        clean.setdefault("max_candidates_per_step", 0)
+        name_parts = [
+            str(clean.get("motif_policy", "clean_prior_motif")),
+            f"risk{float(clean.get('risk_threshold', 0.0)):.3g}",
+            f"cap{int(clean.get('max_candidates_per_step', 0))}",
+        ]
+        for key in (
+            "theta_abs_max",
+            "stagnation_score_min",
+            "selector_value_per_burden_max",
+            "schur_score_max",
+            "amplitude_observation_count_min",
+        ):
+            if key in clean:
+                name_parts.append(f"{key}={clean[key]}")
+        if bool(clean.get("require_amplitude_witness_ok", False)):
+            name_parts.append("amp_witness_ok")
+        clean.setdefault("name", "_".join(name_parts))
+        rules.append(clean)
+
+    motif_policies = ("allow_all", "block_prior_reject", "prior_accept_risk", "clean_prior_motif")
+    risk_thresholds = (0.0, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0)
+    caps = (0, 1, 2, 3)
+    for motif_policy in motif_policies:
+        for risk_threshold in risk_thresholds:
+            for cap in caps:
+                base = {
+                    "motif_policy": motif_policy,
+                    "risk_threshold": float(risk_threshold),
+                    "max_candidates_per_step": int(cap),
+                }
+                add(base)
+                for theta in theta_thresholds:
+                    add({**base, "theta_abs_max": float(theta)})
+                for stagnation in stagnation_thresholds:
+                    add({**base, "stagnation_score_min": float(stagnation)})
+                for selector_value in selector_value_thresholds:
+                    add({**base, "selector_value_per_burden_max": float(selector_value)})
+                for schur_score in schur_thresholds:
+                    add({**base, "schur_score_max": float(schur_score)})
+                for obs_count in obs_thresholds:
+                    add({**base, "amplitude_observation_count_min": int(obs_count)})
+                for theta in theta_thresholds:
+                    for stagnation in stagnation_thresholds:
+                        add(
+                            {
+                                **base,
+                                "theta_abs_max": float(theta),
+                                "stagnation_score_min": float(stagnation),
+                            }
+                        )
+    deduped: dict[str, dict[str, Any]] = {}
+    for rule in rules:
+        key = json.dumps({k: v for k, v in rule.items() if k != "name"}, sort_keys=True)
+        deduped.setdefault(key, rule)
+    return list(deduped.values())
+
+
+def feature_availability(records: Iterable[Mapping[str, Any]]) -> dict[str, int]:
+    keys = (
+        "theta_abs",
+        "selector_score",
+        "selector_burden",
+        "selector_value_per_burden",
+        "stagnation_score",
+        "first_seen_age",
+        "admission_age",
+        "amplitude_observation_count",
+        "amplitude_witness_ok",
+        "schur_score",
+        "schur_used_for_nomination",
+        "frozen_regression",

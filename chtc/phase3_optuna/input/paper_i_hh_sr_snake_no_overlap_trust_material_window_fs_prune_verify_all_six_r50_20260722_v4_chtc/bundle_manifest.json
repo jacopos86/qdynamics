@@ -1,0 +1,45 @@
+{
+  "batch_name": "paper-i-hh-sr-material-window-fsprune-verify-six-r50-20260722-v4",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc",
+  "candidate_route_contract_sha256": "b43b23181ab1d93294fd2fb4ab96b32f7669c82db38082c86af39636cdf05201",
+  "job_count": 6,
+  "jobs": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/strong_strong_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/jobs/weak_weak.json"
+  ],
+  "normalized_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/strong_strong_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v4_chtc/normalized_manifests/weak_weak.json"
+  ],
+  "operational_repair": {
+    "algorithmic_query_delta": 0,
+    "changed_paths": [
+      "pipelines/static_adapt/adapt_pipeline.py",
+      "test/test_static_adapt_material_window_prune_receipt_recovery.py"
+    ],
+    "detected_by": "exact_uploaded_archive_image_round1_smoke",
+    "failure_class": "pre_science_selected_material_window_estimator_receipt_handoff",
+    "predecessor_bundle": "paper_i_hh_sr_snake_no_overlap_trust_material_window_fs_prune_verify_all_six_r50_20260722_v3_chtc",
+    "predecessor_cluster": null,
+    "predecessor_source_archive_sha256": "4950f1d930c259bd4d786a657809a06aab918960a354fe25d59cdfcbb66b9252",
+    "recovery_authority": "exact_candidate_pool_label_position_identity_v1",
+    "route_contract_sha256_unchanged": "b43b23181ab1d93294fd2fb4ab96b32f7669c82db38082c86af39636cdf05201",
+    "schema": "paper_i_sr_test2_selected_prune_receipt_recovery_v1",
+    "scientific_settings_changed": false
+  },
+  "parent_route_contract_sha256": "9d6cfae3fda84eb6a24232358c45a8f25b42c6147bfa4250905910eff687a417",
+  "physics_reference_lock_sha256": "01f08fd2e98b2a10f0d3a453a9b5486920a2aa4879c23d624aded61965fce6e6",
+  "schema": "paper_i_sr_material_window_fs_prune_fanout_bundle_v1",
+  "source_archive_manifest_sha256": "ff50418e986a046543a5ee2b6367b1bf1a667591ac07bbb6a369b77801d4c965",
+  "source_archive_sha256": "3c510ac495c4055184ff465f07aa66e125625949301f511fd37485b2d968daa3",
+  "source_revision_manifest_sha256": "14f48a34163231562e0496f05e8cf4897e2f9a4125fc845d3bab02eebe672d0e",
+  "submission_performed": false
+}

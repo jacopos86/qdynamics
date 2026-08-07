@@ -1,0 +1,68 @@
+{
+  "classification": "post_run_reporting_repair_no_scientific_change_v1",
+  "parent_bundle_id": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+  "parent_cluster": 8890778,
+  "parent_source_archive_sha256": "3a5ed36ebdf260357aa86b3a5ab3c7d8372072329a8fec2e1043e90b6f7c34c7",
+  "preserved_parent_rows": {
+    "completed_for_local_post_run_salvage": [
+      0,
+      1,
+      2
+    ],
+    "not_duplicated_active_or_completed": [
+      3
+    ]
+  },
+  "route_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+  "route_contract_unchanged": true,
+  "schema": "paper_i_hh_sr_macro_fidelity_remaining2_successor_v1",
+  "scientific_settings_changed": false,
+  "source_archive_repair": {
+    "changed_or_added_files": {
+      "agent_guidance/skills/paper-i-results/scripts/compute_paper_i_main_fidelities.py": {
+        "after": {
+          "sha256": "91edb3bba6e20d7f84e331d8428fd422c7b5ae272b63fd3f99ebb4c9be5f2dce",
+          "size_bytes": 53409
+        },
+        "before": {
+          "sha256": "5534333b6ad14a440a8b5f4e1104d388a11048c1a27b90e7f8466f048cbe1a42",
+          "size_bytes": 52669
+        },
+        "role": "post_run_projector_fidelity_replay"
+      },
+      "test/test_paper_i_main_fidelity_audit.py": {
+        "after": {
+          "sha256": "3c17b26baf07691bc159ef41d730c3fdd036dee079978c2db1b0e4e673b0f34a",
+          "size_bytes": 20797
+        },
+        "before": null,
+        "role": "focused_reporting_regression_test"
+      }
+    },
+    "classification": "post_run_reporting_only_no_scientific_change_v1",
+    "parent_source_archive_sha256": "3a5ed36ebdf260357aa86b3a5ab3c7d8372072329a8fec2e1043e90b6f7c34c7",
+    "schema": "paper_i_hh_sr_macro_fidelity_reporting_repair_v1",
+    "scientific_settings_changed": false,
+    "scientific_source_files_changed": []
+  },
+  "submission_performed": false,
+  "successor_batch_name": "paper-i-hh-sr-macro-only-physical-lanes-fidelity-repair-remaining2-r50-20260719-v2",
+  "successor_bundle_id": "paper_i_hh_sr_snake_macro_only_physical_lanes_fidelity_repair_remaining2_r50_20260719_v2_chtc",
+  "successor_source_archive_sha256": "a3a80c964ba2925de1c14843c75dd2c9b8440f4e27f3f713341c96c95e40e2fc",
+  "superseded_parent_rows": [
+    {
+      "parent_cluster": 8890778,
+      "parent_proc": 4,
+      "regime_slug": "intermediate_strong",
+      "scheduler_state": "held",
+      "superseded_by_successor": true
+    },
+    {
+      "parent_cluster": 8890778,
+      "parent_proc": 5,
+      "regime_slug": "strong_strong_u8",
+      "scheduler_state": "held",
+      "superseded_by_successor": true
+    }
+  ]
+}

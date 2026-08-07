@@ -1,0 +1,273 @@
+{
+  "approved_contract": {
+    "per_regime_horizons": {
+      "intermediate_strong": 50,
+      "intermediate_weak": 50,
+      "strong_strong_u8": 50,
+      "strong_weak_u8": 50,
+      "weak_strong": 50,
+      "weak_weak": 50
+    },
+    "required_execution_settings": {
+      "adapt_beam_children_per_parent": 1,
+      "adapt_beam_lambda": 0.005,
+      "adapt_beam_live_branches": 1,
+      "adapt_beam_terminal_archive_mode": "disabled",
+      "adapt_beam_terminated_keep": 0,
+      "adapt_disable_hh_seed": true,
+      "adapt_final_full_refit": "false",
+      "adapt_finite_angle_fallback": false,
+      "adapt_full_refit_every": 0,
+      "adapt_seed": 7,
+      "phase1_energy_model": "first_order_fs_trust_v1",
+      "phase1_prune_enabled": false,
+      "phase2_batch_selection_mode": "greedy_reduced_plane",
+      "phase2_batch_size_cap": 3,
+      "phase2_batch_target_size": 3,
+      "phase2_cheap_curvature_proxy_policy": "off",
+      "phase2_curvature_policy": "measured_required_fail_closed_v1",
+      "phase2_enable_batching": false,
+      "phase2_gram_novelty_policy": "fallback_only_v1",
+      "phase3_batch_selection_mode": "greedy_reduced_plane",
+      "phase3_batch_size_cap": 3,
+      "phase3_batch_target_size": 3,
+      "phase3_enable_batching": true,
+      "phase3_enable_rescue": false,
+      "phase3_gram_novelty_policy": "fallback_only_v1",
+      "phase3_hardware_cost_normalization_mode": "family_robust_symmetric_arctan_v1",
+      "phase3_runtime_split_max_subset_size": 1,
+      "phase3_shadow_damping_policy": "off"
+    },
+    "required_semantic_invariants": {
+      "admission_cardinality": "one_to_three_v1",
+      "all_energy_models_infeasible_novelty_fallback_active": true,
+      "all_energy_models_infeasible_novelty_fallback_telemetry_required": true,
+      "appendix_one_factor_ablation": true,
+      "beam_shape": "effective_1x1_v1",
+      "controller_horizon_source": "per_regime_source_lock",
+      "negative_curvature_escape_active": false,
+      "ordinary_phase2_novelty_multiplier_active": false,
+      "ordinary_phase3_novelty_multiplier_active": false,
+      "periodic_full_refit_active": false,
+      "phase2_batching_active": false,
+      "phase2_supported_whitening_active": false,
+      "phase3_batch_full_accepted_refit_required": true,
+      "phase3_batch_response_scope": "full_active_plus_batch_v1",
+      "phase3_batch_selection_mode": "greedy_reduced_plane",
+      "phase3_batch_size_cap": 3,
+      "phase3_batch_supported_fs_trust_receipt_required": true,
+      "phase3_batch_target_size": 3,
+      "phase3_batching_active": true,
+      "phase3_batching_scope": "post_shortlist_admission_only_v1",
+      "phase3_runtime_child_subset_cap": 1,
+      "phase3_supported_whitening_active": true,
+      "pruning_active": false,
+      "terminal_full_refit_active": false,
+      "terminal_prune_active": false
+    }
+  },
+  "batch_name": "paper-i-hh-sr-appendix-phase3-greedy-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260720-v12",
+  "batch_selector_workspace_receipt_repair": {
+    "classification": "non_scientific_selected_proposal_workspace_telemetry_preservation_v1",
+    "derived_file_sha256": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "3684ae46dfd07cc5f0fdfc8809e29dc47bf1709da62754c88acf5cc3500b5bf8"
+    },
+    "failure_mode": "The non-beam batch selector wrappers returned the selected proposal's partial summary instead of the complete selector summary, dropping the already-computed geometry_workspace trust receipt.",
+    "model_inputs_or_selection_changed": false,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v6_chtc/batch_selector_workspace_receipt_overlay.patch",
+    "overlay_sha256": "1da782d0d14355f22de3152961ce7f1d12f602920464fec916362f4643785bdf",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "predecessor_cluster": 8887596,
+    "predecessor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1",
+    "repair_scope": [
+      "pipelines/scaffold/hh_continuation_scoring.py::greedy_reduced_plane_batch_select",
+      "pipelines/scaffold/hh_continuation_scoring.py::combinatorial_reduced_plane_batch_select"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "selected_records_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v6_chtc",
+    "successor_source_archive_sha256": "f11607321e426d73627910a1da76a22a96f4d4bd82f66708b5b202b2e5a61453",
+    "telemetry_preserved": [
+      "geometry_workspace",
+      "proposal_count",
+      "selection-level response receipts"
+    ]
+  },
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v12_chtc",
+  "hysteresis_disabled_successor": {
+    "only_scientific_contract_diff": [
+      {
+        "field": "phase_live_hysteresis_enabled",
+        "new": false,
+        "old": null
+      }
+    ],
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+    "predecessor_cluster": 8887548,
+    "route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+    "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+    "source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+  },
+  "immutable_parent": {
+    "bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v1_chtc",
+    "bundle_manifest_used_as_provenance_anchor": false,
+    "route_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+    "scientific_settings_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v1_chtc/scientific_settings_audit.json",
+    "scientific_settings_audit_sha256": "8d337f6b6763242649181a84867c7b33567fd0a2584a18d249a7b7a91a6fc25f",
+    "source_archive_sha256": "fa9014b9608ccb8a301df0429268482abf6dd10c91eb336111a15d00be256d35"
+  },
+  "one_factor_execution_diff": {
+    "phase2_batch_selection_mode": {
+      "appendix_phase3_batch": "greedy_reduced_plane",
+      "parent": "<MISSING>"
+    },
+    "phase2_batch_size_cap": {
+      "appendix_phase3_batch": 3,
+      "parent": "<MISSING>"
+    },
+    "phase2_batch_target_size": {
+      "appendix_phase3_batch": 3,
+      "parent": "<MISSING>"
+    },
+    "phase3_batch_selection_mode": {
+      "appendix_phase3_batch": "greedy_reduced_plane",
+      "parent": "<MISSING>"
+    },
+    "phase3_batch_size_cap": {
+      "appendix_phase3_batch": 3,
+      "parent": "<MISSING>"
+    },
+    "phase3_batch_target_size": {
+      "appendix_phase3_batch": 3,
+      "parent": "<MISSING>"
+    },
+    "phase3_enable_batching": {
+      "appendix_phase3_batch": true,
+      "parent": false
+    }
+  },
+  "operational_predecessor": {
+    "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "cluster": 8887596,
+    "source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+  },
+  "profile_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_greedy_batch_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_phase3_greedy_batch_v1",
+  "response_model_damping": {
+    "classification": "numerical_stability_tolerances_are_not_scientific_damping",
+    "historical_numerical_schur_ridge": 1e-06,
+    "scientific_h_plus_mu_g_damping": "off",
+    "supported_solve_numerical_tolerance": 1e-09
+  },
+  "rows": [
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "weak_weak",
+      "target_round": 50
+    },
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "intermediate_weak",
+      "target_round": 50
+    },
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "strong_weak_u8",
+      "target_round": 50
+    },
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "weak_strong",
+      "target_round": 50
+    },
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "intermediate_strong",
+      "target_round": 50
+    },
+    {
+      "checks": {
+        "cache_policy_explicit": true,
+        "exact_horizon": true,
+        "exact_reference_decimal_lock": true,
+        "fresh_round_zero": true,
+        "g_ep_12_digit_lock": true,
+        "horizon_explicit_in_argv": true,
+        "no_manual_exact_override": true,
+        "post_run_fidelity_reporting_only": true,
+        "profile_digest_exact": true,
+        "profile_only_plus_horizon": true,
+        "same_cutoff": true
+      },
+      "regime_slug": "strong_strong_u8",
+      "target_round": 50
+    }
+  ],
+  "schema": "paper_i_hh_sr_appendix_phase3_batch3_settings_audit_v1",
+  "status": "pass",
+  "unexpected_executable_differences": []
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "paper_i_sr_operational_successor_marker_v1",
+  "status": "superseded_do_not_submit",
+  "reason": "Cluster 8895563 was removed idle with NumJobStarts=0 after a fail-closed audit found that the worker inner shell did not propagate a Qiskit preflight failure. No scientific execution began.",
+  "removed_cluster": 8895563,
+  "successor_bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v7_chtc"
+}

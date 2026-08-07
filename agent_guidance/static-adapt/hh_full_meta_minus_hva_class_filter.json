@@ -1,0 +1,29 @@
+{
+  "classifier_version": "hh_full_meta_v4",
+  "source_pool": "full_meta",
+  "source_problem": "hh",
+  "keep_classes": [
+    "hh_termwise_unit",
+    "hh_termwise_quadrature",
+    "uccsd_sing",
+    "uccsd_dbl",
+    "hh_hamiltonian_block",
+    "hh_fermionic_reusable",
+    "hh_phonon_linear",
+    "hh_phonon_quadratic",
+    "hh_vlf_sq",
+    "paop_cloud_p",
+    "paop_cloud_x",
+    "paop_disp",
+    "paop_dbl",
+    "paop_hopdrag",
+    "paop_dbl_p",
+    "paop_dbl_x",
+    "paop_curdrag",
+    "paop_hop2",
+    "paop_other",
+    "uccsd_paop_product",
+    "uccsd_paop_product_seq_ferm",
+    "uccsd_paop_product_seq_motif"
+  ]
+}

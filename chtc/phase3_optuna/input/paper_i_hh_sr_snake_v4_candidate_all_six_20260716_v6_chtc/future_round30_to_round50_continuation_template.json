@@ -1,0 +1,69 @@
+{
+  "compile_smoke": {
+    "backend": "FakeMarrakesh",
+    "must_precede_scientific_continuation": true,
+    "required": true
+  },
+  "eligible_regimes": [
+    "strong_weak_u8",
+    "weak_strong",
+    "intermediate_strong",
+    "strong_strong_u8"
+  ],
+  "materialization_gate": "materialize one row only after its round-30 parent transfer archive passes validate_fetched.py; replace every null authenticated lock with the fetched artifact SHA-256",
+  "profile_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc",
+  "profile_request": "sr_snake_v4",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+  "required_authenticated_locks_per_row": {
+    "source_checkpoint_kind": "post_admission_prune",
+    "source_checkpoint_outer_iteration": 30,
+    "source_estimator_ledger_sha256": null,
+    "source_result_sha256": null,
+    "source_route_profile_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc",
+    "source_signed_checkpoint_sha256": null
+  },
+  "rows": [
+    {
+      "materialized": false,
+      "regime_slug": "strong_weak_u8",
+      "source_estimator_ledger_sha256": null,
+      "source_result_sha256": null,
+      "source_signed_checkpoint_sha256": null
+    },
+    {
+      "materialized": false,
+      "regime_slug": "weak_strong",
+      "source_estimator_ledger_sha256": null,
+      "source_result_sha256": null,
+      "source_signed_checkpoint_sha256": null
+    },
+    {
+      "materialized": false,
+      "regime_slug": "intermediate_strong",
+      "source_estimator_ledger_sha256": null,
+      "source_result_sha256": null,
+      "source_signed_checkpoint_sha256": null
+    },
+    {
+      "materialized": false,
+      "regime_slug": "strong_strong_u8",
+      "source_estimator_ledger_sha256": null,
+      "source_result_sha256": null,
+      "source_signed_checkpoint_sha256": null
+    }
+  ],
+  "schema": "paper_i_hh_sr_snake_v4_round30_to_round50_continuation_template_v3",
+  "segment_contract": {
+    "boundary_policy": "verified_checkpoint_no_refit_v1",
+    "max_new_admissions": 20,
+    "resume_mode": "scaffold_v1",
+    "source_controller_round": 30,
+    "source_depth": "from_authenticated_round30_signed_checkpoint",
+    "target_controller_round": 50,
+    "target_depth_cap": 50
+  },
+  "source_archive": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_v4_candidate_all_six_20260716_v6_chtc/source_locked.tar.gz",
+  "source_archive_sha256": "fd4bb433a8da24a7bdd47a9526ded22c8e39198019d7a84b3f041cb9dec00349",
+  "source_bundle_id": "paper_i_hh_sr_snake_v4_candidate_all_six_20260716_v6_chtc",
+  "status": "template_only_not_executable"
+}

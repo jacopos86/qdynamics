@@ -1,0 +1,18 @@
+{
+  "control_before_reuse_gate": "enforced_by_pair_dag_post_script",
+  "historical_repaired_failure": {
+    "error": "Source-locked SR outer reuse requires exactly one authoritative singleton admission.",
+    "id": "sr_outer_reuse_suppressed_gradient_singleton_record_gap_v1",
+    "observed_controller_round": 30,
+    "observed_regime": "strong_weak_u8_nph3",
+    "repair_id": "canonical_sr_suppressed_eps_grad_singleton_exact_metric_v1",
+    "repaired_in_source_runtime_revision": "v5r2",
+    "run_id": "20260719T125934Z-c91f6f34"
+  },
+  "local_source_archive_gate": "pass",
+  "remote_image_and_quota_preflight": "required_at_later_submission",
+  "schema": "paper_i_chtc_submission_gate_v1",
+  "source_runtime_revision": "v5r2",
+  "status": "pass",
+  "submission_enabled": true
+}

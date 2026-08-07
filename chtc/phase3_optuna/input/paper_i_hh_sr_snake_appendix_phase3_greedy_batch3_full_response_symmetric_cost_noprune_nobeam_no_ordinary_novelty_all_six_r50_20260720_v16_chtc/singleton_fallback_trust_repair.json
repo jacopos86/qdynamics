@@ -1,0 +1,22 @@
+{
+  "completed_utc": "2026-07-20T23:30:55.512998+00:00",
+  "failed_predecessor_error": "Phase-III batching appendix trust update received an infeasible response summary: 'singleton_shell'.",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v13_chtc",
+  "proof": {
+    "archive_only_job_gates_passed": 6,
+    "exact_remote_image_gate": "pass",
+    "exact_remote_image_rows_passed": 6,
+    "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "frozen_source_tests_passed": 2,
+    "route_digest_unchanged": true
+  },
+  "query_measurements_added": 0,
+  "remote_preflight_completed_utc": "2026-07-20T23:34:13.857650+00:00",
+  "repair": "carry the selected authoritative singleton's already measured full-response coordinate receipt into the degenerate one-record batch adaptive-trust transaction",
+  "route_contract_sha256": "ed3afaeffa076cfce6b3eb63bf912dd182768fd109b3cc2be5878f23b335c865",
+  "schema": "paper_i_sr_phase3_batch_singleton_trust_repair_v1",
+  "scientific_settings_changed": false,
+  "source_archive_sha256": "d5891482ee2eb75b8e38bc4845221e9871457b2539a9b6723c63ffc1764b4d42",
+  "status": "pass_exact_remote_image_validated_not_submitted",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v16_chtc"
+}

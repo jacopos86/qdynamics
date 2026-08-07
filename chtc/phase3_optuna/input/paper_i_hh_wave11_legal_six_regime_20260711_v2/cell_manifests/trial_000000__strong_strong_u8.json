@@ -1,0 +1,32 @@
+{
+  "cell_id": "trial_000000__strong_strong_u8",
+  "execution_profile": "wave11_legal_fixed_policy_v1",
+  "expected_outputs": [
+    "result.json",
+    "current.json",
+    "compact_summary.json",
+    "query_work_sidecar.json"
+  ],
+  "generated_utc": "2026-07-12T01:46:35.842830+00:00",
+  "manifest_sha256": "86197827e937060f9db9acb3ac9b0f30fac7f3843a200e55523fcc2379ff386c",
+  "max_depth": 15,
+  "num_sites": 2,
+  "output_relative_dir": "trial_000000/strong-strong-u8",
+  "policy": {
+    "batch_mode": "combinatorial",
+    "batch_search_pool_size": 25,
+    "batch_size_cap": 2,
+    "child_phase1_cap": 128,
+    "child_phase2_cap": 64,
+    "lambda_add": 0.0,
+    "macro_phase1_cap": 64,
+    "macro_phase2_cap": 48
+  },
+  "policy_sha256": "f23334b9b56017d36f93d240c8a899ee2381fd9ad5890ad10fe7ddfb7f9dc1c7",
+  "regime": "strong-strong-u8",
+  "run_class": "candidate_fixed_policy_matrix",
+  "schema": "paper_i_hh_route_a_optuna_cell_v1",
+  "scientific_contract_hash": "a142d1c4f3c7a40d36505cba34012397bb8026dca9b28f4cfe903c8455299b8b",
+  "study_name": "paper_i_hh_wave11_legal_six_regime_v1",
+  "trial_number": 0
+}

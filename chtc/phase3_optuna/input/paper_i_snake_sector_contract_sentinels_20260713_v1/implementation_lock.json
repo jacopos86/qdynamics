@@ -1,0 +1,158 @@
+{
+  "code_bundle": {
+    "path": "chtc/phase3_optuna/input/paper_i_snake_sector_contract_sentinels_20260713_v1/paper_i_scaling_matrix_code.tar.gz",
+    "sha256": "a4f5ef71b03fa8fe733739624a1ca2adf685f369bfc6117c900719854d05a7bc"
+  },
+  "critical_bundle_member_count": 14,
+  "entries": [
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/generate_paper_i_scaling_matrix_records.py",
+      "sha256": "5f72b2149f16b696526579c3cc6e896514eb27183153a6f559cc89c524d5dfd3",
+      "size_bytes": 36315
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prepare_paper_i_snake_sector_contract_sentinels.py",
+      "sha256": "50e35e07c9cd08eb99ac6de3139a4797011e84af37e15de73367ed10e732922f",
+      "size_bytes": 21687
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/preflight_paper_i_snake_sector_contract_sentinels.py",
+      "sha256": "e46bcb2542d2b8f35d4cd9d746a7073059893e88de9516a13f87786169aca72e",
+      "size_bytes": 18822
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prepare_paper_i_scaling_snake_overlay_repair.py",
+      "sha256": "c034e1717bab78dbf8dabd75c20b232e4f61a4d4ebe80b338402945dd915e2c2",
+      "size_bytes": 12676
+    },
+    {
+      "bundle_member_sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/table_i_canonical_cases.py",
+      "sha256": "ac11e32e4a26fe5985b6f2f3de6310bc5d77ea77cf2da44670ab7ca73e60b92c",
+      "size_bytes": 63121
+    },
+    {
+      "bundle_member_sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/static_reference_metrics.py",
+      "sha256": "91550bd7b7c14ddb1673d4c3ac70ee59978a9ec6beb7915272dfc87c36bffcf4",
+      "size_bytes": 7831
+    },
+    {
+      "bundle_member_sha256": "37bb92b49018e088e6f60eed791659c77a2ab2c0126cd7399d5078e3b176273b",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_benchmark.py",
+      "sha256": "37bb92b49018e088e6f60eed791659c77a2ab2c0126cd7399d5078e3b176273b",
+      "size_bytes": 133035
+    },
+    {
+      "bundle_member_sha256": "48154971a3e36ecbdc2697e65bb1f5e668b2608460361cdf1a522ed1f06cf747",
+      "critical_bundle_member": true,
+      "path": "pipelines/exact_bench/generic_static_adapt_variants.py",
+      "sha256": "48154971a3e36ecbdc2697e65bb1f5e668b2608460361cdf1a522ed1f06cf747",
+      "size_bytes": 352549
+    },
+    {
+      "bundle_member_sha256": "4bb42c57626b677712cbabc6247ce2ca30423a5c663c234b3dea146a12ca8521",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/optimization/phase3_policy_optuna.py",
+      "sha256": "4bb42c57626b677712cbabc6247ce2ca30423a5c663c234b3dea146a12ca8521",
+      "size_bytes": 627126
+    },
+    {
+      "bundle_member_sha256": "0cd1ed1746b61db768242d4d87f834981f5bb0676d15a7335d2c9bf2d75bf63d",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/adapt_pipeline.py",
+      "sha256": "0cd1ed1746b61db768242d4d87f834981f5bb0676d15a7335d2c9bf2d75bf63d",
+      "size_bytes": 1765770
+    },
+    {
+      "bundle_member_sha256": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/cli_config.py",
+      "sha256": "8916a18ac1b7ce06ef86a69851f2d70b50791438ace463bae9f9acc3b88013b7",
+      "size_bytes": 191609
+    },
+    {
+      "bundle_member_sha256": "1fd090f84b35aaee118dd3fff2c1063d2ff44dff7a54c81f29e36a8106053a29",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/engine_support.py",
+      "sha256": "1fd090f84b35aaee118dd3fff2c1063d2ff44dff7a54c81f29e36a8106053a29",
+      "size_bytes": 63712
+    },
+    {
+      "bundle_member_sha256": "3b3db0bc8f3076907c851f4761ffee23f1154876d93611a039d9e708b4d98fc9",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/joint_step_warm_start.py",
+      "sha256": "3b3db0bc8f3076907c851f4761ffee23f1154876d93611a039d9e708b4d98fc9",
+      "size_bytes": 16442
+    },
+    {
+      "bundle_member_sha256": "6dbf267ba6e27e5ccbe681213ee784e480af24e9284e4f42fe948729457af1f8",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/paper_i_runner.py",
+      "sha256": "6dbf267ba6e27e5ccbe681213ee784e480af24e9284e4f42fe948729457af1f8",
+      "size_bytes": 40949
+    },
+    {
+      "bundle_member_sha256": "801405914f19f208d408697fd82e68daa2e8dc10719299a4f8e4293df4aa4595",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/resume_scaffold.py",
+      "sha256": "801405914f19f208d408697fd82e68daa2e8dc10719299a4f8e4293df4aa4595",
+      "size_bytes": 64097
+    },
+    {
+      "bundle_member_sha256": "4203ed9cd9b33d687202f05dc2a424b28681731ca39219ffe945488a9b26d772",
+      "critical_bundle_member": true,
+      "path": "pipelines/static_adapt/sector_invariants.py",
+      "sha256": "4203ed9cd9b33d687202f05dc2a424b28681731ca39219ffe945488a9b26d772",
+      "size_bytes": 25560
+    },
+    {
+      "bundle_member_sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "critical_bundle_member": true,
+      "path": "src/quantum/compiled_ansatz.py",
+      "sha256": "ac2d461a28640efeeeff370670b84a1550719a9f9160bfdc46cc9ea44f3ae0dd",
+      "size_bytes": 31832
+    },
+    {
+      "bundle_member_sha256": "3f3777201e4cd4ee573fa0f149a1ce589b8b57dcd01efc8a8cbdb74ae27bf0fa",
+      "critical_bundle_member": true,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_cell.py",
+      "sha256": "3f3777201e4cd4ee573fa0f149a1ce589b8b57dcd01efc8a8cbdb74ae27bf0fa",
+      "size_bytes": 20815
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/run_paper_i_scaling_matrix_task_apptainer.sh",
+      "sha256": "e8b3dfcad653e1ec6276baf3a63aa727229b9d5207fccfd9a34258aefcea5f7c",
+      "size_bytes": 1095
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/prewarm_paper_i_scaling_hh_pool_cache.py",
+      "sha256": "280b12caa00350dde4175bdb94dc7fcb693abab316e94d5150be269206f85c03",
+      "size_bytes": 15065
+    },
+    {
+      "bundle_member_sha256": null,
+      "critical_bundle_member": false,
+      "path": "chtc/phase3_optuna/preflight_submit.py",
+      "sha256": "6b5ac38b458d2a6904460df696c89eeb61f36d45e0b7768bcf310e6c91138423",
+      "size_bytes": 197487
+    }
+  ],
+  "schema": "paper_i_scaling_matrix_implementation_lock_v1",
+  "status": "pass"
+}

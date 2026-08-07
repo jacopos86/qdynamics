@@ -1,0 +1,1053 @@
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -2277,12 +2277,16 @@
+             self.runtime.phase3_competitive_population_live
+         )
+         from pipelines.static_adapt.ra_adapt.contracts import (
++            RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
+             RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
+         )
+ 
+-        phase3_population_is_plateau_gated = (
++        phase3_population_is_plateau_gated = bool(
+             self.runtime.phase3_activation_receipt.get("policy")
+-            == RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++            in {
++                RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++                RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++            }
+         )
+         phase3_input_records = (
+             phase2_shortlisted_records
+@@ -11628,22 +11632,136 @@
+             }
+         )
+     return receipt
++
++
++def _ra_latched_phase3_history_state(
++    history: Sequence[Mapping[str, Any]],
++) -> dict[str, Any]:
++    """Reconstruct the monotone Phase-III latch from accepted receipts."""
+ 
++    from pipelines.static_adapt.ra_adapt.contracts import (
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++    )
+ 
++    latched = False
++    first_open_round: int | None = None
++    last_round_live = False
++    for ordinal, row in enumerate(history, start=1):
++        activation = row.get("phase3_population_activation")
++        if (
++            not isinstance(activation, Mapping)
++            or activation.get("schema")
++            != "ra_phase3_population_activation_receipt_v2"
++            or activation.get("policy")
++            != RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++        ):
++            raise RuntimeError(
++                "Latched Phase-III history lost its activation receipt."
++            )
++        entry_open = activation.get("entry_plateau_domain_open")
++        before = activation.get("phase3_latched_before_round")
++        after = activation.get("phase3_latched_after_round")
++        opened = activation.get("phase3_latch_opened_this_round")
++        competitive_live = activation.get("competitive_population_live")
++        if not all(
++            isinstance(value, bool)
++            for value in (
++                entry_open,
++                before,
++                after,
++                opened,
++                competitive_live,
++            )
++        ):
++            raise RuntimeError(
++                "Latched Phase-III history carries a non-Boolean state."
++            )
++        expected_after = bool(latched or entry_open)
++        expected_opened = bool(not latched and entry_open)
++        if (
++            before is not latched
++            or after is not expected_after
++            or opened is not expected_opened
++            or competitive_live is not expected_after
++            or activation.get("independent_latch_active") is not True
++            or activation.get("deactivation_allowed") is not False
++            or activation.get("hysteresis_active") is not False
++        ):
++            raise RuntimeError(
++                "Latched Phase-III history is not a monotone first-open latch."
++            )
++        if expected_opened:
++            if first_open_round is not None:
++                raise RuntimeError("Phase III latched open more than once.")
++            first_open_round = ordinal
++        if activation.get("first_latch_accepted_round") != first_open_round:
++            raise RuntimeError(
++                "Latched Phase-III history changed its first-open round."
++            )
++        latched = expected_after
++        last_round_live = bool(competitive_live)
++    return {
++        "latched": bool(latched),
++        "first_open_round": first_open_round,
++        "last_round_live": bool(last_round_live),
++    }
++
++
++def _ra_post_latch_insertion_round_policy(
++    *,
++    history: Sequence[Mapping[str, Any]],
++    raw_round_policy: Mapping[str, Any],
++) -> dict[str, Any]:
++    """Gate the unchanged plateau statistic behind a prior full Phase III."""
++
++    from pipelines.static_adapt.ra_adapt.contracts import (
++        RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE,
++    )
++
++    state = _ra_latched_phase3_history_state(history)
++    raw_open = bool(raw_round_policy.get("domain_open", False))
++    trigger_eligible = bool(
++        state["latched"] and state["last_round_live"] and history
++    )
++    domain_open = bool(trigger_eligible and raw_open)
++    receipt = copy.deepcopy(dict(raw_round_policy))
++    receipt.update(
++        {
++            "domain_state": "open" if domain_open else "closed",
++            "domain_open": domain_open,
++            "effective_insertion_mode": (
++                "full_commutation_reduced" if domain_open else "append_only"
++            ),
++            "raw_progress_plateau_domain_open": raw_open,
++            "insertion_trigger_scope": (
++                RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            ),
++            "phase3_latched_before_round": bool(state["latched"]),
++            "preceding_full_phase3_transition_eligible": trigger_eligible,
++            "preceding_accepted_round": (
++                len(history) if trigger_eligible else None
++            ),
++            "insertion_latch_active": False,
++        }
++    )
++    return receipt
++
++
+ def _ra_phase3_population_activation_receipt(
+     *,
+     route_contract: Mapping[str, Any],
++    history: Sequence[Mapping[str, Any]] = (),
++    entry_round_policy: Mapping[str, Any] | None = None,
+     insertion_round_policy: Mapping[str, Any] | None,
+     candidate_adapter: Any | None,
+     admission_policy: Any,
+ ) -> dict[str, Any]:
+-    """Resolve the singleton ablation from the already-authenticated trigger.
++    """Resolve singleton Phase-III activation from authenticated receipts.
+ 
+-    The plateau predicate is computed once by ``prepare_selection``.  This
+-    projection deliberately has no memory, patience counter, or hysteresis of
+-    its own.  A closed round fixes admission to the top Phase-II record, then
+-    materializes only that winner's response geometry for the unchanged
+-    accepted-refit transaction.
++    The historical same-round route remains a pure projection of the current
++    insertion receipt.  The latched route instead reconstructs its monotone
++    first-open state from accepted history, without introducing mutable latch
++    state into the controller cursor.
+     """
+ 
+     from pipelines.static_adapt.ra_adapt.adapters import (
+@@ -11651,7 +11769,9 @@
+     )
+     from pipelines.static_adapt.ra_adapt.contracts import (
+         CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++        RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE,
+         RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
+         RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
+         RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
+     )
+@@ -11682,9 +11802,10 @@
+             "independent_latch_active": False,
+             "hysteresis_active": False,
+         }
+-    if activation_policy != (
+-        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
+-    ):
++    if activation_policy not in {
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++    }:
+         raise RuntimeError(
+             "RA route declared an unknown Phase-III population activation "
+             f"policy: {activation_policy!r}."
+@@ -11692,7 +11813,7 @@
+     expected_materialization = (
+         RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
+     )
+-    if (
++    common_contract_drift = bool(
+         not isinstance(admission_policy, SingletonAdmission)
+         or str(getattr(candidate_adapter, "adapter_id", ""))
+         != SINGLE_PAULI_ADAPTER_ID
+@@ -11702,10 +11823,83 @@
+         != "insertion_commutation_plateau_v2"
+         or execution.get("ra_phase3_preplateau_materialization_policy")
+         != expected_materialization
+-        or invariants.get("phase3_activation_source")
++        or invariants.get("phase3_activation_hysteresis_active") is not False
++    )
++    if common_contract_drift:
++        raise RuntimeError(
++            "The singleton Phase-III-on-plateau activation contract drifted."
++        )
++    if activation_policy == (
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++    ):
++        if (
++            invariants.get("phase3_activation_source")
++            != "first_authenticated_progress_plateau_domain_open_latched_v1"
++            or invariants.get("phase3_activation_independent_latch") is not True
++            or invariants.get("phase3_latch_retirement_policy")
++            != "never_close_v1"
++            or invariants.get("insertion_plateau_history_scope")
++            != RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            or invariants.get("insertion_activation_requires_prior_phase3_latch")
++            is not True
++            or invariants.get("insertion_activation_changes_phase3_latch")
++            is not False
++            or execution.get("ra_insertion_plateau_history_scope")
++            != RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            or not isinstance(entry_round_policy, Mapping)
++            or entry_round_policy.get("policy")
++            != "insertion_commutation_plateau_v2"
++            or not isinstance(insertion_round_policy, Mapping)
++            or insertion_round_policy.get("policy")
++            != "insertion_commutation_plateau_v2"
++            or insertion_round_policy.get("insertion_trigger_scope")
++            != RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++        ):
++            raise RuntimeError(
++                "The latched Phase-III/separate-insertion contract drifted."
++            )
++        state = _ra_latched_phase3_history_state(history)
++        entry_open = bool(entry_round_policy.get("domain_open", False))
++        live = bool(state["latched"] or entry_open)
++        opened = bool(not state["latched"] and entry_open)
++        first_open_round = state["first_open_round"]
++        if opened:
++            first_open_round = len(history) + 1
++        return {
++            "schema": "ra_phase3_population_activation_receipt_v2",
++            "policy": RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++            "competitive_population_live": live,
++            "activation_source": (
++                "first_authenticated_progress_plateau_domain_open_latched_v1"
++            ),
++            "preplateau_admission_authority": (
++                None if live else "phase2_raw_score_top_rank_v1"
++            ),
++            "winner_materialization_policy": (
++                None if live else expected_materialization
++            ),
++            "entry_plateau_domain_open": entry_open,
++            "entry_plateau_receipt": copy.deepcopy(dict(entry_round_policy)),
++            "phase3_latched_before_round": bool(state["latched"]),
++            "phase3_latched_after_round": live,
++            "phase3_latch_opened_this_round": opened,
++            "first_latch_accepted_round": first_open_round,
++            "independent_latch_active": True,
++            "deactivation_allowed": False,
++            "hysteresis_active": False,
++            "insertion_plateau_domain_open": bool(
++                insertion_round_policy.get("domain_open", False)
++            ),
++            "insertion_trigger_eligible": bool(
++                insertion_round_policy.get(
++                    "preceding_full_phase3_transition_eligible", False
++                )
++            ),
++        }
++    if (
++        invariants.get("phase3_activation_source")
+         != "same_round_authenticated_insertion_plateau_domain_open_v1"
+         or invariants.get("phase3_activation_independent_latch") is not False
+-        or invariants.get("phase3_activation_hysteresis_active") is not False
+         or not isinstance(insertion_round_policy, Mapping)
+         or insertion_round_policy.get("policy")
+         != "insertion_commutation_plateau_v2"
+@@ -56269,7 +56463,9 @@
+         RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY,
+         RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY,
+         RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
++        RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE,
+         RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS,
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
+         RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
+         RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+@@ -56381,18 +56577,29 @@
+         )
+     )
+     phase3_plateau_suffix = "__phase3_population_on_insertion_plateau_v1"
+-    if phase3_population_policy == (
+-        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
+-    ):
++    phase3_latched_suffix = (
++        "__phase3_population_latched_on_progress_plateau_v1"
++        "__insertion_on_phase3_plateau_v1"
++    )
++    if phase3_population_policy in {
++        RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++        RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++    }:
++        latched = bool(
++            phase3_population_policy
++            == RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++        )
+         expected_phase3_plateau_contract = {
+             "candidate_representation": CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+             "phase1_activation_scope": "all_controller_rounds_v1",
+             "phase2_activation_scope": "all_controller_rounds_v1",
+             "phase3_competitive_population_activation": (
+-                RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                phase3_population_policy
+             ),
+             "phase3_activation_source": (
+-                "same_round_authenticated_insertion_plateau_domain_open_v1"
++                "first_authenticated_progress_plateau_domain_open_latched_v1"
++                if latched
++                else "same_round_authenticated_insertion_plateau_domain_open_v1"
+             ),
+             "phase3_preplateau_admission_authority": (
+                 "phase2_raw_score_top_rank_v1"
+@@ -56400,17 +56607,39 @@
+             "phase3_preplateau_materialization_policy": (
+                 RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
+             ),
+-            "phase3_activation_independent_latch": False,
++            "phase3_activation_independent_latch": latched,
+             "phase3_activation_hysteresis_active": False,
+         }
++        if latched:
++            expected_phase3_plateau_contract.update(
++                {
++                    "phase3_latch_retirement_policy": "never_close_v1",
++                    "insertion_plateau_history_scope": (
++                        RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++                    ),
++                    "insertion_activation_requires_prior_phase3_latch": True,
++                    "insertion_activation_changes_phase3_latch": False,
++                }
++            )
+         if (
+-            not profile.endswith(phase3_plateau_suffix)
++            not profile.endswith(
++                phase3_latched_suffix if latched else phase3_plateau_suffix
++            )
+             or execution.get("adapt_insertion_mode")
+             != "insertion_commutation_plateau_v2"
+             or execution.get(
+                 "ra_phase3_preplateau_materialization_policy"
+             )
+             != RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            or (
++                latched
++                and execution.get("ra_insertion_plateau_history_scope")
++                != RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            )
++            or (
++                not latched
++                and "ra_insertion_plateau_history_scope" in execution
++            )
+             or any(
+                 invariants.get(key) != value
+                 for key, value in expected_phase3_plateau_contract.items()
+@@ -56421,11 +56650,16 @@
+             )
+     elif phase3_population_policy != RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS:
+         raise ValueError("The RA-ADAPT Phase-III activation policy is unknown.")
+-    elif profile.endswith(phase3_plateau_suffix) or any(
++    elif (
++        profile.endswith(phase3_plateau_suffix)
++        or profile.endswith(phase3_latched_suffix)
++        or any(
+         key in execution
+         for key in (
+             "ra_phase3_preplateau_materialization_policy",
++            "ra_insertion_plateau_history_scope",
+         )
++        )
+     ):
+         raise ValueError(
+             "The RA-ADAPT route carries orphaned Phase-III plateau fields."
+@@ -57380,6 +57614,7 @@
+     stage_name: str
+     append_position: int
+     insertion_mode: str
++    phase3_population_activation: Mapping[str, Any]
+     insertion_round_policy: Mapping[str, Any] | None
+     candidate_position_plans: Mapping[int, Mapping[str, Any]]
+     psi_current: np.ndarray
+@@ -59438,7 +59673,7 @@
+                 {},
+             ).get("adapt_insertion_mode", "")
+         )
+-        insertion_round_policy = (
++        raw_plateau_round_policy = (
+             _insertion_commutation_plateau_round_policy(
+                 history=self.cursor.history,
+                 policy=insertion_mode,
+@@ -59449,6 +59684,39 @@
+             }
+             else None
+         )
++        activation_policy = str(
++            self.context.route_contract.get(
++                "execution_settings",
++                {},
++            ).get(
++                "ra_phase3_population_activation_policy",
++                "all_controller_rounds_v1",
++            )
++        )
++        from pipelines.static_adapt.ra_adapt.contracts import (
++            RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
++        )
++
++        insertion_round_policy = (
++            _ra_post_latch_insertion_round_policy(
++                history=self.cursor.history,
++                raw_round_policy=raw_plateau_round_policy,
++            )
++            if activation_policy
++            == RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++            and isinstance(raw_plateau_round_policy, Mapping)
++            else raw_plateau_round_policy
++        )
++        phase3_population_activation = (
++            _ra_phase3_population_activation_receipt(
++                route_contract=self.context.route_contract,
++                history=self.cursor.history,
++                entry_round_policy=raw_plateau_round_policy,
++                insertion_round_policy=insertion_round_policy,
++                candidate_adapter=self.context.candidate_adapter,
++                admission_policy=self.context.admission_policy,
++            )
++        )
+         if insertion_mode == "append_commutation_reduced":
+             from pipelines.static_adapt.ra_adapt.insertion_geometry import (
+                 append_commutation_reduced_position_domain,
+@@ -59486,6 +59754,7 @@
+             stage_name=str(self.cursor.phase1_stage.stage_name),
+             append_position=append_position,
+             insertion_mode=insertion_mode,
++            phase3_population_activation=phase3_population_activation,
+             insertion_round_policy=insertion_round_policy,
+             candidate_position_plans=candidate_position_plans,
+             psi_current=np.asarray(psi_current, dtype=complex).copy(),
+@@ -63172,11 +63441,8 @@
+         session=session,
+         pending=pending,
+     )
+-    phase3_activation = _ra_phase3_population_activation_receipt(
+-        route_contract=session.context.route_contract,
+-        insertion_round_policy=pending.insertion_round_policy,
+-        candidate_adapter=session.context.candidate_adapter,
+-        admission_policy=session.context.admission_policy,
++    phase3_activation = copy.deepcopy(
++        dict(pending.phase3_population_activation)
+     )
+     phase3_competitive_population_live = bool(
+         phase3_activation["competitive_population_live"]
+--- a/pipelines/static_adapt/ra_adapt/contracts.py
++++ b/pipelines/static_adapt/ra_adapt/contracts.py
+@@ -81,12 +81,21 @@
+ RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID = (
+     "paper_i_ra_adapt_singleton_phase3_population_on_insertion_plateau_v1"
+ )
++RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID = (
++    "paper_i_ra_adapt_singleton_latched_phase3_separate_plateau_insertion_v1"
++)
+ RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS = "all_controller_rounds_v1"
+ RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU = (
+     "same_round_insertion_plateau_predicate_v1"
++)
++RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU = (
++    "first_open_progress_plateau_predicate_latched_v1"
+ )
+ RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION = (
+     "phase2_winner_only_refit_geometry_v1"
++)
++RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE = (
++    "prior_full_phase3_accepted_transition_global_prior_mean_v1"
+ )
+ RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY = (
+     "joint_minus_active_only_supported_trust_v1"
+@@ -1867,8 +1876,11 @@
+     "RA_ADAPT_RESULT_SCHEMA_V2",
+     "RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1",
+     "RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2",
++    "RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID",
+     "RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID",
++    "RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE",
+     "RA_ADAPT_PHASE3_POPULATION_ALL_ROUNDS",
++    "RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU",
+     "RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU",
+     "RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION",
+     "RA_STAGED_SELECTOR_ID",
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -45,7 +45,9 @@
+     RA_ADAPT_FULL_RESPONSE_REFIT_INITIALIZATION_POLICY,
+     RA_ADAPT_INCREMENTAL_CANDIDATE_GAIN_POLICY,
+     RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
++    RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE,
+     RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU,
++    RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU,
+     RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION,
+     RA_ADAPT_PROTOCOL_SCHEMA,
+     RA_ADAPT_PROTOCOL_SCHEMAS,
+@@ -54,6 +56,7 @@
+     RA_ADAPT_RESULT_SCHEMA_V2,
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+     RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
++    RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID,
+     RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
+     RA_STAGED_SELECTOR_ID,
+     RAAdaptOperationalControls,
+@@ -454,7 +457,61 @@
+             raise RuntimeError(
+                 "The singleton Phase-III-on-plateau ablation drifted from "
+                 "its typed route contract."
++            )
++    if str(algorithm_id) == RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID:
++        expected_execution = {
++            "ra_phase3_population_activation_policy": (
++                RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++            ),
++            "ra_phase3_preplateau_materialization_policy": (
++                RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            ),
++            "ra_insertion_plateau_history_scope": (
++                RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            ),
++        }
++        expected_invariants = {
++            "candidate_representation": CANDIDATE_REPRESENTATION_SINGLE_PAULI,
++            "phase1_activation_scope": "all_controller_rounds_v1",
++            "phase2_activation_scope": "all_controller_rounds_v1",
++            "phase3_competitive_population_activation": (
++                RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++            ),
++            "phase3_activation_source": (
++                "first_authenticated_progress_plateau_domain_open_latched_v1"
++            ),
++            "phase3_preplateau_admission_authority": (
++                "phase2_raw_score_top_rank_v1"
++            ),
++            "phase3_preplateau_materialization_policy": (
++                RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++            ),
++            "phase3_activation_independent_latch": True,
++            "phase3_activation_hysteresis_active": False,
++            "phase3_latch_retirement_policy": "never_close_v1",
++            "insertion_plateau_history_scope": (
++                RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++            ),
++            "insertion_activation_requires_prior_phase3_latch": True,
++            "insertion_activation_changes_phase3_latch": False,
++        }
++        if (
++            not isinstance(request.adapter, SinglePauliWordCandidateAdapter)
++            or not isinstance(request.method.admission, SingletonAdmission)
++            or not isinstance(request.method.insertion, PlateauCommutationInsertion)
++            or any(
++                execution.get(key) != value
++                for key, value in expected_execution.items()
+             )
++            or any(
++                invariants.get(key) != value
++                for key, value in expected_invariants.items()
++            )
++        ):
++            raise RuntimeError(
++                "The latched Phase-III/separate-insertion ablation drifted "
++                "from its typed route contract."
++            )
+     if str(algorithm_id) == RA_ADAPT_ALGORITHM_ID and (
+         route_contract.get("algorithm_id") != RA_ADAPT_ALGORITHM_ID
+         or execution.get("ra_active_gradient_policy")
+@@ -563,10 +620,18 @@
+         algorithm_identity
+         == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
+     )
++    latched_phase3_separate_insertion_ablation = bool(
++        algorithm_identity
++        == RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
++    )
++    phase3_population_controlled_ablation = bool(
++        phase3_population_plateau_ablation
++        or latched_phase3_separate_insertion_ablation
++    )
+     canonical_full_response_v2 = bool(
+         algorithm_identity == RA_ADAPT_ALGORITHM_ID
+     )
+-    if phase3_population_plateau_ablation:
++    if phase3_population_controlled_ablation:
+         if (
+             not isinstance(request.adapter, SinglePauliWordCandidateAdapter)
+             or isinstance(request.adapter, GlobalSinglePauliWordCandidateAdapter)
+@@ -580,7 +645,7 @@
+             or str(resource_weighting_scope) != RESOURCE_WEIGHTING_LATE
+         ):
+             raise ValueError(
+-                "The Phase-III-on-plateau ablation requires the Paper-I "
++                "The plateau-controlled Phase-III ablation requires the Paper-I "
+                 "single-Pauli adapter, singleton admission, plateau-v2 "
+                 "insertion, stationary active response, and late resource "
+                 "weighting."
+@@ -732,6 +797,11 @@
+         + (
+             "__phase3_population_on_insertion_plateau_v1"
+             if phase3_population_plateau_ablation
++            else (
++                "__phase3_population_latched_on_progress_plateau_v1"
++                "__insertion_on_phase3_plateau_v1"
++            )
++            if latched_phase3_separate_insertion_ablation
+             else ""
+         )
+     )
+@@ -779,17 +849,23 @@
+                 ),
+             }
+         )
+-    if phase3_population_plateau_ablation:
++    if phase3_population_controlled_ablation:
+         execution.update(
+             {
+                 "ra_phase3_population_activation_policy": (
+-                    RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                    RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++                    if latched_phase3_separate_insertion_ablation
++                    else RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
+                 ),
+                 "ra_phase3_preplateau_materialization_policy": (
+                     RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
+                 ),
+             }
+         )
++    if latched_phase3_separate_insertion_ablation:
++        execution["ra_insertion_plateau_history_scope"] = (
++            RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++        )
+     if h2o_application:
+         execution.update(
+             {
+@@ -880,16 +956,20 @@
+                 ),
+             }
+         )
+-    if phase3_population_plateau_ablation:
++    if phase3_population_controlled_ablation:
+         invariants.update(
+             {
+                 "phase1_activation_scope": "all_controller_rounds_v1",
+                 "phase2_activation_scope": "all_controller_rounds_v1",
+                 "phase3_competitive_population_activation": (
+-                    RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
++                    RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++                    if latched_phase3_separate_insertion_ablation
++                    else RA_ADAPT_PHASE3_POPULATION_ON_INSERTION_PLATEAU
+                 ),
+                 "phase3_activation_source": (
+-                    "same_round_authenticated_insertion_plateau_domain_open_v1"
++                    "first_authenticated_progress_plateau_domain_open_latched_v1"
++                    if latched_phase3_separate_insertion_ablation
++                    else "same_round_authenticated_insertion_plateau_domain_open_v1"
+                 ),
+                 "phase3_preplateau_admission_authority": (
+                     "phase2_raw_score_top_rank_v1"
+@@ -897,10 +977,23 @@
+                 "phase3_preplateau_materialization_policy": (
+                     RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
+                 ),
+-                "phase3_activation_independent_latch": False,
++                "phase3_activation_independent_latch": (
++                    latched_phase3_separate_insertion_ablation
++                ),
+                 "phase3_activation_hysteresis_active": False,
+             }
+         )
++    if latched_phase3_separate_insertion_ablation:
++        invariants.update(
++            {
++                "phase3_latch_retirement_policy": "never_close_v1",
++                "insertion_plateau_history_scope": (
++                    RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++                ),
++                "insertion_activation_requires_prior_phase3_latch": True,
++                "insertion_activation_changes_phase3_latch": False,
++            }
++        )
+     if h2o_application:
+         h2o_sector_blocks = isinstance(
+             request.adapter,
+@@ -970,6 +1063,15 @@
+         only_intended_scientific_changes.append(
+             "phase3_competitive_population_activates_on_same_round_"
+             "insertion_plateau"
++        )
++    if latched_phase3_separate_insertion_ablation:
++        only_intended_scientific_changes.extend(
++            [
++                "phase3_competitive_population_first_open_progress_"
++                "plateau_latched",
++                "commutation_reduced_insertion_requires_prior_full_"
++                "phase3_plateau_transition",
++            ]
+         )
+     if h2o_application:
+         only_intended_scientific_changes.extend(
+@@ -997,9 +1099,24 @@
+         only_intended_scientific_changes.append(
+             "qiskit_full_trial_ansatz_delta_all_phases"
+         )
++    lineage_parent_profile = str(parent_contract["route_profile"])
++    lineage_parent_digest = str(parent_digest)
++    if latched_phase3_separate_insertion_ablation:
++        (
++            _source_request_profile,
++            lineage_parent_profile,
++            _source_contract,
++            lineage_parent_digest,
++        ) = _repaired_route_contract(
++            request,
++            active_gradient_policy=active_gradient_policy,
++            resource_weighting_scope=resource_weighting_scope,
++            algorithm_id=RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
++            problem=problem,
++        )
+     contract["lineage_authority"] = {
+-        "parent_route_profile": str(parent_contract["route_profile"]),
+-        "parent_contract_sha256": str(parent_digest),
++        "parent_route_profile": lineage_parent_profile,
++        "parent_contract_sha256": lineage_parent_digest,
+         "supersession_reason": (
+             (
+                 "paper_iv_h2o_ra_adapt_nonstationary_full_response_v2_"
+@@ -1010,6 +1127,11 @@
+             if canonical_full_response_v2
+             else "paper_i_ra_adapt_singleton_phase3_plateau_ablation_20260802"
+             if phase3_population_plateau_ablation
++            else (
++                "paper_i_ra_adapt_singleton_latched_phase3_separate_"
++                "plateau_insertion_20260804"
++            )
++            if latched_phase3_separate_insertion_ablation
+             else "paper_i_ra_adapt_unification_repair_20260727"
+         ),
+         "only_intended_scientific_changes": (
+@@ -1149,6 +1271,21 @@
+         )
+         parent_route = str(macro_contract["route_profile"])
+         parent_digest = str(macro_digest)
++    if str(algorithm_id) == (
++        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
++    ):
++        (
++            _page8_request_profile,
++            parent_route,
++            _page8_route_contract,
++            parent_digest,
++        ) = _repaired_route_contract(
++            request,
++            active_gradient_policy=str(active_gradient_policy),
++            resource_weighting_scope=str(resource_weighting_scope),
++            algorithm_id=RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
++            problem=problem,
++        )
+     lineage_authority: dict[str, Any] = {
+         "parent_route_profile": str(parent_route),
+         "parent_contract_sha256": str(parent_digest),
+@@ -2157,6 +2294,12 @@
+             "Canonical RA finalization is missing accepted-round history."
+         )
+     receipts: list[dict[str, Any]] = []
++    latched_phase3_ablation = bool(
++        str(algorithm_id or "")
++        == RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
++    )
++    phase3_latched = False
++    first_latch_round: int | None = None
+     for row_index, raw_row in enumerate(raw_history, start=1):
+         if not isinstance(raw_row, Mapping):
+             raise RuntimeError("Accepted RA history row is not a mapping.")
+@@ -2386,8 +2529,147 @@
+             ):
+                 raise RuntimeError(
+                     "Accepted singleton Phase-III competitive population "
++                    "receipt is inconsistent."
++                )
++            round_receipt["phase3_population_activation"] = (
++                copy.deepcopy(dict(activation))
++            )
++            round_receipt["projected_phase3_population_receipt"] = (
++                copy.deepcopy(dict(projected))
++            )
++        if latched_phase3_ablation:
++            activation = raw_row.get("phase3_population_activation")
++            projected = raw_row.get(
++                "projected_phase3_population_receipt"
++            )
++            entry = (
++                activation.get("entry_plateau_receipt")
++                if isinstance(activation, Mapping)
++                else None
++            )
++            expected_after = bool(
++                phase3_latched
++                or (
++                    isinstance(entry, Mapping)
++                    and entry.get("domain_open") is True
++                )
++            )
++            expected_opened = bool(not phase3_latched and expected_after)
++            if expected_opened:
++                first_latch_round = row_index
++            raw_entry_open = bool(
++                isinstance(entry, Mapping)
++                and entry.get("domain_open") is True
++            )
++            expected_insertion_open = bool(
++                phase3_latched and raw_entry_open
++            )
++            compared_entry_fields = (
++                "policy",
++                "trigger_energy_before",
++                "trigger_energy_after",
++                "trigger_energy_decrease",
++                "prior_cumulative_energy_decrease",
++                "prior_accepted_transition_count",
++                "prior_mean_energy_decrease",
++                "marginal_to_prior_mean_decrease_ratio",
++                "prior_mean_decrease_ratio_threshold",
++                "threshold_comparison",
++                "calibration_status",
++            )
++            if (
++                not isinstance(plateau, Mapping)
++                or not isinstance(activation, Mapping)
++                or not isinstance(projected, Mapping)
++                or not isinstance(entry, Mapping)
++                or activation.get("schema")
++                != "ra_phase3_population_activation_receipt_v2"
++                or activation.get("policy")
++                != RA_ADAPT_PHASE3_POPULATION_LATCHED_ON_PROGRESS_PLATEAU
++                or entry.get("policy")
++                != "insertion_commutation_plateau_v2"
++                or activation.get("entry_plateau_domain_open")
++                is not raw_entry_open
++                or activation.get("phase3_latched_before_round")
++                is not phase3_latched
++                or activation.get("phase3_latched_after_round")
++                is not expected_after
++                or activation.get("phase3_latch_opened_this_round")
++                is not expected_opened
++                or activation.get("competitive_population_live")
++                is not expected_after
++                or activation.get("first_latch_accepted_round")
++                != first_latch_round
++                or activation.get("independent_latch_active") is not True
++                or activation.get("deactivation_allowed") is not False
++                or activation.get("hysteresis_active") is not False
++                or plateau.get("insertion_trigger_scope")
++                != RA_ADAPT_POST_LATCH_INSERTION_TRIGGER_SCOPE
++                or plateau.get("phase3_latched_before_round")
++                is not phase3_latched
++                or plateau.get("preceding_full_phase3_transition_eligible")
++                is not phase3_latched
++                or plateau.get("insertion_latch_active") is not False
++                or plateau.get("raw_progress_plateau_domain_open")
++                is not raw_entry_open
++                or plateau.get("domain_open") is not expected_insertion_open
++                or activation.get("insertion_plateau_domain_open")
++                is not expected_insertion_open
++                or activation.get("insertion_trigger_eligible")
++                is not phase3_latched
++                or any(
++                    entry.get(key) != plateau.get(key)
++                    for key in compared_entry_fields
++                )
++                or projected.get("competitive_population_activation")
++                != activation
++            ):
++                raise RuntimeError(
++                    "Accepted latched Phase-III/separate-insertion receipts "
++                    "did not preserve their causal ordering."
++                )
++            competitive_count = int(
++                projected.get("competitive_population_input_count", -1)
++            )
++            available_count = int(
++                projected.get("phase2_available_shortlist_count", -1)
++            )
++            if (
++                competitive_count < 1
++                or available_count < 1
++                or (
++                    expected_after
++                    and competitive_count != available_count
++                )
++                or (
++                    not expected_after and competitive_count != 1
++                )
++                or (
++                    not expected_after
++                    and activation.get("preplateau_admission_authority")
++                    != "phase2_raw_score_top_rank_v1"
++                )
++                or (
++                    not expected_after
++                    and activation.get("winner_materialization_policy")
++                    != RA_ADAPT_PHASE3_PREPLATEAU_WINNER_MATERIALIZATION
++                )
++                or (
++                    expected_after
++                    and activation.get("preplateau_admission_authority")
++                    is not None
++                )
++                or (
++                    expected_after
++                    and activation.get("winner_materialization_policy")
++                    is not None
++                )
++            ):
++                raise RuntimeError(
++                    "Accepted latched Phase-III competitive population "
+                     "receipt is inconsistent."
+                 )
++            phase3_latched = expected_after
+             round_receipt["phase3_population_activation"] = (
+                 copy.deepcopy(dict(activation))
+             )
+--- a/pipelines/reporting/paper_i_run_summary.py
++++ b/pipelines/reporting/paper_i_run_summary.py
+@@ -513,6 +513,7 @@
+         PROJECTED_GENERALIZED_SOLVER,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V1,
+         RA_ADAPT_ROUTE_CONTRACT_SCHEMA_V2,
++        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID,
+         RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
+         RAAdaptRequest,
+         RESOURCE_WEIGHTING_ALL_PHASE,
+@@ -589,7 +590,10 @@
+                 RA_ADAPT_LEGACY_ALGORITHM_ID,
+                 "paper_i_ra_adapt_singleton_plateau_insertion_repair_v1",
+                 *(
+-                    (RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,)
++                    (
++                        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
++                        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID,
++                    )
+                     if str(method.insertion.kind) == "plateau_commutation"
+                     else ()
+                 ),
+@@ -640,9 +644,10 @@
+                         active_gradient_policy != "measured_residual_response_v1"
+                     ):
+                         continue
+-                    if algorithm_id == (
+-                        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
+-                    ) and (
++                    if algorithm_id in {
++                        RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID,
++                        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID,
++                    } and (
+                         active_gradient_policy
+                         != "stationary_source_response_v1"
+                         or resource_weighting_scope
+@@ -720,6 +725,12 @@
+                         )
+                         if algorithm_id
+                         == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
++                        else (
++                            "paper_i_ra_adapt_singleton_latched_phase3_"
++                            "separate_plateau_insertion_20260804"
++                        )
++                        if algorithm_id
++                        == RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
+                         else "paper_i_ra_adapt_unification_repair_20260727"
+                     )
+                     if algorithm_id == RA_ADAPT_ALGORITHM_ID:
+@@ -760,6 +771,52 @@
+                                 ),
+                             }
+                         )
++                    if algorithm_id == (
++                        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
++                    ):
++                        required_invariants.update(
++                            {
++                                "phase1_activation_scope": (
++                                    "all_controller_rounds_v1"
++                                ),
++                                "phase2_activation_scope": (
++                                    "all_controller_rounds_v1"
++                                ),
++                                "phase3_competitive_population_activation": (
++                                    "first_open_progress_plateau_predicate_"
++                                    "latched_v1"
++                                ),
++                                "phase3_preplateau_admission_authority": (
++                                    "phase2_raw_score_top_rank_v1"
++                                ),
++                                "phase3_activation_independent_latch": True,
++                                "phase3_latch_retirement_policy": (
++                                    "never_close_v1"
++                                ),
++                                "insertion_plateau_history_scope": (
++                                    "prior_full_phase3_accepted_transition_"
++                                    "global_prior_mean_v1"
++                                ),
++                            }
++                        )
++                    expected_parent_profile = parent_profile
++                    expected_parent_sha256 = parent_sha256
++                    if algorithm_id == (
++                        RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID
++                    ):
++                        (
++                            _page8_request,
++                            expected_parent_profile,
++                            _page8_contract,
++                            expected_parent_sha256,
++                        ) = _repaired_route_contract(
++                            request,
++                            active_gradient_policy=active_gradient_policy,
++                            resource_weighting_scope=resource_weighting_scope,
++                            algorithm_id=(
++                                RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID
++                            ),
++                        )
+                     if (
+                         contract.get("schema")
+                         != (
+@@ -773,9 +830,9 @@
+                             for key, value in required_invariants.items()
+                         )
+                         or lineage.get("parent_route_profile")
+-                        != parent_profile
++                        != expected_parent_profile
+                         or lineage.get("parent_contract_sha256")
+-                        != parent_sha256
++                        != expected_parent_sha256
+                         or lineage.get("supersession_reason")
+                         != expected_supersession_reason
+                         or lineage.get("scientific_result_anchor_claimed")

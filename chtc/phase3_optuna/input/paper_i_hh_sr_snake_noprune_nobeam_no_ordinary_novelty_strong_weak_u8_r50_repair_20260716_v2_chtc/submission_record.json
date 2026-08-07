@@ -1,0 +1,51 @@
+{
+  "schema": "paper_i_hh_sr_r50_source_repair_submission_v2",
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc",
+  "batch_name": "paper-i-hh-sr-sw-r50-repair-20260716-v2",
+  "cluster_id": 8811308,
+  "job_count": 1,
+  "regime_by_proc": {
+    "0": "strong_weak_u8"
+  },
+  "submitted_utc": "2026-07-16T13:30:26Z",
+  "submission_status": "accepted_by_scheduler",
+  "initial_scheduler_status": "idle",
+  "initial_scheduler_status_code": 1,
+  "initial_hold_reason": null,
+  "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+  "remote_artifact_verification": {
+    "status": "pass",
+    "verified_artifact_count": 19,
+    "mismatch_count": 0,
+    "submission_artifact_hashes_sha256": "6249e1da4596f79407fe86c607a04a60fbd8d7d62732a2ed6e326b7da2f7e123"
+  },
+  "remote_job_manifest_validation": {
+    "status": "pass",
+    "job_manifest_sha256": "460c1c228050cbc075d94acb67d5b525cd110b0f543070f1524523942f16d69d"
+  },
+  "condor_dry_run": {
+    "status": "pass",
+    "job_count": 1,
+    "warnings": [
+      "single-row queue metadata variables are transferred explicitly and therefore reported unused by condor_submit"
+    ]
+  },
+  "source_lock": {
+    "parent_archive_sha256": "070febcf91a31fc1249afd24f59b9a68e57c6ed547315cabed461933b51b1c2a",
+    "repaired_archive_sha256": "e682e79d4c9218794c94822ebce99df427f0840287e5212a45e528931cb2efc5",
+    "repair_patch_sha256": "33fce0f0eb608437b6d329eccd598b9252336d4b13126435b067f54475d00b0b",
+    "scientific_settings_changed": []
+  },
+  "submit_inputs": {
+    "submit_sub_sha256": "4d4361d85ffbde97c86f0735a5fe33edc9d587c15b6fd3801450bafbb20f4ed1",
+    "bundle_manifest_sha256": "06cf6da78135cf4cc64f748b113f45c8414de2dbdb6faea4f51e802d5f5d155d",
+    "preflight_sha256": "d738318ae6c744545a7145c91795e53e02b41c0a5484b4796f5ac1a1f71e98f3",
+    "settings_diff_sha256": "e0ef4835bc74b646879a146e91299eeedc0ec3a1b173ba2cfcbde17e742475d3"
+  },
+  "resources": {
+    "request_cpus": 4,
+    "request_memory_mb": 32768,
+    "request_disk_mb": 61440,
+    "max_runtime_s": 259200
+  }
+}

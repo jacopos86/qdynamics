@@ -1,0 +1,471 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import pytest
+
+from pipelines.exact_bench import paper_i_hh_fm_vs_append_fm_first_hit as campaign
+
+
+def test_shared_formal_optimizer_contract_is_qb_off_inverse_rbfgs_ls15() -> None:
+    config = campaign.shared_formal_manifold_config()
+
+    assert config["qbroyd_epsilon0"] == pytest.approx(0.0)
+    assert config["line_search_max_steps"] == 15
+    assert config["curvature_branch"] == campaign.FORMAL_CURVATURE_INVERSE_RBFGS
+    assert config["supported_metric"]["policy"] == (
+        "supported_metric_whitened_eigh_v1"
+    )
+    assert config["armijo_c1"] == pytest.approx(1.0e-4)
+    assert "metric_mode" not in config
+    assert "transport_policy" not in config
+
+
+def test_six_regime_contract_uses_nph3_nph7_and_winning_s_alg_only() -> None:
+    rows = campaign.campaign_rows()
+    contract = campaign.matched_contract()
+
+    assert tuple(row["regime"] for row in rows) == campaign.REGIME_ORDER
+    assert [row["n_ph_work"] for row in rows[:3]] == [3, 3, 3]
+    assert [row["n_ph_work"] for row in rows[3:]] == [7, 7, 7]
+    assert all(row["same_cutoff"] for row in rows)
+    assert all(row["max_controller_rounds"] == 30 for row in rows)
+    assert contract["shared"]["optimizer_maxiter"] == 200
+    assert contract["shared"]["scipy_maxfev"] == 0
+    assert contract["shared"]["reported_query_coordinate"] == (
+        "winning_lineage_S_alg_only"
+    )
+    assert contract["route_specific"][campaign.FM_ROUTE_ID][
+        "phase2_novelty_mode"
+    ] == "collective_span_v1"
+    assert "ordinary_novelty_enabled" not in contract["route_specific"][
+        campaign.FM_ROUTE_ID
+    ]
+
+
+def test_fm_cli_locks_historical_outer_selector_and_new_target(tmp_path: Path) -> None:
+    row = campaign.campaign_rows(("weak-weak",))[0]
+    argv = campaign.build_fm_cli_args(
+        campaign_dir=tmp_path,
+        row=row,
+        dry_run=False,
+    )
+    args = campaign.fm_runner.build_parser().parse_args(argv)
+
+    assert args.n_ph_work == 3
+    assert args.max_depth == 30
+    assert args.optimizer_maxiter == 200
+    assert args.scipy_maxfev == 0
+    assert args.seed == 7
+    assert args.disable_hh_seed is True
+    assert args.benchmark_target_abs_delta_e == pytest.approx(2.0e-4)
+    assert args.adapt_reoptimization_route == campaign.FORMAL_MANIFOLD_ROUTE
+    assert args.batch_mode == "off"
+    assert args.batch_target_size == 1
+    assert args.batch_size_cap == 1
+    assert args.batch_search_pool_size == 15
+    assert args.beam_width == 3
+    assert args.beam_children_per_parent == 2
+    assert args.disable_beam is False
+    assert args.phase1_shortlist_size == 32
+    assert args.phase2_shortlist_size == 24
+    assert args.child_phase1_shortlist_size == 32
+    assert args.child_phase2_shortlist_size == 25
+    assert args.child_phase3_shortlist_size == 4096
+    assert args.child_padding_policy == "exact_projected_grouped_v1"
+
+
+def test_fm_contract_disables_batching_without_disabling_beam() -> None:
+    route = campaign.matched_contract(("weak-weak",))["route_specific"][
+        campaign.FM_ROUTE_ID
+    ]
+
+    assert route["batching"] == {
+        "enabled": False,
+        "mode": "off",
+        "requested_target_size": 1,
+        "effective_size_cap": 1,
+        "search_pool_size": 15,
+    }
+    assert route["beam"] == {
+        "enabled": True,
+        "width": 3,
+        "children_per_parent": 2,
+    }
+
+
+def test_fm_legacy_controller_plan_enables_exact_estimator_ledger(
+    tmp_path: Path,
+) -> None:
+    row = campaign.campaign_rows(("weak-weak",))[0]
+    formal_config_path = campaign._formal_config_path(tmp_path)
+    formal_config_path.parent.mkdir(parents=True, exist_ok=True)
+    formal_config_path.write_text(
+        json.dumps(campaign.shared_formal_manifold_config()),
+        encoding="utf-8",
+    )
+    argv = campaign.build_fm_cli_args(
+        campaign_dir=tmp_path,
+        row=row,
+        dry_run=True,
+        route_id=campaign.FM_ROUTE_ID,
+    )
+    args = campaign.fm_runner.build_parser().parse_args(argv)
+
+    _context, _run_config, plan = campaign.fm_runner._build_plan(args)
+
+    assert plan["scientific_settings"]["run_kwargs"][
+        "adapt_estimator_call_ledger_enabled"
+    ] is True
+
+
+def test_fm_row_summary_fails_closed_when_route_query_closure_is_incomplete() -> None:
+    payload = {
+        "status": "complete",
+        "adapt_vqe": {"formal_manifold_query_accounting_complete": False},
+        "summary": {
+            "abs_delta_e": 1.0,
+            "query_work_total": 123,
+            "stop_reason": "max_depth",
+            "controller_round_count": 1,
+            "ansatz_depth": 1,
+            "energy": 0.0,
+            "query_work_scope": "accepted_terminal_lineage",
+            "formal_manifold_query_accounting": {"status": "complete"},
+        },
+    }
+    qiskit = {"compiled_circuit_stats_status": "ok"}
+
+    summary = campaign._fm_row_summary(
+        payload,
+        qiskit,
+        route_id=campaign.FM_ROUTE_ID,
+    )
+
+    assert summary["exact_S_alg_accounting_complete"] is False
+
+
+def test_fm_qiskit_sidecar_reuses_payload_and_streams_result_hash(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    result_path = tmp_path / "result.json"
+    result_path.write_bytes(b"terminal-result")
+    payload = {"summary": {"controller_round_count": 3}}
+    observed: dict[str, object] = {}
+
+    def fake_build_sidecar(**kwargs: object) -> dict[str, object]:
+        observed.update(kwargs)
+        return {"compiled_circuit_stats_status": "ok"}
+
+    import pipelines.reporting.build_paper_i_selected_prefix_qiskit_sidecar as report
+
+    monkeypatch.setattr(report, "build_sidecar", fake_build_sidecar)
+    built = campaign._build_fm_qiskit_sidecar(result_path, payload)
+
+    assert built["compiled_circuit_stats_status"] == "ok"
+    assert observed["result_payload"] is payload
+    assert observed["source_result_sha256"] == campaign._sha256(result_path)
+    assert observed["source_result_hash_convention"] == "raw_file_sha256_v1"
+
+
+def test_fm_singleton_refeed_cli_locks_requested_controller(tmp_path: Path) -> None:
+    row = campaign.campaign_rows(("weak-weak",))[0]
+    argv = campaign.build_fm_cli_args(
+        campaign_dir=tmp_path,
+        row=row,
+        dry_run=False,
+        route_id=campaign.FM_SINGLETON_REFEED_ROUTE_ID,
+    )
+    args = campaign.fm_runner.build_parser().parse_args(argv)
+
+    assert args.formal_selector_phase_model == "macro_child_singleton_refeed_v1"
+    assert args.funnel_mode == "hierarchical_child_123_v1"
+    assert args.phase0_policy == "disabled"
+    assert args.batch_mode == "off"
+    assert args.batch_target_size == 1
+    assert args.batch_size_cap == 1
+    assert args.disable_beam is True
+    assert args.disable_pruning is True
+    assert args.phase1_shortlist_size == 32
+    assert args.phase2_shortlist_size == 24
+    assert args.child_phase1_shortlist_size == 35
+    assert args.child_phase2_shortlist_size == 20
+    assert args.child_phase3_shortlist_size == 20
+    assert args.benchmark_target_abs_delta_e == pytest.approx(2.0e-4)
+
+
+def test_fm_singleton_refeed_depth_one_runs_scalar_phase2_then_formal_phase3(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(campaign.fm_runner, "DISK_LAUNCH_FLOOR_GIB", 0.0)
+    row = campaign.campaign_rows(("weak-weak",))[0]
+    formal_config_path = campaign._formal_config_path(tmp_path)
+    formal_config_path.parent.mkdir(parents=True, exist_ok=True)
+    formal_config_path.write_text(
+        json.dumps(campaign.shared_formal_manifold_config()),
+        encoding="utf-8",
+    )
+    argv = campaign.build_fm_cli_args(
+        campaign_dir=tmp_path,
+        row=row,
+        dry_run=False,
+        route_id=campaign.FM_SINGLETON_REFEED_ROUTE_ID,
+    )
+    args = campaign.fm_runner.build_parser().parse_args(argv)
+    args.max_depth = 1
+    args.optimizer_maxiter = 2
+    args.phase1_shortlist_size = 3
+    args.phase2_shortlist_size = 2
+    args.child_phase1_shortlist_size = 3
+    args.child_phase2_shortlist_size = 2
+    args.child_phase3_shortlist_size = 1
+
+    payload = campaign.fm_runner.run_once(args)
+
+    assert payload["status"] == "complete"
+    adapt_vqe = payload["adapt_vqe"]
+    assert adapt_vqe["success"] is True
+    assert adapt_vqe["formal_manifold_seed_bootstrap"] is None
+    assert len(adapt_vqe["history"]) == 1
+    funnel = adapt_vqe["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    assert funnel["stage_order"] == [
+        "child_phase1",
+        "child_phase2",
+        "child_phase3",
+    ]
+    assert funnel["missing_parent_factory_keys"] == []
+    assert funnel["config"]["child_identity_policy"] == "global_pauli_word_v1"
+
+
+def test_matched_contract_locks_bare_reference_for_all_controllers() -> None:
+    contract = campaign.matched_contract(("weak-weak",))
+
+    assert contract["shared"]["initial_ansatz"] == (
+        "bare_problem_reference_state_v1"
+    )
+    assert contract["shared"]["automatic_hh_seed_disabled"] is True
+    assert contract["shared"][
+        "hh_seed_preconditioning_shared_across_controllers"
+    ] is False
+
+
+def test_append_kwargs_disable_outer_mechanisms_and_share_optimizer(tmp_path: Path) -> None:
+    row = campaign.campaign_rows(("weak-weak",))[0]
+    kwargs = campaign.build_append_run_kwargs(
+        campaign_dir=tmp_path,
+        row=row,
+        exact_energy=-2.5,
+    )
+
+    assert kwargs["max_adapt_iterations"] == 30
+    assert kwargs["optimizer_maxiter"] == 200
+    assert kwargs["energy_stop_target"] == pytest.approx(2.0e-4)
+    assert kwargs["generic_adapt_runtime_split_mode"] == "off"
+    assert kwargs["shared_pauli_pool_mode"] == (
+        campaign.SHARED_PAULI_POOL_MODE_PROJECTED_SINGLETON_CHILDREN_ONLY_V1
+    )
+    assert kwargs["shared_pauli_pool_max_subset_size"] == 1
+    assert kwargs["adapt_optimizer_kind"] == "formal_manifold"
+    assert kwargs["allow_repeats"] is True
+    assert kwargs["formal_manifold_config"] == (
+        campaign.shared_formal_manifold_config()
+    )
+    assert kwargs["hh_seed_preopt_enabled"] is False
+
+
+def test_append_terminal_quality_status_is_not_misclassified_as_run_failure() -> None:
+    payload = {
+        "status": "completed_quality_nonpassing",
+        "result": {
+            "status": "quality_nonpassing",
+            "adapt_stop_reason": "max_adapt_iterations",
+            "adapt_iterations": 30,
+            "adapt_history": [{} for _ in range(30)],
+            "selected_operator_count": 12,
+            "energy": -0.9,
+            "abs_delta_e": 1.0e-3,
+            "S_alg": 1234.0,
+            "formal_manifold_query_accounting_complete": True,
+            "exact_cross_route_s_alg_available": True,
+        },
+    }
+    qiskit = {
+        "compiled_circuit_stats_status": "ok",
+        "compiled_resource_qiskit_validated": True,
+    }
+
+    summary = campaign._append_row_summary(payload, qiskit)
+
+    assert summary["status"] == "complete"
+    assert summary["source_status"] == "completed_quality_nonpassing"
+    assert summary["target_hit"] is False
+    assert summary["controller_rounds"] == 30
+    assert summary["exact_S_alg_accounting_complete"] is True
+
+
+def test_plan_writes_source_lock_pair_manifest_and_explicit_diff(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    scoped_names = (
+        "TABLE_I_STATIC_SUITE_PROFILE",
+        "GENERIC_STATIC_TABLE_RESOURCE_QUBIT_CAP",
+        "GENERIC_STATIC_TABLE_RESOURCE_POOL_TERM_CAP",
+        "GENERIC_STATIC_TABLE_EXACT_FIDELITY_MAX_QUBITS",
+        "STATIC_ADAPT_HH_POOL_CACHE",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE",
+    )
+    # This test owns the process-environment baseline it is asserting.  Other
+    # runner tests exercise deliberately incompatible inherited values, so do
+    # not let their module-level environment state make this test order
+    # dependent.
+    for name in scoped_names:
+        monkeypatch.delenv(name, raising=False)
+    environment_before = {name: os.environ.get(name) for name in scoped_names}
+    monkeypatch.setattr(
+        campaign.fm_runner,
+        "run_once",
+        lambda args: {
+            "schema": "mock_fm_plan",
+            "status": "planned",
+                "scientific_settings": {
+                    "run_kwargs": {"disable_hh_seed": True},
+                    "accepted_ansatz_reoptimization": {
+                    "formal_manifold_config_effective": (
+                        campaign.shared_formal_manifold_config()
+                    )
+                }
+            },
+        },
+    )
+    monkeypatch.setattr(campaign, "_exact_reference", lambda row: (-1.0, object()))
+
+    manifest = campaign.plan_campaign(
+        campaign_dir=tmp_path,
+        regimes=("weak-weak",),
+    )
+
+    assert {name: os.environ.get(name) for name in scoped_names} == environment_before
+    assert manifest["status"] == "planned"
+    assert (tmp_path / "campaign_manifest.json").is_file()
+    assert (tmp_path / "settings_diff.json").is_file()
+    assert (tmp_path / "source_lock" / "source_lock.json").is_file()
+    assert (tmp_path / "weak-weak" / "pair_manifest.json").is_file()
+    diff = json.loads((tmp_path / "settings_diff.json").read_text())
+    assert diff["status"] == "pass"
+    assert diff["unauthorized_differences"] == []
+    append_plan = json.loads(
+        (
+            tmp_path
+            / "weak-weak"
+            / campaign.APPEND_ROUTE_ID
+            / "plan.json"
+        ).read_text()
+    )
+    assert append_plan["beam_enabled"] is False
+    assert append_plan["batching_enabled"] is False
+    assert append_plan["pruning_enabled"] is False
+    assert append_plan["ordinary_novelty_enabled"] is False
+
+
+def test_validate_pair_emits_only_winning_lineage_s_alg(tmp_path: Path) -> None:
+    config = campaign.shared_formal_manifold_config()
+    regime_dir = tmp_path / "weak-weak"
+    fm_dir = regime_dir / campaign.FM_ROUTE_ID
+    append_dir = regime_dir / campaign.APPEND_ROUTE_ID
+    fm_dir.mkdir(parents=True)
+    append_dir.mkdir(parents=True)
+
+    fm_payload = {
+        "status": "complete",
+        "adapt_vqe": {
+            "formal_manifold_query_accounting_complete": True,
+        },
+        "summary": {
+            "stop_reason": "benchmark_abs_delta_e_target",
+            "controller_round_count": 4,
+            "ansatz_depth": 7,
+            "energy": -3.0,
+            "abs_delta_e": 1.0e-4,
+            "query_work_total": 1234,
+            "query_work_scope": "accepted_terminal_lineage",
+            "formal_manifold_query_accounting": {"status": "complete"},
+            "formal_manifold_warm_start": {
+                "qbang_momentum_active": False
+            },
+        },
+        "scientific_settings": {
+            "accepted_ansatz_reoptimization": {
+                "formal_manifold_config_effective": config
+            }
+        },
+    }
+    append_hit = {
+        "iteration": 5,
+        "selected_operator_count": 6,
+        "energy": -3.0,
+        "abs_delta_e": 1.5e-4,
+        "S_alg": 987,
+        "S_alg_work_scope": "accepted_single_frontier_prefix",
+        "formal_manifold_query_accounting_complete": True,
+        "exact_cross_route_s_alg_available": True,
+    }
+    append_payload = {
+        "status": "completed",
+        "result": {
+            "adapt_stop_reason": "benchmark_abs_delta_e_target",
+            "benchmark_first_hits": {"2e-04": append_hit},
+            "formal_manifold_session_summary": {
+                "qbang_momentum_active": False
+            },
+        },
+        "formal_manifold_optimizer_overlay": {"config": config},
+    }
+    qiskit = {
+        "compiled_circuit_stats_status": "ok",
+        "compiled_resource_qiskit_validated": True,
+        "compile_convention": campaign.TABLE_I_QISKIT_COMPILE_CONVENTION,
+        "qiskit_transpile_optimization_level": 0,
+        "qiskit_transpile_seed": 7,
+        "compiled_count_2q_total": 10,
+        "compiled_depth_2q_total": 8,
+        "compiled_depth_total": 20,
+    }
+    fm_qiskit = {
+        **qiskit,
+        "compile_convention_expected": campaign.TABLE_I_QISKIT_COMPILE_CONVENTION,
+    }
+    for path, payload in (
+        (fm_dir / "result.json", fm_payload),
+        (fm_dir / "qiskit_sidecar.json", fm_qiskit),
+        (append_dir / "result.json", append_payload),
+        (append_dir / "qiskit_sidecar.json", qiskit),
+    ):
+        path.write_text(json.dumps(payload))
+
+    result = campaign.validate_pair(campaign_dir=tmp_path, regime="weak-weak")
+
+    assert result["status"] == "pass"
+    assert result["reporting_scope"] == {
+        "query_coordinate": "winning_lineage_S_alg_only",
+        "discarded_branch_work_reported": False,
+    }
+    assert [row["winning_lineage_S_alg"] for row in result["rows"]] == [
+        1234.0,
+        987.0,
+    ]
+    assert all(
+        "discarded" not in key.lower()
+        for row in result["rows"]
+        for key in row
+    )
+    assert (regime_dir / "results.json").is_file()
+    markdown = (regime_dir / "results.md").read_text()
+    assert "Winning S_alg" in markdown
+    assert "discarded-branch work is intentionally not displayed" in markdown.lower()

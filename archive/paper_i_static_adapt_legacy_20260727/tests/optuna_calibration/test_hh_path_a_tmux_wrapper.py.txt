@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.exact_bench import hh_path_a_tmux_wrapper as wrapper
+
+
+def _write_manifest(path: Path, *, optuna_args: list[str], tmux_session_prefix: str = "hh_path_a") -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "tmux_session_prefix": tmux_session_prefix,
+                "optuna_args": list(optuna_args),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_ensure_path_a_run_refreshes_ledger_and_skips_duplicate_running_session(
+    tmp_path: Path, monkeypatch
+) -> None:
+    manifest_path = _write_manifest(
+        tmp_path / "hh_path_a_tmux_manifest.json",
+        optuna_args=["--lanes", "global", "--epsilon-bands", "6.2e-5"],
+    )
+    ledger_path = tmp_path / "pipelines" / "exact_bench" / "HH_PATH_A_LEDGER.md"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text("# ledger\n", encoding="utf-8")
+
+    refresh_calls: list[list[str]] = []
+    launch_calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(wrapper, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(wrapper, "DEFAULT_LEDGER_PATH", ledger_path)
+    monkeypatch.setattr(
+        wrapper,
+        "refresh_path_a_ledger",
+        lambda argv=None: refresh_calls.append(list(argv or [])) or ledger_path,
+    )
+    monkeypatch.setattr(wrapper, "_tmux_session_alive", lambda session_name: True)
+    monkeypatch.setattr(
+        wrapper,
+        "_launch_tmux_session",
+        lambda session_name, command_path: launch_calls.append((session_name, command_path)),
+    )
+
+    result = wrapper.ensure_path_a_run("focus-tag", manifest_path)
+
+    assert result.status == "already_running"
+    assert result.session_name == "hh_path_a_focus-tag"
+    assert refresh_calls == [["--output-path", str(ledger_path)]]
+    assert launch_calls == []
+    assert not (tmp_path / "artifacts" / "agent_runs" / "focus-tag" / "logs" / "command.sh").exists()
+
+
+def test_ensure_path_a_run_skips_completed_output_dir(tmp_path: Path, monkeypatch) -> None:
+    manifest_path = _write_manifest(
+        tmp_path / "hh_path_a_tmux_manifest.json",
+        optuna_args=["--lanes", "global", "--epsilon-bands", "6.2e-5"],
+    )
+    ledger_path = tmp_path / "pipelines" / "exact_bench" / "HH_PATH_A_LEDGER.md"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text("# ledger\n", encoding="utf-8")
+    output_dir = tmp_path / "artifacts" / "agent_runs" / "completed-tag"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "summary.json").write_text("{\"done\": true}\n", encoding="utf-8")
+
+    launch_calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(wrapper, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(wrapper, "DEFAULT_LEDGER_PATH", ledger_path)
+    monkeypatch.setattr(wrapper, "refresh_path_a_ledger", lambda argv=None: ledger_path)
+    monkeypatch.setattr(wrapper, "_tmux_session_alive", lambda session_name: False)
+    monkeypatch.setattr(
+        wrapper,
+        "_launch_tmux_session",
+        lambda session_name, command_path: launch_calls.append((session_name, command_path)),
+    )
+
+    result = wrapper.ensure_path_a_run("completed-tag", manifest_path)
+
+    assert result.status == "already_complete"
+    assert launch_calls == []
+    assert not (output_dir / "logs" / "command.sh").exists()
+
+
+def test_ensure_path_a_run_launches_tmux_and_writes_controller_logs(
+    tmp_path: Path, monkeypatch
+) -> None:
+    manifest_path = _write_manifest(
+        tmp_path / "hh_path_a_tmux_manifest.json",
+        optuna_args=[
+            "--lanes",
+            "global",
+            "--epsilon-bands",
+            "6.2e-5",
+            "--tag",
+            "wrong-tag",
+            "--output-dir",
+            "/tmp/elsewhere",
+        ],
+        tmux_session_prefix="pathA",
+    )
+    ledger_path = tmp_path / "pipelines" / "exact_bench" / "HH_PATH_A_LEDGER.md"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text("# ledger\n", encoding="utf-8")
+
+    launch_calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(wrapper, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(wrapper, "DEFAULT_LEDGER_PATH", ledger_path)
+    monkeypatch.setattr(wrapper, "refresh_path_a_ledger", lambda argv=None: ledger_path)
+    monkeypatch.setattr(wrapper, "_tmux_session_alive", lambda session_name: False)
+    monkeypatch.setattr(
+        wrapper,
+        "_launch_tmux_session",
+        lambda session_name, command_path: launch_calls.append((session_name, command_path)),
+    )
+
+    result = wrapper.ensure_path_a_run("launch tag", manifest_path)
+
+    resolved_tag = "launch_tag"
+    output_dir = tmp_path / "artifacts" / "agent_runs" / resolved_tag
+    command_path = output_dir / "logs" / "command.sh"
+    manifest_copy_path = output_dir / "logs" / "launch_manifest.json"
+    command_text = command_path.read_text(encoding="utf-8")
+    manifest_payload = json.loads(manifest_copy_path.read_text(encoding="utf-8"))
+
+    assert result.status == "launched"
+    assert result.resolved_tag == resolved_tag
+    assert result.session_name == "pathA_launch_tag"
+    assert launch_calls == [("pathA_launch_tag", command_path)]
+    assert command_path.exists()
+    assert "--tag launch_tag" in command_text
+    assert str(output_dir) in command_text
+    assert "wrong-tag" not in command_text
+    assert "/tmp/elsewhere" not in command_text
+    assert manifest_payload["session_name"] == "pathA_launch_tag"
+    assert manifest_payload["resolved_tag"] == resolved_tag
+    assert manifest_payload["output_dir"] == str(output_dir)

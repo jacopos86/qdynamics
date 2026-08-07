@@ -1,0 +1,48 @@
+{
+  "schema": "paper_i_tetris_disjoint_retirement_patch_receipt_v1",
+  "authority": {
+    "decision_record_row": "TETRIS/disjoint batching",
+    "implementation_spec_section": "5.7"
+  },
+  "retired_surfaces": [
+    {
+      "old_qualified_name": "pipelines.exact_bench.generic_static_adapt_variants.static_tetris_qubit_adapt_vqe",
+      "source_path": "pipelines/exact_bench/generic_static_adapt_variants.py",
+      "source_sha256_before_retirement": "a836b4db8b3dda2753473ea5fa1418a05bf1ef9f0cfbe461bc61cffe7bbe33f4",
+      "focused_inert_snapshot": "archive/paper_i_static_adapt_legacy_20260727/code/tetris_disjoint_batching/static_tetris_qubit_adapt_vqe_core.py.txt",
+      "focused_inert_snapshot_sha256": "180ecbb5f0734b9b6bfa9732f084aa158272d6a5ab151266752baa132b4f5839",
+      "operation": "focused_source_extraction_then_active_branch_removal_v1"
+    },
+    {
+      "old_qualified_name": "pipelines.scaffold.hh_continuation_scoring.tetris_disjoint_batch_select",
+      "source_path": "pipelines/scaffold/hh_continuation_scoring.py",
+      "source_sha256_before_retirement": "0810a1fb7c932067bcb943db191405d8b075fc6304f2bd6a1fa1cb9dac069294",
+      "focused_inert_snapshot": "archive/paper_i_static_adapt_legacy_20260727/code/tetris_disjoint_batching/tetris_disjoint_batch_select.py.txt",
+      "focused_inert_snapshot_sha256": "50884d1440cd462ef81e83d673b6d519c4ab4479ae7b74f281b984da284416ff",
+      "byte_identity_for_selected_function": "verified",
+      "operation": "focused_source_extraction_then_active_function_removal_v1"
+    }
+  ],
+  "active_files_after_retirement": [
+    {"path": "pipelines/exact_bench/generic_static_adapt_variants.py", "sha256": "b7ec2a8aee2f1d80150081d071f87609319660c926950ca3a7827654cb9d1e7e"},
+    {"path": "pipelines/scaffold/hh_continuation_scoring.py", "sha256": "1a6d40f2f3f57d24a34a1d9dc4b517097cefc1b618c6d182a0db7c28f59a4a70"},
+    {"path": "pipelines/exact_bench/benchmark_algorithm_registry.py", "sha256": "1d381b7b379ce6f76177a9a1d03be9b478d79f84af46f3caf56ac23626d72018"},
+    {"path": "pipelines/exact_bench/generic_static_benchmark.py", "sha256": "4e57d47b0c38a715d1cdd3e671154ac91b2c12a4ba431d45971676a9bef061e9"},
+    {"path": "pipelines/exact_bench/generic_static_metric_enrichment.py", "sha256": "5a5ca13b8e1f97622e38b71d24887902fade97703e31480ce43e2ef75d469aea"},
+    {"path": "pipelines/exact_bench/paper_i_comparator_spsa_calibration.py", "sha256": "f175e8e584914546fcafccb8ac3ba18626d1c144e1ffeeb7037e97b47d59bfa3"},
+    {"path": "pipelines/exact_bench/paper_i_main_tables_spsa_profile.py", "sha256": "7ffa453fdb28c0c57713a016802fad45fa8a7ccbc1ad7403fdf085b10a233cb6"},
+    {"path": "pipelines/exact_bench/table_i_static_benchmark.py", "sha256": "9408236e7c44a3f9ed41848ea311a428825a85d56f65bce8e3e5f7fd4e09eace"},
+    {"path": "pipelines/exact_bench/hh_static_ground_state_benchmark.py", "sha256": "e027080956a651ca813eb1efbd4fc75fd69e35d3c03b0b5432b7c9eaef9f90ba"},
+    {"path": "pipelines/static_adapt/cli_config.py", "sha256": "ccc87e6232fec7b8d9dcfed4c7013ace15d069033128e158b0780a9a14873bb7"},
+    {"path": "pipelines/static_adapt/optimization/phase3_policy_optuna.py", "sha256": "29866bcbef39054f5eaf5a6f33752f0a56615571493bd2b7815d7e6d5116b32d"},
+    {"path": "chtc/phase3_optuna/generate_generic_static_table_records.py", "sha256": "2d24cc3342f8c92feb49fdc2b95d9813222d68ca75454140efad7f96c2c5a163"},
+    {"path": "chtc/phase3_optuna/preflight_submit.py", "sha256": "275e0998348688915c0a83090f9c97aa27070c576d47ca3d70157249380a6e01"},
+    {"path": "chtc/phase3_optuna/generate_paper_i_hubbard_spinboson_repeat_policy_suite_records.py", "sha256": "3243236313d55715076830391637e1511a5f78fe9284f4fba4d589533102cdad"}
+  ],
+  "preserved_surfaces": [
+    "pipelines.static_adapt.adapt_pipeline._phase0_context_labels_for_candidate overlap-context isdisjoint predicate",
+    "external public-code algorithm static_tetris_adapt_phase3",
+    "historical comparator provenance and report-reader method mappings",
+    "historical CHTC input/source-evidence artifacts"
+  ]
+}

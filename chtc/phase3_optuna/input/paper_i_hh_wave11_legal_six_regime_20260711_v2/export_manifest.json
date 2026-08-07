@@ -1,0 +1,60 @@
+{
+  "batch_name": "paper-i-hh-wave11-legal-6reg-20260711-v2",
+  "batch_output_root": "raw_outputs/paper_i_hh_wave11_legal_six_regime_20260711_v2",
+  "cell_count": 6,
+  "cell_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/cell_manifests/trial_000000__strong_strong_u8.json"
+  ],
+  "execution_profile": "wave11_legal_fixed_policy_v1",
+  "generated_utc": "2026-07-12T01:46:36.849243+00:00",
+  "manifest_sha256": "f7d138e5551f962a7ceddbaf1dd7ed75da8e70ea9ef862442eff5f1576b37594",
+  "max_runtime_s": 259200,
+  "queue_sha256": "cbb37d66312073b646bc24fdabc57b1a8ca603e36362ba1c44a9a4a37e566170",
+  "queue_tsv": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/queue.tsv",
+  "requested_cpus_per_cell": 4,
+  "resource_policy": {
+    "nph2_non_u8": {
+      "disk_mb": 40960,
+      "memory_mb": 24576
+    },
+    "nph4_or_u8": {
+      "disk_mb": 61440,
+      "memory_mb": 32768
+    }
+  },
+  "run_class": "candidate_fixed_policy_matrix",
+  "schema": "paper_i_hh_route_a_optuna_chtc_export_v1",
+  "scientific_contract_hash": "a142d1c4f3c7a40d36505cba34012397bb8026dca9b28f4cfe903c8455299b8b",
+  "source_hashes": {
+    "chtc/phase3_optuna/run_paper_i_hh_route_a_optuna_cell_apptainer.sh": "84d8aaa82b0e64288478966d9fd4d4166880bb8abf1dae80f4e69e365cbee657",
+    "docs/reports/pdf_utils.py": "884d5b19dcdd01f34b6af8f2b2b9523140da5175ca7b2af8efe76c657800e72c",
+    "pipelines/exact_bench/paper_i_hh_powell_pareto.py": "71a176112202f5a3eb4fcd8d43d127e8934754ddfe5458b9556e62596a047084",
+    "pipelines/exact_bench/paper_i_hh_route_a_optuna.py": "c820f7d7fc2a142b3b173bbff51e5c522f8aa2491135ad84535cc36cdfbc8b4a",
+    "pipelines/exact_bench/snake_table_i_measurement_work.py": "296f7be6dab0746ecc9494c797269c9d930d2c12b212d60897104725f609a143",
+    "pipelines/scaffold/hh_continuation_scoring.py": "f770a6cfcfb39fecccaea6439709c754cfc0b30bd3430094fec29c603df52d23",
+    "pipelines/static_adapt/adapt_pipeline.py": "b310a09410ee6df26bda2dc9044bd5299d8ade89e38daeb9f0164f23f271944b",
+    "pipelines/static_adapt/builders/legal_subspace_filter.py": "ef703de200a231f65abcf2e6656b2d431447b0292ed7f298391984cca87c1bb1",
+    "pipelines/static_adapt/optimizer_routes.py": "ec515f9d56ad38ebafec1174a7c6881e9e17854af38d2d37e5debfdd6445b452",
+    "pipelines/static_adapt/paper_i_config.py": "9f54e1fcd226e768061e974df4b5fba68841848406bad41caa9d3790e5ae54cb",
+    "pipelines/static_adapt/paper_i_runner.py": "8d5e82ab5d8e2d48d1c1bd7b171431b8ab0480eacd2005a88e9558e87ac78ec0",
+    "pipelines/static_adapt/route_a_child_padding.py": "85ffb862e05cc5c2c3a866909ef365b5afd4904673baf0124e8ef47ab2b827ae",
+    "pipelines/static_adapt/route_a_funnel.py": "ad2005cf25c8bd279a4ec750ce61287b2871d4dc6059a78fba6621804d77acdd",
+    "pipelines/static_adapt/route_a_schur_selector.py": "a993c49cd8ce83f2a03e8595ad3efd88bf5e8200f685fe24418949140e995d61",
+    "pipelines/static_adapt/route_a_shortlists.py": "b483b300aec23f4ee759720f394606b33ee353ff090e330e3473d467ce52f710",
+    "pipelines/static_adapt/runtime_split.py": "92541d26a0b0f101f555885972a3a540f16136a986d4bcb988f31daa68b6cd7a"
+  },
+  "submit_file": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/submit.sub",
+  "submit_sha256": "c468c093766b95af2edbf05d05020ef972fbe701c540ffcead526751bcce0b37",
+  "trial_count": 1,
+  "trial_manifests": [
+    "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/trial_manifests/trial_000000.json"
+  ],
+  "wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/wave_manifest.json",
+  "wave_manifest_sha256": "1b3d4482358e8723065f035bd5d044a3a2ede5c02e45b4d14997731d0abf4fcc",
+  "worker_optuna_storage_access": false
+}

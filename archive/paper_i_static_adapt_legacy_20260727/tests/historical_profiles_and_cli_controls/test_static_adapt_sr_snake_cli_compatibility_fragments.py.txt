@@ -1,0 +1,213 @@
+def test_active_cli_greedy_dispatches_public_batch_with_dynamic_controls(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setenv(
+        "STATIC_ADAPT_JOINT_PAIR_CACHE_MAX_ENTRIES",
+        "0",
+    )
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_args, **_kwargs: None)
+
+    def _legacy_executor_forbidden(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError(
+            "normalized greedy CLI dispatch must bypass the legacy executor"
+        )
+
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe",
+        _legacy_executor_forbidden,
+    )
+    problem = _small_hh_problem()
+    admission = GreedyBatchAdmission(
+        maximum_size=2,
+        search_window_size=4,
+    )
+    context = sr_context._resolve_execution_context(
+        problem,
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=admission),
+        ),
+    )
+    checkpoint_path = tmp_path / "greedy-cli-current.json"
+    executor_kwargs = context.legacy_executor_kwargs()
+    executor_kwargs["adapt_current_json"] = checkpoint_path
+    assert sr_cli._active_cli_compatibility_reason(executor_kwargs) is None
+    tampered_contract = copy.deepcopy(executor_kwargs)
+    tampered_contract["sr_route_profile_contract"]["semantic_invariants"][
+        "greedy_batch_maximum_size"
+    ] = 3
+    assert sr_cli._active_cli_compatibility_reason(tampered_contract) == (
+        "normalized_greedy_batch_contract_is_not_active_facade_contract"
+    )
+    tampered_digest = {
+        **executor_kwargs,
+        "sr_route_profile_contract_sha256": "0" * 64,
+    }
+    assert sr_cli._active_cli_compatibility_reason(tampered_digest) == (
+        "normalized_sr_route_profile_contract_sha256_is_not_active_"
+        "facade_contract"
+    )
+    tampered_segment = {
+        **executor_kwargs,
+        "adapt_segment_id": "issue15-forbidden-replay",
+    }
+    assert sr_cli._active_cli_compatibility_reason(tampered_segment) == (
+        "normalized_greedy_batch_segment_requires_issue_19"
+    )
+    captured_requests: list[SRRunRequest] = []
+    captured_results: list[Any] = []
+    original_public_run = sr_runner.run_sr_snake
+
+    def _public_run_spy(
+        public_problem: Any,
+        request: SRRunRequest,
+    ) -> Any:
+        captured_requests.append(request)
+        result = original_public_run(public_problem, request)
+        captured_results.append(result)
+        return result
+
+    monkeypatch.setattr(sr_runner, "run_sr_snake", _public_run_spy)
+
+    projection = sr_cli._run_active_cli_sr_snake(
+        problem,
+        executor_kwargs,
+        estimator_ledger_path=None,
+    )
+
+    assert len(captured_requests) == len(captured_results) == 1
+    assert captured_requests[0].method.admission == admission
+    assert projection.result is captured_results[0]
+    assert projection.result.route.profile == GREEDY_ROUTE_PROFILE
+    assert isinstance(
+        projection.result.accepted_transitions[0],
+        GreedyBatchAcceptedTransitionReceipt,
+    )
+    envelope = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    pointer = envelope["adapt_vqe"]["greedy_batch_checkpoint_sidecar"]
+    assert pointer["resume_enabled"] is False
+    assert checkpoint_path.with_name(pointer["path"]).is_file()
+    assert "verified_singleton_resume_sidecar" not in envelope["adapt_vqe"]
+
+
+def test_active_cli_combinatorial_dispatches_public_subset_controls(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    monkeypatch.setenv(
+        "STATIC_ADAPT_JOINT_PAIR_CACHE_MAX_ENTRIES",
+        "0",
+    )
+    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        adapt_pipeline,
+        "_run_hardcoded_adapt_vqe",
+        lambda *_args, **_kwargs: pytest.fail(
+            "normalized combinatorial CLI must bypass the legacy executor"
+        ),
+    )
+    problem = _small_hh_problem()
+    admission = CombinatorialBatchAdmission(
+        maximum_size=2,
+        search_window_size=4,
+    )
+    context = sr_context._resolve_execution_context(
+        problem,
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=admission),
+        ),
+    )
+    checkpoint_path = tmp_path / "combinatorial-cli-current.json"
+    executor_kwargs = context.legacy_executor_kwargs()
+    executor_kwargs["adapt_current_json"] = checkpoint_path
+
+    assert sr_cli._active_cli_compatibility_reason(executor_kwargs) is None
+    captured_requests: list[SRRunRequest] = []
+    original_public_run = sr_runner.run_sr_snake
+
+    def _public_run_spy(
+        public_problem: Any,
+        request: SRRunRequest,
+    ) -> Any:
+        captured_requests.append(request)
+        return original_public_run(public_problem, request)
+
+    monkeypatch.setattr(sr_runner, "run_sr_snake", _public_run_spy)
+    projection = sr_cli._run_active_cli_sr_snake(
+        problem,
+        executor_kwargs,
+        estimator_ledger_path=None,
+    )
+
+    assert len(captured_requests) == 1
+    assert captured_requests[0].method.admission == admission
+    assert projection.result.route.profile == COMBINATORIAL_ROUTE_PROFILE
+    assert isinstance(
+        projection.result.accepted_transitions[0],
+        CombinatorialBatchAcceptedTransitionReceipt,
+    )
+    envelope = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    pointer = envelope["adapt_vqe"][
+        "combinatorial_batch_checkpoint_sidecar"
+    ]
+    assert pointer["resume_enabled"] is False
+    assert checkpoint_path.with_name(pointer["path"]).is_file()
+    assert "verified_singleton_resume_sidecar" not in envelope["adapt_vqe"]
+
+
+@pytest.mark.parametrize(
+    ("maximum_size", "search_window"),
+    [
+        (1, None),
+        (3, None),
+        (5, None),
+        (2, 4),
+        (2, FullCombinatorialSearchWindow()),
+    ],
+)
+def test_active_cli_reconstructs_exact_bounded_and_full_combinatorial_window(
+    maximum_size: int,
+    search_window: int | FullCombinatorialSearchWindow | None,
+) -> None:
+    problem = _small_hh_problem()
+    admission = CombinatorialBatchAdmission(
+        maximum_size=maximum_size,
+        search_window_size=search_window,
+    )
+    context = sr_context._resolve_execution_context(
+        problem,
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=admission),
+        ),
+    )
+    executor_kwargs = context.legacy_executor_kwargs()
+
+    reconstructed = (
+        sr_cli._active_combinatorial_batch_admission_from_executor_kwargs(
+            executor_kwargs
+        )
+    )
+
+    assert reconstructed == admission
+    assert (
+        reconstructed.resolved_search_window_size
+        == admission.resolved_search_window_size
+    )
+    assert sr_cli._active_cli_compatibility_reason(executor_kwargs) is None
+    assert sr_cli._active_route_identity_for_request(
+        replace(
+            _request(problem),
+            method=SRMethodPolicy(admission=reconstructed),
+        )
+    ) == (
+        COMBINATORIAL_ROUTE_PROFILE,
+        context.route.contract_sha256,
+    )

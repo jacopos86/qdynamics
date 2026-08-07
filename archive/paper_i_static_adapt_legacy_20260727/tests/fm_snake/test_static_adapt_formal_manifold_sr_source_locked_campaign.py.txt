@@ -1,0 +1,410 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from pipelines.static_adapt import formal_manifold_sr_source_locked_campaign as campaign
+
+
+@pytest.fixture(scope="module")
+def planned_campaign(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> tuple[Path, Path, dict[str, Any]]:
+    repo_root = Path(campaign.__file__).resolve().parents[2]
+    campaign_dir = tmp_path_factory.mktemp("fm-sr-source-lock") / "campaign"
+    payload = campaign.initialize_campaign(
+        repo_root=repo_root,
+        campaign_dir=campaign_dir,
+    )
+    return repo_root, campaign_dir, payload
+
+
+def _stage(payload: dict[str, Any], stage_id: str) -> dict[str, Any]:
+    return next(
+        dict(stage)
+        for stage in payload["stages"]
+        if stage["id"] == stage_id
+    )
+
+
+def test_plan_is_serial_and_gates_fm_behind_both_sr_anchors(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+
+    assert payload["scientific_concurrency"] == 1
+    assert [stage["order"] for stage in payload["stages"]] == [0, 1, 2, 3]
+    assert [stage["id"] for stage in payload["stages"]] == [
+        "archived_sr_anchor",
+        "current_sr_parity_anchor",
+        "fm_qbroyd_off_weak_weak",
+        "fm_qbroyd_off_intermediate_weak_transfer",
+    ]
+    assert [stage["kind"] for stage in payload["stages"]] == [
+        "archived_sr_anchor",
+        "current_sr_parity_anchor",
+        "fm_source_locked_variant",
+        "fm_cross_regime_policy_transfer",
+    ]
+
+
+def test_semantic_diff_allowlist_is_exact(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+    live_audit = _stage(payload, "current_sr_parity_anchor")[
+        "semantic_diff_audit"
+    ]
+    fm_audit = _stage(payload, "fm_qbroyd_off_weak_weak")[
+        "semantic_diff_audit"
+    ]
+
+    operational = {
+        "adapt_current_json",
+        "adapt_estimator_call_ledger_json",
+        "output_json",
+    }
+    fm_mechanism = {
+        "adapt_reoptimization_route",
+        "adapt_formal_manifold_route_profile",
+        "adapt_formal_manifold_config_json",
+    }
+    assert set(live_audit["changed_destinations"]) == operational
+    assert set(live_audit["allowed_destinations"]) == operational
+    assert live_audit["unexpected_changed_destinations"] == []
+    assert live_audit["non_swept_settings_diff_empty"] is True
+    assert set(fm_audit["changed_destinations"]) == operational | fm_mechanism
+    assert set(fm_audit["allowed_destinations"]) == operational | fm_mechanism
+    assert fm_audit["unexpected_changed_destinations"] == []
+    assert fm_audit["non_swept_settings_diff_empty"] is True
+
+
+def test_fm_variant_retains_the_source_sr_selector_contract(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+    argv = _stage(payload, "fm_qbroyd_off_weak_weak")["argv"]
+    parsed = campaign._normalized_namespace(argv)
+
+    assert parsed["adapt_reopt_policy"] == "windowed"
+    assert parsed["adapt_window_size"] == 3
+    assert parsed["adapt_window_topk"] == 0
+    assert parsed["phase2_enable_batching"] is False
+    assert parsed["phase3_enable_batching"] is False
+    assert parsed["adapt_finite_angle_fallback"] is True
+    assert parsed["adapt_finite_angle"] == pytest.approx(0.1)
+    assert parsed["adapt_finite_angle_min_improvement"] == pytest.approx(1.0e-12)
+    assert parsed["phase2_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert parsed["phase3_gram_novelty_policy"] == "ordinary_multiplier_v1"
+    assert parsed["phase3_novelty_ablation_mode"] == "off"
+    assert parsed["adapt_reoptimization_route"] == (
+        campaign.FORMAL_MANIFOLD_REOPTIMIZATION_ROUTE
+    )
+    assert parsed["adapt_formal_manifold_route_profile"] == (
+        campaign.FM_ROUTE_PROFILE_SR_SOURCE_LOCKED_SUPPORTED_WHITENED_ADAPTIVE_TRUST_V1
+    )
+
+
+def test_formal_config_is_qbroyd_off_with_fifteen_line_search_steps(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+    config_record = payload["formal_config"]
+    config_path = Path(config_record["path"])
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert config_record["qbroyd_epsilon0"] == 0.0
+    assert config_record["line_search_max_steps"] == 15
+    assert config_record["qbang_momentum_active"] is False
+    assert config["qbroyd_epsilon0"] == 0.0
+    assert config["line_search_max_steps"] == 15
+
+
+def test_intermediate_weak_is_labeled_as_transfer_not_source_lock(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+    stage = _stage(payload, "fm_qbroyd_off_intermediate_weak_transfer")
+
+    assert stage["kind"] == "fm_cross_regime_policy_transfer"
+    assert stage["source_lock_claim"] is False
+    assert stage["transfer_policy_source"] == "fm_qbroyd_off_weak_weak"
+    assert stage["regime"]["id"] == "intermediate-weak"
+    audit = stage["semantic_diff_audit"]
+    assert set(audit["changed_destinations"]) == {
+        "adapt_current_json",
+        "adapt_estimator_call_ledger_json",
+        "adapt_exact_gs_override",
+        "adapt_formal_manifold_config_json",
+        "adapt_formal_manifold_route_profile",
+        "adapt_reoptimization_route",
+        "output_json",
+        "u",
+    }
+    assert set(audit["allowed_destinations"]) == set(
+        audit["changed_destinations"]
+    )
+    assert audit["unexpected_changed_destinations"] == []
+
+
+def test_all_immutable_authorities_are_pinned(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    _repo_root, _campaign_dir, payload = planned_campaign
+    source_lock = payload["source_lock"]
+
+    assert source_lock["source_command"]["sha256"] == (
+        campaign.EXPECTED_SOURCE_COMMAND_SHA256
+    )
+    assert source_lock["source_result"]["sha256"] == (
+        campaign.EXPECTED_SOURCE_RESULT_SHA256
+    )
+    assert source_lock["archive_launcher"]["sha256"] == (
+        campaign.EXPECTED_ARCHIVE_LAUNCHER_SHA256
+    )
+    assert source_lock["archive_tarball"]["sha256"] == (
+        campaign.EXPECTED_ARCHIVE_SHA256
+    )
+    live_lock = payload["live_implementation_lock"]
+    assert live_lock["schema"] == campaign.LIVE_IMPLEMENTATION_LOCK_SCHEMA
+    assert live_lock["file_count"] == len(live_lock["files"])
+    assert live_lock["file_count"] > 0
+    assert live_lock["tree_sha256"] == campaign._json_sha256(
+        live_lock["files"]
+    )
+
+
+def test_reopening_plan_rejects_live_implementation_drift(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root, campaign_dir, payload = planned_campaign
+    drifted = dict(payload["live_implementation_lock"])
+    drifted["tree_sha256"] = "0" * 64
+    monkeypatch.setattr(
+        campaign,
+        "_live_implementation_lock",
+        lambda _repo_root: drifted,
+    )
+
+    with pytest.raises(ValueError, match="live implementation lock drifted"):
+        campaign.initialize_campaign(
+            repo_root=repo_root,
+            campaign_dir=campaign_dir,
+        )
+
+
+def test_reopening_plan_rejects_formal_config_drift(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    repo_root, campaign_dir, payload = planned_campaign
+    config_path = Path(payload["formal_config"]["path"])
+    original = config_path.read_bytes()
+    try:
+        config = json.loads(original)
+        config["line_search_max_steps"] = 14
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        with pytest.raises(ValueError, match="formal config payload drifted"):
+            campaign.initialize_campaign(
+                repo_root=repo_root,
+                campaign_dir=campaign_dir,
+            )
+    finally:
+        config_path.write_bytes(original)
+
+
+def test_reopening_plan_rejects_stage_argv_drift(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    repo_root, campaign_dir, _payload = planned_campaign
+    manifest_path = campaign_dir / "campaign_manifest.json"
+    original = manifest_path.read_bytes()
+    try:
+        manifest = json.loads(original)
+        stage = next(
+            item
+            for item in manifest["stages"]
+            if item["id"] == "fm_qbroyd_off_weak_weak"
+        )
+        index = stage["argv"].index("--adapt-reopt-policy") + 1
+        stage["argv"][index] = "full"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with pytest.raises(ValueError, match="argv drifted"):
+            campaign.initialize_campaign(
+                repo_root=repo_root,
+                campaign_dir=campaign_dir,
+            )
+    finally:
+        manifest_path.write_bytes(original)
+
+
+def test_semantic_audit_rejects_selector_drift(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    repo_root, campaign_dir, _payload = planned_campaign
+    source_argv = campaign._source_argv(repo_root)
+    drifted = campaign.build_live_anchor_argv(
+        repo_root=repo_root,
+        campaign_dir=campaign_dir,
+    )
+    drifted = campaign._set_value_flag(
+        drifted,
+        "--adapt-reopt-policy",
+        "full",
+    )
+
+    with pytest.raises(ValueError, match="adapt_reopt_policy"):
+        campaign.audit_semantic_diff(
+            source_argv,
+            drifted,
+            allowed_destinations=campaign._OPERATIONAL_DESTINATIONS,
+        )
+
+
+def test_immutable_source_anchor_passes_self_parity(
+    planned_campaign: tuple[Path, Path, dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root, _campaign_dir, _payload = planned_campaign
+    source_result = (repo_root / campaign.SOURCE_RESULT).resolve()
+    original_read_json = campaign._read_json
+    cache: dict[Path, dict[str, Any]] = {}
+
+    def memoized_read_json(path: Path) -> dict[str, Any]:
+        resolved = Path(path).resolve()
+        if resolved not in cache:
+            cache[resolved] = original_read_json(resolved)
+        return cache[resolved]
+
+    # The immutable result is large.  Cache the read so self-parity validates
+    # the real artifact without needlessly parsing the same bytes twice.
+    monkeypatch.setattr(campaign, "_read_json", memoized_read_json)
+    validation = campaign._validate_anchor_against(
+        source_result,
+        source_result,
+        role="immutable_source_self_parity",
+    )
+
+    assert validation["status"] == "pass"
+    assert validation["blockers"] == []
+    assert validation["energy_delta"] == 0.0
+    assert validation["abs_delta_e_delta"] == 0.0
+    assert validation["history_rounds"] == 30
+
+
+def test_anchor_rejects_nonfinite_energy_even_when_comparison_is_nan(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference = {
+        "adapt_vqe": {
+            "energy": -1.0,
+            "abs_delta_e": 0.0,
+            "operators": ["op"],
+            "history": [],
+        }
+    }
+    observed = json.loads(json.dumps(reference))
+    observed["adapt_vqe"]["energy"] = float("nan")
+    reference_path = tmp_path / "reference.json"
+    observed_path = tmp_path / "observed.json"
+    reference_path.write_text(json.dumps(reference), encoding="utf-8")
+    observed_path.write_text(json.dumps(observed), encoding="utf-8")
+    monkeypatch.setattr(
+        campaign,
+        "_source_selector_contract_blockers",
+        lambda _result: [],
+    )
+
+    with pytest.raises(ValueError, match="nonfinite_energy_or_error"):
+        campaign._validate_anchor_against(
+            observed_path,
+            reference_path,
+            role="nonfinite_guard",
+        )
+
+
+def test_anchor_rejects_finite_angle_or_query_signature_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row = {
+        "depth": 1,
+        "selected_ops": ["op"],
+        "selected_positions": [0],
+        "fallback_scan_size": 97,
+        "controller_measurement_work_proxy": {
+            "actual_operator_probe_count": 10,
+            "groups_new": 4,
+            "shots_new": 4,
+        },
+    }
+    reference = {
+        "adapt_vqe": {
+            "success": True,
+            "energy": -1.0,
+            "abs_delta_e": 0.0,
+            "operators": ["op"],
+            "history": [row],
+        }
+    }
+    observed = json.loads(json.dumps(reference))
+    observed["adapt_vqe"]["history"][0]["fallback_scan_size"] = 96
+    observed["adapt_vqe"]["history"][0][
+        "controller_measurement_work_proxy"
+    ]["groups_new"] = 3
+    reference_path = tmp_path / "reference.json"
+    observed_path = tmp_path / "observed.json"
+    reference_path.write_text(json.dumps(reference), encoding="utf-8")
+    observed_path.write_text(json.dumps(observed), encoding="utf-8")
+    monkeypatch.setattr(
+        campaign,
+        "_source_selector_contract_blockers",
+        lambda _result: [],
+    )
+
+    with pytest.raises(ValueError, match="controller"):
+        campaign._validate_anchor_against(
+            observed_path,
+            reference_path,
+            role="controller_signature_guard",
+        )
+
+
+def test_fm_validator_rejects_unsuccessful_empty_terminal_result(
+    tmp_path: Path,
+) -> None:
+    result_path = tmp_path / "result.json"
+    current_path = tmp_path / "current.json"
+    result_path.write_text(
+        json.dumps(
+            {
+                "settings": {
+                    "adapt_formal_manifold_config": campaign._formal_config_payload()
+                },
+                "adapt_vqe": {
+                    "success": False,
+                    "energy": campaign.WEAK_WEAK["exact_energy"],
+                    "abs_delta_e": 0.0,
+                    "operators": [],
+                    "history": [],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    current_path.write_text(
+        json.dumps({"settings": {}, "adapt_vqe": {}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="result:success"):
+        campaign._validate_fm_result(
+            result_path,
+            current_path,
+            regime=campaign.WEAK_WEAK,
+            expected_horizon=1,
+        )

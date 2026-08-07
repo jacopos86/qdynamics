@@ -1,0 +1,4 @@
+Disk quotas for user jsstrobel (uid 27797): 
+     Filesystem   space   quota   limit   grace   files   quota   limit   grace
+       /dev/md3   5644K    128M    256M             355       0       0        
+       /dev/md9  34488M  40960M  51200M           49288       0       0        

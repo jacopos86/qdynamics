@@ -1,0 +1,38 @@
+{
+  "batch_name": "paper-i-hh-sr-macro-beam3x2-fsprune-onesided-six-r50-20260719-v1",
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc",
+  "created_utc": "2026-07-19T20:12:10.235266+00:00",
+  "jobs": [
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/weak_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/intermediate_weak.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/strong_weak_u8.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/weak_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/intermediate_strong.json",
+    "chtc/phase3_optuna/input/paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v1_chtc/jobs/strong_strong_u8.json"
+  ],
+  "route_identity": {
+    "profile_contract_sha256": "e3b9f24af40f3572063dd0d13bcca932870505870a8cd7822453b38e01bf6096",
+    "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_one_sided_cost_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_one_sided_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1"
+  },
+  "run_class": "fresh_round0_macro_beam3x2_live_fs_prune_cost_ablation_v1",
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_bundle_v1",
+  "source_archive_sha256": "42d574d61a1ffcc724edf9cfd7113fa764cebb30804dd1438d813d5df89d88ff",
+  "submission_scope": {
+    "cutoffs": {
+      "strong_holstein": 7,
+      "weak_holstein": 3
+    },
+    "fresh_round0_to_round50": true,
+    "job_count": 6,
+    "regimes": [
+      "weak_weak",
+      "intermediate_weak",
+      "strong_weak_u8",
+      "weak_strong",
+      "intermediate_strong",
+      "strong_strong_u8"
+    ]
+  },
+  "submission_status": "built_not_submitted"
+}

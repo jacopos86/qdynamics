@@ -1,0 +1,561 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.62in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\pagestyle{plain}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+\small
+\textbf{Latest result: common-scale and normalized spectra for four strong-coupling routes.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; single Gaussian pulse of width $1$;
+exact-correlated cutoff-16 initialization; common post-pulse window
+$4\le t\,t_{\rm hop}\le20$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.91\textwidth]{output/plots/paper_v_results_progression_20260804/archive_m4_four_route_polarization_spectrum.pdf}
+  \caption{Electronic-polarization spectra. Panel (a) uses one common
+  normalization: the area under the exact Hann-windowed spectrum is one, so
+  relative response power is preserved. Panel (b) normalizes every spectrum
+  independently to unit area and therefore compares shape only. The four
+  lines are
+  separate propagated models: exact cutoff-16 Hamiltonian evolution;
+  uncorrected 31-coordinate archive EOM; the regular 31-coordinate EOM with
+  its minimum-Euclidean-norm joint-Gram velocity correction; and the
+  implemented 60-coordinate APCM entrance-layer prototype with positive
+  fourth-moment $M_4$ completion, hidden-stage retraction, and the retained
+  joint-Gram controller.  Circles mark the strongest peak in
+  $1.5\le\omega/t_{\rm hop}\le3.5$.}
+\end{figure}
+
+\begin{center}
+  \scriptsize
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    Propagated model & $H$ & RMS amplitude/exact
+      & $\omega_{\rm pk}/t_{\rm hop}$ & $\Gamma_{\rm obs}/t_{\rm hop}$
+      & $W_{\rm band}/W_{\rm band}^{\rm ex}$ \\
+    \midrule
+    Exact cutoff-16 Hamiltonian & 0 & 1.000 & 2.3411 & 0.4619 & 1.0000 \\
+    Archive EOM (uncorrected) & 0.1701 & 1.522 & 2.3549 & 0.5450 & 3.5956 \\
+    Regular EOM correction (31D joint-Gram)
+      & 0.5868 & 0.873 & 2.6976 & 0.4636 & 0.0269 \\
+    McLachlan-type $M_4$ correction (APCM prototype)
+      & 0.3708 & 0.868 & 2.4863 & 0.7905 & 0.3600 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-4pt}
+{\footnotesize\noindent
+$H$ is the Hellinger distance from the complete exact unit-area spectrum;
+$W_{\rm band}/W_{\rm band}^{\rm ex}$ is the unnormalized Hann-windowed
+power in $1.5\le\omega/t_{\rm hop}\le3.5$ relative to exact.
+The common $16\,t_{\rm hop}^{-1}$ window gives
+$\Delta\omega=0.3879\,t_{\rm hop}$; consequently
+$\Gamma_{\rm obs}$ is a resolution-dominated finite-window FWHM, not a
+deconvolved lifetime.  The raw archive EOM give the closest short-window peak
+and spectral shape but produce $3.60$ times the exact electronic-band power.
+The regular 31D correction's apparently exact width is not an accuracy
+success: it leaves only $2.69\%$ of the exact electronic-band power.  The
+$M_4$ prototype retains $36.0\%$, but its peak is shifted and broader. This prototype does
+not yet implement the full adaptive moment-metric McLachlan projection from
+the theoretical APCM design.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Long-window result: interaction-dependent polarization peaks and observed broadening.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $v/t_{\rm hop}=1$;
+single Gaussian pulse of width $1$; exact-correlated cutoff-16 ground-state
+initialization; common post-pulse window $10\le t\,t_{\rm hop}\le100$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.94\textwidth]{output/plots/paper_v_results_progression_20260804/archive_polarization_peaks_g_comparison.pdf}
+  \caption{Power spectrum of the electronic polarization
+  $P=(\rho_{11}-\rho_{00})/2$. The left column uses one exact-referenced
+  common scale within each coupling regime and preserves relative power; the
+  right column normalizes every spectrum independently to unit area and
+  compares shape only. All curves use the same
+  $0.2\,t_{\rm hop}^{-1}$ sampling, mean subtraction, and Hann window.
+  Circles mark the strongest peak in the shaded electronic-frequency band
+  $1.5\le\omega/t_{\rm hop}\le3.5$. Exact cutoff-16 data are used only for
+  offline scoring.}
+\end{figure}
+
+\begin{center}
+  \scriptsize
+  \setlength{\tabcolsep}{3.6pt}
+  \begin{tabular}{@{}llrrrrr@{}}
+    \toprule
+    $g/t_{\rm hop}$ & Model & $H$ & RMS amplitude/exact
+      & $\omega_{\rm pk}/t_{\rm hop}$
+      & $\Gamma_{\rm obs}/t_{\rm hop}$
+      & $W_{\rm band}/W_{\rm band}^{\rm ex}$ \\
+    \midrule
+    $0.3536$ & Exact cutoff-16 & 0 & 1.000 & 2.0901 & 0.0940 & 1.0000 \\
+             & Uncorrected archive EOM & 0.1464 & 1.086 & 2.0872 & 0.1171 & 1.6884 \\
+             & Regular EOM correction (31D joint-Gram) & 0.1958 & 0.644 & 2.0889 & 0.0944 & 0.2760 \\
+    \addlinespace
+    $0.6124$ & Exact cutoff-16 & 0 & 1.000 & 2.3561 & 0.1145 & 1.0000 \\
+             & Uncorrected archive EOM & 0.6381 & 0.750 & 2.9399 & 0.1557 & 3.5834 \\
+             & Regular EOM correction (31D joint-Gram) & 0.1782 & 0.746 & 2.4811 & 0.1395 & 0.0223 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-3pt}
+{\footnotesize\noindent
+$H$ is the Hellinger distance between the complete unit-area spectra;
+$W_{\rm band}/W_{\rm band}^{\rm ex}$ is the common-scale electronic-band
+power relative to exact.
+$\Gamma_{\rm obs}$ is the interpolated full width at half maximum of the
+marked peak. It includes the finite-window resolution
+$\Delta\omega=0.0697\,t_{\rm hop}$ and Hann-window broadening, so it is an
+observed spectral width rather than a deconvolved lifetime. At weak coupling
+the archive EOM locate the peak accurately but broaden it by about $25\%$
+and produce $1.69$ times the exact band power. The correction retains the
+peak location but only $27.6\%$ of the exact band power.
+At strong coupling they shift the peak upward by $0.584\,t_{\rm hop}$,
+broaden it by about $36\%$, and overpopulate the electronic-frequency band.
+The regular 31D EOM correction restores representability and improves the
+strong-coupling unit-area spectral shape and peak location, but leaves only
+$2.23\%$ of the exact electronic-band power; it therefore does not repair the
+missing dynamical closure.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: valid higher-moment checkpoint at $t=31$.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+single Gaussian pulse amplitude $v/t_{\rm hop}=1$, width $1$;
+phonon cutoff $16$; 60-variable entrance-layer model with both the retained
+joint-Gram and extended $M_4$ cones; SSPRK(3,3) with
+$h=0.0025\,t_{\rm hop}^{-1}$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.86\textwidth]{output/plots/paper_v_results_progression_20260804/apcm_t31_checkpoint_observables.pdf}
+  \caption{Interrupted long-horizon calculation. Black is the stored exact
+  cutoff-16 Hamiltonian reference through $t=31$; red dash-dot is the stored
+  uncorrected archive EOM; blue dashed is the autonomous both-cones trajectory
+  through $t=20$; and the blue diamond is its finite, resumable
+  checkpoint at $t=31$. No line is drawn over
+  $20<t\,t_{\rm hop}<31$ because the interrupted process checkpointed its
+  state and fourth-moment frontier but did not serialize intermediate plotting
+  samples. At $t=31$, the retained joint-Gram and $M_4$ margins were
+  $1.224\times10^{-4}$ and $3.032\times10^{-5}$, respectively.}
+\end{figure}
+
+\begin{center}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    Model & 31-coordinate RMS & $C$ Frobenius error & $|\Delta n_0|$
+      & $|\Delta E_{\rm int}|/t_{\rm hop}$ \\
+    \midrule
+    Uncorrected archive
+      & $0.43993$ & $0.45749$ & $1.05629$ & $0.015011$ \\
+    Both-cones checkpoint
+      & $0.29204$ & $0.27406$ & $0.66563$ & $9.52\times10^{-4}$ \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-3pt}
+{\footnotesize\noindent
+Endpoint errors are measured against the exact cutoff-16 state at $t=31$.
+The both-cones checkpoint remains representable, whereas the uncorrected
+archive joint-Gram eigenvalue is $-0.48988$. The correction improves the
+aggregate coordinates, $C$, occupation, and total energy, but substantial
+dynamical error remains and some individual energy-component errors increase.
+The next run resumes from this exact stored state rather than repeating
+$0\le t\,t_{\rm hop}\le31$.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: accelerated higher-moment cone routes through $t=20$.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+single Gaussian pulse amplitude $v/t_{\rm hop}=1$, width $1$;
+phonon cutoff $16$; 60-variable entrance-layer model;
+SSPRK(3,3) with $h=0.0025\,t_{\rm hop}^{-1}$ and exact spin-exchange
+block decomposition of the $M_4$ cone.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{output/plots/paper_v_results_progression_20260804/apcm_t20_observables.pdf}
+  \par\vspace{-3pt}
+  \includegraphics[width=0.74\textwidth]{output/plots/paper_v_results_progression_20260804/apcm_t20_diagnostics.pdf}
+  \caption{Matched autonomous trajectories and diagnostics from the same
+  exact-correlated initial contraction. Solid black is exact cutoff-16
+  Hamiltonian propagation, used only after the two rollouts for scoring. Red
+  dash-dot is the stored uncorrected archive EOM. Blue dashed is the
+  higher-moment model with both the retained joint-Gram and extended $M_4$
+  cones; green dotted uses only the $M_4$ cone. Panels (g)--(l)
+  show instantaneous errors, both cone margins, retained-cone velocity
+  correction, and hidden-stage retraction. Small negative $M_4$ values remain
+  within the declared $10^{-6}$ conic backward-error tolerance.}
+\end{figure}
+
+\begin{center}
+  \tiny
+  \setlength{\tabcolsep}{2.1pt}
+  \begin{tabular}{@{}lrrrrrrr@{}}
+    \toprule
+    Model & 31 scalar RMS & $C$ RMS & $n_0$ RMS & $E_{\rm int}$ RMS
+      & $\min\lambda(\mathcal G)$ & $\min\lambda(M_4)$ & runtime \\
+    \midrule
+    Exact cutoff-16 Hamiltonian
+      & 0 & 0 & 0 & 0 & $2.85\times10^{-5}$ & -- & 5.2 s \\
+    Uncorrected archive EOM
+      & 0.19320 & 0.39095 & 0.28617 & 0.018236
+      & $-1.0281$ & -- & not isolated \\
+    Higher moment + both cones
+      & 0.12861 & 0.14774 & 0.20469 & 0.000940
+      & $1.37\times10^{-5}$ & $-9.89\times10^{-7}$ & 5832 s \\
+    Higher moment + $M_4$ cone only
+      & 0.12884 & 0.14602 & 0.19201 & 0.000940
+      & $2.67\times10^{-5}$ & $-9.83\times10^{-7}$ & 5955 s \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-4pt}
+{\footnotesize\noindent
+Time-RMS errors over $0\le t\,t_{\rm hop}\le20$. The both-cones route is
+slightly better in aggregate coordinate error; the $M_4$-only route is
+slightly better in occupation and $C$. Neither trajectory crosses the
+amplitude threshold or loses retained joint-Gram positivity. Maximum
+retained-cone correction and hidden-stage retraction norms were $0.0702$ and
+$0.00147$ with both cones, versus $0$ and $0.00123$ with $M_4$ only.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: matched retained- and extended-cone ablation through $t=4$.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+single Gaussian pulse amplitude $v/t_{\rm hop}=1$, width $1$;
+phonon cutoff $16$; 60-variable entrance-layer model;
+SSPRK(3,3) with $h=0.0025\,t_{\rm hop}^{-1}$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.93\textwidth]{output/plots/paper_v_results_progression_20260804/apcm_t4_matched_observables.pdf}
+  \caption{Matched trajectories from the same exact-correlated initial
+  contraction and single-pulse protocol.  The comparison contains exact
+  cutoff-16 Hamiltonian propagation, the raw 31-coordinate archive EOM, that
+  EOM with its retained joint-Gram cone controller, and the higher-moment
+  model under all four combinations of the retained joint-Gram cone and the
+  extended $M_4$ cone.  Exact data enter only after each autonomous rollout.
+  The stored 31-coordinate curves use $h=0.01$ and are interpolated onto the
+  $h=0.0025$ display grid; their errors are evaluated on their native grid.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{2.2pt}
+  \begin{tabular}{@{}lrrrrrrr@{}}
+    \toprule
+    Model & 31 scalar RMS & $C$ RMS & $n_0$ RMS & $E_{\rm int}$ RMS
+        & $\min\lambda(\mathcal G)$ & $\min\lambda(M_4)$ & runtime \\
+    \midrule
+    Exact cutoff-16 Hamiltonian
+      & 0 & 0 & 0 & 0
+      & $2.85\times10^{-5}$ & -- & 1.0--1.5 s \\
+    31-coordinate raw EOM
+      & 0.11085 & 0.23483 & 0.05924 & 0.02759
+      & $-0.5173$ & -- & not isolated$^{*}$ \\
+    31-coordinate + retained cone
+      & 0.11172 & 0.19380 & 0.11494 & 0.05123
+      & $2.06\times10^{-5}$ & -- & not isolated$^{*}$ \\
+    Higher moment: no cones
+      & 0.04995 & 0.10663 & 0.04806 & 0.02509
+      & $-8.23\times10^{-3}$ & $-1.487$ & 27.3 s \\
+    Higher moment + retained cone
+      & 0.04647 & 0.10323 & 0.05179 & 0.02697
+      & $1.03\times10^{-5}$ & $-1.473$ & 52.1 s \\
+    Higher moment + $M_4$ cone
+      & 0.01258 & 0.04743 & 0.01512 & 0.000821
+      & $2.89\times10^{-5}$ & $-9.68\times10^{-7}$ & 3268.6 s \\
+    Higher moment + both cones
+      & 0.01258 & 0.04725 & 0.01385 & 0.000796
+      & $2.89\times10^{-5}$ & $-8.76\times10^{-7}$ & 3399.6 s \\
+    \bottomrule
+  \end{tabular}
+  \caption{Errors are time-RMS values over $0\le t\,t_{\rm hop}\le4$;
+  $C$ uses the lifted Frobenius norm.  The small negative $M_4$ minima of the
+  two positive-completion runs remain within the declared $10^{-6}$ conic
+  backward-error tolerance.  A dash means that $M_4$ is not a propagated
+  object in that model. $^{*}$The stored 31-coordinate artifact records
+  40.7 s for the exact scorer and four EOM lanes together, not separate
+  per-lane runtimes.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: adaptive packet continuation through $t=98$.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+double-pulse amplitude $v/t_{\rm hop}=1$, delays $0$ and $8$, width $1$;
+phonon cutoff $16$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{output/plots/paper_v_results_progression_20260804/adaptive_t98_observables.pdf}
+  \caption{Contracted observables through the last complete checkpoint at
+  $t=98$.  The trajectory resumed from the stored $t=40$, $K=11$ state and
+  reached $K=27$ coherent packets per electronic branch under the unchanged,
+  uncapped admission rule. The matched raw archive EOM reaches the declared
+  amplitude threshold at $t=90.07$. Exact cutoff-16 data enter only after
+  autonomous packet-ket propagation for scoring.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \scriptsize
+  \begin{tabular}{lrrrrrrrr}
+    \toprule
+    Model & final $K$ & $\bar K$ & 31 RMS & $C$ RMS & $n_0$ RMS & $E_{\rm ph}$ RMS & $E_{\rm e-ph}$ RMS & $E_{\rm int}$ RMS \\
+    \midrule
+    Ordinary packet & 6 & 5.93 & 0.14079 & 0.14744 & 0.04522 & 0.06101 & 0.08840 & 0.001188 \\
+    Adaptive packet & 27 & 12.57 & 0.06365 & 0.05653 & 0.01360 & 0.02835 & 0.03379 & 0.000579 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time-RMS errors over $0\le t\,t_{\rm hop}\le98$ against exact
+  cutoff-16 Hamiltonian propagation.  The adaptive ket remained representable
+  without the archive-EOM minimum-norm physicality correction; its minimum
+  exact-state fidelity was $0.92368$.  The rapid late growth to $K=27$ also
+  indicates that the frozen residual trigger is aggressive at this horizon.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: uncapped adaptive packet growth through $t=40$.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+double-pulse amplitude $v/t_{\rm hop}=1$, delays $0$ and $8$, width $1$;
+phonon cutoff $16$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{output/plots/paper_v_results_progression_20260804/adaptive_t40_observables.pdf}
+  \caption{Observable trajectories through $t=40$.  The frozen gate began at
+  $K=6$, admitted state-continuously at $t=8,19,22,26.5,38$, and ended at
+  $K=11$ without a packet ceiling.  The fixed $K_{\max}=10$ trajectory is the
+  strongest aggregate fixed-capacity comparator; the dashed brown curve is
+  the matched raw archive EOM. Exact cutoff-16 data enter only after
+  autonomous propagation for scoring.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \scriptsize
+  \begin{tabular}{lrrrrrrrr}
+    \toprule
+    Model & final $K$ & $\bar K$ & 31 RMS & $C$ RMS & $n_0$ RMS & $E_{\rm ph}$ RMS & $E_{\rm e-ph}$ RMS & $E_{\rm int}$ RMS \\
+    \midrule
+    Ordinary $K_{\max}=6$ & 6 & 5.83 & 0.05338 & 0.06388 & 0.01201 & 0.01522 & 0.03296 & 0.000742 \\
+    Fixed $K_{\max}=8$ & 8 & 7.34 & 0.05069 & 0.04556 & 0.01030 & 0.02934 & 0.03489 & 0.000757 \\
+    Fixed $K_{\max}=10$ & 10 & 8.49 & 0.03907 & 0.02769 & 0.00606 & 0.03099 & 0.03189 & 0.000760 \\
+    Fixed $K_{\max}=12$ & 12 & 9.31 & 0.04859 & 0.03859 & 0.00745 & 0.03079 & 0.03400 & 0.000799 \\
+    Adaptive gate & 11 & 8.17 & 0.03763 & 0.02885 & 0.00501 & 0.02447 & 0.02672 & 0.000654 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time-RMS errors over $0\le t\,t_{\rm hop}\le40$ and time-average
+  packets per branch $\bar K$.  The adaptive path gives the lowest aggregate,
+  occupation, electron--phonon-energy, and total-energy errors at lower
+  average capacity than fixed $K_{\max}=10$; fixed $K_{\max}=10$ retains
+  slightly lower $C$-block and electronic-energy error.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Transfer result: frozen adaptive gate across preparation and drive.}
+$t_{\rm hop}=1$, $\gamma=0.5$, $\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+pulse amplitude $v/t_{\rm hop}=1$, width $1$, phonon cutoff $16$, and
+$0\le t\,t_{\rm hop}\le20$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{output/plots/paper_v_results_progression_20260804/adaptive_transfer_observables.pdf}
+  \caption{The unchanged current-state gate on three transfer cells.  Plus
+  and minus are nearby physical preparations under the double pulse at
+  $t=0$ and $8$; the final row uses the central preparation under only the
+  pulse at $t=0$. The gate chose different admission times in each cell, and
+  each row includes the raw archive EOM from that row's initial contraction
+  and pulse. Exact cutoff-16 contractions enter only after each autonomous
+  rollout for scoring.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \scriptsize
+  \begin{tabular}{llrrrrrr}
+    \toprule
+    Cell & Model & final $K$ & 31 RMS & $C$ RMS & $n_0$ RMS & $E_{\rm ph}$ RMS & $E_{\rm e-ph}$ RMS \\
+    \midrule
+    Plus, double & parent & 6 & 0.02662 & 0.02777 & 0.00472 & 0.01723 & 0.02173 \\
+                 & adaptive & 8 & 0.02034 & 0.01308 & 0.00143 & 0.01143 & 0.01356 \\
+    Minus, double & parent & 6 & 0.03073 & 0.02391 & 0.00390 & 0.01533 & 0.01809 \\
+                  & adaptive & 9 & 0.01790 & 0.01466 & 0.00185 & 0.00790 & 0.01117 \\
+    Central, single & parent & 6 & 0.01747 & 0.01672 & 0.00253 & 0.01100 & 0.01332 \\
+                    & adaptive & 9 & 0.01073 & 0.00976 & 0.00161 & 0.00874 & 0.00984 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time-RMS errors against exact cutoff-16 Hamiltonian propagation.
+  The frozen gate improves aggregate moments, the correlation block, and all
+  displayed observables in all three transfer cells.  Its post-initial
+  admissions were $(11,12)$ for plus, $(13.5,16.5,18.5)$ for minus, and
+  $(8,11,18)$ for the single-pulse cell.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Development cell: state-adapted mixed-guided packet admission.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}/t_{\rm hop}=\gamma=0.5$,
+$\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+double-pulse amplitude $v/t_{\rm hop}=1$, delays $0$ and $8$, pulse width $1$;
+phonon cutoff $16$ and $0\le t\,t_{\rm hop}\le20$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.98\textwidth]{output/plots/paper_v_results_progression_20260804/mixed_guided_readmission_observables.pdf}
+  \caption{Observable trajectories for autonomous packet propagation.  The
+  ordinary parent reaches $K=6$ by native-residual admission.  The guided
+  models instead add two zero-weight packets at $t=0$ using the current mixed
+  electron--phonon residual; the $K=7$ and $K=8$ models add one or two more at
+  $t=8$.  The autonomous gate checks the current residual every $0.5$ units
+  and admits at $t=8$ and $19$. Every admission preserves the represented
+  state exactly; the dashed brown curve is the matched raw archive EOM. Exact
+  cutoff-16 data enter only after propagation for scoring.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Model & 31-coordinate RMS & $C$-block RMS & $n_0$ RMS & $E_{\rm ph}$ RMS & $E_{\rm e-ph}$ RMS \\
+    \midrule
+    Ordinary $K=6$ & 0.02784 & 0.02163 & 0.00271 & 0.01541 & 0.01865 \\
+    Guided $K=6$ at $t=0$ & 0.02241 & 0.02442 & 0.00495 & 0.01221 & 0.01706 \\
+    Readmit $K=7$ at $t=8$ & 0.01909 & 0.01330 & 0.00135 & 0.00946 & 0.01196 \\
+    Readmit $K=8$ at $t=8$ & 0.01697 & 0.01102 & 0.00172 & 0.00952 & 0.01178 \\
+    Adaptive $K=6\to7\to8$ & 0.01809 & 0.01291 & 0.00148 & 0.00967 & 0.01206 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time-RMS errors over $0\le t\,t_{\rm hop}\le20$.  The
+  state-adapted readmission restores the post-second-pulse advantage lost by
+  the $t=0$-only basis.  The scheduled and autonomous models form a mixed accuracy--cost tradeoff:
+  $K=8$ has lower aggregate moment error, while $K=7$ is better for several
+  displayed observables and final fidelity.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Prior result: finite-horizon reciprocal-memory order curve.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}/t_{\rm hop}=\gamma=0.5$,
+$\lambda=1.5$, $g/t_{\rm hop}=0.6124$;
+single-pulse amplitude $v/t_{\rm hop}=1$, delay $0$, pulse width $1$;
+phonon cutoff $16$, $\Delta t=0.01\,t_{\rm hop}^{-1}$, and
+$0\le t\,t_{\rm hop}\le4$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.98\textwidth]{output/plots/paper_v_results_progression_20260804/finite_horizon_auxiliary_observables.pdf}
+  \caption{Observable trajectories for the fixed reciprocal-memory route.
+  The $r=78$ model has the lowest coordinate and energy RMS errors among all
+  32 distinct finite-horizon union orders $r=20,22,\ldots,80,81$; $r=81$ is
+  the complete depth-2 envelope.  The exact cutoff-16 trajectory entered only
+  after each autonomous rollout for scoring.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lrrrr}
+    \toprule
+    Model & Hidden order & Coordinate RMS & Energy RMS & $\min_t\lambda_{\min}(\mathcal G)$ \\
+    \midrule
+    Raw archive EOM & 0 & 0.110660 & 0.027449 & $-0.51719$ \\
+    Pauli-repaired archive EOM & 0 & 0.057742 & 0.096327 & $-0.39979$ \\
+    Best finite-horizon union & 78 & 0.347288 & 0.010080 & $-4.50875$ \\
+    Complete reciprocal envelope & 81 & 0.362366 & 0.011027 & $-5.06978$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Sampled RMS errors over $0\le t\,t_{\rm hop}\le4$ and the
+  minimum joint-Gram eigenvalue.  The auxiliary route improves total-energy
+  agreement but worsens the retained-moment trajectory and representability,
+  so rank selection inside this fixed envelope does not repair the closure.}
+\end{table}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Hamiltonian and protocol:}
+$t_{\rm hop}=1$, $\omega_{\rm ph}/t_{\rm hop}=\gamma=0.5$,
+$\lambda=1.5$, $g/t_{\rm hop}=0.6124$
+\(\lambda=2g^2/(t_{\rm hop}\omega_{\rm ph})\);
+double-pulse amplitude $v/t_{\rm hop}=1$, delays $0$ and $8$, pulse width $1$;
+phonon cutoff $16$ and $0\le t\,t_{\rm hop}\le40$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.98\textwidth]{output/plots/paper_v_results_progression_20260804/packet_capacity_observables.pdf}
+  \caption{Latest packet-capacity comparison in the strong regime.  Every
+  packet trajectory starts from the same fitted four-packet state and uses the
+  same double pulse; only the maximum number of coherent packets per electronic
+  branch changes.  The black curve is cutoff-16 DOP853 wavefunction
+  propagation, and the dashed brown curve is the raw archive EOM from the same
+  initial contraction. Shading marks the displayed four-unit pulse windows.}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{c@{\qquad}rrrrrr}
+    \toprule
+    $K_{\max}$ & $n_0$ & $E_{\rm e}$ & $E_{\rm ph}$ & $E_{\rm e-ph}$ & $E_{\rm int}$ & source NRMS \\
+    \midrule
+     6 & 0.01201 & 0.02797 & 0.01522 & 0.03296 & 0.000742 & 0.20427 \\
+     8 & 0.01030 & 0.01871 & 0.02934 & 0.03489 & 0.000757 & 0.16053 \\
+    10 & 0.00606 & 0.00979 & 0.03099 & 0.03189 & 0.000760 & 0.12695 \\
+    12 & 0.00745 & 0.01354 & 0.03079 & 0.03400 & 0.000799 & 0.15172 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time-RMS observable errors over $0\le t\le40$ relative to the
+  cutoff-16 DOP853 trajectory, followed by the normalized RMS error of the
+  packet-derived missing correlation source.  Energies are in hopping units.}
+\end{table}
+
+\end{document}

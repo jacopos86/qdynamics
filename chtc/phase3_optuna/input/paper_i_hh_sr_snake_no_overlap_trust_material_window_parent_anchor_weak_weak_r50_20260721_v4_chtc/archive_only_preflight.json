@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "archive_focused_tests": true,
+    "archive_only_worker_validation": true,
+    "candidate_not_executed": true,
+    "exact_round_50_horizon": true,
+    "one_parent_anchor_record": true,
+    "same_cutoff_n_ph_3": true,
+    "threshold_sources_hash_locked": true
+  },
+  "schema": "paper_i_sr_material_window_anchor_preflight_v1",
+  "status": "pass"
+}

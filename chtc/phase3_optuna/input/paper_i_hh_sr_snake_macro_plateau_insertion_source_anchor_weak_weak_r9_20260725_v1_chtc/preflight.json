@@ -1,0 +1,15 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_plateau_insertion_source_anchor_weak_weak_r9_20260725_v1_chtc",
+  "checks": {
+    "outer_horizon": 9,
+    "profile_contract_sha256": "82b3e678a550d1b6926807e22892f00d79b92be98d7566e7efd951b8ff0b3f92",
+    "requirements_has_sif": true,
+    "route_changes_only_insertion_mode": true,
+    "selected_job_count": 1,
+    "selected_regimes_match_request": true,
+    "source_archive_sha256": "a09394c79875e7beec4f3eb5a072d83f600cbca813471948389b3c96a7f0e140",
+    "source_parent_has_six_jobs": true
+  },
+  "schema": "paper_i_hh_commutation_reduced_insertion_preflight_v1",
+  "status": "pass"
+}

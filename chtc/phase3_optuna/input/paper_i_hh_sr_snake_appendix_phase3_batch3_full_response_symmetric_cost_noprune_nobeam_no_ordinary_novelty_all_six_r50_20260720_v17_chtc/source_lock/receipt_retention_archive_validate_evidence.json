@@ -1,0 +1,55 @@
+{
+  "archive_validate_rows_passed": 6,
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v17_chtc",
+  "completed_utc": "2026-07-21T01:30:34.906684+00:00",
+  "exact_remote_image_preflight": "pending",
+  "focused_test_stdout": "..                                                                       [100%]\n2 passed, 81 deselected in 2.06s\n",
+  "focused_tests_passed": 2,
+  "rows": [
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_weak.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_strong_u8.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_weak_u8.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_weak.json\", \"status\": \"pass\"}\n"
+    }
+  ],
+  "schema": "paper_i_sr_phase3_batch3_receipt_retention_archive_preflight_v1",
+  "source_archive_sha256": "31de9ad4d42c75a8dd0e95815144dc93bfaafefc30f073dba97c0bf69591761b",
+  "status": "pass"
+}

@@ -1,0 +1,19 @@
+{
+  "batch_name": "paper-i-hh-sr-main-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260718-v4",
+  "bundle_id": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "checks": {
+    "explicit_disabled_argv_all_rows": true,
+    "only_contract_diff_is_hysteresis_false": true,
+    "runtime_route_validation_in_archive": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "submission_not_performed": true
+  },
+  "profile_request": "sr_snake_no_prune_symmetric_cost_v1",
+  "route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "schema": "paper_i_sr_hysteresis_disabled_bundle_preflight_v1",
+  "source_archive_manifest_sha256": "d64316a3b2591398e94cd419e58c7feb67e46d7e849c18faf31c6b25e1996518",
+  "source_archive_sha256": "5f3e2cb2d30e49b001c72ba3c2c58fa95932da00780dc035179767df23f22041",
+  "status": "pass"
+}

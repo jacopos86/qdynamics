@@ -1,0 +1,17 @@
+{
+  "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_locked.tar.gz",
+  "archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+  "archive_size_bytes": 3563453,
+  "critical_source_hashes": {
+    "pipelines/scaffold/hh_continuation_scoring.py": "9ac932645e68781a4835f52f68b2ed89f834c4e215b1c114ca58c99014756303",
+    "pipelines/static_adapt/accepted_refit.py": "099c128e1857801e68fc403015bd3eab35398ccfd405e12382bd3015829affd4",
+    "pipelines/static_adapt/adapt_pipeline.py": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+    "pipelines/static_adapt/cli_config.py": "d3b46ac2c28eaa43af3d9a14a961761ba247d5d8d9b9781116db3ac28a4a70b9",
+    "pipelines/static_adapt/joint_linear_solve.py": "13c74cda3dabaf6a6c3eee06cf5a9c44b57ca1799a4f45fc33ea2ac1bad446b5",
+    "pipelines/static_adapt/sr_snake_escape_controller.py": "323183c2819c0bab1e3ee19da24cd2dfea24a269a39baf0e6f3965dd2bf7b1f4",
+    "pipelines/static_adapt/sr_snake_route_profile.py": "8d6d8e72d8a471fb57f927b2acf04ae23630ff01377fec88ce284f244926cf12"
+  },
+  "file_count": 432,
+  "schema": "paper_i_hh_sr_noprune_nobeam_source_archive_inventory_v1",
+  "source_revision": "no_beam_ablation_v1"
+}

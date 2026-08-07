@@ -1,0 +1,683 @@
+from __future__ import annotations
+
+import pytest
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.static_adapt.route_identity import (
+    FIRST_CLASS_ROUTE_ID_CHOICES,
+    LEGACY_ROUTE_ID_CHOICES,
+    ROUTE_ID_A,
+    ROUTE_ID_B_LEGACY_PAIRWISE,
+    ROUTE_ID_C,
+    ROUTE_ID_UNSPECIFIED,
+    StaticRouteIdentityConfig,
+    build_static_route_identity_observed_components,
+    build_static_route_identity_payload,
+    normalize_static_meta_feature_profile,
+    resolve_route_identity_base_pool_key,
+    route_identity_payload,
+    static_route_id_from_record,
+)
+
+
+def test_route_identity_separates_first_class_and_legacy_choices() -> None:
+    assert FIRST_CLASS_ROUTE_ID_CHOICES == (ROUTE_ID_UNSPECIFIED, ROUTE_ID_A)
+    assert LEGACY_ROUTE_ID_CHOICES == (ROUTE_ID_B_LEGACY_PAIRWISE, ROUTE_ID_C)
+    assert set(FIRST_CLASS_ROUTE_ID_CHOICES).isdisjoint(LEGACY_ROUTE_ID_CHOICES)
+
+
+def _current_route_a_components(**overrides: object) -> dict[str, object]:
+    components: dict[str, object] = {
+        "base_pool_key": "full_meta",
+        "continuation_mode": "phase3_v1",
+        "phase2_novelty_mode": "collective_span_v1",
+        "phase3_selector_policy": "algebraic_nested_v1",
+        "phase3_selector_geometry_mode": "reduced",
+        "algebraic_shortlisting_enabled": True,
+        "hardware_resolution_schema": "gradient_resolution_v1",
+        "hardware_resolution_mode": "ideal",
+        "phase2_raw_score_formula": "DeltaE_TR_raw * N2 / (1 + K2)",
+        "canonical_score_formula": "DeltaE_TR * N3 / (1 + K3)",
+        "primary_selector_score_key": "full_v2_score",
+        "auxiliary_terms_primary_mode": "tie_break_only",
+        "phase3_novelty_ablation_mode": "off",
+        "phase3_window_relaxation_mode": "reduced",
+        "phase2_enable_batching": True,
+        "phase3_enable_batching": True,
+        "phase3_batch_selection_mode": "reduced_plane",
+        "phase3_batch_prefilter_mode": "off",
+        "phase3_batch_order_selection_mode": "finite_step_v1",
+        "phase3_nested_window_application": "composed_batch_window_v1",
+        "phase1_prune_enabled": True,
+        "phase1_prune_policy": "recoverability_ladder_v1",
+        "phase1_prune_mode": "both",
+    }
+    components.update(overrides)
+    return components
+
+
+def _route_c_components(**overrides: object) -> dict[str, object]:
+    components = _current_route_a_components(
+        phase3_plateau_acquisition_mode="novelty_cost_v1",
+        phase3_plateau_acquisition_score="log_volume_v1",
+        phase3_plateau_score_formula="log(1 + sigma_perp_lambda / lambda_vol) / (1 + K3)",
+        phase3_plateau_duplicate_policy="block_exact_position_v1",
+    )
+    components.update(overrides)
+    return components
+
+
+def _static_route_identity_config(**overrides: object) -> StaticRouteIdentityConfig:
+    values: dict[str, object] = {
+        "declared_route_id": ROUTE_ID_A,
+        "optimizer_lane": "SPSA",
+        "pool_key": "full_meta",
+        "pool_key_input": "full_meta",
+        "hh_staged_continuation": False,
+        "static_meta_feature_profile": "off",
+        "continuation_mode": "phase3_v1",
+        "phase2_novelty_mode": "collective_span_v1",
+        "phase3_selector_policy": "algebraic_nested_v1",
+        "phase3_selector_geometry_mode": "reduced",
+        "algebraic_shortlisting_enabled": True,
+        "hardware_resolution_mode": "ideal",
+        "phase1_score_mode": "trust_region_v1",
+        "phase1_score_formula": "DeltaE1_TR / (1 + K1)",
+        "phase1_active_score_key": "phase1_active_score",
+        "phase1_rho": 0.5,
+        "phase2_selector_gain_mode": "trust_region_v1",
+        "phase2_raw_score_formula": "DeltaE_TR_raw * N2 / (1 + K2)",
+        "canonical_score_formula": "DeltaE_TR * N3 / (1 + K3)",
+        "primary_selector_score_key": "full_v2_score",
+        "auxiliary_terms_primary_mode": "tie_break_only",
+        "phase3_novelty_ablation_mode": "off",
+        "phase3_window_relaxation_mode": "reduced",
+        "adapt_child_pool_expansion_mode": "off",
+        "adapt_child_pool_expansion_symmetry_policy": "off",
+        "adapt_child_pool_expansion_source": "disabled",
+        "shared_pauli_pool_mode": "off",
+        "shared_pauli_pool_symmetry_policy": "off",
+        "shared_pauli_pool_symmetry_gate_enforced": None,
+        "shared_pauli_pool_ordered_pool_hash": None,
+        "shared_pauli_pool_expanded_pool_term_count": None,
+        "phase3_plateau_acquisition_mode": "off",
+        "phase3_plateau_acquisition_score": "log_volume_v1",
+        "phase3_plateau_score_formula": "log(1 + sigma_perp_lambda / lambda_vol) / (1 + K3)",
+        "phase3_plateau_duplicate_policy": "block_exact_position_v1",
+        "phase3_plateau_unlock_margin": 0.0,
+        "phase3_plateau_lambda_vol": 1.0,
+        "phase3_plateau_sigma_min": 0.0,
+        "phase3_plateau_nu_min": 0.0,
+        "phase3_plateau_volume_min": 0.0,
+        "phase3_plateau_failed_family_patience": 0,
+        "phase3_plateau_trial_optimizer": "inherit",
+        "phase3_plateau_trial_qngd_maxiter": 0,
+        "phase3_plateau_seed_probe_mode": "off",
+        "phase3_plateau_seed_probe_count": 0,
+        "phase3_plateau_seed_probe_radius": 0.0,
+        "phase3_plateau_seed_probe_enabled": False,
+        "phase3_plateau_seed_probe_seed": None,
+        "phase3_enable_batching": True,
+        "phase3_batch_selection_mode": "reduced_plane",
+        "phase3_batch_prefilter_mode": "off",
+        "phase3_batch_order_selection_mode": "finite_step_v1",
+        "phase3_nested_window_application": "composed_batch_window_v1",
+        "phase1_prune_enabled": True,
+        "phase1_prune_policy": "recoverability_ladder_v1",
+        "phase1_prune_mode": "both",
+    }
+    values.update(overrides)
+    return StaticRouteIdentityConfig(**values)
+
+
+def test_route_a_identity_requires_current_snake_components() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(),
+        declared_route_id=ROUTE_ID_A,
+        optimizer_lane="SPSA",
+        evaluation_convention="same_cutoff",
+    )
+
+    assert payload["valid"] is True
+    assert payload["route_version"] == "route_a_static_snake_algebraic_nested_batch_v2"
+    assert payload["canonical_snake_eligible"] is True
+    assert payload["required_components"]["phase3_selector_policy"] == "algebraic_nested_v1"
+    assert payload["required_components"]["algebraic_shortlisting_enabled"] is True
+    assert payload["optimizer_lane"] == "SPSA"
+    assert payload["optimizer_is_route_identity"] is False
+    assert payload["evaluation_convention_is_route_identity"] is False
+
+
+def test_static_route_identity_config_helper_matches_direct_route_payload() -> None:
+    cfg = _static_route_identity_config()
+
+    observed = build_static_route_identity_observed_components(cfg)
+    assert observed["base_pool_key"] == "full_meta"
+    assert observed["phase2_enable_batching"] is True
+    assert observed["phase3_enable_batching"] is True
+
+    expected = route_identity_payload(
+        observed,
+        declared_route_id=ROUTE_ID_A,
+        optimizer_lane="SPSA",
+    )
+    actual = build_static_route_identity_payload(cfg)
+
+    assert actual == expected
+    assert actual["valid"] is True
+
+
+def test_static_route_identity_preserves_nonidentity_lane_variant_metadata() -> None:
+    cfg = _static_route_identity_config(
+        static_lane_route="physical_operator_type",
+        static_lane_route_is_route_identity=False,
+        route_variant_id="route_a_physical_operator_lanes_v1",
+    )
+
+    payload = build_static_route_identity_payload(cfg)
+
+    observed = payload["observed_components"]
+    assert payload["valid"] is True
+    assert observed["static_lane_route"] == "physical_operator_type"
+    assert observed["static_lane_route_is_route_identity"] is False
+    assert observed["route_variant_id"] == "route_a_physical_operator_lanes_v1"
+    assert "static_lane_route" not in payload["required_components"]
+
+
+def test_molecular_restricted_route_variant_uses_uccsd_base_pool_contract() -> None:
+    cfg = _static_route_identity_config(
+        pool_key="uccsd",
+        pool_key_input="uccsd",
+        static_meta_feature_profile="paper_i_production_v1",
+        static_lane_route="physical_operator_type",
+        static_lane_route_is_route_identity=False,
+        route_variant_id="route_a_molecular_restricted_physical_operator_lanes_v1",
+        phase3_enable_batching=False,
+    )
+
+    payload = build_static_route_identity_payload(cfg, validate_declared=True)
+
+    assert payload["valid"] is True
+    assert payload["required_components"]["base_pool_key"] == "uccsd"
+    assert payload["observed_components"]["base_pool_key"] == "uccsd"
+
+
+def test_uccsd_base_pool_does_not_satisfy_route_a_without_molecular_variant() -> None:
+    cfg = _static_route_identity_config(
+        pool_key="uccsd",
+        pool_key_input="uccsd",
+        static_meta_feature_profile="paper_i_production_v1",
+        phase3_enable_batching=False,
+    )
+
+    payload = build_static_route_identity_payload(cfg)
+
+    assert payload["valid"] is False
+    assert "mismatch:base_pool_key:'uccsd'!='full_meta'" in payload[
+        "noncanonical_reasons"
+    ]
+
+
+def test_static_route_identity_base_pool_key_preserves_hh_staged_fallback() -> None:
+    assert (
+        resolve_route_identity_base_pool_key(
+            pool_key="phase3_v1",
+            pool_key_input=None,
+            hh_staged_continuation=True,
+        )
+        == "full_meta"
+    )
+    assert (
+        resolve_route_identity_base_pool_key(
+            pool_key="phase3_v1",
+            pool_key_input="math_md_full_meta",
+            hh_staged_continuation=True,
+        )
+        == "math_md_full_meta"
+    )
+    assert (
+        resolve_route_identity_base_pool_key(
+            pool_key="phase3_v1",
+            pool_key_input=None,
+            hh_staged_continuation=False,
+        )
+        == "phase3_v1"
+    )
+
+    observed = build_static_route_identity_observed_components(
+        _static_route_identity_config(
+            pool_key="phase3_v1",
+            pool_key_input=None,
+            hh_staged_continuation=True,
+        )
+    )
+    assert observed["base_pool_key"] == "full_meta"
+
+
+def test_static_route_identity_helper_preserves_route_c_observed_metadata() -> None:
+    cfg = _static_route_identity_config(
+        declared_route_id=ROUTE_ID_C,
+        phase3_plateau_acquisition_mode="novelty_cost_v1",
+        phase3_plateau_acquisition_score="log_volume_v1",
+        phase3_plateau_score_formula="log(1 + sigma_perp_lambda / lambda_vol) / (1 + K3)",
+        phase3_plateau_duplicate_policy="block_exact_position_v1",
+    )
+
+    payload = build_static_route_identity_payload(cfg, validate_declared=True)
+
+    assert payload["route_id"] == ROUTE_ID_C
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is False
+    assert payload["evidence_role"] == "route_c_plateau_acquisition_foundation"
+    assert payload["required_components"]["phase3_plateau_acquisition_mode"] == "novelty_cost_v1"
+    assert payload["required_components"]["phase3_plateau_acquisition_score"] == "log_volume_v1"
+
+
+def test_static_route_identity_helper_validation_raises_declared_mismatch() -> None:
+    cfg = _static_route_identity_config(
+        phase3_selector_policy="hardware_resolvable_v1",
+        algebraic_shortlisting_enabled=False,
+    )
+
+    with pytest.raises(ValueError, match="Declared static_route_id=route_a does not match") as exc:
+        build_static_route_identity_payload(cfg, validate_declared=True)
+
+    assert (
+        "mismatch:phase3_selector_policy:'hardware_resolvable_v1'!='algebraic_nested_v1'"
+        in str(exc.value)
+    )
+
+
+def test_adapt_pipeline_reexports_route_identity_payload_for_compatibility() -> None:
+    import pipelines.static_adapt.adapt_pipeline as hardcoded_adapt_pipeline
+    import pipelines.static_adapt.adapt_pipeline as static_adapt_pipeline
+
+    assert static_adapt_pipeline.route_identity_payload is route_identity_payload
+    assert hardcoded_adapt_pipeline.route_identity_payload is route_identity_payload
+
+
+def test_phase0_pilot_telemetry_does_not_satisfy_route_a() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            phase3_selector_policy="hardware_resolvable_v1",
+            algebraic_shortlisting_enabled=False,
+            phase0_pilot_enabled=True,
+            phase0_algebraic_lane_mode="weak",
+            phase0_required_route_component=False,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert payload["canonical_snake_eligible"] is False
+    assert "mismatch:phase3_selector_policy:'hardware_resolvable_v1'!='algebraic_nested_v1'" in payload[
+        "noncanonical_reasons"
+    ]
+
+
+def test_phase0_pilot_metadata_does_not_change_valid_route_a_identity() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            phase0_pilot_enabled=True,
+            phase0_pilot_max_records=96,
+            phase0_algebraic_lane_mode="weak",
+            phase0_required_route_component=False,
+        ),
+        declared_route_id=ROUTE_ID_A,
+        optimizer_lane="SPSA",
+    )
+
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is True
+    assert "phase0_pilot_enabled" not in payload["required_components"]
+    assert payload["optimizer_is_route_identity"] is False
+
+
+def test_route_a_rejects_stale_hardware_resolvable_contract_flags() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            phase3_selector_policy="hardware_resolvable_v1",
+            algebraic_shortlisting_enabled=False,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert payload["canonical_snake_eligible"] is False
+    assert "mismatch:phase3_selector_policy:'hardware_resolvable_v1'!='algebraic_nested_v1'" in payload[
+        "noncanonical_reasons"
+    ]
+    assert "mismatch:algebraic_shortlisting_enabled:False!=True" in payload["noncanonical_reasons"]
+
+
+@pytest.mark.parametrize(
+    ("override", "reason_prefix"),
+    [
+        ({"phase3_enable_batching": False}, "mismatch:phase3_enable_batching"),
+        ({"phase1_prune_enabled": False}, "mismatch:phase1_prune_enabled"),
+        ({"phase1_prune_policy": "unknown_policy"}, "mismatch:phase1_prune_policy"),
+    ],
+)
+def test_route_a_rejects_materially_wrong_canonical_flags(
+    override: dict[str, object],
+    reason_prefix: str,
+) -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(**override),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert any(str(reason).startswith(reason_prefix) for reason in payload["noncanonical_reasons"])
+
+
+def test_route_a_rejects_conflicting_phase3_and_legacy_aliases() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(phase3_enable_batching=True, phase2_enable_batching=False),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert any(
+        str(reason).startswith("conflict_alias:phase3_enable_batching")
+        for reason in payload["noncanonical_reasons"]
+    )
+
+
+def test_route_a_allows_internal_phase3_pool_type_telemetry() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            pool_type="phase3_v1",
+            adapt_pool_requested="full_meta",
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is True
+    assert payload["observed_components"]["base_pool_key"] == "full_meta"
+    assert not any(
+        str(reason).startswith("conflict_alias:base_pool_key")
+        for reason in payload["noncanonical_reasons"]
+    )
+
+
+@pytest.mark.parametrize("alias", ["math_md_full_meta", "math_md_full_meta_v1"])
+def test_route_a_normalizes_hh_math_md_full_meta_aliases(alias: str) -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(adapt_pool_requested=alias),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is True
+    assert not any(
+        str(reason).startswith("conflict_alias:base_pool_key")
+        for reason in payload["noncanonical_reasons"]
+    )
+
+
+def test_route_a_safe_core_meta_features_allow_sampled_batching_and_prune_flags() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            meta_feature_profile="safe_core_v1",
+            phase3_enable_batching=False,
+            phase2_enable_batching=False,
+            phase1_prune_enabled=False,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is True
+    assert payload["route_version"] == "route_a_static_snake_algebraic_nested_meta_features_v1"
+    assert payload["meta_feature_profile"] == "safe_core_v1"
+    assert payload["optional_components"]["phase3_enable_batching"]["observed"] is False
+    assert payload["optional_components"]["phase1_prune_enabled"]["observed"] is False
+    assert "phase1_prune_policy" not in payload["required_components"]
+
+
+def test_route_a_paper_i_production_allows_batching_toggle() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            meta_feature_profile="paper_i_production_v1",
+            phase3_enable_batching=False,
+            phase2_enable_batching=False,
+            phase3_batch_selection_mode="combinatorial_reduced_plane",
+            phase2_batch_selection_mode="combinatorial_reduced_plane",
+            phase1_prune_enabled=True,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is True
+    assert payload["canonical_snake_eligible"] is True
+    assert payload["route_version"] == "route_a_static_snake_paper_i_production_v1"
+    assert payload["evidence_role"] == "canonical_current_route_paper_i_production"
+    assert payload["meta_feature_profile"] == "paper_i_production_v1"
+    assert "phase3_enable_batching" not in payload["required_components"]
+    assert payload["optional_components"]["phase3_enable_batching"]["observed"] is False
+    assert "phase3_batch_selection_mode" not in payload["required_components"]
+    assert payload["optional_components"]["phase3_batch_selection_mode"]["observed"] == (
+        "combinatorial_reduced_plane"
+    )
+    assert payload["required_components"]["phase1_prune_enabled"] is True
+    assert not any(
+        "amplitude" in key
+        for key in (
+            *payload["required_components"],
+            *payload["observed_components"],
+        )
+    )
+
+
+def test_route_a_paper_i_production_accepts_static_meta_feature_profile_alias() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            static_meta_feature_profile="paper_i_production_v1",
+            phase3_enable_batching=False,
+            phase2_enable_batching=False,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is True
+    assert payload["route_version"] == "route_a_static_snake_paper_i_production_v1"
+    assert payload["evidence_role"] == "canonical_current_route_paper_i_production"
+    assert payload["meta_feature_profile"] == "paper_i_production_v1"
+
+
+def test_route_a_paper_i_production_rejects_conflicting_batching_aliases() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            meta_feature_profile="paper_i_production_v1",
+            phase3_enable_batching=False,
+            phase2_enable_batching=True,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert any(
+        str(reason).startswith("conflict_alias:phase3_enable_batching")
+        for reason in payload["noncanonical_reasons"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("override", "reason_prefix"),
+    [
+        ({"phase1_prune_enabled": False}, "mismatch:phase1_prune_enabled"),
+        ({"phase3_selector_geometry_mode": "raw"}, "mismatch:phase3_selector_geometry_mode"),
+        ({"phase3_novelty_ablation_mode": "all"}, "mismatch:phase3_novelty_ablation_mode"),
+        ({"phase3_window_relaxation_mode": "none"}, "mismatch:phase3_window_relaxation_mode"),
+    ],
+)
+def test_route_a_paper_i_production_rejects_ablation_or_missing_safety_flags(
+    override: dict[str, object],
+    reason_prefix: str,
+) -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            meta_feature_profile="paper_i_production_v1",
+            **override,
+        ),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert any(str(reason).startswith(reason_prefix) for reason in payload["noncanonical_reasons"])
+
+
+@pytest.mark.parametrize("alias", ["paper_i", "paper_i_production", "paper_i_prod", "paper_i_prod_v1", "production"])
+def test_normalize_static_meta_feature_profile_accepts_paper_i_production_aliases(alias: str) -> None:
+    assert normalize_static_meta_feature_profile(alias) == "paper_i_production_v1"
+
+
+def test_route_a_rejects_conflicting_base_pool_aliases() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(adapt_pool_requested="paop_full"),
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert any(
+        str(reason).startswith("conflict_alias:base_pool_key")
+        for reason in payload["noncanonical_reasons"]
+    )
+
+
+def test_full_meta_alone_is_not_route_a() -> None:
+    payload = route_identity_payload(
+        {"base_pool_key": "full_meta"},
+        declared_route_id=ROUTE_ID_A,
+    )
+
+    assert payload["valid"] is False
+    assert payload["canonical_snake_eligible"] is False
+    assert "missing:phase2_novelty_mode" in payload["noncanonical_reasons"]
+
+
+def test_route_b_is_legacy_control_not_canonical() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            phase2_novelty_mode="legacy_pairwise_v1",
+            phase2_raw_score_formula="DeltaE_TR_raw * N2_pairwise / (1 + K2)",
+        ),
+        declared_route_id=ROUTE_ID_B_LEGACY_PAIRWISE,
+    )
+
+    assert payload["valid"] is True
+    assert payload["route_version"] == "route_b_legacy_pairwise_algebraic_nested_batch_v2"
+    assert payload["required_components"]["phase2_raw_score_formula"] == "DeltaE_TR_raw * N2_pairwise / (1 + K2)"
+    assert payload["canonical_snake_eligible"] is False
+    assert payload["evidence_role"] == "legacy_pairwise_control"
+
+
+def test_route_c_identity_is_distinct_from_route_a_and_legacy_route_b() -> None:
+    payload = route_identity_payload(
+        _route_c_components(),
+        declared_route_id=ROUTE_ID_C,
+        optimizer_lane="SPSA",
+    )
+
+    assert payload["valid"] is True
+    assert payload["route_id"] == ROUTE_ID_C
+    assert payload["route_version"] == "route_c_plateau_acquisition_v1"
+    assert payload["canonical_snake_eligible"] is False
+    assert payload["evidence_role"] == "route_c_plateau_acquisition_foundation"
+    assert payload["required_components"]["phase2_novelty_mode"] == "collective_span_v1"
+    assert payload["required_components"]["phase3_plateau_acquisition_mode"] == "novelty_cost_v1"
+    assert payload["required_components"]["phase3_plateau_acquisition_score"] == "log_volume_v1"
+    assert payload["required_components"]["phase3_plateau_score_formula"] == (
+        "log(1 + sigma_perp_lambda / lambda_vol) / (1 + K3)"
+    )
+
+
+def test_route_c_rejects_plain_route_a_plateau_off_components() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(
+            phase3_plateau_acquisition_mode="off",
+            phase3_plateau_acquisition_score="log_volume_v1",
+            phase3_plateau_score_formula="log(1 + sigma_perp_lambda / lambda_vol) / (1 + K3)",
+            phase3_plateau_duplicate_policy="block_exact_position_v1",
+        ),
+        declared_route_id=ROUTE_ID_C,
+    )
+
+    assert payload["valid"] is False
+    assert "mismatch:phase3_plateau_acquisition_mode:'off'!='novelty_cost_v1'" in payload[
+        "noncanonical_reasons"
+    ]
+
+
+def test_route_c_preserves_route_b_legacy_pairwise_distinction() -> None:
+    payload = route_identity_payload(
+        _route_c_components(
+            phase2_novelty_mode="legacy_pairwise_v1",
+            phase2_raw_score_formula="DeltaE_TR_raw * N2_pairwise / (1 + K2)",
+        ),
+        declared_route_id=ROUTE_ID_C,
+    )
+
+    assert payload["valid"] is False
+    assert any(str(reason).startswith("mismatch:phase2_novelty_mode") for reason in payload["noncanonical_reasons"])
+
+
+def test_normalize_static_route_id_accepts_route_c_aliases() -> None:
+    assert route_identity_payload(_route_c_components(), declared_route_id="route-c")["route_id"] == ROUTE_ID_C
+    assert route_identity_payload(_route_c_components(), declared_route_id="plateau_acquisition_v1")["route_id"] == ROUTE_ID_C
+
+
+def test_static_route_id_from_record_detects_route_c_plateau_mode() -> None:
+    assert static_route_id_from_record({"phase3_plateau_acquisition_mode": "novelty_cost_v1"}) == ROUTE_ID_C
+    with pytest.raises(ValueError, match="Route-C-named"):
+        static_route_id_from_record(
+            {"record_id": "routeC_plateau_foundation"},
+            record_id="routeC_plateau_foundation",
+            fail_on_route_named_missing=True,
+        )
+
+
+def test_static_route_id_from_record_fails_closed_on_mixed_route_b_and_c_telemetry() -> None:
+    mixed = {
+        "phase2_novelty_mode": "legacy_pairwise_v1",
+        "phase3_plateau_acquisition_mode": "novelty_cost_v1",
+    }
+
+    assert static_route_id_from_record(mixed) == ROUTE_ID_UNSPECIFIED
+    with pytest.raises(ValueError, match="mixes legacy Route-B"):
+        static_route_id_from_record(mixed, record_id="mixed", fail_on_route_named_missing=True)
+
+
+def test_route_b_rejects_collective_span_raw_formula() -> None:
+    payload = route_identity_payload(
+        _current_route_a_components(phase2_novelty_mode="legacy_pairwise_v1"),
+        declared_route_id=ROUTE_ID_B_LEGACY_PAIRWISE,
+    )
+
+    assert payload["valid"] is False
+    assert any(str(reason).startswith("mismatch:phase2_raw_score_formula") for reason in payload["noncanonical_reasons"])
+
+
+def test_route_named_records_must_declare_route_id() -> None:
+    with pytest.raises(ValueError, match="Route-A-named"):
+        static_route_id_from_record(
+            {"record_id": "routeA_spsa_mixed"},
+            record_id="routeA_spsa_mixed",
+            fail_on_route_named_missing=True,
+        )
+    assert (
+        static_route_id_from_record(
+            {"static_route_id": "route_a"},
+            record_id="routeA_spsa_mixed",
+            fail_on_route_named_missing=True,
+        )
+        == ROUTE_ID_A
+    )
+    assert static_route_id_from_record({}) == ROUTE_ID_UNSPECIFIED

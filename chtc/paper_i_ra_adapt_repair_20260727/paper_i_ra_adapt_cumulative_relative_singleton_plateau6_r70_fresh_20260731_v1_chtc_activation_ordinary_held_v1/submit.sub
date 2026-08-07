@@ -1,0 +1,35 @@
+# Paper-I cumulative-relative RA singleton plateau r70 held activation.
+universe = vanilla
+executable = /bin/bash
+transfer_executable = False
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/execute_authorized_job.sh chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1 chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc $(job_path) $(job_file_sha256) $(authorization_path) $(authorization_file_sha256) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc/source/source_locked.tar.gz 03f8d726218418c6f6788bcce5cf295cfcaedf33ea2eb2628fcca503d068f3ed chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz=chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_runtime/fetched/$(execution_id)__cluster_$(ClusterId)__proc_$(ProcId).tar.gz"
+
+request_cpus = $(cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+requirements = TARGET.HasSIF
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
++JobBatchName = "paper-i-ra-cumulative-relative-singleton-plateau6-r70-fresh-20260731-v1-held"
++HolsteinLifecycleMode = "ordinary_held_exact_proc_release_v1"
+hold = True
+periodic_release = False
+leave_in_queue = (JobStatus == 4) && (ExitCode =!= 0)
+
+log = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_runtime/logs/$(Cluster).$(Process)__$(execution_id).err
+
+queue execution_id,job_path,job_file_sha256,authorization_path,authorization_file_sha256,cpus,memory_mb,disk_mb,max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_cumulative_relative_singleton_plateau6_r70_fresh_20260731_v1_chtc_activation_ordinary_held_v1/queue.tsv

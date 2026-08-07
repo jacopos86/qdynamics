@@ -1,0 +1,23 @@
+{
+  "batch_id": "paper_i_hh_comparator_continuations_local_rerun_20260710_v1",
+  "generated_utc": "2026-07-10T15:15:13.091626+00:00",
+  "parent_batch_id": "paper_i_hh_comparator_continuations_local_20260709_v1",
+  "preserved_partial_diagnostic": "raw_outputs/paper_i_hh_comparator_continuations_local_20260709_v1",
+  "record_count": 4,
+  "record_ids": [
+    "paper_i_hh_comparator_continuations_local_rerun_20260710_v1__weak_strong__geo__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_rerun_20260710_v1__weak_strong__append__C_macro_only__native_forced__powell200__depth50_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_rerun_20260710_v1__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth45_noearlystop__fullmeta_singleton_symmetry",
+    "paper_i_hh_comparator_continuations_local_rerun_20260710_v1__intermediate_strong__append__C_macro_only__native_forced__powell200__depth45_noearlystop__fullmeta_singleton_symmetry"
+  ],
+  "records_path": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_rerun_20260710_v1/paper_i_hh_spsa_budget_ladder_records.tsv",
+  "run_policy": "local serial rerun after power-loss interruption; no CHTC; caffeinate supervisor when available",
+  "schema": "paper_i_hh_comparator_continuations_local_rerun_manifest_v1",
+  "settings_policy": "same validated current plotted C_macro source settings as parent batch; only output/batch identity changed for rerun",
+  "target_horizons": {
+    "intermediate-strong": 45,
+    "weak-strong": 50
+  },
+  "visible_source_audit": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_rerun_20260710_v1/visible_source_audit.json",
+  "visible_source_map": "chtc/phase3_optuna/input/paper_i_hh_comparator_continuations_local_rerun_20260710_v1/visible_source_map.json"
+}

@@ -1,0 +1,31 @@
+# Inert ordinary-cluster template; activation must add sealed authorizations.
+universe = vanilla
+executable = execute_authorized_job.sh
+transfer_executable = True
+
+arguments = $(job_path) authorizations/$(execution_id).json $(execution_id)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = package_contract.py, run_cell.py, package_manifest.json, protocol_bundle_manifest.json, source_locks_snapshot.json, source/source_locked.tar.gz, source/source_archive_manifest.json, $(job_path), $(protocol_path), authorizations/$(execution_id).json
+transfer_output_files = $(execution_id).tar.gz
+
+request_cpus = $(request_cpus)
+request_memory = $(request_memory_mb)MB
+request_disk = $(request_disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = logs/$(Cluster).$(Process)-$(execution_id).log
+output = logs/$(Cluster).$(Process)-$(execution_id).out
+error = logs/$(Cluster).$(Process)-$(execution_id).err
+
+queue execution_id, job_path, protocol_path, job_sha256, request_cpus, request_memory_mb, request_disk_mb, max_runtime_seconds from queue.tsv

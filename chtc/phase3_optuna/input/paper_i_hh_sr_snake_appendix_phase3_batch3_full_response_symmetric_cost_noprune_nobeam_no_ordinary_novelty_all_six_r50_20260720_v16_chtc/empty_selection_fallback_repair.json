@@ -1,0 +1,21 @@
+{
+  "completed_utc": "2026-07-20T22:51:12.673581+00:00",
+  "failed_predecessor_error": "Whitened historical singleton plan has the wrong coordinate schema.",
+  "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v13_chtc",
+  "proof": {
+    "archive_only_job_gates_passed": 6,
+    "exact_remote_image_gate": "pass",
+    "exact_remote_image_rows_passed": 6,
+    "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+    "focused_local_regressions_passed": 6,
+    "route_digest_unchanged": true
+  },
+  "remote_preflight_completed_utc": "2026-07-20T22:59:01.724539+00:00",
+  "repair": "when the batch selector returns no records, retain the top record from its authoritative measured Phase-III input domain instead of jumping to a raw Phase-II record",
+  "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "schema": "paper_i_sr_phase3_batch3_empty_selection_repair_v1",
+  "scientific_settings_changed": false,
+  "source_archive_sha256": "cf506350d367bd32d4b7aef967af876feb41af8dfc5c7a5084ecabba3cfcefa6",
+  "status": "pass_exact_remote_image_validated_not_submitted",
+  "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v16_chtc"
+}

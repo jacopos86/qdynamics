@@ -1,0 +1,29 @@
+{
+  "batch_name": "paper-i-hh-sr-no-overlap-trust-six-r50-20260720-v2",
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v2_chtc",
+  "checks": {
+    "accepted_powell_refit_whitening_preserved": true,
+    "all_rows_exact_round_50": true,
+    "anchor_reproduces_source": true,
+    "endpoint_overlap_measurement_disabled": true,
+    "endpoint_overlap_query_charge_zero_required": true,
+    "fanout_authorized": true,
+    "phase3_raw_supported_projection": true,
+    "phase3_whitening_disabled": true,
+    "same_cutoff_all_rows": true,
+    "single_scientific_execution_field_changed": true,
+    "six_job_records": true,
+    "six_normalized_records": true,
+    "source_archive_hash_locked": true,
+    "source_metric_no_overlap_trust_policy": true,
+    "strong_holstein_n_ph_7": true,
+    "submission_not_performed": true,
+    "weak_holstein_n_ph_3": true
+  },
+  "parent_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
+  "route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "schema": "paper_i_sr_no_overlap_trust_fanout_preflight_v1",
+  "source_archive_sha256": "86d97bf54024c721b189c80c9439a1e7b567df3ed2318f0904d13afd3bb6b4ac",
+  "status": "pass"
+}

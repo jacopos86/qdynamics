@@ -1,0 +1,21 @@
+{
+  "checks": {
+    "batching_disabled": true,
+    "critical_source_hashes": true,
+    "local_depth1_smoke": true,
+    "local_smoke_validation_sha256": "c39fe7e4adcd8d528300e62fb010e39c5136c66668780db5642e685d66a03c04",
+    "negative_curvature_escape_disabled": true,
+    "non_icloud_checkout": true,
+    "novelty_policy_isolation": true,
+    "phase0_disabled": true,
+    "preserved_weak_route_parity": true,
+    "prune_and_beam_unchanged": true,
+    "remote_image_hash_pending_remote_check": true,
+    "same_cutoff_reference_all_rows": true,
+    "six_regimes_present": true,
+    "source_archive_hash": true
+  },
+  "created_utc": "2026-07-16T00:42:19.521536+00:00",
+  "schema": "paper_i_hh_sr_no_ordinary_novelty_preflight_v1",
+  "status": "pass"
+}

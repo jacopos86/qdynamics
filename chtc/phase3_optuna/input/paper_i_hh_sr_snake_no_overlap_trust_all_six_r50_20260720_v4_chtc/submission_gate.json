@@ -1,0 +1,10 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc",
+  "job_count": 6,
+  "route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "schema": "paper_i_sr_no_overlap_trust_fanout_submission_gate_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "8f5f88aa18a529906bbf6861d8a2411a3e3c3f0a0e9f7091fbe0a0d8afb443cc",
+  "status": "ready_for_authenticated_remote_preflight",
+  "submission_performed": false
+}

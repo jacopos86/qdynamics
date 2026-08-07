@@ -1,0 +1,51 @@
+{
+  "anchor_comparison": {
+    "active_prefix_checkpoint_sequences_exact": true,
+    "all_50_energy_after_opt_values_exact": true,
+    "anchor_archive_sha256": "5c777f0e08abfe402fa935e40da6c9ad0bd35fa6ef12e47f288f0eb3b1293465",
+    "anchor_result_sha256": "7ba3b3d95db548695010463896ab557b85dd2fd1e08e95bf254812b5c19ae278",
+    "anchor_validation_receipt_sha256": "9d228d8ccb8f268d0da1f647bfa27f9b55971480a58e42930c55593bc04d6547",
+    "exact_terminal_abs_error": 2.9947037827326994e-07,
+    "exact_terminal_energy": -0.9183806205244431,
+    "non_swept_settings_diff": [],
+    "operator_sequence_exact": true,
+    "operator_sequence_sha256": "83445d7ef53bd858c3bcb4077b98511cac72313575b94a0442f4b7fc15a5f2a3",
+    "settings_exact": true,
+    "settings_sha256": "38621907f34f405d601d809ba743c88089404d12bfac724e4ac3393ef49c98e1",
+    "source_archive_sha256": "4ca20f57067ac4d011a4479b225b8b69540d29d77e4310984e454d21e766a8a4",
+    "source_result_sha256": "8f394fe60582581dd6d9173e7c379cc63ce74468e5061c287448a5b8827dedb9"
+  },
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "child_route_contract_sha256": "3ff2abb1455cda3cf8cc2de0cf739172f8cdcfe6b1c9436e1afdd40076cd3ce8",
+  "created_utc": "2026-07-20T13:49:44Z",
+  "frozen_archive_validation": {
+    "archive_only_validate_rows_passed": 6,
+    "archive_only_validate_rows_total": 6,
+    "focused_test_files": [
+      "test/test_static_adapt_projected_generalized_trust_solve.py",
+      "test/test_static_adapt_projected_phase3_route_profile.py",
+      "test/test_static_adapt_sr_phase_liveness_contract.py",
+      "test/test_static_adapt_sr_route_profile.py"
+    ],
+    "focused_tests_passed": 169,
+    "focused_tests_total": 169
+  },
+  "local_bundle_tests": {
+    "bundle_tests_passed": 1,
+    "bundle_tests_total": 1,
+    "builder_verify_passed": true
+  },
+  "parent_route_contract_sha256": "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91",
+  "schema": "paper_i_sr_phase3_projection_fanout_bundle_validation_v1",
+  "scientific_delta": {
+    "changed_execution_fields": [
+      "historical_singleton_coordinate_solve_policy"
+    ],
+    "child_value": "supported_metric_projected_generalized_trust_v1",
+    "non_swept_settings_diff": [],
+    "parent_value": "supported_metric_whitened_eigh_v1"
+  },
+  "source_archive_sha256": "702190f2cff1e73188d6253e89ca2f358d0c64e1d5ddb19a8bc6fbd8365baea1",
+  "status": "pass_ready_for_authenticated_remote_preflight",
+  "submission_performed": false
+}

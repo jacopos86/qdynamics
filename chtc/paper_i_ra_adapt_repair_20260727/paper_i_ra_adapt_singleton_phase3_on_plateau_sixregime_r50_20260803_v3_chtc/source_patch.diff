@@ -1,0 +1,110 @@
+--- a/pipelines/static_adapt/ra_adapt/engine.py
++++ b/pipelines/static_adapt/ra_adapt/engine.py
+@@ -1447,7 +1447,7 @@
+     row: Mapping[str, Any],
+     *,
+     support: RetainedSupportReceipt,
+-) -> PhaseIIIStabilizationReceipt:
++) -> PhaseIIIStabilizationReceipt | None:
+     """Project stabilization from the accepted winner, not candidate telemetry.
+ 
+     The plateau-gated singleton producer materializes its accepted Phase-II
+@@ -1458,7 +1458,7 @@
+     the accepted round.
+     """
+ 
+-    candidates: list[Mapping[str, Any]] = []
++    candidates: list[tuple[str, Mapping[str, Any]]] = []
+     selected_rows = row.get("selected_feature_rows")
+     if isinstance(selected_rows, (tuple, list)):
+         for selected in selected_rows:
+@@ -1466,18 +1466,25 @@
+                 continue
+             winner_geometry = selected.get("phase2_joint_geometry_reuse")
+             if isinstance(winner_geometry, Mapping):
+-                candidates.append(winner_geometry)
++                candidates.append(("selected_geometry", winner_geometry))
+     trust_update = row.get("route_a_trust_region_update")
+     if isinstance(trust_update, Mapping):
+         accepted_path_echo = trust_update.get(
+             "phase3_stabilization_receipt"
+         )
+         if isinstance(accepted_path_echo, Mapping):
+-            candidates.append(accepted_path_echo)
++            candidates.append(("trust_echo", accepted_path_echo))
+ 
+     matches: list[PhaseIIIStabilizationReceipt] = []
++    missing_receipt_geometries: list[Mapping[str, Any]] = []
+     seen: set[tuple[float, float, float, bool]] = set()
+-    for candidate in candidates:
++    quartet = (
++        "kappa_stabilization_shift",
++        "trust_boundary_multiplier_lambda",
++        "total_metric_multiplier_mu",
++        "trust_boundary_active",
++    )
++    for source, candidate in candidates:
+         if (
+             str(
+                 candidate.get(
+@@ -1495,6 +1502,21 @@
+             != support.factorization_provenance_id
+         ):
+             continue
++        quartet_presence = tuple(field in candidate for field in quartet)
++        if any(quartet_presence) and not all(quartet_presence):
++            raise RuntimeError(
++                "Accepted RA Phase-III stabilization receipt is incomplete."
++            )
++        if not any(quartet_presence):
++            if (
++                source != "selected_geometry"
++                or candidate.get("feasible") is not False
++            ):
++                raise RuntimeError(
++                    "Accepted RA Phase-III stabilization receipt is incomplete."
++                )
++            missing_receipt_geometries.append(candidate)
++            continue
+         try:
+             key = (
+                 float(candidate["kappa_stabilization_shift"]),
+@@ -1530,6 +1552,27 @@
+                 ),
+             )
+         )
++    if missing_receipt_geometries:
++        if (
++            matches
++            or (
++                isinstance(trust_update, Mapping)
++                and "phase3_stabilization_receipt" in trust_update
++            )
++        ):
++            raise RuntimeError(
++                "Accepted RA Phase-III stabilization receipt conflicts with "
++                "its geometry-expansion limitation."
++            )
++        if (
++            len(missing_receipt_geometries) == 1
++            and isinstance(trust_update, Mapping)
++            and _geometry_expansion_trust_limitation(trust_update)
++        ):
++            return None
++        raise RuntimeError(
++            "Accepted RA Phase-III stabilization receipt is incomplete."
++        )
+     if len(matches) != 1:
+         raise RuntimeError(
+             "Accepted RA round must carry exactly one Phase-III "
+@@ -2246,7 +2289,9 @@
+                 receipt.to_dict() for receipt in candidate_lineage
+             ],
+             "retained_support": support.as_dict(),
+-            "phase3_stabilization": stabilization.to_dict(),
++            "phase3_stabilization": (
++                None if stabilization is None else stabilization.to_dict()
++            ),
+             "source_gram_no_overlap_trust": trust_projection,
+             "accepted_refit_fixed_chart_receipt": (
+                 fixed_refit_chart.as_dict()

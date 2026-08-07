@@ -1,0 +1,15 @@
+{
+  "completed_utc": "2026-07-21T00:09:48.978788+00:00",
+  "exact_remote_image_validate_rows_passed": 6,
+  "remote_execution_gate": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v15_chtc/remote_execution_gate.json",
+  "remote_execution_gate_sha256": "5530e849a969e28eee185cf0a3b31cb376d2665f4d6af81e355a98fb405bbcd4",
+  "remote_execution_preflight": "pass",
+  "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_v6_remote_receipt_v1",
+  "status": "pass_exact_receipt_retention_archive_image_validation",
+  "storage_cleanup": {
+    "remote_removed_paths": [],
+    "scope": "no_cleanup_authorized_or_required_by_bundle_builder",
+    "unrelated_remote_paths_modified": false
+  },
+  "submission_performed": false
+}

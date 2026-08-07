@@ -1,0 +1,57 @@
+{
+  "schema": "paper_i_hh_l4_nph1_append_archive_smoke_v1",
+  "status": "pass",
+  "source_archive_sha256": "8922435b176d635544f6fa2629da05ea7151f457e584c39e47a2ee161de94ecd",
+  "case_id": "hh_L4_nph1_scaling_weak_weak",
+  "num_qubits": 12,
+  "runtime_limits": {
+    "resource_qubit_cap": 12,
+    "exact_fidelity_max_qubits": 12
+  },
+  "method": {
+    "algorithm_id": "static_full_meta_append_adapt_vqe",
+    "shared_pauli_pool_mode": "projected_singleton_children_only_v1",
+    "shared_pauli_pool_symmetry_policy": "hard_guard",
+    "shared_pauli_pool_max_subset_size": 1,
+    "optimizer": "powell",
+    "optimizer_maxiter": 200,
+    "seed": 7
+  },
+  "completed_append_rounds": 1,
+  "stop_reason": "max_adapt_iterations",
+  "optimizer_success": true,
+  "energy_before": 2.5,
+  "energy_after": 2.3876275643042035,
+  "pool": {
+    "parent_count": 474,
+    "raw_pauli_term_count": 3712,
+    "symmetry_rejected_count": 3048,
+    "identity_or_null_count": 17,
+    "projected_singleton_child_count": 647,
+    "ordered_pool_hash": "426b86b6c0700e36f49adf9225a16174c3e3c450c79aa600b7e1a50aa3796df1"
+  },
+  "qiskit": {
+    "compile_status": "ok",
+    "validated": true,
+    "compiled_count_2q_total": 0,
+    "compiled_depth_2q_total": 0,
+    "compiled_depth_total": 25
+  },
+  "exact_fidelity": {
+    "value": 0.002234340410467857,
+    "reference_convention": "unique_ground_state_vector",
+    "reporting_only": true,
+    "S_alg_charged": false
+  },
+  "sector": {
+    "sector_leak_flag": false,
+    "sector_probability": 1.0,
+    "n_up": 2,
+    "n_down": 2,
+    "boson_truncation_leak_flag": false,
+    "legal_boson_probability": 1.0,
+    "illegal_boson_probability": 0.0
+  },
+  "diagnostic_result_path": "/tmp/append-l4nph1-weakweak-smoke-20260719/generic_static_single.json",
+  "diagnostic_result_sha256": "914eb73283eccbe965b7fb1d898274987d0125d8dd2948f73ef3ada025b8d7ca"
+}

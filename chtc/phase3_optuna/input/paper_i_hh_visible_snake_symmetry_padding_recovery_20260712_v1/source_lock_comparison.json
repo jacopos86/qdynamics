@@ -1,0 +1,4063 @@
+{
+  "approved_difference_contract": {
+    "added_enforcement_options": [
+      "--phase3-runtime-split-child-padding-policy"
+    ],
+    "added_output_or_telemetry_options": [
+      "--adapt-current-json",
+      "--adapt-estimator-call-ledger-json"
+    ],
+    "all_other_argv_settings_identical": true,
+    "existing_enforcement_option_whose_source_behavior_is_repaired": [
+      "--phase3-runtime-split-child-set-symmetry-policy=hard_guard"
+    ],
+    "replaced_options": [
+      "--output-json"
+    ],
+    "scope_note": "This proves argv/effective-route invariants, not byte-for-byte historical code identity; the July-8 pipelines snapshot is not preserved."
+  },
+  "bundle_id": "paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1",
+  "cache_contract": {
+    "corrected_cache_location_classification": "performance_plumbing_only_under_current_keyed_cache_contract",
+    "corrected_environment_by_regime": {
+      "intermediate_strong": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_strong/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_strong/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_strong/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      },
+      "intermediate_weak": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_weak/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_weak/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/intermediate_weak/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      },
+      "strong_strong": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_strong/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_strong/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_strong/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      },
+      "strong_weak": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_weak/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_weak/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/strong_weak/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      },
+      "weak_strong": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_strong/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_strong/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_strong/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      },
+      "weak_weak": {
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+        "STATIC_ADAPT_CANDIDATE_RECORD_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_weak/cache/candidate_records",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+        "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_weak/cache/generator_registry",
+        "STATIC_ADAPT_HH_POOL_CACHE": "disk",
+        "STATIC_ADAPT_HH_POOL_CACHE_DIR": "tmp/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/weak_weak/cache/hh_pool",
+        "STATIC_ADAPT_HH_POOL_CACHE_SCOPE": "exact"
+      }
+    },
+    "historical_argv_explicitly_enabled_cache": false,
+    "historical_code_cache_provenance": "unresolved",
+    "historical_execution_evidence": {
+      "line_evidence": {
+        "22": "candidate_record_cache_mode=disk with disk hits",
+        "4": "hardcoded_adapt_pool_cache_hit cache_level=disk cache_scope=exact",
+        "6": "hardcoded_adapt_generator_registry_cache_hit cache_level=disk"
+      },
+      "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/logs/weak_weak.stdout.log",
+      "sha256": "9617ce2980d06fb1269867b81ea74700ececcb3926b5d8ccd2043618a518a0dc"
+    },
+    "historical_resolved_defaults": {
+      "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "disk",
+      "STATIC_ADAPT_HH_GENERATOR_REGISTRY_CACHE": "disk",
+      "STATIC_ADAPT_HH_POOL_CACHE": "disk"
+    },
+    "initial_cache_state": "empty_job_local_directories",
+    "known_snapshot_vs_july8_depth1": {
+      "classification": "unresolved_historical_code_or_cache_provenance",
+      "energy_match": true,
+      "july8_candidate_cache": "46 disk hits",
+      "july8_runtime_child_set_scores": 38,
+      "pre_repair_snapshot_clean_cache": "52 misses",
+      "pre_repair_snapshot_runtime_child_set_scores": 44,
+      "resolved_caps_match": true,
+      "selected_admission_match": true,
+      "shortlisted_label_overlap": "6/8"
+    },
+    "reason": "A valid keyed cache hit returns the same serialized pool/registry/candidate record; a clean-cache miss recomputes and stores that record. Cache location and initial warmth are performance plumbing under the corrected current code. The preserved evidence does not isolate whether the July-8 shortlist mismatch arose from unpreserved pipelines code, the historical warm cache, or both, so exact historical cache/code parity remains unresolved.",
+    "stale_cache_transfer": false
+  },
+  "code_level_source_lock": {
+    "classification": "argv_source_locked_but_full_historical_code_diff_unresolved",
+    "corrected_all_per_file_hashes_location": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/source_archive_manifest.json#members",
+    "corrected_archive_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/source_archive_manifest.json",
+    "corrected_archive_sha256": "df54ea579624f12e4efc640072c99d266da156159fe7b92d118c47fbf855b61f",
+    "corrected_critical_source_sha256": {
+      "pipelines/exact_bench/paper_i_hh_recovery_prefix_qiskit_sidecar.py": "5eca75751347b0f2c04713205f40d69057026bdd23ffc9f3b0abb495a058a241",
+      "pipelines/scaffold/hh_continuation_generators.py": "3dc67cc8411e2bd5fbef60262473969d7e35ef1235c3512d491af80a39682c83",
+      "pipelines/static_adapt/adapt_candidate_record_cache.py": "c33eefda653a3384b1241b06cfe2b9af29e2b1b97baf92c44e84d0523b92d1eb",
+      "pipelines/static_adapt/adapt_pipeline.py": "4b6ba38fba5984b9d54ff73ad45974f433e2043c33acba1522aad1dae0692ba5",
+      "pipelines/static_adapt/builders/hh_pool_presets.py": "42b95a9b76814a119ed6d77d75702766de67d9a2c5b200ddcd3316077b258ef9",
+      "pipelines/static_adapt/cli_config.py": "f8b4fbaf441d68b74f30f8731e4e759a54f450ba81775f4c91541efa387eed4b",
+      "pipelines/static_adapt/estimator_call_ledger.py": "c5ccb05c5d8e76ef9e883be4f1070b3ba93c907250aee9a910da1408240abda3",
+      "pipelines/static_adapt/lane_routes.py": "923052494c3d1b8c576fefe2c6ce68b6459fd1245c3b969c8ef5bc012755b522",
+      "pipelines/static_adapt/route_a_child_padding.py": "85ffb862e05cc5c2c3a866909ef365b5afd4904673baf0124e8ef47ab2b827ae",
+      "pipelines/static_adapt/runtime_split.py": "5aa99009ee16759ee947169950c4d7ee37541329afa5646c39088c3ce93178ac",
+      "pipelines/static_adapt/selector_measurement_proxy.py": "fb9f60d8f69a71fc6acdb6f7d8a8f28e8c8599f52024626e29a95b4c36736495"
+    },
+    "corrected_member_inventory_sha256": "1b1b97c531e229cf6382ebc9626493322f785107702240f8037333e697a9f79b",
+    "corrected_regular_file_count": 414,
+    "historical": {
+      "claims_not_made": [
+        "No claim that current pipelines/ is byte-identical to the July-8 execution tree.",
+        "No claim that the approved source semantic changes are the only byte-level changes since July 8."
+      ],
+      "exact_blocker": "The July-8/July-9 source archive preserves src/ but not the historical pipelines/ snapshot that implemented the controller; therefore a byte-for-byte full historical-to-corrected code diff cannot be reconstructed.",
+      "full_historical_code_byte_identity_proof": "unresolved",
+      "historical_src_archives": [
+        {
+          "compressed_sha256": "898b122a4873459c52eb1161c314bb7aef324226cc3189e2a5791ff21a0f6164",
+          "date": "2026-07-08",
+          "decompressed_regular_file_inventory_sha256": "b9b57a999390f702f1d0c35bd996d7234004da4f68f0b38f3d8441e7683e5cb1",
+          "path": "chtc/phase3_optuna/input/paper_i_hh_weak_weak_snake_mechanism_ablation_20260708_v1/src_sanitized.tar.gz",
+          "regular_file_count": 41,
+          "top_level_roots": [
+            "src"
+          ]
+        },
+        {
+          "compressed_sha256": "701d68c1c1654d6f3fae6ff7c37a97b9fe5a1fd4bf6d0b37e8f36443fc173797",
+          "date": "2026-07-09",
+          "decompressed_regular_file_inventory_sha256": "b9b57a999390f702f1d0c35bd996d7234004da4f68f0b38f3d8441e7683e5cb1",
+          "path": "chtc/phase3_optuna/input/paper_i_hh_all_regime_snake_mechanism_ablation_20260709_v1/src_sanitized.tar.gz",
+          "regular_file_count": 41,
+          "top_level_roots": [
+            "src"
+          ]
+        }
+      ],
+      "july8_july9_decompressed_regular_files_identical": true,
+      "preserved_historical_pipelines_snapshot": false,
+      "preserved_historical_src_scope": "src/ only",
+      "validated_scope": "Exact July-8 argv equality for all unchanged options, explicit corrected enforcement/telemetry allowlist, and exact hashes for every file in the corrected source archive."
+    },
+    "pre_repair_remote_snapshot": {
+      "classification_counts": {
+        "absent_from_corrected": 1263,
+        "added_in_corrected": 22,
+        "modified": 25,
+        "unchanged": 367
+      },
+      "current_vs_snapshot_diff": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/pre_repair_vs_corrected_source_diff.json",
+      "current_vs_snapshot_diff_sha256": "ba4201b49b666b255d06a49dca6253a9738be61972ed379cd36621893cea6dff",
+      "execute_node_input": false,
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/paper_i_hh_visible_snake_prerepair_remote_snapshot_20260712.tar.gz",
+      "scope_caveat": "This closes the pre-repair remote snapshot versus corrected-source diff, but the remote snapshot is not proven to be the exact July-8 pipelines execution snapshot.",
+      "sha256": "1c7b8e76566813d1fc571276373b8284f0c08f6a7a07b4d96390901b346a4f63"
+    }
+  },
+  "corrected_output_root": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712",
+  "effective_route_invariants": {
+    "expected_effective": {
+      "historical_paper_i_contract_active": true,
+      "historical_route_compatibility_id": "paper_i_july8_physical_singleton_route_v1",
+      "phase1_shortlist_size_base": 24,
+      "phase1_shortlist_size_effective": 8,
+      "phase2_shortlist_fraction_base": 0.25,
+      "phase2_shortlist_fraction_effective": 0.08333333333333333,
+      "phase2_shortlist_size_base": 12,
+      "phase2_shortlist_size_effective": 4,
+      "physical_lane_shortlist_factor": 3,
+      "policy": "paper_i_july8_physical_lane_factor_division_v1"
+    },
+    "historical_requested": {
+      "phase1_shortlist_size": 24,
+      "phase2_shortlist_fraction": 0.25,
+      "phase2_shortlist_size": 12,
+      "physical_lane_shortlist_aggressiveness": 3
+    },
+    "passed": true,
+    "resolved_current_source": {
+      "historical_paper_i_contract_active": true,
+      "historical_route_compatibility_id": "paper_i_july8_physical_singleton_route_v1",
+      "phase1_shortlist_size_base": 24,
+      "phase1_shortlist_size_effective": 8,
+      "phase2_shortlist_fraction_base": 0.25,
+      "phase2_shortlist_fraction_effective": 0.08333333333333333,
+      "phase2_shortlist_size_base": 12,
+      "phase2_shortlist_size_effective": 4,
+      "physical_lane_shortlist_factor": 3,
+      "policy": "paper_i_july8_physical_lane_factor_division_v1"
+    },
+    "source_function": "pipelines.static_adapt.adapt_pipeline._resolve_physical_lane_shortlist_budget_contract"
+  },
+  "execution_image": {
+    "lock_scope": "verified on CHTC submit host before bundle finalization",
+    "path": "chtc/phase3_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "global_allowlist_passed": true,
+  "historical_commands_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/historical_source_evidence/commands_20260708.json",
+  "historical_commands_sha256": "aaaef244b7f2a7dbe71bbc2a2062ab2b1855bf5e684d0c2cf768815bfb5d6238",
+  "historical_commands_source_path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/commands.json",
+  "preflight_gates": {
+    "corrected_enforcement_smoke": {
+      "execute_node_input": false,
+      "gate_reported_passed": true,
+      "passed": true,
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_corrected_enforcement_smoke_20260712.json",
+      "referenced_artifact_count": 5,
+      "referenced_artifact_hashes_passed": true,
+      "referenced_artifacts": [
+        {
+          "actual_sha256": "3af329d972a244b5ae3c98e41facbb94d29d92485d0cdfe54574985d0cf39a91",
+          "expected_sha256": "3af329d972a244b5ae3c98e41facbb94d29d92485d0cdfe54574985d0cf39a91",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.current.json"
+        },
+        {
+          "actual_sha256": "3727dea668ab18f0d991363f395d97d0e4ca0931bac1b839af63f47ec44b3ccd",
+          "expected_sha256": "3727dea668ab18f0d991363f395d97d0e4ca0931bac1b839af63f47ec44b3ccd",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.estimator_ledger.json"
+        },
+        {
+          "actual_sha256": "dfd3b4fc59e1b0553c94ed97ea1432006aeb68909c95bcaf41527de1b30a4333",
+          "expected_sha256": "dfd3b4fc59e1b0553c94ed97ea1432006aeb68909c95bcaf41527de1b30a4333",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.result.json"
+        },
+        {
+          "actual_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stderr.log"
+        },
+        {
+          "actual_sha256": "dc03c80d03ff6e38d73d7f5a722441ec9b670f413d1a78f9a451ac1695aa2909",
+          "expected_sha256": "dc03c80d03ff6e38d73d7f5a722441ec9b670f413d1a78f9a451ac1695aa2909",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_on.stdout.log"
+        }
+      ],
+      "schema": "paper_i_hh_weak_weak_depth1_corrected_enforcement_smoke_v1",
+      "sha256": "2cb7fcfcb9deb7bda4a91ab0c372fe79957b30590c4f1b5a4b4608ec4c181a27"
+    },
+    "route_parity": {
+      "execute_node_input": false,
+      "gate_reported_passed": true,
+      "passed": true,
+      "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_current_route_parity_20260712.json",
+      "referenced_artifact_count": 11,
+      "referenced_artifact_hashes_passed": true,
+      "referenced_artifacts": [
+        {
+          "actual_sha256": "a8840c68181a2c58d418c0861db8fcab17a85e03166f87c3aba7ce893eb8e62b",
+          "expected_sha256": "a8840c68181a2c58d418c0861db8fcab17a85e03166f87c3aba7ce893eb8e62b",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.result.json"
+        },
+        {
+          "actual_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stderr.log"
+        },
+        {
+          "actual_sha256": "e63719a1813f04fcdbce0dda2b51d1463b3171f21b3b0aeaf6a2cc700186c6ab",
+          "expected_sha256": "e63719a1813f04fcdbce0dda2b51d1463b3171f21b3b0aeaf6a2cc700186c6ab",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_cold.stdout.log"
+        },
+        {
+          "actual_sha256": "5fd0fb0afaabf909e5dd5c53458fa60bd6ad73be071e86eea8a1559a3f28b5db",
+          "expected_sha256": "5fd0fb0afaabf909e5dd5c53458fa60bd6ad73be071e86eea8a1559a3f28b5db",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.result.json"
+        },
+        {
+          "actual_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stderr.log"
+        },
+        {
+          "actual_sha256": "4467d17240c430b4162852055a96be0b8148486e653ddd7b97c87c4d49d89ea5",
+          "expected_sha256": "4467d17240c430b4162852055a96be0b8148486e653ddd7b97c87c4d49d89ea5",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_current_enforcement_off_warm.stdout.log"
+        },
+        {
+          "actual_sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb",
+          "expected_sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb",
+          "matches": true,
+          "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json"
+        },
+        {
+          "actual_sha256": "9617ce2980d06fb1269867b81ea74700ececcb3926b5d8ccd2043618a518a0dc",
+          "expected_sha256": "9617ce2980d06fb1269867b81ea74700ececcb3926b5d8ccd2043618a518a0dc",
+          "matches": true,
+          "path": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/logs/weak_weak.stdout.log"
+        },
+        {
+          "actual_sha256": "f21ffed6b1bd7e9f78e0a94774e3237038dc5cddaccf58b390889d7e4ea915f8",
+          "expected_sha256": "f21ffed6b1bd7e9f78e0a94774e3237038dc5cddaccf58b390889d7e4ea915f8",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.result.json"
+        },
+        {
+          "actual_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stderr.log"
+        },
+        {
+          "actual_sha256": "85e4faada52f21c2fe15d53a798dd6b94a632994cc31b82edd98a339f7765cea",
+          "expected_sha256": "85e4faada52f21c2fe15d53a798dd6b94a632994cc31b82edd98a339f7765cea",
+          "matches": true,
+          "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/preflight_evidence/weak_weak_depth1_prerepair_snapshot.stdout.log"
+        }
+      ],
+      "schema": "paper_i_hh_weak_weak_depth1_route_parity_v1",
+      "sha256": "831aedc24d420c2b7e6909ce0c35f66b821cfe7b376bce90766001869604799e"
+    }
+  },
+  "regime_order": [
+    "weak-weak",
+    "intermediate-weak",
+    "strong-weak",
+    "weak-strong",
+    "intermediate-strong",
+    "strong-strong"
+  ],
+  "row_count": 6,
+  "rows": [
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_weak.args.json",
+      "argv_json_sha256": "01c5b56609a1bfe483bac20c752543d7e1877f2aaa259e28496b517045a9a5ba",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "0.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_weak/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "0.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_weak/json/result.json",
+      "historical_result_sha256": "bb51341389bac493f99fac05bd425f6cdfca28a1d87983aa812d979b6301d1cb",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_weak.json",
+      "job_manifest_sha256": "f6381e08d7d975162f48c01a17b52779c107692968474553ef16b6449c0b8f5e",
+      "regime": "weak-weak",
+      "regime_slug": "weak_weak"
+    },
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_weak.args.json",
+      "argv_json_sha256": "05d77f1ff04cf7cdae9251015f6cdf349a0af65641bc30d19babf0ca8fd003c3",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "1.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_weak/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "1.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_weak/json/result.json",
+      "historical_result_sha256": "aee2bdfc258555013392ebda3ab97bc822b248bee0ffa41b9bada35bb70ab1e9",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_weak.json",
+      "job_manifest_sha256": "6c34724868142f0c5f2ff439c3a4e72dafcd91ed3f55908ffb379c93f931637e",
+      "regime": "intermediate-weak",
+      "regime_slug": "intermediate_weak"
+    },
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_weak.args.json",
+      "argv_json_sha256": "47b06783ed6f73e3467291b3d5b7c2a3fe0e01e05d2c3eaf613a24914addad61",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "8.0"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_weak/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.353553390593",
+        "--n-ph-max",
+        "2",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "8.0"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.353553390593"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "2"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_weak/json/result.json",
+      "historical_result_sha256": "a77f913eb2c2b1cbf8adfeebd4e6cca23dc0f966a2d06467a3d902554042a745",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_weak.json",
+      "job_manifest_sha256": "e815401c17a3b5714a57693bd656a4acb16808065c61cc4b33721cc1b5d20c52",
+      "regime": "strong-weak",
+      "regime_slug": "strong_weak"
+    },
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_strong.args.json",
+      "argv_json_sha256": "4aed9797e383f44d13a6603ac852159da54bd56ba2822c26c1f349874dacc769",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "0.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/weak_strong/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "0.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "0.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/weak_strong/json/result.json",
+      "historical_result_sha256": "bd2bf3e23db23523edda9c716589cc3ad9899bb2e8ff1a1a783537f51120f9b0",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/weak_strong.json",
+      "job_manifest_sha256": "862d4c98a3d929746d7af1dce747c1016f1b241bd1521290ee44aa41beed1a53",
+      "regime": "weak-strong",
+      "regime_slug": "weak_strong"
+    },
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_strong.args.json",
+      "argv_json_sha256": "506e62c2086269e1ab7e473b711700cbe1e4a5813a623760aa6e7c987b4c7769",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "1.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/intermediate_strong/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "1.25",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "1.25"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/intermediate_strong/json/result.json",
+      "historical_result_sha256": "9c49de416cf31831ee7be58f75faddfbf2e04ea0e5d4a0e03342b9da195da9ea",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/intermediate_strong.json",
+      "job_manifest_sha256": "3b30c15574258f6383703e2874ca09de3506bdd05ab4da5003f102d4882b2ea0",
+      "regime": "intermediate-strong",
+      "regime_slug": "intermediate_strong"
+    },
+    {
+      "allowlist_passed": true,
+      "argv_json": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_strong.args.json",
+      "argv_json_sha256": "0f02b2238978c88bfbb9abef6bf13b2a8d0db0b203e3139a3e659c7669f8fa60",
+      "corrected_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--phase3-runtime-split-child-padding-policy",
+        "exact_projected_grouped_v1",
+        "--adapt-current-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/current.json",
+        "--adapt-estimator-call-ledger-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/estimator_call_ledger.json",
+        "--output-json",
+        "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/result.json"
+      ],
+      "corrected_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "8.0"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--phase3-runtime-split-child-padding-policy",
+          "value": "exact_projected_grouped_v1"
+        },
+        {
+          "option": "--adapt-current-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/current.json"
+        },
+        {
+          "option": "--adapt-estimator-call-ledger-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/estimator_call_ledger.json"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/result.json"
+        }
+      ],
+      "corrected_paths": {
+        "current_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/current.json",
+        "estimator_call_ledger_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/estimator_call_ledger.json",
+        "normalized_run_manifest_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/normalized_run_manifest.json",
+        "output_json": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/result.json"
+      },
+      "differences": [
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/current.json",
+          "historical": null,
+          "option": "--adapt-current-json"
+        },
+        {
+          "change": "added",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/estimator_call_ledger.json",
+          "historical": null,
+          "option": "--adapt-estimator-call-ledger-json"
+        },
+        {
+          "change": "replaced",
+          "corrected": "raw_outputs/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712/strong_strong/json/result.json",
+          "historical": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json",
+          "option": "--output-json"
+        },
+        {
+          "change": "added",
+          "corrected": "exact_projected_grouped_v1",
+          "historical": null,
+          "option": "--phase3-runtime-split-child-padding-policy"
+        }
+      ],
+      "historical_argv": [
+        "python3",
+        "-m",
+        "pipelines.static_adapt.adapt_pipeline",
+        "--problem",
+        "hh",
+        "--L",
+        "2",
+        "--ordering",
+        "blocked",
+        "--boundary",
+        "open",
+        "--t",
+        "1.0",
+        "--dv",
+        "0.0",
+        "--omega0",
+        "1.0",
+        "--boson-encoding",
+        "binary",
+        "--adapt-pool",
+        "full_meta",
+        "--adapt-continuation-mode",
+        "phase3_v1",
+        "--static-route-id",
+        "route_a",
+        "--static-meta-feature-profile",
+        "paper_i_production_v1",
+        "--static-lane-route",
+        "physical_operator_type",
+        "--physical-lane-shortlist-aggressiveness",
+        "3",
+        "--adapt-inner-optimizer",
+        "POWELL",
+        "--adapt-maxiter",
+        "200",
+        "--adapt-scipy-maxfev",
+        "0",
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-full-refit-every",
+        "8",
+        "--adapt-final-full-refit",
+        "true",
+        "--adapt-final-refit-maxiter",
+        "200",
+        "--adapt-max-depth",
+        "30",
+        "--phase1-shortlist-size",
+        "24",
+        "--phase2-shortlist-size",
+        "12",
+        "--phase2-shortlist-fraction",
+        "0.25",
+        "--phase2-no-batching",
+        "--phase3-no-batching",
+        "--phase3-runtime-split-mode",
+        "shortlist_pauli_children_v1",
+        "--allow-archival-phase3-runtime-split",
+        "--phase3-runtime-split-selection-mode",
+        "archival_child_set_forward_v1",
+        "--phase3-runtime-split-max-subset-size",
+        "1",
+        "--phase3-runtime-split-child-set-symmetry-policy",
+        "hard_guard",
+        "--phase1-prune-enabled",
+        "--phase1-prune-policy",
+        "recoverability_ladder_v1",
+        "--phase1-prune-mode",
+        "both",
+        "--adapt-beam-live-branches",
+        "3",
+        "--adapt-beam-children-per-parent",
+        "2",
+        "--adapt-beam-lambda",
+        "0.005",
+        "--phase3-backend-cost-mode",
+        "marrakesh_graph_span_v1",
+        "--phase3-selector-policy",
+        "algebraic_nested_v1",
+        "--phase3-selector-geometry-mode",
+        "reduced",
+        "--skip-pdf",
+        "--u",
+        "8.0",
+        "--g-ep",
+        "0.790569415042",
+        "--n-ph-max",
+        "4",
+        "--output-json",
+        "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json"
+      ],
+      "historical_normalized_options": [
+        {
+          "option": "--problem",
+          "value": "hh"
+        },
+        {
+          "option": "--L",
+          "value": "2"
+        },
+        {
+          "option": "--ordering",
+          "value": "blocked"
+        },
+        {
+          "option": "--boundary",
+          "value": "open"
+        },
+        {
+          "option": "--t",
+          "value": "1.0"
+        },
+        {
+          "option": "--dv",
+          "value": "0.0"
+        },
+        {
+          "option": "--omega0",
+          "value": "1.0"
+        },
+        {
+          "option": "--boson-encoding",
+          "value": "binary"
+        },
+        {
+          "option": "--adapt-pool",
+          "value": "full_meta"
+        },
+        {
+          "option": "--adapt-continuation-mode",
+          "value": "phase3_v1"
+        },
+        {
+          "option": "--static-route-id",
+          "value": "route_a"
+        },
+        {
+          "option": "--static-meta-feature-profile",
+          "value": "paper_i_production_v1"
+        },
+        {
+          "option": "--static-lane-route",
+          "value": "physical_operator_type"
+        },
+        {
+          "option": "--physical-lane-shortlist-aggressiveness",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-inner-optimizer",
+          "value": "POWELL"
+        },
+        {
+          "option": "--adapt-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-scipy-maxfev",
+          "value": "0"
+        },
+        {
+          "option": "--adapt-reopt-policy",
+          "value": "windowed"
+        },
+        {
+          "option": "--adapt-full-refit-every",
+          "value": "8"
+        },
+        {
+          "option": "--adapt-final-full-refit",
+          "value": "true"
+        },
+        {
+          "option": "--adapt-final-refit-maxiter",
+          "value": "200"
+        },
+        {
+          "option": "--adapt-max-depth",
+          "value": "30"
+        },
+        {
+          "option": "--phase1-shortlist-size",
+          "value": "24"
+        },
+        {
+          "option": "--phase2-shortlist-size",
+          "value": "12"
+        },
+        {
+          "option": "--phase2-shortlist-fraction",
+          "value": "0.25"
+        },
+        {
+          "option": "--phase2-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-no-batching",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-mode",
+          "value": "shortlist_pauli_children_v1"
+        },
+        {
+          "option": "--allow-archival-phase3-runtime-split",
+          "value": true
+        },
+        {
+          "option": "--phase3-runtime-split-selection-mode",
+          "value": "archival_child_set_forward_v1"
+        },
+        {
+          "option": "--phase3-runtime-split-max-subset-size",
+          "value": "1"
+        },
+        {
+          "option": "--phase3-runtime-split-child-set-symmetry-policy",
+          "value": "hard_guard"
+        },
+        {
+          "option": "--phase1-prune-enabled",
+          "value": true
+        },
+        {
+          "option": "--phase1-prune-policy",
+          "value": "recoverability_ladder_v1"
+        },
+        {
+          "option": "--phase1-prune-mode",
+          "value": "both"
+        },
+        {
+          "option": "--adapt-beam-live-branches",
+          "value": "3"
+        },
+        {
+          "option": "--adapt-beam-children-per-parent",
+          "value": "2"
+        },
+        {
+          "option": "--adapt-beam-lambda",
+          "value": "0.005"
+        },
+        {
+          "option": "--phase3-backend-cost-mode",
+          "value": "marrakesh_graph_span_v1"
+        },
+        {
+          "option": "--phase3-selector-policy",
+          "value": "algebraic_nested_v1"
+        },
+        {
+          "option": "--phase3-selector-geometry-mode",
+          "value": "reduced"
+        },
+        {
+          "option": "--skip-pdf",
+          "value": true
+        },
+        {
+          "option": "--u",
+          "value": "8.0"
+        },
+        {
+          "option": "--g-ep",
+          "value": "0.790569415042"
+        },
+        {
+          "option": "--n-ph-max",
+          "value": "4"
+        },
+        {
+          "option": "--output-json",
+          "value": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json"
+        }
+      ],
+      "historical_result_json": "raw_outputs/paper_i_hh_physical_operator_lanes_nobatch_factor3_20260708/strong_strong/json/result.json",
+      "historical_result_sha256": "d789821367b4cf512346794f38193e68c1cf2aa6644474f29b041485579e9124",
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/jobs/strong_strong.json",
+      "job_manifest_sha256": "c01489324e4ac42f7790838292d360ef0168493c7f799e25b056f3e8481cc456",
+      "regime": "strong-strong",
+      "regime_slug": "strong_strong"
+    }
+  ],
+  "schema": "paper_i_hh_visible_snake_symmetry_padding_source_lock_v1",
+  "source_archive": {
+    "manifest": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/source_archive_manifest.json",
+    "path": "chtc/phase3_optuna/input/paper_i_hh_visible_snake_symmetry_padding_recovery_20260712_v1/src_sanitized.tar.gz",
+    "sha256": "df54ea579624f12e4efc640072c99d266da156159fe7b92d118c47fbf855b61f"
+  }
+}

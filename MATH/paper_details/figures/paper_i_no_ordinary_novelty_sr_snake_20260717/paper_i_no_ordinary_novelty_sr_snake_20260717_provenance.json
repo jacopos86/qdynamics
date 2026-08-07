@@ -1,0 +1,428 @@
+{
+  "schema": "paper_i_no_ordinary_novelty_sr_snake_convergence_v1",
+  "generated_utc": "2026-07-17T19:34:23.774379+00:00",
+  "scope": "separate Paper-I novelty-off manuscript copy; no active-manuscript edit",
+  "builder": {
+    "path": "MATH/paper_facing/paper_I_static_scaffold/build_paper_i_no_ordinary_novelty_sr_snake_figures_20260717.py",
+    "sha256": "32e88e87494691e9edddb716edbc11f630261d006f6cde6e87cccdbbbb1e5829"
+  },
+  "plot_policy": "separate one-column files; solid curves; exactly one method marker; SNAKE user-selected plateau markers for intermediate-weak, strong-weak, and strong-strong and terminal markers otherwise; retained comparator plateau markers; log y; no target lines; integer x",
+  "visible_methods": [
+    "SNAKE",
+    "Geo-ADAPT",
+    "Append-ADAPT"
+  ],
+  "consumed_artifacts": [
+    {
+      "role": "july8_plot_provenance",
+      "path": "MATH/paper_details/figures/paper_i_physical_lane_snake_duplicate_20260708/paper_i_physical_lane_snake_duplicate_20260708_append_parent_only_provenance.json",
+      "sha256": "4ec548ab96d7f96e66c3bdf820e497f665d7e6490865ff20934af5f54ed7ef7e"
+    },
+    {
+      "role": "july2_comparator_support_csv",
+      "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_comparator_support_source.csv",
+      "sha256": "6409dd077cb4ab0fceaa15d62e7570a70549a49f1ed9989abcea6435767c521c"
+    },
+    {
+      "role": "novelty_off_weak_weak",
+      "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+      "sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa",
+      "kind": "result_json"
+    },
+    {
+      "role": "novelty_off_intermediate_weak",
+      "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/intermediate_weak/json/result.json",
+      "sha256": "9e2479fd8308f111cd311e7843ccf1978962dc9d66876bc78f5c69566054a2ed",
+      "kind": "result_json"
+    },
+    {
+      "role": "novelty_off_strong_weak",
+      "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc/strong_weak_u8/json/result.json",
+      "sha256": "dcca143802009d513d2edafed9e688e39b1c5518fefd5ebbb886ba5413aa1117",
+      "kind": "result_json"
+    },
+    {
+      "role": "novelty_off_weak_strong",
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong_transfer.tar.gz",
+      "sha256": "dcde3bd74b2d0c41e15c31cc51e890793d8c34148341feef751e15e6348b7aee",
+      "kind": "preserved_transfer_archive_member",
+      "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/json/result.json",
+      "member_sha256": "327a4c01f2e40f49364734ab474ffc9d7da874e339323552a9fd57c8876c011b"
+    },
+    {
+      "role": "novelty_off_intermediate_strong",
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong_transfer.tar.gz",
+      "sha256": "d1f6f1e8928b054837ab426b5024975b60f24945008d4180c4884697859d967d",
+      "kind": "preserved_transfer_archive_member",
+      "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/result.json",
+      "member_sha256": "2091eb72dcd374fa2727d7cf9b2dd204fc0ba826d767f9e0269930a3af271448"
+    },
+    {
+      "role": "novelty_off_strong_strong",
+      "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8_transfer.tar.gz",
+      "sha256": "cce59f9ec67efb22a455120a31556fe2f7f351509368ba54cc3748fb0e305003",
+      "kind": "preserved_transfer_archive_member",
+      "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8/json/result.json",
+      "member_sha256": "080f66e46c0887d0232b48edca6669c9b0c89c25ba2c8c394a2e9ad9feaa3975"
+    }
+  ],
+  "plots": [
+    {
+      "regime": "weak_weak",
+      "title": "weak-weak: $U/t=0.25$, $\\lambda=0.25$, $M=2$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 30,
+        "axis_x_max": 31,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 30,
+          "marker_error": 7.993605777301127e-15,
+          "marker_policy": "terminal_result_after_preserved_terminal_refit",
+          "marker_history_position": null,
+          "source": {
+            "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+            "sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa",
+            "kind": "result_json"
+          },
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 7.993605777301127e-15
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 5,
+          "marker_error": 0.001127815214085226,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "3db70cc75f545fa6439fe23d3ef45114bdf92adc9d596c5e606d6436780c5f45",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.001127596427919375
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 23,
+          "marker_error": 0.00036917404831438017,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "a0b53b4643d97588a04fb688f09dd48964a90a1cd650e95d6cad68d167c8c3a6",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.0003688764569935721
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__weak_weak.png",
+      "png_sha256": "25fa38e491c310b4a0842848966939aedcbf58dcf98e602d3e5124a1bed82480",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__weak_weak.pdf",
+      "pdf_sha256": "5c123bd5de47585637a43cdbb9089a8a7fb6877a7ca4494d2e6469d5293157b5"
+    },
+    {
+      "regime": "intermediate_weak",
+      "title": "intermediate-weak: $U/t=1.25$, $\\lambda=0.25$, $M=2$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 30,
+        "axis_x_max": 31,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 23,
+          "marker_error": 3.4416913763379853e-15,
+          "marker_policy": "user_selected_last_plateau_history_checkpoint",
+          "marker_history_position": 24,
+          "source": {
+            "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_five_20260715_v1_chtc/intermediate_weak/json/result.json",
+            "sha256": "9e2479fd8308f111cd311e7843ccf1978962dc9d66876bc78f5c69566054a2ed",
+            "kind": "result_json"
+          },
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 2.7755575615628914e-15
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 4,
+          "marker_error": 0.07795429664731951,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "548746aee514688474bf93659f6595a2f4284c879fd8f257479b347bbca2d255",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.07776984001037102
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 28,
+          "marker_error": 0.003946816613623283,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "eb3876dbfdbc1fae7e3859d2fe44b9da63824301eb894339b08ed97497aaba0c",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.00394248023851046
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__intermediate_weak.png",
+      "png_sha256": "fa8208e8b335a6e007604a3562f1c613fc86f9e1c87dc294b3c92568885326dd",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__intermediate_weak.pdf",
+      "pdf_sha256": "a8bda7a3bf687354cb7e185094c13bc8cd90c4a3f7bd0e86aede1890d4fd4d29"
+    },
+    {
+      "regime": "strong_weak",
+      "title": "strong-weak: $U/t=8$, $\\lambda=0.25$, $M=2$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 50,
+        "axis_x_max": 51,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 9,
+          "marker_error": 1.5711479179891796e-06,
+          "marker_policy": "user_selected_last_plateau_history_checkpoint",
+          "marker_history_position": 10,
+          "source": {
+            "path": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_strong_weak_u8_r50_repair_20260716_v2_chtc/strong_weak_u8/json/result.json",
+            "sha256": "dcca143802009d513d2edafed9e688e39b1c5518fefd5ebbb886ba5413aa1117",
+            "kind": "result_json"
+          },
+          "point_count": 51,
+          "terminal_k": 50,
+          "terminal_error": 1.3834336334284103e-06
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 6,
+          "marker_error": 1.958072529117949e-06,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "5832452cc10b4bc4c2faa22cd062ebfd41b9d39efa1219bbf3c5acdeda2e51ab",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 1.95807242453494e-06
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 6,
+          "marker_error": 1.958072529451016e-06,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_weak__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "4debf76c8b85567938266e1d434c580cda585b16748fab6781144d960f6c548a",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 1.9580724731627086e-06
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__strong_weak.png",
+      "png_sha256": "974a5b12fdfc393f0faf951f677d037ed964949dce5126aaa3ef5dbcdd587662",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__strong_weak.pdf",
+      "pdf_sha256": "8539b48ef47b11f967c1f165f611a76253defe2d90d14541eacf9cf5dd6c3262"
+    },
+    {
+      "regime": "weak_strong",
+      "title": "weak-strong: $U/t=0.25$, $\\lambda=1.25$, $M=4$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 50,
+        "axis_x_max": 51,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 50,
+          "marker_error": 3.051703169054676e-06,
+          "marker_policy": "terminal_result_after_preserved_terminal_refit",
+          "marker_history_position": null,
+          "source": {
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong_transfer.tar.gz",
+            "sha256": "dcde3bd74b2d0c41e15c31cc51e890793d8c34148341feef751e15e6348b7aee",
+            "kind": "preserved_transfer_archive_member",
+            "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/weak_strong/json/result.json",
+            "member_sha256": "327a4c01f2e40f49364734ab474ffc9d7da874e339323552a9fd57c8876c011b"
+          },
+          "point_count": 51,
+          "terminal_k": 50,
+          "terminal_error": 3.051703169054676e-06
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 8,
+          "marker_error": 0.04139381176829238,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "25bd7623cd9606c238851827b6d54e2fa98dd8dbc9da707ca17edd2678594259",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.03962443617682254
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 23,
+          "marker_error": 0.019354949951648548,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__weak_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "22618c3753c502121b4aeb03d07a76368b0ae8fb948054b827e1284c4def6579",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.018857259860106446
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__weak_strong.png",
+      "png_sha256": "9034be7430148c3796effb78fde2d50960c8a57e936643171069ac69723bec20",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__weak_strong.pdf",
+      "pdf_sha256": "57d2f7c5cdb82ffdd5d84187b2b80f13540e285b3f779e3a354f41d839186309"
+    },
+    {
+      "regime": "intermediate_strong",
+      "title": "intermediate-strong: $U/t=1.25$, $\\lambda=1.25$, $M=4$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 50,
+        "axis_x_max": 51,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 50,
+          "marker_error": 4.7338917443573436e-05,
+          "marker_policy": "terminal_result_after_preserved_terminal_refit",
+          "marker_history_position": null,
+          "source": {
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong_transfer.tar.gz",
+            "sha256": "d1f6f1e8928b054837ab426b5024975b60f24945008d4180c4884697859d967d",
+            "kind": "preserved_transfer_archive_member",
+            "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/intermediate_strong/json/result.json",
+            "member_sha256": "2091eb72dcd374fa2727d7cf9b2dd204fc0ba826d767f9e0269930a3af271448"
+          },
+          "point_count": 51,
+          "terminal_k": 50,
+          "terminal_error": 4.7338917443573436e-05
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 8,
+          "marker_error": 0.026725016240164545,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "de9f753615c18471814ffbc7c2e1fbeb7e9ae399025e90985b7635500e21c01e",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.02508602027123019
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 25,
+          "marker_error": 0.008150300978024494,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__intermediate_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "1c24d47f5376fe6950ceb1e78b833cf4a6da5e318760b9caee395e3e45b3b257",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 0.007939042186650758
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__intermediate_strong.png",
+      "png_sha256": "30abfa6207d540e94dd9e1e7e75f0548b74c8305591660830d6a14da792b69d4",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__intermediate_strong.pdf",
+      "pdf_sha256": "65aba6c8a1147e9f7a471d42f1cee24040a1e56ed7780a96a315119aa2e275aa"
+    },
+    {
+      "regime": "strong_strong",
+      "title": "strong-strong: $U/t=8$, $\\lambda=1.25$, $M=4$",
+      "error_metric": "absolute same-cutoff energy error |E_alg(n_ph_work)-E_ED(n_ph_work)|",
+      "x_policy": "integer ADAPT iteration; SNAKE x=0..horizon-1 are post-admission history positions 1..horizon, and x=horizon is the terminal-refit result",
+      "display_crop": {
+        "x_min": 0,
+        "last_data_x": 50,
+        "axis_x_max": 51,
+        "y_limits": null
+      },
+      "methods": [
+        {
+          "method": "SNAKE",
+          "role_key": "snake_no_ordinary_novelty",
+          "marker_k": 33,
+          "marker_error": 3.2083758372269955e-07,
+          "marker_policy": "user_selected_last_plateau_history_checkpoint",
+          "marker_history_position": 34,
+          "source": {
+            "path": "raw_outputs/chtc_fetch_paper_i_hh_sr_20260716/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8_transfer.tar.gz",
+            "sha256": "cce59f9ec67efb22a455120a31556fe2f7f351509368ba54cc3748fb0e305003",
+            "kind": "preserved_transfer_archive_member",
+            "member": "raw_outputs/paper_i_hh_sr_snake_noprune_nobeam_no_ordinary_novelty_r50_continuations_20260715_v1_chtc/strong_strong_u8/json/result.json",
+            "member_sha256": "080f66e46c0887d0232b48edca6669c9b0c89c25ba2c8c394a2e9ad9feaa3975"
+          },
+          "point_count": 51,
+          "terminal_k": 50,
+          "terminal_error": 3.141076122537001e-07
+        },
+        {
+          "method": "Geo-ADAPT",
+          "role_key": "geo_macro_c",
+          "marker_k": 6,
+          "marker_error": 4.080673884965247e-05,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__geo__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "cf8343a8dd6b59208c9bba8927bc3673eac99e03ef77f4e9df763388c8d7be63",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 3.9611690593077675e-05
+        },
+        {
+          "method": "Append-ADAPT",
+          "role_key": "append_macro_c",
+          "marker_k": 8,
+          "marker_error": 3.61579243989274e-05,
+          "marker_policy": "retained_existing_plateau_marker",
+          "original_source_json": "output/chtc_retrievals/paper_i_hh_fullmeta_singleton_symmetry_20260630_current_fetch/raw_outputs/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell/paper_i_hh_fullmeta_singleton_symmetry_20260630_schedfix_powell__strong_strong__append__C_macro_only__native_forced__powell200__depth30_noearlystop__fullmeta_singleton_symmetry/result/generic_static_single.json",
+          "original_source_sha256": "3044eab7111c647fbe211781365ed837b2c4d8e39c9a0a5104bdf2ee35534524",
+          "point_count": 31,
+          "terminal_k": 30,
+          "terminal_error": 2.2421569721653434e-05
+        }
+      ],
+      "png": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__strong_strong.png",
+      "png_sha256": "a0678d92648a03fdac578dce7a82af89bee0fd0732dd59cfea543059d2522cd7",
+      "pdf": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717__strong_strong.pdf",
+      "pdf_sha256": "946ca4539655f29c4631fd2a777a78aec4d670a7ccbf561abee822f853c491cb"
+    }
+  ],
+  "provenance_csv": "MATH/paper_details/figures/paper_i_no_ordinary_novelty_sr_snake_20260717/paper_i_no_ordinary_novelty_sr_snake_20260717_provenance.csv",
+  "provenance_csv_sha256": "398db6d6a3d491f1465b609072356a9229200bbb121564b69a4e1753bb7a31fc",
+  "blockers": []
+}

@@ -1,0 +1,7 @@
+    phase2_gamma_N: float | None = None,
+    phase2_gamma_N_schedule_mode: str | None = None,
+    phase2_gamma_N_schedule_start: float | None = None,
+    phase2_gamma_N_schedule_end: float | None = None,
+    phase2_novelty_eps: float | None = None,
+    phase2_novelty_mode: str | None = None,
+    phase3_novelty_ablation_mode: str | None = None,

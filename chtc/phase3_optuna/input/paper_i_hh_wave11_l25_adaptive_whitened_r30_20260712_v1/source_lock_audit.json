@@ -1,0 +1,53 @@
+{
+  "schema": "paper_i_hh_fixed_policy_source_diff_audit_v1",
+  "status": "pass_user_approved_multi_field_extension",
+  "source": {
+    "execution_profile": "wave11_legal_fixed_policy_v1",
+    "wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_legal_six_regime_20260711_v2/wave_manifest.json",
+    "wave_manifest_sha256": "1b3d4482358e8723065f035bd5d044a3a2ede5c02e45b4d14997731d0abf4fcc",
+    "scientific_contract_hash": "a142d1c4f3c7a40d36505cba34012397bb8026dca9b28f4cfe903c8455299b8b"
+  },
+  "target": {
+    "execution_profile": "wave11_l25_adaptive_whitened_r30_v1",
+    "wave_manifest": "chtc/phase3_optuna/input/paper_i_hh_wave11_l25_adaptive_whitened_r30_20260712_v1/wave_manifest.json",
+    "wave_manifest_sha256": "7540d2a1d9ea3f0704e87653d8923f63262f823c61e338db04d598285ceb9056",
+    "scientific_contract_hash": "74c037ad3777d3a98463de14c9421d0117c75cdbc8fa20341ac4da2b9cc784cc",
+    "fresh_start": true,
+    "regime_count": 6
+  },
+  "user_approved_changes": [
+    "execution.max_controller_rounds:15->30",
+    "selector.joint_linear_solve_policy:source_implicit->supported_metric_whitened_eigh_v1",
+    "selector.trust_region_update_policy:fixed->displacement_calibrated_unbounded_v2",
+    "selector.exhaustion_retry_policy:stop->expand_all_then_force_singleton_v1"
+  ],
+  "preserved_policy": {
+    "batch_mode": "combinatorial_reduced_plane",
+    "batch_search_pool_size": 25,
+    "batch_size_cap": 2,
+    "macro_phase1_cap": 64,
+    "macro_phase2_cap": 48,
+    "child_phase1_cap": 128,
+    "child_phase2_cap": 64,
+    "lambda_add": 0.0,
+    "batch_search_feasibility_policy": "raw_ranked_legacy_v1",
+    "joint_batch_context_mode": "full_ansatz_v1",
+    "geometry_mode": "full_residual_gram_hessian_v1",
+    "joint_step_warm_start_mode": "off",
+    "optimizer": "POWELL",
+    "optimizer_maxiter": 50,
+    "scipy_maxfev": null,
+    "fresh_start": true
+  },
+  "dry_run_validation": {
+    "status": "pass",
+    "cell_count": 6,
+    "all_cells_max_controller_rounds": 30,
+    "all_cells_batch_search_pool_size": 25,
+    "all_cells_joint_linear_solve_policy": "supported_metric_whitened_eigh_v1",
+    "all_cells_trust_region_update_policy": "displacement_calibrated_unbounded_v2",
+    "all_cells_selector_exhaustion_retry_policy": "expand_all_then_force_singleton_v1",
+    "all_cells_joint_step_warm_start_mode": "off",
+    "nonapproved_settings_diff": []
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_one_sided_cost_all_six_r50_20260719_v10_chtc",
+  "classification": "post_run_validator_reporting_only_v1",
+  "revalidate_command": "python3 revalidate_v6_archive.py /absolute/path/to/8900510.PROC__REGIME_transfer.tar.gz --output-dir /absolute/output",
+  "scientific_rerun_required": false
+}

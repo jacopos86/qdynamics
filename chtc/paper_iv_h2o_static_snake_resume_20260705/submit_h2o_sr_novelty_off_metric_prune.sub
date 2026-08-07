@@ -1,0 +1,22 @@
+universe = vanilla
+executable = chtc/paper_iv_h2o_static_snake_resume_20260705/run_h2o_sr_novelty_off_metric_prune_apptainer.sh
+arguments = paper_iv_h2o_sr_snake_novelty_off_metric_prune_powell_d15
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_iv_h2o_static_snake_resume_20260705/input/h2o_sr_snake_novelty_off_metric_prune_code_20260714.tgz, chtc/phase3_optuna/image.sif, chtc/paper_iv_h2o_static_snake_resume_20260705/run_h2o_sr_novelty_off_metric_prune_task.sh, tmp/h2o_linear_fd_valence_psi4_optimized/h2o_linear_fd_sparse_fixture_nph1_ref2_reencoded_v2.json
+transfer_output_files = raw_outputs, logs
+log = logs/paper-iv-h2o-sr-novelty-off-metric-prune-d15.$(Cluster).$(Process).log
+output = logs/paper-iv-h2o-sr-novelty-off-metric-prune-d15.$(Cluster).$(Process).out
+error = logs/paper-iv-h2o-sr-novelty-off-metric-prune-d15.$(Cluster).$(Process).err
+stream_output = False
+stream_error = False
+requirements = TARGET.HasSIF
+request_cpus = 8
+request_memory = 32GB
+request_disk = 10240MB
++MaxRuntime = 604800
++JobBatchName = "paper-iv-h2o-sr-novelty-off-metric-prune-d15"
+environment = "H2O_SHELL_HEARTBEAT_SEC=300 H2O_ADAPT_MAX_DEPTH=15 H2O_ADAPT_SEGMENT_ID=paper_iv_h2o_sr_snake_novelty_off_metric_prune_powell_d15 H2O_ADAPT_SEGMENT_MAX_NEW_ADMISSIONS=15 STATIC_ADAPT_CANDIDATE_RECORD_CACHE=memory OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1"
+queue 1

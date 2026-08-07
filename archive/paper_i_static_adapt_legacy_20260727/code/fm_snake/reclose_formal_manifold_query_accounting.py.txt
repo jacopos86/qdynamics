@@ -1,0 +1,340 @@
+"""Reclose FM-SNAKE query accounting from an immutable estimator ledger.
+
+This postprocessor never rewrites the scientific result or ledger.  It emits a
+hash-linked correction sidecar after validating and replaying the complete
+state-keyed estimator-call ledger.
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import tempfile
+from typing import Any, Mapping, Sequence
+
+from pipelines.static_adapt.estimator_call_ledger import (
+    EstimatorCallLedger,
+    build_formal_manifold_query_closure_from_estimator_ledger,
+)
+
+
+SIDECAR_SCHEMA = "paper_i_fm_query_accounting_correction_sidecar_v1"
+SOURCE_SIDECAR_SCHEMAS = frozenset(
+    {
+        "paper_i_estimator_call_ledger_sidecar_v1",
+        "paper_i_estimator_call_ledger_sidecar_v2",
+    }
+)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_json(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _write_json_atomic(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent)
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, path)
+    finally:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)
+
+
+def build_correction_sidecar(
+    *,
+    estimator_ledger_sidecar: Mapping[str, Any],
+    estimator_ledger_sidecar_path: Path,
+    estimator_ledger_sidecar_sha256: str,
+    source_result_payload: Mapping[str, Any],
+    source_result_path: Path,
+    source_result_sha256: str,
+) -> dict[str, Any]:
+    source = dict(estimator_ledger_sidecar)
+    if source.get("schema") not in SOURCE_SIDECAR_SCHEMAS:
+        raise ValueError(
+            "unsupported estimator-call sidecar schema: "
+            f"{source.get('schema')!r}."
+        )
+    accounting = source.get("accounting")
+    ledger_payload = source.get("ledger")
+    if not isinstance(accounting, Mapping):
+        raise ValueError("source estimator sidecar accounting must be an object.")
+    if not isinstance(ledger_payload, Mapping):
+        raise ValueError("source estimator sidecar ledger must be an object.")
+    if not isinstance(source_result_payload, Mapping):
+        raise ValueError("source result must be an object.")
+    if accounting.get("complete") is not True:
+        raise RuntimeError(
+            "source estimator instrumentation is not marked complete: "
+            f"{accounting.get('exact_blockers', [])!r}."
+        )
+    winning_branch_ids = accounting.get("winning_branch_ids")
+    if not isinstance(winning_branch_ids, list):
+        raise ValueError("source winning_branch_ids must be a list.")
+    if len({str(value) for value in winning_branch_ids}) != len(
+        winning_branch_ids
+    ):
+        raise ValueError("source winning_branch_ids contains duplicates.")
+    occurrences = accounting.get("executed_occurrence_accounting")
+    if not isinstance(occurrences, Mapping):
+        raise ValueError("source executed occurrence accounting is missing.")
+    stored_nfev = int(occurrences.get("optimizer_and_guard_nfev_reported", -1))
+    if stored_nfev < 0:
+        raise ValueError("source stored optimizer nfev is invalid.")
+
+    all_unique_source = accounting.get("all_branch_search_work")
+    winning_unique_source = accounting.get("winning_lineage")
+    if not isinstance(all_unique_source, Mapping) or not isinstance(
+        winning_unique_source, Mapping
+    ):
+        raise ValueError("source unique-accounting summaries are missing.")
+    source_all_unique_count = int(
+        all_unique_source.get("unique_primitive_count", -1)
+    )
+    source_winning_unique_count = int(
+        winning_unique_source.get("unique_primitive_count", -1)
+    )
+
+    def _primitive_id_set(summary: Mapping[str, Any], *, role: str) -> set[str]:
+        values = summary.get("primitive_ids")
+        if not isinstance(values, list):
+            raise ValueError(f"{role} primitive_ids must be a list.")
+        ids = {str(value) for value in values}
+        if len(ids) != len(values):
+            raise ValueError(f"{role} primitive_ids contains duplicates.")
+        if int(summary.get("unique_primitive_count", -1)) != len(ids):
+            raise ValueError(
+                f"{role} unique_primitive_count disagrees with primitive_ids."
+            )
+        return ids
+
+    source_all_ids = _primitive_id_set(
+        all_unique_source,
+        role="source all-branch summary",
+    )
+    source_winning_ids = _primitive_id_set(
+        winning_unique_source,
+        role="source winning-lineage summary",
+    )
+
+    result_adapt = source_result_payload.get("adapt_vqe")
+    if not isinstance(result_adapt, Mapping):
+        result_adapt = source_result_payload
+    result_accounting = result_adapt.get("estimator_call_accounting")
+    if not isinstance(result_accounting, Mapping):
+        raise ValueError(
+            "source result lacks embedded estimator_call_accounting."
+        )
+    if result_accounting.get("complete") is not True:
+        raise RuntimeError(
+            "source result estimator instrumentation is not marked complete."
+        )
+    result_winning_branch_ids = result_accounting.get("winning_branch_ids")
+    if not isinstance(result_winning_branch_ids, list):
+        raise ValueError(
+            "source result winning_branch_ids must be a list."
+        )
+    result_all_summary = result_accounting.get("all_branch_search_work")
+    result_winning_summary = result_accounting.get("winning_lineage")
+    if not isinstance(result_all_summary, Mapping) or not isinstance(
+        result_winning_summary, Mapping
+    ):
+        raise ValueError(
+            "source result unique-accounting summaries are missing."
+        )
+    result_all_ids = _primitive_id_set(
+        result_all_summary,
+        role="source result all-branch summary",
+    )
+    result_winning_ids = _primitive_id_set(
+        result_winning_summary,
+        role="source result winning-lineage summary",
+    )
+    result_nfev = int(result_adapt.get("nfev_total", -1))
+    if result_nfev < 0:
+        raise ValueError("source result nfev_total is invalid.")
+    source_ledger_fingerprint = str(
+        ledger_payload.get("ledger_fingerprint", "")
+    )
+    ledger = EstimatorCallLedger.from_payload(ledger_payload)
+    closure = build_formal_manifold_query_closure_from_estimator_ledger(
+        ledger,
+        winning_branch_ids=[str(value) for value in winning_branch_ids],
+        stored_nfev_total=stored_nfev,
+    )
+    closure_all_ids = set(
+        str(value) for value in closure["all_executed"]["primitive_ids"]
+    )
+    closure_winning_ids = set(
+        str(value) for value in closure["winning_branch"]["primitive_ids"]
+    )
+    validation = {
+        "source_ledger_roundtrip_valid": True,
+        "source_ledger_fingerprint": source_ledger_fingerprint,
+        "winning_unique_count_matches_source": bool(
+            int(closure["winning_branch"]["unique_primitive_count"])
+            == source_winning_unique_count
+        ),
+        "all_unique_count_matches_source": bool(
+            int(closure["all_executed"]["unique_primitive_count"])
+            == source_all_unique_count
+        ),
+        "all_primitive_ids_match_source": bool(
+            closure_all_ids == source_all_ids
+        ),
+        "winning_primitive_ids_match_source": bool(
+            closure_winning_ids == source_winning_ids
+        ),
+        "source_result_winning_branch_ids_match": bool(
+            {str(value) for value in result_winning_branch_ids}
+            == {str(value) for value in winning_branch_ids}
+        ),
+        "source_result_all_primitive_ids_match": bool(
+            result_all_ids == source_all_ids == closure_all_ids
+        ),
+        "source_result_winning_primitive_ids_match": bool(
+            result_winning_ids == source_winning_ids == closure_winning_ids
+        ),
+        "source_result_nfev_matches_sidecar": bool(
+            result_nfev == stored_nfev
+        ),
+        "primitive_kind_legacy_component_compatible": bool(
+            closure.get("primitive_kind_legacy_component_compatible") is True
+        ),
+        "primitive_set_reconciled": bool(
+            closure["primitive_set_reconciliation"][
+                "winning_discarded_disjoint"
+            ]
+            and closure["primitive_set_reconciliation"][
+                "union_equals_all_executed"
+            ]
+        ),
+        "nfev_partition_reconciled": bool(closure["nfev_reconciled"]),
+    }
+    validation["passed"] = bool(
+        all(value is True for key, value in validation.items() if key != "source_ledger_fingerprint")
+    )
+    if not validation["passed"]:
+        raise RuntimeError(
+            "reclosed FM query accounting failed source reconciliation."
+        )
+    nfev_correction = int(closure["nfev_correction"])
+    if nfev_correction == 0:
+        correction_reason_code = "no_scalar_correction_required"
+        correction_reason = (
+            "stored optimizer-and-guard nfev already matches the authoritative "
+            "estimator occurrence ledger"
+        )
+    else:
+        correction_reason_code = (
+            "reconciled_to_authoritative_estimator_occurrence_ledger"
+        )
+        correction_reason = (
+            "stored optimizer-and-guard nfev disagreed with the authoritative "
+            "estimator occurrence ledger; the sidecar records the exact "
+            "ledger-derived correction without attributing it to an unverified "
+            "execution stage"
+        )
+    return {
+        "schema": SIDECAR_SCHEMA,
+        "generated_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "passed_hash_linked_posthoc_correction",
+        "mutation_policy": {
+            "source_result_rewritten": False,
+            "source_estimator_ledger_rewritten": False,
+            "scientific_trajectory_changed": False,
+        },
+        "source": {
+            "estimator_ledger_sidecar": {
+                "path": str(estimator_ledger_sidecar_path),
+                "sha256": str(estimator_ledger_sidecar_sha256),
+                "schema": str(source.get("schema")),
+            },
+            "result": {
+                "path": str(source_result_path),
+                "sha256": str(source_result_sha256),
+            },
+        },
+        "correction_receipt": {
+            "stored_optimizer_and_guard_nfev": int(stored_nfev),
+            "corrected_optimizer_and_guard_nfev": int(
+                closure["corrected_nfev_total"]
+            ),
+            "nfev_correction": int(nfev_correction),
+            "correction_reason_code": correction_reason_code,
+            "correction_reason": correction_reason,
+            "unique_query_oracle_work_changed": False,
+        },
+        "query_closure": closure,
+        "validation": validation,
+    }
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--estimator-ledger-json", type=Path, required=True)
+    parser.add_argument("--source-result-json", type=Path, required=True)
+    parser.add_argument("--expected-estimator-ledger-sha256")
+    parser.add_argument("--expected-source-result-sha256")
+    parser.add_argument("--output-json", type=Path, required=True)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    estimator_path = args.estimator_ledger_json.resolve()
+    result_path = args.source_result_json.resolve()
+    estimator_sha = _sha256_file(estimator_path)
+    if (
+        args.expected_estimator_ledger_sha256
+        and estimator_sha != str(args.expected_estimator_ledger_sha256)
+    ):
+        raise RuntimeError("estimator-ledger sidecar SHA-256 mismatch.")
+    result_sha = _sha256_file(result_path)
+    if (
+        args.expected_source_result_sha256
+        and result_sha != str(args.expected_source_result_sha256)
+    ):
+        raise RuntimeError("source result SHA-256 mismatch.")
+    payload = build_correction_sidecar(
+        estimator_ledger_sidecar=_load_json(estimator_path),
+        estimator_ledger_sidecar_path=estimator_path,
+        estimator_ledger_sidecar_sha256=estimator_sha,
+        source_result_payload=_load_json(result_path),
+        source_result_path=result_path,
+        source_result_sha256=result_sha,
+    )
+    _write_json_atomic(args.output_json.resolve(), payload)
+    print(json.dumps({
+        "output_json": str(args.output_json.resolve()),
+        "winning_S_alg": int(payload["query_closure"]["winning_branch"]["S_alg"]),
+        "discarded_S_alg": int(payload["query_closure"]["discarded_branch_operational_overhead"]["S_alg"]),
+        "corrected_nfev": int(payload["query_closure"]["corrected_nfev_total"]),
+        "nfev_correction": int(payload["query_closure"]["nfev_correction"]),
+    }, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

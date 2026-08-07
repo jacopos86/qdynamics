@@ -1,0 +1,97 @@
+{
+  "base": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_only_physical_lanes_all_six_r50_20260719_v1_chtc",
+    "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+    "profile_request": "sr_snake_macro_only_physical_lanes_v1"
+  },
+  "common_beam_prune_overlay": {
+    "adapt_beam_children_per_parent": 2,
+    "adapt_beam_lambda": 0.005,
+    "adapt_beam_live_branches": 3,
+    "adapt_beam_terminal_archive_mode": "legacy",
+    "adapt_beam_terminated_keep": 3,
+    "phase1_prune_enabled": true,
+    "phase1_prune_endpoint_overlap_policy": "off",
+    "phase1_prune_local_window_size": 0,
+    "phase1_prune_max_candidates": 1,
+    "phase1_prune_metric_mu_update_policy": "off",
+    "phase1_prune_metric_schur_cost_weighting": "off",
+    "phase1_prune_metric_schur_mu": 0.0,
+    "phase1_prune_metric_schur_solve_mode": "affine_deletion_global_trust_v1",
+    "phase1_prune_mode": "live",
+    "phase1_prune_policy": "recoverability_ladder_v1",
+    "phase1_prune_recovery_trust_radius": 0.125,
+    "phase1_prune_schur_nomination_route": "full_logical_fs_trust_delete_refit_v1",
+    "phase1_prune_trust_update_policy": "modeled_local_fs_conservative_v1"
+  },
+  "cost_arm": "family_robust_symmetric_arctan_v1",
+  "fresh_round0_to_round50": true,
+  "prune_trial_consumer_id_repair": {
+    "classification": "non_scientific_serialization_identity_and_validation_v1",
+    "exact_changes": [
+      "scope_prune_trial_consumer_id_by_parent_beam_branch_id",
+      "pass_estimator_call_context_branch_id_to_consumer_id_builder",
+      "serialize_existing_physical_lane_receipt_on_beam_history_rows",
+      "validate_controller_frontier_separately_from_selected_terminal_winner",
+      "close_materialized_branch_estimator_receipts_by_identity"
+    ],
+    "failed_cluster": 8894497,
+    "path": "pipelines/static_adapt/adapt_pipeline.py",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v3_chtc",
+    "predecessor_source_archive_sha256": "7c3ceaf5523f0c551e3c41c30e8f130f554935dba04fc6ec08ac9d48c1e4e3c9",
+    "profile_contract_sha256_preserved": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+    "schema": "paper_i_sr_macro_beam_plumbing_repair_v2",
+    "scientific_setting_changes": [],
+    "source_sha256_after": "32ff70e911e4136be9b8de15ff21f99b4c583eca1fe2bc6ba6eb5f3a5bad98c5",
+    "source_sha256_before": "f67bdae0706e7663a53f229882eb53f0dc202aeb54462194a8fb56774d76fb4b"
+  },
+  "same_cutoff_all_six": true,
+  "schema": "paper_i_hh_sr_macro_beam_prune_cost_route_parity_v1",
+  "sibling_arm_only_executable_difference": "phase3_hardware_cost_normalization_mode",
+  "status": "pass",
+  "superseded_predecessor": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v3_chtc",
+    "classification": "non_scientific_prune_trial_consumer_id_collision_under_beam_v1",
+    "cluster_id": 8894497,
+    "failure_stage": "live_fs_prune_exact_delete_refit_estimator_accounting",
+    "scientific_setting_changes": [],
+    "successor_revision": "v6"
+  },
+  "unexpected_differences": [],
+  "validator_reporting_repair": {
+    "classification": "non_scientific_validator_and_reporting_only_v1",
+    "failed_clusters": [
+      8900509,
+      8900510
+    ],
+    "known_failure": "ValueError: normalized candidate setting drift: phase_live_hysteresis_enabled",
+    "predecessor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v6_chtc",
+    "profile_contract_sha256_preserved": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+    "replacement_gate": "immutable_normalized_command_plus_route_contract_plus_every_round_full_response_receipt_v1",
+    "root_cause": "resolved_route_fields_are_not_flattened_into_result_settings",
+    "schema": "paper_i_sr_macro_beam_cost_validator_reporting_repair_v3",
+    "scientific_rerun_required_after_passing_v9_revalidation": false,
+    "scientific_setting_changes": [],
+    "scientific_source_changes": [],
+    "source_archive_sha256_preserved": "4c40399410b67b34a89f3cadeae59a0fd901c39132ff5cc746101c78e5acccd7",
+    "source_only_runtime_settings": {
+      "adapt_accepted_refit_coordinate_chart": "supported_fs_whitened_fixed_v1",
+      "adapt_beam_children_per_parent": 2,
+      "adapt_beam_lambda": 0.005,
+      "adapt_beam_live_branches": 3,
+      "adapt_beam_parent_workers": 1,
+      "adapt_beam_terminal_archive_mode": "legacy",
+      "adapt_beam_terminated_keep": 3,
+      "phase0_pilot_enabled": false,
+      "phase3_enable_batching": false,
+      "phase_live_hysteresis_enabled": false
+    },
+    "successor_bundle": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v9_chtc"
+  },
+  "variant": {
+    "bundle_id": "paper_i_hh_sr_snake_macro_beam3x2_fs_prune_symmetric_cost_all_six_r50_20260719_v9_chtc",
+    "profile_contract_sha256": "a05ecc8b709db8beac9115d9d0ca39f4faf09e1cbaa10e57bdd674abef9215f0",
+    "profile_request": "sr_snake_macro_only_physical_lanes_fs_prune_beam3x2_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_nodamping_beam3x2_macro_only_physical_lanes_v1"
+  }
+}

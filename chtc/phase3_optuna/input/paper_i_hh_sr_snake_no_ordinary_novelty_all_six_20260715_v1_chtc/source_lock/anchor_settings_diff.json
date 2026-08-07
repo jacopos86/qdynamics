@@ -1,0 +1,64 @@
+{
+  "anchor": {
+    "anchor_reproduces_source": true,
+    "anchor_result_json": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/json/result.json",
+    "metric_abs_diff": 0.0,
+    "non_swept_settings_diff": [],
+    "operator_sequence_match": true,
+    "source_success": true,
+    "value": 22
+  },
+  "artifact_path_diffs": {
+    "--adapt-current-json": {
+      "from": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/json/current.json",
+      "to": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/current.json"
+    },
+    "--adapt-estimator-call-ledger-json": {
+      "from": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/json/estimator_call_ledger.json",
+      "to": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/estimator_call_ledger.json"
+    },
+    "--output-json": {
+      "from": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/json/result.json",
+      "to": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r30/json/result.json"
+    }
+  },
+  "created_utc": "2026-07-15T19:39:46.339382+00:00",
+  "planned_rows": [
+    {
+      "changed_fields_vs_source": [
+        "adapt_max_depth"
+      ],
+      "non_swept_settings_diff": [],
+      "value": 30
+    }
+  ],
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "method": "SR-SNAKE",
+    "regime_or_case": "weak-weak",
+    "route_or_profile_id": "singleton_response_snake/supported_whitened_adaptive_trust_v1",
+    "runner_mode": "direct_frozen_runtime_tree",
+    "source_command_or_manifest": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/command.json",
+    "source_command_or_manifest_sha256": "99520fc748916526c7e8c874cdd4069f9106aba2c391ff3f9ec9b282b8803754",
+    "source_json": "raw_outputs/paper_i_hh_sr_snake_weak_weak_full_accepted_refit_whitened_20260715/expanded_runtime_projected_logical_v1_r22/json/result.json",
+    "source_sha256": "022045753954a6cccac6a4baf6da495983734f6c6b5d036e8d155b9e0eb4b895",
+    "source_variable_value": 22
+  },
+  "status": "pass",
+  "sweep": {
+    "baseline_materialization_status": "complete",
+    "fields_added_by_current_defaults": [],
+    "grid": [
+      22,
+      30
+    ],
+    "run_class": "diagnostic",
+    "runner_mode": "direct_frozen_runtime_tree",
+    "settings_changed": [
+      "adapt_max_depth"
+    ],
+    "unresolved_source_fields": [],
+    "variable": "adapt_max_depth",
+    "wrapper_used": false
+  }
+}

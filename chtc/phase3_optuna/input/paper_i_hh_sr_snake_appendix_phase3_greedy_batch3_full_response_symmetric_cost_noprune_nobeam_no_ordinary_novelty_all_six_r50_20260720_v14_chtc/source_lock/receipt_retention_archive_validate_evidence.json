@@ -1,0 +1,58 @@
+{
+  "archive_validate_rows_passed": 6,
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_greedy_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v14_chtc",
+  "completed_utc": "2026-07-20T23:30:53.557327+00:00",
+  "exact_remote_image_preflight": "pass",
+  "exact_remote_image_preflight_rows_passed": 6,
+  "exact_remote_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "focused_test_stdout": "..                                                                       [100%]\n2 passed, 81 deselected in 1.72s\n",
+  "focused_tests_passed": 2,
+  "remote_preflight_completed_utc": "2026-07-20T23:34:13.836652+00:00",
+  "rows": [
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/intermediate_weak.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_strong_u8.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/strong_weak_u8.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_strong.json\", \"status\": \"pass\"}\n"
+    },
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "status": "pass",
+      "stderr": "",
+      "stdout": "{\"job\": \"jobs/weak_weak.json\", \"status\": \"pass\"}\n"
+    }
+  ],
+  "schema": "paper_i_sr_phase3_batch3_receipt_retention_archive_preflight_v1",
+  "source_archive_sha256": "228b9d2793cdda7ca08af9cfdff48511039c4e047e6769389bab74f06dc09fcc",
+  "status": "pass"
+}

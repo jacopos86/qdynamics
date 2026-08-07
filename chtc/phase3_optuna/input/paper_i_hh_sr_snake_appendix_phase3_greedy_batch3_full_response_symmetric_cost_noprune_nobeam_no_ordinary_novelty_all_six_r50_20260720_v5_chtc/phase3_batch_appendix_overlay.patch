@@ -1,0 +1,1545 @@
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -827,6 +827,7 @@
+     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+     SR_ROUTE_PROFILE_CANDIDATE_V4,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+     SR_ROUTE_PROFILE_REQUEST_OFF,
+     normalize_phase3_response_coordinate_scope,
+@@ -2004,9 +2005,223 @@
+         context_mode,
+         allow_historical_context,
+         False,
++    )
++
++
++def _phase3_batch_appendix_trust_update_inputs(
++    selector_summary_raw: Mapping[str, Any] | None,
++    *,
++    pre_parameter_count: int,
++    selected_count: int,
++    selected_labels: Sequence[str],
++    radius: float,
++) -> tuple[dict[str, Any], str, bool, bool]:
++    """Validate the complete Phase-III batch response used by adaptive trust.
++
++    The appendix profile is intentionally distinct from the historical
++    singleton route.  Its trust update must consume the same full
++    active-plus-batch response model that selected the batch; it may not fall
++    back to the first selected singleton's feature row.
++    """
++
++    if not isinstance(selector_summary_raw, Mapping):
++        raise RuntimeError(
++            "Phase-III batching appendix trust update is missing its full "
++            "active-plus-batch response summary."
++        )
++    summary = dict(selector_summary_raw)
++    active_count = int(pre_parameter_count)
++    batch_count = int(selected_count)
++    if active_count < 0 or batch_count < 1:
++        raise RuntimeError(
++            "Phase-III batching appendix trust update received invalid "
++            "coordinate counts."
++        )
++    if not bool(summary.get("feasible", False)):
++        raise RuntimeError(
++            "Phase-III batching appendix trust update received an infeasible "
++            f"response summary: {summary.get('reason', 'unknown')!r}."
++        )
++    context_mode = str(summary.get("joint_batch_context_mode", ""))
++    if context_mode != BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1:
++        raise RuntimeError(
++            "Phase-III batching appendix requires the full-ansatz joint "
++            "response context."
++        )
++    effective_policy = str(
++        summary.get("joint_linear_solve_policy_effective", "")
+     )
++    if effective_policy != JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2:
++        raise RuntimeError(
++            "Phase-III batching appendix requires the supported-metric global "
++            "trust solve for its complete batch response."
++        )
++    if int(summary.get("selected_count", -1)) != batch_count:
++        raise RuntimeError(
++            "Phase-III batching appendix selected-count receipt disagrees "
++            "with the committed batch."
++        )
++    committed_labels = [str(value) for value in selected_labels]
++    modeled_labels = [
++        str(value) for value in summary.get("selected_labels", [])
++    ]
++    if (
++        len(committed_labels) != batch_count
++        or len(modeled_labels) != batch_count
++        or len(set(committed_labels)) != batch_count
++        or len(set(modeled_labels)) != batch_count
++        or set(committed_labels) != set(modeled_labels)
++    ):
++        raise RuntimeError(
++            "Phase-III batching appendix modeled and committed candidate "
++            "identities disagree."
++        )
++    batch_permutation = [
++        int(modeled_labels.index(label)) for label in committed_labels
++    ]
++    if batch_permutation != list(range(batch_count)):
++        # Finite-step admission ordering may permute an already selected batch.
++        # Apply the exact basis permutation to the complete response receipt so
++        # the adaptive-trust transaction remains expressed in commit order.
++        batch_perm = np.asarray(batch_permutation, dtype=int)
++        joint_perm = np.concatenate(
++            [np.arange(active_count, dtype=int), active_count + batch_perm]
++        )
+ 
++        def _permute_batch_vector(name: str) -> None:
++            value = np.asarray(summary.get(name, []), dtype=float)
++            if value.shape == (batch_count,):
++                summary[name] = value[batch_perm].tolist()
+ 
++        def _permute_joint_vector(name: str) -> None:
++            value = np.asarray(summary.get(name, []), dtype=float)
++            if value.shape == (active_count + batch_count,):
++                summary[name] = value[joint_perm].tolist()
++
++        def _permute_active_batch_matrix(name: str) -> None:
++            value = np.asarray(summary.get(name, []), dtype=float)
++            if value.shape == (active_count, batch_count):
++                summary[name] = value[:, batch_perm].tolist()
++
++        def _permute_batch_matrix(name: str) -> None:
++            value = np.asarray(summary.get(name, []), dtype=float)
++            if value.shape == (batch_count, batch_count):
++                summary[name] = value[np.ix_(batch_perm, batch_perm)].tolist()
++
++        def _permute_joint_matrix(name: str) -> None:
++            value = np.asarray(summary.get(name, []), dtype=float)
++            dimension = active_count + batch_count
++            if value.shape == (dimension, dimension):
++                summary[name] = value[np.ix_(joint_perm, joint_perm)].tolist()
++
++        for key in (
++            "g_B",
++            "batch_coordinate_step",
++            "natural_gradient_direction",
++            "g_effective_joint",
++        ):
++            _permute_batch_vector(key)
++        for key in ("joint_step", "g_effective_joint"):
++            _permute_joint_vector(key)
++        for key in ("G_AB_raw", "H_AB_raw"):
++            _permute_active_batch_matrix(key)
++        for key in ("G_BB_raw", "H_BB_raw", "M_effective"):
++            _permute_batch_matrix(key)
++        for key in ("M_joint_regularized",):
++            _permute_joint_matrix(key)
++        identities = list(summary.get("batch_coordinate_identities", []))
++        if len(identities) == batch_count:
++            summary["batch_coordinate_identities"] = [
++                copy.deepcopy(identities[index])
++                for index in batch_permutation
++            ]
++        summary["selected_labels"] = list(committed_labels)
++        summary["commit_order_basis_permutation"] = [
++            int(value) for value in batch_permutation
++        ]
++
++    def _finite_vector(name: str, expected_size: int) -> np.ndarray:
++        value = np.asarray(summary.get(name, []), dtype=float)
++        if value.shape != (int(expected_size),) or not np.all(np.isfinite(value)):
++            raise RuntimeError(
++                "Phase-III batching appendix response receipt has malformed "
++                f"{name}: expected shape {(int(expected_size),)!r}, got "
++                f"{value.shape!r}."
++            )
++        return value
++
++    def _finite_matrix(name: str, expected_shape: tuple[int, int]) -> np.ndarray:
++        value = np.asarray(summary.get(name, []), dtype=float)
++        if value.shape != expected_shape or not np.all(np.isfinite(value)):
++            raise RuntimeError(
++                "Phase-III batching appendix response receipt has malformed "
++                f"{name}: expected shape {expected_shape!r}, got "
++                f"{value.shape!r}."
++            )
++        return value
++
++    _finite_vector("g_A", active_count)
++    _finite_vector("g_B", batch_count)
++    _finite_vector("active_parameter_relaxation", active_count)
++    _finite_vector("batch_coordinate_step", batch_count)
++    _finite_matrix("G_AA_raw", (active_count, active_count))
++    _finite_matrix("G_AB_raw", (active_count, batch_count))
++    _finite_matrix("G_BB_raw", (batch_count, batch_count))
++    _finite_matrix("H_AA_raw", (active_count, active_count))
++    _finite_matrix("H_AB_raw", (active_count, batch_count))
++    _finite_matrix("H_BB_raw", (batch_count, batch_count))
++
++    active_identities = summary.get("active_coordinate_identities", [])
++    batch_identities = summary.get("batch_coordinate_identities", [])
++    if not (
++        isinstance(active_identities, Sequence)
++        and not isinstance(active_identities, (str, bytes))
++        and len(active_identities) == active_count
++        and isinstance(batch_identities, Sequence)
++        and not isinstance(batch_identities, (str, bytes))
++        and len(batch_identities) == batch_count
++    ):
++        raise RuntimeError(
++            "Phase-III batching appendix response-coordinate identities do "
++            "not cover the complete active ansatz plus committed batch."
++        )
++    if int(summary.get("required_batch_metric_rank_increment", -1)) != batch_count:
++        raise RuntimeError(
++            "Phase-III batching appendix rank receipt does not require one "
++            "supported direction per committed candidate."
++        )
++    if int(summary.get("batch_metric_rank_increment", -1)) < batch_count:
++        raise RuntimeError(
++            "Phase-III batching appendix committed a Gram-null batch direction."
++        )
++    displacement_sq = float(
++        summary.get("joint_fubini_study_displacement_sq", float("nan"))
++    )
++    predicted_reduction = float(
++        summary.get("applied_predicted_reduction", float("nan"))
++    )
++    trust_radius_sq = float(summary.get("trust_radius_sq", float("nan")))
++    expected_radius_sq = float(radius) ** 2
++    if not (
++        math.isfinite(displacement_sq)
++        and displacement_sq >= 0.0
++        and math.isfinite(predicted_reduction)
++        and predicted_reduction >= 0.0
++        and math.isfinite(trust_radius_sq)
++        and math.isclose(
++            trust_radius_sq,
++            expected_radius_sq,
++            rel_tol=1.0e-10,
++            abs_tol=max(1.0e-14, expected_radius_sq * 1.0e-10),
++        )
++    ):
++        raise RuntimeError(
++            "Phase-III batching appendix trust/displacement receipt is "
++            "missing, nonfinite, or inconsistent with the round radius."
++        )
++    return summary, context_mode, False, False
++
++
+ def _accepted_sr_v2_joint_coordinate_step(
+     *,
+     selector_summary: Mapping[str, Any],
+@@ -2893,6 +3108,7 @@
+     adapt_continuation_mode: str,
+     phase2_enable_batching: bool,
+     phase3_enable_batching: bool,
++    phase3_only_batching_appendix_active: bool = False,
+     phase3_runtime_split_mode: str,
+     phase3_runtime_split_selection_mode: str,
+     phase3_runtime_split_max_subset_size: int,
+@@ -2924,7 +3140,10 @@
+         )
+         and str(adapt_continuation_mode).strip().lower() == "phase3_v1"
+         and not bool(phase2_enable_batching)
+-        and not bool(phase3_enable_batching)
++        and (
++            not bool(phase3_enable_batching)
++            or bool(phase3_only_batching_appendix_active)
++        )
+         and str(phase3_runtime_split_mode).strip().lower()
+         == "shortlist_pauli_children_v1"
+         and str(phase3_runtime_split_selection_mode).strip().lower()
+@@ -3000,6 +3219,7 @@
+         in {
+             SR_ROUTE_PROFILE_CANDIDATE_V4,
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+             SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+         }
+     )
+@@ -3217,6 +3437,7 @@
+     adapt_continuation_mode: str,
+     phase2_enable_batching: bool,
+     phase3_enable_batching: bool,
++    phase3_only_batching_appendix_active: bool = False,
+     phase3_runtime_split_mode: str,
+     phase3_runtime_split_selection_mode: str,
+     phase3_runtime_split_max_subset_size: int,
+@@ -3248,6 +3469,9 @@
+             adapt_continuation_mode=str(adapt_continuation_mode),
+             phase2_enable_batching=bool(phase2_enable_batching),
+             phase3_enable_batching=bool(phase3_enable_batching),
++            phase3_only_batching_appendix_active=bool(
++                phase3_only_batching_appendix_active
++            ),
+             phase3_runtime_split_mode=str(phase3_runtime_split_mode),
+             phase3_runtime_split_selection_mode=str(
+                 phase3_runtime_split_selection_mode
+@@ -4877,6 +5101,7 @@
+     phase3_tie_beam_max_late_coordinate: float = 1.0,
+     phase3_tie_beam_min_depth_left: int = 0,
+     phase2_enable_batching: bool = True,
++    phase3_enable_batching: bool | None = None,
+     phase2_batch_selection_mode: str = "reduced_plane",
+     phase3_batch_selection_mode: str | None = None,
+     phase3_batch_prefilter_mode: str = "off",
+@@ -4972,6 +5197,11 @@
+         contract=sr_route_profile_contract,
+         contract_sha256=sr_route_profile_contract_sha256,
+     )
++    phase3_only_batch_appendix_active = bool(
++        sr_route_profile_contract_resolved is not None
++        and str(sr_route_profile_contract_resolved.get("route_profile", ""))
++        == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++    )
+     if sr_route_profile_contract_resolved is not None and str(
+         sr_route_profile_resolved or ""
+     ).strip().lower() != str(
+@@ -5082,6 +5312,7 @@
+         phase2_enable_batching = bool(
+             formal_manifold_route_profile_resolved.phase2_enable_batching
+         )
++        phase3_enable_batching = bool(phase2_enable_batching)
+         phase3_runtime_split_mode = str(
+             formal_manifold_route_profile_resolved.phase3_runtime_split_mode
+         )
+@@ -5489,6 +5720,7 @@
+             SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+             SR_ROUTE_PROFILE_CANDIDATE_V4,
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+             SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+         }:
+             sr_route_profile_key = str(requested_contract_profile)
+@@ -5513,10 +5745,10 @@
+                         phase2_cheap_curvature_proxy_policy_key
+                     ),
+                 }
+-            if (
+-                requested_contract_profile
+-                == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+-            ):
++            if requested_contract_profile in {
++                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++            }:
+                 sr_powell_coordinate_chart_resolution = (
+                     _registered_sr_powell_coordinate_chart_resolution(
+                         sr_powell_coordinate_chart_resolution,
+@@ -5557,6 +5789,7 @@
+         if str(route_a_funnel_cfg.mode) in ROUTE_A_FUNNEL_CHILD_12_MODES:
+             selector_config = route_a_funnel_cfg.schur_selector_config
+             phase2_enable_batching = bool(selector_config.batch_size_cap > 1)
++            phase3_enable_batching = bool(phase2_enable_batching)
+             phase2_batch_selection_mode = str(selector_config.mode)
+             phase3_batch_selection_mode = str(selector_config.mode)
+             phase2_batch_size_cap = int(selector_config.batch_size_cap)
+@@ -5565,6 +5798,7 @@
+             phase2_enable_batching = bool(
+                 str(route_a_funnel_cfg.batching_mode) != ROUTE_A_BATCHING_OFF
+             )
++            phase3_enable_batching = bool(phase2_enable_batching)
+             if phase2_enable_batching:
+                 phase2_batch_selection_mode = str(route_a_funnel_cfg.batching_mode)
+                 phase3_batch_selection_mode = str(route_a_funnel_cfg.batching_mode)
+@@ -5575,6 +5809,22 @@
+                     int(route_a_funnel_cfg.batch_size_cap),
+                 )
+             )
++    phase3_enable_batching_effective = bool(
++        phase2_enable_batching
++        if phase3_enable_batching is None
++        else phase3_enable_batching
++    )
++    if phase3_only_batch_appendix_active:
++        if bool(phase2_enable_batching):
++            raise ValueError(
++                "The registered Phase-III batching appendix profile requires "
++                "Phase II to remain explicitly non-batched."
++            )
++        if not bool(phase3_enable_batching_effective):
++            raise ValueError(
++                "The registered Phase-III batching appendix profile requires "
++                "Phase-III post-shortlist batching to be enabled."
++            )
+     phase1_shortlist_size_val = int(phase1_shortlist_size)
+     phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
+     if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
+@@ -5679,7 +5929,10 @@
+             adapt_pool=adapt_pool,
+             adapt_continuation_mode=str(adapt_continuation_mode),
+             phase2_enable_batching=bool(phase2_enable_batching),
+-            phase3_enable_batching=bool(phase2_enable_batching),
++            phase3_enable_batching=bool(phase3_enable_batching_effective),
++            phase3_only_batching_appendix_active=bool(
++                phase3_only_batch_appendix_active
++            ),
+             phase3_runtime_split_mode=str(phase3_runtime_split_mode),
+             phase3_runtime_split_selection_mode=str(
+                 phase3_runtime_split_selection_mode
+@@ -5739,7 +5992,7 @@
+                 adapt_continuation_mode
+             ).strip().lower(),
+             "phase2_enable_batching": bool(phase2_enable_batching),
+-            "phase3_enable_batching": bool(phase2_enable_batching),
++            "phase3_enable_batching": bool(phase3_enable_batching_effective),
+             "phase3_runtime_split_mode": str(
+                 phase3_runtime_split_mode
+             ).strip().lower(),
+@@ -6473,7 +6726,10 @@
+             )
+         if route_a_funnel_cfg is not None:
+             historical_overlay_blockers.append("route_a_funnel_active")
+-        if bool(phase2_enable_batching):
++        if bool(phase2_enable_batching) or (
++            bool(phase3_enable_batching_effective)
++            and not phase3_only_batch_appendix_active
++        ):
+             historical_overlay_blockers.append("batching_active")
+         if bool(phase0_pilot_enabled_val):
+             historical_overlay_blockers.append("phase0_pilot_active")
+@@ -6493,6 +6749,7 @@
+                     in {
+                         SR_ROUTE_PROFILE_CANDIDATE_V4,
+                         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++                        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+                     }
+                 )
+             ):
+@@ -6668,7 +6925,7 @@
+         "route_a_funnel_active": bool(route_a_funnel_cfg is not None),
+         "phase0_pilot_enabled": bool(phase0_pilot_enabled_val),
+         "phase2_batching_enabled": bool(phase2_enable_batching),
+-        "phase3_batching_enabled": bool(phase2_enable_batching),
++        "phase3_batching_enabled": bool(phase3_enable_batching_effective),
+         "phase2_novelty_multiplier_policy": str(
+             phase2_novelty_multiplier_policy_key
+         ),
+@@ -6683,7 +6940,11 @@
+         ),
+         "structural_rollback_enabled": False,
+         "candidate_membership_authority": "historical_phase3_retained_set",
+-        "admission_cardinality": 1,
++        "admission_cardinality": (
++            "one_to_three_v1"
++            if phase3_only_batch_appendix_active
++            else 1
++        ),
+         "child_padding_contract": dict(
+             historical_singleton_child_padding_contract
+         ),
+@@ -6703,7 +6964,7 @@
+             child_phase3_cap=int(phase3_shortlist_size_val),
+             batching_mode=(
+                 str(phase2_batch_selection_mode)
+-                if bool(phase2_enable_batching)
++                if bool(phase3_enable_batching_effective)
+                 else ROUTE_A_BATCHING_OFF
+             ),
+             batch_size_cap=int(phase2_batch_size_cap),
+@@ -6841,7 +7102,10 @@
+             accepted_refit_blockers.append("formal_manifold_route_active")
+         if route_a_funnel_cfg is not None:
+             accepted_refit_blockers.append("joint_response_funnel_active")
+-        if bool(phase2_enable_batching):
++        if bool(phase2_enable_batching) or (
++            bool(phase3_enable_batching_effective)
++            and not phase3_only_batch_appendix_active
++        ):
+             accepted_refit_blockers.append("batching_active")
+         if str(adapt_insertion_mode_key) != "append_only":
+             accepted_refit_blockers.append("nonzero_or_adaptive_insertion_active")
+@@ -7042,7 +7306,9 @@
+                 route_errors.append("FM+SR cannot invoke the JR Route-A funnel")
+             if bool(phase0_pilot_enabled_val):
+                 route_errors.append("FM+SR requires Phase 0 disabled")
+-            if bool(phase2_enable_batching):
++            if bool(phase2_enable_batching) or bool(
++                phase3_enable_batching_effective
++            ):
+                 route_errors.append("FM+SR requires batching fully disabled")
+             if str(phase3_runtime_split_selection_mode_key) != (
+                 "archival_child_set_forward_v1"
+@@ -8132,7 +8398,31 @@
+                 phase2_shortlist_fraction_base_val
+             ),
+             "phase2_enable_batching": bool(phase2_enable_batching),
+-            "phase3_enable_batching": bool(phase2_enable_batching),
++            "phase3_enable_batching": bool(phase3_enable_batching_effective),
++            **(
++                {
++                    "phase2_batch_selection_mode": str(
++                        phase2_batch_selection_mode_key
++                    ),
++                    "phase3_batch_selection_mode": str(
++                        phase2_batch_selection_mode_key
++                    ),
++                    "phase2_batch_target_size": int(
++                        phase2_batch_target_size_requested
++                    ),
++                    "phase3_batch_target_size": int(
++                        phase2_batch_target_size_requested
++                    ),
++                    "phase2_batch_size_cap": int(
++                        phase2_batch_size_cap_requested
++                    ),
++                    "phase3_batch_size_cap": int(
++                        phase2_batch_size_cap_requested
++                    ),
++                }
++                if phase3_only_batch_appendix_active
++                else {}
++            ),
+             "phase3_runtime_split_mode": str(phase3_runtime_split_mode_key),
+             "phase3_runtime_split_selection_mode": str(
+                 phase3_runtime_split_selection_mode_key
+@@ -8180,6 +8470,7 @@
+                     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+                     SR_ROUTE_PROFILE_CANDIDATE_V4,
+                     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+                     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+                 }
+                 else {}
+@@ -8255,6 +8546,7 @@
+                 in {
+                     SR_ROUTE_PROFILE_CANDIDATE_V4,
+                     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+                 }
+                 else {}
+             ),
+@@ -12194,7 +12486,7 @@
+ 
+     selector_debug_context = _SelectorDebugContext(
+         phase2_score_cfg=phase2_score_cfg,
+-        phase2_enable_batching=bool(phase2_enable_batching),
++        phase2_enable_batching=bool(phase3_enable_batching_effective),
+         phase1_score_mode_key=str(phase1_score_mode_key),
+         phase2_raw_score_formula=phase2_raw_score_formula,
+         phase3_selector_debug_topk_val=int(phase3_selector_debug_topk_val),
+@@ -13135,7 +13427,8 @@
+             phase3_plateau_seed_probe_radius=float(phase3_plateau_seed_probe_radius_val),
+             phase3_plateau_seed_probe_enabled=bool(phase3_plateau_seed_probe_enabled),
+             phase3_plateau_seed_probe_seed=phase3_plateau_seed_probe_seed_val,
+-            phase3_enable_batching=bool(phase2_enable_batching),
++            phase2_enable_batching=bool(phase2_enable_batching),
++            phase3_enable_batching=bool(phase3_enable_batching_effective),
+             phase3_batch_selection_mode=str(phase2_batch_selection_mode_key),
+             phase3_batch_prefilter_mode=str(phase3_batch_prefilter_mode),
+             phase3_batch_order_selection_mode=str(phase3_batch_order_selection_mode_key),
+@@ -26439,7 +26732,7 @@
+                         _formal_beam_select_population(
+                             retained_records_local,
+                             enable_batch=bool(
+-                                phase2_enable_batching
++                                phase3_enable_batching_effective
+                                 and str(stage_name_local) == "core"
+                             ),
+                             max_proposals=int(max(1, int(children_cap))),
+@@ -26632,7 +26925,7 @@
+                     not bool(phase3_tie_selection_meta_local.get("active", False))
+                     and
+                     phase3_live_now_local
+-                    and bool(phase2_enable_batching)
++                    and bool(phase3_enable_batching_effective)
+                     and str(stage_name_local) == "core"
+                     and retained_records_local
+                 ):
+@@ -31044,7 +31337,28 @@
+                     allow_historical_trust_context_local = False
+                 else:
+                     trust_update_cfg_local = historical_singleton_trust_update_cfg
+-                    if geometry_expansion_active_local:
++                    if phase3_only_batch_appendix_active:
++                        (
++                            selector_summary_local,
++                            trust_context_mode_local,
++                            allow_historical_trust_context_local,
++                            geometry_expansion_active_local,
++                        ) = _phase3_batch_appendix_trust_update_inputs(
++                            (
++                                plan.batch_summary
++                                if isinstance(plan.batch_summary, Mapping)
++                                else None
++                            ),
++                            pre_parameter_count=int(
++                                child_layout_before.logical_parameter_count
++                            ),
++                            selected_count=int(len(selected_batch_labels_local)),
++                            selected_labels=selected_batch_labels_local,
++                            radius=float(
++                                child.route_a_trust_region_state.radius
++                            ),
++                        )
++                    elif geometry_expansion_active_local:
+                         selector_summary_local = {}
+                         trust_context_mode_local = (
+                             HISTORICAL_SINGLETON_GEOMETRY_EXPANSION_CONTEXT_V1
+@@ -31276,7 +31590,7 @@
+                 "selected_ops": [str(label) for label in selected_batch_labels_local],
+                 "selected_pool_indices": [int(i) for i in selected_batch_indices_local],
+                 "selection_mode": str(selection_mode_local),
+-                "phase3_batching_enabled": bool(phase2_enable_batching),
++                "phase3_batching_enabled": bool(phase3_enable_batching_effective),
+                 "phase3_batch_selection_mode": str(phase2_batch_selection_mode_key),
+                 "phase3_batch_prefilter_mode": str(phase3_batch_prefilter_mode),
+                 "phase3_batch_order_selection_mode": str(phase3_batch_order_selection_mode_key),
+@@ -35452,7 +35766,7 @@
+                 phase1_records_for_phase2 = [dict(rec) for rec in phase1_shortlisted_records]
+                 if (
+                     phase2_enabled
+-                    and bool(phase2_enable_batching)
++                    and bool(phase3_enable_batching_effective)
+                     and str(stage_name) == "core"
+                     and str(phase3_batch_order_selection_mode_key) == "finite_step_v1"
+                     and int(max(1, phase2_score_cfg_round.batch_target_size)) > 1
+@@ -38432,7 +38746,7 @@
+                                 ) = _formal_select_query_closed_population(
+                                     admission_source_records,
+                                     enable_batch=bool(
+-                                        phase2_enable_batching
++                                        phase3_enable_batching_effective
+                                         and str(stage_name) == "core"
+                                     ),
+                                 )
+@@ -38651,7 +38965,7 @@
+                                         ),
+                                     }
+                                 )
+-                            elif bool(phase2_enable_batching) and str(stage_name) == "core":
++                            elif bool(phase3_enable_batching_effective) and str(stage_name) == "core":
+                                 phase2_batch_scoring_attempted = True
+                                 if phase3_live_now:
+                                     batch_source_records = (
+@@ -38800,9 +39114,10 @@
+                             not canonical_joint_selector
+                             and not formal_manifold_selector_enabled
+                             and
+-                            bool(phase2_enable_batching)
++                            bool(phase3_enable_batching_effective)
+                             and str(stage_name) == "core"
+                             and str(phase3_batch_order_selection_mode_key) == "finite_step_v1"
++                            and not phase3_only_batch_appendix_active
+                             and len(phase2_selected_records) == 1
+                             and int(
+                                 max(1, phase2_score_cfg_round.batch_target_size)
+@@ -38877,7 +39192,7 @@
+                             not canonical_joint_selector
+                             and not formal_manifold_selector_enabled
+                             and
+-                            bool(phase2_enable_batching)
++                            bool(phase3_enable_batching_effective)
+                             and str(stage_name) == "core"
+                             and len(phase2_selected_records) > 1
+                         ):
+@@ -38914,6 +39229,28 @@
+                                 remaining_slots=int(segment_batch_decision.remaining_slots),
+                                 target_depth=adapt_segment_controls.target_depth,
+                                 max_new_admissions=adapt_segment_controls.max_new_admissions,
++                            )
++                        if phase3_only_batch_appendix_active:
++                            (
++                                batch_summary,
++                                _batch_context_mode_precommit,
++                                _batch_historical_context_precommit,
++                                _batch_geometry_expansion_precommit,
++                            ) = _phase3_batch_appendix_trust_update_inputs(
++                                (
++                                    batch_summary
++                                    if isinstance(batch_summary, Mapping)
++                                    else None
++                                ),
++                                pre_parameter_count=int(
++                                    selected_layout.logical_parameter_count
++                                ),
++                                selected_count=int(len(phase2_selected_records)),
++                                selected_labels=[
++                                    str(_record_candidate_label(record))
++                                    for record in phase2_selected_records
++                                ],
++                                radius=float(route_a_round_trust_snapshot.radius),
+                             )
+                         phase2_last_batch_selected = bool(len(phase2_selected_records) > 1)
+                         if bool(phase2_batch_scoring_attempted) and not canonical_joint_selector:
+@@ -41302,31 +41639,54 @@
+                     )
+                     allow_historical_trust_context = False
+                 else:
+-                    (
+-                        route_a_selector_summary,
+-                        route_a_trust_context_mode,
+-                        allow_historical_trust_context,
+-                        geometry_expansion_trust_update,
+-                    ) = _historical_singleton_trust_update_inputs_or_geometry_expansion(
+-                        phase1_feature_selected,
+-                        selected_record=(
+-                            phase2_selected_records[0]
+-                            if phase2_selected_records
+-                            else None
+-                        ),
+-                        whitening_active=bool(
+-                            historical_singleton_whitening_active
+-                        ),
+-                        sr_escape_active=False,
+-                        coordinate_solve_policy=(
+-                            historical_singleton_coordinate_solve_policy_key
+-                        ),
+-                        radius=float(route_a_round_trust_snapshot.radius),
+-                        metric_floor=float(phase2_score_cfg.metric_floor),
+-                        reduced_metric_collapse_rel_tol=float(
+-                            phase2_score_cfg.reduced_metric_collapse_rel_tol
+-                        ),
+-                    )
++                    if phase3_only_batch_appendix_active:
++                        (
++                            route_a_selector_summary,
++                            route_a_trust_context_mode,
++                            allow_historical_trust_context,
++                            geometry_expansion_trust_update,
++                        ) = _phase3_batch_appendix_trust_update_inputs(
++                            (
++                                batch_summary
++                                if isinstance(batch_summary, Mapping)
++                                else None
++                            ),
++                            pre_parameter_count=int(
++                                pre_admission_selected_layout.logical_parameter_count
++                            ),
++                            selected_count=int(len(phase2_selected_records)),
++                            selected_labels=[
++                                str(_record_candidate_label(record))
++                                for record in phase2_selected_records
++                            ],
++                            radius=float(route_a_round_trust_snapshot.radius),
++                        )
++                    else:
++                        (
++                            route_a_selector_summary,
++                            route_a_trust_context_mode,
++                            allow_historical_trust_context,
++                            geometry_expansion_trust_update,
++                        ) = _historical_singleton_trust_update_inputs_or_geometry_expansion(
++                            phase1_feature_selected,
++                            selected_record=(
++                                phase2_selected_records[0]
++                                if phase2_selected_records
++                                else None
++                            ),
++                            whitening_active=bool(
++                                historical_singleton_whitening_active
++                            ),
++                            sr_escape_active=False,
++                            coordinate_solve_policy=(
++                                historical_singleton_coordinate_solve_policy_key
++                            ),
++                            radius=float(route_a_round_trust_snapshot.radius),
++                            metric_floor=float(phase2_score_cfg.metric_floor),
++                            reduced_metric_collapse_rel_tol=float(
++                                phase2_score_cfg.reduced_metric_collapse_rel_tol
++                            ),
++                        )
+                     route_a_trust_update_cfg = (
+                         historical_singleton_trust_update_cfg
+                     )
+@@ -41798,7 +42158,7 @@
+                 "selected_pool_indices": [int(x) for x in selected_batch_indices],
+                 "selection_mode": str(selection_mode),
+                 "batch_selection_mode": str(phase2_batch_selection_mode_key),
+-                "phase3_batching_enabled": bool(phase2_enable_batching),
++                "phase3_batching_enabled": bool(phase3_enable_batching_effective),
+                 "phase3_batch_selection_mode": str(phase2_batch_selection_mode_key),
+                 "phase3_batch_prefilter_mode": str(phase3_batch_prefilter_mode),
+                 "phase3_batch_order_selection_mode": str(phase3_batch_order_selection_mode_key),
+@@ -46130,8 +46490,8 @@
+                         ),
+                         "frontier_ratio": float(phase2_score_cfg.phase2_frontier_ratio),
+                         "phase3_frontier_ratio": float(phase2_score_cfg.phase3_frontier_ratio),
+-                        "batching_enabled": bool(phase2_enable_batching),
+-                        "phase3_batching_enabled": bool(phase2_enable_batching),
++                        "batching_enabled": bool(phase3_enable_batching_effective),
++                        "phase3_batching_enabled": bool(phase3_enable_batching_effective),
+                         "batch_selection_mode": str(phase2_score_cfg.batch_selection_mode),
+                         "phase3_batch_selection_mode": str(phase2_score_cfg.batch_selection_mode),
+                         "phase3_batch_prefilter_mode": str(phase3_batch_prefilter_mode),
+--- a/pipelines/static_adapt/cli_config.py
++++ b/pipelines/static_adapt/cli_config.py
+@@ -73,6 +73,7 @@
+     SR_ROUTE_PROFILE_REQUEST_CHOICES,
+     SR_ROUTE_PROFILE_REQUEST_OFF,
+     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+     normalize_sr_route_profile_request,
+     normalize_sr_route_profile_namespace,
+ )
+@@ -4023,15 +4024,37 @@
+             return legacy_value
+         return default
+ 
+-    phase2_enable_batching_effective = bool(
+-        _resolve_alias(
+-            getattr(args, "phase2_enable_batching", None),
+-            getattr(args, "phase3_enable_batching", None),
+-            default=True,
+-            legacy_name="phase2_enable_batching",
+-            phase3_name="phase3_enable_batching",
+-        )
++    phase3_only_batch_profile = bool(
++        str(getattr(args, "sr_route_profile_resolved", ""))
++        == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
+     )
++    phase2_enable_batching_raw = getattr(args, "phase2_enable_batching", None)
++    phase3_enable_batching_raw = getattr(args, "phase3_enable_batching", None)
++    if phase3_only_batch_profile:
++        if phase2_enable_batching_raw is not False:
++            raise ValueError(
++                "The Phase-III batching appendix profile requires explicit "
++                "phase2_enable_batching=False after normalization."
++            )
++        if phase3_enable_batching_raw is not True:
++            raise ValueError(
++                "The Phase-III batching appendix profile requires explicit "
++                "phase3_enable_batching=True after normalization."
++            )
++        phase2_enable_batching_effective = False
++        phase3_enable_batching_effective = True
++    else:
++        shared_batching_effective = bool(
++            _resolve_alias(
++                phase2_enable_batching_raw,
++                phase3_enable_batching_raw,
++                default=True,
++                legacy_name="phase2_enable_batching",
++                phase3_name="phase3_enable_batching",
++            )
++        )
++        phase2_enable_batching_effective = bool(shared_batching_effective)
++        phase3_enable_batching_effective = bool(shared_batching_effective)
+     phase2_batch_selection_mode_effective = str(
+         _resolve_alias(
+             getattr(args, "phase2_batch_selection_mode", None),
+@@ -4609,6 +4632,7 @@
+         "phase3_tie_beam_max_late_coordinate": float(args.phase3_tie_beam_max_late_coordinate),
+         "phase3_tie_beam_min_depth_left": int(args.phase3_tie_beam_min_depth_left),
+         "phase2_enable_batching": bool(phase2_enable_batching_effective),
++        "phase3_enable_batching": bool(phase3_enable_batching_effective),
+         "phase2_batch_selection_mode": str(phase2_batch_selection_mode_effective),
+         "phase3_batch_selection_mode": str(phase2_batch_selection_mode_effective),
+         "phase3_batch_prefilter_mode": str(args.phase3_batch_prefilter_mode),
+--- a/pipelines/static_adapt/route_identity.py
++++ b/pipelines/static_adapt/route_identity.py
+@@ -253,6 +253,10 @@
+     static_lane_route: Any = "algebraic"
+     static_lane_route_is_route_identity: bool = True
+     route_variant_id: Any = None
++    # None preserves the historical alias contract in which the Phase-II name
++    # mirrored the executable Phase-III batch selector.  Registered routes may
++    # now state the genuinely independent Phase-II scope explicitly.
++    phase2_enable_batching: bool | None = None
+ 
+ 
+ def normalize_static_route_id(value: Any, *, default: str = ROUTE_ID_UNSPECIFIED) -> str:
+@@ -644,7 +648,11 @@
+         "phase3_plateau_seed_probe_radius": float(config.phase3_plateau_seed_probe_radius),
+         "phase3_plateau_seed_probe_enabled": bool(config.phase3_plateau_seed_probe_enabled),
+         "phase3_plateau_seed_probe_seed": config.phase3_plateau_seed_probe_seed,
+-        "phase2_enable_batching": bool(config.phase3_enable_batching),
++        "phase2_enable_batching": bool(
++            config.phase3_enable_batching
++            if config.phase2_enable_batching is None
++            else config.phase2_enable_batching
++        ),
+         "phase3_enable_batching": bool(config.phase3_enable_batching),
+         "phase3_batch_selection_mode": str(config.phase3_batch_selection_mode),
+         "phase3_batch_prefilter_mode": str(config.phase3_batch_prefilter_mode),
+--- a/pipelines/static_adapt/sr_snake_route_profile.py
++++ b/pipelines/static_adapt/sr_snake_route_profile.py
+@@ -55,6 +55,10 @@
+     "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
+     "no_prune_v1"
+ )
++SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1 = (
++    "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
++    "no_prune_phase3_batch_v1"
++)
+ SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1 = (
+     "supported_whitened_adaptive_trust_full_response_no_novelty_"
+     "metric_prune_beam_v1"
+@@ -67,6 +71,9 @@
+ SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1 = (
+     "sr_snake_no_prune_symmetric_cost_v1"
+ )
++SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1 = (
++    "sr_snake_no_prune_symmetric_cost_phase3_batch_v1"
++)
+ SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1 = (
+     "sr_snake_no_novelty_metric_prune_beam_v1"
+ )
+@@ -96,6 +103,8 @@
+     SR_ROUTE_PROFILE_CANDIDATE_V4,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
+     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1,
+     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+ )
+@@ -502,6 +511,24 @@
+ }
+ 
+ 
++CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS: dict[
++    str, Any
++] = {
++    # Appendix-only one-factor batching ablation of the main 1x1 route.
++    # Phase II remains singleton.  The legacy phase2_* selector controls are
++    # serialized only as aliases for the Phase-III post-shortlist selector.
++    **CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS,
++    "phase2_enable_batching": False,
++    "phase3_enable_batching": True,
++    "phase2_batch_selection_mode": "combinatorial_reduced_plane",
++    "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++    "phase2_batch_target_size": 3,
++    "phase3_batch_target_size": 3,
++    "phase2_batch_size_cap": 3,
++    "phase3_batch_size_cap": 3,
++}
++
++
+ CANONICAL_SR_SNAKE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1_EXECUTION_SETTINGS: dict[
+     str, Any
+ ] = {
+@@ -604,6 +631,12 @@
+         "--phase3-enable-batching",
+         "--phase3-no-batching",
+     ),
++    "phase2_batch_selection_mode": ("--phase2-batch-selection-mode",),
++    "phase3_batch_selection_mode": ("--phase3-batch-selection-mode",),
++    "phase2_batch_target_size": ("--phase2-batch-target-size",),
++    "phase3_batch_target_size": ("--phase3-batch-target-size",),
++    "phase2_batch_size_cap": ("--phase2-batch-size-cap",),
++    "phase3_batch_size_cap": ("--phase3-batch-size-cap",),
+     "phase3_runtime_split_mode": ("--phase3-runtime-split-mode",),
+     "allow_archival_phase3_runtime_split": (
+         "--allow-archival-phase3-runtime-split",
+@@ -1109,6 +1142,48 @@
+     return _json_sha256(canonical_sr_snake_no_prune_symmetric_cost_v1_contract())
+ 
+ 
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract() -> dict[str, Any]:
++    """Return the Phase-III-only combinatorial batching appendix contract."""
++
++    payload = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
++    payload["route_profile"] = (
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++    )
++    payload["execution_settings"] = dict(
++        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++    )
++    payload["semantic_invariants"].update(
++        {
++            "appendix_one_factor_ablation": True,
++            "phase2_batching_active": False,
++            "phase3_batching_active": True,
++            "phase3_batching_scope": "post_shortlist_admission_only_v1",
++            "phase3_batch_selection_mode": "combinatorial_reduced_plane",
++            "phase3_batch_target_size": 3,
++            "phase3_batch_size_cap": 3,
++            "phase3_runtime_child_subset_cap": 1,
++            "phase3_batch_response_scope": "full_active_plus_batch_v1",
++            "phase3_batch_supported_fs_trust_receipt_required": True,
++            "phase3_batch_full_accepted_refit_required": True,
++            "admission_cardinality": "one_to_three_v1",
++        }
++    )
++    payload["lineage_authority"] = {
++        "parent_route_profile": SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++        "parent_contract_sha256": (
++            canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
++        ),
++        "scientific_result_anchor_claimed": False,
++    }
++    return json.loads(json.dumps(payload, sort_keys=True))
++
++
++def canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() -> str:
++    return _json_sha256(
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    )
++
++
+ def canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract() -> dict[str, Any]:
+     """Return the explicit SR-v3 no-novelty metric-prune beam contract."""
+ 
+@@ -1183,6 +1258,8 @@
+         return canonical_sr_snake_v4_contract()
+     if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
+         return canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
++    if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1:
++        return canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
+     if requested == SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1:
+         return canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract()
+     raise ValueError("The off SR route profile has no canonical contract.")
+@@ -1222,6 +1299,15 @@
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1: (
+             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+         ),
++        "sr_snake_no_prune_symmetric_cost_phase3_batch_v1": (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        ),
++        "no_prune_symmetric_cost_phase3_batch_v1": (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        ),
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1: (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++        ),
+         "sr_snake_no_novelty_metric_prune_beam_v1": (
+             SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1
+         ),
+@@ -1240,6 +1326,7 @@
+         SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+         SR_ROUTE_PROFILE_CANDIDATE_V4,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+         SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+     }:
+         raise ValueError(
+@@ -1317,6 +1404,10 @@
+         execution_settings = (
+             CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS
+         )
++    elif requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1:
++        execution_settings = (
++            CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++        )
+     elif requested == SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1:
+         execution_settings = {
+             **CANONICAL_SR_SNAKE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1_EXECUTION_SETTINGS,
+@@ -1341,7 +1432,10 @@
+             **HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS,
+         }
+     conflicts: list[dict[str, Any]] = []
+-    if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
++    if requested in {
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++    }:
+         horizon_options = frozenset(
+             _DEST_OPTION_STRINGS.get("adapt_max_depth", ("--adapt-max-depth",))
+         )
+@@ -1368,6 +1462,7 @@
+     if requested in {
+         SR_ROUTE_PROFILE_CANDIDATE_V4,
+         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
+     } and explicit_options is not None:
+         forbidden_lambda_f_options = sorted(
+             explicit_options.intersection(_V4_DISALLOWED_LAMBDA_F_OPTIONS)
+@@ -1498,7 +1593,10 @@
+     }:
+         expected.update(HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS)
+     runtime_settings_checked = dict(runtime_settings)
+-    if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
++    if requested in {
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++    }:
+         if "adapt_max_depth" not in runtime_settings_checked:
+             raise ValueError(
+                 "The no-prune symmetric-cost SR profile requires an explicit "
+@@ -1547,6 +1645,7 @@
+     "CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS",
++    "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS",
+     "CANONICAL_SR_SNAKE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1_EXECUTION_SETTINGS",
+     "HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS",
+     "HISTORICAL_SR_SNAKE_V1_ACCEPTED_REFIT_SETTINGS",
+@@ -1564,6 +1663,8 @@
+     "SR_ROUTE_PROFILE_CANDIDATE_V4",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1",
+     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1",
++    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_ALIAS_V1",
++    "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1",
+     "SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_ALIAS_V1",
+     "SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1",
+     "SR_ROUTE_PROFILE_CONVENTIONAL_V2",
+@@ -1584,6 +1685,8 @@
+     "canonical_sr_snake_v4_contract_sha256",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract",
+     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract",
++    "canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract",
+     "canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract_sha256",
+     "normalize_phase3_response_coordinate_scope",
+--- a/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
++++ b/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
+@@ -0,0 +1,220 @@
++from __future__ import annotations
++
++import copy
++from pathlib import Path
++import sys
++from types import SimpleNamespace
++
++import pytest
++
++REPO_ROOT = Path(__file__).resolve().parent.parent
++if str(REPO_ROOT) not in sys.path:
++    sys.path.insert(0, str(REPO_ROOT))
++
++from pipelines.static_adapt.adapt_pipeline import (
++    _phase3_batch_appendix_trust_update_inputs,
++)
++from pipelines.static_adapt.cli_config import (
++    _build_adapt_arg_parser,
++    _build_run_hardcoded_adapt_vqe_kwargs,
++)
++from pipelines.static_adapt.sr_snake_route_profile import (
++    CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS,
++    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract,
++    canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256,
++    canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
++)
++
++
++def _parser():
++    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
++
++
++def _args(*extra: str):
++    return _parser().parse_args(
++        [
++            "--sr-route-profile",
++            "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
++            "--adapt-max-depth",
++            "50",
++            *extra,
++        ]
++    )
++
++
++def _runtime_kwargs(args) -> dict[str, object]:
++    return _build_run_hardcoded_adapt_vqe_kwargs(
++        args,
++        h_poly=None,
++        resolved_problem_context=SimpleNamespace(
++            layout=SimpleNamespace(total_qubits=6)
++        ),
++        cli_adapt_continuation_mode="phase3_v1",
++        adapt_ref_base_depth=0,
++        psi_ref_override=None,
++        psi_ref_source=None,
++        psi_ref_handoff_state_kind=None,
++        exact_gs_override=0.0,
++        phase3_oracle_gradient_config=None,
++        final_noise_audit_config=None,
++    )
++
++
++def _valid_batch_summary() -> dict[str, object]:
++    return {
++        "feasible": True,
++        "reason": "supported_metric_whitened_full_joint_model_v1",
++        "joint_batch_context_mode": "full_ansatz_v1",
++        "joint_linear_solve_policy_effective": (
++            "supported_metric_global_trust_eigh_v2"
++        ),
++        "selected_count": 2,
++        "selected_labels": ["b", "a"],
++        "active_coordinate_identities": ["old0", "old1"],
++        "batch_coordinate_identities": [
++            {"candidate_label": "b"},
++            {"candidate_label": "a"},
++        ],
++        "G_AA_raw": [[1.0, 0.0], [0.0, 1.0]],
++        "G_AB_raw": [[0.1, 0.2], [0.3, 0.4]],
++        "G_BB_raw": [[1.0, 0.1], [0.1, 1.0]],
++        "H_AA_raw": [[2.0, 0.0], [0.0, 2.0]],
++        "H_AB_raw": [[0.5, 0.6], [0.7, 0.8]],
++        "H_BB_raw": [[3.0, 0.2], [0.2, 4.0]],
++        "g_A": [0.1, 0.2],
++        "g_B": [0.3, 0.4],
++        "active_parameter_relaxation": [0.01, 0.02],
++        "batch_coordinate_step": [0.2, 0.1],
++        "joint_step": [0.01, 0.02, 0.2, 0.1],
++        "joint_fubini_study_displacement_sq": 0.1,
++        "applied_predicted_reduction": 0.2,
++        "trust_radius_sq": 0.25,
++        "required_batch_metric_rank_increment": 2,
++        "batch_metric_rank_increment": 2,
++    }
++
++
++def test_phase3_batch_appendix_profile_materializes_independent_scope() -> None:
++    args = _args()
++
++    assert args.sr_route_profile_resolved == (
++        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++    )
++    assert args.sr_route_profile_contract == (
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    )
++    assert args.sr_route_profile_contract_sha256 == (
++        canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256()
++    )
++    assert args.phase2_enable_batching is False
++    assert args.phase3_enable_batching is True
++    assert args.phase2_batch_selection_mode == "combinatorial_reduced_plane"
++    assert args.phase3_batch_selection_mode == "combinatorial_reduced_plane"
++    assert args.phase2_batch_target_size == 3
++    assert args.phase3_batch_target_size == 3
++    assert args.phase2_batch_size_cap == 3
++    assert args.phase3_batch_size_cap == 3
++    assert args.phase3_runtime_split_max_subset_size == 1
++    assert args.phase1_prune_enabled is False
++    assert args.adapt_beam_live_branches == 1
++    assert canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract_sha256() != (
++        canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
++    )
++
++    kwargs = _runtime_kwargs(args)
++    assert kwargs["phase2_enable_batching"] is False
++    assert kwargs["phase3_enable_batching"] is True
++    assert kwargs["phase2_batch_selection_mode"] == (
++        "combinatorial_reduced_plane"
++    )
++    assert kwargs["phase3_batch_selection_mode"] == (
++        "combinatorial_reduced_plane"
++    )
++    assert kwargs["phase2_batch_target_size"] == 3
++    assert kwargs["phase2_batch_size_cap"] == 3
++
++
++@pytest.mark.parametrize(
++    "override",
++    [
++        ("--phase2-enable-batching",),
++        ("--phase3-no-batching",),
++        ("--phase2-batch-target-size", "2"),
++        ("--phase3-batch-size-cap", "2"),
++        ("--phase3-batch-selection-mode", "reduced_plane"),
++    ],
++)
++def test_phase3_batch_appendix_profile_rejects_scope_drift(
++    override: tuple[str, ...],
++) -> None:
++    with pytest.raises(SystemExit, match="2"):
++        _args(*override)
++
++
++def test_phase3_batch_appendix_contract_is_exact_one_factor_delta() -> None:
++    contract = canonical_sr_snake_no_prune_symmetric_cost_phase3_batch_v1_contract()
++    settings = contract["execution_settings"]
++    assert settings == (
++        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1_EXECUTION_SETTINGS
++    )
++    invariants = contract["semantic_invariants"]
++    assert invariants["phase2_batching_active"] is False
++    assert invariants["phase3_batching_active"] is True
++    assert invariants["phase3_batching_scope"] == (
++        "post_shortlist_admission_only_v1"
++    )
++    assert invariants["phase3_batch_response_scope"] == (
++        "full_active_plus_batch_v1"
++    )
++    assert invariants["phase3_batch_supported_fs_trust_receipt_required"] is True
++    assert invariants["phase3_batch_full_accepted_refit_required"] is True
++
++
++def test_phase3_batch_appendix_trust_receipt_covers_and_reorders_full_model() -> None:
++    summary, context, allow_historical, geometry_expansion = (
++        _phase3_batch_appendix_trust_update_inputs(
++            _valid_batch_summary(),
++            pre_parameter_count=2,
++            selected_count=2,
++            selected_labels=["a", "b"],
++            radius=0.5,
++        )
++    )
++
++    assert context == "full_ansatz_v1"
++    assert allow_historical is False
++    assert geometry_expansion is False
++    assert summary["selected_labels"] == ["a", "b"]
++    assert summary["commit_order_basis_permutation"] == [1, 0]
++    assert summary["g_B"] == [0.4, 0.3]
++    assert summary["batch_coordinate_step"] == [0.1, 0.2]
++    assert summary["G_AB_raw"] == [[0.2, 0.1], [0.4, 0.3]]
++    assert summary["G_BB_raw"] == [[1.0, 0.1], [0.1, 1.0]]
++
++
++@pytest.mark.parametrize(
++    ("mutation", "message"),
++    [
++        ({"joint_batch_context_mode": "local_window_v1"}, "full-ansatz"),
++        ({"joint_linear_solve_policy_effective": "scalar_v1"}, "global trust"),
++        ({"required_batch_metric_rank_increment": 1}, "rank receipt"),
++        ({"batch_metric_rank_increment": 1}, "Gram-null"),
++        ({"trust_radius_sq": 1.0}, "inconsistent"),
++        ({"H_AB_raw": [[0.1], [0.2]]}, "malformed H_AB_raw"),
++    ],
++)
++def test_phase3_batch_appendix_trust_receipt_fails_closed(
++    mutation: dict[str, object],
++    message: str,
++) -> None:
++    summary = copy.deepcopy(_valid_batch_summary())
++    summary.update(mutation)
++    with pytest.raises(RuntimeError, match=message):
++        _phase3_batch_appendix_trust_update_inputs(
++            summary,
++            pre_parameter_count=2,
++            selected_count=2,
++            selected_labels=["a", "b"],
++            radius=0.5,
++        )
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -3192,6 +3192,7 @@ def _validate_resolved_static_route_identity(
+ 
+     reasons = [str(value) for value in payload.get("noncanonical_reasons", ())]
+     allowed_prefixes = list(_SR_ALLOWED_LEGACY_ROUTE_REASON_PREFIXES)
++    allowed_exact_reasons: set[str] = set()
+     controller_ablation_contract_key = str(
+         sr_controller_ablation_contract
+     ).strip().lower()
+@@ -3223,6 +3224,15 @@ def _validate_resolved_static_route_identity(
+             SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
+         }
+     )
++    phase3_batch_appendix_profile = bool(
++        str(sr_route_profile or "").strip()
++        == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1
++    )
++    if phase3_batch_appendix_profile:
++        allowed_exact_reasons.add(
++            "conflict_alias:phase3_enable_batching:"
++            "phase3_enable_batching=True;phase2_enable_batching=False"
++        )
+     explicit_ablation = bool(
+         profile_instance_ablation
+         or controller_ablation_marked
+@@ -3249,7 +3259,8 @@ def _validate_resolved_static_route_identity(
+     allowed = [
+         reason
+         for reason in reasons
+-        if reason.startswith(tuple(allowed_prefixes))
++        if reason in allowed_exact_reasons
++        or reason.startswith(tuple(allowed_prefixes))
+     ]
+     unsupported = [reason for reason in reasons if reason not in allowed]
+     if unsupported:
+@@ -3273,6 +3284,10 @@ def _validate_resolved_static_route_identity(
+         "registered_controller_ablation_profile": bool(
+             registered_controller_ablation
+         ),
++        "phase3_batch_appendix_exact_alias_conflict_allowed": bool(
++            phase3_batch_appendix_profile
++            and any(reason in allowed_exact_reasons for reason in reasons)
++        ),
+         "sr_controller_ablation_contract": str(
+             controller_ablation_contract_key
+         ),
+--- a/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
++++ b/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
+@@ -12,6 +12,7 @@ if str(REPO_ROOT) not in sys.path:
+     sys.path.insert(0, str(REPO_ROOT))
+ 
+ from pipelines.static_adapt.adapt_pipeline import (
++    _validate_resolved_static_route_identity,
+     _phase3_batch_appendix_trust_update_inputs,
+ )
+ from pipelines.static_adapt.cli_config import (
+@@ -135,6 +136,56 @@ def test_phase3_batch_appendix_profile_materializes_independent_scope() -> None:
+     assert kwargs["phase2_batch_size_cap"] == 3
+ 
+ 
++def test_phase3_batch_appendix_allows_only_its_exact_forward_alias_conflict() -> None:
++    reason = (
++        "conflict_alias:phase3_enable_batching:"
++        "phase3_enable_batching=True;phase2_enable_batching=False"
++    )
++    result = _validate_resolved_static_route_identity(
++        {"valid": False, "noncanonical_reasons": [reason]},
++        declared_route_id="route_a",
++        historical_singleton_overlay_active=True,
++        sr_route_profile=SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++    )
++    assert result["valid"] is True
++    assert result["allowed_legacy_noncanonical_reasons"] == [reason]
++    assert result["phase3_batch_appendix_exact_alias_conflict_allowed"] is True
++
++
++@pytest.mark.parametrize(
++    ("profile", "reason"),
++    [
++        (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++            "conflict_alias:phase3_enable_batching:"
++            "phase3_enable_batching=False;phase2_enable_batching=True",
++        ),
++        (
++            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PHASE3_BATCH_V1,
++            "conflict_alias:phase3_enable_batching:"
++            "phase3_enable_batching=True;batching_enabled=False",
++        ),
++        (
++            "supported_whitened_adaptive_trust_full_response_symmetric_cost_"
++            "no_prune_v1",
++            "conflict_alias:phase3_enable_batching:"
++            "phase3_enable_batching=True;phase2_enable_batching=False",
++        ),
++    ],
++)
++def test_phase3_batch_appendix_rejects_reverse_unrelated_or_other_profile_alias_conflicts(
++    profile: str,
++    reason: str,
++) -> None:
++    with pytest.raises(ValueError, match="conflict_alias:phase3_enable_batching"):
++        _validate_resolved_static_route_identity(
++            {"valid": False, "noncanonical_reasons": [reason]},
++            declared_route_id="route_a",
++            historical_singleton_overlay_active=True,
++            sr_route_profile=profile,
++        )
++
++
+ @pytest.mark.parametrize(
+     "override",
+     [
+--- a/pipelines/static_adapt/adapt_pipeline.py
++++ b/pipelines/static_adapt/adapt_pipeline.py
+@@ -191,6 +191,7 @@
+     CANONICAL_HARDWARE_COST_LAMBDA_D,
+     CANONICAL_HARDWARE_COST_LAMBDA_SHOT,
+     CANONICAL_HARDWARE_COST_LAMBDA_THETA,
++    BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
+     BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+     FullScoreConfig,
+     GRAM_NOVELTY_POLICY_CHOICES,
+@@ -2008,6 +2009,44 @@
+     )
+ 
+ 
++def _phase3_batch_appendix_full_score_config_overrides(
++    *,
++    active: bool,
++) -> dict[str, str]:
++    """Return the already-declared full joint-response configuration."""
++
++    if not bool(active):
++        return {}
++    return {
++        "batch_geometry_mode": BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
++        "batch_joint_context_mode": BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
++        "batch_joint_linear_solve_policy": (
++            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
++        ),
++    }
++
++
++def _validate_phase3_batch_appendix_full_score_config(
++    cfg: FullScoreConfig,
++    *,
++    active: bool,
++) -> None:
++    """Fail closed if the route contract was not applied to the selector."""
++
++    if not bool(active):
++        return
++    expected = _phase3_batch_appendix_full_score_config_overrides(active=True)
++    observed = {
++        key: str(getattr(cfg, key, ""))
++        for key in expected
++    }
++    if observed != expected:
++        raise RuntimeError(
++            "Phase-III batching appendix full-response configuration drift: "
++            f"expected {expected!r}, observed {observed!r}."
++        )
++
++
+ def _phase3_batch_appendix_trust_update_inputs(
+     selector_summary_raw: Mapping[str, Any] | None,
+     *,
+@@ -11676,6 +11715,13 @@
+             if str(phase2_remaining_evaluations_proxy_mode).strip().lower() == "auto"
+             else str(phase2_remaining_evaluations_proxy_mode).strip().lower()
+         ),
++        **_phase3_batch_appendix_full_score_config_overrides(
++            active=bool(phase3_only_batch_appendix_active),
++        ),
++    )
++    _validate_phase3_batch_appendix_full_score_config(
++        phase2_score_cfg,
++        active=bool(phase3_only_batch_appendix_active),
+     )
+     if (
+         phase3_enabled
+--- a/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
++++ b/test/test_static_adapt_sr_phase3_batch_appendix_profile.py
+@@ -12,8 +12,18 @@
+     sys.path.insert(0, str(REPO_ROOT))
+ 
+ from pipelines.static_adapt.adapt_pipeline import (
++    _phase3_batch_appendix_full_score_config_overrides,
++    _phase3_batch_appendix_trust_update_inputs,
++    _validate_phase3_batch_appendix_full_score_config,
+     _validate_resolved_static_route_identity,
+-    _phase3_batch_appendix_trust_update_inputs,
++)
++from pipelines.scaffold.hh_continuation_scoring import (
++    BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
++    BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
++    FullScoreConfig,
++)
++from pipelines.static_adapt.joint_linear_solve import (
++    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2,
+ )
+ from pipelines.static_adapt.cli_config import (
+     _build_adapt_arg_parser,
+@@ -269,3 +279,38 @@
+             selected_labels=["a", "b"],
+             radius=0.5,
+         )
++
++
++def test_phase3_batch_appendix_plumbs_full_joint_response_into_selector_config() -> None:
++    assert _phase3_batch_appendix_full_score_config_overrides(active=False) == {}
++
++    legacy_default = FullScoreConfig()
++    assert legacy_default.batch_joint_context_mode == "batch_only_diagnostic_v1"
++    with pytest.raises(RuntimeError, match="full-response configuration drift"):
++        _validate_phase3_batch_appendix_full_score_config(
++            legacy_default,
++            active=True,
++        )
++
++    overrides = _phase3_batch_appendix_full_score_config_overrides(active=True)
++    assert overrides == {
++        "batch_geometry_mode": BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
++        "batch_joint_context_mode": BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
++        "batch_joint_linear_solve_policy": (
++            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
++        ),
++    }
++    configured = FullScoreConfig(**overrides)
++    _validate_phase3_batch_appendix_full_score_config(
++        configured,
++        active=True,
++    )
++    assert configured.batch_geometry_mode == (
++        BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1
++    )
++    assert configured.batch_joint_context_mode == (
++        BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1
++    )
++    assert configured.batch_joint_linear_solve_policy == (
++        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_GLOBAL_TRUST_EIGH_V2
++    )

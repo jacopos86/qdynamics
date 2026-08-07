@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "archive_only_cli_import_and_help": "pass",
+    "archive_only_source_lock_complete": "pass",
+    "archive_only_weak_weak_plan": "pass",
+    "chtc_submission_performed": false,
+    "one_sequential_pair": "pass",
+    "scientific_execution_performed": false,
+    "source_archive_sha256": "pass"
+  },
+  "generated_utc": "2026-07-20T23:21:48.087225+00:00",
+  "operational_blockers": [],
+  "schema": "paper_i_hh_fm_vs_append_fm_first_hit_bundle_preflight_v1",
+  "scientific_blockers": [],
+  "source_archive_sha256": "521ccf43ddf6bed38cf446264ce86dd7fea733d823dd4f153980c758920b80ca",
+  "status": "pass"
+}

@@ -1,0 +1,123 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/verify.json",
+      "sha256": "28474f498e20ad0eca7bb97d906cd91d1609d7edf745ed3b413ade3a04ae1012"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/source_locks_input.json",
+      "sha256": "b02943a5467c2536c3259f6bd91a93584cacd71e6844762fc1ed0c9af8cd6379"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/normalized_visible_source_map.json",
+      "sha256": "6c3e98cefc030a8a6a49743f583ce6564ad96f30f59ce816843dce01077265ee"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/problem_baselines.json",
+      "sha256": "2f5db2c175f1ccbb15d896d8d1562ef755a35e6c3e29abc37b7b0ba8587bf26c"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/matrix_receipt.json",
+      "sha256": "447c0da9da6988684d9f3420956936db5e3543607c4fc2f0075f0769cf2ba484"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/route_axis_receipt.json",
+      "sha256": "8b5c71c85e1d387ecbd48fa20a99ac7932a83b70d6003205539df8342802334f"
+    }
+  ],
+  "checks": [
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/materialization_receipt.json",
+      "id": "source_locked_bundle_materialization",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/focused_validation_receipt.json",
+      "id": "canonical_json_digests_and_matched_bundle_contracts",
+      "status": "passed"
+    },
+    {
+      "evidence_paths": [
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_stationary_late_v1/validation_report.json",
+        "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_measured_late_v1/validation_report.json"
+      ],
+      "id": "per_bundle_local_validation",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/materialization_receipt.json",
+      "id": "chtc_submission",
+      "observed": "not_submitted",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/materialization_receipt.json",
+      "id": "stationarity_winner_selection",
+      "observed": false,
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "canonical_sha256": "f2fb7826c93bf9140444e6f9b0492742fe3bde6e26be05f034581a94c0744f34",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/materialization_receipt.json",
+      "sha256": "136e6e0411ceaa88501b49f2c9d95356c140bef2ca41a5575c0b4336eb62407c"
+    },
+    {
+      "canonical_sha256": "eb0edfaa7502ff4c357ca550bc5cfffb6aed0563402c8dfb8c595e53c4d33c45",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/source_materialization/focused_validation_receipt.json",
+      "sha256": "e2503a89b91a328385c9a1cec3be3d0ff7b1bb33ef9c2e93c27f219999dae8af"
+    },
+    {
+      "canonical_sha256": "aa83ed65293a8b17d3a0d4d118b2d159a11917d828b8dfeb9d85c1cc8a64ae87",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "sha256": "dbf159463649c880058d4889eda946ade5c241e462c4145e9ff7f90287db6b6a"
+    },
+    {
+      "canonical_sha256": "fbeeb8903deed2524454619387bd015e469e6998df8bd8a06d6203b56399c441",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_stationary_late_v1/validation_report.json",
+      "sha256": "7af050b4f8d7f90f2acc12abd39a7b88bba6e197e3139d12964b1779255d59a2"
+    },
+    {
+      "canonical_sha256": "fc4ecf816b73a380f626bd5e69c10b985e81ad3767284b8f4a6872f0d1d9dcc7",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_measured_late_v1/bundle_manifest.json",
+      "sha256": "2e85b59ccc7366aaccf7e802547ccbffc499a085d8227520ee99125268a28d46"
+    },
+    {
+      "canonical_sha256": "82d543266cac82c58015a7bcf042f1de4e9797f8fb7d50de1baf0d3e8de844d6",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_measured_late_v1/validation_report.json",
+      "sha256": "95185855d2bcbde1413742963fe095c2b2d5a54dbe63c55a40c82c025f01c60f"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "aa83ed65293a8b17d3a0d4d118b2d159a11917d828b8dfeb9d85c1cc8a64ae87",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    },
+    {
+      "bundle_manifest_canonical_sha256": "fc4ecf816b73a380f626bd5e69c10b985e81ad3767284b8f4a6872f0d1d9dcc7",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/ra_repair_measured_late_v1/bundle_manifest.json",
+      "protocol_count": 58,
+      "protocol_digest_location": "protocols/*.json:sha256"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "materialize-bundles",
+  "state": "complete",
+  "state_reason": "Both finite source-locked Study-1 bundles and their local validation reports passed materialization checks; neither bundle was submitted.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/verify.json",
+      "receipt_id": "ra_adapt_repair_20260727_verify_v1",
+      "sha256": "28474f498e20ad0eca7bb97d906cd91d1609d7edf745ed3b413ade3a04ae1012",
+      "stage": "verify"
+    },
+    "superseded_receipts": [],
+    "successor_stage": "analyze"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

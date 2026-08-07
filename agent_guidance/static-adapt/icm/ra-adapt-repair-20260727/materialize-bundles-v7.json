@@ -1,0 +1,124 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/paper-i-final-correctness-and-evidence-completion-plan-20260727.md",
+      "sha256": "a3174c9d33bfcfa97892ca1702369296456cd401f1f6101fcdf34bc7d2c93709"
+    },
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v6.json",
+      "sha256": "1f8422a0673cd4dfafe5df750fff464667a5434e389159f7ed677067a961f177"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/materialize_study1_v7.py",
+      "sha256": "898750a0f697583c7effc0c6d8d61510791d81be605bfd9789ab4b96d5dc12f8"
+    }
+  ],
+  "checks": [
+    {
+      "command": "python3 -m pytest -q test/test_ra_adapt_*.py test/test_static_adapt_commutation_metadata.py test/test_paper_i_sr_snake_resume_adapter.py test/test_static_adapt_insertion_commutation_plateau.py",
+      "id": "paper_i_p1_source_gate",
+      "observed": "143 passed, 27 warnings",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m pytest -q test/test_static_adapt_accepted_refit.py test/test_static_adapt_accepted_refit_external_gram.py test/test_static_adapt_resume_checkpoint_parameterization.py test/test_static_adapt_resume_scaffold.py",
+      "id": "accepted_refit_and_resume_adjacent_gate",
+      "observed": "101 passed, 9 skipped",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m pytest -q test/test_static_adapt_numerical_physical_integrity.py test/test_ra_adapt_facade.py::test_bundle_operational_controls_authenticate_a_real_bounded_continuation",
+      "id": "g9_and_authenticated_continuation_gate",
+      "observed": "5 passed, 2 warnings",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/cross_file_loader_validation.json",
+      "id": "cross_file_loader_validation",
+      "observed": "116 passed; 0 failed",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/study1_objective_gate_authority_receipt.json",
+      "id": "corrected_objective_gate_authority",
+      "observed": "20 logical cells; G1/G2/G3/G8/G13 authority closed",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/final_materialization_receipt.json",
+      "id": "implementation_inventory",
+      "observed": "13 roots; 148 files; stable canonical SHA-256 c09544397d295551b05dd5650cda8736ae929d7cc0b9d242e8d235fbd37c792c",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/final_materialization_receipt.json",
+      "id": "historical_materialization_preservation",
+      "observed": "v1-v6 pinned pre/post tree hashes byte-identical",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/final_materialization_receipt.json",
+      "id": "execution_and_submission_state",
+      "observed": "execution_authorized=false; submission_state=not_submitted; submitted=false",
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "canonical_sha256": "12374acfc5989541a56194868fe938e330fe7ec371cb6a658bd53bc01a01be2d",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/final_materialization_receipt.json",
+      "sha256": "891856824aa7f3e7874859b75ef5a902ffa304de2479c0f8ed29a60745de2190"
+    },
+    {
+      "canonical_sha256": "edb0aac4a7e68b117f2dad6f86be45f9d301aa6cab6f4a1c3fcb397caa771dd3",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/study1_objective_gate_authority_receipt.json",
+      "sha256": "3d411fd7ff5c46f6872aa2458828d06ce78934c8b0fa00a37c90a6e8932d6978"
+    },
+    {
+      "canonical_sha256": "a14400e174c536124a3860b6c584c19506341d1db448a557bc15914728457961",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/cross_file_loader_validation.json",
+      "sha256": "d1683295e8380b1cd8d4318c54b6885396e3af9e6b03fa68ea67c8badcaa133d"
+    }
+  ],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "0a9bc1694bd329aeb09d6ff26b80c72fbfa833bd0693118da649e17d2031f3b3",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/ra_repair_stationary_late_v1/bundle_manifest.json",
+      "protocol_count": 58
+    },
+    {
+      "bundle_manifest_canonical_sha256": "e9ebcaadf641ae28bacc6e013e1e105ecc314d984dc354a060228720df7bd079",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v7/ra_repair_measured_late_v1/bundle_manifest.json",
+      "protocol_count": 58
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v4",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "materialize-bundles",
+  "state": "complete",
+  "state_reason": "Immutable v7 binds the approved corrected objective-gate semantics and current implementation inventory, loads all 116 protocols, preserves v1-v6 byte-identically, and remains non-authorizing and unsubmitted.",
+  "supersession_lineage": {
+    "lineage_type": "append_only_materialization_revision_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v6.json",
+      "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v3",
+      "sha256": "1f8422a0673cd4dfafe5df750fff464667a5434e389159f7ed677067a961f177",
+      "stage": "materialize-bundles"
+    },
+    "superseded_receipts": [
+      {
+        "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles-v6.json",
+        "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v3",
+        "sha256": "1f8422a0673cd4dfafe5df750fff464667a5434e389159f7ed677067a961f177",
+        "status": "superseded_for_execution_by_corrected_v7"
+      }
+    ],
+    "successor_stage": "execute-study1"
+  },
+  "v7_complete_tree": {
+    "file_count": 375,
+    "total_size_bytes": 13592188,
+    "tree_sha256": "32397770a3fc903876cf467393f8d282d9fd814b84cc02b354dbb618c0bfcbae"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

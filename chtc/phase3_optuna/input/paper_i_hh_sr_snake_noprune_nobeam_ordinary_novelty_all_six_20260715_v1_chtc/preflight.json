@@ -1,0 +1,36 @@
+{
+  "blockers_before_submission": [
+    "verify remote chtc/phase3_optuna/image.sif SHA-256 equals fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  ],
+  "checks": {
+    "beam_disabled_1x1": true,
+    "critical_frozen_source_hashes": true,
+    "expanded_projected_logical_chart": true,
+    "frozen_cli_parse_all_rows": true,
+    "frozen_depth_zero_route_resolution_smoke": true,
+    "infeasible_model_novelty_fallback_retained": true,
+    "negative_curvature_route_disabled": true,
+    "non_icloud_checkout": true,
+    "ordinary_novelty_multipliers_enabled_phase2_phase3": true,
+    "phase0_and_batching_disabled": true,
+    "phase3_whitening_and_adaptive_trust": true,
+    "pruning_disabled": true,
+    "remote_image_hash_pending_remote_check": true,
+    "revised_archive_hash": true,
+    "route_signature_equal_all_rows": true,
+    "runner_manifest_validation_all_rows": true,
+    "settled_30_50_round_horizons": true,
+    "six_regimes_present": true,
+    "source_lock_hashes": true,
+    "strong_holstein_same_cutoff_4": true,
+    "study_b_only_changed_fields_vs_matched_baseline": true,
+    "submit_description_parse": true,
+    "successful_local_anchor_locked": true,
+    "weak_holstein_same_cutoff_2": true
+  },
+  "created_utc": "2026-07-16T04:17:50.818971+00:00",
+  "production_scientific_execution_performed": false,
+  "schema": "paper_i_hh_sr_noprune_nobeam_novelty_on_six_preflight_v1",
+  "scientific_execution_performed": true,
+  "status": "pass"
+}

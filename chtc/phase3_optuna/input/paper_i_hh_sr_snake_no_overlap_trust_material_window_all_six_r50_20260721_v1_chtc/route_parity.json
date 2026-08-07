@@ -1,0 +1,12 @@
+{
+  "candidate_route_contract_sha256": "9d6cfae3fda84eb6a24232358c45a8f25b42c6147bfa4250905910eff687a417",
+  "candidate_value": "candidate_material_coupling_window_v1",
+  "changed_execution_fields_vs_parent": [
+    "phase3_response_coordinate_scope"
+  ],
+  "non_swept_settings_diff": [],
+  "parent_route_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+  "parent_value": "full_active_plus_singleton_v1",
+  "schema": "paper_i_sr_material_window_fanout_route_parity_v1",
+  "status": "pass"
+}

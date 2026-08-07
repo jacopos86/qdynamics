@@ -1,0 +1,49 @@
+{
+  "created_utc": "2026-07-25T01:45:51.492251+00:00",
+  "files": {
+    "command.json": {
+      "sha256": "e76bce9ae99aa4adb65c9f8be27ad52f4d6d2918ad5b6f11c84a6e21ecb8041b",
+      "size_bytes": 38783
+    },
+    "command_preflight.json": {
+      "sha256": "08fc4823752cf96b7eebb1a2509cb8e96b2c34846fa71ae8aa97e7073705aa9e",
+      "size_bytes": 390
+    },
+    "h2o_fixture.json": {
+      "sha256": "570690bd126787305b340bd2f7493499c0f3101e3e2820c2d355c55c16afa594",
+      "size_bytes": 3320124
+    },
+    "route_settings_diff_audit.json": {
+      "sha256": "180981e5bafe2120b8d5ae5c34bd02d5db4237f8bc3bb5e77cbddf05b95d06c9",
+      "size_bytes": 25671
+    },
+    "source_tree.tar.gz": {
+      "sha256": "5c95e902c624761b8b3c5bc3190fe1db42d7c05955afef5d0e292363e7c36f83",
+      "size_bytes": 4051172
+    }
+  },
+  "record_id": "paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_from_zero_d50_20260724_v2",
+  "route_contract_sha256": "e7c61b587053c6db0258dccf4fa61793fe79a87c779c7bd184b925c074fa68d9",
+  "route_difference_audit_status": "pass",
+  "runtime_files": {
+    "run_apptainer.sh": {
+      "sha256": "330bf2e685a120932843cfe0435c3a229928746ab537ccab61b30a4fab7208f0",
+      "size_bytes": 3402
+    },
+    "run_payload.py": {
+      "sha256": "10af4c31031785aeb23103fcc2a046aa69f39d6297bf0f8faeedf8a2e78db0aa",
+      "size_bytes": 10136
+    },
+    "runtime_preflight.py": {
+      "sha256": "6346d5aadf4dbf6f8120614302bcd81d0a9790fd73bba10b6605d5958177a1c4",
+      "size_bytes": 6290
+    },
+    "validate_result.py": {
+      "sha256": "4a1d6fe93b940aa897e011b33adf3ef017fd6038819054f26960fbbcddd44eee",
+      "size_bytes": 5312
+    }
+  },
+  "schema": "paper_iv_h2o_sr_paper_i_noprune_nobeam_derivative_resolved_depth50_input_manifest_v1",
+  "starting_depth": 0,
+  "target_depth": 50
+}

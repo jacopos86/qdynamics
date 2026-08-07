@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper II Table Update"
+  short_description: "Update Paper II dynamics tables from locked evidence"
+  default_prompt: "Use the paper-ii-results skill to transfer calibrated Paper II checkpoint-McLachlan evidence into manuscript or report tables with source maps, audits, and PDF rebuilds."

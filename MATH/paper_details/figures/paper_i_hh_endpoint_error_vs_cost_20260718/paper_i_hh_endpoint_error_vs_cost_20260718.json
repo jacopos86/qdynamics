@@ -1,0 +1,167 @@
+{
+  "schema": "paper_i_hh_displayed_endpoint_error_vs_cost_v1",
+  "generated_utc": "2026-07-18T21:26:03.331566+00:00",
+  "scope": "standalone candidate figures; no manuscript figure insertion",
+  "comparison_policy": "descriptive displayed endpoints; no interpolation, no connecting lines, and no prefix-matched or equal-budget inference",
+  "error_metric": "absolute same-cutoff energy error",
+  "cost_metrics": {
+    "n2q": "Qiskit compiled two-qubit gate count N2q",
+    "dc": "Qiskit total compiled circuit depth Dc",
+    "s_alg": "logical estimator-query count S_alg; not physical shots"
+  },
+  "endpoint_policy": "SNAKE uses the currently displayed terminal/selected-last-plateau endpoints; Geo-ADAPT and Append-ADAPT retain their displayed historical first-plateau prefixes",
+  "source_tex": "MATH/paper_details/Paper_I.tex",
+  "source_tex_sha256": "a12be6ed2fa7f9b5f60c7efd8fc8ff326abd1c4b514164d09b694a8d9eb2982b",
+  "source_region": "Hubbard--Holstein Fig. 1 mini-tables",
+  "builder": "MATH/paper_facing/paper_I_static_scaffold/plot_paper_i_hh_endpoint_error_vs_cost_20260718.py",
+  "builder_sha256": "927a25dd6807ddc2f01791e957402600f483cb73e1b8dbd22575f2a2d626fca3",
+  "endpoint_csv": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_cost_20260718.csv",
+  "endpoint_csv_sha256": "5e7ce2358c046d6531d8a48f6abbd0b02dca34c0cb5a691c02e474df22ee73e9",
+  "plots": [
+    {
+      "regime": "weak_weak",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__weak_weak.png",
+      "png_sha256": "4b10ce37e93f6e1e6ce1168e6779b986dbf508cdd958a49096c75bb90df2ecf0",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__weak_weak.pdf",
+      "pdf_sha256": "6c62c256408d7d6d254ba94fcc757e818149088c1e3f4333567cd2f54ce16a67"
+    },
+    {
+      "regime": "weak_weak",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__weak_weak.png",
+      "png_sha256": "be70f412aabce3a2d69f2ddca5d86574c5bb9876af045820535878dc18bdf66a",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__weak_weak.pdf",
+      "pdf_sha256": "62e1a3ed83c902709dcea97225dc6d21c65f5e75d910f84d291c3d83589638c6"
+    },
+    {
+      "regime": "weak_weak",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__weak_weak.png",
+      "png_sha256": "22d5bc9f72f5e18f485f9918763ddbd873d63617e25b6c9ef1ab8b45569eaa08",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__weak_weak.pdf",
+      "pdf_sha256": "de9933a9614b5087e491bf8cf2f2e76948b69315a7ab3fa1dad62f06b8adc1c7"
+    },
+    {
+      "regime": "intermediate_weak",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__intermediate_weak.png",
+      "png_sha256": "1d62a64a665d4d7fe4cdb0da6c62b7eca5d63a0b79eac69b19759da0677a0e27",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__intermediate_weak.pdf",
+      "pdf_sha256": "e9c26d166c2ed367ecd6b9b8d85c0600db090e336d1ee8a69bfebe9ba54772f3"
+    },
+    {
+      "regime": "intermediate_weak",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__intermediate_weak.png",
+      "png_sha256": "aa56a6f59bb040a5a8f2f010e8877a35d88d7230b4e36d5e52be16375db7f9a0",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__intermediate_weak.pdf",
+      "pdf_sha256": "ee0ceb61c55cdc6460050de57ca47abf83238b3c5870612358cd3f5f180be2ab"
+    },
+    {
+      "regime": "intermediate_weak",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__intermediate_weak.png",
+      "png_sha256": "4eb4f4260bf921dbab771f89a1da5373c5402a747e0abe1ef86cacfa2ac3c821",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__intermediate_weak.pdf",
+      "pdf_sha256": "28eead71c0667c65cc0d00fb23d2cfe2f7365ff2f190799d2232098448753b79"
+    },
+    {
+      "regime": "strong_weak",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__strong_weak.png",
+      "png_sha256": "460dcbffe7141f0e05393b438bee4c29db13c6ec077792557036f8c792391753",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__strong_weak.pdf",
+      "pdf_sha256": "b4b9f198fecc05815518226a5837947df8192a61b6bf97b8559105044b558d51"
+    },
+    {
+      "regime": "strong_weak",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__strong_weak.png",
+      "png_sha256": "8ce820d9b119d2ce42ce842369cd3e467786c5b70f104307ddb0eba4b20ba68d",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__strong_weak.pdf",
+      "pdf_sha256": "386097ed61cbc186e72d2f015652c2aad0ae7a982d96c323c5c5b7d735a57de6"
+    },
+    {
+      "regime": "strong_weak",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__strong_weak.png",
+      "png_sha256": "88b39f73bbb1a3be26ca537fc5d80fe5848b2e7d33313e338d21ae1096ccb8d1",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__strong_weak.pdf",
+      "pdf_sha256": "3ff572d427bf52656b3ed838753bf39d1e01aa93e241cca2b98e8a0f7c3afb7c"
+    },
+    {
+      "regime": "weak_strong",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__weak_strong.png",
+      "png_sha256": "a86d8b7712f677aaef1167b47205c8c6cf1688ad1a9ae0d84a8d4189ae32cd61",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__weak_strong.pdf",
+      "pdf_sha256": "2a901ef6a170767e6682c017608ef119c12f3a88b3586feec906535b33ee9096"
+    },
+    {
+      "regime": "weak_strong",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__weak_strong.png",
+      "png_sha256": "13d7a43997033df623c969413d2e23ca5bd5359e687d1ab7dcc513d51aead03c",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__weak_strong.pdf",
+      "pdf_sha256": "cc0b22aa08f4b374df6decc79c0bede7b5a523751a2929b5bd1bf3481f5dc2d1"
+    },
+    {
+      "regime": "weak_strong",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__weak_strong.png",
+      "png_sha256": "7c935d78a414b9592a1bba30873b96344d11f9851018902c7a95a91b6c5205f8",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__weak_strong.pdf",
+      "pdf_sha256": "93c25e4fce5e99a9ec47f4eb2d7a4899cefb01328525a00abd2441c690a4983d"
+    },
+    {
+      "regime": "intermediate_strong",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__intermediate_strong.png",
+      "png_sha256": "f7cbaf85e3882c351d229c3e63dc168f9b04122f7d0974856653191c5547532c",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__intermediate_strong.pdf",
+      "pdf_sha256": "85c98cf55085055d4b2a42655c1faea502911a1c1b4aaa6ad2072592ae01b572"
+    },
+    {
+      "regime": "intermediate_strong",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__intermediate_strong.png",
+      "png_sha256": "e91ed71e4d8bf05117cfbe531d1e4edc9dd3bd2dd32dae27abe363f999876563",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__intermediate_strong.pdf",
+      "pdf_sha256": "0314873523889c80e9078ef08962387f18f0f070f5c0afbc2b6b10d93bb03e7a"
+    },
+    {
+      "regime": "intermediate_strong",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__intermediate_strong.png",
+      "png_sha256": "b9d9b2848c52330e06f85ebae0f1e0011e5d8fe41076d73d3ce7c7ab4846854c",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__intermediate_strong.pdf",
+      "pdf_sha256": "4cdc02332fa598ec42966ad5f543111602edc7ad49ffc0e14c2e2651d9c8422c"
+    },
+    {
+      "regime": "strong_strong",
+      "metric": "n2q",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__strong_strong.png",
+      "png_sha256": "f666f4dcb8293883701cf2f79a803fb9283ab350ea0babf1a10d5bb88b79e8dd",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_n2q__strong_strong.pdf",
+      "pdf_sha256": "7821ac022aef3f031233773283fb0144a09d3a51868dbc564c53cc57a801c43e"
+    },
+    {
+      "regime": "strong_strong",
+      "metric": "dc",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__strong_strong.png",
+      "png_sha256": "3ae56b23c19bcb4f1099bb19bb2bbdbf3817a7d8bcdae9c5e769f2882a414a7f",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_dc__strong_strong.pdf",
+      "pdf_sha256": "2e796d4330338f190e444189eb7aa9ce768be6388e72e98083338b4f2e9d751a"
+    },
+    {
+      "regime": "strong_strong",
+      "metric": "s_alg",
+      "png": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__strong_strong.png",
+      "png_sha256": "e912efb03d81115baaff1ac71cca3440f0895edf8f7e9eb80a88dd3ff9984b12",
+      "pdf": "MATH/paper_details/figures/paper_i_hh_endpoint_error_vs_cost_20260718/paper_i_hh_endpoint_error_vs_s_alg__strong_strong.pdf",
+      "pdf_sha256": "343da7b7fd5d466f1566224527e7f7e6c39cff73b3f6b173a922b4b22ce00f15"
+    }
+  ],
+  "blockers": []
+}

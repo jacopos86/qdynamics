@@ -1,0 +1,1939 @@
+{
+  "cluster_id": 9381227,
+  "representation": "intact_macro",
+  "rows": [
+    {
+      "regime": "intermediate_strong",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.0__intermediate_strong_transfer.tar.gz",
+        "archive_sha256": "46909557d7ccf24f3e261e7a7db1db2112eceb259d0ea50f38124d419e3970f4",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/intermediate_strong/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 2264,
+        "D2q": 963,
+        "Dc": 6682,
+        "N2q": 1366,
+        "S_alg": 253983,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 39320,
+          "N_grad": 8625,
+          "N_metric": 205988
+        },
+        "S_alg_receipt": {
+          "S_alg": 253983,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 39320,
+            "N_grad": 8625,
+            "N_metric": 205988
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 253983,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2662,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_termwise_ham_quadrature_term(zeyeeezeee)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(zeyeeeeeze)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(eeezeyeeez)",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(zzyeeezeee)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(ezyeeezeee)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeyyyezee)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.00780507711514411,
+      "terminal_k": 50,
+      "title": "Intermediate--strong",
+      "trajectory": [
+        {
+          "delta_E": 1.0696919722447726,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2489396137518493,
+          "k": 2
+        },
+        {
+          "delta_E": 0.1977304080030044,
+          "k": 3
+        },
+        {
+          "delta_E": 0.14538267399224852,
+          "k": 4
+        },
+        {
+          "delta_E": 0.10249722660608485,
+          "k": 5
+        },
+        {
+          "delta_E": 0.056477480380690226,
+          "k": 6
+        },
+        {
+          "delta_E": 0.028240819624991698,
+          "k": 7
+        },
+        {
+          "delta_E": 0.022492557684201775,
+          "k": 8
+        },
+        {
+          "delta_E": 0.015975302923964985,
+          "k": 9
+        },
+        {
+          "delta_E": 0.013648549966696844,
+          "k": 10
+        },
+        {
+          "delta_E": 0.011066739530118275,
+          "k": 11
+        },
+        {
+          "delta_E": 0.008377336925646572,
+          "k": 12
+        },
+        {
+          "delta_E": 0.008210254698696406,
+          "k": 13
+        },
+        {
+          "delta_E": 0.008073222893311471,
+          "k": 14
+        },
+        {
+          "delta_E": 0.008020662225711739,
+          "k": 15
+        },
+        {
+          "delta_E": 0.007977063100544468,
+          "k": 16
+        },
+        {
+          "delta_E": 0.00794301849348944,
+          "k": 17
+        },
+        {
+          "delta_E": 0.007925430817267709,
+          "k": 18
+        },
+        {
+          "delta_E": 0.007913063894292027,
+          "k": 19
+        },
+        {
+          "delta_E": 0.007897485364525503,
+          "k": 20
+        },
+        {
+          "delta_E": 0.007881876204572924,
+          "k": 21
+        },
+        {
+          "delta_E": 0.007874868767562493,
+          "k": 22
+        },
+        {
+          "delta_E": 0.007866136743749252,
+          "k": 23
+        },
+        {
+          "delta_E": 0.007858616180308697,
+          "k": 24
+        },
+        {
+          "delta_E": 0.007855119659817444,
+          "k": 25
+        },
+        {
+          "delta_E": 0.007825533151921249,
+          "k": 26
+        },
+        {
+          "delta_E": 0.00781962909157019,
+          "k": 27
+        },
+        {
+          "delta_E": 0.007817297687240266,
+          "k": 28
+        },
+        {
+          "delta_E": 0.007815116786844545,
+          "k": 29
+        },
+        {
+          "delta_E": 0.007813682163513969,
+          "k": 30
+        },
+        {
+          "delta_E": 0.007812425302158088,
+          "k": 31
+        },
+        {
+          "delta_E": 0.0078114158412256884,
+          "k": 32
+        },
+        {
+          "delta_E": 0.0078106731008984465,
+          "k": 33
+        },
+        {
+          "delta_E": 0.007809940562470641,
+          "k": 34
+        },
+        {
+          "delta_E": 0.007809338016472767,
+          "k": 35
+        },
+        {
+          "delta_E": 0.007808768086448037,
+          "k": 36
+        },
+        {
+          "delta_E": 0.0078080837352015875,
+          "k": 37
+        },
+        {
+          "delta_E": 0.00780761869550417,
+          "k": 38
+        },
+        {
+          "delta_E": 0.007807185299906205,
+          "k": 39
+        },
+        {
+          "delta_E": 0.007806842917649548,
+          "k": 40
+        },
+        {
+          "delta_E": 0.007806526992309326,
+          "k": 41
+        },
+        {
+          "delta_E": 0.007806298857703564,
+          "k": 42
+        },
+        {
+          "delta_E": 0.007806126017614323,
+          "k": 43
+        },
+        {
+          "delta_E": 0.007806064872571961,
+          "k": 44
+        },
+        {
+          "delta_E": 0.007806027098661961,
+          "k": 45
+        },
+        {
+          "delta_E": 0.007805887864797634,
+          "k": 46
+        },
+        {
+          "delta_E": 0.0078057775610205216,
+          "k": 47
+        },
+        {
+          "delta_E": 0.007805499918108305,
+          "k": 48
+        },
+        {
+          "delta_E": 0.0078052679436666494,
+          "k": 49
+        },
+        {
+          "delta_E": 0.00780507711514411,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "intermediate_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.1__intermediate_weak_transfer.tar.gz",
+        "archive_sha256": "9ce1b68e5b9c731b53df448e5fbd03a200fc05496687a835d1711e4da575ed81",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/intermediate_weak/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 1744,
+        "D2q": 672,
+        "Dc": 4995,
+        "N2q": 1198,
+        "S_alg": 225310,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 15247,
+          "N_grad": 6325,
+          "N_metric": 203688
+        },
+        "S_alg_receipt": {
+          "S_alg": 225310,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 15247,
+            "N_grad": 6325,
+            "N_metric": 203688
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 225310,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2094,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=0)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=0)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.07775150017898069,
+      "terminal_k": 50,
+      "title": "Intermediate--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.9407577076742833,
+          "k": 1
+        },
+        {
+          "delta_E": 0.12000534918135891,
+          "k": 2
+        },
+        {
+          "delta_E": 0.09936476291191554,
+          "k": 3
+        },
+        {
+          "delta_E": 0.07863484401688592,
+          "k": 4
+        },
+        {
+          "delta_E": 0.07837040694874003,
+          "k": 5
+        },
+        {
+          "delta_E": 0.07810577361180976,
+          "k": 6
+        },
+        {
+          "delta_E": 0.07804135185045202,
+          "k": 7
+        },
+        {
+          "delta_E": 0.07797692880645685,
+          "k": 8
+        },
+        {
+          "delta_E": 0.07791472946888356,
+          "k": 9
+        },
+        {
+          "delta_E": 0.07785252239216223,
+          "k": 10
+        },
+        {
+          "delta_E": 0.07783034784603893,
+          "k": 11
+        },
+        {
+          "delta_E": 0.07780817230011616,
+          "k": 12
+        },
+        {
+          "delta_E": 0.07779782443229233,
+          "k": 13
+        },
+        {
+          "delta_E": 0.07778747635864547,
+          "k": 14
+        },
+        {
+          "delta_E": 0.07778183506650838,
+          "k": 15
+        },
+        {
+          "delta_E": 0.0777761937118635,
+          "k": 16
+        },
+        {
+          "delta_E": 0.0777727884380277,
+          "k": 17
+        },
+        {
+          "delta_E": 0.0777693830765982,
+          "k": 18
+        },
+        {
+          "delta_E": 0.07776717368960218,
+          "k": 19
+        },
+        {
+          "delta_E": 0.07776496432124702,
+          "k": 20
+        },
+        {
+          "delta_E": 0.07776345354734993,
+          "k": 21
+        },
+        {
+          "delta_E": 0.07776194278425586,
+          "k": 22
+        },
+        {
+          "delta_E": 0.07776086287713102,
+          "k": 23
+        },
+        {
+          "delta_E": 0.0777597829758443,
+          "k": 24
+        },
+        {
+          "delta_E": 0.07775898609629978,
+          "k": 25
+        },
+        {
+          "delta_E": 0.07775818921989863,
+          "k": 26
+        },
+        {
+          "delta_E": 0.07775758489881779,
+          "k": 27
+        },
+        {
+          "delta_E": 0.07775698057999914,
+          "k": 28
+        },
+        {
+          "delta_E": 0.07775651179458776,
+          "k": 29
+        },
+        {
+          "delta_E": 0.07775604301039801,
+          "k": 30
+        },
+        {
+          "delta_E": 0.07775567233108888,
+          "k": 31
+        },
+        {
+          "delta_E": 0.07775530165266059,
+          "k": 32
+        },
+        {
+          "delta_E": 0.07775500370038185,
+          "k": 33
+        },
+        {
+          "delta_E": 0.07775470574841403,
+          "k": 34
+        },
+        {
+          "delta_E": 0.07775446282761334,
+          "k": 35
+        },
+        {
+          "delta_E": 0.07775421990658316,
+          "k": 36
+        },
+        {
+          "delta_E": 0.07775401937277904,
+          "k": 37
+        },
+        {
+          "delta_E": 0.07775381883829197,
+          "k": 38
+        },
+        {
+          "delta_E": 0.07775365146840452,
+          "k": 39
+        },
+        {
+          "delta_E": 0.07775348409889671,
+          "k": 40
+        },
+        {
+          "delta_E": 0.07775334304841142,
+          "k": 41
+        },
+        {
+          "delta_E": 0.07775320199708691,
+          "k": 42
+        },
+        {
+          "delta_E": 0.07775308208702869,
+          "k": 43
+        },
+        {
+          "delta_E": 0.07775291335712942,
+          "k": 44
+        },
+        {
+          "delta_E": 0.07775275512669189,
+          "k": 45
+        },
+        {
+          "delta_E": 0.07775265643397372,
+          "k": 46
+        },
+        {
+          "delta_E": 0.07775257592774315,
+          "k": 47
+        },
+        {
+          "delta_E": 0.0777524935262297,
+          "k": 48
+        },
+        {
+          "delta_E": 0.07775245993075586,
+          "k": 49
+        },
+        {
+          "delta_E": 0.07775150017898069,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_strong_u8",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.2__strong_strong_u8_transfer.tar.gz",
+        "archive_sha256": "50fc7d6d4242b5616ea037cdb669ae1068dd183d148b0a456c377c769c02544e",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/strong_strong_u8/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 3284,
+        "D2q": 1576,
+        "Dc": 9555,
+        "N2q": 2478,
+        "S_alg": 1168897,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 25957,
+          "N_grad": 55560,
+          "N_metric": 1087330
+        },
+        "S_alg_receipt": {
+          "S_alg": 1168897,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 25957,
+            "N_grad": 55560,
+            "N_metric": 1087330
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 1168897,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 3860,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "hh_termwise_ham_quadrature_term(eeezeyeeez)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(eeyeeezeee)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_termwise_ham_quadrature_term(eeeeeyezee)",
+            "hh_termwise_ham_quadrature_term(ezyeeezeee)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 3.959356789695612e-05,
+      "terminal_k": 50,
+      "title": "Strong--strong",
+      "trajectory": [
+        {
+          "delta_E": 0.3563180978140805,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2367830363124539,
+          "k": 2
+        },
+        {
+          "delta_E": 0.007287768435107811,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0038246270137952676,
+          "k": 4
+        },
+        {
+          "delta_E": 0.000246889630343361,
+          "k": 5
+        },
+        {
+          "delta_E": 0.00016579965759178084,
+          "k": 6
+        },
+        {
+          "delta_E": 8.450554459460413e-05,
+          "k": 7
+        },
+        {
+          "delta_E": 7.74336593383218e-05,
+          "k": 8
+        },
+        {
+          "delta_E": 6.519723124132071e-05,
+          "k": 9
+        },
+        {
+          "delta_E": 5.4217839206893714e-05,
+          "k": 10
+        },
+        {
+          "delta_E": 4.5847239329877e-05,
+          "k": 11
+        },
+        {
+          "delta_E": 4.330038665878444e-05,
+          "k": 12
+        },
+        {
+          "delta_E": 4.077652327527659e-05,
+          "k": 13
+        },
+        {
+          "delta_E": 4.0769924467776164e-05,
+          "k": 14
+        },
+        {
+          "delta_E": 4.0653620031916304e-05,
+          "k": 15
+        },
+        {
+          "delta_E": 4.033400285163857e-05,
+          "k": 16
+        },
+        {
+          "delta_E": 4.009334560828304e-05,
+          "k": 17
+        },
+        {
+          "delta_E": 4.0090242681256605e-05,
+          "k": 18
+        },
+        {
+          "delta_E": 4.0086602375977165e-05,
+          "k": 19
+        },
+        {
+          "delta_E": 4.000701277295793e-05,
+          "k": 20
+        },
+        {
+          "delta_E": 3.997133272459763e-05,
+          "k": 21
+        },
+        {
+          "delta_E": 3.99196669773616e-05,
+          "k": 22
+        },
+        {
+          "delta_E": 3.991796263003167e-05,
+          "k": 23
+        },
+        {
+          "delta_E": 3.987514580727769e-05,
+          "k": 24
+        },
+        {
+          "delta_E": 3.9858481632570886e-05,
+          "k": 25
+        },
+        {
+          "delta_E": 3.983788002681621e-05,
+          "k": 26
+        },
+        {
+          "delta_E": 3.9827233080158564e-05,
+          "k": 27
+        },
+        {
+          "delta_E": 3.982052903683808e-05,
+          "k": 28
+        },
+        {
+          "delta_E": 3.981868598490479e-05,
+          "k": 29
+        },
+        {
+          "delta_E": 3.98120160569615e-05,
+          "k": 30
+        },
+        {
+          "delta_E": 3.979296021894285e-05,
+          "k": 31
+        },
+        {
+          "delta_E": 3.979292564504355e-05,
+          "k": 32
+        },
+        {
+          "delta_E": 3.978926729408805e-05,
+          "k": 33
+        },
+        {
+          "delta_E": 3.9782873285876263e-05,
+          "k": 34
+        },
+        {
+          "delta_E": 3.978254233683032e-05,
+          "k": 35
+        },
+        {
+          "delta_E": 3.978251031566682e-05,
+          "k": 36
+        },
+        {
+          "delta_E": 3.977707699676092e-05,
+          "k": 37
+        },
+        {
+          "delta_E": 3.9777064562929176e-05,
+          "k": 38
+        },
+        {
+          "delta_E": 3.977313469338828e-05,
+          "k": 39
+        },
+        {
+          "delta_E": 3.974112690796616e-05,
+          "k": 40
+        },
+        {
+          "delta_E": 3.9740820821032585e-05,
+          "k": 41
+        },
+        {
+          "delta_E": 3.970418943977094e-05,
+          "k": 42
+        },
+        {
+          "delta_E": 3.968269439047489e-05,
+          "k": 43
+        },
+        {
+          "delta_E": 3.9657148368732464e-05,
+          "k": 44
+        },
+        {
+          "delta_E": 3.964546636592292e-05,
+          "k": 45
+        },
+        {
+          "delta_E": 3.96392817851865e-05,
+          "k": 46
+        },
+        {
+          "delta_E": 3.962208190222416e-05,
+          "k": 47
+        },
+        {
+          "delta_E": 3.961522156803454e-05,
+          "k": 48
+        },
+        {
+          "delta_E": 3.960906625777305e-05,
+          "k": 49
+        },
+        {
+          "delta_E": 3.959356789695612e-05,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "strong_weak_u8",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.3__strong_weak_u8_transfer.tar.gz",
+        "archive_sha256": "fbc9f0dc4ad276e6d0437fba60dc2fbe4c33de3b3fc44eb7664e006d2cd41c96",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/strong_weak_u8/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 1924,
+        "D2q": 1042,
+        "Dc": 5254,
+        "N2q": 1160,
+        "S_alg": 1989125,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 20439,
+          "N_grad": 70453,
+          "N_metric": 1898183
+        },
+        "S_alg_receipt": {
+          "S_alg": 1989125,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 20439,
+            "N_grad": 70453,
+            "N_metric": 1898183
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 1989125,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2144,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_termwise_ham_quadrature_term(zyeeeeze)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_sq_full:paop_pair_sq(0,1)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)",
+            "paop_full:paop_disp(site=1)",
+            "paop_sq_full:paop_pair_sq(0,1)",
+            "hh_phonon::s(site=0)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "hh_termwise_ham_quadrature_term(eezyezee)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "paop_sq_std:paop_dens_sq(site=1)",
+            "paop_sq_std:paop_dens_sq(site=0)",
+            "uccsd_ferm_lifted::uccsd_dbl(ab:0,2->1,3)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 1.3867147130586233e-06,
+      "terminal_k": 50,
+      "title": "Strong--weak",
+      "trajectory": [
+        {
+          "delta_E": 0.35043568958836335,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2309006280867384,
+          "k": 2
+        },
+        {
+          "delta_E": 0.0014053602093894169,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0007065360296213408,
+          "k": 4
+        },
+        {
+          "delta_E": 2.999358539090835e-06,
+          "k": 5
+        },
+        {
+          "delta_E": 2.746042006229743e-06,
+          "k": 6
+        },
+        {
+          "delta_E": 2.2045796217451397e-06,
+          "k": 7
+        },
+        {
+          "delta_E": 1.7329162946833065e-06,
+          "k": 8
+        },
+        {
+          "delta_E": 1.411251213667697e-06,
+          "k": 9
+        },
+        {
+          "delta_E": 1.400382618199636e-06,
+          "k": 10
+        },
+        {
+          "delta_E": 1.3895969328547864e-06,
+          "k": 11
+        },
+        {
+          "delta_E": 1.389593074940798e-06,
+          "k": 12
+        },
+        {
+          "delta_E": 1.389584666999788e-06,
+          "k": 13
+        },
+        {
+          "delta_E": 1.389577014898613e-06,
+          "k": 14
+        },
+        {
+          "delta_E": 1.3895737838165445e-06,
+          "k": 15
+        },
+        {
+          "delta_E": 1.3895706332256452e-06,
+          "k": 16
+        },
+        {
+          "delta_E": 1.3895674222386134e-06,
+          "k": 17
+        },
+        {
+          "delta_E": 1.3895640824657107e-06,
+          "k": 18
+        },
+        {
+          "delta_E": 1.3895636443717052e-06,
+          "k": 19
+        },
+        {
+          "delta_E": 1.3895633147464892e-06,
+          "k": 20
+        },
+        {
+          "delta_E": 1.3895487387394212e-06,
+          "k": 21
+        },
+        {
+          "delta_E": 1.3895336016256365e-06,
+          "k": 22
+        },
+        {
+          "delta_E": 1.3881338234433827e-06,
+          "k": 23
+        },
+        {
+          "delta_E": 1.3867388208854692e-06,
+          "k": 24
+        },
+        {
+          "delta_E": 1.3867170260972728e-06,
+          "k": 25
+        },
+        {
+          "delta_E": 1.386715468343347e-06,
+          "k": 26
+        },
+        {
+          "delta_E": 1.3867149735169448e-06,
+          "k": 27
+        },
+        {
+          "delta_E": 1.386714876705497e-06,
+          "k": 28
+        },
+        {
+          "delta_E": 1.3867148100921156e-06,
+          "k": 29
+        },
+        {
+          "delta_E": 1.3867147329316154e-06,
+          "k": 30
+        },
+        {
+          "delta_E": 1.3867147157231585e-06,
+          "k": 31
+        },
+        {
+          "delta_E": 1.386714715501114e-06,
+          "k": 32
+        },
+        {
+          "delta_E": 1.3867147152790693e-06,
+          "k": 33
+        },
+        {
+          "delta_E": 1.3867147152790693e-06,
+          "k": 34
+        },
+        {
+          "delta_E": 1.38671471483498e-06,
+          "k": 35
+        },
+        {
+          "delta_E": 1.3867147135027125e-06,
+          "k": 36
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 37
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 38
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 39
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 40
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 41
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 42
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 43
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 44
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 45
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 46
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 47
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 48
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 49
+        },
+        {
+          "delta_E": 1.3867147130586233e-06,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "weak_strong",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.4__weak_strong_transfer.tar.gz",
+        "archive_sha256": "0ae05c4a61ba9b953a3820d70e88c8f6596aaeee63df0d52aa1e8ab81f6c0320",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/weak_strong/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 2076,
+        "D2q": 777,
+        "Dc": 5871,
+        "N2q": 1178,
+        "S_alg": 280110,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 57814,
+          "N_grad": 9536,
+          "N_metric": 212710
+        },
+        "S_alg_receipt": {
+          "S_alg": 280110,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 57814,
+            "N_grad": 9536,
+            "N_metric": 212710
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 280110,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2450,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_fermionic_reusable::exchange_current_nn(0,1)",
+            "hh_termwise_ham_quadrature_term(zeyeeezeee)",
+            "hh_termwise_ham_quadrature_term(eeeeeyeeez)",
+            "hh_termwise_ham_quadrature_term(eeyeeeeeze)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(zzyeeezeee)",
+            "hh_termwise_ham_quadrature_term(eeeezyezee)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_termwise_ham_quadrature_term(eeeezyeeez)",
+            "hh_termwise_ham_quadrature_term(ezyeeeeeze)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=1)",
+            "hh_phonon::xp_sym(site=0)",
+            "hh_phonon::xp_sym(site=1)",
+            "paop_sq_std:paop_sq(site=0)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 10,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.017557889177368446,
+      "terminal_k": 50,
+      "title": "Weak--strong",
+      "trajectory": [
+        {
+          "delta_E": 1.2559384195375962,
+          "k": 1
+        },
+        {
+          "delta_E": 0.2637206380749144,
+          "k": 2
+        },
+        {
+          "delta_E": 0.2125114323260695,
+          "k": 3
+        },
+        {
+          "delta_E": 0.21234063478793574,
+          "k": 4
+        },
+        {
+          "delta_E": 0.1601636983155207,
+          "k": 5
+        },
+        {
+          "delta_E": 0.11457596384607993,
+          "k": 6
+        },
+        {
+          "delta_E": 0.06813814229365378,
+          "k": 7
+        },
+        {
+          "delta_E": 0.05878692737693503,
+          "k": 8
+        },
+        {
+          "delta_E": 0.04961136876617567,
+          "k": 9
+        },
+        {
+          "delta_E": 0.045476797313243056,
+          "k": 10
+        },
+        {
+          "delta_E": 0.04109634210568225,
+          "k": 11
+        },
+        {
+          "delta_E": 0.041096341917302937,
+          "k": 12
+        },
+        {
+          "delta_E": 0.0205439214835359,
+          "k": 13
+        },
+        {
+          "delta_E": 0.019779900567145958,
+          "k": 14
+        },
+        {
+          "delta_E": 0.018970848033764698,
+          "k": 15
+        },
+        {
+          "delta_E": 0.01876828944450426,
+          "k": 16
+        },
+        {
+          "delta_E": 0.01859811058025662,
+          "k": 17
+        },
+        {
+          "delta_E": 0.018375566372776486,
+          "k": 18
+        },
+        {
+          "delta_E": 0.01815782131324295,
+          "k": 19
+        },
+        {
+          "delta_E": 0.018083878025453082,
+          "k": 20
+        },
+        {
+          "delta_E": 0.0180250969423128,
+          "k": 21
+        },
+        {
+          "delta_E": 0.018006971676778782,
+          "k": 22
+        },
+        {
+          "delta_E": 0.017917771627457002,
+          "k": 23
+        },
+        {
+          "delta_E": 0.01784183029146047,
+          "k": 24
+        },
+        {
+          "delta_E": 0.01779327338670922,
+          "k": 25
+        },
+        {
+          "delta_E": 0.01775140142930165,
+          "k": 26
+        },
+        {
+          "delta_E": 0.017722336946245143,
+          "k": 27
+        },
+        {
+          "delta_E": 0.017696321833268858,
+          "k": 28
+        },
+        {
+          "delta_E": 0.0176773639605885,
+          "k": 29
+        },
+        {
+          "delta_E": 0.01765987957987014,
+          "k": 30
+        },
+        {
+          "delta_E": 0.017647086701547243,
+          "k": 31
+        },
+        {
+          "delta_E": 0.017634608898513093,
+          "k": 32
+        },
+        {
+          "delta_E": 0.01762531340308171,
+          "k": 33
+        },
+        {
+          "delta_E": 0.017616300798659612,
+          "k": 34
+        },
+        {
+          "delta_E": 0.017609051973886958,
+          "k": 35
+        },
+        {
+          "delta_E": 0.01760224110608344,
+          "k": 36
+        },
+        {
+          "delta_E": 0.017596506669032896,
+          "k": 37
+        },
+        {
+          "delta_E": 0.017591438369671364,
+          "k": 38
+        },
+        {
+          "delta_E": 0.017586833579134264,
+          "k": 39
+        },
+        {
+          "delta_E": 0.017583089315279077,
+          "k": 40
+        },
+        {
+          "delta_E": 0.017579146333290607,
+          "k": 41
+        },
+        {
+          "delta_E": 0.017575983862162525,
+          "k": 42
+        },
+        {
+          "delta_E": 0.017572842744463246,
+          "k": 43
+        },
+        {
+          "delta_E": 0.01757019687887884,
+          "k": 44
+        },
+        {
+          "delta_E": 0.017567647301447886,
+          "k": 45
+        },
+        {
+          "delta_E": 0.017565397401253957,
+          "k": 46
+        },
+        {
+          "delta_E": 0.017563456626308982,
+          "k": 47
+        },
+        {
+          "delta_E": 0.017561348003346966,
+          "k": 48
+        },
+        {
+          "delta_E": 0.01755966542501297,
+          "k": 49
+        },
+        {
+          "delta_E": 0.017557889177368446,
+          "k": 50
+        }
+      ]
+    },
+    {
+      "regime": "weak_weak",
+      "source": {
+        "archive": "tmp/chtc_retrieval/paper_i_insertion_20260726/9381227.5__weak_weak_transfer.tar.gz",
+        "archive_sha256": "d55ed4ac4e78b55c6c9a772bbc0163e6f55d9b1dbdd8c412b15c969d07578957",
+        "member": "raw_outputs/paper_i_hh_sr_snake_macro_insertion_commutation_plateau_all_six_r50_20260725_v3_chtc/weak_weak/json/current.json"
+      },
+      "terminal_costs": {
+        "B1q": 1744,
+        "D2q": 672,
+        "Dc": 4995,
+        "N2q": 1198,
+        "S_alg": 224769,
+        "S_alg_components": {
+          "N_H_outer": 50,
+          "N_H_refit": 14706,
+          "N_grad": 6325,
+          "N_metric": 203688
+        },
+        "S_alg_receipt": {
+          "S_alg": 224769,
+          "accepted_prefix_length": 50,
+          "components": {
+            "N_H_outer": 50,
+            "N_H_refit": 14706,
+            "N_grad": 6325,
+            "N_metric": 203688
+          },
+          "contract": "required_executed_logical_scalar_estimator_invocations_v1",
+          "method": "SNAKE",
+          "normalization": {
+            "redundant_initial_outer_refresh_count_removed": 0,
+            "runtime_occurrence_total": 224769,
+            "runtime_receipt_schema": null,
+            "same_iteration_reuse": "already-acquired quantities may be carried between phases or commuting insertion positions; every executed invocation remaining in the ledger is counted",
+            "source": "closed_runtime_occurrence_ledger",
+            "unique_primitive_diagnostic_excluded": true
+          },
+          "representation": "intact_macro",
+          "round_cardinalities": [],
+          "schema": "paper_i_clean_algorithm_s_alg_v3",
+          "scope": "all required estimator invocations through the displayed post-admission prefix; post-prefix diagnostics excluded",
+          "unit": "logical_scalar_estimator_invocation"
+        },
+        "W1q": 2094,
+        "active_depth": 50,
+        "qiskit_basis_work_schema": "qiskit_pretranspile_pauli_basis_work_v1",
+        "qiskit_basis_work_status": "ok",
+        "qiskit_compile_identity": "table_i_basis_gate_transpile_v1",
+        "reconstruction": {
+          "labels": [
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=0)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_phonon::s(site=0)",
+            "hh_phonon::s(site=1)",
+            "paop_full:paop_disp(site=1)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_cloud_p(site=1->phonon=0)",
+            "paop_full:paop_disp(site=1)",
+            "hh_termwise_ham_quadrature_term(zyeezeee)",
+            "hh_termwise_ham_quadrature_term(eyeeeeze)"
+          ],
+          "mode": "source_checkpoint_ordered_active_operators",
+          "operator_count": 50
+        },
+        "reference_state": {
+          "amplitude_count": 1,
+          "bitstring_order": "q_(n-1)...q_0; q0 is rightmost",
+          "handoff_state_kind": "reference_state",
+          "input_norm": 1.0,
+          "normalized_for_circuit": true,
+          "num_qubits": 8,
+          "source": "hf",
+          "source_location": "ansatz_input_state"
+        }
+      },
+      "terminal_error": 0.0011270756491802425,
+      "terminal_k": 50,
+      "title": "Weak--weak",
+      "trajectory": [
+        {
+          "delta_E": 1.035598701457503,
+          "k": 1
+        },
+        {
+          "delta_E": 0.04338091999482141,
+          "k": 2
+        },
+        {
+          "delta_E": 0.022740333725378092,
+          "k": 3
+        },
+        {
+          "delta_E": 0.0020104148303479175,
+          "k": 4
+        },
+        {
+          "delta_E": 0.0017459777621999795,
+          "k": 5
+        },
+        {
+          "delta_E": 0.0014813445775341272,
+          "k": 6
+        },
+        {
+          "delta_E": 0.001416922663914022,
+          "k": 7
+        },
+        {
+          "delta_E": 0.001352499619919123,
+          "k": 8
+        },
+        {
+          "delta_E": 0.00129030042459366,
+          "k": 9
+        },
+        {
+          "delta_E": 0.0012280933520294468,
+          "k": 10
+        },
+        {
+          "delta_E": 0.001205918664039185,
+          "k": 11
+        },
+        {
+          "delta_E": 0.0011837431146589639,
+          "k": 12
+        },
+        {
+          "delta_E": 0.0011733952462489317,
+          "k": 13
+        },
+        {
+          "delta_E": 0.0011630471717991586,
+          "k": 14
+        },
+        {
+          "delta_E": 0.001157406018476581,
+          "k": 15
+        },
+        {
+          "delta_E": 0.0011517646673651072,
+          "k": 16
+        },
+        {
+          "delta_E": 0.0011483592580854296,
+          "k": 17
+        },
+        {
+          "delta_E": 0.0011449538904099166,
+          "k": 18
+        },
+        {
+          "delta_E": 0.0011427445031910732,
+          "k": 19
+        },
+        {
+          "delta_E": 0.0011405351347091308,
+          "k": 20
+        },
+        {
+          "delta_E": 0.0011390243608633277,
+          "k": 21
+        },
+        {
+          "delta_E": 0.0011375135973308304,
+          "k": 22
+        },
+        {
+          "delta_E": 0.0011364336907376815,
+          "k": 23
+        },
+        {
+          "delta_E": 0.0011353537893363796,
+          "k": 24
+        },
+        {
+          "delta_E": 0.0011345569094799446,
+          "k": 25
+        },
+        {
+          "delta_E": 0.0011337600331735587,
+          "k": 26
+        },
+        {
+          "delta_E": 0.0011331557122231661,
+          "k": 27
+        },
+        {
+          "delta_E": 0.0011325513933366782,
+          "k": 28
+        },
+        {
+          "delta_E": 0.0011320826078934365,
+          "k": 29
+        },
+        {
+          "delta_E": 0.0011316138239918505,
+          "k": 30
+        },
+        {
+          "delta_E": 0.0011312431445877902,
+          "k": 31
+        },
+        {
+          "delta_E": 0.0011308724660428204,
+          "k": 32
+        },
+        {
+          "delta_E": 0.0011305745138794343,
+          "k": 33
+        },
+        {
+          "delta_E": 0.0011302765620251343,
+          "k": 34
+        },
+        {
+          "delta_E": 0.0011300336408979206,
+          "k": 35
+        },
+        {
+          "delta_E": 0.0011297907198388746,
+          "k": 36
+        },
+        {
+          "delta_E": 0.0011295901860737256,
+          "k": 37
+        },
+        {
+          "delta_E": 0.0011293896538697723,
+          "k": 38
+        },
+        {
+          "delta_E": 0.0011292222786598582,
+          "k": 39
+        },
+        {
+          "delta_E": 0.0011290549181134368,
+          "k": 40
+        },
+        {
+          "delta_E": 0.0011289138607620819,
+          "k": 41
+        },
+        {
+          "delta_E": 0.0011287728106916806,
+          "k": 42
+        },
+        {
+          "delta_E": 0.00112860398378134,
+          "k": 43
+        },
+        {
+          "delta_E": 0.0011284324550460134,
+          "k": 44
+        },
+        {
+          "delta_E": 0.0011283332276930125,
+          "k": 45
+        },
+        {
+          "delta_E": 0.0011282367591851639,
+          "k": 46
+        },
+        {
+          "delta_E": 0.0011281562932856648,
+          "k": 47
+        },
+        {
+          "delta_E": 0.001128075835536979,
+          "k": 48
+        },
+        {
+          "delta_E": 0.0011280418897219313,
+          "k": 49
+        },
+        {
+          "delta_E": 0.0011270756491802425,
+          "k": 50
+        }
+      ]
+    }
+  ],
+  "schema": "paper_i_hh_plateau_insertion_batch_evidence_v1"
+}

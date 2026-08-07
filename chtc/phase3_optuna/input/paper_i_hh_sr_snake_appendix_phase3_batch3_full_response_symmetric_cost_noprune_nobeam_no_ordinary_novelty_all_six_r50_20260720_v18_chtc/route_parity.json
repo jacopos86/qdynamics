@@ -1,0 +1,432 @@
+{
+  "active_depth_ceiling": 150,
+  "all_horizons_explicit_in_argv": true,
+  "all_six_commands_parse": true,
+  "batch_name": "paper-i-hh-sr-appendix-phase3-batch3-fullresp-symcost-noprune-nobeam-nonovelty-six-r50-20260720-v18",
+  "batch_selector_workspace_receipt_repair": {
+    "classification": "non_scientific_selected_proposal_workspace_telemetry_preservation_v1",
+    "derived_file_sha256": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "3684ae46dfd07cc5f0fdfc8809e29dc47bf1709da62754c88acf5cc3500b5bf8"
+    },
+    "failure_mode": "The non-beam batch selector wrappers returned the selected proposal's partial summary instead of the complete selector summary, dropping the already-computed geometry_workspace trust receipt.",
+    "model_inputs_or_selection_changed": false,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v18_chtc/batch_selector_workspace_receipt_overlay.patch",
+    "overlay_sha256": "1da782d0d14355f22de3152961ce7f1d12f602920464fec916362f4643785bdf",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "predecessor_cluster": 8887596,
+    "predecessor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1",
+    "repair_scope": [
+      "pipelines/scaffold/hh_continuation_scoring.py::greedy_reduced_plane_batch_select",
+      "pipelines/scaffold/hh_continuation_scoring.py::combinatorial_reduced_plane_batch_select"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch_selector_workspace_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "selected_records_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v18_chtc",
+    "successor_source_archive_sha256": "9d47b1ddb6e3754f173f51e35762543116c3d79cd56a0c895b1a5f75b6e3879b",
+    "telemetry_preserved": [
+      "geometry_workspace",
+      "proposal_count",
+      "selection-level response receipts"
+    ]
+  },
+  "beam_shape": "effective_1x1_v1",
+  "bundle_id": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260720_v18_chtc",
+  "controller_round_horizon": 50,
+  "empty_gram_receipt_repair": {
+    "classification": "non_scientific_serialized_zero_extent_matrix_shape_restoration_v1",
+    "derived_file_sha256": {
+      "pipelines/static_adapt/adapt_pipeline.py": "290507efc3690dd8ea0cb204ba26f7b00480f315f9d14eb7194094aed18a1b4e",
+      "pipelines/static_adapt/selector_query_closure.py": "bcdd57c621f0b9688ae97537e63dcfa804371115e871a2b57543668fabd73b34"
+    },
+    "failure_mode": "JSON ndarray.tolist() collapses zero-row matrices such as (0,0) and (0,b) to [] with inferred reload shape (0,)",
+    "malformed_nonempty_or_nonfinite_payloads_fail_closed": true,
+    "overlay": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc/empty_gram_receipt_overlay.patch",
+    "overlay_sha256": "fcbba1e050c894316eeba7bf4468aabbd7e64be69a6d22ab7ebe72add05cc478",
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+    "predecessor_source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299",
+    "repair_scope": [
+      "pipelines/static_adapt/selector_query_closure.py::normalize_serialized_matrix_payload",
+      "pipelines/static_adapt/adapt_pipeline.py::_phase3_batch_appendix_trust_update_inputs._finite_matrix"
+    ],
+    "restoration_authority": "typed receipt expected_shape",
+    "restored_shapes": [
+      "(0,0)",
+      "(0,b)",
+      "(a,0)"
+    ],
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_hh_sr_phase3_batch3_empty_gram_receipt_repair_v1",
+    "scientific_settings_changed": false,
+    "submission_performed": false,
+    "successor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v5_chtc",
+    "successor_source_archive_sha256": "d7ce13820d6b59bbe01a4dade40b304daa4e9a0c8e705f5ed19457561c524bd1"
+  },
+  "hysteresis_disabled_successor": {
+    "only_scientific_contract_diff": [
+      {
+        "field": "phase_live_hysteresis_enabled",
+        "new": false,
+        "old": null
+      }
+    ],
+    "predecessor_bundle": "paper_i_hh_sr_snake_appendix_phase3_batch3_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v3_chtc",
+    "predecessor_cluster": 8887548,
+    "route_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "schema": "paper_i_sr_full_response_hysteresis_disabled_successor_v1",
+    "source_archive_sha256": "e93b75e0cf9961d78f1ec9b41108a93deb9f5c039e15ee5371187ff7b103f299"
+  },
+  "infeasible_model_novelty_fallback_active": true,
+  "infeasible_model_novelty_fallback_telemetry_required": true,
+  "lambda_f_proxy_flags_forbidden": true,
+  "max_new_admissions": 150,
+  "no_profile_method_flag_repetition": true,
+  "non_scientific_archive_overlays": {
+    "pipelines/hardcoded/adapt_pipeline.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "93c0e91cd01981f5bfa1e9d1434b74296395ca0837f2901ca66ad18ac63dd42f",
+      "size_bytes": 1807,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_generators.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "8c6292c5c71f67312bdc32afc8d3908a83cb550b8f2d8871ed7f7183824e6570",
+      "size_bytes": 664,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_scoring.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "f25b2ae3f4037758c5f1942e6e3e0c75df04f9c5c7008d8b8dacfa9f150aa492",
+      "size_bytes": 658,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_symmetry.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "5f61b9c43c253fb81bc354aace4e015f0c4f06a1e8aa8a48b24a43a11b341e01",
+      "size_bytes": 668,
+      "tracked_in_frozen_commit": false
+    },
+    "pipelines/hardcoded/hh_continuation_types.py": {
+      "classification": "compatibility_import_shim_only",
+      "mode": "0644",
+      "sha256": "f24b1a670179ec17c05132b3b65f9541db54ffd888429951f7e17d6aaaf41f4c",
+      "size_bytes": 654,
+      "tracked_in_frozen_commit": false
+    }
+  },
+  "parse_rows": [
+    {
+      "job": "jobs/weak_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_weak.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_weak.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_weak_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_weak_u8.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/weak_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/weak_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/intermediate_strong.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/intermediate_strong.json",
+        "status": "pass"
+      }
+    },
+    {
+      "job": "jobs/strong_strong_u8.json",
+      "returncode": 0,
+      "stderr_empty": true,
+      "stdout": {
+        "job": "jobs/strong_strong_u8.json",
+        "status": "pass"
+      }
+    }
+  ],
+  "per_regime_horizons": {
+    "intermediate_strong": 50,
+    "intermediate_weak": 50,
+    "strong_strong_u8": 50,
+    "strong_weak_u8": 50,
+    "weak_strong": 50,
+    "weak_weak": 50
+  },
+  "phase1_energy_model": "first_order_fs_trust_v1",
+  "phase2_batching_active": false,
+  "phase2_cheap_curvature_proxy_policy": "off",
+  "phase2_curvature_policy": "measured_required_fail_closed_v1",
+  "phase2_ordinary_novelty_multiplier_active": false,
+  "phase3_batch_full_accepted_refit_required": true,
+  "phase3_batch_response_scope": "full_active_plus_batch_v1",
+  "phase3_batch_selection_mode": "combinatorial_reduced_plane",
+  "phase3_batch_size_cap": 3,
+  "phase3_batch_supported_fs_trust_receipt_required": true,
+  "phase3_batch_target_size": 3,
+  "phase3_batching_active": true,
+  "phase3_ordinary_novelty_multiplier_active": false,
+  "phase3_runtime_child_subset_cap": 1,
+  "profile_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+  "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_phase3_batch_v1",
+  "pruning_active": false,
+  "same_cutoff_lock_pass": true,
+  "schema": "paper_i_hh_sr_appendix_phase3_batch3_route_parity_v1",
+  "scientific_settings_audit": {
+    "approved_contract": {
+      "per_regime_horizons": {
+        "intermediate_strong": 50,
+        "intermediate_weak": 50,
+        "strong_strong_u8": 50,
+        "strong_weak_u8": 50,
+        "weak_strong": 50,
+        "weak_weak": 50
+      },
+      "required_execution_settings": {
+        "adapt_beam_children_per_parent": 1,
+        "adapt_beam_lambda": 0.005,
+        "adapt_beam_live_branches": 1,
+        "adapt_beam_terminal_archive_mode": "disabled",
+        "adapt_beam_terminated_keep": 0,
+        "adapt_disable_hh_seed": true,
+        "adapt_final_full_refit": "false",
+        "adapt_finite_angle_fallback": false,
+        "adapt_full_refit_every": 0,
+        "adapt_seed": 7,
+        "phase1_energy_model": "first_order_fs_trust_v1",
+        "phase1_prune_enabled": false,
+        "phase2_batch_selection_mode": "combinatorial_reduced_plane",
+        "phase2_batch_size_cap": 3,
+        "phase2_batch_target_size": 3,
+        "phase2_cheap_curvature_proxy_policy": "off",
+        "phase2_curvature_policy": "measured_required_fail_closed_v1",
+        "phase2_enable_batching": false,
+        "phase2_gram_novelty_policy": "fallback_only_v1",
+        "phase3_batch_selection_mode": "combinatorial_reduced_plane",
+        "phase3_batch_size_cap": 3,
+        "phase3_batch_target_size": 3,
+        "phase3_enable_batching": true,
+        "phase3_enable_rescue": false,
+        "phase3_gram_novelty_policy": "fallback_only_v1",
+        "phase3_hardware_cost_normalization_mode": "family_robust_symmetric_arctan_v1",
+        "phase3_runtime_split_max_subset_size": 1,
+        "phase3_shadow_damping_policy": "off"
+      },
+      "required_semantic_invariants": {
+        "admission_cardinality": "one_to_three_v1",
+        "all_energy_models_infeasible_novelty_fallback_active": true,
+        "all_energy_models_infeasible_novelty_fallback_telemetry_required": true,
+        "appendix_one_factor_ablation": true,
+        "beam_shape": "effective_1x1_v1",
+        "controller_horizon_source": "per_regime_source_lock",
+        "negative_curvature_escape_active": false,
+        "ordinary_phase2_novelty_multiplier_active": false,
+        "ordinary_phase3_novelty_multiplier_active": false,
+        "periodic_full_refit_active": false,
+        "phase2_batching_active": false,
+        "phase2_supported_whitening_active": false,
+        "phase3_batch_full_accepted_refit_required": true,
+        "phase3_batch_response_scope": "full_active_plus_batch_v1",
+        "phase3_batch_selection_mode": "combinatorial_reduced_plane",
+        "phase3_batch_size_cap": 3,
+        "phase3_batch_supported_fs_trust_receipt_required": true,
+        "phase3_batch_target_size": 3,
+        "phase3_batching_active": true,
+        "phase3_batching_scope": "post_shortlist_admission_only_v1",
+        "phase3_runtime_child_subset_cap": 1,
+        "phase3_supported_whitening_active": true,
+        "pruning_active": false,
+        "terminal_full_refit_active": false,
+        "terminal_prune_active": false
+      }
+    },
+    "immutable_parent": {
+      "bundle": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v1_chtc",
+      "bundle_manifest_used_as_provenance_anchor": false,
+      "route_contract_sha256": "69dcf6d5711a05b54cc143562bc6f437511d781164319b2705857b22deda1538",
+      "scientific_settings_audit": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v1_chtc/scientific_settings_audit.json",
+      "scientific_settings_audit_sha256": "8d337f6b6763242649181a84867c7b33567fd0a2584a18d249a7b7a91a6fc25f",
+      "source_archive_sha256": "fa9014b9608ccb8a301df0429268482abf6dd10c91eb336111a15d00be256d35"
+    },
+    "one_factor_execution_diff": {
+      "phase2_batch_selection_mode": {
+        "appendix_phase3_batch": "combinatorial_reduced_plane",
+        "parent": "<MISSING>"
+      },
+      "phase2_batch_size_cap": {
+        "appendix_phase3_batch": 3,
+        "parent": "<MISSING>"
+      },
+      "phase2_batch_target_size": {
+        "appendix_phase3_batch": 3,
+        "parent": "<MISSING>"
+      },
+      "phase3_batch_selection_mode": {
+        "appendix_phase3_batch": "combinatorial_reduced_plane",
+        "parent": "<MISSING>"
+      },
+      "phase3_batch_size_cap": {
+        "appendix_phase3_batch": 3,
+        "parent": "<MISSING>"
+      },
+      "phase3_batch_target_size": {
+        "appendix_phase3_batch": 3,
+        "parent": "<MISSING>"
+      },
+      "phase3_enable_batching": {
+        "appendix_phase3_batch": true,
+        "parent": false
+      }
+    },
+    "profile_contract_sha256": "27df701ab280c02422e7030ec60a77d37ff20b73132ae4824cc41017f93fa050",
+    "profile_request": "sr_snake_no_prune_symmetric_cost_phase3_batch_v1",
+    "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_phase3_batch_v1",
+    "response_model_damping": {
+      "classification": "numerical_stability_tolerances_are_not_scientific_damping",
+      "historical_numerical_schur_ridge": 1e-06,
+      "scientific_h_plus_mu_g_damping": "off",
+      "supported_solve_numerical_tolerance": 1e-09
+    },
+    "rows": [
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "weak_weak",
+        "target_round": 50
+      },
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "intermediate_weak",
+        "target_round": 50
+      },
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "strong_weak_u8",
+        "target_round": 50
+      },
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "weak_strong",
+        "target_round": 50
+      },
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "intermediate_strong",
+        "target_round": 50
+      },
+      {
+        "checks": {
+          "cache_policy_explicit": true,
+          "exact_horizon": true,
+          "exact_reference_decimal_lock": true,
+          "fresh_round_zero": true,
+          "g_ep_12_digit_lock": true,
+          "horizon_explicit_in_argv": true,
+          "no_manual_exact_override": true,
+          "post_run_fidelity_reporting_only": true,
+          "profile_digest_exact": true,
+          "profile_only_plus_horizon": true,
+          "same_cutoff": true
+        },
+        "regime_slug": "strong_strong_u8",
+        "target_round": 50
+      }
+    ],
+    "schema": "paper_i_hh_sr_appendix_phase3_batch3_settings_audit_v1",
+    "status": "pass",
+    "unexpected_executable_differences": []
+  },
+  "status": "pass",
+  "worker_source_mode": "frozen_phase3_batch3_hysteresis_disabled_v4_plus_serialized_zero_extent_matrix_receipt_repair_v5_plus_batch_selector_workspace_receipt_repair_v6+accepted_batch_coordinate_receipt_repair_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1+phase3_batch_singleton_coordinate_receipt_retention_v1"
+}

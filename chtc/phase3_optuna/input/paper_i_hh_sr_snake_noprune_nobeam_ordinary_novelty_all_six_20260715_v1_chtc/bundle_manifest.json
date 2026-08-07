@@ -1,0 +1,258 @@
+{
+  "batch_name": "paper-i-hh-sr-noprune-nobeam-novelty-on-six-20260715-v1",
+  "bundle_id": "paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc",
+  "created_utc": "2026-07-16T04:17:42.044847+00:00",
+  "execution_image": {
+    "local_presence": false,
+    "path": "chtc/phase3_optuna/image.sif",
+    "remote_hash_check_required_before_submission": true,
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "job_count": 6,
+  "jobs": [
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "controller_round_target": 30,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_weak.json",
+      "job_manifest_sha256": "24b8c50be54acc6eda506b38e9cd0583bd0ef88b1db6dac47e850b88040dc0b0",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 0.25
+      },
+      "regime_slug": "weak_weak"
+    },
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--u"
+      ],
+      "controller_round_target": 30,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_weak.json",
+      "job_manifest_sha256": "7ee0d9b6aea0f12418426a232e42a6962e2ef7cfa47f6dc3ba71061f139b1573",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_weak"
+    },
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--adapt-max-depth",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--u"
+      ],
+      "controller_round_target": 50,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_weak_u8.json",
+      "job_manifest_sha256": "67ff7a01a5cc1a33b34982e0a3511d889e4cc7aa7f93b7ea042d80bcf3ce5c0e",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.353553390593,
+        "lambda": 0.25,
+        "n_ph_reference": 2,
+        "n_ph_work": 2,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_weak_u8"
+    },
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--adapt-max-depth",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "controller_round_target": 50,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/weak_strong.json",
+      "job_manifest_sha256": "6862cab52ebc8b49e15cdeada67c873b066918e5260b0e578244b36e52549c56",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 0.25
+      },
+      "regime_slug": "weak_strong"
+    },
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--adapt-max-depth",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--u"
+      ],
+      "controller_round_target": 50,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/intermediate_strong.json",
+      "job_manifest_sha256": "ec5d436919af666fdfe1c28e8f243d44163637348451f46a368a73fb4eefd021",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 1.25
+      },
+      "regime_slug": "intermediate_strong"
+    },
+    {
+      "changed_flags_vs_matched_baseline": [
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy"
+      ],
+      "changed_flags_vs_successful_weak_weak_anchor": [
+        "--adapt-current-json",
+        "--adapt-estimator-call-ledger-json",
+        "--adapt-max-depth",
+        "--g-ep",
+        "--n-ph-max",
+        "--output-json",
+        "--phase2-gram-novelty-policy",
+        "--phase3-gram-novelty-policy",
+        "--u"
+      ],
+      "controller_round_target": 50,
+      "job_manifest": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/jobs/strong_strong_u8.json",
+      "job_manifest_sha256": "097bd59aff835fbfa39d5b603f384503b3372d0e3df2d480cb94d338399a902d",
+      "physics": {
+        "L": 2,
+        "g_ep": 0.790569415042,
+        "lambda": 1.25,
+        "n_ph_reference": 4,
+        "n_ph_work": 4,
+        "problem": "hh",
+        "same_cutoff_reference": true,
+        "u_over_t": 8.0
+      },
+      "regime_slug": "strong_strong_u8"
+    }
+  ],
+  "local_smoke_validation": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/local_smoke_validation.json",
+    "sha256": "b5522a8031c8fbb3a6b59a9f3501ef113e5d892832bbc225b4b97b0bdf6e605f",
+    "status": "pass"
+  },
+  "run_class": "candidate_source_locked_ablation",
+  "schema": "paper_i_hh_sr_noprune_nobeam_novelty_on_six_bundle_v1",
+  "settings_diff": {
+    "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock_and_settings_diff.json",
+    "sha256": "05792d51bb6ea0520ad4c65eb4b674cdfb7b9f1f93c134ade6370d15b83d44c0"
+  },
+  "source_archive": {
+    "archive_path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_locked.tar.gz",
+    "archive_sha256": "94c2df6df22c6d277aefdd6559273d943e3724d476ecab6648c6dd11e1fd78c6",
+    "archive_size_bytes": 3563453,
+    "critical_source_hashes": {
+      "pipelines/scaffold/hh_continuation_scoring.py": "9ac932645e68781a4835f52f68b2ed89f834c4e215b1c114ca58c99014756303",
+      "pipelines/static_adapt/accepted_refit.py": "099c128e1857801e68fc403015bd3eab35398ccfd405e12382bd3015829affd4",
+      "pipelines/static_adapt/adapt_pipeline.py": "4884830d93e489e9d9f0daef2cdd3dc819d899eef08e5ca33d964b8515d93301",
+      "pipelines/static_adapt/cli_config.py": "d3b46ac2c28eaa43af3d9a14a961761ba247d5d8d9b9781116db3ac28a4a70b9",
+      "pipelines/static_adapt/joint_linear_solve.py": "13c74cda3dabaf6a6c3eee06cf5a9c44b57ca1799a4f45fc33ea2ac1bad446b5",
+      "pipelines/static_adapt/sr_snake_escape_controller.py": "323183c2819c0bab1e3ee19da24cd2dfea24a269a39baf0e6f3965dd2bf7b1f4",
+      "pipelines/static_adapt/sr_snake_route_profile.py": "8d6d8e72d8a471fb57f927b2acf04ae23630ff01377fec88ce284f244926cf12"
+    },
+    "file_count": 432,
+    "schema": "paper_i_hh_sr_noprune_nobeam_source_archive_inventory_v1",
+    "source_revision": "no_beam_ablation_v1"
+  },
+  "source_records": {
+    "anchor_command": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_command.json",
+      "sha256": "87bff4c130d17c994e25dab49ac72d012c9beae97f6d89cd2edb857fc1806014"
+    },
+    "anchor_execution": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_execution.json",
+      "sha256": "c62770cd1d828a7ee5c4bfb52a24510e3aacb6ba29b28b76f63645081204e6fc"
+    },
+    "anchor_result_summary": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_result_summary.json",
+      "sha256": "365ad73c9a1ec2e72b5bb5443d51044512eb56119b29a935d0569013d71a5f5f"
+    },
+    "anchor_settings_diff": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_settings_diff.json",
+      "sha256": "a9f381968cb503bc9f931ece8711e2574e4b359238134375fa908019ad02c6f6"
+    },
+    "base_source_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/base_source_manifest.json",
+      "sha256": "7e0b8d4b72bcabb5de842ae89afd8d34ce861ebf0e2b9d16fe12f883c73aa416"
+    },
+    "source_revision_manifest": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/source_revision_manifest.json",
+      "sha256": "dc6f68c6f78a737a773b7672846485e6d591f8ffd4cd2ec06aa7491339a33817"
+    }
+  },
+  "submission_status": "staged_not_submitted",
+  "successful_local_weak_weak_anchor": {
+    "controller_rounds": 30,
+    "final_same_cutoff_error": 7.993605777301127e-15,
+    "full_result_source": {
+      "copied_into_bundle": false,
+      "path": "raw_outputs/paper_i_hh_sr_snake_weak_weak_undamped_no_prune_no_beam_no_ordinary_novelty_fallback_on_20260715/json/result.json",
+      "sha256": "68fde0ab9de5ae69cee27ac0f54cb52f9e377882969daa0a1630d14f520ffdaa"
+    },
+    "result_summary": {
+      "path": "chtc/phase3_optuna/input/paper_i_hh_sr_snake_noprune_nobeam_ordinary_novelty_all_six_20260715_v1_chtc/source_lock/anchor_result_summary.json",
+      "sha256": "365ad73c9a1ec2e72b5bb5443d51044512eb56119b29a935d0569013d71a5f5f"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "paper_i_sr_operational_successor_marker_v1",
+  "status": "superseded_do_not_submit",
+  "reason": "Cluster 8895565 failed before science because adapt_pipeline.py imported a cache identity from an omitted frozen overlay dependency. The immutable v8 successor adds that dependency and an archive import gate without changing scientific settings.",
+  "failed_cluster": 8895565,
+  "failed_exit_code": 1,
+  "failure_class": "pre_science_source_archive_dependency_closure",
+  "successor_bundle": "paper_i_hh_sr_snake_phase3_projected_generalized_parent_anchor_weak_weak_r50_20260719_v8_chtc"
+}

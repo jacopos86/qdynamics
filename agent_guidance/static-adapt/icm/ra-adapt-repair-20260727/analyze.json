@@ -1,0 +1,107 @@
+{
+  "authoritative_inputs": [
+    {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles.json",
+      "sha256": "e2ee41313bf51bb46ca4269b4740b799167dae48da328bb291b56559db1c2f3f"
+    },
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "sha256": "c2aaff1778485a172b40858a315d663e1476e77e33c5bdd40cb9f5affbf91ee9"
+    },
+    {
+      "path": ".gitnexusignore",
+      "sha256": "4d4808e8f16a80c9129de7a9ccdf184aabff7f23a8ed01cf2aa2cf26c4de005a"
+    },
+    {
+      "path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "sha256": "f4268ac7e588b1ceec635daf032dfaae2712d73b82b398f4e9019f8fc1159f25"
+    },
+    {
+      "path": ".gitnexus/meta.json",
+      "sha256": "d99d792d243cb63d3e6cbcd3080a28860fa076e82babd48c9518e1a61f3054a5",
+      "status": "final_up_to_date"
+    }
+  ],
+  "checks": [
+    {
+      "command": "test -f .gitnexusignore",
+      "id": "strict_ignore_surface",
+      "status": "passed"
+    },
+    {
+      "evidence_path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "id": "path_limited_pre_and_post_archive_source_sweeps",
+      "status": "passed_for_manifested_families"
+    },
+    {
+      "evidence_path": ".gitnexus/meta.json",
+      "id": "gitnexus_final_index_freshness",
+      "observed": {
+        "candidate_count": 1592,
+        "candidate_sha256": "fb5de6d1d099ab233f77c7e55f505c741525646735df8360021feff6ff390177",
+        "forbidden_candidate_count": 0,
+        "self_referential_receipt_candidate_count": 0,
+        "indexed_at": "2026-07-28T03:54:46.458Z",
+        "last_commit": "a42de3b64b094a9920a131f6396fd41cff56a692",
+        "status": "up_to_date"
+      },
+      "status": "passed"
+    },
+    {
+      "evidence_path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "id": "five_required_index_answers",
+      "observed": 5,
+      "status": "passed"
+    },
+    {
+      "id": "numerical_outcome_analysis_or_winner_selection",
+      "observed": "not_performed",
+      "status": "passed"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "archive/paper_i_static_adapt_legacy_20260727/MANIFEST.json",
+      "role": "current_path_limited_reachability_evidence",
+      "sha256": "f4268ac7e588b1ceec635daf032dfaae2712d73b82b398f4e9019f8fc1159f25"
+    },
+    {
+      "path": ".gitnexus/meta.json",
+      "role": "final_index_only_dependency_metadata",
+      "sha256": "d99d792d243cb63d3e6cbcd3080a28860fa076e82babd48c9518e1a61f3054a5"
+    },
+    {
+      "path": "agent_guidance/static-adapt/ra-adapt-lock-receipt-20260727.json",
+      "role": "five_source_confirmed_reachability_answers",
+      "sha256": "c2aaff1778485a172b40858a315d663e1476e77e33c5bdd40cb9f5affbf91ee9"
+    }
+  ],
+  "pending_outputs": [],
+  "protocol_digest_authority": [
+    {
+      "bundle_manifest_canonical_sha256": "daf3f0f5cfe939329fa7e8505e53c3bc71c8b65a28ece4c2410360a3f6a1b6a2",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_stationary_late_v1/bundle_manifest.json"
+    },
+    {
+      "bundle_manifest_canonical_sha256": "6e39a48d1f5c0100d14159f9bda214ef3b1c9ce4caaea7b4e9c555ea95fcfb13",
+      "bundle_manifest_path": "chtc/paper_i_ra_adapt_repair_20260727/bundles/materializations/ra_adapt_unification_post_refactor_v5/ra_repair_measured_late_v1/bundle_manifest.json"
+    }
+  ],
+  "receipt_id": "ra_adapt_repair_20260727_analyze_v1",
+  "schema": "ra_adapt_icm_stage_receipt_v1",
+  "stage": "analyze",
+  "state": "complete",
+  "state_reason": "The strict post-refactor index is current, excludes every forbidden surface, records all five source-confirmed reachability answers, and leaves numerical outcome analysis and winner selection unperformed.",
+  "supersession_lineage": {
+    "lineage_type": "workflow_stage_progression_v1",
+    "predecessor_stage_receipt": {
+      "path": "agent_guidance/static-adapt/icm/ra-adapt-repair-20260727/materialize-bundles.json",
+      "receipt_id": "ra_adapt_repair_20260727_materialize_bundles_v2",
+      "sha256": "e2ee41313bf51bb46ca4269b4740b799167dae48da328bb291b56559db1c2f3f",
+      "stage": "materialize-bundles"
+    },
+    "superseded_receipts": [],
+    "successor_stage": "user-review"
+  },
+  "workflow_id": "ra-adapt-repair-20260727"
+}

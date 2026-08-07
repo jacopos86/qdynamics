@@ -1,0 +1,22 @@
+{
+  "completed_rounds": 1,
+  "phase1_lambda_f_proxy_applied": false,
+  "phase1_shortlist_size": 24,
+  "phase2_lambda_f_proxy_applied": false,
+  "phase2_missing_curvature_fallback_used": false,
+  "phase2_retained_shortlist_size": 12,
+  "phase3_accepted_refit_coordinate_count": 1,
+  "phase3_response_pre_support_count": 1,
+  "phase3_response_supported_rank": 1,
+  "physical_operator_lane": null,
+  "pool_size": 156,
+  "route_contract_sha256": "97f89960b93c37d4151a5e6837771c2278c3283fa89ba40671e95fb5806a5e1a",
+  "route_profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_guarded_singleton_pool_v1",
+  "schema": "paper_i_sr_pool_complement_one_admission_smoke_v1",
+  "selected_operator": "guarded_singleton::eeeyeeee",
+  "shared_pauli_pool_mode": "guarded_singleton_children_only_v1",
+  "source_result": "raw_outputs/paper_i_hh_sr_snake_guarded_singleton_global_nolanes_smoke_20260719/weak_weak_v6/json/result.json",
+  "source_result_sha256": "e1201384948e518c13f9bb678fc1c91009a506275cf07da45c265f9d4546a01a",
+  "static_lane_route": "algebraic",
+  "status": "pass"
+}

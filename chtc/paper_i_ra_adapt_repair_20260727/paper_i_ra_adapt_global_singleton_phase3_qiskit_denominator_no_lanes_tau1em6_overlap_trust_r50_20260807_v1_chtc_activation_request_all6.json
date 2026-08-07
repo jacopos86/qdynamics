@@ -1,0 +1,25 @@
+{
+  "authorization_kind": "explicit_user_execution_and_submission_authority",
+  "authorization_source": "explicit_user_instruction_2026-08-07_submit_additional_same_route_endpoint_overlap_trust",
+  "authorized_utc": "2026-08-07T16:56:21Z",
+  "bundle_id": "ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_overlap_trust_r50_v1",
+  "campaign_id": "paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_overlap_trust_r50_v1",
+  "execution_authorized": true,
+  "explicit_user_authority_recorded": true,
+  "package_id": "paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_overlap_trust_r50_20260807_v1_chtc",
+  "package_manifest_sha256": "1da3179acd34cf55f04d283b711b8b1ae4563b0ae73ae4e02d1d95ca4a083d96",
+  "paper_evidence_adoption_authorized": false,
+  "requested_execution_ids": [
+    "phase3_qiskit_denominator_no_lanes__weak_weak__nph3__ra_global_singleton_plateau_commutation_overlap_trust",
+    "phase3_qiskit_denominator_no_lanes__intermediate_weak__nph3__ra_global_singleton_plateau_commutation_overlap_trust",
+    "phase3_qiskit_denominator_no_lanes__strong_weak_u8__nph3__ra_global_singleton_plateau_commutation_overlap_trust",
+    "phase3_qiskit_denominator_no_lanes__weak_strong__nph7__ra_global_singleton_plateau_commutation_overlap_trust",
+    "phase3_qiskit_denominator_no_lanes__intermediate_strong__nph7__ra_global_singleton_plateau_commutation_overlap_trust",
+    "phase3_qiskit_denominator_no_lanes__strong_strong_u8__nph7__ra_global_singleton_plateau_commutation_overlap_trust"
+  ],
+  "schema": "paper_i_ra_adapt_global_singleton_phase3_qiskit_mixed_horizon_activation_request_v1",
+  "scope": "prepare_six_cell_chtc_execution_and_submission_v1",
+  "sha256": "772a2415ff4d4eb5ee76c12387c093c23300f620c1cbe163fd739e0a02bcaab7",
+  "submission_authorized": true,
+  "submitted": false
+}

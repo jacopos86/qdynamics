@@ -1,0 +1,12 @@
+{
+  "accepted_powell_refit_whitening_active": true,
+  "anchor_reproduces_source": true,
+  "bundle_id": "paper_i_hh_sr_snake_phase3_projected_generalized_all_six_r50_20260720_v1_chtc",
+  "changed_scientific_execution_fields_vs_parent": [
+    "historical_singleton_coordinate_solve_policy"
+  ],
+  "non_swept_settings_diff": [],
+  "phase3_supported_whitening_active": false,
+  "schema": "paper_i_sr_phase3_projection_fanout_scientific_audit_v1",
+  "status": "pass"
+}

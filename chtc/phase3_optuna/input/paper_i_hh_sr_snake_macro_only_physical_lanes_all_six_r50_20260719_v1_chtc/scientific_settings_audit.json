@@ -1,0 +1,56 @@
+{
+  "baseline_bundle": "paper_i_hh_sr_snake_main_full_response_symmetric_cost_noprune_nobeam_no_ordinary_novelty_all_six_r50_20260718_v4_chtc",
+  "changed_scientific_surface": {
+    "candidate_pool_representation_and_lane_contract": {
+      "execution_settings": {
+        "adapt_child_pool_expansion_mode": "off",
+        "adapt_child_pool_expansion_symmetry_policy": "off",
+        "adapt_pool": "full_meta",
+        "allow_archival_phase3_runtime_split": false,
+        "phase3_runtime_split_child_padding_policy": "unchecked_diagnostic_v1",
+        "phase3_runtime_split_child_set_symmetry_policy": "hard_guard",
+        "phase3_runtime_split_max_subset_size": 1,
+        "phase3_runtime_split_mode": "off",
+        "phase3_selector_policy": "algebraic_nested_v1",
+        "physical_lane_shortlist_aggressiveness": 3,
+        "shared_pauli_pool_mode": "off",
+        "shared_pauli_pool_symmetry_policy": "off",
+        "static_lane_route": "physical_operator_type"
+      },
+      "semantic_invariants": {
+        "candidate_pool_projection_active": false,
+        "candidate_representation": "intact_logical_parent_generator_v1",
+        "generated_pauli_children_active": false,
+        "physical_lane_shortlist_aggressiveness": 3,
+        "physical_operator_lanes_active": true,
+        "pool_exposure_scope": "same_parent_pool_phase1_phase2_phase3_v1",
+        "shared_child_pool_expansion_active": false
+      }
+    }
+  },
+  "profile_contract_sha256": "d14d582e532ee41500cd7d3ebaa21b83da91bb3fcf014be53ab8d1049d1452fa",
+  "profile_request": "sr_snake_macro_only_physical_lanes_v1",
+  "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_no_prune_macro_only_physical_lanes_v1",
+  "schema": "paper_i_hh_sr_pool_complement_scientific_settings_audit_v1",
+  "status": "pass",
+  "unchanged_contract": {
+    "all_six_horizon": 50,
+    "beam_shape": "effective_1x1_v1",
+    "n_ph_by_regime": {
+      "intermediate_strong": 7,
+      "intermediate_weak": 3,
+      "strong_strong_u8": 7,
+      "strong_weak_u8": 3,
+      "weak_strong": 7,
+      "weak_weak": 3
+    },
+    "ordinary_phase2_phase3_novelty_multipliers_active": false,
+    "phase1_energy_model": "first_order_fs_trust_v1",
+    "phase2_curvature_policy": "measured_required_fail_closed_v1",
+    "phase3_response_scope": "full_active_plus_singleton_v1",
+    "pruning_active": false,
+    "same_cutoff_reference": true,
+    "symmetric_cost_policy": "family_robust_symmetric_arctan_v1"
+  },
+  "unexpected_executable_differences": []
+}

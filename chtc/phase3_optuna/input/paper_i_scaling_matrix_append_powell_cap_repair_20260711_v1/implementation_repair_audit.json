@@ -1,0 +1,79 @@
+{
+  "classification": "implementation_repair_not_sensitivity_sweep",
+  "prepared_rows": [
+    {
+      "changed_fields_vs_source": [
+        "powell_maxiter_cap_policy"
+      ],
+      "declared_record_non_changed_fields_diff": [],
+      "output_and_provenance_diff_json": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/settings_diff.json",
+      "powell_maxiter_cap_policy": "accept_finite_nonincreasing_v1",
+      "record_id": "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__powellcap_finite_nonincreasing_v1__iter30",
+      "settings_hash": "e05c35e72ba04c1ee8ad3522da8bc12cfacfea1932ac01228233652a07283b13"
+    }
+  ],
+  "regression_evidence": {
+    "dispatch_and_scope": {
+      "expected": "the policy is explicit and generic-comparator-only",
+      "test": "test/test_generic_static_powell_cap_dispatch.py"
+    },
+    "opt_in_cap_continues_fixed_horizon": {
+      "expected": "only the opt-in capped result continues the outer horizon",
+      "test": "test/test_generic_static_adapt_variants.py::test_fixed_horizon_append_accepts_only_finite_nonincreasing_powell_maxiter_caps"
+    },
+    "strict_default_unchanged": {
+      "expected": "strict_failure_v1 remains the default and stops on success=false",
+      "test": "test/test_generic_static_adapt_variants.py::test_scipy_optimizer_failure_stops_and_marks_quality_nonpassing[powell]"
+    },
+    "unsafe_or_nonmaxiter_failures_rejected": {
+      "expected": "nonfinite, energy-increasing, wrong-status, and wrong-message failures remain failures",
+      "test": "test/test_generic_static_adapt_variants.py::test_powell_cap_rejects_nonfinite_increasing_or_nonmaxiter_failures"
+    }
+  },
+  "repair": {
+    "approved_behavior_field": "powell_maxiter_cap_policy",
+    "approved_behavior_value": "accept_finite_nonincreasing_v1",
+    "baseline_materialization_status": "proc53 TSV record plus hash-verified local result/cell bytes materialized; no current-code strict-policy anchor claimed",
+    "run_class": "candidate_single_row_repair",
+    "runner_mode": "paper_i_scaling_matrix_single_cell",
+    "settings_changed": [
+      "powell_maxiter_cap_policy"
+    ],
+    "unresolved_source_fields": [],
+    "wrapper_kind": null,
+    "wrapper_used": false
+  },
+  "schema": "paper_i_user_approved_implementation_repair_audit_v1",
+  "source": {
+    "cluster": 8772847,
+    "method": "Append-ADAPT",
+    "observed_outer_iterations": 13,
+    "observed_powell_nfev": 31012,
+    "observed_powell_nit": 200,
+    "observed_terminal_reason": "powell_optimizer_failed",
+    "observed_terminal_status": "completed_quality_nonpassing",
+    "original_behavior": "strict_failure_v1",
+    "process": 53,
+    "regime_or_case": "hubbard_L4_scaling_strong",
+    "route_or_profile_id": "paper_i_scaling_matrix_20260710_v1",
+    "runner_mode": "paper_i_scaling_matrix_single_cell",
+    "settings_hash": "b808b1fbfeab47bcb63c33f2807f0e2a423f5c22946d944a3bee6126ff450a1b",
+    "source_cell_manifest": "raw_outputs/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_parent_powell200_20260710_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__iter30/cell_manifest.json",
+    "source_cell_manifest_local": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_cell_manifest.json",
+    "source_cell_manifest_sha256": "340d419416ea173a868136d7bf1fff85ccdaa3d4cfc3dc29dc7d4ffa2f4d2297",
+    "source_command_or_manifest": "chtc/phase3_optuna/input/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_records.tsv",
+    "source_command_or_manifest_sha256": "1939234a0b9632fd0958dc04e117562a80137b2f9dc490503f386440c12ddcf3",
+    "source_json": "raw_outputs/paper_i_scaling_matrix_parent_powell200_20260710_v1/paper_i_scaling_matrix_parent_powell200_20260710_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__iter30/result/generic_static_single.json",
+    "source_json_local": "chtc/phase3_optuna/input/paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1/source_evidence/proc53_generic_static_single.json",
+    "source_sha256": "00dca6c25128958ee7e7b5a9c85714098aaddb7b80dbd9fc011d78a4b6babdce",
+    "table_label": "paper_i_scaling_matrix_appendix_scaling_row"
+  },
+  "source_evidence_fetch_status": "local_bytes_verified_and_packaged_for_transfer",
+  "source_locked_sensitivity_claim": false,
+  "source_value_anchor": {
+    "reason": "User approved a narrow implementation failure-policy repair, not a scientific sensitivity sweep. The original proc-53 result is retained as failure provenance and is not represented as a new-executable anchor.",
+    "required_for_this_artifact": false,
+    "status": "not_claimed"
+  },
+  "status": "approved_implementation_repair_prepared"
+}

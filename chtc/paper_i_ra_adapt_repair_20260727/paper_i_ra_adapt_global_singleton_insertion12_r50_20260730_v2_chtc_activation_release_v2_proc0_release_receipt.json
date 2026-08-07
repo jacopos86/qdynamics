@@ -1,0 +1,199 @@
+{
+  "schema": "paper_i_checkpoint_retention_exact_proc_release_receipt_v1",
+  "receipt_created_utc": "2026-07-30T19:12:40Z",
+  "status": "passed",
+  "submission_receipt": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v2_chtc_activation_release_v2_submission_receipt.json",
+    "cluster_id": 9397760,
+    "sha256": "6873fcc0afff96fc965ab62622d2236284c9739f4f66038bd3970b7b8bdf4561",
+    "canonical_sha256": "2a830bb246d46abe10585eee78b7c9f882fb983ebf5009a5f09dd9cee8da8d17",
+    "size_bytes": 6716
+  },
+  "release": {
+    "target": "9397760.0",
+    "cluster_id": 9397760,
+    "proc_id": 0,
+    "execution_id": "global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation",
+    "command": "condor_release 9397760.0",
+    "scope": "exact_cluster_proc_only",
+    "released_utc": "2026-07-30T19:06:16Z",
+    "exit_code": 0
+  },
+  "before_release": {
+    "observed_proc_count": 11,
+    "held_proc_ids": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "all_num_job_starts": 0,
+    "target_job_status": 5,
+    "target_num_job_starts": 0
+  },
+  "immediate_after_release": {
+    "observed_utc": "2026-07-30T19:06:16Z",
+    "released_proc_ids": [0],
+    "released_proc_job_status": 1,
+    "released_proc_num_job_starts": 0,
+    "still_held_proc_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "unexpected_changed_proc_ids": [],
+    "factorial_cluster_id": 9397758,
+    "factorial_held_proc_count": 45,
+    "factorial_all_num_job_starts": 0
+  },
+  "recheck": {
+    "observed_utc": "2026-07-30T19:07:05Z",
+    "released_proc_job_status": 1,
+    "released_proc_num_job_starts": 0,
+    "still_held_proc_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "factorial_held_proc_count": 45,
+    "factorial_all_num_job_starts": 0,
+    "matchmaking_state": "valid_idle_waiting_for_currently_available_4_cpu_57344_mb_memory_slot",
+    "matchmaking_error": false
+  },
+  "quota": {
+    "measurement_units": "GiB; CHTC get_quotas labels this column GB and quota -vs independently reports the 40 GiB soft limit as 40960M",
+    "before_release": {
+      "observed_utc": "2026-07-30T19:03:57Z",
+      "home_used_gb": 33.6796,
+      "home_soft_limit_gb": 40,
+      "home_hard_limit_gb": 50
+    },
+    "after_release": {
+      "observed_utc": "2026-07-30T19:07:05Z",
+      "home_used_gb": 33.6796,
+      "home_soft_limit_gb": 40,
+      "home_hard_limit_gb": 50
+    },
+    "headroom_calculation": {
+      "baseline_source": {
+        "preservation_snapshot_path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_completed_v1_preservation_9395481_9395482_20260730_v1.json",
+        "preservation_row_canonical_sha256": "2d8f297f28f40e23784a9970970106809f928ae8a6fa614c17b8d63c07a2ef41",
+        "archive_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260730/global_singleton__weak_weak__nph3__ra_global_singleton_append_commutation_reduced__cluster_9395482__proc_0.tar.gz",
+        "archive_sha256": "bcc1f49cb8c6cc7986b0d64400d0a1b398d20b37fd7029fd56660d186d7352b2",
+        "archive_size_bytes": 3340648793,
+        "archive_size_gib": 3.111221634783
+      },
+      "conservative_multiplier": 1.1,
+      "estimated_next_archive_gib": 3.422343798261,
+      "additional_operational_reserve_gib": 1.0,
+      "soft_quota_headroom_gib": 6.3204,
+      "required_headroom_gib": 4.422343798261,
+      "residual_headroom_gib": 1.898056201739,
+      "formula": "40 - 33.6796 - ((3340648793 / 1073741824) * 1.10 + 1.0)"
+    },
+    "headroom_gate_passed": true
+  },
+  "bindings": {
+    "job": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v2_chtc/jobs/global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation.json",
+      "sha256": "34cd8be7c8364af39777101bbe28ff2d3879b8a924840ecef85d44ffd18e2608",
+      "canonical_sha256": "06284570204a46f72544b8b15a6adbfd546ad1f135920703b6d2af28a42f4e04",
+      "size_bytes": 2773
+    },
+    "authorization": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v2_chtc_activation_release_v2/authorizations/global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation.json",
+      "sha256": "9803d24848ccbaee0c1622a7f3807e9c025450f83be5b52e64a13a957b0a434c",
+      "canonical_sha256": "43daad50aae7c7f6febc4ede2593a615d4959cf6fa87e7e89d86107f749df58c",
+      "size_bytes": 4733
+    }
+  },
+  "release_evidence": [
+    {
+      "role": "proc0_queue_mapping",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_release_v2_proc0_queue_mapping.txt",
+      "sha256": "ae0390b6384dd6380415c4d1a2b5f6643590e38690edc5cfebab3c679368dda5",
+      "size_bytes": 1321
+    },
+    {
+      "role": "proc0_before_release",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_release_v2_proc0_before_release.txt",
+      "sha256": "b11959402a5bc9d0049c7d8397f4a82e2661b01f20284e9b3266daa8eb820c19",
+      "size_bytes": 194
+    },
+    {
+      "role": "release_stdout",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_release_v2_proc0_release.stdout",
+      "sha256": "1a10796fede599385d34fe50061456f2f55e08709a66586a4cc3f0c432e1172d",
+      "size_bytes": 23
+    },
+    {
+      "role": "release_stderr",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_release_v2_proc0_release.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "role": "release_exit_code",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_release_v2_proc0_release.exit_code",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size_bytes": 2
+    },
+    {
+      "role": "singleton_immediate_after_release",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_after_proc0_release.json",
+      "sha256": "269147529915681a92c8a21b733ec23f37a7bf84d2cc1754cfc9e6b5e16047ef",
+      "size_bytes": 4051
+    },
+    {
+      "role": "factorial_immediate_after_release",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_after_singleton_proc0_release.json",
+      "sha256": "a1696fc43d78c42f5b857e681de91b047ffc13b6929bedb7e52b8a0c5f7d8f7f",
+      "size_bytes": 12097
+    },
+    {
+      "role": "release_gate_exit_code",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/exact_proc_release_gate.exit_code",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "size_bytes": 2
+    },
+    {
+      "role": "singleton_recheck",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_current.json",
+      "sha256": "51f32570a15ecec2effcb9ca50f51cfd1914e854e34afec23a5a3c300f1a79c0",
+      "size_bytes": 1906
+    },
+    {
+      "role": "factorial_recheck",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/factorial_current.json",
+      "sha256": "dbdc7a795caad826f423ba15ea6a7200ec5c65e51fd28bfef4b9d7ae6f71c14f",
+      "size_bytes": 7957
+    },
+    {
+      "role": "matchmaking_analysis",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/singleton_proc0_better_analyze.txt",
+      "sha256": "bf5164f7f96b0acc80d03771af5fa74f7911596f746e3bc774c8f0c52b847c67",
+      "size_bytes": 3198
+    },
+    {
+      "role": "quota_before_release",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/quota_before_singleton_release_get_quotas.txt",
+      "sha256": "fdcdb885499e6dd96400817513734f3272372bdba30ace46af980fe484deb016",
+      "size_bytes": 313
+    },
+    {
+      "role": "quota_before_release_quota_vs",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/quota_before_singleton_release_quota_vs.txt",
+      "sha256": "8305d848580ddd35d76409c9bca8db0ee49ec78d6c8d85908e6a8ce2044311c8",
+      "size_bytes": 285
+    },
+    {
+      "role": "quota_after_release",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/quota_after_singleton_release_get_quotas.txt",
+      "sha256": "f0362090e7d81522ce220efcc53c9fd7a3fef0c1f7aa3c9e3f42adf251e64913",
+      "size_bytes": 313
+    },
+    {
+      "role": "quota_after_release_quota_vs",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/quota_after_singleton_release_quota_vs.txt",
+      "sha256": "1f9420f1029f6042fc3bbe29feafbdbb199229f311d432d048ce6f329469781a",
+      "size_bytes": 285
+    },
+    {
+      "role": "remote_quota_and_release_mtimes",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/v2_submission_evidence_20260730T1830Z/quota_release_remote_mtimes.tsv",
+      "sha256": "c0564c597d3936da7e25b09cd848715bc20ffe6ee4bb2177bcac59f9a20f0741",
+      "size_bytes": 380
+    }
+  ],
+  "released_only_requested_proc": true,
+  "unrelated_clusters_touched": false,
+  "paper_evidence_adopted": false,
+  "sha256": "536715fddbae717fa389071ebd79edd42ec372064c9220355784999ae2df17ec"
+}

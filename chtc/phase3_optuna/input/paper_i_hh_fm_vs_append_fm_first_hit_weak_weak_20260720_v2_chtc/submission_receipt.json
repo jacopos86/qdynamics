@@ -1,0 +1,24 @@
+{
+  "schema": "paper_i_hh_fm_vs_append_fm_first_hit_submission_receipt_v1",
+  "submitted_utc": "2026-07-21T00:56:01Z",
+  "bundle_id": "paper_i_hh_fm_vs_append_fm_first_hit_weak_weak_20260720_v2_chtc",
+  "cluster_id": 8973037,
+  "proc_id": 0,
+  "job_count": 1,
+  "sequential_routes": [
+    "fm_snake",
+    "projected_singleton_append_fm"
+  ],
+  "initial_ansatz": "empty_hf_reference_v1",
+  "source_archive_sha256": "bdeec5191945418d74a61c4221dbadd8b725f13d8ae348c3316ec31ebf9b07bb",
+  "remote_source_hash_verified": true,
+  "remote_image_hash_verified": true,
+  "initial_scheduler_status": {
+    "JobStatus": 2,
+    "NumJobStarts": 0,
+    "RequestCpus": 4,
+    "RequestMemoryMB": 24576,
+    "RequestDiskKB": 41943040,
+    "JobBatchName": "paper-i-hh-fm-vs-append-fm-first-hit-weak-weak-v2"
+  }
+}

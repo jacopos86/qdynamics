@@ -1,0 +1,1068 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+import pipelines.static_adapt.paper_i_runner as paper_i_runner
+
+from pipelines.contracts.problem import (
+    ExactTargetSpec,
+    FixedCountConstraint,
+    ProblemRequest,
+    ReferenceStateSpec,
+    RegisterLayoutSpec,
+    ResolvedProblemContext,
+    SectorSelection,
+)
+from pipelines.static_adapt.builders.problem_registry import resolve_problem_context
+from pipelines.static_adapt.builders.legal_subspace_filter import (
+    legal_subspace_basis_for_problem,
+)
+from pipelines.static_adapt.paper_i_config import PaperIMechanismOverrides
+from pipelines.static_adapt.joint_step_warm_start import (
+    ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1,
+    ROUTE_A_JOINT_STEP_WARM_START_OFF,
+)
+from pipelines.static_adapt.joint_linear_solve import (
+    JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1,
+)
+from pipelines.static_adapt.paper_i_runner import (
+    PAPER_I_PROFILE_CANONICAL,
+    PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+    PaperISnakeRunConfig,
+    build_paper_i_optimizer_config,
+    build_paper_i_route_a_invocation,
+    run_paper_i_route_a,
+)
+from pipelines.static_adapt.route_a_child_padding import (
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_NPH2_V1,
+    ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+    ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
+)
+from pipelines.static_adapt.route_a_funnel import (
+    ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+    ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1,
+    ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+    ROUTE_A_PHASE0_DISABLED,
+    RouteAFunnelConfig,
+)
+from pipelines.static_adapt.route_a_shortlists import (
+    CHILD_IDENTITY_POLICY_GLOBAL_PAULI_WORD_V1,
+)
+from pipelines.static_adapt.route_a_schur_selector import (
+    ROUTE_A_SELECTOR_EXHAUSTION_EXPAND_ALL_THEN_FORCE_SINGLETON_V1,
+    RouteASchurSelectorConfig,
+)
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_holstein_hamiltonian
+
+
+def _problem_context(*, family: str = "hh") -> ResolvedProblemContext:
+    hamiltonian = object()
+    request = ProblemRequest(
+        problem_key=str(family),
+        num_sites=2,
+        t=1.0,
+        u=2.0,
+        dv=0.0,
+        omega0=1.0,
+        g_ep=0.5,
+        n_ph_max=1,
+        boson_encoding="binary",
+        ordering="blocked",
+        boundary="open",
+    )
+    return ResolvedProblemContext(
+        family_key=str(family),
+        request=request,
+        layout=RegisterLayoutSpec(
+            total_qubits=6,
+            fermion_qubits=4,
+            boson_qubits=2,
+            ordering="blocked",
+            boson_encoding="binary",
+            blocks=(),
+        ),
+        hamiltonian=hamiltonian,
+        sector=SectorSelection(
+            label="test",
+            comparison_space_label="test",
+            constraints=(FixedCountConstraint(quantity="fermions", value=2),),
+            num_particles=(1, 1),
+        ),
+        reference_state=ReferenceStateSpec(
+            kind="test",
+            source_label="test",
+            state_kind="statevector",
+            build_state=lambda: np.asarray([1.0], dtype=complex),
+        ),
+        exact_target=ExactTargetSpec(
+            kind="test",
+            comparison_space_label="test",
+            resolve_energy=lambda **_kwargs: -1.0,
+            exact_state_policy="fallback",
+            build_fallback_anchor_state=lambda: np.asarray([1.0], dtype=complex),
+            fallback_policy="test",
+        ),
+        default_controller_profile="test",
+        default_continuation_mode="phase3_v1",
+        admissible_pool_keys=("full_meta",),
+        default_pool_key="full_meta",
+        default_pool_resolution_scope="test",
+        default_sector_label="test",
+        default_reference_label="test",
+        exact_target_label="test",
+        exact_comparison_space_label="test",
+        default_num_particles=(1, 1),
+    )
+
+
+def _nph2_problem_context() -> ResolvedProblemContext:
+    context = _problem_context()
+    return replace(
+        context,
+        request=replace(context.request, n_ph_max=2),
+        layout=replace(
+            context.layout,
+            total_qubits=8,
+            boson_qubits=4,
+        ),
+    )
+
+
+def _nph4_problem_context() -> ResolvedProblemContext:
+    context = _problem_context()
+    return replace(
+        context,
+        request=replace(context.request, n_ph_max=4),
+        layout=replace(
+            context.layout,
+            total_qubits=10,
+            boson_qubits=6,
+        ),
+    )
+
+
+def test_route_a_invocation_uses_typed_canonical_defaults() -> None:
+    context = _problem_context()
+    invocation = build_paper_i_route_a_invocation(context)
+    kwargs = invocation.run_kwargs
+
+    assert kwargs["resolved_problem_context"] is context
+    assert kwargs["h_poly"] is context.hamiltonian
+    assert kwargs["static_route_id"] == "route_a"
+    assert kwargs["static_meta_feature_profile"] == "paper_i_production_v1"
+    assert kwargs["adapt_pool"] == "full_meta"
+    assert kwargs["static_lane_route"] == "physical_operator_type"
+    assert kwargs["physical_lane_shortlist_aggressiveness"] == 3
+    assert kwargs["phase0_pilot_max_operators"] == 256
+    assert kwargs["phase1_shortlist_size"] == 256
+    assert kwargs["phase2_shortlist_size"] == 256
+    assert kwargs["phase2_shortlist_fraction"] == pytest.approx(1.0)
+    assert kwargs["phase3_shortlist_size"] == 4096
+    funnel_config = kwargs["route_a_funnel_config"]
+    assert isinstance(funnel_config, RouteAFunnelConfig)
+    assert funnel_config.macro_phase0_cap == 256
+    assert funnel_config.macro_phase1_cap == 256
+    assert funnel_config.macro_phase2_cap == 256
+    assert funnel_config.child_phase1_cap == 4096
+    assert funnel_config.child_phase2_cap == 4096
+    assert funnel_config.child_phase3_cap == 4096
+    assert funnel_config.mode == ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1
+    assert funnel_config.phase2_selector_mode == (
+        "raw_gain_times_novelty_legacy_v1"
+    )
+    assert funnel_config.phase0_policy == ROUTE_A_PHASE0_DISABLED
+    assert (
+        funnel_config.child_identity_policy
+        == CHILD_IDENTITY_POLICY_GLOBAL_PAULI_WORD_V1
+    )
+    assert funnel_config.schur_selector_config.batch_size_cap == 3
+    assert funnel_config.schur_selector_config.batch_search_pool_size == 10
+    assert funnel_config.schur_selector_config.batch_search_feasibility_policy == (
+        "joint_subset_gate_v1"
+    )
+    assert funnel_config.schur_selector_config.geometry_mode == (
+        "full_residual_gram_hessian_v1"
+    )
+    assert funnel_config.schur_selector_config.joint_batch_context_mode == (
+        "full_ansatz_v1"
+    )
+    assert funnel_config.schur_selector_config.joint_linear_solve_policy == (
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+    assert invocation.manifest["mechanisms"]["route_a_funnel"][
+        "schur_selector"
+    ]["joint_linear_solve_policy"] == (
+        JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+    )
+    assert funnel_config.schur_selector_config.trust_region_update.policy == (
+        "fixed"
+    )
+    assert invocation.manifest["mechanisms"]["trust_region_initial_radius"] == (
+        pytest.approx(0.25)
+    )
+    assert invocation.manifest["mechanisms"]["trust_region_update"][
+        "policy"
+    ] == "fixed"
+    assert kwargs["adapt_reopt_policy"] == "full"
+    assert kwargs["adapt_insertion_mode"] == "always"
+    assert kwargs["adapt_window_size"] == 99
+    assert kwargs["phase3_geometry_window_size"] == 99
+    assert kwargs["phase1_probe_max_positions"] == 999999
+    assert kwargs["phase1_maturity_cap_min"] == 999999
+    assert kwargs["phase2_maturity_cap_max"] == 999999
+    assert kwargs["phase3_maturity_cap_max"] == 999999
+    assert kwargs["phase_live_hysteresis_enabled"] is False
+    assert kwargs["phase2_enable_batching"] is True
+    assert kwargs["phase2_batch_selection_mode"] == "combinatorial_reduced_plane"
+    assert kwargs["adapt_beam_live_branches"] == 1
+    assert kwargs["phase1_prune_enabled"] is True
+    assert kwargs["phase1_prune_policy"] == "recoverability_ladder_v1"
+    assert kwargs["phase1_prune_schur_nomination_route"] == "metric_regularized_v1"
+    assert kwargs["phase3_plateau_acquisition_mode"] == "off"
+    assert kwargs["phase3_oracle_gradient_config"] is None
+    assert kwargs["phase3_runtime_split_mode"] == "shortlist_pauli_children_v1"
+    assert kwargs["phase3_runtime_split_selection_mode"] == "global_child_only_v1"
+    assert kwargs["shared_pauli_pool_mode"] == "off"
+    assert kwargs["final_noise_audit_config"] is None
+    assert kwargs["adapt_analytic_noise_std"] == pytest.approx(0.0)
+    assert invocation.manifest["legacy_route_controls_exposed"] is False
+    assert invocation.manifest["noiseless_core"] is True
+    assert "phase2_selector_mode" not in invocation.manifest["mechanisms"]
+    assert invocation.manifest["shortlists"] == {
+        "phase0_size": 256,
+        "phase0_enabled": False,
+        "phase1_size": 256,
+        "phase2_size": 256,
+        "phase2_fraction": 1.0,
+        "child_phase1_size": 4096,
+        "child_phase2_size": 4096,
+        "child_phase3_size": 4096,
+        "child_phase3_enabled": False,
+        "cap_unit_phases_0_2": "macro_operator_identity",
+        "cap_unit_phase3": "pauli_child_identity",
+        "physical_lane_aggressiveness": 3,
+    }
+
+
+def test_route_a_invocation_propagates_first_hit_target() -> None:
+    invocation = build_paper_i_route_a_invocation(
+        _problem_context(),
+        run_config=PaperISnakeRunConfig(
+            benchmark_target_abs_delta_e=2.0e-4,
+        ),
+    )
+
+    assert invocation.run_kwargs["benchmark_target_abs_delta_e"] == pytest.approx(
+        2.0e-4
+    )
+    assert invocation.manifest["benchmark_target_abs_delta_e"] == pytest.approx(
+        2.0e-4
+    )
+
+    with pytest.raises(ValueError, match="finite and positive"):
+        PaperISnakeRunConfig(benchmark_target_abs_delta_e=0.0)
+
+
+def test_joint_response_route_is_explicit_and_does_not_replace_default() -> None:
+    context = _problem_context()
+    default_invocation = build_paper_i_route_a_invocation(context)
+    experimental = build_paper_i_route_a_invocation(
+        context,
+        run_config=PaperISnakeRunConfig(
+            funnel_mode=ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+        ),
+    )
+    funnel = experimental.run_kwargs["route_a_funnel_config"]
+
+    assert default_invocation.run_kwargs["route_a_funnel_config"].mode == (
+        ROUTE_A_FUNNEL_CHILD_12_SCHUR_V1
+    )
+    assert default_invocation.run_kwargs[
+        "route_a_funnel_config"
+    ].joint_step_warm_start.mode == ROUTE_A_JOINT_STEP_WARM_START_OFF
+    assert funnel.mode == ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2
+    assert funnel.phase2_selector_mode == "joint_response_singleton_v1"
+    assert funnel.phase0_policy == ROUTE_A_PHASE0_DISABLED
+    assert funnel.joint_step_warm_start.mode == (
+        ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1
+    )
+    assert experimental.manifest["shortlists"]["child_phase3_enabled"] is False
+    assert experimental.manifest["mechanisms"]["phase2_selector_mode"] == (
+        "joint_response_singleton_v1"
+    )
+    assert experimental.manifest["mechanisms"]["final_selection_authority"] == (
+        "joint_ansatz_plus_batch_schur"
+    )
+    assert experimental.manifest["mechanisms"]["joint_step_warm_start"][
+        "mode"
+    ] == ROUTE_A_JOINT_STEP_WARM_START_EXACT_GUARDED_V1
+
+
+def test_typed_runner_exposes_exact_structural_resume(monkeypatch, tmp_path) -> None:
+    source_path = tmp_path / "round7-current.json"
+    source_path.write_text("{}", encoding="utf-8")
+    source = SimpleNamespace(
+        artifact_json=source_path.resolve(),
+        artifact_sha256="a" * 64,
+        payload={},
+        runtime_input=SimpleNamespace(
+            psi_ref=np.asarray([1.0 + 0.0j] + [0.0 + 0.0j] * 63)
+        ),
+    )
+    monkeypatch.setattr(
+        paper_i_runner,
+        "load_static_resume_source",
+        lambda *args, **kwargs: source,
+    )
+    monkeypatch.setattr(
+        paper_i_runner,
+        "validate_static_hh_resume_source",
+        lambda *args, **kwargs: {"settings_match": True},
+    )
+    monkeypatch.setattr(
+        paper_i_runner,
+        "build_resume_import_summary",
+        lambda *args, **kwargs: {
+            "source_controller_round": 7,
+            "source_ansatz_depth": 12,
+        },
+    )
+
+    invocation = build_paper_i_route_a_invocation(
+        _problem_context(),
+        run_config=PaperISnakeRunConfig(
+            max_adapt_iterations=23,
+            resume_scaffold_json=source_path,
+        ),
+    )
+
+    assert invocation.run_kwargs["adapt_resume_source"] is source
+    assert invocation.run_kwargs["adapt_resume_scaffold_json"] == source_path.resolve()
+    assert invocation.run_kwargs["adapt_ref_base_depth"] == 12
+    assert invocation.run_kwargs["max_depth"] == 23
+    assert invocation.manifest["resume"] == {
+        "enabled": True,
+        "source_json": str(source_path.resolve()),
+        "source_sha256": "a" * 64,
+        "source_controller_round": 7,
+        "source_ansatz_depth": 12,
+        "requested_additional_controller_rounds": 23,
+    }
+
+
+def test_canonical_hh_nph2_defaults_to_exact_projected_grouped_children() -> None:
+    context = _nph2_problem_context()
+    canonical = build_paper_i_route_a_invocation(context)
+    unchecked = build_paper_i_route_a_invocation(
+        context,
+        run_config=PaperISnakeRunConfig(
+            child_padding_policy=(
+                ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1
+            )
+        ),
+    )
+
+    canonical_funnel = canonical.run_kwargs["route_a_funnel_config"]
+    assert canonical_funnel.child_padding.policy == (
+        ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+    assert canonical.manifest["mechanisms"]["child_padding_policy"] == (
+        ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+    assert canonical.manifest["mechanisms"]["child_padding_guard_semantics"] == (
+        "pre_score_exact_projection_then_global_projected_identity_dedup_v1"
+    )
+    assert unchecked.run_kwargs["route_a_funnel_config"].child_padding.policy == (
+        ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1
+    )
+    assert unchecked.manifest["mechanisms"]["child_padding_guard_semantics"] == (
+        "unchecked_diagnostic_compatibility_v1"
+    )
+
+
+def test_canonical_hh_nph4_uses_cutoff_generic_projection() -> None:
+    invocation = build_paper_i_route_a_invocation(_nph4_problem_context())
+
+    child_padding = invocation.run_kwargs["route_a_funnel_config"].child_padding
+    assert child_padding.policy == ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    assert child_padding.n_ph_max == 4
+    assert invocation.manifest["mechanisms"]["child_padding_guard_semantics"] == (
+        "pre_score_exact_projection_then_global_projected_identity_dedup_v1"
+    )
+
+
+def test_legacy_nph2_projection_remains_available_for_replay() -> None:
+    invocation = build_paper_i_route_a_invocation(
+        _nph2_problem_context(),
+        run_config=PaperISnakeRunConfig(
+            child_padding_policy=(
+                ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_NPH2_V1
+            )
+        ),
+    )
+
+    assert invocation.run_kwargs["route_a_funnel_config"].child_padding.policy == (
+        ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_NPH2_V1
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"phase1_shortlist_size": 0},
+        {"phase0_shortlist_size": 0},
+        {"phase2_shortlist_size": 0},
+        {"child_phase1_shortlist_size": 0},
+        {"child_phase2_shortlist_size": 0},
+        {"child_phase3_shortlist_size": 0},
+        {"phase2_shortlist_fraction": 0.0},
+        {"phase2_shortlist_fraction": 1.1},
+        {"physical_lane_shortlist_aggressiveness": 1},
+    ],
+)
+def test_route_a_run_config_validates_shortlist_controls(kwargs: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        PaperISnakeRunConfig(**kwargs)
+
+
+def test_hh_displayed_result_profile_disables_batching_and_beam() -> None:
+    invocation = build_paper_i_route_a_invocation(
+        _problem_context(),
+        run_config=PaperISnakeRunConfig(profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS),
+    )
+
+    assert invocation.run_kwargs["phase2_enable_batching"] is False
+    assert invocation.run_kwargs["adapt_beam_live_branches"] == 1
+    assert invocation.manifest["profile"] == "hh_displayed_results"
+
+
+def test_route_a_mechanism_overrides_are_exact_and_cost_disable_is_k_one() -> None:
+    config = PaperISnakeRunConfig(
+        beam_width=4,
+        beam_children_per_parent=3,
+        mechanism_overrides=PaperIMechanismOverrides(
+            cost_enabled=False,
+            batching_enabled=True,
+            batch_selection_mode="greedy_reduced_plane",
+            beam_enabled=True,
+            pruning_enabled=False,
+            pauli_child_pool_enabled=True,
+            geometry_window_size=5,
+            pauli_word_subset_sizes=(2,),
+            child_symmetry_policy="hard_guard",
+        ),
+    )
+    invocation = build_paper_i_route_a_invocation(
+        _problem_context(),
+        run_config=config,
+    )
+    kwargs = invocation.run_kwargs
+
+    assert kwargs["phase1_lambda_2q"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_d"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_1q"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_theta"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_shot"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_compile"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_measure"] == pytest.approx(0.0)
+    assert kwargs["phase1_lambda_leak"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_depth"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_group"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_shot"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_optdim"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_reuse"] == pytest.approx(0.0)
+    assert kwargs["phase2_w_lifetime"] == pytest.approx(0.0)
+    assert invocation.manifest["mechanisms"][
+        "selection_cost_steering_disabled"
+    ] is True
+    assert all(
+        float(value) == pytest.approx(0.0)
+        for value in invocation.manifest["mechanisms"][
+            "selection_burden_weights"
+        ].values()
+    )
+    assert kwargs["phase2_batch_selection_mode"] == "greedy_reduced_plane"
+    assert kwargs["adapt_beam_live_branches"] == 4
+    assert kwargs["adapt_beam_children_per_parent"] == 3
+    assert kwargs["phase1_prune_enabled"] is False
+    assert kwargs["adapt_window_size"] == 5
+    assert kwargs["shared_pauli_pool_mode"] == "off"
+    assert kwargs["phase3_runtime_split_mode"] == "shortlist_pauli_children_v1"
+    assert kwargs["phase3_runtime_split_selection_mode"] == "global_child_only_v1"
+    assert kwargs["phase3_runtime_split_subset_sizes"] == (2,)
+    assert kwargs["shared_pauli_pool_subset_sizes"] == (2,)
+    assert kwargs["shared_pauli_pool_symmetry_policy"] == "hard_guard"
+    assert invocation.manifest["mechanisms"]["pauli_word_subset_sizes"] == [2]
+    assert (
+        invocation.manifest["mechanisms"]["child_symmetry_guard_semantics"]
+        == "fixed_count_sector_invariance_v1"
+    )
+    assert invocation.manifest["mechanisms"]["child_identity_normalization"] == (
+        "projective_normalized_pauli_polynomial_v1"
+    )
+
+
+def test_route_a_uses_one_explicit_optimizer_object() -> None:
+    optimizer = build_paper_i_optimizer_config(
+        optimizer="SPSA",
+        max_function_evaluations=321,
+    )
+    invocation = build_paper_i_route_a_invocation(
+        _problem_context(),
+        run_config=replace(
+            PaperISnakeRunConfig(),
+            optimizer=optimizer,
+            optimizer_maxiter=25,
+        ),
+    )
+
+    assert invocation.run_kwargs["adapt_inner_optimizer"] == "SPSA"
+    assert invocation.run_kwargs["adapt_scipy_maxfev"] == 321
+    assert invocation.run_kwargs["adapt_spsa_a"] == pytest.approx(optimizer.spsa.a)
+    assert invocation.manifest["optimizer"]["maxiter"] == 25
+
+
+def test_hh_displayed_result_profile_rejects_other_problem_families() -> None:
+    with pytest.raises(ValueError, match="only valid for problem='hh'"):
+        build_paper_i_route_a_invocation(
+            _problem_context(family="hubbard"),
+            run_config=PaperISnakeRunConfig(
+                profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS
+            ),
+        )
+
+
+def test_run_paper_i_route_a_attaches_runner_manifest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_core(**kwargs: object) -> tuple[dict[str, object], np.ndarray]:
+        captured.update(kwargs)
+        return {"success": True}, np.asarray([1.0], dtype=complex)
+
+    monkeypatch.setattr(
+        "pipelines.static_adapt.paper_i_runner._load_route_a_core_runner",
+        lambda: fake_core,
+    )
+
+    payload, state = run_paper_i_route_a(_problem_context())
+
+    assert captured["static_route_id"] == "route_a"
+    assert captured["phase3_plateau_acquisition_mode"] == "off"
+    assert payload["paper_i_runner"]["route_id"] == "route_a"
+    assert state.tolist() == [pytest.approx(1.0 + 0.0j)]
+
+
+def _real_hh_context(*, n_ph_max: int = 1) -> ResolvedProblemContext:
+    request = ProblemRequest(
+        problem_key="hh",
+        num_sites=2,
+        t=1.0,
+        u=0.5,
+        dv=0.0,
+        omega0=1.0,
+        g_ep=0.2,
+        n_ph_max=int(n_ph_max),
+        boson_encoding="binary",
+        ordering="blocked",
+        boundary="open",
+    )
+    hamiltonian = build_hubbard_holstein_hamiltonian(
+        dims=2,
+        J=1.0,
+        U=0.5,
+        omega0=1.0,
+        g=0.2,
+        n_ph_max=int(n_ph_max),
+        boson_encoding="binary",
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+    return resolve_problem_context(request, hamiltonian=hamiltonian)
+
+
+def test_run_paper_i_route_a_real_hh_smoke() -> None:
+    context = _real_hh_context()
+    run_config = PaperISnakeRunConfig(
+        profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+        max_adapt_iterations=1,
+        optimizer_maxiter=2,
+    )
+
+    payload, state = run_paper_i_route_a(context, run_config=run_config)
+
+    assert payload["success"] is True
+    assert payload["static_route_identity"]["route_id"] == "route_a"
+    assert payload["static_route_identity"]["valid"] is True
+    assert payload["static_route_identity"]["canonical_snake_eligible"] is True
+    assert payload["paper_i_runner"]["profile"] == "hh_displayed_results"
+    assert payload["paper_i_runner"]["mechanisms"]["batching_enabled"] is False
+    assert payload["paper_i_configuration"]["canonical"]["cost_enabled"] is True
+    assert payload["continuation"]["static_lane_policy"]["route"] == "physical_operator_type"
+    assert payload["continuation"]["static_lane_policy"]["status"] == "ready"
+    assert payload["continuation"]["physical_operator_lane_policy"]["enabled"] is True
+    assert payload["continuation"]["physical_operator_lane_policy"]["status"] == "ready"
+    funnel = payload["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    assert funnel["initial_macro_identity_count"] == 89
+    assert funnel["macro_phase0_survivor_identity_count"] == 87
+    assert funnel["macro_phase1_survivor_identity_count"] == 24
+    assert funnel["macro_phase2_identity_count"] == 12
+    assert funnel["missing_parent_factory_keys"] == []
+    assert funnel["children_generated_record_count"] == 80
+    assert funnel["children_removed_by_symmetry_count"] == 0
+    assert funnel["globally_eligible_child_record_count"] == 8
+    assert funnel["globally_unique_eligible_child_identity_count"] == 4
+    assert funnel["children_removed_by_sector_contract_count"] == 72
+    assert funnel["child_population"]["input_record_count"] == 80
+    assert funnel["child_population"]["unique_child_identity_count"] == 40
+    assert funnel["candidate_record_filter"]["retained_record_count"] == 8
+    assert funnel["macro_phase3_skipped"] is True
+    assert funnel["parent_records_admissible"] is False
+    assert funnel["stage_order"] == ["child_phase3"]
+    assert funnel["stages"][0]["physical_lanes_applied"] is False
+    controller_events = funnel["controller_measurement_events"]
+    assert [event["event_kind"] for event in controller_events] == [
+        "route_a_direct_child_phase3_gradient",
+        "route_a_direct_child_phase3_metric",
+    ]
+    assert [event["actual_operator_probe_count"] for event in controller_events] == [
+        8,
+        8,
+    ]
+    assert controller_events[1]["route_a_funnel_reused_record_count"] == 8
+    assert (
+        controller_events[1][
+            "route_a_funnel_reuse_incremental_operator_probe_count"
+        ]
+        == 0
+    )
+    assert payload["history"][-1]["runtime_split_mode"] == (
+        "shortlist_pauli_children_v1"
+    )
+    assert state.ndim == 1
+
+
+@pytest.mark.parametrize("beam_enabled", [False, True])
+def test_run_paper_i_joint_response_route_reports_macro_and_child_scopes(
+    beam_enabled: bool,
+) -> None:
+    payload, _state = run_paper_i_route_a(
+        _real_hh_context(),
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_CANONICAL,
+            funnel_mode=ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            phase1_shortlist_size=8,
+            phase2_shortlist_size=4,
+            child_phase1_shortlist_size=8,
+            child_phase2_shortlist_size=4,
+            mechanism_overrides=PaperIMechanismOverrides(
+                beam_enabled=bool(beam_enabled),
+                batching_enabled=False,
+                pauli_word_subset_sizes=(2,),
+                child_symmetry_policy="hard_guard",
+            ),
+        ),
+    )
+
+    funnel = payload["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    macro_selector = funnel["macro_phase2_selector"]
+    child_selector = funnel["phase2_selector"]
+    assert funnel["config"]["mode"] == ROUTE_A_FUNNEL_CHILD_12_JOINT_RESPONSE_V2
+    assert funnel["stage_order"] == ["child_phase1", "child_phase2"]
+    assert funnel["child_phase3_skipped"] is True
+    assert macro_selector["active"] is True
+    assert macro_selector["scope"] == "macro_phase2"
+    assert child_selector["active"] is True
+    assert child_selector["scope"] == "child_phase2"
+    assert macro_selector["score_formula"] == "DeltaE_joint_singleton/(1+K2)"
+    assert child_selector["score_formula"] == "DeltaE_joint_singleton/(1+K2)"
+    assert macro_selector["candidate_pair_measurement_count"] == 0
+    assert child_selector["candidate_pair_measurement_count"] == 0
+    assert macro_selector["geometry_workspace"][
+        "query_chargeable_unique_geometry_element_count"
+    ] == 0
+    assert child_selector["geometry_workspace"][
+        "query_chargeable_unique_geometry_element_count"
+    ] == 0
+    assert funnel["joint_selector_summary"]["selected_cardinality"] == 1
+    history_row = payload["history"][-1]
+    warm_start = history_row["schur_warm_start"]
+    assert warm_start["schema"] == "route_a_joint_step_warm_start_v1"
+    assert warm_start["stage"] == (
+        "beam_append_refit" if beam_enabled else "append_refit"
+    )
+    assert warm_start["attempted"] is True
+    assert warm_start["legacy_diagonal_geometry_used"] is False
+    assert warm_start["status"] in {"accepted", "rejected"}
+    assert history_row["nfev_schur_warm_start_guard"] == 2
+    assert warm_start["guard_objective_evals"] == 2
+    assert history_row["nfev_step_total_delta"] >= (
+        history_row["nfev_opt"] + history_row["nfev_schur_warm_start_guard"]
+    )
+
+
+def test_run_paper_i_route_a_nph2_projected_children_preserve_code_space() -> None:
+    context = _real_hh_context(n_ph_max=2)
+    payload, state = run_paper_i_route_a(
+        context,
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_CANONICAL,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            phase1_shortlist_size=8,
+            phase2_shortlist_size=4,
+            child_phase1_shortlist_size=16,
+            child_phase2_shortlist_size=8,
+            mechanism_overrides=PaperIMechanismOverrides(
+                beam_enabled=False,
+                batching_enabled=False,
+            ),
+        ),
+    )
+
+    funnel = payload["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    padding = funnel["child_padding_filter"]
+    assert padding["policy_effective"] == (
+        ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
+    assert padding["rejected_record_count"] == 0
+    assert funnel["globally_unique_eligible_child_identity_count"] > 0
+    selected_feature_rows = payload["history"][-1]["selected_feature_rows"]
+    assert selected_feature_rows
+    assert all(
+        row["route_a_child_parent_labels"]
+        and int(row["route_a_child_parent_count"])
+        == len(row["route_a_child_parent_labels"])
+        for row in selected_feature_rows
+    )
+    assert all(
+        row["route_a_child_direction_normalization"]["status"]
+        == "normalized"
+        for row in selected_feature_rows
+    )
+    layout = legal_subspace_basis_for_problem(
+        problem_key="hh",
+        num_sites=2,
+        n_ph_max=2,
+        boson_encoding="binary",
+        total_register_width=8,
+    )
+    legal_probability = float(
+        np.sum(np.abs(np.asarray(state)[list(layout["legal_indices"])]) ** 2)
+    )
+    assert legal_probability == pytest.approx(1.0, abs=1e-12)
+
+
+def test_run_paper_i_route_a_projected_beam_preserves_parent_provenance() -> None:
+    payload, _state = run_paper_i_route_a(
+        _real_hh_context(n_ph_max=2),
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_CANONICAL,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            phase1_shortlist_size=8,
+            phase2_shortlist_size=4,
+            child_phase1_shortlist_size=16,
+            child_phase2_shortlist_size=8,
+            mechanism_overrides=PaperIMechanismOverrides(
+                beam_enabled=True,
+                batching_enabled=False,
+            ),
+        ),
+    )
+
+    selected_feature_rows = payload["history"][-1]["selected_feature_rows"]
+    assert selected_feature_rows
+    assert all(
+        row["route_a_child_parent_labels"]
+        and int(row["route_a_child_parent_count"])
+        == len(row["route_a_child_parent_labels"])
+        for row in selected_feature_rows
+    )
+    assert all(
+        row["route_a_child_direction_normalization"]["status"]
+        == "normalized"
+        for row in selected_feature_rows
+    )
+
+
+def test_run_paper_i_route_a_hierarchical_child_query_reuse_smoke() -> None:
+    payload, _state = run_paper_i_route_a(
+        _real_hh_context(),
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            funnel_mode=ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+            child_phase1_shortlist_size=3,
+            child_phase2_shortlist_size=2,
+            child_phase3_shortlist_size=1,
+        ),
+    )
+
+    funnel = payload["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    assert funnel["stage_order"] == [
+        "child_phase1",
+        "child_phase2",
+        "child_phase3",
+    ]
+    assert [stage["survivor_record_count"] for stage in funnel["stages"]] == [
+        6,
+        4,
+        2,
+    ]
+    controller_events = funnel["controller_measurement_events"]
+    assert [event["phase"] for event in controller_events] == [
+        "phase1",
+        "phase2",
+        "phase3",
+    ]
+    assert [event["actual_operator_probe_count"] for event in controller_events] == [
+        8,
+        6,
+        0,
+    ]
+    assert [
+        event["route_a_funnel_reused_record_count"]
+        for event in controller_events
+    ] == [0, 6, 4]
+    assert controller_events[2]["measurement_reuse_validation_status"] == (
+        "exact_match"
+    )
+    assert controller_events[1]["measurement_source_record_key_count"] == 6
+    assert controller_events[2]["measurement_reuse_source_record_key_count"] == 6
+    assert controller_events[2]["measurement_reuse_record_key_count"] == 4
+    assert controller_events[2]["shots_new"] == pytest.approx(0.0)
+    assert controller_events[2]["shots_reused"] > 0.0
+    assert all(
+        event["route_a_funnel_reuse_incremental_operator_probe_count"] == 0
+        for event in controller_events
+    )
+
+
+def test_run_paper_i_route_a_beam_uses_branch_local_hierarchical_funnel() -> None:
+    payloads = []
+    for gradient_workers in (1, 2):
+        payload, _state = run_paper_i_route_a(
+            _real_hh_context(),
+            run_config=PaperISnakeRunConfig(
+                profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+                max_adapt_iterations=1,
+                optimizer_maxiter=2,
+                funnel_mode=ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+                child_phase1_shortlist_size=3,
+                child_phase2_shortlist_size=2,
+                child_phase3_shortlist_size=1,
+                beam_width=2,
+                beam_children_per_parent=1,
+                gradient_workers=gradient_workers,
+                mechanism_overrides=PaperIMechanismOverrides(
+                    beam_enabled=True,
+                    batching_enabled=False,
+                ),
+            ),
+        )
+        payloads.append(payload)
+
+    for payload in payloads:
+        funnel = payload["continuation"]["runtime_split_summary"][
+            "route_a_funnel_last_round"
+        ]
+        assert funnel["branch_id"] == 0
+        assert funnel["macro_phase2_identity_count"] == 12
+        assert funnel["children_generated_record_count"] == 80
+        assert funnel["missing_parent_factory_keys"] == []
+        assert funnel["stage_order"] == [
+            "child_phase1",
+            "child_phase2",
+            "child_phase3",
+        ]
+        controller_events = funnel["controller_measurement_events"]
+        assert [
+            event["actual_operator_probe_count"] for event in controller_events
+        ] == [8, 6, 0]
+        assert all(
+            event["scope_qualifiers"]["branch"] == 0
+            for event in controller_events
+        )
+        assert controller_events[2]["measurement_reuse_validation_status"] == (
+            "exact_match"
+        )
+        assert controller_events[1]["measurement_source_record_key_count"] == 6
+        assert controller_events[2]["measurement_reuse_source_record_key_count"] == 6
+        assert controller_events[2]["measurement_reuse_record_key_count"] == 4
+        assert controller_events[2]["shots_new"] == pytest.approx(0.0)
+        assert "branch=0" in controller_events[2]["work_scope"]
+        assert payload["history"][-1]["runtime_split_mode"] == (
+            "shortlist_pauli_children_v1"
+        )
+    assert payloads[0]["history"][-1]["selected_ops"] == (
+        payloads[1]["history"][-1]["selected_ops"]
+    )
+
+
+def test_canonical_beam_does_not_fallback_to_parent_when_joint_selector_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    selector_summary = {
+        "schema": "route_a_joint_schur_selector_v1",
+        "canonical_selection_stage": "post_child_phase2_joint_selector",
+        "final_selection_authority": "joint_schur_score",
+        "geometry_workspace": {
+            "schema": "batch_full_geometry_workspace_v1",
+            "matrix_element_query_charge": 0,
+        },
+    }
+    monkeypatch.setattr(
+        "pipelines.static_adapt.adapt_pipeline.select_route_a_schur_proposals",
+        lambda *_args, **_kwargs: ([], dict(selector_summary)),
+    )
+
+    payload, _state = run_paper_i_route_a(
+        _real_hh_context(),
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_CANONICAL,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            beam_width=2,
+            beam_children_per_parent=1,
+            mechanism_overrides=PaperIMechanismOverrides(
+                beam_enabled=True,
+                batching_enabled=False,
+            ),
+        ),
+    )
+
+    assert len(payload["operators"]) == 4
+    assert all(
+        str(label).startswith("hh_termwise_ham_")
+        for label in payload["operators"]
+    )
+    assert payload["history"] == []
+    assert payload["stop_reason"] == "joint_geometry_selector_exhausted"
+    beam_round = payload["continuation"]["beam_search"]["rounds"][0]
+    assert beam_round["proposal_family_count"] == 0
+    assert beam_round["parent_stop_reason_counts"] == {
+        "joint_geometry_selector_exhausted": 1
+    }
+    assert "simple_v1_full_zero_fallback" not in str(payload)
+
+
+def test_canonical_beam_retry_policy_continues_and_records_selector_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    selector_summary = {
+        "schema": "route_a_joint_schur_selector_v1",
+        "canonical_selection_stage": "post_child_phase2_joint_selector",
+        "final_selection_authority": "joint_schur_score",
+        "geometry_workspace": {
+            "schema": "batch_full_geometry_workspace_v1",
+            "matrix_element_query_charge": 0,
+        },
+        "exhaustion_retry": {
+            "triggered": True,
+            "expanded_to_all_child_phase2_survivors": True,
+            "forced_singleton_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        "pipelines.static_adapt.adapt_pipeline.select_route_a_schur_proposals",
+        lambda *_args, **_kwargs: ([], dict(selector_summary)),
+    )
+
+    payload, _state = run_paper_i_route_a(
+        _real_hh_context(),
+        run_config=PaperISnakeRunConfig(
+            profile=PAPER_I_PROFILE_CANONICAL,
+            max_adapt_iterations=1,
+            optimizer_maxiter=2,
+            beam_width=2,
+            beam_children_per_parent=1,
+            schur_selector=RouteASchurSelectorConfig(
+                exhaustion_retry_policy=(
+                    ROUTE_A_SELECTOR_EXHAUSTION_EXPAND_ALL_THEN_FORCE_SINGLETON_V1
+                )
+            ),
+            mechanism_overrides=PaperIMechanismOverrides(
+                beam_enabled=True,
+                batching_enabled=False,
+            ),
+        ),
+    )
+
+    assert payload["stop_reason"] != "joint_geometry_selector_exhausted"
+    retry_summary = payload["continuation"]["runtime_split_summary"]
+    assert retry_summary["joint_selector_exhaustion_retry_count"] == 1
+    event = retry_summary["joint_selector_exhaustion_retry_events"][0]
+    assert event["continued"] is True
+    assert event["mode"] == "forced_geometry_ranked_singleton"
+
+
+def test_route_a_hierarchical_funnel_matches_two_beam_parent_workers() -> None:
+    payloads = []
+    for beam_parent_workers in (1, 2):
+        payload, _state = run_paper_i_route_a(
+            _real_hh_context(),
+            run_config=PaperISnakeRunConfig(
+                profile=PAPER_I_PROFILE_HH_DISPLAYED_RESULTS,
+                max_adapt_iterations=2,
+                optimizer_maxiter=2,
+                funnel_mode=ROUTE_A_FUNNEL_HIERARCHICAL_CHILD_123_V1,
+                child_phase1_shortlist_size=3,
+                child_phase2_shortlist_size=2,
+                child_phase3_shortlist_size=2,
+                beam_width=2,
+                beam_children_per_parent=2,
+                gradient_workers=1,
+                beam_parent_workers=beam_parent_workers,
+                mechanism_overrides=PaperIMechanismOverrides(
+                    beam_enabled=True,
+                    batching_enabled=False,
+                ),
+            ),
+        )
+        payloads.append(payload)
+
+    serial, parallel = payloads
+    assert parallel["operators"] == serial["operators"]
+    assert parallel["nfev_total"] == serial["nfev_total"]
+    assert parallel["energy"] == pytest.approx(serial["energy"], abs=1e-12)
+    serial_beam = serial["continuation"]["beam_search"]
+    parallel_beam = parallel["continuation"]["beam_search"]
+    for key in ("winner_branch_id", "winner_fingerprint", "winner_prune_key"):
+        assert parallel_beam[key] == serial_beam[key]
+    assert serial["adapt_beam_parent_parallel_enabled_final"] is False
+    assert parallel["adapt_beam_parent_parallel_enabled_final"] is True
+    assert any(
+        row["frontier_input_count"] == 2
+        and row["beam_parent_parallel_enabled"] is True
+        and row["beam_parent_workers_effective"] == 2
+        for row in parallel_beam["rounds"]
+    )
+    funnel = parallel["continuation"]["runtime_split_summary"][
+        "route_a_funnel_last_round"
+    ]
+    assert all(
+        event["scope_qualifiers"]["branch"] == funnel["branch_id"]
+        for event in funnel["controller_measurement_events"]
+    )
+    assert funnel["controller_measurement_events"][-1][
+        "measurement_reuse_validation_status"
+    ] == "exact_match"

@@ -1,0 +1,31 @@
+            "phase1_family_repeat_cost_scale": float(args.phase1_family_repeat_cost_scale),
+            "phase1_shortlist_size": int(args.phase1_shortlist_size),
+            "phase1_probe_max_positions": int(args.phase1_probe_max_positions),
+            "phase1_plateau_patience": int(args.phase1_plateau_patience),
+            "phase1_trough_margin_ratio": float(args.phase1_trough_margin_ratio),
+            "phase1_prune_enabled": bool(args.phase1_prune_enabled),
+            "phase1_prune_policy": str(getattr(args, "phase1_prune_policy", "legacy_small_angle_v1")),
+            "phase1_prune_mode": str(args.phase1_prune_mode),
+            "phase1_prune_fraction": float(args.phase1_prune_fraction),
+            "phase1_prune_min_candidates": int(args.phase1_prune_min_candidates),
+            "phase1_prune_max_candidates": int(args.phase1_prune_max_candidates),
+            "phase1_prune_max_regression": float(args.phase1_prune_max_regression),
+            "phase1_prune_tolerance_mode": str(getattr(args, "phase1_prune_tolerance_mode", "auto")),
+            "phase1_prune_tolerance_shot_coeff": float(getattr(args, "phase1_prune_tolerance_shot_coeff", 0.0)),
+            "phase1_prune_tolerance_screen_coeff": float(getattr(args, "phase1_prune_tolerance_screen_coeff", 0.01)),
+            "phase1_prune_tolerance_chem": float(getattr(args, "phase1_prune_tolerance_chem", 0.0)),
+            "phase1_prune_tolerance_rel_coeff": float(getattr(args, "phase1_prune_tolerance_rel_coeff", 0.0)),
+            "phase1_prune_tolerance_target_energy": (
+                None
+                if getattr(args, "phase1_prune_tolerance_target_energy", None) is None
+                else float(getattr(args, "phase1_prune_tolerance_target_energy"))
+            ),
+            "phase1_prune_retained_gain_ratio": float(args.phase1_prune_retained_gain_ratio),
+            "phase1_prune_protect_steps": int(args.phase1_prune_protect_steps),
+            "phase1_prune_stale_age": int(args.phase1_prune_stale_age),
+            "phase1_prune_stagnation_threshold": float(args.phase1_prune_stagnation_threshold),
+            "phase1_prune_small_theta_abs": float(args.phase1_prune_small_theta_abs),
+            "phase1_prune_small_theta_relative": float(args.phase1_prune_small_theta_relative),
+            "phase1_prune_cooldown_steps": int(args.phase1_prune_cooldown_steps),
+            "phase1_prune_local_window_size": int(args.phase1_prune_local_window_size),
+            "phase1_prune_recovery_trust_radius": float(

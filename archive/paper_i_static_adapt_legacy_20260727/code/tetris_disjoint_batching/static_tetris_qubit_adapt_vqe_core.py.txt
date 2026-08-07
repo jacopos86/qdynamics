@@ -1,0 +1,127 @@
+STATIC_TETRIS_QUBIT_ADAPT_VQE = "static_tetris_qubit_adapt_vqe"
+_TETRIS_FIXED_HORIZON_NUMERICAL_ZERO_GRADIENT_FLOOR = 1e-14
+_DEFAULT_MAX_TETRIS_BATCH_SIZE = 4
+_TETRIS_COMPATIBILITY_RULE = "greedy batches contain candidates with pairwise-disjoint qubit support"
+
+STATIC_TETRIS_QUBIT_ADAPT_VQE: _VariantConfig(
+    algorithm_id=STATIC_TETRIS_QUBIT_ADAPT_VQE,
+    variant="tetris",
+    display_name="TETRIS-ADAPT-VQE",
+    method_kind="tetris_full_meta_adapt",
+    ansatz_name="benchmark_local_tetris_batched_full_meta_adapt",
+    selector_rule=(
+        "rank full_meta candidates by absolute ADAPT commutator gradient, then greedily batch candidates "
+        "with disjoint qubit support"
+    ),
+    pool_kind="full_meta",
+    optimizer_kind="bfgs",
+    stop_rule="raw_gradient",
+    repeat_policy="exclude_selected_labels",
+),
+
+def _batch_admission_gradient_threshold(config: _VariantConfig, gradient_threshold: float) -> float | None:
+    """Return the gradient floor used to admit candidates into the selected batch.
+
+    Fixed-horizon comparator rows deliberately pass ``gradient_threshold=0`` to
+    disable gradient-based stopping.  That stop-policy choice should not make
+    exact zero-gradient candidates eligible as TETRIS batch fillers, but it also
+    must not reintroduce the conventional ADAPT convergence threshold as a stop
+    condition; nonzero-gradient single-candidate batches remain valid TETRIS
+    steps.
+    Geo-natural-gradient rows intentionally score by the geometric rule instead
+    and therefore do not use a raw-gradient batch-admission floor here.
+    """
+
+    if config.stop_rule == "geo_natural_gradient_norm":
+        return None
+    threshold = float(gradient_threshold)
+    if config.variant == "tetris" and threshold <= 0.0:
+        return float(_TETRIS_FIXED_HORIZON_NUMERICAL_ZERO_GRADIENT_FLOOR)
+    return threshold
+
+
+def _select_batch(
+    *,
+    config: _VariantConfig,
+    scored: Sequence[Mapping[str, Any]],
+    gradient_threshold: float,
+    max_tetris_batch_size: int,
+) -> list[Mapping[str, Any]]:
+    admission_gradient_threshold = _batch_admission_gradient_threshold(config, float(gradient_threshold))
+    if admission_gradient_threshold is None:
+        eligible = list(scored)
+    else:
+        eligible = [
+            row
+            for row in scored
+            if float(row.get("abs_gradient_decision", row.get("abs_gradient", 0.0))) >= admission_gradient_threshold
+        ]
+    if not eligible:
+        return []
+    if config.variant != "tetris":
+        return [eligible[0]]
+    batch: list[Mapping[str, Any]] = []
+    occupied: set[int] = set()
+    for row in eligible:
+        support = {int(q) for q in row.get("support", [])}
+        if support and support.isdisjoint(occupied):
+            batch.append(row)
+            occupied.update(support)
+        if len(batch) >= int(max_tetris_batch_size):
+            break
+    return batch
+
+
+def _compiled_proxy_stats(
+    selected: Sequence[_PoolCandidate],
+    *,
+    selected_batches: Sequence[Sequence[_PoolCandidate]] | None = None,
+) -> dict[str, Any]:
+    costs = [_candidate_proxy_cost(candidate) for candidate in selected]
+    runtime_rotation_count = int(sum(cost["pauli_rotation_proxy"] for cost in costs))
+    count_2q = int(sum(cost["count_2q"] for cost in costs))
+    sequential_depth_2q = int(sum(cost["depth_2q"] for cost in costs))
+    oneq_basis_proxy = int(sum(cost["basis_change_1q_proxy"] for cost in costs))
+    sequential_depth = int(sum(cost["depth_proxy"] for cost in costs))
+
+    batches = [list(batch) for batch in (selected_batches or ()) if list(batch)]
+    if batches:
+        depth = int(
+            sum(max(_candidate_proxy_cost(candidate)["depth_proxy"] for candidate in batch) for batch in batches)
+        )
+        depth_2q = int(
+            sum(max(_candidate_proxy_cost(candidate)["depth_2q"] for candidate in batch) for batch in batches)
+        )
+        depth_model = "batch_aware_max_parallel_disjoint_support_per_adapt_iteration"
+    else:
+        depth = sequential_depth
+        depth_2q = sequential_depth_2q
+        depth_model = "sequential_pauli_rotation_proxy"
+
+    return {
+        "depth_proxy": depth,
+        "circuit_depth": depth,
+        "count_2q": int(count_2q),
+        "compiled_depth_total": depth,
+        "compiled_depth_2q_total": int(depth_2q),
+        "compiled_count_2q_total": int(count_2q),
+        "compiled_op_counts": {
+            "pauli_rotation_proxy": int(runtime_rotation_count),
+            "cx": int(count_2q),
+            "rz": int(runtime_rotation_count),
+            "basis_change_1q_proxy": int(oneq_basis_proxy),
+        },
+        "compiled_circuit_stats_status": "deterministic_pauli_rotation_proxy",
+        "compiled_circuit_stats_error": None,
+        "compiled_depth_model": depth_model,
+        "compiled_depth_2q_model": f"two_qubit_layers::{depth_model}",
+        "compiled_depth_2q_semantics": "deterministic_pauli_rotation_cnot_chain_two_qubit_layer_depth",
+        "compiled_depth_2q_status": "deterministic_decomposition",
+        "compiled_depth_sequential_pauli_rotation_proxy": sequential_depth,
+        "compiled_depth_2q_sequential_pauli_rotation_proxy": sequential_depth_2q,
+        "compiled_circuit_stats_note": (
+            "No Qiskit circuit is constructed by this benchmark-local statevector runner; "
+            "compiled stats use the deterministic Pauli-rotation CNOT-chain decomposition. "
+            "TETRIS rows use a batch-aware depth proxy while retaining additive two-qubit counts."
+        ),
+    }

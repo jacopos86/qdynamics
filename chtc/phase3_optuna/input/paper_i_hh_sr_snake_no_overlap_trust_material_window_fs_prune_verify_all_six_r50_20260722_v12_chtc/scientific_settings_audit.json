@@ -1,0 +1,18 @@
+{
+  "accepted_powell_refit_whitening_active": true,
+  "endpoint_overlap_measurement_active": false,
+  "historical_admission_beam_active": false,
+  "live_fs_trust_pruning_active": true,
+  "minimal_immutable_keep_delete_refit_verification_active": true,
+  "phase3_material_window_active": true,
+  "phase3_supported_whitening_active": false,
+  "rollback_classical_query_charge": 0,
+  "schema": "paper_i_sr_material_window_fs_prune_scientific_audit_v1",
+  "status": "pass",
+  "strict_prune_s_alg_views_required": [
+    "all_work",
+    "winning_lineage",
+    "rejected_or_discarded_prune_branch",
+    "shared_source_state"
+  ]
+}

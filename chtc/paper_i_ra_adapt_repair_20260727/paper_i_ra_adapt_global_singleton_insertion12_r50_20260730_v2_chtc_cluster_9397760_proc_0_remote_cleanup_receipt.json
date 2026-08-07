@@ -1,0 +1,45 @@
+{
+  "completion_receipt": {
+    "canonical_sha256": "a997701cf262fa648c48779dc62b34126974faca869f3142b6ab8572c86373b6",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v2_chtc_cluster_9397760_proc_0_retrieval_completion_receipt.json",
+    "sha256": "24f9d5a5bf94d049654b3c37f4cf8a305f7601e1e1d3ff8fa5c75d7a2bcf814c",
+    "size_bytes": 4068
+  },
+  "execution": {
+    "attempt_ordinal": 1,
+    "cluster_id": 9397760,
+    "execution_id": "global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation",
+    "proc_id": 0
+  },
+  "local_archive": {
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_chtc_20260731_release_v2/global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation__cluster_9397760__proc_0.tar.gz",
+    "sha256": "0a0ec37098cf22b2fab819223385fec31cced19d747da6018c13bb637540ce2c",
+    "size_bytes": 1450570988
+  },
+  "paper_evidence_adopted": false,
+  "quota_after_cleanup": {
+    "home_hard_limit_gib": 50.0,
+    "home_soft_limit_gib": 40.0,
+    "home_used_gib": 33.6773,
+    "observed_utc": "2026-07-31T16:09:06Z",
+    "soft_limit_headroom_gib": 6.3227
+  },
+  "receipt_created_utc": "2026-07-31T16:17:40Z",
+  "remote_archive": {
+    "absence_observed_utc": "2026-07-31T16:09:06Z",
+    "disposition": "exact_path_deleted_after_local_hash_size_and_full_archive_verification",
+    "exact_path_absence_confirmed": true,
+    "path": "/home/jsstrobel/Holstein_phase3_optuna_chtc/chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_insertion12_r50_20260730_v2_chtc_runtime/fetched/global_singleton__weak_weak__nph3__ra_global_singleton_plateau_commutation__cluster_9397760__proc_0.tar.gz",
+    "sha256": "0a0ec37098cf22b2fab819223385fec31cced19d747da6018c13bb637540ce2c",
+    "size_bytes": 1450570988
+  },
+  "remote_identity": {
+    "host": "ap2001.chtc.wisc.edu",
+    "owner": "jsstrobel",
+    "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "schedd": "ap2001.chtc.wisc.edu"
+  },
+  "schema": "paper_i_checkpoint_retention_controlled_cycle_remote_cleanup_receipt_v1",
+  "sha256": "617944186c2c7d02d30d977342bb7e728d53a08d581e2124633128dd147357c3",
+  "status": "passed"
+}

@@ -1,0 +1,13 @@
+{
+ "authorized_by": "repository owner, session instruction 2026-08-06",
+ "campaign_id": "paper_i_ra_adapt_macro_always_lanes_ablation_r50_v1",
+ "execution_authorized": true,
+ "execution_id": "lanes_ablation__lanes_on__intermediate_weak__nph3__ra_macro_always",
+ "job_sha256": "7cea611e51eddda385fd7d5e4c291ae58e1254d0317df348b485ee7ae693de91",
+ "package_id": "paper_i_ra_adapt_lanes_ablation12_r50_20260806_v1_chtc",
+ "paper_evidence_adopted": false,
+ "run_class": "diagnostic",
+ "schema": "paper_i_ra_lanes_ablation_execution_authorization_v1",
+ "sha256": "d7e9bd3ee45bd3e65038e33da5d850c0dd7b0b1b2749537acf3b0f552120d553",
+ "submission_authorized": true
+}

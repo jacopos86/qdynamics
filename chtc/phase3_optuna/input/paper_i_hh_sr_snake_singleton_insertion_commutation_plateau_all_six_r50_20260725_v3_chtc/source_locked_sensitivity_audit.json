@@ -1,0 +1,42 @@
+{
+  "anchor": {
+    "anchor_bundle": null,
+    "anchor_reproduces_source": false,
+    "reason": "The insertion implementation is a hash-locked current-worktree overlay; no same-overlay append-only replay was requested."
+  },
+  "schema": "source_locked_sensitivity_audit_v1",
+  "source": {
+    "bundle": "paper_i_hh_sr_snake_no_overlap_trust_all_six_r50_20260720_v4_chtc",
+    "profile_contract_sha256": "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2",
+    "profile_request": "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1"
+  },
+  "status": "diagnostic_authorized_without_replay_anchor",
+  "sweep": {
+    "child_value": "insertion_commutation_plateau_v1",
+    "horizon": 50,
+    "implementation_overlay": [
+      "pipelines/static_adapt/adapt_pipeline.py",
+      "pipelines/static_adapt/cli_config.py",
+      "pipelines/static_adapt/sr_snake_route_profile.py"
+    ],
+    "regimes": [
+      "intermediate_strong",
+      "intermediate_weak",
+      "strong_strong_u8",
+      "strong_weak_u8",
+      "weak_strong",
+      "weak_weak"
+    ],
+    "run_class": "diagnostic",
+    "runtime_overlay_roots": [
+      "pipelines/static_adapt",
+      "pipelines/scaffold",
+      "src"
+    ],
+    "settings_changed": [
+      "adapt_insertion_mode"
+    ],
+    "source_value": "append_only",
+    "variable": "adapt_insertion_mode"
+  }
+}

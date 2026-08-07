@@ -1,0 +1,27 @@
+{
+  "approved_science_behavior_change": [
+    "powell_maxiter_cap_policy"
+  ],
+  "declared_record_science_settings_diff": {
+    "powell_maxiter_cap_policy": {
+      "repair": "accept_finite_nonincreasing_v1",
+      "source": "strict_failure_v1"
+    }
+  },
+  "output_and_provenance_changes": [
+    "batch_id",
+    "record_id",
+    "record_output_dir",
+    "result/current/stdout/stderr/cell_manifest paths",
+    "code_bundle path and sha256",
+    "implementation_lock path and sha256",
+    "exact_energy_manifest path only; content sha256 unchanged",
+    "implementation_contract_id"
+  ],
+  "repair_record_id": "paper_i_scaling_matrix_append_powell_cap_repair_20260711_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__powellcap_finite_nonincreasing_v1__iter30",
+  "schema": "paper_i_scaling_matrix_single_row_settings_diff_v1",
+  "source_lock_status": "not_claimed_not_evaluated",
+  "source_record_id": "paper_i_scaling_matrix_parent_powell200_20260710_v1__hubbard__hubbard_L4_scaling_strong__append__parent_powell200__iter30",
+  "status": "pass_declared_record_diff_not_source_lock",
+  "unchanged_declared_science_settings_count": 40
+}

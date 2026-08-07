@@ -1,0 +1,73 @@
+{
+  "exact_blockers": [],
+  "note": "Diagnostic energies are not production comparisons; these records establish executable route/profile, checkpoint, trust, and prune-path health. The prune transaction gate is a source-locked production-composition regression, not a threshold-modified scientific smoke.",
+  "passed_gates": [
+    "route_profile_and_contract_digest",
+    "full_phase3_pre_support_coordinate_count",
+    "phase3_response_supported_rank_recorded",
+    "full_accepted_refit_coordinate_count",
+    "adaptive_trust_one_update_per_accepted_refit",
+    "symmetry_and_padding_leakage",
+    "checkpoint_roundtrip_and_fixed_prefix_replay",
+    "estimator_ledger_closure",
+    "shadow_damping_explicit_diagnostic_noop",
+    "safe_all_infeasible_prune_skip",
+    "production_composition_one_nominee_one_measured_prune_trial"
+  ],
+  "production_composition_prune_gate": {
+    "added_quantum_query_count": 0,
+    "archive_only_execution_record": "archive_only_preflight.json",
+    "conservative_rho_mu_update": true,
+    "kind": "focused_source_locked_regression",
+    "live_only_no_terminal_pruning": true,
+    "measured_energy_is_acceptance_authority": true,
+    "one_measured_delete_refit_trial": true,
+    "one_nominee": true,
+    "test_file": "test/test_static_adapt_sr_trust_prune.py",
+    "test_file_sha256": "38c5787ac4362d02fff6413e2a1675aabc7206a974aff2906c4eb619b96c0616"
+  },
+  "records": [
+    {
+      "admissions": 8,
+      "evidence_sha256": {
+        "json/current.json": "cd42ff02b99973b1ff6dbb2334d41bd129f2a6c511ab3ad5c821403a05d85192",
+        "json/estimator_call_ledger.json": "e0cec128682dc65557ea821c4f3acd2856f72bd9009795826c4411271778cc7e",
+        "json/qiskit_compile_repaired_checkpoint.json": "669383efe1f87f4a07a89898740f2c27c2bed2c5b08d86eb0ea121b5a489e612",
+        "json/qiskit_cost_sidecar.json": "700597f75bc398299908d5771bfba8c824120105c19c81b2ec96b66bbe08917e",
+        "json/result.json": "89eb332a23ba25fb2dbafb66438b97cf40b3c79a31b168b71c2537cc4958da22",
+        "source_lock/anchor_command.json": "85c9a424649715c218983bed53cab08554811f360f58d48275f0a9c9b03423f5",
+        "source_lock/validation_summary.json": "e0a2b662824717ddd91a10656c898e6ea84472bcbdaf232ea52bdb4c3b74a9a7"
+      },
+      "exit_success": true,
+      "label": "eight_admission_nonbeam_overlay_trust_repair",
+      "profile_contract_sha256": "447b8fe3f4fef340fbb1cd5d221a0234826ba80c7e4e405937004e4ab25bec93",
+      "profile_resolved": "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4",
+      "root": "raw_outputs/paper_i_hh_sr_snake_v4_weak_weak_smoke_20260716/diagnostic_admissions8_nonbeam_overlay_trust_repair_v2",
+      "same_cutoff_exact_energy": -0.9183531194991743,
+      "scientific_evidence_validation": {
+        "adaptive_trust_updates": 8,
+        "controller_rounds": 8,
+        "final_active_depth": 8,
+        "ledger": {
+          "all_branch_s_alg": 3197,
+          "ledger_fingerprint": "e46335b16ba91bd334ebd46819333924a5ce85c3e67fbd8cb1064e2e4d7d037a",
+          "raw_entry_count": 3197,
+          "raw_occurrence_count": 3578,
+          "winning_lineage_s_alg": 3197
+        },
+        "live_prune_rounds_accepted": 0,
+        "live_prune_rounds_executed": 0,
+        "max_binary_padding_leakage": 2.220446049250313e-15,
+        "max_fixed_sector_leakage": 2.1094237467877974e-15,
+        "new_admissions": 8,
+        "phase3_response_scope": "full_active_plus_singleton_v1",
+        "shadow_damping_diagnostic_only_each_round": true,
+        "supported_rank_recorded_each_round": true,
+        "terminal_checkpoint_sha256": "2188f1254d3e1b63d2c9d57a79593d2ad57b50e16e889a3043ff08164fb927bb",
+        "terminal_state_unchanged_from_last_ordinary_round": true
+      }
+    }
+  ],
+  "schema": "paper_i_hh_sr_snake_v4_local_smoke_evidence_v1",
+  "status": "pass_for_bundle_construction_not_a_production_result"
+}

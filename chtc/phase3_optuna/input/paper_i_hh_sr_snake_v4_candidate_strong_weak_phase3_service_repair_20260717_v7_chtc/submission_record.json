@@ -1,0 +1,37 @@
+{
+  "schema": "paper_i_hh_sr_snake_v4_submission_record_v3",
+  "submitted_utc": "2026-07-17T17:52:05Z",
+  "cluster_id": 8881960,
+  "batch_name": "paper-i-hh-sr-v4-sw-r30-phase3-service-repair-20260717-v7",
+  "job_count": 1,
+  "regimes": [
+    "strong_weak_u8"
+  ],
+  "source_commit": "b2400825d3279753e2f1b1a61d4447f0ccbb606c",
+  "source_tree": "b7bd374befe8e564da1ab4d0c53250f41bfad3c4",
+  "source_archive_sha256": "01cb257db88826afe4eb50027431ef0d244b357fb0e859c2b57b52e628f18da8",
+  "route_contract_sha256": "b6331521fb55f4165e177466536b4e2a5834ff09205ab5532ea70de893f156bc",
+  "supersedes_cluster": 8878503,
+  "supersedes_proc": 2,
+  "repair_classification": "existing_full_response_contract_enforcement",
+  "scientific_settings_changed": [],
+  "local_bundle_tests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "archive_only_focused_regressions": {
+    "passed": 451,
+    "skipped": 9,
+    "failed": 0
+  },
+  "remote_image_bundle_tests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "scheduler_acceptance": {
+    "status": "idle",
+    "job_status_code": 1,
+    "request_memory_mb": 40960,
+    "request_disk_kb": 62914560
+  }
+}

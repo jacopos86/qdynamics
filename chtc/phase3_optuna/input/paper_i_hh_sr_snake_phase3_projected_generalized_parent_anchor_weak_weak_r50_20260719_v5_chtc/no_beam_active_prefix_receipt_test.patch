@@ -1,0 +1,35 @@
+--- a/test/test_static_adapt_accepted_refit.py
++++ b/test/test_static_adapt_accepted_refit.py
+@@ -635,3 +635,31 @@ def test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record(
+ 
+     trust_state = payload["route_a_trust_region_state"]
+     assert trust_state["update_count"] == len(payload["history"])
++
++    continuation = payload["continuation"]
++    receipts = continuation["all_active_prefix_estimator_ledger_receipts"]
++    checkpoints = continuation["active_prefix_checkpoints"]
++    terminal_checkpoint = continuation["terminal_active_prefix_checkpoint"]
++    assert len(receipts) == len(checkpoints) + 1
++    assert len(checkpoints) == len(payload["history"])
++    assert all(receipt["enabled"] is True for receipt in receipts)
++    assert all(receipt["status"] == "complete" for receipt in receipts)
++    assert [receipt["checkpoint_sequence"] for receipt in receipts] == list(
++        range(1, len(receipts) + 1)
++    )
++    for checkpoint, receipt in zip(checkpoints, receipts[:-1]):
++        assert checkpoint["estimator_ledger_receipt"] == receipt
++    assert terminal_checkpoint["estimator_ledger_receipt"] == receipts[-1]
++
++    closure = continuation["active_prefix_estimator_ledger_closure"]
++    assert closure["schema"] == (
++        "paper_i_active_prefix_estimator_ledger_closure_v1"
++    )
++    assert closure["enabled"] is True
++    assert closure["status"] == "complete"
++    assert closure["passed"] is True
++    assert closure["receipt_count"] == len(receipts)
++    assert closure["summed_raw_occurrences"] == closure["terminal_raw_occurrences"]
++    assert closure["summed_unique_primitives"] == (
++        closure["terminal_unique_primitives"]
++    )
++    assert closure["includes_discarded_branch_checkpoints"] is False

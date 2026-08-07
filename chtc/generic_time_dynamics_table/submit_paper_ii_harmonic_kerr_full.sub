@@ -1,0 +1,20 @@
+universe = vanilla
+executable = chtc/generic_time_dynamics_table/run_task_apptainer.sh
+arguments = $(record_id) chtc/generic_time_dynamics_table/input/paper_ii_class_tuned_harmonic_kerr_records.tsv
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, test_support, MATH/Math.md, run_guide.md, AGENTS.md, chtc/generic_time_dynamics_table, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/paper-ii-harmonic-kerr-full.$(Cluster).$(Process).log
+output = logs/paper-ii-harmonic-kerr-full.$(Cluster).$(Process).out
+error = logs/paper-ii-harmonic-kerr-full.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 12GB
+request_disk = 40GB
++MaxRuntime = 28800
++JobBatchName = "holstein-paper-ii-harmonic-kerr-full"
+environment = "GENERIC_TD_TABLE_RECORDS_PATH=chtc/generic_time_dynamics_table/input/paper_ii_class_tuned_harmonic_kerr_records.tsv GENERIC_TD_CLASS_SETTINGS_MANIFEST=chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json GENERIC_TD_REQUIRE_LOCKED_CLASS_SETTINGS=1"
+queue record_id from chtc/generic_time_dynamics_table/input/paper_ii_class_tuned_harmonic_kerr_record_ids.txt

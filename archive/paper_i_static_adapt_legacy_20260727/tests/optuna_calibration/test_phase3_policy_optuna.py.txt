@@ -1,0 +1,3004 @@
+from __future__ import annotations
+
+import json
+import signal
+from dataclasses import asdict, replace
+from pathlib import Path
+import sys
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+import pipelines.static_adapt.optimization.phase3_policy_optuna as p3opt
+from pipelines.static_adapt.optimization.phase3_policy_optuna import (
+    _measurement_cost_proxies,
+    AlgorithmPolicy,
+    BenchmarkResult,
+    GlobalObjectiveConfig,
+    HamiltonianBenchmarkSpec,
+    InnerOptimizerPolicy,
+    PoolPolicy,
+    ProblemFeatureVector,
+    SizeScaledBudget,
+    StaticObjectiveWeights,
+    aggregate_global_score,
+    apply_historical_ledger_to_specs,
+    apply_policy_to_pipeline_args,
+    build_policy_roundtrip_audit,
+    build_static_command,
+    classify_static_result_quality,
+    default_trial_params,
+    default_static_benchmark_suite,
+    canonical_lane_families,
+    filter_canonical_lane_specs,
+    filter_static_benchmark_suite,
+    historical_trial_params_for_specs,
+    historical_warm_start_records_for_specs,
+    materialize_selected_logical_sidecars_for_specs,
+    normalized_static_score,
+    objective_global_agnostic,
+    oracle_gap,
+    oracle_summary_trial_params,
+    oracle_summary_warm_start_records_for_specs,
+    policy_to_cli_args,
+    run_optuna_study,
+    sample_policy_from_trial,
+    trial_params_from_cli_command,
+)
+
+
+def _spec(problem: str = "hubbard") -> HamiltonianBenchmarkSpec:
+    return HamiltonianBenchmarkSpec(
+        benchmark_id=f"{problem}_L2",
+        family=problem,
+        features=ProblemFeatureVector(
+            problem=problem,
+            size_label="L2",
+            L=2,
+            n_qubits=4,
+            pool_size_hint=100,
+            spinful=True,
+        ),
+        base_pipeline_args=("--problem", problem, "--L", "2", "--adapt-max-depth", "12"),
+        baseline_abs_delta_e=1e-3,
+        baseline_count_2q=100,
+        baseline_depth_2q=300,
+        baseline_parameter_count=20,
+    )
+
+
+def test_paper_i_artifacts_preserve_payload_exact_audit_non_hit() -> None:
+    classification = {
+        "schema_version": "static_adapt_target_hit_classification_v1",
+        "source": "adapt_vqe",
+        "target_hit_success": False,
+        "status": "noisy_oracle_target_hit_exact_audit_non_hit",
+        "non_hit_reason": "exact_final_state_audit_misses_target",
+        "terminal_stop_reason": "benchmark_abs_delta_e_target",
+        "required_stop_reason": "benchmark_abs_delta_e_target",
+        "target_configured": True,
+        "target_error": 2.1e-14,
+        "target_threshold": 2e-4,
+        "target_error_within_threshold": True,
+        "exact_final_state_audit_required": True,
+        "exact_final_state_target_error": 0.05,
+        "exact_final_state_target_error_within_threshold": False,
+    }
+    payload = {
+        "adapt_vqe": {
+            "benchmark_target_classification": classification,
+            "continuation": {"benchmark_target_classification": classification},
+            "history": [],
+        }
+    }
+    result = BenchmarkResult(
+        benchmark_id="hubbard_L2",
+        family="hubbard",
+        success=True,
+        abs_delta_e=2e-14,
+        abs_delta_e_reference=2e-14,
+        stop_reason="benchmark_abs_delta_e_target",
+    )
+    physical_target = {
+        "schema": "paper_i_physical_target_v1",
+        "tau_phys": 2e-4,
+        "tau_tight": 2e-4,
+        "accuracy_gate_metric": "abs_error_reference_cutoff",
+        "legacy_same_cutoff_thresholds": [],
+    }
+
+    _, _, first_crossing = p3opt._paper_i_artifacts_for_result(
+        result,
+        _spec(),
+        result_payload=payload,
+        physical_target=physical_target,
+    )
+
+    assert first_crossing["target_hit_success"] is False
+    assert first_crossing["target_hit_classification"]["target_hit_success"] is False
+    assert first_crossing["target_hit_classification"]["non_hit_reason"] == "exact_final_state_audit_misses_target"
+
+
+def test_size_scaled_budget_grows_with_pool_and_qubits_but_caps() -> None:
+    features = ProblemFeatureVector(problem="extended_hubbard", size_label="L4", L=4, n_qubits=8, pool_size_hint=500)
+    budget = SizeScaledBudget(min_count=16, max_count=128, pool_fraction=0.5, qubit_slope=4.0)
+    assert budget.resolve(features) == 128
+
+    small = replace(features, n_qubits=4, pool_size_hint=10)
+    assert budget.resolve(small) == 16
+
+
+def test_policy_cli_args_normalize_pool_key_for_plain_hubbard() -> None:
+    spec = _spec("hubbard")
+    policy = AlgorithmPolicy(pool=PoolPolicy(pool_key="hamiltonian_quadratures"))
+    args = policy_to_cli_args(policy, spec)
+    pool_idx = args.index("--adapt-pool")
+    assert args[pool_idx + 1] == "full_meta"
+    assert "--phase1-shortlist-size" in args
+    assert "--phase2-shortlist-size" in args
+    assert "--phase1-maturity-cap-min" in args
+    assert "--phase3-maturity-cap-max" in args
+    assert "--phase-maturity-shot-max" in args
+    assert "--phase-live-hysteresis-enabled" in args
+    assert "--phase1-prune-policy" in args
+    assert args[args.index("--phase1-prune-policy") + 1] == "recoverability_ladder_v1"
+    assert args[args.index("--phase1-prune-mode") + 1] == "both"
+    assert args[args.index("--algebraic-phase2-lane-rel-threshold") + 1] == "0.1"
+    assert args[args.index("--algebraic-phase1-lane-quota-pressure") + 1] == "0.7"
+    assert args[args.index("--algebraic-phase2-lane-quota-pressure") + 1] == "0.7"
+    assert args[args.index("--phase1-prune-min-candidates") + 1] == "1"
+    assert args[args.index("--phase1-prune-max-candidates") + 1] == "6"
+    assert args[args.index("--phase1-prune-local-window-size") + 1] == "4"
+    assert args[args.index("--phase1-prune-checkpoint-period") + 1] == "3"
+    assert args[args.index("--phase1-prune-maturity-threshold") + 1] == "0.5"
+    assert args[args.index("--phase1-prune-snr-threshold") + 1] == "1.0"
+    assert args[args.index("--phase1-prune-tolerance-mode") + 1] == "auto"
+    assert float(args[args.index("--phase1-prune-tolerance-screen-coeff") + 1]) == pytest.approx(0.01)
+    assert "--phase1-prune-amplitude-witness-required" in args
+    assert "--phase1-prune-collapse-ratio" in args
+    assert args[args.index("--adapt-insertion-mode") + 1] == "adaptive"
+    assert "--adapt-rollback-mode" not in args
+    assert "--adapt-rollback-tolerance" not in args
+    assert "--phase2-leakage-cap" in args
+    assert args[args.index("--phase2-novelty-mode") + 1] == "collective_span_v1"
+    assert "--phase1-compile-cx-proxy-weight" in args
+    assert "--phase1-measure-shots-weight" in args
+    assert int(args[args.index("--phase1-probe-max-positions") + 1]) < 100000
+    assert float(args[args.index("--phase2-shortlist-fraction") + 1]) < 1.0
+
+
+def test_policy_cli_args_emit_route_c_plateau_acquisition_flags() -> None:
+    spec = _spec("hubbard")
+    base = AlgorithmPolicy.default()
+    policy = replace(
+        base,
+        static=replace(
+            base.static,
+            static_route_id="route_c",
+            phase3_plateau_acquisition_mode="novelty_cost_v1",
+            phase3_plateau_acquisition_score="log_volume_v1",
+            phase3_plateau_unlock_margin=1.0e-7,
+            phase3_plateau_duplicate_policy="block_exact_position_v1",
+            phase3_plateau_lambda_vol=1e-6,
+            phase3_plateau_sigma_min=1e-5,
+            phase3_plateau_nu_min=0.25,
+            phase3_plateau_volume_min=0.1,
+            phase3_plateau_failed_family_patience=3,
+            phase3_plateau_trial_optimizer="sp_qngd",
+            phase3_plateau_trial_qngd_maxiter=17,
+        ),
+    )
+
+    args = policy_to_cli_args(policy, spec)
+
+    assert args[args.index("--static-route-id") + 1] == "route_c"
+    assert "--allow-legacy-static-route" in args
+    assert args[args.index("--phase3-plateau-acquisition-mode") + 1] == "novelty_cost_v1"
+    assert args[args.index("--phase3-plateau-acquisition-score") + 1] == "log_volume_v1"
+    assert float(args[args.index("--phase3-plateau-unlock-margin") + 1]) == pytest.approx(1.0e-7)
+    assert args[args.index("--phase3-plateau-duplicate-policy") + 1] == "block_exact_position_v1"
+    assert float(args[args.index("--phase3-plateau-lambda-vol") + 1]) == pytest.approx(1e-6)
+    assert float(args[args.index("--phase3-plateau-sigma-min") + 1]) == pytest.approx(1e-5)
+    assert float(args[args.index("--phase3-plateau-nu-min") + 1]) == pytest.approx(0.25)
+    assert float(args[args.index("--phase3-plateau-volume-min") + 1]) == pytest.approx(0.1)
+    assert int(args[args.index("--phase3-plateau-failed-family-patience") + 1]) == 3
+    assert args[args.index("--phase3-plateau-trial-optimizer") + 1] == "sp_qngd"
+    assert int(args[args.index("--phase3-plateau-trial-qngd-maxiter") + 1]) == 17
+
+
+def test_phase3_policy_parser_roundtrips_route_c_plateau_policy(tmp_path: Path) -> None:
+    parsed = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--static-route-id",
+            "route_c",
+            "--phase3-plateau-acquisition-mode",
+            "novelty_cost_v1",
+            "--phase3-plateau-acquisition-score",
+            "fractional_residual_v1",
+            "--phase3-plateau-unlock-margin",
+            "2e-7",
+            "--phase3-plateau-duplicate-policy",
+            "allow_exact_position_replay",
+            "--phase3-plateau-lambda-vol",
+            "2e-6",
+            "--phase3-plateau-sigma-min",
+            "3e-5",
+            "--phase3-plateau-nu-min",
+            "0.3",
+            "--phase3-plateau-volume-min",
+            "0.2",
+            "--phase3-plateau-failed-family-patience",
+            "4",
+            "--phase3-plateau-trial-optimizer",
+            "sp_qngd",
+            "--phase3-plateau-trial-qngd-maxiter",
+            "13",
+        ]
+    )
+
+    policy = p3opt._base_policy_from_args(parsed)
+
+    assert policy.static.static_route_id == "route_c"
+    assert policy.static.phase3_plateau_acquisition_mode == "novelty_cost_v1"
+    assert policy.static.phase3_plateau_acquisition_score == "fractional_residual_v1"
+    assert policy.static.phase3_plateau_unlock_margin == pytest.approx(2.0e-7)
+    assert policy.static.phase3_plateau_duplicate_policy == "allow_exact_position_replay"
+    assert policy.static.phase3_plateau_lambda_vol == pytest.approx(2e-6)
+    assert policy.static.phase3_plateau_sigma_min == pytest.approx(3e-5)
+    assert policy.static.phase3_plateau_nu_min == pytest.approx(0.3)
+    assert policy.static.phase3_plateau_volume_min == pytest.approx(0.2)
+    assert policy.static.phase3_plateau_failed_family_patience == 4
+    assert policy.static.phase3_plateau_trial_optimizer == "sp_qngd"
+    assert policy.static.phase3_plateau_trial_qngd_maxiter == 13
+
+
+def test_phase3_runtime_worker_zero_auto_roundtrips_to_child_cli(tmp_path: Path) -> None:
+    parsed = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--phase3-adapt-parallel-gradient-workers",
+            "0",
+            "--phase3-adapt-beam-parent-workers",
+            "0",
+        ]
+    )
+
+    policy = p3opt._base_policy_from_args(parsed)
+    args = policy_to_cli_args(policy, _spec("hh"))
+
+    assert policy.static.adapt_parallel_gradient_workers == 0
+    assert policy.static.adapt_beam_parent_workers == 0
+    assert args[args.index("--adapt-parallel-gradient-workers") + 1] == "0"
+    assert args[args.index("--adapt-beam-parent-workers") + 1] == "0"
+
+
+def test_policy_to_cli_args_hardware_resolution_default_omits_profile_flags() -> None:
+    args = policy_to_cli_args(AlgorithmPolicy.default(), _spec("hh"))
+
+    assert "--hardware-resolution-mode" not in args
+    assert "--hardware-resolution-profile-json" not in args
+    assert "--hardware-resolution-profile-name" not in args
+    assert "--gradient-hw-floor" not in args
+    assert "--gradient-drift-floor" not in args
+
+
+def test_policy_to_cli_args_hardware_resolution_profile_forwards_only_profile_flags() -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            hardware_resolution_mode="profile",
+            hardware_resolution_profile_json="  profiles/calibration.json  ",
+            hardware_resolution_profile_name="  small_noise_v1  ",
+        ),
+    )
+
+    args = policy_to_cli_args(policy, _spec("hh"))
+
+    assert args[args.index("--hardware-resolution-mode") + 1] == "profile"
+    assert args[args.index("--hardware-resolution-profile-json") + 1] == "profiles/calibration.json"
+    assert args[args.index("--hardware-resolution-profile-name") + 1] == "small_noise_v1"
+    assert "--gradient-hw-floor" not in args
+    assert "--gradient-drift-floor" not in args
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    (
+        ({"hardware_resolution_mode": "profile", "hardware_resolution_profile_json": "profiles/calibration.json"}, "requires both"),
+        ({"hardware_resolution_mode": "profile", "hardware_resolution_profile_name": "small_noise_v1"}, "requires both"),
+        ({"hardware_resolution_profile_json": "profiles/calibration.json", "hardware_resolution_profile_name": "small_noise_v1"}, "requires hardware_resolution_mode='profile'"),
+        ({"hardware_resolution_mode": "manual"}, "one of"),
+    ),
+)
+def test_policy_to_cli_args_hardware_resolution_profile_validation_fails_closed(
+    kwargs: dict[str, object],
+    match: str,
+) -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(AlgorithmPolicy.default().static, **kwargs),
+    )
+
+    with pytest.raises(ValueError, match=match):
+        policy_to_cli_args(policy, _spec("hh"))
+
+
+def test_policy_to_cli_args_phase3_oracle_default_omits_oracle_flags() -> None:
+    args = policy_to_cli_args(AlgorithmPolicy.default(), _spec("hh"))
+
+    assert "--phase3-oracle-gradient-mode" not in args
+    assert "--phase3-oracle-backend-name" not in args
+    assert "--phase3-oracle-use-fake-backend" not in args
+    assert "--phase3-oracle-value-noise-model" not in args
+
+
+def test_phase3_parser_confidence_score_flags_flow_to_child_adapt_cli(tmp_path: Path) -> None:
+    parsed = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--phase1-score-z-alpha",
+            "1.0",
+            "--phase2-score-z-alpha",
+            "1.25",
+        ]
+    )
+
+    policy = p3opt._base_policy_from_args(parsed)
+    args = policy_to_cli_args(policy, _spec("hh"))
+
+    assert policy.static.phase1_score_z_alpha == pytest.approx(1.0)
+    assert policy.static.phase2_score_z_alpha == pytest.approx(1.25)
+    assert args[args.index("--phase1-score-z-alpha") + 1] == "1.0"
+    assert args[args.index("--phase2-score-z-alpha") + 1] == "1.25"
+
+
+def test_policy_to_cli_args_phase3_oracle_explicit_overlay_forwards_only_set_fields() -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            phase3_oracle_gradient_mode="aer_density_matrix_synthetic_depolarizing",
+            phase3_oracle_shots=64,
+            phase3_oracle_repeats=1,
+            phase3_oracle_aggregate="mean",
+            phase3_oracle_seed=7,
+            phase3_oracle_execution_surface="expectation_v1",
+            phase3_oracle_inner_objective_mode="noisy_v1",
+            phase3_oracle_value_noise_model="gaussian_iid_v1",
+            phase3_oracle_value_noise_std=1e-6,
+            phase3_oracle_value_noise_seed=20260514,
+            phase3_oracle_value_noise_sigma0_abs=2.0e-5,
+            phase3_oracle_value_noise_n_eff=400,
+            phase3_oracle_synthetic_depolarizing_2q_error=3e-8,
+            phase3_oracle_synthetic_depolarizing_2q_gates="cx rzz",
+            phase3_oracle_value_noise_seed_policy="paired_common_random_by_case_replicate_n_eff_v1",
+            phase3_oracle_value_noise_base_seed=20260531,
+            phase3_oracle_value_noise_replicate_id="r0",
+            adapt_noise_floor_stop_policy="noise_floor_agreement_v1",
+            adapt_noise_floor_snr_threshold=2.0,
+            adapt_noise_floor_n_rem_high_threshold=1.0,
+            adapt_noise_floor_useful_horizon_threshold=1.0,
+        ),
+    )
+
+    args = policy_to_cli_args(policy, _spec("hh"))
+
+    assert args[args.index("--phase3-oracle-gradient-mode") + 1] == "aer_density_matrix_synthetic_depolarizing"
+    assert "--phase3-oracle-backend-name" not in args
+    assert "--phase3-oracle-use-fake-backend" not in args
+    assert args[args.index("--phase3-oracle-shots") + 1] == "64"
+    assert args[args.index("--phase3-oracle-repeats") + 1] == "1"
+    assert args[args.index("--phase3-oracle-aggregate") + 1] == "mean"
+    assert args[args.index("--phase3-oracle-seed") + 1] == "7"
+    assert args[args.index("--phase3-oracle-execution-surface") + 1] == "expectation_v1"
+    assert args[args.index("--phase3-oracle-inner-objective-mode") + 1] == "noisy_v1"
+    assert args[args.index("--phase3-oracle-value-noise-model") + 1] == "gaussian_iid_v1"
+    assert args[args.index("--phase3-oracle-value-noise-std") + 1] == "1e-06"
+    assert args[args.index("--phase3-oracle-value-noise-seed") + 1] == "20260514"
+    assert args[args.index("--phase3-oracle-value-noise-sigma0-abs") + 1] == "2e-05"
+    assert args[args.index("--phase3-oracle-value-noise-n-eff") + 1] == "400"
+    assert args[args.index("--phase3-oracle-synthetic-depolarizing-2q-error") + 1] == "3e-08"
+    assert args[args.index("--phase3-oracle-synthetic-depolarizing-2q-gates") + 1] == "cx,rzz"
+    assert "--phase3-oracle-value-noise-seed-policy" not in args
+    assert "--phase3-oracle-value-noise-base-seed" not in args
+    assert "--phase3-oracle-value-noise-replicate-id" not in args
+    assert args[args.index("--adapt-noise-floor-stop-policy") + 1] == "noise_floor_agreement_v1"
+    assert args[args.index("--adapt-noise-floor-snr-threshold") + 1] == "2.0"
+
+
+def test_policy_to_cli_args_phase3_oracle_forwards_synthetic_coherent_fields() -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            phase3_oracle_gradient_mode="aer_density_matrix_synthetic_coherent",
+            phase3_oracle_shots=64,
+            phase3_oracle_repeats=1,
+            phase3_oracle_aggregate="mean",
+            phase3_oracle_seed=7,
+            phase3_oracle_execution_surface="expectation_v1",
+            phase3_oracle_inner_objective_mode="noisy_v1",
+            phase3_oracle_synthetic_coherent_1q_angle_std=2.0e-4,
+            phase3_oracle_synthetic_coherent_2q_angle_std=6.0e-4,
+            phase3_oracle_synthetic_coherent_seed=20260609,
+            phase3_oracle_synthetic_coherent_generator_mode="random_pauli_frozen_v1",
+            phase3_oracle_synthetic_coherent_1q_gates="h rx",
+            phase3_oracle_synthetic_coherent_2q_gates="cx",
+        ),
+    )
+
+    args = policy_to_cli_args(policy, _spec("hh"))
+
+    assert args[args.index("--phase3-oracle-gradient-mode") + 1] == "aer_density_matrix_synthetic_coherent"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-1q-angle-std") + 1] == "0.0002"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-2q-angle-std") + 1] == "0.0006"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-seed") + 1] == "20260609"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-generator-mode") + 1] == "random_pauli_frozen_v1"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-1q-gates") + 1] == "h,rx"
+    assert args[args.index("--phase3-oracle-synthetic-coherent-2q-gates") + 1] == "cx"
+
+
+def test_phase3_objective_provenance_includes_shot_equivalent_noise_contract(tmp_path: Path) -> None:
+    args = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--phase3-oracle-gradient-mode",
+            "aer_density_matrix_synthetic_depolarizing",
+            "--phase3-oracle-execution-surface",
+            "expectation_v1",
+            "--phase3-oracle-synthetic-depolarizing-2q-error",
+            "3e-8",
+            "--phase3-oracle-synthetic-depolarizing-2q-gates",
+            "cx rzz",
+            "--phase3-oracle-inner-objective-mode",
+            "noisy_v1",
+            "--phase3-oracle-value-noise-model",
+            "gaussian_iid_v1",
+            "--phase3-oracle-value-noise-sigma0-abs",
+            "1e-3",
+            "--phase3-oracle-value-noise-n-eff",
+            "400",
+            "--phase3-oracle-value-noise-seed",
+            "12345",
+            "--phase3-oracle-value-noise-seed-policy",
+            "paired_common_random_by_case_replicate_n_eff_v1",
+            "--phase3-oracle-value-noise-base-seed",
+            "20260531",
+            "--phase3-oracle-value-noise-replicate-id",
+            "r0",
+            "--adapt-noise-floor-stop-policy",
+            "noise_floor_agreement_v1",
+        ]
+    )
+
+    payload = p3opt._phase3_objective_provenance_from_args(args)
+    value_noise = payload["phase3_oracle_value_noise"]
+
+    assert payload["phase3_oracle_value_noise_std"] == pytest.approx(5.0e-5)
+    assert value_noise["semantic"] == "snake_function_value_noise_shot_equivalent_v1"
+    assert value_noise["sigma0_abs"] == pytest.approx(1.0e-3)
+    assert value_noise["N_eff"] == pytest.approx(400.0)
+    assert value_noise["derived_std"] == pytest.approx(5.0e-5)
+    assert value_noise["physical_shots_unchanged"] is True
+    assert value_noise["fixed_gate_error_reduction_claimed"] is False
+    assert value_noise["seed_policy"] == "paired_common_random_by_case_replicate_n_eff_v1"
+    assert payload["phase3_oracle_gradient_mode"] == "aer_density_matrix_synthetic_depolarizing"
+    assert payload["phase3_oracle_synthetic_depolarizing_2q_error"] == pytest.approx(3.0e-8)
+    assert payload["phase3_oracle_synthetic_depolarizing_2q_gates"] == "cx,rzz"
+    assert payload["objective_inner_optimization_noise_mode"] == "phase3_noisy_v1"
+    assert payload["objective_inner_optimization_noise_mode_requested"] == "phase3_noisy_v1"
+    assert payload["objective_inner_optimization_zero_noise_exact_guard_eligible"] is False
+    assert payload["objective_inner_optimization_value_noise_exact_structure_eligible"] is False
+    assert payload["objective_inner_optimization_runtime_guard_reason"] is None
+    assert payload["objective_inner_optimization_preserves_exact_structure"] is False
+    assert payload["objective_inner_optimization_value_noise_scalar_only"] is False
+    assert payload["objective_inner_optimization_oracle_gradient_value_noise_suppressed"] is False
+    assert payload["objective_inner_optimization_consumes_noisy_energy"] is True
+    assert payload["objective_inner_optimization_consumes_noisy_energy_requested"] is True
+    assert payload["adapt_noise_floor_stop_policy"] == "noise_floor_agreement_v1"
+
+
+def test_phase3_objective_provenance_reports_scalar_value_noise_exact_structure(tmp_path: Path) -> None:
+    args = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--phase3-oracle-gradient-mode",
+            "ideal",
+            "--phase3-oracle-execution-surface",
+            "expectation_v1",
+            "--phase3-oracle-synthetic-depolarizing-1q-error",
+            "0.0",
+            "--phase3-oracle-synthetic-depolarizing-2q-error",
+            "0.0",
+            "--phase3-oracle-inner-objective-mode",
+            "noisy_v1",
+            "--phase3-oracle-value-noise-model",
+            "gaussian_iid_v1",
+            "--phase3-oracle-value-noise-sigma0-abs",
+            "1e-3",
+            "--phase3-oracle-value-noise-n-eff",
+            "1000000",
+            "--phase3-oracle-value-noise-seed",
+            "20260606",
+        ]
+    )
+
+    payload = p3opt._phase3_objective_provenance_from_args(args)
+    value_noise = payload["phase3_oracle_value_noise"]
+
+    assert payload["phase3_oracle_value_noise_std"] == pytest.approx(1.0e-6)
+    assert value_noise["semantic"] == "snake_function_value_noise_shot_equivalent_v1"
+    assert value_noise["sigma0_abs"] == pytest.approx(1.0e-3)
+    assert value_noise["N_eff"] == pytest.approx(1.0e6)
+    assert payload["phase3_oracle_inner_objective_mode"] == "noisy_v1"
+    assert payload["objective_inner_optimization_noise_mode"] == p3opt._VALUE_NOISE_ORACLE_INNER_EXACT_STRUCTURE_MODE
+    assert payload["objective_inner_optimization_noise_mode_requested"] == "phase3_noisy_v1"
+    assert payload["objective_inner_optimization_zero_noise_exact_guard_eligible"] is False
+    assert payload["objective_inner_optimization_value_noise_exact_structure_eligible"] is True
+    assert (
+        payload["objective_inner_optimization_runtime_guard_reason"]
+        == p3opt._VALUE_NOISE_ORACLE_INNER_EXACT_STRUCTURE_REASON
+    )
+    assert payload["objective_inner_optimization_preserves_exact_structure"] is True
+    assert payload["objective_inner_optimization_value_noise_scalar_only"] is True
+    assert payload["objective_inner_optimization_oracle_gradient_value_noise_suppressed"] is True
+    assert payload["objective_inner_optimization_consumes_noisy_energy"] is True
+    assert payload["objective_inner_optimization_consumes_noisy_energy_requested"] is True
+    assert payload["objective_noise_mode"] == "phase3_inner_exact_structure_value_noise_final_score_exact_v1"
+
+
+def test_phase3_objective_provenance_accepts_zero_noise_oracle_controls(tmp_path: Path) -> None:
+    args = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--phase3-oracle-gradient-mode",
+            "aer_density_matrix_synthetic_depolarizing",
+            "--phase3-oracle-execution-surface",
+            "expectation_v1",
+            "--phase3-oracle-synthetic-depolarizing-1q-error",
+            "0.0",
+            "--phase3-oracle-synthetic-depolarizing-2q-error",
+            "0.0",
+            "--phase3-oracle-inner-objective-mode",
+            "noisy_v1",
+            "--phase3-oracle-value-noise-model",
+            "off",
+            "--phase3-oracle-value-noise-std",
+            "0.0",
+            "--adapt-noise-floor-stop-policy",
+            "off",
+        ]
+    )
+
+    payload = p3opt._phase3_objective_provenance_from_args(args)
+    value_noise = payload["phase3_oracle_value_noise"]
+
+    assert payload["phase3_oracle_gradient_mode"] == "aer_density_matrix_synthetic_depolarizing"
+    assert payload["phase3_oracle_inner_objective_mode"] == "noisy_v1"
+    assert payload["objective_inner_optimization_noise_mode"] == "exact_noiseless_v1"
+    assert payload["objective_inner_optimization_noise_mode_requested"] == "phase3_noisy_v1"
+    assert payload["objective_inner_optimization_zero_noise_exact_guard_eligible"] is True
+    assert payload["objective_inner_optimization_value_noise_exact_structure_eligible"] is False
+    assert (
+        payload["objective_inner_optimization_runtime_guard_reason"]
+        == p3opt._ZERO_NOISE_ORACLE_INNER_EXACT_GUARD_REASON
+    )
+    assert payload["objective_inner_optimization_preserves_exact_structure"] is True
+    assert payload["objective_inner_optimization_value_noise_scalar_only"] is False
+    assert payload["objective_inner_optimization_oracle_gradient_value_noise_suppressed"] is False
+    assert payload["objective_inner_optimization_consumes_noisy_energy"] is False
+    assert payload["objective_inner_optimization_consumes_noisy_energy_requested"] is True
+    assert payload["objective_final_score_noise_mode"] == "exact_noiseless_v1"
+    assert payload["phase3_oracle_value_noise_model"] == "off"
+    assert payload["phase3_oracle_value_noise_std"] == pytest.approx(0.0)
+    assert payload["phase3_oracle_value_noise_sigma0_abs"] is None
+    assert payload["phase3_oracle_value_noise_n_eff"] is None
+    assert value_noise["enabled"] is False
+    assert value_noise["model"] == "off"
+    assert value_noise["std"] == pytest.approx(0.0)
+    assert value_noise["sigma0_abs"] is None
+    assert value_noise["N_eff"] is None
+    assert value_noise["derived_std"] is None
+    assert value_noise["std_source"] == "explicit_std"
+    assert value_noise["semantic"] == "post_expectation_value_noise_not_physical_shots"
+    assert payload["phase3_oracle_synthetic_depolarizing_1q_error"] == pytest.approx(0.0)
+    assert payload["phase3_oracle_synthetic_depolarizing_2q_error"] == pytest.approx(0.0)
+    assert payload["adapt_noise_floor_stop_policy"] == "off"
+
+
+
+def test_apply_policy_to_pipeline_args_phase3_oracle_overlay_replaces_stale_base_args() -> None:
+    spec = _spec("hh")
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            phase3_oracle_gradient_mode="ideal",
+            phase3_oracle_use_fake_backend=False,
+            phase3_oracle_shots=32,
+        ),
+    )
+
+    args = apply_policy_to_pipeline_args(
+        [
+            "--problem",
+            "hh",
+            "--phase3-oracle-gradient-mode",
+            "aer_density_matrix",
+            "--phase3-oracle-use-fake-backend",
+            "--phase3-oracle-shots",
+            "2048",
+        ],
+        policy,
+        spec,
+    )
+
+    assert args.count("--phase3-oracle-gradient-mode") == 1
+    assert args[args.index("--phase3-oracle-gradient-mode") + 1] == "ideal"
+    assert args.count("--phase3-oracle-shots") == 1
+    assert args[args.index("--phase3-oracle-shots") + 1] == "32"
+    assert "--phase3-oracle-use-fake-backend" not in args
+
+
+def test_policy_cli_args_clamp_prune_candidate_bounds() -> None:
+    spec = _spec("hubbard")
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            phase1_prune_min_candidates=4,
+            phase1_prune_max_candidates=2,
+        ),
+    )
+    args = policy_to_cli_args(policy, spec)
+
+    assert args[args.index("--phase1-prune-min-candidates") + 1] == "2"
+    assert args[args.index("--phase1-prune-max-candidates") + 1] == "2"
+
+
+def test_historical_selected_policy_forces_full_meta_before_family_filter(tmp_path: Path) -> None:
+    source = tmp_path / "selected.json"
+    source.write_text(
+        json.dumps(
+            {
+                "schema": "selected_logical_library_v1",
+                "records": [{"candidate_label": "uccsd_sing(alpha:0->1)", "family_id": "uccsd"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    spec = replace(
+        _spec("ionic_hubbard"),
+        selected_logical_route="historical_selected",
+        selected_logical_source_json=str(source),
+    )
+    policy = AlgorithmPolicy(pool=PoolPolicy(pool_key="hamiltonian_quadratures"))
+    args = policy_to_cli_args(policy, spec)
+
+    assert args[args.index("--adapt-pool") + 1] == "full_meta"
+    assert args[args.index("--adapt-selected-logical-mode") + 1] == "family_closure_with_full_fallback"
+
+
+def test_apply_policy_to_pipeline_args_replaces_existing_values_and_toggles() -> None:
+    spec = _spec("extended_hubbard")
+    policy = AlgorithmPolicy.default()
+    args = apply_policy_to_pipeline_args(
+        [
+            "--problem",
+            "extended_hubbard",
+            "--L",
+            "2",
+            "--adapt-max-depth",
+            "12",
+            "--phase2-enable-batching",
+            "--adapt-allow-repeats",
+        ],
+        policy,
+        spec,
+    )
+    assert args.count("--adapt-max-depth") == 1
+    assert args[args.index("--adapt-max-depth") + 1] == str(policy.static.adapt_max_depth)
+    assert args[args.index("--phase3-selector-policy") + 1] == "algebraic_nested_v1"
+    assert "--phase2-no-batching" in args
+    assert "--phase2-enable-batching" not in args
+    assert "--adapt-no-repeats" in args
+    assert "--adapt-allow-repeats" not in args
+
+
+def test_normalized_static_score_rewards_energy_improvement_and_accounts_for_cost() -> None:
+    spec = _spec()
+    result = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=1e-4,
+        count_2q=200,
+        circuit_depth=600,
+        parameter_count=40,
+    )
+    score = normalized_static_score(result, spec, StaticObjectiveWeights(count_2q=0.1, circuit_depth=0.1, parameters=0.1))
+    assert score < 0.0
+
+    failed = BenchmarkResult(benchmark_id=spec.benchmark_id, family=spec.family, success=False, abs_delta_e=None)
+    assert normalized_static_score(failed, spec) == pytest.approx(100.0)
+
+    illegal_failed = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=False,
+        abs_delta_e=1e-2,
+        boson_illegal_probability_max=0.2,
+    )
+    assert normalized_static_score(illegal_failed, spec) > 100.0
+
+
+def test_cost_at_accuracy_objective_stops_rewarding_extra_accuracy_and_penalizes_shots() -> None:
+    spec = replace(_spec(), baseline_shot_cost_proxy=10.0)
+    weights = StaticObjectiveWeights(
+        energy=1.0,
+        count_2q=0.0,
+        circuit_depth=0.0,
+        parameters=0.0,
+        shot_cost=1.0,
+        target_abs_delta_e=1e-5,
+    )
+    accurate_low_shot = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=1e-10,
+        shot_cost_proxy=10.0,
+        measurement_proxy_validated=True,
+    )
+    accurate_high_shot = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=1e-14,
+        shot_cost_proxy=100.0,
+        measurement_proxy_validated=True,
+    )
+    inaccurate = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=1e-3,
+        shot_cost_proxy=10.0,
+        measurement_proxy_validated=True,
+    )
+    inaccurate_tiny_shot = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=1e-2,
+        count_2q=1,
+        circuit_depth=1,
+        parameter_count=1,
+        shot_cost_proxy=0.0,
+        measurement_proxy_validated=True,
+    )
+
+    assert normalized_static_score(accurate_low_shot, spec, weights) == pytest.approx(0.0)
+    assert normalized_static_score(accurate_high_shot, spec, weights) > normalized_static_score(accurate_low_shot, spec, weights)
+    assert normalized_static_score(inaccurate, spec, weights) > normalized_static_score(accurate_low_shot, spec, weights)
+    assert normalized_static_score(inaccurate_tiny_shot, spec, weights) > normalized_static_score(accurate_high_shot, spec, weights)
+
+    invalid_proxy_high_shot = replace(accurate_high_shot, measurement_proxy_validated=False)
+    assert normalized_static_score(invalid_proxy_high_shot, spec, weights) == pytest.approx(
+        normalized_static_score(accurate_low_shot, spec, weights)
+    )
+
+
+def test_measurement_cost_proxies_use_controller_work_not_admitted_or_scored_surface() -> None:
+    payload = {
+        "adapt_vqe": {
+            "history": [
+                {
+                    "controller_measurement_work_proxy": {
+                        "schema": "controller_measurement_work_proxy_v1",
+                        "groups_new": 4,
+                        "total_groups_new": 4,
+                        "shots_new": 40.0,
+                        "total_shots_new": 40.0,
+                        "records_evaluated": 12,
+                    },
+                    "selector_measurement_cache_stats": {"groups_new": 2, "shots_new": 20.0},
+                    "measurement_cache_stats": {"groups_new": 99, "shots_new": 9900.0},
+                    "selected_feature_rows": [{"new_shot_cost": 1234.0}],
+                    "scored_surface_records": [
+                        {"measurement_cache_stats": {"groups_new": 500, "shots_new": 5000.0}}
+                    ],
+                },
+                {
+                    "selector_measurement_cache_stats": {"groups_new": 1, "shots_new": 10.0},
+                    "measurement_cache_stats": {"groups_new": 99, "shots_new": 9900.0},
+                    "scored_surface_records": [
+                        {"measurement_cache_stats": {"groups_new": 500, "shots_new": 5000.0}}
+                    ],
+                },
+            ]
+        }
+    }
+
+    groups, shots, shot_cost = _measurement_cost_proxies(payload)
+    assert groups == pytest.approx(5.0)
+    assert shots == pytest.approx(50.0)
+    assert shot_cost == pytest.approx(50.0)
+
+
+def test_standard_policy_command_forces_selected_logical_mode_off(tmp_path: Path) -> None:
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hubbard"),
+        policy=AlgorithmPolicy.default(),
+        output_json=tmp_path / "result.json",
+    )
+    assert "--adapt-selected-logical-mode" in command
+    assert _arg_value(tuple(command), "--adapt-selected-logical-mode") == "off"
+    assert "--adapt-selected-logical-source-json" not in command
+
+
+def test_historical_selected_route_materializes_sidecar_and_command_flags(tmp_path: Path) -> None:
+    spec = replace(
+        _spec("hubbard"),
+        base_pipeline_args=("--problem", "hubbard", "--L", "2", "--n-ph-max", "1"),
+    )
+    selected_record = {
+        "schema": "selected_logical_library_v1",
+        "records": [
+            {
+                "candidate_label": "hist_op",
+                "operator_label": "hist_op",
+            }
+        ],
+    }
+    ledger = {
+        "best_selected_logical_by_problem_size_cutoff": {
+            "hubbard|L=2|nph=1": {
+                "selected_logical_payload": selected_record,
+                "selected_logical_count": 1,
+                "artifact_json": "old/result.json",
+                "abs_delta_e": 1e-6,
+            }
+        }
+    }
+
+    (materialized,) = materialize_selected_logical_sidecars_for_specs(
+        (spec,),
+        selected_logical_source=ledger,
+        output_dir=tmp_path,
+        route="historical-selected",
+        transfer_mode="boundary_v1",
+    )
+    assert materialized.selected_logical_route == "historical_selected"
+    assert materialized.selected_logical_source_json is not None
+    assert Path(materialized.selected_logical_source_json).exists()
+    assert materialized.selected_logical_source_record_count == 1
+
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=materialized,
+        policy=AlgorithmPolicy.default(),
+        output_json=tmp_path / "result.json",
+    )
+
+    assert _arg_value(tuple(command), "--adapt-selected-logical-mode") == "family_closure_with_full_fallback"
+    assert _arg_value(tuple(command), "--adapt-selected-logical-transfer-mode") == "boundary_v1"
+    assert _arg_value(tuple(command), "--adapt-selected-logical-source-json") == materialized.selected_logical_source_json
+    _assert_spsa_only_command(command)
+
+
+def test_build_static_command_threads_benchmark_target_stop(tmp_path: Path) -> None:
+    spec = _spec()
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=spec,
+        policy=AlgorithmPolicy.default(),
+        output_json=tmp_path / "result.json",
+        benchmark_target_abs_delta_e=1e-5,
+    )
+    assert "--adapt-benchmark-target-abs-delta-e" in command
+    idx = command.index("--adapt-benchmark-target-abs-delta-e")
+    assert command[idx + 1] == str(float(1e-5))
+
+
+def test_paper_i_first_crossing_requires_benchmark_target_stop() -> None:
+    target = {
+        "status": "present",
+        "tau_phys": 0.1,
+        "tau_tight": 0.05,
+        "accuracy_gate_metric": "abs_error_Nph_plus_1",
+    }
+    crossing_payload = {
+        "adapt_vqe": {
+            "stop_reason": "stop",
+            "history": [{"depth": 1, "energy_after_opt": 0.05}],
+        }
+    }
+
+    first = p3opt.compute_paper_i_first_crossing_from_payload(
+        crossing_payload,
+        physical_target=target,
+        reference_energy=0.0,
+        terminal_primary_error=0.05,
+    )
+
+    assert first["history_crossed_threshold"] is True
+    assert first["reached"] is False
+    assert first["target_hit_success"] is False
+    assert first["status"] == "non_target_terminal"
+    assert first["target_hit_classification"]["status"] == "non_hit_diagnostic"
+    assert first["target_hit_classification"]["non_hit_reason"] == "terminal_stop_reason_not_target_hit:stop"
+    assert first["k_tau"] == 1
+
+    crossing_payload["adapt_vqe"]["stop_reason"] = "benchmark_abs_delta_e_target"
+    target_hit = p3opt.compute_paper_i_first_crossing_from_payload(
+        crossing_payload,
+        physical_target=target,
+        reference_energy=0.0,
+        terminal_primary_error=0.05,
+    )
+    assert target_hit["reached"] is True
+    assert target_hit["target_hit_success"] is True
+    assert target_hit["status"] == "reached"
+
+
+def test_discovery_first_crossing_rejects_stale_reached_non_target_terminal() -> None:
+    spec = _spec("hh")
+    stale_reached = {
+        "schema": "paper_i_first_crossing_v1",
+        "status": "reached",
+        "reached": True,
+        "tau_phys": 0.1,
+        "terminal_primary_error": 0.05,
+        "accepted_history_row_count": 1,
+        "k_tau": 1,
+        "resource_score": 1.0,
+        "parameter_count_at_crossing": 1,
+        "primary_error_at_crossing": 0.05,
+    }
+    result = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=0.05,
+        abs_delta_e_reference=0.05,
+        stop_reason="stop",
+        paper_i_first_crossing=stale_reached,
+    )
+
+    components = p3opt.discovery_first_crossing_score_components(
+        result,
+        spec,
+        GlobalObjectiveConfig(),
+    )
+
+    assert components["feasible"] is False
+    assert components["primary_error_status"] == "non_target_terminal"
+    assert components["target_hit_classification"]["target_hit_success"] is False
+    assert components["violation_reason"] == "terminal_stop_reason_not_target_hit:stop"
+
+    target_result = replace(
+        result,
+        stop_reason="benchmark_abs_delta_e_target",
+        count_2q=10,
+        depth_2q=20,
+        circuit_depth=30,
+        parameter_count=1,
+    )
+    target_components = p3opt.discovery_first_crossing_score_components(
+        target_result,
+        spec,
+        GlobalObjectiveConfig(),
+    )
+    assert target_components["feasible"] is True
+    assert target_components["target_hit_classification"]["target_hit_success"] is True
+    assert target_components["terminal_compile_matches_first_hit"] is True
+    assert target_components["paper_facing_resource_display_allowed"] is True
+
+
+def test_required_target_violation_uses_stop_reason_not_energy_only() -> None:
+    spec = _spec("hh")
+    config = GlobalObjectiveConfig(
+        required_target_benchmark_ids=(spec.benchmark_id,),
+        required_target_abs_delta_e=0.1,
+        required_target_penalty=1000.0,
+    )
+    ordinary_stop = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=0.05,
+        stop_reason="max_depth",
+    )
+
+    violations = p3opt.required_target_violations(
+        {spec.benchmark_id: ordinary_stop},
+        (spec,),
+        config,
+    )
+    assert spec.benchmark_id in violations
+    assert violations[spec.benchmark_id]["reason"] == "terminal_stop_reason_not_target_hit:max_depth"
+    assert violations[spec.benchmark_id]["target_hit_classification"]["target_hit_success"] is False
+
+    target_hit = replace(ordinary_stop, stop_reason="benchmark_abs_delta_e_target")
+    assert p3opt.required_target_violations({spec.benchmark_id: target_hit}, (spec,), config) == {}
+
+
+def test_effective_trial_manifest_marks_non_target_stop_as_non_hit() -> None:
+    spec = _spec("hh")
+    result = BenchmarkResult(
+        benchmark_id=spec.benchmark_id,
+        family=spec.family,
+        success=True,
+        abs_delta_e=0.05,
+        stop_reason="noise_floor_agreement_v1",
+    )
+    manifest = {
+        "benchmark_manifests": [
+            {
+                "benchmark_id": spec.benchmark_id,
+                "spec": asdict(spec),
+                "physical_target": {"status": "present", "tau_phys": 0.1},
+            }
+        ],
+        "objective": {},
+    }
+
+    finalized = p3opt.finalize_effective_trial_manifest(
+        manifest,
+        results={spec.benchmark_id: result},
+    )
+    child = finalized["benchmark_manifests"][0]
+    assert child["target_hit_success"] is False
+    assert child["target_non_hit_reason"] == "terminal_stop_reason_not_target_hit:noise_floor_agreement_v1"
+    assert child["target_hit_classification"]["status"] == "non_hit_diagnostic"
+
+
+def test_static_result_quality_gate_rejects_depth0_large_error() -> None:
+    spec = _spec("bose_hubbard")
+    payload = {
+        "adapt_vqe": {
+            "exact_gs_energy": 0.969,
+            "abs_delta_e": 0.2,
+            "ansatz_depth": 0,
+            "stop_reason": "eps_grad",
+            "history": [],
+        }
+    }
+    ok, reason, meta = classify_static_result_quality(payload, spec, abs_delta_e=0.2)
+    assert ok is False
+    assert reason == "depth0_large_error"
+    assert meta["ansatz_depth"] == 0
+
+
+def test_static_result_quality_gate_rejects_no_energy_improvement() -> None:
+    spec = _spec("hubbard")
+    payload = {
+        "adapt_vqe": {
+            "exact_gs_energy": -1.0,
+            "abs_delta_e": 0.3,
+            "ansatz_depth": 4,
+            "stop_reason": "drop_plateau",
+            "history": [{"energy_before_opt": -0.7, "max_grad": 2.0}],
+        }
+    }
+    ok, reason, meta = classify_static_result_quality(payload, spec, abs_delta_e=0.3)
+    assert ok is False
+    assert reason == "no_energy_improvement"
+    assert meta["initial_abs_delta_e"] == pytest.approx(0.3)
+    assert meta["max_gradient_seen"] == pytest.approx(2.0)
+
+
+def test_static_result_quality_gate_allows_clear_improvement_despite_remaining_error() -> None:
+    spec = _spec("bose_hubbard")
+    payload = {
+        "adapt_vqe": {
+            "exact_gs_energy": 0.0,
+            "abs_delta_e": 0.05,
+            "ansatz_depth": 3,
+            "stop_reason": "max_depth",
+            "history": [{"energy_before_opt": 0.4, "max_grad": 1.5}],
+        }
+    }
+    ok, reason, meta = classify_static_result_quality(payload, spec, abs_delta_e=0.05)
+    assert ok is True
+    assert reason is None
+    assert meta["initial_abs_delta_e"] == pytest.approx(0.4)
+
+
+def test_static_result_quality_gate_rejects_boson_illegal_population() -> None:
+    spec = _spec("harmonic_kerr_chain")
+    payload = {
+        "adapt_vqe": {
+            "exact_gs_energy": 0.0,
+            "abs_delta_e": 1e-5,
+            "ansatz_depth": 4,
+            "stop_reason": "drop_plateau",
+            "history": [{"energy_before_opt": 0.2, "max_grad": 1.0}],
+            "diagnostics": {"boson_illegal_probability_max": 2e-3},
+        }
+    }
+    ok, reason, meta = classify_static_result_quality(payload, spec, abs_delta_e=1e-5)
+    assert ok is False
+    assert reason == "boson_illegal_population"
+    assert meta["boson_illegal_probability_max"] == pytest.approx(2e-3)
+
+
+def test_static_result_quality_gate_allows_tiny_boson_illegal_population() -> None:
+    spec = _spec("bose_hubbard")
+    payload = {
+        "adapt_vqe": {
+            "exact_gs_energy": 0.0,
+            "abs_delta_e": 1e-6,
+            "ansatz_depth": 2,
+            "stop_reason": "benchmark_abs_delta_e_target",
+            "history": [{"energy_before_opt": 0.2, "max_grad": 1.0}],
+            "boson_subspace_diagnostics": {
+                "final_legal_probability": 0.99999,
+                "final_illegal_probability": 1e-5,
+            },
+        }
+    }
+    ok, reason, meta = classify_static_result_quality(payload, spec, abs_delta_e=1e-6)
+    assert ok is True
+    assert reason is None
+    assert meta["boson_illegal_probability_max"] == pytest.approx(1e-5)
+
+
+def test_policy_to_cli_args_orders_phase_live_hysteresis_thresholds() -> None:
+    spec = _spec("hubbard")
+    policy = AlgorithmPolicy.default()
+    policy = replace(
+        policy,
+        static=replace(
+            policy.static,
+            phase_live_hysteresis_enabled=True,
+            phase2_null_nrem_high_threshold=0.5,
+            phase2_live_nrem_low_threshold=0.2,
+            phase3_null_nrem_high_threshold=0.1,
+            phase3_live_nrem_low_threshold=0.3,
+        ),
+    )
+    args = policy_to_cli_args(policy, spec)
+    p2_null = float(_arg_value(tuple(args), "--phase2-null-nrem-high-threshold"))
+    p2_live = float(_arg_value(tuple(args), "--phase2-live-nrem-low-threshold"))
+    p3_null = float(_arg_value(tuple(args), "--phase3-null-nrem-high-threshold"))
+    p3_live = float(_arg_value(tuple(args), "--phase3-live-nrem-low-threshold"))
+    assert 0.0 <= p2_null <= p2_live < p3_null <= p3_live
+
+
+def test_aggregate_global_score_includes_failures_and_oracle_gap() -> None:
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+    results = {
+        specs[0].benchmark_id: BenchmarkResult(
+            benchmark_id=specs[0].benchmark_id,
+            family=specs[0].family,
+            success=True,
+            abs_delta_e=1e-4,
+            count_2q=100,
+            circuit_depth=300,
+            parameter_count=20,
+        ),
+        specs[1].benchmark_id: BenchmarkResult(
+            benchmark_id=specs[1].benchmark_id,
+            family=specs[1].family,
+            success=False,
+            abs_delta_e=None,
+        ),
+    }
+    score = aggregate_global_score(results, specs, GlobalObjectiveConfig(gamma_fail=10.0))
+    assert score > 0.0
+    assert oracle_gap(agnostic_score=2.0, oracle_score=1.0) == pytest.approx(1.0)
+
+
+def _arg_value(args: tuple[str, ...], flag: str) -> str:
+    return args[args.index(flag) + 1]
+
+
+def test_policy_to_cli_args_forwards_explicit_hardware_cost_lambdas() -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            lambda_2q=0.11,
+            lambda_d=0.12,
+            lambda_1q=0.13,
+            lambda_theta=0.14,
+            lambda_shot=0.15,
+        ),
+    )
+
+    args = tuple(policy_to_cli_args(policy, _spec("spin_boson")))
+
+    assert _arg_value(args, "--phase1-lambda-2q") == "0.11"
+    assert _arg_value(args, "--phase1-lambda-d") == "0.12"
+    assert _arg_value(args, "--phase1-lambda-1q") == "0.13"
+    assert _arg_value(args, "--phase1-lambda-theta") == "0.14"
+    assert _arg_value(args, "--phase1-lambda-shot") == "0.15"
+    assert _arg_value(args, "--phase2-lambda-2q") == "0.11"
+    assert _arg_value(args, "--phase2-lambda-shot") == "0.15"
+
+    params = trial_params_from_cli_command("python -m pipelines.static_adapt.adapt_pipeline " + " ".join(args))
+    assert params["hardware_cost_scale"] == pytest.approx(0.65)
+    assert "hardware_cost_logit_shot" in params
+
+
+def _assert_spsa_only_command(command: list[str]) -> None:
+    tokens = [str(token) for token in command]
+    assert tokens.count("--adapt-inner-optimizer") == 1
+    assert _arg_value(tuple(tokens), "--adapt-inner-optimizer") == "SPSA"
+    for flag in (
+        "--adapt-spsa-a",
+        "--adapt-spsa-c",
+        "--adapt-spsa-A",
+        "--adapt-spsa-alpha",
+        "--adapt-spsa-gamma",
+    ):
+        assert flag in tokens
+    assert "POWELL" not in tokens
+    assert "COBYLA" not in tokens
+
+
+def _assert_qnspsa_command(command: list[str]) -> None:
+    tokens = [str(token) for token in command]
+    assert tokens.count("--adapt-inner-optimizer") == 1
+    assert _arg_value(tuple(tokens), "--adapt-inner-optimizer") == "QNSPSA"
+    for flag in (
+        "--adapt-spsa-a",
+        "--adapt-spsa-c",
+        "--adapt-spsa-A",
+        "--adapt-spsa-alpha",
+        "--adapt-spsa-gamma",
+    ):
+        assert flag in tokens
+    assert "POWELL" not in tokens
+    assert "COBYLA" not in tokens
+
+
+def test_default_static_suite_contains_l2_l3_and_spin_boson_l1() -> None:
+    suite = default_static_benchmark_suite()
+    by_id = {spec.benchmark_id: spec for spec in suite}
+    ids = set(by_id)
+    assert "hubbard_L2" in ids
+    assert "hubbard_L3" in ids
+    assert "hh_L2" in ids
+    assert "spin_boson_L1" in ids
+    assert "molecular_restricted_closed_shell_L2" in ids
+    assert "molecular_restricted_closed_shell_lih_sto3g_L6" in ids
+    assert "molecular_restricted_closed_shell_h2o_sto3g_L7" in ids
+    assert "molecular_vibronic_h2o_active2_nph1" in ids
+    assert all(spec.base_pipeline_args[:2] == ("--problem", spec.family) for spec in suite)
+
+    molecular_args = by_id["molecular_restricted_closed_shell_L2"].base_pipeline_args
+    assert "--molecular-problem-json" in molecular_args
+    assert _arg_value(molecular_args, "--dense-eigh-max-dim") == "1024"
+    assert by_id["molecular_restricted_closed_shell_L2"].features.molecular is True
+    assert "h2_sto3g" in by_id["molecular_restricted_closed_shell_L2"].tags
+    assert "molecular_role:control" in by_id["molecular_restricted_closed_shell_L2"].tags
+    lih = by_id["molecular_restricted_closed_shell_lih_sto3g_L6"]
+    lih_args = lih.base_pipeline_args
+    assert "--molecular-problem-json" in lih_args
+    assert _arg_value(lih_args, "--dense-eigh-max-dim") == "1024"
+    assert lih.features.molecular is True
+    assert lih.features.L == 6
+    assert lih.features.n_qubits == 12
+    assert "lih_sto3g" in lih.tags
+    assert "molecular_role:train_primary" in lih.tags
+    h2o = by_id["molecular_restricted_closed_shell_h2o_sto3g_L7"]
+    h2o_args = h2o.base_pipeline_args
+    assert "--molecular-problem-json" in h2o_args
+    assert _arg_value(h2o_args, "--dense-eigh-max-dim") == "1024"
+    assert h2o.features.molecular is True
+    assert h2o.features.L == 7
+    assert h2o.features.n_qubits == 14
+    assert "h2o_sto3g" in h2o.tags
+    assert "molecular_role:transfer" in h2o.tags
+    h2o_vib = by_id["molecular_vibronic_h2o_active2_nph1"]
+    assert h2o_vib.family == "molecular_vibronic_h2o"
+    assert h2o_vib.features.molecular is True
+    assert h2o_vib.features.bosonic is True
+    assert h2o_vib.features.L == 2
+    assert h2o_vib.features.n_qubits == 5
+    assert _arg_value(h2o_vib.base_pipeline_args, "--n-ph-max") == "1"
+    assert "h2o" in h2o_vib.tags
+    assert "active_space_prototype" in h2o_vib.tags
+
+    assert _arg_value(by_id["hh_L2"].base_pipeline_args, "--n-ph-max") == "2"
+    assert _arg_value(by_id["bose_hubbard_L2"].base_pipeline_args, "--n-ph-max") == "2"
+    assert _arg_value(by_id["harmonic_kerr_chain_L2"].base_pipeline_args, "--n-ph-max") == "2"
+    assert _arg_value(by_id["spin_boson_L1"].base_pipeline_args, "--n-ph-max") == "2"
+    assert _arg_value(by_id["spin_boson_L1"].base_pipeline_args, "--u") == "0.0"
+    assert by_id["hh_L2"].exact_reference_n_ph_max == 4
+    assert by_id["bose_hubbard_L2"].exact_reference_n_ph_max == 4
+    assert by_id["hubbard_L2"].exact_reference_n_ph_max is None
+    assert _arg_value(by_id["hubbard_L2"].base_pipeline_args, "--dv") == "0.0"
+    assert _arg_value(by_id["hubbard_L2"].base_pipeline_args, "--boundary") == "periodic"
+    assert _arg_value(by_id["ionic_hubbard_L2"].base_pipeline_args, "--dv") == "0.25"
+    assert _arg_value(by_id["ionic_hubbard_L2"].base_pipeline_args, "--boundary") == "open"
+
+    l23_hubbard = filter_static_benchmark_suite(suite, families=["hubbard"], sizes=[2, 3])
+    assert [spec.benchmark_id for spec in l23_hubbard] == ["hubbard_L2", "hubbard_L3"]
+    molecular_l7 = filter_static_benchmark_suite(suite, families=["molecular_restricted_closed_shell"], sizes=[7])
+    assert [spec.benchmark_id for spec in molecular_l7] == ["molecular_restricted_closed_shell_h2o_sto3g_L7"]
+
+    bose_cutoff_grid = default_static_benchmark_suite(boson_cutoffs=[1, 2, 3])
+    bose_l2_ids = [spec.benchmark_id for spec in bose_cutoff_grid if spec.family == "bose_hubbard" and spec.features.L == 2]
+    assert bose_l2_ids == ["bose_hubbard_L2_nph1", "bose_hubbard_L2_nph2", "bose_hubbard_L2_nph3"]
+    assert {
+        _arg_value(spec.base_pipeline_args, "--n-ph-max")
+        for spec in bose_cutoff_grid
+        if spec.benchmark_id in set(bose_l2_ids)
+    } == {"1", "2", "3"}
+
+    robust = default_static_benchmark_suite(physics_grid_profile="small_robust")
+    robust_by_id = {spec.benchmark_id: spec for spec in robust}
+    assert "hubbard_L2_u6" in robust_by_id
+    assert "hubbard_L3_u6" not in robust_by_id
+    assert _arg_value(robust_by_id["hubbard_L2_u6"].base_pipeline_args, "--u") == "6.0"
+    assert "physics_perturbation" in robust_by_id["hubbard_L2_u6"].tags
+    assert "spin_boson_L1_g0p7" in robust_by_id
+    assert _arg_value(robust_by_id["spin_boson_L1_g0p7"].base_pipeline_args, "--g-ep") == "0.7"
+
+
+def test_canonical_lane_filters_train_and_transfer_suites() -> None:
+    suite = default_static_benchmark_suite(boson_cutoffs=[1, 2])
+
+    assert canonical_lane_families("fermionic") == (
+        "hubbard",
+        "ionic_hubbard",
+        "extended_hubbard",
+        "ttprime_hubbard",
+        "spinless_tv",
+    )
+
+    fermionic_train = filter_canonical_lane_specs(suite, lane="fermionic", stage="train")
+    assert fermionic_train
+    assert {spec.family for spec in fermionic_train} == set(canonical_lane_families("fermionic") or ())
+    assert {spec.features.L for spec in fermionic_train} == {2}
+    assert all("canonical_lane:fermionic" in spec.tags for spec in fermionic_train)
+
+    fermionic_transfer = filter_canonical_lane_specs(suite, lane="fermionic", stage="transfer")
+    assert fermionic_transfer
+    assert {spec.features.L for spec in fermionic_transfer} == {3}
+
+    bosonic_train = filter_canonical_lane_specs(suite, lane="bosonic", stage="train")
+    assert {spec.family for spec in bosonic_train} == {"bose_hubbard", "harmonic_kerr_chain"}
+    assert {spec.features.L for spec in bosonic_train} == {2}
+    assert {_arg_value(spec.base_pipeline_args, "--n-ph-max") for spec in bosonic_train} == {"1", "2"}
+
+    mixed_train = filter_canonical_lane_specs(suite, lane="mixed", stage="train")
+    assert {spec.family for spec in mixed_train} == {"hh", "spin_boson"}
+    assert {spec.features.L for spec in mixed_train if spec.family == "hh"} == {2}
+    assert {spec.features.L for spec in mixed_train if spec.family == "spin_boson"} == {1}
+
+    molecular_train = filter_canonical_lane_specs(suite, lane="molecular", stage="train")
+    assert [spec.benchmark_id for spec in molecular_train] == ["molecular_restricted_closed_shell_lih_sto3g_L6"]
+    assert all("canonical_lane_stage:train" in spec.tags for spec in molecular_train)
+
+    molecular_transfer = filter_canonical_lane_specs(suite, lane="molecular", stage="transfer")
+    assert [spec.benchmark_id for spec in molecular_transfer] == ["molecular_restricted_closed_shell_h2o_sto3g_L7"]
+
+    molecular_all = filter_canonical_lane_specs(suite, lane="molecular", stage="all")
+    assert [spec.benchmark_id for spec in molecular_all] == [
+        "molecular_restricted_closed_shell_L2",
+        "molecular_restricted_closed_shell_lih_sto3g_L6",
+        "molecular_restricted_closed_shell_h2o_sto3g_L7",
+    ]
+
+
+def test_default_static_suite_molecular_override_is_single_train_case() -> None:
+    override_path = REPO_ROOT / "test_support" / "molecular_problem_h2_sto3g.json"
+    suite = default_static_benchmark_suite(molecular_problem_json=override_path)
+    molecular_specs = [spec for spec in suite if spec.family == "molecular_restricted_closed_shell"]
+
+    assert [spec.benchmark_id for spec in molecular_specs] == ["molecular_restricted_closed_shell_L2"]
+    assert "molecular_override" in molecular_specs[0].tags
+    assert "molecular_role:override_train" in molecular_specs[0].tags
+    assert _arg_value(molecular_specs[0].base_pipeline_args, "--dense-eigh-max-dim") == "1024"
+    molecular_train = filter_canonical_lane_specs(suite, lane="molecular", stage="train")
+    assert [spec.benchmark_id for spec in molecular_train] == ["molecular_restricted_closed_shell_L2"]
+
+
+def test_default_trial_params_warm_start_surface_is_complete() -> None:
+    params = default_trial_params()
+    for key in (
+        "pool_key",
+        "phase1_pool_fraction",
+        "phase2_pool_fraction",
+        "adapt_beam_live_branches",
+        "adapt_reopt_policy",
+        "adapt_insertion_mode",
+        "phase1_probe_max_positions",
+        "phase2_shortlist_fraction",
+        "phase2_novelty_mode",
+        "algebraic_phase2_lane_rel_threshold",
+        "algebraic_phase1_lane_quota_pressure",
+        "algebraic_phase2_lane_quota_pressure",
+        "phase2_leakage_cap",
+        "phase2_batch_target_size",
+        "phase1_prune_mode",
+        "phase1_prune_policy",
+        "phase1_prune_tolerance_mode",
+        "phase1_prune_tolerance_shot_coeff",
+        "phase1_prune_tolerance_screen_coeff",
+        "phase1_prune_tolerance_chem",
+        "phase1_prune_tolerance_rel_coeff",
+        "phase3_selector_policy",
+        "phase1_prune_amplitude_witness_required",
+        "phase1_prune_collapse_ratio",
+        "phase1_maturity_cap_min_fraction",
+        "phase3_maturity_cap_max_fraction",
+        "phase_maturity_shot_max",
+        "phase_live_hysteresis_enabled",
+        "phase3_live_nrem_low_threshold",
+        "phase1_lambda_leak",
+        "compile_cost_scale",
+        "measure_cost_scale",
+        "inner_optimizer",
+        "spsa_a",
+        "spsa_c",
+        "spsa_A",
+        "spsa_alpha",
+        "spsa_gamma",
+    ):
+        assert key in params
+    assert params["inner_optimizer"] == "SPSA"
+    assert params["phase1_prune_policy"] == "recoverability_ladder_v1"
+    assert params["phase1_prune_tolerance_mode"] == "auto"
+    assert params["phase1_prune_tolerance_screen_coeff"] == pytest.approx(0.01)
+    assert params["phase3_selector_policy"] == "algebraic_nested_v1"
+    assert params["phase2_novelty_mode"] == "collective_span_v1"
+    assert params["phase2_enable_batching"] is False
+    assert params["phase1_prune_enabled"] is True
+    assert params["phase1_prune_mode"] == "both"
+    assert params["phase1_prune_amplitude_witness_required"] is True
+    assert params["algebraic_phase2_lane_rel_threshold"] == pytest.approx(0.10)
+    assert params["algebraic_phase1_lane_quota_pressure"] == pytest.approx(0.70)
+    assert params["algebraic_phase2_lane_quota_pressure"] == pytest.approx(0.70)
+    assert "rescue_expand_factor" not in params
+
+
+def test_default_policy_command_generation_is_spsa_only(tmp_path: Path) -> None:
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hubbard"),
+        policy=AlgorithmPolicy.default(),
+        output_json=tmp_path / "result.json",
+    )
+    _assert_spsa_only_command(command)
+
+
+def test_fresh_sampled_policy_does_not_sample_optimizer_and_emits_spsa(tmp_path: Path) -> None:
+    class _RecordingTrial(_FakeTrial):
+        def __init__(self) -> None:
+            super().__init__()
+            self.categorical_names: list[str] = []
+            self.float_names: list[str] = []
+
+        def suggest_categorical(self, name: str, choices):
+            self.categorical_names.append(str(name))
+            return super().suggest_categorical(name, choices)
+
+        def suggest_float(self, name: str, low: float, high: float, log: bool = False) -> float:
+            self.float_names.append(str(name))
+            return super().suggest_float(name, low, high, log=log)
+
+    trial = _RecordingTrial()
+    policy = sample_policy_from_trial(trial)
+
+    assert "inner_optimizer" not in trial.categorical_names
+    assert "phase2_enable_batching" not in trial.categorical_names
+    assert "phase1_prune_enabled" not in trial.categorical_names
+    assert "phase1_prune_policy" not in trial.categorical_names
+    assert "phase1_prune_mode" not in trial.categorical_names
+    assert "phase1_prune_amplitude_witness_required" not in trial.categorical_names
+    assert "phase1_prune_tolerance_mode" in trial.categorical_names
+    for name in (
+        "algebraic_phase2_lane_rel_threshold",
+        "algebraic_phase1_lane_quota_pressure",
+        "algebraic_phase2_lane_quota_pressure",
+        "phase1_prune_tolerance_shot_coeff",
+        "phase1_prune_tolerance_screen_coeff",
+        "phase1_prune_tolerance_chem",
+        "phase1_prune_tolerance_rel_coeff",
+    ):
+        assert name in trial.float_names
+    assert "rescue_expand_factor" not in trial.float_names
+    assert "adapt_beam_lambda" not in trial.float_names
+    for name in ("spsa_a", "spsa_c", "spsa_A", "spsa_alpha", "spsa_gamma"):
+        assert name in trial.float_names
+    assert policy.static.phase1_prune_enabled is True
+    assert policy.static.phase1_prune_policy == "recoverability_ladder_v1"
+    assert policy.static.phase1_prune_mode == "both"
+    assert policy.static.phase1_prune_amplitude_witness_required is True
+    assert policy.static.phase2_novelty_mode == "collective_span_v1"
+    assert policy.static.phase2_enable_batching is True
+    assert 0.0 <= policy.static.algebraic_phase2_lane_rel_threshold <= 0.35
+    assert 0.25 <= policy.static.algebraic_phase1_lane_quota_pressure <= 1.0
+    assert 0.25 <= policy.static.algebraic_phase2_lane_quota_pressure <= 1.0
+    assert "phase2_novelty_mode" not in trial.categorical_names
+    assert policy.inner_optimizer.inner_optimizer == "SPSA"
+    assert policy.inner_optimizer.final_optimizer_type == "SPSA"
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hubbard"),
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+    _assert_spsa_only_command(command)
+
+
+def test_policy_search_profiles_preserve_forced_algebraic_route() -> None:
+    class _NoBatchTrial(_FakeTrial):
+        def suggest_categorical(self, name: str, choices):
+            if name == "feature_phase3_batching_enabled":
+                return False
+            return super().suggest_categorical(name, choices)
+
+    for profile in ("bosonic_fullmeta_compact", "fermionic_protected_correlation"):
+        policy = sample_policy_from_trial(_NoBatchTrial(), policy_search_profile=profile)
+        assert policy.static.phase3_selector_policy == "algebraic_nested_v1"
+        assert policy.static.phase2_novelty_mode == "collective_span_v1"
+        assert policy.static.phase2_enable_batching is False
+        assert policy.static.phase1_prune_enabled is True
+        assert policy.static.phase1_prune_policy == "recoverability_ladder_v1"
+        assert policy.static.phase1_prune_mode == "both"
+        assert policy.static.phase1_prune_amplitude_witness_required is True
+
+
+def test_route_a_batching_policy_search_profile_forces_batching() -> None:
+    class _NoBatchTrial(_FakeTrial):
+        def suggest_categorical(self, name: str, choices):
+            if name == "feature_phase3_batching_enabled":
+                return False
+            return super().suggest_categorical(name, choices)
+
+    policy = sample_policy_from_trial(_NoBatchTrial(), policy_search_profile="route_a_batching_v1")
+    assert policy.static.phase3_selector_policy == "algebraic_nested_v1"
+    assert policy.static.phase2_novelty_mode == "collective_span_v1"
+    assert policy.static.phase2_enable_batching is True
+    assert policy.static.phase1_prune_enabled is True
+    assert policy.static.phase1_prune_policy == "recoverability_ladder_v1"
+    assert policy.static.phase1_prune_mode == "both"
+    assert policy.static.phase1_prune_amplitude_witness_required is True
+
+
+def test_paper_i_production_profile_forces_leakage_controls_off() -> None:
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            static_meta_feature_profile="paper_i_production_v1",
+            lambda_leak=4.0,
+            phase2_leakage_cap=1e-9,
+        ),
+    )
+
+    normalized = p3opt._normalize_active_policy(policy)
+
+    assert normalized.static.lambda_leak == pytest.approx(0.0)
+    assert normalized.static.phase2_leakage_cap == pytest.approx(1e6)
+
+
+def test_paper_i_production_sampler_does_not_tune_leakage_controls() -> None:
+    class _RecordingTrial(_FakeTrial):
+        def __init__(self) -> None:
+            super().__init__()
+            self.float_names: list[str] = []
+
+        def suggest_float(self, name: str, low: float, high: float, log: bool = False) -> float:
+            self.float_names.append(str(name))
+            return super().suggest_float(name, low, high, log=log)
+
+    trial = _RecordingTrial()
+    policy = sample_policy_from_trial(trial, meta_feature_profile="paper_i_production_v1")
+
+    assert "phase1_lambda_leak" not in trial.float_names
+    assert "phase2_leakage_cap" not in trial.float_names
+    assert policy.static.lambda_leak == pytest.approx(0.0)
+    assert policy.static.phase2_leakage_cap == pytest.approx(1e6)
+
+    override_policy = sample_policy_from_trial(
+        _FakeTrial(),
+        meta_feature_profile="paper_i_production_v1",
+        trial_param_overrides={"lambda_leak": 3.0, "phase2_leakage_cap": 1e-8},
+    )
+    assert override_policy.static.lambda_leak == pytest.approx(0.0)
+    assert override_policy.static.phase2_leakage_cap == pytest.approx(1e6)
+
+
+def test_sample_and_sanitize_clamp_phase2_batch_target_to_cap() -> None:
+    class _BatchTrial(_FakeTrial):
+        def suggest_int(self, name: str, low: int, high: int, log: bool = False) -> int:
+            if name == "phase2_batch_target_size":
+                return 16
+            if name == "phase2_batch_size_cap":
+                return 4
+            return super().suggest_int(name, low, high, log=log)
+
+    policy = sample_policy_from_trial(_BatchTrial())
+    assert policy.static.phase2_batch_size_cap == 4
+    assert policy.static.phase2_batch_target_size == 4
+
+    sanitized = p3opt._sanitize_trial_params(
+        {"phase2_batch_target_size": 16, "phase2_batch_size_cap": 4, "phase2_novelty_mode": "bad_mode"}
+    )
+    assert sanitized["phase2_batch_size_cap"] == 4
+    assert sanitized["phase2_batch_target_size"] == 4
+    assert sanitized["phase2_novelty_mode"] == "collective_span_v1"
+
+    manual_policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(AlgorithmPolicy.default().static, phase2_batch_target_size=16, phase2_batch_size_cap=4),
+    )
+    command = policy_to_cli_args(manual_policy, _spec("hubbard"))
+    assert _arg_value(tuple(command), "--phase2-batch-size-cap") == "4"
+    assert _arg_value(tuple(command), "--phase2-batch-target-size") == "4"
+
+
+def test_trial_param_overrides_clamp_source_route_policy_fields(tmp_path: Path) -> None:
+    override_payload = {
+        "schema": "phase3_trial_param_overrides_v1",
+        "trial_param_overrides": {
+            "adapt_beam_live_branches": 6,
+            "adapt_beam_children_per_parent": 6,
+            "adapt_beam_terminated_keep": 5,
+            "adapt_beam_lambda": 0.025,
+            "adapt_insertion_mode": "adaptive",
+            "adapt_reopt_policy": "windowed",
+            "adapt_window_size": 100,
+            "adapt_window_topk": 70,
+            "spsa_a": 0.08029189973696281,
+            "spsa_c": 0.011978122654460147,
+            "spsa_A": 37.00879952613117,
+            "spsa_alpha": 0.6102106236980185,
+            "spsa_gamma": 0.10164107284550583,
+            "adapt_max_depth": 500,
+            "adapt_maxiter": 800,
+            "adapt_drop_floor": 0.0005,
+            "adapt_drop_patience": 3,
+            "adapt_drop_min_depth": 12,
+            "phase1_min_count": 70,
+            "phase1_max_count": 70,
+            "phase1_pool_fraction": 0.0,
+            "phase1_qubit_slope": 0.0,
+            "phase2_min_count": 46,
+            "phase2_max_count": 46,
+            "phase2_pool_fraction": 0.0,
+            "phase2_qubit_slope": 0.0,
+            "phase_maturity_shot_max": 2,
+            "phase2_null_nrem_high_threshold": 0.039636539884849206,
+            "phase2_live_nrem_low_threshold": 0.4019692334501168,
+            "phase3_null_nrem_high_threshold": 0.851010121680651,
+            "phase3_live_nrem_low_threshold": 1.0789232281991292,
+            "phase2_enable_batching": True,
+            "phase2_batch_target_size": 5,
+            "phase2_batch_size_cap": 27,
+            "phase1_prune_policy": "recoverability_ladder_v1",
+            "phase1_prune_mode": "both",
+            "phase1_prune_amplitude_witness_required": True,
+        },
+    }
+    override_path = tmp_path / "route_lock_overrides.json"
+    override_path.write_text(json.dumps(override_payload), encoding="utf-8")
+
+    loaded = p3opt._load_trial_param_overrides(override_path)
+    assert loaded["adapt_beam_live_branches"] == 6
+    assert loaded["adapt_beam_children_per_parent"] == 6
+    assert loaded["adapt_beam_terminated_keep"] == 5
+    assert loaded["adapt_beam_lambda"] == pytest.approx(0.025)
+    assert loaded["spsa_a"] == pytest.approx(0.08029189973696281)
+    assert loaded["phase2_enable_batching"] is True
+    assert loaded["phase1_min_count"] == 70
+    assert loaded["phase2_max_count"] == 46
+
+    policy = sample_policy_from_trial(
+        _FakeTrial(),
+        policy_search_profile="route_a_batching_v1",
+        trial_param_overrides=loaded,
+    )
+
+    assert policy.static.adapt_beam_live_branches == 6
+    assert policy.static.adapt_beam_children_per_parent == 6
+    assert policy.static.adapt_beam_terminated_keep == 5
+    assert policy.static.adapt_beam_lambda == pytest.approx(0.025)
+    assert policy.static.adapt_insertion_mode == "adaptive"
+    assert policy.static.adapt_reopt_policy == "windowed"
+    assert policy.static.adapt_window_size == 100
+    assert policy.static.adapt_window_topk == 70
+    assert policy.inner_optimizer.spsa_a == pytest.approx(0.08029189973696281)
+    assert policy.inner_optimizer.spsa_c == pytest.approx(0.011978122654460147)
+    assert policy.inner_optimizer.spsa_A == pytest.approx(37.00879952613117)
+    assert policy.inner_optimizer.spsa_alpha == pytest.approx(0.6102106236980185)
+    assert policy.inner_optimizer.spsa_gamma == pytest.approx(0.10164107284550583)
+    assert policy.inner_optimizer.refit_maxiter == 800
+    assert policy.inner_optimizer.final_maxiter == 800
+    assert policy.static.adapt_max_depth == 500
+    assert policy.static.adapt_drop_floor == pytest.approx(0.0005)
+    assert policy.static.adapt_drop_patience == 3
+    assert policy.static.adapt_drop_min_depth == 12
+    assert policy.pool.phase1_budget.min_count == 70
+    assert policy.pool.phase1_budget.max_count == 70
+    assert policy.pool.phase1_budget.pool_fraction == pytest.approx(0.0)
+    assert policy.pool.phase2_budget.min_count == 46
+    assert policy.pool.phase2_budget.max_count == 46
+    assert policy.pool.phase2_budget.pool_fraction == pytest.approx(0.0)
+    assert policy.static.phase_maturity_shot_max == 2
+    assert policy.static.phase2_null_nrem_high_threshold == pytest.approx(0.039636539884849206)
+    assert policy.static.phase2_live_nrem_low_threshold == pytest.approx(0.4019692334501168)
+    assert policy.static.phase3_null_nrem_high_threshold == pytest.approx(0.851010121680651)
+    assert policy.static.phase3_live_nrem_low_threshold == pytest.approx(1.0789232281991292)
+    assert policy.static.phase2_enable_batching is True
+    assert policy.static.phase2_batch_target_size == 5
+    assert policy.static.phase2_batch_size_cap == 27
+    assert policy.static.phase1_prune_policy == "recoverability_ladder_v1"
+    assert policy.static.phase1_prune_mode == "both"
+    assert policy.static.phase1_prune_amplitude_witness_required is True
+
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hh"),
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+    args = tuple(str(token) for token in command)
+    assert _arg_value(args, "--adapt-max-depth") == "500"
+    assert _arg_value(args, "--adapt-maxiter") == "800"
+    assert _arg_value(args, "--adapt-beam-live-branches") == "6"
+    assert _arg_value(args, "--adapt-beam-children-per-parent") == "6"
+    assert _arg_value(args, "--adapt-beam-terminated-keep") == "5"
+    assert _arg_value(args, "--adapt-beam-lambda") == "0.025"
+    assert _arg_value(args, "--adapt-insertion-mode") == "adaptive"
+    assert _arg_value(args, "--adapt-reopt-policy") == "windowed"
+    assert _arg_value(args, "--adapt-spsa-a") == "0.08029189973696281"
+    assert _arg_value(args, "--phase1-shortlist-size") == "70"
+    assert _arg_value(args, "--phase2-shortlist-size") == "46"
+    assert _arg_value(args, "--phase2-batch-target-size") == "5"
+    assert _arg_value(args, "--phase2-batch-size-cap") == "27"
+    assert _arg_value(args, "--phase3-live-nrem-low-threshold") == "1.0789232281991292"
+
+
+def test_sanitize_clamps_prune_tolerance_fields() -> None:
+    sanitized = p3opt._sanitize_trial_params(
+        {
+            "phase3_selector_policy": "legacy_phase3_v1",
+            "phase2_novelty_mode": "legacy_pairwise_v1",
+            "phase2_enable_batching": True,
+            "phase1_prune_enabled": False,
+            "phase1_prune_policy": "legacy_small_angle_v1",
+            "phase1_prune_mode": "final",
+            "phase1_prune_amplitude_witness_required": False,
+            "algebraic_phase2_lane_rel_threshold": 9.0,
+            "algebraic_phase1_lane_quota_pressure": 0.01,
+            "algebraic_phase2_lane_quota_pressure": 9.0,
+            "phase1_prune_fraction": 0.0,
+            "phase1_prune_min_candidates": 9,
+            "phase1_prune_max_candidates": 99,
+            "phase1_prune_max_regression": 1e-2,
+            "phase1_prune_retained_gain_ratio": 0.0,
+            "phase1_prune_protect_steps": 0,
+            "phase1_prune_stale_age": 0,
+            "phase1_prune_checkpoint_period": 1,
+            "phase1_prune_maturity_threshold": 0.0,
+            "phase1_prune_snr_threshold": 9.0,
+            "phase1_prune_tolerance_mode": "not_a_mode",
+            "phase1_prune_tolerance_shot_coeff": 9.0,
+            "phase1_prune_tolerance_screen_coeff": 9.0,
+            "phase1_prune_tolerance_chem": 1.0,
+            "phase1_prune_tolerance_rel_coeff": 1.0,
+        }
+    )
+    assert sanitized["phase3_selector_policy"] == "algebraic_nested_v1"
+    assert sanitized["phase2_novelty_mode"] == "collective_span_v1"
+    assert sanitized["phase2_enable_batching"] is False
+    assert sanitized["phase1_prune_enabled"] is True
+    assert sanitized["phase1_prune_policy"] == "recoverability_ladder_v1"
+    assert sanitized["phase1_prune_mode"] == "both"
+    assert sanitized["phase1_prune_amplitude_witness_required"] is True
+    assert sanitized["algebraic_phase2_lane_rel_threshold"] == pytest.approx(0.35)
+    assert sanitized["algebraic_phase1_lane_quota_pressure"] == pytest.approx(0.25)
+    assert sanitized["algebraic_phase2_lane_quota_pressure"] == pytest.approx(1.0)
+    assert sanitized["phase1_prune_fraction"] == pytest.approx(0.05)
+    assert sanitized["phase1_prune_min_candidates"] == 3
+    assert sanitized["phase1_prune_max_candidates"] == 10
+    assert sanitized["phase1_prune_max_regression"] == pytest.approx(1e-6)
+    assert sanitized["phase1_prune_retained_gain_ratio"] == pytest.approx(0.10)
+    assert sanitized["phase1_prune_protect_steps"] == 1
+    assert sanitized["phase1_prune_stale_age"] == 1
+    assert sanitized["phase1_prune_checkpoint_period"] == 2
+    assert sanitized["phase1_prune_maturity_threshold"] == pytest.approx(0.35)
+    assert sanitized["phase1_prune_snr_threshold"] == pytest.approx(3.0)
+    assert sanitized["phase1_prune_tolerance_mode"] == "auto"
+    assert sanitized["phase1_prune_tolerance_shot_coeff"] == pytest.approx(5.0)
+    assert sanitized["phase1_prune_tolerance_screen_coeff"] == pytest.approx(0.1)
+    assert sanitized["phase1_prune_tolerance_chem"] == pytest.approx(1e-4)
+    assert sanitized["phase1_prune_tolerance_rel_coeff"] == pytest.approx(0.25)
+
+
+
+def test_non_spsa_lane_does_not_sample_or_emit_spsa(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(p3opt, "_ACTIVE_INNER_OPTIMIZER", "POWELL")
+    monkeypatch.setattr(p3opt, "_INNER_OPTIMIZER_POLICY_LABEL", "fixed_powell_phase3_v1")
+
+    class _RecordingTrial(_FakeTrial):
+        def __init__(self) -> None:
+            super().__init__()
+            self.float_names: list[str] = []
+
+        def suggest_float(self, name: str, low: float, high: float, log: bool = False) -> float:
+            self.float_names.append(str(name))
+            return super().suggest_float(name, low, high, log=log)
+
+    trial = _RecordingTrial()
+    policy = p3opt.sample_policy_from_trial(trial)
+    command = p3opt.build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hubbard"),
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+
+    assert policy.inner_optimizer.inner_optimizer == "POWELL"
+    for name in ("spsa_a", "spsa_c", "spsa_A", "spsa_alpha", "spsa_gamma"):
+        assert name not in trial.float_names
+        assert f"--adapt-{name.replace('_', '-')}" not in command
+    audit = p3opt.build_policy_roundtrip_audit(
+        sampled_params={},
+        policy=policy,
+        spec=_spec("hubbard"),
+        emitted_command=command,
+        result_payload=None,
+    )
+    rows = {row["knob"]: row for row in audit["rows"]}
+    assert rows["spsa_a"]["status"] == "inactive"
+    assert rows["spsa_a"]["reason"] == "non_spsa_inner_optimizer"
+
+
+def test_qnspsa_lane_samples_and_emits_spsa_schedule_knobs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(p3opt, "_ACTIVE_INNER_OPTIMIZER", "QNSPSA")
+    monkeypatch.setattr(p3opt, "_INNER_OPTIMIZER_POLICY_LABEL", "fixed_qnspsa_phase3_v1")
+
+    class _RecordingTrial(_FakeTrial):
+        def __init__(self) -> None:
+            super().__init__()
+            self.float_names: list[str] = []
+
+        def suggest_float(self, name: str, low: float, high: float, log: bool = False) -> float:
+            self.float_names.append(str(name))
+            return super().suggest_float(name, low, high, log=log)
+
+    trial = _RecordingTrial()
+    policy = p3opt.sample_policy_from_trial(trial)
+    command = p3opt.build_static_command(
+        python_bin=sys.executable,
+        spec=_spec("hubbard"),
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+
+    assert policy.inner_optimizer.inner_optimizer == "QNSPSA"
+    assert policy.inner_optimizer.final_optimizer_type == "QNSPSA"
+    for name in ("spsa_a", "spsa_c", "spsa_A", "spsa_alpha", "spsa_gamma"):
+        assert name in trial.float_names
+    _assert_qnspsa_command(command)
+    runtime_payload = {
+        "adapt_vqe": {
+            "adapt_inner_optimizer": "QNSPSA",
+            "adapt_spsa": {
+                "a": float(policy.inner_optimizer.spsa_a),
+                "c": float(policy.inner_optimizer.spsa_c),
+                "A": float(policy.inner_optimizer.spsa_A),
+                "alpha": float(policy.inner_optimizer.spsa_alpha),
+                "gamma": float(policy.inner_optimizer.spsa_gamma),
+            },
+        }
+    }
+    audit = p3opt.build_policy_roundtrip_audit(
+        sampled_params={
+            name: getattr(policy.inner_optimizer, name)
+            for name in ("spsa_a", "spsa_c", "spsa_A", "spsa_alpha", "spsa_gamma")
+        },
+        policy=policy,
+        spec=_spec("hubbard"),
+        emitted_command=command,
+        result_payload=runtime_payload,
+    )
+    rows = {row["knob"]: row for row in audit["rows"]}
+    assert rows["spsa_a"]["status"] == "ok"
+
+
+def test_command_generation_coerces_manual_and_base_optimizer_requests(tmp_path: Path) -> None:
+    spec = replace(
+        _spec("hubbard"),
+        base_pipeline_args=(
+            "--problem",
+            "hubbard",
+            "--L",
+            "2",
+            "--adapt-inner-optimizer",
+            "COBYLA",
+            "--adapt-max-depth",
+            "12",
+        ),
+    )
+    policy = replace(
+        AlgorithmPolicy.default(),
+        inner_optimizer=InnerOptimizerPolicy(inner_optimizer="POWELL", final_optimizer_type="POWELL"),
+    )
+
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=spec,
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+
+    _assert_spsa_only_command(command)
+
+
+def test_historical_cli_command_maps_to_trial_params() -> None:
+    command = (
+        "python -m pipelines.static_adapt.adapt_pipeline "
+        "--problem hubbard --adapt-pool full_meta "
+        "--phase1-shortlist-size 48 --phase2-shortlist-size 24 "
+        "--phase1-lambda-compile 0.05 --phase1-lambda-measure 0.02 "
+        "--phase2-w-depth 0.1 --phase2-w-group 0.2 --phase2-w-shot 0.3 --phase2-w-optdim 0.4 --phase2-w-reuse 0.5 "
+        "--adapt-beam-live-branches 7 --adapt-beam-children-per-parent 5 "
+        "--adapt-reopt-policy windowed --adapt-window-size 96 "
+        "--adapt-insertion-mode adaptive --adapt-rollback-mode structural "
+        "--phase1-compile-cx-proxy-weight 2.0 --phase1-compile-sq-proxy-weight 1.0 "
+        "--phase1-measure-groups-weight 3.0 --phase1-measure-shots-weight 4.0 --phase1-measure-reuse-weight 1.0 "
+        "--phase2-leakage-cap 0.125 --phase2-batch-target-size 6 "
+        "--algebraic-phase2-lane-rel-threshold 0.22 "
+        "--algebraic-phase1-lane-quota-pressure 0.55 "
+        "--algebraic-phase2-lane-quota-pressure 0.65 "
+        "--phase2-novelty-mode legacy_pairwise_v1 "
+        "--phase1-prune-policy recoverability_ladder_v1 --phase1-prune-mode live "
+        "--phase1-prune-tolerance-mode adaptive_v1 --phase1-prune-tolerance-shot-coeff 0.2 "
+        "--phase1-prune-tolerance-screen-coeff 0.03 --phase1-prune-tolerance-chem 1e-7 "
+        "--phase1-prune-tolerance-rel-coeff 0.05 "
+        "--phase1-maturity-cap-min 12 --phase1-maturity-cap-max 48 "
+        "--phase2-maturity-cap-min 8 --phase2-maturity-cap-max 24 "
+        "--phase3-maturity-cap-min 4 --phase3-maturity-cap-max 12 "
+        "--phase-maturity-shot-min 1 --phase-maturity-shot-max 4 "
+        "--phase1-maturity-shot-cap 2 --phase2-maturity-shot-cap 4 --phase3-maturity-shot-cap 4 "
+        "--phase3-live-nrem-low-threshold 1.4 --phase1-prune-collapse-ratio 0.4 "
+        "--adapt-spsa-a 0.25 --adapt-spsa-c 0.05 --adapt-spsa-A 20 "
+        "--adapt-spsa-alpha 0.7 --adapt-spsa-gamma 0.15 "
+        "--adapt-no-repeats --phase2-enable-batching --phase1-prune-enabled --phase-live-hysteresis-disabled "
+        "--adapt-inner-optimizer POWELL"
+    )
+    params = trial_params_from_cli_command(command)
+    assert params["pool_key"] == "full_meta"
+    assert params["phase1_min_count"] == 48
+    assert params["phase2_min_count"] == 24
+    assert params["adapt_beam_live_branches"] == 7
+    assert params["adapt_beam_children_per_parent"] == 5
+    assert params["adapt_window_size"] == 96
+    assert params["adapt_allow_repeats"] is False
+    assert params["phase3_selector_policy"] == "algebraic_nested_v1"
+    assert params["phase2_enable_batching"] is False
+    assert params["phase1_prune_enabled"] is True
+    assert params["phase1_prune_mode"] == "both"
+    assert params["phase1_prune_policy"] == "recoverability_ladder_v1"
+    assert params["phase1_prune_tolerance_mode"] == "adaptive_v1"
+    assert params["phase1_prune_tolerance_shot_coeff"] == pytest.approx(0.2)
+    assert params["phase1_prune_tolerance_screen_coeff"] == pytest.approx(0.03)
+    assert params["phase1_prune_tolerance_chem"] == pytest.approx(1e-7)
+    assert params["phase1_prune_tolerance_rel_coeff"] == pytest.approx(0.05)
+    assert params["phase2_batch_target_size"] == 6
+    assert params["phase2_leakage_cap"] == pytest.approx(0.125)
+    assert params["algebraic_phase2_lane_rel_threshold"] == pytest.approx(0.22)
+    assert params["algebraic_phase1_lane_quota_pressure"] == pytest.approx(0.55)
+    assert params["algebraic_phase2_lane_quota_pressure"] == pytest.approx(0.65)
+    assert params["phase2_novelty_mode"] == "collective_span_v1"
+    assert params["phase1_maturity_cap_min_fraction"] == pytest.approx(12 / 48)
+    assert params["phase3_maturity_cap_max_fraction"] == pytest.approx(12 / 24)
+    assert params["phase_maturity_shot_max"] == 4
+    assert params["phase3_maturity_shot_cap"] == 4
+    assert params["phase_live_hysteresis_enabled"] is False
+    assert params["phase3_live_nrem_low_threshold"] == pytest.approx(1.4)
+    assert params["phase1_prune_collapse_ratio"] == pytest.approx(0.4)
+    assert params["spsa_a"] == pytest.approx(0.25)
+    assert params["spsa_c"] == pytest.approx(0.05)
+    assert params["spsa_A"] == pytest.approx(20.0)
+    assert params["spsa_alpha"] == pytest.approx(0.7)
+    assert params["spsa_gamma"] == pytest.approx(0.15)
+    assert params["inner_optimizer"] == "SPSA"
+    archival_params = trial_params_from_cli_command(command, force_inner_optimizer=None)
+    assert archival_params["inner_optimizer"] == "POWELL"
+    assert "burden_scale" in params
+    assert "cost_logit_shot" in params
+    assert "compile_cost_scale" in params
+    assert "measure_cost_logit_shots" in params
+
+
+def test_policy_roundtrip_audit_covers_spsa_clamp_shot_and_slice1_fields(tmp_path: Path) -> None:
+    spec = _spec("hubbard")
+    policy = replace(
+        AlgorithmPolicy.default(),
+        static=replace(
+            AlgorithmPolicy.default().static,
+            phase2_batch_target_size=4,
+            phase2_batch_size_cap=4,
+            phase1_prune_tolerance_rel_coeff=0.05,
+            algebraic_phase2_lane_rel_threshold=0.22,
+            algebraic_phase1_lane_quota_pressure=0.55,
+            algebraic_phase2_lane_quota_pressure=0.65,
+        ),
+        inner_optimizer=replace(
+            AlgorithmPolicy.default().inner_optimizer,
+            spsa_a=0.25,
+            spsa_c=0.05,
+            spsa_A=20.0,
+            spsa_alpha=0.7,
+            spsa_gamma=0.15,
+        ),
+    )
+    command = build_static_command(
+        python_bin=sys.executable,
+        spec=spec,
+        policy=policy,
+        output_json=tmp_path / "result.json",
+    )
+    formula = "DeltaE_TR * confidence_factor * N3 / (1 + K3)"
+    payload = {
+        "adapt_vqe": {
+            "adapt_inner_optimizer": "SPSA",
+            "adapt_selected_logical_mode": "off",
+            "adapt_spsa": {"a": 0.25, "c": 0.05, "A": 20.0, "alpha": 0.7, "gamma": 0.15},
+            "controller_measurement_work_summary": {
+                "schema": "controller_measurement_work_proxy_v1",
+                "source": "native_controller_work",
+                "source_kind": "native_controller_work",
+                "legacy_fallback_used": False,
+                "events_count": 2,
+                "native_row_count": 2,
+                "history_row_count": 2,
+                "total_groups_new": 5,
+                "total_shots_new": 50.0,
+            },
+            "continuation": {
+                "phase3_selector_policy": "algebraic_nested_v1",
+                "phase1_prune": {
+                    "enabled": True,
+                    "prune_policy": "recoverability_ladder_v1",
+                    "prune_mode": "both",
+                    "amplitude_witness_required": True,
+                },
+                "algebraic_lane_policy": {
+                    "shortlist_controls": {
+                        "schema": "algebraic_shortlist_controls_v1",
+                        "phase2_lane_rel_threshold": 0.22,
+                        "phase1_lane_quota_pressure": 0.55,
+                        "phase2_lane_quota_pressure": 0.65,
+                    }
+                },
+                "phase2": {
+                    "canonical_score_formula": formula,
+                    "phase2_raw_score_formula": "DeltaE_TR_raw * N2 / (1 + K2)",
+                    "phase2_novelty_mode": "collective_span_v1",
+                    "primary_selector_score_key": "full_v2_score",
+                    "selector_tie_break_score_key": "phase3_tie_break_score",
+                    "secondary_geometry_score_key": "phase2_raw_score",
+                    "auxiliary_terms_primary_mode": "tie_break_only",
+                    "batch_target_size_effective": 4,
+                    "batch_size_cap_effective": 4,
+                    "batching_enabled": False,
+                },
+                "active_phase3_surface_summary": {
+                    "score_config": {
+                        "canonical_score_formula": formula,
+                        "primary_selector_score_key": "full_v2_score",
+                        "selector_tie_break_score_key": "phase3_tie_break_score",
+                        "secondary_geometry_score_key": "phase2_raw_score",
+                        "auxiliary_terms_primary_mode": "tie_break_only",
+                        "batch_target_size_effective": 4,
+                        "batch_size_cap_effective": 4,
+                    }
+                },
+                "phase2_scored_rows": [
+                    {
+                        "phase3_primary_score": 1.25,
+                        "phase3_tie_break_score": 0.1,
+                        "phase3_auxiliary_score_mode": "tie_break_only",
+                        "phase3_canonical_score_formula": formula,
+                    }
+                ],
+            },
+        }
+    }
+
+    audit = build_policy_roundtrip_audit(
+        sampled_params={
+            "phase2_batch_target_size": 16,
+            "phase2_batch_size_cap": 4,
+            "rescue_expand_factor": 3.0,
+            "spsa_a": 0.25,
+            "spsa_c": 0.05,
+            "spsa_A": 20.0,
+            "spsa_alpha": 0.7,
+            "spsa_gamma": 0.15,
+            "phase1_prune_tolerance_mode": "auto",
+            "phase1_prune_tolerance_screen_coeff": 0.01,
+            "phase1_prune_tolerance_rel_coeff": 0.05,
+            "algebraic_phase2_lane_rel_threshold": 0.22,
+            "algebraic_phase1_lane_quota_pressure": 0.55,
+            "algebraic_phase2_lane_quota_pressure": 0.65,
+        },
+        policy=policy,
+        spec=spec,
+        emitted_command=command,
+        result_payload=payload,
+        objective_weights=StaticObjectiveWeights(shot_cost=1.0),
+    )
+
+    assert audit["schema"] == "phase3_policy_roundtrip_audit_v1"
+    assert set(
+        [
+            "schema",
+            "benchmark_id",
+            "fixed_inner_optimizer",
+            "sampled_param_count",
+            "sampled_params",
+            "normalized_policy_summary",
+            "emitted_cli_args",
+            "emitted_options",
+            "parsed_cli_params",
+            "runtime_payload_summary",
+            "objective_weights",
+            "measurement_proxy_validation",
+            "sampled_key_coverage",
+            "unaudited_sampled_knobs",
+            "rows",
+            "status_counts",
+        ]
+    ).issubset(audit)
+    rows = {row["knob"]: row for row in audit["rows"]}
+    assert rows["spsa_a"]["status"] == "ok"
+    assert rows["phase1_prune_tolerance_mode"]["status"] == "ok"
+    assert rows["phase1_prune_tolerance_screen_coeff"]["status"] == "ok"
+    assert rows["phase1_prune_tolerance_rel_coeff"]["status"] == "ok"
+    assert rows["phase1_prune_enabled"]["status"] == "ok"
+    assert rows["phase1_prune_policy"]["status"] == "ok"
+    assert rows["phase1_prune_mode"]["status"] == "ok"
+    assert rows["phase1_prune_amplitude_witness_required"]["status"] == "ok"
+    assert rows["algebraic_phase2_lane_rel_threshold"]["status"] == "ok"
+    assert rows["algebraic_phase1_lane_quota_pressure"]["status"] == "ok"
+    assert rows["algebraic_phase2_lane_quota_pressure"]["status"] == "ok"
+    assert rows["phase2_enable_batching"]["status"] == "forced"
+    assert rows["phase2_batch_target_size"]["status"] == "clamped"
+    assert rows["phase2_novelty_mode"]["status"] == "ok"
+    assert rows["rescue_expand_factor"]["status"] == "not_forwarded"
+    assert rows["objective_shot_weight"]["status"] == "ok"
+    assert rows["canonical_score_formula"]["status"] == "ok"
+    assert audit["runtime_payload_summary"]["phase3_field_presence"]["phase3_primary_score"] is True
+    assert audit["unaudited_sampled_knobs"] == []
+    assert "clamped" in audit["status_counts"]
+    assert "not_forwarded" in audit["status_counts"]
+
+
+def test_historical_ledger_updates_baselines_and_enqueues_seed() -> None:
+    spec = replace(_spec("hubbard"), base_pipeline_args=("--problem", "hubbard", "--L", "2", "--n-ph-max", "1"))
+    ledger = {
+        "best_warm_start_by_problem_size_cutoff": {
+            "hubbard|L=2|nph=1": {
+                "abs_delta_e": 2e-5,
+                "count_2q": 50,
+                "circuit_depth": 150,
+                "ansatz_depth": 9,
+                "artifact_json": "old/result.json",
+                "warm_start_eligible": True,
+                "command": "python -m pipelines.static_adapt.adapt_pipeline --problem hubbard --adapt-pool full_meta --adapt-beam-live-branches 6 --adapt-inner-optimizer COBYLA",
+            }
+        },
+        "best_warm_start_by_problem": {
+            "hubbard": {
+                "abs_delta_e": 3e-5,
+                "count_2q": 60,
+                "circuit_depth": 160,
+                "ansatz_depth": 10,
+                "artifact_json": "old/by_problem.json",
+                "warm_start_eligible": True,
+                "command": "python -m pipelines.static_adapt.adapt_pipeline --problem hubbard --adapt-pool full_meta --adapt-beam-live-branches 5",
+            }
+        },
+    }
+    updated = apply_historical_ledger_to_specs((spec,), ledger)[0]
+    assert updated.baseline_abs_delta_e == pytest.approx(2e-5)
+    assert updated.baseline_count_2q == 50
+    assert updated.baseline_depth_2q == 150
+    assert updated.baseline_artifact_json == "old/result.json"
+    params = historical_trial_params_for_specs((updated,), ledger)
+    assert len(params) == 1
+    assert params[0]["adapt_beam_live_branches"] == 6
+    assert params[0]["inner_optimizer"] == "SPSA"
+
+
+def test_historical_default_equivalent_command_is_skipped_with_audit() -> None:
+    spec = replace(_spec("hubbard"), base_pipeline_args=("--problem", "hubbard", "--L", "2", "--n-ph-max", "1"))
+    ledger = {
+        "best_warm_start_by_problem_size_cutoff": {
+            "hubbard|L=2|nph=1": {
+                "abs_delta_e": 1e-8,
+                "artifact_json": "old/default_like.json",
+                "warm_start_eligible": True,
+                "command": "python -m pipelines.static_adapt.adapt_pipeline --problem hubbard --adapt-pool full_meta --adapt-inner-optimizer POWELL",
+            }
+        }
+    }
+
+    records, skips = historical_warm_start_records_for_specs((spec,), ledger)
+
+    assert records[spec.benchmark_id] == ()
+    assert len(skips[spec.benchmark_id]) == 1
+    assert skips[spec.benchmark_id][0].reason == "duplicates_default_seed"
+    assert historical_trial_params_for_specs((spec,), ledger) == ()
+
+
+def test_bosonic_historical_baseline_matches_local_cutoff_not_exact_reference() -> None:
+    spec = replace(
+        _spec("hh"),
+        base_pipeline_args=("--problem", "hh", "--L", "2", "--n-ph-max", "2"),
+        exact_reference_n_ph_max=4,
+    )
+    ledger = {
+        "best_warm_start_by_problem_size_cutoff": {
+            "hh|L=2|nph=2": {
+                "abs_delta_e": 4e-5,
+                "count_2q": 77,
+                "circuit_depth": 222,
+                "artifact_json": "old/hh_nph2.json",
+                "n_ph_max": 2,
+                "command": "python -m pipelines.static_adapt.adapt_pipeline --problem hh --n-ph-max 2 --adapt-pool full_meta --adapt-beam-live-branches 6",
+            }
+        }
+    }
+
+    updated = apply_historical_ledger_to_specs((spec,), ledger)[0]
+
+    assert updated.baseline_source == "historical_ledger"
+    assert updated.baseline_abs_delta_e == pytest.approx(4e-5)
+    assert updated.baseline_count_2q == 77
+
+
+def test_oracle_summary_warm_start_records_are_benchmark_compatible(tmp_path: Path) -> None:
+    spec = replace(_spec("hubbard"), base_pipeline_args=("--problem", "hubbard", "--L", "2"))
+    other = replace(_spec("ionic_hubbard"), base_pipeline_args=("--problem", "ionic_hubbard", "--L", "2"))
+    summary = {
+        "mode": "oracle-grid",
+        "summaries": {
+            "hubbard_L2": {
+                "mode": "oracle",
+                "best_value": 1.0,
+                "best_params": {"adapt_beam_live_branches": 7, "inner_optimizer": "POWELL"},
+                "benchmarks": [
+                    {
+                        "benchmark_id": "hubbard_L2",
+                        "family": "hubbard",
+                        "base_pipeline_args": ["--problem", "hubbard", "--L", "2"],
+                    }
+                ],
+            }
+        },
+    }
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps(summary), encoding="utf-8")
+
+    records, skips = oracle_summary_warm_start_records_for_specs((tmp_path,), (spec, other), limit_per_benchmark=4)
+
+    assert len(records[spec.benchmark_id]) == 1
+    assert records[spec.benchmark_id][0].params["inner_optimizer"] == "SPSA"
+    assert records[spec.benchmark_id][0].params["adapt_beam_live_branches"] == 7
+    assert records[other.benchmark_id] == ()
+
+
+def test_oracle_summary_trial_params_loads_best_params_from_grid(tmp_path: Path) -> None:
+    summary = {
+        "mode": "oracle-grid",
+        "summaries": {
+            "hubbard_L2": {
+                "mode": "oracle",
+                "best_value": 2.0,
+                "best_params": {
+                    "adapt_beam_live_branches": 6,
+                    "adapt_insertion_mode": "adaptive",
+                    "inner_optimizer": "COBYLA",
+                    "phase1_prune_amplitude_witness_required": True,
+                },
+            },
+            "ionic_hubbard_L2": {
+                "mode": "oracle",
+                "best_value": -1.0,
+                "best_params": {
+                    "adapt_beam_live_branches": 8,
+                    "phase_live_hysteresis_enabled": False,
+                },
+            },
+        },
+    }
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps(summary), encoding="utf-8")
+
+    params = oracle_summary_trial_params((tmp_path,))
+
+    assert len(params) == 2
+    assert params[0]["adapt_beam_live_branches"] == 8
+    assert {row["adapt_beam_live_branches"] for row in params} == {6, 8}
+    assert any(row.get("phase1_prune_amplitude_witness_required") is True for row in params)
+    assert any(row.get("phase_live_hysteresis_enabled") is False for row in params)
+    assert {row["inner_optimizer"] for row in params} == {"SPSA"}
+    assert len(oracle_summary_trial_params((tmp_path,), limit=1)) == 1
+
+
+class _FakeTrial:
+    number = 3
+
+    def __init__(self) -> None:
+        self.user_attrs = {}
+
+    def suggest_float(self, _name: str, low: float, high: float, log: bool = False) -> float:
+        return (float(low) * float(high)) ** 0.5 if log else (float(low) + float(high)) / 2.0
+
+    def suggest_int(self, _name: str, low: int, high: int, log: bool = False) -> int:
+        return int((int(low) + int(high)) // 2)
+
+    def suggest_categorical(self, _name: str, choices):
+        return list(choices)[0]
+
+    def set_user_attr(self, key: str, value) -> None:
+        self.user_attrs[str(key)] = value
+
+
+def test_objective_global_agnostic_uses_one_policy_across_suite(tmp_path: Path) -> None:
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+    calls = []
+
+    def _runner(spec, policy, *, output_dir):
+        calls.append((spec.benchmark_id, policy, Path(output_dir)))
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=5e-4,
+            count_2q=120,
+            circuit_depth=330,
+            parameter_count=24,
+        )
+
+    trial = _FakeTrial()
+    value = objective_global_agnostic(trial, specs, output_dir=tmp_path, runner=_runner)
+    assert value < 0.0
+    assert len(calls) == 2
+    assert calls[0][1] == calls[1][1]
+    assert calls[0][1].inner_optimizer.inner_optimizer == "SPSA"
+    assert "policy" in trial.user_attrs
+    assert trial.user_attrs["fixed_inner_optimizer"] == "SPSA"
+    assert "results" in trial.user_attrs
+
+
+def test_objective_global_agnostic_applies_benchmark_depth_overrides(tmp_path: Path) -> None:
+    specs = (_spec("hubbard"), _spec("spin_boson"))
+    observed_depths: dict[str, int] = {}
+
+    def _runner(spec, policy, *, output_dir):
+        observed_depths[spec.benchmark_id] = int(policy.static.adapt_max_depth)
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=5e-4,
+            count_2q=120,
+            circuit_depth=330,
+            parameter_count=24,
+        )
+
+    trial = _FakeTrial()
+    value = objective_global_agnostic(
+        trial,
+        specs,
+        output_dir=tmp_path,
+        runner=_runner,
+        trial_param_overrides={"adapt_max_depth": 20, "adapt_drop_min_depth": 20},
+        benchmark_trial_param_overrides={
+            "family:hubbard": {"adapt_max_depth": 4, "adapt_drop_min_depth": 4},
+            "spin_boson_L2": {"adapt_max_depth": 20, "adapt_drop_min_depth": 20},
+        },
+    )
+
+    assert value < 0.0
+    assert observed_depths == {"hubbard_L2": 4, "spin_boson_L2": 20}
+    assert trial.user_attrs["benchmark_policies"]["hubbard_L2"]["static"]["adapt_max_depth"] == 4
+    assert trial.user_attrs["benchmark_policies"]["spin_boson_L2"]["static"]["adapt_max_depth"] == 20
+    manifest = json.loads((tmp_path / "trial_0003" / "effective_trial_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["benchmark_effective_policies"]["hubbard_L2"]["static"]["adapt_max_depth"] == 4
+    assert manifest["benchmark_effective_policies"]["spin_boson_L2"]["static"]["adapt_max_depth"] == 20
+
+
+def test_load_benchmark_trial_param_overrides_sanitizes_allowed_fields(tmp_path: Path) -> None:
+    path = tmp_path / "benchmark_overrides.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "phase3_benchmark_trial_param_overrides_v1",
+                "benchmark_trial_param_overrides": {
+                    "family:hubbard": {"adapt_max_depth": "4", "unknown_field": 99},
+                    "spin_boson_L2": {"adapt_max_depth": 20, "adapt_drop_min_depth": 20},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = p3opt._load_benchmark_trial_param_overrides(path)
+    assert loaded["family:hubbard"] == {"adapt_max_depth": 4}
+    assert loaded["spin_boson_L2"] == {"adapt_max_depth": 20, "adapt_drop_min_depth": 20}
+
+
+def test_trial_warm_start_provenance_matches_record_with_fixed_extra_params() -> None:
+    sampled = default_trial_params("spin_boson_2q_batching_v1", meta_feature_profile="paper_i_production_v1")
+    sampled_trial_params = dict(sampled)
+    for fixed_key in (
+        "adapt_allow_repeats",
+        "compile_cost_logit_position_shift",
+        "phase1_lambda_leak",
+        "phase2_leakage_cap",
+    ):
+        sampled_trial_params.pop(fixed_key, None)
+    record_params = {
+        **sampled_trial_params,
+        "adapt_allow_repeats": True,
+        "compile_cost_logit_position_shift": 0.0,
+        "phase1_lambda_leak": 0.0,
+        "phase2_leakage_cap": 1e6,
+    }
+    candidate = p3opt.WarmStartCandidate(
+        params=record_params,
+        source_kind="oracle_summary",
+        source_id="source-summary:spin_boson_strong",
+        benchmark_id="spin_boson_L2_nph2_three_model_strong",
+        family="spin_boson",
+        source_score=-1.0,
+        source_payload={"source_artifact_path": "summary.json", "source_sha256": "abc123"},
+    )
+
+    payload = p3opt._trial_warm_start_provenance_payload(
+        sampled_trial_params,
+        enqueued_records=(candidate,),
+        policy_search_profile="spin_boson_2q_batching_v1",
+        meta_feature_profile="paper_i_production_v1",
+    )
+
+    assert payload["status"] == "present"
+    assert payload["enabled"] is True
+    assert payload["source_type"] == "matched_enqueued_warm_start"
+    assert payload["candidate_count"] == 1
+    assert payload["source_id"] == "source-summary:spin_boson_strong"
+
+
+def test_objective_global_agnostic_can_parallelize_benchmarks_with_one_policy(tmp_path: Path) -> None:
+    import threading
+    import time
+
+    specs = (_spec("hubbard"), _spec("extended_hubbard"), _spec("ionic_hubbard"))
+    lock = threading.Lock()
+    active = 0
+    max_active = 0
+    policies = []
+
+    def _runner(spec, policy, *, output_dir):
+        nonlocal active, max_active
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+            policies.append(policy)
+        try:
+            time.sleep(0.05)
+            return BenchmarkResult(
+                benchmark_id=spec.benchmark_id,
+                family=spec.family,
+                success=True,
+                abs_delta_e=5e-4,
+                count_2q=120,
+                circuit_depth=330,
+                parameter_count=24,
+            )
+        finally:
+            with lock:
+                active -= 1
+
+    trial = _FakeTrial()
+    value = objective_global_agnostic(
+        trial,
+        specs,
+        output_dir=tmp_path,
+        runner=_runner,
+        benchmarks_per_trial_jobs=0,
+    )
+
+    assert value < 0.0
+    assert max_active > 1
+    assert len(policies) == len(specs)
+    assert len({id(policy) for policy in policies}) == 1
+    assert trial.user_attrs["benchmarks_per_trial_jobs"] == 0
+    assert set(trial.user_attrs["results"]) == {spec.benchmark_id for spec in specs}
+
+
+def test_run_optuna_study_with_fake_runner_writes_summary(tmp_path: Path) -> None:
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+    policies = []
+    commands = []
+
+    def _runner(spec, policy, *, output_dir):
+        policies.append(policy)
+        commands.append(
+            build_static_command(
+                python_bin=sys.executable,
+                spec=spec,
+                policy=policy,
+                output_json=Path(output_dir) / "result.json",
+            )
+        )
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=5e-4,
+            count_2q=120,
+            circuit_depth=330,
+            parameter_count=24,
+            policy_json=str(Path(output_dir) / "policy.json"),
+        )
+
+    summary = run_optuna_study(
+        mode="global",
+        specs=specs,
+        output_dir=tmp_path,
+        n_trials=2,
+        seed=11,
+        enqueue_trials=({"inner_optimizer": "POWELL", "adapt_beam_live_branches": 6},),
+        runner=_runner,
+    )
+    assert summary["mode"] == "global"
+    assert summary["fixed_inner_optimizer"] == "SPSA"
+    assert summary["enqueued_trial_params"][0]["inner_optimizer"] == "SPSA"
+    assert summary["enqueued_trial_params"][0]["phase3_selector_policy"] == "algebraic_nested_v1"
+    assert summary["enqueued_trial_params"][0]["phase2_novelty_mode"] == "collective_span_v1"
+    assert summary["enqueued_trial_params"][0]["phase2_enable_batching"] is False
+    assert summary["enqueued_trial_params"][0]["phase1_prune_enabled"] is True
+    assert summary["enqueued_trial_params"][0]["phase1_prune_policy"] == "recoverability_ladder_v1"
+    assert summary["enqueued_trial_params"][0]["phase1_prune_mode"] == "both"
+    assert summary["enqueued_trial_params"][0]["phase1_prune_amplitude_witness_required"] is True
+    assert summary["enqueued_trial_params"][0]["phase1_prune_checkpoint_period"] == default_trial_params()[
+        "phase1_prune_checkpoint_period"
+    ]
+    assert summary["enqueued_trial_params"][0]["phase1_prune_local_window_size"] == default_trial_params()[
+        "phase1_prune_local_window_size"
+    ]
+    assert summary["enqueued_trial_params"][0]["phase2_novelty_mode"] == default_trial_params()["phase2_novelty_mode"]
+    assert summary["best_trial_number"] == 0
+    assert policies and all(policy.inner_optimizer.inner_optimizer == "SPSA" for policy in policies)
+    assert all(policy.inner_optimizer.final_optimizer_type == "SPSA" for policy in policies)
+    assert commands and all("POWELL" not in command and "COBYLA" not in command for command in commands)
+    for command in commands:
+        _assert_spsa_only_command(command)
+    written = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    assert written["pipeline"] == "phase3_policy_optuna_v1"
+    assert written["fixed_inner_optimizer"] == "SPSA"
+    assert written["managed_lifecycle"]["enabled"] is True
+    assert written["managed_lifecycle"]["active_process_count_after_cleanup"] == 0
+    assert written["best_user_attrs"]["fixed_inner_optimizer"] == "SPSA"
+    assert written["policy_roundtrip_audit_summary"]["audit_count"] >= 1
+    assert "policy_roundtrip_audits" in written["best_user_attrs"]
+    first_audit = next(iter(written["best_user_attrs"]["policy_roundtrip_audits"].values()))
+    assert first_audit["schema"] == "phase3_policy_roundtrip_audit_v1"
+    assert first_audit["rows"]
+    assert len(written["benchmarks"]) == 2
+
+
+def test_run_optuna_study_same_cutoff_pareto_writes_vector_summary(tmp_path: Path) -> None:
+    spec = _spec("hh")
+
+    def _runner(spec, policy, *, output_dir):
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=1.2e-4,
+            abs_delta_e_same_cutoff=1.2e-4,
+            count_2q=144,
+            depth_2q=116,
+            circuit_depth=723,
+            parameter_count=5,
+            shot_cost_proxy=29886.0,
+        )
+
+    summary = run_optuna_study(
+        mode="oracle",
+        specs=(spec,),
+        output_dir=tmp_path / "run",
+        progress_dir=tmp_path / "progress",
+        n_trials=1,
+        seed=13,
+        enqueue_default=False,
+        runner=_runner,
+        config=GlobalObjectiveConfig(multi_objective_mode="same_cutoff_pareto"),
+        policy_search_profile="snake_u8_flat_novelty_v1",
+        meta_feature_profile="paper_i_production_v1",
+    )
+
+    assert summary["multi_objective_mode"] == "same_cutoff_pareto"
+    assert summary["objective_vector_names"] == [
+        "same_cutoff_abs_delta_e",
+        "count_2q",
+        "depth_2q",
+        "circuit_depth",
+        "parameter_count",
+        "shot_cost_proxy",
+    ]
+    assert summary["best_value"] is None
+    assert summary["best_trial_number"] is None
+    assert summary["pareto_front_size"] == 1
+    assert summary["trials"][0]["value"] == [1.2e-4, 144.0, 116.0, 723.0, 5.0, 29886.0]
+    assert summary["trials"][0]["values"] == [1.2e-4, 144.0, 116.0, 723.0, 5.0, 29886.0]
+    assert summary["pareto_best_trials"][0]["values"] == [1.2e-4, 144.0, 116.0, 723.0, 5.0, 29886.0]
+    written = json.loads((tmp_path / "run" / "summary.json").read_text(encoding="utf-8"))
+    assert written["multi_objective_mode"] == "same_cutoff_pareto"
+    assert written["pareto_front_size"] == 1
+
+
+def test_run_optuna_study_writes_progress_dir_events(tmp_path: Path) -> None:
+    specs = (_spec("hubbard"),)
+    progress_dir = tmp_path / "progress"
+
+    def _runner(spec, policy, *, output_dir):
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=5e-4,
+            count_2q=120,
+            circuit_depth=330,
+            parameter_count=24,
+        )
+
+    summary = run_optuna_study(
+        mode="global",
+        specs=specs,
+        output_dir=tmp_path / "run",
+        progress_dir=progress_dir,
+        n_trials=1,
+        seed=12,
+        enqueue_default=False,
+        runner=_runner,
+    )
+
+    assert summary["progress_reporter"]["enabled"] is True
+    events = [json.loads(line) for line in (progress_dir / "trial_events.jsonl").read_text(encoding="utf-8").splitlines()]
+    event_names = [event["event"] for event in events]
+    assert "study_started" in event_names
+    assert "trial_started" in event_names
+    assert "benchmark_started" in event_names
+    assert "benchmark_completed" in event_names
+    assert "trial_completed" in event_names
+    assert "study_summary_written" in event_names
+    current = json.loads((progress_dir / "current.json").read_text(encoding="utf-8"))
+    assert current["state"] == "trial_completed"
+    assert current["trial_number"] == 0
+    status = json.loads((progress_dir / "status_snapshot.json").read_text(encoding="utf-8"))
+    assert status["state"] == "study_summary_written"
+
+
+def test_reset_suite_filters_are_l2_nph1_without_high_reference() -> None:
+    for families in (("bose_hubbard",), ("hh",)):
+        specs = filter_static_benchmark_suite(
+            families=families,
+            sizes=(2,),
+            boson_cutoff=1,
+            boson_cutoffs=None,
+            exact_reference_boson_cutoff=None,
+            physics_grid_profile="small_robust",
+        )
+        assert specs
+        for spec in specs:
+            assert spec.features.L == 2
+            assert spec.exact_reference_n_ph_max is None
+            assert "--n-ph-max" in spec.base_pipeline_args
+            assert spec.base_pipeline_args[spec.base_pipeline_args.index("--n-ph-max") + 1] == "1"
+
+
+def test_managed_optuna_study_with_storage_leaves_no_running_trials(tmp_path: Path) -> None:
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+    storage = f"sqlite:///{tmp_path / 'optuna.db'}"
+    study_name = "managed/no_running"
+
+    def _runner(spec, policy, *, output_dir):
+        return BenchmarkResult(
+            benchmark_id=spec.benchmark_id,
+            family=spec.family,
+            success=True,
+            abs_delta_e=5e-4,
+            count_2q=120,
+            circuit_depth=330,
+            parameter_count=24,
+        )
+
+    summary = run_optuna_study(
+        mode="global",
+        specs=specs,
+        output_dir=tmp_path / "run",
+        n_trials=2,
+        seed=13,
+        storage=storage,
+        study_name=study_name,
+        runner=_runner,
+    )
+
+    optuna = p3opt._import_optuna()
+    loaded = optuna.load_study(study_name=study_name, storage=storage)
+    running = loaded.get_trials(states=(optuna.trial.TrialState.RUNNING,))
+    assert running == []
+    assert summary["managed_lifecycle"]["enabled"] is True
+    assert summary["managed_lifecycle"]["active_process_count_after_cleanup"] == 0
+    written = json.loads((tmp_path / "run" / "summary.json").read_text(encoding="utf-8"))
+    assert written["managed_lifecycle"]["enabled"] is True
+    assert all(trial["state"] != "RUNNING" for trial in written["trials"])
+
+
+def test_managed_optuna_study_marks_interrupted_trial_failed_and_writes_summary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    storage = f"sqlite:///{tmp_path / 'optuna.db'}"
+    study_name = "managed/interrupted"
+
+    def _raise_from_objective(*_args, **_kwargs):
+        raise RuntimeError("synthetic outer failure")
+
+    monkeypatch.setattr(p3opt, "objective_global_agnostic", _raise_from_objective)
+
+    with pytest.raises(RuntimeError, match="synthetic outer failure"):
+        run_optuna_study(
+            mode="global",
+            specs=(_spec("hubbard"),),
+            output_dir=tmp_path / "run",
+            n_trials=1,
+            seed=17,
+            storage=storage,
+            study_name=study_name,
+            enqueue_default=False,
+        )
+
+    summary_path = tmp_path / "run" / "summary.json"
+    assert summary_path.exists()
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["managed_lifecycle"]["enabled"] is True
+    assert summary["managed_lifecycle"]["failed_owned_running_trial_numbers"] == [0]
+    optuna = p3opt._import_optuna()
+    loaded = optuna.load_study(study_name=study_name, storage=storage)
+    assert loaded.get_trials(states=(optuna.trial.TrialState.RUNNING,)) == []
+    assert loaded.trials[0].state == optuna.trial.TrialState.FAIL
+
+
+def test_managed_optuna_study_reconciles_stale_running_trial_at_startup(tmp_path: Path) -> None:
+    optuna = p3opt._import_optuna()
+    storage = f"sqlite:///{tmp_path / 'optuna.db'}"
+    study_name = "managed/reconcile"
+    study = optuna.create_study(direction="minimize", storage=storage, study_name=study_name)
+    stale = study.ask()
+    assert study.get_trials(states=(optuna.trial.TrialState.RUNNING,))[0].number == stale.number
+
+    summary = run_optuna_study(
+        mode="global",
+        specs=(_spec("hubbard"),),
+        output_dir=tmp_path / "run",
+        n_trials=0,
+        seed=19,
+        storage=storage,
+        study_name=study_name,
+        enqueue_default=False,
+    )
+
+    loaded = optuna.load_study(study_name=study_name, storage=storage)
+    assert loaded.get_trials(states=(optuna.trial.TrialState.RUNNING,)) == []
+    assert loaded.trials[stale.number].state == optuna.trial.TrialState.FAIL
+    assert summary["managed_lifecycle"]["reconciled_running_trial_numbers"] == [stale.number]
+
+
+def test_run_subprocess_logged_kills_registered_process_group_on_exception(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeProcess:
+        pid = 43210
+
+        def __init__(self) -> None:
+            self.wait_calls = 0
+
+        def wait(self, timeout=None):
+            self.wait_calls += 1
+            if self.wait_calls == 1:
+                raise RuntimeError("wait exploded")
+            return -int(signal.SIGTERM)
+
+    fake_proc = _FakeProcess()
+    kill_calls: list[tuple[int, signal.Signals]] = []
+
+    def _fake_popen(*_args, **_kwargs):
+        return fake_proc
+
+    def _fake_killpg(pid: int, sig: signal.Signals) -> None:
+        kill_calls.append((int(pid), sig))
+
+    monkeypatch.setattr(p3opt.subprocess, "Popen", _fake_popen)
+    monkeypatch.setattr(p3opt.os, "killpg", _fake_killpg)
+
+    lifecycle = p3opt._ManagedOptunaRunLifecycle(run_id="unit-test")
+    with pytest.raises(RuntimeError, match="wait exploded"):
+        p3opt._run_subprocess_logged(
+            [sys.executable, "-c", "pass"],
+            cwd=tmp_path,
+            stdout_path=tmp_path / "stdout.log",
+            stderr_path=tmp_path / "stderr.log",
+            run_lifecycle=lifecycle,
+            subprocess_label="adapt",
+            benchmark_id="hubbard_L2",
+            trial_number=0,
+        )
+
+    assert kill_calls == [(43210, signal.SIGTERM)]
+    assert lifecycle.active_process_count() == 0
+
+
+def test_parser_exposes_static_robustness_gate_flags(tmp_path: Path) -> None:
+    args = p3opt.build_parser().parse_args(
+        [
+            "--output-dir",
+            str(tmp_path),
+            "--robustness-gate",
+            "require",
+            "--robustness-gate-lanes",
+            "SPSA",
+            "POWELL",
+            "--robustness-gate-target-abs-delta-e",
+            "2e-5",
+            "--progress-dir",
+            str(tmp_path / "progress"),
+        ]
+    )
+
+    assert args.progress_dir == tmp_path / "progress"
+    assert args.robustness_gate == "require"
+    assert args.robustness_gate_lanes == ["SPSA", "POWELL"]
+    assert args.robustness_gate_target_abs_delta_e == pytest.approx(2e-5)
+
+
+def test_static_robustness_gate_auto_applies_to_broad_oracle_grid() -> None:
+    tiny = _spec("hubbard")
+    broad = (tiny, _spec("extended_hubbard"))
+
+    assert (
+        p3opt._should_apply_phase3_robustness_gate(
+            mode="oracle-grid",
+            specs=(tiny,),
+            gate_mode="auto",
+            n_trials=1,
+        )
+        is False
+    )
+    assert (
+        p3opt._should_apply_phase3_robustness_gate(
+            mode="oracle-grid",
+            specs=(tiny,),
+            gate_mode="auto",
+            n_trials=2,
+        )
+        is True
+    )
+    assert (
+        p3opt._should_apply_phase3_robustness_gate(
+            mode="oracle-grid",
+            specs=broad,
+            gate_mode="auto",
+            n_trials=1,
+        )
+        is True
+    )
+
+
+def test_main_auto_robustness_gate_runs_before_broad_global_study(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    order: list[str] = []
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+
+    monkeypatch.setattr(p3opt, "filter_static_benchmark_suite", lambda **_kwargs: specs)
+
+    def fake_gate(**kwargs):
+        order.append("gate")
+        assert kwargs["output_dir"] == tmp_path
+        assert kwargs["lanes"] == ("SPSA", "POWELL")
+        assert kwargs["target_abs_delta_e"] == pytest.approx(3e-5)
+        return {"schema": "phase3_hubbard_l2_robustness_gate_v1", "ok": True}
+
+    def fake_run_optuna_study(**kwargs):
+        order.append("study")
+        assert kwargs["specs"] == specs
+        return {"ok": True}
+
+    monkeypatch.setattr(p3opt, "_run_phase3_robustness_gate_preflight", fake_gate)
+    monkeypatch.setattr(p3opt, "run_optuna_study", fake_run_optuna_study)
+
+    rc = p3opt.main(
+        [
+            "--mode",
+            "global",
+            "--output-dir",
+            str(tmp_path),
+            "--n-trials",
+            "1",
+            "--robustness-gate",
+            "auto",
+            "--robustness-gate-target-abs-delta-e",
+            "3e-5",
+            "--no-enqueue-historical",
+        ]
+    )
+
+    assert rc == 0
+    assert order == ["gate", "study"]
+
+
+def test_main_robustness_gate_failure_stops_before_study(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    specs = (_spec("hubbard"), _spec("extended_hubbard"))
+    monkeypatch.setattr(p3opt, "filter_static_benchmark_suite", lambda **_kwargs: specs)
+    monkeypatch.setattr(
+        p3opt,
+        "_run_phase3_robustness_gate_preflight",
+        lambda **_kwargs: {"schema": "phase3_hubbard_l2_robustness_gate_v1", "ok": False},
+    )
+
+    def fail_if_called(**_kwargs):  # pragma: no cover - assertion guard
+        raise AssertionError("run_optuna_study should not run after a failed robustness gate")
+
+    monkeypatch.setattr(p3opt, "run_optuna_study", fail_if_called)
+
+    rc = p3opt.main(
+        [
+            "--mode",
+            "global",
+            "--output-dir",
+            str(tmp_path),
+            "--n-trials",
+            "1",
+            "--robustness-gate",
+            "require",
+            "--no-enqueue-historical",
+        ]
+    )
+
+    assert rc == 2
+    assert "robustness gate failed" in capsys.readouterr().err.lower()
