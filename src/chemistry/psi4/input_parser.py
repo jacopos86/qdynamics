@@ -36,6 +36,7 @@ Recognized keys (with defaults):
   soscf_max_iter (0)
   write_vibration (false)
   write_eph       (false)
+  eph_fd_step     (0.001)     central-difference displacement in Bohr
 """
 import logging
 from pathlib import Path
@@ -64,6 +65,7 @@ _DEFAULTS = {
     "soscf_max_iter": 0,
     "write_vibration": False,
     "write_eph": False,
+    "eph_fd_step": 0.001,
 }
 
 _VALID_SCF_TYPES = {"pk", "df", "direct", "out_of_core", "cd"}
@@ -177,7 +179,7 @@ def parse_input(path):
             settings[key] = _parse_basis_map(value)
         elif key in ("charge", "multiplicity", "max_iter", "soscf_max_iter"):
             settings[key] = int(value)
-        elif key in ("e_converg", "d_converg"):
+        elif key in ("e_converg", "d_converg", "eph_fd_step"):
             settings[key] = float(value)
         elif key in ("soscf", "write_h5", "write_matrix_elements",
                      "optimize_geometry",
@@ -239,6 +241,7 @@ def parse_input(path):
         "write_matrix_elements": settings["write_matrix_elements"],
         "write_vibration": settings["write_vibration"],
         "write_eph": settings["write_eph"],
+        "eph_fd_step": settings["eph_fd_step"],
         "psi4_calc_parameters": {
             "scf_type": settings["scf_type"],
             "reference": settings["reference"],

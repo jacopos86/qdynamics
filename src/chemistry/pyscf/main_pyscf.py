@@ -16,6 +16,7 @@ from pathlib import Path
 
 from src.chemistry.pyscf import read_write_pyscf_results as out
 from src.chemistry.pyscf.electron_phonon_solver import ElectronPhononSolver
+from src.chemistry.pyscf.electron_phonon_fd_solver import FiniteDifferenceElectronPhononSolver
 from src.chemistry.pyscf.electron_solver import PySCFDriver
 from src.chemistry.pyscf.input_parser import parse_input
 from src.chemistry.pyscf.vibration_solver import VibrationalSolver
@@ -70,25 +71,32 @@ def main():
     }
 
     if cfg["write_h5"]:
-        out.write_matrix_elements_h5(prefix.with_name("ele.h5"), h1, h2, Enuc, meta)
+        out.write_matrix_elements_h5(prefix.with_name(f"{prefix.name}_ele.h5"), h1, h2, Enuc, meta)
 
     # ---------- stage 3: vibrational analysis ----------
     if cfg["write_vibration"]:
         vib = VibrationalSolver(driver)
         vib_results = vib.run()
         out.write_vibration_h5(
-            prefix.with_name("vib.h5"), vib_results, meta
+            prefix.with_name(f"{prefix.name}_vib.h5"), vib_results, meta
         )
 
     # ---------- stage 4: electron-phonon coupling ----------
     if cfg["write_eph"]:
-        eph_solver = ElectronPhononSolver(driver)
+        solver_cls = (FiniteDifferenceElectronPhononSolver
+                      if cfg["eph_method"] in ("fd", "finite_difference")
+                      else ElectronPhononSolver)
+        kwargs = dict(cutoff_frequency=cfg["eph_cutoff_frequency"],
+                      keep_imag_frequency=cfg["eph_keep_imag_frequency"])
+        if solver_cls is FiniteDifferenceElectronPhononSolver:
+            kwargs["fd_step"] = cfg["eph_fd_step"]
+        eph_solver = solver_cls(driver, **kwargs)
         eph_mat, omega = eph_solver.run(mo_rep=True)
         out.write_eph_h5(
-            prefix.with_name("eph.h5"),
+            prefix.with_name(f"{prefix.name}_eph.h5"),
             eph_mat,
             omega,
-            {**meta, "eph_basis": "MO"},
+            {**meta, "eph_basis": "MO", "eph_method": cfg["eph_method"]},
         )
 
     log.info(f"Job done. E_SCF = {e_scf:.10f} Ha")

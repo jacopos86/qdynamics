@@ -13,6 +13,7 @@ from src.utilities.log import log
 from src.chemistry.psi4.input_parser import parse_input
 from src.chemistry.psi4.electron_solver import Psi4Driver, setup_basis_set
 from src.chemistry.psi4.vibration_solver import VibrationalSolver
+from src.chemistry.psi4.electron_phonon_fd_solver import FiniteDifferenceElectronPhononSolver
 from src.chemistry.psi4 import read_write_psi4_results as out
 
 logging.basicConfig(level=logging.INFO,
@@ -189,8 +190,20 @@ def main():
         )
         vib_results = vib.run()
         out.write_vibration_h5(
-            prefix.with_name("vib.h5"), vib_results, meta
+            prefix.with_name(f"{prefix.name}_vib.h5"), vib_results, meta
         )
+    if cfg["write_eph"]:
+        if not cfg["write_vibration"]:
+            vib = VibrationalSolver(
+                wavefunction, method=cfg["psi4_calc_parameters"]["method"])
+            vib_results = vib.run()
+        eph_solver = FiniteDifferenceElectronPhononSolver(
+            wavefunction, cfg["psi4_calc_parameters"]["method"],
+            fd_step=cfg["eph_fd_step"])
+        eph_mat, omega = eph_solver.run(vib_results)
+        out.write_eph_h5(
+            prefix.with_name(f"{prefix.name}_eph.h5"), eph_mat, omega,
+            {**meta, "eph_basis": "MO", "eph_method": "finite_difference"})
     log.info(f"Job done. E_SCF = {wavefunction.energy.magnitude:.10f} Ha")
 
 

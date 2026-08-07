@@ -26,6 +26,10 @@ Recognized keys (with defaults):
   fcidump_tol   (1e-12)
   write_vibration (false)   harmonic vibrational analysis
   write_eph       (false)   electron-phonon coupling matrix elements
+  eph_method      (analytic) analytic | finite_difference
+  eph_cutoff_frequency (80.0) cm^-1
+  eph_keep_imag_frequency (false)
+  eph_fd_step     (0.001) Cartesian-normal-mode displacement in Bohr
 """
 import logging
 from pathlib import Path
@@ -45,6 +49,10 @@ _DEFAULTS = {
     'fcidump_tol': 1e-12,
     'write_vibration': False,
     'write_eph': False,
+    'eph_method': 'analytic',
+    'eph_cutoff_frequency': 80.0,
+    'eph_keep_imag_frequency': False,
+    'eph_fd_step': 0.001,
 }
 
 _VALID_METHODS = {'RHF', 'ROHF', 'UHF', 'RKS', 'UKS'}
@@ -115,9 +123,10 @@ def parse_input(path):
             geometry_lines = _read_xyz(value).splitlines()
         elif key in ('charge', 'spin'):
             settings[key] = int(value)
-        elif key == 'fcidump_tol':
+        elif key in ('fcidump_tol', 'eph_cutoff_frequency', 'eph_fd_step'):
             settings[key] = float(value)
-        elif key in ('write_h5', 'write_fcidump', 'write_vibration', 'write_eph'):
+        elif key in ('write_h5', 'write_fcidump', 'write_vibration', 'write_eph',
+                     'eph_keep_imag_frequency'):
             try:
                 settings[key] = _BOOL_MAP[value.lower()]
             except KeyError:
@@ -143,6 +152,11 @@ def parse_input(path):
                          f"(choose from {sorted(_VALID_METHODS)})")
     if settings['unit'].upper() not in _VALID_UNITS:
         raise ValueError(f"{path}: unit must be Angstrom or Bohr")
+    settings['eph_method'] = settings['eph_method'].lower()
+    if settings['eph_method'] not in ('analytic', 'finite_difference', 'fd'):
+        raise ValueError(f"{path}: eph_method must be analytic or finite_difference")
+    if settings['eph_fd_step'] <= 0:
+        raise ValueError(f"{path}: eph_fd_step must be positive")
 
     settings['output'] = Path(settings['output'])
     settings['mol_str'] = '\n'.join(geometry_lines)
