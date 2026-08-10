@@ -151,6 +151,11 @@ def write_vibration_h5(path, results, meta):
             "norm_mode",
             "reduced_mass",
             "force_const_dyne",
+            "raw_freq_au",
+            "raw_freq_wavenumber",
+            "raw_norm_mode",
+            "raw_reduced_mass",
+            "raw_force_const_dyne",
             "hessian",
         ):
             if key in results and results[key] is not None:

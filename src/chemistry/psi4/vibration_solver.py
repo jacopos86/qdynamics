@@ -71,6 +71,13 @@ class VibrationalSolver:
             )
             self.results = self._from_hessian_fallback(mol, self.hessian)
 
+        # Preserve the complete 3N Psi4 result for diagnostics.  The public
+        # frequency/mode arrays below are filtered to physical vibrations.
+        for key in ("freq_au", "freq_wavenumber", "norm_mode", "reduced_mass", "force_const_dyne"):
+            if key in self.results and self.results[key] is not None:
+                self.results[f"raw_{key}"] = np.array(self.results[key], copy=True)
+        self.results = self._select_physical_modes(self.results, mol)
+
         self.results["hessian"] = self.hessian
         freqs = np.asarray(self.results["freq_wavenumber"])
         n_imag = int(np.sum(np.real(freqs) < 0.0))
@@ -83,6 +90,47 @@ class VibrationalSolver:
             f"frequencies (cm^-1): {np.array2string(np.real(freqs), precision=1)}"
         )
         return self.results
+
+    def _select_physical_modes(self, results, mol, cutoff_cm=100.0):
+        """Remove translations/rotations and low-frequency numerical modes.
+
+        Psi4's frequency metadata contains all 3N Cartesian modes, while the
+        PySCF workflow returns only 3N-6 (or 3N-5 for linear molecules)
+        vibrational modes.  Keeping the highest expected positive modes also
+        removes the small spurious rotational modes commonly produced for a
+        non-optimized geometry.
+        """
+        nat = mol.natom()
+        linear = nat == 2 or self._is_linear_geometry(mol)
+        n_vib = max(0, 3 * nat - (5 if linear else 6))
+        freq = np.asarray(results["freq_wavenumber"])
+        candidates = np.flatnonzero(np.real(freq) > cutoff_cm)
+        if len(candidates) > n_vib:
+            candidates = candidates[-n_vib:]
+        if len(candidates) != n_vib:
+            log.warning("Expected %d physical modes, found %d above %.1f cm^-1",
+                        n_vib, len(candidates), cutoff_cm)
+        for key, value in list(results.items()):
+            if key == "hessian" or key.startswith("raw_"):
+                continue
+            arr = np.asarray(value)
+            if key == "norm_mode" and arr.ndim >= 1 and len(arr) == len(freq):
+                results[key] = arr[candidates]
+            elif arr.ndim >= 1 and len(arr) == len(freq):
+                results[key] = arr[candidates]
+        return results
+
+    def _is_linear_geometry(self, mol, tol=1.0e-8):
+        if mol.natom() < 3:
+            return True
+        origin = np.asarray([mol.xyz(0)[i] for i in range(3)])
+        vectors = [np.asarray([mol.xyz(i)[j] for j in range(3)]) - origin
+                   for i in range(1, mol.natom())]
+        reference = next((v for v in vectors if np.linalg.norm(v) > tol), None)
+        if reference is None:
+            return True
+        return all(np.linalg.norm(np.cross(reference, v)) <= tol
+                   for v in vectors if np.linalg.norm(v) > tol)
 
     def _infer_method(self):
         try:

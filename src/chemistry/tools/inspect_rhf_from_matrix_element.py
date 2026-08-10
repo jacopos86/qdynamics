@@ -210,7 +210,7 @@ def run_rhf_from_driver(driver, nelec=None, **kwargs):
     return run_rhf_from_matrix_elements(h1, h2, nelec, Enuc, **kwargs)
 
 
-def run_rhf_from_h5(path):
+def run_rhf_from_h5(path, source=None):
     """Run RHF reconstruction from ``ele.h5`` and compare with SCF."""
     import h5py
 
@@ -223,7 +223,7 @@ def run_rhf_from_h5(path):
     rhf = run_rhf_from_matrix_elements(h1, h2, int(meta["nelec"]), enuc)
     scf = float(meta["e_scf"])
     result = {
-        "source": str(path),
+        "source": source or str(path),
         "scf_total_energy_hartree": scf,
         "rhf_total_energy_hartree": float(rhf["total_energy"]),
         "rhf_minus_scf_hartree": float(rhf["total_energy"] - scf),

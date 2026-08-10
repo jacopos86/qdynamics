@@ -197,10 +197,21 @@ def main():
             vib = VibrationalSolver(
                 wavefunction, method=cfg["psi4_calc_parameters"]["method"])
             vib_results = vib.run()
+        # EPH must use the complete 3N frequency/mode set.  The public
+        # vibration result is intentionally filtered to physical modes, but
+        # Psi4 EPH should match PySCF's cutoff-only selection.
+        eph_vib_results = vib_results
+        if "raw_freq_wavenumber" in vib_results:
+            eph_vib_results = dict(vib_results)
+            for key in ("freq_au", "freq_wavenumber", "norm_mode",
+                        "reduced_mass", "force_const_dyne"):
+                raw_key = f"raw_{key}"
+                if raw_key in vib_results:
+                    eph_vib_results[key] = vib_results[raw_key]
         eph_solver = FiniteDifferenceElectronPhononSolver(
             wavefunction, cfg["psi4_calc_parameters"]["method"],
             fd_step=cfg["eph_fd_step"])
-        eph_mat, omega = eph_solver.run(vib_results)
+        eph_mat, omega = eph_solver.run(eph_vib_results)
         out.write_eph_h5(
             prefix.with_name(f"{prefix.name}_eph.h5"), eph_mat, omega,
             {**meta, "eph_basis": "MO", "eph_method": "finite_difference"})

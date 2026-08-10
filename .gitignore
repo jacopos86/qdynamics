@@ -30,4 +30,5 @@ TESTS
 Fermi-Hamil-JW-VQE-TROTTER-PIPELINE
 /artifacts
 results/
+scripts/
 .DS_Store
