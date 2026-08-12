@@ -95,8 +95,6 @@ def run_psi4_electronic_structure():
         out.write_vibration_h5(
             prefix.with_name(prefix.name + "_vib.h5"), vib_results, meta
         )
-    if getattr(p, "write_eph", False):
-        psi4_obj.set_elecvibr_inter(WF)
     return WF
 
 

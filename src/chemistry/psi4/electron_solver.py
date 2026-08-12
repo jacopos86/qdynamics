@@ -8,7 +8,6 @@ import psi4
 from src.common.units import Q_
 from src.io_module.write_xyz_file import write_xyz
 from src.utilities.log import log
-from src.chemistry.psi4.electron_phonon_solver import ElectronPhononSolver
 
 
 special_basis = {"SBKJC": "SBKJC-VDZ"}
@@ -748,16 +747,6 @@ class Psi4Driver:
         He.set_ae_1p_matr_elements(MO_obj)
         # set 2p matrix elements
         He.set_ae_2p_matr_elements(MO_obj)
-
-    def set_elecvibr_inter(self, WF):
-        log.info("\n")
-        log.info("\t " + SEP)
-        log.info("\t SET ELECTRON VIBRON COUPLING")
-        log.info("\t " + SEP)
-        log.info("\n")
-        # molecular integrals
-        evibr = ElectronPhononSolver()
-        evibr.set_AO_operators(WF)
 
     def psi4_geometry_driver(self,
                 coordinate_file,
