@@ -71,7 +71,10 @@ def main():
     }
 
     if cfg["write_h5"]:
-        out.write_matrix_elements_h5(prefix.with_name(f"{prefix.name}_ele.h5"), h1, h2, Enuc, meta)
+        out.write_matrix_elements_h5(
+            prefix.with_name(f"{prefix.name}_ele.h5"), h1, h2, Enuc, meta,
+            mo_coeff=driver.mf.mo_coeff, mo_energy=driver.mf.mo_energy,
+            mo_occ=driver.mf.mo_occ)
 
     # ---------- stage 3: vibrational analysis ----------
     if cfg["write_vibration"]:

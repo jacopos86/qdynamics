@@ -71,11 +71,16 @@ class VibrationalSolver:
             )
             self.results = self._from_hessian_fallback(mol, self.hessian)
 
-        # Preserve the complete 3N Psi4 result for diagnostics.  The public
-        # frequency/mode arrays below are filtered to physical vibrations.
-        for key in ("freq_au", "freq_wavenumber", "norm_mode", "reduced_mass", "force_const_dyne"):
-            if key in self.results and self.results[key] is not None:
-                self.results[f"raw_{key}"] = np.array(self.results[key], copy=True)
+        # Psi4's frequency metadata may already contain only 3N-6 physical
+        # modes.  Reconstruct the complete 3N set from the Cartesian Hessian
+        # so EPH can apply only its frequency cutoff, consistently with the
+        # PySCF EPH workflow.
+        full = self._from_hessian_fallback(
+            mol, self.hessian, exclude_trans=False, exclude_rot=False)
+        for key in ("freq_au", "freq_wavenumber", "norm_mode",
+                    "reduced_mass", "force_const_dyne"):
+            if key in full and full[key] is not None:
+                self.results[f"raw_{key}"] = np.array(full[key], copy=True)
         self.results = self._select_physical_modes(self.results, mol)
 
         self.results["hessian"] = self.hessian
@@ -252,7 +257,8 @@ class VibrationalSolver:
             return modes
         return modes
 
-    def _from_hessian_fallback(self, mol, hessian):
+    def _from_hessian_fallback(self, mol, hessian,
+                               exclude_trans=True, exclude_rot=True):
         nat = mol.natom()
         hessian = np.asarray(hessian).reshape(3 * nat, 3 * nat)
         masses_amu = np.asarray([mol.mass(i) for i in range(nat)], dtype=float)
@@ -266,9 +272,9 @@ class VibrationalSolver:
         eigvecs = eigvecs[:, order]
 
         nremove = 0
-        if self.exclude_trans:
+        if exclude_trans:
             nremove += 3
-        if self.exclude_rot:
+        if exclude_rot:
             nremove += 2 if self._is_linear(mol) else 3
         keep = np.arange(nremove, len(omega))
         omega = omega[keep]

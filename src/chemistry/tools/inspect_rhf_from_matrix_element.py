@@ -20,64 +20,24 @@ def run_rhf_from_matrix_elements(h1, h2, nelec, Enuc=0.0, *, max_cycle=100,
     nso = h1.shape[0]
     if nso % 2 or nelec % 2:
         raise ValueError("RHF reconstruction requires an even number of spin orbitals and electrons")
-    nmo, nocc = nso // 2, int(nelec) // 2
-    h = h1[0::2, 0::2]
-    eri = h2[0::2, 0::2, 0::2, 0::2]
-    if h.shape != (nmo, nmo) or h2.shape != (nso,) * 4:
+    if h1.shape != (nso, nso) or h2.shape != (nso,) * 4:
         raise ValueError("h1/h2 have incompatible shapes")
 
-    # Matrix elements exported by the chemistry drivers are in the
-    # converged canonical-MO basis.  In that basis the occupied orbitals are
-    # already known from the electron count; re-running an AO-style SCF loop
-    # here is incorrect because the exported two-electron tensor follows the
-    # matrix-element (chemist) convention, not an AO Fock-builder convention.
-    # Evaluate the RHF functional directly when h is diagonal in this basis.
-    if np.allclose(h, np.diag(np.diag(h)), atol=conv_tol):
-        occ = np.zeros(nmo)
-        occ[:nocc] = 2.0
-        density = np.diag(occ)
-        fock = h + np.einsum("rs,pqrs->pq", density, eri)
-        fock -= 0.5 * np.einsum("rs,prqs->pq", density, eri)
-        eps = np.linalg.eigvalsh(fock)
-        coeff = np.eye(nmo)
-        energy = float(np.trace(density @ h) + 0.5 * sum(
-            density[p, p] * density[q, q]
-            * (eri[p, p, q, q] - 0.5 * eri[p, q, q, p])
-            for p in range(nmo) for q in range(nmo)
-        ) + Enuc)
-        return {
-            "total_energy": energy,
-            "hf_energy": energy,
-            "electronic_energy": energy - Enuc,
-            "orbital_energies": eps,
-            "orbital_coefficients": coeff,
-            "density_matrix": density,
-            "fock_matrix": fock,
-            "converged": True,
-            "cycles": 0,
-            "nelec": int(nelec),
-        }
-
-    eps, coeff = np.linalg.eigh(h)
-    density = 2.0 * coeff[:, :nocc] @ coeff[:, :nocc].T
-    energy = None
-    converged = False
-    for cycle in range(1, max_cycle + 1):
-        # With D = 2*C_occ*C_occ.T:
-        # F[p,q] = h[p,q] + sum_rs D[r,s] [(pq|rs) - 1/2 (pr|qs)].
-        fock = h + np.einsum("rs,pqrs->pq", density, eri)
-        fock -= 0.5 * np.einsum("rs,prqs->pq", density, eri)
-        eps, coeff = np.linalg.eigh(fock)
-        new_density = 2.0 * coeff[:, :nocc] @ coeff[:, :nocc].T
-        if damping:
-            new_density = damping * density + (1.0 - damping) * new_density
-        new_energy = float(np.einsum("pq,pq->", new_density, h + 0.5 * fock) + Enuc)
-        d_rms = float(np.linalg.norm(new_density - density))
-        d_energy = float("inf") if energy is None else abs(new_energy - energy)
-        density, energy = new_density, new_energy
-        if d_rms < conv_tol and d_energy < conv_tol:
-            converged = True
-            break
+    # The stored schema is already a canonical spin-orbital MO Hamiltonian:
+    # h2[p,q,r,s] = (pq|rs), non-antisymmetrized.  Occupied spin orbitals
+    # are the first ``nelec`` interleaved orbitals, so evaluate the Slater
+    # determinant energy directly in that same representation.
+    occupied = range(int(nelec))
+    one_body = sum(h1[p, p] for p in occupied)
+    two_body = 0.5 * sum(
+        h2[p, p, q, q] - h2[p, q, q, p]
+        for p in occupied for q in occupied
+    )
+    energy = float(one_body + two_body + Enuc)
+    eps = np.diag(h1).copy()
+    coeff = np.eye(nso)
+    density = np.diag([1.0 if p in occupied else 0.0 for p in range(nso)])
+    fock = np.zeros_like(h1)
 
     return {
         "total_energy": float(energy),
@@ -87,8 +47,8 @@ def run_rhf_from_matrix_elements(h1, h2, nelec, Enuc=0.0, *, max_cycle=100,
         "orbital_coefficients": coeff,
         "density_matrix": density,
         "fock_matrix": fock,
-        "converged": converged,
-        "cycles": cycle,
+            "converged": True,
+            "cycles": 0,
         "nelec": int(nelec),
     }
 

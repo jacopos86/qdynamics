@@ -106,7 +106,8 @@ def write_wavefunction_h5(path, wavefunction, meta):
     return write_h5(path, mo_coeff, mo_energy, mo_occ, meta)
 
 
-def write_matrix_elements_h5(path, h1, h2, nuclear_repulsion, meta):
+def write_matrix_elements_h5(path, h1, h2, nuclear_repulsion, meta,
+                             mo_coeff=None, mo_energy=None, mo_occ=None):
     """
     Write first-principles matrix elements to a backend-independent HDF5 file.
 
@@ -129,6 +130,12 @@ def write_matrix_elements_h5(path, h1, h2, nuclear_repulsion, meta):
         f.create_dataset("h2", data=np.asarray(h2),
                          compression="gzip", chunks=True)
         f.create_dataset("nuclear_repulsion", data=float(nuclear_repulsion))
+        if mo_coeff is not None:
+            f.create_dataset("mo_coeff", data=np.asarray(mo_coeff), compression="gzip", chunks=True)
+        if mo_energy is not None:
+            f.create_dataset("mo_energy", data=np.asarray(mo_energy))
+        if mo_occ is not None:
+            f.create_dataset("mo_occ", data=np.asarray(mo_occ))
 
     log.info(f"[output] Psi4 matrix elements HDF5 written: {path}")
     return path

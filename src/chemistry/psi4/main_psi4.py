@@ -180,6 +180,7 @@ def main():
             prefix.with_name("ele.h5"),
             hamiltonian.hij, hamiltonian.Iijkl,
             hamiltonian.Vnn.magnitude, meta,
+            *out.orbital_data_from_wavefunction(wavefunction),
         )
     if cfg["write_vibration"]:
         vib = VibrationalSolver(
@@ -208,11 +209,17 @@ def main():
                     eph_vib_results[key] = vib_results[raw_key]
         eph_solver = FiniteDifferenceElectronPhononSolver(
             wavefunction, cfg["psi4_calc_parameters"]["method"],
-            fd_step=cfg["eph_fd_step"])
+            fd_step=cfg["eph_fd_step"],
+            basis=cfg["basis_set"],
+            engine="pyscf")
         eph_mat, omega = eph_solver.run(eph_vib_results)
         out.write_eph_h5(
             prefix.with_name(f"{prefix.name}_eph.h5"), eph_mat, omega,
-            {**meta, "eph_basis": "MO", "eph_method": "finite_difference"})
+            {**meta, "eph_basis": "MO",
+             "eph_method": "finite_difference",
+             "eph_engine": "pyscf_pulay_compatibility",
+             "eph_mo_gauge": "psi4",
+             "eph_mode_engine": "pyscf"})
     log.info(f"Job done. E_SCF = {wavefunction.energy.magnitude:.10f} Ha")
 
 

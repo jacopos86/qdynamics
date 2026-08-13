@@ -28,8 +28,23 @@ class FiniteDifferenceElectronPhononSolver:
     def run(self, mo_rep=True):
         if not mo_rep:
             raise NotImplementedError("FD EPH currently returns MO-basis matrices only")
+        # Displaced potentials are divided by a small Cartesian step.  The
+        # ordinary PySCF SCF defaults can therefore leave visible noise in
+        # weak EPH modes (CH2O/STO-3G is a representative case).  Apply the
+        # same tight thresholds to the reference and to the copies made by
+        # eph_fd.run_mfs, and reconverge the reference from its current DM.
+        mf = self.driver.mf
+        mf.conv_tol = min(float(mf.conv_tol), 1.0e-12)
+        if mf.conv_tol_grad is None:
+            mf.conv_tol_grad = 1.0e-8
+        else:
+            mf.conv_tol_grad = min(float(mf.conv_tol_grad), 1.0e-8)
+        mf.max_cycle = max(int(mf.max_cycle), 100)
+        mf.kernel(dm0=mf.make_rdm1())
+        if not mf.converged:
+            raise RuntimeError("Tight reference SCF did not converge for FD EPH")
         self.eph_mat, self.omega = eph_fd.kernel(
-            self.driver.mf,
+            mf,
             disp=self.fd_step,
             mo_rep=mo_rep,
             cutoff_frequency=self.cutoff_frequency,
