@@ -44,6 +44,10 @@ def main():
         unit=cfg["unit"],
         method=cfg["method"],
         xc=cfg["xc"],
+        e_converg=cfg["e_converg"],
+        d_converg=cfg["d_converg"],
+        max_iter=cfg["max_iter"],
+        isotope_masses=cfg["isotope_masses"],
     )
     e_scf = driver.run_scf()
 
@@ -55,6 +59,8 @@ def main():
 
     # ---------- stage 2: write ----------
     prefix = cfg["output"]
+    if not prefix.is_absolute():
+        prefix = args.input.resolve().parent / prefix
     meta = {
         "mol_str": cfg["mol_str"],
         "basis": cfg["basis"],
@@ -68,6 +74,10 @@ def main():
         "nelec": int(driver.mol.nelectron),
         "nmo": int(driver.mol.nao_nr()),
         "ms2": int(driver.mol.spin),
+        "e_converg": cfg["e_converg"],
+        "d_converg": cfg["d_converg"],
+        "max_iter": cfg["max_iter"],
+        "isotope_masses": str(cfg["isotope_masses"]),
     }
 
     if cfg["write_h5"]:

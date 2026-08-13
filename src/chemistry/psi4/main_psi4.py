@@ -147,6 +147,9 @@ def main():
         cfg["multiplicity"],
         optimize_geometry=cfg["optimize_geometry"],
     )
+    if cfg["isotope_masses"] is not None:
+        for atom, mass in enumerate(cfg["isotope_masses"]):
+            geometry.geometry.set_mass(atom, mass)
     wavefunction = psi4_obj.psi4_elec_struct_driver(geometry)
     overlap, mo, density_matrix, hamiltonian = psi4_obj.set_electronic_operators(
         wavefunction
@@ -174,6 +177,10 @@ def main():
         "nelec": int(wavefunction.mol_struct.nel),
         "nmo": int(wavefunction.nmo()),
         "ms2": int(cfg["multiplicity"] - 1),
+        "e_converg": cfg["psi4_calc_parameters"]["e_converg"],
+        "d_converg": cfg["psi4_calc_parameters"]["d_converg"],
+        "max_iter": cfg["psi4_calc_parameters"]["max_iter"],
+        "isotope_masses": str(cfg["isotope_masses"]),
     }
     if cfg["write_h5"] or cfg["write_matrix_elements"]:
         out.write_matrix_elements_h5(
@@ -211,15 +218,15 @@ def main():
             wavefunction, cfg["psi4_calc_parameters"]["method"],
             fd_step=cfg["eph_fd_step"],
             basis=cfg["basis_set"],
-            engine="pyscf")
+            engine=cfg["eph_engine"])
         eph_mat, omega = eph_solver.run(eph_vib_results)
         out.write_eph_h5(
             prefix.with_name(f"{prefix.name}_eph.h5"), eph_mat, omega,
             {**meta, "eph_basis": "MO",
              "eph_method": "finite_difference",
-             "eph_engine": "pyscf_pulay_compatibility",
+             "eph_engine": "psi4_finite_difference_pulay",
              "eph_mo_gauge": "psi4",
-             "eph_mode_engine": "pyscf"})
+             "eph_mode_engine": "psi4"})
     log.info(f"Job done. E_SCF = {wavefunction.energy.magnitude:.10f} Ha")
 
 

@@ -1,5 +1,10 @@
 """Finite-difference Psi4 mean-field electron--phonon coupling."""
 import logging
+import os
+from pathlib import Path
+import subprocess
+import sysconfig
+import tempfile
 import numpy as np
 import psi4
 
@@ -9,24 +14,23 @@ AMU_TO_ELECTRON_MASS = 1822.888486209
 
 
 class FiniteDifferenceElectronPhononSolver:
-    """Build Pulay-correct finite-difference EPH matrix elements.
+    """Build Pulay-correct finite-difference EPH matrices with Psi4.
 
-    Psi4 1.9 does not expose all response terms needed to reproduce its SCF
-    EPH derivative through the current Python API.  Until a native analytic
-    implementation is available, the default ``pyscf`` engine evaluates the
-    same RHF problem at the Psi4 geometry with :mod:`pyscf.eph.eph_fd`, whose
-    finite-difference implementation includes the AO Pulay terms.  The old
-    Psi4-only approximation remains available as ``engine="psi4_approx"`` for
-    diagnostics, but it is not suitable for cross-code numerical comparison.
+    The native ``psi4_fd`` engine differences displaced Psi4 SCF operators in
+    their atom-labelled AO representation.  It removes basis-centre motion
+    using a fixed-nuclei finite difference for nuclear attraction and a small
+    Psi4 integral plugin for the single-leg two-electron derivative contracted
+    with the reference density.  This gives the same bra/ket Pulay correction
+    used by an atom-labelled moving-AO finite difference.  This production
+    implementation has no PySCF dependency.
     """
     def __init__(self, wavefunction, method, fd_step=0.001,
-                 cutoff_frequency=80.0, basis=None, engine="pyscf"):
+                 cutoff_frequency=80.0, basis=None, engine="psi4_fd"):
         self.wfn = wavefunction
         self.mol = wavefunction.mol_struct.geometry
         self.method = method
         self.fd_step = float(fd_step)
         self.cutoff_frequency = float(cutoff_frequency)
-        self.basis = basis
         self.engine = str(engine).lower()
         self.reference_basis = wavefunction.wfn.basisset()
 
@@ -52,116 +56,108 @@ class FiniteDifferenceElectronPhononSolver:
                 value = full
         return np.asarray(value)
 
-    def _displaced_fock(self, coords, symbols):
+    def _molecule(self, coords, symbols):
+        """Build a c1 Psi4 molecule without translating or reorienting it."""
         mol = psi4.geometry("\n".join(
-            ["0 1"] + [f"{s} {r[0]:.14f} {r[1]:.14f} {r[2]:.14f}"
+            [f"{int(self.mol.molecular_charge())} "
+             f"{int(self.mol.multiplicity())}"]
+            + [f"{s} {r[0]:.14f} {r[1]:.14f} {r[2]:.14f}"
                         for s, r in zip(symbols, coords)]
             + ["units bohr", "symmetry c1", "no_reorient", "no_com"]
         ))
+        return mol
+
+    def _displaced_operator(self, coords, symbols):
+        """Return displaced ``F - T`` in its atom-labelled AO basis."""
+        mol = self._molecule(coords, symbols)
         _, wfn = psi4.energy(self.method, molecule=mol, return_wfn=True)
+        if wfn.nirrep() != 1:
+            raise RuntimeError("Displaced Psi4 EPH calculations require symmetry c1")
         # Match the electronic operator differentiated by PySCF: F - T.
         fock = self._array(wfn.Fa())
-        kinetic = self._array(wfn.mintshelper().ao_kinetic())
-        return fock - kinetic
+        kinetic = self._array(
+            psi4.core.MintsHelper(wfn.basisset()).ao_kinetic())
+        return fock - kinetic, wfn.basisset()
 
-    def _run_pyscf(self):
-        """Evaluate Pulay-correct RHF EPH at the exact Psi4 geometry."""
-        if self.basis is None:
-            raise ValueError(
-                "A PySCF basis name/map is required for Pulay-correct EPH")
-        if str(self.method).lower() not in ("scf", "hf", "rhf"):
-            raise NotImplementedError(
-                "The Pulay-correct compatibility engine currently supports "
-                "closed-shell RHF/SCF only")
-        if self.mol.multiplicity() != 1:
-            raise NotImplementedError(
-                "The Pulay-correct compatibility engine currently supports "
-                "singlet closed-shell molecules only")
-        from pyscf import gto, scf
-        from pyscf.eph import eph_fd
+    @staticmethod
+    def _mean_field_potential(nuclear_potential, eri, density_a, density_b):
+        """Build the alpha-spin ``V_nuc + J[D_a+D_b] - K[D_a]``."""
+        coulomb = np.einsum(
+            "mnkl,kl->mn", eri, density_a + density_b, optimize=True)
+        exchange = np.einsum(
+            "mknl,kl->mn", eri, density_a, optimize=True)
+        return nuclear_potential + coulomb - exchange
 
-        atoms = [
-            (self.mol.symbol(i), tuple(self.mol.xyz(i)[j] for j in range(3)))
-            for i in range(self.mol.natom())]
-        mol = gto.M(
-            atom=atoms,
-            basis=self.basis,
-            unit="Bohr",
-            charge=int(self.mol.molecular_charge()),
-            spin=int(self.mol.multiplicity() - 1),
-            symmetry=False,
-            verbose=0,
-        )
-        mf = scf.RHF(mol)
-        mf.conv_tol = 1.0e-12
-        mf.conv_tol_grad = 1.0e-8
-        mf.max_cycle = 100
-        mf.kernel()
-        if not mf.converged:
-            raise RuntimeError("PySCF compatibility RHF did not converge")
-        mats, omega = eph_fd.kernel(
-            mf,
-            disp=self.fd_step,
-            mo_rep=True,
-            cutoff_frequency=self.cutoff_frequency,
-            keep_imag_frequency=False,
-        )
-        # Psi4's Gaussian solid-harmonic component order differs from
-        # PySCF's order.  Reorder the Psi4 coefficients before using their
-        # cross-code MO overlap to rotate g into the Psi4 canonical MO gauge.
-        component_order = {
-            0: (0,),
-            1: (1, 2, 0),       # Psi4 (z,x,y) -> PySCF (x,y,z)
-            2: (4, 2, 0, 1, 3), # Psi4 -> PySCF (xy,yz,z2,xz,x2-y2)
-        }
-        psi4_rows_in_pyscf_order = []
-        for shell_index in range(self.reference_basis.nshell()):
-            shell = self.reference_basis.shell(shell_index)
-            angular_momentum = int(shell.am)
-            if angular_momentum not in component_order:
-                raise NotImplementedError(
-                    "Psi4/PySCF MO gauge alignment currently supports s, p, "
-                    f"and d shells only; found l={angular_momentum}")
-            order = component_order[angular_momentum]
-            if len(order) != int(shell.nfunction):
-                raise NotImplementedError(
-                    "Cartesian high-angular-momentum AO gauge alignment is "
-                    "not implemented")
-            start = int(shell.function_index)
-            psi4_rows_in_pyscf_order.extend(start + item for item in order)
-        coeff_psi4 = self._array(self.wfn.Ca())[
-            np.asarray(psi4_rows_in_pyscf_order), :]
-        overlap = mf.get_ovlp()
-        metric_error = np.linalg.norm(
-            coeff_psi4.T.conj() @ overlap @ coeff_psi4
-            - np.eye(coeff_psi4.shape[1]))
-        mo_rotation = mf.mo_coeff.T.conj() @ overlap @ coeff_psi4
-        rotation_error = np.linalg.norm(
-            mo_rotation.T.conj() @ mo_rotation
-            - np.eye(mo_rotation.shape[1]))
-        if metric_error > 1.0e-5 or rotation_error > 1.0e-5:
-            raise RuntimeError(
-                "Could not align PySCF and Psi4 MO gauges; verify AO ordering "
-                f"and basis conventions (metric errors {metric_error:.3e}, "
-                f"{rotation_error:.3e})")
-        mats_psi4_mo = np.einsum(
-            "pi,Jpq,qj->Jij", mo_rotation.conj(), mats, mo_rotation,
-            optimize=True)
-        return mats_psi4_mo, omega
+    def _basis_only_nuclear_potential(self, basis, reference_coords):
+        """Evaluate nuclear attraction in a moved AO basis at fixed nuclei."""
+        external = psi4.core.ExternalPotential()
+        for atom, coord in enumerate(reference_coords):
+            external.addCharge(
+                float(self.mol.Z(atom)),
+                float(coord[0]), float(coord[1]), float(coord[2]))
+        nuclear_potential = self._array(external.computePotentialMatrix(basis))
+        return nuclear_potential
+
+    @staticmethod
+    def _plugin_path():
+        override = os.environ.get("QDYNAMICS_PSI4_EPH_PLUGIN")
+        if override:
+            return Path(override)
+        source = Path(__file__).with_name("eph_deriv_plugin")
+        build = Path(tempfile.gettempdir()) / (
+            f"qdynamics_psi4_eph_deriv_{psi4.__version__}")
+        library = build / "qdynamics_eph_deriv.so"
+        if library.exists() and library.stat().st_mtime >= max(
+                path.stat().st_mtime for path in source.iterdir()):
+            return library
+        python_root = Path(sysconfig.get_config_var("prefix"))
+        library_name = sysconfig.get_config_var("LDLIBRARY") or ""
+        python_library = python_root / "lib" / library_name
+        if not python_library.exists():
+            python_library = python_root / "lib" / (
+                f"libpython{sysconfig.get_python_version()}.dylib")
+        pybind11_dir = (
+            Path(sysconfig.get_path("purelib"))
+            / "pybind11" / "share" / "cmake" / "pybind11")
+        command = [
+            "cmake", "-S", str(source), "-B", str(build),
+            f"-DCMAKE_PREFIX_PATH={python_root}",
+            f"-DPython_ROOT_DIR={python_root}",
+            f"-DPython_EXECUTABLE={Path(os.sys.executable)}",
+            f"-DPython_INCLUDE_DIR={sysconfig.get_config_var('INCLUDEPY')}",
+            f"-DPython_LIBRARY={python_library}",
+            f"-Dpybind11_DIR={pybind11_dir}",
+        ]
+        subprocess.run(command, check=True, capture_output=True, text=True)
+        subprocess.run(
+            ["cmake", "--build", str(build), "-j2"],
+            check=True, capture_output=True, text=True)
+        return library
+
+    def _two_electron_first_leg(self, atom):
+        """Return ``d(J-K)/dR`` acting on the first AO leg only."""
+        plugin = str(self._plugin_path())
+        psi4.core.set_local_option("QDYNAMICS_EPH_DERIV", "ATOM", atom)
+        result_wfn = psi4.core.plugin(plugin, self.wfn.wfn)
+        return np.asarray([
+            self._array(result_wfn.array_variable(
+                f"QDYNAMICS EPH TWO ELECTRON LEG {xyz}"))
+            for xyz in range(3)
+        ])
 
     def run(self, vib_results):
-        if self.engine == "pyscf":
-            log.info(
-                "Computing Pulay-correct EPH with the PySCF compatibility "
-                "engine at the Psi4 geometry")
-            return self._run_pyscf()
-        if self.engine != "psi4_approx":
+        if self.engine not in ("psi4", "psi4_fd"):
             raise ValueError(
-                f"Unknown Psi4 EPH engine {self.engine!r}; expected 'pyscf' "
-                "or 'psi4_approx'")
-        log.warning(
-            "Using psi4_approx EPH without the full AO Pulay derivative; "
-            "matrix elements are not expected to match PySCF")
+                f"Unknown Psi4 EPH engine {self.engine!r}; expected "
+                "'psi4_fd'")
+        if str(self.method).lower() not in ("scf", "hf", "rhf"):
+            raise NotImplementedError(
+                "Native Psi4 FD EPH currently supports RHF/SCF only")
+        if self.wfn.wfn.nalpha() != self.wfn.wfn.nbeta():
+            raise NotImplementedError(
+                "Native Psi4 FD EPH currently supports closed shells only")
+        log.info(
+            "Computing native Pulay-correct Psi4 finite-difference EPH")
         freq = np.asarray(vib_results["freq_wavenumber"]).real
         modes = np.asarray(vib_results["norm_mode"], dtype=float)
         if modes.ndim != 3 or modes.shape[1:] != (self.mol.natom(), 3):
@@ -183,19 +179,34 @@ class FiniteDifferenceElectronPhononSolver:
                              for i in range(self.mol.natom())])
         symbols = [self.mol.symbol(i) for i in range(self.mol.natom())]
         c0 = self._array(self.wfn.Ca())
-        # First differentiate in each Cartesian nuclear coordinate, as in
-        # pyscf.eph.eph_fd, then project the Cartesian derivatives into normal
-        # modes with the mass- and zero-point-weighted eigenvectors.
+        # Difference the total self-consistent potential in the moving AO
+        # basis, then subtract the derivative caused solely by moving the AO
+        # centres at fixed nuclei and fixed reference density.  The remainder
+        # is the Pulay-correct Cartesian electronic-potential derivative.
         nat = self.mol.natom()
         cart_deriv = []
+        # Loading once registers the plugin-local ATOM option.  Do this for
+        # every run because callers may have reset Psi4's global option state.
+        psi4.core.plugin(str(self._plugin_path()), self.wfn.wfn)
         for atom in range(nat):
+            two_electron_leg = self._two_electron_first_leg(atom)
             for axis in range(3):
                 delta = np.zeros_like(coords)
                 delta[atom, axis] = self.fd_step / 2.0
-                fp = self._displaced_fock(coords + delta, symbols)
-                fm = self._displaced_fock(coords - delta, symbols)
-                derivative_ao = (fp - fm) / self.fd_step
-                cart_deriv.append(c0.T.conj() @ derivative_ao @ c0)
+                fp, basis_p = self._displaced_operator(
+                    coords + delta, symbols)
+                fm, basis_m = self._displaced_operator(
+                    coords - delta, symbols)
+                basis_fp = self._basis_only_nuclear_potential(basis_p, coords)
+                basis_fm = self._basis_only_nuclear_potential(basis_m, coords)
+                derivative_ao = (
+                    (fp - fm) - (basis_fp - basis_fm)) / self.fd_step
+                derivative_ao -= (
+                    two_electron_leg[axis]
+                    + two_electron_leg[axis].T.conj())
+                derivative_mo = c0.T.conj() @ derivative_ao @ c0
+                cart_deriv.append(
+                    0.5 * (derivative_mo + derivative_mo.T.conj()))
         cart_deriv = np.asarray(cart_deriv)
         # Psi4's mode array is (mode, atom, xyz); PySCF's projection vector is
         # flattened in atom-major Cartesian order.

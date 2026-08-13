@@ -30,6 +30,9 @@ Recognized keys (with defaults):
   eph_cutoff_frequency (80.0) cm^-1
   eph_keep_imag_frequency (false)
   eph_fd_step     (0.001) Cartesian-normal-mode displacement in Bohr
+  e_converg       (1e-12) SCF energy convergence
+  d_converg       (1e-8)  SCF density/gradient convergence
+  max_iter        (100)   maximum SCF iterations
 """
 import logging
 from pathlib import Path
@@ -53,6 +56,10 @@ _DEFAULTS = {
     'eph_cutoff_frequency': 80.0,
     'eph_keep_imag_frequency': False,
     'eph_fd_step': 0.001,
+    'e_converg': 1.0e-12,
+    'd_converg': 1.0e-8,
+    'max_iter': 100,
+    'isotope_masses': None,
 }
 
 _VALID_METHODS = {'RHF', 'ROHF', 'UHF', 'RKS', 'UKS'}
@@ -120,10 +127,16 @@ def parse_input(path):
         key, value = key.strip().lower(), value.strip()
 
         if key == 'geometry':          # geometry = some/file.xyz
-            geometry_lines = _read_xyz(value).splitlines()
-        elif key in ('charge', 'spin'):
+            geometry_path = Path(value)
+            if not geometry_path.is_absolute():
+                geometry_path = path.parent / geometry_path
+            geometry_lines = _read_xyz(geometry_path).splitlines()
+        elif key in ('charge', 'spin', 'max_iter'):
             settings[key] = int(value)
-        elif key in ('fcidump_tol', 'eph_cutoff_frequency', 'eph_fd_step'):
+        elif key == 'isotope_masses':
+            settings[key] = [float(item.strip()) for item in value.split(',')]
+        elif key in ('fcidump_tol', 'eph_cutoff_frequency', 'eph_fd_step',
+                     'e_converg', 'd_converg'):
             settings[key] = float(value)
         elif key in ('write_h5', 'write_fcidump', 'write_vibration', 'write_eph',
                      'eph_keep_imag_frequency'):
@@ -157,9 +170,16 @@ def parse_input(path):
         raise ValueError(f"{path}: eph_method must be analytic or finite_difference")
     if settings['eph_fd_step'] <= 0:
         raise ValueError(f"{path}: eph_fd_step must be positive")
+    if settings['e_converg'] <= 0 or settings['d_converg'] <= 0:
+        raise ValueError(f"{path}: SCF convergence thresholds must be positive")
+    if settings['max_iter'] <= 0:
+        raise ValueError(f"{path}: max_iter must be positive")
 
     settings['output'] = Path(settings['output'])
     settings['mol_str'] = '\n'.join(geometry_lines)
+    if (settings['isotope_masses'] is not None
+            and len(settings['isotope_masses']) != len(geometry_lines)):
+        raise ValueError(f"{path}: isotope_masses must contain one value per atom")
 
     log.info(f"Input parsed: {path} "
              f"(method={settings['method']}, basis={settings['basis']}, "

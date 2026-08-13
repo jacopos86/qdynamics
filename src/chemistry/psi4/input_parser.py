@@ -36,6 +36,7 @@ Recognized keys (with defaults):
   soscf_max_iter (0)
   write_vibration (false)
   write_eph       (false)
+  eph_engine      (psi4_fd)  Psi4-native finite difference
   eph_fd_step     (0.001)     central-difference displacement in Bohr
 """
 import logging
@@ -65,7 +66,9 @@ _DEFAULTS = {
     "soscf_max_iter": 0,
     "write_vibration": False,
     "write_eph": False,
+    "eph_engine": "psi4_fd",
     "eph_fd_step": 0.001,
+    "isotope_masses": None,
 }
 
 _VALID_SCF_TYPES = {"pk", "df", "direct", "out_of_core", "cd"}
@@ -179,6 +182,8 @@ def parse_input(path):
             settings[key] = _parse_basis_map(value)
         elif key in ("charge", "multiplicity", "max_iter", "soscf_max_iter"):
             settings[key] = int(value)
+        elif key == "isotope_masses":
+            settings[key] = [float(item.strip()) for item in value.split(",")]
         elif key in ("e_converg", "d_converg", "eph_fd_step"):
             settings[key] = float(value)
         elif key in ("soscf", "write_h5", "write_matrix_elements",
@@ -200,6 +205,9 @@ def parse_input(path):
             f"{path}: no geometry given "
             "(use a 'geometry ... end' block or 'geometry = file.xyz')"
         )
+    if (settings["isotope_masses"] is not None
+            and len(settings["isotope_masses"]) != len(geometry_lines)):
+        raise ValueError(f"{path}: isotope_masses must contain one value per atom")
 
     settings["reference"] = settings["reference"].lower()
     if settings["reference"] not in _VALID_REFERENCES:
@@ -216,6 +224,9 @@ def parse_input(path):
         )
     if settings["unit"].upper() not in _VALID_UNITS:
         raise ValueError(f"{path}: unit must be Angstrom or Bohr")
+    settings["eph_engine"] = settings["eph_engine"].lower()
+    if settings["eph_engine"] != "psi4_fd":
+        raise ValueError(f"{path}: eph_engine must be psi4_fd")
 
     if "coordinate_file" not in settings:
         settings["coordinate_file"] = path.with_suffix(".xyz")
@@ -241,7 +252,9 @@ def parse_input(path):
         "write_matrix_elements": settings["write_matrix_elements"],
         "write_vibration": settings["write_vibration"],
         "write_eph": settings["write_eph"],
+        "eph_engine": settings["eph_engine"],
         "eph_fd_step": settings["eph_fd_step"],
+        "isotope_masses": settings["isotope_masses"],
         "psi4_calc_parameters": {
             "scf_type": settings["scf_type"],
             "reference": settings["reference"],

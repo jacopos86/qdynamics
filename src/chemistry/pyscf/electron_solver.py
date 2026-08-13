@@ -26,7 +26,9 @@ class PySCFDriver:
     """
 
     def __init__(self, mol_str, basis='sto-3g', spin=0, charge=0,
-                 unit='Angstrom', method='RHF', xc=None):
+                 unit='Angstrom', method='RHF', xc=None,
+                 e_converg=1.0e-12, d_converg=1.0e-8, max_iter=100,
+                 isotope_masses=None):
         """
         Parameters
         ----------
@@ -53,7 +55,17 @@ class PySCFDriver:
         self.method = method.upper()
         self.xc = xc
         self.mol = self._build_molecule()
+        if isotope_masses is not None:
+            if len(isotope_masses) != self.mol.natm:
+                raise ValueError("isotope_masses must contain one value per atom")
+            self.mol.nucprop = {
+                atom + 1: {"mass": float(mass)}
+                for atom, mass in enumerate(isotope_masses)
+            }
         self.mf = self._build_scf_method()
+        self.mf.conv_tol = float(e_converg)
+        self.mf.conv_tol_grad = float(d_converg)
+        self.mf.max_cycle = int(max_iter)
         self._converged = False
 
     # -------------------------------------------------
