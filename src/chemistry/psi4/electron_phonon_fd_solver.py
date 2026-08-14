@@ -14,16 +14,8 @@ AMU_TO_ELECTRON_MASS = 1822.888486209
 
 
 class FiniteDifferenceElectronPhononSolver:
-    """Build Pulay-correct finite-difference EPH matrices with Psi4.
+    """Build Pulay-correct finite-difference EPH matrices with Psi4."""
 
-    The native ``psi4_fd`` engine differences displaced Psi4 SCF operators in
-    their atom-labelled AO representation.  It removes basis-centre motion
-    using a fixed-nuclei finite difference for nuclear attraction and a small
-    Psi4 integral plugin for the single-leg two-electron derivative contracted
-    with the reference density.  This gives the same bra/ket Pulay correction
-    used by an atom-labelled moving-AO finite difference.  This production
-    implementation has no PySCF dependency.
-    """
     def __init__(self, wavefunction, method, fd_step=0.001,
                  cutoff_frequency=80.0, basis=None, engine="psi4_fd"):
         self.wfn = wavefunction
@@ -78,15 +70,6 @@ class FiniteDifferenceElectronPhononSolver:
         kinetic = self._array(
             psi4.core.MintsHelper(wfn.basisset()).ao_kinetic())
         return fock - kinetic, wfn.basisset()
-
-    @staticmethod
-    def _mean_field_potential(nuclear_potential, eri, density_a, density_b):
-        """Build the alpha-spin ``V_nuc + J[D_a+D_b] - K[D_a]``."""
-        coulomb = np.einsum(
-            "mnkl,kl->mn", eri, density_a + density_b, optimize=True)
-        exchange = np.einsum(
-            "mknl,kl->mn", eri, density_a, optimize=True)
-        return nuclear_potential + coulomb - exchange
 
     def _basis_only_nuclear_potential(self, basis, reference_coords):
         """Evaluate nuclear attraction in a moved AO basis at fixed nuclei."""
