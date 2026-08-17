@@ -477,23 +477,13 @@ def state_with_appended_runtime_coordinates(
     return next_state, theta
 
 
-def state_with_inserted_runtime_coordinates(
-    state: APMcLachlanState,
-    coordinate_terms: Sequence[Any],
-    *,
-    coordinate_labels: Sequence[str],
-    theta_runtime: np.ndarray | Sequence[float] | None = None,
-    metadata: Mapping[str, Any] | None = None,
-) -> tuple[APMcLachlanState, np.ndarray]:
-    """Compatibility wrapper for old code; active terminology is append."""
-
-    return state_with_appended_runtime_coordinates(
-        state,
-        coordinate_terms,
-        coordinate_labels=coordinate_labels,
-        theta_runtime=theta_runtime,
-        metadata=metadata,
-    )
+# NOTE: a compatibility alias named ``state_with_inserted_runtime_coordinates``
+# used to live here and silently forwarded to the *append* function above.  It
+# had zero callers and its name promised positional insertion that this module
+# has never implemented.  It was removed 2026-08-15 so the name stays free for
+# the real insertion-at-cut materialization introduced by the
+# deletion-conditioned exchange selector (see
+# prompt-exports/paper_ii_noiseless_conditional_exchange_implementation_spec.md).
 
 
 def _term_label_for_appended_coordinate(state: APMcLachlanState, label: str) -> str:
@@ -1096,7 +1086,6 @@ __all__ = [
     "state_from_scaffold_runtime_input",
     "state_with_appended_runtime_coordinates",
     "state_with_appended_terms",
-    "state_with_inserted_runtime_coordinates",
     "state_with_runtime_coordinate_patch",
     "state_without_runtime_indices",
     "state_without_term_labels",

@@ -222,19 +222,11 @@ def state_with_appended_atoms(
     )
 
 
-def state_with_inserted_atoms(
-    state: APMcLachlanState,
-    atoms: Sequence[SupportAtom],
-    *,
-    theta_runtime: Sequence[float] | np.ndarray,
-) -> tuple[APMcLachlanState, np.ndarray]:
-    """Compatibility wrapper for old code; active terminology is append."""
-
-    return state_with_appended_atoms(
-        state,
-        atoms,
-        theta_runtime=theta_runtime,
-    )
+# NOTE: ``state_with_inserted_atoms`` used to live here as a compatibility
+# alias that silently forwarded to :func:`state_with_appended_atoms`.  Removed
+# 2026-08-15: the name promised positional insertion this lane has never
+# implemented, and it is reserved for the deletion-conditioned exchange
+# selector's real insertion-at-cut materialization.
 
 
 def state_without_active_atoms(
@@ -610,7 +602,6 @@ __all__ = [
     "no_pauli_split_parent_labels",
     "normalize_append_occurrence_policy",
     "state_with_appended_atoms",
-    "state_with_inserted_atoms",
     "state_with_support_patch_atoms",
     "state_without_active_atoms",
 ]

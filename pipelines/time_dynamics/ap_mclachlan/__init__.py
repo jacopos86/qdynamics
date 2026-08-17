@@ -65,7 +65,6 @@ _LAZY_EXPORTS = {
         "state",
         "state_with_appended_runtime_coordinates",
     ),
-    "state_with_inserted_atoms": ("support_atoms", "state_with_inserted_atoms"),
     "state_with_support_patch_atoms": ("support_atoms", "state_with_support_patch_atoms"),
     "run_fixed_mclachlan_trajectory": ("trajectory", "run_fixed_mclachlan_trajectory"),
     "solve_fixed_mclachlan_step": ("fixed_step", "solve_fixed_mclachlan_step"),

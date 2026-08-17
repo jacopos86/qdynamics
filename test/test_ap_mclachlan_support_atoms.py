@@ -31,7 +31,6 @@ from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
     append_occurrence_base_label,
     candidate_append_atoms,
     state_with_appended_atoms,
-    state_with_inserted_atoms,
     state_without_active_atoms,
 )
 from src.quantum.ansatz_parameterization import build_parameter_layout
@@ -537,26 +536,19 @@ def test_append_batch_rejects_duplicate_base_atom_occurrences() -> None:
         )
 
 
-def test_state_with_inserted_atoms_remains_legacy_alias() -> None:
-    selected = (AnsatzTerm(label="seed_x", polynomial=_poly((("x", 1.0),))),)
-    candidates = (AnsatzTerm(label="candidate_y", polynomial=_poly((("y", 1.0),))),)
-    state = state_from_scaffold_runtime_input(
-        _runtime_input(
-            selected=selected,
-            theta_runtime=np.array([0.1]),
-            candidate_pool_terms=candidates,
-        )
-    )
-    atom = candidate_append_atoms(state)[0]
+def test_insertion_named_aliases_for_append_are_gone() -> None:
+    """The removed ``*_inserted_*`` aliases must not silently reappear.
 
-    appended_state, appended_theta = state_with_inserted_atoms(
-        state,
-        (atom,),
-        theta_runtime=state.theta_runtime,
-    )
+    Both promised positional insertion while forwarding to tail append.  The
+    names are reserved for the real insertion-at-cut materialization of the
+    deletion-conditioned exchange selector.
+    """
 
-    assert appended_theta.tolist() == [0.1, 0.0]
-    assert appended_state.runtime_coordinate_labels[-1] == "candidate_y::r0::y"
+    import pipelines.time_dynamics.ap_mclachlan.state as state_mod
+    import pipelines.time_dynamics.ap_mclachlan.support_atoms as atoms_mod
+
+    assert not hasattr(state_mod, "state_with_inserted_runtime_coordinates")
+    assert not hasattr(atoms_mod, "state_with_inserted_atoms")
 
 
 def test_candidate_append_atoms_rejects_incomplete_pool_by_default() -> None:
