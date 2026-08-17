@@ -550,7 +550,13 @@ def gain_for_support(
     pinv_rcond: float | None = None,
     inverse_policy: McLachlanInversePolicy | None = None,
 ) -> float | None:
-    """Return ``f_A.T @ matrix_A^+ @ f_A`` for a runtime support."""
+    """Return the realized captured drift ``Q(S)`` for a runtime support.
+
+    ``Q = 2 f_S^T theta_dot - theta_dot^T K_SS theta_dot`` for the velocity the
+    policy solve actually returns.  Before 2026-08-15 this returned
+    ``Gamma = f_S^T theta_dot``, which equals ``Q`` only for the exact
+    unridged, untruncated, undamped solve and otherwise overstates the gain.
+    """
 
     policy = inverse_policy or McLachlanInversePolicy(
         pinv_rcond=1.0e-10 if pinv_rcond is None else float(pinv_rcond)
@@ -564,7 +570,7 @@ def gain_for_support(
         )
     except (ValueError, np.linalg.LinAlgError):
         return None
-    value = float(solve.gamma)
+    value = float(solve.captured_drift)
     if not np.isfinite(value):
         return None
     return float(value)
@@ -670,13 +676,21 @@ def build_support_patch_after_cache(
     )
 
 
-def _residual_sq_from_gamma(
+def _residual_sq_from_captured_drift(
     *,
     norm_b_sq: float,
-    gamma: float,
+    captured_drift: float,
 ) -> float:
+    """Exact residual ``||T theta_dot - b||^2 = ||b||^2 - Q`` for the policy solve.
+
+    The retired ``_residual_sq_from_gamma`` computed ``||b||^2 - Gamma``, which
+    is a biased residual whenever ridge, retained-mode truncation, or solve
+    damping is active.  ``Q`` uses the realized velocity, so this identity is
+    exact under the actual policy.
+    """
+
     total = max(0.0, float(norm_b_sq))
-    value = float(total - float(gamma))
+    value = float(total - float(captured_drift))
     if not np.isfinite(value):
         return float("nan")
     return float(min(max(value, 0.0), total))
@@ -710,7 +724,10 @@ def _augmented_solve_confirmation(
 
     theta_dot = np.asarray(solve.theta_dot, dtype=float).reshape(-1)
     gamma = float(solve.gamma)
-    residual_sq = _residual_sq_from_gamma(norm_b_sq=float(norm_b_sq), gamma=gamma)
+    residual_sq = _residual_sq_from_captured_drift(
+        norm_b_sq=float(norm_b_sq),
+        captured_drift=float(solve.captured_drift),
+    )
     residual_ratio = float(residual_sq / float(denominator))
     values_finite = bool(
         np.all(np.isfinite(theta_dot))
@@ -1146,8 +1163,10 @@ def score_support_patch(
         after_solve = validated_after_cache.after_solve
         after_solve_error = validated_after_cache.after_solve_error
         rank_after = validated_after_cache.rank_after
-    before_gain = None if before_solve is None else float(before_solve.gamma)
-    after_gain = None if after_solve is None else float(after_solve.gamma)
+    # Gains are realized captured drift, not the historical Gamma = f.theta_dot;
+    # the two differ whenever ridge/truncation/damping is active (2026-08-15).
+    before_gain = None if before_solve is None else float(before_solve.captured_drift)
+    after_gain = None if after_solve is None else float(after_solve.captured_drift)
     augmented_confirmation = None
     if int(patch.inserted_count) > 0:
         augmented_confirmation = _augmented_solve_confirmation(

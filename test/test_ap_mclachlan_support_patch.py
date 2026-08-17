@@ -385,3 +385,134 @@ def test_support_patch_before_cache_preserves_patch_scores() -> None:
         uncached_conditioning.d_kappa_rel
     )
     assert cached_conditioning.d_schur == pytest.approx(uncached_conditioning.d_schur)
+
+
+# ---------------------------------------------------------------------------
+# Realized captured drift (2026-08-15 scoring correction)
+#
+# Support-patch gains and residuals must use Q = 2 f.theta_dot -
+# theta_dot.K.theta_dot for the velocity the policy solve actually returns.
+# The historical Gamma = f.theta_dot equals Q only for the exact unridged,
+# untruncated, undamped solve; these tests pin the distinction with a policy
+# where every regularizer is active.
+# ---------------------------------------------------------------------------
+
+
+def _rank_deficient_tangent_problem(seed: int = 5, dim: int = 16, n: int = 24):
+    """Explicit T and b with n > dim, so K is structurally rank-deficient."""
+
+    rng = np.random.default_rng(seed)
+    T = rng.standard_normal((dim, n)) + 1j * rng.standard_normal((dim, n))
+    b = rng.standard_normal(dim) + 1j * rng.standard_normal(dim)
+    K = np.real(T.conj().T @ T)
+    K = 0.5 * (K + K.T)
+    f = np.real(T.conj().T @ b)
+    return T, b, K, f
+
+
+_ACTIVE_POLICY = McLachlanInversePolicy(
+    pinv_rcond=1.0e-6,
+    ridge_lambda=1.0e-4,
+    solve_damping=1.0e-3,
+)
+
+
+def test_captured_drift_equals_physical_residual_identity_under_active_policy():
+    """||b||^2 - Q must equal the true state-space residual of the solve."""
+
+    from pipelines.time_dynamics.ap_mclachlan.inverse import solve_theta_dot
+
+    T, b, K, f = _rank_deficient_tangent_problem()
+    solve = solve_theta_dot(K, f, policy=_ACTIVE_POLICY)
+    residual_direct = float(
+        np.linalg.norm(T @ solve.theta_dot - b) ** 2
+    )
+    norm_b_sq = float(np.real(np.vdot(b, b)))
+    # Identity: Q = ||b||^2 - ||T theta_dot - b||^2, exact up to rounding.
+    assert solve.captured_drift == pytest.approx(
+        norm_b_sq - residual_direct, rel=1e-10, abs=1e-10
+    )
+    # And the biased historical value is measurably different here.
+    assert abs(solve.gamma - solve.captured_drift) > 1e-6
+
+
+def test_score_support_patch_gains_use_captured_drift_not_gamma():
+    from pipelines.time_dynamics.ap_mclachlan.inverse import solve_theta_dot
+
+    _T, b, K, f = _rank_deficient_tangent_problem()
+    norm_b_sq = float(np.real(np.vdot(b, b)))
+    geometry = SupportPatchGeometry(
+        K_before=K,
+        f_before=f,
+        norm_b_sq=norm_b_sq,
+    )
+    removed = (3, 11)
+    score = score_support_patch(
+        geometry=geometry,
+        patch=SupportPatch(removed_runtime_indices=removed),
+        inverse_policy=_ACTIVE_POLICY,
+    )
+    before_solve = solve_theta_dot(K, f, policy=_ACTIVE_POLICY)
+    keep = [i for i in range(f.size) if i not in set(removed)]
+    after_solve = solve_theta_dot(
+        K[np.ix_(keep, keep)], f[keep], policy=_ACTIVE_POLICY
+    )
+    assert score.before_gain == pytest.approx(before_solve.captured_drift, rel=1e-12)
+    assert score.after_gain == pytest.approx(after_solve.captured_drift, rel=1e-12)
+    # Regression: the gains must NOT be the historical gamma values.
+    assert abs(score.before_gain - before_solve.gamma) > 1e-6
+
+
+def test_augmented_confirmation_residual_is_realized_not_gamma_based():
+    _T, b, K, f = _rank_deficient_tangent_problem(seed=9, dim=16, n=20)
+    norm_b_sq = float(np.real(np.vdot(b, b)))
+    n = int(f.size)
+    # Append one candidate column taken from a fresh random tangent.
+    rng = np.random.default_rng(77)
+    K_full = np.zeros((n + 1, n + 1))
+    K_full[:n, :n] = K
+    cross = rng.standard_normal(n) * 0.3
+    K_full[:n, n] = cross
+    K_full[n, :n] = cross
+    K_full[n, n] = 2.0
+    f_full = np.concatenate([f, [0.4]])
+    geometry = SupportPatchGeometry(
+        K_before=K,
+        f_before=f,
+        norm_b_sq=norm_b_sq,
+        K_insert_cross=K_full[:n, n:].reshape(n, 1),
+        K_insert_insert=K_full[n:, n:].reshape(1, 1),
+        f_insert=f_full[n:],
+    )
+    score = score_support_patch(
+        geometry=geometry,
+        patch=SupportPatch(inserted_count=1, inserted_labels=("cand::r0::x",)),
+        inverse_policy=_ACTIVE_POLICY,
+    )
+    confirmation = score.augmented_solve_confirmation
+    assert confirmation is not None and confirmation.confirmed
+    from pipelines.time_dynamics.ap_mclachlan.inverse import solve_theta_dot
+
+    aug_solve = solve_theta_dot(K_full, f_full, policy=_ACTIVE_POLICY)
+    expected_residual = min(
+        max(norm_b_sq - aug_solve.captured_drift, 0.0), norm_b_sq
+    )
+    assert confirmation.residual_sq == pytest.approx(expected_residual, rel=1e-12)
+    gamma_based = min(max(norm_b_sq - aug_solve.gamma, 0.0), norm_b_sq)
+    assert abs(confirmation.residual_sq - gamma_based) > 1e-6
+
+
+def test_captured_drift_reduces_to_gamma_for_exact_solve():
+    """With no ridge, damping, or truncation the two definitions coincide."""
+
+    from pipelines.time_dynamics.ap_mclachlan.inverse import solve_theta_dot
+
+    rng = np.random.default_rng(3)
+    A = rng.standard_normal((6, 6))
+    K = A @ A.T + 6.0 * np.eye(6)  # well conditioned, full rank
+    f = rng.standard_normal(6)
+    exact_policy = McLachlanInversePolicy(
+        pinv_rcond=1.0e-14, ridge_lambda=0.0, solve_damping=0.0
+    )
+    solve = solve_theta_dot(K, f, policy=exact_policy)
+    assert solve.captured_drift == pytest.approx(solve.gamma, rel=1e-9)

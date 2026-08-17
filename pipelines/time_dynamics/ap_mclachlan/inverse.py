@@ -80,11 +80,29 @@ class SupportedInverse:
 
 @dataclass(frozen=True)
 class McLachlanSolve:
-    """Result for ``theta_dot = K^+ f`` and ``Gamma = f^T K^+ f``."""
+    """Result of one supported McLachlan solve under the shared policy.
+
+    ``gamma = f^T theta_dot`` is the historical objective value.  It equals the
+    captured drift only for the exact unridged, untruncated, undamped solve;
+    under the actual policy it overstates what the realized velocity achieves.
+
+    ``captured_drift`` is the realized reduction of the McLachlan miss by the
+    velocity this solve actually returns:
+
+        Q = ||b||^2 - ||T theta_dot - b||^2
+          = 2 f^T theta_dot - theta_dot^T K theta_dot,
+
+    evaluated against the *raw* (unridged) ``K``.  The identity holds exactly
+    under retained-mode truncation, ridge, and solve damping because it uses
+    the realized ``theta_dot`` directly.  Support-patch gains and losses must
+    use this quantity; ``gamma`` remains for propagation telemetry and legacy
+    comparison.
+    """
 
     theta_dot: np.ndarray
     gamma: float
     inverse: SupportedInverse
+    captured_drift: float
 
     def to_json_dict(self) -> dict[str, Any]:
         payload = self.inverse.to_json_dict()
@@ -92,6 +110,7 @@ class McLachlanSolve:
             {
                 "theta_dot": [float(x) for x in self.theta_dot.tolist()],
                 "gamma": float(self.gamma),
+                "captured_drift": float(self.captured_drift),
             }
         )
         return payload
@@ -212,9 +231,20 @@ def solve_theta_dot(
     inverse = supported_inverse(mat, policy=policy)
     theta_dot = np.asarray(inverse.inverse @ force, dtype=float).reshape(-1)
     gamma = float(force @ theta_dot)
-    if not np.all(np.isfinite(theta_dot)) or not np.isfinite(gamma):
+    # Realized captured drift against the raw (unridged) K; see McLachlanSolve.
+    captured_drift = float(2.0 * gamma - float(theta_dot @ mat @ theta_dot))
+    if (
+        not np.all(np.isfinite(theta_dot))
+        or not np.isfinite(gamma)
+        or not np.isfinite(captured_drift)
+    ):
         raise ValueError("McLachlan solve produced non-finite values.")
-    return McLachlanSolve(theta_dot=theta_dot, gamma=gamma, inverse=inverse)
+    return McLachlanSolve(
+        theta_dot=theta_dot,
+        gamma=gamma,
+        inverse=inverse,
+        captured_drift=captured_drift,
+    )
 
 
 def gamma_for_support(
@@ -239,6 +269,7 @@ def gamma_for_support(
             theta_dot=np.zeros(0, dtype=float),
             gamma=0.0,
             inverse=supported_inverse(np.zeros((0, 0), dtype=float), policy=policy),
+            captured_drift=0.0,
         )
     mat = np.asarray(mat_full[np.ix_(idx, idx)], dtype=float)
     force_slice = np.asarray(force[list(idx)], dtype=float).reshape(-1)
