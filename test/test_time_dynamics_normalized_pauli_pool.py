@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from pipelines.scaffold.runtime_contract import (
     CandidatePoolSource,
@@ -12,6 +14,7 @@ from pipelines.time_dynamics.benchmarks.avqds_tetris import (
     build_tetris_pool_contract,
 )
 from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
+    reject_removed_online_redundancy_flags,
     run_append_ap_mclachlan_from_runtime_input,
 )
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
@@ -23,7 +26,6 @@ from pipelines.time_dynamics.normalized_pauli_pool import (
     build_normalized_pauli_pool,
     runtime_input_with_normalized_candidate_pool,
 )
-from pipelines.time_dynamics.redundancy_stress import RedundancyStressConfig
 from src.quantum.ansatz_parameterization import (
     build_parameter_layout,
     iter_runtime_rotation_terms,
@@ -229,7 +231,9 @@ def test_apm_runner_serializes_the_selected_normalized_pool_contract() -> None:
     )
 
 
-def test_apm_runner_applies_shared_redundancy_fixture_without_changing_state() -> None:
+def test_apm_runner_has_no_online_redundancy_injection() -> None:
+    """The runner must not accept or perform online zero-angle redundancy injection."""
+
     selected: tuple[AnsatzTerm, ...] = ()
     runtime_input = ScaffoldRuntimeInput(
         resolved_problem=SimpleNamespace(
@@ -253,28 +257,31 @@ def test_apm_runner_applies_shared_redundancy_fixture_without_changing_state() -
     )
     controller = AppendControllerConfig(max_append_candidates=0)
 
-    baseline = run_append_ap_mclachlan_from_runtime_input(
+    signature = inspect.signature(run_append_ap_mclachlan_from_runtime_input)
+    assert "redundancy_stress_config" not in signature.parameters
+
+    payload = run_append_ap_mclachlan_from_runtime_input(
         runtime_input,
         times=(0.0, 0.01),
         normalized_candidate_pool_profile=NORMALIZED_POOL_HAMILTONIAN_DRIVE,
-        controller_config=controller,
-    )
-    stressed = run_append_ap_mclachlan_from_runtime_input(
-        runtime_input,
-        times=(0.0, 0.01),
-        normalized_candidate_pool_profile=NORMALIZED_POOL_HAMILTONIAN_DRIVE,
-        redundancy_stress_config=RedundancyStressConfig(layer_count=2),
         controller_config=controller,
     )
 
-    receipt = stressed["diagnostic_redundancy_stress"]
-    assert baseline["summary"]["runtime_parameter_count_initial"] == 0
-    assert baseline["diagnostic_redundancy_stress"]["applied"] is False
-    assert stressed["summary"]["runtime_parameter_count_initial"] == 4
-    assert receipt["pool_atom_count"] == 2
-    assert receipt["appended_coordinate_count"] == 4
-    assert receipt["prepared_state_parity_passed"] is True
-    assert receipt["prepared_state_phase_aligned_l2"] <= 1.0e-12
-    assert stressed["plot_rows"][0]["energy_expectation"] == baseline["plot_rows"][0][
-        "energy_expectation"
-    ]
+    assert "diagnostic_redundancy_stress" not in payload
+    assert payload["summary"]["runtime_parameter_count_initial"] == 0
+    stress = payload["fixed_vqe_conditioning_stress"]
+    assert stress["online_injection_used"] is False
+    assert stress["present"] is False
+    assert stress["source"] == "serialized_seed_artifact"
+
+
+def test_apm_runner_rejects_removed_online_redundancy_command_line() -> None:
+    """An old command line must fail loudly and point at the offline builder."""
+
+    with pytest.raises(SystemExit) as excinfo:
+        reject_removed_online_redundancy_flags(
+            ["--artifact-json", "seed.json", "--diagnostic-redundancy-layer-count", "2"]
+        )
+    message = str(excinfo.value)
+    assert "has been removed" in message
+    assert "build_fixed_vqe_conditioning_seed" in message

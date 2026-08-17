@@ -198,10 +198,12 @@ def test_avqds_tetris_dispatch_emits_published_method3_row(
     assert (tmp_path / "avqds_tetris" / "avqds_tetris_correctness.json").exists()
 
 
-def test_avqds_tetris_uses_and_reconstructs_shared_redundancy_fixture(
+def test_avqds_tetris_ignores_removed_online_redundancy_metadata(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    """Legacy redundancy metadata must not inject coordinates at run time."""
+
     artifact = tmp_path / "unit_redundant_seed.json"
     artifact.write_text("{}", encoding="utf-8")
     case = DynamicsBenchmarkCase(
@@ -233,13 +235,13 @@ def test_avqds_tetris_uses_and_reconstructs_shared_redundancy_fixture(
         )
     )
 
-    receipt = raw["diagnostic_redundancy_stress"]
     assert row["status"] == "completed"
-    assert receipt["prepared_state_parity_passed"] is True
-    assert receipt["layer_count"] == 2
-    assert receipt["pool_atom_count"] == 1
-    assert receipt["appended_coordinate_count"] == 2
-    assert raw["trajectory"][0]["runtime_parameter_count"] == 3
+    assert "diagnostic_redundancy_stress" not in raw
+    stress = raw["fixed_vqe_conditioning_stress"]
+    assert stress["online_injection_used"] is False
+    assert stress["present"] is False
+    # The seed keeps its own single coordinate: nothing was appended at run time.
+    assert raw["trajectory"][0]["runtime_parameter_count"] == 1
 
     monkeypatch.setattr(
         report_mod,
@@ -248,8 +250,7 @@ def test_avqds_tetris_uses_and_reconstructs_shared_redundancy_fixture(
     )
     reconstructed = report_mod.reconstruct_terminal_avqds(raw)
     assert reconstructed.parity["passed"] is True
-    assert reconstructed.layout.runtime_parameter_count == 3
-    assert reconstructed.diagnostic_redundancy_stress["applied"] is True
+    assert reconstructed.fixed_vqe_conditioning_stress["online_injection_used"] is False
 
 
 def test_registry_distinguishes_tetris_from_pf_target_diagnostic() -> None:

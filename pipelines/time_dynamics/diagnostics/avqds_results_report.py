@@ -77,7 +77,7 @@ class TerminalReconstruction:
     state: np.ndarray
     parity: Mapping[str, Any]
     drive_aligned_ansatz: Mapping[str, Any]
-    diagnostic_redundancy_stress: Mapping[str, Any]
+    fixed_vqe_conditioning_stress: Mapping[str, Any]
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -192,7 +192,7 @@ def reconstruct_terminal_avqds(
             psi_ref,
             executor,
             drive_aligned,
-            redundancy_stress,
+            fixed_vqe_stress,
         ) = initial_avqds_tetris_variational_bundle(
             case=case,
             runtime_input=runtime_input,
@@ -206,10 +206,10 @@ def reconstruct_terminal_avqds(
                 drive_aligned_ansatz=bool(flow.drive_enabled),
             )
         )
-        redundancy_stress = {
-            "enabled": False,
-            "applied": False,
+        fixed_vqe_stress = {
+            "present": False,
             "reason": "not_avqds_tetris",
+            "online_injection_used": False,
         }
     current_terms = tuple(terms)
     theta_current = np.asarray(theta, dtype=float).reshape(-1)
@@ -366,7 +366,7 @@ def reconstruct_terminal_avqds(
         state=state,
         parity=parity,
         drive_aligned_ansatz=dict(drive_aligned.to_json_dict()),
-        diagnostic_redundancy_stress=dict(redundancy_stress),
+        fixed_vqe_conditioning_stress=dict(fixed_vqe_stress),
     )
 
 
@@ -726,8 +726,8 @@ def compile_terminal_qiskit_cost(
         ).hexdigest(),
         "terminal_reconstruction_parity": dict(reconstruction.parity),
         "drive_aligned_ansatz": dict(reconstruction.drive_aligned_ansatz),
-        "diagnostic_redundancy_stress": dict(
-            reconstruction.diagnostic_redundancy_stress
+        "fixed_vqe_conditioning_stress": dict(
+            reconstruction.fixed_vqe_conditioning_stress
         ),
         "resolution_audit": resolution_audit,
         "compile_rows": rows,

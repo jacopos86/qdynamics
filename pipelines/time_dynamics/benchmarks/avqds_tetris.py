@@ -39,9 +39,8 @@ from pipelines.time_dynamics.normalized_pauli_pool import (
     NormalizedPauliPoolContract,
     build_normalized_pauli_pool,
 )
-from pipelines.time_dynamics.redundancy_stress import (
-    inject_zero_angle_redundancy_layers,
-    redundancy_stress_config_from_metadata,
+from pipelines.time_dynamics.fixed_vqe_conditioning import (
+    fixed_vqe_stress_provenance_from_runtime_input,
 )
 from pipelines.time_dynamics.tables.dynamics_benchmark_contract import (
     DynamicsBenchmarkCase,
@@ -167,7 +166,12 @@ def initial_avqds_tetris_variational_bundle(
     runtime_input: Any,
     flow: common.NativeHamiltonianFlow,
 ) -> tuple[tuple[Any, ...], Any, np.ndarray, np.ndarray, CompiledAnsatzExecutor, Any, dict[str, Any]]:
-    """Build the comparator's seed ANZATS, including an optional shared stress fixture."""
+    """Build the comparator's seed ANZATS from the serialized artifact alone.
+
+    Conditioning stress now arrives as a real fixed-structure VQE ansatz inside
+    the seed artifact; this route reports that provenance and never injects
+    redundancy at run time.
+    """
 
     state = common._ap_state_for_runtime_input(runtime_input)
     drive_augmentation = common.augment_state_with_drive_aligned_generator(
@@ -176,23 +180,6 @@ def initial_avqds_tetris_variational_bundle(
         enabled=bool(flow.drive_enabled),
     )
     state = drive_augmentation.state
-    stress_config = redundancy_stress_config_from_metadata(case.metadata)
-    stress_contract = None
-    if stress_config.enabled:
-        stress_contract = build_normalized_pauli_pool(
-            profile=str(stress_config.pool_profile),
-            static_poly=flow.hamiltonian.static_poly,
-            drive_poly=flow.hamiltonian.drive_poly,
-            candidate_pool_terms=tuple(
-                getattr(runtime_input, "candidate_pool_terms", ()) or ()
-            ),
-        )
-    stress_result = inject_zero_angle_redundancy_layers(
-        state,
-        pool_contract=stress_contract,
-        config=stress_config,
-    )
-    state = stress_result.state
     terms = tuple(state.terms)
     if not terms:
         raise ValueError("AVQDS(T) requires selected seed ANZATS terms")
@@ -200,7 +187,7 @@ def initial_avqds_tetris_variational_bundle(
     theta = np.asarray(state.theta_runtime, dtype=float).reshape(-1)
     if int(theta.size) != int(getattr(layout, "runtime_parameter_count")):
         raise ValueError(
-            "AVQDS(T) redundancy-stress theta/layout mismatch: "
+            "AVQDS(T) seed theta/layout mismatch: "
             f"{theta.size} vs {layout.runtime_parameter_count}"
         )
     psi_ref = _normalize_state(state.psi_ref)
@@ -211,7 +198,7 @@ def initial_avqds_tetris_variational_bundle(
         psi_ref,
         state.executor,
         drive_augmentation,
-        dict(stress_result.receipt),
+        fixed_vqe_stress_provenance_from_runtime_input(runtime_input),
     )
 
 
@@ -636,7 +623,7 @@ def _build_avqds_tetris_payload(
         psi_ref,
         executor,
         drive_aligned_ansatz,
-        redundancy_stress,
+        fixed_vqe_stress,
     ) = initial_avqds_tetris_variational_bundle(
         case=case,
         runtime_input=runtime_input,
@@ -949,7 +936,7 @@ def _build_avqds_tetris_payload(
         "exact_fields_reporting_only": True,
         "append_scoring_uses_exact_reference": False,
         "singleton_limit_contract": "max_layer_width_1_equals_method1_best_singleton_selection",
-        "diagnostic_redundancy_stress": dict(redundancy_stress),
+        "fixed_vqe_conditioning_stress": dict(fixed_vqe_stress),
     }
     setting_keys = (
         "avqds_tetris_mclachlan_distance_sq_threshold",
@@ -989,8 +976,8 @@ def _build_avqds_tetris_payload(
     parameter_manifest["normalized_candidate_pool"] = (
         pool_contract.to_json_dict(include_atoms=False)
     )
-    parameter_manifest["diagnostic_redundancy_stress"] = dict(
-        redundancy_stress
+    parameter_manifest["fixed_vqe_conditioning_stress"] = dict(
+        fixed_vqe_stress
     )
     correctness = _build_correctness_sidecar(
         case=case,
@@ -1005,7 +992,7 @@ def _build_avqds_tetris_payload(
             "schema_version": "generic_avqds_tetris_benchmark_v1",
             "case": case.to_dict(),
             "drive_aligned_ansatz": drive_aligned_ansatz.to_json_dict(),
-            "diagnostic_redundancy_stress": dict(redundancy_stress),
+            "fixed_vqe_conditioning_stress": dict(fixed_vqe_stress),
             "row_contract": {
                 "qpu_faithful": True,
                 "exact_assisted": False,

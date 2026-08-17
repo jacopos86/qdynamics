@@ -208,8 +208,8 @@ def reconstruct_terminal_ap_compile_input(
         psi_ref=np.asarray(state.psi_ref, dtype=complex).reshape(-1),
         parity=parity,
         drive_aligned_ansatz=augmentation.to_json_dict(),
-        diagnostic_redundancy_stress=dict(
-            payload.get("diagnostic_redundancy_stress", {}) or {}
+        fixed_vqe_conditioning_stress=dict(
+            payload.get("fixed_vqe_conditioning_stress", {}) or {}
         ),
     )
     return compile_input, parity, payload
