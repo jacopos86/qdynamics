@@ -1,0 +1,32 @@
+{
+  "arm_id": "always_open_position_phase0",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+  "campaign_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v1",
+  "execution_authorized": true,
+  "execution_id": "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7",
+  "fresh_start": true,
+  "insertion_policy": "always_commutation_reduced",
+  "maximum_controller_rounds": 50,
+  "nph": 7,
+  "package_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v1_chtc",
+  "paper_adoption_authorized": false,
+  "phase0_population": "insertion_position_records",
+  "phase123_population": "insertion_position_records",
+  "protocol_file_sha256": "525d50bc642d75ba4029a0335686f9f883d1ff4a8cbd1e39f143085504e83479",
+  "protocol_path": "protocols/allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7.json",
+  "protocol_sha256": "7904e505804518f66fb44239589d813dec88be1bc9dbfad8595b2122749cdb03",
+  "regime_id": "strong_strong_u8",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 30720,
+    "memory_mb": 12288,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "70b2f905b95e46840be90b1f47b7f88c9c6e7c60ac9009023b779122d6e75c0a",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_job_v1",
+  "sha256": "a5a0c7efd44236ae3bb653256be6c9fb7b6994861e4086a9b82f541bee96e30c",
+  "source_inventory_sha256": "88ac15728ae8e0d04ba0aaf515b35e19dd1939b09d427473d3155e15aca3b605",
+  "submission_authorized": true
+}

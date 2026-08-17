@@ -18,11 +18,21 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 from typing import Any, Mapping, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from pipelines.reporting.paper_i_mixed_horizon_continuation import (
+    BASE_HORIZON,
+    MixedHorizonContinuationError,
+    horizon_policy,
+    merge_trajectory_points,
+)
 OLD_ROOT = REPO_ROOT / (
     "MATH/paper_details/figures/"
     "paper_i_hh_macro_common_accuracy_20260723"
@@ -41,11 +51,27 @@ CURRENT_PROVENANCE = REPO_ROOT / (
     "paper_i_ra_adapt_stationary_core_full48_r50_20260728_"
     "evolving_partial_progress_provenance.json"
 )
+PAGE6_ADAPTER = REPO_ROOT / (
+    "output/pdf/"
+    "paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/"
+    "paper_i_ra_adapt_stationary_core_full48_r50_20260728_"
+    "evolving_ra_append_singleton_r70_page6_adapter.json"
+)
+PAGE10_ADAPTER = REPO_ROOT / (
+    "output/pdf/"
+    "paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/"
+    "paper_i_ra_adapt_stationary_core_full48_r50_20260728_"
+    "evolving_macro_then_singleton_phase23_qiskit_no_lanes_"
+    "page10_adapter.json"
+)
 OUTPUT_DIR = REPO_ROOT / (
     "output/pdf/"
     "paper_i_stationary_vs_paper_i_route_comparison_20260729"
 )
 STEM = "paper_i_stationary_vs_paper_i_route_comparison_20260729"
+PAGE10_CONTINUATIONS = OUTPUT_DIR / (
+    "paper_i_page10_recoverable_continuations_20260808.json"
+)
 
 REGIMES = (
     ("weak_weak", "Weak--weak", "WW"),
@@ -87,6 +113,27 @@ CURVE_STYLES: Mapping[tuple[str, str], Mapping[str, Any]] = {
         "linestyle": "-",
         "linewidth": 1.85,
         "marker": "D",
+    },
+}
+
+CANDIDATE_STYLES: Mapping[str, Mapping[str, Any]] = {
+    "append": {
+        "label": "Conventional Append-ADAPT",
+        "color": "#4C78A8",
+        "linewidth": 2.05,
+        "marker": "o",
+    },
+    "page6": {
+        "label": "Page 6: historical-average stationary plateau RA",
+        "color": "#B279A2",
+        "linewidth": 1.90,
+        "marker": "X",
+    },
+    "page10": {
+        "label": "Page 10: macro to singleton, Qiskit II/III, no lanes",
+        "color": "#54A7A1",
+        "linewidth": 2.05,
+        "marker": ">",
     },
 }
 
@@ -526,6 +573,336 @@ def _current_cells() -> tuple[
     }
 
 
+def _validated_repo_binding(raw: Any, *, label: str) -> dict[str, Any]:
+    row = _mapping(raw, label=label)
+    relative = Path(str(row.get("path", "")))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ComparisonInputError(f"{label} path escapes the repository")
+    path = REPO_ROOT / relative
+    if not path.is_file() or path.is_symlink():
+        raise ComparisonInputError(f"{label} file is unavailable")
+    expected_size = _integer(row.get("size_bytes"), label=f"{label} size")
+    expected_sha = str(row.get("sha256", ""))
+    if path.stat().st_size != expected_size or _sha256_file(path) != expected_sha:
+        raise ComparisonInputError(f"{label} binding drifted")
+    return {
+        "path": str(path),
+        "sha256": expected_sha,
+        "size_bytes": expected_size,
+    }
+
+
+def _round_error_points(
+    raw_points: Any,
+    *,
+    round_key: str,
+    error_key: str,
+    label: str,
+) -> list[dict[str, Any]]:
+    points: list[dict[str, Any]] = []
+    previous: int | None = None
+    for raw in _sequence(raw_points, label=f"{label} points"):
+        row = _mapping(raw, label=f"{label} point")
+        k = _integer(row.get(round_key), label=f"{label} round")
+        error = _finite(row.get(error_key), label=f"{label} error")
+        if previous is not None and k != previous + 1:
+            raise ComparisonInputError(f"{label} rounds are noncontiguous")
+        previous = k
+        points.append({"k": k, "error": error})
+    if not points:
+        raise ComparisonInputError(f"{label} has no points")
+    return points
+
+
+def _merge_page10_trajectory(
+    *,
+    base_points: Sequence[Mapping[str, Any]],
+    adapter_trajectory: Any | None,
+    retained_continuation: Sequence[Mapping[str, Any]] | None,
+    label: str,
+) -> list[dict[str, Any]]:
+    """Merge adapter and retained prefixes while treating overlap as evidence."""
+
+    try:
+        points, _adapter_suffix = merge_trajectory_points(
+            base_points,
+            adapter_trajectory,
+            label=f"{label} adapter",
+        )
+    except MixedHorizonContinuationError as exc:
+        raise ComparisonInputError(str(exc)) from exc
+    existing = {int(row["k"]): float(row["error"]) for row in points}
+    for raw in retained_continuation or ():
+        k = int(raw["k"])
+        error = float(raw["error"])
+        if k in existing:
+            if not math.isclose(
+                error,
+                existing[k],
+                rel_tol=1.0e-11,
+                abs_tol=1.0e-15,
+            ):
+                raise ComparisonInputError(
+                    f"{label} duplicate continuation point disagrees at k={k}"
+                )
+            continue
+        if k != int(points[-1]["k"]) + 1:
+            raise ComparisonInputError(
+                f"{label} continuation leaves a trajectory gap before k={k}"
+            )
+        points.append({"k": k, "error": error})
+        existing[k] = error
+    return points
+
+
+def _candidate_route_cells() -> tuple[
+    dict[str, dict[str, Any]],
+    dict[str, Any],
+]:
+    page6 = _load_object(PAGE6_ADAPTER, label="Page-6 adapter")
+    page10 = _load_object(PAGE10_ADAPTER, label="Page-10 adapter")
+    continuations = (
+        _load_object(
+            PAGE10_CONTINUATIONS,
+            label="Page-10 recoverable continuations",
+        )
+        if PAGE10_CONTINUATIONS.is_file()
+        else {
+            "schema": "paper_i_page10_recoverable_continuations_v1",
+            "status": "recoverable_prefixes_after_local_enospc",
+            "paper_evidence_adopted": False,
+            "cells": [],
+        }
+    )
+    if (
+        page6.get("schema") != "paper_i_ra_append_singleton_r70_page6_adapter_v1"
+        or page6.get("status")
+        != "passed_with_explicit_ra_terminal_limitation"
+    ):
+        raise ComparisonInputError("Page-6 adapter identity drifted")
+    if (
+        page10.get("schema")
+        != "paper_i_macro_then_singleton_phase23_qiskit_page10_adapter_v1"
+        or page10.get("status") != "partial_6_of_6_complete"
+    ):
+        raise ComparisonInputError("Page-10 adapter identity drifted")
+    if (
+        continuations.get("schema")
+        != "paper_i_page10_recoverable_continuations_v1"
+        or continuations.get("status")
+        != "recoverable_prefixes_after_local_enospc"
+        or continuations.get("paper_evidence_adopted") is not False
+    ):
+        raise ComparisonInputError("Page-10 continuation identity drifted")
+
+    page6_cells = {
+        str(_mapping(raw, label="Page-6 cell").get("regime_id")): _mapping(
+            raw, label="Page-6 cell"
+        )
+        for raw in _sequence(page6.get("cells"), label="Page-6 cells")
+    }
+    page10_cells = {
+        str(_mapping(raw, label="Page-10 cell").get("regime_id")): _mapping(
+            raw, label="Page-10 cell"
+        )
+        for raw in _sequence(page10.get("cells"), label="Page-10 cells")
+    }
+    continuation_cells = {
+        str(_mapping(raw, label="continuation cell").get("regime_id")): _mapping(
+            raw, label="continuation cell"
+        )
+        for raw in _sequence(
+            continuations.get("cells"), label="continuation cells"
+        )
+    }
+    expected_regimes = {regime for regime, _title, _abbr in REGIMES}
+    if set(page6_cells) != expected_regimes or set(page10_cells) != expected_regimes:
+        raise ComparisonInputError("Page-6/Page-10 six-regime matrix drifted")
+
+    validated_continuations: dict[str, dict[str, Any]] = {}
+    for regime, cell in continuation_cells.items():
+        if regime not in expected_regimes:
+            raise ComparisonInputError(f"unknown continuation regime: {regime}")
+        checkpoint = _validated_repo_binding(
+            cell.get("checkpoint"), label=f"{regime} continuation checkpoint"
+        )
+        failure = _mapping(
+            cell.get("failure_receipt"),
+            label=f"{regime} continuation failure receipt",
+        )
+        failure_path = REPO_ROOT / Path(str(failure.get("path", "")))
+        if (
+            not failure_path.is_file()
+            or failure_path.is_symlink()
+            or _sha256_file(failure_path) != failure.get("sha256")
+        ):
+            raise ComparisonInputError(
+                f"{regime} continuation failure receipt drifted"
+            )
+        exact = float(cell.get("exact_same_cutoff_energy"))
+        points: list[dict[str, Any]] = []
+        for raw in _sequence(
+            cell.get("points"), label=f"{regime} continuation points"
+        ):
+            row = _mapping(raw, label=f"{regime} continuation point")
+            k = _integer(row.get("k"), label=f"{regime} continuation k")
+            energy = float(row.get("energy"))
+            error = _finite(
+                row.get("error"), label=f"{regime} continuation error"
+            )
+            if not math.isclose(
+                error,
+                abs(energy - exact),
+                rel_tol=1.0e-12,
+                abs_tol=1.0e-15,
+            ):
+                raise ComparisonInputError(
+                    f"{regime} continuation same-cutoff error drifted"
+                )
+            points.append({"k": k, "error": error, "energy": energy})
+        if (
+            not points
+            or points[0]["k"] != 51
+            or points[-1]["k"] != cell.get("recoverable_round")
+            or [row["k"] for row in points]
+            != list(range(51, int(cell["recoverable_round"]) + 1))
+        ):
+            raise ComparisonInputError(
+                f"{regime} continuation round domain drifted"
+            )
+        validated_continuations[regime] = {
+            "points": points,
+            "checkpoint": checkpoint,
+            "failure_receipt": {
+                "path": str(failure_path),
+                "sha256": str(failure["sha256"]),
+            },
+        }
+
+    cells: dict[str, dict[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
+    for regime, title, _abbr in REGIMES:
+        page6_cell = page6_cells[regime]
+        page10_cell = page10_cells[regime]
+        exact6 = float(page6_cell.get("exact_same_cutoff_energy"))
+        append10 = _mapping(
+            page10_cell.get("append_adapt"),
+            label=f"{regime} Page-10 Append",
+        )
+        exact10 = float(append10.get("exact_same_cutoff_energy"))
+        if not math.isclose(exact6, exact10, rel_tol=0.0, abs_tol=1.0e-12):
+            raise ComparisonInputError(f"{regime} exact reference drifted")
+        append = _round_error_points(
+            _mapping(page6_cell.get("append"), label=f"{regime} Page-6 Append").get(
+                "points"
+            ),
+            round_key="round",
+            error_key="delta_e",
+            label=f"{regime} Append",
+        )
+        page6_points = _round_error_points(
+            _mapping(
+                page6_cell.get("ra_historical_average_plateau"),
+                label=f"{regime} Page-6 RA",
+            ).get("points"),
+            round_key="round",
+            error_key="delta_e",
+            label=f"{regime} Page-6 RA",
+        )
+        page10_route = _mapping(
+            page10_cell.get("macro_then_singleton"),
+            label=f"{regime} Page-10 RA",
+        )
+        page10_base_points = _round_error_points(
+            page10_route.get("points"),
+            round_key="k",
+            error_key="error",
+            label=f"{regime} Page-10 RA",
+        )
+        if page10_base_points[-1]["k"] != BASE_HORIZON:
+            raise ComparisonInputError(f"{regime} Page-10 base horizon drifted")
+        fixed_round = page10_route.get(
+            "paper_facing_fixed_round_50", page10_route.get("terminal")
+        )
+        if (
+            not isinstance(fixed_round, Mapping)
+            or int(fixed_round.get("k", -1)) != BASE_HORIZON
+            or not math.isclose(
+                float(fixed_round.get("error")),
+                page10_base_points[-1]["error"],
+                rel_tol=1.0e-11,
+                abs_tol=1.0e-15,
+            )
+        ):
+            raise ComparisonInputError(
+                f"{regime} Page-10 fixed-round cost observation drifted"
+            )
+        continuation = validated_continuations.get(regime)
+        page10_points = _merge_page10_trajectory(
+            base_points=page10_base_points,
+            adapter_trajectory=page10_route.get("trajectory_points"),
+            retained_continuation=(
+                continuation["points"] if continuation is not None else None
+            ),
+            label=f"{regime} Page-10",
+        )
+        by_round = {
+            route_id: {int(point["k"]): float(point["error"]) for point in points}
+            for route_id, points in (
+                ("append", append),
+                ("page6", page6_points),
+                ("page10", page10_points),
+            )
+        }
+        common = {key: value[50] for key, value in by_round.items()}
+        winner = min(("page6", "page10"), key=lambda key: common[key])
+        row = {
+            "regime": regime,
+            "title": title,
+            "common_round": 50,
+            "append_error": common["append"],
+            "page6_error": common["page6"],
+            "page10_error": common["page10"],
+            "log10_page10_over_page6": math.log10(
+                max(common["page10"], 1.0e-300)
+                / max(common["page6"], 1.0e-300)
+            ),
+            "common_round_winner": winner,
+            "page10_observed_endpoint": dict(page10_points[-1]),
+            "page10_trajectory_horizon": int(page10_points[-1]["k"]),
+            "page10_fixed_cost_round": BASE_HORIZON,
+        }
+        rows.append(row)
+        cells[regime] = {
+            "append": append,
+            "page6": page6_points,
+            "page10": page10_points,
+            "comparison": row,
+        }
+    return cells, {
+        "page6_adapter": _package_file_binding(PAGE6_ADAPTER),
+        "page10_adapter": _package_file_binding(PAGE10_ADAPTER),
+        "continuation_adapter": (
+            _package_file_binding(PAGE10_CONTINUATIONS)
+            if PAGE10_CONTINUATIONS.is_file()
+            else None
+        ),
+        "continuations": validated_continuations,
+        "horizon_policy": horizon_policy(),
+        "rows": rows,
+    }
+
+
+def _package_file_binding(path: Path) -> dict[str, Any]:
+    if not path.is_file() or path.is_symlink():
+        raise ComparisonInputError(f"report input is unavailable: {path}")
+    return {
+        "path": str(path),
+        "sha256": _sha256_file(path),
+        "size_bytes": path.stat().st_size,
+    }
+
+
 def _format_s_alg(value: int) -> str:
     if value == 0:
         return "0.0e0"
@@ -773,6 +1150,172 @@ def _render_plot(
     plt.close(fig)
 
 
+def _render_candidate_plot(
+    *,
+    cells: Mapping[str, Mapping[str, Any]],
+    destination: Path,
+) -> None:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import LogLocator, NullFormatter
+
+    mpl.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.serif": ["STIX Two Text", "STIXGeneral", "DejaVu Serif"],
+            "mathtext.fontset": "stix",
+            "axes.linewidth": 0.75,
+        }
+    )
+    fig, axes = plt.subplots(2, 3, figsize=(7.70, 4.95), dpi=300)
+    for index, (regime, title, _abbreviation) in enumerate(REGIMES):
+        ax = axes.flat[index]
+        cell = _mapping(cells.get(regime), label=f"{regime} candidate cell")
+        values: list[float] = []
+        for route_id in ("append", "page6", "page10"):
+            points = _sequence(
+                cell.get(route_id), label=f"{regime} {route_id} points"
+            )
+            x = [int(_mapping(row, label="candidate point")["k"]) for row in points]
+            y = [
+                max(
+                    float(_mapping(row, label="candidate point")["error"]),
+                    1.0e-16,
+                )
+                for row in points
+            ]
+            values.extend(y)
+            style = CANDIDATE_STYLES[route_id]
+            ax.plot(
+                x,
+                y,
+                color=style["color"],
+                linewidth=style["linewidth"],
+                alpha=0.98,
+                zorder=2 if route_id != "append" else 1,
+            )
+            ax.scatter(
+                [x[-1]],
+                [y[-1]],
+                s=24,
+                marker=style["marker"],
+                facecolor=style["color"],
+                edgecolor="white",
+                linewidth=0.55,
+                zorder=5,
+            )
+            if 50 in x:
+                common_index = x.index(50)
+                ax.scatter(
+                    [50],
+                    [y[common_index]],
+                    s=18,
+                    marker=style["marker"],
+                    facecolor="white",
+                    edgecolor=style["color"],
+                    linewidth=0.75,
+                    zorder=4,
+                )
+        comparison = _mapping(
+            cell.get("comparison"), label=f"{regime} candidate comparison"
+        )
+        winner = str(comparison["common_round_winner"])
+        ax.text(
+            0.98,
+            0.05,
+            f"k=50: {'P6' if winner == 'page6' else 'P10'} lower",
+            transform=ax.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=5.7,
+            color=CANDIDATE_STYLES[winner]["color"],
+        )
+        ax.axvline(50, color="#B8B8B8", linewidth=0.55, linestyle="--", zorder=0)
+        ax.set_yscale("log")
+        ax.set_xlim(0, 70)
+        ax.set_xticks((0, 10, 20, 30, 40, 50, 60, 70))
+        ax.set_ylim(max(min(values) / 2.5, 1.0e-16), max(values) * 2.5)
+        ax.set_title(title.replace("--", "\N{EN DASH}"), fontsize=8.0, pad=2.0)
+        ax.grid(which="major", color="#D9D9D9", linewidth=0.45, alpha=0.8)
+        ax.grid(which="minor", color="#EEEEEE", linewidth=0.3, alpha=0.6)
+        ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(2, 5)))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.tick_params(axis="both", labelsize=6.2, length=2.2)
+        if index // 3 == 1:
+            ax.set_xlabel("ADAPT iteration", fontsize=7.0)
+        if index % 3 == 0:
+            ax.set_ylabel(
+                r"$|E_k-E_{\mathrm{ED}}^{(n_{\mathrm{ph}})}|$",
+                fontsize=7.0,
+            )
+    handles = [
+        Line2D(
+            [0],
+            [0],
+            color=style["color"],
+            linewidth=style["linewidth"],
+            marker=style["marker"],
+            markerfacecolor=style["color"],
+            markeredgecolor="white",
+            markersize=4.2,
+            label=style["label"],
+        )
+        for style in CANDIDATE_STYLES.values()
+    ]
+    fig.legend(
+        handles=handles,
+        loc="upper center",
+        ncol=1,
+        frameon=False,
+        fontsize=6.8,
+        bbox_to_anchor=(0.5, 1.005),
+        handlelength=2.6,
+        labelspacing=0.25,
+    )
+    fig.tight_layout(rect=(0.01, 0.00, 0.99, 0.875), h_pad=0.95, w_pad=0.8)
+    fig.savefig(destination, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _candidate_table_tex(rows: Sequence[Mapping[str, Any]]) -> str:
+    lines = [
+        r"\begin{tabular}{@{}lrrrrrl@{}}",
+        r"\toprule",
+        (
+            r"Regime & $\epsilon_{50}^{\rm Append}$ & "
+            r"$\epsilon_{50}^{\rm P6}$ & $\epsilon_{50}^{\rm P10}$ & "
+            r"$\log_{10}(\epsilon_{\rm P10}/\epsilon_{\rm P6})$ & "
+            r"P10 observed endpoint & Lower at $k=50$ \\"
+        ),
+        r"\midrule",
+    ]
+    for row in rows:
+        endpoint = _mapping(
+            row.get("page10_observed_endpoint"), label="Page-10 endpoint"
+        )
+        winner = "P6" if row["common_round_winner"] == "page6" else "P10"
+        lines.append(
+            " & ".join(
+                (
+                    _tex_escape(str(row["title"]).replace("--", "-")),
+                    _error_tex(float(row["append_error"])),
+                    _error_tex(float(row["page6_error"])),
+                    _error_tex(float(row["page10_error"])),
+                    _delta_tex(float(row["log10_page10_over_page6"])),
+                    (
+                        rf"$k={int(endpoint['k'])}$, "
+                        + _error_tex(float(endpoint["error"]))
+                    ),
+                    winner,
+                )
+            )
+            + r" \\"
+        )
+    lines.extend((r"\bottomrule", r"\end{tabular}"))
+    return "\n".join(lines)
+
+
 def _table_tex(rows: Sequence[Mapping[str, Any]], *, representation: str) -> str:
     selected = [row for row in rows if row["representation"] == representation]
     lines = [
@@ -833,6 +1376,8 @@ def _write_tex(
     rows: Sequence[Mapping[str, Any]],
     macro_plot: Path,
     singleton_plot: Path,
+    candidate_plot: Path,
+    candidate_rows: Sequence[Mapping[str, Any]],
     current_source: Mapping[str, Any],
 ) -> Path:
     tex = OUTPUT_DIR / f"{STEM}.tex"
@@ -921,6 +1466,41 @@ plateau costs. RA-always and conventional ADAPT are excluded.
         )
         + r"}"
     )
+    candidate_page = (
+        r"\begin{center}"
+        r"{\large\bfseries Singleton candidate routes: Page 6 vs Page 10}\\[-0.2ex]"
+        r"{\fontsize{7.2}{8.2}\selectfont Same-cutoff absolute energy error; "
+        r"uniform route identities across all six regimes.}"
+        r"\end{center}"
+        r"\vspace{0.25ex}"
+        r"\fcolorbox{black!35}{black!2}{\begin{minipage}{0.975\textwidth}"
+        r"\raggedright\fontsize{6.15}{7.0}\selectfont "
+        r"\textbf{Comparison contract.} Page 6 is the historical-average "
+        r"stationary singleton plateau route through recoverable $k=69$; "
+        r"Page 10 is the macro-to-singleton Phase-I/II/III route with Qiskit "
+        r"marginal costs in Phases II/III and no lane-wise shortlist through "
+        r"$k=50$. Recoverable local continuations extend Page 10 to $k=56$ "
+        r"for weak--strong and $k=51$ for intermediate--strong. Open markers "
+        r"identify the common $k=50$ comparison; filled markers identify each "
+        r"observed endpoint."
+        r"\end{minipage}}"
+        r"\vspace{0.35ex}"
+        r"\begin{center}"
+        r"\includegraphics[width=0.995\textwidth,height=4.45in,keepaspectratio]{"
+        + _tex_escape(candidate_plot.name)
+        + r"}"
+        r"\end{center}"
+        r"\vspace{-1.0ex}"
+        r"{\fontsize{5.75}{6.45}\selectfont "
+        + _candidate_table_tex(candidate_rows)
+        + r"}"
+        r"\vfill"
+        r"{\fontsize{5.65}{6.35}\selectfont "
+        r"The lower-at-$k=50$ label compares the two RA routes, not Append. "
+        r"Page-6 round 70 lacks a recoverable post-refit energy; Page 10 "
+        r"continuations stopped on local ENOSPC after the displayed complete "
+        r"checkpoints. This diagnostic comparison does not promote evidence.}"
+    )
     body = (
         r"\documentclass[letterpaper]{article}" "\n"
         r"\usepackage[margin=0.24in]{geometry}" "\n"
@@ -951,6 +1531,9 @@ plateau costs. RA-always and conventional ADAPT are excluded.
                 _table_tex(rows, representation="singleton"),
             )
         )
+        + r"\clearpage"
+        + "\n"
+        + candidate_page
         + r"\end{document}"
         + "\n"
     )
@@ -1020,9 +1603,11 @@ def build() -> tuple[Path, Path]:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     old_cells, old_sources = _old_cells()
     current_cells, current_source = _current_cells()
+    candidate_cells, candidate_source = _candidate_route_cells()
     rows = _comparison_rows(old_cells, current_cells)
     macro_plot = OUTPUT_DIR / f"{STEM}_macro_plot.png"
     singleton_plot = OUTPUT_DIR / f"{STEM}_singleton_plot.png"
+    candidate_plot = OUTPUT_DIR / f"{STEM}_page6_vs_page10_plot.png"
     _render_plot(
         representation="macro",
         old_cells=old_cells,
@@ -1035,10 +1620,16 @@ def build() -> tuple[Path, Path]:
         current_cells=current_cells,
         destination=singleton_plot,
     )
+    _render_candidate_plot(
+        cells=candidate_cells,
+        destination=candidate_plot,
+    )
     tex = _write_tex(
         rows=rows,
         macro_plot=macro_plot,
         singleton_plot=singleton_plot,
+        candidate_plot=candidate_plot,
+        candidate_rows=candidate_source["rows"],
         current_source=current_source,
     )
     pdf, latex_validation = _compile_tex(tex)
@@ -1052,9 +1643,9 @@ def build() -> tuple[Path, Path]:
         raise RuntimeError(
             f"generated PDF structural read failed: {exc}"
         ) from exc
-    if page_count != 2:
+    if page_count != 3:
         raise RuntimeError(
-            f"generated comparison PDF has {page_count} pages, expected 2"
+            f"generated comparison PDF has {page_count} pages, expected 3"
         )
     unavailable = [
         {
@@ -1067,7 +1658,7 @@ def build() -> tuple[Path, Path]:
     ]
     provenance_path = OUTPUT_DIR / f"{STEM}_provenance.json"
     provenance = {
-        "schema": "paper_i_stationary_vs_source_locked_route_comparison_v1",
+        "schema": "paper_i_stationary_vs_source_locked_route_comparison_v2",
         "status": "diagnostic_comparison_not_paper_evidence",
         "paper_evidence_adopted": False,
         "metric": "same_cutoff_absolute_energy_error",
@@ -1093,6 +1684,21 @@ def build() -> tuple[Path, Path]:
         "unavailable_row_count": len(unavailable),
         "unavailable_rows": unavailable,
         "rows": rows,
+        "singleton_candidate_route_comparison": {
+            "comparison_round": 50,
+            "horizon_policy": candidate_source["horizon_policy"],
+            "route_identity_policy": "uniform_across_six_regimes",
+            "page6_route": "historical_average_stationary_singleton_plateau",
+            "page10_route": (
+                "macro_then_singleton_phase123_qiskit_phase23_no_lanes"
+            ),
+            "sources": {
+                key: value
+                for key, value in candidate_source.items()
+                if key != "rows"
+            },
+            "rows": candidate_source["rows"],
+        },
         "cost_tuple": {
             "fields": list(COST_FIELDS),
             "controller_round": 50,
@@ -1111,6 +1717,21 @@ def build() -> tuple[Path, Path]:
             (
                 "RA-always is intentionally absent until the corrected "
                 "commutation-reduced replacement finishes."
+            ),
+            (
+                "Page-6 round 70 has no recoverable post-refit energy; its "
+                "trajectory ends at round 69."
+            ),
+            (
+                "Page-10 local continuations are included only through their "
+                "last complete checkpoints before ENOSPC; any matching "
+                "points already serialized by the Page-10 adapter are "
+                "cross-validated and not appended twice."
+            ),
+            (
+                "Candidate trajectories may have mixed observed horizons, "
+                "but all Qiskit tuples and S_alg values remain fixed at "
+                "controller round 50."
             ),
         ],
         "validation": {
@@ -1136,6 +1757,10 @@ def build() -> tuple[Path, Path]:
             "singleton_plot_png": {
                 "path": str(singleton_plot),
                 "sha256": _sha256_file(singleton_plot),
+            },
+            "page6_vs_page10_plot_png": {
+                "path": str(candidate_plot),
+                "sha256": _sha256_file(candidate_plot),
             },
         },
     }

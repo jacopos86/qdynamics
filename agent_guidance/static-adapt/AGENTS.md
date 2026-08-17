@@ -33,6 +33,7 @@ flags, or manuscript sources to resolve an ordinary request.
 | insertion or append-only ablation | `agent_guidance/static-adapt/policies/insertion.md` |
 | round limit or exact-ED stop | `agent_guidance/static-adapt/policies/stopping.md` |
 | summary, plateau, common accuracy, Qiskit resources, or `S_alg` | `agent_guidance/static-adapt/reporting/run-summary.md` |
+| Page-12 global-singleton gradient-Phase-0 candidate | `agent_guidance/static-adapt/page12-global-singleton-gradient-phase0-route-20260810.md` |
 
 If the request plans, launches, monitors, repairs, aggregates, or reports an
 actual benchmark/evidence run, also follow the Paper-I run-skill gate from root

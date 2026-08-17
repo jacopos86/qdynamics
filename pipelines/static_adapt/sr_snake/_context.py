@@ -601,6 +601,17 @@ def _canonical_route_contract_for_request(
         )
         semantic_invariants.update(
             {
+                "beam_shape": (
+                    "three_live_two_children_per_parent_v1"
+                    if (
+                        beam.live_parent_branches == 3
+                        and beam.admission_children_per_parent == 2
+                    )
+                    else (
+                        f"typed_{beam.live_parent_branches}x"
+                        f"{beam.admission_children_per_parent}_v1"
+                    )
+                ),
                 "beam_comparison": (
                     "accepted_energy_plus_weight_times_fork_local_s_alg_v1"
                 ),

@@ -450,7 +450,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
                 zorder=6,
             )
         ax.set_yscale("log")
-        ax.set_xlim(0, TARGET_ROUND)
+        ax.set_xlim(0, base.APPEND_TRAJECTORY_ROUND)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=6))
         ax.grid(True, which="major", alpha=0.22, linewidth=0.55)
         ax.set_title(f"{cell['regime_label']} ($n_{{ph}}={cell['nph']}$)")
@@ -466,7 +466,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
                label=r"Weak--weak confirmation ($\tau=10^{-6}$)"),
     ]
     fig.suptitle(
-        "Singleton Phase-III-on-plateau comparison at the common round-50 horizon",
+        "Singleton Phase-III-on-plateau comparison: Append to k=70; RA/costs at k=50",
         fontsize=11.1,
         fontweight="bold",
     )
@@ -577,16 +577,20 @@ def replace_page8(
         ),
         label="PDF binding",
     )
+    page_count = int(
+        base._mapping(provenance.get("layout"), label="layout").get(
+            "page_count", -1
+        )
+    )
     if (
         current_pdf["sha256"] != expected_pdf.get("sha256")
         or current_pdf["size_bytes"] != expected_pdf.get("size_bytes")
-        or base._mapping(provenance.get("layout"), label="layout").get("page_count")
-        != 8
+        or page_count < 8
     ):
         raise ConfirmationError("target PDF/provenance binding drifted")
     before_hashes = base._page_content_hashes(target_pdf)
-    if len(before_hashes) != 8:
-        raise ConfirmationError("target is not the supported eight-page report")
+    if len(before_hashes) != page_count:
+        raise ConfirmationError("target PDF page count drifted")
     from pypdf import PdfReader, PdfWriter
 
     new_page = PdfReader(str(assets["page_pdf"]), strict=False)
@@ -605,13 +609,19 @@ def replace_page8(
     for page in old_reader.pages[:7]:
         writer.add_page(page)
     writer.add_page(new_page.pages[0])
+    for page in old_reader.pages[8:]:
+        writer.add_page(page)
     try:
         with temporary_pdf.open("xb") as stream:
             writer.write(stream)
             stream.flush()
             os.fsync(stream.fileno())
         after_hashes = base._page_content_hashes(temporary_pdf)
-        if len(after_hashes) != 8 or after_hashes[:7] != before_hashes[:7]:
+        if (
+            len(after_hashes) != page_count
+            or after_hashes[:7] != before_hashes[:7]
+            or after_hashes[8:] != before_hashes[8:]
+        ):
             raise ConfirmationError("page-8 replacement altered a preserved page")
         updated = copy.deepcopy(provenance)
         updated["layout"]["page_8"] = PAGE_ID
@@ -631,9 +641,11 @@ def replace_page8(
                 "cells": copy.deepcopy(adapter["cells"]),
                 "outputs": asset_bindings,
                 "structural_validation": {
-                    "pages_before": 8,
-                    "pages_after": 8,
-                    "preserved_page_content_sha256": before_hashes[:7],
+                    "pages_before": page_count,
+                    "pages_after": page_count,
+                    "preserved_page_content_sha256": (
+                        before_hashes[:7] + before_hashes[8:]
+                    ),
                     "previous_page_8_content_sha256": before_hashes[7],
                     "new_page_8_content_sha256": after_hashes[7],
                 },
@@ -670,8 +682,8 @@ def replace_page8(
         raise
     return {
         "status": "replaced_page_8_with_threshold_confirmation",
-        "pages": 8,
-        "preserved_pages": 7,
+        "pages": page_count,
+        "preserved_pages": page_count - 1,
         "terminal_delta_e": confirmation["terminal"]["error"],
         "terminal_cost": {
             key: confirmation["terminal"][key]

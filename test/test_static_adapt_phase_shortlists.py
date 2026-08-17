@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import json
 from typing import Any, Mapping
 
 import pytest
@@ -7,9 +9,42 @@ import pytest
 from pipelines.scaffold.hh_continuation_scoring import FullScoreConfig
 from pipelines.scaffold.hh_continuation_types import CandidateFeatures
 from pipelines.static_adapt import phase_shortlists
+from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+    build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request,
+    build_paper_i_ra_hh_regime_problem,
+    materialize_paper_i_ra_semantic_protocol,
+)
 
 
 PHYSICAL_TEST_LANES = ("family_a", "family_b", "family_c", "other")
+
+
+@lru_cache(maxsize=1)
+def _natural_terminal_authority(
+) -> phase_shortlists.Phase3NaturalTerminalAuthority:
+    protocol = materialize_paper_i_ra_semantic_protocol(
+        build_paper_i_ra_hh_regime_problem("weak_weak"),
+        build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request(
+            insertion_policy="append_only",
+            maximum_controller_rounds=1,
+        ),
+    )
+    return phase_shortlists.Phase3NaturalTerminalAuthority.from_route_contract(
+        protocol.route_contract,
+        expected_route_contract_sha256=protocol.route_contract["sha256"],
+    )
+
+
+def test_natural_terminal_authority_rejects_noncanonical_contract_bytes() -> None:
+    authority = _natural_terminal_authority()
+    payload = json.loads(authority.route_contract_json)
+    noncanonical = json.dumps(payload, indent=2, sort_keys=True)
+
+    with pytest.raises(ValueError, match="canonical JSON"):
+        phase_shortlists.Phase3NaturalTerminalAuthority(
+            route_contract_json=noncanonical,
+            route_contract_sha256=authority.route_contract_sha256,
+        )
 
 
 def _feature(**overrides: object) -> CandidateFeatures:
@@ -65,6 +100,7 @@ def _runtime(
     phase2_rel: float = 0.0,
     phase1_lane_retention_enabled: bool = True,
     physical_operator_identity_caps_enabled: bool = True,
+    natural_terminal: bool = False,
 ) -> phase_shortlists.PhaseShortlistRuntime:
     def feature_updater(feat: Any, updates: Mapping[str, Any]) -> Any:
         if not isinstance(feat, CandidateFeatures):
@@ -93,6 +129,9 @@ def _runtime(
         ),
         physical_operator_identity_caps_enabled=bool(
             physical_operator_identity_caps_enabled
+        ),
+        phase3_natural_terminal_authority=(
+            _natural_terminal_authority() if natural_terminal else None
         ),
     )
 
@@ -141,6 +180,58 @@ def _phase2_sort(row: Mapping[str, Any]) -> tuple[float, int, int]:
         int(row.get("candidate_pool_index", -1)),
         int(row.get("position_id", -1)),
     )
+
+
+def test_adaptive_phase3_no_positive_requires_authenticated_v2_authority() -> None:
+    records = [
+        _record(
+            "zero-score",
+            0,
+            score=0.0,
+            full=0.0,
+            feature=_feature(
+                candidate_label="zero-score",
+                candidate_pool_index=0,
+                position_id=0,
+                simple_score=0.0,
+                full_v2_score=0.0,
+            ),
+        )
+    ]
+    kwargs = {
+        "phase": "phase_iii",
+        "score_key": "full_v2_score",
+        "threshold": 0.0,
+        "hard_cap": 12,
+        "frontier_ratio": 0.9,
+        "tie_break_score_key": "simple_score",
+        "shortlist_flag": "phase3_shortlisted",
+    }
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Adaptive phase_iii shortlist has no positive feasible candidate"
+        ),
+    ):
+        phase_shortlists._adaptive_phase_shortlist_with_receipt(
+            records,
+            runtime=_runtime(),
+            **kwargs,
+        )
+
+    retained, receipt = (
+        phase_shortlists._adaptive_phase_shortlist_with_receipt(
+            records,
+            runtime=_runtime(natural_terminal=True),
+            **kwargs,
+        )
+    )
+
+    assert retained == []
+    assert receipt.phase == "phase_iii"
+    assert receipt.status == "no_positive_population"
+    assert receipt.retained_record_ids == ()
 
 
 def test_phase1_score_value_prefers_active_then_cheap_then_simple() -> None:

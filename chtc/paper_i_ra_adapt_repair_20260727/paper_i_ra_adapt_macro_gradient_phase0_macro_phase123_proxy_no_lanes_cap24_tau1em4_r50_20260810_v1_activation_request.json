@@ -1,0 +1,23 @@
+{
+  "authorization_kind": "explicit_user_execution_and_submission_authority",
+  "bundle_id": "ra_adapt_macro_gradient_phase0_macro_phase123_proxy_no_lanes_cap24_tau1em4_r50_v1",
+  "campaign_id": "paper_i_ra_adapt_macro_gradient_phase0_macro_phase123_proxy_no_lanes_cap24_tau1em4_r50_v1",
+  "execution_authorized": true,
+  "explicit_user_authority_recorded": true,
+  "package_id": "paper_i_ra_adapt_macro_gradient_phase0_macro_phase123_proxy_no_lanes_cap24_tau1em4_r50_20260810_v1_chtc",
+  "package_manifest_sha256": "8559b91825bb7659a1a3591ac5fcbdb1d57eaa6496ae31df6da44c227e62dbac",
+  "paper_evidence_adoption_authorized": false,
+  "requested_execution_ids": [
+    "macro_gradient_phase0_proxy_no_lanes__weak_weak__nph3__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau",
+    "macro_gradient_phase0_proxy_no_lanes__intermediate_weak__nph3__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau",
+    "macro_gradient_phase0_proxy_no_lanes__strong_weak_u8__nph3__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau",
+    "macro_gradient_phase0_proxy_no_lanes__weak_strong__nph7__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau",
+    "macro_gradient_phase0_proxy_no_lanes__intermediate_strong__nph7__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau",
+    "macro_gradient_phase0_proxy_no_lanes__strong_strong_u8__nph7__ra_macro_gradient_phase0_macro_phase123_proxy_no_lanes_plateau"
+  ],
+  "schema": "paper_i_ra_adapt_macro_gradient_phase0_proxy_no_lanes_activation_request_v1",
+  "scope": "prepare_six_cell_chtc_execution_and_submission_v1",
+  "sha256": "2c6c0a18de5c06df7bd4640a9901b31226c64ca77e8e48388702cd054cf606bb",
+  "submission_authorized": true,
+  "submitted": false
+}

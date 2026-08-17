@@ -1,0 +1,19 @@
+{
+  "atomic_local_rename_completed": true,
+  "captured_at_utc": "2026-08-13T16:00:35Z",
+  "cluster_id": 9647385,
+  "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+  "gzip_integrity_passed": true,
+  "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page12_insertion_comparators_20260813/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced__9647385__2.tar.gz",
+  "local_sha256": "5d1165b4a5fbc86cae600fb2159c3f6b61abb08573d1908435d86b1e60de37a1",
+  "local_size_bytes": 375112234,
+  "proc_id": 2,
+  "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced__9647385__2.tar.gz",
+  "remote_sha256": "5d1165b4a5fbc86cae600fb2159c3f6b61abb08573d1908435d86b1e60de37a1",
+  "remote_size_bytes": 375112234,
+  "remote_state": "preserved_after_exact_size_sha256_verified_fetch",
+  "schema": "paper_i_ra_adapt_page12_insertion_comparator_remote_archive_identity_v1",
+  "status": "passed_remote_local_size_sha256_match_after_atomic_rename",
+  "tar_readability_passed": true,
+  "sha256": "31f061f4ea8ab0a97a46a2cf285d25a0098c0746cc9a1ed3c3b338601e433de5"
+}

@@ -1,0 +1,156 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "arms": [
+    {
+      "arm_id": "append_position_phase0",
+      "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+      "insertion_policy": "append_only",
+      "phase0_population": "insertion_position_records",
+      "phase123_population": "insertion_position_records",
+      "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2"
+    }
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_position_all6_maximum_k50_20260817_v1",
+  "canonical_execution_order": [
+    "allphase_maxk50__append_position_phase0__weak_weak__nph3",
+    "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-17T18:53:11.734569Z",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_weak__nph3",
+      "file_sha256": "cc96f6c4e5033320766963e70be44b1207bc1531e4c6cd62b151acb004e57f89",
+      "path": "jobs/allphase_maxk50__append_position_phase0__weak_weak__nph3.json",
+      "sha256": "4f32920a4a23e462245d542379440a4a9727ed6899cfed78d19e7aa1bd97b9c0"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "9810c99e4ae049bfe1bdd0a5c47c07dfb72d1c29a722bfcdd745561cd9f372b0",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "5141ee01cf72abdfc07c9056e3667d82a04051862a05f69ecbf62086ca47d87e"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "1ccc206d6c5bb218911726f98f5f0b80da87bf8d6092e0ae2e9b4c430849f015",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "c956691281ef16bce0656c842b57237516fd46eddb8542806a96990ed173f2ba"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "43f5aeb688a4d5bb1fa531173b7d4665c3b5f999d652e982e31a3d3bfe4ed669",
+      "path": "jobs/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "9f44977cf9ddca48d78525856852a4771d266537a5cd5e63143040bb56bf52e0"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "089edf9576d60e22d0b53efe03c296ebb58bd127d58b7f172cd0b7051ebadd4b",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "ff575ac2aed166c4789b6a6866801af0d86d8fadf408b06b7619f08459f5e337"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "0cfb4f1d16e59ab34773e4cb5e2e29e54eb529f6837a40f4e862a3102588b666",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "d02bdb99c35bea56fa974b3226bafd68de0f95b9ae89de00d9dc0fd0a2e6d058"
+    }
+  ],
+  "matrix_shape": {
+    "arms": 1,
+    "cells": 6,
+    "regimes": 6
+  },
+  "maximum_controller_rounds": 50,
+  "package_id": "paper_i_ra_allphase_adaptive_append_position_all6_maximum_k50_20260817_v1_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_weak__nph3",
+      "file_sha256": "35c67100dac6c94ba840bf4d09b9b22f6b3eed8efdd7b36c30af52b98bf37e92",
+      "path": "protocols/allphase_maxk50__append_position_phase0__weak_weak__nph3.json",
+      "sha256": "28d462a0a5271e3e743545ae7b0717531aa65def035954605d31ed77dacb047b"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "eda5edbc394415a42092ffad20a3c5935d06459e95a6ebea5eb561affef346b2",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "dd3bf9d3f7096fef578f7047fe5abe068fb50dfda77e4941a0ca7f23c9d8ce0c"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "a6fadb7f408481e515605d7ca36378c33635b725448fccf0ca393c88afaeb8e4",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "9c8d62ba4a2fe58d179820c3a652db408440ed4c189c9b9ec23c6848d3c016c3"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "c1c646dc20106ab2ed6b8f36fcf3a210c50899082cac2eb373735bb2548e21f9",
+      "path": "protocols/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "4261a4d5d7eb56173b53366e3e4c003523b1f63f707af358dfe9c98738ae5acf"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "43b1e2f76872fb06de4b5f4160e7bd4c38f8301695600ac0a1fa19961f8fdb73",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "9e579c06152851b864da7f2b4b86981b3a881100f825255369b39f7b4f448faf"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "a15dc5d2f57b99fe423e8c712956e1debdc0ac5186521a6f00dfb845287e204e",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "5eb0945a45a46eee3e67d7c999f12ddcf7bef3579da0507f8a128db8afa5b17d"
+    }
+  ],
+  "regimes": [
+    {
+      "nph": 3,
+      "regime_id": "weak_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "intermediate_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "strong_weak_u8"
+    },
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "3": {
+      "cpus": 4,
+      "disk_mb": 20480,
+      "memory_mb": 8192,
+      "runtime_seconds": 259200
+    },
+    "7": {
+      "cpus": 4,
+      "disk_mb": 30720,
+      "memory_mb": 12288,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_ra_allphase_adaptive_append_position_all6_maximum_k50_plan_v1",
+  "sha256": "3a823924b5b346a69bf5aa0bf88c319ad9c0e2200ef8ac0ba3009824307b477c",
+  "source_archive_sha256": "d49617d474a76f31efc372af11f9158cf763e442eead354fd3e581ed55936c85",
+  "source_inventory_sha256": "4c1bc55ee8382c0de24734952322ecd46430e843df6b0b9afd38a41344675a52",
+  "submission_authorized": false
+}

@@ -15,6 +15,9 @@ import copy
 import math
 from typing import Any
 
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
 from pipelines.static_adapt.ra_adapt.contracts import canonical_sha256
 
 
@@ -36,9 +39,46 @@ RESUME_SIDECAR_CLOSURE_SCHEMA = (
 APPEND_SIGNED_PREFIX_SCHEMA = (
     "paper_i_signed_append_active_prefix_checkpoint_v1"
 )
+RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA = (
+    "paper_i_ra_phase3_no_positive_controller_replay_terminal_v1"
+)
+RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA_V2 = (
+    "paper_i_ra_phase3_no_positive_controller_replay_terminal_v2"
+)
 
 _RA_METHOD_FAMILY = "ra_adapt"
 _APPEND_METHOD_FAMILY = "append_adapt"
+_RA_PHASE3_NO_POSITIVE_SELECTION_SCHEMA = (
+    "paper_i_ra_phase3_no_positive_selection_terminal_v1"
+)
+_RA_PHASE3_NO_POSITIVE_SELECTION_FIELDS = frozenset(
+    {
+        "schema",
+        "terminal_controller_outcome",
+        "accepted_controller_round",
+        "attempted_controller_round",
+        "accepted_state_fingerprint",
+        "accepted_operator_count",
+        "accepted_state_unchanged",
+        "final_admission_record_id",
+        "phase0_gradient_shortlist",
+        "insertion_mode",
+        "insertion_commutation_plateau",
+        "insertion_commutation_reduced",
+        "phase3_population_activation",
+        "controller_measurement_work_proxy",
+        "scored_insertion_position_population",
+        "projected_phase3_population_receipt",
+        "phase123_qiskit_population_normalization_receipts",
+        "estimator_event_ids",
+        "estimator_event_count",
+        "estimator_event_ids_sha256",
+        "terminal_active_prefix_checkpoint_sha256",
+        "terminal_estimator_prefix_receipt",
+        "terminal_estimator_prefix_receipt_sha256",
+        "sha256",
+    }
+)
 
 
 def _mapping(value: Any, *, name: str) -> dict[str, Any]:
@@ -69,6 +109,13 @@ def _require_positive_round(value: Any, *, name: str) -> int:
     resolved = int(value)
     if isinstance(value, bool) or resolved < 1 or resolved != value:
         raise ValueError(f"{name} must be a positive controller round.")
+    return resolved
+
+
+def _require_nonnegative_round(value: Any, *, name: str) -> int:
+    resolved = int(value)
+    if isinstance(value, bool) or resolved < 0 or resolved != value:
+        raise ValueError(f"{name} must be a nonnegative controller round.")
     return resolved
 
 
@@ -641,6 +688,479 @@ def _ra_prefix_wrapper(
     )
 
 
+def _validate_ra_phase3_no_positive_replay_terminal(
+    value: Any,
+    *,
+    prefixes: Sequence[Mapping[str, Any]],
+    terminal_checkpoint: Mapping[str, Any],
+    estimator_prefix_receipts: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Cross-bind one failed Phase-III admission to its accepted prefix."""
+
+    terminal = _verify_signed(
+        value,
+        name="RA Phase-III no-positive replay terminal",
+    )
+    common_fields = {
+        "schema",
+        "terminal_controller_outcome",
+        "accepted_controller_round",
+        "attempted_controller_round",
+        "accepted_state_unchanged",
+        "accepted_state_sha256",
+        "natural_terminal_route_contract",
+        "natural_terminal_route_contract_sha256",
+        "terminal_phase3_selection_receipt",
+        "terminal_phase3_selection_receipt_sha256",
+        "terminal_active_prefix_checkpoint",
+        "terminal_active_prefix_checkpoint_sha256",
+        "terminal_estimator_prefix_receipt",
+        "terminal_estimator_prefix_receipt_sha256",
+        "sha256",
+    }
+    schema = terminal.get("schema")
+    round_zero_terminal = bool(
+        schema == RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA_V2
+    )
+    expected_fields = common_fields.union(
+        {
+            "round_zero_accepted_state",
+            "round_zero_accepted_state_sha256",
+        }
+        if round_zero_terminal
+        else {"accepted_signed_prefix_sha256"}
+    )
+    if set(terminal) != expected_fields:
+        raise ValueError(
+            "RA Phase-III no-positive replay terminal fields drifted."
+        )
+    accepted_round = _require_nonnegative_round(
+        terminal.get("accepted_controller_round"),
+        name="accepted controller round",
+    )
+    attempted_round = _require_positive_round(
+        terminal.get("attempted_controller_round"),
+        name="attempted controller round",
+    )
+    if attempted_round != accepted_round + 1:
+        raise ValueError(
+            "RA Phase-III attempted controller round must equal accepted "
+            "round plus one."
+        )
+    if (
+        schema
+        not in {
+            RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA,
+            RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA_V2,
+        }
+        or terminal.get("terminal_controller_outcome")
+        != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or terminal.get("accepted_state_unchanged") is not True
+        or (
+            round_zero_terminal
+            and (accepted_round != 0 or prefixes)
+        )
+        or (
+            not round_zero_terminal
+            and (
+                accepted_round < 1
+                or not prefixes
+                or int(prefixes[-1].get("controller_round", -1))
+                != accepted_round
+                or terminal.get("accepted_signed_prefix_sha256")
+                != prefixes[-1].get("sha256")
+            )
+        )
+    ):
+        raise ValueError(
+            "RA Phase-III no-positive replay terminal identity drifted."
+        )
+
+    accepted_state = _mapping(
+        terminal.get("round_zero_accepted_state")
+        if round_zero_terminal
+        else prefixes[-1].get("accepted_state"),
+        name="terminal accepted state",
+    )
+    if (
+        canonical_sha256(accepted_state)
+        != terminal.get("accepted_state_sha256")
+        or (
+            round_zero_terminal
+            and canonical_sha256(accepted_state)
+            != terminal.get("round_zero_accepted_state_sha256")
+        )
+    ):
+        raise ValueError(
+            "RA Phase-III terminal accepted-state digest drifted."
+        )
+
+    natural_terminal_route = _mapping(
+        terminal.get("natural_terminal_route_contract"),
+        name="RA Phase-III natural-terminal route contract",
+    )
+    natural_terminal_route_sha256 = _require_sha256(
+        terminal.get("natural_terminal_route_contract_sha256"),
+        name="RA Phase-III natural-terminal route contract SHA-256",
+    )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        validate_semantic_phase3_natural_terminal_route_contract,
+    )
+
+    validate_semantic_phase3_natural_terminal_route_contract(
+        natural_terminal_route,
+        expected_route_contract_sha256=natural_terminal_route_sha256,
+    )
+    terminal_route_identity = (
+        {
+            "profile": natural_terminal_route.get("route_profile"),
+            "route_contract_sha256": natural_terminal_route_sha256,
+        }
+        if round_zero_terminal
+        else _mapping(
+            prefixes[-1].get("route_identity"),
+            name="RA Phase-III terminal prefix route identity",
+        )
+    )
+    if (
+        natural_terminal_route_sha256
+        != terminal_route_identity.get("route_contract_sha256")
+        or natural_terminal_route_sha256
+        != terminal_checkpoint.get("sr_route_profile_contract_sha256")
+        or natural_terminal_route.get("route_profile")
+        != terminal_route_identity.get("profile")
+        or natural_terminal_route.get("route_profile")
+        != terminal_checkpoint.get("sr_route_profile")
+    ):
+        raise ValueError(
+            "RA Phase-III natural-terminal route provenance is detached."
+        )
+
+    selection = _verify_signed(
+        terminal.get("terminal_phase3_selection_receipt"),
+        name="RA Phase-III terminal selection receipt",
+    )
+    if set(selection) != _RA_PHASE3_NO_POSITIVE_SELECTION_FIELDS:
+        raise ValueError(
+            "RA Phase-III terminal selection receipt fields drifted."
+        )
+    event_ids = _sequence(
+        selection.get("estimator_event_ids"),
+        name="RA Phase-III terminal estimator event IDs",
+    )
+    insertion_mode = selection.get("insertion_mode")
+    plateau = selection.get("insertion_commutation_plateau")
+    reduced = selection.get("insertion_commutation_reduced")
+    activation = selection.get("phase3_population_activation")
+    controller_work = selection.get("controller_measurement_work_proxy")
+    insertion_evidence_valid = bool(
+        (
+            insertion_mode == "append_only"
+            and plateau is None
+            and reduced is None
+        )
+        or (
+            insertion_mode
+            in {
+                "insertion_commutation_plateau_v1",
+                "insertion_commutation_plateau_v2",
+            }
+            and isinstance(plateau, Mapping)
+            and plateau.get("policy") == insertion_mode
+            and reduced is None
+        )
+        or (
+            insertion_mode == "full_commutation_reduced"
+            and plateau is None
+            and isinstance(reduced, Mapping)
+            and reduced.get("policy") == "always_commutation_reduced"
+        )
+        or (
+            insertion_mode == "append_commutation_reduced"
+            and plateau is None
+            and isinstance(reduced, Mapping)
+            and reduced.get("policy")
+            == "append_commutation_reduced"
+        )
+    )
+    if (
+        selection.get("schema")
+        != _RA_PHASE3_NO_POSITIVE_SELECTION_SCHEMA
+        or selection.get("terminal_controller_outcome")
+        != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or selection.get("accepted_controller_round") != accepted_round
+        or selection.get("attempted_controller_round") != attempted_round
+        or selection.get("accepted_state_unchanged") is not True
+        or selection.get("final_admission_record_id") is not None
+        or selection.get("accepted_state_fingerprint")
+        != accepted_state.get("projective_state_fingerprint")
+        or selection.get("accepted_operator_count")
+        != len(accepted_state.get("operators", ()))
+        or terminal.get("terminal_phase3_selection_receipt_sha256")
+        != selection.get("sha256")
+        or selection.get("estimator_event_count") != len(event_ids)
+        or any(not isinstance(value, str) or not value for value in event_ids)
+        or len(set(event_ids)) != len(event_ids)
+        or selection.get("estimator_event_ids_sha256")
+        != canonical_sha256(event_ids)
+        or any(
+            not isinstance(selection.get(field), Mapping)
+            for field in (
+                "phase0_gradient_shortlist",
+                "phase3_population_activation",
+                "controller_measurement_work_proxy",
+                "scored_insertion_position_population",
+                "projected_phase3_population_receipt",
+                "phase123_qiskit_population_normalization_receipts",
+            )
+        )
+        or not insertion_evidence_valid
+        or not isinstance(
+            activation.get("competitive_population_live"), bool
+        )
+        or controller_work.get("schema")
+        != "controller_measurement_work_proxy_v1"
+    ):
+        raise ValueError(
+            "RA Phase-III terminal selection receipt is detached from the "
+            "accepted prefix."
+        )
+
+    checkpoint = _verify_signed(
+        terminal.get("terminal_active_prefix_checkpoint"),
+        name="RA Phase-III terminal active-prefix checkpoint",
+        signature_field="checkpoint_sha256",
+    )
+    expected_checkpoint = _mapping(
+        terminal_checkpoint,
+        name="RA resume terminal active-prefix checkpoint",
+    )
+    if (
+        checkpoint != expected_checkpoint
+        or checkpoint.get("checkpoint_kind")
+        != "terminal_phase3_no_positive"
+        or checkpoint.get("outer_iteration") != accepted_round
+        or checkpoint.get("projective_state_fingerprint")
+        != accepted_state.get("projective_state_fingerprint")
+        or list(checkpoint.get("ordered_active_operator_labels", ()))
+        != list(accepted_state.get("operators", ()))
+        or list(checkpoint.get("signed_unwrapped_logical_parameters", ()))
+        != list(accepted_state.get("logical_parameters", ()))
+        or list(checkpoint.get("signed_unwrapped_runtime_parameters", ()))
+        != list(accepted_state.get("runtime_parameters", ()))
+        or terminal.get("terminal_active_prefix_checkpoint_sha256")
+        != canonical_sha256(checkpoint)
+        or selection.get("terminal_active_prefix_checkpoint_sha256")
+        != canonical_sha256(checkpoint)
+    ):
+        raise ValueError(
+            "RA Phase-III terminal checkpoint changed the accepted state."
+        )
+
+    estimator_prefix = _mapping(
+        terminal.get("terminal_estimator_prefix_receipt"),
+        name="RA Phase-III terminal estimator-prefix receipt",
+    )
+    selection_estimator_prefix = _mapping(
+        selection.get("terminal_estimator_prefix_receipt"),
+        name="RA Phase-III selection estimator-prefix receipt",
+    )
+    if not estimator_prefix_receipts:
+        raise ValueError(
+            "RA Phase-III terminal lacks estimator-prefix receipts."
+        )
+    final_estimator_prefix = _mapping(
+        estimator_prefix_receipts[-1],
+        name="RA final estimator-prefix receipt",
+    )
+    if (
+        estimator_prefix != selection_estimator_prefix
+        or estimator_prefix != final_estimator_prefix
+        or estimator_prefix.get("checkpoint_kind")
+        != "terminal_phase3_no_positive"
+        or terminal.get("terminal_estimator_prefix_receipt_sha256")
+        != canonical_sha256(estimator_prefix)
+        or selection.get("terminal_estimator_prefix_receipt_sha256")
+        != canonical_sha256(estimator_prefix)
+    ):
+        raise ValueError(
+            "RA Phase-III terminal estimator-prefix receipt is detached."
+        )
+    return terminal
+
+
+def _build_ra_phase3_no_positive_replay_terminal(
+    *,
+    protocol: Any,
+    run: Any,
+    finalization: Mapping[str, Any],
+    continuation: Mapping[str, Any],
+    prefixes: Sequence[Mapping[str, Any]],
+    terminal_checkpoint: Mapping[str, Any],
+    estimator_prefix_receipts: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    """Build the conditional replay terminal without changing other receipts."""
+
+    final_outcome = finalization.get("terminal_controller_outcome")
+    run_outcome = getattr(
+        getattr(run, "stop", None),
+        "terminal_controller_outcome",
+        None,
+    )
+    final_selection = finalization.get("terminal_phase3_selection_receipt")
+    continuation_selection = continuation.get(
+        "terminal_phase3_selection_receipt"
+    )
+    phase3_terminal_present = bool(
+        final_outcome == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or run_outcome == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or final_selection is not None
+        or continuation_selection is not None
+    )
+    if not phase3_terminal_present:
+        return None
+    if (
+        final_outcome != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or run_outcome != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or not isinstance(final_selection, Mapping)
+        or not isinstance(continuation_selection, Mapping)
+        or dict(final_selection) != dict(continuation_selection)
+    ):
+        raise ValueError(
+            "RA Phase-III terminal outcome and selection evidence disagree."
+        )
+
+    route_contract = _mapping(
+        finalization.get("sr_route_profile_contract"),
+        name="RA Phase-III natural-terminal route contract",
+    )
+    route_contract_sha256 = _require_sha256(
+        finalization.get("sr_route_profile_contract_sha256"),
+        name="RA Phase-III natural-terminal route contract SHA-256",
+    )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        validate_semantic_phase3_natural_terminal_route_contract,
+    )
+
+    validate_semantic_phase3_natural_terminal_route_contract(
+        route_contract,
+        expected_route_contract_sha256=route_contract_sha256,
+    )
+    run_route = getattr(run, "route", None)
+    if (
+        route_contract.get("algorithm_id")
+        != getattr(protocol, "algorithm_id", None)
+        or route_contract.get("route_profile")
+        != getattr(run_route, "profile", None)
+        or route_contract_sha256
+        != getattr(run_route, "contract_sha256", None)
+        or route_contract_sha256
+        != terminal_checkpoint.get("sr_route_profile_contract_sha256")
+    ):
+        raise ValueError(
+            "RA Phase-III natural-terminal route provenance is detached."
+        )
+
+    run_trajectory = tuple(getattr(run, "accepted_trajectory", ()))
+    run_transitions = tuple(getattr(run, "accepted_transitions", ()))
+    run_replay = tuple(getattr(run, "scientific_replay", ()))
+    accepted_round = len(run_trajectory)
+    round_zero_terminal = accepted_round == 0
+    if len(run_transitions) != accepted_round or len(run_replay) != accepted_round:
+        raise ValueError(
+            "RA Phase-III terminal accepted evidence cardinalities drifted."
+        )
+    if round_zero_terminal:
+        if prefixes:
+            raise ValueError(
+                "Round-zero Phase-III terminal cannot claim an accepted prefix."
+            )
+        accepted_state = _receipt_payload(
+            getattr(run, "final_state", None),
+            name="RA Phase-III round-zero accepted state",
+        )
+    else:
+        if (
+            not prefixes
+            or int(getattr(run_trajectory[-1], "controller_round", -1))
+            != accepted_round
+            or int(prefixes[-1].get("controller_round", -1))
+            != accepted_round
+        ):
+            raise ValueError(
+                "RA Phase-III terminal requires its complete accepted prefix."
+            )
+        accepted_state = _receipt_payload(
+            run_trajectory[-1],
+            name="RA Phase-III terminal accepted state",
+        )
+    if _receipt_payload(
+        getattr(run, "final_state", None),
+        name="RA Phase-III terminal final state",
+    ) != accepted_state:
+        raise ValueError(
+            "RA Phase-III terminal changed the final accepted state."
+        )
+    selection = _verify_signed(
+        final_selection,
+        name="RA Phase-III terminal selection receipt",
+    )
+    estimator_prefix = _mapping(
+        selection.get("terminal_estimator_prefix_receipt"),
+        name="RA Phase-III terminal estimator-prefix receipt",
+    )
+    terminal = _signed(
+        {
+            "schema": (
+                RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA_V2
+                if round_zero_terminal
+                else RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA
+            ),
+            "terminal_controller_outcome": (
+                ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+            ),
+            "accepted_controller_round": accepted_round,
+            "attempted_controller_round": accepted_round + 1,
+            "accepted_state_unchanged": True,
+            "accepted_state_sha256": canonical_sha256(accepted_state),
+            **(
+                {
+                    "round_zero_accepted_state": accepted_state,
+                    "round_zero_accepted_state_sha256": canonical_sha256(
+                        accepted_state
+                    ),
+                }
+                if round_zero_terminal
+                else {
+                    "accepted_signed_prefix_sha256": prefixes[-1]["sha256"]
+                }
+            ),
+            "natural_terminal_route_contract": route_contract,
+            "natural_terminal_route_contract_sha256": (
+                route_contract_sha256
+            ),
+            "terminal_phase3_selection_receipt": selection,
+            "terminal_phase3_selection_receipt_sha256": selection["sha256"],
+            "terminal_active_prefix_checkpoint": copy.deepcopy(
+                dict(terminal_checkpoint)
+            ),
+            "terminal_active_prefix_checkpoint_sha256": canonical_sha256(
+                terminal_checkpoint
+            ),
+            "terminal_estimator_prefix_receipt": estimator_prefix,
+            "terminal_estimator_prefix_receipt_sha256": canonical_sha256(
+                estimator_prefix
+            ),
+        }
+    )
+    return _validate_ra_phase3_no_positive_replay_terminal(
+        terminal,
+        prefixes=prefixes,
+        terminal_checkpoint=terminal_checkpoint,
+        estimator_prefix_receipts=estimator_prefix_receipts,
+    )
+
+
 def build_ra_controller_replay_evidence(
     *,
     protocol: Any,
@@ -685,7 +1205,37 @@ def build_ra_controller_replay_evidence(
         raise ValueError(
             "RA history and continuation signed-prefix lists disagree."
         )
-    if not declared_prefixes:
+    stationary_without_prefix = bool(
+        not declared_prefixes
+        and final.get("terminal_controller_outcome")
+        == "phase0_stationary_no_competitive_candidate_v1"
+        and getattr(
+            getattr(run, "stop", None),
+            "terminal_controller_outcome",
+            None,
+        )
+        == "phase0_stationary_no_competitive_candidate_v1"
+        and not getattr(run, "accepted_trajectory", ())
+    )
+    phase3_without_prefix = bool(
+        not declared_prefixes
+        and final.get("terminal_controller_outcome")
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and getattr(
+            getattr(run, "stop", None),
+            "terminal_controller_outcome",
+            None,
+        )
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and not getattr(run, "accepted_trajectory", ())
+        and isinstance(
+            final.get("terminal_phase3_selection_receipt"),
+            Mapping,
+        )
+    )
+    if not declared_prefixes and not (
+        stationary_without_prefix or phase3_without_prefix
+    ):
         raise ValueError("RA replay evidence requires accepted prefixes.")
 
     wrappers: list[dict[str, Any]] = []
@@ -709,8 +1259,34 @@ def build_ra_controller_replay_evidence(
         wrappers.append(wrapper)
         previous = str(wrapper["sha256"])
 
+    continuation_terminal = continuation.get(
+        "terminal_active_prefix_checkpoint"
+    )
+    terminal_source = continuation_terminal
+    if (
+        isinstance(continuation_terminal, Mapping)
+        and continuation_terminal.get("schema")
+        == "paper_i_signed_active_prefix_checkpoint_binding_v1"
+    ):
+        candidate_terminal = _mapping(
+            final.get("terminal_active_prefix_checkpoint"),
+            name="RA full terminal active-prefix checkpoint",
+        )
+        controller_noise = candidate_terminal.get("controller_noise")
+        if (
+            set(continuation_terminal) != {"schema", "checkpoint_sha256"}
+            or continuation_terminal.get("checkpoint_sha256")
+            != candidate_terminal.get("checkpoint_sha256")
+            or not isinstance(controller_noise, Mapping)
+            or controller_noise.get("schema")
+            != "paper_i_pure_hubbard_controller_noise_checkpoint_v1"
+        ):
+            raise ValueError(
+                "RA terminal active-prefix checkpoint binding is invalid."
+            )
+        terminal_source = candidate_terminal
     terminal_checkpoint = _verify_signed(
-        continuation.get("terminal_active_prefix_checkpoint"),
+        terminal_source,
         name="RA terminal active-prefix checkpoint",
         signature_field="checkpoint_sha256",
     )
@@ -747,6 +1323,26 @@ def build_ra_controller_replay_evidence(
         raise ValueError(
             "RA active-prefix estimator sidecar closure is incomplete."
         )
+    phase3_no_positive_terminal = (
+        _build_ra_phase3_no_positive_replay_terminal(
+            protocol=protocol,
+            run=run,
+            finalization=final,
+            continuation=continuation,
+            prefixes=wrappers,
+            terminal_checkpoint=terminal_checkpoint,
+            estimator_prefix_receipts=ledger_receipts,
+        )
+    )
+    terminal_controller_outcome = (
+        "phase0_stationary_no_competitive_candidate_v1"
+        if stationary_without_prefix
+        else (
+            ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+            if phase3_no_positive_terminal is not None
+            else None
+        )
+    )
     route_identity = _ra_route_identity(run)
     scientific_input_sha256 = _scientific_input_identity(
         protocol=protocol,
@@ -802,8 +1398,19 @@ def build_ra_controller_replay_evidence(
         {
             "schema": RESUME_SIDECAR_CLOSURE_SCHEMA,
             "method_family": _RA_METHOD_FAMILY,
-            "resume_mode": "canonical_accepted_state_resume_v1",
-            "public_resume_execution_supported": True,
+            "resume_mode": (
+                "not_applicable_phase0_stationary_v1"
+                if stationary_without_prefix
+                else (
+                    "not_applicable_phase3_natural_terminal_v1"
+                    if phase3_no_positive_terminal is not None
+                    else "canonical_accepted_state_resume_v1"
+                )
+            ),
+            "public_resume_execution_supported": bool(
+                not stationary_without_prefix
+                and phase3_no_positive_terminal is None
+            ),
             "problem_request_sha256": _problem_request_sha256(protocol),
             "protocol_sha256": _require_sha256(
                 getattr(protocol, "sha256", ""),
@@ -832,6 +1439,16 @@ def build_ra_controller_replay_evidence(
                 estimator_artifact is not None
             ),
             "authentication_binding_complete": True,
+            "terminal_controller_outcome": terminal_controller_outcome,
+            **(
+                {
+                    "phase3_no_positive_terminal_sha256": (
+                        phase3_no_positive_terminal["sha256"]
+                    )
+                }
+                if phase3_no_positive_terminal is not None
+                else {}
+            ),
         }
     )
     return _signed(
@@ -846,6 +1463,16 @@ def build_ra_controller_replay_evidence(
             "signed_controller_round_prefixes": wrappers,
             "bounded_replay_identity": replay_identity,
             "resume_sidecar_closure": resume_closure,
+            "terminal_controller_outcome": terminal_controller_outcome,
+            **(
+                {
+                    "phase3_no_positive_terminal": (
+                        phase3_no_positive_terminal
+                    )
+                }
+                if phase3_no_positive_terminal is not None
+                else {}
+            ),
         }
     )
 
@@ -876,7 +1503,33 @@ def validate_controller_replay_evidence(
         evidence.get("signed_controller_round_prefixes"),
         name="signed_controller_round_prefixes",
     )
-    if not prefixes and method == _RA_METHOD_FAMILY:
+    terminal_controller_outcome = evidence.get(
+        "terminal_controller_outcome"
+    )
+    stationary_without_prefix = bool(
+        method == _RA_METHOD_FAMILY
+        and not prefixes
+        and terminal_controller_outcome
+        == "phase0_stationary_no_competitive_candidate_v1"
+    )
+    phase3_no_positive_terminal = bool(
+        method == _RA_METHOD_FAMILY
+        and terminal_controller_outcome
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and isinstance(
+            evidence.get("phase3_no_positive_terminal"),
+            Mapping,
+        )
+    )
+    if method == _RA_METHOD_FAMILY and terminal_controller_outcome not in {
+        None,
+        "phase0_stationary_no_competitive_candidate_v1",
+        ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+    }:
+        raise ValueError("Unknown RA replay terminal controller outcome.")
+    if not prefixes and method == _RA_METHOD_FAMILY and not (
+        stationary_without_prefix or phase3_no_positive_terminal
+    ):
         raise ValueError(
             "RA controller replay evidence requires signed prefixes."
         )
@@ -1056,9 +1709,35 @@ def validate_controller_replay_evidence(
     ):
         raise ValueError("Resume-sidecar closure does not close.")
     if method == _RA_METHOD_FAMILY:
+        expected_terminal_outcome = (
+            "phase0_stationary_no_competitive_candidate_v1"
+            if stationary_without_prefix
+            else (
+                ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+                if phase3_no_positive_terminal
+                else None
+            )
+        )
+        expected_resume_mode = (
+            "not_applicable_phase0_stationary_v1"
+            if stationary_without_prefix
+            else (
+                "not_applicable_phase3_natural_terminal_v1"
+                if phase3_no_positive_terminal
+                else "canonical_accepted_state_resume_v1"
+            )
+        )
+        expected_resume_supported = bool(
+            not stationary_without_prefix
+            and not phase3_no_positive_terminal
+        )
         if (
-            resume.get("public_resume_execution_supported") is not True
+            resume.get("public_resume_execution_supported")
+            is not expected_resume_supported
+            or resume.get("resume_mode") != expected_resume_mode
             or resume.get("authentication_binding_complete") is not True
+            or resume.get("terminal_controller_outcome")
+            != expected_terminal_outcome
         ):
             raise ValueError(
                 "RA replay evidence lacks authenticated resume closure."
@@ -1091,6 +1770,30 @@ def validate_controller_replay_evidence(
         ):
             raise ValueError(
                 "RA estimator-prefix resume sidecar binding drifted."
+            )
+        raw_phase3_terminal = evidence.get("phase3_no_positive_terminal")
+        resume_phase3_sha256 = resume.get(
+            "phase3_no_positive_terminal_sha256"
+        )
+        if phase3_no_positive_terminal:
+            terminal_phase3 = _validate_ra_phase3_no_positive_replay_terminal(
+                raw_phase3_terminal,
+                prefixes=prefixes,
+                terminal_checkpoint=terminal,
+                estimator_prefix_receipts=estimator_receipts,
+            )
+            if resume_phase3_sha256 != terminal_phase3["sha256"]:
+                raise ValueError(
+                    "RA Phase-III replay terminal is detached from resume "
+                    "closure."
+                )
+        elif (
+            raw_phase3_terminal is not None
+            or resume_phase3_sha256 is not None
+        ):
+            raise ValueError(
+                "Non-Phase-III replay evidence contains a Phase-III "
+                "terminal receipt."
             )
     else:
         if (
@@ -1205,6 +1908,7 @@ __all__ = [
     "BOUNDED_REPLAY_COMPARISON_SCHEMA",
     "BOUNDED_REPLAY_IDENTITY_SCHEMA",
     "CONTROLLER_REPLAY_EVIDENCE_SCHEMA",
+    "RA_PHASE3_NO_POSITIVE_REPLAY_TERMINAL_SCHEMA",
     "RESUME_SIDECAR_CLOSURE_SCHEMA",
     "SIGNED_CONTROLLER_PREFIX_SCHEMA",
     "bounded_prefix_replay_identity",

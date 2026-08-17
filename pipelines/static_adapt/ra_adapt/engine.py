@@ -15,15 +15,26 @@ import math
 from typing import Any, Mapping
 
 from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
 from pipelines.static_adapt.ra_adapt.adapters import (
     GLOBAL_SINGLE_PAULI_ADAPTER_ID,
+    GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+    GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID,
+    MACRO_GRADIENT_PHASE0_ADAPTER_ID,
+    MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
     PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON,
     PHASE_I_VISIBILITY_ALL_EXECUTABLE,
     PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
     GlobalSinglePauliWordCandidateAdapter,
+    GlobalSingletonGradientPhase0CandidateAdapter,
     H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
     H2OLinearFDSymmetryCompleteCandidateAdapter,
     MacroCandidateAdapter,
+    MacroGradientPhase0CandidateAdapter,
+    MacroGradientPhase0ThenSingletonCandidateAdapter,
+    MacroThenSingletonPhaseICandidateAdapter,
     SinglePauliWordCandidateAdapter,
 )
 from pipelines.static_adapt.ra_adapt.contracts import (
@@ -92,11 +103,53 @@ from pipelines.static_adapt.ra_adapt.insertion_geometry import (
     EXACT_TERM_COMMUTATION_EQUIVALENCE,
     validate_commutation_reduced_insertion_receipt,
 )
+from pipelines.static_adapt.ra_adapt.l3_page12 import (
+    PAPER_I_L3_PAGE12_ADAPTER_ID,
+    PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    is_paper_i_l3_page12_application,
+    require_paper_i_l3_page12_materialization,
+)
+from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
+    PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID,
+    PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+    PaperIPureHubbardNoisePage12CandidateAdapter,
+    is_paper_i_pure_hubbard_noise_page12_application,
+    pure_hubbard_noise_level_contract,
+    require_paper_i_pure_hubbard_noise_page12_materialization,
+)
+from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+    PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
+    PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+    PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+    PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
+    PAPER_I_RA_PHASE0_GRADIENT_FIXED24_V2,
+    PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS,
+    PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS,
+    PAPER_I_RA_PHASE0_V2_ROUTE_VARIANTS,
+    PAPER_I_RA_SEMANTIC_ADAPTER_ID,
+    PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
+    PaperIRASemanticClosureGlobalSingletonCandidateAdapter,
+    build_semantic_closure_route_contract,
+    canonical_semantic_execution_problem,
+    is_semantic_closure_adapter,
+    semantic_closure_native_bundle_digest,
+    semantic_closure_native_bundle_id,
+    semantic_closure_route_identity,
+    semantic_closure_route_identity_from_algorithm,
+    validate_semantic_closure_materialization_authority,
+    validate_semantic_final_selector_accounting,
+    validate_semantic_gradient_adaptive_phase0_receipt,
+    validate_semantic_position_phase0_receipt,
+    validate_semantic_proxy_phase0_receipt,
+    validate_semantic_projected_phase123_receipt,
+)
 from pipelines.static_adapt.deferred_gram_fallback import (
     DEFERRED_GRAM_ALL_MODELS_INFEASIBLE_FALLBACK_V1,
 )
 from pipelines.static_adapt.hh_backend_compile_oracle import (
+    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
     BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
+    BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1,
     MARRAKESH_GRAPH_SPAN_MODE,
     ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
 )
@@ -119,6 +172,9 @@ from pipelines.static_adapt.route_a_trust_region import (
     GEOMETRY_EXPANSION_NO_OVERLAP_HOLD_REASON,
     GEOMETRY_EXPANSION_SOURCE_METRIC_LIMITATION,
     HISTORICAL_SINGLETON_GEOMETRY_EXPANSION_CONTEXT_V1,
+)
+from pipelines.static_adapt.route_a_child_padding import (
+    ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
 )
 from pipelines.static_adapt.sr_snake._context import (
     _canonical_route_contract_for_request,
@@ -216,6 +272,35 @@ RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID = (
 RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_SOURCE_ALGORITHM_ID = (
     "paper_i_ra_adapt_global_singleton_plateau_commutation_v1"
 )
+RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID = (
+    "paper_i_ra_adapt_macro_phase1_singleton_phase1_phase2_phase3_"
+    "qiskit_phase2_phase3_plateau_no_lanes_v1"
+)
+RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID = (
+    "paper_i_ra_adapt_macro_gradient_phase0_singleton_phase1_phase2_phase3_"
+    "qiskit_phase2_phase3_plateau_no_lanes_v1"
+)
+RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID = (
+    "paper_i_ra_adapt_macro_gradient_phase0_macro_phase1_phase2_phase3_"
+    "proxy_plateau_no_lanes_v1"
+)
+RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID = (
+    "paper_i_ra_adapt_macro_gradient_phase0_macro_phase1_phase2_phase3_"
+    "qiskit_phase2_phase3_plateau_no_lanes_v1"
+)
+RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID = (
+    "paper_i_ra_adapt_global_singleton_gradient_phase0_phase1_phase2_phase3_"
+    "qiskit_phase2_phase3_plateau_no_lanes_v1"
+)
+RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS = frozenset(
+    {
+        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+    }
+)
 RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS = frozenset(
     algorithm_id
     for algorithm_id in RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID
@@ -271,6 +356,17 @@ RA_ADAPT_PHASE3_QISKIT_DENOMINATOR_ROUTE_SUFFIX = (
 RA_ADAPT_PHASE3_QISKIT_DENOMINATOR_POLICY = (
     "qiskit_positive_marginal_family_robust_denominator_phase3_only_v1"
 )
+RA_ADAPT_PHASE23_QISKIT_COST_ROUTE_SUFFIX = (
+    "macro_phase1_then_singleton_phase1_then_qiskit_phase2_phase3_"
+    "no_lanes_v1"
+)
+RA_ADAPT_PHASE23_QISKIT_COST_POLICY = (
+    "qiskit_full_trial_ansatz_signed_marginal_phase2_phase3_v1"
+)
+RA_ADAPT_PHASE23_QISKIT_COST_PHASE_REUSE = (
+    "phase_ii_phase_iii_shared_oracle_snapshot_and_cache_v1"
+)
+RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE = 24
 RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS = frozenset(
     {
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID,
@@ -317,6 +413,22 @@ ALWAYS_REDUCED_INSERTION_EQUIVALENCE = (
 GLOBAL_SINGLETON_ROUTE_SUFFIX = (
     "global_guarded_singleton_phase_i__identity_phase_ii"
 )
+RA_ADAPT_MACRO_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX = (
+    "macro_abs_gradient_phase0_then_guarded_singleton_phase1_"
+    "then_qiskit_phase2_phase3_no_lanes_v1"
+)
+RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ROUTE_SUFFIX = (
+    "macro_abs_gradient_phase0_then_macro_phase1_then_identity_macro_"
+    "phase2_phase3_proxy_no_lanes_v1"
+)
+RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ROUTE_SUFFIX = (
+    "macro_abs_gradient_phase0_then_macro_phase1_then_identity_macro_"
+    "phase2_phase3_qiskit_no_lanes_v1"
+)
+RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX = (
+    "global_singleton_abs_gradient_phase0_then_singleton_phase1_"
+    "then_qiskit_phase2_phase3_no_lanes_v1"
+)
 
 
 def _global_singleton_supply_contract(
@@ -338,8 +450,28 @@ def _global_singleton_supply_contract(
             adapter.phase_ii_candidate_exposure_id
         ),
     }
+    expected_adapter_id = (
+        PAPER_I_RA_SEMANTIC_ADAPTER_ID
+        if is_semantic_closure_adapter(adapter)
+        else PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID
+        if isinstance(
+            adapter,
+            PaperIPureHubbardNoisePage12CandidateAdapter,
+        )
+        else PAPER_I_L3_PAGE12_ADAPTER_ID
+        if isinstance(
+            adapter,
+            PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+        )
+        else GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID
+        if isinstance(
+            adapter,
+            GlobalSingletonGradientPhase0CandidateAdapter,
+        )
+        else GLOBAL_SINGLE_PAULI_ADAPTER_ID
+    )
     expected = {
-        "candidate_adapter_id": GLOBAL_SINGLE_PAULI_ADAPTER_ID,
+        "candidate_adapter_id": expected_adapter_id,
         "phase_i_candidate_supply": (
             PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON
         ),
@@ -581,6 +713,108 @@ def _validate_executed_insertion_contract(
                 "The Phase-III-only Qiskit route lost its source-locked "
                 "compile-cost contract."
             )
+    if (
+        str(algorithm_id)
+        == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+    ):
+        if (
+            type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+            or execution.get("ra_phase0_gradient_shortlist_policy")
+            != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+            or execution.get("ra_phase0_gradient_shortlist_size")
+            != RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+            or execution.get("phase3_backend_cost_mode")
+            != MARRAKESH_GRAPH_SPAN_MODE
+            or "phase3_backend_cost_scope" in execution
+            or execution.get("static_lane_route")
+            != "global_single_population"
+            or "physical_lane_shortlist_aggressiveness" in execution
+            or invariants.get("phase0_active") is not True
+            or invariants.get("phase0_fubini_metric_active") is not False
+            or invariants.get("phase0_compile_cost_active") is not False
+            or invariants.get("phase0_estimator_components") != ["N_grad"]
+            or invariants.get("selector_qiskit_compile_cost_active")
+            is not False
+            or invariants.get("physical_operator_lanes_active") is not False
+            or invariants.get("shortlist_population_policy")
+            != "single_global_population_v1"
+            or invariants.get("macro_generator_identity_preserved_all_phases")
+            is not True
+            or invariants.get("singleton_child_exposure_active") is not False
+            or invariants.get(
+                "plateau_prior_mean_decrease_ratio_threshold"
+            )
+            != 1.0e-4
+        ):
+            raise RuntimeError(
+                "The macro-only gradient-Phase-0 proxy/no-lanes route "
+                "drifted from its typed contract."
+            )
+    if (
+        str(algorithm_id)
+        == RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+    ):
+        if (
+            type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+            or execution.get("ra_phase0_gradient_shortlist_policy")
+            != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+            or execution.get("ra_phase0_gradient_shortlist_size")
+            != RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+            or execution.get("phase3_backend_cost_mode")
+            != MARRAKESH_GRAPH_SPAN_MODE
+            or execution.get("phase3_backend_cost_scope")
+            != BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+            or execution.get("phase3_backend_name") != "FakeMarrakesh"
+            or execution.get("phase3_backend_optimization_level") != 1
+            or execution.get("phase3_backend_transpile_seed") != 7
+            or execution.get("static_lane_route")
+            != "global_single_population"
+            or "physical_lane_shortlist_aggressiveness" in execution
+            or invariants.get("phase0_active") is not True
+            or invariants.get("phase0_fubini_metric_active") is not False
+            or invariants.get("phase0_compile_cost_active") is not False
+            or invariants.get("phase0_estimator_components") != ["N_grad"]
+            or invariants.get("selector_qiskit_compile_cost_active")
+            is not True
+            or invariants.get("selector_compile_cost_policy")
+            != RA_ADAPT_PHASE23_QISKIT_COST_POLICY
+            or invariants.get("selector_compile_cost_phase_reuse")
+            != RA_ADAPT_PHASE23_QISKIT_COST_PHASE_REUSE
+            or invariants.get("selector_compile_cost_scope")
+            != BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+            or invariants.get("phase_i_compile_cost_source")
+            != "structural_proxy_v1"
+            or invariants.get("phase_ii_compile_cost_source")
+            != "backend_transpile_v1"
+            or invariants.get("phase_iii_compile_cost_source")
+            != "backend_transpile_v1"
+            or invariants.get(
+                "phase_ii_phase_iii_qiskit_negative_delta_reward_enabled"
+            )
+            is not True
+            or invariants.get(
+                "phase_ii_phase_iii_qiskit_backend_fallback_allowed"
+            )
+            is not False
+            or invariants.get(
+                "phase_ii_phase_iii_qiskit_population_normalization_policy"
+            )
+            != "zero_centered_signed_arctan_v1"
+            or invariants.get("physical_operator_lanes_active") is not False
+            or invariants.get("shortlist_population_policy")
+            != "single_global_population_v1"
+            or invariants.get("macro_generator_identity_preserved_all_phases")
+            is not True
+            or invariants.get("singleton_child_exposure_active") is not False
+            or invariants.get(
+                "plateau_prior_mean_decrease_ratio_threshold"
+            )
+            != 1.0e-4
+        ):
+            raise RuntimeError(
+                "The macro-only gradient-Phase-0 Phase-II/III Qiskit route "
+                "drifted from its typed contract."
+            )
     if str(algorithm_id) == RA_ADAPT_SINGLETON_PHASE3_PLATEAU_ALGORITHM_ID:
         expected_execution = {
             "ra_phase3_population_activation_policy": (
@@ -711,6 +945,83 @@ def _sr_request(request: RAAdaptRequest) -> SRRunRequest:
     )
 
 
+def _compose_macro_plateau_pruning_and_beam(
+    request: RAAdaptRequest,
+    *,
+    parent_contract: Mapping[str, Any],
+    parent_digest: str,
+) -> tuple[dict[str, Any], str]:
+    """Overlay typed pruning/beam semantics on the macro plateau parent."""
+
+    if isinstance(request.method.pruning, PruningOff) and isinstance(
+        request.method.beam, BeamOff
+    ):
+        return dict(parent_contract), str(parent_digest)
+
+    (
+        _policy_request,
+        _policy_profile,
+        policy_contract,
+        _policy_digest,
+    ) = _canonical_route_contract_for_request(_sr_request(request))
+    normalized = json.loads(json.dumps(parent_contract, sort_keys=True))
+
+    execution = dict(normalized.get("execution_settings", {}))
+    for key in tuple(execution):
+        if str(key).startswith(("phase1_prune_", "adapt_beam_")):
+            execution.pop(key)
+    execution.update(
+        {
+            str(key): value
+            for key, value in policy_contract["execution_settings"].items()
+            if str(key).startswith(("phase1_prune_", "adapt_beam_"))
+        }
+    )
+    normalized["execution_settings"] = execution
+
+    invariants = dict(normalized.get("semantic_invariants", {}))
+    policy_exact_keys = {
+        "pruning_active",
+        "terminal_prune_active",
+        "canonical_admission_policy",
+        "canonical_insertion_policy",
+        "canonical_pruning_policy",
+        "canonical_beam_policy",
+        "canonical_composition_schema",
+        "compatibility_resolution_active",
+    }
+    for key in tuple(invariants):
+        if (
+            str(key).startswith(("prune_", "beam_"))
+            or key in policy_exact_keys
+        ):
+            invariants.pop(key)
+    invariants.update(
+        {
+            str(key): value
+            for key, value in policy_contract["semantic_invariants"].items()
+            if (
+                str(key).startswith(("prune_", "beam_"))
+                or key in policy_exact_keys
+            )
+        }
+    )
+    normalized["semantic_invariants"] = invariants
+    normalized["route_profile"] = (
+        f"{parent_contract['route_profile']}"
+        f"__pruning-{request.method.pruning.kind}"
+        f"__beam-{request.method.beam.kind}"
+    )
+    normalized["lineage_authority"] = {
+        "parent_route_profile": str(parent_contract["route_profile"]),
+        "parent_contract_sha256": str(parent_digest),
+        "typed_policy_composition": request.method.to_dict(),
+        "scientific_result_anchor_claimed": False,
+    }
+    normalized = json.loads(json.dumps(normalized, sort_keys=True))
+    return normalized, _route_sha256(normalized)
+
+
 def _macro_parent_contract(
     request: RAAdaptRequest,
     *,
@@ -748,13 +1059,23 @@ def _macro_parent_contract(
         )
     if isinstance(request.method.insertion, PlateauCommutationInsertion):
         if str(algorithm_id) == RA_ADAPT_LEGACY_ALGORITHM_ID:
-            return (
-                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract(),
-                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256(),
+            parent_contract = (
+                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract()
             )
-        return (
-            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract(),
-            canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256(),
+            parent_digest = (
+                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v1_contract_sha256()
+            )
+        else:
+            parent_contract = (
+                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract()
+            )
+            parent_digest = (
+                canonical_sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2_contract_sha256()
+            )
+        return _compose_macro_plateau_pruning_and_beam(
+            request,
+            parent_contract=parent_contract,
+            parent_digest=parent_digest,
         )
     if isinstance(
         request.method.insertion,
@@ -803,6 +1124,9 @@ def _repaired_route_contract(
         request.adapter
     )
     algorithm_identity = str(algorithm_id)
+    semantic_closure_active = bool(
+        algorithm_identity in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+    )
     endpoint_overlap_trust_active = isinstance(
         request.method.trust_update,
         EndpointOverlapDisplacementTrust,
@@ -871,13 +1195,180 @@ def _repaired_route_contract(
     phase3_only_qiskit_cost_active = bool(
         algorithm_identity in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS
     )
+    phase23_qiskit_cost_active = bool(
+        algorithm_identity in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS
+        or semantic_closure_active
+    )
+    macro_gradient_phase0_active = bool(
+        algorithm_identity
+        == (
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+        )
+    )
+    macro_only_gradient_phase0_proxy_active = bool(
+        algorithm_identity
+        == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+    )
+    macro_only_gradient_phase0_qiskit_active = bool(
+        algorithm_identity
+        == RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+    )
+    macro_only_gradient_phase0_active = bool(
+        macro_only_gradient_phase0_proxy_active
+        or macro_only_gradient_phase0_qiskit_active
+    )
+    global_singleton_gradient_phase0_active = bool(
+        algorithm_identity
+        in {
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+            *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
+        }
+    )
+    pure_hubbard_noise_application = bool(
+        algorithm_identity
+        == PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID
+    )
+    if bool(
+        isinstance(
+            request.adapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        )
+    ) != macro_gradient_phase0_active:
+        raise ValueError(
+            "The macro gradient-Phase-0 adapter and algorithm identity must "
+            "be selected together."
+        )
+    if pure_hubbard_noise_application != bool(
+        type(request.adapter) is PaperIPureHubbardNoisePage12CandidateAdapter
+    ):
+        raise ValueError(
+            "The pure-Hubbard full-noise adapter and algorithm identity must "
+            "be selected together."
+        )
+    if bool(
+        type(request.adapter) is MacroGradientPhase0CandidateAdapter
+    ) != macro_only_gradient_phase0_active:
+        raise ValueError(
+            "The macro-only gradient-Phase-0 adapter and algorithm identity "
+            "must be selected together."
+        )
+    gradient_phase0_adapter_active = bool(
+        isinstance(
+            request.adapter,
+            GlobalSingletonGradientPhase0CandidateAdapter,
+        )
+        or is_semantic_closure_adapter(request.adapter)
+    )
+    if (
+        gradient_phase0_adapter_active
+        != global_singleton_gradient_phase0_active
+        or semantic_closure_active
+        != is_semantic_closure_adapter(request.adapter)
+    ):
+        raise ValueError(
+            "The global-singleton gradient-Phase-0 adapter and algorithm "
+            "identity must be selected together."
+        )
     phase3_qiskit_denominator_no_lanes_active = bool(
         algorithm_identity
         == RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID
     )
     any_qiskit_cost_active = bool(
-        qiskit_cost_active or phase3_only_qiskit_cost_active
+        qiskit_cost_active
+        or phase3_only_qiskit_cost_active
+        or phase23_qiskit_cost_active
     )
+    if (
+        algorithm_identity
+        == RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+    ) and (
+        not isinstance(
+            request.adapter,
+            MacroThenSingletonPhaseICandidateAdapter,
+        )
+        or isinstance(
+            request.adapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        )
+        or not isinstance(request.method.admission, SingletonAdmission)
+        or not isinstance(
+            request.method.insertion,
+            PlateauCommutationInsertion,
+        )
+        or str(active_gradient_policy) != ACTIVE_GRADIENT_STATIONARY
+        or str(resource_weighting_scope) != RESOURCE_WEIGHTING_ALL_PHASE
+    ):
+        raise ValueError(
+            "The staged Phase-II/III Qiskit route requires macro Phase-I "
+            "prefiltering, singleton Phase-I/II/III, plateau-v2 insertion, "
+            "stationary active response, and all-phase resource weighting."
+        )
+    if macro_gradient_phase0_active and (
+        not isinstance(
+            request.adapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        )
+        or str(request.adapter.macro_phase0_policy_id)
+        != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+        or not isinstance(request.method.admission, SingletonAdmission)
+        or not isinstance(
+            request.method.insertion,
+            PlateauCommutationInsertion,
+        )
+        or str(active_gradient_policy) != ACTIVE_GRADIENT_STATIONARY
+        or str(resource_weighting_scope) != RESOURCE_WEIGHTING_ALL_PHASE
+    ):
+        raise ValueError(
+            "The macro gradient-Phase-0 route requires the exact |g|-only "
+            "macro screen, guarded singleton Phase-I/II/III, plateau-v2 "
+            "insertion, stationary active response, and all-phase resource "
+            "weighting."
+        )
+    if macro_only_gradient_phase0_active and (
+        type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+        or str(request.adapter.macro_phase0_policy_id)
+        != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+        or representation != CANDIDATE_REPRESENTATION_MACRO
+        or not isinstance(request.method.admission, SingletonAdmission)
+        or not isinstance(
+            request.method.insertion,
+            PlateauCommutationInsertion,
+        )
+        or str(active_gradient_policy) != ACTIVE_GRADIENT_STATIONARY
+        or str(resource_weighting_scope) != RESOURCE_WEIGHTING_ALL_PHASE
+    ):
+        raise ValueError(
+            "The macro-only gradient-Phase-0 route requires the exact "
+            "|g|-only macro screen, intact macro Phase-I/II/III, singleton "
+            "admission, plateau-v2 insertion, stationary active response, "
+            "and all-phase resource weighting."
+        )
+    if (
+        global_singleton_gradient_phase0_active
+        and not semantic_closure_active
+        and (
+            not isinstance(
+                request.adapter,
+                GlobalSingletonGradientPhase0CandidateAdapter,
+            )
+            or str(request.adapter.phase0_shortlist_policy_id)
+            != GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY
+            or not isinstance(request.method.admission, SingletonAdmission)
+            or not isinstance(
+                request.method.insertion,
+                PlateauCommutationInsertion,
+            )
+            or str(active_gradient_policy) != ACTIVE_GRADIENT_STATIONARY
+            or str(resource_weighting_scope) != RESOURCE_WEIGHTING_ALL_PHASE
+        )
+    ):
+        raise ValueError(
+            "The initialized-singleton gradient-Phase-0 route requires the "
+            "exact |g|-only global-singleton screen, singleton Phase-I/II/III, "
+            "plateau-v2 insertion, stationary active response, and all-phase "
+            "resource weighting."
+        )
     if phase3_only_qiskit_cost_active and (
         global_singleton_supply is None
         or not isinstance(request.method.admission, SingletonAdmission)
@@ -952,7 +1443,7 @@ def _repaired_route_contract(
         )
         policy_parent_contract = parent_contract
     elif representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
-        if (
+        if pure_hubbard_noise_application or (
             algorithm_identity == RA_ADAPT_LEGACY_ALGORITHM_ID
             and isinstance(
                 request.method.insertion,
@@ -976,6 +1467,18 @@ def _repaired_route_contract(
     else:
         raise ValueError("Unknown RA candidate representation.")
 
+    if pure_hubbard_noise_application:
+        policy_parent_contract = json.loads(
+            json.dumps(policy_parent_contract, sort_keys=True)
+        )
+        pure_execution = dict(
+            policy_parent_contract.get("execution_settings", {})
+        )
+        pure_execution["adapt_insertion_mode"] = (
+            "insertion_commutation_plateau_v1"
+        )
+        policy_parent_contract["execution_settings"] = pure_execution
+
     insertion_mode = str(
         policy_parent_contract.get("execution_settings", {}).get(
             "adapt_insertion_mode", ""
@@ -992,6 +1495,31 @@ def _repaired_route_contract(
         if h2o_application
         else ""
     )
+    candidate_route_suffix = (
+        "__" + GLOBAL_SINGLETON_ROUTE_SUFFIX
+        if global_singleton_supply is not None
+        else ""
+    )
+    phase23_qiskit_route_suffix = (
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX
+        if macro_gradient_phase0_active
+        else RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ROUTE_SUFFIX
+        if macro_only_gradient_phase0_qiskit_active
+        else RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX
+        if global_singleton_gradient_phase0_active
+        else RA_ADAPT_PHASE23_QISKIT_COST_ROUTE_SUFFIX
+    )
+    policy_composition_route_suffix = (
+        (
+            f"__pruning-{request.method.pruning.kind}"
+            f"__beam-{request.method.beam.kind}"
+        )
+        if (
+            not isinstance(request.method.pruning, PruningOff)
+            or not isinstance(request.method.beam, BeamOff)
+        )
+        else ""
+    )
     profile = (
         (
             "paper_iv_h2o_ra_adapt__"
@@ -1002,15 +1530,12 @@ def _repaired_route_contract(
         + h2o_candidate_route_suffix
         + "__"
         + insertion_mode
-        + (
-            "__" + GLOBAL_SINGLETON_ROUTE_SUFFIX
-            if global_singleton_supply is not None
-            else ""
-        )
+        + candidate_route_suffix
         + "__"
         + str(active_gradient_policy)
         + "__"
         + str(resource_weighting_scope)
+        + policy_composition_route_suffix
         + (
             "__endpoint_overlap_displacement_trust_v1"
             if endpoint_overlap_trust_active
@@ -1022,6 +1547,14 @@ def _repaired_route_contract(
             else ""
         )
         + (
+            "__" + RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ROUTE_SUFFIX
+            if macro_only_gradient_phase0_proxy_active
+            else ""
+        )
+        + (
+            "__" + phase23_qiskit_route_suffix
+            if phase23_qiskit_cost_active
+            else
             "__"
             + (
                 RA_ADAPT_PHASE3_QISKIT_DENOMINATOR_ROUTE_SUFFIX
@@ -1114,7 +1647,80 @@ def _repaired_route_contract(
                 "phase3_backend_cost_mode": "proxy",
             }
         )
-    if phase3_only_qiskit_cost_active:
+    if phase23_qiskit_cost_active:
+        execution.update(
+            {
+                "phase3_backend_cost_mode": MARRAKESH_GRAPH_SPAN_MODE,
+                "phase3_backend_cost_scope": (
+                    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+                ),
+                "phase3_backend_name": "FakeMarrakesh",
+                "phase3_backend_optimization_level": 1,
+                "phase3_backend_transpile_seed": 7,
+                "adapt_parallel_gradient_workers": 4,
+                "phase3_hardware_cost_normalization_mode": (
+                    "zero_centered_signed_arctan_v1"
+                ),
+            }
+        )
+        if (
+            macro_gradient_phase0_active
+            or macro_only_gradient_phase0_qiskit_active
+        ):
+            execution.update(
+                {
+                    "ra_phase0_gradient_shortlist_policy": (
+                        MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+                    ),
+                    "ra_phase0_gradient_shortlist_size": (
+                        RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+                    ),
+                }
+            )
+        elif global_singleton_gradient_phase0_active:
+            execution.update(
+                {
+                    "ra_phase0_gradient_shortlist_policy": (
+                        GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY
+                    ),
+                    "ra_phase0_gradient_shortlist_size": (
+                        RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+                    ),
+                }
+            )
+        if pure_hubbard_noise_application:
+            adapter = request.adapter
+            assert isinstance(
+                adapter,
+                PaperIPureHubbardNoisePage12CandidateAdapter,
+            )
+            execution.update(
+                {
+                    "problem": "hubbard",
+                    "adapt_pool": "full_meta",
+                    "adapt_parallel_gradient_workers": 1,
+                    "allow_archival_phase3_runtime_split": False,
+                    "phase3_runtime_split_mode": "off",
+                    "phase3_runtime_split_selection_mode": "off",
+                    "phase3_runtime_split_child_padding_policy": (
+                        ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1
+                    ),
+                    "ra_controller_noise_contract": (
+                        {
+                            **pure_hubbard_noise_level_contract(
+                                adapter.noise_level_id
+                            ),
+                            "surface": {
+                                "candidate_gradient_scoring": "noisy",
+                                "powell_refit_objective": "noisy",
+                                "geometry_and_gram": "exact",
+                                "reported_energy": "exact_diagnostic",
+                            },
+                        }
+                    ),
+                }
+            )
+    elif phase3_only_qiskit_cost_active:
         execution.update(
             {
                 "phase3_backend_cost_mode": MARRAKESH_GRAPH_SPAN_MODE,
@@ -1142,9 +1748,29 @@ def _repaired_route_contract(
                 "adapt_parallel_gradient_workers": 4,
             }
         )
+    if macro_only_gradient_phase0_proxy_active:
+        execution.update(
+            {
+                "ra_phase0_gradient_shortlist_policy": (
+                    MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+                ),
+                "ra_phase0_gradient_shortlist_size": (
+                    RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+                ),
+                "phase3_backend_cost_mode": MARRAKESH_GRAPH_SPAN_MODE,
+            }
+        )
+        execution.pop("phase3_backend_cost_scope", None)
     if str(algorithm_identity) in {
         RA_ADAPT_MACRO_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
+        *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
     }:
         # Lanes-off arm of the macro always-insertion ablation. The single
         # executable change is the Phase-I shortlist population: one global
@@ -1321,7 +1947,121 @@ def _repaired_route_contract(
         )
     if global_singleton_supply is not None:
         invariants.update(global_singleton_supply)
-    if phase3_only_qiskit_cost_active:
+    if pure_hubbard_noise_application:
+        # The shared Page-12 parent is calibrated to the later prior-mean v2
+        # trigger.  This named noise application deliberately reuses the
+        # original cumulative-relative v1 trigger, so remove every inherited
+        # v2-only statement before binding the replacement semantics.
+        for inherited_v2_key in (
+            "plateau_prior_mean_decrease_ratio_threshold",
+            "plateau_threshold_comparison",
+            "plateau_trigger_source",
+            "plateau_threshold_calibration_status",
+        ):
+            invariants.pop(inherited_v2_key, None)
+        invariants.update(
+            {
+                "application_lane": (
+                    "paper_i_pure_hubbard_page12_full_noise_v1"
+                ),
+                "problem_family": "hubbard",
+                "controller_noise_active": True,
+                "controller_noise_candidate_gradient_scoring": "noisy",
+                "controller_noise_powell_refit_objective": "noisy",
+                "controller_noise_geometry_and_gram": "exact",
+                "reported_energy_semantics": "exact_diagnostic",
+                "value_noise_iid_not_frozen_keyed": True,
+                "optimizer_evaluation_order": "serial_v1",
+                "experimental_insertion_policy": (
+                    "insertion_commutation_plateau_v1"
+                ),
+                "plateau_progress_statistic": (
+                    "marginal_to_prior_cumulative_energy_decrease_v1"
+                ),
+                "plateau_cumulative_decrease_ratio_threshold": 1.0e-4,
+                "plateau_threshold_comparison": (
+                    "marginal_to_prior_cumulative_strictly_below_v1"
+                ),
+                "plateau_trigger_source": (
+                    "immediately_preceding_marginal_over_prior_cumulative_"
+                    "accepted_post_full_refit_energy_decrease_v1"
+                ),
+                "plateau_threshold_calibration_status": (
+                    "source_locked_completed_trajectory_replay_v1"
+                ),
+                "plateau_energy_source": (
+                    "persisted_noisy_controller_energy_before_after_v1"
+                ),
+            }
+        )
+    if phase23_qiskit_cost_active:
+        candidate_funnel_order = (
+            "macro_gradient_phase0_shortlist_then_guarded_singleton_"
+            "phase1_shortlist_then_singleton_phase2_then_singleton_phase3_v1"
+            if macro_gradient_phase0_active
+            else "macro_gradient_phase0_shortlist_then_macro_phase1_then_"
+            "identity_macro_phase2_then_macro_phase3_v1"
+            if macro_only_gradient_phase0_qiskit_active
+            else "global_singleton_gradient_phase0_shortlist_then_singleton_"
+            "phase1_shortlist_then_singleton_phase2_then_singleton_phase3_v1"
+            if global_singleton_gradient_phase0_active
+            else "macro_phase1_shortlist_then_guarded_singleton_"
+            "phase1_shortlist_then_singleton_phase2_then_singleton_phase3_v1"
+        )
+        invariants.update(
+            {
+                "selector_compile_cost_policy": (
+                    RA_ADAPT_PHASE23_QISKIT_COST_POLICY
+                ),
+                "selector_compile_cost_scope": (
+                    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+                ),
+                "selector_compile_cost_phase_reuse": (
+                    RA_ADAPT_PHASE23_QISKIT_COST_PHASE_REUSE
+                ),
+                "phase_i_compile_cost_source": "structural_proxy_v1",
+                "phase_ii_compile_cost_source": "backend_transpile_v1",
+                "phase_iii_compile_cost_source": "backend_transpile_v1",
+                "phase_ii_phase_iii_qiskit_negative_delta_reward_enabled": (
+                    True
+                ),
+                "phase_ii_phase_iii_qiskit_backend_fallback_allowed": False,
+                "phase_ii_phase_iii_qiskit_structure_theta_value": 1.0,
+                "phase_ii_phase_iii_qiskit_full_base_trial_ansatz_transpile": (
+                    True
+                ),
+                "phase_ii_phase_iii_qiskit_population_normalization_policy": (
+                    "zero_centered_signed_arctan_v1"
+                ),
+                "candidate_funnel_order": candidate_funnel_order,
+            }
+        )
+        if isinstance(
+            request.adapter,
+            MacroThenSingletonPhaseICandidateAdapter,
+        ):
+            invariants["post_exposure_singleton_phase_i_policy"] = str(
+                request.adapter.post_exposure_phase_i_shortlist_id
+            )
+        if (
+            macro_gradient_phase0_active
+            or macro_only_gradient_phase0_qiskit_active
+            or global_singleton_gradient_phase0_active
+        ):
+            invariants.update(
+                {
+                    "phase0_active": True,
+                    "phase0_score": "standard_adapt_absolute_gradient_v1",
+                    "phase0_fubini_metric_active": False,
+                    "phase0_resource_cost_active": False,
+                    "phase0_compile_cost_active": False,
+                    "phase0_shortlist_size": (
+                        RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+                    ),
+                    "phase0_estimator_components": ["N_grad"],
+                }
+            )
+    elif phase3_only_qiskit_cost_active:
         invariants.update(
             {
                 "selector_compile_cost_policy": (
@@ -1393,9 +2133,43 @@ def _repaired_route_contract(
                 ),
             }
         )
+    if macro_only_gradient_phase0_active:
+        invariants.update(
+            {
+                "phase0_active": True,
+                "phase0_score": "standard_adapt_absolute_gradient_v1",
+                "phase0_fubini_metric_active": False,
+                "phase0_resource_cost_active": False,
+                "phase0_compile_cost_active": False,
+                "phase0_shortlist_size": (
+                    RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+                ),
+                "phase0_estimator_components": ["N_grad"],
+                "candidate_funnel_order": (
+                    "macro_gradient_phase0_shortlist_then_macro_phase1_"
+                    "then_identity_macro_phase2_then_macro_phase3_v1"
+                ),
+                "selector_qiskit_compile_cost_active": bool(
+                    macro_only_gradient_phase0_qiskit_active
+                ),
+                "macro_generator_identity_preserved_all_phases": True,
+                "singleton_child_exposure_active": False,
+            }
+        )
+        if macro_only_gradient_phase0_proxy_active:
+            invariants["phase_i_phase_ii_phase_iii_cost_source"] = (
+                "marrakesh_graph_span_structural_proxy_v1"
+            )
     if str(algorithm_identity) in {
         RA_ADAPT_MACRO_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
+        *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
     }:
         invariants.update(
             {
@@ -1420,6 +2194,20 @@ def _repaired_route_contract(
                 "measured_nonstationary_active_response",
                 "candidate_gain_subtracts_active_only_supported_trust_baseline",
                 "guarded_full_existing_plus_new_coordinate_refit_seed",
+            ]
+        )
+    if macro_only_gradient_phase0_active:
+        only_intended_scientific_changes.extend(
+            [
+                "standard_adapt_absolute_gradient_macro_phase0_cap24",
+                "retained_macro_identity_preserved_phase1_phase2_phase3",
+                "single_global_shortlist_population_no_physical_lanes",
+                (
+                    "phase_i_structural_proxy_then_qiskit_phase2_phase3"
+                    if macro_only_gradient_phase0_qiskit_active
+                    else "structural_graph_span_proxy_without_qiskit_"
+                    "selector_compile"
+                ),
             ]
         )
     if phase3_population_plateau_ablation:
@@ -1458,7 +2246,57 @@ def _repaired_route_contract(
                 "identity_preserving_phase_ii_singleton_exposure",
             ]
         )
-    if phase3_only_qiskit_cost_active:
+    if pure_hubbard_noise_application:
+        only_intended_scientific_changes.extend(
+            [
+                "pure_hubbard_l2_named_application",
+                "fixed_full_noise_candidate_gradient_scoring",
+                "fixed_full_noise_serial_powell_refit_objective",
+                "exact_geometry_and_gram_retained",
+                "exact_diagnostic_energy_separated_from_controller_energy",
+                "iid_value_noise_rng_checkpoint_restore",
+            ]
+        )
+    if phase23_qiskit_cost_active:
+        only_intended_scientific_changes.extend(
+            [
+                "qiskit_full_trial_ansatz_signed_delta_in_phase2_phase3",
+                "phase_i_phase_ii_phase_iii_single_global_shortlist_population",
+            ]
+        )
+        if macro_gradient_phase0_active:
+            only_intended_scientific_changes.extend(
+                [
+                    "standard_adapt_absolute_gradient_macro_phase0",
+                    "macro_phase0_shortlist_before_guarded_singleton_exposure",
+                    "fresh_singleton_phase1_shortlist_before_phase2",
+                    "phase0_omits_fubini_metric_and_resource_cost",
+                ]
+            )
+        elif macro_only_gradient_phase0_qiskit_active:
+            only_intended_scientific_changes.extend(
+                [
+                    "standard_adapt_absolute_gradient_macro_phase0",
+                    "intact_macro_identity_phase1_phase2_phase3",
+                    "phase0_omits_fubini_metric_and_resource_cost",
+                ]
+            )
+        elif global_singleton_gradient_phase0_active:
+            only_intended_scientific_changes.extend(
+                [
+                    "initialized_global_singleton_standard_adapt_gradient_phase0",
+                    "phase0_shortlist_before_singleton_phase1",
+                    "phase0_omits_fubini_metric_and_resource_cost",
+                ]
+            )
+        else:
+            only_intended_scientific_changes.extend(
+                [
+                    "macro_phase1_shortlist_before_guarded_singleton_exposure",
+                    "fresh_singleton_phase1_shortlist_before_phase2",
+                ]
+            )
+    elif phase3_only_qiskit_cost_active:
         only_intended_scientific_changes.append(
             "phase3_selector_cost_graph_span_to_qiskit_positive_clipped_"
             "marginal_transpile"
@@ -1520,12 +2358,31 @@ def _repaired_route_contract(
             else "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
             if canonical_full_response_v2
             else (
+                "paper_i_ra_adapt_macro_gradient_phase0_then_singleton_"
+                "phase123_phase23_qiskit_candidate_20260807"
+                if macro_gradient_phase0_active
+                else "paper_i_ra_adapt_macro_gradient_phase0_macro_phase123_"
+                "phase23_qiskit_candidate_20260811"
+                if macro_only_gradient_phase0_qiskit_active
+                else "paper_i_ra_adapt_global_singleton_gradient_phase0_"
+                "phase123_phase23_qiskit_candidate_20260807"
+                if global_singleton_gradient_phase0_active
+                else "paper_i_ra_adapt_macro_then_singleton_phase123_"
+                "phase23_qiskit_candidate_20260807"
+            )
+            if phase23_qiskit_cost_active
+            else (
                 "paper_i_ra_adapt_phase3_qiskit_denominator_no_lanes_"
                 "tau1em6_candidate_20260806"
                 if phase3_qiskit_denominator_no_lanes_active
                 else "paper_i_ra_adapt_phase3_only_qiskit_cost_candidate_20260806"
             )
             if phase3_only_qiskit_cost_active
+            else (
+                "paper_i_ra_adapt_macro_gradient_phase0_proxy_no_lanes_"
+                "candidate_20260810"
+            )
+            if macro_only_gradient_phase0_active
             else "paper_i_ra_adapt_singleton_phase3_plateau_ablation_20260802"
             if phase3_population_plateau_ablation
             else (
@@ -1540,6 +2397,15 @@ def _repaired_route_contract(
         ),
         "scientific_result_anchor_claimed": False,
     }
+    if semantic_closure_active:
+        return build_semantic_closure_route_contract(
+            request,
+            algorithm_id=algorithm_identity,
+            active_gradient_policy=str(active_gradient_policy),
+            resource_weighting_scope=str(resource_weighting_scope),
+            parent_contract=contract,
+            parent_contract_sha256=_route_sha256(contract),
+        )
     normalized = json.loads(json.dumps(contract, sort_keys=True))
     return profile, profile, normalized, _route_sha256(normalized)
 
@@ -1587,12 +2453,40 @@ def build_resolved_ra_protocol(
 
     if not isinstance(request, RAAdaptRequest):
         raise TypeError("request must be RAAdaptRequest.")
+    semantic_adapter = (
+        request.adapter
+        if isinstance(
+            request.adapter,
+            PaperIRASemanticClosureGlobalSingletonCandidateAdapter,
+        )
+        else None
+    )
     if materialization_authority is None:
-        active_gradient_policy = ACTIVE_GRADIENT_MEASURED
+        active_gradient_policy = (
+            ACTIVE_GRADIENT_STATIONARY
+            if semantic_adapter is not None
+            else ACTIVE_GRADIENT_MEASURED
+        )
         resource_weighting_scope = RESOURCE_WEIGHTING_ALL_PHASE
-        algorithm_id = RA_ADAPT_ALGORITHM_ID
-        bundle_id = RA_ADAPT_ORDINARY_BUNDLE_ID
-        bundle_manifest_sha256 = _ordinary_bundle_digest()
+        algorithm_id = (
+            semantic_adapter.algorithm_id
+            if semantic_adapter is not None
+            else RA_ADAPT_ALGORITHM_ID
+        )
+        bundle_id = (
+            semantic_closure_native_bundle_id(
+                semantic_adapter.route_variant
+            )
+            if semantic_adapter is not None
+            else RA_ADAPT_ORDINARY_BUNDLE_ID
+        )
+        bundle_manifest_sha256 = (
+            semantic_closure_native_bundle_digest(
+                semantic_adapter.route_variant
+            )
+            if semantic_adapter is not None
+            else _ordinary_bundle_digest()
+        )
         source_locks: Mapping[str, str] = {}
         materialization_receipt = None
     else:
@@ -1628,11 +2522,57 @@ def build_resolved_ra_protocol(
             materialization_receipt.resource_weighting_scope
         )
         algorithm_id = materialization_receipt.algorithm_id
+        if (
+            semantic_adapter is None
+            and str(algorithm_id) in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+        ) or (
+            semantic_adapter is not None
+            and str(algorithm_id) != semantic_adapter.algorithm_id
+        ):
+            raise ValueError(
+                "Semantic-closure adapter and materialized algorithm identity "
+                "must match."
+            )
+        if semantic_adapter is not None:
+            validate_semantic_closure_materialization_authority(
+                problem,
+                request,
+                receipt=materialization_receipt,
+                source_lock_refs=materialization_authority.source_lock_refs,
+            )
         bundle_id = materialization_receipt.bundle_id
         bundle_manifest_sha256 = (
             materialization_receipt.bundle_manifest_sha256
         )
         source_locks = materialization_authority.source_lock_refs
+    l3_page12_application = is_paper_i_l3_page12_application(
+        problem,
+        request,
+    )
+    pure_hubbard_noise_application = (
+        is_paper_i_pure_hubbard_noise_page12_application(
+            problem,
+            request,
+        )
+    )
+    if l3_page12_application:
+        require_paper_i_l3_page12_materialization(
+            problem=problem,
+            request=request,
+            algorithm_id=str(algorithm_id),
+            active_gradient_policy=str(active_gradient_policy),
+            resource_weighting_scope=str(resource_weighting_scope),
+            source_locks=source_locks,
+        )
+    if pure_hubbard_noise_application:
+        require_paper_i_pure_hubbard_noise_page12_materialization(
+            problem=problem,
+            request=request,
+            algorithm_id=str(algorithm_id),
+            active_gradient_policy=str(active_gradient_policy),
+            resource_weighting_scope=str(resource_weighting_scope),
+            source_locks=source_locks,
+        )
     parent = request.adapter.parent_inventory(problem)
     executable = request.adapter.executable_pool(problem)
     candidate_inventory_lineage = (
@@ -1731,7 +2671,10 @@ def build_resolved_ra_protocol(
             ),
         }
     protocol_schema = (
-        RA_ADAPT_PROTOCOL_SCHEMA_V2
+        RA_ADAPT_PROTOCOL_SCHEMA
+        if semantic_adapter is not None
+        and materialization_receipt is None
+        else RA_ADAPT_PROTOCOL_SCHEMA_V2
         if materialization_receipt is None
         else str(materialization_receipt.protocol_schema)
     )
@@ -1783,6 +2726,13 @@ def build_resolved_ra_protocol(
         RA_ADAPT_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+        *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
     }:
         (
             _bound_route_request,
@@ -2712,6 +3662,289 @@ def _required_accepted_refit_fixed_chart(
     return receipt
 
 
+def _phase0_reduction_validation_population(
+    scored_population: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Bind a named gradient Phase0 domain to its retained scored subset."""
+
+    raw_phase0 = scored_population.get("phase0_gradient_screen")
+    if not isinstance(raw_phase0, Mapping) or raw_phase0.get("schema") != (
+        "paper_i_scored_gradient_phase0_population_v1"
+    ):
+        raise RuntimeError(
+            "Gradient Phase0 accepted round is missing its scored-domain "
+            "receipt."
+        )
+
+    def _validated_rows(
+        key: str,
+        count_key: str,
+        digest_key: str,
+    ) -> list[dict[str, Any]]:
+        raw_rows = raw_phase0.get(key)
+        if not isinstance(raw_rows, list) or not raw_rows or any(
+            not isinstance(row, Mapping) for row in raw_rows
+        ):
+            raise RuntimeError(
+                f"Gradient Phase0 {key} is missing or malformed."
+            )
+        rows = [dict(row) for row in raw_rows]
+        record_keys = [
+            (
+                str(row.get("domain_record_id", "")),
+                str(row.get("generator_id", "")),
+            )
+            for row in rows
+        ]
+        position_keys = [
+            (
+                int(row.get("pool_index", -1)),
+                int(row.get("insertion_position", -1)),
+            )
+            for row in rows
+        ]
+        if (
+            any(not all(record_key) for record_key in record_keys)
+            or any(min(position_key) < 0 for position_key in position_keys)
+            or len(set(record_keys)) != len(record_keys)
+            or len(set(position_keys)) != len(position_keys)
+            or int(raw_phase0.get(count_key, -1)) != len(rows)
+            or raw_phase0.get(digest_key) != canonical_sha256(rows)
+        ):
+            raise RuntimeError(
+                f"Gradient Phase0 {key} identity or digest drifted."
+            )
+        return rows
+
+    population = _validated_rows(
+        "population",
+        "population_count",
+        "ordered_population_sha256",
+    )
+    shortlist = _validated_rows(
+        "shortlist",
+        "shortlist_count",
+        "ordered_shortlist_sha256",
+    )
+    population_record_keys = {
+        (str(row["domain_record_id"]), str(row["generator_id"]))
+        for row in population
+    }
+    if any(
+        (str(row["domain_record_id"]), str(row["generator_id"]))
+        not in population_record_keys
+        for row in shortlist
+    ):
+        raise RuntimeError(
+            "Gradient Phase0 shortlist escaped its original population."
+        )
+
+    retained_positions = {
+        (int(row["pool_index"]), int(row["insertion_position"]))
+        for row in shortlist
+    }
+    raw_phases = scored_population.get("phases")
+    if not isinstance(raw_phases, list) or not raw_phases:
+        raise RuntimeError(
+            "Gradient Phase0 accepted round has no scored phases."
+        )
+    later_phases: list[dict[str, Any]] = []
+    for raw_phase in raw_phases:
+        if not isinstance(raw_phase, Mapping):
+            raise RuntimeError(
+                "Gradient Phase0 accepted round has a malformed scored phase."
+            )
+        raw_records = raw_phase.get("records")
+        if not isinstance(raw_records, list) or not raw_records or any(
+            not isinstance(row, Mapping) for row in raw_records
+        ):
+            raise RuntimeError(
+                "Gradient Phase0 accepted round has malformed scored records."
+            )
+        if any(
+            (
+                int(row.get("pool_index", -1)),
+                int(row.get("insertion_position", -1)),
+            )
+            not in retained_positions
+            for row in raw_records
+        ):
+            raise RuntimeError(
+                "Gradient Phase0 scored phase escaped the retained shortlist."
+            )
+        if raw_phase.get("phase") != "phase_i":
+            later_phases.append(dict(raw_phase))
+
+    return {
+        "phases": [
+            {
+                "phase": "phase_i",
+                "records": population,
+            },
+            *later_phases,
+        ]
+    }
+
+
+def _validated_gradient_phase0_round_receipt(
+    row: Mapping[str, Any],
+    *,
+    scored_population: Mapping[str, Any],
+    algorithm_id: str,
+) -> dict[str, Any]:
+    """Validate and retain the named pure-gradient Phase0 evidence."""
+
+    semantic_identity = None
+    if str(algorithm_id) in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS:
+        semantic_identity = semantic_closure_route_identity_from_algorithm(
+            str(algorithm_id)
+        )
+        raw = row.get("ra_gradient_phase0_shortlist")
+        if not isinstance(raw, Mapping):
+            raise RuntimeError(
+                "Accepted round is missing semantic Phase0 evidence."
+            )
+        if (
+            semantic_identity.route_variant
+            not in PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS
+        ):
+            raise RuntimeError("The v1 semantic Phase0 route is retired.")
+        if semantic_identity.route_variant in {
+            PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        }:
+            return validate_semantic_gradient_adaptive_phase0_receipt(
+                raw,
+                scored_population=scored_population,
+            )
+        if semantic_identity.route_variant in PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS:
+            return validate_semantic_position_phase0_receipt(
+                raw,
+                scored_population=scored_population,
+            )
+        if (
+            semantic_identity.route_variant
+            != PAPER_I_RA_PHASE0_GRADIENT_FIXED24_V2
+        ):
+            return validate_semantic_proxy_phase0_receipt(
+                raw,
+                scored_population=scored_population,
+            )
+
+    expected = {
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID: (
+            "paper_i_macro_gradient_phase0_receipt_v1",
+            MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
+        ),
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID: (
+            "paper_i_macro_gradient_phase0_receipt_v1",
+            MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
+        ),
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID: (
+            "paper_i_macro_gradient_phase0_receipt_v1",
+            MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
+        ),
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID: (
+            "paper_i_global_singleton_gradient_phase0_receipt_v1",
+            GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+        ),
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID: (
+            "paper_i_global_singleton_gradient_phase0_receipt_v1",
+            GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+        ),
+    }.get(str(algorithm_id))
+    if semantic_identity is not None:
+        expected = (
+            "paper_i_global_singleton_gradient_phase0_receipt_v1",
+            GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+        )
+    if expected is None:
+        raise RuntimeError("Unknown gradient Phase0 algorithm identity.")
+    raw = row.get("ra_gradient_phase0_shortlist")
+    if not isinstance(raw, Mapping):
+        raise RuntimeError("Accepted round is missing gradient Phase0 evidence.")
+    receipt = dict(raw)
+    observed_sha256 = receipt.pop("sha256", None)
+    accounting = receipt.get("estimator_accounting")
+    components = (
+        accounting.get("components")
+        if isinstance(accounting, Mapping)
+        else None
+    )
+    input_indices = receipt.get("input_pool_indices")
+    retained_indices = receipt.get("retained_pool_indices")
+    event_ids = receipt.get("estimator_event_ids")
+    input_count = int(receipt.get("input_candidate_count", -1))
+    retained_count = int(receipt.get("retained_candidate_count", -1))
+    if (
+        receipt.get("schema") != expected[0]
+        or receipt.get("policy") != expected[1]
+        or observed_sha256 != canonical_sha256(receipt)
+        or receipt.get("score")
+        != "absolute_coordinate_energy_gradient_v1"
+        or receipt.get("metric_policy") != "off"
+        or receipt.get("compile_cost_policy") != "off"
+        or receipt.get("measurement_cost_policy") != "off"
+        or int(receipt.get("requested_shortlist_size", -1))
+        != RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE
+        or not isinstance(input_indices, list)
+        or not isinstance(retained_indices, list)
+        or input_count != len(input_indices)
+        or retained_count != len(retained_indices)
+        or int(receipt.get("effective_shortlist_size", -1))
+        != retained_count
+        or retained_count
+        != min(RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE, input_count)
+        or len(set(int(value) for value in input_indices)) != input_count
+        or len(set(int(value) for value in retained_indices))
+        != retained_count
+        or not set(int(value) for value in retained_indices).issubset(
+            int(value) for value in input_indices
+        )
+        or not isinstance(event_ids, list)
+        or len(event_ids) != input_count
+        or len(set(str(value) for value in event_ids)) != input_count
+        or components
+        != {
+            "N_H_outer": 0,
+            "N_H_refit": 0,
+            "N_grad": input_count,
+            "N_metric": 0,
+        }
+        or accounting.get("S_alg") != input_count
+        or accounting.get("zero_metric_measurements") is not True
+    ):
+        raise RuntimeError("Accepted gradient Phase0 evidence is invalid.")
+
+    screen = scored_population.get("phase0_gradient_screen")
+    if not isinstance(screen, Mapping):
+        raise RuntimeError("Accepted gradient Phase0 scored domain is absent.")
+    population = screen.get("population")
+    shortlist = screen.get("shortlist")
+    if (
+        not isinstance(population, list)
+        or not isinstance(shortlist, list)
+        or {
+            int(record.get("pool_index", -1))
+            for record in population
+            if isinstance(record, Mapping)
+        }
+        != {int(value) for value in input_indices}
+        or {
+            int(record.get("pool_index", -1))
+            for record in shortlist
+            if isinstance(record, Mapping)
+        }
+        != {int(value) for value in retained_indices}
+    ):
+        raise RuntimeError(
+            "Gradient Phase0 detailed receipt and scored domain disagree."
+        )
+    return dict(raw)
+
+
 def _accepted_round_scientific_receipts(
     finalization: Mapping[str, Any],
     *,
@@ -2722,7 +3955,24 @@ def _accepted_round_scientific_receipts(
     trust_policy_id: str = SOURCE_GRAM_NO_OVERLAP_TRUST,
 ) -> list[dict[str, Any]]:
     raw_history = finalization.get("history")
-    if not isinstance(raw_history, (tuple, list)) or not raw_history:
+    stationary_semantic = bool(
+        str(algorithm_id or "") in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+        and finalization.get("terminal_controller_outcome")
+        == "phase0_stationary_no_competitive_candidate_v1"
+    )
+    phase3_no_admission_semantic = bool(
+        str(algorithm_id or "") in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+        and finalization.get("terminal_controller_outcome")
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and isinstance(
+            finalization.get("terminal_phase3_selection_receipt"),
+            Mapping,
+        )
+    )
+    if not isinstance(raw_history, (tuple, list)) or (
+        not raw_history
+        and not (stationary_semantic or phase3_no_admission_semantic)
+    ):
         raise RuntimeError(
             "Canonical RA finalization is missing accepted-round history."
         )
@@ -2737,6 +3987,10 @@ def _accepted_round_scientific_receipts(
     phase3_qiskit_denominator_no_lanes = bool(
         str(algorithm_id or "")
         == RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID
+    )
+    pure_hubbard_controller_noise = bool(
+        str(algorithm_id or "")
+        == PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID
     )
     phase3_latched = False
     first_latch_round: int | None = None
@@ -3008,6 +4262,91 @@ def _accepted_round_scientific_receipts(
                 dict(scored_positions)
             ),
         }
+        if pure_hubbard_controller_noise:
+            controller_noise = raw_row.get("controller_noise")
+            runtime_delta = (
+                controller_noise.get("runtime_delta")
+                if isinstance(controller_noise, Mapping)
+                else None
+            )
+            delta_records = (
+                runtime_delta.get("evaluation_records_delta")
+                if isinstance(runtime_delta, Mapping)
+                else None
+            )
+            delta_compile_receipts = (
+                runtime_delta.get("compiled_noise_receipts_delta")
+                if isinstance(runtime_delta, Mapping)
+                else None
+            )
+            rng_state_after = (
+                runtime_delta.get("rng_state_after")
+                if isinstance(runtime_delta, Mapping)
+                else None
+            )
+            if (
+                not isinstance(controller_noise, Mapping)
+                or controller_noise.get("schema")
+                != "paper_i_pure_hubbard_controller_noise_transition_v1"
+                or not isinstance(runtime_delta, Mapping)
+                or runtime_delta.get("schema")
+                != (
+                    "paper_i_pure_hubbard_controller_noise_"
+                    "transition_delta_v1"
+                )
+                or not isinstance(delta_records, list)
+                or not delta_records
+                or runtime_delta.get("evaluation_records_delta_sha256")
+                != canonical_sha256(delta_records)
+                or not isinstance(delta_compile_receipts, Mapping)
+                or runtime_delta.get(
+                    "compiled_noise_receipts_delta_sha256"
+                )
+                != canonical_sha256(delta_compile_receipts)
+                or not isinstance(rng_state_after, Mapping)
+                or runtime_delta.get("rng_state_after_sha256")
+                != canonical_sha256(rng_state_after)
+                or float(controller_noise.get("exact_diagnostic_energy_before"))
+                != float(raw_row["energy_before_opt"])
+                or float(controller_noise.get("exact_diagnostic_energy_after"))
+                != float(raw_row["energy_after_opt"])
+            ):
+                raise RuntimeError(
+                    "Accepted pure-Hubbard round lost its controller-noise "
+                    "transition closure."
+                )
+            round_receipt["controller_noise"] = copy.deepcopy(
+                dict(controller_noise)
+            )
+        if str(algorithm_id or "") in {
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+            *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
+        }:
+            round_receipt["ra_gradient_phase0_shortlist"] = (
+                _validated_gradient_phase0_round_receipt(
+                    raw_row,
+                    scored_population=scored_payload,
+                    algorithm_id=str(algorithm_id),
+                )
+            )
+        if str(algorithm_id or "") in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS:
+            projected_phase123 = raw_row.get(
+                "projected_phase3_population_receipt"
+            )
+            if not isinstance(projected_phase123, Mapping):
+                raise RuntimeError(
+                    "Accepted semantic round lost its Phase-I--III "
+                    "population evidence."
+                )
+            round_receipt["projected_phase3_population_receipt"] = (
+                validate_semantic_projected_phase123_receipt(
+                    projected_phase123
+                )
+            )
         if endpoint_overlap_trust_active:
             round_receipt["endpoint_overlap_trust"] = (
                 endpoint_overlap_projection
@@ -3027,6 +4366,33 @@ def _accepted_round_scientific_receipts(
                     "Accepted RA plateau-insertion policy is unknown."
                 )
             try:
+                validated_phase0 = round_receipt.get(
+                    "ra_gradient_phase0_shortlist"
+                )
+                position_phase0 = bool(
+                    isinstance(validated_phase0, Mapping)
+                    and validated_phase0.get("route_variant")
+                    in PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS
+                )
+                reduction_scored_population = (
+                    scored_payload
+                    if position_phase0
+                    else (
+                        _phase0_reduction_validation_population(
+                            scored_payload
+                        )
+                        if str(algorithm_id or "")
+                        in {
+                            RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+                            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+                            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+                            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+                            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+                            *PAPER_I_RA_SEMANTIC_ALGORITHM_IDS,
+                        }
+                        else scored_payload
+                    )
+                )
                 validate_commutation_reduced_insertion_receipt(
                     plateau,
                     expected_policy=plateau_policy,
@@ -3036,9 +4402,31 @@ def _accepted_round_scientific_receipts(
                         and plateau.get("domain_open") is True
                         else [append_position]
                     ),
-                    scored_population=scored_payload,
+                    scored_population=reduction_scored_population,
+                    expected_representative_pairs=(
+                        [
+                            (
+                                int(row["pool_index"]),
+                                int(row["insertion_position"]),
+                            )
+                            for row in validated_phase0["population"]
+                        ]
+                        if position_phase0
+                        else None
+                    ),
+                    expected_phase_i_pairs=(
+                        [
+                            (
+                                int(row["pool_index"]),
+                                int(row["insertion_position"]),
+                            )
+                            for row in validated_phase0["retained_records"]
+                        ]
+                        if position_phase0
+                        else None
+                    ),
                 )
-            except (TypeError, ValueError) as exc:
+            except (RuntimeError, TypeError, ValueError) as exc:
                 raise RuntimeError(
                     "Accepted RA plateau-insertion receipt is invalid."
                 ) from exc
@@ -3542,6 +4930,14 @@ def _accepted_round_scientific_receipts(
                     "Accepted RA insertion-reduction policy is unknown."
                 )
             try:
+                validated_phase0 = round_receipt.get(
+                    "ra_gradient_phase0_shortlist"
+                )
+                position_phase0 = bool(
+                    isinstance(validated_phase0, Mapping)
+                    and validated_phase0.get("route_variant")
+                    in PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS
+                )
                 validate_commutation_reduced_insertion_receipt(
                     reduced,
                     expected_policy=reduced_policy,
@@ -3549,6 +4945,28 @@ def _accepted_round_scientific_receipts(
                         expected_reduced_positions
                     ),
                     scored_population=scored_payload,
+                    expected_representative_pairs=(
+                        [
+                            (
+                                int(row["pool_index"]),
+                                int(row["insertion_position"]),
+                            )
+                            for row in validated_phase0["population"]
+                        ]
+                        if position_phase0
+                        else None
+                    ),
+                    expected_phase_i_pairs=(
+                        [
+                            (
+                                int(row["pool_index"]),
+                                int(row["insertion_position"]),
+                            )
+                            for row in validated_phase0["retained_records"]
+                        ]
+                        if position_phase0
+                        else None
+                    ),
                 )
             except (TypeError, ValueError) as exc:
                 raise RuntimeError(
@@ -3808,6 +5226,276 @@ def _validate_endpoint_only_accepted_round(
         )
 
 
+def _pure_hubbard_controller_noise_scientific_receipt(
+    *,
+    accepted_round_receipts: list[dict[str, Any]],
+    route_contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Close the named sequential-noise trace at the outer RA boundary."""
+
+    execution = route_contract.get("execution_settings")
+    noise_contract = (
+        execution.get("ra_controller_noise_contract")
+        if isinstance(execution, Mapping)
+        else None
+    )
+    if not isinstance(noise_contract, Mapping):
+        raise RuntimeError(
+            "Pure-Hubbard finalization lost its controller-noise contract."
+        )
+    terminal_records: list[dict[str, Any]] = []
+    compiled_noise_receipts: dict[str, dict[str, Any]] = {}
+    rng_state: dict[str, Any] | None = None
+    for ordinal, round_receipt in enumerate(
+        accepted_round_receipts, start=1
+    ):
+        transition = round_receipt.get("controller_noise")
+        delta = (
+            transition.get("runtime_delta")
+            if isinstance(transition, Mapping)
+            else None
+        )
+        records_delta = (
+            delta.get("evaluation_records_delta")
+            if isinstance(delta, Mapping)
+            else None
+        )
+        compile_delta = (
+            delta.get("compiled_noise_receipts_delta")
+            if isinstance(delta, Mapping)
+            else None
+        )
+        rng_state_after = (
+            delta.get("rng_state_after")
+            if isinstance(delta, Mapping)
+            else None
+        )
+        if (
+            not isinstance(delta, Mapping)
+            or delta.get("schema")
+            != "paper_i_pure_hubbard_controller_noise_transition_delta_v1"
+            or delta.get("noise_contract_sha256")
+            != noise_contract.get("sha256")
+            or not isinstance(records_delta, list)
+            or not records_delta
+            or int(delta.get("evaluation_count_before", -1))
+            != len(terminal_records)
+            or int(delta.get("evaluation_count_after", -1))
+            != len(terminal_records) + len(records_delta)
+            or delta.get("evaluation_records_delta_sha256")
+            != canonical_sha256(records_delta)
+            or not isinstance(compile_delta, Mapping)
+            or int(
+                delta.get("compiled_noise_receipt_count_before", -1)
+            )
+            != len(compiled_noise_receipts)
+            or any(
+                plan_digest in compiled_noise_receipts
+                for plan_digest in compile_delta
+            )
+            or int(
+                delta.get("compiled_noise_receipt_count_after", -1)
+            )
+            != len(compiled_noise_receipts) + len(compile_delta)
+            or delta.get("compiled_noise_receipts_delta_sha256")
+            != canonical_sha256(compile_delta)
+            or not isinstance(rng_state_after, Mapping)
+            or delta.get("rng_state_after_sha256")
+            != canonical_sha256(rng_state_after)
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard controller-noise round trace does not close "
+                f"at accepted round {ordinal}."
+            )
+        terminal_records.extend(copy.deepcopy(records_delta))
+        compiled_noise_receipts.update(
+            {
+                str(plan_digest): copy.deepcopy(dict(receipt))
+                for plan_digest, receipt in compile_delta.items()
+                if isinstance(receipt, Mapping)
+            }
+        )
+        if (
+            len(compiled_noise_receipts)
+            != int(delta["compiled_noise_receipt_count_after"])
+            or delta.get("cumulative_evaluation_records_sha256")
+            != canonical_sha256(terminal_records)
+            or delta.get("cumulative_compiled_noise_receipts_sha256")
+            != canonical_sha256(compiled_noise_receipts)
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard controller-noise cumulative delta closure "
+                f"failed at accepted round {ordinal}."
+            )
+        rng_state = copy.deepcopy(dict(rng_state_after))
+    if not terminal_records or rng_state is None:
+        raise RuntimeError("Pure-Hubbard controller-noise trace is absent.")
+    if (
+        not compiled_noise_receipts
+    ):
+        raise RuntimeError(
+            "Pure-Hubbard compiled-noise receipt map is invalid."
+        )
+    for plan_digest, compile_receipt in compiled_noise_receipts.items():
+        coherent = (
+            compile_receipt.get("synthetic_coherent")
+            if isinstance(compile_receipt, Mapping)
+            else None
+        )
+        metrics = (
+            compile_receipt.get("compile_metrics")
+            if isinstance(compile_receipt, Mapping)
+            else None
+        )
+        unsigned_compile_receipt = (
+            {
+                key: value
+                for key, value in compile_receipt.items()
+                if key != "sha256"
+            }
+            if isinstance(compile_receipt, Mapping)
+            else {}
+        )
+        if (
+            not isinstance(plan_digest, str)
+            or not plan_digest
+            or not isinstance(compile_receipt, Mapping)
+            or compile_receipt.get("parameterized_plan_digest")
+            != plan_digest
+            or compile_receipt.get("sha256")
+            != canonical_sha256(unsigned_compile_receipt)
+            or not isinstance(coherent, Mapping)
+            or int(coherent.get("inserted_count", 0)) <= 0
+            or not isinstance(
+                compile_receipt.get("inserted_errors_sha256"), str
+            )
+            or not isinstance(compile_receipt.get("compile_signature"), Mapping)
+            or compile_receipt["compile_signature"].get(
+                "synthetic_coherent_inserted_after_transpile"
+            )
+            is not True
+            or not isinstance(metrics, Mapping)
+            or any(
+                not isinstance(metrics.get(key), int)
+                or int(metrics[key]) < 0
+                for key in (
+                    "compiled_depth",
+                    "compiled_size",
+                    "compiled_two_qubit_count",
+                    "compiled_cx_count",
+                    "compiled_ecr_count",
+                )
+            )
+            or not isinstance(metrics.get("compiled_op_counts"), Mapping)
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard applied coherent-noise compile receipt is "
+                "invalid."
+            )
+    draw_count = (
+        int(rng_state.get("draw_count", -1))
+        if isinstance(rng_state, Mapping)
+        else -1
+    )
+    expected_draw_start = 0
+    for evaluation_ordinal, record in enumerate(
+        terminal_records, start=1
+    ):
+        value_noise = (
+            record.get("value_noise")
+            if isinstance(record, Mapping)
+            else None
+        )
+        depolarizing = (
+            record.get("synthetic_depolarizing")
+            if isinstance(record, Mapping)
+            else None
+        )
+        coherent = (
+            record.get("synthetic_coherent")
+            if isinstance(record, Mapping)
+            else None
+        )
+        if (
+            not isinstance(record, Mapping)
+            or record.get("schema")
+            != "paper_i_pure_hubbard_controller_noise_evaluation_v1"
+            or record.get("evaluation_ordinal") != evaluation_ordinal
+            or not isinstance(record.get("stage"), str)
+            or not record["stage"]
+            or not isinstance(value_noise, Mapping)
+            or value_noise.get("model") != "gaussian_iid_v1"
+            or value_noise.get("draw_index_start") != expected_draw_start
+            or value_noise.get("draw_index_stop")
+            != expected_draw_start + 1
+            or value_noise.get("n_draws") != 1
+            or not isinstance(depolarizing, Mapping)
+            or not isinstance(coherent, Mapping)
+            or record.get("parameterized_plan_digest")
+            not in compiled_noise_receipts
+            or record.get("compiled_noise_receipt_sha256")
+            != compiled_noise_receipts[
+                record["parameterized_plan_digest"]
+            ].get("sha256")
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard per-evaluation controller-noise evidence is "
+                f"invalid at ordinal {evaluation_ordinal}."
+            )
+        expected_draw_start += 1
+    if draw_count != expected_draw_start:
+        raise RuntimeError(
+            "Pure-Hubbard RNG draw cursor does not close to its ordered "
+            "evaluation trace."
+        )
+    payload = {
+        "schema": "paper_i_pure_hubbard_controller_noise_receipt_v1",
+        "candidate_gradient_scoring": "noisy",
+        "powell_refit_objective": "noisy",
+        "plateau_energy_source": (
+            "persisted_noisy_controller_energy_before_after_v1"
+        ),
+        "geometry_and_gram": "exact",
+        "reported_energy": "exact_diagnostic",
+        "same_circuit_incumbent": True,
+        "optimizer_evaluation_order": "serial_v1",
+        "candidate_record_cache": "off_fail_closed_v1",
+        "noise_contract": copy.deepcopy(dict(noise_contract)),
+        "noise_contract_sha256": str(noise_contract["sha256"]),
+        "effective_oracle_config": copy.deepcopy(
+            dict(noise_contract["effective_oracle_config"])
+        ),
+        "evaluation_count": len(terminal_records),
+        "evaluation_records": terminal_records,
+        "evaluation_records_sha256": canonical_sha256(terminal_records),
+        "compiled_noise_receipts": copy.deepcopy(
+            dict(compiled_noise_receipts)
+        ),
+        "compiled_noise_receipts_sha256": canonical_sha256(
+            compiled_noise_receipts
+        ),
+        "value_noise": {
+            "model": "gaussian_iid_v1",
+            "seed": int(noise_contract["value_noise"]["seed"]),
+            "std": float(noise_contract["value_noise"]["std"]),
+            "draw_count": draw_count,
+            "rng_state": copy.deepcopy(dict(rng_state)),
+        },
+        "accepted_round_count": len(accepted_round_receipts),
+        "final_controller_energy": float(
+            accepted_round_receipts[-1]["controller_noise"][
+                "controller_energy_after"
+            ]
+        ),
+        "final_exact_diagnostic_energy": float(
+            accepted_round_receipts[-1]["controller_noise"][
+                "exact_diagnostic_energy_after"
+            ]
+        ),
+    }
+    return {**payload, "sha256": canonical_sha256(payload)}
+
+
 def _validate_reduced_accepted_round_admission(
     round_receipt: Mapping[str, Any],
     *,
@@ -3951,13 +5639,34 @@ def run_ra_adapt(
     family_key = str(problem.family_key).strip().lower()
     if not (
         (family_key == "hh" and int(problem.request.num_sites) == 2)
+        or (family_key == "hh" and int(problem.request.num_sites) == 3)
+        or (family_key == "hubbard" and int(problem.request.num_sites) == 2)
         or family_key == H2O_LINEAR_FD_FAMILY
     ):
         raise ValueError(
-            "The RA-ADAPT facade supports canonical Paper-I "
-            "Hubbard--Holstein L=2 or an explicitly named lane-owned "
-            "application."
+            "The ordinary Paper-I RA-ADAPT facade is locked to the canonical "
+            "Hubbard--Holstein L=2 problem. Other families and sizes require "
+            "an explicitly named lane-owned application."
         )
+    if family_key == "hubbard":
+        named_request = (
+            request.request
+            if isinstance(request, ResolvedRAAdaptProtocol)
+            else request
+        )
+        if not (
+            isinstance(named_request, RAAdaptRequest)
+            and is_paper_i_pure_hubbard_noise_page12_application(
+                problem,
+                named_request,
+            )
+        ):
+            raise ValueError(
+                "The ordinary Paper-I RA-ADAPT facade is locked to the "
+                "canonical Hubbard--Holstein L=2 problem. Pure Hubbard is "
+                "executable only through the exact named Page-12 full-noise "
+                "application adapter."
+            )
     bundle_resolved = isinstance(request, ResolvedRAAdaptProtocol)
     if request is None:
         public_request = RAAdaptRequest()
@@ -3978,6 +5687,31 @@ def run_ra_adapt(
             "or None."
         )
     _h2o_application_active(problem, public_request)
+    l3_page12_application = is_paper_i_l3_page12_application(
+        problem,
+        public_request,
+    )
+    pure_hubbard_noise_application = (
+        is_paper_i_pure_hubbard_noise_page12_application(
+            problem,
+            public_request,
+        )
+    )
+    if (
+        family_key == "hh"
+        and int(problem.request.num_sites) == 3
+        and not l3_page12_application
+    ):
+        raise ValueError(
+            "Hubbard--Holstein L=3 is executable only through the exact "
+            "named Page-12 L=3 application adapter."
+        )
+    if family_key == "hubbard" and not pure_hubbard_noise_application:
+        raise ValueError(
+            "The ordinary Paper-I RA-ADAPT facade is locked to the canonical "
+            "Hubbard--Holstein L=2 problem. Pure Hubbard is executable only "
+            "through the exact named Page-12 full-noise application adapter."
+        )
 
     if operational_controls is not None:
         if not bundle_resolved:
@@ -4009,6 +5743,41 @@ def run_ra_adapt(
             ),
         ),
     )
+    if protocol.algorithm_id in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS:
+        if protocol.bundle_materialization is None:
+            raise ValueError(
+                "Semantic-closure execution requires its source-bound "
+                "materialization receipt."
+            )
+        validate_semantic_closure_materialization_authority(
+            problem,
+            public_request,
+            receipt=protocol.bundle_materialization,
+            source_lock_refs=protocol.source_locks,
+        )
+        problem = canonical_semantic_execution_problem(problem)
+    if l3_page12_application:
+        require_paper_i_l3_page12_materialization(
+            problem=problem,
+            request=public_request,
+            algorithm_id=str(protocol.algorithm_id),
+            active_gradient_policy=str(protocol.active_gradient_policy),
+            resource_weighting_scope=str(
+                protocol.resource_weighting_scope
+            ),
+            source_locks=protocol.source_locks,
+        )
+    if pure_hubbard_noise_application:
+        require_paper_i_pure_hubbard_noise_page12_materialization(
+            problem=problem,
+            request=public_request,
+            algorithm_id=str(protocol.algorithm_id),
+            active_gradient_policy=str(protocol.active_gradient_policy),
+            resource_weighting_scope=str(
+                protocol.resource_weighting_scope
+            ),
+            source_locks=protocol.source_locks,
+        )
     if operational_controls is not None:
         authorized_rounds = int(
             protocol.request.execution.stop.maximum_controller_rounds
@@ -4102,8 +5871,13 @@ def run_ra_adapt(
         )
         completed = _execute_resolved_context(context, sr_request)
     else:
+        route_contract_request = (
+            protocol.request
+            if protocol.algorithm_id in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+            else public_request
+        )
         route_override = _repaired_route_contract(
-            public_request,
+            route_contract_request,
             active_gradient_policy=protocol.active_gradient_policy,
             resource_weighting_scope=protocol.resource_weighting_scope,
             algorithm_id=protocol.algorithm_id,
@@ -4113,7 +5887,7 @@ def run_ra_adapt(
             RA_ADAPT_ALGORITHM_ID,
             RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID,
             RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
-        }:
+        } or protocol.algorithm_id in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS:
             bound_route = protocol.route_contract
             if not isinstance(bound_route, Mapping):
                 raise ValueError(
@@ -4254,11 +6028,68 @@ def run_ra_adapt(
                 round_receipt,
                 reduction_key="insertion_commutation_reduced",
             )
-    latest_round = accepted_round_receipts[-1]
+    latest_round = (
+        None if not accepted_round_receipts else accepted_round_receipts[-1]
+    )
     selector_compile_cost_accounting = finalization.get(
         "selector_compile_cost_accounting"
     )
-    if protocol.algorithm_id in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS:
+    semantic_selector_accounting_closure = None
+    if protocol.algorithm_id in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS:
+        semantic_selector_accounting_closure = (
+            validate_semantic_final_selector_accounting(
+                algorithm_id=protocol.algorithm_id,
+                route_contract=(
+                    protocol.route_contract
+                    if isinstance(protocol.route_contract, Mapping)
+                    else {}
+                ),
+                selector_compile_cost_accounting=(
+                    selector_compile_cost_accounting
+                    if isinstance(
+                        selector_compile_cost_accounting,
+                        Mapping,
+                    )
+                    else {}
+                ),
+                finalization=finalization,
+                accepted_round_receipts=accepted_round_receipts,
+            )
+        )
+    elif (
+        protocol.algorithm_id
+        == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+    ):
+        phase12_compile = (
+            selector_compile_cost_accounting.get("phase_i_phase_ii")
+            if isinstance(selector_compile_cost_accounting, Mapping)
+            else None
+        )
+        if (
+            not isinstance(selector_compile_cost_accounting, Mapping)
+            or selector_compile_cost_accounting.get("schema")
+            != "paper_i_selector_compile_cost_accounting_v1"
+            or selector_compile_cost_accounting.get("scope")
+            != BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
+            or selector_compile_cost_accounting.get("excluded_from_s_alg")
+            is not True
+            or selector_compile_cost_accounting.get("phase0_cost_source")
+            != "none_standard_adapt_absolute_gradient_v1"
+            or selector_compile_cost_accounting.get("qiskit_applied_phases")
+            != []
+            or selector_compile_cost_accounting.get(
+                "phase_iii_reuses_phase_i_phase_ii_oracle"
+            )
+            is not True
+            or not isinstance(phase12_compile, Mapping)
+            or phase12_compile.get("mode") != MARRAKESH_GRAPH_SPAN_MODE
+            or selector_compile_cost_accounting.get("phase_iii") is not None
+        ):
+            raise RuntimeError(
+                "The macro-only gradient-Phase-0 route lost its shared "
+                "structural graph-span cost accounting."
+            )
+    elif protocol.algorithm_id in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS:
         phase12_compile = (
             selector_compile_cost_accounting.get("phase_i_phase_ii")
             if isinstance(selector_compile_cost_accounting, Mapping)
@@ -4306,6 +6137,68 @@ def run_ra_adapt(
                 "Canonical RA finalization lost the Phase-III-only Qiskit "
                 "compile-oracle accounting."
             )
+    elif protocol.algorithm_id in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS:
+        gradient_phase0_algorithm = protocol.algorithm_id in {
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+        }
+        phase12_compile = (
+            selector_compile_cost_accounting.get("phase_i_phase_ii")
+            if isinstance(selector_compile_cost_accounting, Mapping)
+            else None
+        )
+        phase23_compile = (
+            selector_compile_cost_accounting.get("phase_iii")
+            if isinstance(selector_compile_cost_accounting, Mapping)
+            else None
+        )
+        phase23_targets = (
+            phase23_compile.get("targets")
+            if isinstance(phase23_compile, Mapping)
+            else None
+        )
+        if (
+            not isinstance(selector_compile_cost_accounting, Mapping)
+            or selector_compile_cost_accounting.get("schema")
+            != "paper_i_selector_compile_cost_accounting_v1"
+            or selector_compile_cost_accounting.get("scope")
+            != BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+            or selector_compile_cost_accounting.get("excluded_from_s_alg")
+            is not True
+            or phase12_compile is not None
+            or selector_compile_cost_accounting.get("phase_i_cost_source")
+            != "structural_proxy_v1"
+            or selector_compile_cost_accounting.get("phase0_cost_source")
+            != (
+                "none_standard_adapt_absolute_gradient_v1"
+                if gradient_phase0_algorithm
+                else None
+            )
+            or selector_compile_cost_accounting.get("qiskit_applied_phases")
+            != ["phase_ii", "phase_iii"]
+            or not isinstance(phase23_compile, Mapping)
+            or phase23_compile.get("role") != "phase_ii_phase_iii"
+            or phase23_compile.get("mode") != "transpile_single_v1"
+            or phase23_compile.get("optimization_level") != 1
+            or phase23_compile.get("seed_transpiler") != 7
+            or phase23_compile.get("structure_theta_value") != 1.0
+            or phase23_compile.get("negative_delta_reward_enabled") is not True
+            or phase23_compile.get("preferred_backend_fallback_allowed")
+            is not False
+            or phase23_compile.get("one_qubit_coordinate_policy")
+            != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
+            or not isinstance(phase23_targets, list)
+            or len(phase23_targets) != 1
+            or not isinstance(phase23_targets[0], Mapping)
+            or phase23_targets[0].get("resolved_name") != "FakeMarrakesh"
+            or phase23_targets[0].get("resolution_kind") != "fake_exact"
+        ):
+            raise RuntimeError(
+                "Canonical RA finalization lost the Phase-II/III Qiskit "
+                "compile-oracle accounting."
+            )
     deferred_fallback = _required_deferred_gram_fallback(finalization)
     numerical_physical_integrity = (
         build_ra_numerical_physical_integrity(
@@ -4330,6 +6223,14 @@ def run_ra_adapt(
             ),
         )
         if is_study1_protocol(protocol)
+        else None
+    )
+    controller_noise_receipt = (
+        _pure_hubbard_controller_noise_scientific_receipt(
+            accepted_round_receipts=accepted_round_receipts,
+            route_contract=route_contract,
+        )
+        if pure_hubbard_noise_application
         else None
     )
     return RAAdaptResult(
@@ -4374,27 +6275,87 @@ def run_ra_adapt(
             "accepted_round_receipts": accepted_round_receipts,
             **(
                 {
+                    "semantic_selector_accounting_closure": (
+                        semantic_selector_accounting_closure
+                    )
+                }
+                if semantic_selector_accounting_closure is not None
+                else {}
+            ),
+            **(
+                {
+                    "terminal_phase3_selection_receipt": copy.deepcopy(
+                        dict(
+                            finalization[
+                                "terminal_phase3_selection_receipt"
+                            ]
+                        )
+                    )
+                }
+                if isinstance(
+                    finalization.get("terminal_phase3_selection_receipt"),
+                    Mapping,
+                )
+                else {}
+            ),
+            **(
+                {"controller_noise": controller_noise_receipt}
+                if controller_noise_receipt is not None
+                else {}
+            ),
+            **(
+                {
                     "selector_compile_cost_accounting": copy.deepcopy(
                         dict(selector_compile_cost_accounting)
                     )
                 }
-                if protocol.algorithm_id in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS
+                if (
+                    protocol.algorithm_id in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS
+                    or protocol.algorithm_id
+                    in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS
+                    or protocol.algorithm_id
+                    == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+                    or protocol.algorithm_id
+                    in PAPER_I_RA_SEMANTIC_ALGORITHM_IDS
+                )
                 else {}
             ),
-            "retained_support": latest_round["retained_support"],
-            "phase3_stabilization": latest_round[
-                "phase3_stabilization"
-            ],
-            "source_gram_no_overlap_trust": latest_round[
-                "source_gram_no_overlap_trust"
-            ],
+            **(
+                {
+                    "retained_support": latest_round["retained_support"],
+                    "phase3_stabilization": latest_round[
+                        "phase3_stabilization"
+                    ],
+                    "source_gram_no_overlap_trust": latest_round[
+                        "source_gram_no_overlap_trust"
+                    ],
+                }
+                if latest_round is not None
+                else (
+                    {
+                        "terminal_phase0_selection_receipt": copy.deepcopy(
+                            finalization[
+                                "terminal_phase0_selection_receipt"
+                            ]
+                        )
+                    }
+                    if isinstance(
+                        finalization.get(
+                            "terminal_phase0_selection_receipt"
+                        ),
+                        Mapping,
+                    )
+                    else {}
+                )
+            ),
             **(
                 {
                     "endpoint_overlap_trust": latest_round[
                         "endpoint_overlap_trust"
                     ]
                 }
-                if protocol.trust_policy_id
+                if latest_round is not None
+                and protocol.trust_policy_id
                 == ENDPOINT_OVERLAP_DISPLACEMENT_TRUST
                 else {}
             ),
@@ -4435,6 +6396,17 @@ __all__ = [
     "RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID",
     "RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID",
     "RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_SOURCE_ALGORITHM_ID",
+    "RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID",
+    "RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ROUTE_SUFFIX",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID",
+    "RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ROUTE_SUFFIX",
+    "RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID",
+    "RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS",
+    "RA_ADAPT_GRADIENT_PHASE0_SHORTLIST_SIZE",
     "RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID",
     "RA_ADAPT_QISKIT_COST_PHASE_REUSE",
     "RA_ADAPT_QISKIT_COST_POLICY",

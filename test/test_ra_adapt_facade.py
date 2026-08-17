@@ -22,7 +22,11 @@ from pipelines.static_adapt.adapt_pipeline import (
 )
 from pipelines.static_adapt.ra_adapt import (
     GlobalSinglePauliWordCandidateAdapter,
+    GlobalSingletonGradientPhase0CandidateAdapter,
     MacroCandidateAdapter,
+    MacroGradientPhase0CandidateAdapter,
+    MacroGradientPhase0ThenSingletonCandidateAdapter,
+    MacroThenSingletonPhaseICandidateAdapter,
     RAAdaptOperationalControls,
     RAAdaptRequest,
     RAAdaptResult,
@@ -57,12 +61,18 @@ from pipelines.static_adapt.ra_adapt.contracts import (
     ResolvedRAAdaptProtocol,
     _attach_validated_bundle_protocol_authority,
     canonical_sha256,
+    ra_adapt_request_from_mapping,
     resolved_ra_adapt_protocol_from_mapping,
 )
 from pipelines.static_adapt.ra_adapt.engine import (
     RA_ADAPT_ALGORITHM_ID,
+    RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
     RA_ADAPT_LEGACY_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
     RA_ADAPT_LEGACY_ORDINARY_BUNDLE_ID,
+    RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
     _accepted_candidate_lineage_receipts,
     _accepted_round_scientific_receipts,
     _geometry_expansion_trust_limitation,
@@ -78,6 +88,7 @@ from pipelines.static_adapt.sr_snake import (
     AppendOnlyInsertion,
     CheckpointObservation,
     EstimatorLedgerObservation,
+    GreedyBatchAdmission,
     PlateauCommutationInsertion,
     SRExecutionPolicy,
     SRMethodPolicy,
@@ -136,10 +147,14 @@ def _validated_protocol(
     algorithm_id: str = RA_ADAPT_LEGACY_ALGORITHM_ID,
     active_gradient_policy: str = ACTIVE_GRADIENT_MEASURED,
     resource_weighting_scope: str = RESOURCE_WEIGHTING_LATE,
+    admission: Any | None = None,
 ) -> ResolvedRAAdaptProtocol:
     request = RAAdaptRequest(
         adapter=adapter,
-        method=SRMethodPolicy(insertion=insertion),
+        method=SRMethodPolicy(
+            insertion=insertion,
+            **({} if admission is None else {"admission": admission}),
+        ),
         execution=_execution(rounds=rounds),
     )
     cell = bundle_module.BundleCellSpec(
@@ -223,6 +238,319 @@ def _validated_singleton_protocol(
         route_id=bundle_module.ROUTE_RA_SINGLETON_PLATEAU,
         candidate_representation=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
     )
+
+
+def _assert_historical_zero_centered_route_fails_closed(
+    problem: Any,
+    protocol: ResolvedRAAdaptProtocol,
+) -> None:
+    route = protocol.route_contract
+    assert isinstance(route, dict)
+    execution = route.get("execution_settings")
+    assert isinstance(execution, dict)
+    assert execution.get("ra_semantic_implementation_version") is None
+    route_sha256 = str(route["sha256"])
+    protocol_sha256 = protocol.sha256
+
+    with pytest.raises(RuntimeError, match="historical affected route digests"):
+        run_ra_adapt(problem, protocol)
+
+    assert protocol.route_contract is not None
+    assert protocol.route_contract["sha256"] == route_sha256
+    assert protocol.sha256 == protocol_sha256
+
+
+def test_historical_macro_then_singleton_phase_i_route_fails_closed() -> None:
+    problem = _hh_problem(n_ph_max=1)
+    protocol = _validated_protocol(
+        problem,
+        rounds=1,
+        adapter=MacroThenSingletonPhaseICandidateAdapter(),
+        insertion=PlateauCommutationInsertion(),
+        route_id="ra_macro_then_singleton_phase123_phase23_qiskit",
+        candidate_representation=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        algorithm_id=(
+            RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+
+    _assert_historical_zero_centered_route_fails_closed(problem, protocol)
+
+
+def test_historical_macro_gradient_phase0_route_fails_closed() -> None:
+    problem = _hh_problem(n_ph_max=1)
+    adapter = MacroGradientPhase0ThenSingletonCandidateAdapter()
+    protocol = _validated_protocol(
+        problem,
+        rounds=1,
+        adapter=adapter,
+        insertion=PlateauCommutationInsertion(),
+        route_id="ra_macro_gradient_phase0_then_singleton_phase123",
+        candidate_representation=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        algorithm_id=(
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+
+    _assert_historical_zero_centered_route_fails_closed(problem, protocol)
+
+
+def test_macro_only_gradient_phase0_adapter_serializes_exactly() -> None:
+    request = RAAdaptRequest(adapter=MacroGradientPhase0CandidateAdapter())
+
+    restored = ra_adapt_request_from_mapping(request.to_dict())
+
+    assert type(restored.adapter) is MacroGradientPhase0CandidateAdapter
+    assert restored.to_dict() == request.to_dict()
+    assert restored.adapter.candidate_representation_id == (
+        CANDIDATE_REPRESENTATION_MACRO
+    )
+    assert restored.adapter.phase_ii_candidate_exposure_id == (
+        "identity_on_retained_macro_generators_v1"
+    )
+
+
+def _macro_only_gradient_phase0_protocol(
+    problem: Any,
+) -> ResolvedRAAdaptProtocol:
+    return _validated_protocol(
+        problem,
+        rounds=1,
+        adapter=MacroGradientPhase0CandidateAdapter(),
+        insertion=PlateauCommutationInsertion(),
+        route_id="ra_macro_gradient_phase0_proxy_no_lanes",
+        candidate_representation=CANDIDATE_REPRESENTATION_MACRO,
+        algorithm_id=(
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+        ),
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+
+
+def test_macro_only_gradient_phase0_route_contract_is_proxy_and_lanes_off(
+) -> None:
+    protocol = _macro_only_gradient_phase0_protocol(
+        _hh_problem(n_ph_max=1)
+    )
+    contract = protocol.route_contract
+
+    assert contract is not None
+    execution = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+    assert execution["ra_phase0_gradient_shortlist_policy"] == (
+        "standard_adapt_abs_gradient_macro_phase0_v1"
+    )
+    assert execution["ra_phase0_gradient_shortlist_size"] == 24
+    assert execution["phase3_backend_cost_mode"] == (
+        "marrakesh_graph_span_v1"
+    )
+    assert "phase3_backend_cost_scope" not in execution
+    assert execution["static_lane_route"] == "global_single_population"
+    assert "physical_lane_shortlist_aggressiveness" not in execution
+    assert invariants["selector_qiskit_compile_cost_active"] is False
+    assert invariants["physical_operator_lanes_active"] is False
+    assert invariants["macro_generator_identity_preserved_all_phases"] is True
+    assert invariants["singleton_child_exposure_active"] is False
+    assert invariants["plateau_prior_mean_decrease_ratio_threshold"] == (
+        1.0e-4
+    )
+
+
+def test_macro_only_gradient_phase0_executes_one_bounded_macro_round(
+) -> None:
+    problem = _hh_problem(n_ph_max=1)
+    adapter = MacroGradientPhase0CandidateAdapter()
+    result = run_ra_adapt(
+        problem,
+        _macro_only_gradient_phase0_protocol(problem),
+    )
+
+    assert result.protocol.candidate_representation == (
+        CANDIDATE_REPRESENTATION_MACRO
+    )
+    assert len(result.run.accepted_trajectory) == 1
+    compile_accounting = result.scientific_receipts[
+        "selector_compile_cost_accounting"
+    ]
+    assert compile_accounting["scope"] == (
+        "shared_backend_compile_cost_all_phases_v1"
+    )
+    assert compile_accounting["phase_i_phase_ii"]["mode"] == (
+        "marrakesh_graph_span_v1"
+    )
+    assert compile_accounting["phase_iii"] is None
+    assert compile_accounting["phase0_cost_source"] == (
+        "none_standard_adapt_absolute_gradient_v1"
+    )
+    assert compile_accounting["qiskit_applied_phases"] == []
+    assert compile_accounting[
+        "phase_iii_reuses_phase_i_phase_ii_oracle"
+    ] is True
+    assert compile_accounting["excluded_from_s_alg"] is True
+    row = result.scientific_receipts["accepted_round_receipts"][0]
+    phase0 = row["ra_gradient_phase0_shortlist"]
+    assert phase0["policy"] == (
+        "standard_adapt_abs_gradient_macro_phase0_v1"
+    )
+    assert phase0["retained_candidate_count"] == min(
+        24,
+        phase0["input_candidate_count"],
+    )
+    assert phase0["input_candidate_count"] == len(
+        adapter.executable_pool(problem).candidates
+    )
+    assert phase0["estimator_accounting"]["components"] == {
+        "N_H_outer": 0,
+        "N_H_refit": 0,
+        "N_grad": phase0["input_candidate_count"],
+        "N_metric": 0,
+    }
+    macro_labels = {
+        str(candidate.label)
+        for candidate in adapter.executable_pool(problem).candidates
+    }
+    retained_indices = set(phase0["retained_pool_indices"])
+    phases = row["scored_insertion_position_population"]["phases"]
+    assert [phase["phase"] for phase in phases] == [
+        "phase_i",
+        "phase_ii",
+        "phase_iii",
+    ]
+    assert set(phase0["estimator_event_ids"]).isdisjoint(
+        phases[0]["estimator_event_ids"]
+    )
+    for phase in phases:
+        assert {
+            int(record["pool_index"]) for record in phase["records"]
+        }.issubset(retained_indices)
+        assert {
+            str(record["pool_label"]) for record in phase["records"]
+        }.issubset(macro_labels)
+
+
+def test_historical_macro_only_gradient_phase0_route_fails_closed() -> None:
+    problem = _hh_problem(n_ph_max=1)
+    adapter = MacroGradientPhase0CandidateAdapter()
+    protocol = _validated_protocol(
+        problem,
+        rounds=1,
+        adapter=adapter,
+        insertion=PlateauCommutationInsertion(),
+        route_id="ra_macro_gradient_phase0_macro_phase23_qiskit_no_lanes",
+        candidate_representation=CANDIDATE_REPRESENTATION_MACRO,
+        algorithm_id=(
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+
+    _assert_historical_zero_centered_route_fails_closed(problem, protocol)
+
+
+def test_historical_global_singleton_gradient_phase0_route_fails_closed() -> None:
+    problem = _hh_problem(n_ph_max=1)
+    protocol = _validated_protocol(
+        problem,
+        rounds=1,
+        adapter=GlobalSingletonGradientPhase0CandidateAdapter(),
+        insertion=PlateauCommutationInsertion(),
+        route_id="ra_global_singleton_gradient_phase0_phase123",
+        candidate_representation=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        algorithm_id=(
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+
+    _assert_historical_zero_centered_route_fails_closed(problem, protocol)
+
+
+@pytest.mark.parametrize(
+    (
+        "adapter",
+        "algorithm_id",
+        "candidate_representation",
+        "message",
+    ),
+    (
+        (
+            GlobalSingletonGradientPhase0CandidateAdapter(),
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+            CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+            "initialized-singleton gradient-Phase-0 route requires",
+        ),
+        (
+            MacroGradientPhase0ThenSingletonCandidateAdapter(),
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+            CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+            "macro gradient-Phase-0 route requires",
+        ),
+        (
+            MacroGradientPhase0CandidateAdapter(),
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+            CANDIDATE_REPRESENTATION_MACRO,
+            "macro-only gradient-Phase-0 route requires",
+        ),
+    ),
+)
+def test_gradient_phase0_routes_reject_batch_admission(
+    adapter: Any,
+    algorithm_id: str,
+    candidate_representation: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _validated_protocol(
+            _hh_problem(n_ph_max=1),
+            rounds=1,
+            adapter=adapter,
+            insertion=PlateauCommutationInsertion(),
+            route_id="gradient_phase0_batch_must_fail_closed",
+            candidate_representation=candidate_representation,
+            algorithm_id=algorithm_id,
+            active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+            resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+            admission=GreedyBatchAdmission(maximum_size=2),
+        )
+
+
+@pytest.mark.parametrize(
+    ("adapter", "algorithm_id"),
+    (
+        (
+            MacroGradientPhase0CandidateAdapter(),
+            RA_ADAPT_LEGACY_ALGORITHM_ID,
+        ),
+        (
+            MacroCandidateAdapter(),
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+        ),
+    ),
+)
+def test_macro_only_gradient_phase0_adapter_and_algorithm_are_paired(
+    adapter: Any,
+    algorithm_id: str,
+) -> None:
+    request = RAAdaptRequest(
+        adapter=adapter,
+        method=SRMethodPolicy(insertion=PlateauCommutationInsertion()),
+        execution=_execution(rounds=1),
+    )
+
+    with pytest.raises(ValueError, match="must be selected together"):
+        _repaired_route_contract(
+            request,
+            active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+            resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+            algorithm_id=algorithm_id,
+        )
 
 
 def _diagnostic_observation(
@@ -585,6 +913,14 @@ def test_bundle_operational_controls_authenticate_singleton_continuation(
     ).hexdigest()
     checkpoint_payload = json.loads(checkpoint_path.read_text())
     history_rows = checkpoint_payload["adapt_vqe"]["history"]
+    assert len(history_rows) == 2
+    for row in history_rows:
+        selected_feature = row["selected_feature_rows"][0]
+        physical_generator_id = str(selected_feature["generator_id"])
+        assert physical_generator_id == str(
+            selected_feature["generator_metadata"]["generator_id"]
+        )
+        assert "::pool[" not in physical_generator_id
     assert all(
         row["selected_feature_rows"][0][
             "runtime_split_parent_label"
@@ -621,6 +957,27 @@ def test_bundle_operational_controls_authenticate_singleton_continuation(
         == row["parent_generator_id"]
         for row in signed_operator_rows
     )
+    first_leg_generator_ids = tuple(
+        generator_id
+        for accepted_state in first_leg.run.accepted_trajectory
+        for generator_id in accepted_state.generator_ids
+    )
+    assert first_leg_generator_ids
+    assert all(
+        "::pool[" not in generator_id
+        for generator_id in first_leg_generator_ids
+    )
+    terminal_generator_ids = tuple(
+        str(row["generator_id"])
+        for row in signed_operator_rows
+    )
+    assert terminal_generator_ids == (
+        first_leg.run.accepted_trajectory[-1].generator_ids
+    )
+    assert all(
+        "::pool[" not in generator_id
+        for generator_id in terminal_generator_ids
+    )
     resumed = run_ra_adapt(
         problem,
         protocol,
@@ -644,6 +1001,15 @@ def test_bundle_operational_controls_authenticate_singleton_continuation(
     ] == [
         row.to_dict() for row in first_leg.run.accepted_trajectory
     ]
+    resumed_generator_ids = tuple(
+        generator_id
+        for accepted_state in resumed.run.accepted_trajectory
+        for generator_id in accepted_state.generator_ids
+    )
+    assert all(
+        "::pool[" not in generator_id
+        for generator_id in resumed_generator_ids
+    )
     resumed_checkpoint_path = tmp_path / "singleton-resumed.current.json"
     resumed_checkpoint_sha256 = hashlib.sha256(
         resumed_checkpoint_path.read_bytes()
@@ -663,6 +1029,13 @@ def test_bundle_operational_controls_authenticate_singleton_continuation(
     assert tuple(
         operator.label for operator in round_trip.operators
     ) == resumed.run.final_state.operators
+    assert tuple(
+        operator.generator_id for operator in round_trip.operators
+    ) == resumed.run.final_state.generator_ids
+    assert all(
+        "::pool[" not in operator.generator_id
+        for operator in round_trip.operators
+    )
 
     tampered_payload = copy.deepcopy(checkpoint_payload)
     tampered_history = tampered_payload["adapt_vqe"]["history"]
@@ -1418,8 +1791,18 @@ def test_singleton_latched_phase3_stays_open_and_defers_insertion(
         adapt_pipeline._insertion_commutation_plateau_round_policy
     )
 
-    def forced_plateau(*, history: Any, policy: str) -> dict[str, Any]:
-        receipt = original_plateau(history=history, policy=policy)
+    def forced_plateau(
+        *,
+        history: Any,
+        policy: str,
+        controller_noise_energy_source: bool,
+    ) -> dict[str, Any]:
+        assert controller_noise_energy_source is False
+        receipt = original_plateau(
+            history=history,
+            policy=policy,
+            controller_noise_energy_source=controller_noise_energy_source,
+        )
         domain_open = raw_open_by_history_count[len(history)]
         return {
             **receipt,

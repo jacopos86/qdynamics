@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any, ClassVar, Mapping
 
 from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
 
 CANONICAL_CANDIDATE_REPRESENTATION = (
     "physical_macro_lanes_to_symmetry_hard_guarded_"
@@ -1682,9 +1685,36 @@ class SRRunResult(SerializableContract):
     paper_i_summary: Any | None = None
 
     def __post_init__(self) -> None:
-        if not self.accepted_trajectory:
+        stationary_without_transition = bool(
+            not self.accepted_trajectory
+            and self.stop.terminal_controller_outcome
+            == "phase0_stationary_no_competitive_candidate_v1"
+        )
+        phase3_without_transition = bool(
+            not self.accepted_trajectory
+            and self.stop.terminal_controller_outcome
+            == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        )
+        authenticated_without_transition = bool(
+            stationary_without_transition or phase3_without_transition
+        )
+        if not self.accepted_trajectory and not authenticated_without_transition:
             raise ValueError("SRRunResult requires an accepted trajectory.")
-        if self.final_state != self.accepted_trajectory[-1]:
+        if authenticated_without_transition and (
+            self.final_state.controller_round != 0
+            or self.final_state.operators
+            or self.accepted_transitions
+            or self.scientific_replay
+            or self.canonical_reporting.accepted_prefix_work
+            or self.paper_i_summary is not None
+        ):
+            raise ValueError(
+                "An authenticated no-admission result must preserve the untouched "
+                "round-zero state without accepted-transition evidence."
+            )
+        if self.accepted_trajectory and (
+            self.final_state != self.accepted_trajectory[-1]
+        ):
             raise ValueError(
                 "SRRunResult final_state must equal the final accepted "
                 "trajectory state."
@@ -1696,7 +1726,7 @@ class SRRunResult(SerializableContract):
                 "Canonical accepted-prefix work must align one-to-one with "
                 "the accepted trajectory."
             )
-        if (
+        if self.canonical_reporting.accepted_prefix_work and (
             self.canonical_reporting.accepted_prefix_work[-1].s_alg
             > self.estimator_accounting.all_work.s_alg
         ):

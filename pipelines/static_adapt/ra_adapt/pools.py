@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Any, Mapping, Sequence
 
 from pipelines.contracts.problem import ResolvedProblemContext
@@ -60,6 +61,98 @@ EXPECTED_MACRO_REMOVED_COUNTS = {3: 21, 7: 23}
 H2O_LINEAR_FD_FAMILY = "molecular_vibronic_h2o_linear_fd"
 H2O_DERIVATIVE_RESOLVED_POOL = "full_meta_derivative_resolved_v2"
 EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT = 448
+PAPER_I_L3_PAGE12_APPLICATION_ID = (
+    "paper_i_l3_page12_global_singleton_gradient_phase0_v1"
+)
+PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256 = (
+    "c67ea0c6489b6e35d1fdebdffd6f9ed700d0712c4f2745569dca37ad3fdaca2e"
+)
+PAPER_I_L3_PAGE12_HAMILTONIAN_TERMS_SHA256 = (
+    "017adb185a9be650417682edee1a232d76639a4551d76042c7887a8ed9183b83"
+)
+PAPER_I_L3_PAGE12_PARENT_COUNT = 199
+PAPER_I_L3_PAGE12_PARENT_LABELS_SHA256 = (
+    "2a5b4c15f4264e319cec2d6188d1d41f375696d0269f5077d492e2df7f140763"
+)
+PAPER_I_L3_PAGE12_PARENT_POOL_SHA256 = (
+    "529382a677566cd67861cb46edc0b5dbb2a8922536629001f1552de2616c625b"
+)
+PAPER_I_L3_PAGE12_SINGLETON_COUNT = 74
+PAPER_I_L3_PAGE12_SINGLETON_LABELS_SHA256 = (
+    "87d95b07689629696cac2fffb72a9018996bcdd5050aab00949095960209a40e"
+)
+PAPER_I_L3_PAGE12_SINGLETON_POOL_SHA256 = (
+    "147afb129aa0f5b254661e082781d8ac0b1a6e0624a21a7948eb0cad3393e894"
+)
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS = {
+    "weak_weak": {
+        "problem_request_sha256": (
+            "560516f13b2af570209a91d5ec809a517622fdb80171165abb84d80900dc8b57"
+        ),
+        "hamiltonian_terms_sha256": (
+            "4eac4bcf62c66fc6203389ae4c1705d9c8d9abfb5e01b540097219d23e50d135"
+        ),
+    },
+    "intermediate_weak": {
+        "problem_request_sha256": (
+            "bd248fa60a6d9ec06cdc68dc873cdab30b2b445edf4fe4e98eda8daebb03ccb6"
+        ),
+        "hamiltonian_terms_sha256": (
+            "d874caab1c963100723cb6097f88d37c943dd48c4a284352749e63691ee993a1"
+        ),
+    },
+    "strong_weak_u8": {
+        "problem_request_sha256": (
+            "ca9a650982535cdf90c84fca0f2a20342e1f7c0dc02fd1d48e64424e24ccac1b"
+        ),
+        "hamiltonian_terms_sha256": (
+            "e1a4153820e56408f81b7282726808fe01e55aaefcf9ea53b1c57ea974ed33da"
+        ),
+    },
+}
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_COUNT = 251
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_LABELS_SHA256 = (
+    "a22e7b97e0f47006703f74bb1b1477f98ee048ada9a9568314fea07f6974e5f8"
+)
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_POOL_SHA256 = (
+    "0bd9a12af1945ec06d0eb7d252ddb6ca7c8e391847819f12bfaf35530b984a5c"
+)
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_COUNT = 314
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_LABELS_SHA256 = (
+    "2c5a82544bea5c8e1d55c22def7c7cc431315e9da9bf693d25a45ce54704b860"
+)
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_POOL_SHA256 = (
+    "c9e76e6c5679236e5b1b88446690de80676d0cf670f72b58b2848e0d4cb91b23"
+)
+PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_POOL_LOCKS = {
+    "weak_weak": {
+        "parent_pool_sha256": (
+            "0bd9a12af1945ec06d0eb7d252ddb6ca7c8e391847819f12bfaf35530b984a5c"
+        ),
+        "singleton_pool_sha256": (
+            "c9e76e6c5679236e5b1b88446690de80676d0cf670f72b58b2848e0d4cb91b23"
+        ),
+    },
+    "intermediate_weak": {
+        "parent_pool_sha256": (
+            "6e1591a11f21eede3332b5570f42a844ab4e9229818bb0128d6634037ee97298"
+        ),
+        "singleton_pool_sha256": (
+            "0963385b7c74622f40975292ed20867730abd73b89f776d4be1f58d512be21e7"
+        ),
+    },
+    "strong_weak_u8": {
+        "parent_pool_sha256": (
+            "f070fefc4a1c4e45eec81e01db0e8f793fde2fca1297e5159cd6eaec8b9524cd"
+        ),
+        "singleton_pool_sha256": (
+            "8ff33f4f5686249ab59e1c177814d920ee86db5fb53d4334a39730d3642d1a05"
+        ),
+    },
+}
+PAPER_I_PURE_HUBBARD_NOISE_PAGE12_APPLICATION_ID = (
+    "paper_i_pure_hubbard_noise_page12_global_singleton_gradient_phase0_v1"
+)
 
 
 @dataclass(frozen=True)
@@ -238,7 +331,151 @@ def _require_supported_singleton_problem(
     )
 
 
-def _parent_pool_spec(problem: ResolvedProblemContext) -> dict[str, Any]:
+def require_paper_i_l3_page12_problem(
+    problem: ResolvedProblemContext,
+) -> str:
+    """Validate one explicitly locked L=3 Page-12 application point.
+
+    This stays separate from ``_require_supported_singleton_problem`` so the
+    ordinary Paper-I pool entrypoints remain locked to Hubbard--Holstein
+    ``L=2``.  Only the named L=3 adapter opts into either the preserved
+    intermediate--weak ``nph=1`` point or the three requested weak-Holstein
+    ``nph=3`` points.
+    """
+
+    if not isinstance(problem, ResolvedProblemContext):
+        raise TypeError("problem must be a ResolvedProblemContext.")
+    from pipelines.static_adapt.sr_snake.contracts import (
+        ResolvedProblemReceipt,
+    )
+
+    receipt = ResolvedProblemReceipt.from_problem(problem)
+    particles = tuple(int(value) for value in problem.sector.num_particles)
+    legacy = (
+        receipt.problem_request_sha256
+        == PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256
+    )
+    weak_sector_regime = next(
+        (
+            regime_id
+            for regime_id, lock in sorted(
+                PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS.items()
+            )
+            if receipt.problem_request_sha256
+            == lock["problem_request_sha256"]
+        ),
+        None,
+    )
+    nph = int(problem.request.n_ph_max)
+    qubits_per_mode = max(1, int(math.ceil(math.log2(nph + 1))))
+    if (
+        str(problem.family_key).strip().lower() != "hh"
+        or (not legacy and weak_sector_regime is None)
+        or int(problem.request.num_sites) != 3
+        or particles != (2, 1)
+        or int(problem.layout.fermion_qubits) != 6
+        or int(problem.layout.boson_qubits) != 3 * qubits_per_mode
+        or int(problem.layout.total_qubits) != 6 + 3 * qubits_per_mode
+        or str(problem.sector.label) != "half_filled_fermion_sector"
+        or str(problem.default_reference_label)
+        != "hubbard_holstein_reference_state"
+        or str(problem.exact_target_label)
+        != "exact_ground_energy_sector_hh"
+        or str(problem.exact_comparison_space_label)
+        != "fermion_register_with_truncated_bosons"
+        or "full_meta" not in set(problem.admissible_pool_keys)
+    ):
+        raise ValueError(
+            "The named Page-12 L=3 application requires either its exact "
+            "intermediate--weak HH point at n_ph_max=1 or one of the "
+            "three exact weak-Holstein n_ph_max=3 points, with open/binary/"
+            "blocked encoding, (N_up,N_down)=(2,1), and same-cutoff ED."
+        )
+    hamiltonian_sha256 = canonical_sha256(
+        serialize_polynomial_terms_exyz(problem.hamiltonian)
+    )
+    expected_hamiltonian = (
+        PAPER_I_L3_PAGE12_HAMILTONIAN_TERMS_SHA256
+        if legacy
+        else str(
+            PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS[
+                str(weak_sector_regime)
+            ]["hamiltonian_terms_sha256"]
+        )
+    )
+    if hamiltonian_sha256 != expected_hamiltonian:
+        raise ValueError(
+            "The named Page-12 L=3 Hamiltonian bytes drifted from the "
+            "locked application construction."
+        )
+    return "legacy_intermediate_weak_nph1" if legacy else str(weak_sector_regime)
+
+
+def require_paper_i_pure_hubbard_noise_page12_problem(
+    problem: ResolvedProblemContext,
+) -> None:
+    """Admit only the two named pure-Hubbard noise benchmark points."""
+
+    if not isinstance(problem, ResolvedProblemContext):
+        raise TypeError("problem must be a ResolvedProblemContext.")
+    request = problem.request
+    particles = tuple(int(value) for value in problem.sector.num_particles)
+    if (
+        str(problem.family_key).strip().lower() != "hubbard"
+        or str(request.problem_key).strip().lower() != "hubbard"
+        or int(request.num_sites) != 2
+        or not any(
+            math.isclose(float(request.u), value, rel_tol=0.0, abs_tol=0.0)
+            for value in (1.5, 8.0)
+        )
+        or float(request.t) != 1.0
+        or float(request.dv) != 0.0
+        or float(request.v_nn) != 0.0
+        or float(request.t_prime) != 0.0
+        or float(request.g_ep) != 0.0
+        or float(request.omega0) != 0.0
+        or int(request.n_ph_max) != 0
+        or str(request.ordering).strip().lower() != "blocked"
+        or str(request.boundary).strip().lower() != "open"
+        or particles != (1, 1)
+        or int(problem.layout.fermion_qubits) != 4
+        or int(problem.layout.boson_qubits) != 0
+        or int(problem.layout.total_qubits) != 4
+        or "full_meta" not in set(problem.admissible_pool_keys)
+    ):
+        raise ValueError(
+            "The named pure-Hubbard Page-12 noise application requires "
+            "L=2, t=1, U/t in {1.5, 8}, (N_up,N_down)=(1,1), open/blocked, "
+            "zero boson coupling/cutoff, and the full_meta pool."
+        )
+
+
+def _parent_pool_spec(
+    problem: ResolvedProblemContext,
+    *,
+    paper_i_l3_page12_application: bool = False,
+    paper_i_pure_hubbard_noise_page12_application: bool = False,
+) -> dict[str, Any]:
+    if paper_i_l3_page12_application and paper_i_pure_hubbard_noise_page12_application:
+        raise ValueError("Only one named RA pool application may be active.")
+    if paper_i_pure_hubbard_noise_page12_application:
+        require_paper_i_pure_hubbard_noise_page12_problem(problem)
+        return {
+            "problem_key": "hubbard",
+            "num_sites": 2,
+            "pool_key": "full_meta",
+            # Pure Hubbard has no boson register.  The shared pool builder
+            # still accepts a positive divisor and observes qpb=0.
+            "boson_mode_count": 1,
+        }
+    if paper_i_l3_page12_application:
+        require_paper_i_l3_page12_problem(problem)
+        return {
+            "problem_key": "hh",
+            "num_sites": 3,
+            "pool_key": "full_meta",
+            "boson_mode_count": 3,
+        }
     _require_supported_singleton_problem(problem)
     family = str(problem.family_key).strip().lower()
     if family == "hh":
@@ -271,8 +508,17 @@ def _generator_metadata(term: AnsatzTerm) -> dict[str, Any]:
 
 def _parent_records(
     problem: ResolvedProblemContext,
+    *,
+    paper_i_l3_page12_application: bool = False,
+    paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> tuple[tuple[CandidateRecord, ...], Any]:
-    spec = _parent_pool_spec(problem)
+    spec = _parent_pool_spec(
+        problem,
+        paper_i_l3_page12_application=paper_i_l3_page12_application,
+        paper_i_pure_hubbard_noise_page12_application=(
+            paper_i_pure_hubbard_noise_page12_application
+        ),
+    )
     problem_key = str(spec["problem_key"])
     num_sites = int(spec["num_sites"])
     pool_key = str(spec["pool_key"])
@@ -372,19 +618,30 @@ def _receipt(
     )
 
 
-def build_parent_template_inventory(
+def _build_parent_template_inventory(
     problem: ResolvedProblemContext,
     *,
     representation_id: str,
+    paper_i_l3_page12_application: bool,
+    paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> CandidateInventory:
-    """Build the common ordered 123/171 ``full_meta`` parent inventory."""
-
     if representation_id not in {
         CANDIDATE_REPRESENTATION_MACRO,
         CANDIDATE_REPRESENTATION_SINGLE_PAULI,
     }:
         raise ValueError("Unknown candidate representation.")
-    records, plan = _parent_records(problem)
+    application_identity = (
+        require_paper_i_l3_page12_problem(problem)
+        if paper_i_l3_page12_application
+        else None
+    )
+    records, plan = _parent_records(
+        problem,
+        paper_i_l3_page12_application=paper_i_l3_page12_application,
+        paper_i_pure_hubbard_noise_page12_application=(
+            paper_i_pure_hubbard_noise_page12_application
+        ),
+    )
     if representation_id == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
         records = tuple(
             CandidateRecord(
@@ -398,6 +655,13 @@ def build_parent_template_inventory(
     nph = int(problem.request.n_ph_max)
     family = str(problem.family_key).strip().lower()
     expected = (
+        (
+            PAPER_I_L3_PAGE12_PARENT_COUNT
+            if int(problem.request.n_ph_max) == 1
+            else PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_COUNT
+        )
+        if paper_i_l3_page12_application
+        else
         EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT
         if family == H2O_LINEAR_FD_FAMILY
         else EXPECTED_PARENT_COUNTS.get(nph)
@@ -407,7 +671,7 @@ def build_parent_template_inventory(
             f"Parent full_meta inventory drifted at nph={nph}: "
             f"{len(records)} != {expected}."
         )
-    return CandidateInventory(
+    inventory = CandidateInventory(
         candidates=records,
         receipt=_receipt(
             schema=PARENT_TEMPLATE_INVENTORY_SCHEMA,
@@ -424,6 +688,75 @@ def build_parent_template_inventory(
                 "normalization": "none",
             },
         },
+    )
+    if paper_i_l3_page12_application:
+        expected_parent_labels = (
+            PAPER_I_L3_PAGE12_PARENT_LABELS_SHA256
+            if nph == 1
+            else PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_LABELS_SHA256
+        )
+        expected_parent_pool = (
+            PAPER_I_L3_PAGE12_PARENT_POOL_SHA256
+            if nph == 1
+            else str(
+                PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_POOL_LOCKS[
+                    str(application_identity)
+                ]["parent_pool_sha256"]
+            )
+        )
+        if (
+            inventory.receipt.ordered_labels_sha256
+            != expected_parent_labels
+            or inventory.receipt.ordered_pool_sha256
+            != expected_parent_pool
+        ):
+            raise RuntimeError(
+                "The named Page-12 L=3 parent inventory drifted from its "
+                "locked ordering or generator bytes."
+            )
+    return inventory
+
+
+def build_parent_template_inventory(
+    problem: ResolvedProblemContext,
+    *,
+    representation_id: str,
+) -> CandidateInventory:
+    """Build the ordinary L=2 or named H2O parent inventory."""
+
+    return _build_parent_template_inventory(
+        problem,
+        representation_id=representation_id,
+        paper_i_l3_page12_application=False,
+    )
+
+
+def build_paper_i_l3_page12_parent_template_inventory(
+    problem: ResolvedProblemContext,
+    *,
+    representation_id: str,
+) -> CandidateInventory:
+    """Build the source-locked parent inventory for the named L=3 route."""
+
+    return _build_parent_template_inventory(
+        problem,
+        representation_id=representation_id,
+        paper_i_l3_page12_application=True,
+    )
+
+
+def build_paper_i_pure_hubbard_noise_page12_parent_template_inventory(
+    problem: ResolvedProblemContext,
+    *,
+    representation_id: str,
+) -> CandidateInventory:
+    """Build the named pure-Hubbard parent inventory without widening defaults."""
+
+    return _build_parent_template_inventory(
+        problem,
+        representation_id=representation_id,
+        paper_i_l3_page12_application=False,
+        paper_i_pure_hubbard_noise_page12_application=True,
     )
 
 
@@ -902,16 +1235,32 @@ def guarded_singleton_generator_identity(
     )
 
 
-def build_guarded_single_pauli_pool(
+def _build_guarded_single_pauli_pool(
     problem: ResolvedProblemContext,
     *,
     retained_parents: Sequence[CandidateRecord] | None = None,
+    paper_i_l3_page12_application: bool,
+    paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> CandidateInventory:
-    """Build guarded unit-Pauli children globally or from an RA shortlist."""
-
-    spec = _parent_pool_spec(problem)
-    parent = build_parent_template_inventory(
-        problem, representation_id=CANDIDATE_REPRESENTATION_SINGLE_PAULI
+    application_identity = (
+        require_paper_i_l3_page12_problem(problem)
+        if paper_i_l3_page12_application
+        else None
+    )
+    spec = _parent_pool_spec(
+        problem,
+        paper_i_l3_page12_application=paper_i_l3_page12_application,
+        paper_i_pure_hubbard_noise_page12_application=(
+            paper_i_pure_hubbard_noise_page12_application
+        ),
+    )
+    parent = _build_parent_template_inventory(
+        problem,
+        representation_id=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        paper_i_l3_page12_application=paper_i_l3_page12_application,
+        paper_i_pure_hubbard_noise_page12_application=(
+            paper_i_pure_hubbard_noise_page12_application
+        ),
     )
     source = (
         tuple(parent.candidates)
@@ -1019,7 +1368,7 @@ def build_guarded_single_pauli_pool(
             [candidate.label for candidate in source]
         ),
     )
-    return CandidateInventory(
+    inventory = CandidateInventory(
         candidates=tuple(records),
         receipt=receipt,
         metadata={
@@ -1038,6 +1387,82 @@ def build_guarded_single_pauli_pool(
             "shared_pool_meta": dict(result.meta),
             "shared_pool_manifest": dict(result.manifest),
         },
+    )
+    nph = int(problem.request.n_ph_max)
+    if paper_i_l3_page12_application and retained_parents is None:
+        expected_singleton_count = (
+            PAPER_I_L3_PAGE12_SINGLETON_COUNT
+            if nph == 1
+            else PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_COUNT
+        )
+        expected_singleton_labels = (
+            PAPER_I_L3_PAGE12_SINGLETON_LABELS_SHA256
+            if nph == 1
+            else PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_LABELS_SHA256
+        )
+        expected_singleton_pool = (
+            PAPER_I_L3_PAGE12_SINGLETON_POOL_SHA256
+            if nph == 1
+            else str(
+                PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_POOL_LOCKS[
+                    str(application_identity)
+                ]["singleton_pool_sha256"]
+            )
+        )
+        if (
+            inventory.receipt.count != expected_singleton_count
+            or inventory.receipt.ordered_labels_sha256
+            != expected_singleton_labels
+            or inventory.receipt.ordered_pool_sha256
+            != expected_singleton_pool
+        ):
+            raise RuntimeError(
+                "The named Page-12 L=3 guarded-singleton inventory drifted "
+                "from its locked count, ordering, or generator bytes."
+            )
+    return inventory
+
+
+def build_guarded_single_pauli_pool(
+    problem: ResolvedProblemContext,
+    *,
+    retained_parents: Sequence[CandidateRecord] | None = None,
+) -> CandidateInventory:
+    """Build ordinary L=2 or named H2O guarded single-Pauli children."""
+
+    return _build_guarded_single_pauli_pool(
+        problem,
+        retained_parents=retained_parents,
+        paper_i_l3_page12_application=False,
+    )
+
+
+def build_paper_i_l3_page12_guarded_single_pauli_pool(
+    problem: ResolvedProblemContext,
+    *,
+    retained_parents: Sequence[CandidateRecord] | None = None,
+) -> CandidateInventory:
+    """Build the locked global or retained L=3 Page-12 singleton pool."""
+
+    return _build_guarded_single_pauli_pool(
+        problem,
+        retained_parents=retained_parents,
+        paper_i_l3_page12_application=True,
+    )
+
+
+def build_paper_i_pure_hubbard_noise_page12_guarded_single_pauli_pool(
+    problem: ResolvedProblemContext,
+    *,
+    retained_parents: Sequence[CandidateRecord] | None = None,
+) -> CandidateInventory:
+    """Build the named pure-Hubbard global guarded-singleton inventory."""
+
+    return _build_guarded_single_pauli_pool(
+        problem,
+        retained_parents=retained_parents,
+        paper_i_l3_page12_application=False,
+        paper_i_pure_hubbard_noise_page12_application=True,
     )
 
 
@@ -1113,12 +1538,36 @@ __all__ = [
     "H2O_SECTOR_COMPLETE_PAULI_BLOCK_POOL_SCHEMA",
     "H2O_SYMMETRY_COMPLETE_POOL_SCHEMA",
     "GUARDED_SINGLETON_GENERATOR_IDENTITY_SCHEMA",
+    "PAPER_I_L3_PAGE12_APPLICATION_ID",
+    "PAPER_I_L3_PAGE12_HAMILTONIAN_TERMS_SHA256",
+    "PAPER_I_L3_PAGE12_PARENT_COUNT",
+    "PAPER_I_L3_PAGE12_PARENT_LABELS_SHA256",
+    "PAPER_I_L3_PAGE12_PARENT_POOL_SHA256",
+    "PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256",
+    "PAPER_I_L3_PAGE12_SINGLETON_COUNT",
+    "PAPER_I_L3_PAGE12_SINGLETON_LABELS_SHA256",
+    "PAPER_I_L3_PAGE12_SINGLETON_POOL_SHA256",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_COUNT",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_LABELS_SHA256",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PARENT_POOL_SHA256",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_POOL_LOCKS",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_COUNT",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_LABELS_SHA256",
+    "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_POOL_SHA256",
+    "PAPER_I_PURE_HUBBARD_NOISE_PAGE12_APPLICATION_ID",
     "build_candidate_inventory_lineage_receipt",
     "build_executable_macro_pool",
     "build_guarded_single_pauli_pool",
     "build_h2o_sector_complete_pauli_block_pool",
     "build_h2o_symmetry_complete_generator_pool",
+    "build_paper_i_l3_page12_guarded_single_pauli_pool",
+    "build_paper_i_l3_page12_parent_template_inventory",
+    "build_paper_i_pure_hubbard_noise_page12_guarded_single_pauli_pool",
+    "build_paper_i_pure_hubbard_noise_page12_parent_template_inventory",
     "build_staged_single_pauli_pool",
     "build_parent_template_inventory",
     "guarded_singleton_generator_identity",
+    "require_paper_i_l3_page12_problem",
+    "require_paper_i_pure_hubbard_noise_page12_problem",
 ]

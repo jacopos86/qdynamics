@@ -15,6 +15,9 @@ from typing import Any
 import numpy as np
 
 from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
 from pipelines.static_adapt.estimator_call_ledger import (
     projective_state_fingerprint,
 )
@@ -83,6 +86,30 @@ from pipelines.static_adapt.sr_snake.contracts import (
     SupportedMetricReceipt,
     TrustSolveReceipt,
 )
+
+
+_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME = (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+)
+
+
+def _paper_i_requested_controller_rounds(
+    requested: Sequence[int],
+    *,
+    accepted_round_count: int,
+    terminal_controller_outcome: str | None,
+) -> tuple[int, ...]:
+    """Avoid fabricating Paper-I rows beyond an authenticated terminal."""
+
+    rounds = tuple(int(value) for value in requested)
+    accepted = int(accepted_round_count)
+    if terminal_controller_outcome != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME:
+        return rounds
+    if accepted < 1:
+        raise ValueError(
+            "Phase-III no-positive termination requires an accepted prefix."
+        )
+    return tuple(value for value in rounds if value <= accepted)
 
 
 def _require_mapping(value: Any, *, name: str) -> Mapping[str, Any]:
@@ -169,6 +196,40 @@ def _accepted_state(
         ),
         projective_state_fingerprint=str(
             checkpoint.get("projective_state_fingerprint", "")
+        ),
+    )
+
+
+def _stationary_initial_state(
+    state: Any,
+    *,
+    public_state_fingerprint: str | None = None,
+) -> AcceptedStateReceipt:
+    """Project the untouched fresh state for a round-zero Phase-0 stop."""
+
+    if (
+        int(state.controller_round) != 0
+        or tuple(state.accepted_operator_ids)
+        or tuple(state.accepted_insertion_positions)
+        or tuple(state.logical_parameter_values)
+        or tuple(state.runtime_parameter_values)
+    ):
+        raise RuntimeError(
+            "A zero-trajectory stationary result must retain the fresh empty "
+            "accepted state."
+        )
+    return AcceptedStateReceipt(
+        controller_round=0,
+        operators=(),
+        insertion_positions=(),
+        generator_ids=(),
+        logical_parameters=(),
+        runtime_parameters=(),
+        energy=float(state.accepted_energy),
+        projective_state_fingerprint=str(
+            state.accepted_state_fingerprint
+            if public_state_fingerprint is None
+            else public_state_fingerprint
         ),
     )
 
@@ -1811,11 +1872,37 @@ def _execute_resolved_context(
         *new_accepted_transitions,
     )
     replay = (*resume_replay, *new_replay)
-    if not accepted_trajectory:
+    stationary_without_transition = bool(
+        not accepted_trajectory
+        and outcome.stop.terminal_controller_outcome
+        == "phase0_stationary_no_competitive_candidate_v1"
+    )
+    phase3_no_admission_without_transition = bool(
+        not accepted_trajectory
+        and outcome.stop.terminal_controller_outcome
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+    )
+    authenticated_no_admission = bool(
+        stationary_without_transition
+        or phase3_no_admission_without_transition
+    )
+    if not accepted_trajectory and not authenticated_no_admission:
         raise RuntimeError(
             "The default controller finalized without an accepted transition."
         )
-    final_state = accepted_trajectory[-1]
+    final_state = (
+        _stationary_initial_state(
+            outcome.final_state,
+            public_state_fingerprint=projective_state_fingerprint(
+                np.asarray(
+                    context.initial_state.build_state(),
+                    dtype=complex,
+                ).reshape(-1)
+            ),
+        )
+        if authenticated_no_admission
+        else accepted_trajectory[-1]
+    )
     if (
         final_state.controller_round != outcome.final_state.controller_round
         or final_state.energy != outcome.final_state.accepted_energy
@@ -1849,7 +1936,7 @@ def _execute_resolved_context(
     )
 
     insertion = normalized.method.insertion
-    if isinstance(
+    if accepted_trajectory and isinstance(
         insertion,
         (
             AlwaysCommutationReducedInsertion,
@@ -1857,6 +1944,8 @@ def _execute_resolved_context(
             PlateauCommutationInsertion,
         ),
     ) or (
+        bool(accepted_trajectory)
+        and
         isinstance(insertion, AppendOnlyInsertion)
         and result.route.family == "ra_adapt"
     ):
@@ -1864,10 +1953,16 @@ def _execute_resolved_context(
             result,
             paper_i_summary=summarize_paper_i_run(
                 result,
-                requested_controller_rounds=(
-                    ()
-                    if normalized.observation.resource_rounds is None
-                    else normalized.observation.resource_rounds
+                requested_controller_rounds=_paper_i_requested_controller_rounds(
+                    (
+                        ()
+                        if normalized.observation.resource_rounds is None
+                        else normalized.observation.resource_rounds
+                    ),
+                    accepted_round_count=len(accepted_trajectory),
+                    terminal_controller_outcome=(
+                        outcome.stop.terminal_controller_outcome
+                    ),
                 ),
             ),
         )

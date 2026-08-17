@@ -55,6 +55,103 @@ def _generic_digested(payload: dict) -> dict:
     return value
 
 
+def test_singleton_append_r70_overlay_preserves_round_50_costs(
+    tmp_path: Path,
+) -> None:
+    cells = [copy.deepcopy(row) for row in report._pending_cells()]
+    indexed = report._cell_index(cells)
+    adapter_cells = []
+    for index, regime in enumerate(report.REGIME_ORDER):
+        cell = indexed[(report.REPRESENTATIONS["singleton"], regime, "append")]
+        exact = -1.0 - index
+        costs = {
+            "N2q": 100 + index,
+            "D2q": 200 + index,
+            "Dc": 300 + index,
+            "W1q": 400 + index,
+            "S_alg": 500_000 + index,
+        }
+        cell["exact_same_cutoff_energy"] = exact
+        cell["points"] = [
+            {"k": k, "error": 1.0 / (k + 2)} for k in range(51)
+        ]
+        cell["marker"] = {
+            "k": 50,
+            "error": 1.0 / 52.0,
+            "policy": "terminal_observed_point",
+        }
+        cell["terminal"] = {
+            "k": 50,
+            "error": 1.0 / 52.0,
+            **costs,
+            "status": "complete",
+        }
+        points = [
+            {
+                "round": k,
+                "energy": exact + 1.0 / (k + 2),
+                "delta_e": 1.0 / (k + 2),
+            }
+            for k in range(71)
+        ]
+        adapter_cells.append(
+            {
+                "regime_id": regime,
+                "execution_id": f"r70-{regime}",
+                "exact_same_cutoff_energy": exact,
+                "points": points,
+                "endpoints": {
+                    "round_50": {
+                        **copy.deepcopy(points[50]),
+                        "costs": costs,
+                    },
+                    "round_70": copy.deepcopy(points[70]),
+                },
+            }
+        )
+    adapter = _generic_digested(
+        {
+            "schema": report.APPEND_SINGLETON_R70_SCHEMA,
+            "status": "passed",
+            "package_id": report.APPEND_SINGLETON_R70_PACKAGE_ID,
+            "regime_order": list(report.REGIME_ORDER),
+            "completed_regimes": list(report.REGIME_ORDER),
+            "pending_regimes": [],
+            "cells": adapter_cells,
+        }
+    )
+    adapter_path = tmp_path / "append-r70.json"
+    adapter_path.write_text(json.dumps(adapter), encoding="utf-8")
+
+    overlaid, source = report._overlay_singleton_append_r70(
+        cells, adapter_path=adapter_path
+    )
+
+    overlaid_index = report._cell_index(overlaid)
+    for index, regime in enumerate(report.REGIME_ORDER):
+        cell = overlaid_index[
+            (report.REPRESENTATIONS["singleton"], regime, "append")
+        ]
+        assert [point["k"] for point in cell["points"]] == list(range(71))
+        assert cell["marker"] == {
+            "k": 50,
+            "error": pytest.approx(1.0 / 52.0),
+            "policy": "paper_facing_cost_anchor_round_50",
+        }
+        assert cell["terminal"]["S_alg"] == 500_000 + index
+        assert cell["terminal"]["k"] == 50
+        assert cell["trajectory_terminal"] == {
+            "k": 70,
+            "error": pytest.approx(1.0 / 72.0),
+        }
+    macro = overlaid_index[
+        (report.REPRESENTATIONS["macro"], report.REGIME_ORDER[0], "append")
+    ]
+    assert macro["points"] == []
+    assert source["trajectory_round"] == 70
+    assert source["paper_facing_cost_round"] == 50
+
+
 def _write_recovery_adapter_fixture(
     tmp_path: Path,
     *,

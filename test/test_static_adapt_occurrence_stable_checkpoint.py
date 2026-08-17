@@ -13,8 +13,13 @@ from src.quantum.vqe_latex_python_pairs import AnsatzTerm
 def _duplicate_child_metadata(*, owner_sha256: str) -> dict[str, object]:
     label = "guarded_singleton::eeyeeezeee"
     parent_id = "parent:d0df81502d83973c"
+    physical_generator_id = "child:82a7c379dca861bd"
     return {
-        "generator_id": "child:82a7c379dca861bd",
+        "generator_id": physical_generator_id,
+        "compile_cache_identity": {
+            "generator_id": f"{physical_generator_id}::pool[30]",
+            "pool_index": 30,
+        },
         "parent_generator_id": parent_id,
         "ra_retained_parent_owner": {
             "schema": "ra_retained_parent_owner_v1",
@@ -62,6 +67,7 @@ def test_active_prefix_serializes_duplicate_label_owner_by_occurrence(
         canonicalize_runtime_theta_for_selected_layout=(
             lambda theta, _layout: np.asarray(theta, dtype=float)
         ),
+        controller_noise_runtime=None,
     )
     state_service = SimpleNamespace(
         prepare=lambda **_kwargs: np.asarray([1.0 + 0.0j]),
@@ -163,3 +169,12 @@ def test_active_prefix_serializes_duplicate_label_owner_by_occurrence(
         for row in checkpoint["ordered_active_operators"]
     ]
     assert owners == ["1" * 64, "2" * 64]
+    physical_ids = [
+        row["generator_id"]
+        for row in checkpoint["ordered_active_operators"]
+    ]
+    assert physical_ids == [
+        "child:82a7c379dca861bd",
+        "child:82a7c379dca861bd",
+    ]
+    assert all("::pool[" not in generator_id for generator_id in physical_ids)

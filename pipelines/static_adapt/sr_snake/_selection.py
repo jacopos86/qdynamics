@@ -9,9 +9,19 @@ module owns the controller-level selection transaction and its invariants.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
+
+if TYPE_CHECKING:
+    from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+        AdaptivePhaseCandidateScore,
+        AdaptivePhaseShortlistReceipt,
+    )
 
 from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
@@ -29,6 +39,12 @@ from pipelines.static_adapt.sr_snake_route_profile import (
 
 _SHORTLIST_UNIT_CANDIDATE_POSITION = "candidate_position_record"
 _SHORTLIST_UNIT_MACRO_OPERATOR = "macro_operator_identity"
+_PHASE0_STATIONARY_TERMINAL_OUTCOME = (
+    "phase0_stationary_no_competitive_candidate_v1"
+)
+_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME = (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+)
 
 
 def _uses_default_singleton_selection(
@@ -270,14 +286,40 @@ class _PhaseSelectionReceipt:
     shortlist: tuple[_CandidatePositionRecord, ...]
     shortlist_ranking: tuple[_ShortlistRankReceipt, ...]
     estimator_event_ids: tuple[str, ...]
+    terminal_outcome: str | None = None
+    adaptive_shortlist: AdaptivePhaseShortlistReceipt | None = None
+    adaptive_live_scores: tuple[AdaptivePhaseCandidateScore, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.phase not in {"phase_i", "phase_ii", "phase_iii"}:
+        if self.phase not in {
+            "phase0",
+            "phase_i",
+            "phase_ii",
+            "phase_iii",
+        }:
             raise ValueError(f"unknown selection phase: {self.phase}")
         if not self.population:
             raise ValueError(f"{self.phase} population must be non-empty")
-        if not self.shortlist:
+        stationary = bool(
+            self.phase == "phase0"
+            and self.terminal_outcome
+            == _PHASE0_STATIONARY_TERMINAL_OUTCOME
+        )
+        phase3_no_positive = bool(
+            self.phase == "phase_iii"
+            and self.terminal_outcome
+            == _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+        )
+        if not self.shortlist and not (stationary or phase3_no_positive):
             raise ValueError(f"{self.phase} shortlist must be non-empty")
+        if self.shortlist and self.terminal_outcome is not None:
+            raise ValueError(
+                "a competitive phase shortlist cannot claim terminal status"
+            )
+        if self.terminal_outcome is not None and not (
+            stationary or phase3_no_positive
+        ):
+            raise ValueError("unknown phase-selection terminal outcome")
         if len(self.shortlist_ranking) != len(self.shortlist):
             raise ValueError(
                 f"{self.phase} shortlist rank receipt count must match "
@@ -285,6 +327,232 @@ class _PhaseSelectionReceipt:
             )
         if any(not event_id for event_id in self.estimator_event_ids):
             raise ValueError("estimator event identities must be non-empty")
+        adaptive = self.adaptive_shortlist
+        if adaptive is None and self.adaptive_live_scores:
+            raise ValueError(
+                f"{self.phase} live adaptive scores have no typed receipt"
+            )
+        if adaptive is not None:
+            from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+                adaptive_phase_record_id,
+                validate_adaptive_phase_shortlist_receipt,
+            )
+
+            if self.phase not in {"phase_i", "phase_ii", "phase_iii"}:
+                raise ValueError(
+                    "adaptive cardinality is restricted to Phases I--III"
+                )
+            try:
+                validate_adaptive_phase_shortlist_receipt(
+                    adaptive,
+                    self.adaptive_live_scores,
+                )
+            except ValueError as exc:
+                raise ValueError(
+                    f"{self.phase} adaptive shortlist receipt is invalid"
+                ) from exc
+            if adaptive.phase != self.phase:
+                raise ValueError(
+                    f"{self.phase} adaptive shortlist phase drifted"
+                )
+            population_ids = tuple(
+                adaptive_phase_record_id(
+                    generator_id=record.generator_id,
+                    pool_index=record.pool_index,
+                    insertion_position=record.insertion_position,
+                )
+                for record in self.population
+            )
+            live_score_ids = tuple(
+                score.record_id for score in self.adaptive_live_scores
+            )
+            if not self.adaptive_live_scores or live_score_ids != population_ids:
+                raise ValueError(
+                    f"{self.phase} adaptive scores detached from population"
+                )
+            shortlist_ids = tuple(
+                adaptive_phase_record_id(
+                    generator_id=record.generator_id,
+                    pool_index=record.pool_index,
+                    insertion_position=record.insertion_position,
+                )
+                for record in self.shortlist
+            )
+            live_score_by_id = {
+                score.record_id: score
+                for score in self.adaptive_live_scores
+            }
+            for shortlist_id, rank_receipt in zip(
+                shortlist_ids,
+                self.shortlist_ranking,
+                strict=True,
+            ):
+                live_score = live_score_by_id.get(shortlist_id)
+                if (
+                    live_score is None
+                    or float(rank_receipt.primary_score)
+                    != float(live_score.active_score)
+                    or float(rank_receipt.tie_break_score)
+                    != float(live_score.tie_break_score)
+                ):
+                    raise ValueError(
+                        f"{self.phase} shortlist ranking detached from live scores"
+                    )
+            if self.phase in {"phase_i", "phase_ii"} and (
+                adaptive.retained_record_ids != shortlist_ids
+            ):
+                raise ValueError(
+                    f"{self.phase} adaptive shortlist identities drifted"
+                )
+            if self.phase == "phase_iii":
+                if phase3_no_positive:
+                    if (
+                        adaptive.status != "no_positive_population"
+                        or adaptive.retained_record_ids
+                        or adaptive.retained_count != 0
+                        or shortlist_ids
+                    ):
+                        raise ValueError(
+                            "Phase-III terminal receipt retained a candidate"
+                        )
+                elif not (
+                    len(shortlist_ids) == 1
+                    and bool(adaptive.retained_record_ids)
+                    and shortlist_ids[0] == adaptive.retained_record_ids[0]
+                ):
+                    raise ValueError(
+                        "Phase-III winner is not the adaptive prefix champion"
+                    )
+        if phase3_no_positive and adaptive is None:
+            raise ValueError(
+                "Phase-III no-positive terminal requires its adaptive receipt"
+            )
+
+
+class _StationaryPhase0Selection(RuntimeError):
+    """Typed control transfer for a valid empty Phase-0 competition."""
+
+    def __init__(self, receipt: _PhaseSelectionReceipt) -> None:
+        if (
+            not isinstance(receipt, _PhaseSelectionReceipt)
+            or receipt.phase != "phase0"
+            or receipt.shortlist
+            or receipt.terminal_outcome
+            != _PHASE0_STATIONARY_TERMINAL_OUTCOME
+        ):
+            raise ValueError(
+                "stationary Phase-0 termination requires its empty receipt"
+            )
+        self.receipt = receipt
+        super().__init__(receipt.terminal_outcome)
+
+
+@dataclass(frozen=True, slots=True)
+class _Phase3NoPositiveSelectionEvaluation:
+    """Complete attempted selection with no admissible Phase-III winner."""
+
+    phase_i: _PhaseSelectionReceipt
+    phase_ii: _PhaseSelectionReceipt
+    phase_iii: _PhaseSelectionReceipt
+    estimator_events: tuple[_EstimatorEventIdentity, ...]
+    natural_terminal_authority: object
+    phase0: _PhaseSelectionReceipt | None = None
+    projected_phase3_population_receipt: object | None = None
+
+    def __post_init__(self) -> None:
+        _validate_phase3_natural_terminal_authority(
+            self.natural_terminal_authority
+        )
+        if (
+            not isinstance(self.phase_i, _PhaseSelectionReceipt)
+            or not isinstance(self.phase_ii, _PhaseSelectionReceipt)
+            or not isinstance(self.phase_iii, _PhaseSelectionReceipt)
+            or tuple(
+                receipt.phase
+                for receipt in (self.phase_i, self.phase_ii, self.phase_iii)
+            )
+            != ("phase_i", "phase_ii", "phase_iii")
+            or self.phase_iii.terminal_outcome
+            != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            or self.phase_iii.shortlist
+            or (
+                self.phase0 is not None
+                and (
+                    not isinstance(self.phase0, _PhaseSelectionReceipt)
+                    or self.phase0.phase != "phase0"
+                )
+            )
+            or not isinstance(self.estimator_events, tuple)
+            or any(
+                not isinstance(event, _EstimatorEventIdentity)
+                for event in self.estimator_events
+            )
+        ):
+            raise ValueError(
+                "Phase-III no-positive evaluation is not a complete typed "
+                "selection."
+            )
+
+
+def _validate_phase3_natural_terminal_authority(
+    value: object,
+) -> Mapping[str, Any]:
+    from pipelines.static_adapt.phase_shortlists import (
+        Phase3NaturalTerminalAuthority,
+    )
+
+    if not isinstance(value, Phase3NaturalTerminalAuthority):
+        raise ValueError(
+            "Phase-III no-positive termination lacks authenticated V2 "
+            "route authority"
+        )
+    validated = value.validate()
+    if not isinstance(validated, Mapping):
+        raise ValueError(
+            "Phase-III no-positive route authority is invalid"
+        )
+    return validated
+
+
+class _NoPositivePhaseIIISelection(RuntimeError):
+    """Typed control transfer for an authenticated no-admission round."""
+
+    def __init__(self, evaluation: _Phase3NoPositiveSelectionEvaluation) -> None:
+        if (
+            not isinstance(evaluation, _Phase3NoPositiveSelectionEvaluation)
+            or evaluation.phase_iii.phase != "phase_iii"
+            or evaluation.phase_iii.shortlist
+            or evaluation.phase_iii.terminal_outcome
+            != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            or evaluation.phase_iii.adaptive_shortlist is None
+            or evaluation.phase_iii.adaptive_shortlist.status
+            != "no_positive_population"
+            or evaluation.phase_iii.adaptive_shortlist.retained_record_ids
+        ):
+            raise ValueError(
+                "Phase-III no-positive termination requires its full empty "
+                "selection evaluation"
+            )
+        _validate_phase3_natural_terminal_authority(
+            evaluation.natural_terminal_authority
+        )
+        self.natural_terminal_authority = (
+            evaluation.natural_terminal_authority
+        )
+        self.phase0 = evaluation.phase0
+        self.phase_i = evaluation.phase_i
+        self.phase_ii = evaluation.phase_ii
+        self.phase_iii = evaluation.phase_iii
+        self.estimator_events = evaluation.estimator_events
+        self.projected_phase3_population_receipt = (
+            evaluation.projected_phase3_population_receipt
+        )
+        super().__init__(evaluation.phase_iii.terminal_outcome)
+
+    def validate_natural_terminal_authority(self) -> Mapping[str, Any]:
+        return _validate_phase3_natural_terminal_authority(
+            self.natural_terminal_authority
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -370,6 +638,7 @@ class _SelectionEvaluation:
     trust: _TrustSolveReceipt
     predictive_cost: _PredictiveCostReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -689,6 +958,7 @@ class _SelectionKernel(Protocol):
         domain: tuple[_CandidatePositionRecord, ...],
     ) -> (
         _SelectionEvaluation
+        | _Phase3NoPositiveSelectionEvaluation
         | _GreedyBatchSelectionEvaluation
         | _CombinatorialBatchSelectionEvaluation
     ): ...
@@ -712,6 +982,7 @@ class _SingletonAdmissionDecision:
     trust: _TrustSolveReceipt
     predictive_cost: _PredictiveCostReceipt
     estimator_events: tuple[_EstimatorEventIdentity, ...]
+    phase0: _PhaseSelectionReceipt | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -793,6 +1064,9 @@ def _assert_ranked_shortlist_membership(
             raise ValueError(
                 f"{label} shortlist rank changed its insertion position"
             )
+
+    if not ranking:
+        return
 
     shortlist_units = {item.shortlist_unit for item in ranking}
     if len(shortlist_units) != 1:
@@ -932,6 +1206,59 @@ def _assert_progression(
         )
 
 
+def _assert_phase0_root_descent(
+    *,
+    phase0: _PhaseSelectionReceipt,
+    phase_i: _PhaseSelectionReceipt,
+) -> None:
+    """Require Phase I records to descend from retained Phase-0 roots."""
+
+    admitted_by_domain: dict[str, list[_CandidatePositionRecord]] = {}
+    for record in phase0.shortlist:
+        admitted_by_domain.setdefault(record.domain_record_id, []).append(
+            record
+        )
+    for record in phase_i.population:
+        admitted = admitted_by_domain.get(record.domain_record_id, ())
+        if not any(
+            record.lineage_identity[: len(parent.lineage_identity)]
+            == parent.lineage_identity
+            for parent in admitted
+        ):
+            raise ValueError(
+                "Phase-I population did not descend from the Phase0 "
+                "shortlist lineage"
+            )
+
+
+def _assert_strict_phase_progression(
+    *,
+    earlier: _PhaseSelectionReceipt,
+    later: _PhaseSelectionReceipt,
+) -> None:
+    """Prevent an unshortlisted sibling record from re-entering later."""
+
+    admitted_by_domain: dict[str, list[_CandidatePositionRecord]] = {}
+    for record in earlier.shortlist:
+        admitted_by_domain.setdefault(record.domain_record_id, []).append(
+            record
+        )
+    for record in later.population:
+        admitted = admitted_by_domain.get(record.domain_record_id, ())
+        if not any(
+            _record_key(record) == _record_key(parent)
+            or (
+                record.lineage_identity[: len(parent.lineage_identity)]
+                == parent.lineage_identity
+            )
+            for parent in admitted
+        ):
+            raise ValueError(
+                f"{later.phase} population did not preserve shortlisted "
+                f"lineage from {earlier.phase}"
+            )
+
+
 def _select_singleton(
     state: _SRControllerState,
     workspace: _SelectionWorkspace,
@@ -959,7 +1286,27 @@ def _select_singleton(
         )
 
     accepted_state_before = workspace.kernel.accepted_state_snapshot()
-    evaluation = workspace.kernel.evaluate(domain)
+    try:
+        evaluation = workspace.kernel.evaluate(domain)
+    except _StationaryPhase0Selection as terminal:
+        accepted_state_after = workspace.kernel.accepted_state_snapshot()
+        if accepted_state_after != accepted_state_before:
+            raise RuntimeError(
+                "stationary selection mutated live accepted state"
+            ) from terminal
+        state_after = tuple(
+            getattr(state, field_name)
+            for field_name in state.__dataclass_fields__
+        )
+        if state_after != state_before:
+            raise RuntimeError(
+                "stationary selection mutated accepted controller state"
+            ) from terminal
+        if terminal.receipt.population != domain:
+            raise ValueError(
+                "stationary Phase0 population must equal the admissible domain"
+            ) from terminal
+        raise
     accepted_state_after = workspace.kernel.accepted_state_snapshot()
     if accepted_state_after != accepted_state_before:
         raise RuntimeError(
@@ -983,45 +1330,97 @@ def _select_singleton(
         "phase_iii",
     ):
         raise ValueError("selection must return Phase I, II, and III in order")
-    phase_i_domain_ids = tuple(
-        record.domain_record_id for record in evaluation.phase_i.population
-    )
-    if (
-        len(phase_i_domain_ids) != len(domain)
-        or set(phase_i_domain_ids) != {
-            record.domain_record_id for record in domain
-        }
-    ):
-        raise ValueError(
-            "Phase-I population must cover the admissible domain exactly once"
+    phase0 = evaluation.phase0
+    coverage_receipt = evaluation.phase_i if phase0 is None else phase0
+    if phase0 is not None and phase0.phase != "phase0":
+        raise ValueError("Phase0 receipt must identify phase0")
+    if phase0 is not None:
+        if phase0.population != domain:
+            raise ValueError(
+                "Phase0 population must equal the exact original admissible "
+                "domain tuple"
+            )
+    else:
+        phase_i_domain_ids = tuple(
+            record.domain_record_id
+            for record in coverage_receipt.population
         )
+        if (
+            len(phase_i_domain_ids) != len(domain)
+            or set(phase_i_domain_ids) != {
+                record.domain_record_id for record in domain
+            }
+        ):
+            raise ValueError(
+                "Phase-I population must cover the admissible domain "
+                "exactly once"
+            )
 
     domain_by_id = {record.domain_record_id: record for record in domain}
-    for receipt in receipts:
+    lineage_receipts = (
+        receipts if phase0 is None else (phase0, *receipts)
+    )
+    for receipt in lineage_receipts:
         _assert_phase_lineage(
             receipt=receipt,
             domain_by_id=domain_by_id,
         )
-    _assert_progression(
-        earlier=evaluation.phase_i,
-        later=evaluation.phase_ii,
+    if phase0 is not None:
+        _assert_phase0_root_descent(
+            phase0=phase0,
+            phase_i=evaluation.phase_i,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_strict_phase_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
+    else:
+        _assert_progression(
+            earlier=evaluation.phase_i,
+            later=evaluation.phase_ii,
+        )
+        _assert_progression(
+            earlier=evaluation.phase_ii,
+            later=evaluation.phase_iii,
+        )
+    terminal_phase3 = isinstance(
+        evaluation,
+        _Phase3NoPositiveSelectionEvaluation,
     )
-    _assert_progression(
-        earlier=evaluation.phase_ii,
-        later=evaluation.phase_iii,
-    )
-    if len(evaluation.phase_iii.shortlist) != 1:
+    if terminal_phase3:
+        if (
+            evaluation.phase_iii.terminal_outcome
+            != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            or evaluation.phase_iii.shortlist
+        ):
+            raise ValueError(
+                "Phase-III terminal evaluation has a competitive shortlist"
+            )
+        _validate_phase3_natural_terminal_authority(
+            evaluation.natural_terminal_authority
+        )
+    elif len(evaluation.phase_iii.shortlist) != 1:
         raise ValueError("default singleton selection must retain one winner")
-    if evaluation.selected != evaluation.phase_iii.shortlist[0]:
+    if not terminal_phase3 and (
+        evaluation.selected != evaluation.phase_iii.shortlist[0]
+    ):
         raise ValueError("selected record must be the Phase-III singleton")
 
-    if evaluation.trust.response_identity != evaluation.response.identity:
-        raise ValueError("trust solve does not identify its response receipt")
-    if evaluation.trust.supported_rank != evaluation.response.supported_rank:
-        raise ValueError("trust and response supported ranks disagree")
-    if len(evaluation.trust.proposed_coordinate_values) != (
-        evaluation.response.supported_dimension
+    if not terminal_phase3 and (
+        evaluation.trust.response_identity != evaluation.response.identity
     ):
+        raise ValueError("trust solve does not identify its response receipt")
+    if not terminal_phase3 and (
+        evaluation.trust.supported_rank != evaluation.response.supported_rank
+    ):
+        raise ValueError("trust and response supported ranks disagree")
+    if not terminal_phase3 and len(
+        evaluation.trust.proposed_coordinate_values
+    ) != evaluation.response.supported_dimension:
         raise ValueError(
             "trust proposal does not cover the response coordinate chart"
         )
@@ -1038,15 +1437,21 @@ def _select_singleton(
     )
     if len(set(occurrence_ids)) != len(occurrence_ids):
         raise ValueError("estimator occurrence identities must be unique")
+    ordered_event_receipts = (
+        receipts if phase0 is None else (phase0, *receipts)
+    )
     phase_event_ids = tuple(
         event_id
-        for receipt in receipts
+        for receipt in ordered_event_receipts
         for event_id in receipt.estimator_event_ids
     )
     if phase_event_ids != occurrence_ids:
         raise ValueError(
             "phase estimator identities must equal the ordered selection delta"
         )
+
+    if terminal_phase3:
+        raise _NoPositivePhaseIIISelection(evaluation)
 
     return _SingletonAdmissionDecision(
         controller_round=state.controller_round,
@@ -1059,6 +1464,7 @@ def _select_singleton(
         trust=evaluation.trust,
         predictive_cost=evaluation.predictive_cost,
         estimator_events=evaluation.estimator_events,
+        phase0=phase0,
     )
 
 

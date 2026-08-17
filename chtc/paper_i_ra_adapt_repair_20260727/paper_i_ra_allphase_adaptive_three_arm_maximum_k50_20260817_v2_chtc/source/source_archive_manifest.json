@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "3de68684a9155159c668305dbf78161bb8fbda290760e728b80b17c976c1d007",
+  "archive_size_bytes": 4897353,
+  "member_count": 576,
+  "members_sha256": "66b530d81b2db507c5f4eb3675499605da161d9a30f88ef04391dcb0f2683609",
+  "schema": "paper_i_ra_allphase_adaptive_three_arm_source_archive_v1",
+  "sha256": "97bb77e07dbb609b3850a01a3bcf837556f5393a9a4df6d361d7edbc400872f4",
+  "source_inventory_sha256": "19be5cc93bda065e92a9e281f43c89a9a18012f9b6b3a5f8a43e29df1357f1b8"
+}

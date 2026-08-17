@@ -949,6 +949,89 @@ def _symmetric_cost_coordinate_records(
     return scoring.rescore_hardware_cost_family(records, cfg), cfg
 
 
+def _zero_centered_signed_cost_coordinate_records(
+    *,
+    feasible: bool,
+) -> tuple[list[dict[str, Any]], FullScoreConfig]:
+    policy = (
+        scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+    )
+    cfg = FullScoreConfig(
+        lambda_2q=1.0,
+        lambda_d=0.0,
+        lambda_1q=0.0,
+        lambda_theta=0.0,
+        lambda_shot=0.0,
+        z_alpha=0.0,
+        hardware_cost_normalization_mode=policy,
+        phase3_signed_factor_consumer_semantic_version=(
+            scoring.PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION
+        ),
+        deferred_gram_fallback_enabled=True,
+    )
+    records: list[dict[str, Any]] = []
+    for index, signed_delta in enumerate((-1.0, 1.0)):
+        components = {
+            **_feature().phase_score_components,
+            "N3": None,
+            "phase3_N3": None,
+        }
+        geometry: dict[str, Any] = {
+            "schema": HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
+            "feasible": bool(feasible),
+            "reason": "supported" if feasible else "rank_gate",
+            "joint_gain": 0.8 if feasible else 0.0,
+            "joint_linear_solve_policy_effective": _WHITENED_POLICY,
+        }
+        if not feasible:
+            geometry["historical_phase2_joint_geometry_reuse"] = {
+                "phase3_deferred_gram_novelty": {
+                    "schema": "phase3_deferred_gram_novelty_v1",
+                    "Q_window": [],
+                    "q_reduced": [],
+                    "F_red": 1.0,
+                    "metric_collapse": False,
+                }
+            }
+        feature = replace(
+            _feature(
+                candidate_label=f"candidate_{index}",
+                candidate_pool_index=index,
+                novelty=None,
+                generator_id=f"generator::candidate_{index}",
+                compile_cost_source="backend_transpile_v1",
+                compiled_position_cost_backend={
+                    "negative_delta_reward_enabled": True,
+                    "raw_delta_compiled_count_2q": signed_delta,
+                    "raw_delta_compiled_depth_2q": 0.0,
+                    "raw_delta_compiled_count_1q": 0.0,
+                    "base_structure_key": "a" * 64,
+                    "trial_structure_key": str(index + 1) * 64,
+                },
+                phase_score_components=components,
+            ),
+            phase2_joint_geometry_reuse=geometry,
+        )
+        records.append(_record(f"candidate_{index}", index, feature))
+    return scoring.rescore_hardware_cost_family(records, cfg), cfg
+
+
+def _multiplicative_signed_cost_coordinate_records(
+    policy: str,
+    *,
+    feasible: bool,
+) -> tuple[list[dict[str, Any]], FullScoreConfig]:
+    if policy == (
+        scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+    ):
+        return _zero_centered_signed_cost_coordinate_records(feasible=feasible)
+    if policy == (
+        scoring.HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
+    ):
+        return _symmetric_cost_coordinate_records(feasible=feasible)
+    raise AssertionError(f"unsupported test policy {policy!r}")
+
+
 def test_phase3_coordinate_rescore_applies_symmetric_cost_factor_to_energy_score() -> None:
     records, cfg = _symmetric_cost_coordinate_records(feasible=True)
 
@@ -986,6 +1069,425 @@ def test_phase3_coordinate_rescore_applies_symmetric_cost_factor_to_energy_score
         row["feature"].phase_score_components["hardware_cost_score_factor"]
         for row in rescored
     ] == pytest.approx([1.25, 1.0, 0.75])
+
+
+def test_phase3_coordinate_rescore_preserves_zero_centered_signed_factors() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    assert [row["hardware_cost_score_factor"] for row in records] == pytest.approx(
+        [1.25, 0.75]
+    )
+
+    rescored, telemetry = rescore_historical_phase3_records_with_coordinate_models(
+        records,
+        cfg=cfg,
+    )
+
+    assert [row["hardware_cost_score_factor"] for row in rescored] == pytest.approx(
+        [1.25, 0.75]
+    )
+    assert [row["full_v2_score"] for row in rescored] == pytest.approx(
+        [1.0, 0.6]
+    )
+    assert telemetry["hardware_cost_normalization_mode"] == (
+        scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+    )
+    assert telemetry["phase3_signed_factor_consumer_semantic_version"] == (
+        scoring.PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION
+    )
+    assert telemetry["symmetric_hardware_cost_factor_applied"] is True
+
+
+@pytest.mark.parametrize(
+    "semantic_version",
+    (None, "stale_affected_v0"),
+)
+def test_zero_centered_phase3_consumer_rejects_historical_semantics(
+    semantic_version: str | None,
+) -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    historical_cfg = replace(
+        cfg,
+        phase3_signed_factor_consumer_semantic_version=semantic_version,
+    )
+
+    with pytest.raises(RuntimeError, match="semantic implementation version"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            records,
+            cfg=historical_cfg,
+        )
+
+
+def test_phase3_coordinate_rescore_rejects_stale_signed_factor_population() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    stale_hash = "0" * 64
+    stale_record = dict(records[1])
+    stale_feature = stale_record["feature"]
+    assert isinstance(stale_feature, CandidateFeatures)
+    stale_record["feature"] = replace(
+        stale_feature,
+        hardware_cost_population_hash=stale_hash,
+        hardware_cost_normalization={
+            **stale_feature.hardware_cost_normalization,
+            "population_hash": stale_hash,
+        },
+        phase_cost_components={
+            **stale_feature.phase_cost_components,
+            "hardware_cost_population_hash": stale_hash,
+        },
+    )
+    stale_record["hardware_cost_population_hash"] = stale_hash
+
+    with pytest.raises(ValueError, match="population"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [records[0], stale_record],
+            cfg=cfg,
+        )
+
+
+def test_phase3_coordinate_rescore_rejects_dropped_signed_population_member() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+
+    with pytest.raises(ValueError, match="population"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [records[0]],
+            cfg=cfg,
+        )
+
+
+def test_phase3_coordinate_rescore_rejects_stale_compiled_ansatz_identity() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    stale_record = dict(records[1])
+    stale_feature = stale_record["feature"]
+    assert isinstance(stale_feature, CandidateFeatures)
+    assert isinstance(stale_feature.compiled_position_cost_backend, dict)
+    stale_record["feature"] = replace(
+        stale_feature,
+        compiled_position_cost_backend={
+            **stale_feature.compiled_position_cost_backend,
+            "trial_structure_key": "f" * 64,
+        },
+    )
+
+    with pytest.raises(ValueError, match="population"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [records[0], stale_record],
+            cfg=cfg,
+        )
+
+
+def test_signed_hardware_cost_population_hash_binds_normalization_policy() -> None:
+    feature = _feature(
+        generator_id="generator::candidate",
+        compile_cost_source="backend_transpile_v1",
+        compiled_position_cost_backend={
+            "negative_delta_reward_enabled": True,
+            "raw_delta_compiled_count_2q": 0.0,
+            "raw_delta_compiled_depth_2q": 0.0,
+            "raw_delta_compiled_count_1q": 0.0,
+            "base_structure_key": "a" * 64,
+            "trial_structure_key": "b" * 64,
+        },
+    )
+    symmetric_cfg = FullScoreConfig(
+        lambda_2q=1.0,
+        lambda_d=0.0,
+        lambda_1q=0.0,
+        lambda_theta=0.0,
+        lambda_shot=0.0,
+        hardware_cost_normalization_mode=(
+            scoring.HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
+        ),
+    )
+    zero_centered_cfg = replace(
+        symmetric_cfg,
+        hardware_cost_normalization_mode=(
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+    )
+
+    symmetric = scoring.normalize_hardware_cost_feature_family(
+        [feature], symmetric_cfg
+    )[0]
+    zero_centered = scoring.normalize_hardware_cost_feature_family(
+        [feature], zero_centered_cfg
+    )[0]
+
+    assert symmetric.hardware_cost_population_hash is not None
+    assert zero_centered.hardware_cost_population_hash is not None
+    assert symmetric.hardware_cost_population_hash == (
+        "1129ea4b631947936dd5cbea1f0cbfb902cadc2f1921bedee2d2da5d46ec2e56"
+    )
+    assert (
+        symmetric.hardware_cost_population_hash
+        != zero_centered.hardware_cost_population_hash
+    )
+
+
+@pytest.mark.parametrize(
+    ("identity_field", "replacement_key"),
+    (
+        ("base_structure_key", "c" * 64),
+        ("trial_structure_key", "d" * 64),
+    ),
+)
+def test_zero_centered_population_hash_binds_compiled_ansatz_identity(
+    identity_field: str,
+    replacement_key: str,
+) -> None:
+    backend = {
+        "negative_delta_reward_enabled": True,
+        "raw_delta_compiled_count_2q": -1.0,
+        "raw_delta_compiled_depth_2q": 0.0,
+        "raw_delta_compiled_count_1q": 0.0,
+        "base_structure_key": "a" * 64,
+        "trial_structure_key": "b" * 64,
+    }
+    baseline = _feature(
+        generator_id="generator::candidate",
+        compile_cost_source="backend_transpile_v1",
+        compiled_position_cost_backend=backend,
+    )
+    changed = replace(
+        baseline,
+        compiled_position_cost_backend={
+            **backend,
+            identity_field: replacement_key,
+        },
+    )
+    cfg = FullScoreConfig(
+        lambda_2q=1.0,
+        lambda_d=0.0,
+        lambda_1q=0.0,
+        lambda_theta=0.0,
+        lambda_shot=0.0,
+        hardware_cost_normalization_mode=(
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+    )
+
+    baseline_normalized = scoring.normalize_hardware_cost_feature_family(
+        [baseline], cfg
+    )[0]
+    changed_normalized = scoring.normalize_hardware_cost_feature_family(
+        [changed], cfg
+    )[0]
+
+    assert baseline_normalized.hardware_cost_population_hash is not None
+    assert changed_normalized.hardware_cost_population_hash is not None
+    assert (
+        baseline_normalized.hardware_cost_population_hash
+        != changed_normalized.hardware_cost_population_hash
+    )
+
+
+def test_zero_centered_population_hash_binds_generator_identity() -> None:
+    backend = {
+        "negative_delta_reward_enabled": True,
+        "raw_delta_compiled_count_2q": -1.0,
+        "raw_delta_compiled_depth_2q": 0.0,
+        "raw_delta_compiled_count_1q": 0.0,
+        "base_structure_key": "a" * 64,
+        "trial_structure_key": "b" * 64,
+    }
+    baseline = _feature(
+        generator_id="generator::baseline",
+        compile_cost_source="backend_transpile_v1",
+        compiled_position_cost_backend=backend,
+    )
+    changed = replace(baseline, generator_id="generator::changed")
+    cfg = FullScoreConfig(
+        lambda_2q=1.0,
+        lambda_d=0.0,
+        lambda_1q=0.0,
+        lambda_theta=0.0,
+        lambda_shot=0.0,
+        hardware_cost_normalization_mode=(
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+    )
+
+    baseline_normalized = scoring.normalize_hardware_cost_feature_family(
+        [baseline], cfg
+    )[0]
+    changed_normalized = scoring.normalize_hardware_cost_feature_family(
+        [changed], cfg
+    )[0]
+
+    assert (
+        baseline_normalized.hardware_cost_population_hash
+        != changed_normalized.hardware_cost_population_hash
+    )
+
+
+@pytest.mark.parametrize(
+    "missing_identity",
+    ("generator_id", "base_structure_key", "trial_structure_key"),
+)
+def test_zero_centered_population_hash_requires_exact_ansatz_identity(
+    missing_identity: str,
+) -> None:
+    backend = {
+        "negative_delta_reward_enabled": True,
+        "raw_delta_compiled_count_2q": -1.0,
+        "raw_delta_compiled_depth_2q": 0.0,
+        "raw_delta_compiled_count_1q": 0.0,
+        "base_structure_key": "a" * 64,
+        "trial_structure_key": "b" * 64,
+    }
+    generator_id: str | None = "generator::candidate"
+    if missing_identity == "generator_id":
+        generator_id = None
+    else:
+        backend.pop(missing_identity)
+    feature = _feature(
+        generator_id=generator_id,
+        compile_cost_source="backend_transpile_v1",
+        compiled_position_cost_backend=backend,
+    )
+    cfg = FullScoreConfig(
+        hardware_cost_normalization_mode=(
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+    )
+
+    with pytest.raises(ValueError, match=missing_identity):
+        scoring.normalize_hardware_cost_feature_family([feature], cfg)
+
+
+@pytest.mark.parametrize(
+    ("policy", "expected_factors", "expected_scores"),
+    [
+        (
+            scoring.HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
+            [1.25, 1.0, 0.75],
+            [1.0, 0.8, 0.6],
+        ),
+        (
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
+            [1.25, 0.75],
+            [1.0, 0.6],
+        ),
+    ],
+    ids=("family-robust-symmetric", "zero-centered-signed"),
+)
+def test_phase3_coordinate_rescore_closes_signed_factor_energy_score(
+    policy: str,
+    expected_factors: list[float],
+    expected_scores: list[float],
+) -> None:
+    records, cfg = _multiplicative_signed_cost_coordinate_records(
+        policy,
+        feasible=True,
+    )
+
+    rescored, telemetry = rescore_historical_phase3_records_with_coordinate_models(
+        records,
+        cfg=cfg,
+    )
+
+    assert [row["hardware_cost_score_factor"] for row in rescored] == pytest.approx(
+        expected_factors
+    )
+    assert [row["full_v2_score"] for row in rescored] == pytest.approx(
+        expected_scores
+    )
+    assert [
+        row["feature"].phase_score_components["denominator_1_plus_K3"]
+        for row in rescored
+    ] == pytest.approx([1.0] * len(expected_scores))
+    assert telemetry["score_formula"] == (
+        "DeltaE_TR * hardware_cost_score_factor / (1 + K3)"
+    )
+
+
+@pytest.mark.parametrize(
+    ("policy", "expected_scores"),
+    [
+        (
+            scoring.HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
+            [1.25, 1.0, 0.75],
+        ),
+        (
+            scoring.HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
+            [1.25, 0.75],
+        ),
+    ],
+    ids=("family-robust-symmetric", "zero-centered-signed"),
+)
+def test_phase3_coordinate_rescore_closes_signed_factor_infeasible_fallback(
+    policy: str,
+    expected_scores: list[float],
+) -> None:
+    records, cfg = _multiplicative_signed_cost_coordinate_records(
+        policy,
+        feasible=False,
+    )
+
+    rescored, telemetry = rescore_historical_phase3_records_with_coordinate_models(
+        records,
+        cfg=cfg,
+    )
+
+    assert [row["full_v2_score"] for row in rescored] == pytest.approx(
+        expected_scores
+    )
+    assert [
+        row["route_a_geometry_expansion_score"] for row in rescored
+    ] == pytest.approx(expected_scores)
+    assert telemetry["geometry_expansion_active"] is True
+    assert telemetry["geometry_expansion_score_formula"] == (
+        "N3*hardware_cost_score_factor/(1+K3)"
+    )
+
+
+def test_phase3_coordinate_rescore_rejects_missing_signed_normalization() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    missing = dict(records[0])
+    feature = missing["feature"]
+    assert isinstance(feature, CandidateFeatures)
+    missing["feature"] = replace(feature, hardware_cost_normalization={})
+
+    with pytest.raises(ValueError, match="normalization receipt"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [missing, records[1]],
+            cfg=cfg,
+        )
+
+
+def test_phase3_coordinate_rescore_rejects_mixed_signed_policies() -> None:
+    zero_records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    symmetric_records, _ = _symmetric_cost_coordinate_records(feasible=True)
+
+    with pytest.raises(ValueError, match="policy"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [zero_records[0], symmetric_records[0]],
+            cfg=cfg,
+        )
+
+
+def test_phase3_coordinate_rescore_rejects_stale_signed_score_factor() -> None:
+    records, cfg = _zero_centered_signed_cost_coordinate_records(feasible=True)
+    stale = dict(records[0])
+    feature = stale["feature"]
+    assert isinstance(feature, CandidateFeatures)
+    stale["feature"] = replace(
+        feature,
+        hardware_cost_score_factor=1.0,
+        hardware_cost_normalization={
+            **feature.hardware_cost_normalization,
+            "score_factor": 1.0,
+        },
+        phase_cost_components={
+            **feature.phase_cost_components,
+            "hardware_cost_score_factor": 1.0,
+        },
+    )
+
+    with pytest.raises(ValueError, match="score-factor"):
+        rescore_historical_phase3_records_with_coordinate_models(
+            [stale, records[1]],
+            cfg=cfg,
+        )
 
 
 def test_phase3_coordinate_rescore_applies_symmetric_cost_factor_to_fallback_score() -> None:

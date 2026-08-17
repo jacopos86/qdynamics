@@ -114,9 +114,10 @@ from an operator pool using first-order energy derivatives. Consequently, its
 standard selection rule does not model directional curvature, the relaxation
 of the active ansatz following candidate admission, or generator-specific
 circuit and measurement costs. We introduce Resource-Aware ADAPT (RA-ADAPT),
-whose central contribution is a three-phase generator-scoring subroutine
-executed once about the fixed optimized source state at each outer-loop
-iteration. The subroutine progressively
+whose central contribution is a four-phase selection procedure, Phases 0--III,
+that progressively enriches the generator score from the standard ADAPT
+gradient to local response models evaluated once about the fixed optimized
+source state at each outer-loop iteration. The procedure progressively
 escalates local response modeling before ranking candidates by predicted energy
 decrease after local active-ansatz relaxation per resource cost. Its final phase uses a Schur-reduced quadratic
 trust-region model of the joint candidate and active-ansatz response in the
@@ -126,26 +127,17 @@ excludes Gram-null parameter directions and orthonormalizes the retained
 Fubini--Study tangents for coordinate-sensitive inner optimization.
 Lowerre-style beam continuation, Tetris-style batch admission, and generator
 ablation arise as natural extensions of this same energy-per-resource model.
-We evaluate RA-ADAPT on the Hubbard, spin-boson/Rabi, Bose--Hubbard, and
-Hubbard--Holstein models and perform matched comparisons with append-only
-ADAPT-VQE using either undecomposed operator-pool generators or
-symmetry-retained single-Pauli-word generators for six Hubbard--Holstein
-interaction regimes under common encodings and inner-optimization protocols.
-With matched single-Pauli-word generator pools, plateau-insertion RA-ADAPT
-attains at least one order of magnitude lower same-cutoff energy error than
-Append-ADAPT in four of six regimes at iteration \(50\). At panel-specific
-matched-error prefixes selected within a window ending at the earlier
-effective plateau, it uses fewer two-qubit gates, lower two-qubit depth, and
-less logical estimator work in all six regimes, with Append/RA ratios of
-\(1.021\)--\(2.254\), \(1.115\)--\(2.640\), and
-\(2.184\)--\(8.120\), respectively. With matched undecomposed generator
-pools, stationary-source always-insertion RA-ADAPT uses fewer two-qubit gates,
-lower two-qubit and total circuit depth, and less pretranspilation one-qubit
-work than Append-ADAPT in four of the five panels whose matched-error RA prefix
-can presently be recompiled. Its logical estimator work is lower in one of
-those five panels. Five of the six stationary always-insertion trajectories
-remain authenticated paused prefixes, so we do not use them for a uniform
-iteration-\(50\) accuracy claim.
+We evaluate plateau-triggered RA-ADAPT on the two-site Hubbard--Holstein model
+using the same symmetry-retained single-Pauli-word operator pool as
+Append-ADAPT across six interaction regimes. At a common attainable accuracy
+before the earlier effective plateau, RA-ADAPT requires less logical estimator
+work in five regimes and fewer routed two-qubit gates in four. Within a shared
+logical-estimator budget, RA-ADAPT reaches a lower same-cutoff energy error in
+all six regimes, with at least a tenfold reduction in five. The accepted
+trajectories further identify spin-resolved intersite electronic hopping as
+the dominant descent channel and show that stronger Holstein coupling
+increases the contribution from mixed electron--phonon channels at weak and
+intermediate Hubbard interaction.
 
 
 \end{abstract}
@@ -160,14 +152,14 @@ iteration-\(50\) accuracy claim.
 
 \section{Introduction}
 
-Quantum processing units (QPUs) promise computational speedups for classically hard problems, including the simulation of quantum many-body physics \cite{Lloyd1996,AspuruGuzik2005}. A central task is preparing the ground state of a given Hamiltonian. The scope of available simulation problems is limited by QPU resource constraints, including circuit depth, entangling-gate count, and measurement overhead \cite{Preskill2018NISQ,Cerezo2021VQA,Huggins2021Measurements}. This current QPU regime is classified as the noisy intermediate-scale quantum (NISQ) era, and many classes of algorithms have been developed specifically to address these bottlenecks. One such class is adaptive derivative-assembled pseudo-Trotter variational quantum eigensolvers (ADAPT-VQE), which iteratively construct circuits by appending gates from a predefined operator pool according to an energy-gradient selection rule. ADAPT-VQE has been developed primarily for small fermionic systems \cite{Anastasiou2024,Bespalova2026KADAPT,He2026HAADAPT,He2026ParamADAPT}, with recent extensions to vibrational Hamiltonians and bosonic lattice models \cite{Majland2024vADAPT,Athanasakos2026CVADAPT}. It can nevertheless fail to reach acceptable ground-state-preparation accuracy because of prohibitive circuit depths and measurement overhead, insufficiently expressive operator pools, or energy plateaus arising from poorly conditioned variational-coordinate landscapes \cite{Grimsley2019,Tang2021,Yordanov2021,Feniou2023,Ramoa2025HessianRecycling,Ikhtiarudin2025ShotEfficient,Stadelmann2025GradientTroughs}. Thus ansatz construction through operator selection becomes the dominant lever for NISQ ground-state ansatz preparation. We present Resource-Aware ADAPT as a highly accurate, resource-aware operator-selection subroutine of ADAPT-VQE. For brevity, we refer to Resource-Aware ADAPT as Resource-ADAPT (RA).
+Quantum processing units (QPUs) promise computational speedups for classically hard problems, including the simulation of quantum many-body physics \cite{Lloyd1996,AspuruGuzik2005}. A central task is preparing the ground state of a given Hamiltonian. The scope of available simulation problems is limited by QPU resource constraints, including circuit depth, entangling-gate count, and measurement overhead \cite{Preskill2018NISQ,Cerezo2021VQA,Huggins2021Measurements}. This current QPU regime is classified as the noisy intermediate-scale quantum (NISQ) era, and many classes of algorithms have been developed specifically to address these bottlenecks. One such class is adaptive derivative-assembled pseudo-Trotter variational quantum eigensolvers (ADAPT-VQE), which iteratively construct circuits by appending gates from a predefined operator pool according to an energy-gradient selection rule. ADAPT-VQE has been developed primarily for small fermionic systems \cite{Anastasiou2024,Bespalova2026KADAPT,He2026HAADAPT,He2026ParamADAPT}, with recent extensions to vibrational Hamiltonians and bosonic lattice models \cite{Majland2024vADAPT,Athanasakos2026CVADAPT}. It can nevertheless fail to reach the desired ground-state accuracy because of prohibitive circuit depths and measurement overhead, insufficiently expressive operator pools, or energy plateaus arising from poorly conditioned variational-coordinate landscapes \cite{Grimsley2019,Tang2021,Yordanov2021,Feniou2023,Ramoa2025HessianRecycling,Ikhtiarudin2025ShotEfficient,Stadelmann2025GradientTroughs}. Thus ansatz construction through operator selection becomes the dominant lever for NISQ ground-state preparation. We present Resource-Aware ADAPT as a highly accurate, resource-aware operator-selection subroutine of ADAPT-VQE. For brevity, we refer to Resource-Aware ADAPT as Resource-ADAPT (RA).
 
 
 \subsection{Modeled problem}
-Previous quantum-algorithm studies of electron--phonon systems have largely focused on qubit encodings, variational basis compression, hybrid quantum--classical solvers, and simulation frameworks \cite{Macridin2018,Li2023,Denner2023,Peng2025BosonHamiltonians}. By contrast, a standard ADAPT-VQE construction framework for condensed-matter fermion--phonon Hamiltonians, including the Hubbard--Holstein model, has not yet emerged. Electronic-structure applications of ADAPT-VQE can rely on a mature hierarchy of unitary coupled cluster singles and doubles excitation operators, such as UCCSD \cite{Romero2018UCC,Grimsley2019}. Mixed fermion--phonon condensed-matter models instead require operator pools that simultaneously represent electronic correlation, lattice excitations, and electron--phonon dressing. This makes operator-pool design part of the algorithmic problem rather than a fixed input to ADAPT-VQE. For the Hubbard--Holstein model, the pool must contain generators that capture electronic correlation, phononic lattice response, and coupled electron--phonon dressing. After encoding, these mixed-sector generators require gates that entangle fermionic and bosonic registers under a finite phonon-mode truncation \cite{Hubbard1963,Holstein1959a,Holstein1959b}. The operator pools used for the Hubbard--Holstein, spin-boson/Rabi, Bose--Hubbard, and Hubbard models are defined in Appendices~\ref{app:lane_shortlisting}, \ref{app:spin_boson_rabi}, \ref{app:bose_hubbard}, and \ref{app:supplementary_transfer_benchmarks}, respectively. We focus results on the Hubbard--Holstein model under six interaction-strength regimes and compare RA-ADAPT against append-only ADAPT-VQE using same-cutoff energy errors, transpiled circuit resources, and estimator queries at a fixed 50-iteration horizon.
+Previous quantum-algorithm studies of electron--phonon systems have largely focused on qubit encodings, variational basis compression, hybrid quantum--classical solvers, and simulation frameworks \cite{Macridin2018,Li2023,Denner2023,Peng2025BosonHamiltonians}. By contrast, a standard ADAPT-VQE construction framework for condensed-matter fermion--phonon Hamiltonians, including the Hubbard--Holstein model, has not yet emerged. This gap is particularly relevant because electronic-structure applications of ADAPT-VQE can rely on a mature hierarchy of unitary coupled cluster singles and doubles excitation operators, such as UCCSD \cite{Romero2018UCC,Grimsley2019}, whereas mixed fermion--phonon condensed-matter models require operator pools that simultaneously represent electronic correlation, lattice excitations, and electron--phonon dressing. Operator-pool design therefore becomes part of the algorithmic problem. For the Hubbard--Holstein model, the pool must contain generators that capture electronic correlation, phononic lattice response, and coupled electron--phonon dressing. After encoding, these mixed-sector generators require gates that entangle fermionic and bosonic registers under a finite phonon-mode truncation \cite{Hubbard1963,Holstein1959a,Holstein1959b}. The Hubbard--Holstein operator pool is defined in Appendix~\ref{app:hh_operator_pool}. We study six interaction-strength regimes and compare RA-ADAPT against append-only ADAPT-VQE through same-cutoff energy errors, transpiled circuit resources, and estimator queries at matched attained accuracy and at the selected terminal horizons.
 
 
-The Hubbard--Holstein model \cite{ClayHardikar2005HH,Tezuka2007HH} is given by
+The Hubbard--Holstein model \cite{ClayHardikar2005HH,Tezuka2007HH} is written as
 \begin{align}
 H
 &=-t\sum_{\langle i,j\rangle,\sigma}
@@ -180,7 +172,7 @@ H
 \end{align}
 Here \(c_{i\sigma}\) and \(b_i\) are the fermionic and bosonic annihilation operators on site \(i\); their Hermitian conjugates (\(\dagger\)) are the corresponding creation operators; \(\sigma \in\{\uparrow, \downarrow\}\) denotes particle spin;
 \(n_{i\sigma}, n_i\) are the spin-resolved and total fermionic number operators, respectively; \(\bar n=N_e/L\) is the mean fermion filling for fixed electron number \(N_e\) and lattice size \(L\). Our results use open boundary conditions with half-filling. Here \(t\) is the nearest-neighbor electronic hopping amplitude, \(U\) is the onsite Hubbard interaction, \(\omega_0\) is the phonon frequency, \(g\) is the local electron--phonon coupling, and \(\langle i,j\rangle\) denotes nearest-neighbor lattice sites.
-In the joint decoupling limit $g\to0$ and $\omega_0\to0$, the electronic sector reduces to the Hubbard Hamiltonian, up to a decoupled zero-frequency phonon register. We use Jordan--Wigner and binary encoding for Eq.~\eqref{eq:hubbard_holstein_static} and the operator-pool generators in Appendix~\ref{app:lane_shortlisting}, with fixed blocked qubit registers \cite{Sawaya2020,Peng2025BosonHamiltonians}.
+In the joint decoupling limit $g\to0$ and $\omega_0\to0$, the electronic sector reduces to the Hubbard Hamiltonian, up to a decoupled zero-frequency phonon register. We use Jordan--Wigner and binary encoding for Eq.~\eqref{eq:hubbard_holstein_static} and the operator-pool generators in Appendix~\ref{app:hh_operator_pool}, with fixed blocked qubit registers \cite{Sawaya2020,Peng2025BosonHamiltonians}.
 
 
 \subsection{Current status}
@@ -208,21 +200,19 @@ A_k^\star\in\operatorname*{arg\,max}_{A\in\mathcal G}
 where \(E\) is the Hamiltonian expectation value of the indicated trial state. Here and below, a superscript \(\star\) marks a selected or optimized extremizer. After each outer-loop insertion, a classical optimizer refits the active parameters according to the Rayleigh--Ritz criterion \cite{Peruzzo2014,McClean2016,Kandala2017}:
 \begin{equation}
 \label{eq:theta_opt}
-\boldsymbol{\theta}^\star=\arg\min_{\boldsymbol{\theta}}E(\boldsymbol{\theta})\,,
+\boldsymbol{\theta}^\star
+=\arg\min_{\boldsymbol{\theta}}
+\bra{\psi_{\rm ref}}U^\dagger(\boldsymbol{\theta})HU(\boldsymbol{\theta})
+\ket{\psi_{\rm ref}}\,.
 \end{equation}
-where \begin{equation}
-E(\boldsymbol{\theta})=
-\bra{\psi_{\rm ref}}U^\dagger(\boldsymbol{\theta})HU(\boldsymbol{\theta})\ket{\psi_{\rm ref}}.
-\label{eq:rayleigh_static}
-\end{equation}
-Numerous ADAPT variants modify the outer-loop generator-selection rule. CEO-ADAPT modifies the pool by combining related qubit excitations acting on the same spin-orbital set into coupled-exchange generators \cite{Ramoa2025}, whereas Overlap-ADAPT incorporates tangent-direction information into the append criterion \cite{Feniou2023}. Other methods exploit second-order derivatives to improve convergence \cite{Grimsley2023ADAPT} or recycle Hessian information to reduce the cost of repeated inner-loop optimizations \cite{Ramoa2025HessianRecycling}. Contemporaneous with this work, Geo-ADAPT-VQE applies the inverse of the full-pool tangent Gram matrix to the energy-gradient covector and appends the generator associated with the largest-magnitude component of the resulting collective tangent direction; Pos-Geo-ADAPT extends this geometric rule from append-only selection to generator insertion \cite{Sohail2026GeoADAPT}. Prune ADAPT addresses circuit growth by removing previously selected generators using amplitude- and history-based criteria \cite{Vaquero2025PrunedADAPT}.
+Numerous ADAPT variants modify the outer-loop generator-selection rule. CEO-ADAPT combines related qubit excitations acting on the same spin-orbital set into coupled-exchange generators \cite{Ramoa2025}. Overlap-ADAPT incorporates tangent-direction information into the append criterion \cite{Feniou2023}. Other methods exploit second-order derivative information to improve convergence \cite{Grimsley2023ADAPT} or recycle Hessian information to reduce the cost of repeated inner-loop optimizations \cite{Ramoa2025HessianRecycling}. Contemporaneous with this work, Geo-ADAPT-VQE applies the inverse of the full-pool tangent Gram matrix to the energy-gradient covector and appends the generator associated with the largest-magnitude component of the resulting collective tangent direction; Pos-Geo-ADAPT extends this geometric rule from append-only selection to generator insertion \cite{Sohail2026GeoADAPT}. Prune ADAPT addresses circuit growth by removing previously selected generators using amplitude- and history-based criteria \cite{Vaquero2025PrunedADAPT}.
 
 \subsection{Limitations with current approaches}
 Despite these advances, current adaptive strategies leave several issues unresolved. Standard ADAPT selects generators using first-order energy gradients \cite{Grimsley2019,Tang2021,Yordanov2021}. This local criterion can be myopic: a generator with the largest instantaneous gradient need not produce the largest energy decrease after the ansatz parameters are reoptimized, and it may lead to deeper circuits than curvature-aware selection rules \cite{Feniou2023,Grimsley2023ADAPT}. Existing selection algorithms also do not explicitly estimate the candidate-specific energy gain produced by the combined response of the new generator and the variational parameters. In addition, without an explicit resource penalty, two candidates with similar gradient or energy-gain estimates can be treated as nearly equivalent even when they differ substantially in two-qubit gate count, routing depth, or measurement cost.
 Geo-ADAPT incorporates state-space geometry by solving a full-pool inverse-Gram problem and selecting the generator associated with the largest-magnitude component of the resulting collective tangent direction \cite{Sohail2026GeoADAPT}. However, constructing the full Gram matrix scales as $\mathcal{O}(|\mathcal{G}|^2)$, and the inverse problem may become ill-conditioned when the pool contains redundant or nearly redundant tangent directions \cite{Sohail2026GeoADAPT,Ramoa2025HessianRecycling,Ikhtiarudin2025ShotEfficient}.
 % PROVENANCE(PRESERVED_GEO_ADAPT_DESCRIPTION_20260726) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
 
-These shortcomings motivate a candidate-specific joint second-order response model, symmetric resource-cost weighting, and staged restriction of higher-fidelity response evaluations.
+These limitations motivate a candidate-specific joint second-order response model, symmetric resource-cost weighting, and staged screening that reserves the most expensive response evaluations for the most competitive candidates.
 
 
 
@@ -230,81 +220,142 @@ These shortcomings motivate a candidate-specific joint second-order response mod
 %
 \subsection{\textsc{RA-ADAPT}: geometric and resource-aware ansatz growth}
 At each outer-loop iteration, \textsc{RA-ADAPT} fixes the current optimized
-ansatz as the source state and executes one three-phase candidate-selection
-subroutine before admitting and refitting a proposal. Phase I applies a
-first-order trust-region screen, Phase II adds one-dimensional candidate
-curvature while holding the active ansatz fixed, and Phase III evaluates the
-surviving records with a second-order response model that jointly optimizes the
-candidate amplitude and active-ansatz relaxation within a Fubini--Study trust
-region
+ansatz as the source state and applies a four-phase candidate-selection
+procedure before admitting and refitting a proposal. Phase 0 ranks the complete
+executable candidate population by the standard ADAPT absolute energy
+gradient and retains a fixed prefix without Fubini--Study metric evaluation or
+resource-cost weighting. Phase I applies a first-order trust-region screen,
+Phase II adds one-dimensional candidate curvature while holding the active
+ansatz fixed, and Phase III evaluates the surviving records with a
+second-order response model that jointly optimizes the candidate amplitude and
+active-ansatz relaxation within a Fubini--Study trust region
 \cite{Nocedal2006TrustRegion,ProvostVallee1980,Stokes2020QNG,Haug2021Capacity,VanStraaten2021MeasurementCost}.
-Candidate-position records are ranked by predicted energy decrease per
-symmetric relative resource cost, while the predicted Phase-III joint
-displacement calibrates the trust radius after refit. After admission,
+The resulting Phase-III model estimates the energy decrease available after
+local active-ansatz relaxation. The phase scores progress from the standard
+absolute gradient in Phase 0 to predicted energy decrease per symmetric
+relative resource cost in Phases I--III. The same cost construction is used
+in Phases I--III. Phase I supplies its circuit coordinates from a
+fixed hardware-graph estimate; in the compiled-cost configuration, Phases II
+and III evaluate those same coordinates by Qiskit transpilation. The reported
+undecomposed-generator proxy-only diagnostic retains the graph estimates
+through Phases I--III.
+The predicted Phase-III joint displacement calibrates the trust radius after
+refit. After admission,
 retained-support whitening is applied separately to condition the accepted
 inner refit.
 
-The resource penalty combines circuit and measurement costs. Circuit costs are estimated from graph-aware descriptors of two-qubit depth, CNOT count, compiled circuit depth, and required one-qubit basis rotations. Measurement cost is estimated from grouped Pauli measurements and the additional shot demand required to estimate the candidate-gradient observable \cite{Verteletskyi2020CliqueCover,Yen2020CompatibleMeasurements,Ikhtiarudin2025ShotEfficient}. Thus candidates with similar predicted energy gains can be distinguished by the hardware and measurement resources required to realize and score them.
+The resource penalty combines circuit and measurement costs. Its circuit
+coordinates are two-qubit count, two-qubit depth, and one-qubit work, evaluated
+either by the fixed-graph construction or by transpilation as just described.
+The parameter and measurement coordinates are unchanged by that choice.
+Measurement cost is estimated from grouped Pauli measurements and the
+additional shot demand required to estimate the candidate-gradient observable
+\cite{Verteletskyi2020CliqueCover,Yen2020CompatibleMeasurements,Ikhtiarudin2025ShotEfficient}.
+Thus candidates with similar predicted energy gains can be distinguished by
+the hardware and measurement resources required to realize and score them.
 
-\textsc{RA-ADAPT} can also admit more than one candidate in a single outer-loop update. The highest-ranked records are tested for tangent nonredundancy and predicted additive energy descent after variational refit. A set of compatible records may then be admitted jointly; we refer to this operation as batching.
+\textsc{RA-ADAPT} can also admit more than one candidate in a single outer-loop update. The highest-ranked records are tested for tangent nonredundancy and predicted additive energy descent after variational refit. A compatible set may then be admitted jointly; we refer to this operation as batching.
 
-Furthermore, among the score-ordered proposals, \textsc{RA-ADAPT} may
-instantiate leading individual-record or batch proposals as parallel circuit branches
-using a Lowerre-style beam search \cite{Lowerre1976Beam}. Branch retention is
+Among the score-ordered proposals, \textsc{RA-ADAPT} may instantiate leading
+individual-record or batch proposals as parallel circuit branches using a
+Lowerre-style beam search \cite{Lowerre1976Beam}. Each branch is refitted
+independently, and branch retention is
 determined by realized energy gain per added circuit cost.
 
 
-To reduce unnecessary circuit costs, \textsc{RA-ADAPT} permits ablation of existing circuit generators whose variational directions have become locally redundant within the current ansatz. Specifically, the same second-order local Taylor Schur model with a regularized Fubini--Study metric is used to predict the ansatz's ability to recover the pre-ablation state vector and final energy after removing the generator. An ablated generator decision is preserved if the energy detriment is negligible compared to the resulting savings in circuit costs \cite{Vaquero2025PrunedADAPT}. Conversely, if the modeled ablation prediction is wrong and the realized ablation does not pass a refitted energy per cost threshold, the ablation decision is reversed and the generator is placed on cool-down.
+To reduce unnecessary circuit growth, \textsc{RA-ADAPT} permits ablation of existing generators whose variational directions have become locally redundant. The same second-order local Taylor--Schur model with a regularized Fubini--Study metric predicts whether the surviving ansatz can recover the pre-ablation state and energy after a generator is removed. The deletion is retained when the refitted energy loss is small relative to the corresponding circuit-cost reduction \cite{Vaquero2025PrunedADAPT}; otherwise the original ansatz is restored and the generator is placed on cool-down.
 
-Finally, unlike conventional append-only ADAPT-VQE, \textsc{RA-ADAPT} allows for the insertion of generators within the ansatz circuit. This allows the algorithm to search over the entire circuit structure. \textsc{RA-ADAPT} then ranks these operator--position pairs over an energy-error and hardware-cost Pareto surface.
+\textsc{RA-ADAPT} uses plateau-triggered insertion to open internal ansatz positions when append-only growth ceases to produce a prescribed energy decrease. The selector then ranks generator--position records by predicted energy improvement and relative resource cost. Append-only and always-insertion selection are the limiting cases in which the internal-position domain is held closed or open, respectively, at every outer iteration.
 % PROVENANCE(FUTURE_INSERTION_DIAGNOSTIC_20260724) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
 
-\textsc{RA-ADAPT} combats the increased measurement overhead of second-order gradient-based generator scoring by using a staged scoring procedure that iteratively restricts the operator--position record set between phases. Quantities are carried forward when the candidate representation is unchanged. When Pauli-word decomposition is enabled, Phase I first shortlists undecomposed parent generators; those retained generators are then split into individual Pauli-word candidates and symmetry filtered before entering Phase II. Child-local quantities acquired in Phase II carry into Phase III for retained children, while parent quantities do not substitute for child measurements. The resulting phase restriction retains the top-scored records before the next, more expensive phase is evaluated; see Fig.~\ref{fig:static_adapt_selector_flow}.
-
-The record set passed from phase to phase is additionally partitioned according to each operator's inferred physical consequence. In the Hubbard--Holstein case, physically motivated operators define six lanes: UCCSD, electron current/hopping, phonon cloud/displacement, phonon-squeeze relaxation, dressed phonon correlation, and Hamiltonian variational ansatz blocks. This lane partition permits a more aggressive shortlisting policy between phases while preserving competition among distinct physical response channels.
-
+Across Phases 0--III, the staged restriction limits the measurement overhead
+of higher-order response scoring by reducing the candidate population before
+each more expensive phase. Phase 0 scouts generator identities at
+the append endpoint using only standard ADAPT gradients. The retained
+identities are then expanded over the active insertion-position domain before
+Phase I. Quantities are carried forward when the candidate representation is
+unchanged. In the reported comparisons, the executable representation is
+fixed before Phase 0: one route screens intact operator-pool generators, and
+the other screens the complete symmetry- and padding-valid single-Pauli-word
+pool. The selected executable pool remains fixed throughout Phases 0--III.
+Appendix~\ref{app:pauli_word_pool} defines the single-Pauli-word pool
+construction. The resulting procedure retains the top-scored records before the
+next, more expensive phase is evaluated; see
+Fig.~\ref{fig:static_adapt_selector_flow}.
 
 \section{Staged generator-position ranking}
 \label{sec:static_method}
 %
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.97\textwidth]{figures/ra_adapt_staged_candidate_selection_pipeline_20260727.png}
-\caption{RA-ADAPT staged candidate-selection flow. Generator--position records
-are partitioned by physical-response lane, shortlisted lane-wise in Phase I,
-optionally expanded into symmetry- and padding-valid Pauli children, screened
-by the second-order directional model in Phase II, and reranked through the
-Schur-reduced candidate--active response in Phase III. The selected record is
-inserted at its recorded position before full-ansatz reoptimization.}
+\setlength{\fboxsep}{6pt}
+\resizebox{0.97\textwidth}{!}{%
+\begin{tabular}{c@{\;\(\longrightarrow\)\;}c@{\;\(\longrightarrow\)\;}c@{\;\(\longrightarrow\)\;}c@{\;\(\longrightarrow\)\;}c@{\;\(\longrightarrow\)\;}c}
+\fbox{\parbox[c][3.7cm][c]{2.3cm}{\centering
+\textbf{Executable pool}\\[2mm]
+intact generators or guarded Pauli words}} &
+\fbox{\parbox[c][3.7cm][c]{2.4cm}{\centering
+\textbf{Phase 0}\\
+standard ADAPT screen\\[2mm]
+\(\Delta E_0(r)=\lvert g(r)\rvert\)\\[2mm]
+retain top \(N_0\)}} &
+\fbox{\parbox[c][3.7cm][c]{2.4cm}{\centering
+\textbf{Phase I}\\
+first-order screen\\[2mm]
+\(S^{(1)}=\Delta E_1/K_1\)\\[1mm]
+graph-evaluated circuit coordinates\\[2mm]
+retain top \(N_1\) globally}} &
+\fbox{\parbox[c][3.7cm][c]{2.4cm}{\centering
+\textbf{Phase II}\\
+directional-curvature screen\\[2mm]
+\(S^{(2)}=\Delta E_2/K_2\)\\[1mm]
+transpiled circuit coordinates\\[2mm]
+retain top \(N_2\) globally}} &
+\fbox{\parbox[c][3.7cm][c]{2.4cm}{\centering
+\textbf{Phase III}\\
+candidate--active response\\[2mm]
+\(S^{(3)}=\Delta E_3/K_3\)\\[1mm]
+transpiled circuit coordinates\\[2mm]
+rank remaining records}} &
+\fbox{\parbox[c][3.7cm][c]{2.2cm}{\centering
+\textbf{Admit and refit}\\[2mm]
+insert selected record at its recorded position\\[2mm]
+full-ansatz reoptimization}}
+\end{tabular}%
+}
+\caption{RA-ADAPT staged candidate-selection flow across Phases 0--III.
+Phase 0 retains generator identities by the unweighted standard ADAPT absolute
+gradient, Phase I applies the cost-aware first-order screen, Phase II applies
+the second-order directional model, and Phase III reranks the remaining
+records through the Schur-reduced candidate--active response. The relative-cost
+construction in Phases I--III uses fixed-graph circuit coordinates in Phase I,
+whereas the compiled-cost configuration evaluates those coordinates by
+Qiskit transpilation in Phases II and III. The proxy-only diagnostic
+instead retains the graph evaluation through Phase III.
+The selected record is inserted at
+its recorded position before full-ansatz reoptimization.}
 \label{fig:static_adapt_selector_flow}
 \end{figure*}
 
-At outer iteration \(k\), the optimized source ansatz is held fixed while one
-three-phase selection subroutine is executed. To prevent excess measurement
-burden from higher-order modeling, the subroutine progressively restricts the
-candidate operator set. For unchanged records, later phases augment
-measurements already acquired on a larger earlier pool. Pauli-word
-decomposition resets the candidate-specific measurement population immediately
-after the Phase-I parent shortlist: children are measured in Phase II, the
-Phase-II child shortlist alone receives candidate--active Phase-III couplings,
-and the shared active-coordinate Gram and Hessian blocks are acquired
-once per outer iteration. This avoids both unused Phase-II parent measurements
-and full Phase-III work on rejected children.
+At outer iteration \(k\), the optimized source ansatz is held fixed while
+Phases 0--III execute one staged selection procedure. Each phase
+restricts the population before the next, more expensive response model is
+evaluated. For records whose representation is unchanged, later phases augment
+the measurements acquired on the larger earlier population and reuse the
+Phase-II compiled-cost cache in Phase III. The shared active-coordinate Gram
+and Hessian blocks are acquired once per outer iteration.
 
-We further allow RA-ADAPT to insert operators within the ordered generator
-unitary \(U(\boldsymbol{\theta})\). We evaluate three position policies.
-No-insertion scores only the append position, always-insertion scores the
-commutation-reduced insertion domain at every round, and plateau-insertion
-remains append-only until an accepted full refit produces an energy decrease
-below a prescribed insertion-opening threshold \(\epsilon_{\rm ins}>0\), after which the next
-selection round opens that reduced domain. Before scoring, positions
+RA-ADAPT inserts operators within the ordered generator unitary
+\(U(\boldsymbol{\theta})\) through the plateau-triggered position policy. The insertion domain remains append-only
+until an accepted full refit produces an energy decrease below a prescribed
+opening threshold; the next selection round then opens
+the full commutation-reduced domain. Before scoring, positions
 separated only by active generators certified to commute with the candidate
 are collapsed to one deterministic representative. This quotient removes
 unitary-equivalent insertion orderings and prevents equivalent
 candidate--position records from being scored and charged separately. The
-position policy is recomputed after every accepted refit, and
-plateau-insertion returns to append-only as soon as the realized decrease is
-at least \(\epsilon_{\rm ins}\). Appendix~\ref{app:numerical_conventions}
+domain is recomputed after every accepted refit and closes when the realized
+decrease again reaches the threshold. Appendix~\ref{app:numerical_conventions}
 gives the complete construction.
 
 For \(A\in\mathcal G\), let \(\mathcal P_k(A)\) denote its admissible positions
@@ -316,44 +367,29 @@ with \(p\in\mathcal P_k(A)\), and the candidate record set is
 \begin{equation}
 \mathcal R_k
 =
-\left\{
-(A,p):
-A\in\mathcal G,\;
-p\in\mathcal P_k(A)
-\right\}.
+\bigcup_{A\in\mathcal G}
+\{A\}\times\mathcal P_k(A).
 \label{record_set}
 \end{equation}
-The outer-loop index \(k\) remains fixed throughout the selection subroutine,
-so we suppress it from the phase-indexed record sets and define
-\(\mathcal R^{(0)}:=\mathcal R_k\). Phase I scores this initialized
-parent-generator population and restricts it to the parent shortlist
-\(\mathcal R^{(1)}\). Proposal refinement then maps those retained parents to
-the Phase-II population \(\mathcal R^{(2)}\). This map is the identity for the
-undecomposed-generator representation and generates symmetry-valid
-single-Pauli-word children for the decomposed representation. Phase II
-restricts this population to \(\mathcal R^{(3)}\), and Phase III ranks that final shortlist by its joint
-candidate--active response. Thus splitting may expand the record population
-between Phases I and II, but no Phase-II parent score is computed when
-Pauli-word decomposition is used. For uniform reference to the populations
-actually evaluated, define
-\(\mathcal R_{\rm score}^{(1)}:=\mathcal R^{(0)}\),
-\(\mathcal R_{\rm score}^{(2)}:=\mathcal R^{(2)}\), and
-\(\mathcal R_{\rm score}^{(3)}:=\mathcal R^{(3)}\). The corresponding score
-domain is \(S^{(t)}:\mathcal R_{\rm score}^{(t)}\to\mathbb R\) for
-\(t\in\{1,2,3\}\). At phase \(t\),
+The outer-loop index \(k\) remains fixed throughout the selection procedure, so we suppress
+it from the phase-indexed record sets. Let \(\mathcal R^{(t)}\) be the
+population evaluated in Phase \(t\), for \(t\in\{0,1,2,3\}\). Phase 0 ranks
+\(\mathcal R^{(0)}\) at the append endpoint, retains the \(N_0\) largest
+gradient magnitudes, and expands those generator identities over the active
+position domain to form \(\mathcal R^{(1)}\).
+Phase I restricts \(\mathcal R^{(1)}\) to \(\mathcal R^{(2)}\), Phase II restricts
+\(\mathcal R^{(2)}\) to \(\mathcal R^{(3)}\), and Phase III ranks
+\(\mathcal R^{(3)}\) by its joint candidate--active response. The Phase-0
+score is \(S^{(0)}(r)=\Delta E_0(r)=|g(r)|\). In Phases I--III, each record
+\(r\in\mathcal R^{(t)}\) receives
 \(S^{(t)}(r)=\Delta E_t(r)/K_t(r)\), where \(\Delta E_t(r)\) is the
 phase-dependent predicted energy drop and \(K_t(r)\) is the record's
 population-relative resource-cost factor; see
 Sec.~\ref{subsec:cost_weighted_record_ranking}.
 
-The Phase-I parent restriction is lane protected: parent generators are classified
-by physical response channel so that aggressive shortlisting need not delete an
-entire channel. After that parent restriction, the retained Pauli-polynomial
-generators are decomposed into individual Pauli-word children, deduplicated, and
-passed through particle-number and padding guards. Phase II and Phase III then
-act on children. See Sec.~\ref{subsec:proposal_refinement_update} for the child
-construction and Appendix~\ref{app:lane_shortlisting} for the physical-response
-lanes.
+The Phase-I restriction retains the highest-scoring records under the global
+cap \(N_1\). Candidate identities remain unchanged between Phases I and II.
+Appendix~\ref{app:record_restriction} gives the restriction maps.
 
 The remaining task is to define the predicted energy decrease \(\Delta E(r)\) and relative resource-cost factor \(K(r)\) that determine the phase score.
 
@@ -361,24 +397,18 @@ The remaining task is to define the predicted energy decrease \(\Delta E(r)\) an
 \subsection{Phase-dependent energy models}
 \label{subsec:candidate_energy_models}
 %
-Throughout this section, we suppress the outer-iteration index \(k\). We write
-\(U:=U_k\), \(\boldsymbol\theta^\star:=\boldsymbol\theta_k^\star\), and
-\(\ket{\psi}:=U(\boldsymbol\theta^\star)\ket{\psi_{\rm ref}}\); all partial
-circuits, dressed observables, local model blocks, and trust radii are evaluated
-at this optimized source and therefore depend implicitly on \(k\).
-
-The three-stage record-set restriction uses phase-dependent energy models.
-Phase III evaluates records \(r\in\mathcal R^{(3)}\) with a local quadratic
-model that couples the candidate coordinate to the active ansatz. Phase II
-omits this coupling and reduces the model to one dimension. Phase I further
-omits second-order curvature, leaving a first-order model. The derivation
-proceeds from Phase III to Phase I.
+Phases 0--III use progressively richer energy models. Phase 0 uses the standard
+ADAPT gradient magnitude, Phase I applies a first-order trust-region model,
+Phase II adds candidate-direction curvature, and Phase III evaluates records
+\(r\in\mathcal R^{(3)}\) with a local quadratic model that couples the
+candidate coordinate to the active ansatz. We present these nested models from
+Phase III to Phase 0.
 \paragraph*{Coupled local quadratic model.}
 %
 Let \(\alpha\) denote the candidate coordinate of the compiled generator
 \(A\mapsto e^{-i\alpha A}\), and let \(\delta\boldsymbol{\theta}\) denote a
 displacement of the active ansatz coordinates from the optimized source point
-\(\boldsymbol{\theta}^\star\). For each candidate record \(r=(A,p)\), let
+\(\boldsymbol{\theta}_k^\star\) of \(U_k\). For each candidate record \(r=(A,p)\), let
 \(E_r(\alpha,\delta\boldsymbol{\theta})\) denote the exact energy surface of
 the candidate-augmented ordered ansatz about this source point.
 The Phase-III model is the second-order expansion of this surface about
@@ -394,7 +424,7 @@ E_0
 H_{\boldsymbol\theta\boldsymbol\theta}\delta\boldsymbol{\theta},
 \label{eq:local_quadratic}
 \end{equation}
-where \(E_0=E(U(\boldsymbol\theta^\star))\) and the active-coordinate first
+where \(E_0=E(U_k(\boldsymbol\theta_k^\star))\) and the active-coordinate first
 derivatives are set identically to zero under the stationary-source model. They
 are therefore neither acquired nor charged to Phase III. The scalar \(g_\alpha\)
 is the signed candidate-direction derivative,
@@ -464,37 +494,41 @@ G_{\boldsymbol\theta\boldsymbol\theta}
 \]
 
 where $\Pi=\mathbb I - \ket{\psi}\bra{\psi}$ projects onto the subspace
-orthogonal to \(\ket{\psi}\), thereby removing the nonphysical global-phase
-tangent direction.
+orthogonal to \(\ket{\psi}\). This removes the nonphysical global-phase
+direction so that the metric measures physical first-order changes of the
+quantum state.
 
 \paragraph*{Phase III predicted energy drop.}
-On the retained tangent support, the numerical procedure returns a stabilized
-joint step \(\mathbf z_r^\star\) satisfying
-\(\mathbf z_r^{\star\top}\mathbf G\mathbf z_r^\star\le\rho^2\).
+On the retained tangent support, the numerical procedure returns the
+generalized trust-region minimizer \(\mathbf z_3^\star(r)\) satisfying
+\(\bigl[\mathbf z_3^\star(r)\bigr]^\top
+\mathbf G\mathbf z_3^\star(r)\le\rho^2\).
 The unshifted quadratic model assigns this step the predicted decrease
 \begin{equation}
 \Delta E_3(r)
-=-g(r)\alpha_r^\star
--\frac12\mathbf z_r^{\star\top}\mathbf H\mathbf z_r^\star .
+=-g(r)\alpha_3^\star(r)
+-\frac12\bigl[\mathbf z_3^\star(r)\bigr]^\top
+\mathbf H\mathbf z_3^\star(r) .
 \label{eq:phase3_model}
 \end{equation}
 The retained-support stationarity equations Schur-eliminate the active-ansatz
 response \(\delta\boldsymbol\theta\).
-Appendix~\ref{app:numerical_conventions} specifies the curvature
-stabilization, trust-region multiplier, complementarity condition, and
-supported pseudoinverse used to obtain \(\mathbf z_r^\star\). The resulting
+Appendix~\ref{app:numerical_conventions} specifies the trust-region multiplier,
+complementarity condition, and supported pseudoinverse used to obtain
+\(\mathbf z_3^\star(r)\). The resulting
 joint displacement is scored by Eq.~\eqref{eq:phase3_model}, and its predicted
 energy decrease determines generator admission through the relative resource
 cost of \(r\) defined below.
 
-The same joint model also supports optional batch admission and generator
-ablation. For a batch \(B\), the scalar candidate coordinate \(\alpha\) is
+The local Taylor--Schur model extends directly to optional batch admission and
+generator ablation. For a batch \(B\), the scalar candidate coordinate \(\alpha\) is
 replaced by the block
 \(\boldsymbol\alpha_B=(\alpha_r)_{r\in B}\), which is optimized jointly with
-the active-ansatz response \(\delta\boldsymbol\theta\). For deletion at ansatz
-position \(p\), the candidate displacement is fixed to
-\(\alpha=-\theta_p^\star\), while the surviving coordinates
-\(\delta\boldsymbol\theta_{\setminus p}\) respond; after accepted deletion,
+the active-ansatz response \(\delta\boldsymbol\theta\) within the supported
+Phase-III trust region. For deletion at ansatz position \(p\), the candidate
+displacement is fixed to \(\alpha=-\theta_p^\star\), while the surviving
+coordinates \(\delta\boldsymbol\theta_{\setminus p}\) minimize the
+metric-regularized Schur surrogate; after accepted deletion,
 the ansatz is parameterized by \(\boldsymbol\theta_{\setminus p}\). The
 batch-compatibility and delete--refit validation rules are given in
 Appendices~\ref{app:batching} and~\ref{app:optional_structure_management}.
@@ -524,30 +558,37 @@ Phase I further omits directional curvature. Its predicted decrease is
 \label{eq:phase1_gain}
 \end{equation}
 
-The scalar maximizers and degenerate cases are given in
-Appendix~\ref{app:numerical_conventions}.
+\paragraph*{Phase 0 gradient screen.}
+Phase 0 uses the standard ADAPT gradient magnitude as its predicted decrease:
+\begin{equation}
+\Delta E_0(r)=\lvert g(r)\rvert.
+\label{eq:phase0_gain}
+\end{equation}
+
+Appendix~\ref{app:numerical_conventions} gives the Phase-II optimizer and its
+scalar degenerate cases.
 
 \paragraph*{Observable evaluation.}
 %
 The energy and geometric models use the following circuit-measurable quantities.
 For a candidate record \(r=(A,p)\), factor the optimized source circuit at
-\(p\) into the partial circuits \(U_{>p}\) and \(U_{\le p}\), and define
+\(p\) into the partial circuits \(U_{k,>p}\) and \(U_{k,\le p}\), and define
 the exact candidate-augmented family
 \begin{align*}
 U_r(\alpha,\delta\boldsymbol{\theta})
 &:=
-U_{>p}\!\left(
-\boldsymbol{\theta}_{>p}^{\star}
+U_{k,>p}\!\left(
+\boldsymbol{\theta}_{k,>p}^{\star}
 +\delta\boldsymbol{\theta}_{>p}
 \right)
 e^{-i\alpha A}\\[-0.2em]
 &\phantom{{}:={}}\;
-U_{\le p}\!\left(
-\boldsymbol{\theta}_{\le p}^{\star}
+U_{k,\le p}\!\left(
+\boldsymbol{\theta}_{k,\le p}^{\star}
 +\delta\boldsymbol{\theta}_{\le p}
 \right),\\
 U_r(0,\mathbf 0)
-&=U(\boldsymbol{\theta}^\star).
+&=U_k(\boldsymbol{\theta}_k^\star).
 \end{align*}
 Let
 \(\ket{\psi_r(\alpha,\delta\boldsymbol\theta)}
@@ -557,7 +598,7 @@ Let
 H\ket{\psi_r(\alpha,\delta\boldsymbol\theta)}\).
 The gradient of $\ket{\psi}$ with respect to a generator's amplitude coordinate $u$ evaluated over $u=0$ gives
 \(\left.\partial_u\ket{\psi}\right|_0=-i\widetilde A_u\ket{\psi}\), where
-\(\widetilde A_r=U_{>p}AU_{>p}^{\dagger}\).
+\(\widetilde A_r=U_{k,>p}AU_{k,>p}^{\dagger}\).
 For any observable \(O\), expectation values over the current ansatz are denoted by
 \begin{equation*}
 \langle O\rangle:=\langle\psi|O|\psi\rangle.
@@ -620,10 +661,20 @@ phase-dependent relative cost factor defined below.
 
 To distinguish below-median from above-median resource burden, \textsc{RA-ADAPT}
 divides each phase gain by the dimensionless relative resource-cost factor
-\(K_t(r)\). For each record, this factor combines
-incremental proxies for CNOT count, graph-aware two-qubit depth,
-one-qubit basis-change work, added parameter dimension, and grouped-measurement
-shot demand.
+\(K_t(r)\). For each record, this factor combines two-qubit count,
+two-qubit depth, one-qubit work, added parameter dimension, and
+grouped-measurement shot demand. The cost factor has the same form in every
+phase; only the evaluation of the three circuit coordinates changes. Phase I
+uses the fixed hardware-graph construction defined below. In the compiled-cost
+configuration, Phases II and III evaluate these same circuit coordinates after
+Qiskit transpilation. The parameter and measurement coordinates retain the
+definitions below. In the reported single-generator comparisons,
+\(\widehat C_\theta=1\) for every record, so population centering removes this
+coordinate from the ranking. The grouped-measurement shot coordinate is also
+uniform within each scored single-Pauli-word population. It remains
+candidate-dependent for intact generators because their Pauli-polynomial
+contents differ. The proxy-only configuration uses the graph evaluation in all
+three phases.
 
 For a system of \(Q\) qubits, fix a candidate record \(r=(A,p)\). The associated compiled generator is expressed as a Pauli polynomial,
 
@@ -645,7 +696,7 @@ S_{\mu}
 \label{eq:pauli_word_support}
 \end{equation}
 %
-The cost estimates below are computed from these Pauli-word supports. Larger supports require longer parity-computation circuits, while supports spread across the hardware graph require larger entangling depth or routing overhead. For a Pauli exponential compiled by a CNOT ladder, a multi-qubit Pauli rotation is implemented by reducing it to a single-qubit rotation with additional entangling gates. A Pauli word acting on \(s=|S_{\mu}|\) qubits requires \(s-1\) \textsc{CNOT}s before the \(R_z\) rotation and \(s-1\) \textsc{CNOT}s after it to restore the original qubit register. The CNOT count is estimated by
+The Phase-I graph estimates below are computed from these Pauli-word supports. Larger supports require longer parity-computation circuits, while supports spread across the hardware graph require larger entangling depth or routing overhead. For a Pauli exponential compiled by a CNOT ladder, a multi-qubit Pauli rotation is implemented by reducing it to a single-qubit rotation with additional entangling gates. A Pauli word acting on \(s=|S_{\mu}|\) qubits requires \(s-1\) \textsc{CNOT}s before the \(R_z\) rotation and \(s-1\) \textsc{CNOT}s after it to restore the original qubit register. The CNOT count is estimated by
 %
 \begin{equation*}
 \widehat C_{\mathrm{CX}}(r)=\sum_{\mu}2\,\max[|S_{\mu}|-1, 0],
@@ -695,11 +746,11 @@ i[\widetilde A_r,H]=\sum_{\nu=1}^{N_r}c_{r\nu}P_{r\nu}\,.
 Here \(N_r\) is the number of Pauli words in the mapped candidate-gradient operator, \(c_{r\nu}\) are Pauli coefficients, and \(P_{r\nu}\) are Pauli words.
 The Pauli words are then grouped into qubit-wise commuting blocks, denoted by
 \(\Pi_r\), so that all Pauli words in the same block can be measured using a
-single basis. The goal is to estimate the additional number of shots required
-by candidate \(r\). Let \(C_r\subseteq\Pi_r\) be the blocks measurable in
-bases already used during previous scoring steps. These blocks have zero
-additional basis cost, so only the blocks in \(\Pi_r\setminus C_r\) require
-new measurement bases.
+single basis. The marginal shot estimate accounts for measurement bases
+already acquired during earlier scoring phases. Let
+\(C_r\subseteq\Pi_r\) contain the blocks compatible with those cached bases.
+These blocks have zero additional basis cost, so only the blocks in
+\(\Pi_r\setminus C_r\) require new measurement bases.
 For each new block \(C\), we assign the coefficient weight
 \[
 w_C = \sqrt{\sum_{\nu\in C}|c_{r\nu}|^2}\,.
@@ -725,11 +776,11 @@ over the records being scored by \cite{IglewiczHoaglin1993}
 \begin{aligned}
 m_x(t)
 &:=
-\operatorname*{median}_{r'\in\mathcal R_{\rm score}^{(t)}}
+\operatorname*{median}_{r'\in\mathcal R^{(t)}}
 \widehat C_x(r'),\\
 s_x(t)
 &:=
-\operatorname*{median}_{r'\in\mathcal R_{\rm score}^{(t)}}
+\operatorname*{median}_{r'\in\mathcal R^{(t)}}
 \left|\widehat C_x(r')-m_x(t)\right|,\\
 \bar C_x(r;t)
 &:=
@@ -766,88 +817,11 @@ the CNOT-count, layout-aware-depth, one-qubit, parameter, and shot-cost
 coordinates. Below-median records receive \(K_t(r)<1\), whereas above-median
 records receive \(K_t(r)>1\).
 
-\section{Pauli-word candidate construction and ansatz update}
-\label{subsec:proposal_refinement_update}
-To expose hardware-efficient subgenerators without scoring every Pauli child
-globally, \textsc{RA-ADAPT} applies qubit-ADAPT-VQE-style Pauli splitting only to
-the parent records retained by Phase I,
-\(\mathcal R^{(1)}\) \cite{Tang2021}. The resulting children pass
-through the fermionic-symmetry and padding guards, enter Phase II as
-\(\mathcal R^{(2)}\), and only the Phase-II child shortlist proceeds
-to Phase III.
-For the record
-\(r=(A,p)\), with Pauli expansion given by Eq.~\eqref{eq:pauli_expansion}, let
-\(J\subseteq\{\mu:c_\mu\ne0\}\) be a nonempty subset of its Pauli-term
-indices, and let
-\(r_J=(A_J,p)\) be the corresponding child record. The child generator is
-\begin{equation*}
-A_J=\sum_{\mu\in J}c_{\mu}P_{\mu}.
-% source label: eq:pauli_child_generator
-\end{equation*}
-Here \(P_{\mu}\) is the \(\mu\)th Pauli word in the expansion of the fixed
-generator \(A\), and \(c_{\mu}\) is its scalar Pauli coefficient.
-The single-Pauli-word representation is the case \(J=\{\mu\}\). The
-undecomposed-generator representation retains \(A\) without Pauli
-decomposition.
-Pauli children inherit the representative position \(p\) retained with their
-parent record; no child-specific position reduction is recomputed after
-splitting.
-For this generator, the generator-level support is
-\begin{equation}
-\operatorname{supp}(A)
-:=
-\bigcup_{\mu:c_{\mu}\ne0}
-\operatorname{supp}(P_{\mu}).
-\label{eq:macro_generator_support}
-\end{equation}
-Equations~\eqref{eq:pauli_word_support} and~\eqref{eq:macro_generator_support}
-show that
-\(\operatorname{supp}(A_J)\subseteq\operatorname{supp}(A)\). We then apply
-the fermionic sector-preserving test \(\Gamma(A_J)\) defined below to the
-child generator:
-\begin{equation}
-\Gamma(A_J)
-=
-\prod_{s\in\{\uparrow,\downarrow,\mathrm{total}\}}
-\mathbf 1
-\left\{
-\left\|
-\left[
-A_J,\mathbf N_s^{(f)}\otimes \mathbb I^{(b)}
-\right]
-\right\|_1
-\le \epsilon
-\right\}.
-\label{eq:symmetry_guard}
-\end{equation}
-Here \(\mathbf 1\{\cdot\}\) is the indicator function. The operator \(\mathbf N_s^{(f)}\) is the fermionic number operator for sector \(s\), where \(s\) denotes spin up, spin
-down, or total particle number; we tensor \(\mathbf N_s^{(f)}\) with the boson
-register identity operator. The parameter \(\epsilon\) is a leakage-tolerance
-parameter. The Pauli-coefficient \(L^1\) norm is defined by summing the absolute
-coefficients of the Pauli polynomial after taking the commutator in
-Eq.~\eqref{eq:symmetry_guard}. Explicitly, suppose the commutator gives
-\([A_J,\mathbf N_s^{(f)}\otimes \mathbb I^{(b)}]
-=\sum_\nu b_\nu^{(s,J)}P_\nu\). Then the \(L^1\) norm is
-\[
-\left\|
-\left[
-A_J,\mathbf N_s^{(f)}\otimes \mathbb I^{(b)}
-\right]
-\right\|_1
-=
-\sum_\nu |b_\nu^{(s,J)}|.
-\]
-
-These symmetry-retained child records form the Phase-II population
-\(\mathcal R^{(2)}\); only its Phase-II shortlist \(\mathcal R^{(3)}\)
-proceeds to Phase-III scoring. We omit explicit
-\(J\)-dependence below for visual simplicity, and assume all records
-\(r=(A,p)\) may be Pauli-word combinations with subset generator support of
-the generator \(A\).
-
+\section{Ansatz admission and refit}
+\label{subsec:ansatz_admission_refit}
 \paragraph*{Admission and whitened refit.}
 %
-The symmetry-retained records are evaluated with
+The Phase-III records are evaluated with
 Eq.~\eqref{eq:phase3_model} and ranked by \(S^{(3)}\). For individual-record
 admission, the returned record satisfies
 \begin{equation*}
@@ -858,7 +832,7 @@ r_k^\star
 Its generator is inserted at its recorded position, and the enlarged ansatz is
 fully reoptimized under Eq.~\eqref{eq:theta_opt} with the new amplitude
 initialized to zero or warm-started at the Phase-III candidate-amplitude
-optimum \(\alpha_r^\star\) used in Eq.~\eqref{eq:phase3_model}. When beam
+optimum \(\alpha_3^\star(r)\) used in Eq.~\eqref{eq:phase3_model}. When beam
 search is enabled, the leading records instead instantiate separate child
 branches that are refitted independently.
 Optional batch admission is defined in Appendix~\ref{app:batching}.
@@ -964,11 +938,9 @@ of the Phase-III warm start, and returns \(\mathbf y^\star\), giving
 \end{equation}
 The frozen matrix \(W\) defines the orthonormal tangent frame at
 \(\boldsymbol\theta^{(0)}\); the current Fubini--Study metric may vary during
-the inner refit.
-When a generator compiles into multiple circuit factors, their coordinates
-jointly realize its single logical amplitude;
-Appendix~\ref{app:accepted_refit_details} gives this mapping and the
-gradient-based, line-search, and SPSA optimizer interfaces.
+the inner refit. A multiparameter extension replaces the scalar generator
+coordinate by a parameter block and applies the same support restriction,
+whitening, and refit in the enlarged coordinate space.
 
 \paragraph*{Trust-radius update.}
 The radius \(\rho_k\) defines the Fubini--Study trust domain shared by all
@@ -1055,62 +1027,51 @@ Appendix~\ref{app:complete_algorithm}.
 \label{sec:results}
 \label{sec:benchmarks}
 
-We compare RA-ADAPT and append-only ADAPT-VQE under matched
-undecomposed-generator and single-Pauli-word candidate representations on an
-equally physically parameterized two-site Hubbard--Holstein model. Energy
-accuracy is reported at iteration \(50\) for complete trajectories, whereas
-circuit and estimator resources are compared at first crossings of a common
-pre-plateau energy-error level within each panel. Every generator in each pool
-is parameterized by a single scalar.
+We compare plateau-triggered RA-ADAPT and Append-ADAPT VQE on an equally
+parameterized two-site Hubbard--Holstein model. Both methods use the same
+symmetry-retained single-Pauli-word operator pool, encoding, reference state,
+and inner-optimization protocol. Every pool element carries one variational
+parameter.
 
-The appendices report dimer benchmarks for the Hubbard, Bose--Hubbard, and spin-boson/Rabi models, together with a three-site Hubbard--Holstein instance. All fermion-containing models use half filling, and all lattice models use open boundary conditions. The Hubbard--Holstein generator pool is defined in Appendix~\ref{app:lane_shortlisting}. The reported Hubbard--Holstein comparison uses the same inner-optimization method for RA-ADAPT and append-only ADAPT within each candidate representation.
+The reported Hubbard--Holstein comparisons use half filling, open boundary conditions, and the same inner-optimization method for RA-ADAPT and append-only ADAPT within each candidate representation. The generator pool is defined in Appendix~\ref{app:hh_operator_pool}.
 
 We report the same-cutoff absolute energy error
 \(\lvert\Delta E_k(M)\rvert=\lvert E_k(M)-E_{\rm ED}(M)\rvert\)
 \cite{Weisse2008}; weak- and
 strong-Holstein sectors use local phonon cutoffs \(M=3\) and \(M=7\),
-respectively, exactly filling two- and three-qubit binary registers. Across
-\(U/t\in\{0.25,1.25,8\}\), these ED references differ from their \(M=10\)
-values by at most \(5.45\times10^{-7}\lvert t\rvert\) and
-\(7.17\times10^{-8}\lvert t\rvert\), respectively, while the largest
-\(M=9\) to \(M=10\) drift is \(2.42\times10^{-10}\lvert t\rvert\); all are
-far below the two-site total-energy scale
-\(2\times10^{-4}\lvert t\rvert\), corresponding to
-\(10^{-4}\lvert t\rvert\) per site
-\cite{Alvertis2025HubbardVQE,LeBlanc2015HubbardBenchmarks,Qin2016AFQMCHubbard}.
+respectively, exactly filling two- and three-qubit binary registers.
+% PROVENANCE(DEMOTED_HH_ED_CUTOFF_SPOT_CHECK_20260811):
+% The available M<=10 scan is retained as diagnostic evidence rather than a
+% reader-facing convergence claim because it does not establish truncation
+% convergence below the smallest reported variational errors (~1e-14 |t|).
+% Historical spot check across U/t in {0.25,1.25,8}: the M=3 weak-Holstein and
+% M=7 strong-Holstein ED references differed from M=10 by at most 5.45e-7 |t|
+% and 7.17e-8 |t|, respectively; the largest M=9-to-M=10 drift was 2.42e-10 |t|.
+% Promotion requires regime-resolved cutoff sequences continued until successive
+% ED energies are stable below 1e-14 |t|, with stability confirmed across more
+% than one successive cutoff increment.
 % Six-regime ED cutoff receipt:
 % MATH/paper_facing/paper_I_static_scaffold/paper_i_hh_ed_cutoff_reference_six_regime_20260727.json
 % sha256=66a6409790affffd6ce8928d7fb46cc945b57d50e210d3cb215e8039a63c5573
-Fidelity is reported as
-\(1-F=1-\left|\braket{\psi_{\rm ED}}{\psi_k}\right|^2\).
-
-For each resource comparison, the shared prefix window ends at the earlier
-effective plateau of the two displayed trajectories. The horizontal
-matched-error level is the lowest error attainable by both methods within
-that window, and each method is costed at its first crossing. The crossing
-iterations can therefore differ. The separate iteration-\(50\) comparison
-reports energy error only and does not attach resource costs; stationary
-always-insertion macro trajectories that pause before iteration \(50\) are
-excluded from a uniform fixed-horizon claim.
+For each regime, the shared comparison window ends at the earlier effective
+plateau, defined as the first iteration within \(10\%\) of a method's best
+error. The common target \(\lvert\Delta E_\cap\rvert\) is the larger of the
+two within-window minima, and each method is costed at its first crossing. A
+second comparison fixes the logical-estimator budget at RA-ADAPT's expenditure
+at its effective plateau, capped by the available Append-ADAPT expenditure,
+and reports the best error reached by each method within that budget. The
+iteration-\(50\) comparison is retained as a common-horizon endpoint check.
 
 Circuit resources are the two-qubit gate count \(N_{2q}\), two-qubit depth
-\(D_{2q}\), total circuit depth \(D_c\), and pretranspilation Pauli-rotation
-one-qubit work \(W_{1q}\) at the selected matched-error prefix; \(W_{1q}\) excludes
-reference-state preparation
-\cite{JavadiAbhari2024Qiskit,QiskitAlgorithmsAdaptVQE}. The estimator quantity
-\(S\) is accumulated through that same prefix under the logical scalar-query
-convention of Appendix~\ref{app:estimator_queries}.
-The transpiled quantities \(N_{2q}\), \(D_{2q}\), and \(D_c\) include
-reference-state preparation and use the fixed basis in
-Table~\ref{tab:snake_benchmark_configuration} at optimization level \(0\)
-with seed \(7\). No backend coupling map, initial layout, or routing
-constraint is supplied; the reported values are therefore topology-free
-basis-gate compilation measures. Here \(N_{2q}\) counts
-two-qubit instructions after transpilation, \(D_{2q}\) is the depth restricted
-to those instructions, and \(D_c\) is the full transpiled-circuit depth.
+\(D_{2q}\), and total circuit depth \(D_c\) at the selected prefix. Each full circuit, including reference-state
+preparation, is transpiled to the 156-qubit FakeMarrakesh target with native
+basis \(\{\mathtt{sx},\mathtt{rz},\mathtt{x},\mathtt{cz},\mathtt{id}\}\),
+optimization level \(1\), and seed \(7\)
+\cite{JavadiAbhari2024Qiskit,QiskitAlgorithmsAdaptVQE}. Thus \(N_{2q}\)
+includes routed \(\mathtt{cz}\) gates and SWAP overhead. The logical-estimator
+quantity \(S_{\rm alg}\) is accumulated through the same prefix under the
+closed occurrence convention of Appendix~\ref{app:estimator_queries}.
 
-
-%For the spin-boson/Rabi model defined in Appendix~\ref{app:spin_boson_rabi}, all three methods converged within a few iterations under similar circuit costs. We present results thereof along with the operator pool used there.
 
 \subsection{Hubbard--Holstein benchmarks}
 Using the parameterization convention given in Eq.~\eqref{eq:hubbard_holstein_static}, we report the interaction regimes in terms of \(U\), \(t\), \(g\), and \(\omega_0\).
@@ -1130,12 +1091,18 @@ The chosen weak and strong Holstein coupling regimes are given by:
 These correspond to \(g/t=\sqrt{\lambda/2}=0.354\) and \(0.791\) in Eq.~\eqref{eq:hubbard_holstein_static}. Together these choices define six combined Hubbard--Holstein interaction regimes, obtained by crossing three Hubbard correlation regimes with two Holstein electron--phonon coupling regimes. The Cartesian product of Eqs.~\eqref{hubbard_regimes} and~\eqref{holstein_sectors} is used below for matched comparisons of RA-ADAPT and append-only ADAPT.
 
 
-Results reported below use SciPy Powell with a maximum iteration budget of 200 for the inner optimization procedure of Eq.~\eqref{eq:theta_opt}. Complete trajectories run for 50 ADAPT iterations; the available stationary always-insertion macro prefixes pause earlier in five regimes. Resource comparisons use the panel-specific matched-error crossings defined above rather than fixed-horizon endpoints.
+Results reported below use SciPy Powell with a maximum iteration budget of 200
+for the inner optimization procedure of Eq.~\eqref{eq:theta_opt}. The displayed
+trajectories span 50 ADAPT iterations for both methods.
 
-The displayed comparison includes both the undecomposed-generator and
-single-Pauli-word representations for both methods. In the latter representation,
-Phase I shortlists parent generators, symmetry-retained Pauli children with
-\(|J|=1\) are then generated, and those children enter Phase II.
+The executable Phase-0 population contains 948 and 6508 globally guarded
+single Pauli words for the weak- and strong-Holstein cutoffs, respectively.
+Phase 0 retains the 24 largest standard-ADAPT gradient magnitudes. Phase I
+rescores those 24 candidates and retains at most 24, Phase II evaluates that
+population and retains at most 12, and Phase III ranks the remaining at most
+12 records before admitting one. All restrictions use one global population.
+The single-Pauli-word identities are constructed and symmetry filtered before
+selection, then preserved throughout Phases 0--III.
 The nonzero scalar coefficient is absorbed into the candidate coordinate,
 \begin{equation*}
 e^{-i\alpha c_\mu P_\mu}
@@ -1143,13 +1110,27 @@ e^{-i\alpha c_\mu P_\mu}
 \qquad
 \beta_\mu:=\alpha c_\mu,
 \end{equation*}
-and the executed child uses the canonical unit Pauli representative \(P_\mu\).
+and the executed singleton uses the canonical unit Pauli representative \(P_\mu\).
 This convention removes coefficient-induced rescaling from the conventional
 Append-ADAPT gradient selector. The RA-ADAPT gains \(\Delta E_t\) are
 invariant under any nonzero linear rescaling of the candidate coordinate.
-The reported RA-ADAPT trajectories rank Phase I by the unweighted trust-region
-gain \(S^{(1)}(r)=\Delta E_1(r)\); the relative resource-cost factor is applied
-in Phases II and III.
+The reported RA-ADAPT trajectories use no cost weighting in Phase 0. The
+relative resource-cost factor is applied in Phases I--III. For the
+single-Pauli-word route, Phase I uses the fixed-graph structural proxy, while
+Phases II and III evaluate the same circuit-cost coordinates by Qiskit
+transpilation; the Phase-III population reuses the Phase-II compilation cache
+for unchanged records. The undecomposed-generator
+proxy-only diagnostic uses the fixed-graph structural coordinates in Phases I--III.
+
+% PROVENANCE(PHASE0_AND_COST_FIDELITY_20260811): standard-gradient Phase-0
+% semantics and estimator scope are implemented in
+% pipelines/static_adapt/ra_adapt/phase0.py. The Paper-I execution contracts
+% use N0=24, N1=24, N2=12, and one-record admission. The reported global-
+% singleton route uses fixed-graph Phase-I and Qiskit-evaluated
+% Phase-II/III costs; the reported macro proxy-only diagnostic uses fixed-graph
+% structural costs in Phases I--III. Executable-pool counts are
+% resolved per cutoff from the representation adapters in
+% pipelines/static_adapt/ra_adapt/adapters.py and their locked run protocols.
 
 % PROVENANCE(MACHINE_READABLE_PAPER_I_SNAKE_CANONICAL_SETTINGS_GUARD_20260709) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
 
@@ -1169,88 +1150,169 @@ in Phases II and III.
 % candidate generated by build_paper_i_hh_insertion_policy_overlays.py.
 % Macro overlay provenance sha256=99336586e4c6625b45440c9c15b406b58154b9c43291fca2e851c5221fcb3af1
 % Singleton overlay provenance sha256=a3d3a3da40a338b44d6f73ff65f1a8b924f73f9f736109f6a80fa147c5282fb9
+% COMPONENT_EVIDENCE_UPDATE(20260813): the main-text figure and compact table
+% use the plateau-triggered projected-singleton matched comparison in
+% output/pdf/paper_i_ra_vs_append_matched_comparisons_20260812.pdf.
+% Reader-facing figure generated by
+% pipelines/reporting/clean_paper_i_ra_append_singleton_matched_plot.py.
+% COMPONENT_EVIDENCE_UPDATE(SINGLETON_POLICY_COMPARISON_20260814): the weak-
+% Holstein panels use six authenticated k=50 comparator trajectories, and the
+% weak--strong panel additionally uses its authenticated append-only trajectory,
+% trajectories in output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/
+% paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_page12_singleton_insertion_comparator_snapshot_adapter.json.
+% The new policy curves carry terminal markers only; the open-circle and
+% triangle markers remain reserved for the primary plateau-insertion versus
+% Append-ADAPT matched comparison.
+% COMPONENT_EVIDENCE_UPDATE(STRONG_HOLSTEIN_POLICY_COMPARISON_20260815):
+% the terminally passed local k=50 always-insertion trajectory for weak--strong,
+% together with always-insertion and append-only trajectories for
+% intermediate--strong and strong--strong, comes from
+% output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/.
+% Exact terminal, manifest, guard, worker-receipt, and summary hashes are
+% recorded in the v8 figure
+% provenance JSON beside the generated figure.
 \clearpage
 \onecolumngrid
 \noindent\begin{minipage}{\textwidth}
 \begin{center}
-\includegraphics[width=0.98\textwidth]{figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_insertion_policy_matched_error_candidate_plot.png}
-\captionof{figure}{Stationary-source undecomposed-generator trajectories from page~1 of the evolving stationary-core report. Append-ADAPT, no-insertion RA, and plateau-insertion RA run through iteration \(50\); always-insertion RA is complete for weak--weak and otherwise ends at its authenticated paused prefix. Circuit and estimator costs are reported for always-insertion RA and Append-ADAPT at their selected panel-specific matched-error prefixes. For strong--strong, the closer adjacent-round bracket is always-insertion \(k=9\) versus Append-ADAPT \(k=11\). No-insertion RA uses its first crossing of the horizontal level in the three weak-Holstein panels and \(k=10\) in all three strong-Holstein panels. Each annotation gives the reported iteration followed by \((N_{2q},D_{2q},D_c,W_{1q},S)\); the square marks no-insertion RA. The weak--weak always-insertion trajectory is retained, but its selected-prefix tuple is not substituted because the source archive required for exact recompilation has been retired locally.}
-\label{fig:hh_macro_iteration50_insertion}
-\end{center}
-\end{minipage}
-\clearpage
-\noindent\begin{minipage}{\textwidth}
-\begin{center}
-\includegraphics[width=0.98\textwidth]{figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_insertion_policy_matched_error_candidate_plot.png}
-\captionof{figure}{Stationary-source single-Pauli-word trajectories from page~2 of the evolving stationary-core report. Append-ADAPT, no-insertion RA, and plateau-insertion RA run through iteration \(50\) in all six panels. In-panel circuit and estimator costs are reported only for plateau-insertion RA and Append-ADAPT at their first crossings of the panel-specific horizontal matched-error level selected before the earlier effective plateau. Each annotation gives the crossing iteration followed by \((N_{2q},D_{2q},D_c,W_{1q},S)\). The weak--strong plateau-insertion trajectory failed only the G5 plateau-domain exercise guard and is shown as a qualified diagnostic observation.}
-\label{fig:hh_singleton_iteration50_insertion}
-\vspace{0.7ex}
-\begingroup
-\scriptsize
-\setlength{\tabcolsep}{3.2pt}
-\captionof{table}{Iteration-50 Qiskit costs for the single-Pauli-word trajectories in Fig.~\ref{fig:hh_singleton_iteration50_insertion}, taken from the same stationary-core report provenance. Entries are \((N_{2q}:D_{2q}:D_c:W_{1q}:S)\); compilation is backend-free and includes reference-state preparation.}
-\label{tab:hh_singleton_iteration50_costs}
-\begin{tabular}{@{}lccc@{}}
-\toprule
-Regime & Plateau-insertion RA & No-insertion RA & Append-ADAPT \\
-\midrule
-Weak--weak & \((162:128:757:374:2.30106\mathrm{e}5)\) & \((160:121:642:354:1.28965\mathrm{e}5)\) & \((260:224:1045:474:3.13231\mathrm{e}5)\) \\
-Intermediate--weak & \((210:173:891:426:2.37649\mathrm{e}5)\) & \((190:166:894:394:1.08924\mathrm{e}5)\) & \((234:197:1132:448:3.72793\mathrm{e}5)\) \\
-Strong--weak & \((192:179:1116:396:2.72431\mathrm{e}5)\) & \((160:130:728:358:9.1653\mathrm{e}4)\) & \((250:210:1112:462:1.29405\mathrm{e}5)\) \\
-Weak--strong & \((212:159:722:432:2.35160\mathrm{e}5)\) & \((212:159:722:432:2.35160\mathrm{e}5)\) & \((274:237:909:508:1.154148\mathrm{e}6)\) \\
-Intermediate--strong & \((250:208:861:484:2.60463\mathrm{e}5)\) & \((252:210:868:482:2.48771\mathrm{e}5)\) & \((272:241:962:492:1.284661\mathrm{e}6)\) \\
-Strong--strong & \((208:167:942:414:2.59433\mathrm{e}5)\) & \((188:142:799:386:1.20707\mathrm{e}5)\) & \((242:209:927:448:1.080929\mathrm{e}6)\) \\
-\bottomrule
-\end{tabular}
-\endgroup
+\includegraphics[width=0.98\textwidth]{figures/paper_i_ra_vs_append_matched_singleton_plateau_20260812/paper_i_ra_vs_append_matched_singleton_plateau.pdf}
+\captionof{figure}{RA-ADAPT and Append-ADAPT VQE using the same
+symmetry-retained single-Pauli-word pool. Each panel shows the same-cutoff
+energy error through iteration \(50\). All six panels additionally show
+RA-ADAPT with insertion active throughout and RA-ADAPT restricted to the
+append endpoint.
+Diamonds and squares mark the corresponding terminal values. Open circles
+mark the first common-accuracy crossings for the primary plateau-triggered
+RA-ADAPT versus Append-ADAPT comparison, and filled triangles mark the best
+errors within the shared \(S_{\rm alg}\) budget.}
+\label{fig:hh_singleton_matched_plateau}
 \end{center}
 \end{minipage}
 \clearpage
 \twocolumngrid
 \par\addvspace{0.45ex}
-Across the six interaction regimes, the magnitude and resource efficiency of
-insertion depend on the candidate representation. For undecomposed generators,
-the available stationary always-insertion prefixes most clearly escape the
-append-like plateaus in intermediate--weak, weak--strong, and
-intermediate--strong. Because five of these trajectories are deliberately
-paused before iteration \(50\), they support the pre-plateau matched-error
-comparison in Fig.~\ref{fig:hh_macro_iteration50_insertion}, but not a uniform
-fixed-horizon accuracy comparison. For single-Pauli-word generators,
-plateau-triggered insertion attains high accuracy without the additional \(S\)
-incurred by searching all insertion positions throughout the trajectory.
+\begin{table}[t]
+\caption{\label{tab:hh_singleton_matched_plateau}
+First-crossing costs at the shared same-cutoff error
+\(\lvert\Delta E_\cap\rvert\) for plateau-triggered RA-ADAPT and
+Append-ADAPT. Circuit costs are reported as
+\(C_{\rm circ}=(N_{2q},D_{2q},D_c)\) at the listed ADAPT iteration
+\(k_\cap\).}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.2pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{tabular}{@{}llrrl@{}}
+\toprule
+Regime & Method & \(k_\cap\) & \(C_{\rm circ}\) & \(S_{\rm alg}\) \\
+\midrule
+W--W \((1\mathrm{e}{-9})\) & RA & 37 & \((371,285,865)\) & \(1.1\mathrm{e}5\) \\
+     & Ap & 37 & \((402,323,990)\) & \(2.8\mathrm{e}5\) \\
+\addlinespace[0.25ex]
+I--W \((6\mathrm{e}{-9})\) & RA & 34 & \((375,297,898)\) & \(9.8\mathrm{e}4\) \\
+     & Ap & 32 & \((347,259,777)\) & \(3.0\mathrm{e}5\) \\
+\addlinespace[0.25ex]
+S--W \((1\mathrm{e}{-6})\) & RA & 11 & \((83,63,198)\) & \(1.7\mathrm{e}4\) \\
+     & Ap & 11 & \((50,46,159)\) & \(1.6\mathrm{e}4\) \\
+\addlinespace[0.25ex]
+W--S \((6\mathrm{e}{-4})\) & RA & 35 & \((306,218,691)\) & \(3.0\mathrm{e}5\) \\
+     & Ap & 50 & \((597,449,1371)\) & \(1.2\mathrm{e}6\) \\
+\addlinespace[0.25ex]
+I--S \((1\mathrm{e}{-4})\) & RA & 39 & \((330,264,863)\) & \(3.4\mathrm{e}5\) \\
+     & Ap & 49 & \((510,383,1146)\) & \(1.2\mathrm{e}6\) \\
+\addlinespace[0.25ex]
+S--S \((3\mathrm{e}{-8})\) & RA & 45 & \((479,388,1204)\) & \(4.3\mathrm{e}5\) \\
+     & Ap & 45 & \((519,389,1127)\) & \(9.2\mathrm{e}5\) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-At \(k=50\), plateau-insertion undecomposed-generator RA-ADAPT is lower in
-weak--strong and intermediate--strong, effectively tied in strong--weak and
-strong--strong, and higher in weak--weak and intermediate--weak. In the
-single-Pauli-word representation, plateau-insertion RA-ADAPT is lower in all
-six regimes and at least an order of magnitude lower in weak--weak,
-intermediate--weak, weak--strong, and intermediate--strong. No-insertion
-RA-ADAPT is lower than Append-ADAPT in
-weak--weak, intermediate--weak, weak--strong, and intermediate--strong, while
-Append-ADAPT is lower in strong--weak and strong--strong. These outcomes show
-that the representation dependence is method- and regime-specific rather than
-monotonic in \(U\); insertion can subsequently escape plateaus in the
-strong-Hubbard trajectories.
+At the common accuracy target, plateau-triggered RA-ADAPT reduces
+\(S_{\rm alg}\) in five regimes, by factors from \(2.13\) to \(3.80\), and
+reduces \(N_{2q}\) in four. Weak--weak, weak--strong, and
+intermediate--strong reduce every reported circuit coordinate together with
+the estimator count. Intermediate--weak exchanges an \(8\%\) increase in
+\(N_{2q}\) for a \(3.07\)-fold reduction in estimator work. The
+strong--weak crossing occurs at the same iteration for both methods and favors
+Append-ADAPT in circuit and estimator resources.
 
-At the undecomposed-generator matched-error prefixes, always-insertion RA uses
-fewer two-qubit gates, lower two-qubit and total depth, and less
-pretranspilation one-qubit work than Append-ADAPT in intermediate--weak,
-strong--weak, weak--strong, and intermediate--strong. Append-ADAPT is lower in
-all four circuit coordinates in strong--strong. Logical estimator work favors
-RA only in intermediate--weak and favors Append-ADAPT in the other four
-recompilable panels. The weak--weak crossings occur at \(k_{\rm RA}=6\) and
-\(k_{\rm A}=15\), but no RA cost tuple is reported because its exact prefix
-source is no longer locally available.
+At common \(S_{\rm alg}\), plateau-triggered RA-ADAPT reaches the lower error
+in every regime. The reduction exceeds one order of magnitude in five:
+\(7.57\times10^5\) in weak--weak, \(7.41\times10^7\) in
+intermediate--weak, \(15.1\) in weak--strong, \(19.1\) in
+intermediate--strong, and \(10.2\) in strong--strong. Strong--weak reaches
+essentially the same error for both methods. At iteration \(50\), RA-ADAPT has
+the lower error in weak--weak, intermediate--weak, weak--strong, and
+intermediate--strong, while Append-ADAPT has the lower endpoint error in the
+two strong-Hubbard regimes. The matched comparisons in
+Table~\ref{tab:hh_singleton_matched_plateau} provide the resource-normalized
+comparison.
 
-At the single-Pauli-word matched-error prefixes, plateau-insertion RA-ADAPT
-uses fewer two-qubit gates, lower two-qubit depth, and less logical estimator
-work than Append-ADAPT in all six regimes. The corresponding Append/RA ratios
-span \(1.021\)--\(2.254\), \(1.115\)--\(2.640\), and
-\(2.184\)--\(8.120\), respectively. Total circuit depth favors RA-ADAPT in
-five regimes and pretranspilation one-qubit work in four; all five reported
-coordinates favor RA-ADAPT simultaneously in four regimes. The separate
-iteration-\(50\) costs are reported in
-Table~\ref{tab:hh_singleton_iteration50_costs}.
+The weak-Holstein policy trajectories isolate the role of positional search.
+In weak--weak, insertion active throughout and plateau-triggered insertion
+both reach the \(10^{-15}\) error scale at iteration \(50\). The RA-ADAPT
+append endpoint and conventional Append-ADAPT end at the \(10^{-9}\) scale.
+In intermediate--weak, the two insertion routes reach the
+\(10^{-14}\)--\(10^{-15}\) scale, and the two append routes end at the
+\(10^{-9}\) scale. In strong--weak, the three RA-ADAPT insertion policies end
+near \(1.4\times10^{-6}\), and conventional Append-ADAPT reaches
+\(8.0\times10^{-7}\). Positional freedom therefore changes the attainable
+accuracy in the weak- and intermediate-Hubbard sectors of the weak-Holstein
+row. The strong-Hubbard sector retains the same \(10^{-6}\) terminal scale
+across the three RA-ADAPT insertion policies.
+% PROVENANCE(MACHINE_READABLE_PAPER_I_RA_APPEND_SINGLETON_SUPPORT_SHARE_20260811):
+% receipt=MATH/paper_facing/paper_I_static_scaffold/provenance/paper_i_ra_append_singleton_support_share_prose_20260811.json
+% sha256=0304c1b6e3fb9f9c4f3ba172bc4dc9dacd22adb93c7e8ea212a6e24f4b0ec293
+% builder=pipelines/reporting/build_paper_i_ra_append_singleton_support_share_evidence.py
+% regenerate=python3 pipelines/reporting/build_paper_i_ra_append_singleton_support_share_evidence.py
+% metric=p_{S,r}^{(m)}=100*sum_{k:supp(P_k)=S}max(0,E_{k-1}-E_k)/sum_k max(0,E_{k-1}-E_k)
+% normalization=independent within each method--regime pair at k=50; displayed values rounded to 0.1 percentage point
+% semantics=path-dependent realized accepted-step descent; not a causal ablation or connected-correlation observable
+% adoption=user-directed Paper-I Results adoption of the authenticated Append-ADAPT k=1:50 prefixes on 2026-08-11
+
+The accepted single-Pauli-word trajectories reveal which physical response
+channels carry the realized variational descent.  In the blocked register, the
+first two qubits represent the spin-up electronic orbitals on the first and
+second lattice sites, and the next two represent the corresponding spin-down
+orbitals.  The final four qubits form two binary phonon registers, with one
+two-qubit register assigned to each lattice site.  This ordering identifies
+whether a selected word represents intersite electronic motion, a local
+electron--phonon response, a cross-site electron--phonon response, or a purely
+phononic response.  For each method and interaction regime, we attribute every
+positive accepted-step energy decrease to the selected word's physical channel
+and normalize the accumulated contributions to \(100\%\).
+
+Three patterns organize the results.  First, spin-resolved intersite electronic
+hopping dominates every regime.  RA-ADAPT places the largest contribution on
+words spanning the third and fourth qubits, which represent spin-down
+electronic motion between the two sites.  Append-ADAPT places the corresponding
+contribution on words spanning the first and second qubits, which represent
+spin-up motion between the same sites.  The equal rounded contributions
+identify mirror-related adaptive paths through the two spin channels.
+
+Second, increasing Hubbard interaction progressively concentrates the descent
+into one of these intersite hopping channels.  At weak Holstein coupling, its
+contribution rises from \(52.2\%\) in W--W, through \(65.7\%\) in I--W, to
+\(95.9\%\) in S--W.  At strong Holstein coupling, it rises from \(47.4\%\)
+in W--S, through \(62.8\%\) in I--S, to \(95.8\%\) in S--S.  In both
+strong-Hubbard regimes, a joint electronic response spanning both sites and
+both spin sectors contributes another \(2.6\%\), followed by hopping in the
+complementary spin sector at \(1.5\%\).
+
+Third, Holstein coupling activates a substantial mixed electron--phonon
+response at weak and intermediate Hubbard interaction.  At weak Hubbard
+coupling, the mixed contribution increases from approximately \(2.0\%\) in
+W--W to \(9.4\%\) in W--S.  At intermediate Hubbard coupling, it increases
+from approximately \(0.9\%\) in I--W to \(5.3\%\) for RA-ADAPT and
+\(5.2\%\) for Append-ADAPT in I--S.  The largest individual mixed
+contribution in W--S is \(2.2\%\).  For RA-ADAPT, this word couples the
+spin-up electronic orbital on the second site to that site's phonon register,
+giving a local electron--phonon response.  For Append-ADAPT, it couples the
+spin-up orbital on the first site to the phonon register on the second site,
+giving a cross-site response.  Strong Hubbard interaction concentrates the
+descent back into electronic motion, with mixed channels contributing
+approximately \(0.1\%\) in the strong-Hubbard regimes.  Pure phonon response
+reaches a maximum contribution of \(1.3\%\).
 % PROVENANCE(DRAFT_HH_CHILD_FAIRNESS_PROSE_TODO_20260624) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
 \par\addvspace{1.0ex}
 
@@ -1259,44 +1321,53 @@ Table~\ref{tab:hh_singleton_iteration50_costs}.
 \label{sec:conclusion}
 
 % Struct label: Mechanistic interpretation
-The representation dependence of the insertion results indicates that
-positional freedom interacts with candidate granularity. Undecomposed
-generators retain structured multi-term blocks whose ordering strongly affects
-the accessible ansatz sequence, so searching all insertion positions can
-materially improve the trajectory. Single-Pauli-word generators provide
-finer-grained support, and positional search becomes most valuable after
-append-only growth stagnates; plateau-triggered insertion therefore captures
-most of the available energy improvement without continuously paying the
-all-position search cost.
+The common operator pool makes the comparison a test of how the adaptive
+procedure navigates a fixed expressive space. Append-ADAPT ranks the full pool
+by the instantaneous gradient and appends one word. RA-ADAPT first applies
+that same gradient screen, then refines the surviving choices using local
+response and resource information; plateau-triggered insertion adds positional
+freedom when the realized energy descent becomes small. The matched results
+show that this change in the adaptive path can extract substantially greater
+accuracy from the same single-Pauli-word pool at fixed estimator work.
 
-The differing weak--weak and intermediate--weak ordering of the three RA
-insertion policies indicates path sensitivity to early discrete selection
-decisions. Phase-I parent shortlisting may discard a generator whose individual
-Pauli child would have high downstream utility when the parent-level score is
-weaker than competing parents. The resource-cost term may also demote a
-candidate whose realized energy improvement would have justified its
-additional cost. Either mechanism changes the accepted state and all
-subsequent candidate rankings. The present trajectories do not isolate which
-mechanism produces the policy dependence.
+The accepted-word analysis also identifies how the pool is used across the
+interaction diagram. Spin-resolved intersite electronic hopping carries most
+of the descent in every regime and becomes increasingly dominant as the
+Hubbard interaction grows. Stronger Holstein coupling raises the contribution
+from mixed electron--phonon words at weak and intermediate Hubbard
+interaction. The operator pool therefore supplies both the electronic and
+mixed-sector responses required across the six regimes, while their realized
+weights change with interaction strength.
 
-In the displayed Hubbard--Holstein comparisons, staged response modeling, a supported Fubini--Study Phase-III trust solve, and adaptive trust control remain active. The single-Pauli-word representation shortlists parents in Phase I and children in Phase II. Batching, beam continuation, and generator ablation are disabled; those mechanisms remain optional RA-ADAPT extensions and are not invoked to explain the selected errors reported here.
+Phase-dependent cost fidelity keeps target-specific compilation concentrated
+on the shortlisted singleton population. Phase 0 screens all \(948\) or
+\(6508\) guarded Pauli words by the standard gradient, Phase I retains at most
+\(24\) records using graph-evaluated circuit coordinates, and Qiskit evaluates
+the same coordinates for the at most \(24\) Phase-II records. Phase III reuses
+that compiled cache for at most \(12\) records. This schedule reserves the
+target-coupled cost evaluation for candidates that survive the inexpensive
+screens, while \(S_{\rm alg}\) accounts for the response-model and refit
+estimator work.
 
 % Struct label: Scope and limitations
-Despite targeting NISQ-era constraints, the present results are noiseless and
-use small, classically solvable two-site models. Further work should quantify
-finite-shot uncertainty and calibrated device-noise effects on candidate
-selection and stopping. It should also examine how shortlist size and
-physical-response grouping affect the selected generator sequence and the
-performance of generator ablation.
+The accepted-refit whitening map is constructed from the source-point Gram
+matrix, where \(W^\top G(\boldsymbol\theta)W=I\). The Fubini--Study metric is
+then free to vary during inner optimization. The trust radius follows a
+feedback calibration: \(\rho_k\) constrains the predicted step, and the
+predicted-to-realized displacement ratio sets \(\rho_{k+1}\).
+
+The present benchmarks use noiseless, classically solvable two-site models.
+Finite-shot uncertainty, calibrated device noise, shortlist-size dependence,
+and generator ablation define the next validation stage.
 % Struct label: Summary/so what
-Across the evaluated two-site Hubbard--Holstein regimes, insertion usually
-improves same-cutoff energy accuracy, while the appropriate insertion policy
-depends on candidate representation:
-always-enabled insertion gives the largest accuracy benefit for undecomposed
-generators, whereas plateau-triggered insertion provides the strongest
-accuracy--\(S\) balance for single-Pauli-word generators. These results
-establish candidate representation as a determinant of when positional freedom
-should be activated within resource-aware adaptive ansatz construction.
+Across the six two-site Hubbard--Holstein regimes, plateau-triggered singleton
+RA-ADAPT reduces logical estimator work at common accuracy in five regimes and
+routed two-qubit gates in four. At common estimator work, it reaches the lower
+same-cutoff error in all six regimes and improves the error by at least one
+order of magnitude in five. Together with the accepted-word analysis, these
+results establish a successful symmetry-retained mixed fermion--phonon pool
+and show that resource-aware, position-adaptive selection accesses that pool
+more efficiently than append-only gradient selection.
 
 \clearpage
 \appendix
@@ -1306,10 +1377,11 @@ should be activated within resource-aware adaptive ansatz construction.
 The generator pool \(\mathcal G\) is initialized once. At iteration \(k\),
 \(\mathcal G_k(u)\) denotes the generators eligible on branch \(u\), and
 \(\mathcal P_k^u(A)\) denotes the insertion positions that remain after the
-selected position policy and commutation reduction are applied. The three
-scoring phases act successively on the retained record population. After Phase
-I, the representation step either preserves each generator or replaces it by
-its guarded single-Pauli-word children.
+plateau gate and commutation reduction are applied. Phases 0--III act
+successively on the candidate population without changing the selected
+executable representation: Phase 0 restricts generator identities by the
+standard ADAPT absolute gradient, and Phases I--III apply the resource-weighted
+response models to the retained records.
 
 \begin{widetext}
 \footnotesize
@@ -1317,18 +1389,19 @@ its guarded single-Pauli-word children.
 \textbf{RA-ADAPT}
 \begin{tabbing}
 \hspace{1.5em}\=\hspace{1.5em}\=\hspace{1.5em}\=\hspace{1.5em}\=\kill
-\textbf{Input:} \(H\), \(\ket{\psi_{\rm ref}}\), pool-construction rules, \(U_0\), \(\rho_0\), phase caps \(N_1,N_2\), and the insertion, stopping, batch, beam, and ablation controls.\\
+\textbf{Input:} \(H\), \(\ket{\psi_{\rm ref}}\), pool-construction rules, \(U_0\), \(\rho_0\), phase caps \(N_0,N_1,N_2\), and the insertion, stopping, batch, beam, and ablation controls.\\
 Initialize \(\mathcal G\) from the model and symmetry sector; refit \(U_0\); set \(F_0=\{(U_0,\boldsymbol\theta_0^\star,\rho_0)\}\) and \(k=0\).\\
 \textbf{repeat}\\
 \>Set the next-branch population \(F_{k+1}\) to the empty set.\\
 \>\textbf{for each} live branch \(u\in F_k\) \textbf{do}\\
-\>\>Form the eligible candidate records\\
-\>\>\(\displaystyle\mathcal R^{(0)}=
-\{(A,p):A\in\mathcal G_k(u),\ p\in\mathcal P_k^u(A)\}\).\\
-\>\>\textbf{for} phase \(t=1,2,3\) \textbf{do}\\
-\>\>\>Evaluate \(S^{(t)}(r)\) for every record in the current population.\\
-\>\>\>\textbf{if} \(t<3\) \textbf{then} retain at most \(N_t\) records under the phase-\(t\) restriction.\\
-\>\>\>\textbf{if} \(t=1\) \textbf{then} apply the selected generator representation to the retained parents.\\
+\>\>\textbf{for} phase \(t=0,1,2,3\) \textbf{do}\\
+\>\>\>\textbf{if} \(t=0\) \textbf{then}\\
+\>\>\>\>Evaluate \(S^{(0)}(A)=\lvert g_A\rvert\) at the append endpoint for every \(A\in\mathcal G_k(u)\).\\
+\>\>\>\>Retain the top \(N_0\) identities and expand them over \(\mathcal P_k^u(A)\) to form the Phase-I record population.\\
+\>\>\>\textbf{else}\\
+\>\>\>\>Evaluate \(S^{(t)}(r)\) for every record in the current population.\\
+\>\>\>\>\textbf{if} \(t<3\) \textbf{then} retain at most \(N_t\) records under the phase-\(t\) restriction.\\
+\>\>\>\textbf{end if}\\
 \>\>\textbf{end for}\\
 \>\>\textbf{if} batching is enabled \textbf{then}\\
 \>\>\>Rank the admissible batches formed from the Phase-III records.\\
@@ -1361,106 +1434,45 @@ Initialize \(\mathcal G\) from the model and symmetry sector; refit \(U_0\); set
 \noindent\rule{\textwidth}{0.4pt}
 \end{widetext}
 
-\section{Physical-response lane restriction}
+\section{Global record-set restriction}
+\label{app:record_restriction}
 
-We partition the Phase-I input set \(\mathcal R^{(0)}\) according to each operator's physical response
-type. This enables more aggressive shortlisting with less risk of omitting a
-distinct response channel. Appendix~\ref{subsec:hh_physical_operator_lanes}
-defines the six lanes. A lane may nevertheless be retired when its
-highest-scored record falls below a parameterized fraction of the
-highest-scored record in the global lane-agnostic set.
-
-We induce a partition of \(\mathcal R^{(0)}\) from a partition of the generator pool
-\(\mathcal G\). Let \(\mathcal L\) be the fixed set of
-physical lane labels, and let \(\lambda:\mathcal G\to\mathcal L\) map each
-generator to its physical operator-type label. For \(r=(A,p)\), write
-\(\lambda(r):=\lambda(A)\).
-
-For each lane represented in \(\mathcal R^{(0)}\), define the lane-wise
-record set by
-\begin{equation*}
-\mathcal R_{\ell}^{(0)}
-=
-\left\{
-r\in\mathcal R^{(0)}
-:
-\lambda(r)=\ell
-\right\}.
-% source label: eq:lane_phase_records
-\end{equation*}
-For each represented lane, let its representative record be the within-lane
-maximizer
-\[
-r_{\ell}^{\star}
-\in
-\operatorname*{arg\,max}_{r\in\mathcal R_{\ell}^{(0)}}
-S^{(1)}(r).
-\]
-Let \(\mathcal L^{(1)}\subseteq\mathcal L\) denote the lane labels retained
-by Phase I. A represented lane \(\ell\) remains live when
+Phase I and Phase II restrict their evaluated populations solely by score. If
+\(N_1\) is the Phase-I cap, then
 \begin{equation}
-\ell\in\mathcal L^{(1)}
-\quad\Longleftrightarrow\quad
-S^{(1)}(r_{\ell}^{\star})
-\ge
-\tau_1
-\max_{r\in\mathcal R^{(0)}}S^{(1)}(r).
+\mathcal R^{(2)}
+=\operatorname{Top}_{\min\{N_1,|\mathcal R^{(1)}|\}}
+\left(\mathcal R^{(1)};S^{(1)}\right).
 \label{eq:phase_restriction_map}
 \end{equation}
-Here \(\tau_1\in[0,1]\) is the Phase-I relative lane-retention threshold.
-The number of live lanes that receive protected representatives is
+Phase II then applies its fixed cap \(N_2\):
 \begin{equation}
-\min\left\{
-N_1,\,
-\left\lceil \eta_1|\mathcal L^{(1)}|\right\rceil
-\right\},
-\qquad
-|\mathcal R^{(1)}|\le N_1 ,
-\label{eq:phase_lane_budget}
-\end{equation}
-where \(N_1\) is the Phase-I global retained-record cap and
-\(\eta_1\in[0,1]\) is the live-lane protection fraction. Each protected lane
-contributes at least its highest-scored record. The remaining slots are filled
-globally by score, after which the records retain their respective lane
-assignments.
-
-Applying this lane-protected Phase-I restriction to \(\mathcal R^{(0)}\)
-produces \(\mathcal R^{(1)}\). The representation map is then applied. For
-the undecomposed-generator representation it is the identity;
-for the single-Pauli-word representation it creates and guards individual
-Pauli-word children. Phase II evaluates
-Eq.~\eqref{eq:phase2_gain} on the resulting candidate population
-\(\mathcal R^{(2)}\) and keeps the highest-scoring child or undecomposed-generator
-records under its fixed effective cap \(N_2\):
-\begin{equation*}
 \mathcal R^{(3)}
 =\operatorname{Top}_{\min\{N_2,|\mathcal R^{(2)}|\}}
 \left(\mathcal R^{(2)};S^{(2)}\right).
-\end{equation*}
-The six Hubbard--Holstein physical lane labels are defined in
-Appendix~\ref{app:lane_shortlisting}. All candidate derivatives, geometric
-blocks, and resource estimates are evaluated relative to the same optimized
-state \(\ket{\psi_k}\); the enlarged ansatz is refitted after Phase III
-returns a proposal. The phase gains and energy-per-cost score are defined in
+\label{eq:phase2_restriction_map}
+\end{equation}
+All candidate derivatives, geometric blocks, and resource estimates are
+evaluated relative to the same optimized state \(\ket{\psi_k}\); the enlarged
+ansatz is refitted after Phase III returns a proposal. The phase gains and
+energy-per-cost score are defined in
 Sec.~\ref{subsec:candidate_energy_models}.
 
-\section{Physical-response lane shortlisting}
-\label{app:lane_shortlisting}
-
-\subsection{Hubbard--Holstein physical operator lanes}
-\label{subsec:hh_physical_operator_lanes}
+\section{Hubbard--Holstein operator-pool construction}
+\label{app:hh_operator_pool}
 %
 \noindent
-After Phase I, \textsc{RA-ADAPT} applies a physical-channel shortlist to the Hubbard--Holstein generator--position records. The purpose is to prevent many similar high-gradient records from occupying the entire shortlist. For example, a group of electronic hopping records may all score well, but retaining only those records would suppress other physically important effects.
+For descriptive analysis, we group the Hubbard--Holstein pool into six operator
+classes: electronic UCCSD, electronic hopping/current, phonon cloud,
+phonon relaxation, dressed electron--phonon, and Hamiltonian-block generators.
+These labels do not enter candidate scoring or record-set restriction.
 
-We therefore partition the inherited Phase-I record set into six physical lanes according to generator structure. The Phase-I score \(S^{(1)}\) assigned to each record is not modified. The lane structure changes only how records are retained: records compete primarily with other records in the same physical lane before the surviving candidates are passed to Phase II. This keeps representative candidates from electronic correlation, electronic transport, phonon displacement, phonon relaxation, electron--phonon dressing, and Hamiltonian-block motion available for the more expensive curvature and full-response measurements in later phases.
-
-Throughout the lane definitions, tensor factors on unmentioned sites, modes,
+Throughout the class definitions, tensor factors on unmentioned sites, modes,
 or particle sectors are implicit identities; each displayed formula shows only
 the generator's nontrivial action.
 
-\paragraph*{Electronic UCCSD lane.}
-This lane contains bare electronic single- and double-excitation generators:
+\paragraph*{Electronic UCCSD operators.}
+This class contains bare electronic single- and double-excitation generators:
 \begin{align*}
 G_{i\to a,\sigma}
 &=
@@ -1473,12 +1485,11 @@ c_{j\sigma'}c_{i\sigma}
 -{\rm h.c.}) .
 \end{align*}
 Here \(i,j\) label occupied spin orbitals, \(a,b\) label virtual spin orbitals,
-\(\sigma,\sigma'\in\{\uparrow,\downarrow\}\), and \(c^\dagger,c\) are
-fermionic creation and annihilation operators. This lane targets electronic
-correlation without explicit phonon dressing.
+and \(\sigma,\sigma'\in\{\uparrow,\downarrow\}\). This class captures
+electronic correlation without explicit phonon dressing.
 
-\paragraph*{Electronic hopping/current lane.}
-This lane contains purely electronic Hubbard transport, density-assisted
+\paragraph*{Electronic hopping/current operators.}
+This class contains purely electronic Hubbard transport, density-assisted
 transport, pair-hop/current, and exchange/current channels. The spin-summed
 hopping and current generators are
 \begin{align*}
@@ -1496,11 +1507,11 @@ J_{ij}
 Density-assisted channels multiply \(T_{ij}\) or \(J_{ij}\) by local fermion
 number operators. Pair-hop/current channels move an onsite spin pair between
 sites. Exchange/current channels exchange spin-resolved occupations across a
-bond. This lane targets lattice electronic motion beyond bare UCCSD excitation
-structure.
+bond. This class captures lattice electronic motion beyond the bare UCCSD
+excitation structure.
 
-\paragraph*{Phonon-cloud lane.}
-This lane contains pure phonon displacement, momentum, and occupation generators. For phonon mode or site \(i\), these are
+\paragraph*{Phonon-cloud operators.}
+This class contains pure phonon displacement, momentum, and occupation generators. For phonon mode or site \(i\), these are
 \[
 X_i=b_i+b_i^\dagger,
 \qquad
@@ -1508,27 +1519,28 @@ P_i=\ii(b_i^\dagger-b_i),
 \qquad
 n_{b,i}=b_i^\dagger b_i .
 \]
-This lane targets phonon displacement and occupation response before explicit electronic conditioning is applied.
+This class captures phonon displacement and occupation response before
+explicit electronic conditioning is applied.
 
-\paragraph*{Phonon-relaxation lane.}
-This lane contains pure phonon squeeze, quadratic, and nonlinear
+\paragraph*{Phonon-relaxation operators.}
+This class contains pure phonon squeeze, quadratic, and nonlinear
 channels:
 \begin{align*}
 S_i&=\ii[(b_i^\dagger)^2-b_i^2],\\
 &X_i^2,\quad P_i^2,\quad n_{b,i}^2,\quad
 X_iP_i+P_iX_i .
 \end{align*}
-This lane targets changes in local phonon width, occupation curvature, and
+This class captures changes in local phonon width, occupation curvature, and
 cutoff-sensitive nonlinear response.
 
-\paragraph*{Dressed electron--phonon lane.}
-This lane contains generators that explicitly couple electronic charge, doublon occupation, or bond motion to phonon response. Define
+\paragraph*{Dressed electron--phonon operators.}
+This class contains generators that explicitly couple electronic charge, doublon occupation, or bond motion to phonon response. Define
 \[
 D_i=n_i-\bar n I,
 \qquad
 Q_i=n_{i\uparrow}n_{i\downarrow},
 \]
-The lane includes local polaronic generators \(D_iP_i\) and \(D_iS_i\), nonlocal charge--phonon generators \(D_iP_j\) and \(D_iX_j\), doublon-conditioned generators \(Q_iP_j\) and \(Q_iX_j\), and bond-dressing generators
+The class includes local polaronic generators \(D_iP_i\) and \(D_iS_i\), nonlocal charge--phonon generators \(D_iP_j\) and \(D_iX_j\), doublon-conditioned generators \(Q_iP_j\) and \(Q_iX_j\), and bond-dressing generators
 \begin{align*}
 &T_{ij}(P_i-P_j),
 \qquad
@@ -1538,34 +1550,103 @@ J_{ij}(P_i-P_j),\\
 T_{ij}(P_i-P_j)^2,\\
 &J_{ij}(P_i-P_j)^3 .
 \end{align*}
-It also includes UCCSD electronic generators multiplied by phonon-dressing
+It also includes electronic excitation generators of UCCSD form multiplied by phonon-dressing
 operators, including product and sequential electronic/phonon motif generators.
-This lane targets polaron formation, density-conditioned lattice response,
+This class captures polaron formation, density-conditioned lattice response,
 doublon-conditioned lattice response, and bond-conditioned electron--phonon
 dressing.
 
-\paragraph*{Hamiltonian-block lane.}
-This lane contains grouped generators associated with the physical blocks of the Hubbard--Holstein Hamiltonian
+\paragraph*{Hamiltonian-block operators.}
+This class contains grouped generators associated with the physical blocks of the Hubbard--Holstein Hamiltonian
 in Eq.~\eqref{eq:hubbard_holstein_static}: electronic hopping, onsite
 interaction, phonon energy, and electron--phonon coupling blocks. It also
-includes Hamiltonian-term generators and their quadrature partners. This lane
-preserves coarse Hamiltonian structure as an explicit ansatz-growth channel.
+includes Hamiltonian-term generators and their quadrature partners. This class
+preserves coarse Hamiltonian structure within the ansatz-growth pool.
 
-Within each lane, records are ordered by the Phase-I score \(S^{(1)}\) and retained under
-Eqs.~\eqref{eq:phase_restriction_map}--\eqref{eq:phase_lane_budget}. The lane
-assignment changes only the shortlist allocation; it does not modify the score
-of any record. The retained records form the input set for Phase II.
+The six classes label operator content only. Phase I ranks all
+generator--position records together and applies the global restriction in
+Eq.~\eqref{eq:phase_restriction_map}.
+
+\section{Single-Pauli-word operator pool}
+\label{app:pauli_word_pool}
+
+The single-Pauli-word representation is constructed as an executable operator
+pool before Phase 0. For each generator
+\(A=\sum_{\mu:c_\mu\ne0}c_\mu P_\mu\) in the Hubbard--Holstein parent pool,
+each nonzero Pauli component defines the unit-Pauli candidate
+\begin{equation*}
+A_\mu=c_\mu P_\mu.
+% source label: eq:pauli_child_generator
+\end{equation*}
+Here \(P_\mu\) is the \(\mu\)th Pauli word and \(c_\mu\) is its scalar
+coefficient. The corresponding intact-generator representation retains
+\(A\) without decomposition. The generator-level support is
+\begin{equation}
+\operatorname{supp}(A)
+:=
+\bigcup_{\mu:c_\mu\ne0}
+\operatorname{supp}(P_\mu),
+\label{eq:macro_generator_support}
+\end{equation}
+so Eq.~\eqref{eq:pauli_word_support} gives
+\(\operatorname{supp}(A_\mu)\subseteq\operatorname{supp}(A)\).
+
+Each unit-Pauli candidate is tested for preservation of the resolved fermionic
+sector:
+\begin{equation}
+\Gamma(A_\mu)
+=
+\prod_{s\in\{\uparrow,\downarrow,\mathrm{total}\}}
+\mathbf 1
+\left\{
+\left\|
+\left[
+A_\mu,\mathbf N_s^{(f)}\otimes \mathbb I^{(b)}
+\right]
+\right\|_1
+\le \epsilon
+\right\}.
+\label{eq:symmetry_guard}
+\end{equation}
+Here \(\mathbf N_s^{(f)}\) is the spin-up, spin-down, or total fermionic
+number operator, \(\mathbb I^{(b)}\) is the bosonic-register identity, and
+\(\epsilon\) is the leakage tolerance. If
+\([
+A_\mu,\mathbf N_s^{(f)}\otimes\mathbb I^{(b)}
+]=\sum_\nu b_\nu^{(s,\mu)}P_\nu\), the Pauli-coefficient norm in
+Eq.~\eqref{eq:symmetry_guard} is
+\[
+\left\|
+\left[
+A_\mu,\mathbf N_s^{(f)}\otimes \mathbb I^{(b)}
+\right]
+\right\|_1
+=
+\sum_\nu\left|b_\nu^{(s,\mu)}\right|.
+\]
+Candidates that pass this sector test are projected onto the valid binary
+bosonic code space. Zero projections and global-phase identity directions are
+discarded, and coincident Pauli directions inherited from different parents
+are deduplicated. The surviving symmetry- and padding-valid Pauli words form
+the fixed executable pool screened throughout Phases 0--III; no Pauli-word
+construction or representation change occurs within RA-ADAPT.
 
 
-\section{Numerical conventions}
+% Reported-value provenance (omitted from reader-facing text by author choice):
+% zero-MAD floor 10^{-12}; commutation-component cutoff tau=10^{-12};
+% insertion-opening threshold epsilon_ins=10^{-8}; relative Gram-support
+% tolerance eta=10^{-6}.
+\section{Additional scoring and insertion conventions}
 \label{app:numerical_conventions}
 
 \paragraph*{Robust cost normalization.}
 The denominator in Eq.~\eqref{eq:cost_robust_excess} is evaluated as
-\(\max\{s_x(t),10^{-12}\}\) to regularize zero-MAD record populations.
+\(\max\{s_x(t),\epsilon_{\rm MAD}\}\), where
+\(\epsilon_{\rm MAD}>0\) regularizes zero-MAD record populations.
 
-\paragraph*{Scalar phase solves.}
-When \(H_{\alpha\alpha}>0\), the maximizing Phase-II candidate amplitude is
+\paragraph*{Phase-II and Phase-III candidate amplitudes.}
+For Phase II, the optimized candidate amplitude is, when
+\(H_{\alpha\alpha}>0\),
 \begin{equation}
 \alpha_2^\star(r)
 =-\operatorname{sgn}[g(r)]
@@ -1582,52 +1663,32 @@ boundary unless both \(g(r)\) and \(H_{\alpha\alpha}\) vanish. For
 when \(g(r)=H_{\alpha\alpha}=0\), the maximizing amplitude is taken to be
 zero. Phase I has the boundary maximizer
 \(\alpha_1^\star(r)=-\operatorname{sgn}[g(r)]
-\rho/\sqrt{G_{\alpha\alpha}}\).
+\rho/\sqrt{G_{\alpha\alpha}}\). In Phase III,
+\(\alpha_3^\star(r)\) is the candidate-coordinate component returned by the
+supported joint solve used in Eq.~\eqref{eq:phase3_model}.
 
 \paragraph*{Commutation-reduced insertion positions.}
 Let \(B_{k,1},\ldots,B_{k,n_k}\) be the active generator blocks in execution
-order, with \(B_{k,1}\) acting first, and let
-\(\mathcal C_k=\{0,\ldots,n_k\}\) be the corresponding insertion cuts. Using
-the candidate expansion \(A=\sum_\mu c_\mu P_\mu\) from
+order, with \(B_{k,1}\) acting first. The integers
+\(p\in\{0,\ldots,n_k\}\) label the corresponding insertion cuts. Using the
+candidate expansion \(A=\sum_\mu c_\mu P_\mu\) from
 Eq.~\eqref{eq:pauli_expansion}, write each active block as
 \begin{equation*}
 B_{k,j}
 =
 \sum_\nu b_{k,j,\nu}P_\nu.
 \end{equation*}
-At the coefficient cutoff \(\tau=10^{-12}\), define the retained Pauli
-supports
-\begin{equation*}
-\begin{aligned}
-\mathcal T_\tau(A)
-&=
-\left\{
-P_\mu:|c_\mu|>\tau
-\right\},
-\\
-\mathcal T_\tau(B_{k,j})
-&=
-\left\{
-P_\nu:|b_{k,j,\nu}|>\tau
-\right\}.
-\end{aligned}
-\end{equation*}
-The candidate \(A\) and active block \(B_{k,j}\) are certified to commute when
-every retained Pauli component of one commutes with every retained Pauli
-component of the other:
+At a coefficient cutoff \(\tau>0\), the candidate \(A\) and active
+block \(B_{k,j}\) are certified to commute when
 \begin{equation*}
 \begin{aligned}
 A\bowtie B_{k,j}
-&\Longleftrightarrow
-[P,Q]=0
-\\
-&\quad
-\forall\,(P,Q)\in
-\mathcal T_\tau(A)\times\mathcal T_\tau(B_{k,j}).
+&\Longleftrightarrow [P_\mu,P_\nu]=0
+\quad\text{for every }(\mu,\nu)\text{ with}\\
+&\hspace{5.5em}|c_\mu|>\tau
+\quad\text{and}\quad |b_{k,j,\nu}|>\tau.
 \end{aligned}
 \end{equation*}
-Position equivalence requires both retained Pauli supports to be available and
-nonempty.
 
 For cuts \(p<q\), moving \(A\) from \(p\) to \(q\) crosses exactly the blocks
 \(B_{k,p+1},\ldots,B_{k,q}\). We therefore define
@@ -1639,19 +1700,20 @@ A\bowtie B_{k,j}
 \text{for all }j=p+1,\ldots,q.
 \label{eq:insertion_position_equivalence}
 \end{equation}
-The relation is completed by reflexivity and symmetry. Equation
+Equality supplies the reflexive cases, and the reverse ordered pairs are
+defined symmetrically. Equation
 \eqref{eq:insertion_position_equivalence} permits the candidate rotation to
 exchange order with every crossed block after applying the retained-component
 cutoff. The two cuts therefore give the same candidate-augmented unitary under
 the stated coefficient truncation. The certificate establishes exact algebraic
 equivalence for the retained representations under the cutoff; sub-threshold
-components remain outside its scope. Retaining the earliest cut in each
-equivalence class gives
+components remain outside its scope. Writing \([p]_A\) for the equivalence
+class containing cut \(p\), retaining the earliest cut in each class gives
 \begin{equation}
 \begin{aligned}
 \overline{\mathcal P}_k(A)
 &=
-\{\min C:C\in\mathcal C_k/{\sim_A}\}
+\{\min [p]_A:p\in\{0,\ldots,n_k\}\}
 \\
 &=
 \{0\}\cup
@@ -1662,16 +1724,10 @@ equivalence class gives
 
 Let \(E_k\) be the optimized energy of the accepted ansatz entering selection
 round \(k\). For \(k\ge1\), the realized decrease produced by the preceding
-accepted full refit is \(\delta_k=E_{k-1}-E_k\). The three position policies
-are
-\begin{equation*}
-\mathcal P_k^{\mathrm{no}}(A)=\{n_k\},
-\qquad
-\mathcal P_k^{\mathrm{all}}(A)=\overline{\mathcal P}_k(A),
-\end{equation*}
-and
+accepted full refit is \(\delta_k=E_{k-1}-E_k\). The operational insertion
+domain is
 \begin{equation}
-\mathcal P_k^{\mathrm{pl}}(A)
+\mathcal P_k(A)
 =
 \begin{cases}
 \{n_k\},
@@ -1679,49 +1735,51 @@ and
 \overline{\mathcal P}_k(A),
 & \delta_k<\epsilon_{\mathrm{ins}},
 \end{cases}
-\qquad
-\epsilon_{\mathrm{ins}}=10^{-8}.
 \label{eq:insertion_gate}
 \end{equation}
-The plateau-insertion domain is recomputed after every accepted full refit.
-Equality at \(\epsilon_{\mathrm{ins}}\) restores append-only selection, while
-consecutive sub-threshold decreases reopen the reduced domain on consecutive
-rounds.
+Here \(\epsilon_{\mathrm{ins}}>0\) is the insertion-opening threshold. Thus
+the append cut alone is scored until a subthreshold accepted refit opens
+the full reduced domain for the next round. The domain is recomputed after
+every accepted full refit; equality at \(\epsilon_{\mathrm{ins}}\) closes it,
+whereas consecutive subthreshold decreases open it on consecutive rounds.
+Permanently closed and permanently open gates recover the append-only and
+always-open ablation limits.
 
 \paragraph*{Phase-III numerical solve.}
-The reported calculations use the relative Gram-support tolerance
-\(\eta=10^{-6}\) in Eq.~\eqref{eq:phase3_support_threshold}. Within the
-retained tangent support, the generalized trust-region problem is solved with
-the retained Gram eigenvalues as its metric. Let
-\(\mathbf H_s\), \(\mathbf G_s\), and \(\mathbf g_s\) denote the supported
-Hessian, Gram matrix, and gradient. The solver first chooses the minimum
-nonnegative generalized-curvature shift \(\kappa\) required for a stable
-response and then determines the nonnegative trust multiplier \(\lambda\)
-from
+Within the retained tangent support, all quantities below denote their supported
+restrictions and \(\mathbf G\succ0\). The generalized trust-region minimizer is
+determined by the single multiplier \(\lambda\):
 \begin{equation*}
-\left[
-\mathbf H_s+(\kappa+\lambda)\mathbf G_s
-\right]\mathbf z_s
-=-\mathbf g_s .
+\begin{gathered}
+(\mathbf H+\lambda\mathbf G)\mathbf z^\star=-\mathbf g,
+\qquad
+\mathbf H+\lambda\mathbf G\succeq0,\\
+\lambda\ge0,
+\qquad
+\mathbf z^{\star\top}\mathbf G\mathbf z^\star\le\rho^2,
+\qquad
+\lambda\bigl(\mathbf z^{\star\top}\mathbf G\mathbf z^\star-\rho^2\bigr)=0.
+\end{gathered}
 \end{equation*}
 With the individual retained blocks denoted by \(H_{uv}\) and \(G_{uv}\),
 active-coordinate stationarity gives
 \begin{equation}
-\delta\boldsymbol{\theta}^{\star}_{\kappa,\lambda}
+\delta\boldsymbol{\theta}^{\star}
 =
 -\left(
 H_{\boldsymbol\theta\boldsymbol\theta}
-+(\kappa+\lambda)G_{\boldsymbol\theta\boldsymbol\theta}
++\lambda G_{\boldsymbol\theta\boldsymbol\theta}
 \right)^{+}
 \left(
 H_{\boldsymbol\theta\alpha}
-+(\kappa+\lambda)G_{\boldsymbol\theta\alpha}
++\lambda G_{\boldsymbol\theta\alpha}
 \right)\alpha .
 \label{eq:phase3_ansatz_response}
 \end{equation}
 Here \(+\) denotes the pseudoinverse on the induced retained
-active-coordinate support. The trust-region multiplier satisfies
-\(\lambda(\mathbf z_s^\top\mathbf G_s\mathbf z_s-\rho^2)=0\).
+active-coordinate support. A singular shifted operator is completed in the
+standard trust-region hard case by a null-space component satisfying the
+boundary condition.
 The predicted decrease is evaluated with the unshifted Hessian through
 Eq.~\eqref{eq:phase3_model}. An empty support or a materially nonpositive Gram
 matrix makes the candidate infeasible.
@@ -1734,118 +1792,12 @@ accepted only when the Phase-III solution reached the trust
 boundary and the complete refit decreased the energy; a vetoed expansion
 leaves \(\rho_{k+1}=\rho_k\).
 
-\subsection{Expanded accepted-refit coordinates and optimizer interfaces}
-\label{app:accepted_refit_details}
-
-The main construction assigns one logical circuit amplitude to each accepted
-generator. The reported refits realize each logical generator through its
-expanded generator-exponential factor coordinates. Let
-\(\mathbf x\in\mathbb R^M\) collect these factor-coordinate displacements, and
-let \(\mathcal I_\ell\subseteq\{1,\ldots,M\}\) index the
-\(m_\ell=|\mathcal I_\ell|\) factors representing logical generator
-\(\ell=1,\ldots,\lvert\boldsymbol\theta^{(0)}\rvert\). Define
-\(\mathsf B\in
-\mathbb R^{\lvert\boldsymbol\theta^{(0)}\rvert\times M}\) by
-\begin{equation}
-\mathsf B_{\ell a}
-=
-\begin{cases}
-m_\ell^{-1}, & a\in\mathcal I_\ell,\\
-0, & a\notin\mathcal I_\ell,
-\end{cases}
-\qquad
-\delta\boldsymbol\theta
-=
-\mathsf B\,\delta\mathbf x .
-\label{eq:expanded_refit_block_map}
-\end{equation}
-Thus the factor coordinates associated with one generator enter its logical
-amplitude through their mean displacement; they are not additional independent
-generator amplitudes. The pullback Gram matrix in the expanded coordinates is
-\begin{equation}
-\mathbf G_x^{(0)}
-=
-\mathsf B^\top\mathbf G^{(0)}\mathsf B.
-\label{eq:expanded_refit_gram}
-\end{equation}
-Let \(V\) and \(\Lambda\) contain the eigenvectors and eigenvalues of
-\(\mathbf G_x^{(0)}\) retained by
-Eq.~\eqref{eq:phase3_support_threshold}, evaluated with
-\(\mathbf G=\mathbf G_x^{(0)}\). Then
-\begin{equation}
-\begin{aligned}
-\mathbf G_x^{(0)}V&=V\Lambda,
-&
-W&=\mathsf B V\Lambda^{-1/2},\\
-W^\top\mathbf G^{(0)}W&=I,
-&
-\boldsymbol\theta(\mathbf y)
-&=\boldsymbol\theta^{(0)}+W\mathbf y.
-\end{aligned}
-\label{eq:expanded_refit_whitening}
-\end{equation}
-
-A gradient-based inner optimizer uses
-\begin{equation}
-\mathbf g_y(\mathbf y)
-=
-W^\top
-\mathbf g_\theta[\boldsymbol\theta(\mathbf y)],
-\qquad
-\mathbf g_\theta
-:=
-\nabla_{\boldsymbol\theta}E.
-\label{eq:accepted_refit_gradient}
-\end{equation}
-For a gradient-based inner optimizer, these are optimizer-specific refit
-quantities and are not part of the stationary-source Phase-III response block.
-The reported Powell refits use Hamiltonian-objective evaluations rather than
-gradient evaluations. For a line-search method, let \(\mathbf d_m\)
-be the search direction at inner iteration \(m\), and let
-\(\mathcal I_m\subseteq\mathbb R\) be the admissible step interval. Then
-\begin{equation}
-s_m^\star
-\in
-\operatorname*{arg\,min}_{s\in\mathcal I_m}
-E[\boldsymbol\theta(\mathbf y_m+s\mathbf d_m)],
-\qquad
-\mathbf y_{m+1}
-=
-\mathbf y_m+s_m^\star\mathbf d_m .
-\label{eq:accepted_refit_line_search}
-\end{equation}
-A simultaneous-perturbation stochastic-approximation update draws
-\(\boldsymbol\Delta_m\in\{-1,+1\}^{\dim(\mathbf y)}\) and uses
-\begin{equation}
-\begin{aligned}
-\widehat{\mathbf g}^{\mathrm{SPSA}}_{y,m}
-&=
-\frac{
-\widehat E[\boldsymbol\theta(\mathbf y_m+c_m\boldsymbol\Delta_m)]
--
-\widehat E[\boldsymbol\theta(\mathbf y_m-c_m\boldsymbol\Delta_m)]
-}{
-2c_m
-}
-\boldsymbol\Delta_m,\\
-\mathbf y_{m+1}
-&=
-\mathbf y_m-a_m\widehat{\mathbf g}^{\mathrm{SPSA}}_{y,m}.
-\end{aligned}
-\label{eq:accepted_refit_spsa}
-\end{equation}
-Here \(a_m,c_m>0\) are the gain and perturbation scales, and
-\(\widehat E\) denotes an energy estimate, which may include sampling noise.
-The whitening map is held fixed for one optimizer invocation and rebuilt after
-each accepted admission.
-
-
 \section{Optional batch admission}
 \label{app:batching}
 
 To admit several favorable records without introducing redundant tangent
-directions, \textsc{RA-ADAPT} evaluates compatible Phase-III records jointly under
-the batch trust-region model.
+directions, \textsc{RA-ADAPT} replaces the scalar candidate coordinate by a
+batch block within the same supported Fubini--Study trust region.
 
 Let \(b_{\max}\) be the configured batch-size cap, and let
 \(\mathfrak B_k\subseteq
@@ -1968,13 +1920,15 @@ survivor-coordinate gradients from incomplete inner optimization are
 neglected.
 
 Before forming the ablation blocks, the measured Hessian and metric are
-projected onto their positive-semidefinite parts, which we continue to denote
-by \(H\) and \(G\). Define the metric-regularized quadratic form
+symmetrized and then projected onto the positive-semidefinite cone by clipping
+negative eigenvalues; we continue to denote the resulting matrices by \(H\)
+and \(G\). Define the metric-regularized quadratic form
 \[
 \mathcal Q:=H+\mu G,
 \]
-where \(\mu\ge0\) controls the Fubini--Study regularization. The deletion
-specialization of the Phase-III block surrogate is
+where \(\mu\ge0\) is a prescribed Fubini--Study regularization strength. The
+deletion surrogate contains no radius constraint or complementarity condition.
+The metric-regularized deletion surrogate is
 \begin{equation}
 \Lambda(d)
 =
@@ -2040,39 +1994,39 @@ d^\star
 \epsilon .
 % source label: eq:ablation_nomination
 \end{equation*}
-If the second condition fails, no ablation is nominated at this adaptive step.
-After a candidate deletion, the ablation is accepted only if the realized energy
-loss \(\Delta E(d^\star)\) is no larger than the smaller of the absolute
-ablation tolerance \(\epsilon\) and the fractional recent-gain tolerance
-\(\zeta\left(E(U_{k-1})-E(U_k)\right)\), where \(0\le\zeta\le1\).
-
-If this acceptance gate rejects the trial ablation, the post-refit
-branch remains \(U_k(\boldsymbol\theta_k^\star)\). The same Gram and Hessian
-blocks are then reused in Eq.~\eqref{eq:phase3_model}.
-The Phase-III displacement coordinates are local
-shifts, \(\boldsymbol\theta=\boldsymbol\theta^\star+
-\delta\boldsymbol\theta\), so derivatives at
-\(\delta\boldsymbol\theta=\mathbf 0\) reuse the same
-\(G_{\boldsymbol\theta\boldsymbol\theta}\) and
-\(H_{\boldsymbol\theta\boldsymbol\theta}\) blocks. Conversely, if the
-acceptance gate accepts the ablation, subsequent Phase-II/III
-scoring recomputes the Gram and Hessian blocks on the refit post-ablation
-circuit for \(d^\star=(B^\star,p^\star)\):
-\(U_k^{\ominus}((\boldsymbol\theta_k^\star)_{\setminus p^\star})
-=
-U_k(\boldsymbol\theta_k^\star)\ominus
-\exp(-i\theta_{k,p^\star}^\star B^\star)\), where
-\((\boldsymbol\theta_k^\star)_{\setminus p^\star}\) represents the optimized
-circuit parameterization after removing position \(p^\star\).
+If \(\Lambda(d^\star)/K(d^\star)>\epsilon\), no ablation is nominated at this
+adaptive step.
+For a nominated record \(d^\star\), the generator is deleted, the surviving
+coordinates are refitted, and the realized energy increase
+\(\Delta E(d^\star)\) is measured relative to the pre-deletion optimum. The
+deletion is retained when
+\begin{equation*}
+\Delta E(d^\star)
+\le
+\min\!\left\{
+\epsilon,
+\zeta\left[E(U_{k-1})-E(U_k)\right]
+\right\},
+\qquad 0\le\zeta\le1.
+\end{equation*}
+Thus the permitted energy increase cannot exceed either the absolute ablation
+tolerance or the fraction \(\zeta\) of the preceding adaptive energy gain. If
+the criterion fails, the pre-deletion refitted ansatz
+\(U_k(\boldsymbol\theta_k^\star)\) is restored, and its previously evaluated
+Gram and Hessian blocks remain valid for subsequent Phase-II/III scoring. If
+the criterion holds, the refitted post-deletion ansatz is retained and its Gram
+and Hessian blocks are recomputed before subsequent scoring.
 
 
 
 
 \section{Total estimator-query accounting}
 \label{app:estimator_queries}
-The \(S\) column gives the number of logical scalar-estimator
-invocations required by the declared algorithm through the displayed accepted
-prefix. One invocation returns one scalar expectation-value quantity at the
+The \(S_{\rm alg}\) entries used in
+Table~\ref{tab:hh_singleton_matched_plateau} and in the appendix
+undecomposed-generator diagnostic give the number of logical scalar-estimator
+invocations required through each reported accepted prefix.
+One invocation returns one scalar expectation-value quantity at the
 relevant prepared state, such as a candidate gradient, one Gram/metric entry,
 one curvature/Hessian entry, one candidate--active coupling entry, or one
 Hamiltonian objective value in an optimizer. Algebraic recombination, ranking,
@@ -2090,125 +2044,72 @@ iterations because the accepted state changes.
 
 Let \(K\) be the displayed accepted-prefix length; \(K=50\) for the main
 two-site Hubbard--Holstein comparisons. Its selector rounds are
-\(j=0,\ldots,K-1\), and let
-\(n_j=|\boldsymbol\theta_j|\) be the number of active logical coordinates
-before round \(j\)'s admission. In the displayed one-admission,
-ablation-disabled configurations, \(n_j=j\). If \(q_j\) is the number of
-Powell objective callbacks in that round, including one required endpoint
-evaluation only when the returned endpoint was not already evaluated by
-Powell, the Hamiltonian-objective contribution is
-\begin{equation}
-N_E(K)
-=
-\underbrace{K}_{N_{H,\mathrm{outer}}}
-+
-\underbrace{\sum_{j=0}^{K-1}q_j}_{N_{H,\mathrm{refit}}}.
-\label{eq:appendix_hamiltonian_objective_work}
-\end{equation}
-The current-state Hamiltonian action is acquired once per round. The initial
-action is carried into round zero, and Powell's returned endpoint objective is
-used directly; no duplicate initial refresh or post-Powell exact verification
-is required.
+\(j=0,\ldots,K-1\).
 
-For append-only ADAPT, let \(A_j\) be the complete evaluated candidate pool in
-round \(j\), including candidates that are subsequently rejected. The
-candidate-gradient scan contributes \(A_j\) invocations, so
+\paragraph*{Append-only ADAPT estimator.}
+Let \(A_j\) be the complete candidate pool evaluated in round \(j\), including
+candidates that are subsequently rejected, and let
+\(q_j^{\mathrm{ADAPT}}\) be the number of Hamiltonian-objective invocations
+made by that round's Powell refit. This count includes an endpoint evaluation
+only when Powell has not already evaluated the returned endpoint. The
+Append-ADAPT estimator count is
 \begin{equation}
-S_{\rm Append}(K)
+S_{\mathrm{Append\text{-}ADAPT}}(K)
 =
-N_E(K)+\sum_{j=0}^{K-1}A_j.
+\sum_{j=0}^{K-1}
+\left(q_j^{\mathrm{ADAPT}}+A_j\right).
 \label{eq:appendix_s_append}
 \end{equation}
-For reference, a Geo-ADAPT scan that also acquires the symmetric candidate
-Gram matrix has
-\begin{equation}
-S_{\rm Geo}(K)
-=
-N_E(K)+\sum_{j=0}^{K-1}
-\left[
-A_j+\frac{A_j(A_j+1)}{2}
-\right].
-\label{eq:appendix_s_geo}
-\end{equation}
+The accepted endpoint objective is reused as the source energy for the next
+round, and the initial source energy is carried into round zero. No separate
+outer-loop energy evaluation or duplicate post-Powell endpoint verification is
+therefore charged to this estimator.
 
-For RA-ADAPT, let \(R_{1j}\) be the complete Phase-I parent-record population,
-\(R_{2j}\) the Phase-I shortlist evaluated in Phase II, and \(R_{3j}^{\rm M}\)
-the Phase-II shortlist evaluated in Phase III in the undecomposed-generator
-representation.
-Phase I acquires \(g_r\) and \(G_{rr}\) for all \(R_{1j}\) records, while
-Phase II reuses those quantities and acquires \(H_{rr}\) for the
-\(R_{2j}\) records. The common Phase-III active-coordinate response block contains
-\(n_j(n_j+1)\) symmetric Gram-plus-Hessian entries. It is acquired once per
-outer iteration and shared by all Phase-III records. The active-coordinate
-gradients are fixed to zero by the stationary-source model and are neither
-acquired nor charged.
+\paragraph*{RA-ADAPT estimator.}
+Let \(n_j=|\boldsymbol\theta_j|\) be the number of active logical coordinates
+before round \(j\)'s admission; in the displayed one-admission,
+ablation-disabled configurations, \(n_j=j\). For representation
+\(\chi\in\{\mathrm M,\mathrm S\}\), let
+\(q_j^{\mathrm{RA},\chi}\) be the Hamiltonian-objective invocations made by
+the corresponding RA-ADAPT Powell refit in round \(j\). Let \(A_{0j}\) be the complete
+executable generator-identity population screened by Phase 0, \(R_{1j}\) the
+Phase-0-retained position-record population evaluated in Phase I, \(R_{2j}\)
+the Phase-I shortlist evaluated in Phase II, and \(R_{3j}\) the Phase-II
+shortlist evaluated in Phase III. Phase 0 contributes \(A_{0j}\) standard
+gradient invocations. Phase I acquires \(g_r\) and \(G_{rr}\) for all
+\(R_{1j}\) records, while Phase II reuses those quantities and acquires
+\(H_{rr}\) for the \(R_{2j}\) records. The common Phase-III active-coordinate
+response block contains \(n_j(n_j+1)\) symmetric Gram-plus-Hessian entries. It
+is acquired once per outer iteration and shared by all Phase-III records. The
+active-coordinate gradients are fixed to zero by the stationary-source model
+and are neither acquired nor charged.
 
-In the undecomposed-generator representation, each Phase-III record is the same parent record
-measured in Phases I and II. Its \(g_r\), \(G_{rr}\), and \(H_{rr}\) therefore
-carry forward, and only its \(2n_j\) candidate--active Gram/Hessian couplings
-are new. Thus
+Because the reported intact-generator and global-singleton routes preserve
+candidate identity between Phases I and II, each Phase-III record carries
+forward its \(g_r\), \(G_{rr}\), and \(H_{rr}\). Only its \(2n_j\)
+candidate--active Gram/Hessian couplings are new. Hence the occurrence-based
+RA-ADAPT estimator count is
 \begin{align}
-S_{\mathrm{RA\text{-}ADAPT}}^{\rm M}(K)
-={}&N_E(K)
-\nonumber\\
-&+\sum_{j=0}^{K-1}
+S_{\mathrm{RA\text{-}ADAPT}}^{\chi}(K)
+={}&\sum_{j=0}^{K-1}
 \Big[
-2R_{1j}+R_{2j}
+q_j^{\mathrm{RA},\chi}
++A_{0j}+2R_{1j}+R_{2j}
 \nonumber\\
 &\hspace{3em}
-+n_j(n_j+1)+2n_jR_{3j}^{\rm M}
++n_j(n_j+1)+2n_jR_{3j}
 \Big].
-\label{eq:appendix_s_ra_adapt_macro}
+\label{eq:appendix_s_ra_adapt_reported}
 \end{align}
 
-In the single-Pauli-word representation, Phase I first restricts the parent
-generators.
-Only those Phase-I-retained parents are split. Let \(P_{1j}\) be the complete
-Phase-I parent population, let \(C_{2j}\) be the complete symmetry-retained
-single-Pauli-word population evaluated in Phase II, and let \(C_{3j}\) be the
-Phase-II child shortlist evaluated in Phase III. If \(C_j\) is the number of
-generated children from split parents and \(U_j\) is the number of retained
-already-single-Pauli-word records, then
-\begin{equation}
-C_{2j}=C_j+U_j.
-\label{eq:appendix_projected_phase3_population}
-\end{equation}
-Phase II acquires each child's \(g_r\), \(G_{rr}\), and \(H_{rr}\). These
-child-local quantities carry forward for the \(C_{3j}\) retained children;
-Phase III adds only their candidate--active Gram and Hessian couplings.
-Measurements on a parent are not reused as child measurements. Unused
-parent-Hessian probes and prematurely acquired candidate--active couplings for
-children rejected before Phase III are excluded from \(S\): they occurred in
-the historical implementation but are not required by the staged procedure
-accounted for here.
-Only the active-coordinate Gram--Hessian response block is shared across the
-Phase-III child shortlist.
-Consequently,
-\begin{align}
-S_{\mathrm{RA\text{-}ADAPT}}^{\rm S}(K)
-={}&N_E(K)
-\nonumber\\
-&+\sum_{j=0}^{K-1}
-\Big[
-2P_{1j}+3C_{2j}
-\nonumber\\
-&\hspace{3em}
-+n_j(n_j+1)+2n_jC_{3j}
-\Big].
-\label{eq:appendix_s_snake_singleton}
-\end{align}
-
-For both displayed two-site Hubbard--Holstein representations, \(S\) was
-deterministically reconstructed for each reported trajectory by applying these
-equations to the recorded selector populations and optimizer evaluations.
-Redundant post-Powell endpoint verification for Append-ADAPT and duplicate
-RA-ADAPT Hamiltonian evaluations at initialization and iteration zero are
-excluded. Every Powell callback and every evaluated rejected candidate
-required by the stated accounting convention remains
-included. For the single-Pauli-word RA-ADAPT representation, all generated
-Phase-II children are included,
-while unused parent-Hessian probes and Phase-III couplings acquired before the
-child shortlist are excluded. In every reported row, the prefix closes
+The Append-ADAPT and RA-ADAPT estimator ledgers are reconstructed separately
+from their respective candidate populations and optimizer evaluations.
+RA-ADAPT reuses its accepted endpoint objective in the same manner as
+Append-ADAPT, so duplicate Hamiltonian evaluations at initialization,
+iteration zero, and post-Powell verification are excluded independently from
+each ledger. Every executed Powell callback and every evaluated rejected
+candidate required by the corresponding method remains included. In every
+reported row, the prefix closes
 immediately after the \(K\)th accepted state; a \(K\!\to\!K+1\) selector scan
 and terminal-only diagnostics are excluded.
 
@@ -2217,86 +2118,95 @@ a post-grouping measurement-setting count. Pauli decompositions, compatible
 grouping, shot allocation, and shot-weighted work require a separate
 observable-level ledger and are deferred from the reported \(S\) column.
 
-\section{RA-ADAPT benchmark configuration}
-\label{app:results_discussion}
-
-The reported undecomposed-generator and single-Pauli-word Hubbard--Holstein rows use common Hamiltonian,
-optimization, and resource-accounting settings across all six interaction
-regimes. Table~\ref{tab:snake_benchmark_configuration} lists the active
-controls. Numerical corner cases are given in
-Appendix~\ref{app:numerical_conventions}.
-
-% Source support:
-% MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/
-% paper_i_hh_macro_common_accuracy_20260723_provenance.json
-\begin{table*}[t]
-\caption{\label{tab:snake_benchmark_configuration}RA-ADAPT parameters for the
-reported undecomposed-generator and single-Pauli-word Hubbard--Holstein comparisons.}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\renewcommand{\arraystretch}{1.08}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}p{0.22\textwidth}p{0.31\textwidth}p{0.41\textwidth}@{}}
-\toprule
-Parameter & Role & Value \\
-\midrule
-Hamiltonian grid & Two-site Hubbard--Holstein dimer & \(t=\omega_0=1\), \(U/t\in\{0.25,1.25,8\}\), \(\lambda\in\{0.25,1.25\}\), open boundaries \\
-Encoding and cutoff & Fixed-sector Jordan--Wigner fermions and binary bosons & cutoff \(3\) for weak-Holstein sectors and \(7\) for strong-Holstein sectors; identical working and exact-reference cutoffs \\
-Operator pool & Parent-generator search space & full physical operator pool, including HVA generators; no Hubbard--Holstein preseed \\
-Candidate representation & Objects advanced to Phase II and Phase III & undecomposed operator-pool generators, or symmetry- and padding-valid single-Pauli-word generators created after the Phase-I parent shortlist \\
-Candidate position & Insertion-position domain & no-insertion: append cut; always-insertion: \(\overline{\mathcal P}_k(A)\) every round; plateau-insertion: \(\overline{\mathcal P}_k(A)\) after a sub-\(\epsilon_{\rm ins}\) accepted decrease \\
-Cost weights & Eq.~\eqref{eq:hardware_cost_sum} & \((\lambda_{\mathrm{CX}},\lambda_d,\lambda_{1q},\lambda_\theta,\lambda_{\rm shot})=(0.20,0.20,0.05,0.05,0.15)\) \\
-Lane protection & Eqs.~\eqref{eq:phase_restriction_map}--\eqref{eq:phase_lane_budget} & all represented lanes eligible, \(\tau_1=0\), with protection fraction \(\eta_1=0.70\) \\
-Shortlisting & Phase-I parent cap, Phase-II candidate cap, and retained fraction & undecomposed generator: \((24,12,0.25)\); single Pauli word: \((8,4,1/12)\) \\
-Trust region & Initial radius and post-admission calibration & \(\rho_0=0.25\); subsequent radii follow Eq.~\eqref{eq:adaptive_trust_radius} \\
-Tangent support & Eq.~\eqref{eq:phase3_support_threshold} & relative Gram tolerance \(\eta=10^{-6}\) \\
-Phase-III response & Active ansatz plus candidate & full active-coordinate response; no fixed \(H+\mu G\) damping and no negative-curvature escape \\
-Admission and whitened refit & Accepted update & one record per iteration; complete accepted-ansatz Powell refit in a fixed whitened chart with a 200-iteration budget \\
-Optional structure management & Batching, beam continuation, and generator ablation & disabled for the reported rows \\
-Execution horizon & Stored adaptive trajectory & 50 planned outer iterations with random seed \(7\); authenticated paused prefixes retained where the stationary always-insertion macro run is incomplete \\
-Reporting point & Accuracy and resources & iteration-\(50\) energy error for complete trajectories; resources at first crossings of the panel-specific pre-plateau matched-error level \\
-Circuit and estimator resources & \(N_{2q}\), \(D_{2q}\), \(D_c\), \(W_{1q}\), and accumulated \(S\) at the selected matched-error prefix & Qiskit \(2.3.1\), with reference-state preparation included in \(N_{2q}\), \(D_{2q}\), and \(D_c\), but excluded from \(W_{1q}\); no coupling map, initial layout, or routing constraint; optimization level \(0\), transpiler seed \(7\), basis \(\{I,X,\sqrt{X},R_x,R_y,R_z,H,S,S^\dagger,\mathrm{CX},\mathrm{CZ}\}\) \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
-
 \clearpage
 \onecolumngrid
-\section{Fixed-horizon insertion-cost ablation}
+\section{Intact-generator insertion-policy comparison}
 \label{app:fixed_horizon_insertion_costs}
 
-The fixed-\(k=50\) overlays below are retained as an ablation of the cost of
-enabling insertion at a common iteration count. They expose the Qiskit and
-estimator-work overhead of insertion policies, but they are not used as the
-matched-accuracy RA-versus-Append efficiency comparison in the main text.
+The intact-generator trajectories below compare the three RA-ADAPT position
+policies with conventional Append-ADAPT VQE.  The weak-Holstein RA-ADAPT
+trajectories reach iteration \(50\), except for the strong--weak append-only
+prefix, which closes at iteration \(30\).  The strong-Holstein RA-ADAPT
+prefixes close at iteration \(30\), and every curve in the strong-Holstein
+row is therefore reported through iteration \(30\). Append-ADAPT is shown
+through iteration \(50\) in the weak-Holstein row. These terminal-prefix comparisons remain
+an appendix diagnostic separate from the main-text singleton results.
 
 \noindent\begin{minipage}{\textwidth}
 \begin{center}
-\includegraphics[width=0.98\textwidth]{figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_macro_insertion_policy_overlay_plot.png}
-\captionof{figure}{Fixed-\(k=50\) undecomposed-generator cost ablation for no-insertion, plateau-insertion, and commutation-reduced always-insertion RA, together with Append-ADAPT. Endpoint tuples give \((N_{2q},D_{2q},D_c,W_{1q},S)\). Here \(W_{1q}\) excludes reference-state preparation; \(N_{2q}\), \(D_{2q}\), and \(D_c\) include it and use topology-free basis-gate transpilation at optimization level \(0\) with seed \(7\).}
-\label{fig:hh_macro_k50_cost_ablation}
-\end{center}
-\end{minipage}
-\clearpage
-\noindent\begin{minipage}{\textwidth}
-\begin{center}
-\includegraphics[width=0.98\textwidth]{figures/paper_i_hh_macro_common_accuracy_20260723/paper_i_hh_macro_common_accuracy_20260723_singleton_insertion_policy_overlay_plot.png}
-\captionof{figure}{Fixed-\(k=50\) single-Pauli-word cost ablation for no-insertion, plateau-insertion, and commutation-reduced always-insertion RA, together with Append-ADAPT. Endpoint tuples give \((N_{2q},D_{2q},D_c,W_{1q},S)\); compilation and estimator accounting follow Fig.~\ref{fig:hh_macro_k50_cost_ablation}.}
-\label{fig:hh_singleton_k50_cost_ablation}
+\includegraphics[width=0.98\textwidth]{figures/paper_i_macro_insertion_policies_20260813/paper_i_macro_insertion_policies.pdf}
+\captionof{figure}{Intact-generator insertion-policy comparison.  The four
+curves use the same undecomposed Hubbard--Holstein operator pool and report
+same-cutoff energy error versus ADAPT iteration.  Symbols mark the terminal
+point of each available trajectory.  Weak-Holstein RA-ADAPT trajectories run
+to iteration \(50\), except for the strong--weak append-only prefix at
+iteration \(30\). Every strong-Holstein curve terminates at iteration \(30\),
+while the weak-Holstein Append-ADAPT curves terminate at iteration \(50\).}
+\label{fig:hh_macro_iteration50_insertion}
 \end{center}
 \end{minipage}
 \clearpage
 \twocolumngrid
+
+% COMPONENT_EVIDENCE_UPDATE(MACRO_INSERTION_POLICIES_20260813):
+% builder=pipelines/reporting/clean_paper_i_macro_insertion_policy_plot.py
+% provenance=MATH/paper_details/figures/paper_i_macro_insertion_policies_20260813/paper_i_macro_insertion_policies_provenance.json
+% The weak--weak and intermediate--weak RA append-only trajectories are
+% authenticated continuations of their unchanged k=30 accepted states to k=50,
+% authorized directly by the user on 2026-08-13.
+\begin{table}[t]
+\caption{\label{tab:hh_macro_same_iteration_savings}
+Terminal intact-generator errors and costs for Fig.~\ref{fig:hh_macro_iteration50_insertion}.
+Here RA-P, RA-I, RA-A, and Ap denote plateau-triggered RA-ADAPT, RA-ADAPT with
+insertion active throughout, append-only RA-ADAPT, and conventional
+Append-ADAPT, respectively.  Circuit costs are
+\(C_{\rm circ}=(N_{2q},D_{2q},D_c)\).}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{1.35pt}
+\renewcommand{\arraystretch}{0.98}
+\begin{tabular}{@{}llrrlr@{}}
+\toprule
+Regime & Route & \(k\) & \(\lvert\Delta E\rvert\) & \(C_{\rm circ}\) & \(S_{\rm alg}\) \\
+\midrule
+W--W & RA-P & 50 & \(2\mathrm{e}{-4}\) & \((2098,1878,9176)\) & \(2.0\mathrm{e}5\) \\
+     & Ap   & 50 & \(5\mathrm{e}{-4}\) & \((4036,3631,15780)\) & \(7.3\mathrm{e}5\) \\
+     & RA-I & 50 & \(2\mathrm{e}{-4}\) & \((2398,2184,10057)\) & \(2.4\mathrm{e}5\) \\
+     & RA-A & 50 & \(1\mathrm{e}{-3}\) & \((1300,830,6179)\) & \(9.5\mathrm{e}4\) \\
+\addlinespace[0.35ex]
+I--W & RA-P & 50 & \(1\mathrm{e}{-4}\) & \((2592,2360,11153)\) & \(2.2\mathrm{e}5\) \\
+     & Ap   & 50 & \(3\mathrm{e}{-2}\) & \((3906,3403,16109)\) & \(7.3\mathrm{e}5\) \\
+     & RA-I & 50 & \(9\mathrm{e}{-5}\) & \((2820,2609,11960)\) & \(2.1\mathrm{e}5\) \\
+     & RA-A & 50 & \(8\mathrm{e}{-2}\) & \((1316,988,6952)\) & \(9.6\mathrm{e}4\) \\
+\addlinespace[0.35ex]
+S--W & RA-P & 50 & \(1\mathrm{e}{-6}\) & \((2626,2473,12812)\) & \(1.4\mathrm{e}5\) \\
+     & Ap   & 50 & \(1\mathrm{e}{-6}\) & \((2314,1784,10658)\) & \(4.7\mathrm{e}4\) \\
+     & RA-I & 50 & \(8\mathrm{e}{-7}\) & \((2690,2496,15414)\) & \(1.5\mathrm{e}5\) \\
+     & RA-A & 30 & \(1\mathrm{e}{-6}\) & \((766,672,3687)\) & \(3.4\mathrm{e}4\) \\
+\addlinespace[0.35ex]
+W--S & RA-P & 30 & \(4\mathrm{e}{-2}\) & \((1198,886,5677)\) & \(5.2\mathrm{e}4\) \\
+     & Ap   & 30 & \(4\mathrm{e}{-2}\) & \((728,384,3279)\) & \(2.0\mathrm{e}5\) \\
+     & RA-I & 30 & \(4\mathrm{e}{-2}\) & \((634,330,2696)\) & \(5.8\mathrm{e}4\) \\
+     & RA-A & 30 & \(4\mathrm{e}{-2}\) & \((1214,866,5401)\) & \(4.8\mathrm{e}4\) \\
+\addlinespace[0.35ex]
+I--S & RA-P & 30 & \(2\mathrm{e}{-2}\) & \((1398,890,5705)\) & \(5.5\mathrm{e}4\) \\
+     & Ap   & 30 & \(2\mathrm{e}{-2}\) & \((728,384,3279)\) & \(1.9\mathrm{e}5\) \\
+     & RA-I & 30 & \(2\mathrm{e}{-2}\) & \((722,416,3100)\) & \(6.1\mathrm{e}4\) \\
+     & RA-A & 30 & \(2\mathrm{e}{-2}\) & \((1398,850,5308)\) & \(5.3\mathrm{e}4\) \\
+\addlinespace[0.35ex]
+S--S & RA-P & 30 & \(4\mathrm{e}{-5}\) & \((1538,1373,7842)\) & \(4.5\mathrm{e}4\) \\
+     & Ap   & 30 & \(4\mathrm{e}{-5}\) & \((956,552,4147)\) & \(1.8\mathrm{e}5\) \\
+     & RA-I & 30 & \(4\mathrm{e}{-5}\) & \((1312,812,4609)\) & \(4.6\mathrm{e}4\) \\
+     & RA-A & 30 & \(4\mathrm{e}{-5}\) & \((1952,1304,7558)\) & \(3.6\mathrm{e}4\) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Simulated noise results}
 \label{app:noise_selection_robustness}
 \label{app:finite_shot_score_robustness}
 
 % PROVENANCE(MACHINE_READABLE_SNAKE_NOISE_ROBUSTNESS_PROMOTED_20260608) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
-
-% PROVENANCE(MACHINE_READABLE_HUBBARD_FULL_NOISE_FIXED_DEPTH8_SWEEP_20260613) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
 
 The finite-noise diagnostics perturb the energy surface used by RA-ADAPT during
 candidate scoring and refit. We define the unperturbed reference first. Here
@@ -2373,24 +2283,36 @@ only through \(\sigma_E=\sigma_0/\sqrt{N_{\rm eff}}\), where \(\sigma_0\) is a
 reference scalar-noise scale and \(N_{\rm eff}\) is an effective value-noise
 parameter rather than a physical shot count.
 
-The diagnostics below use fixed-iteration Hubbard RA-ADAPT sweeps under simultaneous scalar value noise, synthetic depolarizing gate noise, and frozen coherent overrotation noise. The curves report absolute energy error for fixed iteration-8 adaptive prefixes; branches that terminate before iteration 8 are excluded from these panels. The displayed weak \((U/t=0.5)\) and strong-Hubbard \((U/t=8)\) panels bracket the interaction range used for this appendix diagnostic. For all curves, the legend level denotes the tuple \((\sigma_E,p_1,p_2,\epsilon_1,\epsilon_2)\), with numerical levels given in Table~\ref{tab:hubbard_noise_levels}.
+The diagnostics use single-Pauli-word RA-ADAPT with plateau-triggered
+insertion for the two-site Hubbard model at \(U/t\in\{1.5,8\}\).  Each
+experiment applies scalar value noise, synthetic depolarizing gate noise, and
+frozen coherent overrotation noise simultaneously.  Figure~\ref{fig:hubbard_full_noise_common_prefix_k20}
+reports the same-cutoff absolute energy error through the common prefix
+\(k=20\).  At this prefix, the low-, high-, and extreme-noise errors are
+\(1\mathrm{e}{-5}\), \(5\mathrm{e}{-4}\), and \(3\mathrm{e}{-2}\) for
+\(U/t=1.5\), and \(2\mathrm{e}{-5}\), \(4\mathrm{e}{-4}\), and
+\(6\mathrm{e}{-2}\) for \(U/t=8\), respectively.  The noise levels denote the
+tuple \((\sigma_E,p_1,p_2,\epsilon_1,\epsilon_2)\) specified in
+Table~\ref{tab:hubbard_noise_levels}.  Over their completed horizons---\(k=20\)
+for low and high noise and \(k=50\) for extreme noise---the trajectories span
+approximately \(40\)--\(140\) compiled two-qubit gates, two-qubit depths of
+\(30\)--\(110\), total circuit depths of \(300\)--\(800\), and one-qubit work
+of \(110\)--\(330\), with \(S_{\rm alg}\) between
+\(1.8\mathrm{e}4\) and \(9.7\mathrm{e}4\).
 
 \noindent\begin{minipage}{\columnwidth}
 \begin{center}
 \scriptsize
 \setlength{\tabcolsep}{2.2pt}
 \renewcommand{\arraystretch}{1.05}
-\captionof{table}{Noise levels used in the fixed-iteration Hubbard diagnostics. Here \(\sigma_E\) is scalar value noise, \(p_1,p_2\) are one- and two-qubit depolarizing probabilities, and \(\epsilon_1,\epsilon_2\) are the one- and two-qubit scales used to sample the frozen coherent overrotation angles \(\delta_g\).}
+\captionof{table}{Noise levels used in the common-prefix Hubbard diagnostics. Here \(\sigma_E\) is scalar value noise, \(p_1,p_2\) are one- and two-qubit depolarizing probabilities, and \(\epsilon_1,\epsilon_2\) are the one- and two-qubit scales used to sample the frozen coherent overrotation angles \(\delta_g\).}
 \label{tab:hubbard_noise_levels}
 \begin{ruledtabular}
 \begin{tabular}{lccccc}
 Level & \(\sigma_E\) & \(p_1\) & \(p_2\) & \(\epsilon_1\) & \(\epsilon_2\)\\
 \colrule
 low & \(10^{-6}\) & \(10^{-8}\) & \(10^{-7}\) & \(2{\times}10^{-4}\) & \(6{\times}10^{-4}\)\\
-mid & \(10^{-5}\) & \(10^{-7}\) & \(10^{-6}\) & \(6{\times}10^{-4}\) & \(2{\times}10^{-3}\)\\
 high & \(7.071{\times}10^{-5}\) & \(10^{-6}\) & \(10^{-5}\) & \(2{\times}10^{-3}\) & \(6{\times}10^{-3}\)\\
-very high & \(10^{-4}\) & \(10^{-5}\) & \(10^{-4}\) & \(6{\times}10^{-3}\) & \(2{\times}10^{-2}\)\\
-stress & \(10^{-3}\) & \(10^{-4}\) & \(10^{-3}\) & \(2{\times}10^{-2}\) & \(6{\times}10^{-2}\)\\
 extreme & \(10^{-2}\) & \(10^{-3}\) & \(10^{-2}\) & \(6{\times}10^{-2}\) & \(6{\times}10^{-2}\)\\
 \end{tabular}
 \end{ruledtabular}
@@ -2398,282 +2320,22 @@ extreme & \(10^{-2}\) & \(10^{-3}\) & \(10^{-2}\) & \(6{\times}10^{-2}\) & \(6{\
 \end{minipage}
 \par\addvspace{0.7ex}
 
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\includegraphics[width=0.49\columnwidth]{figures/hubbard_weak_full_noise_fixed_depth8_error_vs_iteration_20260613}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.475\textwidth]{figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u1p5_common_prefix_k20_20260814}
 \hfill
-\includegraphics[width=0.49\columnwidth]{figures/hubbard_strong_full_noise_fixed_depth8_error_vs_iteration_20260613}
-\captionof{figure}{Fixed-iteration Hubbard RA-ADAPT error versus ADAPT iteration for weak interaction \(U/t=0.5\) (left) and strong interaction \(U/t=8\) (right). Color and marker shape encode the common noise levels in Table~\ref{tab:hubbard_noise_levels}; both panels plot fixed iteration-8 adaptive prefixes.}
-\label{fig:hubbard_full_noise_fixed_depth8_sweep}
-\end{center}
-\end{minipage}
+\includegraphics[width=0.475\textwidth]{figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u8_common_prefix_k20_20260814}
+\caption{Same-cutoff energy error under simultaneous scalar value noise,
+synthetic depolarizing gate noise, and frozen coherent overrotation noise for
+the two-site Hubbard model at \(U/t=1.5\) (left) and \(U/t=8\) (right).
+Low, high, and extreme denote the noise tuples in
+Table~\ref{tab:hubbard_noise_levels}.  Every curve is displayed through the
+common prefix \(k=20\); the single marker on each curve denotes that displayed
+endpoint.}
+\label{fig:hubbard_full_noise_common_prefix_k20}
+\end{figure*}
 
-\clearpage
-
-\section{Three-site Hubbard--Holstein support result}
-\label{app:hh_l3_intermediate_weak_support}
-
-As a finite-size support check, we also report a three-site, half-filled,
-open-boundary Hubbard--Holstein instance in the intermediate electronic and
-weak Holstein sector, with \(L=3\), \(U/t=1.25\), \(\omega_0/t=1\),
-\(g/t=\sqrt{0.25/2}\), and local phonon cutoff \(M=1\). The run uses the
-same physical-lane RA-ADAPT construction as the two-site Hubbard--Holstein
-benchmarks, with full-ansatz reoptimization and batching disabled.
-
-% PROVENANCE(HH_L3_INTERMEDIATE_WEAK_SUPPORT_PROVENANCE_JSON) archived -> MATH/paper_facing/paper_I_static_scaffold/provenance/Paper_I_inline_comment_archive_20260727.md
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_hh_l3_intermediate_weak_physical_lanes_support_20260709/paper_i_hh_l3_intermediate_weak_error_vs_iteration_20260709.pdf}
-\captionof{figure}{Three-site intermediate--weak Hubbard--Holstein RA-ADAPT error versus ADAPT iteration for the physical-lane operator pool. The marker indicates the inferred plateau prefix \(k_{\rm pl}=29\).}
-\label{fig:hh_l3_intermediate_weak_error_vs_iteration}
-\end{center}
-
-\begin{center}
-\captionof{table}{\label{tab:hh_l3_intermediate_weak_plateau_costs}Three-site intermediate--weak Hubbard--Holstein RA-ADAPT plateau-prefix compiled-circuit resources. The available generator-ablation-enabled benchmark data include energy and compiled-circuit resources but not the logical-estimator accounting required for \(S\), so no estimator count is reported.}
-\begin{tabular}{lrrrrrr}
-\toprule
-Method & \(k_{\rm pl}\) & \(|\Delta E|\) & \(N_{\twq}\) & \(D_{\twq}\) & \(D_c\) & \(S\) \\
-\midrule
-RA-ADAPT & 29 & \(1.689\times10^{-4}\) & 122 & 98 & 488 & -- \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-
-\section{Spin-boson/Rabi benchmark}
-\label{app:spin_boson_rabi}
-
-The finite-mode spin-boson/Rabi benchmark is
-\begin{equation*}
-\begin{aligned}
-H_{\rm SB}
-&=-t_s\sigma_x+\Delta\sigma_z+\omega_0 b^\dagger b
-+u_xX_b\sigma_x+g_zX_b\sigma_z,\\
-X_b&=b^\dagger+b .
-\end{aligned}
-% source label: eq:spin_boson_rabi_appendix
-\end{equation*}
-Here \(\sigma_x,\sigma_y,\sigma_z\) are the Pauli matrices acting on the
-two-level subsystem, and \(b^\dagger,b\) are truncated mode creation and
-annihilation operators. The coefficient \(t_s\) sets the transverse two-level
-term, \(\Delta\) is the longitudinal bias, \(\omega_0\) is the boson frequency,
-and \(u_x\) and \(g_z\) are transverse and longitudinal quadrature-coupling
-strengths. The conventional ultrastrong threshold is near
-\(g/\omega_0\simeq 0.1\); the displayed rows use \(u_x=0\) and
-\(g_z/\omega_0=0.05\) or \(0.1\) for the weak and stronger threshold-scale
-points, respectively, with boson occupation cutoffs \(n_b^{\max}=1\) and
-\(n_b^{\max}=2\) \cite{Kockum2019Ultrastrong,FornDiaz2019Ultrastrong}.
-
-For the spin-boson/Rabi Hamiltonian, the operator pool combines two-level-system
-rotations, bosonic quadrature response, nonlinear bosonic relaxation,
-spin-conditioned bosonic response, and Hamiltonian-block channels. With
-\(P_b=\ii(b^\dagger-b)\) and \(n_b=b^\dagger b\), the pool includes spin-only
-channels, pure bosonic channels built from \(X_b\), \(P_b\), and \(n_b\),
-spin-conditioned transverse channels such as \(X_b\sigma_x\), \(P_b\sigma_x\),
-and \(n_b\sigma_x\), spin-conditioned longitudinal channels such as
-\(X_b\sigma_z\), \(P_b\sigma_z\), and \(n_b\sigma_z\), nonlinear bosonic
-channels such as \(\{n_b,P_b\}=n_bP_b+P_bn_b\) and \(X_bP_b+P_bX_b\), and
-Hamiltonian-block channels. For the stronger cutoff case, the pool also
-includes \(\sigma_y\)-conditioned correlation channels. RA-ADAPT shortlists these
-candidates through physical operator-type lanes separating two-level-system
-motion, linear boson response, nonlinear boson response, transverse coupling,
-longitudinal coupling, and Hamiltonian-block motion.
-The available benchmark data support the displayed energy and compiled-circuit
-resources but do not include the logical-estimator accounting defined in
-Appendix~\ref{app:estimator_queries}; therefore \(S\) is
-unreported for both rows.
-
-\noindent\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_spin_boson_weak_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{weak spin-boson/Rabi}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-2 & \(6{\times}10^{-7}\) & 19 & 17 & 123 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}\hfill
-\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_spin_boson_strong_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{strong spin-boson/Rabi}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-3 & \(10{\times}10^{-6}\) & 115 & 111 & 723 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}
-\captionof{figure}{Spin-boson/Rabi RA-ADAPT error versus ADAPT iteration and compiled Qiskit circuit resources at the plateau prefix for weak and strong coupling; \(S\) is unavailable under the logical-estimator convention.}
-\par\addvspace{1.0ex}
-
-\section{Bose--Hubbard benchmark}
-\label{app:bose_hubbard}
-
-For the Bose--Hubbard Hamiltonian, let \(b_i^\dagger,b_i\) be the bosonic
-creation and annihilation operators on site \(i\). We define the local number
-and quadrature operators
-\[
-n_i=b_i^\dagger b_i,\qquad
-x_i=b_i+b_i^\dagger,\qquad
-p_i=\ii(b_i^\dagger-b_i).
-\]
-The two-site open-boundary benchmark Hamiltonian is
-\begin{equation*}
-\begin{aligned}
-H_{\rm BH}
-&=-t\sum_{\langle i,j\rangle}
-(b_i^\dagger b_j+b_j^\dagger b_i)
-+\omega_0\sum_i n_i\\
-&\quad+\frac{U_b}{2}\sum_i n_i(n_i-I)
-+\Delta_v\sum_i(-1)^i n_i .
-\end{aligned}
-% source label: eq:bose_hubbard_appendix
-\end{equation*}
-Here \(t\) is the nearest-neighbor hopping amplitude, \(\omega_0\) is the
-onsite boson energy, \(U_b\) is the onsite boson--boson interaction,
-\(\Delta_v\) is the staggered onsite potential, \(I\) is the local identity,
-and \(\langle i,j\rangle\) denotes nearest-neighbor sites. The displayed rows
-use \(t=1\), \(\omega_0=1\), \(\Delta_v=0.25\), binary encoding with local
-boson occupation cutoff \(n_b^{\max}=2\), and \(U_b=2\) or \(U_b=6\) for the
-weak and strong interaction rows, respectively.
-The operator pool is partitioned into physical operator-type lanes for number
-and density interactions, onsite quadrature response, intersite quadrature
-response, single-particle hopping/current, density-assisted transport, pair
-transport, and Hamiltonian-block channels. These lanes include onsite number
-operators \(n_i\), nonlinear number terms \(n_i^2\) and \(n_in_j\), onsite
-quadratures \(x_i\), \(p_i\), \(x_i^2\), and \(p_i^2\), intersite quadratures
-\(x_ix_j\) and \(p_ip_j\), hopping/current generators between sites,
-density-weighted hopping/current generators, pair-hop/current generators, and
-grouped Bose--Hubbard Hamiltonian blocks.
-The available benchmark data support the displayed energy and compiled-circuit
-resources but do not include the logical-estimator accounting defined in
-Appendix~\ref{app:estimator_queries}; therefore \(S\) is
-unreported for both rows.
-
-\noindent\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_bose_hubbard_weak_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{weak Bose--Hubbard}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-1 & \(8{\times}10^{-16}\) & 160 & 160 & 870 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}\hfill
-\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_bose_hubbard_strong_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{strong Bose--Hubbard}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-1 & \(1{\times}10^{-15}\) & 160 & 160 & 870 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}
-\captionof{figure}{Bose--Hubbard RA-ADAPT error versus ADAPT iteration and compiled Qiskit circuit resources at the plateau prefix for weak and strong interaction; \(S\) is unavailable under the logical-estimator convention.}
-\par\addvspace{1.0ex}
-
-\section{Hubbard benchmarks}
-\label{app:supplementary_transfer_benchmarks}
-
-The Hubbard benchmark Hamiltonian is
-\begin{equation*}
-H_{\rm Hub}
-=-t\sum_{\langle i,j\rangle,\sigma}
-(c_{i\sigma}^{\dagger}c_{j\sigma}+c_{j\sigma}^{\dagger}c_{i\sigma})
-+U\sum_i n_{i\uparrow}n_{i\downarrow}.
-% source label: eq:hubbard_appendix
-\end{equation*}
-Here \(c_{i\sigma}^{\dagger},c_{i\sigma}\) are fermionic creation and
-annihilation operators, \(n_{i\sigma}=c_{i\sigma}^{\dagger}c_{i\sigma}\),
-\(\sigma\in\{\uparrow,\downarrow\}\), \(t\) is the nearest-neighbor hopping
-amplitude, \(U\) is the onsite Hubbard interaction, and
-\(\langle i,j\rangle\) denotes nearest-neighbor sites.
-The displayed rows use a two-site open chain at half filling with \(t=1\).
-For the Hubbard chain, the weak-coupling limit is given by
-\(U/t\ll 1\), with correlation strength increasing as \(U/t\) grows;
-we use \(U/t=0.25\) as a weak regime representative and \(U/t=8\) as the
-strong-correlation point \cite{Arovas2022Hubbard}.
-The available benchmark data support the displayed energy and compiled-circuit
-resources but do not include the logical-estimator accounting defined in
-Appendix~\ref{app:estimator_queries}; therefore \(S\) is
-unreported for both rows.
-
-\noindent\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_hubbard_weak_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{weak Hubbard}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-8 & \(2{\times}10^{-11}\) & 18 & 10 & 120 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}\hfill
-\begin{minipage}{0.49\columnwidth}
-\begin{center}
-\includegraphics[width=\columnwidth]{figures/paper_i_alt_hamiltonian_1p75_20260709/paper_i_alt_snake_hubbard_strong_error_vs_iteration.pdf}
-\par\smallskip
-\scriptsize
-\textit{strong Hubbard}
-\par\smallskip
-\setlength{\tabcolsep}{1.2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}cccccc@{}}
-\toprule
-$k_{\rm pl}$ & $|\Delta E|$ & $N_{\twq}$ & $D_{\twq}$ & $D_c$ & $S$ \\
-\midrule
-2 & \(8{\times}10^{-16}\) & 52 & 52 & 274 & -- \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
-\end{minipage}
-\captionof{figure}{Hubbard RA-ADAPT error versus ADAPT iteration and compiled Qiskit circuit resources at the plateau prefix for weak and strong interaction; \(S\) is unavailable under the logical-estimator convention.}
-\par\addvspace{1.0ex}
+% PROVENANCE(MACHINE_READABLE_HUBBARD_FULL_NOISE_COMMON_PREFIX_K20_20260814): {"display_k_max":20,"extreme_source_horizon":50,"figure_provenance":"MATH/paper_details/figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_common_prefix_k20_20260814_provenance.json","figure_provenance_canonical_sha256":"db35df4c8f6976913645c858c2214cce6ea04dc944d4f6706e6da42359aa95be","figure_provenance_sha256":"ab4fb9643144a77d40c5242f1f7a20683d6b8e9b8b9c9167898fc9fc7c52c511","resource_ranges_exact":{"D2q":[28,109],"Dc":[287,797],"N2q":[38,136],"S_alg":[18286,96518],"W1q":[108,332]},"source_adapter":"output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_pure_hubbard_page12_fullnoise_page15_adapter.json","source_adapter_canonical_sha256":"4991d37aa5c02d1cbd64ed5e707cd6e5265fed0563ad7c8b9c7b9d1f19439592","source_adapter_sha256":"92e0c559b82ca64ac5a4321f07e13a4433ee57e808eef76856da6051b207fa05"}
 
 \clearpage
 \begin{thebibliography}{99}
@@ -2714,26 +2376,6 @@ A. Wei{\ss}e and H. Fehske,
 in \emph{Computational Many-Particle Physics},
 edited by H. Fehske, R. Schneider, and A. Wei{\ss}e,
 Lecture Notes in Physics Vol. 739 (Springer, Berlin, Heidelberg, 2008), pp. 529--544.
-
-\bibitem{Arovas2022Hubbard}
-D.~P. Arovas, E. Berg, S.~A. Kivelson, and S. Raghu,
-``The Hubbard model,''
-\emph{Annual Review of Condensed Matter Physics} \textbf{13}, 239--274 (2022).
-
-\bibitem{LeBlanc2015HubbardBenchmarks}
-J.~P.~F. LeBlanc et al.,
-``Solutions of the two-dimensional Hubbard model: Benchmarks and results from a wide range of numerical algorithms,''
-\emph{Physical Review X} \textbf{5}, 041041 (2015).
-
-\bibitem{Qin2016AFQMCHubbard}
-M. Qin, H. Shi, and S. Zhang,
-``Benchmark study of the two-dimensional Hubbard model with auxiliary-field quantum Monte Carlo method,''
-\emph{Physical Review B} \textbf{94}, 085103 (2016).
-
-\bibitem{Alvertis2025HubbardVQE}
-A.~M. Alvertis, A. Khan, T. Iadecola, P.~P. Orth, and N.~M. Tubman,
-``Classical Benchmarks for Variational Quantum Eigensolver Simulations of the Hubbard Model,''
-\emph{Quantum} \textbf{9}, 1748 (2025).
 
 \bibitem{Lloyd1996}
 S. Lloyd,
@@ -2943,16 +2585,6 @@ M.~M. Denner, A. Miessen, H. Yan, I. Tavernelli, T. Neupert, E. Demler, and Y. W
 B. Peng, Y. Su, D. Claudino, K. Kowalski, G. H. Low, and M. Roetteler,
 ``Quantum simulation of boson-related Hamiltonians: Techniques, effective Hamiltonian construction, and error analysis,''
 \emph{Quantum Science and Technology} \textbf{10}, 023002 (2025).
-
-\bibitem{Kockum2019Ultrastrong}
-A.~F. Kockum, A. Miranowicz, S. De Liberato, S. Savasta, and F. Nori,
-``Ultrastrong coupling between light and matter,''
-\emph{Nature Reviews Physics} \textbf{1}, 19--40 (2019).
-
-\bibitem{FornDiaz2019Ultrastrong}
-P. Forn-D{\'i}az, L. Lamata, E. Rico, J. Kono, and E. Solano,
-``Ultrastrong coupling regimes of light-matter interaction,''
-\emph{Reviews of Modern Physics} \textbf{91}, 025005 (2019).
 
 \bibitem{Vaquero2025PrunedADAPT}
 N. Vaquero-Sabater, A. Carreras, and D. Casanova,

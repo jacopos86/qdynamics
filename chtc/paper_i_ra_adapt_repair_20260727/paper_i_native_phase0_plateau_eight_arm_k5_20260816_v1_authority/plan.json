@@ -1,0 +1,345 @@
+{
+  "campaign_id": "paper_i_native_phase0_plateau_eight_arm_k5_20260816_v1",
+  "capacity": {
+    "child_rss_limit_bytes": 8589934592,
+    "launch_available_memory_bytes": 5368709120,
+    "launch_free_disk_bytes": 10737418240,
+    "maximum_wait_seconds": 300,
+    "runtime_available_memory_floor_bytes": 2147483648,
+    "runtime_free_disk_floor_bytes": 2147483648
+  },
+  "cells": [
+    {
+      "cardinality": "fixed24",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__fixed24",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 1,
+      "placement": "generator_first",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "gradient_only_fixed24_v2",
+      "score": "gradient"
+    },
+    {
+      "cardinality": "fixed24",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__fixed24",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 2,
+      "placement": "position_aware",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "position_records_gradient_only_fixed24_v1",
+      "score": "gradient"
+    },
+    {
+      "cardinality": "adaptive",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__adaptive",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 3,
+      "placement": "generator_first",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "gradient_only_adaptive_shortlist_v2",
+      "score": "gradient"
+    },
+    {
+      "cardinality": "adaptive",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__adaptive",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 4,
+      "placement": "position_aware",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "position_records_gradient_only_adaptive_shortlist_v1",
+      "score": "gradient"
+    },
+    {
+      "cardinality": "fixed24",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__fixed24",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 5,
+      "placement": "generator_first",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "structural_proxy_cost_fixed24_v2",
+      "score": "proxy"
+    },
+    {
+      "cardinality": "fixed24",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__fixed24",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 6,
+      "placement": "position_aware",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "position_records_structural_proxy_cost_fixed24_v1",
+      "score": "proxy"
+    },
+    {
+      "cardinality": "adaptive",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__adaptive",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 7,
+      "placement": "generator_first",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "structural_proxy_cost_adaptive_shortlist_v2",
+      "score": "proxy"
+    },
+    {
+      "cardinality": "adaptive",
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__adaptive",
+      "horizon": 5,
+      "insertion_policy": "plateau_commutation",
+      "nph": 3,
+      "ordinal": 8,
+      "placement": "position_aware",
+      "regime_id": "strong_weak_u8",
+      "route_variant": "position_records_structural_proxy_cost_adaptive_shortlist_v1",
+      "score": "proxy"
+    }
+  ],
+  "created_at": "2026-08-17T02:56:17.941199Z",
+  "execution_authorized": false,
+  "fixed_serial_order": [
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__fixed24",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__fixed24",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__adaptive",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__adaptive",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__fixed24",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__fixed24",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__adaptive",
+    "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__adaptive"
+  ],
+  "frontier_ratios": {
+    "phase_ii": 0.9,
+    "phase_iii": 0.9
+  },
+  "insertion_policy": "plateau_commutation",
+  "maximum_concurrency": 1,
+  "optimizer": {
+    "ftol": 1e-08,
+    "maxfev": null,
+    "maxiter": 200,
+    "name": "powell",
+    "xtol": 0.0001
+  },
+  "paper_adoption_authorized": false,
+  "paper_evidence_adoption_authorized": false,
+  "problem": {
+    "nph": 3,
+    "regime_id": "strong_weak_u8"
+  },
+  "protocol_bindings": [
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_append_endpoint_gradient_fixed24_qiskit_phase123_semantic_closure_v2",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "cc6c485164b1af4c98b824679b8bd52d51c4be3ce1e3db0abf657e10761abe50",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__fixed24",
+      "materialization_receipt_sha256": "bd51798e07411ce0bb9aaa02c774c94e59ccca73ddad657d937ea8f0d89c3db5",
+      "protocol_sha256": "23cb676d42b892d5e7182d7a4844b6a600fffdf62abaf7c3a60210fae48fc38a",
+      "route_contract_sha256": "bff7d4768674a159f428e9f280f6132051f67a64877c1ff49e9ac06991aff6a0",
+      "route_id": "paper_i_ra_phase0_gradient_fixed24_phase123_qiskit_semantic_closure_v2",
+      "route_variant": "gradient_only_fixed24_v2",
+      "semantic_implementation_version": "paper_i_ra_phase0_score_cardinality_matrix_phase123_qiskit_semantic_closure_v2",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_gradient_fixed24_phase123_qiskit_semantic_closure_v2__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "4f1c7893391819d7613bc75106fb5b90c4bb022b2a4efddf47e80592b3074ce3",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "cc6c485164b1af4c98b824679b8bd52d51c4be3ce1e3db0abf657e10761abe50",
+        "source_locks_manifest_sha256": "691f5ab5c3ba888a204432100383e611fdcd22afa78ca98ae23e4540c86b12b8"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_position_records_gradient_fixed24_qiskit_phase123_semantic_closure_v1",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "64dc38b41c8824588f7679bfb41937e46974be37d14d3e4c01ae6669e452473a",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__fixed24",
+      "materialization_receipt_sha256": "aae3704995bcbc28760629e1df958125404783690d7b0b02703cb346ec2f49e1",
+      "protocol_sha256": "afe419a6e2a995e1a3f7e04e5b9905b34d9b0cd99a4576a881893be05c90ad0b",
+      "route_contract_sha256": "bb674cb929be8a9fe501571e79c3115fa7eb8e18c63fc70c99497565a22fd953",
+      "route_id": "paper_i_ra_phase0_position_gradient_fixed24_phase123_qiskit_semantic_closure_v1",
+      "route_variant": "position_records_gradient_only_fixed24_v1",
+      "semantic_implementation_version": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_semantic_closure_v1",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_position_gradient_fixed24_phase123_qiskit_semantic_closure_v1__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "756bfae8694047ed5400a90f62502b4675f641f30a35a175dfba686cec6dc9a8",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "64dc38b41c8824588f7679bfb41937e46974be37d14d3e4c01ae6669e452473a",
+        "source_locks_manifest_sha256": "2b086cd026d5ee0efe3f02388473f3743f0e521a7dfbc3373ea7de2d0771f439"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_append_endpoint_gradient_adaptive_qiskit_phase123_semantic_closure_v2",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "6fc6a7fede0aa4e914c52acffa0c06a0f3658485bcf2e5355c5d5ec7dbc3193f",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__gradient__adaptive",
+      "materialization_receipt_sha256": "540430e296b0e46c223e87022f65b2dedb3422b3f7835674d1174a20b664192b",
+      "protocol_sha256": "949da3da63e9c7d58a124d19a10d3e9b57b4534586cfc25e5a05efd4293ad170",
+      "route_contract_sha256": "76473bf1904dad75f08de934b8e429acef9192090165d1b058f4ea4b8f97b9b2",
+      "route_id": "paper_i_ra_phase0_gradient_adaptive_phase123_qiskit_semantic_closure_v2",
+      "route_variant": "gradient_only_adaptive_shortlist_v2",
+      "semantic_implementation_version": "paper_i_ra_phase0_score_cardinality_matrix_phase123_qiskit_semantic_closure_v2",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_gradient_adaptive_phase123_qiskit_semantic_closure_v2__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "ead9e5cd1319af34fff668ad5ebb5ba768d89d2b09e4e024826cb30241496b5f",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "6fc6a7fede0aa4e914c52acffa0c06a0f3658485bcf2e5355c5d5ec7dbc3193f",
+        "source_locks_manifest_sha256": "0c86d6c6216f2bbeb441c1781f6665747e2499774471ca91eeae0a7b40293466"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_position_records_gradient_adaptive_qiskit_phase123_semantic_closure_v1",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "a3c926bd0f76e9f27a36098bf1ab74d245ad3ab0208b3c6d3db2bfa3d92d396f",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__gradient__adaptive",
+      "materialization_receipt_sha256": "8cfcf43f1ab284ed1c7536294d77bcb930931154f74d1ac82879b72045819162",
+      "protocol_sha256": "701aab0683b02a7c3dae9c1cb626d75164b44721ec9cefa8c739b1ad6db349ea",
+      "route_contract_sha256": "1d9c1d7ec26eed627503949799b29ce7a11acdaf90204a1158ff02a6d0a419e7",
+      "route_id": "paper_i_ra_phase0_position_gradient_adaptive_phase123_qiskit_semantic_closure_v1",
+      "route_variant": "position_records_gradient_only_adaptive_shortlist_v1",
+      "semantic_implementation_version": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_semantic_closure_v1",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_position_gradient_adaptive_phase123_qiskit_semantic_closure_v1__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "d19ddcf99b584664b8b5bb3bb4bc4b409a0226cf23077f2e1597b66fb65cb607",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "a3c926bd0f76e9f27a36098bf1ab74d245ad3ab0208b3c6d3db2bfa3d92d396f",
+        "source_locks_manifest_sha256": "9542474770b9e1f63b9ade4b624b4d98812fa8525d77c4c23c90ace0f2895573"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_append_endpoint_proxy_cost_fixed24_qiskit_phase123_semantic_closure_v2",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "03ee1c2c1878745533e2ac0bace0a4d66537f5081db2a68adecc61c55edf768a",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__fixed24",
+      "materialization_receipt_sha256": "8637a5568301fedce5a05c3ec82e839498017dba46a1384ee13d1769bca708dd",
+      "protocol_sha256": "6859c6b9ecffc7d2a1bafbdb927356c2a38ca57a0fc9ae8e4140a491880deb29",
+      "route_contract_sha256": "c83bb7c064e7d5bfedf31c70691a0da141e1617de22bb61117b41a9775cf224b",
+      "route_id": "paper_i_ra_phase0_proxy_cost_fixed24_phase123_qiskit_semantic_closure_v2",
+      "route_variant": "structural_proxy_cost_fixed24_v2",
+      "semantic_implementation_version": "paper_i_ra_phase0_score_cardinality_matrix_phase123_qiskit_semantic_closure_v2",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_proxy_cost_fixed24_phase123_qiskit_semantic_closure_v2__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "05c9868ec8100e86fdd24aba666311db8f1ddeb559c4ee083570deafb362232a",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "03ee1c2c1878745533e2ac0bace0a4d66537f5081db2a68adecc61c55edf768a",
+        "source_locks_manifest_sha256": "de7273ae71ad27d03b5d5027a51c540f200a1e3378fa99c48dc78bf5a5b2d507"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_position_records_proxy_cost_fixed24_qiskit_phase123_semantic_closure_v1",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "29fd678977199e95fe67292ffc38b4b0fbdd30407865cc14b63fe66777ab76f0",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__fixed24",
+      "materialization_receipt_sha256": "105d8db4014f6cd7305e1875d75b9a54674f4c4309c952524cea0e68235cadeb",
+      "protocol_sha256": "c076914fc243efeae6988bccbbc258166096ef6ce384cf6d746850f2dbf3afbc",
+      "route_contract_sha256": "051e6d69e2823fa47c85b9bf4f83067fe1aaf43ee0ab3db51041ef0517736c99",
+      "route_id": "paper_i_ra_phase0_position_proxy_cost_fixed24_phase123_qiskit_semantic_closure_v1",
+      "route_variant": "position_records_structural_proxy_cost_fixed24_v1",
+      "semantic_implementation_version": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_semantic_closure_v1",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_position_proxy_cost_fixed24_phase123_qiskit_semantic_closure_v1__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "e997bb80aebbd909dd9675b1e96bb5689ef84b10c0b25bc354f48b8f29c7ef01",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "29fd678977199e95fe67292ffc38b4b0fbdd30407865cc14b63fe66777ab76f0",
+        "source_locks_manifest_sha256": "c6d4466df51f34938fbe3f3ebd46a35e35ea85c1a1476060ddeb9af03b8ba786"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_append_endpoint_proxy_cost_adaptive_qiskit_phase123_semantic_closure_v2",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "9ddb2fa37a43533b0fc9b888e6c29aba8ceb50c795ebfb354ddd3f9aeeb78b2a",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__generator_first__proxy__adaptive",
+      "materialization_receipt_sha256": "0aa0345a1319559811462a05cf721c86f8b1c9b156d41e7f7453fa9f6c2681a7",
+      "protocol_sha256": "cf9bd0b9c906f49cd6f116f0d88f61f1f958b91f046af9c1d12ecaf3625ffd11",
+      "route_contract_sha256": "119f4b3c6c2a4bbb848e9e1169a47fa24d908a7eabc1058480afe7a95af907a3",
+      "route_id": "paper_i_ra_phase0_proxy_cost_adaptive_phase123_qiskit_semantic_closure_v2",
+      "route_variant": "structural_proxy_cost_adaptive_shortlist_v2",
+      "semantic_implementation_version": "paper_i_ra_phase0_score_cardinality_matrix_phase123_qiskit_semantic_closure_v2",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_proxy_cost_adaptive_phase123_qiskit_semantic_closure_v2__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "9e1a598e07b9505ff4d88e1f5a011cee3db74e6a4c6334324cc23eae356b2988",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "9ddb2fa37a43533b0fc9b888e6c29aba8ceb50c795ebfb354ddd3f9aeeb78b2a",
+        "source_locks_manifest_sha256": "f4b5d51366885602f331f141a20d82a5154835d02212219ca364eb6b8b5ddd81"
+      }
+    },
+    {
+      "algorithm_id": "paper_i_ra_global_singleton_position_records_proxy_cost_adaptive_qiskit_phase123_semantic_closure_v1",
+      "bundle_id": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_native_v1",
+      "bundle_manifest_sha256": "435cbbc41641e123f6ac8a5976ee07a7f3359b53627161f8549fe3ab34b4fb20",
+      "execution_authorized_in_serialized_protocol": false,
+      "execution_id": "native_phase0_plateau_k5__strong_weak_u8__nph3__position_aware__proxy__adaptive",
+      "materialization_receipt_sha256": "147ce1e615be684af397b5527bb4c91c6b7e9fc318cc632f223b755e23f5252c",
+      "protocol_sha256": "97ffa2351f858f30753630ed72613a2e18064071b0d61850cd57ece75529836f",
+      "route_contract_sha256": "12e08e8f82fd861623494fa827f036c276d9e479f94fe00b322eb3ccb3123758",
+      "route_id": "paper_i_ra_phase0_position_proxy_cost_adaptive_phase123_qiskit_semantic_closure_v1",
+      "route_variant": "position_records_structural_proxy_cost_adaptive_shortlist_v1",
+      "semantic_implementation_version": "paper_i_ra_phase0_placement_score_cardinality_matrix_phase123_qiskit_semantic_closure_v1",
+      "source_locks": {
+        "cell_source_lock_id": "paper_i_ra_phase0_position_proxy_cost_adaptive_phase123_qiskit_semantic_closure_v1__strong_weak_u8__nph3__plateau_commutation__k5__source_v1",
+        "cell_source_lock_sha256": "359144bc7f2a10b437ce217d3ee9582fa8e20d3d981988f0bdd359bdda292214",
+        "implementation_source_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+        "problem_scientific_content_sha256": "b54c65e40eddfd22c6674cdb3fc7817e889519a27ecec548ef02c600cf7ff944",
+        "semantic_bundle_manifest_sha256": "435cbbc41641e123f6ac8a5976ee07a7f3359b53627161f8549fe3ab34b4fb20",
+        "source_locks_manifest_sha256": "6b55b5310b342a31f563632197708e08020efa090d108145313b05e0d58cbc75"
+      }
+    }
+  ],
+  "run_class": "local_diagnostic_non_adopted",
+  "runner": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/run_local_paper_i_native_phase0_plateau_eight_arm_k5_20260816.py",
+    "sha256": "6f3af3470d540e54910cc3f88a1fb2e4d68cf9c491ca305cb8b53ba983e6a20e",
+    "size_bytes": 47251
+  },
+  "runtime_environment": {
+    "BLIS_NUM_THREADS": "1",
+    "CUDA_VISIBLE_DEVICES": "",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONHASHSEED": "0",
+    "STATIC_ADAPT_CANDIDATE_RECORD_CACHE": "off",
+    "STATIC_ADAPT_HH_POOL_CACHE": "off",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "schema": "paper_i_native_phase0_eight_arm_plateau_plan_v1",
+  "seeds": {
+    "adapt": 7,
+    "transpiler": 7
+  },
+  "sha256": "1f41f0a5e7c2479d4135aa5be2b758dab0962d56996befbde403ef5657481330",
+  "shortlist_maxima": {
+    "phase_i": 24,
+    "phase_ii": 12
+  },
+  "source_implementation_file_count": 533,
+  "source_implementation_inventory_sha256": "79ee609fc964450402f43df8631dd0a18c326d209438b9f776dd933bea1ab9b3",
+  "submission_authorized": false,
+  "target_horizon": 5
+}

@@ -1,0 +1,30 @@
+universe = vanilla
+executable = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/execute_job.sh
+transfer_executable = True
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/$(job_path) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/$(protocol_path) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/execution_authorization.json chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/source/source_locked.tar.gz d49617d474a76f31efc372af11f9158cf763e442eead354fd3e581ed55936c85 chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(execution_id) transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+request_cpus = $(request_cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = logs/$(Cluster).$(Process)-$(execution_id).log
+output = logs/$(Cluster).$(Process)-$(execution_id).out
+error = logs/$(Cluster).$(Process)-$(execution_id).err
+
+queue execution_id, job_path, protocol_path, request_cpus, memory_mb, disk_mb, max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc/queue.tsv

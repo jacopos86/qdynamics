@@ -7,6 +7,7 @@ import json
 import os
 import resource
 import time
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -14,8 +15,8 @@ import numpy as np
 
 from .adaptive_positive_moment import raw_moment_coordinates_to_matrix_state
 from .apcm_carried_witness import (
-    CWRMFSettings,
     CarriedWitnessModel,
+    cwrmf_settings_for_profile,
     integrate_cwrmf_ssprk2,
 )
 from .exact_reference import exact_holstein_driven_trajectory
@@ -41,6 +42,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--gamma", type=float, default=0.5)
     parser.add_argument("--drive", type=float, default=1.0)
     parser.add_argument(
+        "--numerical-profile",
+        choices=("strict", "balanced"),
+        default="strict",
+        help=(
+            "strict preserves the reference contract; balanced permits an "
+            "explicit -1e-8 unshifted Gram floor and relaxed conic solves."
+        ),
+    )
+    parser.add_argument(
         "--maximum-critical-modes",
         type=int,
         default=None,
@@ -48,6 +58,14 @@ def _parser() -> argparse.ArgumentParser:
             "Optional reproducibility cap on the critical Schur dimension. "
             "By default the dimension is selected from the Gram spectrum "
             "without an artificial cap."
+        ),
+    )
+    parser.add_argument(
+        "--no-gram-guard",
+        action="store_true",
+        help=(
+            "Propagate the carried higher-moment rates directly, without "
+            "the 62-row PSD solve or endpoint rejection."
         ),
     )
     parser.add_argument("--compact-output", action="store_true")
@@ -180,9 +198,12 @@ def main() -> int:
         lambda_ep=args.lambda_ep,
         drive_amplitude=args.drive,
     )
-    settings = CWRMFSettings(
+    settings = cwrmf_settings_for_profile(
+        args.numerical_profile,
         maximum_critical_modes=args.maximum_critical_modes
     )
+    if args.no_gram_guard:
+        settings = replace(settings, enforce_gram_guard=False)
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)
     preparation = model.prepare(phonon_cutoff=args.phonon_cutoff)
@@ -310,7 +331,14 @@ def main() -> int:
     summary = {
         "schema_version": 1,
         "classification": "exploratory_local_not_promoted",
-        "model": "carried_witness_radial_moment_flow",
+        "model": (
+            "carried_higher_moment_flow_without_gram_guard"
+            if args.no_gram_guard
+            else "carried_witness_radial_moment_flow"
+        ),
+        "numerical_profile": args.numerical_profile,
+        "numerical_settings": asdict(settings),
+        "gram_guard_enabled": settings.enforce_gram_guard,
         "strict_eight_mode_contract": args.maximum_critical_modes == 8,
         "parameters": {
             "hopping": parameters.hopping,
@@ -331,7 +359,11 @@ def main() -> int:
             "hierarchy_degree": preparation.hierarchy_degree,
         },
         "integration": {
-            "method": "SSPRK2 with finite-step carried-witness radial atoms",
+            "method": (
+                "SSPRK2 with unconstrained carried higher-moment rates"
+                if args.no_gram_guard
+                else "SSPRK2 with finite-step carried-witness radial atoms"
+            ),
             "initial_time": initial_time,
             "final_time_requested": args.final_time,
             "last_time": float(trajectory.times[-1]),
@@ -386,8 +418,10 @@ def main() -> int:
             "maximum_completion_correction_norm": float(
                 np.max(trajectory.completion_correction_norms)
             ),
-            "minimum_velocity_margin": float(
-                np.min(trajectory.velocity_margins)
+            "minimum_velocity_margin": (
+                float(np.min(trajectory.velocity_margins))
+                if settings.enforce_gram_guard
+                else None
             ),
         },
         "exact_reference": {

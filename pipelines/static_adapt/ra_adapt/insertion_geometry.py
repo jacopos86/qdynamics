@@ -482,6 +482,8 @@ def validate_commutation_reduced_insertion_receipt(
     expected_policy: str | None = None,
     expected_requested_positions: Sequence[int] | None = None,
     scored_population: Mapping[str, Any] | None = None,
+    expected_representative_pairs: Sequence[tuple[int, int]] | None = None,
+    expected_phase_i_pairs: Sequence[tuple[int, int]] | None = None,
 ) -> dict[str, Any]:
     """Prove exact closure of a commutation-reduced insertion domain.
 
@@ -489,7 +491,10 @@ def validate_commutation_reduced_insertion_receipt(
     domain into disjoint exact-commutation classes, retain the earliest member
     of each class, and close all aggregate counts.  When a scored population
     is supplied, Phase I must equal the representative domain exactly and all
-    later scored records must remain inside it.
+    later scored records must remain inside it.  A position-record Phase-0
+    caller may instead bind the complete representative domain and its
+    retained Phase-I subset separately; this preserves authentication of the
+    original commutation-reduced domain without re-expanding the shortlist.
     """
 
     if not isinstance(receipt, Mapping):
@@ -767,6 +772,55 @@ def validate_commutation_reduced_insertion_receipt(
             for pool_index, positions in representatives_by_pool_index.items()
             for position in positions
         }
+        if expected_representative_pairs is not None:
+            normalized_representative_pairs = [
+                (
+                    _require_position(
+                        pair[0],
+                        name="expected representative pool_index",
+                    ),
+                    _require_position(
+                        pair[1],
+                        name="expected representative insertion_position",
+                    ),
+                )
+                for pair in expected_representative_pairs
+            ]
+            if (
+                len(normalized_representative_pairs)
+                != len(set(normalized_representative_pairs))
+                or set(normalized_representative_pairs) != expected_pairs
+            ):
+                raise ValueError(
+                    "Reduced insertion representative domain disagrees with "
+                    "the authenticated Phase-0 population."
+                )
+        if expected_phase_i_pairs is None:
+            phase_i_expected_pairs = expected_pairs
+        else:
+            normalized_phase_i_pairs = [
+                (
+                    _require_position(
+                        pair[0],
+                        name="expected Phase-I pool_index",
+                    ),
+                    _require_position(
+                        pair[1],
+                        name="expected Phase-I insertion_position",
+                    ),
+                )
+                for pair in expected_phase_i_pairs
+            ]
+            if (
+                len(normalized_phase_i_pairs)
+                != len(set(normalized_phase_i_pairs))
+                or not set(normalized_phase_i_pairs).issubset(expected_pairs)
+            ):
+                raise ValueError(
+                    "Reduced insertion Phase-I domain is not an exact retained "
+                    "subset of its representatives."
+                )
+            phase_i_expected_pairs = set(normalized_phase_i_pairs)
         for phase in phases:
             if not isinstance(phase, Mapping):
                 raise ValueError(
@@ -794,10 +848,10 @@ def validate_commutation_reduced_insertion_receipt(
                     ),
                 )
                 pairs.append(pair)
-            if not set(pairs).issubset(expected_pairs):
+            if not set(pairs).issubset(phase_i_expected_pairs):
                 raise ValueError(
                     "Reduced insertion scored population escaped its "
-                    "representatives."
+                    "authenticated Phase-I domain."
                 )
             if phase.get("phase") == "phase_i":
                 if len(pairs) != len(set(pairs)):
@@ -806,10 +860,10 @@ def validate_commutation_reduced_insertion_receipt(
                         "a representative."
                     )
                 phase_i_pairs = set(pairs)
-        if phase_i_pairs != expected_pairs:
+        if phase_i_pairs != phase_i_expected_pairs:
             raise ValueError(
                 "Reduced insertion Phase-I scored domain does not equal its "
-                "representatives."
+                "authenticated input domain."
             )
 
     return dict(receipt)

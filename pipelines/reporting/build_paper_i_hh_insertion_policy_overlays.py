@@ -100,7 +100,7 @@ DISPLAY = {
     "macro": {
         "representation": "intact_macro",
         "title": "Stationary-source undecomposed-generator insertion policies",
-        "designated_ra": "always",
+        "designated_ra": "qiskit_cost",
         "stem": f"{STEM}_macro_insertion_policy_matched_error_candidate",
     },
     "singleton": {
@@ -128,6 +128,12 @@ STYLE: Mapping[str, Mapping[str, Any]] = {
         "color": "#F2A0A0",
         "linewidth": 1.45,
         "marker": "s",
+    },
+    "qiskit_cost": {
+        "label": "Always-insertion RA, compiled Qiskit selector cost",
+        "color": "#1B7837",
+        "linewidth": 1.70,
+        "marker": "^",
     },
     "append": {
         "label": "Append-ADAPT",
@@ -1063,6 +1069,74 @@ def _stationary_singleton_curves() -> tuple[
     return curves, sources, {}
 
 
+QISKIT_COST_RUN_ROOT = Path(
+    "/private/tmp/claude-501/-Users-jakestrobel-local-repos-Holstein-test-fullclone-3/7905830b-7409-4631-9a5a-8d4af1878ac4/scratchpad/nolane15"
+)
+QISKIT_COST_DIR_BY_REGIME = {
+    "weak_weak": "weak_weak__nph3",
+    "intermediate_weak": "intermediate_weak__nph3",
+    "strong_weak_u8": "strong_weak_u8__nph3",
+    "weak_strong": "weak_strong__nph7",
+    "intermediate_strong": "intermediate_strong__nph7",
+    "strong_strong_u8": "strong_strong_u8__nph7",
+}
+
+
+QISKIT_COST_ROUND_TUPLES = Path(
+    "/private/tmp/claude-501/"
+    "-Users-jakestrobel-local-repos-Holstein-test-fullclone-3/"
+    "7905830b-7409-4631-9a5a-8d4af1878ac4/scratchpad/qc_round_tuples_nolane.json"
+)
+
+
+def _qiskit_cost_salg(regime: str, k: int) -> int:
+    """Cumulative closed-ledger S_alg for the compiled-cost series at round k."""
+
+    directory = QISKIT_COST_DIR_BY_REGIME[regime]
+    result = _load_json(QISKIT_COST_RUN_ROOT / directory / "result.json")
+    for row in result["run"]["accepted_transitions"]:
+        if int(row["controller_round"]) == int(k):
+            return int(row["cumulative_s_alg"])
+    raise ValueError(f"no S_alg for {regime} k={k}")
+
+
+def _qiskit_cost_round_costs() -> dict[str, dict[int, tuple[int, ...]]]:
+    if not QISKIT_COST_ROUND_TUPLES.is_file():
+        return {}
+    raw = _load_json(QISKIT_COST_ROUND_TUPLES)
+    return {
+        regime: {int(k): tuple(int(x) for x in v) for k, v in per.items()}
+        for regime, per in raw.items()
+    }
+
+
+def _qiskit_cost_macro_curves() -> dict[str, list[dict[str, Any]]]:
+    """Load the compiled-Qiskit-selector-cost macro always-insertion overlay.
+
+    Diagnostic series: horizons are 20/20/15/20/20/15, so each curve is
+    truncated relative to the incumbent macro trajectories.
+    """
+
+    curves: dict[str, list[dict[str, Any]]] = {}
+    for regime, directory in QISKIT_COST_DIR_BY_REGIME.items():
+        summary_path = QISKIT_COST_RUN_ROOT / directory / "summary.json"
+        if not summary_path.is_file():
+            continue
+        summary = _load_json(summary_path)
+        trace = summary.get("accepted_error_trace")
+        if not isinstance(trace, list) or not trace:
+            continue
+        curves[regime] = [
+            {
+                "k": int(row["controller_round"]),
+                "error": float(row["absolute_energy_error"]),
+            }
+            for row in trace
+            if isinstance(row, Mapping)
+        ]
+    return curves
+
+
 def _context_curves(kind: str) -> dict[str, dict[str, list[dict[str, Any]]]]:
     """Recover non-designated context curves from the previous provenance."""
 
@@ -1100,7 +1174,12 @@ def _designated_curves(
     dict[str, dict[str, Any]],
 ]:
     if kind == "macro":
-        return _stationary_macro_curves()
+        curves, sources, compile_inputs = _stationary_macro_curves()
+        overlay = _qiskit_cost_macro_curves()
+        for regime, trace in overlay.items():
+            if regime in curves and trace:
+                curves[regime] = {**curves[regime], "qiskit_cost": trace}
+        return curves, sources, compile_inputs
     return _stationary_singleton_curves()
 
 
@@ -1111,7 +1190,7 @@ def _macro_matches(
     matches: dict[str, tuple[Any, ...]] = {}
     for regime in PLOT_ORDER:
         match_error, ra_k, append_k = _select_preplateau_match(
-            curves[regime]["always"],
+            curves[regime]["qiskit_cost"],
             curves[regime]["append"],
         )
         if regime == "strong_strong_u8":
@@ -1120,7 +1199,7 @@ def _macro_matches(
             # with the smaller energy mismatch.
             ra_by_k = {
                 int(row["k"]): float(row["error"])
-                for row in curves[regime]["always"]
+                for row in curves[regime]["qiskit_cost"]
             }
             append_by_k = {
                 int(row["k"]): float(row["error"])
@@ -1138,36 +1217,32 @@ def _macro_matches(
             )
             match_error = max(ra_by_k[ra_k], append_by_k[append_k])
         source = compile_inputs[regime]
-        local_checkpoint = source.get("always_local_checkpoint")
-        reference_state = source.get("always_reference_state")
         ra_costs: tuple[int, int, int, int, int] | None
-        if local_checkpoint and isinstance(reference_state, Mapping):
-            ra_costs = _compile_local_always_cost(
-                Path(str(local_checkpoint)),
-                reference_state_payload=reference_state,
-                k=ra_k,
+        # The displayed RA series is the compiled-selector-cost diagnostic;
+        # its per-round circuit tuples are precompiled under the same
+        # basis-gate contract as the reported accounting.
+        qc_costs = _qiskit_cost_round_costs().get(regime, {})
+        qc_tuple = qc_costs.get(int(ra_k))
+        if qc_tuple is not None:
+            qc_salg = {
+                int(row["k"]): row
+                for row in curves[regime]["qiskit_cost"]
+            }
+            ra_costs = (
+                int(qc_tuple[0]),
+                int(qc_tuple[1]),
+                int(qc_tuple[2]),
+                int(qc_tuple[3]),
+                int(_qiskit_cost_salg(regime, int(ra_k))),
             )
         else:
-            # The complete-Xrev weak--weak archive was retired locally after
-            # the authenticated page-1 recovery projection was generated.
             ra_costs = None
         append_costs = _compile_append_cost(
             Path(str(source["append_archive"])),
             k=append_k,
         )
-        if regime in ("weak_strong", "intermediate_strong", "strong_strong_u8"):
-            no_k = 10
-        else:
-            inclusive = math.nextafter(match_error, math.inf)
-            no_k = next(
-                int(row["k"])
-                for row in curves[regime]["no_insertion"]
-                if float(row["error"]) <= inclusive
-            )
-        no_costs = _compile_ra_cost(
-            Path(str(source["no_insertion_archive"])),
-            k=no_k,
-        )
+        no_k = None
+        no_costs = None
         matches[regime] = (
             match_error,
             ra_k,
@@ -1243,7 +1318,7 @@ def build_overlay(kind: str) -> tuple[Path, Path]:
     fig, axes = plt.subplots(2, 3, figsize=(7.65, 5.75), dpi=300)
     provenance_rows: list[dict[str, Any]] = []
     display_keys = (
-        ("always", "plateau", "no_insertion", "append")
+        ("qiskit_cost", "append")
         if kind == "macro"
         else ("plateau", "no_insertion", "append")
     )
@@ -1269,7 +1344,11 @@ def build_overlay(kind: str) -> tuple[Path, Path]:
                 color=style["color"],
                 linewidth=style["linewidth"],
                 linestyle="-",
-                zorder=2 if key != designated_ra else 3,
+                zorder=(
+                    4
+                    if key == "qiskit_cost"
+                    else (3 if key == designated_ra else 2)
+                ),
             )
             errors.extend(value for value in y if value > 0)
             plotted[key] = {
@@ -1341,7 +1420,11 @@ def build_overlay(kind: str) -> tuple[Path, Path]:
                 zorder=6,
             )
             no_error: float | None = None
-            if no_k is not None and no_costs is not None:
+            if (
+                "no_insertion" in display_keys
+                and no_k is not None
+                and no_costs is not None
+            ):
                 no_trace = trajectories["no_insertion"]
                 no_error = float(no_trace[no_k - 1]["error"])
                 ax.scatter(
@@ -1384,7 +1467,11 @@ def build_overlay(kind: str) -> tuple[Path, Path]:
                 fontsize=5.6,
                 bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.86, "pad": 0.4},
             )
-            if no_k is not None and no_costs is not None:
+            if (
+                "no_insertion" in display_keys
+                and no_k is not None
+                and no_costs is not None
+            ):
                 ax.text(
                     0.98,
                     0.825,

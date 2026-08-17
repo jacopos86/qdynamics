@@ -1,0 +1,156 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "arms": [
+    {
+      "arm_id": "always_open_position_phase0",
+      "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+      "insertion_policy": "always_commutation_reduced",
+      "phase0_population": "insertion_position_records",
+      "phase123_population": "insertion_position_records",
+      "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2"
+    }
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v2",
+  "canonical_execution_order": [
+    "allphase_maxk50__always_open_position_phase0__weak_weak__nph3",
+    "allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__always_open_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-17T18:11:02.179262Z",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__weak_weak__nph3",
+      "file_sha256": "e9143f30fc637e588cdc18d035c4a065f38d7493b7c0389ce9812c71199cef3a",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__weak_weak__nph3.json",
+      "sha256": "4d3870a15669d2f4e7f6d1f9206b4f724161934b8eba6cfd204cde2a19557afa"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "4aa731609c168a99c7bcffc70ebd2369fb5afb7f7701658e7aece40332fbc958",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "3fe12be9d01fab3f60dcf73ac90767d6d341a73035877aa81e09891f0721fb59"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "25aaf9590bc2e3dfc9c92dacba146e759aa2f5bd727e1e8e0ae1e79925693dbe",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "a62681dda6f524aa5b50fc5f523f2828b019a71e02669c4ca498dde873cb03b3"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "7330bacc73e2b3ea0dd5b7acfa8e596dfdeaecc1623b2eadab3d04e58e5dfc9a",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "fc29f6a64fc6cd61f9809da2f33e3de7286da6e3db6d5c2800372f473d7b81e3"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "48011d46cee4cdcf743386598179e5a4abc3421d6293c178c294b990f9308813",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "488f3e844bacab0628bf9d6779df3da3ba922cb8d9c8164568e3c1eb3f94c9af"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "7099a98a56b1611e1a859fb0556b1e608ec94ed73d139f14d4cbe9a7594da3ce",
+      "path": "jobs/allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "b0ecfbe2219ad7df8ec70589ad0f35bfcfdeddff09418b017ea450c6bbc8ea9f"
+    }
+  ],
+  "matrix_shape": {
+    "arms": 1,
+    "cells": 6,
+    "regimes": 6
+  },
+  "maximum_controller_rounds": 50,
+  "package_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v2_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__weak_weak__nph3",
+      "file_sha256": "676f2755302d1475b9cd5594784f347e5dedccf9fa4026cff725fdc8fc1c5ba9",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__weak_weak__nph3.json",
+      "sha256": "da754a8a30ec62757f8b8ff37398d7ef9cfc3e09b8f83018c466fa1537cb3ea9"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "837c27a282284cf2fa60e52622f9082fa04da3d8fac62ddc7adb8e83f0d846c6",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "38cbf3686b330ec2e686e3aa80a78c5de186c6cba36e688a639658e361ecf0fe"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "08191ca2ee904723e4361b50f002f6419471c08d228282b456cd3bc59c471afb",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "914475f511669158a518f213547b916e484db9a8ecd33416507f9df585f1aaa3"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__weak_strong__nph7",
+      "file_sha256": "0d666de534cf34bc78dfb80c8f5c8d15b22d81e2aaee290d9815eccccbff57cd",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__weak_strong__nph7.json",
+      "sha256": "64ba5b581e421ef554daf3b32c2728b049c73d5d70ff95f027e48ba0187c16b9"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "b61fef146526c5993ab4fc062239914275d523fc3031df9fe687e17b102382ad",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "48caaca8cd3185fe74cddf998689d24541eb31ac130d3c0031b9d15c639f7c81"
+    },
+    {
+      "execution_id": "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "a44fce7337c093ad7f885f0e323d15b34dd91a3408d4df390f8a3ac6823c2984",
+      "path": "protocols/allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "ec70b9d2de31f2cfb677022c20de32bc4e99ccf63b61a0183fae1dad8f5d38dc"
+    }
+  ],
+  "regimes": [
+    {
+      "nph": 3,
+      "regime_id": "weak_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "intermediate_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "strong_weak_u8"
+    },
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "3": {
+      "cpus": 4,
+      "disk_mb": 20480,
+      "memory_mb": 8192,
+      "runtime_seconds": 259200
+    },
+    "7": {
+      "cpus": 4,
+      "disk_mb": 30720,
+      "memory_mb": 12288,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_plan_v1",
+  "sha256": "a93cfff3693fe0d5adedeecc1c589b14a539574b3a54776ee602da23f3445b40",
+  "source_archive_sha256": "270f8f67a62a52e57020b5a2a33e751965f7a7a3264c788b6ec73acef17532f8",
+  "source_inventory_sha256": "a8cadb7a435a3c1b8cd48b36659592e3bd3e08e742d081d98228b066dbd41e10",
+  "submission_authorized": false
+}

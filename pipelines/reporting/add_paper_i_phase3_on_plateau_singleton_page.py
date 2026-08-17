@@ -128,6 +128,7 @@ PAGE_ID = (
 REPORT_KEY = "phase3_on_plateau_singleton_sixregime_r50"
 COMPILE_CONVENTION = "table_i_basis_gate_transpile_v1"
 TARGET_ROUND = 50
+APPEND_TRAJECTORY_ROUND = 70
 PLOT_FLOOR = 1.0e-16
 DEFAULT_APPEND_ADAPTER = REPO_ROOT / (
     "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/"
@@ -1158,19 +1159,18 @@ def _append_comparator_projection(path: Path) -> dict[str, Any]:
                 label=f"{regime} Append-ADAPT point round",
             )
             rounds.append(round_index)
-            if round_index <= TARGET_ROUND:
-                error = _finite(
-                    point.get("delta_e"),
-                    label=f"{regime} Append-ADAPT point error",
+            error = _finite(
+                point.get("delta_e"),
+                label=f"{regime} Append-ADAPT point error",
+            )
+            if error < 0.0:
+                raise Page8InputError(
+                    f"{regime}: Append-ADAPT error is negative"
                 )
-                if error < 0.0:
-                    raise Page8InputError(
-                        f"{regime}: Append-ADAPT error is negative"
-                    )
-                points.append({"k": round_index, "error": error})
-        if rounds != list(range(71)) or [row["k"] for row in points] != list(
-            range(TARGET_ROUND + 1)
-        ):
+            points.append({"k": round_index, "error": error})
+        if rounds != list(range(APPEND_TRAJECTORY_ROUND + 1)) or [
+            row["k"] for row in points
+        ] != list(range(APPEND_TRAJECTORY_ROUND + 1)):
             raise Page8InputError(
                 f"{regime}: Append-ADAPT points are not exact rounds 0..70"
             )
@@ -1187,7 +1187,7 @@ def _append_comparator_projection(path: Path) -> dict[str, Any]:
         )
         if endpoint.get("round") != TARGET_ROUND or not math.isclose(
             endpoint_error,
-            float(points[-1]["error"]),
+            float(points[TARGET_ROUND]["error"]),
             rel_tol=0.0,
             abs_tol=1.0e-14,
         ):
@@ -1212,6 +1212,26 @@ def _append_comparator_projection(path: Path) -> dict[str, Any]:
             raise Page8InputError(
                 f"{regime}: Append-ADAPT compile convention drifted"
             )
+        trajectory_endpoint = _mapping(
+            endpoints.get("round_70"),
+            label=f"{regime} Append-ADAPT round-70 endpoint",
+        )
+        trajectory_error = _finite(
+            trajectory_endpoint.get("delta_e"),
+            label=f"{regime} Append-ADAPT round-70 error",
+        )
+        if (
+            trajectory_endpoint.get("round") != APPEND_TRAJECTORY_ROUND
+            or not math.isclose(
+                trajectory_error,
+                float(points[APPEND_TRAJECTORY_ROUND]["error"]),
+                rel_tol=0.0,
+                abs_tol=1.0e-14,
+            )
+        ):
+            raise Page8InputError(
+                f"{regime}: Append-ADAPT round-70 endpoint drifted"
+            )
         by_regime[regime] = {
             "execution_id": str(cell.get("execution_id")),
             "exact_same_cutoff_energy": _finite(
@@ -1229,6 +1249,10 @@ def _append_comparator_projection(path: Path) -> dict[str, Any]:
                 "error": endpoint_error,
                 **projected_costs,
                 "compile_convention": COMPILE_CONVENTION,
+            },
+            "trajectory_terminal": {
+                "k": APPEND_TRAJECTORY_ROUND,
+                "error": trajectory_error,
             },
             "source": copy.deepcopy(cell.get("source")),
         }
@@ -1279,7 +1303,9 @@ def attach_append_comparator(
             "page_id": PAGE_ID,
             "comparison_method": "Append-ADAPT",
             "comparison_round": TARGET_ROUND,
-            "comparison_horizon_policy": "common_controller_round_50_v1",
+            "comparison_horizon_policy": (
+                "append_trajectory_round_70_with_ra_and_cost_anchor_round_50_v1"
+            ),
             "append_adapter": {
                 **append["binding"],
                 "package_id": append["package_id"],
@@ -1412,7 +1438,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
             zorder=5,
         )
         ax.set_yscale("log")
-        ax.set_xlim(0, TARGET_ROUND)
+        ax.set_xlim(0, APPEND_TRAJECTORY_ROUND)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=6))
         ax.grid(True, which="major", alpha=0.22, linewidth=0.55)
         ax.set_title(f"{cell['regime_label']} ($n_{{ph}}={cell['nph']}$)")
@@ -1429,7 +1455,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
             linewidth=1.6,
             marker="o",
             markersize=5,
-            label="Append-ADAPT (common terminal k=50)",
+            label="Append-ADAPT trajectory to k=70 (cost marker k=50)",
         ),
         Line2D(
             [0],
@@ -1442,7 +1468,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
         )
     ]
     fig.suptitle(
-        "Singleton comparison at the common round-50 horizon",
+        "Singleton comparison: Append trajectory to k=70; RA and costs at k=50",
         fontsize=11.2,
         fontweight="bold",
     )
@@ -1451,7 +1477,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
         loc="outside lower center",
         ncol=2,
         frameon=False,
-        title="Markers: Append terminal; RA first effective-plateau prefix",
+        title="Markers: Append cost anchor k=50; RA first effective-plateau prefix",
     )
     fig.savefig(png_path, dpi=300, bbox_inches="tight")
     fig.savefig(pdf_path, bbox_inches="tight")

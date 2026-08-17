@@ -1,0 +1,50 @@
+{
+  "authentication": {
+    "authenticated_remote_query": true,
+    "kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+    "source_host": "ap2001.chtc.wisc.edu"
+  },
+  "captured_at_utc": "2026-08-13T09:48:57Z",
+  "cluster_id": 9647386,
+  "factory_query": {
+    "command": "condor_q -factory 9647386 -json -attributes ClusterId,TotalSubmitProcs,JobMaterializeLimit,JobMaterializeMaxIdle,JobMaterializeNextProcId,JobMaterializePaused",
+    "rows": [
+      {
+        "ClusterId": 9647386,
+        "JobMaterializeLimit": 2,
+        "JobMaterializeMaxIdle": 0,
+        "JobMaterializeNextProcId": 2,
+        "JobMaterializePaused": 1,
+        "TotalSubmitProcs": 11
+      }
+    ]
+  },
+  "history_query": {
+    "command": "condor_history 9647386 -limit 20 -json -attributes ClusterId,ProcId,JobStatus,ExitCode,NumJobStarts,CompletionDate",
+    "rows": [
+      {
+        "ClusterId": 9647386,
+        "CompletionDate": 1786597511,
+        "ExitCode": 0,
+        "JobStatus": 4,
+        "NumJobStarts": 1,
+        "ProcId": 1
+      },
+      {
+        "ClusterId": 9647386,
+        "CompletionDate": 1786579665,
+        "ExitCode": 0,
+        "JobStatus": 4,
+        "NumJobStarts": 1,
+        "ProcId": 0
+      }
+    ]
+  },
+  "queue_query": {
+    "command": "condor_q 9647386 -json -attributes ClusterId,ProcId,JobStatus,NumJobStarts",
+    "rows": []
+  },
+  "schema": "paper_i_page16_sw_always_remote_materialization_exclusion_after_snapshot_v2",
+  "sha256": "ef805bef226b23894a516e547833add4cbdc3987ebc522b20269f99cc1b5f4db",
+  "status": "passed_authenticated_remote_materialization_excluded_after_removal_attempt"
+}

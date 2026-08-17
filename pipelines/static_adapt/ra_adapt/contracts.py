@@ -1353,23 +1353,45 @@ def _without_kind(value: Mapping[str, Any]) -> dict[str, Any]:
 def _adapter_from_mapping(value: Any) -> Any:
     from pipelines.static_adapt.ra_adapt.adapters import (
         GLOBAL_SINGLE_PAULI_ADAPTER_ID,
+        GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID,
         H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID,
         H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID,
         H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID,
         MACRO_ADAPTER_ID,
+        MACRO_GRADIENT_PHASE0_ADAPTER_ID,
+        MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID,
+        MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID,
         SINGLE_PAULI_ADAPTER_ID,
         GlobalSinglePauliWordCandidateAdapter,
+        GlobalSingletonGradientPhase0CandidateAdapter,
         H2OLinearFDSectorCompletePauliBlockCandidateAdapter,
         H2OLinearFDSinglePauliWordCandidateAdapter,
         H2OLinearFDSymmetryCompleteCandidateAdapter,
         MacroCandidateAdapter,
+        MacroGradientPhase0CandidateAdapter,
+        MacroGradientPhase0ThenSingletonCandidateAdapter,
+        MacroThenSingletonPhaseICandidateAdapter,
         SinglePauliWordCandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.l3_page12 import (
+        PAPER_I_L3_PAGE12_ADAPTER_ID,
+        PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID,
+        PaperIPureHubbardNoisePage12CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        PAPER_I_RA_SEMANTIC_ADAPTER_ID,
+        PaperIRASemanticClosureGlobalSingletonCandidateAdapter,
     )
 
     payload = _mapping(value, name="request.adapter")
     representation = payload.get("candidate_representation_id")
     adapter_id = payload.get("adapter_id")
     if representation == CANDIDATE_REPRESENTATION_MACRO:
+        if adapter_id == MACRO_GRADIENT_PHASE0_ADAPTER_ID:
+            return MacroGradientPhase0CandidateAdapter()
         if adapter_id == H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID:
             return H2OLinearFDSectorCompletePauliBlockCandidateAdapter()
         if adapter_id == H2O_LINEAR_FD_SYMMETRY_COMPLETE_ADAPTER_ID:
@@ -1378,10 +1400,48 @@ def _adapter_from_mapping(value: Any) -> Any:
             raise ValueError("Macro adapter id drifted.")
         return MacroCandidateAdapter()
     if representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
+        if adapter_id == PAPER_I_RA_SEMANTIC_ADAPTER_ID:
+            allowed = {
+                "candidate_representation_id",
+                "adapter_id",
+                "route_variant",
+                "semantic_implementation_version",
+            }
+            if set(payload).difference(allowed):
+                raise ValueError(
+                    "Semantic-closure adapter serialization has unknown fields."
+                )
+            return PaperIRASemanticClosureGlobalSingletonCandidateAdapter(
+                route_variant=str(payload.get("route_variant", "")),
+                semantic_implementation_version=str(
+                    payload.get("semantic_implementation_version", "")
+                ),
+            )
+        if adapter_id == PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID:
+            allowed = {
+                "candidate_representation_id",
+                "adapter_id",
+                "noise_level_id",
+            }
+            if set(payload).difference(allowed):
+                raise ValueError(
+                    "Pure-Hubbard noise adapter serialization has unknown fields."
+                )
+            return PaperIPureHubbardNoisePage12CandidateAdapter(
+                noise_level_id=str(payload.get("noise_level_id", ""))
+            )
+        if adapter_id == PAPER_I_L3_PAGE12_ADAPTER_ID:
+            return PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter()
         if adapter_id == H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID:
             return H2OLinearFDSinglePauliWordCandidateAdapter()
         if adapter_id == GLOBAL_SINGLE_PAULI_ADAPTER_ID:
             return GlobalSinglePauliWordCandidateAdapter()
+        if adapter_id == GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID:
+            return GlobalSingletonGradientPhase0CandidateAdapter()
+        if adapter_id == MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID:
+            return MacroGradientPhase0ThenSingletonCandidateAdapter()
+        if adapter_id == MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID:
+            return MacroThenSingletonPhaseICandidateAdapter()
         if adapter_id not in {None, SINGLE_PAULI_ADAPTER_ID}:
             raise ValueError("Single-Pauli adapter id drifted.")
         return SinglePauliWordCandidateAdapter()
@@ -1406,6 +1466,9 @@ def _policy_from_kind(
         and kwargs["search_window_size"] is None
     ):
         kwargs["search_window_size"] = FullCombinatorialSearchWindow()
+    if constructor is ForkLocalBeam and "calibration_status" in kwargs:
+        if kwargs.pop("calibration_status") != "uncalibrated_default":
+            raise ValueError("Fork-local beam calibration status drifted.")
     return constructor(**kwargs)
 
 

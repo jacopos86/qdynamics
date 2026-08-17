@@ -171,6 +171,97 @@ def _scored_population() -> dict[str, Any]:
     return payload
 
 
+def _phase0_scored_population() -> dict[str, Any]:
+    def _record(
+        pool_index: int,
+        position: int,
+        generator_id: str,
+        pool_label: str,
+    ) -> dict[str, Any]:
+        return {
+            "domain_record_id": (
+                f"candidate:pool={pool_index}:position={position}"
+            ),
+            "generator_id": generator_id,
+            "pool_index": pool_index,
+            "pool_label": pool_label,
+            "insertion_position": position,
+            "position_class": "interior" if position < 1 else "append",
+        }
+
+    population = [
+        _record(
+            0,
+            0,
+            "generator:0::pool[0]",
+            "candidate:commuting",
+        ),
+        _record(
+            2,
+            0,
+            "generator:2::pool[2]",
+            "candidate:barrier",
+        ),
+        _record(
+            2,
+            1,
+            "generator:2::pool[2]",
+            "candidate:barrier",
+        ),
+    ]
+    shortlist = copy.deepcopy(population[1:])
+    phase_i_shortlist = copy.deepcopy(shortlist)
+    for record in phase_i_shortlist:
+        record["generator_id"] = str(record["generator_id"]).split(
+            "::pool[", maxsplit=1
+        )[0]
+    phase_rows = (
+        ("phase_i", phase_i_shortlist),
+        ("phase_ii", phase_i_shortlist[1:]),
+        ("phase_iii", phase_i_shortlist[1:]),
+    )
+    phases: list[dict[str, Any]] = []
+    all_records: list[dict[str, Any]] = []
+    for phase_name, rows in phase_rows:
+        records = copy.deepcopy(rows)
+        phases.append(
+            {
+                "phase": phase_name,
+                "population_count": len(records),
+                "records": records,
+                "ordered_population_sha256": _digest(records),
+            }
+        )
+        all_records.extend(records)
+    payload = {
+        "schema": "paper_i_scored_insertion_position_population_v1",
+        "coordinate_chart": "exact_ordered_insertion_zero_angle_v1",
+        "append_position": 1,
+        "phase_order": ["phase_i", "phase_ii", "phase_iii"],
+        "phases": phases,
+        "scored_record_count": len(all_records),
+        "interior_scored_count": sum(
+            record["position_class"] == "interior"
+            for record in all_records
+        ),
+        "append_scored_count": sum(
+            record["position_class"] == "append"
+            for record in all_records
+        ),
+        "phase0_gradient_screen": {
+            "schema": "paper_i_scored_gradient_phase0_population_v1",
+            "population_count": len(population),
+            "population": population,
+            "ordered_population_sha256": _digest(population),
+            "shortlist_count": len(shortlist),
+            "shortlist": shortlist,
+            "ordered_shortlist_sha256": _digest(shortlist),
+        },
+    }
+    payload["sha256"] = _digest(payload)
+    return payload
+
+
 def _append_reduced_receipt() -> dict[str, Any]:
     return {
         "schema": "commutation_reduced_insertion_domain_receipt_v1",
@@ -281,6 +372,22 @@ def test_resume_accepts_exact_commutation_reduction_closure() -> None:
     assert tuple(plans) == (0, 2)
     assert tuple(plans[0]["representative_positions"]) == (0,)
     assert tuple(plans[2]["representative_positions"]) == (0, 1)
+
+
+def test_resume_accepts_authenticated_phase0_shortlist_as_phase_i() -> None:
+    plans = _validate_commutation_reduced_insertion_round(
+        _valid_reduced_receipt(),
+        owner="history[1] insertion",
+        expected_schema=(
+            "commutation_reduced_insertion_domain_receipt_v1"
+        ),
+        expected_policy="always_commutation_reduced",
+        expected_requested_positions=(0, 1),
+        expected_domain_open=True,
+        scored_population=_phase0_scored_population(),
+    )
+
+    assert tuple(plans) == (0, 2)
 
 
 def test_resume_authenticates_append_endpoint_reduction_closure() -> None:

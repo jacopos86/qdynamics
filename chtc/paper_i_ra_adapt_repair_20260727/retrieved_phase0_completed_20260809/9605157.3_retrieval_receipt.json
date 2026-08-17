@@ -1,0 +1,25 @@
+{
+  "byte_identity_passed": true,
+  "cluster_id": 9605157,
+  "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_plateau",
+  "local_archive": {
+    "full_tar_inventory_scan_passed": true,
+    "gzip_test_passed": true,
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.3_full.tar.gz",
+    "sha256": "ab3096dd82ae499fced09ebbcc462e93fa83195a1183eb532366a4a79cd19429",
+    "size_bytes": 1099219486
+  },
+  "proc_id": 3,
+  "remote_archive": {
+    "absence_verified_after_delete": true,
+    "deleted_after_verified_local_copy": true,
+    "exact_path_reverified_before_delete": true,
+    "path": "/staging/jsstrobel/paper_i_gradient_phase0_two_routes_20260807_v1/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_plateau__9605157__3__retry4.tar.gz",
+    "sha256": "ab3096dd82ae499fced09ebbcc462e93fa83195a1183eb532366a4a79cd19429",
+    "size_bytes": 1099219486
+  },
+  "retrieved_utc": "2026-08-09T12:47:19Z",
+  "schema": "paper_i_chtc_verified_retrieval_receipt_v1",
+  "sha256": "4de2fbf91d0cf3cd73106726825169efc92c2d041cac66e82cfa3e4b97cffb67",
+  "status": "passed"
+}

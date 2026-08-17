@@ -4605,7 +4605,7 @@
   "source_sha256": {
     "local_always_provenance": "f03966a7eec9b1919d17893b155d3afac38f3f03ca762df53b8ee8cbc510860d",
     "recovery_adapter": "4d3f4bded2f7fbde1965df24c4ced3119cd07927dfd82582a339dc5a35e6e485",
-    "stationary_provenance": "09317815aec1d3b7794f025084ab1173b7270f784d2e4d689b237c840cc15ebc"
+    "stationary_provenance": "30b375cea75a95ddb14373561937896b678d8c2d7b85df91a62264f783a72674"
   },
   "sources": {
     "intermediate_strong": {

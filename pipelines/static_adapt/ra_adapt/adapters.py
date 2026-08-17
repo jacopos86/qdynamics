@@ -10,6 +10,9 @@ from pipelines.static_adapt.ra_adapt.contracts import (
     CANDIDATE_REPRESENTATION_MACRO,
     CANDIDATE_REPRESENTATION_SINGLE_PAULI,
 )
+from pipelines.static_adapt.ra_adapt.phase0 import (
+    GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+)
 from pipelines.static_adapt.ra_adapt.pools import (
     CandidateInventory,
     CandidateRecord,
@@ -26,8 +29,21 @@ MACRO_ADAPTER_ID = "paper_i_ra_adapt_macro_candidate_adapter_v1"
 SINGLE_PAULI_ADAPTER_ID = (
     "paper_i_ra_adapt_single_pauli_word_candidate_adapter_v1"
 )
+MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID = (
+    "paper_i_ra_adapt_macro_then_singleton_phase_i_candidate_adapter_v1"
+)
+MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID = (
+    "paper_i_ra_adapt_macro_gradient_phase0_then_singleton_"
+    "candidate_adapter_v1"
+)
+MACRO_GRADIENT_PHASE0_ADAPTER_ID = (
+    "paper_i_ra_adapt_macro_gradient_phase0_candidate_adapter_v1"
+)
 GLOBAL_SINGLE_PAULI_ADAPTER_ID = (
     "paper_i_ra_adapt_global_single_pauli_word_candidate_adapter_v1"
+)
+GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID = (
+    "paper_i_ra_adapt_global_singleton_gradient_phase0_candidate_adapter_v1"
 )
 H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID = (
     "paper_iv_h2o_linear_fd_ra_adapt_single_pauli_word_candidate_adapter_v1"
@@ -61,6 +77,12 @@ PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY = (
     "identity_on_retained_singletons_v1"
 )
 PHASE_I_VISIBILITY_ALL_EXECUTABLE = "all_executable_candidates_v1"
+POST_EXPOSURE_PHASE_I_RETAINED_PARENT_SINGLETONS = (
+    "phase_i_on_guarded_singletons_from_retained_macro_shortlist_v1"
+)
+MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY = (
+    "standard_adapt_abs_gradient_macro_phase0_v1"
+)
 
 
 @runtime_checkable
@@ -161,6 +183,30 @@ class MacroCandidateAdapter:
 
 
 @dataclass(frozen=True)
+class MacroGradientPhase0CandidateAdapter(MacroCandidateAdapter):
+    """Screen intact macros by ``|g|`` before the ordinary macro funnel.
+
+    The retained generator identities remain intact through Phase I, Phase II,
+    and Phase III.  This adapter never exposes singleton children.
+    """
+
+    macro_phase0_policy_id: ClassVar[str] = (
+        MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+    )
+    adapter_id: str = MACRO_GRADIENT_PHASE0_ADAPTER_ID
+
+    def __post_init__(self) -> None:
+        if (
+            self.candidate_representation_id
+            != CANDIDATE_REPRESENTATION_MACRO
+            or self.adapter_id != MACRO_GRADIENT_PHASE0_ADAPTER_ID
+        ):
+            raise ValueError(
+                "Macro-gradient Phase-0 adapter identity fields are fixed."
+            )
+
+
+@dataclass(frozen=True)
 class SinglePauliWordCandidateAdapter:
     """Expose hard-guarded unit-Pauli children with explicit ancestry."""
 
@@ -233,6 +279,65 @@ class SinglePauliWordCandidateAdapter:
             insertion_position=int(position),
             representation_id=self.candidate_representation_id,
         )
+
+
+@dataclass(frozen=True)
+class MacroThenSingletonPhaseICandidateAdapter(
+    SinglePauliWordCandidateAdapter
+):
+    """Screen retained macro children through a fresh singleton Phase I.
+
+    The initial Phase-I population remains the authenticated parent-template
+    factory.  After its macro shortlist, guarded singleton children are
+    exposed and receive their own cheap Phase-I shortlist before any
+    Phase-II/III evaluation.
+    """
+
+    post_exposure_phase_i_shortlist_id: ClassVar[str] = (
+        POST_EXPOSURE_PHASE_I_RETAINED_PARENT_SINGLETONS
+    )
+    adapter_id: str = MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID
+
+    def __post_init__(self) -> None:
+        if (
+            self.candidate_representation_id
+            != CANDIDATE_REPRESENTATION_SINGLE_PAULI
+            or self.adapter_id
+            != MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID
+        ):
+            raise ValueError(
+                "Macro-then-singleton Phase-I adapter identity fields are "
+                "fixed."
+            )
+
+
+@dataclass(frozen=True)
+class MacroGradientPhase0ThenSingletonCandidateAdapter(
+    MacroThenSingletonPhaseICandidateAdapter
+):
+    """Use an exact gradient-only macro screen before singleton Phase I.
+
+    The macro stage ranks authenticated parent identities only by the
+    standard ADAPT endpoint gradient magnitude.  Guarded singleton children
+    of the retained parents then form the official Phase-I population.
+    """
+
+    macro_phase0_policy_id: ClassVar[str] = (
+        MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+    )
+    adapter_id: str = MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID
+
+    def __post_init__(self) -> None:
+        if (
+            self.candidate_representation_id
+            != CANDIDATE_REPRESENTATION_SINGLE_PAULI
+            or self.adapter_id
+            != MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID
+        ):
+            raise ValueError(
+                "Macro-gradient Phase-0 then singleton adapter identity "
+                "fields are fixed."
+            )
 
 
 @dataclass(frozen=True)
@@ -492,10 +597,36 @@ class GlobalSinglePauliWordCandidateAdapter:
         )
 
 
+@dataclass(frozen=True)
+class GlobalSingletonGradientPhase0CandidateAdapter(
+    GlobalSinglePauliWordCandidateAdapter
+):
+    """Screen the complete guarded-singleton supply by standard ADAPT ``|g|``."""
+
+    phase0_shortlist_policy_id: ClassVar[str] = (
+        GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY
+    )
+    adapter_id: str = GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID
+
+    def __post_init__(self) -> None:
+        if (
+            self.candidate_representation_id
+            != CANDIDATE_REPRESENTATION_SINGLE_PAULI
+            or self.adapter_id
+            != GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID
+        ):
+            raise ValueError(
+                "Global-singleton gradient Phase-0 adapter identity fields "
+                "are fixed."
+            )
+
+
 __all__ = [
     "CandidateRepresentationAdapter",
     "GLOBAL_SINGLE_PAULI_ADAPTER_ID",
+    "GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID",
     "GlobalSinglePauliWordCandidateAdapter",
+    "GlobalSingletonGradientPhase0CandidateAdapter",
     "H2O_LINEAR_FD_APPLICATION_FAMILY",
     "H2O_LINEAR_FD_SINGLE_PAULI_ADAPTER_ID",
     "H2O_LINEAR_FD_SECTOR_COMPLETE_PAULI_BLOCK_ADAPTER_ID",
@@ -503,11 +634,19 @@ __all__ = [
     "H2OLinearFDSectorCompletePauliBlockCandidateAdapter",
     "H2OLinearFDSymmetryCompleteCandidateAdapter",
     "MACRO_ADAPTER_ID",
+    "MACRO_GRADIENT_PHASE0_ADAPTER_ID",
+    "MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID",
+    "MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY",
+    "MACRO_THEN_SINGLETON_PHASE_I_ADAPTER_ID",
     "MacroCandidateAdapter",
+    "MacroGradientPhase0CandidateAdapter",
+    "MacroGradientPhase0ThenSingletonCandidateAdapter",
+    "MacroThenSingletonPhaseICandidateAdapter",
     "PHASE_I_SUPPLY_EXECUTABLE_MACRO",
     "PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON",
     "PHASE_I_SUPPLY_PARENT_TEMPLATE_FACTORY",
     "PHASE_I_VISIBILITY_ALL_EXECUTABLE",
+    "POST_EXPOSURE_PHASE_I_RETAINED_PARENT_SINGLETONS",
     "PHASE_II_EXPOSURE_RETAINED_MACRO_IDENTITY",
     "PHASE_II_EXPOSURE_RETAINED_PARENT_CHILDREN",
     "PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS",

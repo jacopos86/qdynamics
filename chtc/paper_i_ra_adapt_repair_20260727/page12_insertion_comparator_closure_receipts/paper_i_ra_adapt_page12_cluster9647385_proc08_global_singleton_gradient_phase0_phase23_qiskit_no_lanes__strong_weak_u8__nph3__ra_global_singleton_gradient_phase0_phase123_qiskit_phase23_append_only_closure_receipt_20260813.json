@@ -1,0 +1,153 @@
+{
+  "activation_manifest": {
+    "canonical_sha256": "9aa36c3362257dfdcd8624bf091adfbaae28edb06e0abadcb8d6b6936533a36d",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/activation_manifest.json",
+    "sha256": "104a22a774cee5526c9272082ea884745e4f851c55097396ea1de2eeeaf47ca4",
+    "size_bytes": 8379
+  },
+  "archive": {
+    "declared_artifact_count": 7,
+    "inventory": [
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.estimator_call_ledger_checkpoint.b6719154ab9c328c.json",
+        "sha256": "b6719154ab9c328c426fda4554656e4c89c9b8c9f4dc99758fc5ecd2283d7cf4",
+        "size_bytes": 588360411
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.json",
+        "sha256": "199118599473867462a6d03f727b6aa28476b8c4eefde156ee1e9182bb7eeae7",
+        "size_bytes": 444982716
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.verified_singleton_resume.3de10e683d17ab46.json",
+        "sha256": "3de10e683d17ab46604c9a761b1741d8fcd3e7f356fcbb2c5111fbab667a576d",
+        "size_bytes": 4982
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+        "sha256": "ccfa7e4916a7264a57c113bd3880e7d8d18d211c213a0d00e4aa0fbc4715e240",
+        "size_bytes": 2226
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/result/estimator_ledger.json",
+        "sha256": "814ab09e9be4e54d1711f288597091f57c6adc34d75e03566e18b260084945bc",
+        "size_bytes": 325565613
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/result/result.json",
+        "sha256": "00f163244e99e11092d5e133ff9e37253cef54be31c7516c1d99c3ae65c876f0",
+        "size_bytes": 54787311
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+        "sha256": "ed3be27c49ca7a56b1a27ce489a3fef2c82bb38f11506b0300bbdc065c4418a6",
+        "size_bytes": 48762
+      },
+      {
+        "path": "worker_exit_status.txt",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "size_bytes": 2
+      },
+      {
+        "path": "worker_receipt.json",
+        "sha256": "2b192de2c707b69109f20ebbd55b8f84205b01b41d0ff6e91b226cd6b4b58a05",
+        "size_bytes": 2953
+      }
+    ],
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page12_insertion_comparators_20260813/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__8.tar.gz",
+    "regular_member_count": 9,
+    "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__8.tar.gz",
+    "sha256": "f953d2af34dac16af654542d7b61f5af628d752ce06f44d5a95f7f2d50a2e7f2",
+    "size_bytes": 300299924
+  },
+  "authentication_checks": {
+    "activation_manifest_passed": true,
+    "all_twelve_authorizations_passed": true,
+    "every_declared_artifact_hash_size_passed": true,
+    "exact_cluster_proc_mapping_passed": true,
+    "execution_manifest_self_digest_passed": true,
+    "full_member_inventory_hash_size_closure_passed": true,
+    "insertion_identity_passed": true,
+    "job_identity_passed": true,
+    "protocol_identity_passed": true,
+    "remote_local_identity_passed": true,
+    "route_identity_passed": true,
+    "sealed_package_identity_passed": true,
+    "source_identity_passed": true,
+    "tar_safety_and_unique_inventory_passed": true,
+    "target_authorization_passed": true,
+    "worker_receipt_self_digest_passed": true
+  },
+  "authorization": {
+    "canonical_sha256": "e06bc779a9874a562c921fcdba229ff29881346e977a013a10ba26f7c83eb633",
+    "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/authorizations/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "165063c088e573f7e6e2780f0eb70eeabd32e8e27cbcea6214d8950d3eb4c375",
+    "size_bytes": 1761
+  },
+  "cluster_id": 9647385,
+  "comparator_policy": "append_only",
+  "controller_rounds_completed": 50,
+  "created_at_utc": "2026-08-13T16:00:35Z",
+  "execution_manifest": {
+    "canonical_sha256": "4d86e65962ab32ce1670ab604c77b52ba2be60da1757e9bc6c7b5fc148ecd4ef",
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_execution_manifest_v1",
+    "status": "passed"
+  },
+  "job": {
+    "canonical_sha256": "4a0a228ec7324d32a4c7dda1bae39514a457580849f39b432c419f746361c0a3",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/jobs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "4d531d9514c6055b83d0008d845a9f8880c0c2d056fb8b95ca841504f73c9014",
+    "size_bytes": 5503
+  },
+  "network_performed_by_action": false,
+  "nph": 3,
+  "package_manifest": {
+    "canonical_sha256": "efce225efdc04653e8fca7e34eb3f467d4a6ec594e2130cde4bbea45e3d040e9",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/package_manifest.json",
+    "sha256": "4cf3df426f6b3545e51b90c0ffaf1f0755b989ae3644a067ca8cbcf98b5026bd",
+    "size_bytes": 23949
+  },
+  "paper_evidence_adopted": false,
+  "proc_id": 8,
+  "protocol": {
+    "canonical_sha256": "7c0dae752d6e8acdab2da03c2ac2c79d86e05d578f4b4948e49ddbe6af87f56f",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/bundle_materialization/ra_adapt_page12_insertion_comparators_r50_20260812_v1/protocols/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "db85d6e018b1eb2891f876aaad010d3dcf6a5d8aeb8b359df05d1707e2962be5",
+    "size_bytes": 53703
+  },
+  "regime_id": "strong_weak_u8",
+  "remote_local_identity_evidence": {
+    "canonical_sha256": "89987b8b2702f2ff685e05079864df4e012c316f86d1c62e4ede45c558701f5b",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/page12_insertion_comparator_closure_evidence/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__8_remote_archive_identity.json",
+    "sha256": "37be63f7b2b10fe3ba461af5a98b4ffc226e61b51e5bf0efe072f4cc95de660b",
+    "size_bytes": 1495
+  },
+  "route_contract_canonical_sha256": "5344f39726b283fdba78d1c49616a530cc881557ef12d4245bdd9691fb753e45",
+  "run_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+  "runtime_insertion_mode": "append_only",
+  "scheduler_mutation_performed_by_action": false,
+  "schema": "paper_i_ra_adapt_page12_insertion_comparator_closure_receipt_v1",
+  "scientific_execution_performed_by_action": false,
+  "sha256": "5adad68a2caec1acec7e9ceca535d95e76b84b9530e10f6857354a54cd5e4b04",
+  "source_archive": {
+    "path": "source/source_locked.tar.gz",
+    "sha256": "690d54dbf5bafcaaf974dc11339ed927cb7f5d117265ed51adbb811785740762",
+    "size_bytes": 2068501
+  },
+  "status": "passed_authenticated_page12_insertion_comparator_closure",
+  "summary_json": {
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+    "sha256": "ed3be27c49ca7a56b1a27ce489a3fef2c82bb38f11506b0300bbdc065c4418a6",
+    "size_bytes": 48762
+  },
+  "target_horizon": 50,
+  "typed_insertion_kind": "append_only",
+  "worker_receipt": {
+    "canonical_sha256": "bd71735c125bbd046043c461f6e410132ee4c5e6816d793d8e2ba1bd905f62f8",
+    "path_inside_archive": "worker_receipt.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_worker_receipt_v1",
+    "status": "passed"
+  }
+}

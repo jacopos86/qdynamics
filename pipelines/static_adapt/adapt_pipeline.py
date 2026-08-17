@@ -204,6 +204,7 @@ from pipelines.scaffold.hh_continuation_scoring import (
     BATCH_SEARCH_POPULATION_RANKED_CHILD_PHASE2_V1,
     FullScoreConfig,
     GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
+    HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
     HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA,
     HistoricalSingletonOldOldGeometryPrior,
     MeasurementCacheAudit,
@@ -219,6 +220,7 @@ from pipelines.scaffold.hh_continuation_scoring import (
     BatchSelectionProposal,
     Phase2CurvatureOracle,
     Phase1CompileCostOracle,
+    PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION,
     OrderedInsertionGeometryOracle,
     SimpleScoreConfig,
     _exact_insertion_first_order_candidate_geometry,
@@ -249,6 +251,7 @@ from pipelines.scaffold.hh_continuation_scoring import (
     raw_f_metric_from_state,
     rescore_hardware_cost_family,
     rescore_historical_phase3_records_with_coordinate_models,
+    require_phase3_signed_factor_consumer_semantic_version,
     resolve_hardware_cost_lambdas,
     select_phase2_batch_record_proposals,
     select_phase2_batch_records,
@@ -338,6 +341,8 @@ from pipelines.static_adapt.nested_windows import (
     validate_nested_window,
 )
 from pipelines.static_adapt.hh_backend_compile_oracle import (
+    BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
     BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
     BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1,
     BackendCompileConfig,
@@ -345,6 +350,7 @@ from pipelines.static_adapt.hh_backend_compile_oracle import (
     MARRAKESH_GRAPH_SPAN_MODE,
     MarrakeshGraphSpanCostOracle,
     ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
+    backend_compile_scope_uses_qiskit_for_stage,
 )
 from pipelines.static_adapt.resume_scaffold import (
     ResumeBestFrontierCheckpoint,
@@ -620,7 +626,9 @@ from pipelines.static_adapt.batch_ordering import (
     _schur_batch_context_from_summary,
 )
 from pipelines.static_adapt.phase_shortlists import (
+    Phase3NaturalTerminalAuthority,
     PhaseShortlistRuntime,
+    _adaptive_phase_shortlist_with_receipt,
     _phase1_eval_payload_from_records,
     _phase1_lane_shortlist_with_legacy_hook,
     _phase1_record_score_value,
@@ -628,6 +636,11 @@ from pipelines.static_adapt.phase_shortlists import (
     _phase2_lane_health_shortlist_with_legacy_hook,
     _phase3_tie_beam_selection_pool,
     _phase_shortlist_with_legacy_hook,
+)
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_FORCED_ADMISSION_V1,
+    ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_RAISE_V1,
+    ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_TYPED_TERMINAL_V1,
 )
 from pipelines.static_adapt.run_control import (
     _adapt_segment_controller_round,
@@ -848,13 +861,17 @@ from pipelines.static_adapt.sr_snake._selection import (
     _GreedyBatchAdmissionDecision,
     _GreedyBatchProposalReceipt,
     _GreedyBatchSelectionEvaluation,
+    _NoPositivePhaseIIISelection,
     _PhaseSelectionReceipt,
+    _Phase3NoPositiveSelectionEvaluation,
     _PredictiveCostReceipt,
     _ResponseReceipt,
     _SelectionEvaluation,
     _SelectionWorkspace,
     _SingletonAdmissionDecision,
     _SRControllerState,
+    _StationaryPhase0Selection,
+    _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME,
     _ShortlistRankReceipt,
     _TrustSolveReceipt,
     _select_singleton,
@@ -2166,7 +2183,7 @@ class _DefaultSelectionPhaseRunners:
     phase_i: Callable[[], dict[str, Any]]
     phase_ii: Callable[..., dict[str, Any]]
     projected_phase_iii: Callable[..., tuple[Any, Any, Any]]
-    supported_response: Callable[..., tuple[Any, Any, Any, Any]]
+    supported_response: Callable[..., tuple[Any, Any, Any, Any, Any]]
     record_phase3_work: Callable[
         [
             Sequence[Mapping[str, Any]],
@@ -2175,6 +2192,13 @@ class _DefaultSelectionPhaseRunners:
         ],
         None,
     ]
+    phase0: (
+        Callable[
+            [tuple[_CandidatePositionRecord, ...]],
+            _PhaseSelectionReceipt | None,
+        ]
+        | None
+    ) = None
     greedy_batch_proposals: (
         Callable[
             [
@@ -2230,6 +2254,64 @@ class _DefaultSelectionRuntime:
     phase3_activation_receipt: Mapping[str, Any] = field(
         default_factory=dict
     )
+    phase3_natural_terminal_authority: (
+        Phase3NaturalTerminalAuthority | None
+    ) = None
+
+    def __post_init__(self) -> None:
+        authority = self.phase3_natural_terminal_authority
+        if authority is not None:
+            if not isinstance(authority, Phase3NaturalTerminalAuthority):
+                raise TypeError(
+                    "phase3_natural_terminal_authority must be a "
+                    "Phase3NaturalTerminalAuthority."
+                )
+            authority.validate()
+
+
+def _adaptive_phase_live_scores(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    record_from_live: Callable[
+        [Mapping[str, Any]],
+        _CandidatePositionRecord,
+    ],
+    score_key: str,
+    tie_break_score_key: str,
+) -> tuple[Any, ...]:
+    """Independently project a live score surface onto canonical IDs."""
+
+    from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+        AdaptivePhaseCandidateScore,
+        adaptive_phase_record_id,
+    )
+
+    projected = []
+    for raw_record in records:
+        record = dict(raw_record)
+        identity = record_from_live(record)
+        feature = record.get("feature")
+
+        def _score(key: str) -> float:
+            value = record.get(key)
+            if value is None and feature is not None:
+                value = getattr(feature, key, None)
+            return float(float("-inf") if value is None else value)
+
+        projected.append(
+            AdaptivePhaseCandidateScore(
+                record_id=adaptive_phase_record_id(
+                    generator_id=str(identity.generator_id),
+                    pool_index=int(identity.pool_index),
+                    insertion_position=int(identity.insertion_position),
+                ),
+                pool_index=int(identity.pool_index),
+                insertion_position=int(identity.insertion_position),
+                active_score=_score(str(score_key)),
+                tie_break_score=_score(str(tie_break_score_key)),
+            )
+        )
+    return tuple(projected)
 
 
 @dataclass(frozen=True, slots=True)
@@ -2256,7 +2338,29 @@ class _DefaultSingletonSelectionKernel:
                 "Default singleton selection kernel executed more than once."
             )
         occurrence_start = len(self.receipts.ledger_occurrences())
-        self.phases.gradient_surface()
+        phase0_receipt = (
+            None
+            if self.phases.phase0 is None
+            else self.phases.phase0(admissible_domain)
+        )
+        if phase0_receipt is None:
+            self.phases.gradient_surface()
+        occurrence_after_phase0 = len(
+            self.receipts.ledger_occurrences()
+        )
+        if (
+            phase0_receipt is not None
+            and phase0_receipt.terminal_outcome is not None
+        ):
+            self.runtime.sidecar.update(
+                {
+                    "phase0": phase0_receipt,
+                    "terminal_outcome": phase0_receipt.terminal_outcome,
+                    "occurrence_start": occurrence_start,
+                    "occurrence_after_phase0": occurrence_after_phase0,
+                }
+            )
+            raise _StationaryPhase0Selection(phase0_receipt)
         phase1_runtime = self.phases.phase_i()
         occurrence_after_phase1 = len(
             self.receipts.ledger_occurrences()
@@ -2269,6 +2373,24 @@ class _DefaultSingletonSelectionKernel:
         )
         occurrence_after_phase2 = len(
             self.receipts.ledger_occurrences()
+        )
+        official_phase1_records = phase2_runtime.get(
+            "official_phase1_records"
+        )
+        official_phase1_shortlisted_records = phase2_runtime.get(
+            "official_phase1_shortlisted_records"
+        )
+        official_phase1_occurrence_end = phase2_runtime.get(
+            "official_phase1_occurrence_end"
+        )
+        post_exposure_phase1_is_official = bool(
+            isinstance(official_phase1_records, list)
+            and isinstance(official_phase1_shortlisted_records, list)
+            and isinstance(official_phase1_occurrence_end, int)
+        )
+        controller_snapshot = phase2_runtime.get(
+            "controller_snapshot",
+            phase1_runtime["controller_snapshot"],
         )
         phase2_shortlisted_records = [
             dict(record)
@@ -2316,7 +2438,7 @@ class _DefaultSingletonSelectionKernel:
             phase2_full_records_evaluated=(
                 phase2_runtime["phase2_full_records_evaluated"]
             ),
-            controller_snapshot=phase1_runtime["controller_snapshot"],
+            controller_snapshot=controller_snapshot,
             phase3_live=True,
         )
         if phase3_population_is_plateau_gated:
@@ -2335,23 +2457,231 @@ class _DefaultSingletonSelectionKernel:
         self.phases.record_phase3_work(
             phase3_measurement_input_records,
             phase3_initial_shortlisted_records,
-            phase1_runtime["controller_snapshot"],
+            controller_snapshot,
         )
         (
             admission_source_records,
             phase3_shortlisted_records,
             historical_coordinate_admission_records,
             historical_overlay_active,
+            adaptive_phase3_receipt,
         ) = self.phases.supported_response(
             phase3_measurement_input_records=(
                 phase3_measurement_input_records
             ),
-            controller_snapshot=phase1_runtime["controller_snapshot"],
+            controller_snapshot=controller_snapshot,
         )
         if not phase3_shortlisted_records:
-            raise RuntimeError(
-                "Default supported response returned no singleton admission "
-                "candidate."
+            if (
+                adaptive_phase3_receipt is None
+                or adaptive_phase3_receipt.status
+                != "no_positive_population"
+                or adaptive_phase3_receipt.retained_record_ids
+            ):
+                raise RuntimeError(
+                    "Default supported response returned no singleton "
+                    "admission candidate without a no-positive receipt."
+                )
+            occurrence_end = len(self.receipts.ledger_occurrences())
+            occurrence_rows = self.receipts.ledger_occurrences()[
+                occurrence_start:occurrence_end
+            ]
+
+            def _terminal_event_identity(
+                row: Mapping[str, Any],
+            ) -> _EstimatorEventIdentity:
+                sequence = int(row["sequence"])
+                primitive_id = str(row["primitive_id"])
+                return _EstimatorEventIdentity(
+                    sequence_index=sequence,
+                    occurrence_id=f"estimator:{sequence}:{primitive_id}",
+                    reuse_identity=(
+                        None
+                        if bool(row.get("charged", False))
+                        else primitive_id
+                    ),
+                )
+
+            estimator_events = tuple(
+                _terminal_event_identity(row) for row in occurrence_rows
+            )
+            event_ids = tuple(
+                event.occurrence_id for event in estimator_events
+            )
+            phase0_event_end = occurrence_after_phase0 - occurrence_start
+            if phase0_receipt is not None and (
+                phase0_receipt.phase != "phase0"
+                or phase0_receipt.estimator_event_ids
+                != event_ids[:phase0_event_end]
+            ):
+                raise RuntimeError(
+                    "Default Phase0 receipt does not close its estimator delta."
+                )
+            phase1_event_start = (
+                phase0_event_end if phase0_receipt is not None else 0
+            )
+            if post_exposure_phase1_is_official:
+                phase1_event_end = (
+                    int(official_phase1_occurrence_end) - occurrence_start
+                )
+                phase2_event_start = phase1_event_end
+            else:
+                phase1_event_end = occurrence_after_phase1 - occurrence_start
+                phase2_event_start = phase1_event_end
+            phase2_event_end = occurrence_after_phase2 - occurrence_start
+            phase3_event_start = phase2_event_end
+            if not (
+                0 <= phase1_event_start <= phase1_event_end
+                <= phase2_event_start <= phase2_event_end
+                <= len(event_ids)
+            ):
+                raise RuntimeError(
+                    "Default staged estimator-event boundaries are invalid."
+                )
+            phase1_runtime_for_receipt = (
+                {
+                    **dict(phase1_runtime),
+                    "controller_snapshot": controller_snapshot,
+                    "phase1_records": [
+                        dict(record) for record in official_phase1_records
+                    ],
+                    "phase1_shortlisted_records": [
+                        dict(record)
+                        for record in official_phase1_shortlisted_records
+                    ],
+                }
+                if post_exposure_phase1_is_official
+                else phase1_runtime
+            )
+            phase1_population = tuple(
+                self.receipts.record_from_live(record)
+                for record in phase1_runtime_for_receipt["phase1_records"]
+            )
+            phase1_shortlist_records = tuple(
+                self.receipts.record_from_live(record)
+                for record in phase1_runtime_for_receipt[
+                    "phase1_shortlisted_records"
+                ]
+            )
+            phase2_population = tuple(
+                self.receipts.record_from_live(record)
+                for record in phase2_runtime["full_records"]
+            )
+            phase2_shortlist_records = tuple(
+                self.receipts.record_from_live(record)
+                for record in phase2_runtime["phase2_shortlisted_records"]
+            )
+            phase3_population = tuple(
+                self.receipts.record_from_live(record)
+                for record in admission_source_records
+            )
+            if not phase3_population:
+                raise RuntimeError(
+                    "Phase-III no-positive terminal lost its scored population."
+                )
+            phase_i_receipt = _PhaseSelectionReceipt(
+                phase="phase_i",
+                population=phase1_population,
+                shortlist=phase1_shortlist_records,
+                shortlist_ranking=self.receipts.shortlist_ranks(
+                    phase1_runtime_for_receipt[
+                        "phase1_shortlisted_records"
+                    ],
+                    primary_score_key=self.receipts.phase1_score_key,
+                    tie_break_score_key="simple_score",
+                    route_identity_order=True,
+                ),
+                estimator_event_ids=event_ids[
+                    phase1_event_start:phase1_event_end
+                ],
+                adaptive_shortlist=phase1_runtime_for_receipt.get(
+                    "adaptive_shortlist_receipt"
+                ),
+                adaptive_live_scores=(
+                    ()
+                    if phase1_runtime_for_receipt.get(
+                        "adaptive_shortlist_receipt"
+                    )
+                    is None
+                    else _adaptive_phase_live_scores(
+                        phase1_runtime_for_receipt["phase1_records"],
+                        record_from_live=self.receipts.record_from_live,
+                        score_key=self.receipts.phase1_score_key,
+                        tie_break_score_key="simple_score",
+                    )
+                ),
+            )
+            phase_ii_receipt = _PhaseSelectionReceipt(
+                phase="phase_ii",
+                population=phase2_population,
+                shortlist=phase2_shortlist_records,
+                shortlist_ranking=self.receipts.shortlist_ranks(
+                    phase2_runtime["phase2_shortlisted_records"],
+                    primary_score_key="phase2_raw_score",
+                    tie_break_score_key="simple_score",
+                    route_identity_order=True,
+                ),
+                estimator_event_ids=event_ids[
+                    phase2_event_start:phase2_event_end
+                ],
+                adaptive_shortlist=phase2_runtime.get(
+                    "adaptive_shortlist_receipt"
+                ),
+                adaptive_live_scores=(
+                    ()
+                    if phase2_runtime.get("adaptive_shortlist_receipt") is None
+                    else _adaptive_phase_live_scores(
+                        phase2_runtime["full_records"],
+                        record_from_live=self.receipts.record_from_live,
+                        score_key="phase2_raw_score",
+                        tie_break_score_key="simple_score",
+                    )
+                ),
+            )
+            phase_iii_receipt = _PhaseSelectionReceipt(
+                phase="phase_iii",
+                population=phase3_population,
+                shortlist=(),
+                shortlist_ranking=(),
+                estimator_event_ids=event_ids[phase3_event_start:],
+                terminal_outcome=_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME,
+                adaptive_shortlist=adaptive_phase3_receipt,
+                adaptive_live_scores=_adaptive_phase_live_scores(
+                    admission_source_records,
+                    record_from_live=self.receipts.record_from_live,
+                    score_key=self.receipts.phase3_score_key,
+                    tie_break_score_key=(
+                        self.receipts.phase3_tie_break_score_key
+                    ),
+                ),
+            )
+            natural_terminal_authority = (
+                self.runtime.phase3_natural_terminal_authority
+            )
+            if natural_terminal_authority is None:
+                raise RuntimeError(
+                    "Phase-III no-positive selection lacks authenticated "
+                    "natural-terminal route authority."
+                )
+            if not isinstance(
+                natural_terminal_authority,
+                Phase3NaturalTerminalAuthority,
+            ):
+                raise RuntimeError(
+                    "Phase-III no-positive selection received a noncanonical "
+                    "natural-terminal authority."
+                )
+            natural_terminal_authority.validate()
+            return _Phase3NoPositiveSelectionEvaluation(
+                phase_i=phase_i_receipt,
+                phase_ii=phase_ii_receipt,
+                phase_iii=phase_iii_receipt,
+                estimator_events=estimator_events,
+                natural_terminal_authority=natural_terminal_authority,
+                phase0=phase0_receipt,
+                projected_phase3_population_receipt=(
+                    projected_phase3_population_receipt
+                ),
             )
         phase2_selected_records = (
             self.receipts.restore_singleton_coordinates(
@@ -2413,17 +2743,66 @@ class _DefaultSingletonSelectionKernel:
         event_ids = tuple(
             event.occurrence_id for event in estimator_events
         )
-        phase1_event_count = occurrence_after_phase1 - occurrence_start
-        phase2_event_count = (
-            occurrence_after_phase2 - occurrence_after_phase1
+        phase0_event_end = occurrence_after_phase0 - occurrence_start
+        if phase0_receipt is not None and (
+            phase0_receipt.phase != "phase0"
+            or phase0_receipt.estimator_event_ids
+            != event_ids[:phase0_event_end]
+        ):
+            raise RuntimeError(
+                "Default Phase0 receipt does not close its estimator delta."
+            )
+        phase1_event_start = (
+            phase0_event_end if phase0_receipt is not None else 0
+        )
+        if post_exposure_phase1_is_official:
+            # The older staged route performs a macro prefilter before the
+            # official guarded-singleton Phase I.  Those estimator calls are
+            # still Phase-I selection work and must remain inside the ordered
+            # phase receipt.  The gradient-Phase0 route adds no events in its
+            # context-only parent step, so this same boundary starts exactly
+            # after Phase0 there.
+            phase1_event_end = (
+                int(official_phase1_occurrence_end) - occurrence_start
+            )
+            phase2_event_start = phase1_event_end
+        else:
+            phase1_event_end = occurrence_after_phase1 - occurrence_start
+            phase2_event_start = phase1_event_end
+        phase2_event_end = occurrence_after_phase2 - occurrence_start
+        phase3_event_start = phase2_event_end
+        if not (
+            0 <= phase1_event_start <= phase1_event_end
+            <= phase2_event_start <= phase2_event_end
+            <= len(event_ids)
+        ):
+            raise RuntimeError(
+                "Default staged estimator-event boundaries are invalid."
+            )
+        phase1_runtime_for_receipt = (
+            {
+                **dict(phase1_runtime),
+                "controller_snapshot": controller_snapshot,
+                "phase1_records": [
+                    dict(record) for record in official_phase1_records
+                ],
+                "phase1_shortlisted_records": [
+                    dict(record)
+                    for record in official_phase1_shortlisted_records
+                ],
+            }
+            if post_exposure_phase1_is_official
+            else phase1_runtime
         )
         phase1_population = tuple(
             self.receipts.record_from_live(record)
-            for record in phase1_runtime["phase1_records"]
+            for record in phase1_runtime_for_receipt["phase1_records"]
         )
         phase1_shortlist_records = tuple(
             self.receipts.record_from_live(record)
-            for record in phase1_runtime["phase1_shortlisted_records"]
+            for record in phase1_runtime_for_receipt[
+                "phase1_shortlisted_records"
+            ]
         )
         phase2_population = tuple(
             self.receipts.record_from_live(record)
@@ -2495,12 +2874,32 @@ class _DefaultSingletonSelectionKernel:
             population=phase1_population,
             shortlist=phase1_shortlist_records,
             shortlist_ranking=self.receipts.shortlist_ranks(
-                phase1_runtime["phase1_shortlisted_records"],
+                phase1_runtime_for_receipt[
+                    "phase1_shortlisted_records"
+                ],
                 primary_score_key=self.receipts.phase1_score_key,
                 tie_break_score_key="simple_score",
                 route_identity_order=True,
             ),
-            estimator_event_ids=event_ids[:phase1_event_count],
+            estimator_event_ids=event_ids[
+                phase1_event_start:phase1_event_end
+            ],
+            adaptive_shortlist=phase1_runtime_for_receipt.get(
+                "adaptive_shortlist_receipt"
+            ),
+            adaptive_live_scores=(
+                ()
+                if phase1_runtime_for_receipt.get(
+                    "adaptive_shortlist_receipt"
+                )
+                is None
+                else _adaptive_phase_live_scores(
+                    phase1_runtime_for_receipt["phase1_records"],
+                    record_from_live=self.receipts.record_from_live,
+                    score_key=self.receipts.phase1_score_key,
+                    tie_break_score_key="simple_score",
+                )
+            ),
         )
         phase_ii_receipt = _PhaseSelectionReceipt(
             phase="phase_ii",
@@ -2513,9 +2912,21 @@ class _DefaultSingletonSelectionKernel:
                 route_identity_order=True,
             ),
             estimator_event_ids=event_ids[
-                phase1_event_count:
-                phase1_event_count + phase2_event_count
+                phase2_event_start:phase2_event_end
             ],
+            adaptive_shortlist=phase2_runtime.get(
+                "adaptive_shortlist_receipt"
+            ),
+            adaptive_live_scores=(
+                ()
+                if phase2_runtime.get("adaptive_shortlist_receipt") is None
+                else _adaptive_phase_live_scores(
+                    phase2_runtime["full_records"],
+                    record_from_live=self.receipts.record_from_live,
+                    score_key="phase2_raw_score",
+                    tie_break_score_key="simple_score",
+                )
+            ),
         )
         phase_iii_receipt = _PhaseSelectionReceipt(
             phase="phase_iii",
@@ -2528,12 +2939,23 @@ class _DefaultSingletonSelectionKernel:
                     self.receipts.phase3_tie_break_score_key
                 ),
             ),
-            estimator_event_ids=event_ids[
-                phase1_event_count + phase2_event_count:
-            ],
+            estimator_event_ids=event_ids[phase3_event_start:],
+            adaptive_shortlist=adaptive_phase3_receipt,
+            adaptive_live_scores=(
+                ()
+                if adaptive_phase3_receipt is None
+                else _adaptive_phase_live_scores(
+                    admission_source_records,
+                    record_from_live=self.receipts.record_from_live,
+                    score_key=self.receipts.phase3_score_key,
+                    tie_break_score_key=(
+                        self.receipts.phase3_tie_break_score_key
+                    ),
+                )
+            ),
         )
         selected_sidecar = {
-            "phase1": phase1_runtime,
+            "phase1": phase1_runtime_for_receipt,
             "phase2": phase2_runtime,
             "phase3_measurement_input_records": (
                 phase3_measurement_input_records
@@ -2589,6 +3011,7 @@ class _DefaultSingletonSelectionKernel:
                 value=predictive_value,
             ),
             estimator_events=estimator_events,
+            phase0=phase0_receipt,
         )
 
 
@@ -2670,6 +3093,7 @@ class _DefaultGreedyBatchSelectionKernel:
             phase3_shortlisted_records,
             historical_coordinate_admission_records,
             historical_overlay_active,
+            _adaptive_phase3_receipt,
         ) = self.phases.supported_response(
             phase3_measurement_input_records=(
                 phase3_measurement_input_records
@@ -3340,13 +3764,29 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
     archival_phase3_records: list[dict[str, Any]] = []
     archival_parent_expansions: list[dict[str, Any]] = []
     missing_archival_factory_keys: list[list[Any]] = []
+    backend_compile_scope_key = str(backend_compile_scope)
     phase3_qiskit_scope_active = bool(
-        str(backend_compile_scope)
-        == BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1
+        backend_compile_scope_key
+        in {
+            BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+            BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+            BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
+        }
+    )
+    phase123_qiskit_scope_active = bool(
+        backend_compile_scope_key
+        == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+    )
+    phase23_qiskit_scope_active = bool(
+        backend_compile_scope_key
+        == BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+    )
+    signed_qiskit_scope_active = bool(
+        phase123_qiskit_scope_active or phase23_qiskit_scope_active
     )
     if phase3_qiskit_scope_active and phase3_backend_compile_oracle is None:
         raise RuntimeError(
-            'The Phase-III-only Qiskit selector scope has no compile oracle.'
+            'The staged Phase-III Qiskit selector scope has no compile oracle.'
         )
     phase3_qiskit_estimate_count_start = int(
         getattr(phase3_backend_compile_oracle, 'estimate_count', 0)
@@ -3389,6 +3829,30 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
         archival_phase3_records,
         phase3_score_cfg_round,
     )
+    signed_population_receipt: dict[str, Any] | None = None
+    signed_population_receipt_key: str | None = None
+    if phase123_qiskit_scope_active:
+        signed_population_receipt = (
+            _default_no_prune_phase123_qiskit_population_receipt(
+                archival_phase3_records,
+                phase="phase_iii",
+                scope=backend_compile_scope_key,
+            )
+        )
+        signed_population_receipt_key = (
+            "phase123_population_normalization_receipt"
+        )
+    elif phase23_qiskit_scope_active:
+        signed_population_receipt = (
+            _default_no_prune_phase23_qiskit_population_receipt(
+                archival_phase3_records,
+                phase="phase_iii",
+                scope=backend_compile_scope_key,
+            )
+        )
+        signed_population_receipt_key = (
+            "phase23_population_normalization_receipt"
+        )
     archival_phase3_records = sorted(archival_phase3_records, key=_default_no_prune_phase3_record_sort_key)
     archival_phase3_records = _default_no_prune_attach_controller_snapshot(archival_phase3_records, snapshot=controller_snapshot)
     phase3_measurement_input_records = [dict(record) for record in archival_phase3_records]
@@ -3422,6 +3886,10 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
                 or not isinstance(backend, Mapping)
                 or backend.get('selected_backend_name') != 'FakeMarrakesh'
                 or backend.get('selected_resolution_kind') != 'fake_exact'
+                or (
+                    signed_qiskit_scope_active
+                    and backend.get('negative_delta_reward_enabled') is not True
+                )
             ):
                 raise RuntimeError(
                     'Phase-III Qiskit receipt observed proxy or fallback cost.'
@@ -3544,11 +4012,41 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
                 }
             )
         qiskit_rows_digest = _candidate_record_payload_digest(qiskit_rows)
+        if phase123_qiskit_scope_active:
+            phase_cost_sources = {
+                'phase_i': 'backend_transpile_v1',
+                'phase_ii': 'backend_transpile_v1',
+                'phase_iii': 'backend_transpile_v1',
+            }
+            phase_i_phase_ii_cost_source = 'backend_transpile_v1'
+            qiskit_applied_phases = ['phase_i', 'phase_ii', 'phase_iii']
+        elif phase23_qiskit_scope_active:
+            phase_cost_sources = {
+                'phase_i': 'structural_proxy_v1',
+                'phase_ii': 'backend_transpile_v1',
+                'phase_iii': 'backend_transpile_v1',
+            }
+            phase_i_phase_ii_cost_source = (
+                'mixed_phase_i_structural_proxy_phase_ii_backend_transpile_v1'
+            )
+            qiskit_applied_phases = ['phase_ii', 'phase_iii']
+        else:
+            phase_cost_sources = {
+                'phase_i': MARRAKESH_GRAPH_SPAN_MODE,
+                'phase_ii': MARRAKESH_GRAPH_SPAN_MODE,
+                'phase_iii': 'backend_transpile_v1',
+            }
+            phase_i_phase_ii_cost_source = MARRAKESH_GRAPH_SPAN_MODE
+            qiskit_applied_phases = ['phase_iii']
         phase3_qiskit_selector_cost_receipt = {
             'schema': 'paper_i_phase3_qiskit_marginal_compile_receipt_v1',
-            'scope': BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
-            'phase_i_phase_ii_cost_source': MARRAKESH_GRAPH_SPAN_MODE,
+            'scope': backend_compile_scope_key,
+            'phase_i_phase_ii_cost_source': phase_i_phase_ii_cost_source,
+            'phase_i_cost_source': phase_cost_sources['phase_i'],
+            'phase_ii_cost_source': phase_cost_sources['phase_ii'],
             'phase_iii_cost_source': 'backend_transpile_v1',
+            'phase_cost_sources': dict(phase_cost_sources),
+            'qiskit_applied_phases': list(qiskit_applied_phases),
             'requested_backend_name': 'FakeMarrakesh',
             'resolved_backend_name': 'FakeMarrakesh',
             'resolution_kind': 'fake_exact',
@@ -3558,15 +4056,25 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
             'accepted_base_and_trial_full_ansatz_transpiled': True,
             'independent_base_trial_layouts': True,
             'preferred_backend_fallback_allowed': False,
-            'negative_delta_reward_enabled': False,
+            'negative_delta_reward_enabled': bool(
+                signed_qiskit_scope_active
+            ),
             'one_qubit_coordinate_policy': (
                 ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             ),
-            'selector_circuit_coordinates': [
-                'positive_clip_delta_N2q',
-                'positive_clip_delta_D2q',
-                'positive_clip_delta_N1q',
-            ],
+            'selector_circuit_coordinates': (
+                [
+                    'raw_signed_delta_N2q',
+                    'raw_signed_delta_D2q',
+                    'raw_signed_delta_N1q',
+                ]
+                if signed_qiskit_scope_active
+                else [
+                    'positive_clip_delta_N2q',
+                    'positive_clip_delta_D2q',
+                    'positive_clip_delta_N1q',
+                ]
+            ),
             'raw_signed_telemetry_retained': True,
             'population_normalization': str(
                 phase3_score_cfg_round.hardware_cost_normalization_mode
@@ -3579,6 +4087,13 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
             'rows_sha256': str(qiskit_rows_digest),
             'rows': qiskit_rows,
         }
+        if (
+            signed_population_receipt is not None
+            and signed_population_receipt_key is not None
+        ):
+            phase3_qiskit_selector_cost_receipt[
+                signed_population_receipt_key
+            ] = copy.deepcopy(signed_population_receipt)
     split_parent_count = int(sum((1 for expansion in archival_phase2_parent_expansions if bool(expansion.get('split_parent', False)))))
     split_child_count = int(sum((int(expansion.get('staged_child_set_count', 0)) for expansion in archival_phase2_parent_expansions if bool(expansion.get('split_parent', False)))))
     unsplit_singleton_count = int(sum((1 for expansion in archival_phase2_parent_expansions if not bool(expansion.get('split_parent', False)))))
@@ -3634,11 +4149,13 @@ def _default_no_prune_supported_response(
     controller_measurement_work: ControllerMeasurementWorkAccumulator,
     controller_round: int,
     active_gradient_recorder: Callable[..., dict[str, Any]],
+    phase123_shortlist_policy: str | None = None,
 ) -> tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
     bool,
+    Any | None,
 ]:
     """Evaluate the exact route's retained full-response population.
 
@@ -3722,8 +4239,93 @@ def _default_no_prune_supported_response(
         coordinate_solve_policy=str(coordinate_solve_policy),
         sr_escape_active=False,
     )
-    historical_coordinate_admission_records = (
-        _phase_shortlist_with_legacy_hook(
+    adaptive_phase3_receipt = None
+    if phase123_shortlist_policy is not None:
+        from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+            ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1,
+        )
+
+        if str(phase123_shortlist_policy) != (
+            ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1
+        ):
+            raise RuntimeError("Unknown native Phase-III shortlist policy.")
+        (
+            historical_coordinate_admission_records,
+            adaptive_phase3_receipt,
+        ) = _adaptive_phase_shortlist_with_receipt(
+            historical_coordinate_eligible_records,
+            runtime=phase_shortlist_runtime,
+            phase="phase_iii",
+            score_key=_default_no_prune_phase3_score_key(),
+            threshold=_controller_threshold(
+                controller_snapshot,
+                "phase3",
+            ),
+            hard_cap=12,
+            frontier_ratio=float(
+                phase2_score_cfg_round.phase3_frontier_ratio
+            ),
+            tie_break_score_key=(
+                _default_no_prune_phase3_tie_break_score_key()
+            ),
+            shortlist_flag="phase3_shortlisted",
+        )
+        if not historical_coordinate_admission_records:
+            if (
+                adaptive_phase3_receipt.status
+                != "no_positive_population"
+                or adaptive_phase3_receipt.retained_record_ids
+            ):
+                raise RuntimeError(
+                    "Empty adaptive Phase-III shortlist lost its terminal "
+                    "receipt."
+                )
+            phase3_runtime_split_summary[
+                "historical_singleton_coordinate_overlay_last_round"
+            ] = {
+                **dict(historical_coordinate_evaluation.telemetry),
+                "schema": "historical_singleton_coordinate_overlay_round_v1",
+                "active": True,
+                "coordinate_solve_policy": str(coordinate_solve_policy),
+                "live_radius": float(route_a_round_trust_snapshot.radius),
+                "rescore": dict(historical_rescore_summary),
+                "admission_domain": dict(
+                    historical_coordinate_admission_domain
+                ),
+                "retained_count_before": int(
+                    len(retained_coordinate_records)
+                ),
+                "retained_count_after": 0,
+                "full_response_evaluated_count": int(
+                    len(rescored_coordinate_records)
+                ),
+                "full_response_eligible_count": int(
+                    len(historical_coordinate_eligible_records)
+                ),
+                "retained_membership_preserved": True,
+                "terminal_controller_outcome": (
+                    _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+                ),
+                "active_gradient_query_accounting": {
+                    "status": (
+                        "not_entered_after_no_positive_phase3_decision_v1"
+                    ),
+                    "incremental_quantum_query_charge": 0,
+                },
+            }
+            return (
+                [
+                    dict(record)
+                    for record in historical_coordinate_eligible_records
+                ],
+                [],
+                [],
+                True,
+                adaptive_phase3_receipt,
+            )
+    else:
+        historical_coordinate_admission_records = (
+            _phase_shortlist_with_legacy_hook(
             historical_coordinate_eligible_records,
             runtime=phase_shortlist_runtime,
             score_key=_default_no_prune_phase3_score_key(),
@@ -3743,8 +4345,8 @@ def _default_no_prune_supported_response(
                 _default_no_prune_phase3_tie_break_score_key()
             ),
             shortlist_flag="phase3_shortlisted",
+            )
         )
-    )
     workspace = historical_coordinate_evaluation.telemetry.get(
         "geometry_workspace",
         {},
@@ -3841,7 +4443,12 @@ def _default_no_prune_supported_response(
         depth=int(controller_round),
     )
     ranked_historical_coordinate_records = (
-        _default_no_prune_freeze_shortlist_ranks(
+        [
+            dict(record)
+            for record in historical_coordinate_admission_records
+        ]
+        if adaptive_phase3_receipt is not None
+        else _default_no_prune_freeze_shortlist_ranks(
             sorted(
                 (
                     dict(record)
@@ -3852,7 +4459,12 @@ def _default_no_prune_supported_response(
         )
     )
     admission_source_records = [
-        dict(record) for record in ranked_historical_coordinate_records
+        dict(record)
+        for record in (
+            historical_coordinate_eligible_records
+            if adaptive_phase3_receipt is not None
+            else ranked_historical_coordinate_records
+        )
     ]
     phase3_shortlisted_records = [
         dict(record) for record in ranked_historical_coordinate_records
@@ -3900,6 +4512,7 @@ def _default_no_prune_supported_response(
             for record in historical_coordinate_admission_records
         ],
         True,
+        adaptive_phase3_receipt,
     )
 
 
@@ -3935,6 +4548,12 @@ def _default_no_prune_selection_record_from_live(
     parent_generator_id = str(
         feature.parent_generator_id or root.generator_id
     )
+    candidate_term = record.get("candidate_term")
+    child_pool_label = (
+        str(candidate_term.label)
+        if isinstance(candidate_term, AnsatzTerm)
+        else str(feature.candidate_label)
+    )
     lineage = (root.generator_id, generator_id)
     if parent_generator_id != root.generator_id:
         lineage = (
@@ -3955,11 +4574,10 @@ def _default_no_prune_selection_record_from_live(
         generator_id=generator_id,
         parent_generator_id=parent_generator_id,
         pool_index=root.pool_index,
-        pool_label=str(
-            record.get(
-                "candidate_label",
-                feature.candidate_label,
-            )
+        pool_label=(
+            root.pool_label
+            if generator_id == root.generator_id
+            else child_pool_label
         ),
         insertion_position=root.insertion_position,
         symmetry_identity=symmetry_identity,
@@ -4232,6 +4850,42 @@ def _default_no_prune_pool_entry_identity(
     return f"{str(generator_id)}::pool[{int(pool_index)}]"
 
 
+def _default_no_prune_portable_pool_state(
+    *,
+    pool: Sequence[AnsatzTerm],
+    available_indices: set[int] | frozenset[int],
+    selection_counts: np.ndarray,
+    pool_generator_registry: Mapping[str, Mapping[str, Any]],
+) -> tuple[tuple[str, ...], tuple[tuple[str, int], ...]]:
+    """Project persistent availability and full-pool selection counts."""
+
+    if np.asarray(selection_counts).shape != (len(pool),):
+        raise RuntimeError(
+            "Portable pool selection counts do not span the full pool."
+        )
+    available = {int(index) for index in available_indices}
+    available_generator_ids: list[str] = []
+    count_rows: list[tuple[str, int]] = []
+    for pool_index, operator in enumerate(pool):
+        generator_id = _default_no_prune_operator_identity(
+            operator,
+            pool_generator_registry=pool_generator_registry,
+        )
+        controller_generator_id = _default_no_prune_pool_entry_identity(
+            generator_id,
+            pool_index=int(pool_index),
+        )
+        if int(pool_index) in available:
+            available_generator_ids.append(controller_generator_id)
+        count_rows.append(
+            (
+                controller_generator_id,
+                int(selection_counts[int(pool_index)]),
+            )
+        )
+    return tuple(available_generator_ids), tuple(count_rows)
+
+
 def _default_no_prune_estimator_prefix_identity(
     occurrence_rows: Sequence[Mapping[str, Any]],
 ) -> str:
@@ -4449,6 +5103,8 @@ class _DefaultSingletonTransitionArtifacts:
     reopt_active_indices: tuple[int, ...]
     trust_update_payload: Mapping[str, Any]
     prune_optimizer_nfev: int
+    controller_energy_before_refit: float | None = None
+    controller_energy_after_refit: float | None = None
 
 
 @dataclass(slots=True)
@@ -4473,6 +5129,7 @@ class _DefaultSingletonTransitionRuntime:
     prune_trust_state: AffineDeletionFSTrustState | None
     operator_admission_rounds: list[int]
     pruning: _RecoverabilityPruneReceipt | None
+    controller_energy: float | None = None
 
     def accepted_state_snapshot(self) -> _AcceptedStateSnapshot:
         if self.accepted_state is None:
@@ -5868,6 +6525,7 @@ def _default_no_prune_transition_state_snapshot(
     runtime: _DefaultSingletonTransitionRuntime,
     domain_records: Sequence[_CandidatePositionRecord],
     pool_generator_registry: Mapping[str, Mapping[str, Any]],
+    persistent_generator_state: _AcceptedStateSnapshot,
     controller_round: int,
     statevector: np.ndarray,
     accepted_energy: float,
@@ -5880,6 +6538,33 @@ def _default_no_prune_transition_state_snapshot(
         dtype=float,
     )
     runtime_values = np.asarray(runtime.theta, dtype=float)
+    pool_index_by_generator_id = {
+        str(record.generator_id): int(record.pool_index)
+        for record in domain_records
+    }
+    available_generator_ids = tuple(
+        generator_id
+        for generator_id in persistent_generator_state.available_generator_ids
+        if (
+            generator_id not in pool_index_by_generator_id
+            or pool_index_by_generator_id[generator_id]
+            in runtime.available_indices
+        )
+    )
+    selection_count_by_generator_id = dict(
+        persistent_generator_state.selection_counts
+    )
+    for generator_id, pool_index in pool_index_by_generator_id.items():
+        selection_count_by_generator_id[generator_id] = int(
+            runtime.selection_counts[int(pool_index)]
+        )
+    selection_counts = tuple(
+        (
+            generator_id,
+            int(selection_count_by_generator_id[generator_id]),
+        )
+        for generator_id, _count in persistent_generator_state.selection_counts
+    )
     return _AcceptedStateSnapshot(
         controller_round=int(controller_round),
         accepted_operator_ids=tuple(
@@ -5910,26 +6595,8 @@ def _default_no_prune_transition_state_snapshot(
         accepted_state_fingerprint=projective_state_fingerprint(
             statevector
         ),
-        available_generator_ids=tuple(
-            dict.fromkeys(
-                record.generator_id
-                for record in domain_records
-                if int(record.pool_index) in runtime.available_indices
-            )
-        ),
-        selection_counts=tuple(
-            (
-                generator_id,
-                int(runtime.selection_counts[pool_index]),
-            )
-            for generator_id, pool_index in dict.fromkeys(
-                (
-                    record.generator_id,
-                    int(record.pool_index),
-                )
-                for record in domain_records
-            )
-        ),
+        available_generator_ids=available_generator_ids,
+        selection_counts=selection_counts,
         trust_state_identity=_candidate_record_payload_digest(
             _candidate_record_cache_jsonable(runtime.trust_region_state)
         ),
@@ -6212,9 +6879,7 @@ def _default_no_prune_active_prefix_checkpoint(
         tuple(
             _default_no_prune_operator_identity(
                 operator,
-                pool_generator_registry=(
-                    cursor.pool_generator_registry
-                ),
+                pool_generator_registry=cursor.pool_generator_registry,
             )
             for operator in operators
         ),
@@ -6383,6 +7048,19 @@ def _default_no_prune_active_prefix_checkpoint(
             history_row.get("post_admission_prune")
         ),
     }
+    controller_noise_runtime = (
+        context.transition_services.controller_noise_runtime
+    )
+    if controller_noise_runtime is not None:
+        if cursor.controller_energy is None:
+            raise RuntimeError(
+                "Controller-noise checkpoint lost its noisy incumbent energy."
+            )
+        checkpoint["controller_noise"] = {
+            **controller_noise_runtime.checkpoint_receipt(),
+            "controller_energy": float(cursor.controller_energy),
+            "exact_diagnostic_energy": float(cursor.accepted_energy),
+        }
     checkpoint["checkpoint_sha256"] = hashlib.sha256(
         json.dumps(
             _current_jsonable(checkpoint),
@@ -6392,6 +7070,133 @@ def _default_no_prune_active_prefix_checkpoint(
         ).encode("utf-8")
     ).hexdigest()
     return checkpoint
+
+
+def _pure_hubbard_controller_noise_checkpoint_binding(
+    raw: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Replace one cumulative noise checkpoint with an authenticated index."""
+
+    if raw.get("schema") == (
+        "paper_i_pure_hubbard_controller_noise_checkpoint_binding_v1"
+    ):
+        return copy.deepcopy(dict(raw))
+    records = raw.get("evaluation_records")
+    compile_receipts = raw.get("compiled_noise_receipts")
+    rng_state = raw.get("rng_state")
+    if (
+        raw.get("schema")
+        != "paper_i_pure_hubbard_controller_noise_checkpoint_v1"
+        or not isinstance(records, list)
+        or int(raw.get("evaluation_count", -1)) != len(records)
+        or raw.get("evaluation_records_sha256")
+        != _candidate_record_payload_digest(records)
+        or not isinstance(compile_receipts, Mapping)
+        or raw.get("compiled_noise_receipts_sha256")
+        != _candidate_record_payload_digest(compile_receipts)
+        or not isinstance(rng_state, Mapping)
+        or not isinstance(raw.get("noise_contract_sha256"), str)
+        or not isinstance(raw.get("controller_energy"), (int, float))
+        or not isinstance(
+            raw.get("exact_diagnostic_energy"),
+            (int, float),
+        )
+    ):
+        raise RuntimeError(
+            "Pure-Hubbard controller-noise checkpoint cannot be compacted."
+        )
+    payload = {
+        "schema": (
+            "paper_i_pure_hubbard_controller_noise_checkpoint_binding_v1"
+        ),
+        "controller_energy_surface": str(
+            raw["controller_energy_surface"]
+        ),
+        "geometry_and_gram": str(raw["geometry_and_gram"]),
+        "reported_energy": str(raw["reported_energy"]),
+        "evaluation_count": int(raw["evaluation_count"]),
+        "evaluation_records_sha256": str(
+            raw["evaluation_records_sha256"]
+        ),
+        "compiled_noise_receipt_count": len(compile_receipts),
+        "compiled_noise_receipts_sha256": str(
+            raw["compiled_noise_receipts_sha256"]
+        ),
+        "noise_contract_sha256": str(raw["noise_contract_sha256"]),
+        "rng_state_sha256": _candidate_record_payload_digest(rng_state),
+        "controller_energy": float(raw["controller_energy"]),
+        "exact_diagnostic_energy": float(
+            raw["exact_diagnostic_energy"]
+        ),
+    }
+    return {
+        **payload,
+        "sha256": _candidate_record_payload_digest(payload),
+    }
+
+
+def _default_no_prune_compact_controller_noise_signed_checkpoint(
+    raw: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Keep signed replay state while removing repeated cumulative traces."""
+
+    checkpoint = copy.deepcopy(dict(raw))
+    controller_noise = checkpoint.get("controller_noise")
+    if controller_noise is None:
+        return checkpoint
+    if not isinstance(controller_noise, Mapping):
+        raise RuntimeError(
+            "Signed active-prefix controller-noise state is malformed."
+        )
+    checkpoint["controller_noise"] = (
+        _pure_hubbard_controller_noise_checkpoint_binding(controller_noise)
+    )
+    unsigned = copy.deepcopy(checkpoint)
+    unsigned.pop("checkpoint_sha256", None)
+    checkpoint["checkpoint_sha256"] = hashlib.sha256(
+        json.dumps(
+            _current_jsonable(unsigned),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    return checkpoint
+
+
+def _default_no_prune_compact_controller_noise_history(
+    history: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    projected: list[dict[str, Any]] = []
+    for raw_row in history:
+        row = copy.deepcopy(dict(raw_row))
+        checkpoint = row.get("active_prefix_checkpoint")
+        if isinstance(checkpoint, Mapping):
+            row["active_prefix_checkpoint"] = (
+                _default_no_prune_compact_controller_noise_signed_checkpoint(
+                    checkpoint
+                )
+            )
+        projected.append(row)
+    return projected
+
+
+def _default_no_prune_continuation_terminal_checkpoint(
+    checkpoint: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Use a digest pointer when the terminal prefix owns a full trace."""
+
+    controller_noise = checkpoint.get("controller_noise")
+    if (
+        isinstance(controller_noise, Mapping)
+        and controller_noise.get("schema")
+        == "paper_i_pure_hubbard_controller_noise_checkpoint_v1"
+    ):
+        return {
+            "schema": "paper_i_signed_active_prefix_checkpoint_binding_v1",
+            "checkpoint_sha256": str(checkpoint["checkpoint_sha256"]),
+        }
+    return copy.deepcopy(dict(checkpoint))
 
 
 @dataclass(frozen=True, slots=True)
@@ -6647,6 +7452,11 @@ def _default_no_prune_prepare_transition(
             session.cursor.operator_admission_rounds
         ),
         pruning=None,
+        controller_energy=(
+            None
+            if session.cursor.controller_energy is None
+            else float(session.cursor.controller_energy)
+        ),
     )
     preceding = _default_no_prune_transition_state_snapshot(
         runtime=numerical_runtime,
@@ -6654,6 +7464,7 @@ def _default_no_prune_prepare_transition(
         pool_generator_registry=(
             session.cursor.pool_generator_registry
         ),
+        persistent_generator_state=state,
         controller_round=int(pending.depth),
         statevector=np.asarray(pending.psi_current, dtype=complex),
         accepted_energy=float(session.cursor.accepted_energy),
@@ -8043,6 +8854,21 @@ def _run_default_no_prune_transition_transaction(
             "receipt."
         )
     energy_before_refit = float(numerical_runtime.accepted_energy)
+    controller_noise_active = bool(
+        services.controller_noise_runtime is not None
+    )
+    controller_energy_before_refit = (
+        services.evaluate_selected_energy_objective(
+            ops_now=numerical_runtime.selected_ops,
+            theta_now=np.asarray(numerical_runtime.theta, dtype=float),
+            executor_now=numerical_runtime.selected_executor,
+            parameter_layout_now=numerical_runtime.selected_layout,
+            objective_stage="accepted_refit_same_circuit_incumbent",
+        )
+        if controller_noise_active
+        and services.controller_noise_runtime is not None
+        else float(energy_before_refit)
+    )
     theta_before_refit = np.asarray(
         numerical_runtime.theta,
         dtype=float,
@@ -8125,7 +8951,7 @@ def _run_default_no_prune_transition_transaction(
         accepted_refit_initialization_guard_nfev,
     ) = guard_supported_fs_full_joint_step_seed(
         objective=_guard_supported_fs_objective,
-        incumbent_energy=float(energy_before_refit),
+        incumbent_energy=float(controller_energy_before_refit),
         chart=optimizer_chart,
         config=services.joint_response_warm_start,
         selected_records=selected_live_records,
@@ -8187,7 +9013,7 @@ def _run_default_no_prune_transition_transaction(
             mapped_seed_energy=float(mapped_seed_energy_raw),
             optimizer_x=np.asarray(optimizer_result.x, dtype=float),
             optimizer_energy=float(optimizer_result.fun),
-            incumbent_energy=float(energy_before_refit),
+            incumbent_energy=float(controller_energy_before_refit),
             guard_abs_tol=float(
                 services.joint_response_warm_start.guard_abs_tol
             ),
@@ -8199,6 +9025,33 @@ def _run_default_no_prune_transition_transaction(
             **dict(accepted_refit_initialization),
             "optimizer_outcome": dict(optimizer_outcome_payload),
         }
+    if (
+        controller_noise_active
+        and float(effective_optimizer_energy)
+        > float(controller_energy_before_refit)
+    ):
+        effective_optimizer_x = np.asarray(
+            optimizer_chart.x0, dtype=float
+        ).copy()
+        effective_optimizer_energy = float(
+            controller_energy_before_refit
+        )
+        accepted_refit_initialization = {
+            **dict(accepted_refit_initialization),
+            "controller_noise_non_worsening_guard": {
+                "schema": (
+                    "paper_i_pure_hubbard_noisy_non_worsening_guard_v1"
+                ),
+                "retained_same_circuit_incumbent": True,
+                "comparison_semantics": (
+                    "noisy_controller_energy_after_le_before_v1"
+                ),
+                "incumbent_energy": float(
+                    controller_energy_before_refit
+                ),
+                "optimizer_energy": float(optimizer_result.fun),
+            },
+        }
     numerical_runtime.theta = np.asarray(
         optimizer_chart.lift_to_runtime(effective_optimizer_x),
         dtype=float,
@@ -8209,8 +9062,25 @@ def _run_default_no_prune_transition_transaction(
             numerical_runtime.selected_layout,
         )
     )
-    numerical_runtime.accepted_energy = float(
-        effective_optimizer_energy
+    numerical_runtime.controller_energy = (
+        float(effective_optimizer_energy)
+        if controller_noise_active
+        else None
+    )
+    post_refit_state = services.prepare_selected_state(
+        ops_now=list(numerical_runtime.selected_ops),
+        theta_now=np.asarray(numerical_runtime.theta, dtype=float),
+        executor_now=numerical_runtime.selected_executor,
+        parameter_layout_now=numerical_runtime.selected_layout,
+    )
+    exact_post_refit_energy, _exact_post_refit_hpsi = energy_via_one_apply(
+        np.asarray(post_refit_state, dtype=complex),
+        services.compiled_hamiltonian,
+    )
+    numerical_runtime.accepted_energy = (
+        float(exact_post_refit_energy)
+        if controller_noise_active
+        else float(effective_optimizer_energy)
     )
     numerical_runtime.optimizer_memory = (
         context.phase2_memory_adapter.unavailable(
@@ -8353,12 +9223,6 @@ def _run_default_no_prune_transition_transaction(
             route_a_selector_summary["geometry_workspace"] = (
                 copy.deepcopy(dict(geometry_workspace))
             )
-    post_refit_state = services.prepare_selected_state(
-        ops_now=list(numerical_runtime.selected_ops),
-        theta_now=np.asarray(numerical_runtime.theta, dtype=float),
-        executor_now=numerical_runtime.selected_executor,
-        parameter_layout_now=numerical_runtime.selected_layout,
-    )
     endpoint_overlap_query_accounting = (
         services.endpoint_overlap_accounting_for_trust_policy(
             policy=str(
@@ -8387,9 +9251,11 @@ def _run_default_no_prune_transition_transaction(
                     post_refit_state,
                     dtype=complex,
                 ),
-                energy_before=float(energy_before_refit),
+                energy_before=float(controller_energy_before_refit),
                 energy_after_refit=float(
-                    numerical_runtime.accepted_energy
+                    numerical_runtime.controller_energy
+                    if controller_noise_active
+                    else numerical_runtime.accepted_energy
                 ),
                 energy_improvement_tolerance=float(
                     services.eps_energy
@@ -8433,9 +9299,11 @@ def _run_default_no_prune_transition_transaction(
                 post_refit_state,
                 dtype=complex,
             ),
-            energy_before=float(energy_before_refit),
+            energy_before=float(controller_energy_before_refit),
             energy_after_refit=float(
-                numerical_runtime.accepted_energy
+                numerical_runtime.controller_energy
+                if controller_noise_active
+                else numerical_runtime.accepted_energy
             ),
             energy_improvement_tolerance=float(services.eps_energy),
             full_coordinate_refit=True,
@@ -8521,6 +9389,9 @@ def _run_default_no_prune_transition_transaction(
         runtime=numerical_runtime,
         domain_records=round_frame.domain_records,
         pool_generator_registry=round_frame.pool_generator_registry,
+        persistent_generator_state=(
+            round_frame.preceding_transition_state
+        ),
         controller_round=int(round_frame.depth + 1),
         statevector=np.asarray(post_refit_state, dtype=complex),
         accepted_energy=float(numerical_runtime.accepted_energy),
@@ -8784,6 +9655,11 @@ def _run_default_no_prune_transition_transaction(
         ),
     )
     non_worsening_receipt = _NonWorseningReceipt(
+        # The generic accepted-state boundary remains exact.  The named
+        # pure-Hubbard application records and enforces its noisy controller
+        # comparison in the adjacent ``controller_noise`` receipt; changing
+        # these legacy fields would make the canonical transition object lie
+        # about the exact state it authenticates.
         energy_before=float(energy_before_refit),
         energy_after=float(numerical_runtime.accepted_energy),
         absolute_tolerance=0.0,
@@ -8914,6 +9790,17 @@ def _run_default_no_prune_transition_transaction(
             numerical_runtime.trust_update_payload
         ),
         prune_optimizer_nfev=int(prune_optimizer_nfev),
+        controller_energy_before_refit=(
+            float(controller_energy_before_refit)
+            if controller_noise_active
+            else None
+        ),
+        controller_energy_after_refit=(
+            float(numerical_runtime.controller_energy)
+            if controller_noise_active
+            and numerical_runtime.controller_energy is not None
+            else None
+        ),
     )
     if ordered_batch:
         expected_admission_type = (
@@ -11702,6 +12589,7 @@ def _insertion_commutation_plateau_round_policy(
     *,
     history: Sequence[Mapping[str, Any]],
     policy: str = "insertion_commutation_plateau_v2",
+    controller_noise_energy_source: bool = False,
 ) -> dict[str, Any]:
     """Resolve insertion from marginal progress over prior mean progress."""
 
@@ -11729,6 +12617,36 @@ def _insertion_commutation_plateau_round_policy(
     def accepted_decrease(
         row: Mapping[str, Any],
     ) -> tuple[float | None, float | None, float | None, str]:
+        if controller_noise_energy_source:
+            controller_noise = row.get("controller_noise")
+            if not isinstance(controller_noise, Mapping):
+                return (
+                    None,
+                    None,
+                    None,
+                    "persisted_noisy_controller_energy_unavailable",
+                )
+            before = _finite_float_or(
+                controller_noise.get("controller_energy_before"),
+                float("nan"),
+            )
+            after = _finite_float_or(
+                controller_noise.get("controller_energy_after"),
+                float("nan"),
+            )
+            if math.isfinite(before) and math.isfinite(after):
+                return (
+                    float(before),
+                    float(after),
+                    float(before - after),
+                    "persisted_noisy_controller_energy_before_after_v1",
+                )
+            return (
+                None,
+                None,
+                None,
+                "persisted_noisy_controller_energy_unavailable",
+            )
         before = _finite_float_or(
             row.get("energy_before_opt"),
             float("nan"),
@@ -11834,6 +12752,11 @@ def _insertion_commutation_plateau_round_policy(
         "patience": 1,
         "hysteresis_active": False,
         "exact_reference_used": False,
+        "energy_track": (
+            "noisy_controller"
+            if controller_noise_energy_source
+            else "exact_accepted_diagnostic"
+        ),
     }
     if policy_key == "insertion_commutation_plateau_v1":
         receipt.update(
@@ -16170,6 +17093,8 @@ def _run_hardcoded_adapt_vqe(
         phase3_backend_cost_scope
     ).strip().lower()
     valid_phase3_backend_cost_scopes = {
+        BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1,
         BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
     }
@@ -16226,27 +17151,28 @@ def _run_hardcoded_adapt_vqe(
                 raise ValueError("transpile_shortlist_v1 does not accept --phase3-backend-name.")
             if len(phase3_backend_shortlist_tokens) < 1:
                 raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
-    if (
-        phase3_backend_cost_scope_key
-        == BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1
-    ):
+    if phase3_backend_cost_scope_key in {
+        BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+        BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
+    }:
         if phase3_backend_cost_mode_key != MARRAKESH_GRAPH_SPAN_MODE:
             raise ValueError(
-                "The Phase-III-only Qiskit scope requires "
+                "The staged Qiskit scope requires "
                 "phase3_backend_cost_mode='marrakesh_graph_span_v1' so "
                 "Phases I and II retain the Paper-I graph-span cost."
             )
         if str(phase3_backend_name) != "FakeMarrakesh":
             raise ValueError(
-                "The Phase-III-only Qiskit scope requires FakeMarrakesh."
+                "The staged Qiskit scope requires FakeMarrakesh."
             )
         if int(phase3_backend_optimization_level) != 1:
             raise ValueError(
-                "The Phase-III-only Qiskit scope requires optimization level 1."
+                "The staged Qiskit scope requires optimization level 1."
             )
         if int(phase3_backend_transpile_seed) != 7:
             raise ValueError(
-                "The Phase-III-only Qiskit scope requires transpiler seed 7."
+                "The staged Qiskit scope requires transpiler seed 7."
             )
     sr_runtime_settings_for_validation = {
             "problem": str(problem_key),
@@ -55526,24 +56452,30 @@ def _default_recoverability_prune_config(
     """Resolve the exact optional prune child without legacy fallbacks."""
 
     enabled = bool(kwargs["phase1_prune_enabled"])
+    ra_adapt_contract = _validated_ra_adapt_route_contract(kwargs)
     composed_contract = _validated_canonical_composed_route_contract(kwargs)
-    composed_invariants = (
-        composed_contract.get("semantic_invariants", {})
-        if composed_contract is not None
+    typed_contract = (
+        ra_adapt_contract
+        if ra_adapt_contract is not None
+        else composed_contract
+    )
+    typed_invariants = (
+        typed_contract.get("semantic_invariants", {})
+        if typed_contract is not None
         else {}
     )
-    composed_pruning_policy = str(
-        composed_invariants.get("canonical_pruning_policy", "off")
+    typed_pruning_policy = str(
+        typed_invariants.get("canonical_pruning_policy", "off")
     )
     profile_enables_pruning = bool(
         str(kwargs.get("sr_route_profile_resolved", ""))
         == (
             SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
-        )
-        or (
-            composed_contract is not None
-            and composed_pruning_policy != "off"
-        )
+            )
+            or (
+                typed_contract is not None
+                and typed_pruning_policy != "off"
+            )
     )
     if enabled != profile_enables_pruning:
         raise ValueError(
@@ -55554,8 +56486,8 @@ def _default_recoverability_prune_config(
         nomination_policy = (
             PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1
             if (
-                composed_contract is not None
-                and composed_pruning_policy == "metric"
+                typed_contract is not None
+                and typed_pruning_policy == "metric"
             )
             else PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
         )
@@ -56026,12 +56958,6 @@ class _DefaultNoPruneCandidateSectorAuditor:
         metadata = runtime_feature.get("generator_metadata")
         identity_exposure_guard = bool(
             self.global_guarded_singleton_identity_exposure
-            and runtime_split_mode == "off"
-            and isinstance(metadata, Mapping)
-            and metadata.get("ra_phase_ii_candidate_exposure")
-            == "identity_on_retained_singletons_v1"
-            and metadata.get("ra_phase_i_candidate_supply")
-            == "global_guarded_singleton_pool_v1"
         )
         required_child_guard = bool(
             identity_exposure_guard
@@ -56187,11 +57113,17 @@ class _DefaultNoPruneCandidateSectorAuditor:
                 else {}
             )
             split_mode = str(split_metadata.get("mode", "off"))
+            identity_exposure_guard = bool(
+                self.global_guarded_singleton_identity_exposure
+            )
             guarded = bool(
-                self.runtime_split_symmetry_policy == "hard_guard"
-                and self.runtime_split_selection_mode
-                == "archival_child_set_forward_v1"
-                and split_mode != "off"
+                identity_exposure_guard
+                or (
+                    self.runtime_split_symmetry_policy == "hard_guard"
+                    and self.runtime_split_selection_mode
+                    == "archival_child_set_forward_v1"
+                    and split_mode != "off"
+                )
             )
             if not guarded:
                 globally_audited.append(operator)
@@ -56200,7 +57132,9 @@ class _DefaultNoPruneCandidateSectorAuditor:
                 operator,
                 source=f"{source}:{operator.label}",
                 feature_row={
-                    "runtime_split_mode": split_mode,
+                    "runtime_split_mode": (
+                        "off" if identity_exposure_guard else split_mode
+                    ),
                     "generator_metadata": metadata,
                 },
             )
@@ -56344,6 +57278,697 @@ class _DefaultNoPruneStateService:
         return state
 
 
+@dataclass(slots=True)
+class _PureHubbardControllerNoiseRuntime:
+    """Single serial full-noise oracle shared by one named RA run."""
+
+    oracle_context: Phase3OracleRuntimeContext
+    reference_state: np.ndarray
+    num_qubits: int
+    gradient_step: float
+    contract: Mapping[str, Any]
+    plan_cache: dict[str, Any] = field(default_factory=dict)
+    evaluation_count: int = 0
+    evaluation_records: list[dict[str, Any]] = field(default_factory=list)
+    compiled_noise_receipts: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )
+    accepted_evaluation_count: int = 0
+    accepted_compiled_plan_digests: set[str] = field(default_factory=set)
+
+    def evaluate_energy(
+        self,
+        *,
+        operators: Sequence[AnsatzTerm],
+        theta_runtime: Sequence[float] | np.ndarray,
+        layout: AnsatzParameterLayout | None = None,
+        consumer_scope: str,
+        stage: str,
+        candidate_label: str | None = None,
+        insertion_position: int | None = None,
+        probe_sign: str | None = None,
+    ) -> float:
+        layout_now = (
+            layout
+            if layout is not None
+            else build_parameter_layout(
+                list(operators),
+                ignore_identity=True,
+                coefficient_tolerance=1.0e-12,
+                sort_terms=True,
+            )
+        )
+        plan = _get_phase3_oracle_plan_cached(
+            layout_now=layout_now,
+            build_parameterized_ansatz_plan_fn=(
+                self.oracle_context.build_parameterized_ansatz_plan_fn
+            ),
+            phase3_oracle_num_qubits=int(self.num_qubits),
+            reference_state=np.asarray(self.reference_state, dtype=complex),
+            plan_cache=self.plan_cache,
+        )
+        estimate = self.oracle_context.oracle_obj.evaluate_parameterized(
+            plan=plan,
+            theta_runtime=np.asarray(theta_runtime, dtype=float),
+            observable=self.oracle_context.h_qop,
+            runtime_trace_context={
+                "route": "paper_i_pure_hubbard_page12_controller_noise",
+                "consumer_scope": str(consumer_scope),
+                "serial_evaluation_ordinal": int(self.evaluation_count + 1),
+            },
+        )
+        self.evaluation_count += 1
+        value = float(estimate.mean)
+        if not math.isfinite(value):
+            raise RuntimeError(
+                "Pure-Hubbard controller-noise oracle returned a nonfinite "
+                "energy."
+            )
+        # Capture evidence immediately: ``backend_info`` is mutable shared
+        # oracle state and cannot be consulted later to reconstruct a prior
+        # evaluation.  The value-noise draw interval and both synthetic-noise
+        # payloads therefore travel with the exact evaluation ordinal.
+        metadata = copy.deepcopy(dict(getattr(estimate, "metadata", {}) or {}))
+        backend_details = copy.deepcopy(
+            dict(
+                getattr(
+                    self.oracle_context.oracle_obj.backend_info,
+                    "details",
+                    {},
+                )
+                or {}
+            )
+        )
+        coherent_details = backend_details.get("synthetic_coherent")
+        depolarizing_details = backend_details.get(
+            "synthetic_depolarizing"
+        )
+        inserted_errors = (
+            coherent_details.get("inserted_errors")
+            if isinstance(coherent_details, Mapping)
+            else None
+        )
+        oracle_plan_digest = str(
+            backend_details.get("parameterized_plan_digest", "")
+        )
+        plan_digest = _candidate_record_payload_digest(
+            {
+                "schema": (
+                    "paper_i_pure_hubbard_controller_noise_plan_identity_v1"
+                ),
+                "layout": serialize_layout(layout_now),
+                "operators": [
+                    {
+                        "label": str(operator.label),
+                        "execution_mode": str(operator.execution_mode),
+                        "polynomial_sha256": _polynomial_signature_digest(
+                            operator.polynomial
+                        ),
+                    }
+                    for operator in operators
+                ],
+            }
+        )
+        if (
+            not oracle_plan_digest
+            or not isinstance(coherent_details, Mapping)
+            or not isinstance(inserted_errors, list)
+            or int(coherent_details.get("inserted_count", -1))
+            != len(inserted_errors)
+            or not isinstance(depolarizing_details, Mapping)
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard evaluation lacks applied compiled-noise "
+                "evidence."
+            )
+        coherent_summary = {
+            str(key): copy.deepcopy(child)
+            for key, child in coherent_details.items()
+            if key != "inserted_errors"
+        }
+        compile_metrics = {
+            key: copy.deepcopy(backend_details.get(key))
+            for key in (
+                "compiled_depth",
+                "compiled_size",
+                "compiled_two_qubit_count",
+                "compiled_cx_count",
+                "compiled_ecr_count",
+                "compiled_op_counts",
+            )
+        }
+        compile_receipt_payload = {
+            "schema": (
+                "paper_i_pure_hubbard_compiled_noise_plan_receipt_v1"
+            ),
+            "parameterized_plan_digest": plan_digest,
+            "synthetic_coherent": coherent_summary,
+            "inserted_errors_sha256": (
+                _candidate_record_payload_digest(inserted_errors)
+            ),
+            "synthetic_depolarizing": copy.deepcopy(
+                dict(depolarizing_details)
+            ),
+            "compile_signature": copy.deepcopy(
+                dict(backend_details.get("compile_signature", {}) or {})
+            ),
+            "compile_metrics": compile_metrics,
+            "transpile_seed": int(backend_details["transpile_seed"]),
+            "transpile_optimization_level": int(
+                backend_details["transpile_optimization_level"]
+            ),
+        }
+        compile_receipt = {
+            **compile_receipt_payload,
+            "sha256": _candidate_record_payload_digest(
+                compile_receipt_payload
+            ),
+        }
+        prior_compile_receipt = self.compiled_noise_receipts.get(
+            plan_digest
+        )
+        if (
+            prior_compile_receipt is not None
+            and prior_compile_receipt != compile_receipt
+        ):
+            drifted_fields = {
+                key: {
+                    "prior": prior_compile_receipt.get(key),
+                    "current": compile_receipt.get(key),
+                }
+                for key in set(prior_compile_receipt) | set(compile_receipt)
+                if prior_compile_receipt.get(key) != compile_receipt.get(key)
+            }
+            raise RuntimeError(
+                "Pure-Hubbard compiled-noise plan evidence drifted between "
+                f"evaluations: {drifted_fields!r}."
+            )
+        self.compiled_noise_receipts[plan_digest] = compile_receipt
+        self.evaluation_records.append(
+            {
+                "schema": (
+                    "paper_i_pure_hubbard_controller_noise_evaluation_v1"
+                ),
+                "evaluation_ordinal": int(self.evaluation_count),
+                "stage": str(stage),
+                "consumer_scope": str(consumer_scope),
+                "candidate_label": (
+                    None if candidate_label is None else str(candidate_label)
+                ),
+                "actual_insertion_position": (
+                    None
+                    if insertion_position is None
+                    else int(insertion_position)
+                ),
+                "probe_sign": (
+                    None if probe_sign is None else str(probe_sign)
+                ),
+                "mean": float(value),
+                "value_noise": copy.deepcopy(metadata.get("value_noise")),
+                "parameterized_plan_digest": plan_digest,
+                "oracle_parameterized_plan_digest": oracle_plan_digest,
+                "compiled_noise_receipt_sha256": str(
+                    compile_receipt["sha256"]
+                ),
+                "synthetic_depolarizing": copy.deepcopy(
+                    dict(depolarizing_details)
+                ),
+                "synthetic_coherent": {
+                    **coherent_summary,
+                    "inserted_errors_sha256": str(
+                        compile_receipt["inserted_errors_sha256"]
+                    ),
+                },
+            }
+        )
+        return value
+
+    def evaluate_candidate_gradient(
+        self,
+        *,
+        selected_ops: Sequence[AnsatzTerm],
+        theta_runtime: Sequence[float] | np.ndarray,
+        candidate: AnsatzTerm,
+        insertion_position: int,
+        consumer_scope: str,
+    ) -> float:
+        plus_ops, plus_theta = _splice_candidate_at_position(
+            ops=list(selected_ops),
+            theta=np.asarray(theta_runtime, dtype=float),
+            op=candidate,
+            position_id=int(insertion_position),
+            init_theta=float(self.gradient_step),
+        )
+        minus_ops, minus_theta = _splice_candidate_at_position(
+            ops=list(selected_ops),
+            theta=np.asarray(theta_runtime, dtype=float),
+            op=candidate,
+            position_id=int(insertion_position),
+            init_theta=-float(self.gradient_step),
+        )
+        plus_layout = build_parameter_layout(
+            plus_ops,
+            ignore_identity=True,
+            coefficient_tolerance=1.0e-12,
+            sort_terms=True,
+        )
+        minus_layout = build_parameter_layout(
+            minus_ops,
+            ignore_identity=True,
+            coefficient_tolerance=1.0e-12,
+            sort_terms=True,
+        )
+        if serialize_layout(plus_layout) != serialize_layout(minus_layout):
+            raise RuntimeError(
+                "Pure-Hubbard noisy gradient probes changed ansatz structure."
+            )
+        plus = self.evaluate_energy(
+            operators=plus_ops,
+            theta_runtime=plus_theta,
+            layout=plus_layout,
+            consumer_scope=f"{consumer_scope}:plus",
+            stage=str(consumer_scope).split(":", 1)[0],
+            candidate_label=str(candidate.label),
+            insertion_position=int(insertion_position),
+            probe_sign="plus",
+        )
+        minus = self.evaluate_energy(
+            operators=minus_ops,
+            theta_runtime=minus_theta,
+            layout=minus_layout,
+            consumer_scope=f"{consumer_scope}:minus",
+            stage=str(consumer_scope).split(":", 1)[0],
+            candidate_label=str(candidate.label),
+            insertion_position=int(insertion_position),
+            probe_sign="minus",
+        )
+        return float((plus - minus) / (2.0 * float(self.gradient_step)))
+
+    def checkpoint_receipt(self) -> dict[str, Any]:
+        records = copy.deepcopy(self.evaluation_records)
+        compile_receipts = copy.deepcopy(self.compiled_noise_receipts)
+        return {
+            "schema": "paper_i_pure_hubbard_controller_noise_checkpoint_v1",
+            "controller_energy_surface": (
+                "candidate_gradients_and_powell_refit_v1"
+            ),
+            "geometry_and_gram": "exact",
+            "reported_energy": "exact_diagnostic",
+            "evaluation_count": int(self.evaluation_count),
+            "evaluation_records": records,
+            "evaluation_records_sha256": (
+                _candidate_record_payload_digest(records)
+            ),
+            "compiled_noise_receipts": compile_receipts,
+            "compiled_noise_receipts_sha256": (
+                _candidate_record_payload_digest(compile_receipts)
+            ),
+            "noise_contract_sha256": str(self.contract["sha256"]),
+            "rng_state": (
+                self.oracle_context.oracle_obj.snapshot_value_noise_state()
+            ),
+        }
+
+    def transition_delta_receipt(self) -> dict[str, Any]:
+        """Seal only noise evidence added since the prior accepted round."""
+
+        before_count = int(self.accepted_evaluation_count)
+        after_count = int(self.evaluation_count)
+        if (
+            before_count < 0
+            or after_count != len(self.evaluation_records)
+            or after_count <= before_count
+            or not self.accepted_compiled_plan_digests.issubset(
+                self.compiled_noise_receipts
+            )
+        ):
+            raise RuntimeError(
+                "Pure-Hubbard controller-noise transition cursor is invalid."
+            )
+        records_delta = copy.deepcopy(
+            self.evaluation_records[before_count:after_count]
+        )
+        new_plan_digests = [
+            str(plan_digest)
+            for plan_digest in self.compiled_noise_receipts
+            if plan_digest not in self.accepted_compiled_plan_digests
+        ]
+        compile_delta = {
+            plan_digest: copy.deepcopy(
+                self.compiled_noise_receipts[plan_digest]
+            )
+            for plan_digest in new_plan_digests
+        }
+        rng_state = (
+            self.oracle_context.oracle_obj.snapshot_value_noise_state()
+        )
+        payload = {
+            "schema": (
+                "paper_i_pure_hubbard_controller_noise_transition_delta_v1"
+            ),
+            "evaluation_count_before": before_count,
+            "evaluation_count_after": after_count,
+            "evaluation_records_delta": records_delta,
+            "evaluation_records_delta_sha256": (
+                _candidate_record_payload_digest(records_delta)
+            ),
+            "cumulative_evaluation_records_sha256": (
+                _candidate_record_payload_digest(self.evaluation_records)
+            ),
+            "compiled_noise_receipt_count_before": len(
+                self.accepted_compiled_plan_digests
+            ),
+            "compiled_noise_receipt_count_after": len(
+                self.compiled_noise_receipts
+            ),
+            "compiled_noise_receipts_delta": compile_delta,
+            "compiled_noise_receipts_delta_sha256": (
+                _candidate_record_payload_digest(compile_delta)
+            ),
+            "cumulative_compiled_noise_receipts_sha256": (
+                _candidate_record_payload_digest(
+                    self.compiled_noise_receipts
+                )
+            ),
+            "noise_contract_sha256": str(self.contract["sha256"]),
+            "rng_state_after": copy.deepcopy(rng_state),
+            "rng_state_after_sha256": (
+                _candidate_record_payload_digest(rng_state)
+            ),
+        }
+        self.accepted_evaluation_count = after_count
+        self.accepted_compiled_plan_digests = set(
+            self.compiled_noise_receipts
+        )
+        return payload
+
+    def restore_checkpoint_receipt(
+        self,
+        payload: Mapping[str, Any],
+    ) -> None:
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("schema")
+            != "paper_i_pure_hubbard_controller_noise_checkpoint_v1"
+            or payload.get("controller_energy_surface")
+            != "candidate_gradients_and_powell_refit_v1"
+            or payload.get("geometry_and_gram") != "exact"
+            or payload.get("reported_energy") != "exact_diagnostic"
+            or payload.get("noise_contract_sha256")
+            != self.contract.get("sha256")
+            or not isinstance(payload.get("rng_state"), Mapping)
+            or not isinstance(payload.get("evaluation_records"), list)
+            or not isinstance(payload.get("compiled_noise_receipts"), Mapping)
+            or int(payload.get("evaluation_count", -1)) < 0
+        ):
+            raise ValueError(
+                "Pure-Hubbard controller-noise checkpoint is invalid."
+            )
+        records = copy.deepcopy(list(payload["evaluation_records"]))
+        compile_receipts = copy.deepcopy(
+            dict(payload["compiled_noise_receipts"])
+        )
+        if (
+            int(payload["evaluation_count"]) != len(records)
+            or payload.get("evaluation_records_sha256")
+            != _candidate_record_payload_digest(records)
+            or any(
+                not isinstance(row, Mapping)
+                or row.get("schema")
+                != "paper_i_pure_hubbard_controller_noise_evaluation_v1"
+                or row.get("evaluation_ordinal") != index
+                for index, row in enumerate(records, start=1)
+            )
+            or payload.get("compiled_noise_receipts_sha256")
+            != _candidate_record_payload_digest(compile_receipts)
+            or any(
+                not isinstance(receipt, Mapping)
+                or receipt.get("parameterized_plan_digest") != plan_digest
+                or not isinstance(
+                    receipt.get("synthetic_coherent"), Mapping
+                )
+                or int(
+                    receipt["synthetic_coherent"].get("inserted_count", 0)
+                )
+                <= 0
+                or receipt.get("sha256")
+                != _candidate_record_payload_digest(
+                    {
+                        key: value
+                        for key, value in receipt.items()
+                        if key != "sha256"
+                    }
+                )
+                for plan_digest, receipt in compile_receipts.items()
+            )
+            or any(
+                not isinstance(row, Mapping)
+                or row.get("parameterized_plan_digest")
+                not in compile_receipts
+                or row.get("compiled_noise_receipt_sha256")
+                != compile_receipts[row["parameterized_plan_digest"]].get(
+                    "sha256"
+                )
+                for row in records
+            )
+        ):
+            raise ValueError(
+                "Pure-Hubbard controller-noise evaluation records are invalid."
+            )
+        self.oracle_context.oracle_obj.restore_value_noise_state(
+            payload["rng_state"]
+        )
+        self.evaluation_count = int(payload["evaluation_count"])
+        self.evaluation_records = [dict(row) for row in records]
+        self.compiled_noise_receipts = {
+            str(key): dict(value)
+            for key, value in compile_receipts.items()
+        }
+        self.accepted_evaluation_count = int(self.evaluation_count)
+        self.accepted_compiled_plan_digests = set(
+            self.compiled_noise_receipts
+        )
+
+
+def _pure_hubbard_controller_noise_runtime(
+    *,
+    core: "_DefaultNoPruneSetupCore",
+) -> _PureHubbardControllerNoiseRuntime | None:
+    execution = core.route_contract.get("execution_settings")
+    invariants = core.route_contract.get("semantic_invariants")
+    if not isinstance(execution, Mapping) or not isinstance(
+        invariants,
+        Mapping,
+    ):
+        return None
+    raw = execution.get("ra_controller_noise_contract")
+    if raw is None:
+        return None
+    contract = dict(raw) if isinstance(raw, Mapping) else {}
+    value_noise = contract.get("value_noise")
+    depolarizing = contract.get("synthetic_depolarizing")
+    coherent = contract.get("synthetic_coherent")
+    surface = contract.get("surface")
+    effective_oracle = contract.get("effective_oracle_config")
+    if (
+        str(core.resolved_problem.family_key).strip().lower() != "hubbard"
+        or invariants.get("application_lane")
+        != "paper_i_pure_hubbard_page12_full_noise_v1"
+        or invariants.get("controller_noise_active") is not True
+        or not isinstance(value_noise, Mapping)
+        or value_noise.get("model") != "gaussian_iid_v1"
+        or value_noise.get("frozen_keyed") is not False
+        or not isinstance(depolarizing, Mapping)
+        or not isinstance(coherent, Mapping)
+        or not isinstance(effective_oracle, Mapping)
+        or not isinstance(surface, Mapping)
+        or effective_oracle.get("noise_mode")
+        != contract.get("oracle_noise_mode")
+        or effective_oracle.get("execution_surface")
+        != contract.get("execution_surface")
+        or effective_oracle.get("value_noise_model")
+        != value_noise.get("model")
+        or effective_oracle.get("value_noise_std")
+        != value_noise.get("std")
+        or effective_oracle.get("value_noise_seed")
+        != value_noise.get("seed")
+        or effective_oracle.get("value_noise_semantic")
+        != value_noise.get("semantic")
+        or effective_oracle.get("value_noise_std_source")
+        != value_noise.get("std_source")
+        or effective_oracle.get("synthetic_depolarizing_1q_error")
+        != depolarizing.get("one_qubit_error")
+        or effective_oracle.get("synthetic_depolarizing_2q_error")
+        != depolarizing.get("two_qubit_error")
+        or effective_oracle.get("synthetic_depolarizing_1q_gates")
+        != depolarizing.get("one_qubit_gates")
+        or effective_oracle.get("synthetic_depolarizing_2q_gates")
+        != depolarizing.get("two_qubit_gates")
+        or effective_oracle.get("synthetic_coherent_1q_angle_std")
+        != coherent.get("one_qubit_angle_std")
+        or effective_oracle.get("synthetic_coherent_2q_angle_std")
+        != coherent.get("two_qubit_angle_std")
+        or effective_oracle.get("synthetic_coherent_seed")
+        != contract.get("synthetic_coherent_seed")
+        or effective_oracle.get("synthetic_coherent_generator_mode")
+        != coherent.get("generator_mode")
+        or effective_oracle.get("synthetic_coherent_1q_gates")
+        != coherent.get("one_qubit_gates")
+        or effective_oracle.get("synthetic_coherent_2q_gates")
+        != coherent.get("two_qubit_gates")
+        or effective_oracle.get("oracle_repeats") != 1
+        or effective_oracle.get("oracle_aggregate") != "mean"
+        or effective_oracle.get("seed") != 7
+        or effective_oracle.get("seed_transpiler") != 7
+        or effective_oracle.get("transpile_optimization_level") != 1
+        or effective_oracle.get("mitigation")
+        != {
+            "mode": "none",
+            "zne_scales": [],
+            "dd_sequence": None,
+            "local_readout_strategy": None,
+        }
+        or not isinstance(
+            effective_oracle.get("symmetry_mitigation"), Mapping
+        )
+        or effective_oracle["symmetry_mitigation"].get("mode") != "off"
+        or contract.get("density_matrix_shotless") is not True
+        or dict(surface)
+        != {
+            "candidate_gradient_scoring": "noisy",
+            "powell_refit_objective": "noisy",
+            "geometry_and_gram": "exact",
+            "reported_energy": "exact_diagnostic",
+        }
+        or execution.get("adapt_parallel_gradient_workers") != 1
+    ):
+        raise ValueError(
+            "Pure-Hubbard controller-noise runtime lost its named contract."
+        )
+    config = Phase3OracleGradientConfig(
+        noise_mode=str(effective_oracle["noise_mode"]),
+        shots=int(effective_oracle["shots"]),
+        oracle_repeats=int(effective_oracle["oracle_repeats"]),
+        oracle_aggregate=str(effective_oracle["oracle_aggregate"]),
+        backend_name=effective_oracle["backend_name"],
+        use_fake_backend=bool(effective_oracle["use_fake_backend"]),
+        seed=int(effective_oracle["seed"]),
+        gradient_step=float(contract["gradient_step"]),
+        mitigation_mode=str(effective_oracle["mitigation"]["mode"]),
+        local_readout_strategy=effective_oracle["mitigation"][
+            "local_readout_strategy"
+        ],
+        zne_scales=tuple(effective_oracle["mitigation"]["zne_scales"]),
+        local_gate_twirling=bool(
+            effective_oracle["mitigation"].get(
+                "local_gate_twirling", False
+            )
+        ),
+        dd_sequence=effective_oracle["mitigation"]["dd_sequence"],
+        scope="all_candidate_gradients_and_powell_refit_v1",
+        execution_surface_requested=str(
+            effective_oracle["execution_surface"]
+        ),
+        execution_surface=str(effective_oracle["execution_surface"]),
+        raw_transport=str(effective_oracle["raw_transport"]),
+        raw_store_memory=bool(effective_oracle["raw_store_memory"]),
+        raw_artifact_path=effective_oracle["raw_artifact_path"],
+        seed_transpiler=int(effective_oracle["seed_transpiler"]),
+        transpile_optimization_level=int(
+            effective_oracle["transpile_optimization_level"]
+        ),
+        value_noise_model=str(value_noise["model"]),
+        value_noise_std=float(value_noise["std"]),
+        value_noise_seed=int(value_noise["seed"]),
+        value_noise_semantic=str(effective_oracle["value_noise_semantic"]),
+        value_noise_std_source=str(
+            effective_oracle["value_noise_std_source"]
+        ),
+        synthetic_depolarizing_1q_error=float(
+            depolarizing["one_qubit_error"]
+        ),
+        synthetic_depolarizing_2q_error=float(
+            depolarizing["two_qubit_error"]
+        ),
+        synthetic_depolarizing_1q_gates=tuple(
+            effective_oracle["synthetic_depolarizing_1q_gates"]
+        ),
+        synthetic_depolarizing_2q_gates=tuple(
+            effective_oracle["synthetic_depolarizing_2q_gates"]
+        ),
+        synthetic_coherent_1q_angle_std=float(
+            coherent["one_qubit_angle_std"]
+        ),
+        synthetic_coherent_2q_angle_std=float(
+            coherent["two_qubit_angle_std"]
+        ),
+        synthetic_coherent_seed=int(
+            contract["synthetic_coherent_seed"]
+        ),
+        synthetic_coherent_generator_mode=str(
+            coherent["generator_mode"]
+        ),
+        synthetic_coherent_1q_gates=tuple(
+            effective_oracle["synthetic_coherent_1q_gates"]
+        ),
+        synthetic_coherent_2q_gates=tuple(
+            effective_oracle["synthetic_coherent_2q_gates"]
+        ),
+    )
+    runtime_context = _setup_phase3_oracle_runtime_context(
+        config=config,
+        h_poly=core.resolved_problem.hamiltonian,
+        num_qubits=int(core.resolved_problem.layout.total_qubits),
+        runtime_bindings_factory=_phase3_oracle_runtime_bindings,
+        inner_value_noise_exact_structure_enabled=False,
+        log_fn=_ai_log,
+    )
+    observed_oracle_config = getattr(
+        runtime_context.oracle_obj, "config", None
+    )
+    observed_payload = (
+        dict(getattr(observed_oracle_config, "__dict__", {}) or {})
+    )
+
+    def _json_normalized(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {
+                str(key): _json_normalized(child)
+                for key, child in value.items()
+            }
+        if isinstance(value, (tuple, list)):
+            return [_json_normalized(child) for child in value]
+        return value
+
+    effective_payload = _json_normalized(dict(effective_oracle))
+    observed_effective_payload = {
+        key: _json_normalized(observed_payload.get(key))
+        for key in effective_payload
+    }
+    if observed_effective_payload != effective_payload:
+        runtime_context.cleanup_guard.close()
+        mismatches = {
+            key: {
+                "expected": effective_payload[key],
+                "observed": observed_effective_payload.get(key),
+            }
+            for key in effective_payload
+            if observed_effective_payload.get(key) != effective_payload[key]
+        }
+        raise RuntimeError(
+            "Pure-Hubbard controller-noise OracleConfig drifted from its "
+            "source-locked effective configuration: "
+            f"{mismatches!r}."
+        )
+    return _PureHubbardControllerNoiseRuntime(
+        oracle_context=runtime_context,
+        reference_state=np.asarray(core.reference_state, dtype=complex).copy(),
+        num_qubits=int(core.resolved_problem.layout.total_qubits),
+        gradient_step=float(config.gradient_step),
+        contract=contract,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class _DefaultNoPruneTransitionServices:
     """Ordinary exact-route numerical services for accepted transitions."""
@@ -56356,6 +57981,9 @@ class _DefaultNoPruneTransitionServices:
     allow_repeats: bool
     eps_energy: float
     maximum_iterations: int
+    controller_noise_runtime: (
+        _PureHubbardControllerNoiseRuntime | None
+    ) = None
     historical_coordinate_overlay_active: bool = True
     historical_adaptive_trust_active: bool = True
     historical_supported_coordinate_model_active: bool = True
@@ -56580,6 +58208,40 @@ class _DefaultNoPruneTransitionServices:
         branch_id: str | int | None = None,
     ) -> float:
         del depth_marker
+        if self.controller_noise_runtime is not None:
+            layout = (
+                parameter_layout_now
+                if parameter_layout_now is not None
+                else self.build_selected_layout(list(ops_now))
+            )
+            noisy_energy = self.controller_noise_runtime.evaluate_energy(
+                operators=ops_now,
+                theta_runtime=np.asarray(theta_now, dtype=float),
+                layout=layout,
+                consumer_scope=str(objective_stage),
+                stage=str(objective_stage),
+            )
+            state = self.prepare_selected_state(
+                ops_now=ops_now,
+                theta_now=theta_now,
+                executor_now=executor_now,
+                parameter_layout_now=layout,
+            )
+            self.estimator_service._record_estimator_primitive(
+                state=state,
+                component=(
+                    "N_H_outer"
+                    if str(objective_stage) == "initial_state"
+                    else "N_H_refit"
+                ),
+                consumer_scope=f"noise_oracle_energy:{objective_stage}",
+                primitive_kind="hamiltonian_expectation",
+                observable_or_formula_identity=(
+                    "aer_density_matrix_full_noise_hamiltonian_expectation_v1"
+                ),
+                branch_id=branch_id,
+            )
+            return float(noisy_energy)
         state = self.prepare_selected_state(
             ops_now=ops_now,
             theta_now=theta_now,
@@ -56775,6 +58437,8 @@ def _validated_canonical_composed_route_contract(
 
 def _validated_ra_adapt_route_contract(
     kwargs: Mapping[str, Any],
+    *,
+    candidate_adapter: Any | None = None,
 ) -> dict[str, Any] | None:
     """Validate a source-locked canonical RA-ADAPT route contract.
 
@@ -56819,11 +58483,16 @@ def _validated_ra_adapt_route_contract(
         return None
     profile = str(contract.get("route_profile", ""))
     paper_i_profile = profile.startswith("paper_i_ra_adapt__")
+    semantic_paper_i_profile = profile.startswith("paper_i_ra__")
     h2o_application_profile = profile.startswith(
         "paper_iv_h2o_ra_adapt__"
     )
     if (
-        not (paper_i_profile or h2o_application_profile)
+        not (
+            paper_i_profile
+            or semantic_paper_i_profile
+            or h2o_application_profile
+        )
         or profile != str(kwargs.get("sr_route_profile_resolved", ""))
         or profile != str(kwargs.get("sr_route_profile_request", ""))
     ):
@@ -56834,6 +58503,15 @@ def _validated_ra_adapt_route_contract(
         execution, Mapping
     ):
         raise ValueError("The RA-ADAPT route contract is incomplete.")
+    if semantic_paper_i_profile:
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            validate_semantic_closure_native_route_contract,
+        )
+
+        validate_semantic_closure_native_route_contract(
+            contract,
+            candidate_adapter=candidate_adapter,
+        )
     if h2o_application_profile:
         resolved_problem = kwargs.get("resolved_problem_context")
         representation = invariants.get("candidate_representation")
@@ -57067,10 +58745,13 @@ def _validated_ra_adapt_route_contract(
         or claims_full_response_by_id != claims_full_response_by_profile
         or carries_v2_fields
         != claims_full_response_by_id
-        or observed_algorithm_id not in {
-            None,
-            RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
-        }
+        or (
+            not semantic_paper_i_profile
+            and observed_algorithm_id not in {
+                None,
+                RA_ADAPT_NONSTATIONARY_INCREMENTAL_FULL_RESPONSE_ALGORITHM_ID,
+            }
+        )
     ):
         raise ValueError(
             "The RA-ADAPT full-response algorithm identity is inconsistent."
@@ -57173,7 +58854,10 @@ def _build_default_no_prune_setup_core(
             "The exact default numerical session requires the shared Pauli "
             "pool to remain off."
         )
-    ra_adapt_contract = _validated_ra_adapt_route_contract(kwargs)
+    ra_adapt_contract = _validated_ra_adapt_route_contract(
+        kwargs,
+        candidate_adapter=candidate_adapter,
+    )
     composed_contract = _validated_canonical_composed_route_contract(kwargs)
     if ra_adapt_contract is not None:
         route_contract = ra_adapt_contract
@@ -57331,9 +59015,23 @@ def _build_default_no_prune_setup_core(
     if adapter_phase_i_supply_id:
         from pipelines.static_adapt.ra_adapt.adapters import (
             GLOBAL_SINGLE_PAULI_ADAPTER_ID,
+            GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID,
             PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON,
             PHASE_I_VISIBILITY_ALL_EXECUTABLE,
             PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
+            GlobalSingletonGradientPhase0CandidateAdapter,
+        )
+        from pipelines.static_adapt.ra_adapt.l3_page12 import (
+            PAPER_I_L3_PAGE12_ADAPTER_ID,
+            PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+        )
+        from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
+            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID,
+            PaperIPureHubbardNoisePage12CandidateAdapter,
+        )
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            PAPER_I_RA_SEMANTIC_ADAPTER_ID,
+            is_semantic_closure_adapter,
         )
 
         if (
@@ -57341,10 +59039,42 @@ def _build_default_no_prune_setup_core(
             == PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON
         ):
             invariants = route_contract.get("semantic_invariants")
+            observed_adapter_id = str(
+                getattr(candidate_adapter, "adapter_id", "")
+            )
+            recognized_adapter = bool(
+                (
+                    type(candidate_adapter)
+                    is GlobalSingletonGradientPhase0CandidateAdapter
+                    and observed_adapter_id
+                    == GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID
+                )
+                or (
+                    type(candidate_adapter)
+                    is PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter
+                    and observed_adapter_id
+                    == PAPER_I_L3_PAGE12_ADAPTER_ID
+                )
+                or (
+                    type(candidate_adapter)
+                    is PaperIPureHubbardNoisePage12CandidateAdapter
+                    and observed_adapter_id
+                    == PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID
+                )
+                or (
+                    is_semantic_closure_adapter(candidate_adapter)
+                    and observed_adapter_id
+                    == PAPER_I_RA_SEMANTIC_ADAPTER_ID
+                )
+                or observed_adapter_id == GLOBAL_SINGLE_PAULI_ADAPTER_ID
+            )
+            if not recognized_adapter:
+                raise ValueError(
+                    "The global-singleton RA numerical pool has an unknown "
+                    "typed adapter identity."
+                )
             expected_supply_contract = {
-                "candidate_adapter_id": (
-                    GLOBAL_SINGLE_PAULI_ADAPTER_ID
-                ),
+                "candidate_adapter_id": observed_adapter_id,
                 "phase_i_candidate_supply": (
                     PHASE_I_SUPPLY_GLOBAL_GUARDED_SINGLETON
                 ),
@@ -57362,8 +59092,6 @@ def _build_default_no_prune_setup_core(
                     for key in expected_supply_contract
                 }
                 != expected_supply_contract
-                or str(getattr(candidate_adapter, "adapter_id", ""))
-                != GLOBAL_SINGLE_PAULI_ADAPTER_ID
                 or str(
                     getattr(
                         candidate_adapter,
@@ -57982,6 +59710,7 @@ class _DefaultNoPrunePendingSelection:
     phase3_population_activation: Mapping[str, Any]
     insertion_round_policy: Mapping[str, Any] | None
     candidate_position_plans: Mapping[int, Mapping[str, Any]]
+    source_candidate_position_plans: Mapping[int, Mapping[str, Any]]
     psi_current: np.ndarray
     hpsi_current: np.ndarray
     energy_current_exact_loop: float
@@ -57991,6 +59720,7 @@ class _DefaultNoPrunePendingSelection:
     phase2_score_cfg_round: FullScoreConfig
     backend_compile_snapshot: object | None
     phase3_backend_compile_snapshot: object | None
+    compile_base_ops: tuple[AnsatzTerm, ...]
     nonbeam_outer_old_old_prior: (
         HistoricalSingletonOldOldGeometryPrior | None
     )
@@ -58014,7 +59744,38 @@ class _DefaultNoPrunePendingSelection:
     controller_pre_snapshot_dict: dict[str, Any]
     deferred_observations: list[tuple[str, dict[str, Any]]]
     runtime_sidecar: dict[str, Any]
+    qiskit_population_normalization_receipts: dict[str, dict[str, Any]]
+    phase0_gradient_shortlist_receipt: dict[str, Any] | None = None
     controller_state: _SRControllerState | None = None
+
+
+def _default_no_prune_source_position_plans(
+    pending: _DefaultNoPrunePendingSelection | Any,
+) -> Mapping[int, Mapping[str, Any]]:
+    """Return the immutable pre-Phase-0 commutation-reduced domain plans."""
+
+    source = getattr(pending, "source_candidate_position_plans", None)
+    if isinstance(source, Mapping):
+        return source
+    current = getattr(pending, "candidate_position_plans", None)
+    if not isinstance(current, Mapping):
+        raise RuntimeError("Insertion-position plans are missing.")
+    return current
+
+
+def _default_phase123_adaptive_shortlisting_active(
+    context: "_DefaultNoPruneKernelContext",
+) -> bool:
+    policy = context.phase123_shortlist_policy
+    if policy is None:
+        return False
+    from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+        ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1,
+    )
+
+    if str(policy) != ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1:
+        raise RuntimeError("Unknown native Phase-I--III shortlist policy.")
+    return True
 
 
 def _scored_insertion_position_population_receipt(
@@ -58037,6 +59798,34 @@ def _scored_insertion_position_population_receipt(
     append = int(append_position)
     if append < 0:
         raise RuntimeError("Scored insertion receipt has a negative append position.")
+    from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+        adaptive_phase_record_id,
+    )
+
+    def _position_rows(
+        records: Sequence[_CandidatePositionRecord],
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "domain_record_id": str(record.domain_record_id),
+                "generator_id": str(record.generator_id),
+                "pool_index": int(record.pool_index),
+                "pool_label": str(record.pool_label),
+                "insertion_position": int(record.insertion_position),
+                "adaptive_record_id": adaptive_phase_record_id(
+                    generator_id=str(record.generator_id),
+                    pool_index=int(record.pool_index),
+                    insertion_position=int(record.insertion_position),
+                ),
+                "position_class": (
+                    "interior"
+                    if int(record.insertion_position) < append
+                    else "append"
+                ),
+            }
+            for record in records
+        ]
+
     phases: list[dict[str, Any]] = []
     all_records: list[dict[str, Any]] = []
     for phase_name, phase_receipt in (
@@ -58044,21 +59833,7 @@ def _scored_insertion_position_population_receipt(
         ("phase_ii", decision.phase_ii),
         ("phase_iii", decision.phase_iii),
     ):
-        records = [
-            {
-                "domain_record_id": str(record.domain_record_id),
-                "generator_id": str(record.generator_id),
-                "pool_index": int(record.pool_index),
-                "pool_label": str(record.pool_label),
-                "insertion_position": int(record.insertion_position),
-                "position_class": (
-                    "interior"
-                    if int(record.insertion_position) < append
-                    else "append"
-                ),
-            }
-            for record in phase_receipt.population
-        ]
+        records = _position_rows(phase_receipt.population)
         if not records or any(
             row["insertion_position"] < 0
             or row["insertion_position"] > append
@@ -58076,16 +59851,51 @@ def _scored_insertion_position_population_receipt(
             raise RuntimeError(
                 f"{phase_name} scored insertion population repeats an identity."
             )
-        phases.append(
-            {
+        phase_payload = {
                 "phase": phase_name,
                 "population_count": len(records),
                 "records": records,
+                "shortlist_count": len(phase_receipt.shortlist),
+                "shortlist_records": _position_rows(
+                    phase_receipt.shortlist
+                ),
+                "adaptive_shortlist": (
+                    None
+                    if phase_receipt.adaptive_shortlist is None
+                    else phase_receipt.adaptive_shortlist.to_dict()
+                ),
+                "adaptive_population_scores": [
+                    score.to_dict()
+                    for score in phase_receipt.adaptive_live_scores
+                ],
+                "ordered_adaptive_population_scores_sha256": (
+                    _candidate_record_payload_digest(
+                        [
+                            score.to_dict()
+                            for score in phase_receipt.adaptive_live_scores
+                        ]
+                    )
+                ),
+                "final_admission_record_id": (
+                    _position_rows(phase_receipt.shortlist)[0][
+                        "adaptive_record_id"
+                    ]
+                    if phase_name == "phase_iii" and phase_receipt.shortlist
+                    else None
+                ),
+                "estimator_event_ids": [
+                    str(value)
+                    for value in phase_receipt.estimator_event_ids
+                ],
                 "ordered_population_sha256": (
                     _candidate_record_payload_digest(records)
                 ),
             }
-        )
+        if phase_receipt.terminal_outcome is not None:
+            phase_payload["terminal_outcome"] = str(
+                phase_receipt.terminal_outcome
+            )
+        phases.append(phase_payload)
         all_records.extend(records)
     payload = {
         "schema": "paper_i_scored_insertion_position_population_v1",
@@ -58101,6 +59911,30 @@ def _scored_insertion_position_population_receipt(
             row["position_class"] == "append" for row in all_records
         ),
     }
+    phase0 = (
+        decision.phase0
+        if isinstance(
+            decision,
+            (_SingletonAdmissionDecision, _NoPositivePhaseIIISelection),
+        )
+        else None
+    )
+    if phase0 is not None:
+        phase0_population = _position_rows(phase0.population)
+        phase0_shortlist = _position_rows(phase0.shortlist)
+        payload["phase0_gradient_screen"] = {
+            "schema": "paper_i_scored_gradient_phase0_population_v1",
+            "population_count": len(phase0_population),
+            "population": phase0_population,
+            "ordered_population_sha256": (
+                _candidate_record_payload_digest(phase0_population)
+            ),
+            "shortlist_count": len(phase0_shortlist),
+            "shortlist": phase0_shortlist,
+            "ordered_shortlist_sha256": (
+                _candidate_record_payload_digest(phase0_shortlist)
+            ),
+        }
     payload["sha256"] = _candidate_record_payload_digest(payload)
     return payload
 
@@ -58152,6 +59986,7 @@ class _DefaultNoPruneKernelContext:
     historical_singleton_trust_update_config: TrustRegionUpdateConfig
     escape_mode: SREscapeMode
     phase_shortlist_runtime: PhaseShortlistRuntime
+    phase123_shortlist_policy: str | None
     phase1_score_config: SimpleScoreConfig
     phase3_shortlist_size: int
     active_gradient_recorder: Callable[..., dict[str, Any]]
@@ -58255,12 +60090,33 @@ class _DefaultNoPruneNumericalCursor:
     initial_outer_measurement_cache: Any | None
     prune_trust_state: AffineDeletionFSTrustState | None
     operator_admission_rounds: list[int]
+    controller_energy: float | None = None
     beam_winning_branch_ids: tuple[str, ...] = ()
     beam_search_diagnostics: dict[str, Any] = field(default_factory=dict)
     beam_resume_fork_local_lineage_s_alg: int = 0
+    beam_fork_excluded_pool_indices: frozenset[int] = frozenset()
     resume_source_rounds: int = 0
     resume_provenance: dict[str, Any] = field(default_factory=dict)
     pending_selection: _DefaultNoPrunePendingSelection | None = None
+
+    def selection_available_indices(self) -> set[int]:
+        """Return the pool indices this round's selection may choose from.
+
+        ``available_indices`` is the branch's persistent pool availability and
+        is the value that is snapshotted, checkpointed, and rehydrated on
+        resume.  A fork-local beam child additionally carries a *round-scoped*
+        exclusion so that siblings of one parent explore distinct admissions;
+        that exclusion constrains one selection decision only and must never
+        enter persistent availability.
+        """
+
+        if not self.beam_fork_excluded_pool_indices:
+            return set(self.available_indices)
+        return {
+            int(index)
+            for index in self.available_indices
+            if int(index) not in self.beam_fork_excluded_pool_indices
+        }
 
 
 @dataclass(slots=True)
@@ -58314,11 +60170,17 @@ class _DefaultNoPruneNumericalSession:
         ledger = self.cursor.estimator_call_ledger
         if ledger is None:
             raise RuntimeError("Beam execution requires the estimator ledger.")
-        excluded = {int(value) for value in excluded_pool_indices}
-        available_indices = set(self.cursor.available_indices).difference(
-            excluded
+        excluded = frozenset(
+            int(value) for value in excluded_pool_indices
         )
-        if not available_indices:
+        # ``available_indices`` stays at full parent availability: it is the
+        # branch's persistent pool state and is what gets snapshotted and
+        # rehydrated.  ``selectable_indices`` is this fork's round-scoped
+        # sibling-diversity view and constrains only the admission the child is
+        # about to make.
+        available_indices = set(self.cursor.available_indices)
+        selectable_indices = available_indices.difference(excluded)
+        if not selectable_indices:
             raise RuntimeError(
                 "Beam child exclusions exhausted the admissible pool."
             )
@@ -58330,33 +60192,20 @@ class _DefaultNoPruneNumericalSession:
                 "Beam fork estimator-prefix cursor lies outside the ledger."
             )
 
-        available_generator_ids: list[str] = []
-        selection_counts: list[tuple[str, int]] = []
-        for pool_index in sorted(available_indices):
-            operator = self.context.pool[int(pool_index)]
-            generator_id = _default_no_prune_operator_identity(
-                operator,
+        available_generator_ids, selection_counts = (
+            _default_no_prune_portable_pool_state(
+                pool=self.context.pool,
+                available_indices=available_indices,
+                selection_counts=self.cursor.selection_counts,
                 pool_generator_registry=(
                     self.cursor.pool_generator_registry
                 ),
             )
-            controller_generator_id = (
-                _default_no_prune_pool_entry_identity(
-                    generator_id,
-                    pool_index=int(pool_index),
-                )
-            )
-            available_generator_ids.append(controller_generator_id)
-            selection_counts.append(
-                (
-                    controller_generator_id,
-                    int(self.cursor.selection_counts[int(pool_index)]),
-                )
-            )
+        )
         synchronized_state = replace(
             state,
-            available_generator_ids=tuple(available_generator_ids),
-            selection_counts=tuple(selection_counts),
+            available_generator_ids=available_generator_ids,
+            selection_counts=selection_counts,
             estimator_prefix_identity=(
                 _default_no_prune_estimator_prefix_identity(
                     occurrence_rows[:prefix_count]
@@ -58439,6 +60288,11 @@ class _DefaultNoPruneNumericalSession:
             operator_admission_rounds=list(
                 self.cursor.operator_admission_rounds
             ),
+            controller_energy=(
+                None
+                if self.cursor.controller_energy is None
+                else float(self.cursor.controller_energy)
+            ),
             beam_winning_branch_ids=tuple(
                 self.cursor.beam_winning_branch_ids
             ),
@@ -58448,6 +60302,7 @@ class _DefaultNoPruneNumericalSession:
             beam_resume_fork_local_lineage_s_alg=int(
                 self.cursor.beam_resume_fork_local_lineage_s_alg
             ),
+            beam_fork_excluded_pool_indices=excluded,
             resume_source_rounds=int(self.cursor.resume_source_rounds),
             resume_provenance=copy.deepcopy(
                 self.cursor.resume_provenance
@@ -58479,6 +60334,11 @@ class _DefaultNoPruneNumericalSession:
         for name in ("branch_id", "parent_branch_id"):
             if hasattr(self.estimator_service.call_context, name):
                 delattr(self.estimator_service.call_context, name)
+        # The sibling-diversity exclusion is scoped to the single admission
+        # this child just executed.  A promoted child becomes the next round's
+        # parent, so leaving the exclusion live would delete the operator from
+        # the surviving lineage's pool permanently.
+        self.cursor.beam_fork_excluded_pool_indices = frozenset()
 
     def beam_executed_s_alg(self) -> int:
         """Return all globally executed estimator occurrences so far."""
@@ -58873,34 +60733,70 @@ class _DefaultNoPruneNumericalSession:
     def _evaluate_default_candidate_gradient_surface(
         self,
         pending: _DefaultNoPrunePendingSelection,
+        *,
+        consumer_scope: str = "gradient_surface",
     ) -> None:
         started = time.perf_counter()
-        (
-            gradients,
-            magnitudes,
-            parallel_info,
-        ) = evaluate_exact_gradient_surface(
-            psi_current=np.asarray(
-                pending.psi_current,
-                dtype=complex,
-            ),
-            hpsi_current=np.asarray(
-                pending.hpsi_current,
-                dtype=complex,
-            ),
-            pool_compiled=self.context.compiled_pool,
-            available_indices=self.cursor.available_indices,
-            workers=int(self.context.parallel_gradient_workers),
+        noise_runtime = (
+            self.context.transition_services.controller_noise_runtime
         )
+        if noise_runtime is None:
+            (
+                gradients,
+                magnitudes,
+                parallel_info,
+            ) = evaluate_exact_gradient_surface(
+                psi_current=np.asarray(
+                    pending.psi_current,
+                    dtype=complex,
+                ),
+                hpsi_current=np.asarray(
+                    pending.hpsi_current,
+                    dtype=complex,
+                ),
+                pool_compiled=self.context.compiled_pool,
+                available_indices=self.cursor.selection_available_indices(),
+                workers=int(self.context.parallel_gradient_workers),
+            )
+            gradient_source = "exact_compiled"
+        else:
+            gradients = np.zeros(len(self.context.pool), dtype=float)
+            for index in sorted(self.cursor.selection_available_indices()):
+                gradients[int(index)] = (
+                    noise_runtime.evaluate_candidate_gradient(
+                        selected_ops=self.cursor.selected_ops,
+                        theta_runtime=np.asarray(
+                            self.cursor.theta,
+                            dtype=float,
+                        ),
+                        candidate=self.context.pool[int(index)],
+                        insertion_position=int(pending.append_position),
+                        consumer_scope=(
+                            f"{consumer_scope}:phase0_phase1:pool{int(index)}"
+                        ),
+                    )
+                )
+            magnitudes = np.abs(gradients)
+            parallel_info = {
+                "surface": "full_noise_finite_difference_v1",
+                "requested_workers": 1,
+                "effective_workers": 1,
+                "parallel_enabled": False,
+                "backend": "serial_aer_density_matrix",
+                "mode": "serial",
+            }
+            gradient_source = (
+                "aer_density_matrix_full_noise_finite_difference_v1"
+            )
         self.estimator_service._record_gradient_surface_primitives(
             state=np.asarray(
                 pending.psi_current,
                 dtype=complex,
             ),
-            available_indices_now=self.cursor.available_indices,
+            available_indices_now=self.cursor.selection_available_indices(),
             selected_ops_now=self.cursor.selected_ops,
             logical_theta_now=pending.theta_logical_current,
-            consumer_scope="gradient_surface",
+            consumer_scope=str(consumer_scope),
         )
         pending.gradients[:] = np.asarray(gradients, dtype=float)
         pending.grad_magnitudes[:] = np.asarray(
@@ -58918,12 +60814,12 @@ class _DefaultNoPruneNumericalSession:
                 {
                     "depth": int(pending.depth + 1),
                     "available_count": int(
-                        len(self.cursor.available_indices)
+                        len(self.cursor.selection_available_indices())
                     ),
                     "gradient_eval_elapsed_s": float(
                         pending.gradient_eval_elapsed_s
                     ),
-                    "gradient_source": "exact_compiled",
+                    "gradient_source": str(gradient_source),
                     "gradient_parallel_mode": str(
                         parallel_info.get("mode", "unknown")
                     ),
@@ -58944,12 +60840,13 @@ class _DefaultNoPruneNumericalSession:
         self,
         pending: _DefaultNoPrunePendingSelection,
     ) -> None:
+        selectable = self.cursor.selection_available_indices()
         pending.max_grad = (
             max(
                 float(pending.grad_magnitudes[index])
-                for index in self.cursor.available_indices
+                for index in selectable
             )
-            if self.cursor.available_indices
+            if selectable
             else 0.0
         )
 
@@ -58972,6 +60869,8 @@ class _DefaultNoPruneNumericalSession:
     def _evaluate_default_append_phase1_positions(
         self,
         pending: _DefaultNoPrunePendingSelection,
+        *,
+        normalize_population: bool = True,
     ) -> dict[str, Any]:
         """Evaluate the exact append-only Phase-I candidate population."""
 
@@ -58984,6 +60883,29 @@ class _DefaultNoPruneNumericalSession:
         for pool_index in pending.shortlist:
             index = int(pool_index)
             candidate = self.context.pool[index]
+            # Every shortlisted pool entry seeds the plan expansion, even
+            # when the plateau reduction absorbed its append endpoint into
+            # an interior equivalence class: the expansion loop drops the
+            # endpoint row for absorbed pools and emits only the planned
+            # interior rows, so the seed's endpoint identity never reaches
+            # the phase populations.  Resolve the position-independent
+            # generator identity through any prepared record for the pool.
+            domain_record = pending.domain_by_pool_position.get(
+                (index, append_position)
+            )
+            if domain_record is None:
+                plan = pending.candidate_position_plans.get(index)
+                representatives = (
+                    plan.get("representative_positions", [])
+                    if isinstance(plan, Mapping)
+                    else []
+                )
+                for representative in representatives:
+                    domain_record = pending.domain_by_pool_position.get(
+                        (index, int(representative))
+                    )
+                    if domain_record is not None:
+                        break
             nested_window = _predict_nested_refit_window_for_position(
                 theta=theta_logical,
                 position_id=append_position,
@@ -59033,19 +60955,38 @@ class _DefaultNoPruneNumericalSession:
                 ),
                 candidate_term=candidate,
             )
-            compile_estimate = (
-                self.context.backend_compile_oracle.estimate_insertion(
-                    pending.backend_compile_snapshot,
+            if (
+                self.context.backend_compile_scope
+                == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+            ):
+                if domain_record is None:
+                    raise RuntimeError(
+                        "Controller domain lacks any prepared record for "
+                        f"pool index {index}."
+                    )
+                compile_estimate = _default_no_prune_compile_estimate_for_stage(
+                    context=self.context,
+                    pending=pending,
+                    evaluation_stage="phase1",
                     candidate_term=candidate,
                     position_id=append_position,
                     proxy_baseline=proxy_compile,
+                    generator_id=str(domain_record.generator_id),
                 )
-                if (
-                    self.context.backend_compile_oracle is not None
-                    and pending.backend_compile_snapshot is not None
+            else:
+                compile_estimate = (
+                    self.context.backend_compile_oracle.estimate_insertion(
+                        pending.backend_compile_snapshot,
+                        candidate_term=candidate,
+                        position_id=append_position,
+                        proxy_baseline=proxy_compile,
+                    )
+                    if (
+                        self.context.backend_compile_oracle is not None
+                        and pending.backend_compile_snapshot is not None
+                    )
+                    else proxy_compile
                 )
-                else proxy_compile
-            )
             measurement_stats = (
                 self.cursor.phase1_measure_cache.estimate(
                     measurement_group_specs_for_term(candidate)
@@ -59271,9 +61212,13 @@ class _DefaultNoPruneNumericalSession:
                     **dict(selector_metadata),
                 }
             )
-        rescored = rescore_hardware_cost_family(
-            records,
-            pending.phase1_score_cfg_round,
+        rescored = (
+            rescore_hardware_cost_family(
+                records,
+                pending.phase1_score_cfg_round,
+            )
+            if normalize_population
+            else records
         )
         return _phase1_eval_payload_from_records(
             rescored,
@@ -59286,9 +61231,6 @@ class _DefaultNoPruneNumericalSession:
     ) -> dict[str, Any]:
         """Evaluate the resolved append or expanded insertion domain."""
 
-        append_payload = self._evaluate_default_append_phase1_positions(
-            pending
-        )
         append_position = int(pending.append_position)
         round_policy = pending.insertion_round_policy
         expanded_domain = bool(
@@ -59298,13 +61240,112 @@ class _DefaultNoPruneNumericalSession:
                 and bool(round_policy["domain_open"])
             )
         )
+        phase123_qiskit_scope = bool(
+            self.context.backend_compile_scope
+            == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        )
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS,
+            validate_semantic_position_phase0_receipt,
+        )
+
+        route_variant = str(
+            getattr(self.context.candidate_adapter, "route_variant", "")
+        )
+        position_phase0_direct = bool(
+            expanded_domain
+            and route_variant in PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS
+        )
+        if position_phase0_direct:
+            raw_phase0_receipt = pending.phase0_gradient_shortlist_receipt
+            if not isinstance(raw_phase0_receipt, Mapping):
+                raise RuntimeError(
+                    "Position-record Phase I lost its authenticated Phase-0 "
+                    "receipt."
+                )
+            phase0_receipt = validate_semantic_position_phase0_receipt(
+                raw_phase0_receipt
+            )
+            retained_rows = phase0_receipt.get("retained_records")
+            if (
+                not isinstance(retained_rows, list)
+                or not retained_rows
+                or any(not isinstance(row, Mapping) for row in retained_rows)
+            ):
+                raise RuntimeError(
+                    "Position-record Phase I received no retained records."
+                )
+            planned_coordinates: list[tuple[int, int]] = []
+            for raw_pool_index in pending.shortlist:
+                pool_index = int(raw_pool_index)
+                plan = pending.candidate_position_plans.get(pool_index)
+                if not isinstance(plan, Mapping):
+                    raise RuntimeError(
+                        "Position-record Phase I lost a retained position plan."
+                    )
+                planned_coordinates.extend(
+                    (pool_index, int(position))
+                    for position in plan.get("representative_positions", [])
+                )
+            retained_coordinates = [
+                (
+                    int(row["pool_index"]),
+                    int(row["insertion_position"]),
+                )
+                for row in retained_rows
+            ]
+            if (
+                len(set(retained_coordinates)) != len(retained_coordinates)
+                or len(set(planned_coordinates)) != len(planned_coordinates)
+                or set(retained_coordinates) != set(planned_coordinates)
+            ):
+                raise RuntimeError(
+                    "Position-record Phase I re-expanded or dropped its "
+                    "Phase-0 shortlist."
+                )
+            direct_records: list[dict[str, Any]] = []
+            for raw_row in retained_rows:
+                row = dict(raw_row)
+                coordinate = (
+                    int(row["pool_index"]),
+                    int(row["insertion_position"]),
+                )
+                domain_record = pending.domain_by_pool_position.get(coordinate)
+                if (
+                    domain_record is None
+                    or str(domain_record.domain_record_id)
+                    != str(row.get("domain_record_id", ""))
+                    or str(domain_record.generator_id)
+                    != str(row.get("generator_id", ""))
+                    or str(domain_record.pool_label)
+                    != str(row.get("pool_label", ""))
+                ):
+                    raise RuntimeError(
+                        "Position-record Phase I drifted from its controller "
+                        "domain identity."
+                    )
+                direct_records.append(
+                    {
+                        "candidate_pool_index": coordinate[0],
+                        "position_id": coordinate[1],
+                        "phase0_position_row": row,
+                    }
+                )
+            append_payload = {"records": direct_records}
+        else:
+            append_payload = self._evaluate_default_append_phase1_positions(
+                pending,
+                normalize_population=not (
+                    phase123_qiskit_scope and expanded_domain
+                ),
+            )
         if not expanded_domain:
             if round_policy is not None:
                 append_payload["insertion_commutation_plateau"] = (
                     _insertion_commutation_plateau_domain_receipt(
                         round_policy=round_policy,
                         candidate_position_plans=(
-                            pending.candidate_position_plans
+                            _default_no_prune_source_position_plans(pending)
                         ),
                         pool=self.context.pool,
                     )
@@ -59317,7 +61358,7 @@ class _DefaultNoPruneNumericalSession:
                     _append_commutation_reduced_domain_receipt(
                         append_position=append_position,
                         candidate_position_plans=(
-                            pending.candidate_position_plans
+                            _default_no_prune_source_position_plans(pending)
                         ),
                         pool=self.context.pool,
                     )
@@ -59359,15 +61400,33 @@ class _DefaultNoPruneNumericalSession:
         for raw_append_record in append_payload["records"]:
             append_record = dict(raw_append_record)
             append_feature = append_record.get("feature")
-            if not isinstance(append_feature, CandidateFeatures):
+            phase0_position_row = append_record.get(
+                "phase0_position_row"
+            )
+            if position_phase0_direct:
+                if not isinstance(phase0_position_row, Mapping):
+                    raise RuntimeError(
+                        "Position-record Phase I lost its retained Phase-0 row."
+                    )
+                index = int(append_record["candidate_pool_index"])
+            elif not isinstance(append_feature, CandidateFeatures):
                 raise RuntimeError(
                     "Canonical insertion expansion lost append features."
                 )
-            index = int(append_feature.candidate_pool_index)
+            else:
+                index = int(append_feature.candidate_pool_index)
             plan = pending.candidate_position_plans[index]
             candidate = self.context.pool[index]
             candidate_label = str(candidate.label)
-            for raw_position in plan["representative_positions"]:
+            representative_positions = (
+                [int(append_record["position_id"])]
+                if position_phase0_direct
+                else [
+                    int(value)
+                    for value in plan["representative_positions"]
+                ]
+            )
+            for raw_position in representative_positions:
                 position = int(raw_position)
                 equivalence_members = [
                     int(value)
@@ -59375,7 +61434,7 @@ class _DefaultNoPruneNumericalSession:
                         "members_by_representative"
                     ][position]
                 ]
-                if position == append_position:
+                if not position_phase0_direct and position == append_position:
                     retained = dict(append_record)
                     retained["feature"] = candidate_feature_with_updates(
                         append_feature,
@@ -59403,28 +61462,71 @@ class _DefaultNoPruneNumericalSession:
                         ),
                     )
                 )
-                gradient = float(geometry["energy_gradient"])
-                metric = float(geometry["fubini_study_metric"])
-                self.estimator_service._record_estimator_primitive(
-                    state=np.asarray(
-                        pending.psi_current,
-                        dtype=complex,
-                    ),
-                    component="N_grad",
-                    consumer_scope="phase1_insertion_position_gradient",
-                    primitive_kind="coordinate_gradient",
-                    observable_or_formula_identity=(
-                        "coordinate_energy_gradient_v2"
-                    ),
-                    operand_identity=(
-                        self.estimator_service._candidate_physical_tangent(
-                            list(self.cursor.selected_ops),
-                            theta_logical,
-                            candidate,
-                            insertion_position=position,
-                        )
-                    ),
+                noise_runtime = (
+                    self.context.transition_services.controller_noise_runtime
                 )
+                if position_phase0_direct:
+                    if noise_runtime is not None:
+                        raise RuntimeError(
+                            "Position-record Phase I is exact/noiseless only."
+                        )
+                    gradient = float(
+                        phase0_position_row["gradient_signed"]
+                    )
+                    repeated_gradient = float(geometry["energy_gradient"])
+                    gradient_scale = max(
+                        abs(gradient),
+                        abs(repeated_gradient),
+                    )
+                    if abs(gradient - repeated_gradient) > (
+                        128 * math.ulp(gradient_scale)
+                    ):
+                        raise RuntimeError(
+                            "Position-record Phase-I geometry drifted from "
+                            "the retained Phase-0 gradient."
+                        )
+                else:
+                    gradient = (
+                        float(geometry["energy_gradient"])
+                        if noise_runtime is None
+                        else noise_runtime.evaluate_candidate_gradient(
+                            selected_ops=self.cursor.selected_ops,
+                            theta_runtime=np.asarray(
+                                self.cursor.theta,
+                                dtype=float,
+                            ),
+                            candidate=candidate,
+                            insertion_position=position,
+                            consumer_scope=(
+                                "phase1_interior_candidate_gradient:"
+                                f"{candidate_label}:position{position}"
+                            ),
+                        )
+                    )
+                metric = float(geometry["fubini_study_metric"])
+                if not position_phase0_direct:
+                    self.estimator_service._record_estimator_primitive(
+                        state=np.asarray(
+                            pending.psi_current,
+                            dtype=complex,
+                        ),
+                        component="N_grad",
+                        consumer_scope="phase1_insertion_position_gradient",
+                        primitive_kind="coordinate_gradient",
+                        observable_or_formula_identity=(
+                            "aer_density_matrix_full_noise_coordinate_gradient_v1"
+                            if noise_runtime is not None
+                            else "coordinate_energy_gradient_v2"
+                        ),
+                        operand_identity=(
+                            self.estimator_service._candidate_physical_tangent(
+                                list(self.cursor.selected_ops),
+                                theta_logical,
+                                candidate,
+                                insertion_position=position,
+                            )
+                        ),
+                    )
                 self.estimator_service._record_candidate_self_metric_primitive(
                     state=np.asarray(
                         pending.psi_current,
@@ -59487,19 +61589,36 @@ class _DefaultNoPruneNumericalSession:
                     ),
                     candidate_term=candidate,
                 )
-                compile_estimate = (
-                    self.context.backend_compile_oracle.estimate_insertion(
-                        pending.backend_compile_snapshot,
-                        candidate_term=candidate,
-                        position_id=position,
-                        proxy_baseline=proxy_compile,
+                if phase123_qiskit_scope:
+                    compile_estimate = (
+                        _default_no_prune_compile_estimate_for_stage(
+                            context=self.context,
+                            pending=pending,
+                            evaluation_stage="phase1",
+                            candidate_term=candidate,
+                            position_id=position,
+                            proxy_baseline=proxy_compile,
+                            generator_id=str(
+                                pending.domain_by_pool_position[
+                                    (int(index), int(position))
+                                ].generator_id
+                            ),
+                        )
                     )
-                    if (
-                        self.context.backend_compile_oracle is not None
-                        and pending.backend_compile_snapshot is not None
+                else:
+                    compile_estimate = (
+                        self.context.backend_compile_oracle.estimate_insertion(
+                            pending.backend_compile_snapshot,
+                            candidate_term=candidate,
+                            position_id=position,
+                            proxy_baseline=proxy_compile,
+                        )
+                        if (
+                            self.context.backend_compile_oracle is not None
+                            and pending.backend_compile_snapshot is not None
+                        )
+                        else proxy_compile
                     )
-                    else proxy_compile
-                )
                 measurement_stats = (
                     self.cursor.phase1_measure_cache.estimate(
                         measurement_group_specs_for_term(candidate)
@@ -59517,19 +61636,46 @@ class _DefaultNoPruneNumericalSession:
                     int(value)
                     for value in response_window.active_post_indices
                 ]
+                candidate_family = str(
+                    self.context.pool_family_ids[index]
+                )
+                if position_phase0_direct:
+                    sigma_hat = float(
+                        _phase3_sigma_hat_for_label(
+                            candidate_label=candidate_label,
+                            sigma_by_label=pending.phase3_sigma_by_label,
+                            phase3_enabled=self.context.phase3_enabled,
+                        )
+                    )
+                    family_repeat_cost = pending.family_repeat_cache.get(
+                        candidate_family
+                    )
+                    if family_repeat_cost is None:
+                        family_repeat_cost = float(
+                            family_repeat_cost_from_history(
+                                history_rows=self.cursor.history,
+                                candidate_family=candidate_family,
+                            )
+                        )
+                        pending.family_repeat_cache[candidate_family] = (
+                            family_repeat_cost
+                        )
+                else:
+                    sigma_hat = float(append_feature.sigma_hat)
+                    family_repeat_cost = float(
+                        append_feature.family_repeat_cost
+                    )
                 feature = build_candidate_features(
                     stage_name=str(pending.stage_name),
                     candidate_label=candidate_label,
-                    candidate_family=str(
-                        self.context.pool_family_ids[index]
-                    ),
+                    candidate_family=candidate_family,
                     candidate_pool_index=index,
                     position_id=position,
                     append_position=append_position,
                     positions_considered=positions_considered,
                     gradient_signed=gradient,
                     metric_proxy=metric,
-                    sigma_hat=float(append_feature.sigma_hat),
+                    sigma_hat=sigma_hat,
                     refit_window_indices=phase2_indices,
                     phase2_geometry_window_indices=phase2_indices,
                     phase2_geometry_window_policy=(
@@ -59583,9 +61729,7 @@ class _DefaultNoPruneNumericalSession:
                     leakage_gate_open=True,
                     trough_probe_triggered=True,
                     trough_detected=False,
-                    family_repeat_cost=float(
-                        append_feature.family_repeat_cost
-                    ),
+                    family_repeat_cost=float(family_repeat_cost),
                     cfg=pending.phase1_score_cfg_round,
                     cheap_score_cfg=pending.phase2_score_cfg_round,
                     generator_metadata=dict(
@@ -59687,7 +61831,7 @@ class _DefaultNoPruneNumericalSession:
                 _insertion_commutation_plateau_domain_receipt(
                     round_policy=round_policy,
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -59696,7 +61840,7 @@ class _DefaultNoPruneNumericalSession:
             payload["insertion_commutation_reduced"] = (
                 _always_commutation_reduced_domain_receipt(
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -59706,7 +61850,7 @@ class _DefaultNoPruneNumericalSession:
                 _append_commutation_reduced_domain_receipt(
                     append_position=append_position,
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -59725,10 +61869,8 @@ class _DefaultNoPruneNumericalSession:
         pending.controller_pre_snapshot_dict.update(
             _controller_snapshot_dict(pre_snapshot)
         )
-        return (
-            pre_snapshot,
-            self._evaluate_default_phase1_positions(pending),
-        )
+        evaluation = self._evaluate_default_phase1_positions(pending)
+        return pre_snapshot, evaluation
 
     def _finalize_default_phase1_score_surface(
         self,
@@ -59758,22 +61900,40 @@ class _DefaultNoPruneNumericalSession:
             list(score_evaluation.get("records", [])),
             snapshot=snapshot,
         )
-        shortlisted = _phase1_lane_shortlist_with_legacy_hook(
-            population,
-            runtime=self.context.phase_shortlist_runtime,
-            score_key=score_key,
-            threshold=_controller_threshold(snapshot, "phase1"),
-            cap=_controller_cap(
-                snapshot,
-                "phase1",
-                self.context.phase1_shortlist_size,
-            ),
-            frontier_ratio=float(
-                pending.phase2_score_cfg_round.phase2_frontier_ratio
-            ),
-            tie_break_score_key="simple_score",
-            shortlist_flag="phase1_shortlisted",
-        )
+        adaptive_receipt = None
+        if _default_phase123_adaptive_shortlisting_active(self.context):
+            shortlisted, adaptive_receipt = (
+                _adaptive_phase_shortlist_with_receipt(
+                    population,
+                    runtime=self.context.phase_shortlist_runtime,
+                    phase="phase_i",
+                    score_key=score_key,
+                    threshold=_controller_threshold(snapshot, "phase1"),
+                    hard_cap=24,
+                    frontier_ratio=float(
+                        pending.phase2_score_cfg_round.phase2_frontier_ratio
+                    ),
+                    tie_break_score_key="simple_score",
+                    shortlist_flag="phase1_shortlisted",
+                )
+            )
+        else:
+            shortlisted = _phase1_lane_shortlist_with_legacy_hook(
+                population,
+                runtime=self.context.phase_shortlist_runtime,
+                score_key=score_key,
+                threshold=_controller_threshold(snapshot, "phase1"),
+                cap=_controller_cap(
+                    snapshot,
+                    "phase1",
+                    self.context.phase1_shortlist_size,
+                ),
+                frontier_ratio=float(
+                    pending.phase2_score_cfg_round.phase2_frontier_ratio
+                ),
+                tie_break_score_key="simple_score",
+                shortlist_flag="phase1_shortlisted",
+            )
         _record_controller_work_for_records(
             self.cursor.controller_measurement_work,
             runtime=self.context.controller_measurement_work_runtime,
@@ -59814,6 +61974,7 @@ class _DefaultNoPruneNumericalSession:
             "controller_snapshot": snapshot,
             "phase1_records": population,
             "phase1_shortlisted_records": shortlisted,
+            "adaptive_shortlist_receipt": adaptive_receipt,
         }
 
     def _default_candidate_feature_rows(
@@ -59894,6 +62055,7 @@ class _DefaultNoPruneNumericalSession:
         list[dict[str, Any]],
         list[dict[str, Any]],
         bool,
+        Any | None,
     ]:
         """Run retained full-response scoring without a closure frame."""
 
@@ -59940,6 +62102,9 @@ class _DefaultNoPruneNumericalSession:
             controller_round=int(pending.depth + 1),
             active_gradient_recorder=(
                 self.context.active_gradient_recorder
+            ),
+            phase123_shortlist_policy=(
+                self.context.phase123_shortlist_policy
             ),
         )
 
@@ -60036,7 +62201,7 @@ class _DefaultNoPruneNumericalSession:
             trust_snapshot,
         )
         available_sorted = sorted(
-            int(index) for index in self.cursor.available_indices
+            int(index) for index in self.cursor.selection_available_indices()
         )
         append_position = int(
             self.cursor.selected_layout.logical_parameter_count
@@ -60047,10 +62212,24 @@ class _DefaultNoPruneNumericalSession:
                 {},
             ).get("adapt_insertion_mode", "")
         )
+        route_invariants = self.context.route_contract.get(
+            "semantic_invariants",
+            {},
+        )
+        controller_noise_plateau_source = bool(
+            isinstance(route_invariants, Mapping)
+            and route_invariants.get("plateau_energy_source")
+            == "persisted_noisy_controller_energy_before_after_v1"
+            and self.context.transition_services.controller_noise_runtime
+            is not None
+        )
         raw_plateau_round_policy = (
             _insertion_commutation_plateau_round_policy(
                 history=self.cursor.history,
                 policy=insertion_mode,
+                controller_noise_energy_source=(
+                    controller_noise_plateau_source
+                ),
             )
             if insertion_mode in {
                 "insertion_commutation_plateau_v1",
@@ -60131,6 +62310,9 @@ class _DefaultNoPruneNumericalSession:
             phase3_population_activation=phase3_population_activation,
             insertion_round_policy=insertion_round_policy,
             candidate_position_plans=candidate_position_plans,
+            source_candidate_position_plans=copy.deepcopy(
+                candidate_position_plans
+            ),
             psi_current=np.asarray(psi_current, dtype=complex).copy(),
             hpsi_current=np.asarray(hpsi_current, dtype=complex).copy(),
             energy_current_exact_loop=float(energy_current),
@@ -60155,9 +62337,14 @@ class _DefaultNoPruneNumericalSession:
                 self.context.phase3_backend_compile_oracle.snapshot_base(
                     self.cursor.selected_ops
                 )
-                if self.context.phase3_backend_compile_oracle is not None
+                if (
+                    self.context.phase3_backend_compile_oracle is not None
+                    and self.context.backend_compile_scope
+                    != BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+                )
                 else None
             ),
+            compile_base_ops=tuple(self.cursor.selected_ops),
             nonbeam_outer_old_old_prior=None,
             available_sorted=available_sorted,
             shortlist=list(available_sorted),
@@ -60188,6 +62375,8 @@ class _DefaultNoPruneNumericalSession:
             controller_pre_snapshot_dict={},
             deferred_observations=[],
             runtime_sidecar={},
+            qiskit_population_normalization_receipts={},
+            phase0_gradient_shortlist_receipt=None,
         )
         self.cursor.pending_selection = pending
         prepared = _build_default_no_prune_selection_workspace(
@@ -60327,6 +62516,11 @@ class _DefaultNoPruneNumericalSession:
         self.cursor.selected_layout = runtime.selected_layout
         self.cursor.selected_executor = runtime.selected_executor
         self.cursor.accepted_energy = float(runtime.accepted_energy)
+        self.cursor.controller_energy = (
+            None
+            if runtime.controller_energy is None
+            else float(runtime.controller_energy)
+        )
         self.cursor.selection_counts = np.asarray(
             runtime.selection_counts,
             dtype=np.int64,
@@ -60483,12 +62677,58 @@ class _DefaultNoPruneNumericalSession:
                 )
             ),
         }
+        if (
+            artifacts.controller_energy_before_refit is not None
+            and artifacts.controller_energy_after_refit is not None
+            and self.context.transition_services.controller_noise_runtime
+            is not None
+        ):
+            history_row["controller_noise"] = {
+                "schema": (
+                    "paper_i_pure_hubbard_controller_noise_transition_v1"
+                ),
+                "controller_energy_before": float(
+                    artifacts.controller_energy_before_refit
+                ),
+                "controller_energy_after": float(
+                    artifacts.controller_energy_after_refit
+                ),
+                "controller_delta_energy": float(
+                    artifacts.controller_energy_after_refit
+                    - artifacts.controller_energy_before_refit
+                ),
+                "non_worsening_comparison_semantics": (
+                    "noisy_controller_energy_after_le_before_v1"
+                ),
+                "non_worsening_accepted": bool(
+                    artifacts.controller_energy_after_refit
+                    <= artifacts.controller_energy_before_refit
+                ),
+                "exact_diagnostic_energy_before": float(
+                    artifacts.energy_before_refit
+                ),
+                "exact_diagnostic_energy_after": float(
+                    runtime.accepted_energy
+                ),
+                "runtime_delta": (
+                    self.context.transition_services
+                    .controller_noise_runtime
+                    .transition_delta_receipt()
+                ),
+            }
         phase3_population_activation = selected_runtime.get(
             "phase3_population_activation"
         )
         if isinstance(phase3_population_activation, Mapping):
             history_row["phase3_population_activation"] = copy.deepcopy(
                 phase3_population_activation
+            )
+        if isinstance(
+            pending.phase0_gradient_shortlist_receipt,
+            Mapping,
+        ):
+            history_row["ra_gradient_phase0_shortlist"] = copy.deepcopy(
+                pending.phase0_gradient_shortlist_receipt
             )
         active_branch_id = getattr(
             self.estimator_service.call_context,
@@ -60513,7 +62753,7 @@ class _DefaultNoPruneNumericalSession:
                 _insertion_commutation_plateau_domain_receipt(
                     round_policy=insertion_receipt,
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -60522,7 +62762,7 @@ class _DefaultNoPruneNumericalSession:
             history_row["insertion_commutation_reduced"] = copy.deepcopy(
                 _always_commutation_reduced_domain_receipt(
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -60532,7 +62772,7 @@ class _DefaultNoPruneNumericalSession:
                 _append_commutation_reduced_domain_receipt(
                     append_position=pending.append_position,
                     candidate_position_plans=(
-                        pending.candidate_position_plans
+                        _default_no_prune_source_position_plans(pending)
                     ),
                     pool=self.context.pool,
                 )
@@ -60700,7 +62940,10 @@ class _DefaultNoPruneNumericalSession:
             controller_round=int(event.controller_round),
         )
         admitted_operator_metadata: list[dict[str, Any]] = []
-        for selected_operator_row, selected_feature_row in zip(
+        for (
+            selected_operator_row,
+            selected_feature_row,
+        ) in zip(
             selected_operators,
             selected_features,
             strict=True,
@@ -60781,9 +63024,12 @@ class _DefaultNoPruneNumericalSession:
             event=event,
             history_row=history_row,
         )
-        history_row["active_prefix_checkpoint"] = copy.deepcopy(
-            checkpoint
+        compact_checkpoint = (
+            _default_no_prune_compact_controller_noise_signed_checkpoint(
+                checkpoint
+            )
         )
+        history_row["active_prefix_checkpoint"] = compact_checkpoint
         self.cursor.history.append(history_row)
         _ai_log(
             "hardcoded_adapt_iter",
@@ -60800,10 +63046,25 @@ class _DefaultNoPruneNumericalSession:
             energy=float(artifacts.energy_before_refit),
         )
 
+        controller_transition = history_row.get("controller_noise")
+        phase_stage_energy_before = float(artifacts.energy_before_refit)
+        phase_stage_energy_after = float(runtime.accepted_energy)
+        if self.context.transition_services.controller_noise_runtime is not None:
+            if not isinstance(controller_transition, Mapping):
+                raise RuntimeError(
+                    "Named controller-noise admission lost its noisy energy "
+                    "transition receipt."
+                )
+            phase_stage_energy_before = float(
+                controller_transition["controller_energy_before"]
+            )
+            phase_stage_energy_after = float(
+                controller_transition["controller_energy_after"]
+            )
         self.cursor.phase1_stage.record_admission(
             selector_step=int(event.controller_round),
-            energy_before=float(artifacts.energy_before_refit),
-            energy_after_refit=float(runtime.accepted_energy),
+            energy_before=phase_stage_energy_before,
+            energy_after_refit=phase_stage_energy_after,
         )
         admitted_measurement_specs: list[Any] = []
         for selected_live_record in selected_live_records:
@@ -60828,13 +63089,18 @@ class _DefaultNoPruneNumericalSession:
                 event.accepted_state_fingerprint
             ),
             checkpoint_projection=(
-                _AcceptedCheckpointProjection.from_mapping(checkpoint)
+                _AcceptedCheckpointProjection.from_mapping(
+                    compact_checkpoint
+                )
             ),
             replay_projection=(
                 _AcceptedReplayProjection.from_mapping(history_row)
             ),
         )
-        self._write_current_checkpoint(force=False)
+        self._write_current_checkpoint(
+            force=False,
+            terminal_active_prefix_checkpoint=checkpoint,
+        )
         return projection
 
     def _write_current_checkpoint(
@@ -60842,11 +63108,33 @@ class _DefaultNoPruneNumericalSession:
         *,
         force: bool,
         final_adapt_payload: Mapping[str, Any] | None = None,
+        terminal_active_prefix_checkpoint: Mapping[str, Any] | None = None,
     ) -> None:
         """Publish one legacy-resumable accepted-prefix observation."""
 
         path = self.context.checkpoint_path
-        if path is None or not self.cursor.history:
+        payload_terminal_checkpoint = (
+            final_adapt_payload.get("terminal_active_prefix_checkpoint")
+            if isinstance(final_adapt_payload, Mapping)
+            else None
+        )
+        terminal_no_history = bool(
+            not self.cursor.history
+            and isinstance(final_adapt_payload, Mapping)
+            and final_adapt_payload.get("terminal_controller_outcome")
+            == _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            and isinstance(
+                final_adapt_payload.get(
+                    "terminal_phase3_selection_receipt"
+                ),
+                Mapping,
+            )
+            and isinstance(payload_terminal_checkpoint, Mapping)
+            and payload_terminal_checkpoint.get("checkpoint_kind")
+            == "terminal_phase3_no_positive"
+            and payload_terminal_checkpoint.get("outer_iteration") == 0
+        )
+        if path is None or (not self.cursor.history and not terminal_no_history):
             return
         depth = int(self.cursor.controller_round)
         if (
@@ -60854,8 +63142,29 @@ class _DefaultNoPruneNumericalSession:
             and depth % int(self.context.checkpoint_cadence) != 0
         ):
             return
+        if (
+            terminal_active_prefix_checkpoint is not None
+            and isinstance(payload_terminal_checkpoint, Mapping)
+            and dict(terminal_active_prefix_checkpoint)
+            != dict(payload_terminal_checkpoint)
+        ):
+            raise RuntimeError(
+                "Accepted-checkpoint terminal projections disagree."
+            )
+        supplied_terminal_checkpoint = (
+            terminal_active_prefix_checkpoint
+            if terminal_active_prefix_checkpoint is not None
+            else payload_terminal_checkpoint
+        )
         latest_checkpoint = copy.deepcopy(
-            self.cursor.history[-1]["active_prefix_checkpoint"]
+            dict(supplied_terminal_checkpoint)
+            if isinstance(supplied_terminal_checkpoint, Mapping)
+            else self.cursor.history[-1]["active_prefix_checkpoint"]
+        )
+        checkpoint_phase1_energy_model = str(
+            self.cursor.history[-1]["phase1_energy_model"]
+            if self.cursor.history
+            else self.context.phase1_score_config.phase1_energy_model
         )
         ledger = self.cursor.estimator_call_ledger
         if ledger is None:
@@ -60994,9 +63303,14 @@ class _DefaultNoPruneNumericalSession:
                 ),
                 "unchanged_parent_survival": False,
             }
+        history_projection = (
+            _default_no_prune_compact_controller_noise_history(
+                self.cursor.history
+            )
+        )
         checkpoints = [
             copy.deepcopy(row["active_prefix_checkpoint"])
-            for row in self.cursor.history
+            for row in history_projection
         ]
         execution_settings = self.context.route_contract.get(
             "execution_settings",
@@ -61097,7 +63411,7 @@ class _DefaultNoPruneNumericalSession:
                 "phase3_response_coordinate_scope": str(
                     self.context.phase3_response_coordinate_scope
                 ),
-                "history": copy.deepcopy(self.cursor.history),
+                "history": copy.deepcopy(history_projection),
                 "history_count": depth,
                 "stop_reason": None,
                 "nfev_total": int(self.cursor.nfev_total),
@@ -61111,8 +63425,10 @@ class _DefaultNoPruneNumericalSession:
                 ),
                 "continuation": {
                     "active_prefix_checkpoints": copy.deepcopy(checkpoints),
-                    "terminal_active_prefix_checkpoint": copy.deepcopy(
-                        latest_checkpoint
+                    "terminal_active_prefix_checkpoint": (
+                        _default_no_prune_continuation_terminal_checkpoint(
+                            latest_checkpoint
+                        )
                     ),
                     "all_active_prefix_estimator_ledger_receipts": (
                         copy.deepcopy(
@@ -61126,6 +63442,27 @@ class _DefaultNoPruneNumericalSession:
         else:
             adapt_payload = copy.deepcopy(dict(final_adapt_payload))
             adapt_payload["history_count"] = depth
+        adapt_payload["history"] = copy.deepcopy(history_projection)
+        adapt_payload["active_prefix_checkpoints"] = copy.deepcopy(
+            checkpoints
+        )
+        adapt_payload["terminal_active_prefix_checkpoint"] = (
+            copy.deepcopy(latest_checkpoint)
+        )
+        continuation_payload = adapt_payload.get("continuation")
+        if not isinstance(continuation_payload, Mapping):
+            raise RuntimeError(
+                "Accepted-checkpoint continuation projection is missing."
+            )
+        adapt_payload["continuation"] = {
+            **copy.deepcopy(dict(continuation_payload)),
+            "active_prefix_checkpoints": copy.deepcopy(checkpoints),
+            "terminal_active_prefix_checkpoint": (
+                _default_no_prune_continuation_terminal_checkpoint(
+                    latest_checkpoint
+                )
+            ),
+        }
         adapt_payload[
             DEFERRED_GRAM_ALL_MODELS_INFEASIBLE_FALLBACK_V1
         ] = copy.deepcopy(deferred_gram_fallback_summary)
@@ -61232,7 +63569,7 @@ class _DefaultNoPruneNumericalSession:
         )
         adapt_payload.setdefault(
             "phase1_energy_model",
-            str(self.cursor.history[-1]["phase1_energy_model"]),
+            checkpoint_phase1_energy_model,
         )
         adapt_payload.setdefault(
             "phase2_curvature_policy",
@@ -61334,7 +63671,7 @@ class _DefaultNoPruneNumericalSession:
                 ),
                 "phase1_score_mode": str(self.context.phase1_score_mode),
                 "phase1_energy_model": str(
-                    self.cursor.history[-1]["phase1_energy_model"]
+                    checkpoint_phase1_energy_model
                 ),
                 "phase2_curvature_policy": str(
                     self.context.phase2_curvature_policy
@@ -61372,6 +63709,278 @@ class _DefaultNoPruneNumericalSession:
             keep_history_tail=int(self.context.checkpoint_history_tail),
         )
 
+    def finalize_stationary_phase0(
+        self,
+        *,
+        final_state: _AcceptedStateSnapshot,
+        transitions: tuple[
+            _AcceptedSingletonTransition
+            | _AcceptedGreedyBatchTransition
+            | _AcceptedCombinatorialBatchTransition,
+            ...,
+        ],
+        events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
+        projected_rounds: tuple[_ProjectedAcceptedRound, ...],
+        phase0: _PhaseSelectionReceipt,
+        stop: StopReceipt,
+    ) -> _DefaultControllerFinalization:
+        """Finalize a valid Phase-0 stationary stop without an admission."""
+
+        pending = self.cursor.pending_selection
+        raw_receipt = (
+            None
+            if pending is None
+            else pending.phase0_gradient_shortlist_receipt
+        )
+        if (
+            phase0.terminal_outcome
+            != "phase0_stationary_no_competitive_candidate_v1"
+            or phase0.shortlist
+            or stop.terminal_controller_outcome
+            != phase0.terminal_outcome
+            or not isinstance(raw_receipt, Mapping)
+            or raw_receipt.get("status") != "stationary"
+            or raw_receipt.get("terminal_controller_outcome")
+            != phase0.terminal_outcome
+            or raw_receipt.get("retained_pool_indices") != []
+        ):
+            raise RuntimeError(
+                "Stationary finalization requires the exact persisted "
+                "empty Phase-0 decision receipt."
+            )
+        return self.finalize(
+            final_state=final_state,
+            transitions=transitions,
+            events=events,
+            projected_rounds=projected_rounds,
+            stop=stop,
+        )
+
+    def finalize_no_admission(
+        self,
+        *,
+        final_state: _AcceptedStateSnapshot,
+        transitions: tuple[
+            _AcceptedSingletonTransition
+            | _AcceptedGreedyBatchTransition
+            | _AcceptedCombinatorialBatchTransition,
+            ...,
+        ],
+        events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
+        projected_rounds: tuple[_ProjectedAcceptedRound, ...],
+        terminal_selection: _NoPositivePhaseIIISelection,
+        stop: StopReceipt,
+    ) -> _DefaultControllerFinalization:
+        """Finalize one authenticated Phase-III no-admission attempt."""
+
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            validate_semantic_phase3_natural_terminal_route_contract,
+        )
+
+        try:
+            validate_semantic_phase3_natural_terminal_route_contract(
+                self.context.route_contract,
+                expected_route_contract_sha256=(
+                    self.context.route_contract_sha256
+                ),
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                "Phase-III no-admission finalization requires the "
+                "authenticated V2 natural-terminal route."
+            ) from exc
+
+        pending = self.cursor.pending_selection
+        if (
+            pending is None
+            or stop.terminal_controller_outcome
+            != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            or terminal_selection.phase_iii.terminal_outcome
+            != stop.terminal_controller_outcome
+            or terminal_selection.phase_iii.shortlist
+            or terminal_selection.phase_iii.adaptive_shortlist is None
+            or terminal_selection.phase_iii.adaptive_shortlist.status
+            != "no_positive_population"
+        ):
+            raise RuntimeError(
+                "No-admission finalization requires the exact Phase-III "
+                "terminal selection."
+            )
+        scored_population = _scored_insertion_position_population_receipt(
+            terminal_selection,
+            append_position=int(pending.append_position),
+        )
+        from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+            adaptive_phase_selection_receipt_from_mapping,
+        )
+
+        phase_rows = scored_population.get("phases")
+        if not isinstance(phase_rows, list) or len(phase_rows) != 3:
+            raise RuntimeError(
+                "Terminal Phase-I--III scored population is incomplete."
+            )
+        phase2_frontier_ratio = float(
+            pending.phase2_score_cfg_round.phase2_frontier_ratio
+        )
+        phase3_frontier_ratio = float(
+            pending.phase2_score_cfg_round.phase3_frontier_ratio
+        )
+        expected = (
+            (
+                "phase_i",
+                self.context.phase1_score_mode,
+                24,
+                phase2_frontier_ratio,
+            ),
+            (
+                "phase_ii",
+                "phase2_raw_score",
+                12,
+                phase2_frontier_ratio,
+            ),
+            (
+                "phase_iii",
+                _default_no_prune_phase3_score_key(),
+                12,
+                phase3_frontier_ratio,
+            ),
+        )
+        for row, (phase, score_key, hard_cap, frontier_ratio) in zip(
+            phase_rows,
+            expected,
+            strict=True,
+        ):
+            if phase == "phase_i":
+                score_key = _phase1_shortlist_score_key()
+            adaptive_phase_selection_receipt_from_mapping(
+                row,
+                expected_phase=phase,
+                expected_score_key=score_key,
+                expected_hard_cap=hard_cap,
+                expected_frontier_ratio=frontier_ratio,
+            )
+        projected = terminal_selection.projected_phase3_population_receipt
+        if not isinstance(projected, Mapping):
+            raise RuntimeError(
+                "Terminal Phase-III selection lost its projected population."
+            )
+        phase123_qiskit = copy.deepcopy(
+            pending.qiskit_population_normalization_receipts
+        )
+        if self.context.backend_compile_scope == (
+            BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ) and set(phase123_qiskit) != {
+            "phase_i",
+            "phase_ii",
+            "phase_iii",
+        }:
+            raise RuntimeError(
+                "Terminal selection lost a Phase-I--III Qiskit population."
+            )
+        event_ids = [
+            str(event.occurrence_id)
+            for event in terminal_selection.estimator_events
+        ]
+        insertion_mode = str(pending.insertion_mode)
+        terminal_plateau_receipt: dict[str, Any] | None = None
+        terminal_reduced_receipt: dict[str, Any] | None = None
+        if pending.insertion_round_policy is not None:
+            terminal_plateau_receipt = copy.deepcopy(
+                _insertion_commutation_plateau_domain_receipt(
+                    round_policy=pending.insertion_round_policy,
+                    candidate_position_plans=(
+                        _default_no_prune_source_position_plans(pending)
+                    ),
+                    pool=self.context.pool,
+                )
+            )
+        elif insertion_mode == "full_commutation_reduced":
+            terminal_reduced_receipt = copy.deepcopy(
+                _always_commutation_reduced_domain_receipt(
+                    candidate_position_plans=(
+                        _default_no_prune_source_position_plans(pending)
+                    ),
+                    pool=self.context.pool,
+                )
+            )
+        elif insertion_mode == "append_commutation_reduced":
+            terminal_reduced_receipt = copy.deepcopy(
+                _append_commutation_reduced_domain_receipt(
+                    append_position=int(pending.append_position),
+                    candidate_position_plans=(
+                        _default_no_prune_source_position_plans(pending)
+                    ),
+                    pool=self.context.pool,
+                )
+            )
+        elif insertion_mode != "append_only":
+            raise RuntimeError(
+                "Terminal Phase-III selection has an unsupported insertion "
+                "mode."
+            )
+        phase3_population_activation = copy.deepcopy(
+            dict(pending.phase3_population_activation)
+        )
+        controller_measurement_work_proxy = (
+            self.cursor.controller_measurement_work.summary_since(
+                pending.controller_work_step_start,
+                include_events=False,
+            )
+        )
+        terminal_receipt = {
+            "schema": (
+                "paper_i_ra_phase3_no_positive_selection_terminal_v1"
+            ),
+            "terminal_controller_outcome": (
+                _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+            ),
+            "accepted_controller_round": int(final_state.controller_round),
+            "attempted_controller_round": int(final_state.controller_round + 1),
+            "accepted_state_fingerprint": str(
+                final_state.accepted_state_fingerprint
+            ),
+            "accepted_operator_count": len(final_state.accepted_operator_ids),
+            "accepted_state_unchanged": True,
+            "final_admission_record_id": None,
+            "phase0_gradient_shortlist": (
+                None
+                if pending.phase0_gradient_shortlist_receipt is None
+                else copy.deepcopy(
+                    pending.phase0_gradient_shortlist_receipt
+                )
+            ),
+            "insertion_mode": insertion_mode,
+            "insertion_commutation_plateau": terminal_plateau_receipt,
+            "insertion_commutation_reduced": terminal_reduced_receipt,
+            "phase3_population_activation": phase3_population_activation,
+            "controller_measurement_work_proxy": (
+                controller_measurement_work_proxy
+            ),
+            "scored_insertion_position_population": scored_population,
+            "projected_phase3_population_receipt": copy.deepcopy(
+                dict(projected)
+            ),
+            "phase123_qiskit_population_normalization_receipts": (
+                phase123_qiskit
+            ),
+            "estimator_event_ids": event_ids,
+            "estimator_event_count": len(event_ids),
+            "estimator_event_ids_sha256": (
+                _candidate_record_payload_digest(event_ids)
+            ),
+        }
+        terminal_receipt["sha256"] = _candidate_record_payload_digest(
+            terminal_receipt
+        )
+        return self.finalize(
+            final_state=final_state,
+            transitions=transitions,
+            events=events,
+            projected_rounds=projected_rounds,
+            stop=stop,
+            terminal_selection_receipt=terminal_receipt,
+        )
+
     def finalize(
         self,
         *,
@@ -61385,11 +63994,20 @@ class _DefaultNoPruneNumericalSession:
         events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
         projected_rounds: tuple[_ProjectedAcceptedRound, ...],
         stop: StopReceipt,
+        terminal_selection_receipt: Mapping[str, Any] | None = None,
     ) -> _DefaultControllerFinalization:
         """Project the terminal direct-session payload without another refit."""
 
         if self._closed:
             raise RuntimeError("The default numerical session is closed.")
+        stationary_phase0 = bool(
+            stop.terminal_controller_outcome
+            == "phase0_stationary_no_competitive_candidate_v1"
+        )
+        phase3_no_admission = bool(
+            stop.terminal_controller_outcome
+            == _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+        )
         new_round_cardinalities = {
             len(transitions),
             len(events),
@@ -61397,7 +64015,10 @@ class _DefaultNoPruneNumericalSession:
         }
         if (
             len(new_round_cardinalities) != 1
-            or not transitions
+            or (
+                not transitions
+                and not (stationary_phase0 or phase3_no_admission)
+            )
             or len(self.cursor.history)
             != int(self.cursor.resume_source_rounds) + len(transitions)
         ):
@@ -61405,13 +64026,31 @@ class _DefaultNoPruneNumericalSession:
                 "Default finalization requires one-to-one new accepted rounds "
                 "plus any authenticated resume prefix."
             )
+        terminal_transition_matches = bool(
+            transitions
+            and final_state == transitions[-1].next_state
+            and events[-1] == transitions[-1].checkpoint_event
+            and str(final_state.accepted_state_fingerprint)
+            == str(projected_rounds[-1].accepted_state_fingerprint)
+        )
+        empty_stationary_matches = bool(
+            not transitions
+            and stationary_phase0
+            and final_state == self.initial_accepted_state
+        )
+        empty_no_admission_matches = bool(
+            not transitions
+            and phase3_no_admission
+            and final_state == self.initial_accepted_state
+        )
         if (
-            final_state != transitions[-1].next_state
-            or events[-1] != transitions[-1].checkpoint_event
+            not (
+                terminal_transition_matches
+                or empty_stationary_matches
+                or empty_no_admission_matches
+            )
             or int(final_state.controller_round)
             != int(self.cursor.controller_round)
-            or str(final_state.accepted_state_fingerprint)
-            != str(projected_rounds[-1].accepted_state_fingerprint)
         ):
             raise RuntimeError(
                 "Default finalization received a different terminal state."
@@ -61421,6 +64060,25 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Default finalization requires the estimator-call ledger."
             )
+        terminal_history_row = (
+            self.cursor.history[-1]
+            if self.cursor.history
+            else {
+                "phase1_energy_model": (
+                    "not_evaluated_stationary_phase0_v1"
+                    if stationary_phase0
+                    else str(
+                        self.context.phase1_score_config.phase1_energy_model
+                    )
+                ),
+                "selected_ops": [],
+                "selected_positions": [],
+                "selected_effective_positions": [],
+                "branch_id": None,
+                "parent_branch_id": None,
+                "post_admission_prune": None,
+            }
+        )
         terminal_checkpoint = (
             _default_no_prune_active_prefix_checkpoint(
                 context=self.context,
@@ -61429,9 +64087,15 @@ class _DefaultNoPruneNumericalSession:
                     self.candidate_sector_auditor
                 ),
                 event=None,
-                history_row=self.cursor.history[-1],
+                history_row=terminal_history_row,
                 checkpoint_kind=(
-                    "terminal_post_final_refit_and_prune"
+                    "terminal_phase0_stationary"
+                    if stationary_phase0
+                    else (
+                        "terminal_phase3_no_positive"
+                        if phase3_no_admission
+                        else "terminal_post_final_refit_and_prune"
+                    )
                 ),
             )
         )
@@ -61534,6 +64198,78 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Active-prefix estimator receipts do not close to the "
                 "terminal ledger."
+            )
+        bound_terminal_selection_receipt: dict[str, Any] | None = None
+        if phase3_no_admission:
+            if not isinstance(terminal_selection_receipt, Mapping):
+                raise RuntimeError(
+                    "Phase-III no-admission finalization lost its terminal "
+                    "selection receipt."
+                )
+            supplied_terminal = copy.deepcopy(
+                dict(terminal_selection_receipt)
+            )
+            supplied_sha = supplied_terminal.pop("sha256", None)
+            if (
+                supplied_sha
+                != _candidate_record_payload_digest(supplied_terminal)
+                or supplied_terminal.get("terminal_controller_outcome")
+                != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+                or supplied_terminal.get("accepted_controller_round")
+                != int(final_state.controller_round)
+                or supplied_terminal.get("attempted_controller_round")
+                != int(final_state.controller_round + 1)
+            ):
+                raise RuntimeError(
+                    "Phase-III terminal selection receipt is invalid."
+                )
+            terminal_prefix_receipt = copy.deepcopy(dict(receipts[-1]))
+            if terminal_prefix_receipt.get("checkpoint_kind") != (
+                "terminal_phase3_no_positive"
+            ):
+                raise RuntimeError(
+                    "Phase-III terminal work was not closed by its prefix "
+                    "receipt."
+                )
+            checkpoint_state_fingerprint = str(
+                terminal_checkpoint.get("projective_state_fingerprint", "")
+            )
+            if (
+                not checkpoint_state_fingerprint
+                or terminal_checkpoint.get("outer_iteration")
+                != int(final_state.controller_round)
+                or terminal_checkpoint.get("active_ansatz_depth")
+                != len(final_state.accepted_operator_ids)
+            ):
+                raise RuntimeError(
+                    "Phase-III terminal checkpoint differs from the "
+                    "unchanged accepted state."
+                )
+            supplied_terminal["accepted_state_fingerprint"] = (
+                checkpoint_state_fingerprint
+            )
+            bound_terminal_selection_receipt = {
+                **supplied_terminal,
+                "terminal_active_prefix_checkpoint_sha256": (
+                    _candidate_record_payload_digest(terminal_checkpoint)
+                ),
+                "terminal_estimator_prefix_receipt": (
+                    terminal_prefix_receipt
+                ),
+                "terminal_estimator_prefix_receipt_sha256": (
+                    _candidate_record_payload_digest(
+                        terminal_prefix_receipt
+                    )
+                ),
+            }
+            bound_terminal_selection_receipt["sha256"] = (
+                _candidate_record_payload_digest(
+                    bound_terminal_selection_receipt
+                )
+            )
+        elif terminal_selection_receipt is not None:
+            raise RuntimeError(
+                "Nonterminal finalization received Phase-III terminal evidence."
             )
         prefix_closure = {
             "schema": (
@@ -61653,6 +64389,10 @@ class _DefaultNoPruneNumericalSession:
         stop_reason_by_controller_reason = {
             "exact_ed_target_reached": "benchmark_abs_delta_e_target",
             "maximum_controller_rounds": "max_depth",
+            "phase0_stationary": "phase0_stationary",
+            "phase_iii_no_positive_feasible_candidate": (
+                "phase_iii_no_positive_feasible_candidate"
+            ),
         }
         try:
             stop_reason = stop_reason_by_controller_reason[
@@ -61663,9 +64403,14 @@ class _DefaultNoPruneNumericalSession:
                 "Default finalization received an unconfigured stop "
                 f"reason: {stop.primary_reason!r}."
             ) from exc
+        history_projection = (
+            _default_no_prune_compact_controller_noise_history(
+                self.cursor.history
+            )
+        )
         checkpoints = [
             copy.deepcopy(row["active_prefix_checkpoint"])
-            for row in self.cursor.history
+            for row in history_projection
         ]
         deferred_gram_fallback_summary = summarize_deferred_gram_fallback(
             self.cursor.history,
@@ -61676,26 +64421,27 @@ class _DefaultNoPruneNumericalSession:
                 self.cursor.resume_source_rounds
             ),
         )
-        selector_compile_cost_accounting = {
-            "schema": "paper_i_selector_compile_cost_accounting_v1",
-            "scope": str(self.context.backend_compile_scope),
-            "phase_i_phase_ii": (
-                _default_no_prune_backend_compile_oracle_summary(
-                    self.context.backend_compile_oracle,
-                    role="phase_i_phase_ii",
-                )
-            ),
-            "phase_iii": (
-                _default_no_prune_backend_compile_oracle_summary(
-                    self.context.phase3_backend_compile_oracle,
-                    role="phase_iii",
-                )
-            ),
-            "phase_iii_reuses_phase_i_phase_ii_oracle": bool(
-                self.context.phase3_backend_compile_oracle is None
-            ),
-            "excluded_from_s_alg": True,
-        }
+        route_invariants = self.context.route_contract.get(
+            "semantic_invariants", {}
+        )
+        gradient_phase0_active = bool(
+            isinstance(route_invariants, Mapping)
+            and route_invariants.get("phase0_active") is True
+        )
+        phase0_cost_source = None
+        if gradient_phase0_active:
+            phase0_cost_source = (
+                "structural_proxy_v1"
+                if route_invariants.get("phase0_resource_cost_active") is True
+                else "none_standard_adapt_absolute_gradient_v1"
+            )
+        selector_compile_cost_accounting = (
+            _default_no_prune_selector_compile_cost_accounting(
+                context=self.context,
+                gradient_phase0_active=gradient_phase0_active,
+                phase0_cost_source=phase0_cost_source,
+            )
+        )
         payload = {
             "success": True,
             "route_family": str(
@@ -61713,7 +64459,7 @@ class _DefaultNoPruneNumericalSession:
                 str(operator.label)
                 for operator in self.cursor.selected_ops
             ],
-            "history": copy.deepcopy(self.cursor.history),
+            "history": copy.deepcopy(history_projection),
             "stop_reason": stop_reason,
             "nfev_total": int(self.cursor.nfev_total),
             "estimator_call_accounting": accounting,
@@ -61734,8 +64480,10 @@ class _DefaultNoPruneNumericalSession:
                 "active_prefix_checkpoints": copy.deepcopy(
                     checkpoints
                 ),
-                "terminal_active_prefix_checkpoint": copy.deepcopy(
-                    terminal_checkpoint
+                "terminal_active_prefix_checkpoint": (
+                    _default_no_prune_continuation_terminal_checkpoint(
+                        terminal_checkpoint
+                    )
                 ),
                 "all_active_prefix_estimator_ledger_receipts": (
                     copy.deepcopy(receipts)
@@ -61749,6 +64497,40 @@ class _DefaultNoPruneNumericalSession:
                 ),
             },
         }
+        if stationary_phase0:
+            pending = self.cursor.pending_selection
+            raw_phase0 = (
+                None
+                if pending is None
+                else pending.phase0_gradient_shortlist_receipt
+            )
+            if not isinstance(raw_phase0, Mapping):
+                raise RuntimeError(
+                    "Stationary finalization lost its Phase-0 receipt."
+                )
+            payload["terminal_controller_outcome"] = (
+                stop.terminal_controller_outcome
+            )
+            payload["terminal_phase0_selection_receipt"] = copy.deepcopy(
+                dict(raw_phase0)
+            )
+            payload["continuation"][
+                "terminal_phase0_selection_receipt"
+            ] = copy.deepcopy(dict(raw_phase0))
+        if phase3_no_admission:
+            if bound_terminal_selection_receipt is None:
+                raise RuntimeError(
+                    "Phase-III terminal receipt was not bound."
+                )
+            payload["terminal_controller_outcome"] = (
+                stop.terminal_controller_outcome
+            )
+            payload["terminal_phase3_selection_receipt"] = copy.deepcopy(
+                bound_terminal_selection_receipt
+            )
+            payload["continuation"][
+                "terminal_phase3_selection_receipt"
+            ] = copy.deepcopy(bound_terminal_selection_receipt)
         if self.cursor.resume_provenance:
             payload["accepted_state_resume"] = copy.deepcopy(
                 self.cursor.resume_provenance
@@ -61780,10 +64562,11 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Terminal numerical state differs from the controller state."
             )
-        self._write_current_checkpoint(
-            force=True,
-            final_adapt_payload=payload,
-        )
+        if self.cursor.history or phase3_no_admission:
+            self._write_current_checkpoint(
+                force=True,
+                final_adapt_payload=payload,
+            )
         return _DefaultControllerFinalization.from_mapping(payload)
 
     def close(self) -> None:
@@ -61828,20 +64611,305 @@ def _default_no_prune_compile_oracle_for_stage(
 ) -> tuple[Any | None, object | None, bool]:
     """Return the immutable compile-oracle pair for one staged evaluation."""
 
-    phase3_scoped = bool(
-        str(evaluation_stage) == "phase3"
+    compile_scope = str(
+        getattr(
+            context,
+            "backend_compile_scope",
+            (
+                BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1
+                if getattr(
+                    context,
+                    "phase3_backend_compile_oracle",
+                    None,
+                )
+                is not None
+                else BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
+            ),
+        )
+    )
+    staged_qiskit = bool(
+        backend_compile_scope_uses_qiskit_for_stage(
+            compile_scope,
+            str(evaluation_stage),
+        )
         and context.phase3_backend_compile_oracle is not None
     )
-    if phase3_scoped:
+    if staged_qiskit:
+        active_snapshot = pending.phase3_backend_compile_snapshot
+        if (
+            active_snapshot is None
+            and compile_scope
+            == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ):
+            active_snapshot = (
+                context.phase3_backend_compile_oracle.snapshot_base(
+                    pending.compile_base_ops
+                )
+            )
+            pending.phase3_backend_compile_snapshot = active_snapshot
         return (
             context.phase3_backend_compile_oracle,
-            pending.phase3_backend_compile_snapshot,
+            active_snapshot,
             True,
         )
+    if (
+        compile_scope
+        == BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+        and str(evaluation_stage) == "phase1"
+    ):
+        return (None, None, False)
     return (
         context.backend_compile_oracle,
         pending.backend_compile_snapshot,
         False,
+    )
+
+
+def _default_no_prune_signed_qiskit_population_receipt(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    phase: str,
+    scope: str,
+) -> dict[str, Any]:
+    """Close one signed-Qiskit population after its single normalization."""
+
+    scope_key = str(scope)
+    if scope_key == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1:
+        receipt_schema = (
+            "paper_i_phase123_qiskit_population_normalization_v1"
+        )
+        allowed_phases = {"phase_i", "phase_ii", "phase_iii"}
+        scope_label = "Phase-I--III"
+    elif scope_key == BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1:
+        receipt_schema = (
+            "paper_i_phase23_qiskit_population_normalization_v1"
+        )
+        allowed_phases = {"phase_ii", "phase_iii"}
+        scope_label = "Phase-II/III"
+    else:
+        raise RuntimeError(
+            "Signed staged-Qiskit population receipt received another scope."
+        )
+    phase_key = str(phase)
+    if phase_key not in allowed_phases:
+        raise RuntimeError(
+            f"Unknown {scope_label} Qiskit population phase."
+        )
+    population = [dict(record) for record in records]
+    if not population:
+        raise RuntimeError("Qiskit population normalization is empty.")
+
+    rows: list[dict[str, Any]] = []
+    population_hash: str | None = None
+    identities: set[tuple[int, int, str]] = set()
+    base_structure_keys: set[str] = set()
+    for record in population:
+        feature = record.get("feature")
+        if not isinstance(feature, CandidateFeatures):
+            raise RuntimeError(
+                "Qiskit population normalization requires CandidateFeatures."
+            )
+        backend = feature.compiled_position_cost_backend
+        normalization = feature.hardware_cost_normalization
+        feature_hash = feature.hardware_cost_population_hash
+        if (
+            feature.compile_cost_source != "backend_transpile_v1"
+            or feature.hardware_cost_source != "backend_transpile_v1"
+            or not bool(feature.compile_gate_open)
+            or not isinstance(backend, Mapping)
+            or backend.get("selected_backend_name") != "FakeMarrakesh"
+            or backend.get("selected_resolution_kind") != "fake_exact"
+            or backend.get("negative_delta_reward_enabled") is not True
+        ):
+            raise RuntimeError(
+                "Qiskit population mixes proxy, fallback, or unsigned cost."
+            )
+        raw_keys = (
+            "raw_delta_compiled_count_2q",
+            "raw_delta_compiled_depth_2q",
+            "raw_delta_compiled_count_1q",
+        )
+        if any(
+            backend.get(key) is None
+            or not math.isfinite(float(backend[key]))
+            for key in raw_keys
+        ):
+            raise RuntimeError(
+                "Qiskit population lost finite signed marginal telemetry."
+            )
+        base_key = backend.get("base_structure_key")
+        trial_key = backend.get("trial_structure_key")
+        if (
+            not isinstance(base_key, str)
+            or len(base_key) != 64
+            or not isinstance(trial_key, str)
+            or len(trial_key) != 64
+            or base_key == trial_key
+            or backend.get("base_trial_layout_coupling_policy")
+            != "independent_unconstrained_full_transpiles_v1"
+            or backend.get("position_id") != int(feature.position_id)
+            or backend.get("candidate_label") != str(feature.candidate_label)
+        ):
+            raise RuntimeError(
+                "Qiskit population lost its full-base/full-trial insertion identity."
+            )
+        if (
+            feature.hardware_cost_policy
+            != HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+            or not isinstance(feature_hash, str)
+            or len(feature_hash) != 64
+            or not isinstance(normalization, Mapping)
+            or normalization.get("policy")
+            != HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+            or normalization.get("population_hash") != feature_hash
+        ):
+            raise RuntimeError(
+                "Qiskit population normalization receipt is missing or stale."
+            )
+        if population_hash is None:
+            population_hash = str(feature_hash)
+        elif str(feature_hash) != population_hash:
+            raise RuntimeError(
+                "Qiskit population mixes normalization populations."
+            )
+        generator_id = str(feature.generator_id or feature.candidate_label)
+        compile_cache_generator_id = _default_no_prune_pool_entry_identity(
+            generator_id,
+            pool_index=int(feature.candidate_pool_index),
+        )
+        identity = (
+            int(feature.candidate_pool_index),
+            int(feature.position_id),
+            generator_id,
+        )
+        if identity in identities:
+            raise RuntimeError("Qiskit population repeats a candidate-position identity.")
+        identities.add(identity)
+        base_structure_keys.add(str(base_key))
+        compile_cache_identity = backend.get("compile_cache_identity")
+        compile_cache_identity_sha256 = backend.get(
+            "compile_cache_identity_sha256"
+        )
+        if scope_key == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1 and (
+            not isinstance(compile_cache_identity, Mapping)
+            or dict(compile_cache_identity)
+            != {
+                "schema": (
+                    "phase123_qiskit_candidate_position_compile_cache_v1"
+                ),
+                "scope": BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+                "candidate_label": str(feature.candidate_label),
+                "generator_id": compile_cache_generator_id,
+                "position_id": int(feature.position_id),
+                "base_structure_key": str(base_key),
+                "trial_structure_key": str(trial_key),
+            }
+            or compile_cache_identity_sha256
+            != _candidate_record_payload_digest(
+                dict(compile_cache_identity)
+                if isinstance(compile_cache_identity, Mapping)
+                else {}
+            )
+        ):
+            raise RuntimeError(
+                "Phase-I--III Qiskit population lost its exact "
+                "candidate-position compile-cache identity."
+            )
+        row = {
+            "candidate_label": str(feature.candidate_label),
+            "candidate_pool_index": int(feature.candidate_pool_index),
+            "generator_id": generator_id,
+            "position_id": int(feature.position_id),
+            "base_structure_key": str(base_key),
+            "trial_structure_key": str(trial_key),
+            "compile_cache_identity": (
+                None
+                if compile_cache_identity is None
+                else dict(compile_cache_identity)
+            ),
+            "compile_cache_identity_sha256": (
+                None
+                if compile_cache_identity_sha256 is None
+                else str(compile_cache_identity_sha256)
+            ),
+            "raw_delta_compiled_count_2q": float(
+                backend["raw_delta_compiled_count_2q"]
+            ),
+            "raw_delta_compiled_depth_2q": float(
+                backend["raw_delta_compiled_depth_2q"]
+            ),
+            "raw_delta_compiled_count_1q": float(
+                backend["raw_delta_compiled_count_1q"]
+            ),
+            "hardware_cost_signed_index": float(
+                feature.hardware_cost_signed_index
+            ),
+            "hardware_cost_score_factor": float(
+                feature.hardware_cost_score_factor
+            ),
+            "hardware_cost_population_hash": str(feature_hash),
+        }
+        if scope_key == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1:
+            row["compile_cache_generator_id"] = compile_cache_generator_id
+        rows.append(row)
+    if len(base_structure_keys) != 1:
+        raise RuntimeError(
+            "Qiskit population mixes full-base compile snapshots."
+        )
+    receipt = {
+        "schema": receipt_schema,
+        "scope": scope_key,
+        "phase": phase_key,
+        "population_count": len(rows),
+        "normalization_count": 1,
+        "normalization_policy": (
+            HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+        "population_hash": str(population_hash),
+        "negative_delta_reward_enabled": True,
+        "full_base_trial_at_recorded_insertion": True,
+        "excluded_from_s_alg": True,
+        "rows": rows,
+    }
+    receipt["rows_sha256"] = _candidate_record_payload_digest(rows)
+    return receipt
+
+
+def _default_no_prune_phase123_qiskit_population_receipt(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    phase: str,
+    scope: str,
+) -> dict[str, Any]:
+    """Close one Phase-I--III signed-Qiskit population."""
+
+    if str(scope) != BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1:
+        raise RuntimeError(
+            "Phase-I--III Qiskit population receipt received another scope."
+        )
+    return _default_no_prune_signed_qiskit_population_receipt(
+        records,
+        phase=phase,
+        scope=scope,
+    )
+
+
+def _default_no_prune_phase23_qiskit_population_receipt(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    phase: str,
+    scope: str,
+) -> dict[str, Any]:
+    """Close one Phase-II/III signed-Qiskit population."""
+
+    if str(scope) != BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1:
+        raise RuntimeError(
+            "Phase-II/III Qiskit population receipt received another scope."
+        )
+    return _default_no_prune_signed_qiskit_population_receipt(
+        records,
+        phase=phase,
+        scope=scope,
     )
 
 
@@ -61853,10 +64921,11 @@ def _default_no_prune_compile_estimate_for_stage(
     candidate_term: AnsatzTerm,
     position_id: int,
     proxy_baseline: CompileCostEstimate,
+    generator_id: str | None = None,
 ) -> CompileCostEstimate:
     """Select the source oracle or the named Phase-III-only Qiskit oracle."""
 
-    active_oracle, active_snapshot, _phase3_scoped = (
+    active_oracle, active_snapshot, staged_qiskit = (
         _default_no_prune_compile_oracle_for_stage(
             context=context,
             pending=pending,
@@ -61865,12 +64934,59 @@ def _default_no_prune_compile_estimate_for_stage(
     )
     if active_oracle is None or active_snapshot is None:
         return proxy_baseline
-    return active_oracle.estimate_insertion(
+    cache_identity = None
+    if context.backend_compile_scope == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1:
+        if not str(generator_id or ""):
+            raise RuntimeError(
+                "Phase-I--III Qiskit compile requires a generator identity."
+            )
+        cache_identity = {
+            "scope": BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+            "candidate_label": str(candidate_term.label),
+            "generator_id": str(generator_id),
+            "position_id": int(position_id),
+        }
+    estimate_kwargs: dict[str, Any] = {
+        "candidate_term": candidate_term,
+        "position_id": int(position_id),
+        "proxy_baseline": proxy_baseline,
+    }
+    if cache_identity is not None:
+        estimate_kwargs["cache_identity"] = cache_identity
+    estimate = active_oracle.estimate_insertion(
         active_snapshot,
-        candidate_term=candidate_term,
-        position_id=int(position_id),
-        proxy_baseline=proxy_baseline,
+        **estimate_kwargs,
     )
+    if (
+        staged_qiskit
+        and context.backend_compile_scope
+        in {
+            BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+            BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+        }
+    ):
+        backend_row = estimate.selected_backend_row
+        if not isinstance(backend_row, Mapping):
+            raise RuntimeError(
+                "Signed staged-Qiskit estimate lost its selected backend row."
+            )
+        estimate = CompileCostEstimate(
+            **{
+                **estimate.__dict__,
+                "selected_backend_row": {
+                    **dict(backend_row),
+                    "candidate_label": str(candidate_term.label),
+                    "generator_id": str(generator_id or ""),
+                    "position_id": int(position_id),
+                    "candidate_polynomial_sha256": (
+                        _polynomial_signature_digest(
+                            candidate_term.polynomial
+                        )
+                    ),
+                },
+            }
+        )
+    return estimate
 
 
 
@@ -61989,10 +65105,29 @@ class _DefaultPhase2FullRecordEvaluator:
                         pauli_action_cache=self.cursor.pauli_action_cache,
                     ).payload
                 )
-            grad_candidate = float(exact_first_order_geometry["energy_gradient"])
+            noise_runtime = (
+                self.context.transition_services.controller_noise_runtime
+            )
+            grad_candidate = (
+                float(exact_first_order_geometry["energy_gradient"])
+                if noise_runtime is None
+                else noise_runtime.evaluate_candidate_gradient(
+                    selected_ops=self.cursor.selected_ops,
+                    theta_runtime=np.asarray(
+                        self.cursor.theta,
+                        dtype=float,
+                    ),
+                    candidate=candidate_term,
+                    insertion_position=int(feat_base.position_id),
+                    consumer_scope=(
+                        f"{evaluation_stage_key}:candidate_gradient:"
+                        f"{candidate_label}:position{int(feat_base.position_id)}"
+                    ),
+                )
+            )
             candidate_metric_proxy = float(exact_first_order_geometry["fubini_study_metric"])
             candidate_recompute_is_runtime_child = bool(str(runtime_split_mode_value) != 'off')
-            candidate_gradient_receipt = self.session._record_estimator_primitive(state=np.asarray(self.pending.psi_current, dtype=complex), component='N_grad', consumer_scope='runtime_split_child_gradient' if candidate_recompute_is_runtime_child else 'full_candidate_gradient_recompute', primitive_kind='coordinate_gradient', observable_or_formula_identity='coordinate_energy_gradient_v2', operand_identity=self.session._candidate_physical_tangent(list(self.cursor.selected_ops), self.pending.theta_logical_current, candidate_term, insertion_position=int(feat_base.position_id)))
+            candidate_gradient_receipt = self.session._record_estimator_primitive(state=np.asarray(self.pending.psi_current, dtype=complex), component='N_grad', consumer_scope='runtime_split_child_gradient' if candidate_recompute_is_runtime_child else 'full_candidate_gradient_recompute', primitive_kind='coordinate_gradient', observable_or_formula_identity='aer_density_matrix_full_noise_coordinate_gradient_v1' if noise_runtime is not None else 'coordinate_energy_gradient_v2', operand_identity=self.session._candidate_physical_tangent(list(self.cursor.selected_ops), self.pending.theta_logical_current, candidate_term, insertion_position=int(feat_base.position_id)))
             candidate_self_metric_primitive_id = self.session._record_candidate_self_metric_primitive(state=np.asarray(self.pending.psi_current, dtype=complex), selected_ops_now=list(self.cursor.selected_ops), logical_theta_now=self.pending.theta_logical_current, candidate_term=candidate_term, consumer_scope='runtime_split_child_self_metric' if candidate_recompute_is_runtime_child else 'full_candidate_self_metric_recompute', insertion_position=int(feat_base.position_id))
             if evaluation_stage_key == 'phase3':
                 if candidate_gradient_receipt is not None:
@@ -62005,10 +65140,34 @@ class _DefaultPhase2FullRecordEvaluator:
             candidate_metric_proxy = float(base_feature_override.metric_proxy)
             candidate_sigma_hat = float(base_feature_override.sigma_hat)
         proxy_compile_est_candidate = self.context.phase1_compile_oracle.estimate(candidate_term_count=int(len(compiled_candidate.terms)), position_id=int(feat_base.position_id), append_position=int(feat_base.append_position), refit_active_count=self.context.selector_feature_metadata.compile_proxy_refit_count(feat_base), candidate_term=candidate_term)
-        phase3_qiskit_compile_active = bool(
-            evaluation_stage_key == 'phase3'
+        staged_qiskit_compile_active = bool(
+            backend_compile_scope_uses_qiskit_for_stage(
+                self.context.backend_compile_scope,
+                evaluation_stage_key,
+            )
             and self.context.phase3_backend_compile_oracle is not None
         )
+        compile_cache_generator_id = str(feat_base.generator_id or "")
+        if (
+            self.context.backend_compile_scope
+            == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ):
+            compile_cache_domain_record = (
+                self.pending.domain_by_pool_position.get(
+                    (
+                        int(feat_base.candidate_pool_index),
+                        int(feat_base.position_id),
+                    )
+                )
+            )
+            if compile_cache_domain_record is None:
+                raise RuntimeError(
+                    "Phase-I--III Qiskit scoring lost its controller "
+                    "candidate-position identity."
+                )
+            compile_cache_generator_id = str(
+                compile_cache_domain_record.generator_id
+            )
         compile_est_candidate = _default_no_prune_compile_estimate_for_stage(
             context=self.context,
             pending=self.pending,
@@ -62016,8 +65175,9 @@ class _DefaultPhase2FullRecordEvaluator:
             candidate_term=candidate_term,
             position_id=int(feat_base.position_id),
             proxy_baseline=proxy_compile_est_candidate,
+            generator_id=compile_cache_generator_id,
         )
-        if phase3_qiskit_compile_active:
+        if staged_qiskit_compile_active:
             selected_backend_row = compile_est_candidate.selected_backend_row
             required_raw_telemetry = (
                 'raw_delta_compiled_count_2q',
@@ -62034,6 +65194,17 @@ class _DefaultPhase2FullRecordEvaluator:
                 or int(compile_est_candidate.successful_target_count) != 1
                 or int(compile_est_candidate.failed_target_count) != 0
                 or not isinstance(selected_backend_row, Mapping)
+                or (
+                    self.context.backend_compile_scope
+                    in {
+                        BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+                        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+                    }
+                    and selected_backend_row.get(
+                        'negative_delta_reward_enabled'
+                    )
+                    is not True
+                )
                 or any(
                     selected_backend_row.get(key) is None
                     for key in required_raw_telemetry
@@ -62082,7 +65253,7 @@ class _DefaultPhase2FullRecordEvaluator:
                 )
             ):
                 raise RuntimeError(
-                    'Phase-III Qiskit selector cost failed its exact '
+                    'Staged Qiskit selector cost failed its exact '
                     'FakeMarrakesh positive-clipped marginal-cost contract.'
                 )
         measurement_stats_candidate = self.cursor.phase1_measure_cache.estimate(measurement_group_specs_for_term(candidate_term))
@@ -62303,6 +65474,148 @@ def _retained_parent_owner_receipt(
     return receipt
 
 
+def _macro_gradient_phase0_parent_context_feature(
+    *,
+    stage_name: str,
+    candidate_label: str,
+    candidate_family: str,
+    candidate_pool_index: int,
+    position_id: int,
+    append_position: int,
+    positions_considered: Sequence[int],
+    gradient_signed: float,
+    refit_window_indices: Sequence[int],
+    phase3_geometry_window_indices: Sequence[int],
+    phase3_geometry_active_post_indices: Sequence[int],
+    generator_metadata: Mapping[str, Any] | None,
+    symmetry_spec: Mapping[str, Any] | None,
+    controller_snapshot: Mapping[str, Any] | None,
+    phase2_geometry_window_policy: str = "legacy_refit_window_alias",
+    phase3_geometry_window_policy: str = "legacy_coupled",
+    phase3_geometry_window_size: int = 0,
+    phase3_response_coordinate_scope: str = "legacy_reopt_coupled_v1",
+    symmetry_mitigation_mode: str = "off",
+    current_depth: int = 0,
+    max_depth: int = 0,
+    lifetime_cost_mode: str = "off",
+) -> CandidateFeatures:
+    """Build non-scoring lineage context for a retained Phase-0 macro.
+
+    This object only carries the parent identity, insertion coordinate, and
+    deterministic window geometry needed to expose and score guarded child
+    singletons.  Its unit metric is an inert placeholder: Phase 0 neither
+    queries nor ranks by a metric, compile estimate, measurement estimate,
+    lane, or resource-cost term.
+    """
+
+    gradient = float(gradient_signed)
+    magnitude = float(abs(gradient))
+    phase2_indices = [int(value) for value in refit_window_indices]
+    phase3_indices = [
+        int(value) for value in phase3_geometry_window_indices
+    ]
+    active_post = [
+        int(value) for value in phase3_geometry_active_post_indices
+    ]
+    metadata = (
+        None
+        if generator_metadata is None
+        else dict(generator_metadata)
+    )
+    return CandidateFeatures(
+        stage_name=str(stage_name),
+        candidate_label=str(candidate_label),
+        candidate_family=str(candidate_family),
+        candidate_pool_index=int(candidate_pool_index),
+        position_id=int(position_id),
+        append_position=int(append_position),
+        positions_considered=[int(value) for value in positions_considered],
+        g_signed=gradient,
+        g_abs=magnitude,
+        g_lcb=magnitude,
+        sigma_hat=0.0,
+        F_metric=1.0,
+        metric_proxy=1.0,
+        novelty=1.0,
+        curvature_mode="not_acquired_macro_phase0_context_v1",
+        novelty_mode="not_acquired_macro_phase0_context_v1",
+        refit_window_indices=phase2_indices,
+        compiled_position_cost_proxy={},
+        measurement_cache_stats={},
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        simple_score=magnitude,
+        score_version="standard_adapt_abs_gradient_macro_phase0_v1",
+        cheap_score=magnitude,
+        cheap_score_version="standard_adapt_abs_gradient_macro_phase0_v1",
+        cheap_metric_proxy=1.0,
+        cheap_benefit_proxy=magnitude,
+        cheap_burden_total=0.0,
+        phase1_active_score=magnitude,
+        phase1_legacy_simple_score=magnitude,
+        phase1_energy_model="not_evaluated_macro_phase0_context_v1",
+        phase1_lambda_f_proxy_applied=False,
+        generator_id=(
+            None
+            if metadata is None
+            else str(metadata.get("generator_id") or "") or None
+        ),
+        is_macro_generator=True,
+        generator_metadata=metadata,
+        symmetry_spec=(
+            None if symmetry_spec is None else dict(symmetry_spec)
+        ),
+        symmetry_mode="shared_phase3_spec",
+        compile_cost_source="not_acquired_macro_phase0_context_v1",
+        hardware_cost_source="not_acquired_macro_phase0_context_v1",
+        controller_snapshot=(
+            None
+            if controller_snapshot is None
+            else dict(controller_snapshot)
+        ),
+        phase2_geometry_window_indices=phase2_indices,
+        phase2_geometry_window_policy=str(
+            phase2_geometry_window_policy
+        ),
+        schur_window_indices=phase3_indices,
+        inherited_refit_window_indices=phase2_indices,
+        active_post_refit_indices=active_post,
+        optimizer_active_refit_indices=active_post,
+        phase3_geometry_refit_window_indices=phase3_indices,
+        phase3_geometry_window_policy=str(
+            phase3_geometry_window_policy
+        ),
+        phase3_geometry_window_size=int(phase3_geometry_window_size),
+        phase3_geometry_active_post_indices=active_post,
+        phase3_response_coordinate_scope=str(
+            phase3_response_coordinate_scope
+        ),
+        phase3_response_coordinate_indices=active_post,
+        phase3_response_pre_support_count=len(active_post),
+        physical_operator_classifier_label=str(candidate_label),
+        symmetry_mitigation_mode=str(symmetry_mitigation_mode),
+        remaining_evaluations_proxy=float(max(0, max_depth - current_depth)),
+        remaining_evaluations_proxy_mode=(
+            "remaining_depth" if lifetime_cost_mode != "off" else "none"
+        ),
+        lifetime_cost_mode=str(lifetime_cost_mode),
+        phase0_pilot_schema="standard_adapt_abs_gradient_macro_phase0_v1",
+        phase0_pilot_enabled=True,
+        phase0_pilot_retained=True,
+        phase0_filter_reason="retained_by_absolute_gradient_rank_v1",
+        phase0_raw_gradient_signed=gradient,
+        phase0_raw_gradient_abs=magnitude,
+        phase0_score=magnitude,
+        phase0_score_formula="absolute_coordinate_energy_gradient_v1",
+        phase0_K0=0.0,
+        phase0_hardware_cost_denominator=1.0,
+        phase0_cost_enabled=False,
+    )
+
+
 @dataclass(slots=True)
 class _DefaultNoPruneSelectionTransaction:
     """One exact selection transaction; never owns controller iteration."""
@@ -62317,6 +65630,1047 @@ class _DefaultNoPruneSelectionTransaction:
     @property
     def cursor(self) -> _DefaultNoPruneNumericalCursor:
         return self.session.cursor
+
+    def _record_phase123_qiskit_population(
+        self,
+        *,
+        phase: str,
+        records: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any] | None:
+        if (
+            self.context.backend_compile_scope
+            != BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ):
+            return None
+        phase_key = str(phase)
+        if phase_key in self.pending.qiskit_population_normalization_receipts:
+            raise RuntimeError(
+                f"{phase_key} Qiskit population was normalized more than once."
+            )
+        receipt = _default_no_prune_phase123_qiskit_population_receipt(
+            records,
+            phase=phase_key,
+            scope=self.context.backend_compile_scope,
+        )
+        self.pending.qiskit_population_normalization_receipts[phase_key] = (
+            copy.deepcopy(receipt)
+        )
+        return receipt
+
+    def _macro_gradient_phase0_parent_context_records(
+        self,
+    ) -> list[dict[str, Any]]:
+        """Materialize retained macro lineage without Phase-I work."""
+
+        records: list[dict[str, Any]] = []
+        theta_logical = np.asarray(
+            self.pending.theta_logical_current,
+            dtype=float,
+        )
+        # Phase 0 retains root macro identities without changing the
+        # admissible domain.  Only those retained roots expose guarded
+        # singleton children, while every representative insertion position
+        # of each retained root is preserved for the official child Phase I.
+        for raw_pool_index in self.pending.shortlist:
+            pool_index = int(raw_pool_index)
+            candidate = self.context.pool[pool_index]
+            candidate_label = str(candidate.label)
+            plan = self.pending.candidate_position_plans.get(pool_index)
+            if not isinstance(plan, Mapping):
+                raise RuntimeError(
+                    "Macro Phase-0 retained a parent without an insertion "
+                    "position plan."
+                )
+            representative_positions = [
+                int(value)
+                for value in plan.get("representative_positions", [])
+            ]
+            if not representative_positions:
+                raise RuntimeError(
+                    "Macro Phase-0 retained a parent without a representative "
+                    "insertion position."
+                )
+            generator_metadata = dict(
+                self.cursor.pool_generator_registry.get(
+                    candidate_label,
+                    {},
+                )
+            )
+            symmetry_spec = (
+                dict(self.context.pool_symmetry_specs[pool_index])
+                if (
+                    pool_index < len(self.context.pool_symmetry_specs)
+                    and isinstance(
+                        self.context.pool_symmetry_specs[pool_index],
+                        Mapping,
+                    )
+                )
+                else None
+            )
+            for position in representative_positions:
+                nested_window = _predict_nested_refit_window_for_position(
+                    theta=theta_logical,
+                    position_id=position,
+                    policy=self.context.reoptimization_policy,
+                    window_size=self.context.reoptimization_window_size,
+                    window_topk=self.context.reoptimization_window_topk,
+                    periodic_full_refit_triggered=False,
+                )
+                phase2_window = (
+                    _predict_phase3_geometry_window_for_position(
+                        theta=theta_logical,
+                        position_id=position,
+                        geometry_window_size=(
+                            self.context.phase3_geometry_window_size
+                        ),
+                    )
+                    if self.context.phase3_geometry_window_size >= 1
+                    else nested_window
+                )
+                response_window = (
+                    _resolve_phase3_response_window_for_position(
+                        theta=theta_logical,
+                        position_id=position,
+                        scope=(
+                            self.context.phase3_response_coordinate_scope
+                        ),
+                        geometry_window_size=(
+                            self.context.phase3_geometry_window_size
+                        ),
+                        nested_window=nested_window,
+                    )
+                )
+                phase2_indices = [
+                    int(value)
+                    for value in phase2_window.old_pre_indices
+                ]
+                response_indices = [
+                    int(value)
+                    for value in response_window.old_pre_indices
+                ]
+                response_active_post = [
+                    int(value)
+                    for value in response_window.active_post_indices
+                ]
+                feature = _macro_gradient_phase0_parent_context_feature(
+                    stage_name=str(self.pending.stage_name),
+                    candidate_label=candidate_label,
+                    candidate_family=str(
+                        self.context.pool_family_ids[pool_index]
+                    ),
+                    candidate_pool_index=pool_index,
+                    position_id=position,
+                    append_position=int(self.pending.append_position),
+                    positions_considered=representative_positions,
+                    gradient_signed=float(
+                        self.pending.gradients[pool_index]
+                    ),
+                    refit_window_indices=phase2_indices,
+                    phase3_geometry_window_indices=response_indices,
+                    phase3_geometry_active_post_indices=(
+                        response_active_post
+                    ),
+                    generator_metadata=generator_metadata,
+                    symmetry_spec=symmetry_spec,
+                    controller_snapshot=(
+                        self.pending.controller_pre_snapshot_dict
+                    ),
+                    phase2_geometry_window_policy=(
+                        self.context.selector_candidate_metadata
+                        .geometry_policy_key()
+                    ),
+                    phase3_geometry_window_policy=(
+                        self.context.selector_candidate_metadata
+                        .response_geometry_policy_key()
+                    ),
+                    phase3_geometry_window_size=int(
+                        self.context.phase3_geometry_window_size
+                    ),
+                    phase3_response_coordinate_scope=str(
+                        self.context.phase3_response_coordinate_scope
+                    ),
+                    symmetry_mitigation_mode=str(
+                        self.context.phase3_symmetry_mitigation_mode
+                    ),
+                    current_depth=int(self.pending.depth),
+                    max_depth=int(self.context.max_depth),
+                    lifetime_cost_mode=str(
+                        self.context.phase3_lifetime_cost_mode
+                    ),
+                )
+                window_terms, window_labels = (
+                    _window_terms_for_pre_indices(
+                        selected_ops=self.cursor.selected_ops,
+                        old_pre_indices=phase2_indices,
+                    )
+                )
+                feature, selector_metadata = (
+                    self.context.selector_candidate_metadata
+                    .attach_selector_metadata(
+                        feat_obj=feature,
+                        candidate_term=candidate,
+                        selected_ops_now=self.cursor.selected_ops,
+                        window_terms=window_terms,
+                        nested_window=nested_window,
+                        phase2_geometry_window=phase2_window,
+                        phase3_geometry_window=response_window,
+                    )
+                )
+                members = plan.get("members_by_representative", {}).get(
+                    position,
+                    [position],
+                )
+                records.append(
+                    {
+                        "feature": feature,
+                        "cheap_score": float(feature.g_abs),
+                        "simple_score": float(feature.g_abs),
+                        "phase1_active_score": float(feature.g_abs),
+                        "phase1_score_mode": (
+                            "standard_adapt_abs_gradient_macro_phase0_v1"
+                        ),
+                        "candidate_pool_index": pool_index,
+                        "position_id": position,
+                        "candidate_label": candidate_label,
+                        "candidate_term": candidate,
+                        "window_terms": list(window_terms),
+                        "window_labels": list(window_labels),
+                        "insertion_position_equivalence_members": [
+                            int(value) for value in members
+                        ],
+                        "insertion_position_commutation_reduced": bool(
+                            len(members) > 1
+                        ),
+                        "macro_phase0_context_only": True,
+                        "formal_query_closure": None,
+                        **dict(selector_metadata),
+                    }
+                )
+        if not records:
+            raise RuntimeError(
+                "Macro gradient Phase 0 retained no parent-position context."
+            )
+        return records
+
+    def run_absolute_gradient_phase0(
+        self,
+        *,
+        admissible_domain: tuple[_CandidatePositionRecord, ...],
+        shortlist_size: int,
+        policy: str,
+        receipt_schema: str,
+        consumer_scope: str,
+        population_scope: str,
+    ) -> _PhaseSelectionReceipt:
+        """Reduce the pre-domain generator population by standard ADAPT ``|g|``."""
+
+        from pipelines.static_adapt.ra_adapt.phase0 import (
+            build_absolute_gradient_phase0_receipt,
+            rank_candidates_by_absolute_gradient,
+        )
+
+        if self.pending.phase0_gradient_shortlist_receipt is not None:
+            raise RuntimeError("The gradient-only Phase 0 executed more than once.")
+        occurrence_start = len(self.ledger_occurrences())
+        self.session._evaluate_default_candidate_gradient_surface(
+            self.pending,
+            consumer_scope=str(consumer_scope),
+        )
+        self.session._refresh_default_candidate_gradient_summaries(self.pending)
+        occurrence_end = len(self.ledger_occurrences())
+        shortlist = rank_candidates_by_absolute_gradient(
+            available_indices=self.cursor.selection_available_indices(),
+            gradients=self.pending.gradients,
+            shortlist_size=int(shortlist_size),
+        )
+        if set(shortlist.input_indices) != set(self.pending.available_sorted):
+            raise RuntimeError(
+                "Gradient-only Phase 0 changed the pre-screen candidate domain."
+            )
+        retained = list(shortlist.retained_indices)
+        self.pending.shortlist[:] = retained
+        receipt = build_absolute_gradient_phase0_receipt(
+            shortlist=shortlist,
+            pool_labels=[str(term.label) for term in self.context.pool],
+            requested_shortlist_size=int(shortlist_size),
+            estimator_occurrences=self.ledger_occurrences()[
+                occurrence_start:occurrence_end
+            ],
+            schema=str(receipt_schema),
+            policy=str(policy),
+            population_scope=str(population_scope),
+            consumer_scope=str(consumer_scope),
+        )
+        self.pending.phase0_gradient_shortlist_receipt = receipt
+        retained_set = set(retained)
+        population = tuple(admissible_domain)
+        if {
+            int(record.pool_index) for record in population
+        } != set(shortlist.input_indices):
+            raise RuntimeError(
+                "Gradient-only Phase0 population differs from the immutable "
+                "controller domain."
+            )
+        rank_by_pool_index = {
+            int(pool_index): int(rank)
+            for rank, pool_index in enumerate(
+                shortlist.ranked_indices,
+                start=1,
+            )
+        }
+        shortlisted_records = tuple(
+            sorted(
+                (
+                    record
+                    for record in population
+                    if int(record.pool_index) in retained_set
+                ),
+                key=lambda record: (
+                    rank_by_pool_index[int(record.pool_index)],
+                    int(record.insertion_position),
+                    str(record.domain_record_id),
+                ),
+            )
+        )
+        if not shortlisted_records:
+            raise RuntimeError(
+                "Gradient-only Phase0 retained no controller-domain records."
+            )
+        ranking = tuple(
+            _ShortlistRankReceipt(
+                record_key=(
+                    str(record.domain_record_id),
+                    str(record.generator_id),
+                ),
+                shortlist_rank=int(rank),
+                primary_score=float(
+                    abs(self.pending.gradients[int(record.pool_index)])
+                ),
+                tie_break_score=float(
+                    abs(self.pending.gradients[int(record.pool_index)])
+                ),
+                pool_index=int(record.pool_index),
+                insertion_position=int(record.insertion_position),
+            )
+            for rank, record in enumerate(shortlisted_records, start=1)
+        )
+        return _PhaseSelectionReceipt(
+            phase="phase0",
+            population=population,
+            shortlist=shortlisted_records,
+            shortlist_ranking=ranking,
+            estimator_event_ids=tuple(
+                str(value) for value in receipt["estimator_event_ids"]
+            ),
+        )
+
+    def run_adaptive_gradient_phase0(
+        self,
+        *,
+        admissible_domain: tuple[_CandidatePositionRecord, ...],
+        route_variant: str,
+        shortlist_size: int,
+    ) -> _PhaseSelectionReceipt:
+        """Run v2 standard-ADAPT ``|g|`` with adaptive cardinality only."""
+
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
+            build_semantic_gradient_adaptive_phase0_receipt,
+            filter_semantic_phase0_position_domain,
+        )
+
+        if isinstance(shortlist_size, bool) or int(shortlist_size) != 24:
+            raise RuntimeError(
+                "Semantic adaptive gradient Phase-0 requires cap 24."
+            )
+        if self.pending.phase0_gradient_shortlist_receipt is not None:
+            raise RuntimeError("Semantic Phase 0 executed more than once.")
+        available = tuple(
+            sorted(
+                int(value)
+                for value in self.cursor.selection_available_indices()
+            )
+        )
+        if (
+            not available
+            or set(available)
+            != set(int(value) for value in self.pending.available_sorted)
+        ):
+            raise RuntimeError(
+                "Semantic adaptive gradient Phase-0 population drifted."
+            )
+        occurrence_start = len(self.ledger_occurrences())
+        self.session._evaluate_default_candidate_gradient_surface(
+            self.pending,
+            consumer_scope=PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
+        )
+        self.session._refresh_default_candidate_gradient_summaries(self.pending)
+        occurrences = self.ledger_occurrences()[occurrence_start:]
+        if len(occurrences) != len(available) or any(
+            row.get("component") != "N_grad"
+            or row.get("consumer_scope")
+            != PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE
+            or not isinstance(row.get("sequence"), int)
+            or not str(row.get("primitive_id", ""))
+            for row in occurrences
+        ):
+            raise RuntimeError(
+                "Semantic adaptive gradient Phase 0 did not close N_grad."
+            )
+        event_ids = [
+            f"estimator:{int(row['sequence'])}:{str(row['primitive_id'])}"
+            for row in occurrences
+        ]
+        receipt = build_semantic_gradient_adaptive_phase0_receipt(
+            available_indices=available,
+            gradients=self.pending.gradients,
+            pool_labels=[str(term.label) for term in self.context.pool],
+            estimator_event_ids=event_ids,
+            route_variant=str(route_variant),
+            cap=int(shortlist_size),
+        )
+        self.pending.phase0_gradient_shortlist_receipt = receipt
+        retained = [int(value) for value in receipt["retained_pool_indices"]]
+        self.pending.shortlist[:] = retained
+        population = tuple(admissible_domain)
+        if {int(record.pool_index) for record in population} != set(available):
+            raise RuntimeError(
+                "Semantic adaptive gradient Phase-0 domain drifted."
+            )
+        if not retained:
+            return _PhaseSelectionReceipt(
+                phase="phase0",
+                population=population,
+                shortlist=(),
+                shortlist_ranking=(),
+                estimator_event_ids=tuple(event_ids),
+                terminal_outcome=str(receipt["terminal_controller_outcome"]),
+            )
+        shortlisted_records = filter_semantic_phase0_position_domain(
+            population,
+            ranked_pool_indices=receipt["ranked_pool_indices"],
+            retained_pool_indices=retained,
+        )
+        score_by_pool = {
+            int(row["pool_index"]): float(row["active_score"])
+            for row in receipt["ranking"]
+        }
+        ranking = tuple(
+            _ShortlistRankReceipt(
+                record_key=(
+                    str(record.domain_record_id),
+                    str(record.generator_id),
+                ),
+                shortlist_rank=int(rank),
+                primary_score=score_by_pool[int(record.pool_index)],
+                tie_break_score=score_by_pool[int(record.pool_index)],
+                pool_index=int(record.pool_index),
+                insertion_position=int(record.insertion_position),
+            )
+            for rank, record in enumerate(shortlisted_records, start=1)
+        )
+        return _PhaseSelectionReceipt(
+            phase="phase0",
+            population=population,
+            shortlist=shortlisted_records,
+            shortlist_ranking=ranking,
+            estimator_event_ids=tuple(event_ids),
+        )
+
+    def run_semantic_proxy_phase0(
+        self,
+        *,
+        admissible_domain: tuple[_CandidatePositionRecord, ...],
+        route_variant: str,
+        shortlist_size: int,
+    ) -> _PhaseSelectionReceipt:
+        """Run one native append-endpoint structural-proxy Phase-0 screen."""
+
+        from pipelines.scaffold.hh_continuation_scoring import (
+            hardware_cost_candidate_record_denominators,
+        )
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
+            build_semantic_proxy_phase0_receipt,
+            filter_semantic_phase0_position_domain,
+        )
+
+        if isinstance(shortlist_size, bool) or int(shortlist_size) != 24:
+            raise RuntimeError(
+                "Semantic proxy Phase-0 requires the fixed Paper-I cap 24."
+            )
+        if self.pending.phase0_gradient_shortlist_receipt is not None:
+            raise RuntimeError("Semantic Phase 0 executed more than once.")
+        if (
+            self.context.transition_services.controller_noise_runtime
+            is not None
+        ):
+            raise RuntimeError(
+                "Semantic proxy Phase 0 is restricted to exact/noiseless runs."
+            )
+        available = tuple(
+            sorted(
+                int(value)
+                for value in self.cursor.selection_available_indices()
+            )
+        )
+        if (
+            not available
+            or set(available)
+            != set(int(value) for value in self.pending.available_sorted)
+        ):
+            raise RuntimeError(
+                "Semantic Phase-0 available population drifted."
+            )
+
+        occurrence_start = len(self.ledger_occurrences())
+        self.session._evaluate_default_candidate_gradient_surface(
+            self.pending,
+            consumer_scope=PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE,
+        )
+        self.session._refresh_default_candidate_gradient_summaries(
+            self.pending
+        )
+        occurrences = self.ledger_occurrences()[occurrence_start:]
+        if len(occurrences) != len(available) or any(
+            row.get("component") != "N_grad"
+            or row.get("consumer_scope")
+            != PAPER_I_RA_SEMANTIC_PHASE0_CONSUMER_SCOPE
+            or not isinstance(row.get("sequence"), int)
+            or not str(row.get("primitive_id", ""))
+            for row in occurrences
+        ):
+            raise RuntimeError(
+                "Semantic Phase 0 did not close one gradient per generator."
+            )
+        event_ids = [
+            f"estimator:{int(row['sequence'])}:{str(row['primitive_id'])}"
+            for row in occurrences
+        ]
+        if len(set(event_ids)) != len(event_ids):
+            raise RuntimeError("Semantic Phase-0 gradient events repeat.")
+
+        population = tuple(admissible_domain)
+        identity_by_pool: dict[int, tuple[str, str]] = {}
+        for record in population:
+            pool_index = int(record.pool_index)
+            identity = (str(record.generator_id), str(record.pool_label))
+            previous = identity_by_pool.setdefault(pool_index, identity)
+            if previous != identity:
+                raise RuntimeError(
+                    "Semantic Phase-0 generator identity changed by position."
+                )
+        if set(identity_by_pool) != set(available):
+            raise RuntimeError(
+                "Semantic Phase-0 population differs from its position domain."
+            )
+
+        append_position = int(self.pending.append_position)
+        nested_window = _predict_nested_refit_window_for_position(
+            theta=self.pending.theta_logical_current,
+            position_id=append_position,
+            policy=self.context.reoptimization_policy,
+            window_size=self.context.reoptimization_window_size,
+            window_topk=self.context.reoptimization_window_topk,
+            periodic_full_refit_triggered=False,
+        )
+        nested_accounting = build_nested_window_accounting(
+            nested_window,
+            compile_proxy_basis=COMPILE_PROXY_BASIS_OLD_PRE_INHERITED,
+        )
+        compile_rows: list[dict[str, Any]] = []
+        compile_sources: list[str] = []
+        for pool_index in available:
+            candidate = self.context.pool[pool_index]
+            compiled_candidate = self.context.compiled_pool[pool_index]
+            estimate = self.context.phase1_compile_oracle.estimate(
+                candidate_term_count=int(len(compiled_candidate.terms)),
+                position_id=append_position,
+                append_position=append_position,
+                refit_active_count=int(
+                    nested_accounting.compile_proxy_refit_count
+                ),
+                candidate_term=candidate,
+            )
+            source = str(getattr(estimate, "hardware_cost_source", ""))
+            source_mode = str(getattr(estimate, "source_mode", ""))
+            if (
+                source != "proxy_logical_ladder_span_v1"
+                or source_mode != "proxy"
+            ):
+                raise RuntimeError(
+                    "Semantic Phase 0 attempted a non-graph compile source."
+                )
+            values = {
+                "c_hat_2q": float(getattr(estimate, "c_hat_2q")),
+                "c_hat_d": float(getattr(estimate, "c_hat_d")),
+                "c_hat_1q": float(getattr(estimate, "c_hat_1q")),
+                "c_hat_theta": float(getattr(estimate, "c_hat_theta")),
+                "c_hat_shot": 0.0,
+            }
+            if any(
+                not math.isfinite(value) or value < 0.0
+                for value in values.values()
+            ):
+                raise RuntimeError(
+                    "Semantic Phase-0 graph-proxy cost is invalid."
+                )
+            compile_rows.append(
+                {
+                    "label": str(identity_by_pool[pool_index][1]),
+                    "candidate_pool_index": int(pool_index),
+                    "position_id": append_position,
+                    **values,
+                }
+            )
+            compile_sources.append(source)
+        normalization = hardware_cost_candidate_record_denominators(
+            compile_rows,
+            self.pending.phase2_score_cfg_round,
+        )
+        normalized_rows = normalization.get("rows")
+        denominators = normalization.get("denominators")
+        if (
+            not isinstance(normalized_rows, list)
+            or not isinstance(denominators, list)
+            or len(normalized_rows) != len(available)
+            or len(denominators) != len(available)
+        ):
+            raise RuntimeError(
+                "Semantic Phase-0 graph-proxy normalization is incomplete."
+            )
+        scored_rows: list[dict[str, Any]] = []
+        for offset, pool_index in enumerate(available):
+            norm_row = dict(normalized_rows[offset])
+            scored_rows.append(
+                {
+                    "pool_index": int(pool_index),
+                    "generator_id": str(identity_by_pool[pool_index][0]),
+                    "pool_label": str(identity_by_pool[pool_index][1]),
+                    "append_position": append_position,
+                    "append_gradient_signed": float(
+                        self.pending.gradients[pool_index]
+                    ),
+                    "graph_proxy_source": str(compile_sources[offset]),
+                    "graph_proxy_raw": dict(norm_row.get("raw", {})),
+                    "graph_proxy_bars": dict(norm_row.get("bars", {})),
+                    "graph_proxy_cost_excess_sum": float(
+                        norm_row.get("hardware_cost_excess_sum")
+                    ),
+                    "graph_proxy_denominator": float(
+                        denominators[offset]
+                    ),
+                }
+            )
+        receipt = build_semantic_proxy_phase0_receipt(
+            scored_rows,
+            graph_proxy_normalization=normalization,
+            estimator_event_ids=event_ids,
+            route_variant=str(route_variant),
+            cap=int(shortlist_size),
+        )
+        self.pending.phase0_gradient_shortlist_receipt = receipt
+        retained = [
+            int(value) for value in receipt["retained_pool_indices"]
+        ]
+        self.pending.shortlist[:] = retained
+        if not retained:
+            terminal_outcome = (
+                "phase0_stationary_no_competitive_candidate_v1"
+            )
+            self.pending.phase0_gradient_shortlist_receipt = {
+                **dict(receipt),
+                "terminal_controller_outcome": terminal_outcome,
+            }
+            unsigned_receipt = dict(
+                self.pending.phase0_gradient_shortlist_receipt
+            )
+            unsigned_receipt.pop("sha256", None)
+            self.pending.phase0_gradient_shortlist_receipt["sha256"] = (
+                _candidate_record_payload_digest(unsigned_receipt)
+            )
+            return _PhaseSelectionReceipt(
+                phase="phase0",
+                population=population,
+                shortlist=(),
+                shortlist_ranking=(),
+                estimator_event_ids=tuple(event_ids),
+                terminal_outcome=terminal_outcome,
+            )
+        shortlisted_records = filter_semantic_phase0_position_domain(
+            population,
+            ranked_pool_indices=receipt["ranked_pool_indices"],
+            retained_pool_indices=retained,
+        )
+        utility_by_pool = {
+            int(row["pool_index"]): float(row["utility"])
+            for row in receipt["ranking"]
+        }
+        ranking = tuple(
+            _ShortlistRankReceipt(
+                record_key=(
+                    str(record.domain_record_id),
+                    str(record.generator_id),
+                ),
+                shortlist_rank=int(rank),
+                primary_score=float(
+                    utility_by_pool[int(record.pool_index)]
+                ),
+                tie_break_score=float(
+                    utility_by_pool[int(record.pool_index)]
+                ),
+                pool_index=int(record.pool_index),
+                insertion_position=int(record.insertion_position),
+            )
+            for rank, record in enumerate(shortlisted_records, start=1)
+        )
+        return _PhaseSelectionReceipt(
+            phase="phase0",
+            population=population,
+            shortlist=shortlisted_records,
+            shortlist_ranking=ranking,
+            estimator_event_ids=tuple(event_ids),
+        )
+
+    def run_position_record_phase0(
+        self,
+        *,
+        admissible_domain: tuple[_CandidatePositionRecord, ...],
+        route_variant: str,
+        shortlist_size: int,
+    ) -> _PhaseSelectionReceipt:
+        """Rank commutation-reduced generator-position records inside Phase 0."""
+
+        from pipelines.scaffold.hh_continuation_scoring import (
+            hardware_cost_candidate_record_denominators,
+        )
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            PAPER_I_RA_PHASE0_POSITION_PROXY_ADAPTIVE_V1,
+            PAPER_I_RA_PHASE0_POSITION_PROXY_FIXED24_V1,
+            build_semantic_position_phase0_receipt,
+        )
+
+        if isinstance(shortlist_size, bool) or int(shortlist_size) != 24:
+            raise RuntimeError("Position-record Phase 0 requires hard cap 24.")
+        if self.pending.phase0_gradient_shortlist_receipt is not None:
+            raise RuntimeError("Position-record Phase 0 executed more than once.")
+        if self.context.transition_services.controller_noise_runtime is not None:
+            raise RuntimeError("Position-record Phase 0 is exact/noiseless only.")
+        population = tuple(admissible_domain)
+        if not population or len(
+            {
+                (
+                    int(record.pool_index),
+                    int(record.insertion_position),
+                    str(record.domain_record_id),
+                )
+                for record in population
+            }
+        ) != len(population):
+            raise RuntimeError("Position-record Phase-0 domain is invalid.")
+        proxy_active = str(route_variant) in {
+            PAPER_I_RA_PHASE0_POSITION_PROXY_FIXED24_V1,
+            PAPER_I_RA_PHASE0_POSITION_PROXY_ADAPTIVE_V1,
+        }
+        theta = np.asarray(self.pending.theta_logical_current, dtype=float)
+        geometry_context = _prepare_exact_insertion_first_order_context(
+            selected_ops=list(self.cursor.selected_ops),
+            theta=theta,
+            psi_ref=np.asarray(self.context.reference_state, dtype=complex),
+            psi_state=np.asarray(self.pending.psi_current, dtype=complex),
+            hpsi_state=np.asarray(self.pending.hpsi_current, dtype=complex),
+            pauli_action_cache=self.cursor.pauli_action_cache,
+            state_consistency_tolerance=float(
+                max(
+                    1.0e-12,
+                    self.pending.phase2_score_cfg_round.batch_state_consistency_tolerance,
+                )
+            ),
+        )
+        occurrence_start = len(self.ledger_occurrences())
+        rows: list[dict[str, Any]] = []
+        compile_rows: list[dict[str, Any]] = []
+        for record in population:
+            pool_index = int(record.pool_index)
+            position = int(record.insertion_position)
+            candidate = self.context.pool[pool_index]
+            geometry = _exact_insertion_first_order_candidate_geometry(
+                context=geometry_context,
+                candidate_term=candidate,
+                position_id=position,
+                candidate_compiled=self.context.compiled_pool[pool_index],
+                pauli_action_cache=self.cursor.pauli_action_cache,
+            )
+            gradient = float(geometry["energy_gradient"])
+            if not math.isfinite(gradient):
+                raise RuntimeError("Position-record Phase-0 gradient is non-finite.")
+            self.session.estimator_service._record_estimator_primitive(
+                state=np.asarray(self.pending.psi_current, dtype=complex),
+                component="N_grad",
+                consumer_scope="phase0_candidate_position_gradient_surface_v1",
+                primitive_kind="coordinate_gradient",
+                observable_or_formula_identity="coordinate_energy_gradient_v2",
+                operand_identity=(
+                    self.session.estimator_service._candidate_physical_tangent(
+                        list(self.cursor.selected_ops),
+                        theta,
+                        candidate,
+                        insertion_position=position,
+                    )
+                ),
+            )
+            row = {
+                "domain_record_id": str(record.domain_record_id),
+                "generator_id": str(record.generator_id),
+                "pool_index": pool_index,
+                "pool_label": str(record.pool_label),
+                "insertion_position": position,
+                "position_class": (
+                    "interior"
+                    if position < int(self.pending.append_position)
+                    else "append"
+                ),
+                "gradient_signed": gradient,
+                "graph_proxy_denominator": 1.0,
+            }
+            rows.append(row)
+            if proxy_active:
+                nested_window = _predict_nested_refit_window_for_position(
+                    theta=theta,
+                    position_id=position,
+                    policy=self.context.reoptimization_policy,
+                    window_size=self.context.reoptimization_window_size,
+                    window_topk=self.context.reoptimization_window_topk,
+                    periodic_full_refit_triggered=False,
+                )
+                nested_accounting = build_nested_window_accounting(
+                    nested_window,
+                    compile_proxy_basis=COMPILE_PROXY_BASIS_OLD_PRE_INHERITED,
+                )
+                estimate = self.context.phase1_compile_oracle.estimate(
+                    candidate_term_count=int(
+                        len(self.context.compiled_pool[pool_index].terms)
+                    ),
+                    position_id=position,
+                    append_position=int(self.pending.append_position),
+                    refit_active_count=int(
+                        nested_accounting.compile_proxy_refit_count
+                    ),
+                    candidate_term=candidate,
+                )
+                if (
+                    str(getattr(estimate, "hardware_cost_source", ""))
+                    != "proxy_logical_ladder_span_v1"
+                    or str(getattr(estimate, "source_mode", "")) != "proxy"
+                ):
+                    raise RuntimeError(
+                        "Position-record Phase 0 attempted non-structural compile work."
+                    )
+                compile_rows.append(
+                    {
+                        "label": str(record.pool_label),
+                        "candidate_pool_index": pool_index,
+                        "position_id": position,
+                        "c_hat_2q": float(getattr(estimate, "c_hat_2q")),
+                        "c_hat_d": float(getattr(estimate, "c_hat_d")),
+                        "c_hat_1q": float(getattr(estimate, "c_hat_1q")),
+                        "c_hat_theta": float(getattr(estimate, "c_hat_theta")),
+                        "c_hat_shot": 0.0,
+                    }
+                )
+        if proxy_active:
+            normalization = hardware_cost_candidate_record_denominators(
+                compile_rows,
+                self.pending.phase2_score_cfg_round,
+            )
+            denominators = normalization.get("denominators")
+            if not isinstance(denominators, list) or len(denominators) != len(rows):
+                raise RuntimeError(
+                    "Position-record graph-proxy normalization is incomplete."
+                )
+            for row, denominator in zip(rows, denominators, strict=True):
+                value = float(denominator)
+                if not math.isfinite(value) or value <= 0.0:
+                    raise RuntimeError(
+                        "Position-record graph-proxy denominator is invalid."
+                    )
+                row["graph_proxy_denominator"] = value
+        occurrences = self.ledger_occurrences()[occurrence_start:]
+        if len(occurrences) != len(population) or any(
+            row.get("component") != "N_grad"
+            or row.get("consumer_scope")
+            != "phase0_candidate_position_gradient_surface_v1"
+            or not isinstance(row.get("sequence"), int)
+            or not str(row.get("primitive_id", ""))
+            for row in occurrences
+        ):
+            raise RuntimeError(
+                "Position-record Phase 0 did not evaluate every record exactly once."
+            )
+        event_ids = [
+            f"estimator:{int(row['sequence'])}:{str(row['primitive_id'])}"
+            for row in occurrences
+        ]
+        receipt = build_semantic_position_phase0_receipt(
+            rows,
+            estimator_event_ids=event_ids,
+            route_variant=str(route_variant),
+            cap=int(shortlist_size),
+        )
+        self.pending.phase0_gradient_shortlist_receipt = receipt
+        receipt_population = receipt.get("population")
+        receipt_retained = receipt.get("retained_records")
+        if (
+            not isinstance(receipt_population, list)
+            or len(receipt_population) != len(population)
+            or any(not isinstance(row, Mapping) for row in receipt_population)
+            or not isinstance(receipt_retained, list)
+            or any(not isinstance(row, Mapping) for row in receipt_retained)
+        ):
+            raise RuntimeError(
+                "Position-record Phase 0 returned an invalid population receipt."
+            )
+        append_position = int(self.pending.append_position)
+        append_rows_by_pool: dict[int, Mapping[str, Any]] = {}
+        complete_gradient_max = 0.0
+        for raw_row in receipt_population:
+            row = dict(raw_row)
+            pool_index = int(row.get("pool_index", -1))
+            position = int(row.get("insertion_position", -1))
+            position_class = str(row.get("position_class", ""))
+            gradient_signed = float(row.get("gradient_signed", math.nan))
+            gradient_abs = float(row.get("gradient_abs", math.nan))
+            if (
+                pool_index < 0
+                or pool_index >= len(self.pending.gradients)
+                or not math.isfinite(gradient_signed)
+                or not math.isfinite(gradient_abs)
+                or gradient_abs != abs(gradient_signed)
+                or position_class
+                != ("append" if position == append_position else "interior")
+            ):
+                raise RuntimeError(
+                    "Position-record Phase 0 gradient bridge is invalid."
+                )
+            complete_gradient_max = max(complete_gradient_max, gradient_abs)
+            if position == append_position:
+                if pool_index in append_rows_by_pool:
+                    raise RuntimeError(
+                        "Position-record Phase 0 has duplicate append gradients."
+                    )
+                append_rows_by_pool[pool_index] = raw_row
+                self.pending.gradients[pool_index] = gradient_signed
+                self.pending.grad_magnitudes[pool_index] = gradient_abs
+        for raw_row in receipt_retained:
+            row = dict(raw_row)
+            if int(row.get("insertion_position", -1)) != append_position:
+                continue
+            pool_index = int(row.get("pool_index", -1))
+            source = append_rows_by_pool.get(pool_index)
+            if (
+                source is None
+                or str(source.get("domain_record_id", ""))
+                != str(row.get("domain_record_id", ""))
+                or float(source.get("gradient_signed", math.nan))
+                != float(row.get("gradient_signed", math.nan))
+                or float(source.get("gradient_abs", math.nan))
+                != float(row.get("gradient_abs", math.nan))
+            ):
+                raise RuntimeError(
+                    "A retained append record lost its Phase-0 gradient bridge."
+                )
+        self.pending.max_grad = complete_gradient_max
+        retained_ids = [
+            str(row["domain_record_id"])
+            for row in receipt["retained_records"]
+        ]
+        retained_set = set(retained_ids)
+        record_by_id = {
+            str(record.domain_record_id): record for record in population
+        }
+        shortlisted_records = tuple(record_by_id[value] for value in retained_ids)
+        if not shortlisted_records:
+            self.pending.shortlist[:] = []
+            self.pending.candidate_position_plans = {}
+            return _PhaseSelectionReceipt(
+                phase="phase0",
+                population=population,
+                shortlist=(),
+                shortlist_ranking=(),
+                estimator_event_ids=tuple(event_ids),
+                terminal_outcome=str(receipt["terminal_controller_outcome"]),
+            )
+        retained_positions_by_pool: dict[int, list[int]] = {}
+        ordered_pools: list[int] = []
+        for record in shortlisted_records:
+            pool_index = int(record.pool_index)
+            if pool_index not in retained_positions_by_pool:
+                retained_positions_by_pool[pool_index] = []
+                ordered_pools.append(pool_index)
+            retained_positions_by_pool[pool_index].append(
+                int(record.insertion_position)
+            )
+        filtered_plans: dict[int, dict[str, Any]] = {}
+        for pool_index in ordered_pools:
+            source = self.pending.candidate_position_plans.get(pool_index)
+            if not isinstance(source, Mapping):
+                raise RuntimeError(
+                    "Position-record Phase 0 retained a record without a plan."
+                )
+            representatives = sorted(set(retained_positions_by_pool[pool_index]))
+            source_representatives = {
+                int(value) for value in source.get("representative_positions", [])
+            }
+            if not set(representatives).issubset(source_representatives):
+                raise RuntimeError("Position-record Phase 0 escaped its source plan.")
+            raw_members = source.get("members_by_representative", {})
+            members = {
+                representative: [
+                    int(value)
+                    for value in raw_members.get(representative, [representative])
+                ]
+                for representative in representatives
+            }
+            requested = sorted(
+                {value for values in members.values() for value in values}
+            )
+            filtered_plans[pool_index] = {
+                **dict(source),
+                "requested_positions": requested,
+                "representative_positions": representatives,
+                "representative_by_position": {
+                    value: representative
+                    for representative, values in members.items()
+                    for value in values
+                },
+                "members_by_representative": members,
+                "collapsed_position_count": len(requested) - len(representatives),
+            }
+        self.pending.shortlist[:] = ordered_pools
+        self.pending.candidate_position_plans = filtered_plans
+        score_by_id = {
+            str(row["domain_record_id"]): float(row["active_score"])
+            for row in receipt["ranking"]
+        }
+        ranking = tuple(
+            _ShortlistRankReceipt(
+                record_key=(str(record.domain_record_id), str(record.generator_id)),
+                shortlist_rank=rank,
+                primary_score=score_by_id[str(record.domain_record_id)],
+                tie_break_score=score_by_id[str(record.domain_record_id)],
+                pool_index=int(record.pool_index),
+                insertion_position=int(record.insertion_position),
+            )
+            for rank, record in enumerate(shortlisted_records, start=1)
+            if str(record.domain_record_id) in retained_set
+        )
+        return _PhaseSelectionReceipt(
+            phase="phase0",
+            population=population,
+            shortlist=shortlisted_records,
+            shortlist_ranking=ranking,
+            estimator_event_ids=tuple(event_ids),
+        )
 
     def run_gradient_surface(self) -> None:
         """Mechanical lift of adapt_pipeline.py:46763-46781."""
@@ -62340,7 +66694,7 @@ class _DefaultNoPruneSelectionTransaction:
                         ),
                         int(pool_index),
                     )
-                    for pool_index in self.cursor.available_indices
+                    for pool_index in self.cursor.selection_available_indices()
                 )
             )
         ]
@@ -62355,10 +66709,86 @@ class _DefaultNoPruneSelectionTransaction:
     def run_phase_i(self) -> dict[str, Any]:
         """Mechanical lift of adapt_pipeline.py:46783-46840."""
 
+        from pipelines.static_adapt.ra_adapt.adapters import (
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        )
+
+        if isinstance(
+            self.context.candidate_adapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        ):
+            controller_pre_snapshot = (
+                self.cursor.phase1_stage.pre_step_snapshot(
+                    depth_local=int(self.pending.depth),
+                    max_depth=int(self.context.max_depth),
+                )
+            )
+            self.pending.controller_pre_snapshot_dict.clear()
+            self.pending.controller_pre_snapshot_dict.update(
+                _controller_snapshot_dict(controller_pre_snapshot)
+            )
+            parent_context_records = (
+                self._macro_gradient_phase0_parent_context_records()
+            )
+            return {
+                "macro_gradient_phase0_active": True,
+                "macro_phase0_parent_context_records": [
+                    dict(record) for record in parent_context_records
+                ],
+                "phase1_append_best_score": float(
+                    max(
+                        record["feature"].g_abs
+                        for record in parent_context_records
+                    )
+                ),
+                "positions_considered": sorted(
+                    {
+                        int(record["position_id"])
+                        for record in parent_context_records
+                    }
+                ),
+                "insertion_probe_triggered": bool(
+                    any(
+                        int(record["position_id"])
+                        != int(self.pending.append_position)
+                        for record in parent_context_records
+                    )
+                ),
+                "insertion_probe_reason": (
+                    "macro_phase0_context_only_child_phase1_pending"
+                ),
+                "score_eval": None,
+                "trough": False,
+                "best_feat": parent_context_records[0]["feature"],
+                "best_idx": int(
+                    parent_context_records[0]["candidate_pool_index"]
+                ),
+                "selected_position": int(
+                    parent_context_records[0]["position_id"]
+                ),
+                "selection_mode": (
+                    "standard_adapt_abs_gradient_macro_phase0_v1"
+                ),
+                "controller_snapshot": controller_pre_snapshot,
+                "phase1_records": [],
+                "phase1_shortlisted_records": [],
+                "phase1_records_for_phase2": [
+                    dict(record) for record in parent_context_records
+                ],
+            }
+
         (
             controller_pre_snapshot,
             append_evaluation,
         ) = self.session._begin_default_phase1_round(self.pending)
+        if (
+            self.context.backend_compile_scope
+            == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ):
+            self._record_phase123_qiskit_population(
+                phase="phase_i",
+                records=append_evaluation.get("records", []),
+            )
         score_evaluation = append_evaluation
         trough = False
         plateau_receipt = score_evaluation.get(
@@ -62474,6 +66904,9 @@ class _DefaultNoPruneSelectionTransaction:
             "phase1_shortlisted_records": (
                 finalized["phase1_shortlisted_records"]
             ),
+            "adaptive_shortlist_receipt": finalized.get(
+                "adaptive_shortlist_receipt"
+            ),
             "phase1_records_for_phase2": [
                 dict(record)
                 for record in finalized["phase1_shortlisted_records"]
@@ -62514,12 +66947,18 @@ class _DefaultNoPruneSelectionTransaction:
         adapter = self.context.candidate_adapter
         identity_singleton_exposure = False
         sector_complete_block_exposure = False
+        macro_gradient_phase0_active = False
         if adapter is not None:
             from pipelines.static_adapt.ra_adapt.adapters import (
                 PHASE_II_EXPOSURE_RETAINED_PARENT_SECTOR_BLOCKS,
                 PHASE_II_EXPOSURE_RETAINED_SINGLETON_IDENTITY,
+                MacroGradientPhase0ThenSingletonCandidateAdapter,
             )
 
+            macro_gradient_phase0_active = isinstance(
+                adapter,
+                MacroGradientPhase0ThenSingletonCandidateAdapter,
+            )
             identity_singleton_exposure = bool(
                 str(
                     getattr(
@@ -62723,6 +67162,359 @@ class _DefaultNoPruneSelectionTransaction:
                     )
                     for _, owner_record, owner_identity in position_owners
                 )
+
+        post_exposure_singleton_phase1 = bool(
+            adapter is not None
+            and str(
+                getattr(
+                    adapter,
+                    "post_exposure_phase_i_shortlist_id",
+                    "",
+                )
+            )
+            == (
+                "phase_i_on_guarded_singletons_from_retained_"
+                "macro_shortlist_v1"
+            )
+        )
+        post_exposure_phase1_records: list[dict[str, Any]] = []
+        post_exposure_shortlist: list[dict[str, Any]] = []
+        post_exposure_phase1_occurrence_end: int | None = None
+        if post_exposure_singleton_phase1:
+            from pipelines.static_adapt.ra_adapt.contracts import (
+                CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+            )
+
+            for spec_index, (
+                source_record,
+                exposed_candidate,
+                owner_identity,
+            ) in enumerate(evaluation_specs):
+                if (
+                    exposed_candidate is None
+                    or str(exposed_candidate.representation_id)
+                    != CANDIDATE_REPRESENTATION_SINGLE_PAULI
+                ):
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I received a "
+                        "non-singleton candidate."
+                    )
+                source_feature = source_record.get("feature")
+                if not isinstance(source_feature, CandidateFeatures):
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I lost its retained "
+                        "macro feature."
+                    )
+                candidate_metadata = {
+                    **dict(exposed_candidate.generator_metadata),
+                    "generator_id": str(
+                        exposed_candidate.generator_identity
+                    ),
+                    "ra_adapter_id": str(adapter.adapter_id),
+                    "ra_candidate_representation": str(
+                        adapter.candidate_representation_id
+                    ),
+                    "ra_parent_generator_ids": [
+                        str(value)
+                        for value in exposed_candidate.parent_identities
+                    ],
+                    "ra_post_exposure_phase_i": str(
+                        adapter.post_exposure_phase_i_shortlist_id
+                    ),
+                }
+                evaluator = _DefaultPhase2FullRecordEvaluator(
+                    session=self.session,
+                    pending=self.pending,
+                    record=source_record,
+                    base_feature=source_feature,
+                    window_terms=tuple(
+                        source_record.get("window_terms", [])
+                    ),
+                    window_labels=tuple(
+                        str(value)
+                        for value in source_record.get(
+                            "window_labels", []
+                        )
+                    ),
+                    phase2_scaffold_context_cache=(
+                        phase2_scaffold_context_cache
+                    ),
+                    phase2_scaffold_primitive_ids_cache=(
+                        phase2_scaffold_primitive_ids_cache
+                    ),
+                    phase2_scaffold_metric_primitive_ids_cache=(
+                        phase2_scaffold_metric_primitive_ids_cache
+                    ),
+                    cache_stats=cache_stats,
+                    outer_curvature_candidate_cache_identity=(
+                        _outer_curvature_prior_cache_identity(
+                            enabled=False,
+                            prior=None,
+                        )
+                    ),
+                )
+                geometry_request = adapter.candidate_geometry(
+                    exposed_candidate,
+                    int(source_feature.position_id),
+                )
+                compile_metadata = candidate_metadata.get(
+                    "compile_metadata"
+                )
+                runtime_split = (
+                    compile_metadata.get("runtime_split")
+                    if isinstance(compile_metadata, Mapping)
+                    else None
+                )
+                if not isinstance(runtime_split, Mapping):
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I lost its guarded "
+                        "runtime-split contract."
+                    )
+                source_parent_term = source_record.get("candidate_term")
+                if not isinstance(source_parent_term, AnsatzTerm):
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I lost its source "
+                        "parent term."
+                    )
+                owner_parent_label = str(source_parent_term.label)
+                if owner_parent_label not in {
+                    str(value)
+                    for value in (
+                        runtime_split.get("parent_labels", [])
+                        or candidate_metadata.get(
+                            "shared_pauli_pool_contract", {}
+                        ).get("parent_labels", [])
+                    )
+                }:
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I source parent is "
+                        "absent from the guarded child contract."
+                    )
+                phase1_record = dict(
+                    evaluator(
+                        candidate_term=exposed_candidate.term,
+                        candidate_label=str(exposed_candidate.label),
+                        generator_metadata=candidate_metadata,
+                        symmetry_spec_candidate=(
+                            None
+                            if exposed_candidate.symmetry_receipt is None
+                            else dict(
+                                exposed_candidate.symmetry_receipt
+                            )
+                        ),
+                        evaluation_stage_value="phase1",
+                        ra_geometry_request=geometry_request,
+                        runtime_split_mode_value=str(
+                            runtime_split["mode"]
+                        ),
+                        runtime_split_parent_label_value=str(
+                            owner_parent_label
+                        ),
+                        runtime_split_chosen_representation_value=(
+                            "guarded_singleton_child"
+                        ),
+                        runtime_split_child_labels_value=[
+                            str(exposed_candidate.label)
+                        ],
+                        runtime_split_child_generator_ids_value=[
+                            str(exposed_candidate.generator_identity)
+                        ],
+                    )
+                )
+                phase1_feature = phase1_record.get("feature")
+                if not isinstance(phase1_feature, CandidateFeatures):
+                    raise RuntimeError(
+                        "Post-exposure singleton Phase I produced no "
+                        "candidate feature."
+                    )
+                phase1_feature = candidate_feature_with_updates(
+                    phase1_feature,
+                    {
+                        "candidate_pool_index": int(
+                            source_feature.candidate_pool_index
+                        ),
+                        "candidate_family": str(
+                            exposed_candidate.family_id
+                        ),
+                        "parent_generator_id": str(owner_identity),
+                        "child_phase1_shortlisted": False,
+                    },
+                )
+                phase1_record.update(
+                    {
+                        "feature": phase1_feature,
+                        "candidate_pool_index": int(
+                            source_feature.candidate_pool_index
+                        ),
+                        "candidate_label": str(
+                            exposed_candidate.label
+                        ),
+                        "candidate_term": exposed_candidate.term,
+                        "post_exposure_spec_index": int(spec_index),
+                        "post_exposure_phase_i_policy": str(
+                            adapter.post_exposure_phase_i_shortlist_id
+                        ),
+                    }
+                )
+                post_exposure_phase1_records.append(phase1_record)
+
+            post_exposure_phase1_records = rescore_hardware_cost_family(
+                post_exposure_phase1_records,
+                self.context.phase1_score_config,
+            )
+            self._record_phase123_qiskit_population(
+                phase="phase_i",
+                records=post_exposure_phase1_records,
+            )
+            if macro_gradient_phase0_active:
+                controller_snapshot = (
+                    self.cursor.phase1_stage.finalize_step_snapshot(
+                        pre_snapshot=controller_snapshot,
+                        phase1_raw_scores=[
+                            float(
+                                record.get(
+                                    _phase1_shortlist_score_key(),
+                                    record.get(
+                                        "simple_score",
+                                        float("-inf"),
+                                    ),
+                                )
+                            )
+                            for record in post_exposure_phase1_records
+                        ],
+                    )
+                )
+                post_exposure_phase1_records = (
+                    _default_no_prune_attach_controller_snapshot(
+                        post_exposure_phase1_records,
+                        snapshot=controller_snapshot,
+                    )
+                )
+            post_exposure_shortlist = (
+                _phase1_lane_shortlist_with_legacy_hook(
+                    post_exposure_phase1_records,
+                    runtime=self.context.phase_shortlist_runtime,
+                    score_key=_phase1_shortlist_score_key(),
+                    threshold=_controller_threshold(
+                        controller_snapshot,
+                        "phase1",
+                    ),
+                    cap=_controller_cap(
+                        controller_snapshot,
+                        "phase1",
+                        self.context.phase1_shortlist_size,
+                    ),
+                    frontier_ratio=float(
+                        self.pending
+                        .phase2_score_cfg_round
+                        .phase2_frontier_ratio
+                    ),
+                    tie_break_score_key="simple_score",
+                    shortlist_flag="phase1_shortlisted",
+                )
+            )
+            retained_spec_indices = {
+                int(record["post_exposure_spec_index"])
+                for record in post_exposure_shortlist
+            }
+            retained_evaluation_specs: list[
+                tuple[Mapping[str, Any], Any | None, str | None]
+            ] = []
+            for spec_index, spec in enumerate(evaluation_specs):
+                if int(spec_index) not in retained_spec_indices:
+                    continue
+                source_record, candidate, owner_identity = spec
+                source_term = source_record.get("candidate_term")
+                source_feature = source_record.get("feature")
+                if (
+                    not isinstance(source_term, AnsatzTerm)
+                    or not isinstance(source_feature, CandidateFeatures)
+                ):
+                    raise RuntimeError(
+                        "Retained post-exposure Phase-I source lost its "
+                        "authenticated macro identity."
+                    )
+                normalized_source = dict(source_record)
+                normalized_source["feature"] = (
+                    candidate_feature_with_updates(
+                        source_feature,
+                        {
+                            "physical_operator_classifier_label": str(
+                                source_term.label
+                            )
+                        },
+                    )
+                )
+                retained_evaluation_specs.append(
+                    (normalized_source, candidate, owner_identity)
+                )
+            evaluation_specs = retained_evaluation_specs
+            cheap_records = [
+                dict(record) for record in post_exposure_shortlist
+            ]
+            if macro_gradient_phase0_active:
+                _record_controller_work_for_records(
+                    self.cursor.controller_measurement_work,
+                    runtime=(
+                        self.context.controller_measurement_work_runtime
+                    ),
+                    snapshot=controller_snapshot,
+                    phase="phase1",
+                    event_kind=(
+                        "phase1_guarded_singletons_after_macro_gradient_"
+                        "phase0"
+                    ),
+                    records=post_exposure_phase1_records,
+                    depth_value=int(self.pending.depth + 1),
+                    candidate_count=len(post_exposure_phase1_records),
+                    evaluated_count=len(post_exposure_phase1_records),
+                    pre_shortlist_count=len(post_exposure_phase1_records),
+                    shortlist_size=len(post_exposure_shortlist),
+                    retained_count=len(post_exposure_shortlist),
+                    rejected_count=max(
+                        0,
+                        len(post_exposure_phase1_records)
+                        - len(post_exposure_shortlist),
+                    ),
+                    probe_role="gradient",
+                    actual_operator_probe_count=(
+                        _logical_operator_probe_count_for_records(
+                            post_exposure_phase1_records,
+                            runtime=(
+                                self.context
+                                .controller_measurement_work_runtime
+                            ),
+                        )
+                    ),
+                    **_common_exposure_probe_payload_for_records(
+                        post_exposure_phase1_records,
+                        runtime=(
+                            self.context
+                            .controller_measurement_work_runtime
+                        ),
+                        expand_runtime_split=False,
+                    ),
+                )
+            post_exposure_phase1_occurrence_end = len(
+                self.ledger_occurrences()
+            )
+            self._record_selection_phase_observation(
+                "ra_post_exposure_singleton_phase1_shortlist",
+                depth=int(self.pending.depth + 1),
+                policy=str(
+                    adapter.post_exposure_phase_i_shortlist_id
+                ),
+                candidate_count=int(
+                    len(post_exposure_phase1_records)
+                ),
+                retained_count=int(len(post_exposure_shortlist)),
+                phase2_qiskit_cost_active=bool(
+                    self.context.backend_compile_scope
+                    == (
+                        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+                    )
+                ),
+            )
 
         phase2_full_candidate_t0 = time.perf_counter()
         for record, adapter_candidate, owner_identity in evaluation_specs:
@@ -62928,6 +67720,9 @@ class _DefaultNoPruneSelectionTransaction:
                     _identity_singleton_exposure: bool = (
                         identity_singleton_exposure
                     ),
+                    _macro_gradient_phase0_active: bool = (
+                        macro_gradient_phase0_active
+                    ),
                     _source_record: Mapping[str, Any] = record,
                     **candidate_kwargs: Any,
                 ) -> Mapping[str, Any]:
@@ -63100,6 +67895,39 @@ class _DefaultNoPruneSelectionTransaction:
                                 }
                             )
                     evaluated = dict(_delegate(**candidate_kwargs))
+                    if _macro_gradient_phase0_active:
+                        evaluated_feature = evaluated.get("feature")
+                        if not isinstance(
+                            evaluated_feature,
+                            CandidateFeatures,
+                        ):
+                            raise RuntimeError(
+                                "Macro gradient Phase-0 child evaluation "
+                                "lost CandidateFeatures."
+                            )
+                        evaluated["feature"] = (
+                            candidate_feature_with_updates(
+                                evaluated_feature,
+                                {
+                                    "candidate_label": str(
+                                        _candidate.label
+                                    ),
+                                    "candidate_family": str(
+                                        _candidate.family_id
+                                    ),
+                                    "generator_id": str(
+                                        _candidate.generator_identity
+                                    ),
+                                    "parent_generator_id": str(_owner),
+                                },
+                            )
+                        )
+                        evaluated["candidate_label"] = str(
+                            _candidate.label
+                        )
+                        evaluated["candidate_term"] = (
+                            _request.candidate_term
+                        )
                     evaluated["ra_candidate_adapter"] = {
                         "schema": (
                             "ra_adapt_candidate_adapter_transition_v1"
@@ -63126,7 +67954,10 @@ class _DefaultNoPruneSelectionTransaction:
                 evaluate_full_record=evaluate_candidate,
                 policy=_ProjectedPhase2RoutePolicy(
                     split_parent=child_set_forward,
-                    rescore_children=True,
+                    rescore_children=bool(
+                        self.context.backend_compile_scope
+                        != BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+                    ),
                     registry_uses_feature_fallback=True,
                     child_set_symmetry_policy=str(
                         self.context
@@ -63293,6 +68124,63 @@ class _DefaultNoPruneSelectionTransaction:
                     )
                 archival_phase2_parent_expansions.append(expansion)
 
+        if macro_gradient_phase0_active:
+            # Transition snapshots resolve accepted operator identities from
+            # the label-indexed generator registry.  The guarded singleton is
+            # not a member of the root macro pool, so publish its authenticated
+            # metadata before the immutable decision is handed to transition.
+            # Existing accepted labels remain untouched.
+            protected_active_labels = {
+                str(operator.label) for operator in self.cursor.selected_ops
+            }
+            for child_record in full_records:
+                child_feature = child_record.get("feature")
+                child_term = child_record.get("candidate_term")
+                if (
+                    not isinstance(child_feature, CandidateFeatures)
+                    or not isinstance(child_term, AnsatzTerm)
+                    or not isinstance(
+                        child_feature.generator_metadata,
+                        Mapping,
+                    )
+                ):
+                    raise RuntimeError(
+                        "Macro gradient Phase-0 child lost authenticated "
+                        "generator metadata before transition."
+                    )
+                child_label = str(child_term.label)
+                child_metadata = dict(
+                    child_feature.generator_metadata
+                )
+                child_generator_id = str(
+                    child_metadata.get("generator_id", "")
+                )
+                if not child_generator_id:
+                    raise RuntimeError(
+                        "Macro gradient Phase-0 child has no generator "
+                        "identity."
+                    )
+                existing_metadata = (
+                    self.cursor.pool_generator_registry.get(child_label)
+                )
+                if isinstance(existing_metadata, Mapping):
+                    if str(existing_metadata.get("generator_id", "")) != (
+                        child_generator_id
+                    ):
+                        raise RuntimeError(
+                            "Macro gradient Phase-0 child label aliases a "
+                            "different generator identity."
+                        )
+                    continue
+                if child_label in protected_active_labels:
+                    raise RuntimeError(
+                        "An accepted macro-gradient child lost its immutable "
+                        "generator registry binding."
+                    )
+                self.cursor.pool_generator_registry[child_label] = (
+                    child_metadata
+                )
+
         elapsed = float(
             time.perf_counter() - phase2_full_candidate_t0
         )
@@ -63318,6 +68206,10 @@ class _DefaultNoPruneSelectionTransaction:
             full_records,
             self.pending.phase2_score_cfg_round,
         )
+        self._record_phase123_qiskit_population(
+            phase="phase_ii",
+            records=full_records,
+        )
         full_records = sorted(
             full_records,
             key=_phase2_record_sort_key,
@@ -63333,12 +68225,31 @@ class _DefaultNoPruneSelectionTransaction:
         )
         return {
             "cheap_records": cheap_records,
+            "controller_snapshot": controller_snapshot,
+            "official_phase1_records": (
+                [dict(record) for record in post_exposure_phase1_records]
+                if macro_gradient_phase0_active
+                else None
+            ),
+            "official_phase1_shortlisted_records": (
+                [dict(record) for record in post_exposure_shortlist]
+                if macro_gradient_phase0_active
+                else None
+            ),
+            "official_phase1_occurrence_end": (
+                post_exposure_phase1_occurrence_end
+                if macro_gradient_phase0_active
+                else None
+            ),
             "full_records": full_records,
             "phase2_full_records_evaluated": (
                 finalized["phase2_full_records_evaluated"]
             ),
             "phase2_shortlisted_records": (
                 finalized["phase2_shortlisted_records"]
+            ),
+            "adaptive_shortlist_receipt": finalized.get(
+                "adaptive_shortlist_receipt"
             ),
             "phase2_last_shortlist_eval_records": (
                 finalized["phase2_last_shortlist_eval_records"]
@@ -63435,27 +68346,50 @@ class _DefaultNoPruneSelectionTransaction:
         """Preserve Phase-II ranking, work, and receipt order."""
 
         evaluated = [dict(record) for record in full_records]
-        shortlisted = _phase2_lane_health_shortlist_with_legacy_hook(
-            evaluated,
-            runtime=self.context.phase_shortlist_runtime,
-            score_key="phase2_raw_score",
-            threshold=_controller_threshold(
-                controller_snapshot,
-                "phase2",
-            ),
-            cap=_controller_cap(
-                controller_snapshot,
-                "phase2",
-                self.pending.phase2_score_cfg_round.shortlist_size,
-            ),
-            frontier_ratio=float(
-                self.pending
-                .phase2_score_cfg_round
-                .phase2_frontier_ratio
-            ),
-            tie_break_score_key="simple_score",
-            shortlist_flag="phase2_shortlisted",
-        )
+        adaptive_receipt = None
+        if _default_phase123_adaptive_shortlisting_active(self.context):
+            shortlisted, adaptive_receipt = (
+                _adaptive_phase_shortlist_with_receipt(
+                    evaluated,
+                    runtime=self.context.phase_shortlist_runtime,
+                    phase="phase_ii",
+                    score_key="phase2_raw_score",
+                    threshold=_controller_threshold(
+                        controller_snapshot,
+                        "phase2",
+                    ),
+                    hard_cap=12,
+                    frontier_ratio=float(
+                        self.pending
+                        .phase2_score_cfg_round
+                        .phase2_frontier_ratio
+                    ),
+                    tie_break_score_key="simple_score",
+                    shortlist_flag="phase2_shortlisted",
+                )
+            )
+        else:
+            shortlisted = _phase2_lane_health_shortlist_with_legacy_hook(
+                evaluated,
+                runtime=self.context.phase_shortlist_runtime,
+                score_key="phase2_raw_score",
+                threshold=_controller_threshold(
+                    controller_snapshot,
+                    "phase2",
+                ),
+                cap=_controller_cap(
+                    controller_snapshot,
+                    "phase2",
+                    self.pending.phase2_score_cfg_round.shortlist_size,
+                ),
+                frontier_ratio=float(
+                    self.pending
+                    .phase2_score_cfg_round
+                    .phase2_frontier_ratio
+                ),
+                tie_break_score_key="simple_score",
+                shortlist_flag="phase2_shortlisted",
+            )
         _record_controller_work_for_records(
             self.cursor.controller_measurement_work,
             runtime=self.context.controller_measurement_work_runtime,
@@ -63496,6 +68430,7 @@ class _DefaultNoPruneSelectionTransaction:
                 dict(record) for record in evaluated
             ],
             "phase2_shortlisted_records": shortlisted,
+            "adaptive_shortlist_receipt": adaptive_receipt,
             "phase2_last_geometric_shortlist_records": (
                 self.session._default_candidate_feature_rows(
                     shortlisted
@@ -63515,7 +68450,7 @@ class _DefaultNoPruneSelectionTransaction:
     ) -> tuple[Any, Any, Any]:
         """Lift target adapt_pipeline.py:44300-44668."""
 
-        return self.session._run_default_projected_phase_iii(
+        result = self.session._run_default_projected_phase_iii(
             self.pending,
             phase2_shortlisted_records=phase2_shortlisted_records,
             archival_phase3_factory_by_parent_key=(
@@ -63530,6 +68465,48 @@ class _DefaultNoPruneSelectionTransaction:
             controller_snapshot=controller_snapshot,
             phase3_live=phase3_live,
         )
+        if (
+            self.context.backend_compile_scope
+            == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+        ):
+            projected_receipt = result[1]
+            qiskit_receipt = projected_receipt.get(
+                "phase3_qiskit_selector_cost_receipt"
+            )
+            phase_receipt = (
+                qiskit_receipt.get(
+                    "phase123_population_normalization_receipt"
+                )
+                if isinstance(qiskit_receipt, Mapping)
+                else None
+            )
+            if not isinstance(phase_receipt, Mapping):
+                raise RuntimeError(
+                    "Phase-III Qiskit population normalization receipt is missing."
+                )
+            if "phase_iii" in (
+                self.pending.qiskit_population_normalization_receipts
+            ):
+                raise RuntimeError(
+                    "phase_iii Qiskit population was normalized more than once."
+                )
+            self.pending.qiskit_population_normalization_receipts[
+                "phase_iii"
+            ] = copy.deepcopy(dict(phase_receipt))
+            required_phases = {"phase_i", "phase_ii", "phase_iii"}
+            if set(
+                self.pending.qiskit_population_normalization_receipts
+            ) != required_phases:
+                raise RuntimeError(
+                    "Phase-I--III Qiskit population normalization receipts "
+                    "do not close all three phases."
+                )
+            projected_receipt[
+                "phase123_qiskit_population_normalization_receipts"
+            ] = copy.deepcopy(
+                self.pending.qiskit_population_normalization_receipts
+            )
+        return result
 
     def run_supported_response(
         self,
@@ -63876,6 +68853,9 @@ class _DefaultNoPruneSelectionTransaction:
         )
 
     def accepted_state_snapshot(self) -> object:
+        # Deliberately the persistent ``available_indices``, never the
+        # round-scoped beam sibling-diversity exclusion: this snapshot is what
+        # gets promoted, checkpointed, and rehydrated on resume.
         return _default_no_prune_accepted_selection_snapshot(
             selected_ops=self.cursor.selected_ops,
             selected_layout=self.cursor.selected_layout,
@@ -63964,22 +68944,268 @@ def _build_default_no_prune_domain(
             ] = domain_record
 
 
+def _run_global_singleton_gradient_phase0(
+    *,
+    session: _DefaultNoPruneNumericalSession,
+    transaction: _DefaultNoPruneSelectionTransaction,
+    admissible_domain: tuple[_CandidatePositionRecord, ...],
+) -> _PhaseSelectionReceipt | None:
+    """Apply the named global-singleton gradient screen to root domain."""
+
+    from pipelines.static_adapt.ra_adapt.adapters import (
+        GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID,
+        GlobalSingletonGradientPhase0CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.l3_page12 import (
+        PAPER_I_L3_PAGE12_ADAPTER_ID,
+        PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID,
+        PaperIPureHubbardNoisePage12CandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.phase0 import (
+        GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+        GLOBAL_SINGLETON_GRADIENT_PHASE0_CONSUMER_SCOPE,
+        GLOBAL_SINGLETON_GRADIENT_PHASE0_RECEIPT_SCHEMA,
+    )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        execute_semantic_phase0_runtime,
+        is_semantic_closure_adapter,
+    )
+
+    adapter = session.context.candidate_adapter
+    if is_semantic_closure_adapter(adapter):
+        return execute_semantic_phase0_runtime(
+            transaction,
+            admissible_domain=admissible_domain,
+        )
+    if not isinstance(
+        adapter,
+        GlobalSingletonGradientPhase0CandidateAdapter,
+    ):
+        return None
+    expected_adapter_id = (
+        GLOBAL_SINGLETON_GRADIENT_PHASE0_ADAPTER_ID
+        if type(adapter) is GlobalSingletonGradientPhase0CandidateAdapter
+        else PAPER_I_L3_PAGE12_ADAPTER_ID
+        if type(adapter)
+        is PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter
+        else None
+    )
+    if type(adapter) is PaperIPureHubbardNoisePage12CandidateAdapter:
+        expected_adapter_id = (
+            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ADAPTER_ID
+        )
+    if (
+        expected_adapter_id is None
+        or str(getattr(adapter, "adapter_id", "")) != expected_adapter_id
+        or str(getattr(adapter, "phase0_shortlist_policy_id", ""))
+        != GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY
+    ):
+        raise RuntimeError(
+            "Global-singleton gradient Phase 0 lost its typed adapter "
+            "identity."
+        )
+    execution = session.context.route_contract.get("execution_settings")
+    invariants = session.context.route_contract.get("semantic_invariants")
+    if not isinstance(execution, Mapping) or not isinstance(
+        invariants,
+        Mapping,
+    ):
+        raise RuntimeError(
+            "Global-singleton gradient Phase 0 requires route settings and "
+            "semantic invariants."
+        )
+    shortlist_policy = str(
+        execution.get("ra_phase0_gradient_shortlist_policy", "")
+    )
+    raw_shortlist_size = execution.get("ra_phase0_gradient_shortlist_size")
+    if (
+        shortlist_policy
+        != GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY
+        or isinstance(raw_shortlist_size, bool)
+        or not isinstance(raw_shortlist_size, int)
+        or int(raw_shortlist_size) < 1
+        or invariants.get("phase0_active") is not True
+        or invariants.get("phase0_score")
+        != "standard_adapt_absolute_gradient_v1"
+        or invariants.get("phase0_fubini_metric_active") is not False
+        or invariants.get("phase0_resource_cost_active") is not False
+        or invariants.get("phase0_compile_cost_active") is not False
+        or invariants.get("phase0_estimator_components") != ["N_grad"]
+    ):
+        raise RuntimeError(
+            "Global-singleton gradient Phase 0 route binding drifted."
+        )
+    return transaction.run_absolute_gradient_phase0(
+        admissible_domain=admissible_domain,
+        shortlist_size=int(raw_shortlist_size),
+        policy=GLOBAL_SINGLETON_ABSOLUTE_GRADIENT_PHASE0_POLICY,
+        receipt_schema=GLOBAL_SINGLETON_GRADIENT_PHASE0_RECEIPT_SCHEMA,
+        consumer_scope=GLOBAL_SINGLETON_GRADIENT_PHASE0_CONSUMER_SCOPE,
+        population_scope=(
+            "current_available_global_guarded_singletons_v1"
+        ),
+    )
+
+
+def _run_macro_gradient_phase0(
+    *,
+    session: _DefaultNoPruneNumericalSession,
+    transaction: _DefaultNoPruneSelectionTransaction,
+    admissible_domain: tuple[_CandidatePositionRecord, ...],
+) -> _PhaseSelectionReceipt | None:
+    """Apply the named macro gradient screen to the immutable root domain."""
+
+    from pipelines.static_adapt.ra_adapt.adapters import (
+        MACRO_GRADIENT_PHASE0_ADAPTER_ID,
+        MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID,
+        MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
+        MacroGradientPhase0CandidateAdapter,
+        MacroGradientPhase0ThenSingletonCandidateAdapter,
+    )
+    from pipelines.static_adapt.ra_adapt.phase0 import (
+        MACRO_GRADIENT_PHASE0_CONSUMER_SCOPE,
+        MACRO_GRADIENT_PHASE0_RECEIPT_SCHEMA,
+    )
+
+    adapter = session.context.candidate_adapter
+    if not isinstance(
+        adapter,
+        (
+            MacroGradientPhase0CandidateAdapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        ),
+    ):
+        return None
+    expected_adapter_id = (
+        MACRO_GRADIENT_PHASE0_ADAPTER_ID
+        if type(adapter) is MacroGradientPhase0CandidateAdapter
+        else MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID
+        if type(adapter) is MacroGradientPhase0ThenSingletonCandidateAdapter
+        else None
+    )
+    if (
+        expected_adapter_id is None
+        or str(getattr(adapter, "adapter_id", ""))
+        != expected_adapter_id
+        or str(getattr(adapter, "macro_phase0_policy_id", ""))
+        != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+    ):
+        raise RuntimeError(
+            "Macro gradient Phase 0 lost its typed adapter identity."
+        )
+    execution = session.context.route_contract.get("execution_settings")
+    invariants = session.context.route_contract.get("semantic_invariants")
+    if not isinstance(execution, Mapping) or not isinstance(
+        invariants,
+        Mapping,
+    ):
+        raise RuntimeError(
+            "Macro gradient Phase 0 requires route settings and semantic "
+            "invariants."
+        )
+    shortlist_policy = str(
+        execution.get("ra_phase0_gradient_shortlist_policy", "")
+    )
+    raw_shortlist_size = execution.get(
+        "ra_phase0_gradient_shortlist_size"
+    )
+    if (
+        shortlist_policy
+        != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
+        or isinstance(raw_shortlist_size, bool)
+        or not isinstance(raw_shortlist_size, int)
+        or int(raw_shortlist_size) < 1
+        or invariants.get("phase0_active") is not True
+        or invariants.get("phase0_score")
+        != "standard_adapt_absolute_gradient_v1"
+        or invariants.get("phase0_fubini_metric_active") is not False
+        or invariants.get("phase0_resource_cost_active") is not False
+        or invariants.get("phase0_compile_cost_active") is not False
+        or invariants.get("phase0_estimator_components") != ["N_grad"]
+    ):
+        raise RuntimeError(
+            "Macro gradient Phase 0 route binding drifted."
+        )
+    return transaction.run_absolute_gradient_phase0(
+        admissible_domain=admissible_domain,
+        shortlist_size=int(raw_shortlist_size),
+        policy=MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY,
+        receipt_schema=MACRO_GRADIENT_PHASE0_RECEIPT_SCHEMA,
+        consumer_scope=MACRO_GRADIENT_PHASE0_CONSUMER_SCOPE,
+        population_scope=(
+            "current_available_authenticated_macro_parents_v1"
+        ),
+    )
+
+
 def _build_default_no_prune_selection_workspace(
     session: _DefaultNoPruneNumericalSession,
     pending: _DefaultNoPrunePendingSelection,
 ) -> _PreparedSelection:
     """Construct one synchronous Issue-10 workspace without a mega-frame."""
 
-    _build_default_no_prune_domain(
-        pending=pending,
-        pool=session.context.pool,
-        pool_generator_registry=session.cursor.pool_generator_registry,
-        pool_symmetry_specs=session.context.pool_symmetry_specs,
+    from pipelines.static_adapt.ra_adapt.adapters import (
+        GlobalSingletonGradientPhase0CandidateAdapter,
+        MacroGradientPhase0CandidateAdapter,
+        MacroGradientPhase0ThenSingletonCandidateAdapter,
     )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        is_semantic_closure_adapter,
+    )
+
+    gradient_phase0_adapter = bool(
+        isinstance(
+            session.context.candidate_adapter,
+            (
+                GlobalSingletonGradientPhase0CandidateAdapter,
+                MacroGradientPhase0CandidateAdapter,
+                MacroGradientPhase0ThenSingletonCandidateAdapter,
+            ),
+        )
+        or is_semantic_closure_adapter(
+            session.context.candidate_adapter
+        )
+    )
+    if gradient_phase0_adapter and not isinstance(
+        session.context.admission_policy,
+        SingletonAdmission,
+    ):
+        raise RuntimeError(
+            "Gradient Phase0 adapters require singleton admission."
+        )
+
     transaction = _DefaultNoPruneSelectionTransaction(
         session=session,
         pending=pending,
     )
+    _build_default_no_prune_domain(
+        pending=pending,
+        pool=session.context.pool,
+        pool_generator_registry=(
+            session.cursor.pool_generator_registry
+        ),
+        pool_symmetry_specs=session.context.pool_symmetry_specs,
+    )
+
+    def _run_configured_phase0(
+        admissible_domain: tuple[_CandidatePositionRecord, ...],
+    ) -> _PhaseSelectionReceipt | None:
+        global_receipt = _run_global_singleton_gradient_phase0(
+            session=session,
+            transaction=transaction,
+            admissible_domain=admissible_domain,
+        )
+        if global_receipt is not None:
+            return global_receipt
+        return _run_macro_gradient_phase0(
+            session=session,
+            transaction=transaction,
+            admissible_domain=admissible_domain,
+        )
+
     phase3_activation = copy.deepcopy(
         dict(pending.phase3_population_activation)
     )
@@ -63991,6 +69217,17 @@ def _build_default_no_prune_selection_workspace(
         session.cursor.estimator_prefix_checkpoint_cursor[
             "raw_occurrence_count"
         ]
+    )
+    (
+        controller_available_generator_ids,
+        controller_selection_counts,
+    ) = _default_no_prune_portable_pool_state(
+        pool=session.context.pool,
+        available_indices=session.cursor.available_indices,
+        selection_counts=session.cursor.selection_counts,
+        pool_generator_registry=(
+            session.cursor.pool_generator_registry
+        ),
     )
     controller_state = _SRControllerState(
         controller_round=int(pending.depth),
@@ -64024,24 +69261,8 @@ def _build_default_no_prune_selection_workspace(
         accepted_state_fingerprint=projective_state_fingerprint(
             pending.psi_current
         ),
-        available_generator_ids=tuple(
-            dict.fromkeys(
-                record.generator_id for record in pending.domain_records
-            )
-        ),
-        selection_counts=tuple(
-            (
-                generator_id,
-                int(session.cursor.selection_counts[pool_index]),
-            )
-            for generator_id, pool_index in dict.fromkeys(
-                (
-                    record.generator_id,
-                    int(record.pool_index),
-                )
-                for record in pending.domain_records
-            )
-        ),
+        available_generator_ids=controller_available_generator_ids,
+        selection_counts=controller_selection_counts,
         phase_live=(True, True, phase3_competitive_population_live),
         trust_state_identity=_candidate_record_payload_digest(
             _candidate_record_cache_jsonable(
@@ -64070,6 +69291,7 @@ def _build_default_no_prune_selection_workspace(
         projected_phase_iii=transaction.run_projected_phase_iii,
         supported_response=transaction.run_supported_response,
         record_phase3_work=transaction.record_phase3_work,
+        phase0=_run_configured_phase0,
         greedy_batch_proposals=(
             transaction.run_greedy_batch_proposals
             if isinstance(
@@ -64113,6 +69335,10 @@ def _build_default_no_prune_selection_workspace(
             phase3_competitive_population_live
         ),
         phase3_activation_receipt=dict(phase3_activation),
+        phase3_natural_terminal_authority=(
+            session.context.phase_shortlist_runtime
+            .phase3_natural_terminal_authority
+        ),
     )
     admission_policy = session.context.admission_policy
     kernel: Any
@@ -64491,6 +69717,38 @@ def _default_no_prune_lane_runtime(
         phase2_shortlist_size=phase2_size,
         phase2_shortlist_fraction=phase2_fraction,
     )
+    route_execution = core.route_contract.get("execution_settings", {})
+    if not isinstance(route_execution, Mapping):
+        raise ValueError(
+            "The authenticated route execution settings are incomplete."
+        )
+    phase3_no_positive_policy = str(
+        route_execution.get(
+            "ra_phase3_no_positive_policy",
+            ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_RAISE_V1,
+        )
+    )
+    phase3_natural_terminal_authority = None
+    if (
+        phase3_no_positive_policy
+        == ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_TYPED_TERMINAL_V1
+    ):
+        phase3_natural_terminal_authority = (
+            Phase3NaturalTerminalAuthority.from_route_contract(
+                core.route_contract,
+                expected_route_contract_sha256=str(
+                    kwargs["sr_route_profile_contract_sha256"]
+                ),
+            )
+        )
+    elif phase3_no_positive_policy not in {
+        ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_RAISE_V1,
+        ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_FORCED_ADMISSION_V1,
+    }:
+        raise ValueError(
+            "The authenticated route declares an unknown Phase-III "
+            "no-positive policy."
+        )
     shortlist_runtime = PhaseShortlistRuntime(
         phase2_score_cfg=phase2_score,
         feature_updater=candidate_feature_with_updates,
@@ -64518,6 +69776,13 @@ def _default_no_prune_lane_runtime(
         phase1_lane_retention_enabled=bool(
             kwargs.get("phase1_lane_retention_enabled", True)
         ),
+        phase3_natural_terminal_authority=(
+            phase3_natural_terminal_authority
+        ),
+        phase3_no_positive_policy=str(phase3_no_positive_policy)
+        if phase3_no_positive_policy
+        == ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_FORCED_ADMISSION_V1
+        else "typed_terminal_v1",
     )
     return _DefaultNoPruneLaneRuntime(
         phase1_shortlist_size=phase1_size,
@@ -64637,7 +69902,7 @@ def _default_no_prune_full_score_config(
     ).strip().lower()
     if remaining_proxy == "auto":
         remaining_proxy = "remaining_depth"
-    return FullScoreConfig(
+    score_cfg = FullScoreConfig(
         z_alpha=float(z_alpha),
         lambda_F=float(lambda_f),
         lambda_H=float(max(1.0e-12, kwargs["phase2_lambda_H"])),
@@ -64677,6 +69942,11 @@ def _default_no_prune_full_score_config(
         ),
         hardware_cost_normalization_mode=str(
             kwargs["phase3_hardware_cost_normalization_mode"]
+        ),
+        phase3_signed_factor_consumer_semantic_version=(
+            None
+            if kwargs.get("ra_semantic_implementation_version") is None
+            else PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION
         ),
         manual_b_g_hw=float(kwargs["gradient_hw_floor"]),
         manual_b_g_drift=float(kwargs["gradient_drift_floor"]),
@@ -64810,6 +70080,8 @@ def _default_no_prune_full_score_config(
             )
         ),
     )
+    require_phase3_signed_factor_consumer_semantic_version(score_cfg)
+    return score_cfg
 
 
 def _default_no_prune_stage_controller(
@@ -64955,17 +70227,60 @@ def _default_no_prune_backend_compile_oracle(
     return oracle
 
 
+def _default_no_prune_staged_qiskit_compile_config(
+    *,
+    scope: str,
+    weight_2q: float,
+    weight_depth: float,
+    weight_size: float,
+) -> BackendCompileConfig:
+    """Build the exact FakeMarrakesh config for one staged Qiskit scope."""
+
+    scope_key = str(scope)
+    if scope_key not in {
+        BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+        BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
+    }:
+        raise ValueError(f"Unknown staged Qiskit compile cost scope: {scope!r}.")
+    return BackendCompileConfig(
+        mode="transpile_single_v1",
+        requested_backend_name="FakeMarrakesh",
+        seed_transpiler=7,
+        optimization_level=1,
+        structure_theta_value=1.0,
+        reward_negative_deltas=bool(
+            scope_key
+            in {
+                BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+                BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+            }
+        ),
+        allow_preferred_fallback=False,
+        one_qubit_coordinate_policy=(
+            ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
+        ),
+        weight_2q=float(weight_2q),
+        weight_depth=float(weight_depth),
+        weight_size=float(weight_size),
+    )
+
+
 def _default_no_prune_phase3_backend_compile_oracle(
     *,
     core: _DefaultNoPruneSetupCore,
     kwargs: Mapping[str, Any],
 ) -> BackendCompileOracle | None:
-    """Build the fail-closed Phase-III-only Qiskit marginal-cost oracle."""
+    """Build the fail-closed Qiskit oracle for one staged compile scope."""
 
     scope = str(kwargs["phase3_backend_cost_scope"])
     if scope == BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1:
         return None
-    if scope != BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1:
+    if scope not in {
+        BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
+        BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
+    }:
         raise ValueError(f"Unknown backend compile cost scope: {scope!r}.")
     if (
         str(kwargs["phase3_backend_cost_mode"])
@@ -64976,22 +70291,13 @@ def _default_no_prune_phase3_backend_compile_oracle(
         or tuple(kwargs["phase3_backend_shortlist"])
     ):
         raise ValueError(
-            "The Phase-III-only Qiskit selector route requires the Paper-I "
-            "Marrakesh graph-span oracle in Phases I/II and exact "
+            "The staged Qiskit selector route requires the Paper-I "
+            "Marrakesh graph-span proxy plus exact "
             "FakeMarrakesh transpilation at optimization level 1, seed 7, "
             "with no backend shortlist."
         )
-    config = BackendCompileConfig(
-        mode="transpile_single_v1",
-        requested_backend_name="FakeMarrakesh",
-        seed_transpiler=7,
-        optimization_level=1,
-        structure_theta_value=1.0,
-        reward_negative_deltas=False,
-        allow_preferred_fallback=False,
-        one_qubit_coordinate_policy=(
-            ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
-        ),
+    config = _default_no_prune_staged_qiskit_compile_config(
+        scope=scope,
         weight_2q=float(kwargs["phase3_backend_w_2q"]),
         weight_depth=float(kwargs["phase3_backend_w_depth"]),
         weight_size=float(kwargs["phase3_backend_w_size"]),
@@ -65010,7 +70316,7 @@ def _default_no_prune_phase3_backend_compile_oracle(
         or not bool(targets[0].using_fake_backend)
     ):
         raise RuntimeError(
-            "The Phase-III Qiskit selector oracle could not resolve the "
+            "The staged Qiskit selector oracle could not resolve the "
             "exact local FakeMarrakesh target; fallback is forbidden."
         )
     return oracle
@@ -65067,6 +70373,69 @@ def _default_no_prune_backend_compile_oracle_summary(
             for row in getattr(oracle, "resolution_audit", ())
         ],
         "cache_summary": copy.deepcopy(dict(oracle.cache_summary())),
+        "excluded_from_s_alg": True,
+    }
+
+
+def _default_no_prune_selector_compile_cost_accounting(
+    *,
+    context: Any,
+    gradient_phase0_active: bool,
+    phase0_cost_source: str | None,
+) -> dict[str, Any]:
+    """Serialize compile work without adding it to estimator accounting."""
+
+    scope = str(context.backend_compile_scope)
+    phase23_qiskit_scope = bool(
+        scope == BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+    )
+    phase123_qiskit_scope = bool(
+        scope == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+    )
+    staged_qiskit_scope = bool(
+        phase23_qiskit_scope or phase123_qiskit_scope
+    )
+    if phase123_qiskit_scope:
+        qiskit_phases = ["phase_i", "phase_ii", "phase_iii"]
+        staged_role = "phase_i_phase_ii_phase_iii"
+        phase_i_cost_source = "backend_transpile_v1"
+    elif phase23_qiskit_scope:
+        qiskit_phases = ["phase_ii", "phase_iii"]
+        staged_role = "phase_ii_phase_iii"
+        phase_i_cost_source = "structural_proxy_v1"
+    elif context.phase3_backend_compile_oracle is not None:
+        qiskit_phases = ["phase_iii"]
+        staged_role = "phase_iii"
+        phase_i_cost_source = None
+    else:
+        qiskit_phases = []
+        staged_role = "phase_iii"
+        phase_i_cost_source = None
+    return {
+        "schema": "paper_i_selector_compile_cost_accounting_v1",
+        "scope": scope,
+        "phase_i_phase_ii": (
+            None
+            if staged_qiskit_scope
+            else _default_no_prune_backend_compile_oracle_summary(
+                context.backend_compile_oracle,
+                role="phase_i_phase_ii",
+            )
+        ),
+        "phase_iii": _default_no_prune_backend_compile_oracle_summary(
+            context.phase3_backend_compile_oracle,
+            role=staged_role,
+        ),
+        "phase_i_cost_source": phase_i_cost_source,
+        "phase0_cost_source": (
+            str(phase0_cost_source)
+            if gradient_phase0_active and phase0_cost_source is not None
+            else None
+        ),
+        "qiskit_applied_phases": qiskit_phases,
+        "phase_iii_reuses_phase_i_phase_ii_oracle": bool(
+            context.phase3_backend_compile_oracle is None
+        ),
         "excluded_from_s_alg": True,
     }
 
@@ -65373,6 +70742,20 @@ def _finish_default_no_prune_numerical_session_initialization(
     recoverability_prune_config = _default_recoverability_prune_config(
         kwargs
     )
+    controller_noise_runtime = _pure_hubbard_controller_noise_runtime(
+        core=core
+    )
+    candidate_record_cache_mode = _candidate_record_cache_mode()
+    if (
+        controller_noise_runtime is not None
+        and candidate_record_cache_mode != "off"
+    ):
+        controller_noise_runtime.oracle_context.cleanup_guard.close()
+        raise ValueError(
+            "The named pure-Hubbard sequential-noise route requires "
+            "STATIC_ADAPT_CANDIDATE_RECORD_CACHE=off so no cache hit can "
+            "skip a value-noise draw."
+        )
     transition_services = _DefaultNoPruneTransitionServices(
         state_service=state_service,
         compiled_hamiltonian=core.compiled_hamiltonian,
@@ -65392,6 +70775,7 @@ def _finish_default_no_prune_numerical_session_initialization(
         allow_repeats=bool(kwargs["allow_repeats"]),
         eps_energy=float(kwargs["eps_energy"]),
         maximum_iterations=int(kwargs["maxiter"]),
+        controller_noise_runtime=controller_noise_runtime,
         joint_response_warm_start=RouteAJointStepWarmStartConfig(
             mode=str(
                 kwargs.get(
@@ -65535,6 +70919,17 @@ def _finish_default_no_prune_numerical_session_initialization(
             str(kwargs["sr_escape_mode"]).strip().lower()
         ),
         phase_shortlist_runtime=lanes.phase_shortlist_runtime,
+        phase123_shortlist_policy=(
+            str(
+                dict(
+                    core.route_contract.get(
+                        "execution_settings",
+                        {},
+                    )
+                ).get("ra_phase123_shortlist_policy", "")
+            )
+            or None
+        ),
         phase1_score_config=phase1_score,
         phase3_shortlist_size=lanes.phase3_shortlist_size,
         active_gradient_recorder=(
@@ -65584,7 +70979,9 @@ def _finish_default_no_prune_numerical_session_initialization(
         parallel_gradient_workers=max(
             1, int(kwargs["adapt_parallel_gradient_workers"])
         ),
-        candidate_record_cache_mode=_candidate_record_cache_mode(),
+        candidate_record_cache_mode=(
+            candidate_record_cache_mode
+        ),
         candidate_record_cache_dir=_candidate_record_cache_dir(),
         candidate_record_cache_static_key=(
             _candidate_record_payload_digest(
@@ -65656,7 +71053,11 @@ def _finish_default_no_prune_numerical_session_initialization(
             0, int(kwargs["adapt_current_json_keep_history_tail"])
         ),
         estimator_service=estimator_service,
-        oracle_cleanup=None,
+        oracle_cleanup=(
+            None
+            if controller_noise_runtime is None
+            else controller_noise_runtime.oracle_context.cleanup_guard
+        ),
         recoverability_prune_config=recoverability_prune_config,
     )
     cursor = _DefaultNoPruneNumericalCursor(
@@ -65746,6 +71147,11 @@ def _finish_default_no_prune_numerical_session_initialization(
             else None
         ),
         operator_admission_rounds=[],
+        # The named noisy route establishes its incumbent only after the
+        # selected zero-angle generator has been inserted, so it is measured
+        # on the same circuit optimized by Powell.  Keeping this empty also
+        # lets resume hydration restore RNG state before any new draw.
+        controller_energy=None,
     )
     initial_snapshot = _default_no_prune_initial_snapshot(
         core=core,
@@ -65837,6 +71243,42 @@ def _hydrate_default_no_prune_numerical_session(
     terminal_checkpoint = (
         hydration.mutable_terminal_signed_checkpoint()
     )
+    controller_noise_runtime = (
+        session.context.transition_services.controller_noise_runtime
+    )
+    restored_controller_energy: float | None = None
+    if controller_noise_runtime is not None:
+        controller_noise_checkpoint = terminal_checkpoint.get(
+            "controller_noise"
+        )
+        if not isinstance(controller_noise_checkpoint, Mapping):
+            raise RuntimeError(
+                "Authenticated pure-Hubbard resume lacks controller-noise "
+                "state."
+            )
+        controller_noise_runtime.restore_checkpoint_receipt(
+            controller_noise_checkpoint
+        )
+        restored_controller_energy = float(
+            controller_noise_checkpoint["controller_energy"]
+        )
+        restored_exact_diagnostic_energy = float(
+            controller_noise_checkpoint["exact_diagnostic_energy"]
+        )
+        if (
+            not math.isfinite(restored_controller_energy)
+            or not math.isfinite(restored_exact_diagnostic_energy)
+            or not math.isclose(
+                restored_exact_diagnostic_energy,
+                float(hydration.accepted_energy),
+                rel_tol=0.0,
+                abs_tol=1.0e-9,
+            )
+        ):
+            raise RuntimeError(
+                "Authenticated controller-noise checkpoint does not close "
+                "over its noisy incumbent and exact accepted-state energy."
+            )
     serialized_operator_rows = terminal_checkpoint.get(
         "ordered_active_operators",
         (),
@@ -66058,10 +71500,25 @@ def _hydrate_default_no_prune_numerical_session(
     stage.begin_core()
     history = hydration.mutable_history()
     for row in history:
+        stage_energy_before = float(row["energy_before_opt"])
+        stage_energy_after = float(row["energy_after_opt"])
+        if controller_noise_runtime is not None:
+            controller_transition = row.get("controller_noise")
+            if not isinstance(controller_transition, Mapping):
+                raise RuntimeError(
+                    "Authenticated pure-Hubbard resume history lacks its "
+                    "controller-noise transition."
+                )
+            stage_energy_before = float(
+                controller_transition["controller_energy_before"]
+            )
+            stage_energy_after = float(
+                controller_transition["controller_energy_after"]
+            )
         stage.record_admission(
             selector_step=int(row["depth"]),
-            energy_before=float(row["energy_before_opt"]),
-            energy_after_refit=float(row["energy_after_opt"]),
+            energy_before=stage_energy_before,
+            energy_after_refit=stage_energy_after,
         )
     maturity_snapshot = PhaseControllerSnapshot(
         **_default_no_prune_resume_mutable_json(
@@ -66170,6 +71627,7 @@ def _hydrate_default_no_prune_numerical_session(
     session.cursor.selected_layout = layout
     session.cursor.selected_executor = executor
     session.cursor.accepted_energy = float(hydration.accepted_energy)
+    session.cursor.controller_energy = restored_controller_energy
     session.cursor.available_indices = available_indices
     session.cursor.selection_counts = selection_counts
     session.cursor.history = history
@@ -66720,7 +72178,10 @@ def _build_default_sr_controller_numerical_runtime(
             beam_enabled=beam_enabled,
         )
     )
-    ra_adapt_contract = _validated_ra_adapt_route_contract(kwargs)
+    ra_adapt_contract = _validated_ra_adapt_route_contract(
+        kwargs,
+        candidate_adapter=candidate_adapter,
+    )
     composed_contract = _validated_canonical_composed_route_contract(kwargs)
     if ra_adapt_contract is not None:
         route_gate_open = True

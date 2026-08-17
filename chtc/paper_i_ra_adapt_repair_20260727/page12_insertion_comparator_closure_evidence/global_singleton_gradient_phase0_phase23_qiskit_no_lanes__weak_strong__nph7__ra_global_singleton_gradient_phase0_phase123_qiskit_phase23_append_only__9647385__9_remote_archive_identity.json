@@ -1,0 +1,19 @@
+{
+  "atomic_local_rename_completed": true,
+  "captured_at_utc": "2026-08-14T00:54:22Z",
+  "cluster_id": 9647385,
+  "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+  "gzip_integrity_passed": true,
+  "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page12_insertion_comparators_20260813/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__9.tar.gz",
+  "local_sha256": "d163a189f97a8c9d5974ac0c80ab7f244a923da7d741265d6640645919e0a92e",
+  "local_size_bytes": 1030387843,
+  "proc_id": 9,
+  "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__9.tar.gz",
+  "remote_sha256": "d163a189f97a8c9d5974ac0c80ab7f244a923da7d741265d6640645919e0a92e",
+  "remote_size_bytes": 1030387843,
+  "remote_state": "preserved_after_exact_size_sha256_verified_fetch",
+  "schema": "paper_i_ra_adapt_page12_insertion_comparator_remote_archive_identity_v1",
+  "status": "passed_remote_local_size_sha256_match_after_atomic_rename",
+  "tar_readability_passed": true,
+  "sha256": "fb33295af032bec0d71da04e3ce2452c1c4c1b637e660b6907cc9f2e87fb2fd5"
+}

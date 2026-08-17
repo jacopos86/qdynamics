@@ -1,0 +1,118 @@
+{
+  "authentication": {
+    "authenticated_remote_query": true,
+    "kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+    "source_host": "ap2001.chtc.wisc.edu"
+  },
+  "closure_evidence": {
+    "acknowledged_removal_attempts": {
+      "canonical_sha256": "796de0696e07d365a224e9d3f1f0f51771bd44c3082f2d3e29660350637553d0",
+      "path": "page16_cluster9647386_acknowledged_removal_attempts.json"
+    },
+    "after_materialization_exclusion": {
+      "canonical_sha256": "ef805bef226b23894a516e547833add4cbdc3987ebc522b20269f99cc1b5f4db",
+      "path": "page16_cluster9647386_after_materialization_exclusion.json"
+    },
+    "before_removal_attempt": {
+      "canonical_sha256": "551516f277d5375d208619d126faa5a388ea02e8dffe47d91f385a20c1480075",
+      "path": "page16_cluster9647386_before_retirement.json"
+    },
+    "remote_archive_identity": {
+      "canonical_sha256": "ef8b8545b65517256af32ff67c3ab226edd125607f8f895d2b0f228484577ba8",
+      "path": "page16_sw_always_remote_archive_identity.json"
+    },
+    "terminal_history": {
+      "canonical_sha256": "3dba597b2acc4d3c4980e89e762d382db34f51fe20c4e41a3f5904b0317369e1",
+      "path": "page16_cluster9647386_history.json"
+    }
+  },
+  "completed_remote_cell": {
+    "archive": {
+      "local_sha256": "53ad259181e863558765b042589a788a0bf064ebb7b9da1e2d95423e6387aee0",
+      "local_size_bytes": 302962447,
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page16_insertion_comparators_20260812/strong_weak_u8_always__9647386__1.tar.gz",
+      "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page16_insertion_comparators_20260812_v1/outputs/transfer/page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced__9647386__1.tar.gz",
+      "remote_sha256": "53ad259181e863558765b042589a788a0bf064ebb7b9da1e2d95423e6387aee0",
+      "remote_size_bytes": 302962447,
+      "sha256": "53ad259181e863558765b042589a788a0bf064ebb7b9da1e2d95423e6387aee0",
+      "size_bytes": 302962447
+    },
+    "authenticated_full_sealed_closure": true,
+    "cluster_id": 9647386,
+    "comparator_policy": "always_commutation_reduced",
+    "controller_rounds_completed": 50,
+    "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+    "execution_manifest": {
+      "canonical_sha256": "681e3d0cbca684dfab753f1fdde682e55090abd020666f721198308e0e15fbc4",
+      "path_inside_archive": "runs/page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced/execution_manifest.json"
+    },
+    "history": {
+      "cluster_id": 9647386,
+      "completion_date_epoch": 1786597511,
+      "exit_code": 0,
+      "job_status": 4,
+      "num_job_starts": 1,
+      "proc_id": 1
+    },
+    "proc_id": 1,
+    "regime_id": "strong_weak_u8",
+    "runtime_insertion_mode": "full_commutation_reduced",
+    "typed_insertion_kind": "always_commutation_reduced",
+    "worker_receipt": {
+      "canonical_sha256": "62ff8bd1632d37b0af79d3abcf922b1fd836bdc4dd226d1fbdc4845267b3b158",
+      "path_inside_archive": "worker_receipt.json",
+      "schema": "paper_i_ra_adapt_page16_macro_phase23_qiskit_worker_receipt_v1",
+      "status": "passed"
+    }
+  },
+  "created_at_utc": "2026-08-13T09:48:57Z",
+  "local_finalizer": {
+    "network_or_scheduler_commands_executed": false,
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/finalize_page16_sw_always_closure_20260813.py",
+    "strict_consumer_file_sha256": "56c50f046759d4299d768cb609f08fce8c79e3190aaadb6609afdde4f5452e07",
+    "strict_consumer_path": "chtc/paper_i_ra_adapt_repair_20260727/continue_local_page16_insertion_comparators_k30_to_k50_20260813.py"
+  },
+  "remote_materialization_exclusion": {
+    "after_snapshot": {
+      "cluster_present_in_queue": false,
+      "factory_materialization_paused": true,
+      "factory_present": true,
+      "history_completed_proc_ids": [
+        0,
+        1
+      ],
+      "job_materialize_limit": 2,
+      "job_materialize_max_idle": 0,
+      "job_materialize_next_proc_id": 2
+    },
+    "before_snapshot": {
+      "history_completed_proc_ids": [
+        0,
+        1
+      ],
+      "job_materialize_next_proc_id": 2,
+      "job_materialize_paused": 1,
+      "materialized_proc_ids": []
+    },
+    "latent_proc_ids_never_materialized": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "outcome": "factory_retained_paused_at_completed_prefix_after_acknowledged_removal",
+    "queue_cluster_absent": true,
+    "remote_materialization_excluded": true,
+    "removal_attempts_authenticated": true,
+    "removal_command": "condor_rm 9647386"
+  },
+  "schema": "paper_i_ra_adapt_page16_sw_always_remote_materialization_exclusion_receipt_v2",
+  "scientific_execution_performed_by_action": false,
+  "sha256": "96f539e79089f9ecaea648433ea048c26572d1ba9ae5521baae5b60ecff611b9",
+  "status": "passed_sw_always_k50_closed_remote_materialization_excluded"
+}

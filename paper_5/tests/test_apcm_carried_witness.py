@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
 from paper5.stability.apcm_carried_witness import (
     CWRMFSettings,
     CarriedWitnessModel,
+    cwrmf_settings_for_profile,
     integrate_cwrmf_ssprk2,
 )
 from paper5.stability.apcm_carried_witness_analysis import _accuracy_metrics
+from paper5.stability.apcm_carried_witness_mode_audit import (
+    negative_mode_coupling,
+)
 from paper5.stability.adaptive_positive_moment import (
     matrix_derivative_to_raw_moment_velocity,
     raw_moment_coordinates_to_matrix_state,
@@ -49,6 +55,19 @@ def test_carried_witness_geometry_is_literal_62_row_lift(
 def test_default_critical_bundle_has_no_artificial_cap() -> None:
     settings = CWRMFSettings()
 
+    assert settings.maximum_critical_modes is None
+    assert settings.critical_mode_limit == 61
+    assert settings.bundle_solver_tolerance == 1e-12
+
+
+def test_balanced_profile_declares_relaxed_full_gram_floor() -> None:
+    settings = cwrmf_settings_for_profile("balanced")
+
+    assert settings.psd_inflation == 1e-8
+    assert settings.solver_tolerance == 1e-8
+    assert settings.bundle_solver_tolerance == 1e-8
+    assert settings.enable_full_cone_fallback
+    assert settings.spectral_entry_threshold < settings.psd_inflation
     assert settings.maximum_critical_modes is None
     assert settings.critical_mode_limit == 61
 
@@ -140,6 +159,62 @@ def test_interior_radial_atom_keeps_augmented_retained_velocity_exact(
         rtol=2e-15,
     )
     assert result.minimum_shifted_lower_bound > 0.0
+
+
+def test_no_guard_atom_propagates_desired_higher_moment_rates_exactly(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    original_settings = model.settings
+    model.settings = replace(original_settings, enforce_gram_guard=False)
+    try:
+        retained, completion = model.geometry.unpack_state(preparation.state)
+        expected_retained = model.retained_velocity(0.0, retained, completion)
+        expected_completion = model.desired_completion_velocity(
+            0.0, retained, completion
+        )
+        result = model.radial_atom(0.0, preparation.state, 1e-4)
+    finally:
+        model.settings = original_settings
+
+    assert result.success
+    assert result.message == "unconstrained higher-moment predictor"
+    assert result.correction_iterations == 0
+    assert result.completion_correction_norm == 0.0
+    np.testing.assert_allclose(
+        result.archive_velocity, expected_retained, atol=0.0, rtol=0.0
+    )
+    np.testing.assert_allclose(
+        result.completion_velocity,
+        expected_completion,
+        atol=0.0,
+        rtol=0.0,
+    )
+
+
+def test_negative_mode_audit_reports_hidden_to_retained_coupling(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    perturbed = completion.copy()
+    perturbed[0] += 1e-3
+    state = model.geometry.pack_state(retained, perturbed)
+
+    result = negative_mode_coupling(model, 0.0, state)
+
+    assert result["minimum_eigenvalue"] < -1e-8
+    assert result["negative_mode_count"] > 0
+    assert (
+        result[
+            "maximum_negative_mode_predicted_retained_velocity_relative_change"
+        ]
+        >= 0.0
+    )
+    assert (
+        result["maximum_negative_mode_predicted_c_velocity_relative_change"]
+        >= 0.0
+    )
 
 
 def test_retained_repair_changes_only_the_correlation_rate(

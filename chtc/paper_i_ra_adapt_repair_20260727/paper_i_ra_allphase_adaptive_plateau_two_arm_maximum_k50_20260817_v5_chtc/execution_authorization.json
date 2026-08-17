@@ -1,0 +1,28 @@
+{
+  "authority_basis": "explicit_user_authorization_in_active_side_conversation_20260817",
+  "campaign_id": "paper_i_ra_allphase_adaptive_plateau_two_arm_maximum_k50_20260817_v5",
+  "created_at": "2026-08-17T18:06:28.185682Z",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_maxk50__plateau_append_phase0__weak_weak__nph3",
+    "allphase_maxk50__plateau_append_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__plateau_append_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__plateau_append_phase0__weak_strong__nph7",
+    "allphase_maxk50__plateau_append_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__plateau_append_phase0__strong_strong_u8__nph7",
+    "allphase_maxk50__plateau_position_phase0__weak_weak__nph3",
+    "allphase_maxk50__plateau_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__plateau_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__plateau_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__plateau_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__plateau_position_phase0__strong_strong_u8__nph7"
+  ],
+  "package_id": "paper_i_ra_allphase_adaptive_plateau_two_arm_maximum_k50_20260817_v5_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "09aad08c2d249565b0a033b553dd26b64db6811ebcb0e50a42752b3d61988bb3",
+  "schema": "paper_i_ra_allphase_adaptive_plateau_two_arm_maximum_k50_authorization_v1",
+  "sha256": "b6868d8dd0c167739aaf9604f556cbb3d57af1c7f929c67a3aa3f48f19485672",
+  "source_archive_sha256": "270f8f67a62a52e57020b5a2a33e751965f7a7a3264c788b6ec73acef17532f8",
+  "source_inventory_sha256": "a8cadb7a435a3c1b8cd48b36659592e3bd3e08e742d081d98228b066dbd41e10",
+  "submission_authorized": true
+}

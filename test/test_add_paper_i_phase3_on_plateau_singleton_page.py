@@ -589,11 +589,11 @@ def test_appends_one_page_and_updates_provenance_without_changing_prior_pages(
     assert report["structural_validation"]["preserved_page_content_sha256"] == before_hashes
     assert report["cells"][0]["terminal"]["S_alg"] == 500
     assert report["cells"][0]["append_adapt"]["terminal"]["S_alg"] == 500_050
-    assert len(report["cells"][0]["append_adapt"]["points"]) == 51
+    assert len(report["cells"][0]["append_adapt"]["points"]) == 71
     assert report["cells"][0]["source_bindings"]["archive"]["sha256"]
 
 
-def test_append_comparator_is_cropped_to_round_50_with_common_cost_tuple(
+def test_append_comparator_keeps_round_70_curve_with_round_50_cost_tuple(
     tmp_path: Path,
 ) -> None:
     attempts = {
@@ -648,7 +648,7 @@ def test_append_comparator_is_cropped_to_round_50_with_common_cost_tuple(
         output=tmp_path / "comparison.json",
     )
     first = comparison["cells"][0]["append_adapt"]
-    assert [point["k"] for point in first["points"]] == list(range(51))
+    assert [point["k"] for point in first["points"]] == list(range(71))
     assert first["terminal"] == {
         "k": 50,
         "error": pytest.approx(1.0 / 52.0),
@@ -659,7 +659,14 @@ def test_append_comparator_is_cropped_to_round_50_with_common_cost_tuple(
         "S_alg": 500_050,
         "compile_convention": page8.COMPILE_CONVENTION,
     }
+    assert first["trajectory_terminal"] == {
+        "k": 70,
+        "error": pytest.approx(1.0 / 72.0),
+    }
     assert comparison["comparison_round"] == 50
+    assert comparison["comparison_horizon_policy"] == (
+        "append_trajectory_round_70_with_ra_and_cost_anchor_round_50_v1"
+    )
 
 
 def test_build_adapter_requires_all_six_regimes(tmp_path: Path) -> None:

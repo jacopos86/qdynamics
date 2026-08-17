@@ -89,6 +89,10 @@ from pipelines.static_adapt.ra_adapt.pools import (
     GUARDED_SINGLETON_POOL_SCHEMA,
     PARENT_TEMPLATE_INVENTORY_SCHEMA,
 )
+from pipelines.static_adapt.ra_adapt.numerical_runtime import (
+    NumericalRuntimeContractError,
+    normalize_numerical_runtime_contract,
+)
 from pipelines.static_adapt.sr_snake.contracts import (
     PruningOff,
     BeamOff,
@@ -3776,6 +3780,7 @@ def _manifest_payload(
     repository_state: Mapping[str, Any],
     materialization_timestamp: str | None,
     campaign_id: str = STUDY_ID,
+    numerical_runtime_contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if campaign_id == STUDY_ID:
         if resource_weighting_scope != RESOURCE_WEIGHTING_LATE:
@@ -4212,6 +4217,15 @@ def _manifest_payload(
             "immutable_protocol_plus_observed_execution_manifest_v1"
         ),
         "environment_fingerprint": dict(environment_fingerprint),
+        **(
+            {
+                "numerical_runtime_contract": dict(
+                    numerical_runtime_contract
+                )
+            }
+            if numerical_runtime_contract is not None
+            else {}
+        ),
         **dict(dependency_provenance),
         "repository_state_at_materialization": dict(repository_state),
         "materialization_timestamp": materialization_timestamp,
@@ -4295,6 +4309,80 @@ def _bundle_protocol_materialization_authority(
     )
 
 
+def materialize_semantic_closure_protocol(
+    problem: Any,
+    request: RAAdaptRequest,
+) -> ResolvedRAAdaptProtocol:
+    """Mint one exact native semantic capability without I/O or execution.
+
+    Unlike the on-disk campaign materializers, this narrow seam produces only
+    an in-memory protocol.  The protocol remains publicly non-executing and
+    gains authority solely through the private protocol-digest capability
+    attached after the exact source inventory and application contract pass.
+    """
+
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        preflight_paper_i_ra_semantic,
+        semantic_closure_materialization_contract,
+    )
+
+    preflight = preflight_paper_i_ra_semantic(problem, request)
+    native = semantic_closure_materialization_contract(problem, request)
+    if (
+        native["bundle_id"] != preflight.bundle_id
+        or native["bundle_manifest_sha256"]
+        != preflight.bundle_manifest_sha256
+        or native["algorithm_id"] != preflight.algorithm_id
+    ):
+        raise BundleMaterializationError(
+            "Semantic native materialization drifted from preflight."
+        )
+    refs = dict(native["source_lock_refs"])
+    receipt = bundle_protocol_materialization_receipt(
+        bundle_id=str(native["bundle_id"]),
+        bundle_manifest_sha256=str(native["bundle_manifest_sha256"]),
+        source_locks_sha256=str(native["source_locks_sha256"]),
+        source_lock_refs=refs,
+        cell_id=str(native["cell_id"]),
+        source_lock_id=str(native["source_lock_id"]),
+        protocol_schema=RA_ADAPT_PROTOCOL_SCHEMA,
+        algorithm_id=str(native["algorithm_id"]),
+        candidate_representation=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        selector_identity=RA_STAGED_SELECTOR_ID,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+    unbound_authority = _mint_bundle_protocol_materialization_authority(
+        receipt,
+        source_lock_refs=refs,
+    )
+    protocol = build_resolved_ra_protocol(
+        problem,
+        request,
+        materialization_authority=unbound_authority,
+    )
+    if (
+        protocol.execution_authorized is not False
+        or protocol.bundle_materialization != receipt
+        or protocol.bundle_id != native["bundle_id"]
+        or protocol.bundle_manifest_sha256
+        != native["bundle_manifest_sha256"]
+        or protocol.route_contract != preflight.route_contract
+    ):
+        raise BundleMaterializationError(
+            "Semantic native protocol failed its materialization binding."
+        )
+    bound_authority = _mint_bundle_protocol_materialization_authority(
+        receipt,
+        source_lock_refs=refs,
+        protocol_sha256=protocol.sha256,
+    )
+    return _attach_validated_bundle_protocol_authority(
+        protocol,
+        bound_authority,
+    )
+
+
 def _execution_template(
     *,
     cell: BundleCellSpec,
@@ -4306,6 +4394,7 @@ def _execution_template(
     environment_fingerprint: Mapping[str, Any],
     dependency_provenance: Mapping[str, Any],
     campaign_id: str = STUDY_ID,
+    numerical_runtime_contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if campaign_id == STUDY_ID:
         study_id = STUDY_ID
@@ -4421,6 +4510,19 @@ def _execution_template(
             "exit_status_status": "record_at_execution",
             "environment_fingerprint": None,
             "environment_fingerprint_status": "record_at_execution",
+            **(
+                {
+                    "numerical_runtime_contract": dict(
+                        numerical_runtime_contract
+                    ),
+                    "numerical_runtime_receipt": None,
+                    "numerical_runtime_receipt_status": (
+                        "required_at_execution"
+                    ),
+                }
+                if numerical_runtime_contract is not None
+                else {}
+            ),
             **dict(dependency_provenance),
         }
     )
@@ -5881,6 +5983,25 @@ def _validate_paper_i_materialization_gate(
         raise BundleMaterializationError(
             "Paper-I Study-1 visible-target source-lock role drifted."
         )
+    study1_numerical_runtime_contract: Mapping[str, Any] | None = None
+    if campaign_id == STUDY_ID:
+        raw_runtime_contract = manifest.get(
+            "numerical_runtime_contract"
+        )
+        if not isinstance(raw_runtime_contract, Mapping):
+            raise BundleMaterializationError(
+                "Paper-I Study-1 has no numerical_runtime_contract."
+            )
+        try:
+            study1_numerical_runtime_contract = (
+                normalize_numerical_runtime_contract(
+                    raw_runtime_contract
+                )
+            )
+        except NumericalRuntimeContractError as exc:
+            raise BundleMaterializationError(
+                f"Paper-I Study-1 numerical_runtime_contract drifted: {exc}"
+            ) from exc
     if campaign_id in {
         CORE_CAMPAIGN_ID,
         FACTORIAL_CAMPAIGN_ID,
@@ -6382,6 +6503,17 @@ def _validate_paper_i_materialization_gate(
                     "Paper-I materialization gate drifted at execution "
                     f"template {cell.cell_id}.{field}."
                 )
+        if campaign_id == STUDY_ID and (
+            template.get("numerical_runtime_contract")
+            != study1_numerical_runtime_contract
+            or template.get("numerical_runtime_receipt") is not None
+            or template.get("numerical_runtime_receipt_status")
+            != "required_at_execution"
+        ):
+            raise BundleMaterializationError(
+                "Paper-I Study-1 execution template lost the shared "
+                f"numerical runtime gate for {cell.cell_id}."
+            )
         if any(
             template.get(field) is not None
             for field in (
@@ -6819,6 +6951,7 @@ def _prepare_bundle(
     materialization_timestamp: str | None,
     resource_weighting_scope: str = RESOURCE_WEIGHTING_LATE,
     campaign_id: str = STUDY_ID,
+    numerical_runtime_contract: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Mapping[str, Any]], MaterializedBundleReceipt]:
     bundle_dir = destination / bundle_id
     manifest = _manifest_payload(
@@ -6832,6 +6965,7 @@ def _prepare_bundle(
         repository_state=repository_state,
         materialization_timestamp=materialization_timestamp,
         campaign_id=campaign_id,
+        numerical_runtime_contract=numerical_runtime_contract,
     )
     manifest_sha = str(manifest["sha256"])
 
@@ -6923,6 +7057,7 @@ def _prepare_bundle(
             environment_fingerprint=environment_fingerprint,
             dependency_provenance=dependency_provenance,
             campaign_id=campaign_id,
+            numerical_runtime_contract=numerical_runtime_contract,
         )
         execution_templates[cell.cell_id] = execution_template
         execution_fulfillment = _execution_fulfillment_assignment(
@@ -9044,6 +9179,7 @@ def materialize_study1_bundles(
     full_horizon: int = FULL_HORIZON,
     dependency_lock_paths: Sequence[str | Path] | None = None,
     environment_fingerprint: Mapping[str, Any] | None = None,
+    numerical_runtime_contract: Mapping[str, Any] | None = None,
     materialization_timestamp: str | None = None,
     verify_source_files: bool = True,
 ) -> tuple[MaterializedBundleReceipt, MaterializedBundleReceipt]:
@@ -9110,6 +9246,19 @@ def materialize_study1_bundles(
             "Refusing to overwrite existing run bundle(s): "
             + ", ".join(str(path) for path in existing)
         )
+    if numerical_runtime_contract is None:
+        raise BundleMaterializationError(
+            "numerical_runtime_contract is required for matched "
+            "Append-ADAPT/RA-ADAPT materialization."
+        )
+    try:
+        numerical_runtime = normalize_numerical_runtime_contract(
+            numerical_runtime_contract
+        )
+    except NumericalRuntimeContractError as exc:
+        raise BundleMaterializationError(
+            f"numerical_runtime_contract is invalid: {exc}"
+        ) from exc
 
     prepared: list[
         tuple[dict[str, Mapping[str, Any]], MaterializedBundleReceipt]
@@ -9128,6 +9277,7 @@ def materialize_study1_bundles(
                 environment_fingerprint=environment,
                 dependency_provenance=dependencies,
                 materialization_timestamp=materialization_timestamp,
+                numerical_runtime_contract=numerical_runtime,
             )
         )
 
@@ -10092,6 +10242,7 @@ __all__ = [
     "build_qiskit_cost_always13_cell_specs",
     "build_study1_cell_specs",
     "load_validated_bundle_protocol",
+    "materialize_semantic_closure_protocol",
     "materialize_core_bundle",
     "materialize_factorial_always_bundles",
     "materialize_global_singleton_insertion_bundle",

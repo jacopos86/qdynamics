@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "e571540e8cf45d8fd28ef7c727bad2bb48867ad43208151163a94d27652b0637",
+  "archive_size_bytes": 4898268,
+  "member_count": 576,
+  "members_sha256": "d7f372a9b59b510cf8b391aea38f17d1c1f5d2be00fa623275a1cce40317582b",
+  "schema": "paper_i_ra_allphase_adaptive_append_position_all6_source_archive_v1",
+  "sha256": "e977735c631fbcace6cb1b262b792d17a0651418955887f186098fda38449f1f",
+  "source_inventory_sha256": "2a5e820c7f211cc52adbaf18db98913425d99e03b28501fbe7f5589b59dc23bf"
+}

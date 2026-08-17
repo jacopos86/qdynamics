@@ -11,16 +11,23 @@ from pipelines.scaffold.hh_continuation_scoring import (
     FullScoreConfig,
     HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1,
     HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
+    HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
+    rescore_hardware_cost_family,
 )
 from pipelines.scaffold.hh_continuation_types import CandidateFeatures
 from pipelines.static_adapt.hh_backend_compile_oracle import (
+    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
     BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
     MARRAKESH_GRAPH_SPAN_MODE,
     ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
 )
 from pipelines.static_adapt.ra_adapt.adapters import (
     GlobalSinglePauliWordCandidateAdapter,
+    GlobalSingletonGradientPhase0CandidateAdapter,
     MacroCandidateAdapter,
+    MacroGradientPhase0CandidateAdapter,
+    MacroGradientPhase0ThenSingletonCandidateAdapter,
+    MacroThenSingletonPhaseICandidateAdapter,
 )
 from pipelines.static_adapt.ra_adapt import bundles as bundle_module
 from pipelines.static_adapt.builders.problem_registry import (
@@ -35,8 +42,18 @@ from pipelines.static_adapt.ra_adapt.contracts import (
     RESOURCE_WEIGHTING_LATE,
 )
 from pipelines.static_adapt.ra_adapt.engine import (
+    RA_ADAPT_ALGORITHM_ID,
+    RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+    RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX,
     RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID,
     RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ROUTE_SUFFIX,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+    RA_ADAPT_MACRO_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX,
+    RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+    RA_ADAPT_PHASE23_QISKIT_COST_POLICY,
+    RA_ADAPT_PHASE23_QISKIT_COST_ROUTE_SUFFIX,
     RA_ADAPT_PHASE3_QISKIT_DENOMINATOR_POLICY,
     RA_ADAPT_PHASE3_QISKIT_COST_PHASE_REUSE,
     RA_ADAPT_PHASE3_QISKIT_COST_POLICY,
@@ -64,6 +81,237 @@ SOURCE_ROUTE_PROFILE = (
     "global_guarded_singleton_phase_i__identity_phase_ii__"
     "stationary_source_response_v1__all_phase_resource_weighting_v1"
 )
+
+
+def test_macro_then_singleton_phase123_route_binds_qiskit_to_phase23_only(
+) -> None:
+    request = _request(adapter=MacroThenSingletonPhaseICandidateAdapter())
+    _request_profile, profile, contract, digest = _repaired_route_contract(
+        request,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+        algorithm_id=(
+            RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+    )
+
+    assert profile.endswith(RA_ADAPT_PHASE23_QISKIT_COST_ROUTE_SUFFIX)
+    assert len(digest) == 64
+    execution = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+    assert execution["phase3_backend_cost_scope"] == (
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+    )
+    assert execution["static_lane_route"] == (
+        STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION
+    )
+    assert invariants["selector_compile_cost_policy"] == (
+        RA_ADAPT_PHASE23_QISKIT_COST_POLICY
+    )
+    assert invariants["phase_i_compile_cost_source"] == (
+        "structural_proxy_v1"
+    )
+    assert invariants["phase_ii_compile_cost_source"] == (
+        "backend_transpile_v1"
+    )
+    assert invariants["phase_iii_compile_cost_source"] == (
+        "backend_transpile_v1"
+    )
+    assert invariants[
+        "phase_ii_phase_iii_qiskit_negative_delta_reward_enabled"
+    ] is True
+    assert invariants["candidate_funnel_order"] == (
+        "macro_phase1_shortlist_then_guarded_singleton_phase1_shortlist_"
+        "then_singleton_phase2_then_singleton_phase3_v1"
+    )
+
+
+def test_macro_only_gradient_phase0_route_binds_proxy_then_qiskit_without_singleton_exposure(
+) -> None:
+    request = _request(adapter=MacroGradientPhase0CandidateAdapter())
+    _request_profile, profile, contract, digest = _repaired_route_contract(
+        request,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+        algorithm_id=(
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+        ),
+    )
+
+    assert profile.endswith(
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ROUTE_SUFFIX
+    )
+    assert len(digest) == 64
+    execution = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+    assert execution["phase3_backend_cost_scope"] == (
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+    )
+    assert execution["static_lane_route"] == (
+        STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION
+    )
+    assert execution["ra_phase0_gradient_shortlist_size"] == 24
+    assert invariants["phase0_compile_cost_active"] is False
+    assert invariants["phase_i_compile_cost_source"] == "structural_proxy_v1"
+    assert invariants["phase_ii_compile_cost_source"] == "backend_transpile_v1"
+    assert invariants["phase_iii_compile_cost_source"] == "backend_transpile_v1"
+    assert invariants["selector_qiskit_compile_cost_active"] is True
+    assert invariants["macro_generator_identity_preserved_all_phases"] is True
+    assert invariants["singleton_child_exposure_active"] is False
+    assert invariants["candidate_funnel_order"] == (
+        "macro_gradient_phase0_shortlist_then_macro_phase1_then_identity_"
+        "macro_phase2_then_macro_phase3_v1"
+    )
+    assert invariants["plateau_prior_mean_decrease_ratio_threshold"] == 1.0e-4
+
+
+@pytest.mark.parametrize(
+    ("adapter", "algorithm_id", "funnel_prefix", "route_suffix"),
+    [
+        (
+            MacroGradientPhase0ThenSingletonCandidateAdapter(),
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+            "macro_gradient_phase0_shortlist",
+            RA_ADAPT_MACRO_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX,
+        ),
+        (
+            GlobalSingletonGradientPhase0CandidateAdapter(),
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+            "global_singleton_gradient_phase0_shortlist",
+            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ROUTE_SUFFIX,
+        ),
+    ],
+)
+def test_gradient_phase0_routes_bind_abs_gradient_without_metric_or_cost(
+    adapter: object,
+    algorithm_id: str,
+    funnel_prefix: str,
+    route_suffix: str,
+) -> None:
+    request = _request(adapter=adapter)
+    _request_profile, profile, contract, digest = _repaired_route_contract(
+        request,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+        algorithm_id=algorithm_id,
+    )
+
+    assert profile.endswith(route_suffix)
+    assert len(digest) == 64
+    execution = contract["execution_settings"]
+    invariants = contract["semantic_invariants"]
+    assert execution["ra_phase0_gradient_shortlist_size"] == 24
+    assert execution["static_lane_route"] == (
+        STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION
+    )
+    assert invariants["phase0_active"] is True
+    assert invariants["phase0_score"] == (
+        "standard_adapt_absolute_gradient_v1"
+    )
+    assert invariants["phase0_fubini_metric_active"] is False
+    assert invariants["phase0_resource_cost_active"] is False
+    assert invariants["phase0_compile_cost_active"] is False
+    assert invariants["phase0_estimator_components"] == ["N_grad"]
+    assert invariants["candidate_funnel_order"].startswith(funnel_prefix)
+    assert invariants["selector_compile_cost_scope"] == (
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+    )
+
+
+@pytest.mark.parametrize(
+    "adapter",
+    [
+        MacroGradientPhase0ThenSingletonCandidateAdapter(),
+        GlobalSingletonGradientPhase0CandidateAdapter(),
+    ],
+)
+def test_gradient_phase0_adapters_reject_unrelated_algorithm_identity(
+    adapter: object,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="gradient-Phase-0 adapter and algorithm identity",
+    ):
+        _repaired_route_contract(
+            _request(adapter=adapter),
+            active_gradient_policy=ACTIVE_GRADIENT_MEASURED,
+            resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+            algorithm_id=RA_ADAPT_ALGORITHM_ID,
+        )
+
+
+def test_phase23_qiskit_scope_selects_proxy_then_qiskit_oracles() -> None:
+    proxy_oracle = object()
+    qiskit_oracle = object()
+    context = SimpleNamespace(
+        backend_compile_scope=(
+            BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+        ),
+        backend_compile_oracle=proxy_oracle,
+        phase3_backend_compile_oracle=qiskit_oracle,
+    )
+    pending = SimpleNamespace(
+        backend_compile_snapshot="proxy-snapshot",
+        phase3_backend_compile_snapshot="qiskit-snapshot",
+    )
+
+    assert adapt_pipeline._default_no_prune_compile_oracle_for_stage(
+        context=context,
+        pending=pending,
+        evaluation_stage="phase1",
+    ) == (None, None, False)
+    for stage in ("phase2", "phase3"):
+        assert adapt_pipeline._default_no_prune_compile_oracle_for_stage(
+            context=context,
+            pending=pending,
+            evaluation_stage=stage,
+        ) == (qiskit_oracle, "qiskit-snapshot", True)
+
+
+def test_phase23_qiskit_signed_cost_rewards_true_compiled_cancellation() -> None:
+    negative = _compiled_feature(
+        label="cancels",
+        pool_index=0,
+        c2q=0.0,
+        depth2q=0.0,
+        c1q=0.0,
+    )
+    positive = _compiled_feature(
+        label="adds",
+        pool_index=1,
+        c2q=3.0,
+        depth2q=2.0,
+        c1q=1.0,
+    )
+    negative.compiled_position_cost_backend.update(
+        {
+            "raw_delta_compiled_count_2q": -3.0,
+            "raw_delta_compiled_depth_2q": -2.0,
+            "raw_delta_compiled_count_1q": -1.0,
+            "negative_delta_reward_enabled": True,
+        }
+    )
+    positive.compiled_position_cost_backend.update(
+        {"negative_delta_reward_enabled": True}
+    )
+    records = rescore_hardware_cost_family(
+        [
+            {"feature": negative},
+            {"feature": positive},
+        ],
+        FullScoreConfig(
+            hardware_cost_normalization_mode=(
+                HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+            )
+        ),
+    )
+
+    cancel_feature = records[0]["feature"]
+    add_feature = records[1]["feature"]
+    assert cancel_feature.hardware_cost_score_factor > 1.0
+    assert add_feature.hardware_cost_score_factor < 1.0
+    assert cancel_feature.hardware_cost_signed_index < 0.0
+    assert add_feature.hardware_cost_signed_index > 0.0
 
 
 def _request(

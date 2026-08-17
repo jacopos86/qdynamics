@@ -10,6 +10,321 @@
 
 \begin{center}
 \small
+\textbf{Actual observables for the electronic-imbalance initial perturbation.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; wavefunction perturbation amplitude
+$5\times10^{-6}$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_electronic-drive_observables.pdf}
+  \caption{Actual observable trajectories for the base and perturbed initial
+  states under exact cutoff-16 Hamiltonian propagation and the uncorrected
+  archive moment EOM.  The base and perturbed curves nearly overlap within
+  each propagation method because the initial perturbation is only
+  $5\times10^{-6}$; the following page resolves their separation directly.}
+\end{figure}
+
+{\footnotesize\noindent
+The uncorrected moment EOM produce bounded but quantitatively different
+occupation and energy-partition trajectories from the exact Hamiltonian.
+The nearly constant total internal energy does not imply agreement in the
+individual observables.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Observable sensitivity to an electronic-imbalance initial perturbation.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; wavefunction perturbation amplitude
+$5\times10^{-6}$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_electronic-drive_observable_separation.pdf}
+  \caption{Absolute observable separation between the perturbed and base
+  initial states.  The black exact-Hamiltonian differences remain near the
+  initial $10^{-6}$ scale, while the orange uncorrected-EOM differences grow
+  to order $10^{-1}$ in the occupations and energy partitions.  Total
+  internal energy remains nearly fixed because both raw trajectories conserve
+  their respective initial energies despite separating in the other
+  observables.}
+\end{figure}
+
+{\footnotesize\noindent
+The largest raw observable separations are $0.1094$ in each site occupation,
+$0.1748\,t_{\rm hop}$ in electronic energy,
+$0.0904\,t_{\rm hop}$ in phonon energy, and
+$0.1558\,t_{\rm hop}$ in electron--phonon energy.  The corresponding exact
+differences remain below $8.3\times10^{-6}$.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Actual observables for the relative-phonon-position initial perturbation.}
+The Hamiltonian, initial ground state, perturbation amplitude, and observable
+definitions are identical to the preceding electronic-imbalance test.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_relative-phonon-position_observables.pdf}
+  \caption{Actual observable trajectories for the base and perturbed initial
+  states under exact cutoff-16 Hamiltonian propagation and the uncorrected
+  archive moment EOM.  The next page isolates the small within-method
+  differences that are difficult to see on the absolute observable scale.}
+\end{figure}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Observable sensitivity to a relative-phonon-position initial perturbation.}
+The Hamiltonian, initial ground state, perturbation amplitude, and observable
+definitions are identical to the preceding page.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_relative-phonon-position_observable_separation.pdf}
+  \caption{Absolute observable separation for the relative phonon-position
+  perturbation.  The exact differences again stay near $10^{-6}$, while the
+  uncorrected moment EOM amplify the occupation and energy-partition
+  differences over time.}
+\end{figure}
+
+{\footnotesize\noindent
+The largest raw observable separations are $0.0762$ in each site occupation,
+$0.1365\,t_{\rm hop}$ in electronic energy,
+$0.0784\,t_{\rm hop}$ in phonon energy, and
+$0.1768\,t_{\rm hop}$ in electron--phonon energy.  The corresponding exact
+differences remain below $6.7\times10^{-6}$.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Nearby-initial-condition sensitivity of the uncorrected archive EOM.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; cutoff-16 exact-correlated
+initialization; matched RK4 step $0.02$ through $t=100$.
+\end{center}
+
+{\footnotesize\noindent
+From the exact ground state $|\psi_0\rangle$, each nearby physical state is
+$|\psi_\epsilon\rangle=(|\psi_0\rangle+\epsilon|\tau_O\rangle)/
+\sqrt{1+\epsilon^2}$, where
+$|\tau_O\rangle\propto(O-\langle O\rangle)|\psi_0\rangle$ and
+$\epsilon=5\times10^{-6}$.  The two generators are the electronic site
+imbalance and the relative phonon position.  Each ket is contracted once into
+the full 31-coordinate initial state; no individual moment coordinate is
+changed by hand.\par}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.91\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_matched_amplification.pdf}
+  \caption{Matched nearby-state test for the uncorrected archive EOM.  Black
+  propagates the same physical pairs with the exact cutoff-16 Hamiltonian;
+  orange propagates their contracted coordinates with the raw moment EOM.
+  Gray denotes the interval after the first sampled retained-constraint
+  violation.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.91\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_raw_physicality.pdf}
+  \caption{Loss of representability in the raw base trajectory.  The
+  correlation-trace equality is violated by the first stored sample at
+  $t=0.1\,t_{\rm hop}^{-1}$; the joint Gram is negative at the next sample,
+  consistent with the separately refined crossing at
+  $t=0.1607\,t_{\rm hop}^{-1}$.}
+\end{figure}
+
+\vspace{-3pt}
+{\footnotesize\noindent
+The raw mathematical ODE amplifies the two initial separations by factors of
+$4.39\times10^4$ and $2.55\times10^4$ by $t=100$, whereas the exact contracted
+separations remain of order one.  This establishes extreme sensitivity of the
+formal uncorrected ODE continuation.  Because the raw trajectory leaves the
+representable moment domain before the large amplification develops, it does
+not establish physical chaos of the electron--phonon system.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Initial-condition sensitivity of the representability-corrected archive EOM.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; cutoff-16 exact-correlated
+initialization and matched physical perturbations.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.91\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_matched_amplification.pdf}
+  \caption{Matched nearby-state test without perturbation rescaling.  The
+  same electronic-drive and relative-phonon perturbations are propagated by
+  exact cutoff-16 Hamiltonian dynamics and by the corrected 31-coordinate
+  moment EOM.  The plotted distance is the combined lifted Frobenius distance
+  divided by its initial value.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.91\textwidth]{output/plots/paper_v_results_progression_20260804/initial_condition_lyapunov_convergence.pdf}
+  \caption{Post-pulse Benettin calculation for the corrected moment EOM.
+  Repeated tangent-space rescaling through $t=1000\,t_{\rm hop}^{-1}$ gives
+  the cumulative exponent (left) and a trailing 250-unit estimate (right).
+  The two independent perturbation directions converge to the same positive
+  rate.}
+\end{figure}
+
+\vspace{-3pt}
+{\footnotesize\noindent
+Under exact Hamiltonian propagation, the two contracted separations never
+exceed factors of $1.385$ and $1.490$ and end below their initial values.  The
+corrected moment EOM instead amplify them by factors of $347.2$ and $606.8$ by
+$t=100$.  Its cumulative post-pulse exponent is $0.02846\,t_{\rm hop}$, while
+the final trailing-window rate remains positive at $0.01891\,t_{\rm hop}$.
+The sensitivity therefore belongs to the tested approximate corrected moment
+vector field, not to the matched exact dynamics.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: unconstrained carried higher moments through the complete pulse.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; single Gaussian pulse of width $1$;
+exact-correlated cutoff-16 initialization; $h=0.0025$;
+$0\le t\,t_{\rm hop}\le4$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{output/plots/paper_v_results_progression_20260804/cwrmf_no_guard_t4_combined.pdf}
+  \caption{Full-pulse no-guard audit. Panels (a)--(f) compare exact cutoff-16
+  Hamiltonian propagation, the raw 31-coordinate archive EOM, and the
+  384-coordinate archive-plus-$K/P/D$ higher-moment model with its 62-row
+  Gram guard disabled. Panel (g) tracks the extended and retained
+  representability margins. Panel (h) shows instantaneous dynamic
+  31-coordinate error. Panel (i) estimates how minimum-norm linearized repair
+  of each negative extended-Gram mode would change the retained velocity and,
+  after a $0.05\,t_{\rm hop}^{-1}$ entrance-channel interval, the $C$ rate.
+  This mode-coupling audit is offline and does not alter the trajectory.}
+\end{figure}
+
+\begin{center}
+  \scriptsize
+  \setlength{\tabcolsep}{3.0pt}
+  \begin{tabular}{@{}lrrrrrrr@{}}
+    \toprule
+    Model & 31 RMS & $C$ RMS & $n_0$ RMS & $E_{\rm int}$ RMS
+      & $\min\lambda(\mathcal G)$ & $\min\lambda(\mathcal G_{62})$
+      & runtime \\
+    \midrule
+    Exact cutoff-16 & 0 & 0 & 0 & 0 & positive & --- & offline \\
+    Raw 31-coordinate archive & $0.11090$ & $0.07660$ & $0.02961$
+      & $0.02759$ & $-0.5173$ & --- & not isolated \\
+    Carried moments, no Gram guard & $0.48049$ & $0.47234$ & $0.04864$
+      & $0.01388$ & $-17.615$ & $-26.445$ & $153.5$ s \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-4pt}
+{\footnotesize\noindent
+The no-guard route remains highly accurate only on the short interval reported
+on the next page. Over the complete pulse, the failure sequence is
+quantitatively ordered: $\mathcal G_{62}$ crosses the $-10^{-8}$ numerical
+floor at the first step; predicted negative-mode feedback into the retained
+velocity exceeds $1\%$ at $t=0.10$ and $10\%$ at $t=0.50$; its two-stage
+effect on the $C$ rate exceeds $1\%$ at $t=0.55$ and $10\%$ at $t=1.10$;
+the instantaneous coordinate RMS exceeds $10^{-3}$ at $t=1.0825$; and the
+retained $\mathcal G$ crosses negative at $t=1.355$. Thus extended-cone
+violation is initially hidden from the reported observables but later enters
+them through the entrance-channel dynamics. Unconstrained higher moments are
+an effective fast predictor, but not a complete long-pulse closure.\par}
+
+\clearpage
+
+\begin{center}
+\small
+\textbf{Latest result: carried higher moments with and without the extended Gram guard.}
+$t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
+($\lambda=1.5$), $v/t_{\rm hop}=1$; single Gaussian pulse of width $1$;
+exact-correlated cutoff-16 initialization; matched interval
+$0\le t\,t_{\rm hop}\le0.5$.
+\end{center}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\textwidth]{output/plots/paper_v_results_progression_20260804/cwrmf_balanced_t05_observables.pdf}
+  \caption{Stored matched trajectories. Black is exact cutoff-16 Hamiltonian
+  propagation. Red dashed propagates only the 31 archive coordinates with the
+  uncorrected archive EOM. Gray dotted is the strict carried higher-moment
+  closure at $h=0.0025$. Blue is the balanced realization of the same closure,
+  using $h=0.01$ through $t=0.4$ and $h=0.005$ thereafter. Green dash-dot
+  propagates the same retained and higher-moment rates at $h=0.0025$ while
+  bypassing the 62-row Gram optimization and endpoint rejection. Exact data
+  were used only for offline scoring.}
+\end{figure}
+
+\begin{center}
+  \tiny
+  \setlength{\tabcolsep}{1.8pt}
+  \begin{tabular}{@{}lrrrrrrrr@{}}
+    \toprule
+    Model & step & 31 RMS & $C$ RMS & $n_0$ RMS & $E_{\rm int}$ RMS
+      & $\min\lambda(\mathcal G)$ & $\min\lambda(\mathcal G_{62})$
+      & solver time \\
+    \midrule
+    Exact cutoff-16 & adaptive & --- & --- & --- & ---
+      & $2.89\times10^{-5}$ & --- & offline \\
+    Raw 31-coordinate archive & adaptive & $2.37\times10^{-2}$
+      & $3.37\times10^{-2}$ & $4.48\times10^{-4}$
+      & $4.89\times10^{-4}$ & $-6.28\times10^{-2}$ & --- & not isolated \\
+    Carried moments, no Gram guard & $0.0025$ & $3.19\times10^{-5}$
+      & $8.13\times10^{-6}$ & $2.07\times10^{-7}$
+      & $1.06\times10^{-7}$ & $-1.03\times10^{-15}$
+      & $-1.27\times10^{-2}$ & $18.9$ s \\
+    Strict carried moments & $0.0025$ & $3.19\times10^{-5}$
+      & $8.14\times10^{-6}$ & $2.06\times10^{-7}$
+      & $1.10\times10^{-7}$ & $-1.32\times10^{-15}$
+      & $-7.58\times10^{-12}$ & $12.14$ h \\
+    Balanced carried moments & $0.01\to0.005$ & $3.56\times10^{-5}$
+      & $9.33\times10^{-6}$ & $3.26\times10^{-6}$
+      & $2.02\times10^{-6}$ & $-2.20\times10^{-15}$
+      & $-9.41\times10^{-9}$ & $4.88$ h \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+\vspace{-4pt}
+{\footnotesize\noindent
+The reported dynamic RMS errors subtract the fixed initial embedding offset.
+The retained joint Gram is $\mathcal G$; $\mathcal G_{62}$ is the extended
+Gram containing the carried higher moments. The carried routes use the
+archive EOM plus the connected electron--two-phonon,
+same-spin Pauli-covariance, and opposite-spin covariance contributions
+evaluated from the carried higher moments. In the no-guard ablation, every
+commutator-readable hidden rate is propagated directly and unresolved rates
+retain the minimum-motion value zero. Its retained trajectory differs from
+the strict result by only $6.57\times10^{-7}$ coordinate RMS and its half-step
+refinement differs by $7.76\times10^{-8}$, while runtime falls by a factor of
+$2308$. Thus the cone solve does not create the observed short-time accuracy.
+It enforces higher-order representability: without it, $\mathcal G_{62}$ is
+already below $-10^{-8}$ at the first step and reaches $-1.27\times10^{-2}$,
+even though the retained $\mathcal G$ remains positive to roundoff. The
+no-guard trajectory is therefore a fast and accurate short-time diagnostic,
+not yet a physical long-horizon closure.\par}
+
+\clearpage
+
+\begin{center}
+\small
 \textbf{Latest result: common-scale and normalized spectra for four strong-coupling routes.}
 $t_{\rm hop}=1$, $\omega_{\rm ph}=0.5$, $g/t_{\rm hop}=0.6124$
 ($\lambda=1.5$), $v/t_{\rm hop}=1$; single Gaussian pulse of width $1$;

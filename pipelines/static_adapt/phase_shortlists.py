@@ -6,6 +6,7 @@ It does not own candidate scoring, controller updates, or admission.
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass, replace
 from typing import Any, Callable, Mapping, MutableMapping, Sequence
@@ -23,8 +24,16 @@ from pipelines.static_adapt.route_a_shortlists import (
     identity_population,
     macro_operator_identity,
 )
+from pipelines.static_adapt.ra_adapt.adaptive_phase_shortlist import (
+    ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1,
+    AdaptivePhaseCandidateScore,
+    AdaptivePhaseShortlistReceipt,
+    adaptive_phase_record_id,
+    select_adaptive_phase_shortlist,
+)
 
 __all__ = [
+    "Phase3NaturalTerminalAuthority",
     "PhaseShortlistRuntime",
     "_notify_legacy_shortlist_hook",
     "_phase1_eval_payload_from_records",
@@ -34,6 +43,7 @@ __all__ = [
     "_phase2_lane_health_shortlist_with_legacy_hook",
     "_phase3_tie_beam_selection_pool",
     "_phase_shortlist_with_legacy_hook",
+    "_adaptive_phase_shortlist_with_receipt",
     "_positive_phase3_selector_records",
     "_record_lane_shortlist_runtime",
     "_selection_pool_from_shortlist",
@@ -42,6 +52,197 @@ __all__ = [
     "lane_phase2_health_shortlist_records",
     "lane_quota_pressure_budgets",
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class Phase3NaturalTerminalAuthority:
+    """Immutable, content-authenticated authority for natural exhaustion."""
+
+    route_contract_json: str
+    route_contract_sha256: str
+
+    @classmethod
+    def from_route_contract(
+        cls,
+        route_contract: Mapping[str, Any],
+        *,
+        expected_route_contract_sha256: str,
+    ) -> Phase3NaturalTerminalAuthority:
+        if not isinstance(route_contract, Mapping):
+            raise TypeError("Natural-terminal route contract must be a mapping.")
+        payload = json.loads(
+            json.dumps(
+                dict(route_contract),
+                ensure_ascii=True,
+                sort_keys=True,
+            )
+        )
+        embedded_sha256 = payload.pop("sha256", None)
+        expected_sha256 = str(expected_route_contract_sha256)
+        if embedded_sha256 is not None and embedded_sha256 != expected_sha256:
+            raise ValueError(
+                "Natural-terminal route contract digest binding drifted."
+            )
+        return cls(
+            route_contract_json=json.dumps(
+                payload,
+                ensure_ascii=True,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            route_contract_sha256=expected_sha256,
+        )
+
+    def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> dict[str, Any]:
+        try:
+            payload = json.loads(str(self.route_contract_json))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "Natural-terminal route authority is not canonical JSON."
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ValueError(
+                "Natural-terminal route authority must contain one contract."
+            )
+        canonical_json = json.dumps(
+            payload,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        if str(self.route_contract_json) != canonical_json:
+            raise ValueError(
+                "Natural-terminal route authority is not canonical JSON."
+            )
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            validate_semantic_phase3_natural_terminal_route_contract,
+        )
+
+        return validate_semantic_phase3_natural_terminal_route_contract(
+            payload,
+            expected_route_contract_sha256=str(
+                self.route_contract_sha256
+            ),
+        )
+
+
+def _adaptive_phase_shortlist_with_receipt(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    runtime: PhaseShortlistRuntime,
+    phase: str,
+    score_key: str,
+    threshold: float,
+    hard_cap: int,
+    frontier_ratio: float,
+    tie_break_score_key: str,
+    shortlist_flag: str,
+) -> tuple[list[dict[str, Any]], AdaptivePhaseShortlistReceipt]:
+    """Apply adaptive cardinality to one already-scored live population.
+
+    This seam deliberately consumes the active phase score as-is.  It invokes
+    the legacy hook for observation compatibility, but neither recomputes a
+    score nor performs estimator, metric, compiler, or Qiskit work.
+    """
+
+    population = [dict(record) for record in records]
+    if not population:
+        raise RuntimeError("Adaptive phase shortlist received an empty population.")
+    _notify_legacy_shortlist_hook(
+        population,
+        runtime=runtime,
+        score_key=str(score_key),
+        tie_break_score_key=str(tie_break_score_key),
+    )
+
+    by_id: dict[str, dict[str, Any]] = {}
+    scores: list[AdaptivePhaseCandidateScore] = []
+    for record in population:
+        feature = record.get("feature")
+        pool_index = int(
+            record.get(
+                "candidate_pool_index",
+                getattr(feature, "candidate_pool_index", -1),
+            )
+        )
+        position = int(
+            record.get(
+                "position_id",
+                getattr(feature, "position_id", -1),
+            )
+        )
+        generator_id = str(
+            getattr(feature, "generator_id", "")
+            or record.get("generator_id")
+            or record.get("candidate_label")
+            or getattr(feature, "candidate_label", "")
+            or getattr(record.get("candidate_term"), "label", "")
+        )
+        if pool_index < 0 or position < 0 or not generator_id:
+            raise RuntimeError(
+                "Adaptive phase shortlist candidate identity is incomplete."
+            )
+        record_id = adaptive_phase_record_id(
+            generator_id=generator_id,
+            pool_index=pool_index,
+            insertion_position=position,
+        )
+        if record_id in by_id:
+            raise RuntimeError(
+                "Adaptive phase shortlist candidate identities repeat."
+            )
+        active_score = record.get(
+            str(score_key),
+            getattr(feature, str(score_key), float("-inf")),
+        )
+        tie_break_score = record.get(
+            str(tie_break_score_key),
+            getattr(feature, str(tie_break_score_key), float("-inf")),
+        )
+        record["adaptive_shortlist_record_id"] = record_id
+        by_id[record_id] = record
+        scores.append(
+            AdaptivePhaseCandidateScore(
+                record_id=record_id,
+                pool_index=pool_index,
+                insertion_position=position,
+                active_score=float(active_score),
+                tie_break_score=float(tie_break_score),
+            )
+        )
+
+    decision = select_adaptive_phase_shortlist(
+        scores,
+        phase=str(phase),
+        score_key=str(score_key),
+        hard_cap=int(hard_cap),
+        threshold=float(threshold),
+        frontier_ratio=float(frontier_ratio),
+        no_positive_policy=(
+            runtime.phase3_no_positive_policy
+            if str(phase) == "phase_iii"
+            else ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
+        ),
+    )
+    if not decision.retained_record_ids:
+        terminal_authority = runtime.phase3_natural_terminal_authority
+        if str(phase) != "phase_iii" or terminal_authority is None:
+            raise RuntimeError(
+                f"Adaptive {phase} shortlist has no positive feasible candidate."
+            )
+        terminal_authority.validate()
+    retained = [by_id[record_id] for record_id in decision.retained_record_ids]
+    marked = _mark_shortlist_records(
+        retained,
+        shortlist_flag=str(shortlist_flag),
+        feature_updater=runtime.feature_updater,
+    )
+    for record in marked:
+        record["adaptive_shortlist_receipt_sha256"] = decision.receipt.sha256
+    return marked, decision.receipt
 
 
 @dataclass(frozen=True)
@@ -60,6 +261,21 @@ class PhaseShortlistRuntime:
     shortlist_lane_health_key_prefix: str
     physical_operator_identity_caps_enabled: bool = True
     phase1_lane_retention_enabled: bool = True
+    phase3_natural_terminal_authority: (
+        Phase3NaturalTerminalAuthority | None
+    ) = None
+    phase3_no_positive_policy: str = (
+        ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
+    )
+
+    def __post_init__(self) -> None:
+        authority = self.phase3_natural_terminal_authority
+        if authority is not None:
+            if not isinstance(authority, Phase3NaturalTerminalAuthority):
+                raise TypeError(
+                    "Phase-III natural-terminal authority has the wrong type."
+                )
+            authority.validate()
 
 
 def _shortlist_lane_policy_active(runtime: PhaseShortlistRuntime) -> bool:

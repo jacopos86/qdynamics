@@ -1,0 +1,153 @@
+{
+  "activation_manifest": {
+    "canonical_sha256": "9aa36c3362257dfdcd8624bf091adfbaae28edb06e0abadcb8d6b6936533a36d",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/activation_manifest.json",
+    "sha256": "104a22a774cee5526c9272082ea884745e4f851c55097396ea1de2eeeaf47ca4",
+    "size_bytes": 8379
+  },
+  "archive": {
+    "declared_artifact_count": 7,
+    "inventory": [
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/checkpoints/current.estimator_call_ledger_checkpoint.06e5b7c21060c021.json",
+        "sha256": "06e5b7c21060c021a2fcc5a012da05831ca79d85a51343fc13b278145b5f4e8f",
+        "size_bytes": 1153003165
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/checkpoints/current.json",
+        "sha256": "51e67c498eb281c28e830e6133795aa601c9fe62aea8ef35d4ab5ac27af2794c",
+        "size_bytes": 1343006115
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/checkpoints/current.verified_singleton_resume.a635761559ac3371.json",
+        "sha256": "a635761559ac3371c642c527557a0dce0ff856af757ec42bca0d317e61051308",
+        "size_bytes": 5198
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/execution_manifest.json",
+        "sha256": "be1a2affe6d483f35d9e62ba7f93ad0b2449bba3246ca742fa15ebba7436e37c",
+        "size_bytes": 2293
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/result/estimator_ledger.json",
+        "sha256": "ad592db9bb39e0716c17004163add2e4c079bf08abe3cb609488b74aad3dc508",
+        "size_bytes": 440303313
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/result/result.json",
+        "sha256": "ccd22eeecadbe55207ca66e51830d031aec997c5170170c7f43569b33875abcc",
+        "size_bytes": 244665339
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/summary/summary.json",
+        "sha256": "f333293d97a6f57085fceb4dbb7ea9de4d1ce981d6dbbab4851b6aa7ea98a096",
+        "size_bytes": 58809
+      },
+      {
+        "path": "worker_exit_status.txt",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "size_bytes": 2
+      },
+      {
+        "path": "worker_receipt.json",
+        "sha256": "719fea48b99dca31b469b279f8899ac3f0eb1f1f7d66f63098914881e294cd0a",
+        "size_bytes": 3036
+      }
+    ],
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page12_insertion_comparators_20260813/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced__9647385__0.tar.gz",
+    "regular_member_count": 9,
+    "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced__9647385__0.tar.gz",
+    "sha256": "c291dbbbc68c2eb138bdc56b78c2a28d45741641b419d8544d55f87c045cc173",
+    "size_bytes": 430024890
+  },
+  "authentication_checks": {
+    "activation_manifest_passed": true,
+    "all_twelve_authorizations_passed": true,
+    "every_declared_artifact_hash_size_passed": true,
+    "exact_cluster_proc_mapping_passed": true,
+    "execution_manifest_self_digest_passed": true,
+    "full_member_inventory_hash_size_closure_passed": true,
+    "insertion_identity_passed": true,
+    "job_identity_passed": true,
+    "protocol_identity_passed": true,
+    "remote_local_identity_passed": true,
+    "route_identity_passed": true,
+    "sealed_package_identity_passed": true,
+    "source_identity_passed": true,
+    "tar_safety_and_unique_inventory_passed": true,
+    "target_authorization_passed": true,
+    "worker_receipt_self_digest_passed": true
+  },
+  "authorization": {
+    "canonical_sha256": "4521f4404a9e93bb60545135a1e09e4d7b27abb00b0bb2ddd18338894395f3c6",
+    "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/authorizations/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+    "sha256": "fe00e0434b9445d5450ab62dbf2d8c69366a69b446e88aaebbcd00d3c9d9d3f1",
+    "size_bytes": 1771
+  },
+  "cluster_id": 9647385,
+  "comparator_policy": "always_commutation_reduced",
+  "controller_rounds_completed": 50,
+  "created_at_utc": "2026-08-13T16:00:35Z",
+  "execution_manifest": {
+    "canonical_sha256": "6dfabebc4cbe05902ab08c828c557b7703e75f6c5c77949b1d23d0a42fe5bc5f",
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/execution_manifest.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_execution_manifest_v1",
+    "status": "passed"
+  },
+  "job": {
+    "canonical_sha256": "a2a18b6d628fc9735db28703ba577ebd1d81f537b4580a686fe49a81cae0aec5",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/jobs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+    "sha256": "67a8283402fcf6aa7a848ad62b1571a12650c47516498bcf744162075084375e",
+    "size_bytes": 5654
+  },
+  "network_performed_by_action": false,
+  "nph": 3,
+  "package_manifest": {
+    "canonical_sha256": "efce225efdc04653e8fca7e34eb3f467d4a6ec594e2130cde4bbea45e3d040e9",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/package_manifest.json",
+    "sha256": "4cf3df426f6b3545e51b90c0ffaf1f0755b989ae3644a067ca8cbcf98b5026bd",
+    "size_bytes": 23949
+  },
+  "paper_evidence_adopted": false,
+  "proc_id": 0,
+  "protocol": {
+    "canonical_sha256": "e4cda1f933f5a5fb080647e0686d6519f40b638ce247e39f60f7f6169114024f",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/bundle_materialization/ra_adapt_page12_insertion_comparators_r50_20260812_v1/protocols/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+    "sha256": "4af7ed16253d6d5ceadedb25b2b28149c24cc359bbb7d9b5303f12efa3e8d4bb",
+    "size_bytes": 53931
+  },
+  "regime_id": "weak_weak",
+  "remote_local_identity_evidence": {
+    "canonical_sha256": "716e78ef6e85d25a79d3c6c10121953e9437f43914c3d3402de54074683b772d",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/page12_insertion_comparator_closure_evidence/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced__9647385__0_remote_archive_identity.json",
+    "sha256": "ba439b8316046241b72f29b6e734d897249cf76155e7c7b5cc65659b0f97f369",
+    "size_bytes": 1525
+  },
+  "route_contract_canonical_sha256": "24d5aed82ee202293187deb5e9745875a5779f8d6bca806536e4a323c7a307a6",
+  "run_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+  "runtime_insertion_mode": "full_commutation_reduced",
+  "scheduler_mutation_performed_by_action": false,
+  "schema": "paper_i_ra_adapt_page12_insertion_comparator_closure_receipt_v1",
+  "scientific_execution_performed_by_action": false,
+  "sha256": "ae07e71f6d7eccc59d1824e38e2a87b06f13cb6e0829eac034b855fd66d1b222",
+  "source_archive": {
+    "path": "source/source_locked.tar.gz",
+    "sha256": "690d54dbf5bafcaaf974dc11339ed927cb7f5d117265ed51adbb811785740762",
+    "size_bytes": 2068501
+  },
+  "status": "passed_authenticated_page12_insertion_comparator_closure",
+  "summary_json": {
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/summary/summary.json",
+    "sha256": "f333293d97a6f57085fceb4dbb7ea9de4d1ce981d6dbbab4851b6aa7ea98a096",
+    "size_bytes": 58809
+  },
+  "target_horizon": 50,
+  "typed_insertion_kind": "always_commutation_reduced",
+  "worker_receipt": {
+    "canonical_sha256": "7af79d732143d13ed746f33c916b27204a48c936a251736839436264ab37d14f",
+    "path_inside_archive": "worker_receipt.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_worker_receipt_v1",
+    "status": "passed"
+  }
+}

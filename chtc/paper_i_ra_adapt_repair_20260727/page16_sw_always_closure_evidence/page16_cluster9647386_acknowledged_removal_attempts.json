@@ -1,0 +1,22 @@
+{
+  "attempts": [
+    {
+      "acknowledged": true,
+      "acknowledged_at_utc": "2026-08-13T09:48:57Z",
+      "acknowledgement_text": "All jobs in cluster 9647386 have been marked for removal",
+      "command": "condor_rm 9647386",
+      "exit_code": 0,
+      "started_at_utc": "2026-08-13T09:48:56Z"
+    }
+  ],
+  "authentication": {
+    "authenticated_remote_query": true,
+    "kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+    "source_host": "ap2001.chtc.wisc.edu"
+  },
+  "captured_at_utc": "2026-08-13T09:48:57Z",
+  "cluster_id": 9647386,
+  "schema": "paper_i_page16_sw_always_acknowledged_removal_attempts_v1",
+  "sha256": "796de0696e07d365a224e9d3f1f0f51771bd44c3082f2d3e29660350637553d0",
+  "status": "passed_authenticated_at_least_one_acknowledged_condor_rm"
+}

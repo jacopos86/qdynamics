@@ -26,6 +26,7 @@ from pipelines.static_adapt.route_a_child_padding import (
     ROUTE_A_CHILD_PADDING_FULL_BINARY_CODE_SPACE_V1,
     ROUTE_A_CHILD_PADDING_HARD_FILTER_V1,
     ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
+    ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
     RouteAChildPaddingConfig,
     filter_route_a_child_padding_records,
 )
@@ -494,6 +495,7 @@ def build_shared_pauli_child_pool(
         problem_key_normalized = str(problem_key).strip().lower()
         guarded_singleton_families = {
             "hh",
+            "hubbard",
             "molecular_vibronic_h2o_linear_fd",
         }
         if guarded_children_only and problem_key_normalized not in guarded_singleton_families:
@@ -935,6 +937,8 @@ def build_shared_pauli_child_pool(
             ROUTE_A_CHILD_PADDING_FULL_BINARY_CODE_SPACE_V1
             if str(problem_key).strip().lower()
             == "molecular_vibronic_h2o_linear_fd"
+            else ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1
+            if str(problem_key).strip().lower() == "hubbard"
             else ROUTE_A_CHILD_PADDING_HARD_FILTER_V1
         )
         padding_config = RouteAChildPaddingConfig(

@@ -1,0 +1,22 @@
+{
+  "archive_rotation_authorized": false,
+  "authorization_basis": "explicit_user_request_run_other_five_regimes_v1",
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v1",
+  "created_at": "2026-08-17T14:39:00.996955Z",
+  "execution_authorized": true,
+  "execution_ids": [
+    "all_phase_adaptive_natural_terminal__intermediate_weak__nph3__append_only__maximum_k50",
+    "all_phase_adaptive_natural_terminal__strong_weak_u8__nph3__append_only__maximum_k50",
+    "all_phase_adaptive_natural_terminal__weak_strong__nph7__append_only__maximum_k50",
+    "all_phase_adaptive_natural_terminal__intermediate_strong__nph7__append_only__maximum_k50",
+    "all_phase_adaptive_natural_terminal__strong_strong_u8__nph7__append_only__maximum_k50"
+  ],
+  "paper_adoption_authorized": false,
+  "paper_evidence_adoption_authorized": false,
+  "plan_sha256": "e5e1abb0360982c96537c1aef668a4a13a511c51c8779c94a913dcbe6a5690c9",
+  "runner_sha256": "19fe0fe02d1e1e288fbdb29b3157e88e2fa5fae20e4a8176a7ed346e203c4597",
+  "schema": "paper_i_ra_append_remaining5_maximum_k50_authorization_v1",
+  "sha256": "8698c5724859f89fa2e1f704ff9328a304631ae4d9397e31ce18e5c4516028c0",
+  "source_implementation_inventory_sha256": "a83a70d202eebe9b69988afb2debe284ca4ad2cf91e50a2cbff157fc8fd87cb8",
+  "submission_authorized": false
+}

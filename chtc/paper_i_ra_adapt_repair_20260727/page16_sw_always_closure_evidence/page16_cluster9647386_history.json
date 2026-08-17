@@ -1,0 +1,46 @@
+{
+  "authentication": {
+    "authenticated_remote_query": true,
+    "kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+    "source_host": "ap2001.chtc.wisc.edu"
+  },
+  "captured_at_utc": "2026-08-13T09:48:57Z",
+  "cluster_id": 9647386,
+  "history_query": {
+    "command": "condor_history 9647386 -limit 20 -json -attributes ClusterId,ProcId,JobStatus,ExitCode,NumJobStarts,CompletionDate",
+    "rows": [
+      {
+        "ClusterId": 9647386,
+        "CompletionDate": 1786597511,
+        "ExitCode": 0,
+        "JobStatus": 4,
+        "NumJobStarts": 1,
+        "ProcId": 1
+      },
+      {
+        "ClusterId": 9647386,
+        "CompletionDate": 1786579665,
+        "ExitCode": 0,
+        "JobStatus": 4,
+        "NumJobStarts": 1,
+        "ProcId": 0
+      }
+    ]
+  },
+  "queried_proc_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "schema": "paper_i_page16_sw_always_cluster_history_snapshot_v2",
+  "sha256": "3dba597b2acc4d3c4980e89e762d382db34f51fe20c4e41a3f5904b0317369e1",
+  "status": "passed_authenticated_only_procs_0_1_completed"
+}

@@ -37,7 +37,24 @@ MATH/paper_facing/
   paper_IV_molecular_vibronic_h2o/
                             # Paper IV molecular-vibronic water support package
   paper_V_high_u_gkba/      # Paper V pointer/support stub; active workspace is paper_5/
+  ml_outer_loop_paper_I/    # Future ML outer-loop paper attached to Paper I
+  ml_outer_loop_paper_II/   # Future ML outer-loop paper attached to Paper II
+  ml_outer_loop_paper_III/  # Future ML outer-loop paper attached to Paper III
 ```
+
+## Future ML outer-loop paper placeholders
+
+Three intentionally minimal support folders reserve future, separate papers on
+machine-learning prediction or surrogate control for reducing expensive outer
+loops:
+
+- `ml_outer_loop_paper_I/` — static ADAPT / Paper-I outer loops;
+- `ml_outer_loop_paper_II/` — AP-McLachlan / Paper-II outer loops;
+- `ml_outer_loop_paper_III/` — QSE and excited-dynamics / Paper-III outer loops.
+
+These folders are visual planning reminders. They do not yet define active
+manuscripts, scientific claims, run routes, evidence contracts, or paper
+numbers.
 
 ## Global strategy memo
 

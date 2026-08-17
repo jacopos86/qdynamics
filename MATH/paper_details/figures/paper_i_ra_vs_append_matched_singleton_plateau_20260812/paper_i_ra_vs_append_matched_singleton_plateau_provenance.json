@@ -1,0 +1,176 @@
+{
+  "schema": "paper_i_reader_facing_matched_singleton_plot_v8",
+  "output": "MATH/paper_details/figures/paper_i_ra_vs_append_matched_singleton_plateau_20260812/paper_i_ra_vs_append_matched_singleton_plateau.pdf",
+  "output_sha256": "afebf3a9de573b4ff683ab3181cd5a19c315632266c3df31ecc6542f488e183e",
+  "horizon": 50,
+  "sources": [
+    {
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_append_singleton_r70_all6_adapter.json",
+      "sha256": "d43ac93e881db1149196d8be0442200e8723982605a1353dbca3e2f7550357cc"
+    },
+    {
+      "path": "output/pdf/paper_i_ra_vs_append_matched_comparisons_20260812.tex",
+      "sha256": "13f7c21cdcc97344c0e542942e6a3b8f55eccb31d9b7242ed86c28136fd0646c"
+    },
+    {
+      "path": "output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_page12_singleton_insertion_comparator_snapshot_adapter.json",
+      "sha256": "a4ea7c483c38a64842f996f64fde3db7db68936f66f6ed6f74158a17f2832c26"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.0_completed_report_adapter.json",
+      "sha256": "37ee78544957a9a666d625b30c1bd4210cc21f2eae1aa3a273b5d1da62c5eab6"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.1_completed_report_adapter.json",
+      "sha256": "7a18bdde8734a8ee45eac532b357438a958f272369861716dfe320afa541cc34"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.2_completed_report_adapter.json",
+      "sha256": "9ef6ce01ea1fa9e4aeeda72c7aadab13b5aad0d3623497d2444bb250d2a61e02"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.3_completed_report_adapter.json",
+      "sha256": "074a6f90a9ec33bb9e9accf8494f9f12955996b2731aa63a02ef95080497bb3d"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.4_completed_report_adapter.json",
+      "sha256": "4abcf81c6b4fd40a90b943e84bd2827b4d714aa4c705aad67082de5d27db3512"
+    },
+    {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_phase0_completed_20260809/9605157.5_completed_report_adapter.json",
+      "sha256": "67cc07e3fc854dd709ebd1b2f94561fb12ebe554e3be48eb2a4e80cf1952d51c"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/status/campaign.json",
+      "sha256": "4a8abf20787f8cc6f2cbf1df2e8eab5b8e865edca064acf769fabb767cff12f8"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/terminal_receipt.json",
+      "sha256": "14d7c56a7a6f7abe2b5d299dd4ff80152e3e35a58a3fa7112428cf5bb425a100"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/execution_manifest.json",
+      "sha256": "46ba193d995d19044bb77125a01147f481c2e3f742fd5300443986a2391a94af"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/worker_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "8036f610a0961471a4c5c6a4c88188ed3b2bab4677dc34e14fbd2979454ac05f"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/guard_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "80d40e6b7be41d1db4b758da83226fed1ffa6957eba1fff46508d2fea3db3039"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/summary/summary.json",
+      "sha256": "7f4c183c37f7e7952b2737f349f710456ad6d5c2f3f82a578157e6511284738d"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/execution_manifest.json",
+      "sha256": "f2694df227178e87998565ba51924aacf0472d273c345fc61f264932e0c63e02"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/worker_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "6eef7f5fa9787a7af235430457afa2c402e37828a1fbe3927d835c1721131425"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/guard_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "77bebd919bd988f5a0860a0aa8fd6d73041e022fb84299dd30fd90f141fea667"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/summary/summary.json",
+      "sha256": "acb5885222e6941d59616db2cfc48e1b3f3d6b68ca3b1c0e7083ff1d010d596f"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+      "sha256": "2250475772e10e74d3a5b87bd02e9b77c896b650c3bc8d3b6ca29ff286568cc3"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/worker_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+      "sha256": "18af12d36449720dd5205541bb0452a9f57a31b41797b5f9c4b0021dd2f19d51"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/guard_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+      "sha256": "52c19453a4598cceb245c5d77977bb79160144a0c00219c13a91f107043af990"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+      "sha256": "ae70a0f2f17d825392351127f8bac8df7c381d3b6f62ad47d9b2eaad3d2b4ef5"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/execution_manifest.json",
+      "sha256": "ddc7dd2cde2d122c4cd0ff7631a08daab9fd37f225958df18a46232cf97a24b6"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/worker_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "cd410bcc2614abe6170898d262af24f4b24fceafd8fb43b3ef024896237cc53a"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/guard_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced.json",
+      "sha256": "4eb0dbc98a4ad0b51499a749edb65adc339706d8d4cd0fc99e14816cfb2dc5bb"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced/summary/summary.json",
+      "sha256": "ebe1e9d6e806b5ffc093a7574c17579ddfee1dff048bd9aba8c77b3ab24aa0c1"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+      "sha256": "464f9b2e31a23eb8bf50c23356b752a357462f4a6d64bc5dc9b43fdfc99290a2"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/worker_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+      "sha256": "4e9b34acc0d8726228b42670696f3a232e3608a1cb8465bdb08a7e93caf20f3a"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/guard_receipts/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+      "sha256": "c8619341247237baff4761312493637cffd6451c01c26414000f92c993c4e76f"
+    },
+    {
+      "path": "output/local_runs/paper_i_page12_strong_holstein_sector5_local_repair_20260814_v1/runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+      "sha256": "ba11c295c753aef8ce03ca1803998b397ac44ac1a96e1ffa8b22c8c09750977b"
+    }
+  ],
+  "matched_markers": "locked to the matched-comparison report dated 2026-08-12",
+  "common_accuracy_lines": "omitted by author direction; first-crossing markers retained",
+  "common_accuracy_panel_text": "omitted by author direction",
+  "legend_layout": "two_rows_by_three_columns",
+  "policy_curve_coverage": {
+    "always_commutation_reduced": [
+      "weak_weak",
+      "intermediate_weak",
+      "strong_weak_u8",
+      "weak_strong",
+      "intermediate_strong",
+      "strong_strong_u8"
+    ],
+    "append_only": [
+      "weak_weak",
+      "intermediate_weak",
+      "strong_weak_u8",
+      "weak_strong",
+      "intermediate_strong",
+      "strong_strong_u8"
+    ],
+    "markers": "terminal k=50 only"
+  },
+  "local_policy_campaign_closure": {
+    "status": "passed_all_five_cells_immutable_closure",
+    "terminal_receipt_sha256": "46384ff110f2baf1a011ad80df353a8327669e3b1a8d80215fda980313b28516",
+    "campaign_status_sha256": "79fb6e8c66af13f3ecb3dbf498056da2ba71a752640e3ea28ec29db32a98f4c4",
+    "completed_execution_ids": [
+      "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+      "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+      "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+      "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+      "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced"
+    ],
+    "paper_evidence_adoption_authorized": false
+  },
+  "evidence_class": "preliminary_local_candidate_overlay_not_adopted",
+  "paper_evidence_adoption_authorized": false,
+  "cost_tuple": [
+    "N2q",
+    "D2q",
+    "Dc",
+    "S_alg"
+  ]
+}

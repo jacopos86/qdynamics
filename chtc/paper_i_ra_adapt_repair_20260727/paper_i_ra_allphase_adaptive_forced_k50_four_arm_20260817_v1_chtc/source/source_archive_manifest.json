@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "f8d1ce02b7409e032e112693cd888e9f7785579e7af2b906478700887f1fd74a",
+  "archive_size_bytes": 4899736,
+  "member_count": 576,
+  "members_sha256": "8d4137591a0abc322895b1f3d7a8c5bc73a40d300eb50cdd02e6d1a24e9e37c0",
+  "schema": "paper_i_ra_allphase_adaptive_forced_k50_four_arm_source_archive_v1",
+  "sha256": "68d93d12c6624453165510b3f62d7786656f440bfec4c01deb81c15521e0f63a",
+  "source_inventory_sha256": "b3d683675a2c229aca91016bcb7619da814d81c6587c76d9f48a16398edd5c9f"
+}

@@ -1,0 +1,9 @@
+{
+  "archive_sha256": "270f8f67a62a52e57020b5a2a33e751965f7a7a3264c788b6ec73acef17532f8",
+  "archive_size_bytes": 4897479,
+  "member_count": 576,
+  "members_sha256": "ab3d6025dba405f5a8a30b968d649545427439900594fcadf308c9981132bc5e",
+  "schema": "paper_i_ra_allphase_adaptive_always_open_position_source_archive_v1",
+  "sha256": "a87b48c0bec6560ca8fca1fe06be9a036c89982a98a0d7396acb25a0d1ccead2",
+  "source_inventory_sha256": "a8cadb7a435a3c1b8cd48b36659592e3bd3e08e742d081d98228b066dbd41e10"
+}

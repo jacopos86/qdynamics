@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from pipelines.reporting.paper_i_run_summary import (
+    _canonical_ra_semantic_closure_identities,
     _validate_canonical_identity,
 )
 from pipelines.static_adapt.ra_adapt.adapters import (
@@ -26,12 +27,54 @@ from pipelines.static_adapt.ra_adapt.engine import (
     _macro_parent_contract,
     _repaired_route_contract,
 )
+from pipelines.static_adapt.ra_adapt.l3_page12 import (
+    PAPER_I_L3_PAGE12_ALGORITHM_ID,
+    PAPER_I_L3_PAGE12_ROUTE_CONTRACT_SHA256,
+    build_paper_i_l3_page12_request,
+)
+from pipelines.static_adapt.ra_adapt.pools import (
+    PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS,
+)
+from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+    build_paper_i_ra_all_phase_position_adaptive_request,
+    semantic_closure_route_identity,
+)
 from pipelines.static_adapt.sr_snake.contracts import (
     AlwaysCommutationReducedInsertion,
     AppendOnlyInsertion,
     PlateauCommutationInsertion,
     SRMethodPolicy,
 )
+
+
+@pytest.mark.parametrize("horizon", (1, 5, 50))
+def test_semantic_reporting_rebuilds_every_authorized_horizon(
+    horizon: int,
+) -> None:
+    request = build_paper_i_ra_all_phase_position_adaptive_request(
+        insertion_policy="append_only",
+        maximum_controller_rounds=horizon,
+    )
+    identity = semantic_closure_route_identity(
+        request.adapter.route_variant
+    )
+    profile_request, profile, contract, digest = _repaired_route_contract(
+        request,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+        algorithm_id=identity.algorithm_id,
+    )
+    observed = (
+        str(contract["route_family"]),
+        str(profile_request),
+        str(profile),
+        str(digest),
+    )
+
+    assert observed in _canonical_ra_semantic_closure_identities(
+        request.method,
+        candidate_representation=request.adapter.candidate_representation_id,
+    )
 
 
 @pytest.mark.parametrize(
@@ -257,6 +300,61 @@ def test_summary_accepts_authenticated_named_ra_routes(
         route=route,
         canonical_reporting=SimpleNamespace(
             candidate_representation=adapter.candidate_representation_id,
+        ),
+    )
+
+    _validate_canonical_identity(source)
+
+
+@pytest.mark.parametrize(
+    "problem_request_sha256",
+    tuple(
+        lock["problem_request_sha256"]
+        for lock in PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS.values()
+    ),
+)
+def test_summary_accepts_authenticated_l3_nph3_problem_locks(
+    problem_request_sha256: str,
+) -> None:
+    request = build_paper_i_l3_page12_request()
+    method = request.method
+    profile_request, profile, contract, digest = _repaired_route_contract(
+        request,
+        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+        algorithm_id=PAPER_I_L3_PAGE12_ALGORITHM_ID,
+    )
+    assert digest == PAPER_I_L3_PAGE12_ROUTE_CONTRACT_SHA256
+    settings = contract["execution_settings"]
+    route = SimpleNamespace(
+        family=contract["route_family"],
+        profile_request=profile_request,
+        profile=profile,
+        contract_sha256=digest,
+        method=method,
+        admission_policy=method.admission.kind,
+        insertion_policy=method.insertion.kind,
+        pruning_policy=method.pruning.kind,
+        beam_policy=method.beam.kind,
+        execution=SimpleNamespace(
+            pool=settings["adapt_pool"],
+            phase0_enabled=settings["phase0_pilot_enabled"],
+            phase_live_hysteresis_enabled=(
+                settings["phase_live_hysteresis_enabled"]
+            ),
+        ),
+    )
+    source = SimpleNamespace(
+        problem=SimpleNamespace(
+            family_key="hh",
+            num_sites=3,
+            problem_request_sha256=problem_request_sha256,
+        ),
+        route=route,
+        canonical_reporting=SimpleNamespace(
+            candidate_representation=(
+                request.adapter.candidate_representation_id
+            ),
         ),
     )
 

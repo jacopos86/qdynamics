@@ -1,0 +1,32 @@
+{
+  "arm_id": "forced_plateau_position_phase0",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_forced_k50_request",
+  "campaign_id": "paper_i_ra_allphase_adaptive_forced_k50_four_arm_20260817_v1",
+  "execution_authorized": true,
+  "execution_id": "allphase_maxk50__forced_plateau_position_phase0__intermediate_weak__nph3",
+  "fresh_start": true,
+  "insertion_policy": "plateau_commutation",
+  "maximum_controller_rounds": 50,
+  "nph": 3,
+  "package_id": "paper_i_ra_allphase_adaptive_forced_k50_four_arm_20260817_v1_chtc",
+  "paper_adoption_authorized": false,
+  "phase0_population": "insertion_position_records",
+  "phase123_population": "insertion_position_records",
+  "protocol_file_sha256": "3005a1969cf2302f182d695d3d02aaf4acefd2ea5baa64ee5c0e3cc13ce4b833",
+  "protocol_path": "protocols/allphase_maxk50__forced_plateau_position_phase0__intermediate_weak__nph3.json",
+  "protocol_sha256": "297633dc88739eae32bc94e1ddb672700be835a208297155ebe65c51458d0574",
+  "regime_id": "intermediate_weak",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 20480,
+    "memory_mb": 8192,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1",
+  "route_contract_sha256": "925e936fc03693c06669d6cb2dde84b931ae0b65a1d84e7e30eca8455ab61ed2",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_forced_admission_k50_v1",
+  "schema": "paper_i_ra_allphase_adaptive_forced_k50_four_arm_maximum_k50_job_v1",
+  "sha256": "7c1d0947a9f1ec54561592818d71190f7d757489a50c0c12c45195fc483fa8a8",
+  "source_inventory_sha256": "b3d683675a2c229aca91016bcb7619da814d81c6587c76d9f48a16398edd5c9f",
+  "submission_authorized": true
+}

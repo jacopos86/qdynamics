@@ -1,0 +1,153 @@
+{
+  "activation_manifest": {
+    "canonical_sha256": "9aa36c3362257dfdcd8624bf091adfbaae28edb06e0abadcb8d6b6936533a36d",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/activation_manifest.json",
+    "sha256": "104a22a774cee5526c9272082ea884745e4f851c55097396ea1de2eeeaf47ca4",
+    "size_bytes": 8379
+  },
+  "archive": {
+    "declared_artifact_count": 7,
+    "inventory": [
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.estimator_call_ledger_checkpoint.e51b729095992c16.json",
+        "sha256": "e51b729095992c163d3328def9e57ac24f3cae1c039e27d1efc7412dfbbbbea2",
+        "size_bytes": 621593648
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.json",
+        "sha256": "f617755314105b42fa2db7e77ba8b9c390c416d2e6295f917f3b3724a54555de",
+        "size_bytes": 463583599
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/checkpoints/current.verified_singleton_resume.c109c946bfa5f8ee.json",
+        "sha256": "c109c946bfa5f8ee693cb1517ed444aec3f22af57d10d3ebd4921c0ae7282188",
+        "size_bytes": 5179
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+        "sha256": "41b724d899caa406a0cff5e67c3fa8b2529e0b2356325f0e35d80daf22955175",
+        "size_bytes": 2201
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/result/estimator_ledger.json",
+        "sha256": "e4426d331897ab1b4355fa1ef86e735b1355d2e532cf0c5197962f13bf40ca5b",
+        "size_bytes": 349330092
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/result/result.json",
+        "sha256": "c0c2e25e5c314d3f0faec026709abe547407ed8be8393f1410f829873015f12a",
+        "size_bytes": 55295382
+      },
+      {
+        "path": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+        "sha256": "bf524a8336d42e7bbb6013025f7dc03ed05ed4326a08f86f1ff5bb746c098a05",
+        "size_bytes": 58606
+      },
+      {
+        "path": "worker_exit_status.txt",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "size_bytes": 2
+      },
+      {
+        "path": "worker_receipt.json",
+        "sha256": "bf169780b9ba571b68c64d6235e01470b54538dd34a1611586b6d3ccbb33ebd5",
+        "size_bytes": 2913
+      }
+    ],
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page12_insertion_comparators_20260813/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__6.tar.gz",
+    "regular_member_count": 9,
+    "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/transfer/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__6.tar.gz",
+    "sha256": "935a75b2c47e6076c6893db4c5d6d44f09799da6c3a5ade48a5c2bbb9e888890",
+    "size_bytes": 324236143
+  },
+  "authentication_checks": {
+    "activation_manifest_passed": true,
+    "all_twelve_authorizations_passed": true,
+    "every_declared_artifact_hash_size_passed": true,
+    "exact_cluster_proc_mapping_passed": true,
+    "execution_manifest_self_digest_passed": true,
+    "full_member_inventory_hash_size_closure_passed": true,
+    "insertion_identity_passed": true,
+    "job_identity_passed": true,
+    "protocol_identity_passed": true,
+    "remote_local_identity_passed": true,
+    "route_identity_passed": true,
+    "sealed_package_identity_passed": true,
+    "source_identity_passed": true,
+    "tar_safety_and_unique_inventory_passed": true,
+    "target_authorization_passed": true,
+    "worker_receipt_self_digest_passed": true
+  },
+  "authorization": {
+    "canonical_sha256": "b155bc535fbea605ce3377545f83b5823b867f18a46178e64a8fd4d73857422f",
+    "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc_activation_v1/authorizations/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "79bc26cad4d5616fb4a6f9fe12dabc9eeee48fc56b60aca638f14cd14ab1ca60",
+    "size_bytes": 1756
+  },
+  "cluster_id": 9647385,
+  "comparator_policy": "append_only",
+  "controller_rounds_completed": 50,
+  "created_at_utc": "2026-08-13T16:00:35Z",
+  "execution_manifest": {
+    "canonical_sha256": "b710c7e6186f0de78482639a913c3b0b58877b61bb6bbd6ae9b81f8cfaa16acb",
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/execution_manifest.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_execution_manifest_v1",
+    "status": "passed"
+  },
+  "job": {
+    "canonical_sha256": "178eaacbac01c98a889f7f5c3f608a470bc516fb2128508409fc907aec01e123",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/jobs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "9d96cda4685e580d8c7bddccc6d4bd51cc89c44a3e511ed1e125232b1d7e6c2d",
+    "size_bytes": 5448
+  },
+  "network_performed_by_action": false,
+  "nph": 3,
+  "package_manifest": {
+    "canonical_sha256": "efce225efdc04653e8fca7e34eb3f467d4a6ec594e2130cde4bbea45e3d040e9",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/package_manifest.json",
+    "sha256": "4cf3df426f6b3545e51b90c0ffaf1f0755b989ae3644a067ca8cbcf98b5026bd",
+    "size_bytes": 23949
+  },
+  "paper_evidence_adopted": false,
+  "proc_id": 6,
+  "protocol": {
+    "canonical_sha256": "03d1f6bd03d8bbada9452889e83a6e9cfee74fb2cd5ef8897cc40e27fd8d0d74",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page12_insertion_comparators_r50_20260812_v1_chtc/bundle_materialization/ra_adapt_page12_insertion_comparators_r50_20260812_v1/protocols/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only.json",
+    "sha256": "273d61050320c9e3436cda2db7ce08f8970fa187b9ecf83c158e3eb9b307107c",
+    "size_bytes": 53679
+  },
+  "regime_id": "weak_weak",
+  "remote_local_identity_evidence": {
+    "canonical_sha256": "fcdd09189b3dfbeb23d0bb0711033e2ea0adeb2fb419c1bfe259874c572cc1e0",
+    "path": "chtc/paper_i_ra_adapt_repair_20260727/page12_insertion_comparator_closure_evidence/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only__9647385__6_remote_archive_identity.json",
+    "sha256": "ada410287d17da8e28f2d3a6d9158be3702e4e69706fd928387d81289c13ddaf",
+    "size_bytes": 1480
+  },
+  "route_contract_canonical_sha256": "5344f39726b283fdba78d1c49616a530cc881557ef12d4245bdd9691fb753e45",
+  "run_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+  "runtime_insertion_mode": "append_only",
+  "scheduler_mutation_performed_by_action": false,
+  "schema": "paper_i_ra_adapt_page12_insertion_comparator_closure_receipt_v1",
+  "scientific_execution_performed_by_action": false,
+  "sha256": "fc29df7e3df9770f75255056361b68d48c8595df275929e517a9e2dddb8e4e9b",
+  "source_archive": {
+    "path": "source/source_locked.tar.gz",
+    "sha256": "690d54dbf5bafcaaf974dc11339ed927cb7f5d117265ed51adbb811785740762",
+    "size_bytes": 2068501
+  },
+  "status": "passed_authenticated_page12_insertion_comparator_closure",
+  "summary_json": {
+    "path_inside_archive": "runs/global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only/summary/summary.json",
+    "sha256": "bf524a8336d42e7bbb6013025f7dc03ed05ed4326a08f86f1ff5bb746c098a05",
+    "size_bytes": 58606
+  },
+  "target_horizon": 50,
+  "typed_insertion_kind": "append_only",
+  "worker_receipt": {
+    "canonical_sha256": "6957ee12ef2d3089cf5c97a830874fef80359ed181a38f5cd69814480ea5dab7",
+    "path_inside_archive": "worker_receipt.json",
+    "schema": "paper_i_ra_adapt_gradient_phase0_phase23_qiskit_worker_receipt_v1",
+    "status": "passed"
+  }
+}

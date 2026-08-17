@@ -67,6 +67,12 @@ from pipelines.static_adapt.ra_adapt.pools import (
     CandidateRecord,
     build_candidate_inventory_lineage_receipt,
 )
+from pipelines.static_adapt.ra_adapt.l3_page12 import (
+    PAPER_I_L3_PAGE12_SOURCE_LOCK_KEY,
+    PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    paper_i_l3_page12_application_source_contract,
+    require_paper_i_l3_page12_problem,
+)
 from pipelines.static_adapt.ra_adapt.replay_evidence import (
     build_append_controller_replay_evidence,
     build_signed_append_prefix_checkpoint,
@@ -146,16 +152,40 @@ def _source_lock_receipts(
     }
 
 
-def _require_paper_i_problem(problem: ResolvedProblemContext) -> None:
+def _is_named_l3_append_application(
+    problem: ResolvedProblemContext,
+    request: AppendAdaptRequest,
+) -> bool:
+    if not isinstance(
+        request.adapter,
+        PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    ):
+        return False
+    require_paper_i_l3_page12_problem(problem)
+    return True
+
+
+def _require_paper_i_problem(
+    problem: ResolvedProblemContext,
+    request: AppendAdaptRequest | None = None,
+) -> None:
     if not isinstance(problem, ResolvedProblemContext):
         raise TypeError("problem must be a ResolvedProblemContext.")
+    if (
+        str(problem.family_key).strip().lower() == "hh"
+        and int(problem.request.num_sites) == 2
+    ):
+        return
+    if request is not None and _is_named_l3_append_application(problem, request):
+        return
     if (
         str(problem.family_key).strip().lower() != "hh"
         or int(problem.request.num_sites) != 2
     ):
         raise ValueError(
             "The canonical Paper-I Append-ADAPT facade is locked to the "
-            "Hubbard--Holstein L=2 problem."
+            "Hubbard--Holstein L=2 problem, except for the exact named "
+            "source-locked L=3 Page-12 weak-sector comparator adapter."
         )
 
 
@@ -167,7 +197,12 @@ def _append_inventories(
 
     adapter = request.adapter
     parent = adapter.parent_inventory(problem)
-    if isinstance(adapter, MacroCandidateAdapter):
+    if isinstance(
+        adapter,
+        PaperIL3Page12GlobalSingletonGradientPhase0CandidateAdapter,
+    ):
+        executable = adapter.global_executable_pool(problem)
+    elif isinstance(adapter, MacroCandidateAdapter):
         executable = adapter.executable_pool(problem)
     elif isinstance(adapter, SinglePauliWordCandidateAdapter):
         # This is the defining RA/Append representation difference.  Append
@@ -208,9 +243,9 @@ def build_resolved_append_protocol(
     through RA's staged response model.
     """
 
-    _require_paper_i_problem(problem)
     if not isinstance(request, AppendAdaptRequest):
         raise TypeError("request must be AppendAdaptRequest.")
+    _require_paper_i_problem(problem, request)
     if materialization_authority is None:
         active_gradient_policy = ACTIVE_GRADIENT_MEASURED
         resource_weighting_scope = RESOURCE_WEIGHTING_ALL_PHASE
@@ -270,6 +305,19 @@ def build_resolved_append_protocol(
     supplied_locks = {
         str(key): str(value) for key, value in supplied_locks.items()
     }
+    if _is_named_l3_append_application(problem, request):
+        application_source = paper_i_l3_page12_application_source_contract(
+            problem
+        )
+        if (
+            materialization_authority is None
+            or supplied_locks.get(PAPER_I_L3_PAGE12_SOURCE_LOCK_KEY)
+            != application_source["sha256"]
+        ):
+            raise ValueError(
+                "The named L=3 conventional Append comparator requires its "
+                "exact bundle application source lock."
+            )
     for key, expected in expected_locks.items():
         supplied = supplied_locks.get(key)
         if supplied is not None and supplied != expected:
@@ -360,7 +408,10 @@ def _validate_resolved_append_protocol(
     CandidateInventory,
     CandidateInventoryLineageReceipt,
 ]:
-    _require_paper_i_problem(problem)
+    request = protocol.request
+    if not isinstance(request, AppendAdaptRequest):
+        raise TypeError("Resolved Append protocol lost its typed request.")
+    _require_paper_i_problem(problem, request)
     if protocol.schema != APPEND_ADAPT_PROTOCOL_SCHEMA:
         raise ValueError("run_append_adapt requires an Append protocol.")
     if protocol.algorithm_id != APPEND_ADAPT_ALGORITHM_ID:
@@ -384,9 +435,6 @@ def _validate_resolved_append_protocol(
             "Resolved Append protocol requires the logical-shared native "
             "accepted-refit coordinates."
         )
-    request = protocol.request
-    if not isinstance(request, AppendAdaptRequest):
-        raise TypeError("Resolved Append protocol lost its typed request.")
     if int(request.execution.stop.maximum_controller_rounds) != int(
         protocol.horizon
     ):
@@ -411,6 +459,17 @@ def _validate_resolved_append_protocol(
         ):
             raise ValueError(
                 f"Resolved Append source lock {key!r} drifted."
+            )
+    if _is_named_l3_append_application(problem, request):
+        application_source = paper_i_l3_page12_application_source_contract(
+            problem
+        )
+        if (
+            protocol.source_locks.get(PAPER_I_L3_PAGE12_SOURCE_LOCK_KEY)
+            != application_source["sha256"]
+        ):
+            raise ValueError(
+                "Resolved L=3 Append application source lock drifted."
             )
     parent, executable = _append_inventories(problem, request)
     if not _same_pool_identity(parent, protocol.parent_inventory):
@@ -1427,8 +1486,8 @@ def run_append_adapt(
 ) -> AppendAdaptResult:
     """Execute one canonical Paper-I conventional Append-ADAPT request."""
 
-    _require_paper_i_problem(problem)
     if request is None:
+        _require_paper_i_problem(problem)
         public_request = AppendAdaptRequest()
         protocol = build_resolved_append_protocol(
             problem, public_request
@@ -1441,6 +1500,7 @@ def run_append_adapt(
         ) = _validate_resolved_append_protocol(problem, protocol)
     elif isinstance(request, AppendAdaptRequest):
         public_request = request
+        _require_paper_i_problem(problem, public_request)
         protocol = build_resolved_append_protocol(
             problem, public_request
         )
@@ -1452,6 +1512,9 @@ def run_append_adapt(
         ) = _validate_resolved_append_protocol(problem, protocol)
     elif isinstance(request, ResolvedRAAdaptProtocol):
         protocol = request
+        if not isinstance(protocol.request, AppendAdaptRequest):
+            raise TypeError("Resolved Append protocol lost its request.")
+        _require_paper_i_problem(problem, protocol.request)
         require_protocol_materialization_authority(
             protocol,
             ordinary_algorithm_id=APPEND_ADAPT_ALGORITHM_ID,

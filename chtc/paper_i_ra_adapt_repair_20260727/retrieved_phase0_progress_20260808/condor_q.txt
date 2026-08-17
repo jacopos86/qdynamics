@@ -1,0 +1,12 @@
+9605117 0 1 0 undefined undefined
+9605117 1 1 0 undefined undefined
+9605117 2 1 0 undefined undefined
+9605117 3 1 1 0 undefined
+9605117 4 1 1 0 undefined
+9605117 5 2 1 undefined undefined
+9605157 0 1 0 undefined undefined
+9605157 1 1 0 undefined undefined
+9605157 2 1 0 undefined undefined
+9605157 3 2 4 69 undefined
+9605157 4 2 1 undefined undefined
+9605157 5 2 1 undefined undefined

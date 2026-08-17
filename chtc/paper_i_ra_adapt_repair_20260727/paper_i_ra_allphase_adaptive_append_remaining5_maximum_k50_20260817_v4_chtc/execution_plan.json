@@ -1,0 +1,139 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "arms": [
+    {
+      "arm_id": "append_position_phase0",
+      "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+      "insertion_policy": "append_only",
+      "phase0_population": "insertion_position_records",
+      "phase123_population": "insertion_position_records",
+      "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2"
+    }
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v4",
+  "canonical_execution_order": [
+    "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-17T17:13:12.300050Z",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "209029da7687b0c5ca55457f196c15e3d8d108c76ef789fab80e5884a35fca1e",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "0050c9ab2b88bb629db658e593870162721abd67d6a6eae8bbf873c03b77eab6"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "f75534fe9d9b74060eae825d31031555ee1a1c51b1fc02ae9e607cea1fa3904a",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "ee9ae0289cec7ebe642ccdbdfe40d7e519c83566b454ba557bbbceb10974a6c3"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "7428a039d82273a7f3341cdbad0213ba3687f2691a16eaf270d382fd12d91cb7",
+      "path": "jobs/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "fd63770d587c10004c821367fe5c554b62bbd13243299ff3e1123852fee8cfe4"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "4a532ed0e3f68e0dc317e3180f4d6a5eac8f08f1afc3600a3ab716b4ccf80cf8",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "7885dbd25438fa3cad9fa1bef6ef14682659478ae052c0fb656b8fb55e31a6c0"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "957083825b4d0a72d4eaae73aeb48a634670f2c2534efdb2033b151f39704304",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "ae46fc670f3a0dd81e5ecf8eb44760e6c3dc92ebefb690aad6b62d9826233b40"
+    }
+  ],
+  "matrix_shape": {
+    "arms": 1,
+    "cells": 5,
+    "regimes": 5
+  },
+  "maximum_controller_rounds": 50,
+  "package_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v4_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "6af9ae9cc69d5c2bf718cea0b43277452fdb0c4394555cbcacd89a015675a7fc",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "3e59dc3839d4038c1b803d987fc5a2036ec81dc7d5fae4c349f935d868fdea9f"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "c4a251856d6d6ede2cea3730a87baeb7ab961c0735e3dd65bdb3ea9131da8b2a",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "d28ac38830c5cc94b0aabf8f036e41705a0704860241e4f1efbcb9e7cfbe9a88"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "4321b79ec406f9157b6de2949ef7606eec474d418340a8530e865d56ab7c4ac5",
+      "path": "protocols/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "7757eae14cf9b9d460a2bfe96fc9a56646aa2c62ef4aeeb6ff61e10ee9ddb67d"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "7e34824f04e2109cb2887d0b42daf442bdd864835de78881d275f7c2cfdcacb3",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "47784aa02fae38442e424564ddc2892c1dd60dbb226559b4b6aaf738040958d2"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "15f425d0513938ddfa42638e448ae6cf4ae93bd7937550fbffcc2ea7183a14af",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "cd4ebc9879f05e425b935a594527899b02e16609bb5487d8e061920aa6bfd4cb"
+    }
+  ],
+  "regimes": [
+    {
+      "nph": 3,
+      "regime_id": "intermediate_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "strong_weak_u8"
+    },
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "3": {
+      "cpus": 4,
+      "disk_mb": 20480,
+      "memory_mb": 8192,
+      "runtime_seconds": 259200
+    },
+    "7": {
+      "cpus": 4,
+      "disk_mb": 30720,
+      "memory_mb": 12288,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_plan_v1",
+  "sha256": "30899a8f9252e1c6decb8e017c450139ff366f0b0f8c3d9ba26edcacc1155cde",
+  "source_archive_sha256": "0bdf10a467fe39c0994341cace2fa1789ad07dcf8959efa30a0481bba3f60690",
+  "source_inventory_sha256": "ba468b7df462a12fec6ab81b6fa2beef272631a386df7b16bf868b9850d1034f",
+  "submission_authorized": false
+}

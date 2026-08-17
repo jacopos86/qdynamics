@@ -164,6 +164,9 @@ PHASE3_CANDIDATE_GAIN_POLICIES = frozenset(
         PHASE3_CANDIDATE_GAIN_JOINT_MINUS_ACTIVE_ONLY_V1,
     }
 )
+PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION = (
+    "paper_i_ra_phase0_proxy_ablation_phase123_qiskit_semantic_closure_v1"
+)
 
 
 @dataclass(frozen=True)
@@ -191,6 +194,7 @@ class FullScoreConfig:
     shot_sigma_star: float = 1.0
     hardware_cost_scale_floor: float = 1e-12
     hardware_cost_normalization_mode: str = "family_robust_v1"
+    phase3_signed_factor_consumer_semantic_version: str | None = None
     compile_cx_proxy_weight: float = 1.0
     compile_sq_proxy_weight: float = 0.5
     compile_rotation_step_weight: float = 1.0
@@ -293,6 +297,15 @@ OVERLAP_ORTHOGONAL_BENCHMARK_MAX = 0.15
 HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1 = "family_robust_v1"
 HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1 = (
     "family_robust_symmetric_arctan_v1"
+)
+HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1 = (
+    "zero_centered_signed_arctan_v1"
+)
+HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES = frozenset(
+    {
+        HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
+        HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
+    }
 )
 HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1 = "raw_legacy_v1"
 HARDWARE_COST_NORMALIZATION_SCHEMA = "snake_hardware_cost_family_robust_v1"
@@ -457,13 +470,102 @@ def _hardware_cost_bar_components(feat: CandidateFeatures) -> dict[str, float]:
     }
 
 
+def _signed_compiled_marginal_components(
+    feat: CandidateFeatures,
+) -> dict[str, float]:
+    backend = feat.compiled_position_cost_backend
+    if (
+        not isinstance(backend, Mapping)
+        or backend.get("negative_delta_reward_enabled") is not True
+    ):
+        raise ValueError(
+            "signed Qiskit cost scoring requires authenticated raw marginal "
+            "telemetry with negative-delta rewards enabled."
+        )
+    fields = {
+        "2q": "raw_delta_compiled_count_2q",
+        "d": "raw_delta_compiled_depth_2q",
+        "1q": "raw_delta_compiled_count_1q",
+    }
+    result: dict[str, float] = {}
+    for key, field_name in fields.items():
+        try:
+            value = float(backend[field_name])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "signed Qiskit cost scoring lacks a raw compiled marginal."
+            ) from exc
+        if not math.isfinite(value):
+            raise ValueError(
+                "signed Qiskit compiled marginals must be finite."
+            )
+        result[key] = value
+    result["theta"] = 0.0
+    result["shot"] = 0.0
+    return result
+
+
+def _zero_centered_signed_population_identity(
+    feat: CandidateFeatures,
+) -> dict[str, str]:
+    generator_id = feat.generator_id
+    if not isinstance(generator_id, str) or not generator_id.strip():
+        raise ValueError(
+            "zero-centered signed Qiskit normalization requires a nonempty "
+            "generator_id."
+        )
+    backend = feat.compiled_position_cost_backend
+    if not isinstance(backend, Mapping):
+        raise ValueError(
+            "zero-centered signed Qiskit normalization requires compiled "
+            "base/trial ansatz identities."
+        )
+    structure_keys: dict[str, str] = {}
+    for field_name in ("base_structure_key", "trial_structure_key"):
+        value = backend.get(field_name)
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise ValueError(
+                "zero-centered signed Qiskit normalization requires exact "
+                f"64-character lowercase SHA-256 {field_name}."
+            )
+        structure_keys[field_name] = value
+    if (
+        structure_keys["base_structure_key"]
+        == structure_keys["trial_structure_key"]
+    ):
+        raise ValueError(
+            "zero-centered signed Qiskit normalization requires distinct "
+            "base/trial ansatz identities."
+        )
+    return {
+        "generator_id": generator_id,
+        **structure_keys,
+    }
+
+
 def _hardware_cost_denominator_payload(feat: CandidateFeatures, cfg: Any) -> dict[str, Any]:
     lambdas, lambda_source = resolve_hardware_cost_lambdas(cfg)
     mode = _hardware_cost_normalization_mode(cfg)
     if (
         mode
-        == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
+        == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        and str(getattr(feat, "hardware_cost_policy", ""))
+        == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1
     ):
+        return _hardware_cost_denominator_payload(
+            feat,
+            replace(
+                cfg,
+                hardware_cost_normalization_mode=(
+                    HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1
+                ),
+            ),
+        )
+    if mode in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
         # Validate raw costs even when this is the neutral pre-family feature.
         # The family rescore later supplies the population-relative factor.
         _hardware_cost_raw_components(feat, strict=True)
@@ -472,16 +574,13 @@ def _hardware_cost_denominator_payload(feat: CandidateFeatures, cfg: Any) -> dic
         )
         if feature_policy not in {
             "unresolved",
-            HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
+            *HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES,
         }:
             raise ValueError(
                 "symmetric hardware-cost scoring received a feature normalized "
                 f"under incompatible policy {feature_policy!r}."
             )
-        if (
-            feature_policy
-            == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
-        ):
+        if feature_policy in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
             signed_raw = getattr(feat, "hardware_cost_signed_components", {})
             if not isinstance(signed_raw, Mapping):
                 raise ValueError(
@@ -557,6 +656,205 @@ def _hardware_cost_denominator_payload(feat: CandidateFeatures, cfg: Any) -> dic
     }
 
 
+def _validated_multiplicative_signed_factor_feature(
+    feat: CandidateFeatures,
+    cfg: Any,
+    *,
+    configured_policy: str,
+) -> str:
+    """Validate one population-normalized multiplicative signed-cost feature."""
+
+    if configured_policy not in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
+        raise ValueError(
+            "Signed-factor feature validation requires a multiplicative "
+            "signed-factor policy."
+        )
+    feature_policy = str(
+        getattr(feat, "hardware_cost_policy", "unresolved") or "unresolved"
+    )
+    if feature_policy != configured_policy:
+        raise ValueError(
+            "Signed-factor Phase-III coordinate-model rescore requires a "
+            "population-normalized feature whose policy matches the "
+            "configured normalization policy."
+        )
+    normalization = getattr(feat, "hardware_cost_normalization", None)
+    if not isinstance(normalization, Mapping) or not normalization:
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks its normalization receipt."
+        )
+    if (
+        str(normalization.get("schema", ""))
+        != HARDWARE_COST_SYMMETRIC_ARCTAN_SCHEMA
+        or str(normalization.get("policy", "")) != configured_policy
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature was normalized under a different "
+            "policy or schema."
+        )
+    population_hash = getattr(feat, "hardware_cost_population_hash", None)
+    if (
+        not isinstance(population_hash, str)
+        or len(population_hash) != 64
+        or any(ch not in "0123456789abcdef" for ch in population_hash)
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks a valid population SHA-256."
+        )
+    phase_cost = getattr(feat, "phase_cost_components", None)
+    if not isinstance(phase_cost, Mapping):
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks cost-component telemetry."
+        )
+    if (
+        normalization.get("population_hash") != population_hash
+        or phase_cost.get("hardware_cost_population_hash") != population_hash
+        or phase_cost.get("hardware_cost_policy") != configured_policy
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature has stale or mixed population "
+            "normalization telemetry."
+        )
+
+    raw = (
+        _signed_compiled_marginal_components(feat)
+        if configured_policy
+        == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        else _hardware_cost_raw_components(feat, strict=True)
+    )
+    raw_receipt = normalization.get("raw")
+    signed_receipt = normalization.get("signed_components")
+    feature_signed = getattr(feat, "hardware_cost_signed_components", None)
+    if (
+        not isinstance(raw_receipt, Mapping)
+        or not isinstance(signed_receipt, Mapping)
+        or not isinstance(feature_signed, Mapping)
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks raw or normalized components."
+        )
+    medians = normalization.get("medians")
+    scales = normalization.get("scales")
+    uniform_components = normalization.get("uniform_components")
+    if (
+        not isinstance(medians, Mapping)
+        or not isinstance(scales, Mapping)
+        or not isinstance(uniform_components, Mapping)
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III normalization statistics are incomplete."
+        )
+    scale_floor = _hardware_cost_scale_floor(cfg)
+    validated_signed: dict[str, float] = {}
+    for key in _HARDWARE_COST_COMPONENTS:
+        try:
+            raw_value = float(raw[key])
+            raw_receipt_value = float(raw_receipt[key])
+            median = float(medians[key])
+            scale = float(scales[key])
+            normalized_value = float(signed_receipt[key])
+            feature_value = float(feature_signed[key])
+            phase_value = float(phase_cost[f"c_bar_{key}"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "Signed-factor Phase-III feature has incomplete normalized "
+                "components."
+            ) from exc
+        if (
+            not math.isclose(raw_receipt_value, raw_value, rel_tol=1e-12, abs_tol=1e-12)
+            or not math.isfinite(median)
+            or not math.isfinite(scale)
+            or scale < scale_floor
+        ):
+            raise ValueError(
+                "Signed-factor Phase-III normalization receipt is stale."
+            )
+        centered = (
+            raw_value
+            if configured_policy
+            == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+            else raw_value - median
+        )
+        expected = float((2.0 / math.pi) * math.atan(centered / scale))
+        if bool(uniform_components.get(key, False)):
+            expected = 0.0
+        expected = float(max(-1.0, min(1.0, expected)))
+        if not all(
+            math.isclose(value, expected, rel_tol=1e-12, abs_tol=1e-12)
+            for value in (normalized_value, feature_value, phase_value)
+        ):
+            raise ValueError(
+                "Signed-factor Phase-III normalized components are stale or mixed."
+            )
+        validated_signed[key] = expected
+
+    lambdas, _lambda_source = resolve_hardware_cost_lambdas(cfg)
+    normalization_lambdas = normalization.get("lambdas")
+    feature_lambdas = getattr(feat, "hardware_cost_lambdas", None)
+    if not isinstance(normalization_lambdas, Mapping) or not isinstance(
+        feature_lambdas, Mapping
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks normalized cost weights."
+        )
+    for key in _HARDWARE_COST_COMPONENTS:
+        try:
+            expected_lambda = float(lambdas[key])
+            normalized_lambda = float(normalization_lambdas[key])
+            feature_lambda = float(feature_lambdas[key])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "Signed-factor Phase-III feature has incomplete cost weights."
+            ) from exc
+        if not (
+            math.isclose(normalized_lambda, expected_lambda, rel_tol=1e-12, abs_tol=1e-12)
+            and math.isclose(feature_lambda, expected_lambda, rel_tol=1e-12, abs_tol=1e-12)
+        ):
+            raise ValueError(
+                "Signed-factor Phase-III feature was normalized with stale cost weights."
+            )
+    lambda_total = float(sum(float(lambdas[key]) for key in _HARDWARE_COST_COMPONENTS))
+    expected_index = (
+        0.0
+        if lambda_total <= 0.0
+        else float(
+            sum(
+                float(lambdas[key]) * float(validated_signed[key])
+                for key in _HARDWARE_COST_COMPONENTS
+            )
+            / lambda_total
+        )
+    )
+    expected_index = float(max(-1.0, min(1.0, expected_index)))
+    expected_factor = float(max(0.5, min(1.5, 1.0 - 0.5 * expected_index)))
+    try:
+        observed_indices = (
+            float(feat.hardware_cost_signed_index),
+            float(normalization["signed_index"]),
+            float(phase_cost["hardware_cost_signed_index"]),
+        )
+        observed_factors = (
+            float(feat.hardware_cost_score_factor),
+            float(normalization["score_factor"]),
+            float(phase_cost["hardware_cost_score_factor"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "Signed-factor Phase-III feature lacks score-factor closure."
+        ) from exc
+    if not all(
+        math.isclose(value, expected_index, rel_tol=1e-12, abs_tol=1e-12)
+        for value in observed_indices
+    ) or not all(
+        math.isclose(value, expected_factor, rel_tol=1e-12, abs_tol=1e-12)
+        for value in observed_factors
+    ):
+        raise ValueError(
+            "Signed-factor Phase-III feature has stale score-factor telemetry."
+        )
+    return population_hash
+
+
 def _cheap_burden_total_from_hardware_cost(feat: CandidateFeatures, cfg: Any) -> float:
     return float(_hardware_cost_denominator_payload(feat, cfg)["hardware_cost_denominator"])
 
@@ -589,6 +887,9 @@ def _hardware_cost_normalization_mode(cfg: Any) -> str:
         "snake_hardware_cost_family_robust_symmetric_arctan_v1": (
             HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
         ),
+        "signed_zero_centered": (
+            HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
         "raw": HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1,
         "legacy_raw": HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1,
         "raw_legacy": HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1,
@@ -599,8 +900,8 @@ def _hardware_cost_normalization_mode(cfg: Any) -> str:
     mode = aliases.get(mode, mode)
     allowed = {
         HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1,
-        HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
         HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1,
+        *HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES,
     }
     if mode not in allowed:
         raise ValueError(
@@ -608,6 +909,36 @@ def _hardware_cost_normalization_mode(cfg: Any) -> str:
             f"{sorted(allowed)}."
         )
     return str(mode)
+
+
+def require_phase3_signed_factor_consumer_semantic_version(
+    cfg: Any,
+) -> str | None:
+    """Refuse corrected zero-centered Phase-III semantics under old routes."""
+
+    if (
+        _hardware_cost_normalization_mode(cfg)
+        != HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+    ):
+        return None
+    observed = str(
+        getattr(
+            cfg,
+            "phase3_signed_factor_consumer_semantic_version",
+            "",
+        )
+        or ""
+    )
+    if (
+        observed
+        != PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION
+    ):
+        raise RuntimeError(
+            "Corrected zero-centered Phase-III factor consumption requires "
+            "the new Paper-I semantic implementation version; historical "
+            "affected route digests are not executable under this consumer."
+        )
+    return observed
 
 
 def _legacy_hardware_cost_family_normalization(
@@ -644,6 +975,7 @@ def _legacy_hardware_cost_family_normalization(
 
 def _symmetric_hardware_cost_population_hash(
     *,
+    policy: str,
     features: Sequence[CandidateFeatures],
     raw_rows: Sequence[Mapping[str, float]],
     medians: Mapping[str, float],
@@ -651,31 +983,48 @@ def _symmetric_hardware_cost_population_hash(
     lambdas: Mapping[str, float],
     scale_floor: float,
 ) -> str:
+    if policy not in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
+        raise ValueError(
+            "Signed hardware-cost population hash requires a multiplicative "
+            "signed-factor policy."
+        )
     rows: list[dict[str, Any]] = []
     for feat, raw in zip(features, raw_rows):
-        rows.append(
-            {
-                "candidate_label": str(feat.candidate_label),
-                "candidate_pool_index": int(feat.candidate_pool_index),
-                "position_id": int(feat.position_id),
-                "raw": {
-                    key: float(raw[key]) for key in _HARDWARE_COST_COMPONENTS
-                },
-            }
+        row = {
+            "candidate_label": str(feat.candidate_label),
+            "candidate_pool_index": int(feat.candidate_pool_index),
+            "position_id": int(feat.position_id),
+            "raw": {
+                key: float(raw[key]) for key in _HARDWARE_COST_COMPONENTS
+            },
+        }
+        if policy == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1:
+            row.update(_zero_centered_signed_population_identity(feat))
+        rows.append(row)
+    if policy == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1:
+        rows.sort(
+            key=lambda row: (
+                int(row["candidate_pool_index"]),
+                int(row["position_id"]),
+                str(row["candidate_label"]),
+                str(row["generator_id"]),
+                str(row["base_structure_key"]),
+                str(row["trial_structure_key"]),
+                json.dumps(row["raw"], sort_keys=True, separators=(",", ":")),
+            )
         )
-    rows.sort(
-        key=lambda row: (
-            int(row["candidate_pool_index"]),
-            int(row["position_id"]),
-            str(row["candidate_label"]),
-            json.dumps(row["raw"], sort_keys=True, separators=(",", ":")),
+    else:
+        rows.sort(
+            key=lambda row: (
+                int(row["candidate_pool_index"]),
+                int(row["position_id"]),
+                str(row["candidate_label"]),
+                json.dumps(row["raw"], sort_keys=True, separators=(",", ":")),
+            )
         )
-    )
     payload = {
         "schema": HARDWARE_COST_SYMMETRIC_ARCTAN_SCHEMA,
-        "policy": (
-            HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
-        ),
+        "policy": str(policy),
         "component_order": list(_HARDWARE_COST_COMPONENTS),
         "rows": rows,
         "medians": {
@@ -730,6 +1079,7 @@ def _symmetric_hardware_cost_family_normalization(
         uniform_components[key] = bool(uniform)
     lambdas, lambda_source = resolve_hardware_cost_lambdas(cfg)
     population_hash = _symmetric_hardware_cost_population_hash(
+        policy=HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1,
         features=feature_list,
         raw_rows=raw_rows,
         medians=medians,
@@ -757,6 +1107,64 @@ def _symmetric_hardware_cost_family_normalization(
     }
 
 
+def _zero_centered_signed_hardware_cost_normalization(
+    features: Sequence[CandidateFeatures],
+    cfg: Any,
+) -> dict[str, Any]:
+    """Build a bounded zero-centered transform of signed Qiskit marginals."""
+
+    feature_list = list(features)
+    scale_floor = _hardware_cost_scale_floor(cfg)
+    raw_rows = [
+        _signed_compiled_marginal_components(feat)
+        for feat in feature_list
+    ]
+    scales: dict[str, float] = {}
+    uniform_components: dict[str, bool] = {}
+    for key in _HARDWARE_COST_COMPONENTS:
+        magnitudes = np.asarray(
+            [abs(float(raw[key])) for raw in raw_rows],
+            dtype=float,
+        )
+        nonzero = magnitudes[magnitudes > 0.0]
+        scale = float(np.median(nonzero)) if nonzero.size else scale_floor
+        scales[key] = float(max(scale_floor, scale))
+        uniform_components[key] = bool(
+            not raw_rows
+            or all(float(raw[key]) == 0.0 for raw in raw_rows)
+        )
+    medians = {key: 0.0 for key in _HARDWARE_COST_COMPONENTS}
+    lambdas, lambda_source = resolve_hardware_cost_lambdas(cfg)
+    population_hash = _symmetric_hardware_cost_population_hash(
+        policy=HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
+        features=feature_list,
+        raw_rows=raw_rows,
+        medians=medians,
+        scales=scales,
+        lambdas=lambdas,
+        scale_floor=scale_floor,
+    )
+    return {
+        "schema": HARDWARE_COST_SYMMETRIC_ARCTAN_SCHEMA,
+        "policy": (
+            HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+        ),
+        "medians": medians,
+        "scales": scales,
+        "mad_scales": dict(scales),
+        "uniform_components": uniform_components,
+        "scale_floor": float(scale_floor),
+        "lambdas": lambdas,
+        "lambda_source": str(lambda_source),
+        "population_hash": str(population_hash),
+        "component_transform": "(2/pi)*atan(raw_signed_delta/scale)",
+        "weighted_index_formula": "sum(lambda_a*u_a)/sum(lambda_a)",
+        "score_factor_formula": "1-0.5*weighted_index",
+        "score_factor_bounds": [0.5, 1.5],
+        "zero_centered": True,
+    }
+
+
 def hardware_cost_family_normalization(
     features: Sequence[CandidateFeatures],
     cfg: Any,
@@ -764,10 +1172,11 @@ def hardware_cost_family_normalization(
     """Compute the requested population-level hardware-cost normalization."""
 
     mode = _hardware_cost_normalization_mode(cfg)
-    if (
-        mode
-        == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
-    ):
+    if mode == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1:
+        return _zero_centered_signed_hardware_cost_normalization(
+            features, cfg
+        )
+    if mode == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1:
         return _symmetric_hardware_cost_family_normalization(features, cfg)
     return _legacy_hardware_cost_family_normalization(features, cfg)
 
@@ -958,7 +1367,7 @@ def apply_symmetric_hardware_cost_normalization(
         raise ValueError("symmetric hardware-cost normalization must be a mapping.")
     policy = str(normalization.get("policy", ""))
     schema = str(normalization.get("schema", ""))
-    if policy != HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1:
+    if policy not in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
         raise ValueError(
             "symmetric hardware-cost normalization has an incompatible policy."
         )
@@ -976,7 +1385,15 @@ def apply_symmetric_hardware_cost_normalization(
             "symmetric hardware-cost normalization lacks a valid population SHA-256."
         )
 
-    raw = _hardware_cost_raw_components(feat, strict=True)
+    zero_centered_signed = bool(
+        policy
+        == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1
+    )
+    raw = (
+        _signed_compiled_marginal_components(feat)
+        if zero_centered_signed
+        else _hardware_cost_raw_components(feat, strict=True)
+    )
     medians = dict(normalization.get("medians", {}))
     scales = dict(normalization.get("scales", {}))
     uniform_components = dict(normalization.get("uniform_components", {}))
@@ -990,7 +1407,9 @@ def apply_symmetric_hardware_cost_normalization(
             raise ValueError(
                 "symmetric hardware-cost normalization has incomplete component statistics."
             ) from exc
-        if not math.isfinite(median) or median < 0.0:
+        if not math.isfinite(median) or (
+            not zero_centered_signed and median < 0.0
+        ):
             raise ValueError(
                 "symmetric hardware-cost medians must be finite and nonnegative."
             )
@@ -998,7 +1417,12 @@ def apply_symmetric_hardware_cost_normalization(
             raise ValueError(
                 "symmetric hardware-cost scales must be finite and respect the floor."
             )
-        value = float((2.0 / math.pi) * math.atan((float(raw[key]) - median) / scale))
+        centered = (
+            float(raw[key])
+            if zero_centered_signed
+            else float(raw[key]) - median
+        )
+        value = float((2.0 / math.pi) * math.atan(centered / scale))
         if bool(uniform_components.get(key, False)):
             value = 0.0
         signed[key] = float(max(-1.0, min(1.0, value)))
@@ -1141,8 +1565,45 @@ def normalize_hardware_cost_feature_family(
     mode = _hardware_cost_normalization_mode(cfg)
     if mode == HARDWARE_COST_NORMALIZATION_RAW_LEGACY_V1:
         return [apply_raw_legacy_hardware_cost(feat, cfg) for feat in features]
+    if mode == HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1:
+        signed_flags = [
+            isinstance(feat.compiled_position_cost_backend, Mapping)
+            and feat.compiled_position_cost_backend.get(
+                "negative_delta_reward_enabled"
+            )
+            is True
+            for feat in features
+        ]
+        if not any(signed_flags):
+            if any(
+                str(feat.compile_cost_source) == "backend_transpile_v1"
+                for feat in features
+            ):
+                raise ValueError(
+                    "Qiskit-scored population lost signed marginal-cost "
+                    "telemetry."
+                )
+            proxy_cfg = replace(
+                cfg,
+                hardware_cost_normalization_mode=(
+                    HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1
+                ),
+            )
+            normalization = hardware_cost_family_normalization(
+                features, proxy_cfg
+            )
+            return [
+                apply_hardware_cost_normalization(
+                    feat, proxy_cfg, normalization
+                )
+                for feat in features
+            ]
+        if not all(signed_flags):
+            raise ValueError(
+                "Qiskit-scored population mixes signed and unsigned costs."
+            )
     normalization = hardware_cost_family_normalization(features, cfg)
-    if mode == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1:
+    if mode in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES:
         return [
             apply_symmetric_hardware_cost_normalization(feat, cfg, normalization)
             for feat in features
@@ -13266,12 +13727,17 @@ def rescore_historical_phase3_records_with_coordinate_models(
         if cfg is None
         else _hardware_cost_normalization_mode(cfg)
     )
-    symmetric_hardware_cost_active = bool(
+    phase3_signed_factor_consumer_semantic_version = None
+    if cfg is not None:
+        phase3_signed_factor_consumer_semantic_version = (
+            require_phase3_signed_factor_consumer_semantic_version(cfg)
+        )
+    multiplicative_signed_hardware_cost_active = bool(
         hardware_cost_normalization_mode
-        == HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
+        in HARDWARE_COST_MULTIPLICATIVE_SIGNED_FACTOR_POLICIES
     )
     phase3_score_formula = PHASE3_CANONICAL_SCORE_FORMULA
-    if symmetric_hardware_cost_active:
+    if multiplicative_signed_hardware_cost_active:
         phase3_score_formula = (
             "DeltaE_TR * hardware_cost_score_factor / (1 + K3)"
         )
@@ -13334,6 +13800,8 @@ def rescore_historical_phase3_records_with_coordinate_models(
         else "all_whitened_energy_models_infeasible"
     )
     coordinate_summaries: list[dict[str, Any]] = []
+    signed_factor_population_hashes: set[str] = set()
+    signed_factor_population_features: list[CandidateFeatures] = []
     for raw_record in records:
         feature = raw_record.get("feature")
         if not isinstance(feature, CandidateFeatures):
@@ -13341,6 +13809,20 @@ def rescore_historical_phase3_records_with_coordinate_models(
                 "Historical Phase-III coordinate-model rescore requires "
                 "CandidateFeatures on every retained record."
             )
+        if multiplicative_signed_hardware_cost_active:
+            if cfg is None:  # pragma: no cover - implied by the active-policy gate
+                raise RuntimeError(
+                    "Signed-factor Phase-III coordinate rescoring requires "
+                    "FullScoreConfig."
+                )
+            signed_factor_population_hashes.add(
+                _validated_multiplicative_signed_factor_feature(
+                    feature,
+                    cfg,
+                    configured_policy=hardware_cost_normalization_mode,
+                )
+            )
+            signed_factor_population_features.append(feature)
         summary = dict(feature.phase2_joint_geometry_reuse or {})
         if str(summary.get("schema", "")) != (
             HISTORICAL_SINGLETON_COORDINATE_MODEL_SCHEMA
@@ -13383,6 +13865,29 @@ def rescore_historical_phase3_records_with_coordinate_models(
                 "candidate-gain receipt."
             )
         coordinate_summaries.append(summary)
+    if multiplicative_signed_hardware_cost_active:
+        if cfg is None:  # pragma: no cover - implied by the active-policy gate
+            raise RuntimeError(
+                "Signed-factor Phase-III coordinate rescoring requires "
+                "FullScoreConfig."
+            )
+        expected_population_normalization = hardware_cost_family_normalization(
+            signed_factor_population_features,
+            cfg,
+        )
+        expected_population_hash = expected_population_normalization.get(
+            "population_hash"
+        )
+        if (
+            expected_population_normalization.get("policy")
+            != hardware_cost_normalization_mode
+            or not isinstance(expected_population_hash, str)
+            or signed_factor_population_hashes != {expected_population_hash}
+        ):
+            raise ValueError(
+                "Signed-factor Phase-III records do not close to exactly one "
+                "configured normalized hardware-cost population."
+            )
     geometry_expansion_active = bool(
         deferred_fallback_enabled
         and
@@ -13472,27 +13977,26 @@ def rescore_historical_phase3_records_with_coordinate_models(
                 "saved denominator."
             )
         hardware_cost_score_factor = 1.0
-        if symmetric_hardware_cost_active:
+        if multiplicative_signed_hardware_cost_active:
             if cfg is None:  # pragma: no cover - implied by the active-policy gate
                 raise RuntimeError(
-                    "Symmetric Phase-III coordinate rescoring requires FullScoreConfig."
+                    "Signed-factor Phase-III coordinate rescoring requires "
+                    "FullScoreConfig."
+                )
+            feature_cost_policy = str(
+                getattr(feature, "hardware_cost_policy", "unresolved")
+                or "unresolved"
+            )
+            if feature_cost_policy != hardware_cost_normalization_mode:
+                raise ValueError(
+                    "Signed-factor Phase-III coordinate-model rescore requires "
+                    "a population-normalized hardware-cost feature whose policy "
+                    "matches the configured policy."
                 )
             hardware_cost_payload = _hardware_cost_denominator_payload(
                 feature,
                 cfg,
             )
-            feature_cost_policy = str(
-                getattr(feature, "hardware_cost_policy", "unresolved")
-                or "unresolved"
-            )
-            if (
-                feature_cost_policy
-                != HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_SYMMETRIC_ARCTAN_V1
-            ):
-                raise ValueError(
-                    "Symmetric Phase-III coordinate-model rescore requires a "
-                    "population-normalized hardware-cost feature."
-                )
             payload_denominator = float(
                 hardware_cost_payload["hardware_cost_denominator"]
             )
@@ -13503,8 +14007,8 @@ def rescore_historical_phase3_records_with_coordinate_models(
                 abs_tol=1e-12,
             ):
                 raise ValueError(
-                    "Symmetric Phase-III coordinate-model cost payload disagrees "
-                    "with its saved denominator."
+                    "Signed-factor Phase-III coordinate-model cost payload "
+                    "disagrees with its saved denominator."
                 )
             hardware_cost_score_factor = float(
                 hardware_cost_payload["hardware_cost_score_factor"]
@@ -14849,8 +15353,14 @@ def rescore_historical_phase3_records_with_coordinate_models(
         "hardware_cost_normalization_mode": str(
             hardware_cost_normalization_mode
         ),
+        "phase3_signed_factor_consumer_semantic_version": (
+            phase3_signed_factor_consumer_semantic_version
+        ),
         "symmetric_hardware_cost_factor_applied": bool(
-            symmetric_hardware_cost_active
+            multiplicative_signed_hardware_cost_active
+        ),
+        "multiplicative_signed_hardware_cost_factor_applied": bool(
+            multiplicative_signed_hardware_cost_active
         ),
         "phase3_novelty_status": (
             GRAM_NOVELTY_STATUS_COMPUTED_FOR_GEOMETRY_EXPANSION
@@ -14886,7 +15396,7 @@ def rescore_historical_phase3_records_with_coordinate_models(
                 if geometry_expansion_active
                 else "off"
             )
-            if symmetric_hardware_cost_active
+            if multiplicative_signed_hardware_cost_active
             else (
                 "N3/(1+K3)"
                 if geometry_expansion_active
@@ -18659,6 +19169,55 @@ def build_candidate_features(
                 "target_backend_names": [str(x) for x in compile_cost.target_backend_names],
                 "successful_target_count": int(compile_cost.successful_target_count),
                 "failed_target_count": int(compile_cost.failed_target_count),
+                "candidate_label": (
+                    None
+                    if not isinstance(compile_cost.selected_backend_row, Mapping)
+                    else compile_cost.selected_backend_row.get(
+                        "candidate_label"
+                    )
+                ),
+                "position_id": (
+                    None
+                    if not isinstance(compile_cost.selected_backend_row, Mapping)
+                    else compile_cost.selected_backend_row.get("position_id")
+                ),
+                "candidate_polynomial_sha256": (
+                    None
+                    if not isinstance(compile_cost.selected_backend_row, Mapping)
+                    else compile_cost.selected_backend_row.get(
+                        "candidate_polynomial_sha256"
+                    )
+                ),
+                "compile_cache_identity": (
+                    None
+                    if (
+                        not isinstance(
+                            compile_cost.selected_backend_row,
+                            Mapping,
+                        )
+                        or not isinstance(
+                            compile_cost.selected_backend_row.get(
+                                "compile_cache_identity"
+                            ),
+                            Mapping,
+                        )
+                    )
+                    else dict(
+                        compile_cost.selected_backend_row[
+                            "compile_cache_identity"
+                        ]
+                    )
+                ),
+                "compile_cache_identity_sha256": (
+                    None
+                    if not isinstance(
+                        compile_cost.selected_backend_row,
+                        Mapping,
+                    )
+                    else compile_cost.selected_backend_row.get(
+                        "compile_cache_identity_sha256"
+                    )
+                ),
                 "base_structure_key": (
                     None
                     if not isinstance(compile_cost.selected_backend_row, Mapping)
@@ -18747,6 +19306,13 @@ def build_candidate_features(
                 "c_hat_1q": float(compile_cost.c_hat_1q),
                 "c_hat_theta": float(compile_cost.c_hat_theta),
                 "hardware_cost_source": str(compile_cost.hardware_cost_source),
+                "negative_delta_reward_enabled": bool(
+                    isinstance(compile_cost.selected_backend_row, Mapping)
+                    and compile_cost.selected_backend_row.get(
+                        "negative_delta_reward_enabled"
+                    )
+                    is True
+                ),
                 }
         ),
         phase_score_components={},

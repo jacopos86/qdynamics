@@ -5300,12 +5300,51 @@ def extract_verified_singleton_resume_checkpoint(
         adapt,
         "history_tail_count",
         owner="adapt_vqe",
-        minimum=1,
+        minimum=0,
     )
-    if history_tail_count != history_count or len(history_tail_cleaned) != history_count:
-        raise ValueError(f"{context} requires the complete history tail.")
-    if digest_jsonable(history_tail_cleaned) != digest_jsonable(history):
-        raise ValueError(f"{context} history and history tail disagree.")
+    retention = adapt.get("history_tail_retention")
+    compact_tail = (
+        isinstance(retention, Mapping)
+        and str(retention.get("schema", ""))
+        == "static_adapt_verified_resume_history_retention_v2"
+    )
+    if compact_tail:
+        requested_limit = _int_field(
+            retention,
+            "requested_limit",
+            owner="adapt_vqe.history_tail_retention",
+            minimum=0,
+        )
+        expected_tail_count = min(requested_limit, history_count)
+        expected_tail = (
+            []
+            if expected_tail_count == 0
+            else history[-expected_tail_count:]
+        )
+        if (
+            int(retention.get("serialized_complete_history_count", -1))
+            != history_count
+            or int(retention.get("serialized_tail_count", -1))
+            != expected_tail_count
+            or int(retention.get("requested_window_count", -1))
+            != expected_tail_count
+            or history_tail_count != expected_tail_count
+            or len(history_tail_cleaned) != expected_tail_count
+            or digest_jsonable(history_tail_cleaned)
+            != digest_jsonable(expected_tail)
+        ):
+            raise ValueError(
+                f"{context} compact history tail does not authenticate the "
+                "declared complete history suffix."
+            )
+    else:
+        if (
+            history_tail_count != history_count
+            or len(history_tail_cleaned) != history_count
+        ):
+            raise ValueError(f"{context} requires the complete history tail.")
+        if digest_jsonable(history_tail_cleaned) != digest_jsonable(history):
+            raise ValueError(f"{context} history and history tail disagree.")
 
     controller_round = _int_field(
         checkpoint,

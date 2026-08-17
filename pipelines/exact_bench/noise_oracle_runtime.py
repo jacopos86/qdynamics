@@ -9,6 +9,7 @@ Qiskit primitives at the boundary.
 from __future__ import annotations
 
 import gzip
+import hmac
 import json
 import os
 import inspect
@@ -403,6 +404,46 @@ _RUNTIME_SESSION_POLICY_MODES = {"prefer_session", "require_session", "backend_o
 _VALUE_NOISE_MODELS = {"off", "gaussian_iid_v1"}
 _VALUE_NOISE_SEMANTIC = "post_expectation_value_noise_not_physical_shots"
 _SHOT_EQUIVALENT_VALUE_NOISE_SEMANTIC = "snake_function_value_noise_shot_equivalent_v1"
+_VALUE_NOISE_RNG_STATE_SCHEMA = "expectation_oracle_value_noise_rng_state_v1"
+
+
+def _value_noise_rng_config_payload(config: OracleConfig) -> dict[str, Any]:
+    """Return the exact normalized config that owns the IID value-noise stream."""
+
+    return {
+        "value_noise_model": str(config.value_noise_model),
+        "value_noise_std": float(config.value_noise_std),
+        "value_noise_seed": (
+            None if config.value_noise_seed is None else int(config.value_noise_seed)
+        ),
+        "value_noise_sigma0_abs": (
+            None
+            if config.value_noise_sigma0_abs is None
+            else float(config.value_noise_sigma0_abs)
+        ),
+        "value_noise_n_eff": (
+            None if config.value_noise_n_eff is None else float(config.value_noise_n_eff)
+        ),
+        "value_noise_semantic": str(config.value_noise_semantic),
+        "value_noise_std_source": str(config.value_noise_std_source),
+        "oracle_config_seed": int(config.seed),
+        "oracle_repeats": int(config.oracle_repeats),
+        "oracle_aggregate": str(config.oracle_aggregate),
+        "execution_surface": str(config.execution_surface),
+    }
+
+
+def _value_noise_rng_policy_payload() -> dict[str, Any]:
+    """Return the stable semantics of the resumable IID draw stream."""
+
+    return {
+        "schema": "expectation_oracle_value_noise_rng_policy_v1",
+        "model": "gaussian_iid_v1",
+        "distribution": "normal",
+        "independence": "sequential_iid_draws_v1",
+        "draw_accounting": "one_draw_per_raw_expectation_sample_v1",
+        "bit_generator_class": "PCG64",
+    }
 
 
 def _parse_zne_scales(raw: Any) -> list[float]:
@@ -6600,6 +6641,183 @@ class ExpectationOracle:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self.close()
+
+    def snapshot_value_noise_state(self) -> dict[str, Any]:
+        """Return an authenticated checkpoint for the sequential IID noise stream.
+
+        The snapshot is available only for ``gaussian_iid_v1``.  It binds the
+        normalized value-noise configuration and draw policy so a caller cannot
+        silently restore the stream under different numerical semantics.
+        """
+
+        model = str(self.config.value_noise_model).strip().lower() or "off"
+        if model != "gaussian_iid_v1" or self._value_noise_rng is None:
+            raise RuntimeError(
+                "value_noise_state_disabled: an IID RNG state exists only when "
+                "value_noise_model='gaussian_iid_v1'."
+            )
+        bit_generator = self._value_noise_rng.bit_generator
+        bit_generator_class = type(bit_generator).__name__
+        if bit_generator_class != "PCG64":
+            raise RuntimeError(
+                "value_noise_state_unsupported_bit_generator: expected PCG64, "
+                f"observed {bit_generator_class!r}."
+            )
+        config_payload = _value_noise_rng_config_payload(self.config)
+        policy_payload = _value_noise_rng_policy_payload()
+        unsigned = {
+            "schema": _VALUE_NOISE_RNG_STATE_SCHEMA,
+            "config": config_payload,
+            "config_sha256": _hash_payload(config_payload),
+            "policy": policy_payload,
+            "policy_sha256": _hash_payload(policy_payload),
+            "effective_seed": int(self._value_noise_effective_seed),
+            "seed_source": str(self._value_noise_seed_source),
+            "bit_generator": {
+                "class": bit_generator_class,
+                "state": copy.deepcopy(bit_generator.state),
+            },
+            "draw_count": int(self._value_noise_draw_count),
+        }
+        return {**unsigned, "payload_sha256": _hash_payload(unsigned)}
+
+    def restore_value_noise_state(self, payload: Mapping[str, Any]) -> None:
+        """Restore a validated IID value-noise checkpoint without consuming draws."""
+
+        model = str(self.config.value_noise_model).strip().lower() or "off"
+        if model != "gaussian_iid_v1" or self._value_noise_rng is None:
+            raise RuntimeError(
+                "value_noise_state_disabled: an IID RNG state exists only when "
+                "value_noise_model='gaussian_iid_v1'."
+            )
+        if not isinstance(payload, Mapping):
+            raise ValueError("value_noise_state_invalid: expected a mapping payload.")
+        candidate = copy.deepcopy(dict(payload))
+        expected_keys = {
+            "schema",
+            "config",
+            "config_sha256",
+            "policy",
+            "policy_sha256",
+            "effective_seed",
+            "seed_source",
+            "bit_generator",
+            "draw_count",
+            "payload_sha256",
+        }
+        if set(candidate) != expected_keys:
+            raise ValueError(
+                "value_noise_state_invalid: payload fields do not match the v1 schema."
+            )
+        claimed_payload_digest = candidate.pop("payload_sha256", None)
+        if not isinstance(claimed_payload_digest, str) or not hmac.compare_digest(
+            claimed_payload_digest,
+            _hash_payload(candidate),
+        ):
+            raise ValueError(
+                "value_noise_state_digest_mismatch: payload SHA-256 is invalid."
+            )
+        if candidate.get("schema") != _VALUE_NOISE_RNG_STATE_SCHEMA:
+            raise ValueError(
+                "value_noise_state_schema_mismatch: unsupported state schema."
+            )
+
+        config_payload = candidate.get("config")
+        if not isinstance(config_payload, Mapping):
+            raise ValueError("value_noise_state_config_invalid: config must be a mapping.")
+        config_payload = dict(config_payload)
+        claimed_config_digest = candidate.get("config_sha256")
+        active_config = _value_noise_rng_config_payload(self.config)
+        active_config_digest = _hash_payload(active_config)
+        if (
+            not isinstance(claimed_config_digest, str)
+            or not hmac.compare_digest(
+                claimed_config_digest,
+                _hash_payload(config_payload),
+            )
+            or not hmac.compare_digest(claimed_config_digest, active_config_digest)
+            or config_payload != active_config
+        ):
+            raise ValueError(
+                "value_noise_state_config_mismatch: checkpoint and active value-noise "
+                "configurations must match exactly."
+            )
+
+        policy_payload = candidate.get("policy")
+        if not isinstance(policy_payload, Mapping):
+            raise ValueError(
+                "value_noise_state_policy_invalid: policy must be a mapping."
+            )
+        policy_payload = dict(policy_payload)
+        claimed_policy_digest = candidate.get("policy_sha256")
+        active_policy = _value_noise_rng_policy_payload()
+        active_policy_digest = _hash_payload(active_policy)
+        if (
+            not isinstance(claimed_policy_digest, str)
+            or not hmac.compare_digest(
+                claimed_policy_digest,
+                _hash_payload(policy_payload),
+            )
+            or not hmac.compare_digest(claimed_policy_digest, active_policy_digest)
+            or policy_payload != active_policy
+        ):
+            raise ValueError(
+                "value_noise_state_policy_mismatch: checkpoint and active IID policies "
+                "must match exactly."
+            )
+
+        effective_seed = candidate.get("effective_seed")
+        if (
+            isinstance(effective_seed, bool)
+            or not isinstance(effective_seed, int)
+            or effective_seed != self._value_noise_effective_seed
+        ):
+            raise ValueError(
+                "value_noise_state_seed_mismatch: effective seed does not match the "
+                "active oracle."
+            )
+        if candidate.get("seed_source") != self._value_noise_seed_source:
+            raise ValueError(
+                "value_noise_state_seed_source_mismatch: seed source does not match "
+                "the active oracle."
+            )
+        draw_count = candidate.get("draw_count")
+        if (
+            isinstance(draw_count, bool)
+            or not isinstance(draw_count, int)
+            or draw_count < 0
+        ):
+            raise ValueError(
+                "value_noise_state_draw_count_invalid: draw_count must be a "
+                "nonnegative integer."
+            )
+        bit_generator_payload = candidate.get("bit_generator")
+        if not isinstance(bit_generator_payload, Mapping):
+            raise ValueError(
+                "value_noise_state_bit_generator_invalid: bit_generator must be a mapping."
+            )
+        if bit_generator_payload.get("class") != "PCG64":
+            raise ValueError(
+                "value_noise_state_bit_generator_mismatch: only PCG64 state is accepted."
+            )
+        state = bit_generator_payload.get("state")
+        if not isinstance(state, Mapping):
+            raise ValueError(
+                "value_noise_state_bit_generator_invalid: PCG64 state must be a mapping."
+            )
+
+        # Validate into a detached generator first.  The live stream is mutated
+        # only after every binding and the PCG64 state itself have passed.
+        restored_bit_generator = np.random.PCG64()
+        try:
+            restored_bit_generator.state = copy.deepcopy(dict(state))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "value_noise_state_bit_generator_invalid: malformed PCG64 state."
+            ) from exc
+        restored_rng = np.random.Generator(restored_bit_generator)
+        self._value_noise_rng = restored_rng
+        self._value_noise_draw_count = int(draw_count)
 
     def _update_backend_details(self, **updates: Any) -> None:
         details = dict(getattr(self.backend_info, "details", {}))

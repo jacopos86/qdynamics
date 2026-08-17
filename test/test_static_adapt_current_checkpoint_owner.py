@@ -116,6 +116,110 @@ def test_neutral_checkpoint_helpers_are_owned_by_current_checkpoint() -> None:
     )
 
 
+def test_singleton_checkpoint_honors_bounded_history_tail(
+    tmp_path: Path,
+) -> None:
+    current_path = tmp_path / "current.json"
+    current_checkpoint._publish_active_cli_current_checkpoint(
+        _checkpoint_payload(depth=50),
+        ledger_payload=_ledger_payload(depth=50),
+        path=current_path,
+        keep_history_tail=2,
+    )
+
+    adapt = json.loads(current_path.read_text(encoding="utf-8"))["adapt_vqe"]
+    assert adapt["history_count"] == 50
+    assert len(adapt["history"]) == 50
+    assert adapt["history_tail_count"] == 2
+    assert adapt["history_tail"] == adapt["history"][-2:]
+    assert adapt["history_tail_retention"] == {
+        "schema": "static_adapt_verified_resume_history_retention_v2",
+        "requested_limit": 2,
+        "requested_window_count": 2,
+        "serialized_complete_history_count": 50,
+        "serialized_tail_count": 2,
+        "normalized_for_verified_singleton_resume": True,
+        "no_credentials_serialized": True,
+    }
+
+
+def test_checkpoint_publication_streams_whole_json_documents(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_dumps = current_checkpoint.json.dumps
+
+    def _reject_whole_document_dumps(value: Any, *args: Any, **kwargs: Any) -> str:
+        schema = value.get("schema") if isinstance(value, dict) else None
+        if isinstance(value, dict) and (
+            "adapt_vqe" in value
+            or schema
+            in {
+                "paper_i_estimator_call_ledger_checkpoint_sidecar_v2",
+                "static_adapt_signed_active_prefix_resume_sidecar_v2",
+            }
+        ):
+            raise AssertionError("whole checkpoint documents must stream")
+        return original_dumps(value, *args, **kwargs)
+
+    monkeypatch.setattr(current_checkpoint.json, "dumps", _reject_whole_document_dumps)
+    current_path = tmp_path / "current.json"
+    current_checkpoint._publish_active_cli_current_checkpoint(
+        _checkpoint_payload(depth=3),
+        ledger_payload=_ledger_payload(depth=3),
+        path=current_path,
+        keep_history_tail=1,
+    )
+
+    assert current_path.is_file()
+    assert json.loads(current_path.read_text(encoding="utf-8"))[
+        "adapt_vqe"
+    ]["history_count"] == 3
+
+
+def test_checkpoint_publication_does_not_deepcopy_history_or_ledger(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_deepcopy = current_checkpoint.copy.deepcopy
+
+    def _reject_large_deepcopies(value: Any, memo: Any = None) -> Any:
+        if isinstance(value, dict) and (
+            "history" in value
+            or value.get("schema") == "estimator_call_ledger_v1"
+        ):
+            raise AssertionError("history and ledger must not be deep-copied")
+        return original_deepcopy(value, memo)
+
+    monkeypatch.setattr(
+        current_checkpoint.copy,
+        "deepcopy",
+        _reject_large_deepcopies,
+    )
+    current_path = tmp_path / "current.json"
+    current_checkpoint._publish_active_cli_current_checkpoint(
+        _checkpoint_payload(depth=3),
+        ledger_payload=_ledger_payload(depth=3),
+        path=current_path,
+        keep_history_tail=1,
+    )
+
+    current = json.loads(current_path.read_text(encoding="utf-8"))
+    sidecar_path = current_path.with_name(
+        current["adapt_vqe"]["estimator_call_ledger_checkpoint"]["path"]
+    )
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    assert sidecar["consumer_complete_projection"] == {
+        "schema": "static_adapt_consumer_projection_reference_v1",
+        "source_projection_sha256": sidecar[
+            "consumer_complete_projection"
+        ]["source_projection_sha256"],
+        "source_projection_digest_scope": "static_adapt_full_projection_v1",
+        "materialized_in": "current_checkpoint.adapt_vqe",
+        "embedded_full_ledgers_omitted": True,
+    }
+
+
 def test_current_checkpoint_defines_its_neutral_helpers() -> None:
     owner_path = Path(current_checkpoint.__file__)
     tree = ast.parse(owner_path.read_text(encoding="utf-8"))

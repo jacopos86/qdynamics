@@ -183,6 +183,53 @@ method/regime. Show operational state, current accepted round/depth, current or
 final same-cutoff error, and relevant cost fields. Put scheduler IDs and paths
 after the scientific status, not instead of it.
 
+For each running Paper-I Hubbard--Holstein cell, let `k` be its latest accepted
+controller iteration. Report that run's `|ΔE(k)|` together with the current
+plateau-insertion RA-ADAPT and current Append-ADAPT `|ΔE(k)|` for
+the same regime, cutoff, exact reference, and identical `k`; these are the
+two baseline comparator families currently used in Paper I. Same-cutoff binds
+each energy error to the same working cutoff and exact reference.
+Same-iteration requires the exact same controller prefix `k` across all three
+histories. Never substitute a terminal, plateau, or nearest-prefix value when
+`k` differs; write
+`unavailable at k=<k>` instead. If a comparator history omits the `k=0`
+baseline, report it unavailable at `k=0`. Recommended compact columns are:
+`method/regime | state | k/depth | run |ΔE(k)| | plateau RA-ADAPT |ΔE(k)| | Append-ADAPT |ΔE(k)| | cost`.
+
+For a running CHTC cell, the accepted-state checkpoint is authoritative for
+the live `(k, energy)` pair. Use one read-only `condor_ssh_to_job` inspection,
+locate the execution-specific `cell_output/checkpoints/current.json`, and read
+the checkpoint depth together with the final `energy_after_opt` from the same
+opened file. These checkpoints can be multiple gigabytes, so do not copy them
+or parse the full document with `jq` merely to report progress. A bounded-
+output, single-pass extraction is:
+
+```text
+condor_ssh_to_job CLUSTER.PROC find /tmp -maxdepth 5 -type f \
+  -path '*/cell_output/checkpoints/current.json' -print
+
+condor_ssh_to_job CLUSTER.PROC 'awk '\''
+  /"energy_after_opt":/ { energy=$2 }
+  /^  "checkpoint": \{$/ { in_checkpoint=1; next }
+  in_checkpoint && /^    "depth":/ { depth=$2 }
+  in_checkpoint && /^  },$/ { in_checkpoint=0 }
+  END {
+    gsub(/,/, "", depth); gsub(/,/, "", energy)
+    print depth, energy
+  }
+'\'' /tmp/.../cell_output/checkpoints/current.json'
+```
+
+Treat `hardcoded_adapt_iter` in `condor_tail` as a progress aid, not the
+authoritative accepted-energy record. At event depth `d`, its `energy` is
+`energy_before_refit`, which equals the accepted energy entering that round
+(the accepted `k=d-1` state). Never label that field as the accepted energy at
+`k=d`. If the checkpoint cannot be inspected, state the limitation explicitly
+and apply only the documented `d -> k=d-1` fallback; do not invent a current
+energy. After obtaining `(k, energy_after_opt)`, compute the run error against
+the cell's same-cutoff exact reference and look up both comparator errors at
+exactly that `k` in the current Paper-I Page-12 reference adapter.
+
 ## Failure and repair
 
 A run failure is a repair trigger.

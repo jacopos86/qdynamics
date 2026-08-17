@@ -237,6 +237,19 @@ def test_stage_gate_blocks_score() -> None:
 def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
     cfg = SimpleScoreConfig(lambda_F=0.0, lambda_compile=1.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
     meas = MeasurementCacheAudit()
+    compile_cache_identity = {
+        "schema": "phase123_qiskit_candidate_position_compile_cache_v1",
+        "scope": (
+            "phase0_proxy_or_off_phase_i_phase_ii_phase_iii_"
+            "qiskit_transpile_v1"
+        ),
+        "candidate_label": "backend",
+        "generator_id": "generator::backend",
+        "position_id": 1,
+        "base_structure_key": "1" * 64,
+        "trial_structure_key": "2" * 64,
+    }
+    compile_cache_identity_sha256 = "f" * 64
     cost = CompileCostEstimate(
         new_pauli_actions=3.0,
         new_rotation_steps=2.0,
@@ -265,7 +278,12 @@ def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
             "gate_proxy_total": 33.0,
             "max_pauli_weight": 2.0,
         },
-        selected_backend_row={"transpile_backend": "FakeNighthawk", "compiled_count_2q": 18},
+        selected_backend_row={
+            "transpile_backend": "FakeNighthawk",
+            "compiled_count_2q": 18,
+            "compile_cache_identity": compile_cache_identity,
+            "compile_cache_identity_sha256": compile_cache_identity_sha256,
+        },
     )
     feat = build_candidate_features(
         stage_name="core",
@@ -296,6 +314,12 @@ def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
     assert feat.compiled_position_cost_backend["selected_backend_name"] == "FakeNighthawk"
     assert feat.compiled_position_cost_backend["raw_delta_compiled_depth_2q"] == pytest.approx(3.0)
     assert feat.compiled_position_cost_backend["delta_compiled_depth_2q"] == pytest.approx(3.0)
+    assert feat.compiled_position_cost_backend["compile_cache_identity"] == (
+        compile_cache_identity
+    )
+    assert feat.compiled_position_cost_backend[
+        "compile_cache_identity_sha256"
+    ] == compile_cache_identity_sha256
 
 
 def test_backend_compile_gate_closed_blocks_simple_and_full_scores() -> None:

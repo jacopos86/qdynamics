@@ -1,0 +1,33 @@
+# Inert template only. Activation must render paths and add sealed authorities.
+universe = vanilla
+executable = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc/execute_authorized_job.sh
+transfer_executable = True
+
+arguments = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc/$(job_path) chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_activation_20260811/authorizations/$(execution_id).json chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc/source/source_locked.tar.gz e90ec5a3a697e2b78b14558a81dba860fca56a040c4d9c3eef58a3ab6b0ce51f chtc/phase3_optuna/image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(execution_id) transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz $(job_sha256) fc60b9eb0835c9ef8fa4e1b1fab658cdf9a7682271ef9ef7e59b8291da8fb93b b727014fd3116be3668aaf438c942d5327830978cd3ee10caa5d33ca3b2d62f4 34c1532f8e9609a0e8723c2ab073b50205618bda7a4687f259cb721dbe32cc11 b13359331f369387d85f25f995cfc49fd73ab60c8e37169f85adce38ee864ff2
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+preserve_relative_paths = True
+transfer_input_files = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc, chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_activation_20260811, chtc/phase3_optuna/image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz=/staging/jsstrobel/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz"
+
+request_cpus = $(request_cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+
+notification = Never
++JobBatchName = "paper-i-pure-hubbard-page12-fullnoise6-r50-20260811-v3"
+getenv = False
+stream_output = False
+stream_error = False
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_activation_20260811/logs/$(Cluster).$(Process)-$(execution_id).log
+output = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_activation_20260811/logs/$(Cluster).$(Process)-$(execution_id).out
+error = chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_activation_20260811/logs/$(Cluster).$(Process)-$(execution_id).err
+
+queue execution_id, job_path, protocol_path, job_sha256, request_cpus, memory_mb, disk_mb, max_runtime_seconds from chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_pure_hubbard_page12_fullnoise6_r50_20260811_v3_chtc/queue.tsv

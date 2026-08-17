@@ -98,47 +98,14 @@
 
 
 \begin{abstract}
-Projected variational dynamics can fail because the active tangent manifold does not represent the driven Schr\"odinger drift or because the numerical solve and finite time step do not realize motion that the manifold already contains.  We present Append--Prune McLachlan dynamics (AP-McLachlan), a checkpoint-local policy that diagnoses these structural and numerical failures separately.  On a fixed support, state-space solve repair compares stronger and weaker retained-spectrum inverse policies, invokes local subdivision for excessive state-space motion, and releases repaired policies through hysteresis.  At structural checkpoints, one unified finalist family contains stay, zero-initialized append, continuity-certified prune, and true delete--append exchange.  Append ranks Pauli- or polynomial-child batches by structural miss removed per imported hardware-cost factor and confirms retained-support Schur novelty and the full augmented solve.  Prune retains current full-support deletion loss as its authority while history, cost, and conditioning nominate blocks for reduced-state refit and same-checkpoint ray and velocity certification.  Exact trajectories remain post-run references and never enter support selection, solve repair, or time-step decisions.  Driven Hubbard--Holstein diagnostics isolate the numerical-repair, append, and prune mechanisms through same-seed energy, doublon, site-occupation, residual, and compiled-resource comparisons; quantitative cross-regime claims remain \tentative{to be transferred from the source-locked benchmark record}.
+Projected variational dynamics can fail because the active tangent manifold does not represent the driven Schr\"odinger drift or because the numerical solve and finite time step do not realize motion that the manifold already contains.  We present Append--Prune McLachlan dynamics (AP-McLachlan), a checkpoint-local policy that diagnoses these structural and numerical failures separately.  Its primary structural decision is one support patch chosen from stay, zero-initialized append, continuity-certified prune, and true delete--append exchange.  Append and prune are the one-sided limits of this joint decision.  Candidate patches are assembled through bounded append and prune scouts, then confirmed on the complete patched tangent support using conditional gain and loss, retained-support Schur novelty, the patched McLachlan solve, and same-checkpoint continuity.  On the accepted fixed support, state-space solve repair compares stronger and weaker retained-spectrum inverse policies, invokes local subdivision for excessive state-space motion, and releases repaired policies through hysteresis.  Exact trajectories remain post-run references and never enter support selection, solve repair, or time-step decisions.  Driven Hubbard--Holstein diagnostics isolate the numerical-repair, append, and prune mechanisms through same-seed energy, doublon, site-occupation, residual, and compiled-resource comparisons; quantitative cross-regime claims remain \tentative{to be transferred from the source-locked benchmark record}.
 \end{abstract}
 
 \maketitle
 
-% AGENT_CODE_MAP_PAPER_II_DYNAMICS:
-% - Reader-facing "Append--Prune McLachlan" / "AP-McLachlan"
-%   refers to the strict exact-free checkpoint controller, not to vanilla McLachlan
-%   and not to Qiskit VarQRTE.  Code anchors:
-%   pipelines/time_dynamics/hh_realtime_checkpoint_controller.py::RealtimeCheckpointController
-%   pipelines/time_dynamics/hh_realtime_checkpoint_types.py::RealtimeCheckpointConfig
-%   pipelines/time_dynamics/hh_realtime_checkpoint_types.py::strict_qpu_faithful_decision_contract
-% - Manuscript structural patch variants and ablation rows map to:
-%   pipelines/time_dynamics/benchmarks/controller_ablation_matrix.py::GenericControllerAblationVariant
-%   pipelines/time_dynamics/benchmarks/controller_ablation_matrix.py::run_generic_controller_ablation_row
-%   pipelines/time_dynamics/benchmarks/controller_ablation_matrix.py::run_generic_controller_ablation_matrix
-%   pipelines/time_dynamics/benchmarks/controller_ablation_matrix.py::validate_ablation_decision_data_flow
-%   pipelines/time_dynamics/benchmarks/controller_ablation_matrix.py::validate_ablation_variant_runtime
-% - Generic dynamics dispatch and row/table extraction:
-%   pipelines/time_dynamics/benchmarks/registry.py::run_generic_dynamics_row
-%   pipelines/time_dynamics/benchmarks/common.py::run_realtime_generic_dynamics_row
-%   pipelines/time_dynamics/benchmarks/common.py::run_native_generic_comparator_row
-%   pipelines/time_dynamics/generic_dynamics_tables.py
-% - Existing repo-native comparators currently wired through:
-%   fixed McLachlan: pipelines/time_dynamics/benchmarks/fixed_mclachlan.py::run_benchmark_row
-%   product formula envelope: pipelines/time_dynamics/benchmarks/product_formula.py::run_benchmark_row
-%   fixed pVQD: pipelines/time_dynamics/benchmarks/fixed_pvqd.py::run_benchmark_row
-%   adaptive pVQD: pipelines/time_dynamics/benchmarks/adaptive_pvqd.py::run_benchmark_row
-% - Qiskit is reference/parity/community baseline plumbing unless a future
-%   explicit pinned Qiskit-community runner is added.  Do not call these rows
-%   "official IBM-supported Qiskit baselines."  Current parity/reference anchors:
-%   pipelines/exact_bench/qiskit_dynamics_adapter.py::product_formula_parity_result
-%   pipelines/exact_bench/qiskit_dynamics_adapter.py::pvqd_component_parity_result
-%   pipelines/exact_bench/qiskit_dynamics_adapter.py::fixed_mclachlan_post_run_parity_result
-% - Exact ED/reference trajectories are diagnostic/reporting outputs only.
-%   They must not feed controller decisions, append/prune admission, integrator
-%   policy, or strict Optuna online feedback.
-
 \section{Introduction}
 
-\structlabel{Problem, Hamiltonian, importance of solving it}
+\subsection{Modeled problem}
 Driven mixed fermion--boson systems require simultaneous propagation of electronic correlation, bosonic response, and their mutual dressing \cite{Macridin2018,Macridin2018PRA,Sawaya2020,Li2023,Denner2023}.  The physical outputs are trajectories: energy absorption, doublon response, total and spin-resolved site occupations, density modulation, and frequency-domain response.  We use the driven Hubbard--Holstein Hamiltonian
 \begin{align}
 H_{\rm HH}(t)
@@ -160,20 +127,33 @@ v_i(t)
 \end{align}
 Here \(c_{i\sigma}\) and \(b_i\) correspond to fermionic and bosonic annihilation operators respectively, acting on site $i$, with creation given by $\dagger$; $\sigma \in\{\uparrow, \downarrow\}$ denotes particle spin;
 \(n_{i\sigma}, n_i\) are the spin-resolved and total fermionic number operators respectively; \(\bar n=N_e/L\) is the mean fermion filling
-for fixed electron number \(N_e\) and lattice size \(L\), and the site profile \(s_i\) selects the driven density mode. Our results use open boundary conditions with half filling. Appendix~\ref{app:hamiltonian_families} lists the corresponding benchmark variants and optional drive channels.  The near-term objective is to track these observables without allowing circuit depth, estimator work, or tangent-metric conditioning to destroy the propagated trajectory.
+for fixed electron number \(N_e\) and lattice size \(L\), and the site profile \(s_i\) selects the driven density mode. Our results use open boundary conditions with half filling.  The near-term objective is to track these observables without allowing circuit depth, estimator work, or tangent-metric conditioning to destroy the propagated trajectory.
 
-\structlabel{Current solution strategies}
+\subsection{Current status: projective McLachlan dynamics}
 Product formulas approximate the full unitary evolution directly and provide a depth--accuracy baseline \cite{Suzuki1985,Suzuki1990,ChildsSu2019ProductFormula,ChildsOstranderSu2019RandomizedPF,Campbell2019QDRIFT}.  Variational alternatives propagate a parameterized state on a restricted circuit manifold.  Projective McLachlan simulation, pVQD, adaptive pVQD, AVQDS, and compressed adaptive dynamics establish fixed-manifold propagation and residual- or projection-driven circuit growth \cite{McLachlan1964,LiBenjamin2017VQS,Yuan2019VQS,Endo2020GeneralProcesses,Benedetti2021TimeEvolution,Barison2021,Yao2021,Linteau2024,Zhang2025}.  These methods establish adaptive growth and zero-initialized additions as prior art.  Mixed-system spin--boson benchmarks further show that compiled cost must be interpreted together with trajectory accuracy and noise sensitivity \cite{Miessen2021SpinBoson}.
 
-\structlabel{Problem with current solutions}
+At time \(t_k\), standard projective McLachlan propagation chooses the tangent velocity that best approximates the horizontally projected Schr\"odinger drift.  If \(\bar T_k\) is the projected ansatz tangent block and \(\bar b_k\) is the projected physical drift, then
+\begin{equation}
+\dot\theta_k
+\in\operatorname*{arg\,min}_{v}
+\|\bar T_kv-\bar b_k\|_2^2,
+\qquad
+G_k\dot\theta_k=f_k,
+\label{eq:mclachlan_velocity}
+\end{equation}
+where \(G_k=\Re(\bar T_k^\dagger\bar T_k)\) and \(f_k=\Re(\bar T_k^\dagger\bar b_k)\).  Equation~(\ref{eq:mclachlan_velocity}) defines the standard propagation problem.  AP-McLachlan changes which tangent directions are active and how the resulting finite-precision solve is realized; it does not change the McLachlan principle.
+
+\subsection{Limitations with current approaches}
 The remaining failure has two components.  First, the manifold can be structurally wrong: useful tangent directions may be absent, while obsolete or mutually redundant directions remain.  A compact ADAPT ansatz may prepare the initial state accurately yet fail to span the later driven velocity \cite{Grimsley2019,Tang2021,Yordanov2021}.  Append-only dynamics addresses missing directions but permits redundant support, compiled depth, and nearly dependent tangent modes to accumulate \cite{Yao2021,Linteau2024,Zhang2025}.  Second, a suitable manifold can still be realized badly.  Ridge loading, eigencutoffs, damped inverses, and local subdivision are established numerical tools, but a condition number does not determine whether regularization should increase or decrease.  Stronger damping can suppress unstable modes or erase useful motion; a large physically accurate velocity instead calls for a smaller local step.  Structural expressivity miss must therefore be separated from numerical realization miss.
 
-\structlabel{Solution strategy}
-AP-McLachlan coordinates numerical realization with bidirectional checkpoint-local manifold maintenance.  Between structural checkpoints, a fixed support follows projective McLachlan propagation.  The numerical lane compares stronger and weaker inverse policies on that same support, uses state-space motion and temporal kink to nominate local subdivision, selects the least-intervention admissible response, and returns to the base solve through release hysteresis.  The structural lane evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  Append acquires child-resolved tangent directions through cost-weighted combinatorial scoring, retained-support Schur novelty, and augmented-solve confirmation.  Prune retires support only after full active-support deletion loss, reduced-state refit, same-checkpoint ray and velocity continuity, persistence, cooldown, and rollback authorize removal.
+\subsection{AP-McLachlan: joint support-patch dynamics}
+AP-McLachlan first treats structural maintenance as one bidirectional support-patch decision.  At a structural checkpoint it evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  Append acquires child-resolved tangent directions through cost-weighted combinatorial scoring, retained-support Schur novelty, and augmented-solve confirmation.  Prune retires support only after full active-support deletion loss, reduced-state refit, same-checkpoint ray and velocity continuity, persistence, cooldown, and rollback authorize removal.  Among the many possible combinatorial support-search strategies, the implementation uses bounded append and prune scout lists followed by full joint confirmation of retained pure and exchange finalists.
+
+After the support decision, the numerical lane determines how to realize Eq.~(\ref{eq:mclachlan_velocity}) on the accepted fixed support.  It compares stronger and weaker inverse policies, uses state-space motion and temporal kink to nominate local subdivision, selects the least-intervention admissible response, and returns to the base solve through release hysteresis.  Structural maintenance and numerical stabilization therefore act on different questions: which tangent directions should be active, and how should motion on that active tangent space be realized over the finite step?
 
 The bounded contribution is the coordination of separate structural and realized numerical diagnostics with a checkpoint finalist family containing stay, append, continuity-certified online prune, and conditional true exchange.  We do not claim the invention of McLachlan propagation, regularized inversion, residual-triggered growth, or zero-angle append.  Within the gate-based adaptive variational-dynamics literature reviewed through July 18, 2026, we found no earlier method combining these elements as one measured checkpoint policy; this negative-priority statement is bounded by that review and will be updated as the remaining primary-source verification queue is completed.  Exact reference trajectories are excluded from every online decision and enter only the post-run comparisons.
 
-\section{Projective McLachlan propagation and the two failure modes}
+\section{McLachlan checkpoint geometry and the two failure modes}
 \label{sec:dynamics_method}
 
 % Purpose-first method-opening contract: each substantive method subsection
@@ -183,8 +163,8 @@ The bounded contribution is the coordination of separate structural and realized
 A compact ground-state ansatz from ADAPT-style state preparation can be reused to simulate quench-driven real-time dynamics \cite{Grimsley2019,Tang2021,Yordanov2021}. McLachlan dynamics is NISQ-compatible under the constraint that the initialized ansatz circuit remains NISQ-compatible \cite{McLachlan1964,LiBenjamin2017VQS,Yuan2019VQS}. % \placeholder{Cites ADAPT initial-state preparation, the least-squares variational principle, and early near-term variational quantum simulation routes.}
 As such, preparation of the initial state is not an auxiliary detail, but it is not the online decision law: the static ADAPT ansatz supplies the starting manifold on which the dynamic controller operates.
 
-\subsection{Projective McLachlan propagation}
-Exact Schr\"odinger motion generally leaves a finite variational manifold.  We therefore project the instantaneous Schr\"odinger drift onto the horizontal tangent space of the inherited ansatz and solve the resulting regularized McLachlan least-squares problem.  This construction produces the checkpoint parameter velocity $\dot\theta_k$ used by the time integrator and by the downstream structural and numerical diagnostics.
+\subsection{Checkpoint geometry}
+Exact Schr\"odinger motion generally leaves a finite variational manifold.  We therefore evaluate the projected tangent geometry and physical drift appearing in Eq.~(\ref{eq:mclachlan_velocity}) at each checkpoint.  These objects determine the parameter velocity used by the time integrator and by the downstream structural and numerical diagnostics.
 
 Let time points be $0=t_0<\cdots<t_{N_t}=T_{\rm f}$, with step $\Delta t_k=t_{k+1}-t_k$. During propagation the Pauli labels are fixed and only the driven coefficients change:
 \begin{equation}
@@ -208,922 +188,140 @@ and the instantaneous projected Schrödinger drift
 \label{eq:projected_schrodinger_drift}
 \end{equation}
 
-The regularized least-squares mismatch between the projected tangent velocity and the Schrödinger drift is the McLachlan residual on the prepared circuit manifold \cite{McLachlan1964,Yuan2019VQS,Barison2021}.
+The least-squares mismatch between the projected tangent velocity and the Schrödinger drift is the McLachlan residual on the prepared circuit manifold \cite{McLachlan1964,Yuan2019VQS,Barison2021}.
 % \placeholder{Cites the variational least-squares residual and its parameterized-circuit dynamics form.}
 \begin{equation}
 \begin{aligned}
 \mathfrak m_k(v)
-&:=\|\bar T_kv-\bar b_k\|_2^2
-+v^\top\Lambda_kv \\
-&=v^\top K_kv-2v^\top f_k+\Var_{\psi_k}(H(t_k)),
+&:=\|\bar T_kv-\bar b_k\|_2^2 \\
+&=v^\top G_kv-2v^\top f_k+\|\bar b_k\|_2^2,
 \end{aligned}
 \label{eq:mclachlan_metric_objective}
 \end{equation}
-where $K_k=G_k+\Lambda_k=\Re(\bar T_k^\dagger\bar T_k)+\Lambda_k$,
-$f_k=\Re(\bar T_k^\dagger\bar b_k)$, and $J_k:=\{1,\ldots,N_k\}$.
-The ideal least-squares velocity and the stabilized propagated velocity are
-
-\begin{equation}
-\begin{aligned}
-\dot\theta_k^{\rm LS}
-&\in\argminp_{v\in\mathbb R^{N_k}}\mathfrak m_k(v),
-\qquad
-K_k\dot\theta_k^{\rm LS}=f_k,\\
-\dot\theta_k
-&:=K_{k,\tau,\eps}^{\oplus}f_k
-=(G_k+\Lambda_k)_{\tau,\eps}^{\oplus}f_k .
-\end{aligned}
-\label{eq:mclachlan_velocity}
-\end{equation}
-The resulting velocity defines the classical IVP for the parameter trajectory $\theta(t)$ and hence the propagated state $\ket{\psi(\theta(t))}$.  The damped supported inverse used in Eq.~(\ref{eq:mclachlan_velocity}) is defined in Eq.~(\ref{eq:supported_inverse}).
+where
+$G_k=\Re(\bar T_k^\dagger\bar T_k)$,
+$f_k=\Re(\bar T_k^\dagger\bar b_k)$, and
+$J_k:=\{1,\ldots,N_k\}$ is the active ansatz-coordinate support at time $t_k$.
+Solving Eq.~(\ref{eq:mclachlan_velocity}) on the resolved tangent support gives $\dot\theta_k=G_k^\dagger f_k$.  The resulting velocity defines the classical IVP for $\theta(t)$ and hence the propagated state $\ket{\psi(\theta(t))}$.  Numerical rank selection, damping, and whitening concern the realization of this equation, not the McLachlan principle itself, and are collected in Appendix~\ref{app:technical_realization}.
 
 \subsection{Structural and numerical failure}
 
 A trajectory can fail because the active tangent support cannot represent the physical drift, or because the implemented inverse realizes an available tangent motion poorly.  We separate these mechanisms by comparing supported geometric explained drift with the realized stabilized motion.  This produces distinct structural and numerical misses for the checkpoint controller, rather than one residual that conflates support inadequacy with solve error.
 
-The supported geometric explained drift and normalized structural miss are
+For any coordinate subset $S\subseteq J_k$, define the supported explained drift
 \begin{equation}
-\begin{aligned}
-\Gamma_k^G(J_k)
-&=f_{k,J_k}^{\top}(G_{k,J_kJ_k})_{\tau}^{\dagger}f_{k,J_k},\\
+\Gamma_k(S)
+=f_{k,S}^{\top}(G_{k,SS})^\dagger f_{k,S}.
+\label{eq:explained_drift}
+\end{equation}
+The normalized structural miss is
+\begin{equation}
 \rho_{\rm expr,k}(J_k)
-&=\operatorname{clip}_{[0,1]}\!\left(
-\frac{\|\bar b_k\|_2^2-\Gamma_k^G(J_k)}
+=\operatorname{clip}_{[0,1]}\!\left(
+\frac{\|\bar b_k\|_2^2-\Gamma_k(J_k)}
 {\|\bar b_k\|_2^2+\eps_{\rm norm}}
 \right).
-\end{aligned}
 \label{eq:active_structural_miss}
 \end{equation}
 Large $\rho_{\rm expr,k}$ means that resolved tangent support is absent.  By contrast, $\rho_{\rm num,k}$ below compares the realized stabilized velocity with the best supported least-squares motion on the same $J_k$.  A checkpoint can therefore realize an inadequate support accurately or realize an adequate support poorly.
 
-After defining these diagnostics, the checkpoint decision policy is
-\begin{equation}
-\mathcal C_k:(\mathcal D_k,\mathcal H_k)
-\longmapsto
-(\ell_k^\star,n_{{\rm sub},k},\mathcal B_k^\star),
-\label{eq:checkpoint_policy_map}
-\end{equation}
-where $\mathcal D_k$ contains measurement-compatible current-state tangent, force, continuity, support, and resource quantities; $\mathcal H_k$ contains only previously acquired policy data; $\ell_k^\star$ is the inverse policy; $n_{{\rm sub},k}$ is the local subdivision factor; and $\mathcal B_k^\star=(B_k^\ominus,B_k^\oplus)$ is one structural patch.  Exact or classically propagated reference trajectories are excluded from both arguments of $\mathcal C_k$.
+At each checkpoint, the structural lane may choose one support patch, after which the numerical lane chooses how to realize motion on the accepted fixed support.  Both decisions use only current or previously acquired measurement-compatible data.  Exact or classically propagated reference trajectories are excluded.
 
-\section{State-space numerical realization}
-\label{sec:numerical_solve_repair}
-
-Even an expressive tangent support can produce an unstable, over-regularized, or under-regularized finite-step velocity.  We therefore evaluate inverse-policy and local-subdivision rungs in physical state space and select the least-intervening acceptable realization.  This produces the accepted inverse policy $\ell_k^\star$, subdivision factor $n_{{\rm sub},k}$, and an unsupported-checkpoint declaration when no finite rung satisfies every numerical-health test.
-
-This section concerns only numerical repair of the McLachlan solve on a fixed tangent support.  A repair rung changes inverse regularization or local time subdivision; it does not add, delete, or exchange generator blocks, and it is not an expressivity score.  Expressivity-driven support changes are handled by the append, deletion, and support-patch rules below.
-
-For a measured real symmetric matrix $A=\sum_i s_i u_i u_i^\top$, the supported exact inverse and damped implementation inverse are
-\begin{equation}
-\begin{aligned}
-A_{\tau}^{\dagger}
-&=
-\sum_{s_i\ge\tau_{\rm pinv}s_{\max}}
-\frac{1}{s_i}\,u_i u_i^\top,
-\\
-A_{\tau,\eps}^{\oplus}
-&=
-\sum_{s_i\ge\tau_{\rm pinv}s_{\max}}
-\frac{1}{s_i+\eps_{\rm solve}}\,u_i u_i^\top,
-\\
-s_{\min}^{\rm kept}(A)
-&=
-\min\{s_i:\ s_i\ge\tau_{\rm pinv}s_{\max}\},
-\\
-\kappa_{\rm eff}(A)
-&=
-\frac{s_{\max}}
-{\max\{s_{\min}^{\rm kept}(A),\eps_\kappa\}} .
-\end{aligned}
-\label{eq:supported_inverse}
-\end{equation}
-The Moore--Penrose pseudoinverse is reserved for exact algebra; $A_\tau^\dagger$ is the supported exact object, and $A_{\tau,\eps}^{\oplus}$ is the damped implementation object.  The solve inverts only resolved tangent modes and damps the retained denominators.  The condition diagnostic $\kappa_{\rm eff}$ is evaluated only on the retained spectrum; an empty retained spectrum is an unsupported local solve.
-
-The numerical-miss diagnostic compares the realized stabilized solve against the best supported least-squares solve on the same tangent support.  For a repair rung $\ell$ with inverse settings
-$\Lambda_k^{(\ell)},\tau_{\rm pinv}^{(\ell)},\eps_{\rm solve}^{(\ell)}$ define
-\begin{equation}
-\dot\theta_k^{(\ell)}
-=
-(G_k+\Lambda_k^{(\ell)})_{\tau_{\rm pinv}^{(\ell)},\eps_{\rm solve}^{(\ell)}}^{\oplus}f_k .
-\label{eq:repair_rung_velocity}
-\end{equation}
-The normalized numerical miss at rung $\ell$ is
-\begin{equation}
-\begin{aligned}
-\rho_{\rm num,k}^{(\ell)}
-&=
-\frac{1}{
-\|\bar b_k\|_2^2+\eps_{\rm norm}
-}
-\Bigl[
-f_{k,J_k}^{\top}
-(G_{k,J_kJ_k})_{\tau_{\rm pinv}^{(0)}}^\dagger
-f_{k,J_k}
-\\
-&\quad-
-\left(
-2f_k^\top\dot\theta_k^{(\ell)}
--
-(\dot\theta_k^{(\ell)})^\top G_k\dot\theta_k^{(\ell)}
-\right)
-\Bigr]_+ .
-\end{aligned}
-\label{eq:realized_numerical_residual}
-\end{equation}
-The inverse enters through $\dot\theta_k^{(\ell)}$, and $\tau_{\rm pinv}^{(0)}$ is the declared reference threshold for the supported least-squares comparison.  The realized drift is evaluated with $G_k$ rather than $K_k=G_k+\Lambda_k$, so damping cannot certify its own loss of projected motion.  Under roundoff error, both explained-drift terms in Eq.~(\ref{eq:realized_numerical_residual}) are clipped to $[0,\|\bar b_k\|_2^2]$ before applying $[\cdot]_+$.  In the present noiseless benchmark protocol, $\rho_{\rm num,k}^{(\ell)}>\tau_{\rm num}$ opens the solve-repair search.
-
-For a candidate numerical rung, the guards separate four failure modes: excessive realized residual, excessive state-space displacement over the proposed step, temporal kink relative to the previously accepted tangent velocity, and retained-spectrum conditioning risk.  Set $K_k^{(\ell)}=G_k+\Lambda_k^{(\ell)}$ for the conditioning diagnostic, and define the hard invalidity guard $g_{{\rm inv},k}^{(\ell)}$ to include non-finite states, incompatible dimensions, missing time-point data, nonsymmetric or nonfinite matrices after preprocessing, and empty retained support under the implemented retained-mode rule.  The state-space repair guards are
-\begin{equation}
-\begin{aligned}
-g_{\rho,k}^{(\ell)}
-&=
-\mathbf 1\!\left[
-\rho_{\rm num,k}^{(\ell)}>\tau_{\rm num}
-\right],
-\\
-\delta_{{\rm lin},k}^{(\ell)}
-&=
-\Delta t_k^{(\ell)}\|\bar T_k\dot\theta_k^{(\ell)}\|_2,
-\\
-\ket{\psi_{{\rm trial},k}^{(\ell)}}
-&=
-U\!\left(\theta_k+\Delta t_k^{(\ell)}\dot\theta_k^{(\ell)}\right)
-\ket{\psi_{\rm ref}},
-\\
-\delta_{{\rm trial},k}^{(\ell)}
-&=
-\left\|
-\ket{\psi_{{\rm trial},k}^{(\ell)}}
--
-\braket{\psi_k|\psi_{{\rm trial},k}^{(\ell)}}\ket{\psi_k}
-\right\|_2,
-\\
-\delta_{{\rm step},k}^{(\ell)}
-&=
-\max\!\left\{
-\delta_{{\rm lin},k}^{(\ell)},
-\delta_{{\rm trial},k}^{(\ell)}
-\right\},
-\\
-g_{\Delta,k}^{(\ell)}
-&=
-\mathbf 1\!\left[
-\delta_{{\rm step},k}^{(\ell)}>\tau_{\Delta}
-\right],
-\\
-\eta_{{\rm time},k}^{\psi,(\ell)}
-&=
-\frac{
-\left\|
-\bar T_k\dot\theta_k^{(\ell)}
--
-\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
-\right\|_2^2
-}{
-\frac12\left(
-\|\bar b_k\|_2^2+\|\bar b_{k-1}\|_2^2
-\right)+\eps_{\rm norm}
-},
-\\
-g_{{\rm time},k}^{(\ell)}
-&=
-\mathbf 1\!\left[
-\eta_{{\rm time},k}^{\psi,(\ell)}>\tau_{\rm kink}
-\right],
-\\
-\phi_{\kappa,k}^{(\ell)}
-&=
-\operatorname{clip}_{[0,1]}
-\left(
-\frac{
-\log\kappa_{\rm eff}(K_k^{(\ell)})-\log\kappa_{\rm warn}
-}{
-\log\kappa_{\rm fail}-\log\kappa_{\rm warn}
-}
-\right).
-\end{aligned}
-\label{eq:solve_repair_guards}
-\end{equation}
-The linear displacement $\delta_{{\rm lin},k}^{(\ell)}$ is the tangent-plane prediction, whereas $\delta_{{\rm trial},k}^{(\ell)}$ certifies the realized finite update on the variational ray.  The latter prevents a large motion along nearly null coordinates from leaving the local tangent regime even when $\|\bar T_k\dot\theta_k\|_2$ is small.  It compares two variational states at the same checkpoint and uses no exact-reference trajectory.  Here $\kappa_{\rm warn}$ starts the soft conditioning penalty, and $\kappa_{\rm fail}$ is reserved for declared hard numerical rejection; noiseless diagnostic runs can set $\kappa_{\rm fail}$ loose.  For $k=0$, set $\eta_{{\rm time},0}^{\psi,(\ell)}=0$.  The solve-repair condition is
-\begin{equation}
-\begin{gathered}
-g_{{\rm inv},k}^{(0)}\vee g_{\rho,k}^{(0)}
-\vee g_{\Delta,k}^{(0)}\vee g_{{\rm time},k}^{(0)} .
-\end{gathered}
-\label{eq:solve_repair_condition}
-\end{equation}
-The normalized branch-response severity is
-\begin{equation}
-m_k^{(\ell)}
-=
-\max\left\{
-\sqrt{\frac{\eta_{{\rm time},k}^{\psi,(\ell)}}{\tau_{\rm kink}}},
-\frac{\delta_{{\rm step},k}^{(\ell)}}{\tau_\Delta},
-\frac{\rho_{\rm num,k}^{(\ell)}}{\tau_{\rm num}}
-\right\}.
-\label{eq:repair_response_severity}
-\end{equation}
-Ignoring hard invalidity, $m_k^{(0)}\le 1$ means that the base branch passes the state-space repair-entry tests, while $m_k^{(0)}>1$ opens the repair lane.  The scalar $m_k$ sets response strength, such as subdivision depth, rung breadth, and hold patience; the individual components still determine which failure channel is active.  Thus $\kappa_{\rm eff}$ is a response-risk modifier, not a repair-entry guard: a large retained-spectrum condition number can penalize or reject candidate rungs, but it does not by itself send every checkpoint into repair.  A repair rung is the concrete numerical setting
-\[
-\ell
-=
-\left(
-\Lambda_k^{(\ell)},\tau_{\rm pinv}^{(\ell)},
-\eps_{\rm solve}^{(\ell)},\Delta t_k^{(\ell)}
-\right).
-\]
-Let $M_k\subseteq\{\rho,\Delta,{\rm time}\}$ collect the labels of the components in Eq.~(\ref{eq:repair_response_severity}) whose normalized value exceeds one; hence $M_k=\varnothing$ iff $m_k^{(0)}\le 1$.  Define
-\begin{equation}
-q_k=\left\lceil\log_2(m_k^{(0)})\right\rceil_+,
-\qquad
-\lceil x\rceil_+=\max\{0,\lceil x\rceil\}.
-\label{eq:repair_response_breadth}
-\end{equation}
-For state-displacement or temporal-kink lanes, the response is local subdivision:
-\begin{equation}
-\begin{aligned}
-M_k\cap\{\Delta,{\rm time}\}\ne\varnothing
-&\quad\Longrightarrow\quad
-n_{{\rm sub},k}=2^{q_k},
-\\
-\mathcal L_{\Delta,k}^{(q_k)}
-&=
-\bigl(
-\ell_{\Delta t/2},\ldots,\ell_{\Delta t/2^{q_k}}
-\bigr),
-\end{aligned}
-\label{eq:subdivision_response_schedule}
-\end{equation}
-with the list truncated by the declared maximum subdivision depth.  For the numerical-miss lane, the response is inverse-policy breadth:
-\begin{equation}
-\rho\in M_k
-\quad\Longrightarrow\quad
-\mathcal L_{{\rm inv},k}^{(q_k)}
-=
-\mathcal L_{\downarrow,k}^{(q_k)}
-\cup
-\mathcal L_{\uparrow,k}^{(q_k)} ,
-\label{eq:inverse_response_schedule}
-\end{equation}
-where the superscript means the first $q_k$ available rungs nearest the base convention.  Hard invalidity bypasses this schedule: finite repair candidates are tried only when the checkpoint objects needed for those candidates exist.
-\begin{equation}
-\begin{aligned}
-\mathcal L_{\uparrow,k}
-&=
-\bigl(\ell_{\Lambda\uparrow},\ell_{\eps\uparrow},\ell_{\tau\uparrow}\bigr),
-\\
-\mathcal L_{\downarrow,k}
-&=
-\bigl(\ell_{\Lambda\downarrow_{\rm safe}},
-\ell_{\eps\downarrow_{\rm safe}},
-\ell_{\tau\downarrow_{\rm safe}}\bigr).
-\end{aligned}
-\label{eq:repair_guard_lists}
-\end{equation}
-The realized candidate set is
-\begin{equation}
-\mathcal C_k
-=
-\{\ell_0\}
-\cup
-\mathbf 1[M_k\cap\{\Delta,{\rm time}\}\ne\varnothing]
-\mathcal L_{\Delta,k}^{(q_k)}
-\cup
-\mathbf 1[\rho\in M_k]\mathcal L_{{\rm inv},k}^{(q_k)} .
-\label{eq:repair_candidate_set}
-\end{equation}
-The set is not an ordered first-passing list.  The base rung $\ell_0$ is included so that a repair search can leave the base convention unchanged when it is the best finite candidate.  The superscript $0$ denotes the declared base solve convention before numerical repair is attempted at checkpoint $k$.
-
-Solve repair is accepted through state-space continuity and short-horizon persistence.  When a same-checkpoint repair changes the retained inverse, the tangent-space velocity jump is
-\begin{equation}
-\eta_{\rm kink,k}^{\psi}
-=
-\frac{
-\left\|
-\bar T_k^{+}\dot\theta_k^{+}
--
-\bar T_k^{-}\dot\theta_k^{-}
-\right\|_2^2
-}{
-\|\bar b_k\|_2^2+\eps_{\rm norm}
-}.
-\label{eq:state_space_kink_diagnostic}
-\end{equation}
-The superscripts $-$ and $+$ denote the pre-repair and accepted post-repair solve conventions at the same checkpoint.  This quantity is not an append, prune, or exchange score.  It sets the local hold severity for a repaired inverse policy: a larger accepted velocity jump requires a longer return-to-base check before the base inverse convention is restored.  For each candidate rung define
-\begin{equation}
-\eta_{{\rm cand},k}^{\psi,(\ell)}
-=
-\frac{
-\left\|
-\bar T_k^{(\ell)}\dot\theta_k^{(\ell)}
--
-\bar T_k^{(0)}\dot\theta_k^{(0)}
-\right\|_2^2
-}{
-\|\bar b_k\|_2^2+\eps_{\rm norm}
-}.
-\label{eq:candidate_repair_kink}
-\end{equation}
-Acceptable finite rungs satisfy
-\begin{equation}
-\begin{aligned}
-\mathcal A_k(\ell)
-&=
-\mathbf 1\!\left[g_{{\rm inv},k}^{(\ell)}=0\right]
-\mathbf 1\!\left[\rho_{\rm num,k}^{(\ell)}\le\tau_{\rm num}\right]
-\\
-&\quad
-\times
-\mathbf 1\!\left[
-\Delta t_k^{(\ell)}
-\|\bar T_k\dot\theta_k^{(\ell)}\|_2\le\tau_\Delta
-\right]
-\mathbf 1\!\left[
-\eta_{{\rm time},k}^{\psi,(\ell)}\le\tau_{\rm kink}
-\right].
-\end{aligned}
-\label{eq:repair_acceptability}
-\end{equation}
-Among acceptable finite rungs, the selected rung minimizes
-\begin{equation}
-\begin{aligned}
-J_k^{(\ell)}
-&=
-w_c C_\ell
-+w_\rho
-\frac{\rho_{\rm num,k}^{(\ell)}}{\tau_{\rm num}}
-\\
-&\quad
-+w_\Delta
-\frac{
-\Delta t_k^{(\ell)}
-\|\bar T_k\dot\theta_k^{(\ell)}\|_2
-}{\tau_\Delta}
-\\
-&\quad
-+w_t
-\frac{\eta_{{\rm time},k}^{\psi,(\ell)}}{\tau_{\rm kink}}
-+w_\eta
-\frac{\eta_{{\rm cand},k}^{\psi,(\ell)}}{\tau_{\rm kink}}
-+w_\kappa\phi_{\kappa,k}^{(\ell)},
-\\
-\ell_k^\star
-&\in
-\operatorname*{argmin}_{\substack{\ell\in\mathcal C_k^{\rm finite}\\ \mathcal A_k(\ell)=1}}
-J_k^{(\ell)} .
-\end{aligned}
-\label{eq:numerical_repair_selection}
-\end{equation}
-Here $\mathcal C_k^{\rm finite}$ excludes only invalid candidates, and $C_\ell$ encodes measurement cost and rung aggressiveness.  If no rung satisfies $\mathcal A_k(\ell)=1$, a diagnostic trajectory may advance the finite rung with the smallest $J_k^{(\ell)}$ and mark the checkpoint unsupported; strict validation may stop on hard invalidity, but not merely on large $\kappa_{\rm eff}$, $\rho_{\rm num}$, state motion, or temporal kink.  The same-checkpoint inverse rungs use the already measured checkpoint objects, while local-subdivision rungs require new local checkpoint evaluations.  The repair convention is released by comparing the held repaired branch against the base branch at later checkpoints,
-\begin{equation}
-\eta_{\rm rel,k}^{\psi}
-=
-\frac{
-\left\|
-\bar T_k^{(\ell^\star)}\dot\theta_k^{(\ell^\star)}
--
-\bar T_k^{(0)}\dot\theta_k^{(0)}
-\right\|_2^2
-}{
-\|\bar b_k\|_2^2+\eps_{\rm norm}
-}.
-\label{eq:return_to_base_kink_release}
-\end{equation}
-The base convention is restored only when the base state-space guards pass and
-\begin{equation}
-\tau_{\rm rel}=\alpha_{\rm rel}\tau_{\rm kink},
-\qquad
-0<\alpha_{\rm rel}<1,
-\qquad
-\eta_{\rm rel,k}^{\psi}\le\tau_{\rm rel}.
-\label{eq:kink_release_threshold}
-\end{equation}
-The severity-dependent patience count is
-\begin{equation}
-\begin{aligned}
-p_k
-&=
-\left\lceil
-p_{\min}
-+
-(p_{\max}-p_{\min})
-\right.
-\\
-&\quad\left.
-\min\left\{
-1,
-\frac{
-[\sqrt{\eta_{\rm kink,k}^{\psi}}-\sqrt{\tau_{\rm kink}}]_+
-}{
-\sqrt{\tau_{\rm kink}}\chi_{\rm kink}
-}
-\right\}
-\right\rceil .
-\end{aligned}
-\label{eq:kink_release_patience}
-\end{equation}
-Thus a mild repaired velocity jump can release quickly, while a larger accepted jump must demonstrate a longer smooth return to the base inverse convention.
-
-\subsection{Time integration convention}
-
-A checkpoint velocity must be converted into a finite state update without conflating ODE-order selection with inverse or support repair.  We therefore use a declared fixed integrator and invoke local subdivision only through the numerical-realization policy above.  This produces the accepted next parameter vector $\theta_{k+1}$ and state $\ket{\psi_{k+1}}$ on the reporting grid.
-
-The checkpoint IVP in Eq.~(\ref{eq:mclachlan_velocity}) is integrated on the declared benchmark time grid.  The main AP-McLachlan claim is the checkpoint-local variational manifold update, not adaptive ODE order selection.
-
-\section{Structural tangent-support maintenance}
+\section{Joint support-patch maintenance}
 \label{sec:structural_support}
 
-Structural maintenance changes the active tangent support when the current manifold lacks useful directions or retains directions that are redundant, expensive, or conditioning-toxic.  Its output is one patch whose geometry, realized velocity, and deletion-side continuity are recomputed before commit.
+Structural maintenance changes \(J_k\), the active ansatz-coordinate support, when the current manifold lacks useful directions or retains directions that are redundant, expensive, or harmful to the tangent solve.  Every structural candidate is evaluated against the same measured checkpoint geometry before the accepted support is passed to numerical realization.
 
-The support-patch scores use the hardware-cost factor introduced for static adaptive-ansatz construction in Ref.~\cite{Strobel2026StaticAdapt}.  We retain the notation
-\begin{equation}
-K_t(B)\ge 1,
-\label{eq:imported_cost_factor}
-\end{equation}
-where the factor combines robust-normalized compiled two-qubit count and depth, one-qubit basis changes, new parameters, and estimator-shot burden.  For a batch or exchange patch, all features are recomputed on the union of compiled block records; the batch factor is not defined by adding singleton penalties.  Paper II uses this imported object only as a weight in append, prune, and exchange ranking.  Current geometric loss, patched solve validity, and continuity gates remain the corresponding admission authorities.
-\subsection{Append gain and checkpoint-local Schur novelty}
-When the active tangent support leaves a significant component of Schr\"odinger drift unexplained, the manifold lacks a useful instantaneous direction.  We therefore rank zero-initialized candidate blocks by cost-weighted grouped gain, confirm their checkpoint-local Schur novelty and augmented solve geometry, and escalate through the declared batch ladder when necessary.  This produces either an admitted append batch $B_k^{\oplus}$ or the empty append decision, while zero initialization preserves the checkpoint state.
+The support scores use the hardware-cost factor \(K_{t_k}(B)\ge1\) introduced for static adaptive-ansatz construction in Ref.~\cite{Strobel2026StaticAdapt}.  This \(K_{t_k}\) is a compiled-resource weight, not the tangent Gram matrix \(G_k\).  Geometric gain or loss remains the physical authority; cost only ranks otherwise admissible patches.
 
-For a candidate block $r$, let $I_{r,k}^{\oplus}$ denote the set of new runtime-coordinate indices appended by that block at checkpoint $k$.  This set can contain more than one coordinate when a single candidate generator expands into a multi-parameter tangent block. For any append batch $B_k^{\oplus}$, define $I_{B,k}^{\oplus}=\bigcup_{r\in B_k^{\oplus}}I_{r,k}^{\oplus}$, with $I_{\varnothing,k}^{\oplus}=\varnothing$.
+\subsection{Exchange as the primary structural decision}
 
-For a coordinate support $S$ in the current tangent support or in a zero-initialized augmented support, define the geometric explained-drift functional and the regularized support score
+Append and prune cannot be chosen independently when an incoming direction becomes useful only after a stale direction is removed.  One structural candidate is therefore
 \begin{equation}
-\begin{aligned}
-\Gamma_k^{G}(S)
-&:=f_{k,S}^{\top}(G_{k,SS})_{\tau}^{\dagger}f_{k,S},\\
-\Gamma_k^{K}(S)
-&:=f_{k,S}^{\top}(K_{k,SS})_{\tau,\eps}^{\oplus}f_{k,S}.
-\end{aligned}
-\label{eq:explained_drift_functionals}
-\end{equation}
-The $G$ functional defines the undamped structural expressivity diagnostic.  The $K$ score uses the same damped supported inverse as the propagated McLachlan velocity; when $\Lambda_k$ or solve damping is active, $\Gamma_k^K(S)$ is a stabilized support score rather than the exact unregularized orthogonal-projection identity.  The structural expressivity miss after testing append batch $B_k^{\oplus}$ is
-\begin{equation}
-\begin{aligned}
-\epsilon_{\rm expr,k}^2(B^{\oplus})
-&=
-\operatorname{clip}_{[0,\|\bar b_k\|_2^2]}
-\left(
-\|\bar b_k\|_2^2-\Gamma_k^{G}(J_k\cup I_{B,k}^{\oplus})
-\right),\\
-\rho_{\rm expr,k}(B^{\oplus})
-&=
-\operatorname{clip}_{[0,1]}
-\left(
-\frac{\epsilon_{\rm expr,k}^2(B^{\oplus})}{\|\bar b_k\|_2^2+\eps}
-\right).
-\end{aligned}
-\label{eq:expr_miss}
-\end{equation}
-The empty-set value $\rho_{\rm expr,k}(\varnothing)$ is the current structural miss.  A nonempty $B_k^{\oplus}$ is tested by the post-append miss $\rho_{\rm expr,k}(B^{\oplus})$.  In exact arithmetic the clipping is inactive; it only enforces the physical range under finite-difference and roundoff error, where the estimated projected explained drift can slightly exceed $\|\bar b_k\|_2^2$ or become negative.
-
-The additive side of the structural patch uses the forward grouped least-squares test for the regularized McLachlan objective. The canonical normalized append gain for a candidate block is
-\begin{equation}
-\Delta_k^{\oplus}(r)
+\mathcal B_k=(B_k^{\ominus},B_k^{\oplus}),
+\qquad
+J_k^{\mathcal B}
 =
-\frac{
-\left[
-\Gamma_k^{K}(J_k\cup I_{r,k}^{\oplus})
--
-\Gamma_k^{K}(J_k)
-\right]_+
-}{
-\|\bar b_k\|_2^2+\eps
-}.
-\label{eq:append_grouped_gain}
+(J_k\setminus I_{B,k}^{\ominus})
+\cup I_{B,k}^{\oplus}.
+\label{eq:support_patch}
 \end{equation}
-This is the marginal amount of regularized Schr\"odinger drift explained by adding the candidate tangent block after the old coordinates have been allowed to refit locally.
+The empty patch gives stay.  Setting \(B_k^{\ominus}=\varnothing\) gives pure append, setting \(B_k^{\oplus}=\varnothing\) gives pure prune, and two nonempty components give true exchange.  A true exchange recomputes the append gain against the post-delete support, the deletion loss against the patched support, and the McLachlan solve on \(J_k^{\mathcal B}\).  It then applies the same reduced-state and velocity-continuity tests as prune.  Failure of a joint exchange does not authorize either half; pure append or pure prune must independently appear and pass as a finalist.
+
+\subsection{Pure append limit}
+
+Set \(B_k^{\ominus}=\varnothing\).  Let \(B_k^{\oplus}\) be a candidate append batch and \(I_{B,k}^{\oplus}\) its new coordinate indices.  Added coordinates enter at zero amplitude, so the checkpoint state is unchanged.  The normalized gain from refitting the old and new tangent coordinates together is
 \begin{equation}
 \Delta_k^{\oplus}(B_k^{\oplus})
 =
 \frac{
 \left[
-\Gamma_k^{K}(J_k\cup I_{B,k}^{\oplus})
--
-\Gamma_k^{K}(J_k)
+\Gamma_k(J_k\cup I_{B,k}^{\oplus})
+-\Gamma_k(J_k)
 \right]_+
 }{
-\|\bar b_k\|_2^2+\eps
-}.
-\label{eq:append_batch_gain}
+\|\bar b_k\|_2^2+\eps_{\rm norm}
+},
+\label{eq:append_gain}
 \end{equation}
-The singleton score is the \(q=1\) limit of Eq.~(\ref{eq:append_batch_gain}),
-with \(B_k^{\oplus}=\{r\}\) and \(I_{B,k}^{\oplus}=I_{r,k}^{\oplus}\); singleton append and
-batched append therefore use the same high-level support-set object.
-The cost-weighted append score uses the imported static ansatz-construction hardware-cost penalty \(K_t(\cdot)\ge1\):
-\begin{equation*}
-\begin{aligned}
-S_k^{\oplus}(r)
-&=
-\frac{\Delta_k^{\oplus}(r)}
-{K_{t_k}(r)^{\alpha_{\app}}},
-\\
+and the resource-weighted ranking score is
+\begin{equation}
 S_k^{\oplus}(B_k^{\oplus})
-&=
-\left[\rho_{\rm expr,k}(\varnothing)-\rho_{\rm expr,k}(B^{\oplus})\right]_+
-K_{t_k}(B_k^{\oplus})^{-\alpha_{\app}}.
-\end{aligned}
-\end{equation*}
-All append ranking is cost-weighted.  A singleton may be admitted directly only when it clears the direct-append gain threshold and the joint confirmation checks.  If the best singleton does not clear that threshold while the structural miss remains active, the controller escalates to an append batch ladder.  The paper-facing default is the combinatorial ladder: at rung \(q\), score admissible append batches \(B_k^{\oplus}\) of cardinality \(q\) directly by \(S_k^{\oplus}(B_k^{\oplus})\).  Rung enumeration is runtime bounded by a declared maximum set count; when the admissible set count exceeds that cap, the implementation applies the declared cost-weighted prefilter before joint scoring.  Greedy nested batching is an optional implementation mode.  A batch is admitted only when its cost-weighted miss-removal score clears the batch-admission threshold and the joint batch confirmation checks; the best-scoring batch below threshold is not appended.
-
-\structlabel{Append implementation contract}
-Append uses the same numerical geometry as deletion.  Candidate blocks are evaluated in the horizontal tangent gauge, with the same retained-support threshold, ridge convention, damped supported inverse, whitening map, and static ansatz-construction hardware-cost model used for the active McLachlan solve.  Equation~(\ref{eq:append_grouped_gain}) is the singleton grouped before--after quantity; Eq.~(\ref{eq:append_batch_gain}) is the batched quantity.  Any Schur or whitened calculation is an equivalent shortcut only when it uses the same retained support and ridge convention.  In greedy mode the ladder is nested, $B_k^{\oplus(q+1)}=B_k^{\oplus(q)}\cup\{r_{q+1}\}$, with the next block selected by the cost-weighted marginal decrease in $\rho_{\rm expr,k}$.  In combinatorial mode the controller scores admissible sets at each cardinality rung directly by \(S_k^{\oplus}(B_k^{\oplus})\), so the best size-two set need not contain the best singleton.
-
-\structlabel{Repo-facing patch atom}
-The patch atom is the runtime-coordinate unit declared by the AP-McLachlan mode field \texttt{parameterization\_mode}.  The default AP parameterization is \texttt{per\_pauli\_term}: one atom is one Pauli-polynomial child coordinate, so a macro-generator update is a batch over child atoms.  In \texttt{logical\_shared}, one atom is one logical/macro generator; its Pauli-polynomial children share one coordinate and enter or leave together.  Thus \texttt{logical\_shared} is the grouped macro-generator mode, while \texttt{per\_pauli\_term} is the default child-resolved mode.
-
-For any two checkpoint-local tangent index sets $A$ and $W$, let $K_{AW,k}=\Re(\bar T_{A,k}^{\dagger}\bar T_{W,k})$.  The exact geometric Schur novelty of $A$ relative to the already available directions \(W\) is
-\begin{equation}
-\mathsf S^G_{A|W,k}
-=
-K_{AA,k}
--
-K_{AW,k}(K_{WW,k})_{\tau}^{\dagger}K_{WA,k}.
-\label{eq:checkpoint_geometric_schur_novelty}
-\end{equation}
-The supported and damped controller version used by the AP-McLachlan patch
-rules is
-\begin{equation}
-\mathsf S_{A|W,k}
-=
-K_{AA,k}+\Lambda_A
--
-K_{AW,k}(K_{WW,k}+\Lambda_W)_{\tau,\eps}^{\oplus}K_{WA,k}.
-\label{eq:checkpoint_schur_novelty}
-\end{equation}
-All factors in Eqs.~(\ref{eq:checkpoint_geometric_schur_novelty})--(\ref{eq:checkpoint_schur_novelty}) are evaluated at the current state $\ket{\psi_k}=U(\theta_k)\ket{\psi_{\rm ref}}$, so Schur novelty is checkpoint-local.  Equation~(\ref{eq:checkpoint_geometric_schur_novelty}) measures exact tangent-space linear independence, while Eq.~(\ref{eq:checkpoint_schur_novelty}) applies the retained-support, ridge, and damping convention used by the controller.  For append, $A=I_{B,k}^{\oplus}$ and $W=J_k$; the candidate batch must add retained directions after projection against the current support.  For prune, $A=I_{B,k}^{\ominus}$ and $W=J_k\setminus I_{B,k}^{\ominus}$; small novelty is local tangent redundancy, but deletion still requires the historical, projected-refit, shadow, cooldown, and rollback checks below.  For exchange, the incoming batch is tested by $\mathsf S_{I_{B,k}^{\oplus}|J_k\setminus I_{B,k}^{\ominus},k}$, while the deleted block is tested for redundancy against the post-exchange support by $\mathsf S_{I_{B,k}^{\ominus}|(J_k\setminus I_{B,k}^{\ominus})\cup I_{B,k}^{\oplus},k}$.  These Schur tests are local tangent-plane tests; they do not by themselves certify the nonlinear future trajectory.
-
-For a candidate append block $A_r$, let $\bar U_{r,k}$ be the candidate tangent block
-defined by
-\[
-\bar U_{r,k}
-=-i\bigl[
- \Pi_k A_{r,1}\ket{\psi_k}\ ~...~
- \Pi_k A_{r,m_r}\ket{\psi_k}
-\bigr].
-\]
-The overlap of this block with the current tangent space is $B_{r,k}=\Re(\bar T_k^\dagger\bar U_{r,k})$, its internal Gram matrix is $C_{r,k}=\Re(\bar U_{r,k}^\dagger\bar U_{r,k})$, and its force projection is $q_{r,k}=\Re(\bar U_{r,k}^\dagger\bar b_k)$. Under a shared retained-support and ridge convention, Eq.~(\ref{eq:append_grouped_gain}) can be evaluated through the Schur block
-\begin{equation}
-\begin{aligned}
-w_{r,k}&=q_{r,k}-B_{r,k}^{\top}K_{k,\tau,\eps}^{\oplus}f_k,\\
-S_{r,k}&=C_{r,k}+\Lambda_r-B_{r,k}^{\top}K_{k,\tau,\eps}^{\oplus}B_{r,k},\\
-\Delta_{r,k}^{\rm Schur}&=w_{r,k}^{\top}(S_{r,k})_{\tau}^{\dagger}w_{r,k}.
-\end{aligned}
-\label{eq:append_schur_block}
-\end{equation}
-In numerical-optimization and partial-regression language, this is a reduced quadratic gain: the old tangent coordinates have been locally eliminated, leaving the candidate block's Schur complement as the reduced curvature object \cite{FrischWaugh1933,Lovell1963,NocedalWright2006}. With identical retained support and ridge conventions, the Schur computation is just a compact way to evaluate the grouped before--after gain in Eq.~(\ref{eq:append_grouped_gain}).  If the implementation uses additional whitening, thresholding, or compression so that the shortcut is no longer exactly equivalent, the controller may still use the Schur value for screening or confirmation, but the direct grouped gain remains the quantity that defines append acceptance.
-
-The whitened scout coordinates are part of the main append ladder.  If $K_k=Z_k\Sigma_k^2Z_k^\top$ on retained support, define
-\begin{equation}
-\begin{aligned}
-z_k&=\Sigma_k^{-1}Z_k^\top f_k,\\
-\Gamma_{r,k}&=\Sigma_k^{-1}Z_k^\top B_{r,k},\\
-\zeta_{r,k}&=q_{r,k}-\Gamma_{r,k}^{\top}z_k,\\
-\widetilde S_{r,k}(J)&=C_{r,k}+\Lambda_r-\Gamma_{r,k;J}^{\top}\Gamma_{r,k;J},\\
-\widetilde\Delta_{r,k}^{(\lambda_S)}(J)
-&=\zeta_{r,k}^{\top}(\widetilde S_{r,k}(J)+\lambda_SI)^{-1}\zeta_{r,k}.
-\end{aligned}
-\label{eq:whitened_append}
-\end{equation}
-For nested retained mode sets $J_r^{(0)}\subseteq\cdots\subseteq J_r^{(m_{\max})}$ with a common ridge $\lambda_S>0$,
-\begin{equation}
-\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(0)})
-\le\cdots\le
-\widetilde\Delta_{r,k}^{(\lambda_S)}(J_r^{(m_{\max})})
-\le
-\Delta_{r,k}^{\rm Schur,(\lambda_S)} .
-\label{eq:compressed_schur_chain}
-\end{equation}
-This retained-mode chain is the compressed scout/confirm version of the grouped gain calculation.  It may rank or confirm append candidates only under the same retained-support, ridge, and whitening convention used by the propagated McLachlan solve.
-
-Append candidacy is considered when the normalized geometric expressivity residual, namely the variance-normalized component of the instantaneous Schrödinger drift outside the current McLachlan tangent span, exceeds a checkpoint threshold and the absolute missing drift is non-negligible \cite{Yao2021,Linteau2024,Zhang2025}. % \placeholder{Cites adaptive variational dynamics routes that use residual/projection information for circuit growth; the Schur-gain ladder is the present controller's admission refinement.}
-Candidate-append scoring then uses current-time candidate tangent measurements and retained-support whitening to evaluate a cost-weighted Schur scout/confirm ladder. Historical data for unadmitted candidates are not required; candidate history may be reused only when those measurements were already acquired for another controller purpose.  The ladder stops at the first admitted rung that either satisfies $\rho_{\rm expr,k}(B^{\oplus})\le\tau_{\rm miss}$ or passes the declared batch-admission threshold on \(S_k^{\oplus}(B_k^{\oplus})\).  If no rung clears the declared threshold, the controller makes no append at that time point. Admission also requires the joint confirmation checks to clear, including retained Schur novelty and finite augmented solve geometry for the candidate batch, and the augmented tangent-plane residual is recomputed before committing the structural edit.
-
-\structlabel{Failed append-search reuse}
-A failed append search stores a local model-management certificate rather than a wall-clock cooldown.  If a full append search at checkpoint $k_0$ finds no admissible singleton or batch, define
-\begin{equation}
-\begin{aligned}
-\mathcal C_{k_0}^{\rm fail}
-=\big(&J_{k_0},P_{k_0},\pi_{k_0},r_{\tau,k_0},
-K_{J,k_0},f_{J,k_0},\rho_{\rm expr,k_0}(\varnothing),\\
-&U^\star_{k_0},\mathcal S_{k_0},
-\{U_{r,k_0},m_{r,k_0},h_{r,k_0}\}_{r\in\mathcal S_{k_0}}\big).
-\end{aligned}
-\label{eq:failed_append_certificate}
-\end{equation}
-Here $P_{k_0}$ is the candidate-pool identity, $\pi_{k_0}$ is the joint convention for parameterization, residual normalization, cost weighting, append thresholds, Schur novelty, and inverse regularization, $r_{\tau,k_0}$ is the retained-rank signature of the active support, $U^\star_{k_0}$ is the best rejected append utility, and $\mathcal S_{k_0}$ is a small set of measured rejected sentinel candidates or batches.  The utility $U_{r,k}$ is the declared append utility used for the current admission mode, for example \(S_k^{\oplus}(r)\) for singleton ranking or \(S_k^{\oplus}(B_k^{\oplus})\) for a batch.
-
-The certificate is immediately invalid if the active support, candidate pool, policy convention, or retained-rank signature changes:
-\begin{equation}
-\begin{gathered}
-J_k\ne J_{k_0},\qquad
-P_k\ne P_{k_0},\qquad
-\pi_k\ne\pi_{k_0},\\
-r_{\tau,k}:=\operatorname{rank}_{\tau}(K_{J,k})
-\ne
-r_{\tau,k_0}.
-\end{gathered}
-\label{eq:failed_append_invalidation}
-\end{equation}
-The support condition includes append, deletion, exchange, any drive-aligned tangent augmentation that changes the effective active support, and any basis reordering not represented by a known permutation of the stored arrays.  The retained-rank condition is separate from the support-label condition.  The Moore--Penrose map $K\mapsto K^\dagger$ is continuous only on constant-rank strata; therefore $K_\tau^\dagger f$, $K_{\tau,\eps}^{\oplus}f$, Schur novelty, and explained-drift quantities can jump when a retained mode enters or leaves the solve, even if the symbolic support labels are unchanged.
-
-If Eq.~(\ref{eq:failed_append_invalidation}) does not invalidate the certificate, the controller tests whether the local append model has changed enough to justify a new full candidate search.  With
-\[
-\widetilde K_{k_0}
-=\operatorname{sym}(K_{J,k_0})+\Lambda_J+\delta_{\rm floor}I,
-\]
-let $\widetilde K_{k_0}^{-1/2}$ denote the inverse square root on the retained subspace stored in the certificate.  Define
-\begin{equation}
-\begin{aligned}
-d_K^\#(k,k_0)
-&=
-\left\|
-\widetilde K_{k_0}^{-1/2}
-\bigl(\operatorname{sym}K_{J,k}-\operatorname{sym}K_{J,k_0}\bigr)
-\widetilde K_{k_0}^{-1/2}
-\right\|_2,\\
-d_f^\#(k,k_0)
-&=
-\frac{
-\left\|
-\widetilde K_{k_0}^{-1/2}(f_{J,k}-f_{J,k_0})
-\right\|_2
-}{
-1+\left\|\widetilde K_{k_0}^{-1/2}f_{J,k_0}\right\|_2
-},\\
-\ell_{\rm nat}(k,k_0)
-&=
-\sum_{\ell=k_0}^{k-1}
-\Delta t_\ell
-\sqrt{\max\{0,\dot\theta_\ell^\top K_{J,\ell}\dot\theta_\ell\}},\\
-d_{\rm sent}(k,k_0)
-&=
-\max_{r\in\mathcal S_{k_0}}
-\frac{|U_{r,k}-U_{r,k_0}|}{|U_{r,k_0}|+\eps}.
-\end{aligned}
-\label{eq:failed_append_drift_metrics}
-\end{equation}
-The production certificate uses measured McLachlan and candidate-tangent quantities.  A statevector fidelity drift $1-|\langle\psi_k|\psi_{k_0}\rangle|^2$ may be logged in exact diagnostics, but it is not required for the controller.  The combined drift is
-\begin{equation}
-\begin{aligned}
-D_{\rm cert}(k,k_0)
-&=
-\max\bigl\{
-d_K^\#(k,k_0),d_f^\#(k,k_0),\\
-&\qquad
-\ell_{\rm nat}(k,k_0),d_{\rm sent}(k,k_0)
-\bigr\}.
-\end{aligned}
-\label{eq:failed_append_combined_drift}
-\end{equation}
-Two reopen modes are allowed.  The direct threshold mode opens a full append search when
-\begin{equation}
-D_{\rm cert}(k,k_0)\ge\tau_{\rm reopen}(m^\star_{k_0}),
-\qquad
-m^\star_{k_0}=[\tau_{\app}-U^\star_{k_0}]_+,
-\label{eq:failed_append_direct_reopen}
-\end{equation}
-with
-\begin{equation}
-\tau_{\rm reopen}(m)
-=
-\tau_{\min}+(\tau_{\max}-\tau_{\min})
-\frac{m}{m+m_0}.
-\label{eq:failed_append_tau_reopen}
-\end{equation}
-The model-change mode opens the search when
-\begin{equation}
-L_{k_0}D_{\rm cert}(k,k_0)
-\ge
-\eta_{\rm reopen}m^\star_{k_0}.
-\label{eq:failed_append_eta_reopen}
-\end{equation}
-Here $L_{k_0}$ is a local utility-change scale and $0<\eta_{\rm reopen}\le1$ reopens before the predicted threshold crossing.  Equation~(\ref{eq:failed_append_direct_reopen}) is the default when no reliable $L_{k_0}$ estimate is available.  If neither reopen condition holds, the controller reuses the failed-search conclusion and skips full candidate rescoring at checkpoint $k$.  This is a geometry-staleness certificate: it is not a trajectory-wide cap on accepted append events.  A hard resource stop may exist only as an implementation emergency guard, not as part of the AP-McLachlan append rule.
-
-Rejected sentinel candidates also carry a geometry-clock retry schedule.  For a rejected candidate or batch $r$ at append-check $k$,
-\begin{equation}
-m_{r,k}:=\tau_{\app}-U_{r,k}>0.
-\label{eq:failed_append_candidate_margin}
-\end{equation}
-Small $m_{r,k}$ means a near miss and gives a short wait; large $m_{r,k}$ gives a longer wait.  Let the geometry clock be
-\begin{equation}
-s_k
-=
-\sum_{\ell<k}
-\Delta t_\ell
-\sqrt{\max\{0,\dot\theta_\ell^\top K_{J,\ell}\dot\theta_\ell\}}.
-\label{eq:failed_append_geometry_clock}
-\end{equation}
-When the same sentinel is later evaluated at $j>k$, its observed secant trend is
-\begin{equation}
-v_{r;k\to j}
-=
-\frac{U_{r,j}-U_{r,k}}{s_j-s_k}.
-\label{eq:failed_append_secant_trend}
-\end{equation}
-The base wait is
-\begin{equation}
-h_{r,j}^{\rm base}
-=
-h_{\min}+(h_{\max}-h_{\min})
-\frac{m_{r,j}}{m_{r,j}+m_0},
-\label{eq:failed_append_base_wait}
-\end{equation}
-and the secant-corrected next wait is
-\begin{equation}
-h_{r,j}
-=
-\begin{cases}
-\operatorname{clip}\!\left(
-\eta_v\,m_{r,j}/v_{r;k\to j},
-h_{\min},h_{r,j}^{\rm base}
-\right),
-& v_{r;k\to j}>0,\\
-\operatorname{clip}\!\left(
-\gamma h_{r,k},
-h_{r,j}^{\rm base},h_{\max}
-\right),
-& v_{r;k\to j}<0,\\
-h_{r,j}^{\rm base},
-& v_{r;k\to j}\approx0 .
-\end{cases}
-\label{eq:failed_append_secant_wait}
-\end{equation}
-The factor $\eta_v<1$ checks an improving candidate before the secant-predicted crossing $U=\tau_{\app}$, while $\gamma>1$ backs off a candidate whose utility is decreasing.  The second utility value $U_{r,j}$ is recorded only when the global certificate or an audit reopens candidate evaluation, so the secant rule adds no quantum measurements by itself.
-
-\subsection{Deletion loss}
-
-Directions that were useful when admitted can later become dynamically redundant, disproportionately expensive, or harmful to retained-spectrum conditioning.  We therefore rank active blocks with a cost- and conditioning-aware backward grouped least-squares test, while current refit and continuity checks retain final deletion authority.  This produces either a certified deletion batch $B_k^{\ominus}$ or the empty deletion decision, together with the compensating reduced-support refit used at commit.
-
-For block $b$ with runtime coordinates $I_{b,k}$, the tangent-space deletion loss compares the regularized explained drift on the full active support $J_k$ with the explained drift after deleting the block \cite{YuanLin2006}:
-\begin{equation}
-\mathcal L_k^{\ominus}(b)
 =
 \frac{
-\left[
-\Gamma_k^{K}(J_k)
--
-\Gamma_k^{K}(J_k\setminus I_{b,k})
-\right]_+
+\Delta_k^{\oplus}(B_k^{\oplus})
 }{
-\|\bar b_k\|_2^2+\eps
+K_{t_k}(B_k^{\oplus})^{\alpha_{\rm append}}
 }.
-\label{eq:prune_full_loss_main}
+\label{eq:append_score}
 \end{equation}
-Equation~(\ref{eq:prune_full_loss_main}) is the grouped deletion authority, not the Schur expression itself.  It has the Schur deletion form after partitioning $J_k=R_{b,k}\cup I_{b,k}$ with $R_{b,k}=J_k\setminus I_{b,k}$:
-\begingroup
-\small
-\begin{equation*}
-\begin{aligned}
-u_{b,k}^{-}
-&=f_{k,I_b}\\
-&\quad-K_{k,I_bR_b}(K_{k,R_bR_b})_{\tau,\eps}^{\oplus}f_{k,R_b},\\
-S_{b,k}^{-}
-&=K_{k,I_bI_b}\\
-&\quad-K_{k,I_bR_b}(K_{k,R_bR_b})_{\tau,\eps}^{\oplus}K_{k,R_bI_b},\\
-\Delta_{b,k}^{\rm Schur,-}
-&=(u_{b,k}^{-})^{\top}(S_{b,k}^{-})^{\dagger}u_{b,k}^{-},\\
-\mathcal L_k^{\ominus}(b)
-&=\Delta_{b,k}^{\rm Schur,-}/(\|\bar b_k\|_2^2+\eps).
-\end{aligned}
-\end{equation*}
-\endgroup
-The displayed equality holds under the shared retained-support convention.  Thus append and deletion use the same retained-support whitening convention: append is the forward extra-sum-of-squares gain of a new block, while deletion is the backward extra-sum-of-squares loss of deleting an active block after the remaining coordinates refit \cite{FrischWaugh1933,Lovell1963}.
-For a block hardware cost \(K_{t_k}(b)\ge1\), the cost-pressure score
-\begin{equation*}
-S_k^{\ominus}(b)
+The batch is evaluated jointly rather than by summing singleton gains.
+
+Gain alone is insufficient when the incoming tangent block duplicates the active span.  Partitioning the augmented Gram matrix into current coordinates \(J_k\) and incoming coordinates \(I_{B,k}^{\oplus}\), the checkpoint-local novelty block is
+\begin{equation}
+\mathsf S_{B|J,k}
 =
-\frac{K_{t_k}(b)^{\alpha_{\prune}}}
-{\mathcal L_k^{\ominus}(b)+\eps_L}
-\end{equation*}
-prioritizes expensive blocks with small deletion loss.  For a deletion batch $B_k^{\ominus}$, define $I_{B,k}^{\ominus}=\bigcup_{b\in B_k^{\ominus}}I_{b,k}$ and recompute the grouped loss of the whole batch:
+G_{k,I_BI_B}
+-G_{k,I_BJ}
+(G_{k,JJ})^\dagger
+G_{k,JI_B}.
+\label{eq:append_schur_novelty}
+\end{equation}
+An append batch must retain the declared rank in \(\mathsf S_{B|J,k}\) and yield a finite augmented McLachlan solve.  The combinatorial ladder increases the tested batch cardinality only when smaller batches do not clear the gain and residual criteria.  Whitening, retained-mode compression, and failed-search reuse are implementation accelerations collected in Appendix~\ref{app:technical_realization}; they do not replace Eq.~(\ref{eq:append_gain}).
+
+Append scoring requires overlaps involving candidate tangent directions and can therefore require additional quantum measurements beyond the active-support McLachlan data.  After those candidate blocks have been measured, batch assembly, Schur projection, ranking, and the augmented solve are classical linear algebra.
+
+\subsection{Pure prune limit}
+
+Set \(B_k^{\oplus}=\varnothing\).  For a candidate deletion batch \(B_k^{\ominus}\) with active coordinate set \(I_{B,k}^{\ominus}\subseteq J_k\), the normalized loss after all surviving tangent coordinates refit is
 \begin{equation}
 \mathcal L_k^{\ominus}(B_k^{\ominus})
 =
 \frac{
 \left[
-\Gamma_k^{K}(J_k)
--
-\Gamma_k^{K}(J_k\setminus I_{B,k}^{\ominus})
+\Gamma_k(J_k)
+-\Gamma_k(J_k\setminus I_{B,k}^{\ominus})
 \right]_+
 }{
-\|\bar b_k\|_2^2+\eps
+\|\bar b_k\|_2^2+\eps_{\rm norm}
 }.
-\label{eq:prune_batch_full_loss_main}
+\label{eq:prune_loss}
 \end{equation}
-With historical weights $w_{B,k,\ell}$ over prior time points where the tested blocks were active, set
-\begin{equation}
-\bar{\mathcal L}_k^{\ominus,\mathrm{hist}}(B_k^{\ominus})
-=
-\sum_{\ell\in\mathcal H_{B,k}^{\prune}}
-w_{B,k,\ell}\mathcal L_{\ell}^{\ominus}(B_k^{\ominus}).
-\label{eq:prune_batch_history_loss_main}
-\end{equation}
-Define the retained-spectrum relief and damage of deleting the whole batch by
-\begin{equation*}
-\begin{aligned}
-d_{\kappa}^{\rm rel}(B,k)
-&=
-\left[\phi_{\kappa}(J_k;k)-\phi_{\kappa}(J_k\setminus I_{B,k}^{\ominus};k)\right]_+,
-\\
-d_{\kappa}^{\rm dam}(B,k)
-&=
-\left[\phi_{\kappa}(J_k\setminus I_{B,k}^{\ominus};k)-\phi_{\kappa}(J_k;k)\right]_+,
-\end{aligned}
-\end{equation*}
-and let \(d_S(B,k)\) be the Schur-degeneracy pressure of \(I_{B,k}^{\ominus}\) against \(J_k\setminus I_{B,k}^{\ominus}\), evaluated on the whole deletion batch rather than by summing singleton scores.  Its historical conditioning-toxicity trace is
-\begin{equation}
-d_{\kappa,S}^{\rm hist}(B,k)
-=
-\sum_{\ell\in\mathcal H_{B,k}^{\prune}}
-w_{B,k,\ell}
-\left[
-d_{\kappa}^{\rm rel}(B,\ell)+d_S(B,\ell)
-\right].
-\label{eq:prune_conditioning_history_main}
-\end{equation}
-The condition-aware batch nomination score is
-\begingroup
-\small
-\begin{equation*}
-\begin{aligned}
-\mathcal D_k^{\ominus}(B_k^{\ominus})
-&=
-\mathcal L_k^{\ominus}(B_k^{\ominus})
-+\lambda_{\rm hist}\bar{\mathcal L}_k^{\ominus,\mathrm{hist}}(B_k^{\ominus})
-+\lambda_{\kappa}^{\rm dam}d_{\kappa}^{\rm dam}(B,k)
-+\eps_L,
-\\
-\mathcal R_k^{\ominus}(B_k^{\ominus})
-&=
-1+\lambda_{\kappa}^{\rm rel}d_{\kappa}^{\rm rel}(B,k)
-+\lambda_S d_S(B,k)\\
-&\qquad
-+\lambda_{\kappa}^{\rm hist}d_{\kappa,S}^{\rm hist}(B,k)
-,
-\\
-S_k^{\ominus,\kappa}(B_k^{\ominus})
-&=
-\frac{K_{t_k}(B_k^{\ominus})^{\alpha_{\prune}}}
-{\mathcal D_k^{\ominus}(B_k^{\ominus})}
-\mathcal R_k^{\ominus}(B_k^{\ominus}).
-\end{aligned}
-\end{equation*}
-\endgroup
-Weighted histories of grouped deletion loss may be used for deletion persistence because the active-support McLachlan geometry is already measured for propagation.  Conditioning relief modifies nomination only: it prefers low-loss blocks that are also expensive, historically redundant, or numerically toxic to the live McLachlan solve.  It does not authorize deleting a block with large \(\mathcal L_k^{\ominus}(B_k^{\ominus})\), nor does it replace projected refit, shadow verification, persistence, cooldown, or rollback.  In classical terms, this is history-weighted block extra-sum-of-squares pruning: a shared-support, multi-task grouped least-squares backward-elimination rule over prior time points \cite{YuanLin2006}.  Offline hard-budget support baselines can be posed as best-subset optimization problems \cite{BertsimasKingMazumder2016}, while bootstrap or stability-selection resampling can be used as uncertainty guards for historical deletion statistics under finite-shot or checkpoint variability \cite{Efron1979,MeinshausenBuhlmann2010}. Pairwise generator correlations, static commutation labels, and windowed Schur losses are telemetry or explanatory labels unless a deliberately windowed ablation variant is being reported.
+Equation~(\ref{eq:prune_loss}) is the backward counterpart of Eq.~(\ref{eq:append_gain}): append asks how much explained drift is gained by enlarging the support, whereas prune asks how much is lost after deleting a block and refitting the survivors.  Low loss nominates a block for deletion.  Resource cost, historical redundancy, Schur degeneracy, and conditioning relief prioritize among low-loss batches, but cannot authorize a deletion with excessive current loss.
 
-For an optional compensator window $W\subseteq J_k\setminus I_{b,k}$, the windowed deletion diagnostic is
-\begin{equation}
-\mathcal L_k^{\ominus}(b;W)
-=
-\frac{
-\left[
-\Gamma_k^K(J_k)-\Gamma_k^K(W)
-\right]_+
-}{\|\bar b_k\|_2^2+\eps}.
-\label{eq:windowed_prune_loss_main}
-\end{equation}
-The full-support window $W=J_k\setminus I_{b,k}$ is canonical.  Smaller typed windows can explain a deletion, warm-start a reduced refit, or define an ablation variant, but they do not replace the full active-support grouped loss in Eq.~(\ref{eq:prune_full_loss_main}).
+Because Eq.~(\ref{eq:prune_loss}) uses submatrices of the active \(G_k\) and \(f_k\) already acquired for McLachlan propagation, prune nomination itself requires no new quantum measurements.  A deletion commit is stricter.  The candidate block is first set to the identity and, if necessary, the surviving parameters are locally refit to the pre-patch state.  This reduced-state fit or overlap certification can require additional circuits on a QPU.
 
-\structlabel{Deletion implementation contract}
-Deletion is the same grouped least-squares operation with the sign reversed.  The retained-support threshold, ridge convention, damped supported inverse, whitening map, and hardware-cost model must match the append calculation and the propagated McLachlan solve.  The full active-support loss in Eq.~(\ref{eq:prune_full_loss_main}) is the deletion authority; local Schur expressions, compensator windows, generator-correlation histories, and pairwise redundancy labels may screen or explain a trial, but they do not replace the full-support grouped loss.  Because active-support tangent geometry is already measured for propagation, weighted histories of \(\mathcal L_k^{\ominus}(b)\) can be summed for persistence without adding quantum measurements.  The declared prune rule is the batched deletion ladder; singleton prune is the \(q=1\) restriction and can be selected by setting the maximum prune batch size to one.  Batched deletion sets \(B_k^{\ominus}\) are chosen by the best cost/resource score among sets that pass the current grouped-loss, historical-redundancy, reduced-state refit, and same-checkpoint smoothness checks.  If no deletion set clears the declared threshold and safety checks, no deletion is committed.  The time-point grouped loss is necessary but not globally sufficient: a locally safe deletion can still damage the subsequent trajectory, so persistence, cooldown, rollback, and optional short-horizon no-harm verification remain part of the strict prune surface.
-
-\structlabel{Same-checkpoint reduced-state commit}
-Schur deletion loss and conditioning relief nominate a patch.  Commit acceptance is a state-space test on the refit patched ansatz.  Let \(\Pi_{\mathcal B}\theta_k\) transport the incumbent coordinates onto \(J_k^{\mathcal B}\) by copying surviving coordinates and setting appended coordinates to zero.  The first rung is the zero test
+Let \(J_k^{\mathcal B}\) be the proposed post-patch support and \(\vartheta_{\mathcal B,k}^{\star}\) the zero-transported or locally refit parameters on that support.  Deletion can commit only if
 \begin{equation}
-\vartheta_{\mathcal B,k}^{0}
-=
-\Pi_{\mathcal B}\theta_k,
-\qquad
-\ket{\psi_k^{0,\mathcal B}}
-=
-U_{J_k^{\mathcal B}}(\vartheta_{\mathcal B,k}^{0})\ket{\psi_{\rm ref}},
-\label{eq:patch_zero_test}
-\end{equation}
-which sets the candidate deletion block to the identity while leaving the transported survivors fixed.  If the zero test does not satisfy the ray criterion below, the second rung opens a local reduced-state refit
-\begin{equation}
-\vartheta_{\mathcal B,k}^{\star}
-\in
-\operatorname*{arg\,min}_{\|\vartheta-\vartheta_{\mathcal B,k}^{0}\|_2\le r_{\rm trust}}
 d_{\rm FS}\!\left(
-U_{J_k^{\mathcal B}}(\vartheta)\ket{\psi_{\rm ref}},
-U_{J_k}(\theta_k)\ket{\psi_{\rm ref}}
-\right),
-\label{eq:patch_reduced_state_refit}
-\end{equation}
-with a local optimizer or its declared measurement-compatible overlap surrogate.  Let
-\begin{equation*}
-\ket{\psi_k^-}=U_{J_k}(\theta_k)\ket{\psi_{\rm ref}},
-\qquad
-\ket{\psi_k^{\mathcal B}}
-=U_{J_k^{\mathcal B}}(\vartheta_{\mathcal B,k}^{\star})\ket{\psi_{\rm ref}} .
-\end{equation*}
-The patch can commit only if the same-checkpoint ray and velocity tests pass:
-\begin{equation}
-d_{\rm FS}(\psi_k^-,\psi_k^{\mathcal B})
-\le \tau_{\rm patch},
+\psi_k,
+\psi_k^{\mathcal B}
+\right)
+\le\tau_{\rm patch},
 \qquad
 \eta_{{\rm patch},k}^{\psi}(\mathcal B_k)
-\le \tau_{\rm patch}^{\rm vel},
-\label{eq:patch_same_checkpoint_ray_velocity}
+\le\tau_{\rm patch}^{\rm vel},
+\label{eq:patch_continuity}
 \end{equation}
 where
 \begin{equation}
@@ -1132,418 +330,127 @@ where
 \frac{
 \left\|
 \bar T_k^{\mathcal B}\dot\vartheta_{\mathcal B,k}^{\star}
--
-\bar T_k^{-}\dot\theta_k^{-}
+-\bar T_k\dot\theta_k
 \right\|_2^2
 }{
-\|\bar b_k\|_2^2+\eps
+\|\bar b_k\|_2^2+\eps_{\rm norm}
 }.
-\label{eq:patch_velocity_jump}
+\label{eq:patch_velocity_continuity}
 \end{equation}
-Here \(\bar T_k^{-}\dot\theta_k^{-}\) is the accepted pre-patch McLachlan velocity, while \(\bar T_k^{\mathcal B}\dot\vartheta_{\mathcal B,k}^{\star}\) is the McLachlan velocity recomputed on the refit patched support using the same retained-support and damping convention.  A pure append has \(I_{\mathcal B,k}^{\ominus}=\varnothing\) and \(\vartheta_{\mathcal B,k}^{0}=(\theta_k,0)\), so the ray-distance check is automatic.  A deletion or exchange patch first tries Eq.~(\ref{eq:patch_zero_test}), then the trust-radius refit in Eq.~(\ref{eq:patch_reduced_state_refit}); commit requires Eqs.~(\ref{eq:patch_same_checkpoint_ray_velocity})--(\ref{eq:patch_velocity_jump}).  Optional shadow propagation is a stricter diagnostic guard rather than the default commit certificate.
+Persistence prevents a transiently redundant block from being removed after one checkpoint; cooldown and exact rollback prevent repeated unsafe attempts.  The history and conditioning nomination score is given in Appendix~\ref{app:technical_realization}.
 
-The commit test separates a block that is prune-worthy from a block that is smoothly removable at the present checkpoint.  For a deletion-containing candidate \(B\), define the patch-smoothness severity
+\subsection{Bounded support-patch search used here}
+
+The ideal support-patch problem is combinatorial.  Exhaustive enumeration, mixed-integer optimization, branch-and-bound, greedy forward--backward selection, and local exchange are all possible search strategies for related subset problems \cite{Natarajan1995SparseApprox,BertsimasKingMazumder2016,DasKempe2011,Elenberg2018WeakSubmodularity}.  AP-McLachlan uses a bounded two-pass search because candidate tangent measurements, not only classical subset enumeration, contribute to the checkpoint cost.
+
+The first pass constructs separate append and prune scout lists.  Append scouts are ranked by explained-drift gain per hardware cost and must retain Schur novelty.  Prune scouts are ranked among low-loss deletions using recovered hardware cost, historical redundancy, and conditioning relief.  The default executable atoms are Pauli- or polynomial-child terms, and candidate batches are evaluated jointly through a combinatorial cardinality ladder rather than by summing singleton scores.
+
+The second pass forms a finite frontier containing stay, independently admissible pure append and pure prune candidates, and true exchanges obtained by pairing retained append and prune scouts.  Every retained candidate is recomputed on its complete patched support.  Selection uses conditional append gain, conditional deletion loss, hardware cost, Schur and conditioning terms, refit effort, the full patched solve, and the state and velocity continuity tests.  Scout-list sizes and pair-count limits bound classical and measurement work; they do not force a scientific batch size.  Exact trajectories do not enter the frontier, ranking, or commit tests.  Further history, conditioning, and retry conventions are collected in Appendix~\ref{app:technical_realization}.
+
+\section{Fixed-support numerical stabilization}
+\label{sec:numerical_solve_repair}
+
+An expressive tangent support can still fail numerically.  The inverse may lose motion that lies in the resolved tangent span, a finite time step may move too far for the local linearization, or the accepted state-space velocity may change discontinuously between neighboring time points.  These are three different failures and require different responses.
+
+For any realized candidate velocity \(v\), the best geometric residual available on the current support is
 \begin{equation}
-s_{B,k}
+\epsilon_{{\rm geo},k}^{2}
 =
-\max\left\{
-\frac{d_{\rm FS}(\psi_k^-,\psi_k^B)}{\tau_{\rm patch}},
-\frac{\eta_{{\rm patch},k}^{\psi}(B)}{\tau_{\rm patch}^{\rm vel}}
-\right\}.
-\label{eq:patch_smoothness_severity}
+\left[
+\|\bar b_k\|_2^2-\Gamma_k(J_k)
+\right]_+,
+\label{eq:geometric_residual}
 \end{equation}
-When \(s_{B,k}\le 1\), the deletion remains eligible for commit subject to the other prune checks.  When \(s_{B,k}>1\), the block is rejected at this checkpoint but retained as a smoothness-deferred prune candidate rather than removed from consideration.  The retry delay is severity-dependent,
+whereas its realized residual is
 \begin{equation}
-p_{B,k}
+\epsilon_{{\rm real},k}^{2}(v)
+=v^\top G_kv-2f_k^\top v+\|\bar b_k\|_2^2.
+\label{eq:realized_residual}
+\end{equation}
+The normalized numerical miss is therefore
+\begin{equation}
+\rho_{{\rm num},k}(v)
 =
-\left\lceil
-p_{\min}
-+
-(p_{\max}-p_{\min})
-\operatorname{clip}\!\left(
-\frac{s_{B,k}-1}{\chi_{\rm patch}},
-0,1
+\frac{
+\left[\epsilon_{{\rm real},k}^{2}(v)
+-\epsilon_{{\rm geo},k}^{2}\right]_+
+}{
+\|\bar b_k\|_2^2+\eps_{\rm norm}
+}.
+\label{eq:numerical_miss}
+\end{equation}
+Thus \(\rho_{{\rm num},k}\) measures motion lost by the realized solve relative to what the same tangent support can represent.  It is not an expressivity residual and does not decide whether a generator should be appended or removed.
+
+The second diagnostic is the size of the proposed state-space step.  We use the larger of the tangent-plane estimate and the realized trial-state ray displacement,
+\begin{equation}
+\begin{aligned}
+\delta_{{\rm step},k}(v)
+&=\max\Bigl\{
+\Delta t_k\sqrt{v^\top G_kv},
+\\[-2pt]
+&\hspace{3.3em}
+d_{\rm FS}\!\left(
+\psi(\theta_k),
+\psi(\theta_k+\Delta t_kv)
 \right)
-\right\rceil ,
-\label{eq:patch_smoothness_deferral}
-\end{equation}
-so a barely nonsmooth patch is tested again sooner than a patch that would create a large ray or velocity jump.  If the same deletion batch is tested again through the ordinary prune-nomination path, the stored severities can be used only opportunistically.  For two non-destructive tests at checkpoints \(k_1<k_2\),
-\begin{equation}
-t_{\rm retry}
-\approx
-t_{k_2}
-+
-\Delta t
-\frac{s_{B,k_2}-1}{s_{B,k_1}-s_{B,k_2}},
-\qquad
-s_{B,k_1}>s_{B,k_2},
-\label{eq:patch_smoothness_secant_retry}
-\end{equation}
-is a diagnostic retry estimate, not an authorization to perform additional measurements solely to build a trend.  Thus Schur and deletion-loss history can say that \(B\) is removable in principle, while Eq.~(\ref{eq:patch_smoothness_severity}) decides whether the removal is locally continuous enough to commit now.
-
-\subsection{Support-patch selection}
-
-Independent append and deletion decisions can recommend halves that become unsafe or suboptimal when combined.  We therefore evaluate stay, pure append, pure deletion, and true exchange within one jointly confirmed support-patch finalist family.  This produces the single checkpoint action $\mathcal B_k^\star=(B_k^{\ominus},B_k^{\oplus})$ and its patched support $J_k^{\mathcal B}$.
-
-The structural action at checkpoint $k$ is the support-exchange batch
-\begin{equation}
-\begin{aligned}
-\mathcal B_k&=(B_k^{\ominus},B_k^{\oplus}),\\
-I_{\mathcal B,k}^{\ominus}
-&=\bigcup_{b\in B_k^{\ominus}}I_{b,k},
-\qquad
-I_{\mathcal B,k}^{\oplus}
-=\bigcup_{r\in B_k^{\oplus}}I_{r,k}^{\oplus},\\
-J_k^{\mathcal B}
-&=(J_k\setminus I_{\mathcal B,k}^{\ominus})\cup I_{\mathcal B,k}^{\oplus},\\
-\Delta_k^{\rm patch}(\mathcal B_k)
-&=
-\frac{\Gamma_k^K(J_k^{\mathcal B})-\Gamma_k^K(J_k)}
-{\|\bar b_k\|_2^2+\eps}.
+\Bigr\}.
 \end{aligned}
-\label{eq:structural_patch}
+\label{eq:state_space_step}
 \end{equation}
-This support-exchange batch is the general time-point object.  The empty batch is the stay action; \(B_k^{\ominus}=\varnothing\) gives pure append; \(B_k^{\oplus}=\varnothing\) gives pure deletion; and nonempty \(B_k^{\ominus}\) and \(B_k^{\oplus}\) give a simultaneous exchange that replaces stale tangent coordinates with new tangent coordinates in one time-point edit.  At each checkpoint the controller chooses one patch. Added coordinates enter with zero amplitude and therefore preserve state continuity; removed coordinates are accepted only after verification. The accepted variational path supplies the reported observables $O_{\rm alg}(t_j)=\bra{\psi(\theta(t_j);\Oset(t_j))}O\ket{\psi(\theta(t_j);\Oset(t_j))}$, which are the inputs to the time-domain and spectral errors in Sec.~\ref{sec:benchmarks}.
-
-A committed deletion additionally requires projected reduced-state refit, small Fubini--Study ray displacement, bounded velocity jump, bounded differential expressivity miss, persistence, cooldown, and exact rollback. Short-horizon observable shadow/no-harm verification is an optional stricter diagnostic mode. Static hardware cost can prioritize testing an expensive low-loss block, but cost does not certify deletion safety. Rejected deletion trials roll back exactly and put the tested block on cooldown.
-
-\subsection{Swap/exchange support patches}
-
-An incoming direction can become valuable only after a stale direction is removed, while the deletion can become safe only when its replacement is admitted simultaneously.  We therefore form true-exchange candidates from append and deletion scouts, evaluate conditional gain and loss on the joint patched support, and apply the full patched solve, refit, conditioning, and continuity checks.  This produces a confirmed true-exchange finalist rather than a sequential append-then-delete decision; failure of the joint patch does not authorize either half.
-
-A computationally useful reference object is the combinatorial-optimal exchange associated with the checkpoint-local quadratic McLachlan model.  Let \(\mathcal P_k\) denote the finite append-coordinate pool retained after measurement-compatible screening, and for \(D\subseteq J_k\), \(A\subseteq\mathcal P_k\) define
+The third diagnostic detects a temporal kink in the physical tangent velocity,
 \begin{equation}
-S_k(D,A)=(J_k\setminus D)\cup A .
-\label{eq:exchange_support_set}
-\end{equation}
-At this level, \(\Gamma_k^K(S)\) denotes the scalar support value associated
-with the declared checkpoint-local McLachlan quadratic and inverse convention.
-With a support resource penalty \(\pi_k(S)\) and an edit-friction penalty \(\eta_k(D,A)\), the ideal exchange value is
-\begin{equation}
-\begin{aligned}
-U_k^{\rm exch}(D,A)
-={}&
-\Gamma_k^K(S_k(D,A))-\Gamma_k^K(J_k)\\
-&-\left[\pi_k(S_k(D,A))-\pi_k(J_k)\right]
--\eta_k(D,A).
-\end{aligned}
-\label{eq:ideal_exchange_value}
-\end{equation}
-The exact support-exchange problem is therefore
-\begin{equation}
-(D_k^\star,A_k^\star)
-\in
-\operatorname*{arg\,max}_{\substack{D\subseteq J_k,\ A\subseteq\mathcal P_k\\
-h_i(D,A)\le0,\ i=1,\ldots,m}}
-U_k^{\rm exch}(D,A),
-\label{eq:ideal_exchange_argmax}
-\end{equation}
-where the inequalities \(h_i(D,A)\le0\) collect cardinality, compiled-cost, measurement-budget, Schur-novelty, continuity, cooldown, and rollback-admissibility constraints.  Equation~(\ref{eq:ideal_exchange_argmax}) is a response-coupled support-restricted quadratic value maximization: in the regression-consistent specialization \(K=X^\top X\) and \(f=X^\top y\), \(\Gamma(S)=f_S^\top K_{SS}^{\dagger}f_S\) is the extra-sum-of-squares value of the best least-squares fit on support \(S\).  The exact global problem is NP-hard in general.  Setting \(D=\varnothing\), removing \(\pi_k\) and \(\eta_k\), using singleton append blocks, and imposing only \(|A|\le q\) recovers sparse approximation / best subset selection, a classical NP-hard problem \cite{Natarajan1995SparseApprox,BertsimasKingMazumder2016}.  Thus every exchange family containing pure append as a limiting case inherits this worst-case combinatorial hardness.
-
-The value-function formulation is the clean coupling object.  The exact
-least-squares and Schur identities below use the full-rank or ridge-stabilized
-specialization.  Let
-\[
-K_{k,SS}^{(\lambda)}=K_{k,SS}+\lambda I,
-\qquad
-\lambda>0,
-\]
-or take \(\lambda=0\) only for admissible supports with \(K_{k,SS}\succ0\).
-Then
-\begin{equation}
-\Gamma_{k,\lambda}(S)
-=
-f_{k,S}^{\top}
-\left(K_{k,SS}^{(\lambda)}\right)^{-1}
-f_{k,S}
-\label{eq:exchange_gamma_ridge}
-\end{equation}
-is the optimum value of a support-restricted concave quadratic,
-\begin{equation}
-\Gamma_{k,\lambda}(S)
-=
-\max_{u\in\mathbb R^{|S|}}
-\left\{
-2f_{k,S}^{\top}u
--u^\top K_{k,SS}^{(\lambda)}u
-\right\}.
-\label{eq:exchange_gamma_value_function}
-\end{equation}
-Equivalently, it is \(-2\) times the minimum of
-\(\frac12u^\top K_{k,SS}^{(\lambda)}u-f_{k,S}^{\top}u\).  Thus the exact
-support value is a restricted McLachlan value function, not an independent
-append or prune score.  In the regression-consistent case
-\(K=X^\top X\), \(f=X^\top y\), and \(\lambda=0\), this value is the explained
-sum of squares \(y^\top X_S(X_S^\top X_S)^\dagger X_S^\top y\) whenever the
-usual least-squares consistency/rank conditions hold.  Maximizing it over
-\(|S|\le q\) is therefore equivalent to minimizing the best \(q\)-sparse
-least-squares residual.  Exact-swap-only admissible families, such as rules
-requiring \(|A|=|D|\), need a separate reduction; the one-line NP-hardness
-argument above applies directly to exchange families that admit pure append.
-In the positive ridge or full-rank setting, \(\Gamma_{k,\lambda}\) is monotone
-under support inclusion.  Hard spectral thresholding or changing retained
-pseudoinverse support defines a different set function, so the monotonicity and
-projection identities are not asserted for that implementation convention.
-Define
-\[
-\Delta\pi_k(D,A)=\pi_k(S_k(D,A))-\pi_k(J_k).
-\]
-The directional quantities used below are decompositions of
-Eq.~(\ref{eq:ideal_exchange_value}):
-\begin{equation}
-\begin{aligned}
-\Delta_k^{+}(A\mid D)
-&=
-\Gamma_k^K((J_k\setminus D)\cup A)
--\Gamma_k^K(J_k\setminus D),\\
-\ell_k^{-}(D)
-&=
-\Gamma_k^K(J_k)-\Gamma_k^K(J_k\setminus D),\\
-L_k^{-}(D\mid A)
-&=
-\Gamma_k^K(J_k\cup A)
--\Gamma_k^K((J_k\setminus D)\cup A).
-\end{aligned}
-\label{eq:exchange_directional_decomposition}
-\end{equation}
-Consequently,
-\begin{equation}
-\begin{aligned}
-U_k^{\rm exch}(D,A)
-&=
-\Delta_k^{+}(A\mid D)-\ell_k^{-}(D)\\
-&\quad
--\Delta\pi_k(D,A)-\eta_k(D,A)\\
-&=
-\Delta_k^{+}(A\mid\varnothing)-L_k^{-}(D\mid A)\\
-&\quad
--\Delta\pi_k(D,A)-\eta_k(D,A).
-\end{aligned}
-\label{eq:exchange_value_decomposition}
-\end{equation}
-Large append gain and small deletion loss are therefore coupled through the same
-support value function.  Deletion safety is imposed as a hard admissibility
-condition on \(D\) and \(A\), rather than as a soft score that can be overwhelmed
-by an unrelated append gain.
-
-In the full-rank or common-ridge specialization, the Schur-complement
-statistics expose the coupling exactly.  Let
-\[
-R=J_k\setminus D,
-\qquad
-S_k(D,A)=R\cup A,
-\]
-and write all \(K^{(\lambda)}\)-blocks and \(f\)-blocks at checkpoint \(k\).
-With \(K_{RR}^{(\lambda)}\succ0\), define
-\begin{equation}
-\begin{aligned}
-\alpha_R&=\left(K_{RR}^{(\lambda)}\right)^{-1}f_R,\\
-g_{A\mid R}&=f_A-K_{AR}^{(\lambda)}\alpha_R,\\
-\mathcal S_{A\mid R}
-&=K_{AA}^{(\lambda)}
--K_{AR}^{(\lambda)}
-\left(K_{RR}^{(\lambda)}\right)^{-1}
-K_{RA}^{(\lambda)}.
-\end{aligned}
-\label{eq:exchange_schur_append_stats}
-\end{equation}
-Then
-\begin{equation}
-\Gamma_{k,\lambda}(R\cup A)
-=
-\Gamma_{k,\lambda}(R)
-+g_{A\mid R}^{\top}
-\mathcal S_{A\mid R}^{-1}
-g_{A\mid R}.
-\label{eq:exchange_schur_append_value}
-\end{equation}
-The deletion side has the analogous residualized force
-\(g_{D\mid R}=f_D-K_{DR}^{(\lambda)}
-(K_{RR}^{(\lambda)})^{-1}f_R\) and Schur block
-\(\mathcal S_{D\mid R}=K_{DD}^{(\lambda)}
--K_{DR}^{(\lambda)}(K_{RR}^{(\lambda)})^{-1}K_{RD}^{(\lambda)}\).
-Hence, up to the declared support and edit penalties,
-\begin{equation}
-\begin{aligned}
-U_k^{\rm exch}(D,A)
-={}&
-g_{A\mid R}^{\top}\mathcal S_{A\mid R}^{-1}g_{A\mid R}
-\\
-&-
-g_{D\mid R}^{\top}\mathcal S_{D\mid R}^{-1}g_{D\mid R}\\
-&-\Delta\pi_k(D,A)-\eta_k(D,A).
-\end{aligned}
-\label{eq:exchange_schur_coupled_value}
-\end{equation}
-Thus batched exchange requires candidate--candidate and candidate--active
-geometry, not only singleton marginal scans.  Exhaustive bounded exchange with
-\(|D|\le d_{\max}\) and \(|A|\le a_{\max}\) has neighborhood size
-\begin{equation}
-N_{\rm pair}
-=
-\sum_{d=0}^{d_{\max}}\binom{|J_k|}{d}
-\sum_{a=0}^{a_{\max}}\binom{|\mathcal P_k|}{a},
-\label{eq:exchange_neighborhood_size}
-\end{equation}
-which is why exact enumeration, mixed-integer quadratic formulations,
-branch-and-bound, cutting planes, or Cholesky-updated local search are reference
-algorithms for small neighborhoods rather than the default checkpoint rule.
-
-This complexity statement fixes the role of the algorithm below.  AP-McLachlan treats Eq.~(\ref{eq:ideal_exchange_argmax}) as the ideal support objective and searches only a bounded, measurement-compatible, checkpoint-local frontier.  Greedy, forward--backward, and local-exchange algorithms for related support objectives are usually analyzed through weak submodularity, restricted strong convexity, or restricted smoothness; those guarantees become diagnostic rather than axiomatic here because retained-rank truncation, damped supported inverses, and deletion-continuity constraints make the admissible value function checkpoint-dependent \cite{DasKempe2011,Elenberg2018WeakSubmodularity}.  The implemented exchange rule therefore separates scout scores from commit certificates: conditional quadratic gain nominates a support patch, while the refit patched support and state-space guards authorize the accepted trajectory edit.  When the implementation replaces the full-rank/ridge inverse by a thresholded supported inverse, Schur expressions are scout or confirm diagnostics unless a common retained support and common positive ridge make the shortcut identical to the directly recomputed grouped before--after score.
-
-The bounded support-patch rule is the finite controller version of
-Eq.~(\ref{eq:ideal_exchange_argmax}).  Define the resource-adjusted support value
-\begin{equation}
-\Phi_k(S)=\Gamma_k^K(S)-\pi_k(S).
-\label{eq:bounded_patch_phi}
-\end{equation}
-Let \(\mathcal A_k\) be the active block-label set whose runtime coordinates
-form \(J_k\), and let \(\mathcal C_k\) be the screened append-block pool.  For
-declared exchange widths \(q_-\) and \(q_+\), the admissible bounded patch family
-is
-\begin{equation}
-\begin{aligned}
-\mathfrak B_k^{q_-,q_+}
-=
-\bigl\{
-\mathcal B=(B^{\ominus},B^{\oplus}):\,
-&B^{\ominus}\subseteq\mathcal A_k,\quad
-B^{\oplus}\subseteq\mathcal C_k,\\
-&|B^{\ominus}|\le q_-,\quad |B^{\oplus}|\le q_+,\\
-&h_i(\mathcal B)\le0,\ i=1,\ldots,m
-\bigr\}.
-\end{aligned}
-\label{eq:bounded_patch_family}
-\end{equation}
-The mathematical support-patch decision is
-\begin{equation}
-\mathcal B_k^\star
-\in
-\operatorname*{arg\,max}_{\mathcal B\in\mathfrak B_k^{q_-,q_+}}
-\left[
-\Phi_k(J_k^{\mathcal B})-\Phi_k(J_k)-\eta_k(\mathcal B)
-\right].
-\label{eq:bounded_patch_argmax}
-\end{equation}
-The empty patch gives stay, \(B^{\ominus}=\varnothing\) gives pure append,
-\(B^{\oplus}=\varnothing\) gives pure deletion, and two nonempty sides give a
-simultaneous exchange.  The conditional quantities below are diagnostics or hard
-admissibility tests for constructing and certifying members of
-\(\mathfrak B_k^{q_-,q_+}\); they are not independent scalar objectives for
-swap selection.
-
-The exchange-local append gain after the proposed deletion is
-\begin{equation}
-\Delta_k^{\oplus}(B_k^{\oplus}\mid B_k^{\ominus})
+\eta_{{\rm time},k}^{\psi}(v)
 =
 \frac{
-\left[
-\Gamma_k^K(J_k^{\mathcal B})
--
-\Gamma_k^K(J_k\setminus I_{\mathcal B,k}^{\ominus})
-\right]_+
+\left\|
+\bar T_kv-
+\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
+\right\|_2^2
 }{
-\|\bar b_k\|_2^2+\eps
+\tfrac12\left(
+\|\bar b_k\|_2^2+
+\|\bar b_{k-1}\|_2^2
+\right)+\eps_{\rm norm}
 }.
-\label{eq:exchange_conditional_append_gain}
+\label{eq:temporal_kink}
 \end{equation}
-The complementary exchange-local deletion loss tests the proposed deletion after
-the appended block has been made available:
+For \(k=0\), the temporal-kink diagnostic is set to zero.
+
+The repair lane opens only when the base realization is invalid or one of these measured defects is excessive:
 \begin{equation}
-\mathcal L_k^{\ominus}(B_k^{\ominus}\mid B_k^{\oplus})
+g_{{\rm invalid},k}
+\ \vee\
+\rho_{{\rm num},k}>\tau_{\rm num}
+\ \vee\
+\delta_{{\rm step},k}>\tau_\Delta
+\ \vee\
+\eta_{{\rm time},k}^{\psi}>\tau_{\rm kink}.
+\label{eq:repair_entry}
+\end{equation}
+Hard invalidity means nonfinite or dimensionally inconsistent checkpoint data, not merely a large diagnostic value.  The retained-spectrum condition number \(\kappa_{\rm eff}\) is intentionally absent from Eq.~(\ref{eq:repair_entry}).  It measures sensitivity of a candidate inverse and therefore modifies candidate risk; by itself it neither proves that motion was lost nor determines whether regularization should increase or decrease.
+
+The response follows the measured failure channel.  Excessive numerical miss opens a bidirectional inverse search, because the base solve may be under-regularized or over-regularized.  Excessive state displacement or temporal kink opens local time-step subdivision, because damping is not the first cure for a physically accurate velocity evaluated over too large a step.  When several channels fire, both response families are considered.  Among finite candidates that satisfy the numerical-miss, state-motion, and temporal-continuity thresholds, the controller selects the least intervention; if none passes, a diagnostic trajectory may continue with the least-bad finite candidate and mark the checkpoint unsupported.  The supported inverse, whitening map, candidate construction, and release patience are given in Appendix~\ref{app:technical_realization}.
+
+The measurement boundary is important.  Once \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^2\) have been estimated at a checkpoint, Eqs.~(\ref{eq:realized_residual}) and the tangent-plane part of Eq.~(\ref{eq:state_space_step}) are classical quadratic forms.  Testing stronger or weaker inverse policies on those same data requires no new quantum measurements.  The trial-state ray check requires an additional overlap experiment on a QPU when that stricter guard is enabled; in the present statevector diagnostics it is evaluated classically.  Local subdivision is different: it introduces new intermediate states and therefore requires new checkpoint evaluations.  Temporal continuity uses current and previously retained checkpoint data and never an exact reference trajectory.
+
+After a repaired inverse has been held, return to the base inverse is tested at the same checkpoint.  If \(v_k^{\rm rep}\) and \(v_k^{0}\) are the repaired and base velocities, respectively, then
+\begin{equation}
+\eta_{{\rm rel},k}^{\psi}
 =
 \frac{
-\left[
-\Gamma_k^K(J_k\cup I_{\mathcal B,k}^{\oplus})
--
-\Gamma_k^K(J_k^{\mathcal B})
-\right]_+
+(v_k^{\rm rep}-v_k^{0})^\top
+G_k
+(v_k^{\rm rep}-v_k^{0})
 }{
-\|\bar b_k\|_2^2+\eps
+\|\bar b_k\|_2^2+\eps_{\rm norm}
 }.
-\label{eq:exchange_conditional_deletion_loss}
+\label{eq:repair_release}
 \end{equation}
-The unconditional append and deletion scores are scouts for constructing a
-tractable subset of \(\mathfrak B_k^{q_-,q_+}\).  A useful exchange scout uses
-the same \(K_t(\cdot)\) convention as append and prune,
-\begin{equation}
-S_k^{\swap,\mathrm{scout}}(\mathcal B_k)
-=
-\frac{\Delta_k^{\oplus}(B_k^{\oplus}\mid B_k^{\ominus})}{K_{t_k}(B_k^{\oplus})^{\alpha_{\app}}}
-+
-S_k^{\ominus,\kappa}(B_k^{\ominus}).
-\label{eq:exchange_scout_score}
-\end{equation}
-When \(B_k^{\oplus}=\varnothing\), the first term is omitted; when \(B_k^{\ominus}=\varnothing\), the second term is omitted.  Thus pure append, pure prune, and simultaneous exchange all use the same imported hardware-cost penalty \(K_t(\cdot)\).  Equation~(\ref{eq:exchange_scout_score}) is not the support-patch objective: a large append gain cannot compensate for an unsafe deletion, and a near-zero deletion loss cannot force an irrelevant append.
-In the fully enabled controller, exchange is the default decision family and pure append, pure prune, and stay are limiting cases of Eq.~(\ref{eq:bounded_patch_argmax}).  Each candidate patch is tested on the full patched support \(J_k^{\mathcal B}\).  A nonempty \(B_k^{\oplus}\) side must pass conditional append gain, retained Schur novelty against \(J_k\setminus I_{\mathcal B,k}^{\ominus}\), and finite augmented-solve geometry.  A nonempty \(B_k^{\ominus}\) side must pass the conditional deletion loss in Eq.~(\ref{eq:exchange_conditional_deletion_loss}), redundancy against \((J_k\setminus I_{\mathcal B,k}^{\ominus})\cup I_{\mathcal B,k}^{\oplus}\), reduced-state refit, same-checkpoint ray and velocity continuity, persistence, cooldown, and rollback.
+Equation~(\ref{eq:repair_release}) is computed classically from the already measured \(G_k\); it does not require a second quantum measurement of either velocity.  Release uses a stricter threshold and severity-dependent persistence so that a repair is not switched off immediately after a large accepted correction.
 
-Let \(\mathfrak P_k\) be the finite set of stay, pure append, pure deletion, and true-exchange candidates retained after the scout stage.  The admissible finalist set is constrained lexicographically,
-\begin{equation}
-\begin{aligned}
-\mathfrak P_k^{\rm pass}
-={}&
-\bigl\{\mathcal B\in\mathfrak P_k:
-\mathrm{valid}(\mathcal B)=1,\\
-&\hspace{3.4em}
-\mathrm{tangent}(\mathcal B)=1,\ 
-\mathrm{smooth}(\mathcal B)=1
-\bigr\},
-\end{aligned}
-\label{eq:exchange_pass_set}
-\end{equation}
-where the tangent condition contains the conditional append and deletion tests above, and the smoothness condition contains Eqs.~(\ref{eq:patch_same_checkpoint_ray_velocity})--(\ref{eq:patch_velocity_jump}) for every deletion-containing patch.  Refit effort is recorded as
-\begin{equation}
-e_k^{\rm refit}(\mathcal B)
-=
-\frac{\|\vartheta_{\mathcal B,k}^{\star}-\vartheta_{\mathcal B,k}^{0}\|_2}
-{r_{\rm trust}+\eps}.
-\label{eq:exchange_refit_effort}
-\end{equation}
-If the implementation does not exhaust \(\mathfrak B_k^{q_-,q_+}\), the
-retained finalist set \(\mathfrak P_k^{\rm pass}\subseteq
-\mathfrak B_k^{q_-,q_+}\) is ranked by a declared resource-weighted
-approximation to Eq.~(\ref{eq:bounded_patch_argmax}) with velocity and
-refit-risk margins, for example
-\begin{equation}
-\begin{aligned}
-N_k^{\rm patch}(\mathcal B)
-&=
-S_k^{\swap,\mathrm{scout}}(\mathcal B)
-+\lambda_{\rm patch}\Delta_k^{\rm patch}(\mathcal B),\\
-D_k^{\rm patch}(\mathcal B)
-&=
-1+c_{\rm refit}e_k^{\rm refit}(\mathcal B)
-+\frac{c_{\rm vel}\eta_{{\rm patch},k}^{\psi}(\mathcal B)}
-{\tau_{\rm patch}^{\rm vel}+\eps},\\
-\mathcal U_k^{\rm patch}(\mathcal B)
-&=
-\frac{N_k^{\rm patch}(\mathcal B)}
-{D_k^{\rm patch}(\mathcal B)}.
-\end{aligned}
-\label{eq:exchange_patch_utility}
-\end{equation}
-Here \(\lambda_{\rm patch}\), \(c_{\rm refit}\), and \(c_{\rm vel}\) are declared runtime weights; \(e_k^{\rm refit}=0\) for a zero-initialized pure append, and the velocity-margin term is omitted for pure append unless a strict vector-field smoothness mode is enabled.
-The approximate implementation commits at most one patch,
-\begin{equation}
-\widehat{\mathcal B}_k\in
-\operatorname*{arg\,max}_{\mathcal B\in\mathfrak P_k^{\rm pass}}
-\mathcal U_k^{\rm patch}(\mathcal B),
-\label{eq:exchange_patch_select}
-\end{equation}
-and chooses stay when the finalist set is empty or no finalist clears the declared patch-admission threshold.  A failed true exchange does not automatically commit its append or deletion component; those limiting-case patches may be selected only when they independently enter \(\mathfrak P_k^{\rm pass}\).
+\subsection{Time integration convention}
 
-\structlabel{Swap planning}
-The conservative implementation is two-pass.  The first pass builds an append scout list and a deletion scout list under the shared whitening, ridge, retained-support, and cost-pressure convention.  The append list includes ordinary pure-append finalists plus a small exchange-rescue buffer of candidates that are weak against \(J_k\) but have nonzero drift coupling and may become novel against \(J_k\setminus I_{\mathcal B,k}^{\ominus}\).  The deletion list includes ordinary pure-deletion finalists plus a small exchange-rescue buffer of low-loss or conditioning-toxic blocks that are too risky as pure deletions but may be conditionally safe after an appended block is available.  The second pass pairs the retained scouts, recomputes Eqs.~(\ref{eq:exchange_conditional_append_gain})--(\ref{eq:exchange_conditional_deletion_loss}) and the patched solve on \(J_k^{\mathcal B}\), then applies the same-checkpoint refit and velocity guards.  Thus append and deletion scores nominate; the full refit patched support commits.
-
-
-\subsection{Encoding and ansatz-transfer surface}
-\label{sec:dyn_encoding_surface}
-
-The same physical seed can induce different circuit costs and tangent geometry under different qubit encodings.  We therefore propagate encoding choices through both static ansatz transfer and the measured dynamic geometry.  This produces an encoding-aware benchmark surface rather than a dynamics claim tied to one favorable register representation.
-
-The dynamic controller inherits a compiled ansatz from the static stage, so encoding choices enter twice: first through the generator support and two-qubit cost of the prepared ansatz, and then through the measured tangent geometry $G_k$, force $f_k$, and candidate append blocks used during propagation. The benchmark surface therefore varies fermion maps, boson encodings, and register layouts while holding the physical Hamiltonian and drive fixed. In the canonical benchmark setting we use Jordan--Wigner fermions and binary bosons, and the encoding/resource study varies parity, Bravyi--Kitaev, Gray-code, unary, and site-local fermion--boson layouts \cite{Macridin2018,Macridin2018PRA,Sawaya2020,Li2023}. % \placeholder{Cites fermion--boson/electron--phonon simulation and bosonic encoding work motivating encoding-aware dynamics resources.}
-This makes the dynamic claim explicitly encoding-aware rather than tied to a single favorable register representation.
-
+The accepted velocity defines the parameter IVP integrated over each reporting interval.  Euler and fourth-order Runge--Kutta are available diagnostic integrators; local subdivision changes only the internal integration grid, while observables remain reported on the declared common time grid.  Structural support changes occur only at declared checkpoints.
 
 \section{Results}
 \label{sec:results}
@@ -1553,7 +460,7 @@ The results identify mechanisms before surveying Hamiltonian regimes.  Every pai
 
 \subsection{Mechanism-level ablations}
 
-The numerical-repair comparison uses one fixed support and contrasts passive telemetry under the nominal solve with the intervening state-space policy.  It reports numerical miss, state-space displacement, temporal kink, inverse-policy changes, local subdivisions, unsupported checkpoints, and post-run energy and observable errors.  The append comparison then holds numerical repair fixed and contrasts fixed support with child-resolved singleton and combinatorial acquisition.  The prune comparison holds append and repair fixed and reports deletion loss, same-checkpoint refit and continuity certificates, retained-spectrum changes, final support, and compiled cost.  These comparisons separate numerical realization, structural acquisition, and structural retirement before their interactions are interpreted.
+The structural comparison first holds numerical realization fixed and contrasts stay with child-resolved append, continuity-certified prune, and the joint support-patch policy.  It reports structural miss, accepted patch types, conditional gain and loss, same-checkpoint continuity, final support, and compiled cost.  The numerical-repair comparison then holds the support fixed and contrasts passive telemetry under the nominal solve with the intervening state-space policy.  It reports numerical miss, state-space displacement, temporal kink, inverse-policy changes, local subdivisions, unsupported checkpoints, and post-run energy and observable errors.  These comparisons separate support maintenance from numerical realization before their interaction is interpreted.
 
 \begin{table}[t]
 \caption{Mechanism-level evidence plan.  Numerical entries remain provisional until transferred from source-locked paired trajectories under one seed, drive, grid, observable set, and compilation contract.  Exact-reference errors are post-run quantities.}
@@ -1953,7 +860,7 @@ where $w_j$ is the analysis window. The spectrum figure shows $A_{n_i}(\omega;g)
 
 The two-failure decomposition assigns distinct authority to distinct diagnostics. Structural miss measures tangent motion absent from the resolved manifold. Numerical miss measures supported motion lost by the realized inverse. The effective condition number measures susceptibility of the retained solve but does not determine the direction of repair. Parameter magnitude determines neither current deletion loss nor trajectory continuity, and exact trajectory error is unavailable to a measurement-compatible online policy.
 
-The acquire--realize--retire organization also fixes the contribution boundary. Adaptive growth, zero-angle append, regularization, eigencutoffs, pseudoinverses, and local subdivision are established ingredients. The append refinement is child-resolved, cost-weighted combinatorial acquisition with retained-support Schur novelty and augmented-solve confirmation. The numerical contribution is a state-space policy that compares bidirectional inverse candidates, separates inverse defects from excessive finite-step motion, chooses the least intervention, and releases through hysteresis. The structural retirement contribution is current full-support prune and conditional exchange under history, conditioning-aware nomination, reduced-state refit, and same-checkpoint state and velocity continuity.
+The patch-then-realize organization also fixes the contribution boundary. Adaptive growth, zero-angle append, regularization, eigencutoffs, pseudoinverses, and local subdivision are established ingredients. The structural contribution is one joint finalist family containing stay, child-resolved cost-weighted append, continuity-certified prune, and conditional true exchange. Append and prune are the one-sided limits of this family, and the accepted patch is confirmed on the complete post-patch tangent support. The numerical contribution then acts on that fixed support through bidirectional inverse candidates, separation of inverse defects from excessive finite-step motion, least-intervention selection, and hysteretic release.
 
 Prune is not merely post hoc compression. A redundant tangent direction can increase circuit depth, estimator burden, and retained-spectrum fragility. Removing it can improve numerical realization while the same-checkpoint state is intentionally preserved. Conversely, hardware expense or poor conditioning cannot authorize deletion when current grouped loss or continuity is large. This asymmetry is deliberate: a zero-angle append preserves the state automatically but must justify its vector-field and resource effect, whereas a deletion promises resource or conditioning relief but bears the stronger continuity burden.
 
@@ -1962,330 +869,113 @@ The present study is limited to small, classically verifiable gate-based instanc
 \section{Conclusion}
 \label{sec:conclusion}
 
-AP-McLachlan treats real-time variational simulation as the coordinated maintenance and numerical realization of a live tangent manifold. It diagnoses missing support separately from failed realization, acquires directions through cost-weighted append and conditional exchange, realizes retained motion through state-space solve repair and subdivision, and retires redundant directions through continuity-certified prune and exchange. The resulting checkpoint policy unifies stay, append, prune, and true exchange without allowing exact reference trajectories to enter its decisions. Quantitative regime-wide conclusions remain tied to the source-locked mechanism matrix and driven Hubbard--Holstein survey.
+AP-McLachlan treats real-time variational simulation as the coordinated maintenance and numerical realization of a live tangent manifold. Its primary structural action is a jointly evaluated support patch whose limiting cases are stay, pure append, and pure prune, with two nonempty sides giving true exchange. The accepted support is then propagated through state-space solve repair and local subdivision when the realized McLachlan motion is numerically defective or too large for the proposed step. Exact reference trajectories remain excluded from both decisions. Quantitative regime-wide conclusions remain tied to the source-locked mechanism matrix and driven Hubbard--Holstein survey.
 \begin{acknowledgments}
 \placeholder{Add funding, compute resources, discussions, and advisor acknowledgments.}
 \end{acknowledgments}
 
 \appendix
 
-\section{Benchmark Hamiltonian families}
-\label{app:hamiltonian_families}
+\section{Technical realization details}
+\label{app:technical_realization}
 
-The benchmark registry contains spinful Hubbard variants, Hubbard--Holstein instances, spinless $t$--$V$ chains, boson-only chains, spin-boson/generalized-Rabi controls, and restricted closed-shell molecular tests. Onsite coefficients below absorb the sign convention used by a particular benchmark specification; the operator content is the invariant part of the family definition.
+The main text states the physical diagnostics and accepted structural actions.  This appendix records the numerical coordinate conventions and controller details needed to reproduce their implementation.
 
-The spinful lattice base is
-\begin{align}
-H_{\rm Hub}[\epsilon]={}&
--t\sum_{\langle i,j\rangle,\sigma}
-\left(c_{i\sigma}^{\dagger}c_{j\sigma}
-+c_{j\sigma}^{\dagger}c_{i\sigma}\right)
-\nonumber\\
-&
-+U\sum_i n_{i\uparrow}n_{i\downarrow}
-+\sum_{i,\sigma}\epsilon_i n_{i\sigma}.
-\label{eq:app_hubbard}
-\end{align}
-The registered ionic, extended, and next-nearest-neighbor variants are
-\begin{align}
-H_{\rm ion}&=H_{\rm Hub}[\epsilon_i=(-1)^i\Delta],
-\nonumber\\
-H_{\rm ext}&=H_{\rm Hub}[\epsilon]+V\sum_{\langle i,j\rangle} n_i n_j,
-\nonumber\\
-H_{t,t',U}&=H_{\rm Hub}[\epsilon]
-\nonumber\\
-&\quad
--t'\sum_{\langle\!\langle i,j\rangle\!\rangle,\sigma}
-\left(c_{i\sigma}^{\dagger}c_{j\sigma}
-+c_{j\sigma}^{\dagger}c_{i\sigma}\right),
-\label{eq:app_hubbard_variants}
-\end{align}
-with $n_i=n_{i\uparrow}+n_{i\downarrow}$. The spinless fermion control family is
+\subsection{Retained support, damped inversion, and whitening}
+
+Let the measured Gram matrix have retained eigendecomposition
 \begin{equation}
-H_{tV}=
--t\sum_{\langle i,j\rangle}
-\left(c_i^\dagger c_j+c_j^\dagger c_i\right)
-+V\sum_{\langle i,j\rangle}n_i n_j
-+\sum_i\epsilon_i n_i .
-\label{eq:app_spinless_tv}
-\end{equation}
-
-The Hubbard--Holstein benchmark augments Eq.~(\ref{eq:app_hubbard}) with truncated phonons and a density drive,
-\begin{align}
-H_{\hh}(t)=&H_{\rm Hub}[\epsilon^{(0)}]
-+\omega_0\sum_i b_i^{\dagger}b_i
-+g\sum_i X_i(n_i-\bar n)
-\nonumber\\
-&+\sum_{i,\sigma}v_i(t)n_{i\sigma},
+G_kV_k=V_k\Lambda_k,
 \qquad
-X_i=b_i^\dagger+b_i .
-\label{eq:app_hh}
-\end{align}
-For the half-filled lattice cases $\bar n=1$. The driven trajectories use
-\begin{equation}
-v_i(t)=s_i A\sin(\omega t+\phi)
-\exp\left[-\frac{(t-t_0)^2}{2\bar t^{\,2}}\right],
-\label{eq:app_drive_waveform}
+\lambda_a>\tau_{\rm pinv}\lambda_{\max}.
+\label{eq:app_retained_support}
 \end{equation}
-where the site profile $s_i$ selects the density mode to be excited.
-The same channel notation also defines optional Hubbard--Holstein drive variants that are not part of the default benchmark matrix unless a row explicitly declares them.  With $H_{\hh}^{(0)}=H_{\hh}(t)-\sum_{i,\sigma}v_i(t)n_{i\sigma}$, a multi-channel drive has the form $H_{\hh}(t)=H_{\hh}^{(0)}+\sum_{\alpha}c_{\alpha}(t)D_{\alpha}$, where natural channels include the density pump $D_v=\sum_i s_i n_i$, hopping-amplitude modulation $D_{\rm hop}=-\sum_{\langle i,j\rangle,\sigma}(c_{i\sigma}^{\dagger}c_{j\sigma}+c_{j\sigma}^{\dagger}c_{i\sigma})$, onsite-interaction modulation $D_U=\sum_i n_{i\uparrow}n_{i\downarrow}$, electron--phonon-coupling modulation $D_g=\sum_i X_i(n_i-\bar n)$, phonon-frequency modulation $D_{\omega_0}=\sum_i b_i^{\dagger}b_i$, and a displacement pump $D_X=\sum_i s_iX_i$.  For AP-McLachlan, the drive-aligned zero-amplitude augmentation associated with any such Hermitian channel is the ansatz factor $e^{-i\phi_{\alpha}D_{\alpha}}$: at $\phi_{\alpha}=0$ it leaves the prepared state unchanged, while its tangent $-iD_{\alpha}\ket{\psi}$ gives the projective solve a coordinate aligned with the driven Schr\"odinger drift.  In a driven AP run this augmentation is enabled by default and recorded as a variational-manifold augmentation, not as a Hamiltonian change; disabling it is an ablation setting.
-
-The boson-only benchmark family uses the same truncated local Fock operators. The number-conserving Bose--Hubbard chain is
-\begin{align}
-H_{\rm BH}={}&
--t\sum_{\langle i,j\rangle}
-\left(b_i^\dagger b_j+b_j^\dagger b_i\right)
-+\omega_0\sum_i n_i
-\nonumber\\
-&
-+\frac{U_b}{2}\sum_i n_i(n_i-I)
-+\sum_i\epsilon_i n_i .
-\label{eq:app_bose_hubbard}
-\end{align}
-The optional zero-point identity contribution is tracked in the benchmark specification and shifts only scalar energy offsets.
-
-The spin-boson/generalized-Rabi control family is represented by a single two-level emitter coupled to one truncated boson mode,
-\begin{align}
-H_{\rm SB}={}&
--t_s\sigma_x+\Delta\sigma_z
-+\omega_0 b^\dagger b
-\nonumber\\
-&
-+u_xX_b\sigma_x
-+g_zX_b\sigma_z,
-\qquad X_b=b^\dagger+b .
-\label{eq:app_spin_boson}
-\end{align}
-The restricted closed-shell molecular electronic tests use
+The exact supported inverse and the damped realization are
 \begin{equation}
-H_{\rm mol}=E_{\rm nuc}I
-+\sum_{pq}h_{pq}a_p^\dagger a_q
-+\frac12\sum_{pqrs}(pr|qs)
-a_p^\dagger a_q^\dagger a_s a_r .
-\label{eq:app_molecular}
+G_{k,\tau}^{\dagger}
+=V_k\Lambda_k^{-1}V_k^\top,
+\qquad
+G_{k,\tau,\eps}^{\oplus}
+=V_k(\Lambda_k+\eps_{\rm solve}I)^{-1}V_k^\top.
+\label{eq:app_supported_inverse}
 \end{equation}
-Molecular vibronic and generalized electron--phonon instances add truncated modes to Eq.~(\ref{eq:app_molecular}) through
-\begin{align}
-H_{\rm vib}={}&H_{\rm mol}
-+\sum_\mu\omega_\mu b_\mu^\dagger b_\mu
-\nonumber\\
-&
-+\sum_{\mu,pq}
-\left(\kappa^X_{\mu pq}X_\mu+\kappa^P_{\mu pq}P_\mu\right)
-a_p^\dagger a_q
-+H_b^{\rm nl}.
-\label{eq:app_vibronic}
-\end{align}
-
-\section{Evaluation details}
-\label{app:evaluation_details}
-
-The dynamic benchmark suite is stratified by Hamiltonian family, size, coupling, phonon cutoff, drive amplitude, drive frequency, integration grid, and random seed. The same prepared static ADAPT ansatz is used for all dynamic methods within a benchmark point, so differences in driven observables are attributed to the propagation method rather than the initial-state construction. The reduced encoding panel varies the fermion map over JW, parity, and BK; the register layout over spin-blocked, site-interleaved fermions, and site-local fermion--boson blocks; and the boson encoding over binary, Gray, and unary registers.
-
-\clearpage
-\begin{widetext}
-\inlinetablecaption{tab:dyn_claims_class_summary_app}{Driven-dynamics benchmark by Hamiltonian class. All rows use the completed same-seed driven table-lock matrix. Within each benchmark point, AP-McLachlan, fixed McLachlan, product-formula, qDRIFT, pVQD, and AVQDS comparators share the same prepared static ansatz, drive, time grid, observable set, diagnostic exact reference, and compile target. The combined block averages available completed source rows within each method; missing spectral and shot cells are quantities not emitted by the current artifacts.}
-\begin{center}
-\scriptsize
-\begin{ruledtabular}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.10\textwidth}p{0.22\textwidth}cccccccc@{}}
-Class & Method & $\overline{|\Delta E|}$ & $\epsilon_{\obs}^{(2)}$ & $1-F_{\min}$ & $\epsilon_{\rm spec}$ & $N_{\twq}^{\rm tot}$ & $D_{\twq}^{\rm tot}$ & $D_{\rm circ}^{\rm tot}$ & $N_{\rm shots}$ \\
-\colrule
-fermionic & AP-McLachlan & $4.22\!\times\!10^{-5}$ & $6.52\!\times\!10^{-4}$ & -- & -- & $36.5$ & $33.7$ & $108.4$ & -- \\
-fermionic & McLachlan & $0.0103$ & $0.0382$ & -- & -- & $34.2$ & $31.4$ & $101.4$ & -- \\
-fermionic & Suzuki--Trotter envelope & $4.31\!\times\!10^{-5}$ & $6.53\!\times\!10^{-4}$ & $1.13\!\times\!10^{-6}$ & -- & $7936$ & $7936$ & $1.42\!\times\!10^{4}$ & -- \\
-fermionic & qDRIFT & $1.08$ & $0.382$ & $0.476$ & -- & $5754.6$ & $5754.6$ & $1.09\!\times\!10^{4}$ & -- \\
-fermionic & fixed pVQD & $0.0123$ & $0.0684$ & $0.0103$ & -- & $1.61\!\times\!10^{4}$ & $1.61\!\times\!10^{4}$ & $2.01\!\times\!10^{4}$ & -- \\
-fermionic & adaptive pVQD & $0.0123$ & $0.0684$ & $0.0103$ & -- & $1.61\!\times\!10^{4}$ & $1.61\!\times\!10^{4}$ & $2.01\!\times\!10^{4}$ & -- \\
-fermionic & AVQDS & $0.887$ & $0.271$ & $0.239$ & -- & $2.01\!\times\!10^{4}$ & $2.01\!\times\!10^{4}$ & $2.72\!\times\!10^{4}$ & -- \\
-fermionic & AVQDS-T & $0.00607$ & $0.00943$ & $0.00115$ & -- & $1.98\!\times\!10^{4}$ & $1.98\!\times\!10^{4}$ & $2.68\!\times\!10^{4}$ & -- \\
-\colrule
-bosonic & AP-McLachlan & $1.71\!\times\!10^{-5}$ & $3.73\!\times\!10^{-5}$ & -- & -- & $2$ & $2$ & $13$ & -- \\
-bosonic & McLachlan & $0.0254$ & $0.0976$ & -- & -- & $2$ & $2$ & $13.5$ & -- \\
-bosonic & Suzuki--Trotter envelope & $1.97\!\times\!10^{-5}$ & $1.57\!\times\!10^{-4}$ & $4.12\!\times\!10^{-8}$ & -- & $1920$ & $1920$ & $4800$ & -- \\
-bosonic & qDRIFT & $0.049$ & $0.126$ & $0.0342$ & -- & $4468$ & $4468$ & $9588$ & -- \\
-bosonic & fixed pVQD & $0.0239$ & $0.0928$ & $0.0178$ & -- & $1280$ & $1280$ & $3040$ & -- \\
-bosonic & adaptive pVQD & $0.0239$ & $0.0928$ & $0.0178$ & -- & $1280$ & $1280$ & $3040$ & -- \\
-bosonic & AVQDS & $0.863$ & $0.488$ & $0.474$ & -- & $1916$ & $1916$ & $4609$ & -- \\
-bosonic & AVQDS-T & $0.0646$ & $0.173$ & $0.169$ & -- & $1916$ & $1916$ & $4506.8$ & -- \\
-\colrule
-mixed & AP-McLachlan & $8.32\!\times\!10^{-4}$ & $0.00209$ & -- & -- & $206.2$ & $184.3$ & $581.5$ & -- \\
-mixed & McLachlan & $0.0182$ & $0.0532$ & -- & -- & $110$ & $99.7$ & $310.2$ & -- \\
-mixed & Suzuki--Trotter envelope & $1.36\!\times\!10^{-5}$ & $2.33\!\times\!10^{-4}$ & $3.52\!\times\!10^{-7}$ & -- & $5.34\!\times\!10^{4}$ & $5.34\!\times\!10^{4}$ & $7.1\!\times\!10^{4}$ & -- \\
-mixed & qDRIFT & $0.507$ & $0.103$ & $0.217$ & -- & $8329$ & $8329$ & $1.34\!\times\!10^{4}$ & -- \\
-mixed & fixed pVQD & $0.0188$ & $0.0631$ & $0.0191$ & -- & $5.14\!\times\!10^{4}$ & $5.14\!\times\!10^{4}$ & $6.61\!\times\!10^{4}$ & -- \\
-mixed & adaptive pVQD & $0.0188$ & $0.0631$ & $0.0191$ & -- & $5.14\!\times\!10^{4}$ & $5.14\!\times\!10^{4}$ & $6.61\!\times\!10^{4}$ & -- \\
-mixed & AVQDS & $0.474$ & $0.216$ & $0.427$ & -- & $7.37\!\times\!10^{4}$ & $7.37\!\times\!10^{4}$ & $9.65\!\times\!10^{4}$ & -- \\
-mixed & AVQDS-T & $0.0483$ & $0.0345$ & $0.021$ & -- & $8.2\!\times\!10^{4}$ & $8.2\!\times\!10^{4}$ & $1.07\!\times\!10^{5}$ & -- \\
-\colrule
-combined & AP-McLachlan & $2.74\!\times\!10^{-4}$ & $9.61\!\times\!10^{-4}$ & -- & -- & $80.5$ & $72.5$ & $231.2$ & -- \\
-combined & McLachlan & $0.0157$ & $0.0546$ & -- & -- & $50.5$ & $46$ & $146.5$ & -- \\
-combined & Suzuki--Trotter envelope & $2.95\!\times\!10^{-5}$ & $4.28\!\times\!10^{-4}$ & $6.79\!\times\!10^{-7}$ & -- & $2.04\!\times\!10^{4}$ & $2.04\!\times\!10^{4}$ & $2.94\!\times\!10^{4}$ & -- \\
-combined & qDRIFT & $0.7$ & $0.247$ & $0.31$ & -- & $6269.6$ & $6269.6$ & $1.14\!\times\!10^{4}$ & -- \\
-combined & fixed pVQD & $0.0165$ & $0.0717$ & $0.0144$ & -- & $2.37\!\times\!10^{4}$ & $2.37\!\times\!10^{4}$ & $3.05\!\times\!10^{4}$ & -- \\
-combined & adaptive pVQD & $0.0165$ & $0.0717$ & $0.0144$ & -- & $2.37\!\times\!10^{4}$ & $2.37\!\times\!10^{4}$ & $3.05\!\times\!10^{4}$ & -- \\
-combined & AVQDS & $0.758$ & $0.298$ & $0.343$ & -- & $3.26\!\times\!10^{4}$ & $3.26\!\times\!10^{4}$ & $4.35\!\times\!10^{4}$ & -- \\
-combined & AVQDS-T & $0.0304$ & $0.0497$ & $0.0406$ & -- & $3.49\!\times\!10^{4}$ & $3.49\!\times\!10^{4}$ & $4.64\!\times\!10^{4}$ & -- \\
-\end{tabular*}
-\end{ruledtabular}
-\end{center}
-\end{widetext}
-
-The earlier 16-point table-lock aggregate is retained here only as a provisional cross-method surface.  Its values must not be used to infer the append, prune, exchange, or solve-repair mechanisms because it predates the current support-patch and continuity contracts.  Mechanism claims are transferred only from the paired matrix in Table~\ref{tab:dyn_ablation_matrix}; the broader Hamiltonian survey remains a separate same-seed comparison.
-
-\begin{widetext}
-\inlinetablecaption{tab:app_weakweak_k10_append_cost_stabilization}{Weak--weak $k=10$ append, cost-weighting, and solve-stabilization diagnostic.  All rows use the same static SNAKE seed, driven Hubbard--Holstein Hamiltonian, drive amplitude $A=0.8$, time grid $t\in[0,3]$ with 601 samples, per-Pauli coordinate convention, diagnostic exact/reference overlays, and FakeMarrakesh Qiskit compilation convention.  The exact/reference trajectories are reporting outputs only.}
-\begin{center}
-\scriptsize
-\begin{ruledtabular}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.27\textwidth}cccccccc@{}}
-Diagnostic condition & \shortstack[c]{Appends} & \shortstack[c]{Added\\coords.} & \shortstack[c]{Runtime\\coords.} & $|\Delta E(T)|$ & \shortstack[c]{Doublon\\err.} & $N_{\twq}$ & $D_{\twq}$ & $D_{\rm c}$ \\
-\colrule
-Run 98 fixed support & 0 & 0 & 54 & $5.520\!\times\!10^{-2}$ & $7.910\!\times\!10^{-2}$ & 250 & 214 & 644 \\
-Run 96 append ladder, no cost weighting & 17 & 62 & 116 & $1.197\!\times\!10^{-2}$ & $1.104\!\times\!10^{-2}$ & 446 & 365 & 1105 \\
-Run 99 cost-weighted append ladder with stabilization & 17 & 64 & 118 & $2.535\!\times\!10^{-6}$ & $4.673\!\times\!10^{-3}$ & 389 & 321 & 962 \\
-Run 100 cost-weighted, no stabilization & 16 & 54 & 108 & $1.572\!\times\!10^{-1}$ & $7.853\!\times\!10^{-3}$ & 368 & 315 & 998 \\
-\end{tabular*}
-\end{ruledtabular}
-\end{center}
-\end{widetext}
-
-The $k=10$ weak--weak diagnostic separates three local mechanisms on a common seed and grid.  Comparing Run 96 with Run 98 shows the effect of allowing the combinatorial Pauli-child append ladder.  Comparing Run 99 with Run 96 shows that denominator cost weighting can lower compiled two-qubit count and depth while improving the final energy and doublon errors.  Comparing Run 100 with Run 99 isolates the state-space solve-stabilization policy: with the same cost-weighted append family but no stabilization, the final driven-energy error grows by five orders of magnitude.
-% Provenance sidecar:
-% MATH/paper_details/figures/paper_ii_k10_append_cost_stabilization_runs98_96_99_100.provenance.json
-% Figure SHA-256: 8966949d4d49e609506138fe746135c3c6c47e61ccdc75c1d3dbed1c473c2e8f
-
-\begin{widetext}
-\begin{center}
-\IfFileExists{figures/paper_ii_k10_append_cost_stabilization_runs98_96_99_100.png}{\includegraphics[width=0.98\textwidth]{figures/paper_ii_k10_append_cost_stabilization_runs98_96_99_100.png}}{\placeholder{Missing weak--weak append/cost/stabilization diagnostic figure}}
-\end{center}
-\captionof{figure}{Weak--weak Hubbard--Holstein append, cost, and solve-stabilization diagnostic at the $k=10$ static SNAKE seed.  Each row shows total energy, doublon, and expressivity miss for the same seed, drive, time grid, and observable set as Table~\ref{tab:app_weakweak_k10_append_cost_stabilization}.  Dashed exact-diagonalization and dash-dotted same-seed exact trajectories are reporting overlays only and do not enter checkpoint decisions.  Blue vertical markers indicate zero-initialized append events, and amber bands indicate accepted local time-subdivision/stabilization intervals.}
-\label{fig:app_weakweak_k10_append_diagnostic}
-\end{widetext}
-
-Dynamical observable errors are reported either as an RMS time-domain error,
+The retained-spectrum diagnostic is
 \begin{equation}
-\epsilon_{O}^{(2)}=
-\Biggl(\Delta t\sum_{j}\sum_{O\in\Ocal_{\obs}}w_O
-\left|\expval{O}_{\rm alg}(t_j)-\expval{O}_{\ex}(t_j)\right|^2\Biggr)^{1/2},
-\label{eq:appendix_obs_l2}
+\kappa_{\rm eff}(G_k)
+=\frac{\lambda_{\max}}{\lambda_{\min}^{\rm kept}}.
+\label{eq:app_kappa_eff}
 \end{equation}
-or as a maximum error over the same sampled trajectory. Spectral errors use
+As in the accepted-refit notation of Ref.~\cite{Strobel2026StaticAdapt}, define
 \begin{equation}
-\epsilon_{\rm spec}=\sum_{\omega_{\ell}\in\Omega_{\rm peaks}}
-\Bigl(|A_{\rm alg}(\omega_{\ell})-A_{\ex}(\omega_{\ell})|
-+\lambda_{\omega}|\omega_{\ell,\rm alg}-\omega_{\ell,\ex}|\Bigr).
-\label{eq:appendix_spectral_error}
+W_k=V_k\Lambda_k^{-1/2},
+\qquad
+W_k^\top G_kW_k=I.
+\label{eq:app_whitening}
 \end{equation}
-Shot estimates use grouped Pauli measurement variances and the grouped analogue used by the measurement allocator. Noise robustness uses iid-Gaussian perturbations of measured energies, gradients, metrics, and forces, with variance scaled by nominal shots and optional two-qubit-depth and measurement-group factors. Hardware-validation workflows include fake-backend scheduled noise, readout mitigation, Pauli twirling, dynamical decoupling, and zero-noise extrapolation; those workflows are validation checks outside the main results.
+Thus \(W_k\) maps orthonormal retained tangent coordinates back to circuit-coordinate displacements.  For an incoming tangent block with current--candidate cross Gram \(B_k\) and candidate Gram \(C_k\), whitening gives
+\begin{equation}
+\widetilde B_k=W_k^\top B_k,
+\qquad
+\mathsf S_k=C_k-\widetilde B_k^\top\widetilde B_k,
+\label{eq:app_whitened_schur}
+\end{equation}
+which is the retained-support form of Eq.~(\ref{eq:append_schur_novelty}).  Whitening and damping stabilize the computation; the undamped \(G\)-based gain and loss in the main text remain the structural definitions.
 
-\section{Qubit encodings and register layout}
-\label{app:encodings}
+\subsection{Numerical-repair candidate construction}
 
-For the canonical Hubbard--Holstein benchmark, fermions are mapped by the Jordan--Wigner transformation. With blocked spin ordering $p(i,\uparrow)=i$ and $p(i,\downarrow)=L+i$,
+A numerical candidate specifies an inverse convention and, when needed, a local subdivision factor.  Numerical miss opens candidate inverses on both sides of the base regularization; excessive state displacement or temporal kink opens successively finer local subdivisions.  The base convention remains in the candidate set.  Hard-invalid candidates are removed, and the remaining candidates are tested against
+\begin{equation}
+\rho_{{\rm num},k}\le\tau_{\rm num},
+\qquad
+\delta_{{\rm step},k}\le\tau_\Delta,
+\qquad
+\eta_{{\rm time},k}^{\psi}\le\tau_{\rm kink}.
+\label{eq:app_repair_acceptance}
+\end{equation}
+Among candidates satisfying Eq.~(\ref{eq:app_repair_acceptance}), the implementation minimizes a declared least-intervention score combining departure from the base convention, normalized defect sizes, and the soft retained-spectrum risk.  The condition number can penalize a fragile candidate but is a hard rejection only in an explicitly strict validation mode.  If no finite candidate passes, diagnostic runs may continue with the least-bad finite candidate and mark the checkpoint unsupported.
+
+Same-checkpoint inverse candidates reuse \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^2\).  In particular,
 \begin{equation}
 \begin{aligned}
-c_p^{\dagger}&=\frac12(X_p-\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
-c_p&=\frac12(X_p+\ii Y_p)\prod_{r=0}^{p-1}Z_r,\\
-n_p&=\frac{I-Z_p}{2} .
+\|\bar T_kv\|_2^2
+&=v^\top G_kv,\\
+\|\bar T_kv-\bar b_k\|_2^2
+&=v^\top G_kv-2f_k^\top v+\|\bar b_k\|_2^2.
 \end{aligned}
-\label{eq:jw_map}
+\label{eq:app_classical_quadratic_forms}
 \end{equation}
-Each local phonon mode is truncated to dimension $d=\phmax+1$ with occupation basis $\{\ket{n}_i\}_{n=0}^{d-1}$. In binary encoding,
+so testing inverse candidates and the release metric in Eq.~(\ref{eq:repair_release}) is classical after the checkpoint data have been acquired.  Local subdivision creates new states and therefore requires new checkpoint evaluations.
+
+\subsection{Structural search and deletion history}
+
+Append uses a cost-weighted combinatorial batch ladder.  Candidate tangent overlaps are measured once and reused to assemble singleton and joint-batch Gram blocks.  A failed append search may be reused only while current-support geometry and selected sentinel couplings remain within declared staleness bounds; this is a search-reuse certificate, not a cap on the total number of append events.
+
+Prune nomination retains Eq.~(\ref{eq:prune_loss}) as its physical authority.  Its implementation-level ranking may include historical loss, conditioning relief, Schur degeneracy, and conditioning damage:
 \begin{equation}
 \begin{aligned}
-\ket{n}_i&\mapsto \ket{\operatorname{bin}(n)}_i,\\
-b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i,\\
-b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{\operatorname{bin}(n-1)}_i\bra{\operatorname{bin}(n)}_i,\\
-n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n)}_i,\\
-x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
-&\qquad\qquad\qquad\qquad+\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),\\
-P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{\operatorname{bin}(n+1)}_i\bra{\operatorname{bin}(n)}_i\\
-&\qquad\qquad\qquad\qquad-\ket{\operatorname{bin}(n)}_i\bra{\operatorname{bin}(n+1)}_i\Bigr),
+S_k^{\ominus,\kappa}(B)
+&=\frac{K_{t_k}(B)^{\alpha_{\rm prune}}}{
+\mathcal L_k^{\ominus}(B)
++\lambda_{\rm hist}\bar{\mathcal L}_k^{\ominus,\rm hist}(B)
++\lambda_{\kappa}^{\rm dam}d_{\kappa}^{\rm dam}
++\eps_L}\\
+&\quad\times
+\Bigl(1+\lambda_{\kappa}^{\rm rel}d_{\kappa}^{\rm rel}
++\lambda_Sd_S\\[-2pt]
+&\hspace{5.7em}
++\lambda_{\kappa}^{\rm hist}d_{\kappa,S}^{\rm hist}\Bigr).
 \end{aligned}
-\label{eq:boson_binary_encoding}
+\label{eq:app_prune_nomination}
 \end{equation}
-with the operator understood on the truncated binary code subspace. In unary encoding,
-\begin{equation}
-\begin{aligned}
-\ket{n}_i&\mapsto \ket{e_n}_i\equiv\ket{0\cdots 010\cdots 0}_i,\\
-b_i^{\dagger}&=\sum_{n=0}^{d-2}\sqrt{n+1}\,\ket{e_{n+1}}_i\bra{e_n}_i,\\
-b_i&=\sum_{n=1}^{d-1}\sqrt{n}\,\ket{e_{n-1}}_i\bra{e_n}_i,\\
-n_{b,i}&=\sum_{n=0}^{d-1}n\,\ket{e_n}_i\bra{e_n}_i,\\
-x_i&=\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
-&\qquad\qquad\qquad\qquad+\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),\\
-P_i&=\ii\sum_{n=0}^{d-2}\sqrt{n+1}\Bigl(\ket{e_{n+1}}_i\bra{e_n}_i\\
-&\qquad\qquad\qquad\qquad-\ket{e_n}_i\bra{e_{n+1}}_i\Bigr),
-\end{aligned}
-\label{eq:boson_unary_encoding}
-\end{equation}
-on the one-hot code subspace. The number of phonon qubits per site is
-\begin{equation}
-q_{\rm pb}=\begin{cases}
-\max\{1,\lceil\log_2 d\rceil\}, & \text{binary},\\
-d, & \text{unary},
-\end{cases}
-\label{eq:qpb}
-\end{equation}
-and the full Hubbard--Holstein register contains
-\begin{equation}
-N_q=2L+Lq_{\rm pb}.
-\label{eq:nqubits}
-\end{equation}
-Gray-code and variational basis-state encodings are used only in the encoding/resource robustness study.
+Conditioning terms change nomination only.  Current grouped deletion loss, current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
 
-\section{Operator pools}
-\label{app:pools}
+True exchange is formed from the retained append and prune scouts.  Every pair is recomputed on
+\[
+J_k^{\mathcal B}
+=(J_k\setminus I_{B,k}^{\ominus})\cup I_{B,k}^{\oplus},
+\]
+using conditional append gain, conditional deletion loss, patched Schur novelty, the full patched solve, and Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}).  This joint recomputation is what distinguishes exchange from sequential append followed by prune.
 
-The full operator pool is a deduplicated union
-\begin{equation}
-\Gset_{\rm full}=\Gset_{\rm UCCSD}\cup\Gset_{\rm HVA}\cup\Gset_{\rm term}^{\rm aug}\cup\Gset_{\rm PAOP}^{\rm full}\cup\Gset_{\rm PAOP,LF}^{\rm full}.
-\label{eq:full_meta_pool}
-\end{equation}
-For the reduced Hubbard--Holstein tests, the lean family is
-\begin{equation}
-\Gset_{\rm lean}=\Gset_{\rm UCCSD}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm disp}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p},
-\label{eq:lean_pool}
-\end{equation}
-with a narrower $L=2$, $\phmax=1$ family
-\begin{equation}
-\begin{aligned}
-\Gset_{{\rm lean},L=2}={}&\Gset_{\rm UCCSD,sing}^{\rm lift}\cup\Gset_{\rm term}^{\rm quad}\\
-&\cup\Gset_{\rm cloud,p}\cup\Gset_{\rm hopdrag}\cup\Gset_{\rm dbl,p}^{\rm cross-site}.
-\end{aligned}
-\label{eq:l2_lean_pool}
-\end{equation}
-Representative symbolic generators are
-\begin{align}
-A_{ia,\sigma}^{\rm sing}&=\ii\left(c_{a\sigma}^{\dagger}c_{i\sigma}-c_{i\sigma}^{\dagger}c_{a\sigma}\right),
-\nonumber\\
-A_{ijab}^{\rm dbl}&=\ii\left(c_a^{\dagger}c_b^{\dagger}c_jc_i-\mathrm{h.c.}\right),
-\nonumber\\
-G_i^{({\rm cloud},p)}&=\tilde n_i\sum_{r\in\mathcal N(i)}\alpha_{ir}P_r,
-\nonumber\\
-G_{ij}^{({\rm hd})}&=T_{ij}^{(+)}(P_i-P_j),
-\nonumber\\
-G_i^{({\rm disp})}&\sim \tilde n_ix_i,
-\nonumber\\
-G_i^{({\rm dd},p)}&\sim D_iP_i,
-\label{eq:pool_family_symbols}
-\end{align}
-where $x_i=b_i+b_i^{\dagger}$ and $P_i=\ii(b_i^{\dagger}-b_i)$.
-
-\section{Suzuki and randomized product-formula baselines}
-\label{app:product_formula}
-
-For a Pauli or grouped-term decomposition $H(t)=\sum_{\alpha=1}^{M}H_{\alpha}(t)$, the second-order symmetric Suzuki step is \cite{Suzuki1985,Suzuki1990}
-% \placeholder{Cites deterministic Suzuki product-formula decompositions used by the product-formula baseline.}
-\begin{equation}
-\begin{split}
-U_{{\rm Suz},2}(t_k,\Delta t)={}&\prod_{\alpha=1}^{M}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right]\\
-&\prod_{\alpha=M}^{1}\exp\left[-\frac{\ii\Delta t}{2}H_{\alpha}(t_k)\right].
-\end{split}
-\label{eq:suzuki2_generic}
-\end{equation}
-The baseline suite also includes first-order Trotter, fourth-order Suzuki when feasible, and qDRIFT with matched time-step, seed, and compiled-resource accounting \cite{ChildsSu2019ProductFormula,ChildsOstranderSu2019RandomizedPF,Campbell2019QDRIFT}.
-% \placeholder{Cites modern product-formula error context, randomized product formulas, and qDRIFT.}
 
 \begin{thebibliography}{99}
 

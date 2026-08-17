@@ -27,6 +27,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--lambda-ep", type=float, default=1.5)
     parser.add_argument("--gamma", type=float, default=0.5)
     parser.add_argument("--drive", type=float, default=1.0)
+    parser.add_argument(
+        "--numerical-profile",
+        choices=("strict", "balanced"),
+        default="strict",
+    )
     parser.add_argument("--maximum-critical-modes", type=int)
     return parser
 
@@ -105,6 +110,8 @@ def _merged_summary(
         "schema_version": 1,
         "classification": "exploratory_local_not_promoted",
         "model": "chunked_carried_witness_radial_moment_flow",
+        "numerical_profile": args.numerical_profile,
+        "numerical_settings": chunk_summaries[0]["numerical_settings"],
         "parameters": chunk_summaries[0]["parameters"],
         "state": chunk_summaries[0]["state"],
         "integration": {
@@ -237,6 +244,8 @@ def main() -> int:
             str(args.gamma),
             "--drive",
             str(args.drive),
+            "--numerical-profile",
+            args.numerical_profile,
             "--compact-output",
         ]
         if previous_checkpoint is not None:

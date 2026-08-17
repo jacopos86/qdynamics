@@ -32,6 +32,11 @@ def _parser() -> argparse.ArgumentParser:
         help="Chunk directory or trajectory.npz; repeat in any order.",
     )
     parser.add_argument("--time-step", type=float, default=0.0025)
+    parser.add_argument(
+        "--allow-variable-time-step",
+        action="store_true",
+        help="Accept a strictly increasing stitched grid with multiple steps.",
+    )
     parser.add_argument("--phonon-cutoff", type=int, default=16)
     parser.add_argument("--lambda-ep", type=float, default=1.5)
     parser.add_argument("--gamma", type=float, default=0.5)
@@ -48,6 +53,7 @@ def _load_and_stitch(
     segments: list[Path],
     *,
     time_step: float,
+    allow_variable_time_step: bool = False,
 ) -> tuple[dict[str, np.ndarray], list[str]]:
     keys = (
         "times",
@@ -88,14 +94,15 @@ def _load_and_stitch(
                         f"duplicate state mismatch at t={time_float}"
                     )
                 continue
-            if last_time is not None and not np.isclose(
-                time_float - last_time,
-                time_step,
-                atol=1e-12,
-            ):
-                raise ValueError(
-                    f"trajectory gap {last_time} -> {time_float}"
-                )
+            if last_time is not None:
+                gap = time_float - last_time
+                if gap <= 0.0 or (
+                    not allow_variable_time_step
+                    and not np.isclose(gap, time_step, atol=1e-12)
+                ):
+                    raise ValueError(
+                        f"trajectory gap {last_time} -> {time_float}"
+                    )
             for key in keys:
                 rows[key].append(np.asarray(arrays[key][row_index]))
             last_time = time_float
@@ -199,9 +206,28 @@ def _plot_observables(
     )
     figure, axes = plt.subplots(3, 2, figsize=(8.0, 8.6), sharex=True)
     for axis, (key, label) in zip(axes.flat, panels, strict=False):
-        axis.plot(times, exact[key], color="black", linewidth=1.6, label="exact cutoff-16")
-        axis.plot(times, raw[key], color="#b64926", linestyle="--", linewidth=1.2, label="raw archive EOM")
-        axis.plot(times, carried[key], color="#2468a2", linewidth=1.3, label="carried-witness guard")
+        axis.plot(
+            times,
+            exact[key],
+            color="black",
+            linewidth=1.6,
+            label="exact cutoff-16",
+        )
+        axis.plot(
+            times,
+            raw[key],
+            color="#b64926",
+            linestyle="--",
+            linewidth=1.2,
+            label="raw archive EOM",
+        )
+        axis.plot(
+            times,
+            carried[key],
+            color="#2468a2",
+            linewidth=1.3,
+            label="carried-witness guard",
+        )
         axis.set_ylabel(label)
         axis.grid(alpha=0.2)
     axes.flat[len(panels)].axis("off")
@@ -221,6 +247,7 @@ def main() -> int:
     trajectory, sources = _load_and_stitch(
         args.segment,
         time_step=args.time_step,
+        allow_variable_time_step=args.allow_variable_time_step,
     )
     parameters = DimerParameters(
         hopping=1.0,
@@ -237,6 +264,9 @@ def main() -> int:
     carried = trajectory["approximate_archive_coordinates"]
     carried_metrics = _accuracy_metrics(parameters, exact, carried)
     raw_metrics = _accuracy_metrics(parameters, exact, raw)
+    unique_time_steps = np.unique(
+        np.round(np.diff(trajectory["times"]), decimals=12)
+    )
     summary: dict[str, Any] = {
         "schema_version": 1,
         "classification": "exploratory_local_not_promoted",
@@ -253,7 +283,12 @@ def main() -> int:
             "method": "checkpointed SSPRK2 with finite-step radial atoms",
             "initial_time": float(trajectory["times"][0]),
             "last_time": float(trajectory["times"][-1]),
-            "time_step": args.time_step,
+            "time_step": (
+                float(unique_time_steps[0])
+                if unique_time_steps.size == 1
+                else None
+            ),
+            "time_steps": [float(value) for value in unique_time_steps],
             "completed_steps": int(trajectory["times"].size - 1),
         },
         "feasibility": {

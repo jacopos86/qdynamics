@@ -1,0 +1,10 @@
+{
+  "cluster_id": 9612158,
+  "execution_count": 3,
+  "initial_job_status": "idle",
+  "package_id": "paper_i_page10_strong_holstein_r70_accepted_continuations_20260809_v2_chtc",
+  "package_manifest_sha256": "fc65be2623cddc81b2623bdc0f94edfe2c47df549e55dde439efd44f34d6e4c2",
+  "remote_batch_name": "paper-i-page10-strong-r70-cont-v2",
+  "remote_output_root": "/staging/jsstrobel/paper_i_page10_strong_r70_continuations_20260809_v2/outputs",
+  "submitted_at_utc": "2026-08-09T18:37:35Z"
+}

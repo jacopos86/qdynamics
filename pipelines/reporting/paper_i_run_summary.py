@@ -501,7 +501,11 @@ def _canonical_ra_supersession_identities(
 
     from pipelines.static_adapt.ra_adapt.adapters import (
         GlobalSinglePauliWordCandidateAdapter,
+        GlobalSingletonGradientPhase0CandidateAdapter,
         MacroCandidateAdapter,
+        MacroGradientPhase0CandidateAdapter,
+        MacroGradientPhase0ThenSingletonCandidateAdapter,
+        MacroThenSingletonPhaseICandidateAdapter,
         SinglePauliWordCandidateAdapter,
     )
     from pipelines.static_adapt.ra_adapt.contracts import (
@@ -526,12 +530,18 @@ def _canonical_ra_supersession_identities(
     from pipelines.static_adapt.ra_adapt.engine import (
         RA_ADAPT_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_INSERTION_KIND_BY_ALGORITHM_ID,
+        RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_SOURCE_ALGORITHM_ID,
         RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS,
         RA_ADAPT_LEGACY_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+        RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
         RA_ADAPT_MACRO_QISKIT_COST_INSERTION_KIND_BY_ALGORITHM_ID,
+        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+        RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS,
         RA_ADAPT_PHASE3_QISKIT_COST_PHASE_REUSE,
         RA_ADAPT_PHASE3_QISKIT_COST_POLICY,
         RA_ADAPT_PHASE3_QISKIT_DENOMINATOR_POLICY,
@@ -540,6 +550,7 @@ def _canonical_ra_supersession_identities(
         _repaired_route_contract,
     )
     from pipelines.static_adapt.hh_backend_compile_oracle import (
+        BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
         BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1,
         MARRAKESH_GRAPH_SPAN_MODE,
         ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
@@ -552,10 +563,16 @@ def _canonical_ra_supersession_identities(
     if candidate_representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
         adapters = (
             SinglePauliWordCandidateAdapter(),
+            MacroThenSingletonPhaseICandidateAdapter(),
+            MacroGradientPhase0ThenSingletonCandidateAdapter(),
             GlobalSinglePauliWordCandidateAdapter(),
+            GlobalSingletonGradientPhase0CandidateAdapter(),
         )
     elif candidate_representation == CANDIDATE_REPRESENTATION_MACRO:
-        adapters = (MacroCandidateAdapter(),)
+        adapters = (
+            MacroCandidateAdapter(),
+            MacroGradientPhase0CandidateAdapter(),
+        )
     else:
         return ()
 
@@ -563,7 +580,16 @@ def _canonical_ra_supersession_identities(
     for adapter in adapters:
         request = RAAdaptRequest(adapter=adapter, method=method)
         algorithm_ids: tuple[str, ...]
-        if isinstance(adapter, MacroCandidateAdapter):
+        if type(adapter) is MacroGradientPhase0CandidateAdapter:
+            algorithm_ids = (
+                (
+                    RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+                    RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+                )
+                if str(method.insertion.kind) == "plateau_commutation"
+                else ()
+            )
+        elif isinstance(adapter, MacroCandidateAdapter):
             # Algorithm ids do not select insertion semantics; the typed
             # method does.  They do, however, select the authenticated
             # Qiskit-cost route suffix, so reporting must rebuild those
@@ -582,6 +608,28 @@ def _canonical_ra_supersession_identities(
                 RA_ADAPT_LEGACY_ALGORITHM_ID,
                 "paper_i_ra_adapt_macro_always_insertion_repair_v1",
                 *qiskit_ids,
+            )
+        elif isinstance(
+            adapter,
+            MacroGradientPhase0ThenSingletonCandidateAdapter,
+        ):
+            algorithm_ids = (
+                (
+                    RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+                )
+                if str(method.insertion.kind) == "plateau_commutation"
+                else ()
+            )
+        elif isinstance(
+            adapter,
+            GlobalSingletonGradientPhase0CandidateAdapter,
+        ):
+            algorithm_ids = (
+                (
+                    RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+                )
+                if str(method.insertion.kind) == "plateau_commutation"
+                else ()
             )
         elif isinstance(adapter, GlobalSinglePauliWordCandidateAdapter):
             algorithm_ids = (
@@ -608,6 +656,18 @@ def _canonical_ra_supersession_identities(
                         RA_ADAPT_SINGLETON_LATCHED_PHASE3_ALGORITHM_ID,
                     )
                     if str(method.insertion.kind) == "plateau_commutation"
+                    else ()
+                ),
+                *(
+                    (
+                        RA_ADAPT_MACRO_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+                    )
+                    if isinstance(
+                        adapter,
+                        MacroThenSingletonPhaseICandidateAdapter,
+                    )
+                    and str(method.insertion.kind)
+                    == "plateau_commutation"
                     else ()
                 ),
             )
@@ -667,14 +727,29 @@ def _canonical_ra_supersession_identities(
                         != "late_resource_weighting_v1"
                     ):
                         continue
+                    if algorithm_id == (
+                        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+                    ) and (
+                        active_gradient_policy
+                        != "stationary_source_response_v1"
+                        or resource_weighting_scope
+                        != RESOURCE_WEIGHTING_ALL_PHASE
+                    ):
+                        continue
                     phase3_only_qiskit_algorithm = bool(
                         algorithm_id in RA_ADAPT_PHASE3_QISKIT_ALGORITHM_IDS
+                    )
+                    staged_phase23_qiskit_algorithm = bool(
+                        algorithm_id in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS
                     )
                     denominator_no_lanes = bool(
                         algorithm_id
                         == RA_ADAPT_GLOBAL_SINGLETON_PHASE3_QISKIT_DENOMINATOR_NO_LANES_ALGORITHM_ID
                     )
-                    if phase3_only_qiskit_algorithm and (
+                    if (
+                        phase3_only_qiskit_algorithm
+                        or staged_phase23_qiskit_algorithm
+                    ) and (
                         active_gradient_policy
                         != "stationary_source_response_v1"
                         or resource_weighting_scope
@@ -682,7 +757,8 @@ def _canonical_ra_supersession_identities(
                     ):
                         continue
                     qiskit_cost_algorithm = bool(
-                        phase3_only_qiskit_algorithm
+                            phase3_only_qiskit_algorithm
+                            or staged_phase23_qiskit_algorithm
                         or algorithm_id
                         in (
                             RA_ADAPT_GLOBAL_SINGLETON_QISKIT_COST_ALGORITHM_IDS
@@ -767,6 +843,30 @@ def _canonical_ra_supersession_identities(
                         "paper_i_ra_adapt_nonstationary_full_response_v2_20260731"
                         if algorithm_id == RA_ADAPT_ALGORITHM_ID
                         else (
+                            "paper_i_ra_adapt_macro_gradient_phase0_proxy_"
+                            "no_lanes_candidate_20260810"
+                        )
+                        if algorithm_id
+                        == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
+                        else (
+                            "paper_i_ra_adapt_macro_gradient_phase0_macro_"
+                            "phase123_phase23_qiskit_candidate_20260811"
+                            if algorithm_id
+                            == RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+                            else
+                            "paper_i_ra_adapt_macro_gradient_phase0_then_"
+                            "singleton_phase123_phase23_qiskit_candidate_20260807"
+                            if algorithm_id
+                            == RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID
+                            else "paper_i_ra_adapt_global_singleton_gradient_"
+                            "phase0_phase123_phase23_qiskit_candidate_20260807"
+                            if algorithm_id
+                            == RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID
+                            else "paper_i_ra_adapt_macro_then_singleton_phase123_"
+                            "phase23_qiskit_candidate_20260807"
+                        )
+                        if staged_phase23_qiskit_algorithm
+                        else (
                             (
                                 "paper_i_ra_adapt_phase3_qiskit_denominator_"
                                 "no_lanes_tau1em6_candidate_20260806"
@@ -808,6 +908,37 @@ def _canonical_ra_supersession_identities(
                                 "accepted_refit_initialization_coordinate_scope": (
                                     "full_existing_active_plus_new_batch_"
                                     "coordinates_v1"
+                                ),
+                            }
+                        )
+                    if algorithm_id in {
+                        RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID,
+                        RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+                    }:
+                        required_invariants.update(
+                            {
+                                "phase0_active": True,
+                                "phase0_score": (
+                                    "standard_adapt_absolute_gradient_v1"
+                                ),
+                                "phase0_fubini_metric_active": False,
+                                "phase0_resource_cost_active": False,
+                                "phase0_compile_cost_active": False,
+                                "phase0_estimator_components": ["N_grad"],
+                                "physical_operator_lanes_active": False,
+                                "shortlist_population_policy": (
+                                    "single_global_population_v1"
+                                ),
+                                "selector_qiskit_compile_cost_active": (
+                                    algorithm_id
+                                    == RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
+                                ),
+                                "macro_generator_identity_preserved_all_phases": (
+                                    True
+                                ),
+                                "singleton_child_exposure_active": False,
+                                "plateau_prior_mean_decrease_ratio_threshold": (
+                                    1.0e-4
                                 ),
                             }
                         )
@@ -883,6 +1014,47 @@ def _canonical_ra_supersession_identities(
                                         "B3/(1+lambda_2q*cbar_2q+"
                                         "lambda_d*cbar_d+lambda_1q*cbar_1q)"
                                     ),
+                                }
+                            )
+                    if staged_phase23_qiskit_algorithm:
+                        required_invariants.update(
+                            {
+                                "selector_compile_cost_scope": (
+                                    BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1
+                                ),
+                                "phase_i_compile_cost_source": (
+                                    "structural_proxy_v1"
+                                ),
+                                "phase_ii_compile_cost_source": (
+                                    "backend_transpile_v1"
+                                ),
+                                "phase_iii_compile_cost_source": (
+                                    "backend_transpile_v1"
+                                ),
+                                "phase_ii_phase_iii_qiskit_negative_delta_reward_enabled": (
+                                    True
+                                ),
+                                "physical_operator_lanes_active": False,
+                                "shortlist_population_policy": (
+                                    "single_global_population_v1"
+                                ),
+                            }
+                        )
+                        if algorithm_id in {
+                            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
+                            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
+                            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
+                        }:
+                            required_invariants.update(
+                                {
+                                    "phase0_active": True,
+                                    "phase0_score": (
+                                        "standard_adapt_absolute_gradient_v1"
+                                    ),
+                                    "phase0_fubini_metric_active": False,
+                                    "phase0_resource_cost_active": False,
+                                    "phase0_compile_cost_active": False,
+                                    "phase0_estimator_components": ["N_grad"],
                                 }
                             )
                     if algorithm_id == (
@@ -1003,7 +1175,97 @@ def _canonical_ra_supersession_identities(
     return tuple(sorted(identities))
 
 
+def _canonical_ra_semantic_closure_identities(
+    method: Any,
+    *,
+    candidate_representation: str,
+) -> tuple[tuple[str, str, str, str], ...]:
+    """Rebuild executable semantic-route identities for Paper-I reporting."""
+
+    from pipelines.static_adapt.ra_adapt.contracts import (
+        ACTIVE_GRADIENT_STATIONARY,
+        CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        RAAdaptRequest,
+        RESOURCE_WEIGHTING_ALL_PHASE,
+        canonical_sha256,
+    )
+    from pipelines.static_adapt.ra_adapt.engine import (
+        _repaired_route_contract,
+    )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS,
+        PaperIRASemanticClosureGlobalSingletonCandidateAdapter,
+        semantic_closure_route_identity,
+    )
+    from pipelines.static_adapt.sr_snake.contracts import (
+        SRExecutionPolicy,
+        SRStopPolicy,
+    )
+
+    if candidate_representation != CANDIDATE_REPRESENTATION_SINGLE_PAULI:
+        return ()
+    identities: set[tuple[str, str, str, str]] = set()
+    for route_variant in sorted(PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS):
+        identity = semantic_closure_route_identity(route_variant)
+        for horizon in range(1, 51):
+            request = RAAdaptRequest(
+                adapter=PaperIRASemanticClosureGlobalSingletonCandidateAdapter(
+                    route_variant=route_variant,
+                ),
+                method=method,
+                execution=SRExecutionPolicy(
+                    stop=SRStopPolicy(
+                        maximum_controller_rounds=horizon,
+                    )
+                ),
+            )
+            try:
+                profile_request, profile, contract, contract_sha256 = (
+                    _repaired_route_contract(
+                        request,
+                        active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+                        resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+                        algorithm_id=identity.algorithm_id,
+                    )
+                )
+            except (TypeError, ValueError):
+                continue
+            native = contract.get("native_semantic_contract")
+            if (
+                contract.get("route_family") != "ra_adapt"
+                or contract.get("algorithm_id") != identity.algorithm_id
+                or contract.get("route_id") != identity.route_id
+                or contract.get("semantic_implementation_version")
+                != identity.semantic_implementation_version
+                or not isinstance(native, Mapping)
+                or native.get("route_variant") != route_variant
+                or native.get("horizon") != horizon
+                or canonical_sha256(contract) != contract_sha256
+            ):
+                raise RuntimeError(
+                    "Canonical semantic RA authority produced an invalid route."
+                )
+            identities.add(
+                (
+                    str(contract["route_family"]),
+                    str(profile_request),
+                    str(profile),
+                    str(contract_sha256),
+                )
+            )
+    return tuple(sorted(identities))
+
+
 def _validate_canonical_identity(run_source: SRRunResult) -> None:
+    from pipelines.static_adapt.ra_adapt.contracts import (
+        ACTIVE_GRADIENT_STATIONARY,
+        CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        RAAdaptRequest,
+        RESOURCE_WEIGHTING_ALL_PHASE,
+    )
+    from pipelines.static_adapt.ra_adapt.engine import (
+        _repaired_route_contract,
+    )
     from pipelines.static_adapt.sr_snake._context import (
         _canonical_route_contract_for_request,
     )
@@ -1011,6 +1273,17 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
         CANONICAL_CANDIDATE_REPRESENTATION,
         SRMethodPolicy,
         SRRunRequest,
+    )
+    from pipelines.static_adapt.ra_adapt.l3_page12 import (
+        PAPER_I_L3_PAGE12_ROUTE_CONTRACT_SHA256,
+    )
+    from pipelines.static_adapt.ra_adapt.pools import (
+        PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256,
+        PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS,
+    )
+    from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
+        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
+        PaperIPureHubbardNoisePage12CandidateAdapter,
     )
 
     problem = run_source.problem
@@ -1068,13 +1341,180 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             context="canonical_reporting",
         )
     )
-    if observed_identity[0] == "ra_adapt":
-        expected_identities = _canonical_ra_supersession_identities(
+    num_sites = _positive_int(
+        _required_attribute(
+            problem,
+            "num_sites",
+            context="run_source.problem",
+        ),
+        name="run_source.problem.num_sites",
+    )
+    named_l3_problem_request_sha256s = {
+        PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256,
+        *(
+            str(lock["problem_request_sha256"])
+            for lock in (
+                PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_PROBLEM_LOCKS.values()
+            )
+        ),
+    }
+    named_l3_page12_application = bool(
+        num_sites == 3
+        and observed_identity[0] == "ra_adapt"
+        and observed_identity[3]
+        == PAPER_I_L3_PAGE12_ROUTE_CONTRACT_SHA256
+        and str(
+            _required_attribute(
+                problem,
+                "problem_request_sha256",
+                context="run_source.problem",
+            )
+        )
+        in named_l3_problem_request_sha256s
+    )
+    pure_route_identities: set[tuple[str, str, str, str]] = set()
+    if (
+        observed_identity[0] == "ra_adapt"
+        and representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI
+        and str(
+            _required_attribute(
+                problem,
+                "family_key",
+                context="run_source.problem",
+            )
+        )
+        == "hubbard"
+        and num_sites == 2
+        and str(method.insertion.kind) == "plateau_commutation"
+    ):
+        for noise_level_id in ("low", "high", "extreme"):
+            pure_request = RAAdaptRequest(
+                adapter=PaperIPureHubbardNoisePage12CandidateAdapter(
+                    noise_level_id=noise_level_id
+                ),
+                method=method,
+            )
+            try:
+                (
+                    pure_profile_request,
+                    pure_profile,
+                    _pure_contract,
+                    pure_contract_sha256,
+                ) = _repaired_route_contract(
+                    pure_request,
+                    active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
+                    resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
+                    algorithm_id=(
+                        PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID
+                    ),
+                )
+            except (TypeError, ValueError):
+                # A typed lookalike is not the named application.  Let the
+                # ordinary canonical-identity check below reject it with the
+                # established reporting error instead of leaking route-builder
+                # validation from this narrow exception path.
+                pure_route_identities.clear()
+                break
+            pure_route_identities.add(
+                (
+                    "ra_adapt",
+                    pure_profile_request,
+                    pure_profile,
+                    pure_contract_sha256,
+                )
+            )
+    named_pure_hubbard_application = bool(
+        observed_identity in pure_route_identities
+        and representation == CANDIDATE_REPRESENTATION_SINGLE_PAULI
+        and str(
+            _required_attribute(
+                problem,
+                "family_key",
+                context="run_source.problem",
+            )
+        )
+        == "hubbard"
+        and num_sites == 2
+        and float(
+            _required_attribute(problem, "t", context="run_source.problem")
+        )
+        == 1.0
+        and float(
+            _required_attribute(problem, "u", context="run_source.problem")
+        )
+        in {1.5, 8.0}
+        and float(
+            _required_attribute(problem, "dv", context="run_source.problem")
+        )
+        == 0.0
+        and float(
+            _required_attribute(
+                problem, "omega0", context="run_source.problem"
+            )
+        )
+        == 0.0
+        and float(
+            _required_attribute(problem, "g_ep", context="run_source.problem")
+        )
+        == 0.0
+        and int(
+            _required_attribute(
+                problem, "n_ph_max", context="run_source.problem"
+            )
+        )
+        == 0
+        and str(
+            _required_attribute(
+                problem, "ordering", context="run_source.problem"
+            )
+        )
+        == "blocked"
+        and str(
+            _required_attribute(
+                problem, "boundary", context="run_source.problem"
+            )
+        )
+        == "open"
+        and int(
+            _required_attribute(
+                problem, "n_fermions", context="run_source.problem"
+            )
+        )
+        == 2
+        and int(
+            _required_attribute(
+                problem, "total_qubits", context="run_source.problem"
+            )
+        )
+        == 4
+    )
+    semantic_route_identities = set(
+        _canonical_ra_semantic_closure_identities(
             method,
             candidate_representation=representation,
         )
-        route_identity_matches = observed_identity in expected_identities
-        representation_matches = bool(expected_identities)
+    )
+    named_semantic_application = bool(
+        observed_identity in semantic_route_identities
+    )
+    if observed_identity[0] == "ra_adapt":
+        expected_identities = set(
+            _canonical_ra_supersession_identities(
+                method,
+                candidate_representation=representation,
+            )
+        )
+        expected_identities.update(semantic_route_identities)
+        route_identity_matches = bool(
+            observed_identity in expected_identities
+            or named_l3_page12_application
+            or named_pure_hubbard_application
+        )
+        representation_matches = bool(
+            expected_identities
+            or named_l3_page12_application
+            or named_pure_hubbard_application
+        )
     else:
         (
             expected_profile_request,
@@ -1139,22 +1579,17 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             )
         )
         != "hh"
+        and not named_pure_hubbard_application
     ):
         raise ValueError(
-            "canonical Paper-I summary requires the Hubbard-Holstein family."
+            "canonical Paper-I summary requires Hubbard-Holstein or the "
+            "exact named pure-Hubbard full-noise application."
         )
-    if (
-        _positive_int(
-            _required_attribute(
-                problem,
-                "num_sites",
-                context="run_source.problem",
-            ),
-            name="run_source.problem.num_sites",
+    if num_sites != 2 and not named_l3_page12_application:
+        raise ValueError(
+            "canonical Paper-I summary requires Hubbard-Holstein L=2 or "
+            "the exact named Page-12 L=3 application."
         )
-        != 2
-    ):
-        raise ValueError("canonical Paper-I summary requires Hubbard-Holstein L=2.")
     insertion_policy = str(
         _required_attribute(
             route,
@@ -1197,6 +1632,8 @@ def _validate_canonical_identity(run_source: SRRunResult) -> None:
             "phase0_enabled",
             context="run_source.route.execution",
         )
+    ) and not (
+        named_pure_hubbard_application or named_semantic_application
     ):
         raise ValueError("canonical Paper-I summary does not accept Phase 0.")
     if bool(

@@ -31,6 +31,7 @@ from paper5.stability.matrix_reference import (
     closed_scalar_to_matrix_state,
     matrix_state_to_closed_scalar_coordinates,
 )
+from paper5.stability.cone_correction import electron_phonon_moment_matrix
 from pipelines.open_dynamics.run_archive_long_horizon_observables import (
     _energy_components,
 )
@@ -190,6 +191,44 @@ ARCHIVE_LONG_RAW_REFINED = ROOT / (
 ARCHIVE_ABLATION = ROOT / (
     "output/local_runs/"
     "paper_v_autonomous_pauli_repair_ablation_20260803_v2/trajectories.npz"
+)
+CWRMF_STRICT_DIRECTORY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_spectrum_adaptive_t05_h0025_cutoff16_20260807_v1"
+)
+CWRMF_BALANCED_DIRECTORY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_balanced_mixed_t05_cutoff16_20260807_v1"
+)
+CWRMF_NO_GUARD_DIRECTORY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_no_gram_guard_t05_h0025_cutoff16_20260807_v1"
+)
+CWRMF_STRICT = CWRMF_STRICT_DIRECTORY / "trajectory.npz"
+CWRMF_BALANCED = CWRMF_BALANCED_DIRECTORY / "trajectory.npz"
+CWRMF_NO_GUARD = CWRMF_NO_GUARD_DIRECTORY / "trajectory.npz"
+CWRMF_STRICT_SUMMARY = CWRMF_STRICT_DIRECTORY / "summary.json"
+CWRMF_BALANCED_SUMMARY = CWRMF_BALANCED_DIRECTORY / "summary.json"
+CWRMF_NO_GUARD_SUMMARY = CWRMF_NO_GUARD_DIRECTORY / "summary.json"
+CWRMF_NO_GUARD_T4_DIRECTORY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_no_gram_guard_t4_scored_cutoff16_20260808_v1"
+)
+CWRMF_NO_GUARD_T4 = CWRMF_NO_GUARD_T4_DIRECTORY / "trajectory.npz"
+CWRMF_NO_GUARD_T4_SUMMARY = CWRMF_NO_GUARD_T4_DIRECTORY / "summary.json"
+CWRMF_NO_GUARD_T4_RUN_SUMMARY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_no_gram_guard_t4_h0025_cutoff16_20260808_v1/summary.json"
+)
+CWRMF_NO_GUARD_T4_AUDIT_DIRECTORY = ROOT / (
+    "output/local_runs/"
+    "paper_v_cwrmf_no_gram_guard_mode_audit_t4_20260808_v2"
+)
+CWRMF_NO_GUARD_T4_AUDIT = (
+    CWRMF_NO_GUARD_T4_AUDIT_DIRECTORY / "mode_coupling_audit.npz"
+)
+CWRMF_NO_GUARD_T4_AUDIT_SUMMARY = (
+    CWRMF_NO_GUARD_T4_AUDIT_DIRECTORY / "summary.json"
 )
 
 OBSERVABLE_NAMES = (
@@ -427,6 +466,505 @@ def _save_figure(figure: plt.Figure, stem: Path) -> None:
     figure.savefig(stem.with_suffix(".pdf"), bbox_inches="tight")
     figure.savefig(stem.with_suffix(".png"), dpi=320, bbox_inches="tight")
     plt.close(figure)
+
+
+def _minimum_joint_gram_path(coordinates: np.ndarray) -> np.ndarray:
+    """Return the retained joint-Gram minimum along a closed-coordinate path."""
+
+    return np.asarray(
+        [
+            np.linalg.eigvalsh(
+                electron_phonon_moment_matrix(
+                    closed_scalar_to_matrix_state(row)
+                )
+            )[0]
+            for row in np.asarray(coordinates, dtype=float)
+        ],
+        dtype=float,
+    )
+
+
+def _plot_cwrmf_balanced_comparison(
+    output_directory: Path,
+) -> dict[str, Any]:
+    """Plot the stored raw, strict, and balanced carried-witness results."""
+
+    with np.load(CWRMF_STRICT, allow_pickle=False) as arrays:
+        strict_times = np.asarray(arrays["times"], dtype=float)
+        exact_coordinates = np.asarray(
+            arrays["exact_archive_coordinates"], dtype=float
+        )
+        raw_coordinates = np.asarray(
+            arrays["raw_archive_coordinates"], dtype=float
+        )
+        strict_coordinates = np.asarray(
+            arrays["approximate_archive_coordinates"], dtype=float
+        )
+    with np.load(CWRMF_BALANCED, allow_pickle=False) as arrays:
+        balanced_times = np.asarray(arrays["times"], dtype=float)
+        balanced_exact = np.asarray(
+            arrays["exact_archive_coordinates"], dtype=float
+        )
+        balanced_raw = np.asarray(
+            arrays["raw_archive_coordinates"], dtype=float
+        )
+        balanced_coordinates = np.asarray(
+            arrays["approximate_archive_coordinates"], dtype=float
+        )
+    with np.load(CWRMF_NO_GUARD, allow_pickle=False) as arrays:
+        no_guard_times = np.asarray(arrays["times"], dtype=float)
+        no_guard_exact = np.asarray(
+            arrays["exact_archive_coordinates"], dtype=float
+        )
+        no_guard_coordinates = np.asarray(
+            arrays["approximate_archive_coordinates"], dtype=float
+        )
+        no_guard_unshifted = np.asarray(
+            arrays["minimum_unshifted_eigenvalues"], dtype=float
+        )
+
+    if not np.isclose(strict_times[0], 0.0) or not np.isclose(
+        strict_times[-1], 0.5
+    ):
+        raise ValueError("strict carried-witness trajectory must span t=0 to 0.5")
+    if not np.isclose(balanced_times[0], 0.0) or not np.isclose(
+        balanced_times[-1], 0.5
+    ):
+        raise ValueError("balanced carried-witness trajectory must span t=0 to 0.5")
+    if not np.allclose(
+        no_guard_times, strict_times, rtol=0.0, atol=3e-13
+    ):
+        raise ValueError("no-guard trajectory does not use the strict time grid")
+    if not np.allclose(
+        no_guard_exact, exact_coordinates, rtol=0.0, atol=3e-12
+    ):
+        raise ValueError("no-guard exact reference disagrees with the stored reference")
+    matched_indices = np.asarray(
+        [int(np.argmin(np.abs(strict_times - value))) for value in balanced_times],
+        dtype=int,
+    )
+    if not np.allclose(
+        strict_times[matched_indices], balanced_times, rtol=0.0, atol=2e-13
+    ):
+        raise ValueError("balanced grid is not contained in the strict grid")
+    if not np.allclose(
+        exact_coordinates[matched_indices], balanced_exact, rtol=0.0, atol=3e-12
+    ):
+        raise ValueError("stored exact references disagree on the common grid")
+    if not np.allclose(
+        raw_coordinates[matched_indices], balanced_raw, rtol=0.0, atol=3e-12
+    ):
+        raise ValueError("stored raw archive baselines disagree on the common grid")
+
+    parameters = DimerParameters(
+        hopping=1.0,
+        gamma=0.5,
+        lambda_ep=1.5,
+        drive_amplitude=1.0,
+        pulse_width=1.0,
+    )
+    exact_observables = _observables(
+        strict_times, exact_coordinates, parameters
+    )
+    raw_observables = _observables(strict_times, raw_coordinates, parameters)
+    strict_observables = _observables(
+        strict_times, strict_coordinates, parameters
+    )
+    balanced_observables = _observables(
+        balanced_times, balanced_coordinates, parameters
+    )
+    no_guard_observables = _observables(
+        no_guard_times, no_guard_coordinates, parameters
+    )
+
+    _style()
+    figure, axes = plt.subplots(2, 3, figsize=(7.25, 4.05))
+    for panel, axis in enumerate(axes.flat):
+        axis.plot(
+            strict_times,
+            exact_observables[:, panel],
+            color="#161616",
+            linewidth=1.55,
+            label="exact cutoff-16 Hamiltonian",
+            zorder=4,
+        )
+        axis.plot(
+            strict_times,
+            raw_observables[:, panel],
+            color="#d1495b",
+            linestyle="--",
+            linewidth=1.15,
+            label="raw 31-coordinate archive EOM",
+            zorder=1,
+        )
+        axis.plot(
+            strict_times,
+            strict_observables[:, panel],
+            color="#6f6f6f",
+            linestyle=":",
+            linewidth=1.25,
+            label=r"strict carried witness, $h=0.0025$",
+            zorder=2,
+        )
+        axis.plot(
+            balanced_times,
+            balanced_observables[:, panel],
+            color="#1f77b4",
+            linewidth=1.15,
+            label=r"balanced carried witness, $h=0.01\to0.005$",
+            zorder=3,
+        )
+        axis.plot(
+            no_guard_times,
+            no_guard_observables[:, panel],
+            color="#2a9d5b",
+            linestyle="-.",
+            linewidth=1.15,
+            label="carried higher moments, no Gram guard",
+            zorder=3,
+        )
+        axis.set_title(
+            f"({chr(97 + panel)}) {PANEL_TITLES[panel]}", loc="left"
+        )
+        axis.set_xlim(0.0, 0.5)
+        axis.grid(alpha=0.18, linewidth=0.5)
+        if panel in (0, 1):
+            axis.set_ylabel("occupation")
+        else:
+            axis.set_ylabel(r"energy / $t_{\rm hop}$")
+        if panel >= 3:
+            axis.set_xlabel(r"$t\,t_{\rm hop}$")
+        _set_primary_limits(
+            axis,
+            [
+                exact_observables[:, panel],
+                raw_observables[:, panel],
+                strict_observables[:, panel],
+                balanced_observables[:, panel],
+                no_guard_observables[:, panel],
+            ],
+        )
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    figure.legend(
+        handles,
+        labels,
+        frameon=False,
+        ncol=2,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        columnspacing=1.0,
+        handlelength=2.4,
+    )
+    figure.subplots_adjust(
+        left=0.085,
+        right=0.985,
+        bottom=0.10,
+        top=0.84,
+        hspace=0.42,
+        wspace=0.34,
+    )
+    _save_figure(figure, output_directory / "cwrmf_balanced_t05_observables")
+
+    exact_joint = _minimum_joint_gram_path(exact_coordinates)
+    raw_joint = _minimum_joint_gram_path(raw_coordinates)
+    negative = np.flatnonzero(raw_joint < 0.0)
+    strict_summary = json.loads(CWRMF_STRICT_SUMMARY.read_text(encoding="utf-8"))
+    balanced_summary = json.loads(
+        CWRMF_BALANCED_SUMMARY.read_text(encoding="utf-8")
+    )
+    no_guard_summary = json.loads(
+        CWRMF_NO_GUARD_SUMMARY.read_text(encoding="utf-8")
+    )
+    result = {
+        "time_interval": [0.0, 0.5],
+        "raw_archive_first_sampled_negative_joint_gram_time": (
+            None if negative.size == 0 else float(strict_times[negative[0]])
+        ),
+        "minimum_joint_gram_eigenvalue": {
+            "exact": float(np.min(exact_joint)),
+            "raw_archive": float(np.min(raw_joint)),
+            "strict_carried_witness": strict_summary["feasibility"][
+                "minimum_carried_retained_joint_gram_eigenvalue"
+            ],
+            "balanced_carried_witness": balanced_summary["feasibility"][
+                "minimum_carried_retained_joint_gram_eigenvalue"
+            ],
+            "no_guard_carried_higher_moments": no_guard_summary[
+                "feasibility"
+            ]["minimum_retained_joint_gram_eigenvalue"],
+        },
+        "minimum_extended_62_row_gram_eigenvalue": {
+            "strict_carried_witness": strict_summary["feasibility"][
+                "minimum_carried_unshifted_eigenvalue"
+            ],
+            "balanced_carried_witness": balanced_summary["feasibility"][
+                "minimum_carried_unshifted_eigenvalue"
+            ],
+            "no_guard_carried_higher_moments": float(
+                np.min(no_guard_unshifted)
+            ),
+        },
+        "raw_archive_maximum_absolute_coordinate": float(
+            np.max(np.abs(raw_coordinates))
+        ),
+        "accuracy": {
+            "raw_archive": balanced_summary["accuracy"]["raw_archive"],
+            "strict_carried_witness": strict_summary["accuracy"][
+                "carried_witness"
+            ],
+            "balanced_carried_witness": balanced_summary["accuracy"][
+                "carried_witness"
+            ],
+            "no_guard_carried_higher_moments": no_guard_summary["accuracy"],
+        },
+        "input_sha256": {
+            str(path.relative_to(ROOT)): _sha256(path)
+            for path in (
+                CWRMF_STRICT,
+                CWRMF_BALANCED,
+                CWRMF_STRICT_SUMMARY,
+                CWRMF_BALANCED_SUMMARY,
+                CWRMF_NO_GUARD,
+                CWRMF_NO_GUARD_SUMMARY,
+            )
+        },
+    }
+    (output_directory / "cwrmf_balanced_t05_metrics.json").write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return result
+
+
+def _plot_cwrmf_no_guard_t4(output_directory: Path) -> dict[str, Any]:
+    """Plot the long-pulse failure of unconstrained carried higher moments."""
+
+    with np.load(CWRMF_NO_GUARD_T4, allow_pickle=False) as arrays:
+        times = np.asarray(arrays["times"], dtype=float)
+        exact_coordinates = np.asarray(
+            arrays["exact_archive_coordinates"], dtype=float
+        )
+        raw_coordinates = np.asarray(
+            arrays["raw_archive_coordinates"], dtype=float
+        )
+        no_guard_coordinates = np.asarray(
+            arrays["approximate_archive_coordinates"], dtype=float
+        )
+    with np.load(CWRMF_NO_GUARD_T4_AUDIT, allow_pickle=False) as arrays:
+        audit_times = np.asarray(arrays["times"], dtype=float)
+        extended_minima = np.asarray(
+            arrays["extended_gram_minimum_eigenvalues"], dtype=float
+        )
+        retained_minima = np.asarray(
+            arrays["retained_joint_gram_minimum_eigenvalues"], dtype=float
+        )
+        dynamic_rms = np.asarray(
+            arrays["instantaneous_dynamic_coordinate_scalar_rms"], dtype=float
+        )
+        sampled_times = np.asarray(arrays["sampled_times"], dtype=float)
+        diagnostic_names = tuple(str(value) for value in arrays["diagnostic_names"])
+        diagnostic_values = np.asarray(arrays["diagnostic_values"], dtype=float)
+    if not np.allclose(times, audit_times, rtol=0.0, atol=3e-13):
+        raise ValueError("t=4 trajectory and mode audit use different time grids")
+
+    parameters = DimerParameters(
+        hopping=1.0,
+        gamma=0.5,
+        lambda_ep=1.5,
+        drive_amplitude=1.0,
+        pulse_width=1.0,
+    )
+    exact_observables = _observables(times, exact_coordinates, parameters)
+    raw_observables = _observables(times, raw_coordinates, parameters)
+    no_guard_observables = _observables(
+        times, no_guard_coordinates, parameters
+    )
+    raw_dynamic = (raw_coordinates - exact_coordinates) - (
+        raw_coordinates[0] - exact_coordinates[0]
+    )
+    raw_dynamic_rms = np.sqrt(np.mean(raw_dynamic**2, axis=1))
+    raw_joint_minima = _minimum_joint_gram_path(raw_coordinates)
+    predicted_retained = diagnostic_values[
+        :,
+        diagnostic_names.index(
+            "maximum_negative_mode_predicted_retained_velocity_relative_change"
+        ),
+    ]
+    predicted_c = diagnostic_values[
+        :,
+        diagnostic_names.index(
+            "maximum_negative_mode_two_stage_c_velocity_relative_change"
+        ),
+    ]
+
+    _style()
+    figure = plt.figure(figsize=(7.25, 5.75))
+    grid = figure.add_gridspec(3, 3, height_ratios=(1.0, 1.0, 0.88))
+    axes = [figure.add_subplot(grid[row, column]) for row in range(2) for column in range(3)]
+    for panel, axis in enumerate(axes):
+        axis.plot(
+            times,
+            exact_observables[:, panel],
+            color="#161616",
+            linewidth=1.55,
+            label="exact cutoff-16 Hamiltonian",
+            zorder=4,
+        )
+        axis.plot(
+            times,
+            raw_observables[:, panel],
+            color="#d1495b",
+            linestyle="--",
+            linewidth=1.10,
+            label="raw 31-coordinate archive EOM",
+            zorder=2,
+        )
+        axis.plot(
+            times,
+            no_guard_observables[:, panel],
+            color="#2a9d5b",
+            linestyle="-.",
+            linewidth=1.15,
+            label="carried higher moments, no Gram guard",
+            zorder=3,
+        )
+        axis.set_title(f"({chr(97 + panel)}) {PANEL_TITLES[panel]}", loc="left")
+        axis.set_xlim(0.0, 4.0)
+        axis.grid(alpha=0.18, linewidth=0.5)
+        if panel in (0, 1):
+            axis.set_ylabel("occupation")
+        else:
+            axis.set_ylabel(r"energy / $t_{\rm hop}$")
+        if panel >= 3:
+            axis.set_xlabel(r"$t\,t_{\rm hop}$")
+
+    eigen_axis = figure.add_subplot(grid[2, 0])
+    eigen_axis.plot(
+        times,
+        extended_minima,
+        color="#2a9d5b",
+        linewidth=1.15,
+        label=r"extended $\mathcal{G}_{62}$",
+    )
+    eigen_axis.plot(
+        times,
+        retained_minima,
+        color="#1f77b4",
+        linewidth=1.05,
+        label=r"retained $\mathcal{G}$",
+    )
+    eigen_axis.plot(
+        times,
+        raw_joint_minima,
+        color="#d1495b",
+        linestyle="--",
+        linewidth=0.95,
+        label=r"raw retained $\mathcal{G}$",
+    )
+    eigen_axis.axhline(0.0, color="#161616", linewidth=0.6)
+    eigen_axis.set_yscale("symlog", linthresh=1e-7)
+    eigen_axis.set_title(r"(g) representability margins", loc="left")
+    eigen_axis.set_ylabel(r"minimum eigenvalue")
+    eigen_axis.legend(frameon=False, fontsize=5.8)
+
+    error_axis = figure.add_subplot(grid[2, 1])
+    error_axis.plot(
+        times,
+        raw_dynamic_rms,
+        color="#d1495b",
+        linestyle="--",
+        linewidth=1.0,
+        label="raw archive",
+    )
+    error_axis.plot(
+        times,
+        dynamic_rms,
+        color="#2a9d5b",
+        linewidth=1.1,
+        label="no Gram guard",
+    )
+    error_axis.set_yscale("log")
+    error_axis.set_title(r"(h) instantaneous 31-coordinate error", loc="left")
+    error_axis.set_ylabel("dynamic scalar RMS")
+    error_axis.legend(frameon=False, fontsize=6.2)
+
+    coupling_axis = figure.add_subplot(grid[2, 2])
+    coupling_axis.plot(
+        sampled_times,
+        predicted_retained,
+        color="#8055a3",
+        linewidth=1.05,
+        label="retained-velocity effect",
+    )
+    coupling_axis.plot(
+        sampled_times,
+        predicted_c,
+        color="#e28e2c",
+        linestyle="--",
+        linewidth=1.05,
+        label=r"two-stage $C$-rate effect",
+    )
+    coupling_axis.set_yscale("log")
+    coupling_axis.set_title(r"(i) negative-mode feedback", loc="left")
+    coupling_axis.set_ylabel("predicted relative change")
+    coupling_axis.legend(frameon=False, fontsize=5.8)
+
+    for axis in (eigen_axis, error_axis, coupling_axis):
+        axis.set_xlim(0.0, 4.0)
+        axis.set_xlabel(r"$t\,t_{\rm hop}$")
+        axis.grid(alpha=0.18, linewidth=0.5)
+    handles, labels = axes[0].get_legend_handles_labels()
+    figure.legend(
+        handles,
+        labels,
+        frameon=False,
+        ncol=3,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        columnspacing=1.1,
+        handlelength=2.3,
+    )
+    figure.subplots_adjust(
+        left=0.085,
+        right=0.985,
+        bottom=0.075,
+        top=0.90,
+        hspace=0.48,
+        wspace=0.36,
+    )
+    _save_figure(figure, output_directory / "cwrmf_no_guard_t4_combined")
+
+    scored_summary = json.loads(
+        CWRMF_NO_GUARD_T4_SUMMARY.read_text(encoding="utf-8")
+    )
+    run_summary = json.loads(
+        CWRMF_NO_GUARD_T4_RUN_SUMMARY.read_text(encoding="utf-8")
+    )
+    audit_summary = json.loads(
+        CWRMF_NO_GUARD_T4_AUDIT_SUMMARY.read_text(encoding="utf-8")
+    )
+    result = {
+        "scored": scored_summary,
+        "autonomous_wall_seconds": run_summary["integration"][
+            "autonomous_wall_seconds"
+        ],
+        "mode_audit": audit_summary,
+        "input_sha256": {
+            str(path.relative_to(ROOT)): _sha256(path)
+            for path in (
+                CWRMF_NO_GUARD_T4,
+                CWRMF_NO_GUARD_T4_SUMMARY,
+                CWRMF_NO_GUARD_T4_RUN_SUMMARY,
+                CWRMF_NO_GUARD_T4_AUDIT,
+                CWRMF_NO_GUARD_T4_AUDIT_SUMMARY,
+            )
+        },
+    }
+    (output_directory / "cwrmf_no_guard_t4_metrics.json").write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return result
 
 
 def _plot_observables(
@@ -2135,8 +2673,27 @@ def main() -> None:
         type=Path,
         default=ROOT / "output/plots/paper_v_results_progression_20260804",
     )
+    parser.add_argument(
+        "--only-cwrmf-balanced",
+        action="store_true",
+        help="Build only the stored t=0.5 carried-witness comparison.",
+    )
+    parser.add_argument(
+        "--only-cwrmf-no-guard-t4",
+        action="store_true",
+        help="Build only the stored t=4 no-Gram-guard comparison.",
+    )
     args = parser.parse_args()
-    result = build(args.output_directory)
+    if args.only_cwrmf_balanced and args.only_cwrmf_no_guard_t4:
+        raise SystemExit("choose at most one CWRMF-only plotting mode")
+    if args.only_cwrmf_balanced:
+        args.output_directory.mkdir(parents=True, exist_ok=True)
+        result = _plot_cwrmf_balanced_comparison(args.output_directory)
+    elif args.only_cwrmf_no_guard_t4:
+        args.output_directory.mkdir(parents=True, exist_ok=True)
+        result = _plot_cwrmf_no_guard_t4(args.output_directory)
+    else:
+        result = build(args.output_directory)
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

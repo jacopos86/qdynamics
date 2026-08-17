@@ -23,6 +23,10 @@ from pipelines.scaffold.hh_continuation_types import PhaseControllerSnapshot
 from pipelines.static_adapt.estimator_call_ledger import (
     EstimatorCallLedger,
     S_ALG_COMPONENTS,
+    projective_state_fingerprint as estimator_projective_state_fingerprint,
+)
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
 )
 from pipelines.static_adapt.sr_snake.contracts import (
     AcceptedStateResume,
@@ -407,6 +411,142 @@ def _resolve_authenticated_insertion_policy(
     return insertion_policy
 
 
+def _validated_phase0_gradient_screen(
+    value: Any,
+    *,
+    owner: str,
+    append_position: int,
+    representatives_by_pool_index: Mapping[int, tuple[int, ...]],
+) -> list[dict[str, Any]]:
+    """Authenticate the serialized pure-gradient domain and shortlist."""
+
+    screen = _mapping(value, owner=owner)
+    if screen.get("schema") != (
+        "paper_i_scored_gradient_phase0_population_v1"
+    ):
+        raise CanonicalResumeError(
+            f"{owner} does not identify the scored gradient Phase-0 schema."
+        )
+
+    def _validated_rows(
+        key: str,
+        count_key: str,
+        digest_key: str,
+    ) -> list[dict[str, Any]]:
+        records = [
+            _mapping(record, owner=f"{owner}.{key}[{index}]")
+            for index, record in enumerate(
+                _sequence(screen.get(key), owner=f"{owner}.{key}")
+            )
+        ]
+        if not records:
+            raise CanonicalResumeError(f"{owner}.{key} must be nonempty.")
+        identities: set[tuple[str, str]] = set()
+        positions: set[tuple[int, int]] = set()
+        for record in records:
+            identity = (
+                _text(
+                    record.get("domain_record_id"),
+                    owner=f"{owner}.{key} domain record id",
+                ),
+                _text(
+                    record.get("generator_id"),
+                    owner=f"{owner}.{key} generator id",
+                ),
+            )
+            pool_index = _integer(
+                record.get("pool_index"),
+                owner=f"{owner}.{key} pool index",
+                minimum=0,
+            )
+            _text(
+                record.get("pool_label"),
+                owner=f"{owner}.{key} pool label",
+            )
+            position = _integer(
+                record.get("insertion_position"),
+                owner=f"{owner}.{key} insertion position",
+                minimum=0,
+            )
+            pair = (pool_index, position)
+            representatives = representatives_by_pool_index.get(pool_index)
+            expected_class = (
+                "interior" if position < append_position else "append"
+            )
+            if (
+                identity in identities
+                or pair in positions
+                or representatives is None
+                or position not in representatives
+                or position > append_position
+                or record.get("position_class") != expected_class
+            ):
+                raise CanonicalResumeError(
+                    f"{owner}.{key} identity escaped the authenticated "
+                    "representatives."
+                )
+            identities.add(identity)
+            positions.add(pair)
+        if (
+            _integer(
+                screen.get(count_key),
+                owner=f"{owner}.{count_key}",
+                minimum=1,
+            )
+            != len(records)
+            or _sha256(
+                screen.get(digest_key),
+                owner=f"{owner}.{digest_key}",
+            )
+            != _digest_json(records)
+        ):
+            raise CanonicalResumeError(
+                f"{owner}.{key} count or ordered digest drifted."
+            )
+        return records
+
+    population = _validated_rows(
+        "population",
+        "population_count",
+        "ordered_population_sha256",
+    )
+    expected_pairs = {
+        (pool_index, position)
+        for pool_index, positions in representatives_by_pool_index.items()
+        for position in positions
+    }
+    population_pairs = {
+        (int(record["pool_index"]), int(record["insertion_position"]))
+        for record in population
+    }
+    if population_pairs != expected_pairs:
+        raise CanonicalResumeError(
+            f"{owner}.population does not close over every authenticated "
+            "representative."
+        )
+
+    shortlist = _validated_rows(
+        "shortlist",
+        "shortlist_count",
+        "ordered_shortlist_sha256",
+    )
+    population_by_identity = {
+        (str(record["domain_record_id"]), str(record["generator_id"])): record
+        for record in population
+    }
+    if any(
+        population_by_identity.get(
+            (str(record["domain_record_id"]), str(record["generator_id"]))
+        )
+        != record
+        for record in shortlist
+    ):
+        raise CanonicalResumeError(
+            f"{owner}.shortlist is not an exact subset of its population."
+        )
+    return shortlist
+
+
 def _validate_scored_insertion_population(
     value: Any,
     *,
@@ -441,6 +581,16 @@ def _validate_scored_insertion_population(
         raise CanonicalResumeError(
             f"{owner} does not identify the exact ordered insertion chart."
         )
+    phase0_shortlist = (
+        _validated_phase0_gradient_screen(
+            payload["phase0_gradient_screen"],
+            owner=f"{owner}.phase0_gradient_screen",
+            append_position=append_position,
+            representatives_by_pool_index=representatives_by_pool_index,
+        )
+        if "phase0_gradient_screen" in payload
+        else None
+    )
     phases = [
         _mapping(phase, owner=f"{owner}.phases[{index}]")
         for index, phase in enumerate(
@@ -454,6 +604,7 @@ def _validate_scored_insertion_population(
 
     all_records: list[dict[str, Any]] = []
     phase_i_pairs: set[tuple[int, int]] | None = None
+    phase_i_records: list[dict[str, Any]] | None = None
     for expected_phase, phase in zip(
         phase_order,
         phases,
@@ -543,6 +694,7 @@ def _validate_scored_insertion_population(
             observed_identities.add((domain_record_id, generator_id))
         if expected_phase == "phase_i":
             phase_i_pairs = observed_pairs
+            phase_i_records = records
         all_records.extend(records)
 
     expected_phase_i_pairs = {
@@ -550,11 +702,40 @@ def _validate_scored_insertion_population(
         for pool_index, positions in representatives_by_pool_index.items()
         for position in positions
     }
-    if phase_i_pairs != expected_phase_i_pairs:
+    if phase0_shortlist is None and phase_i_pairs != expected_phase_i_pairs:
         raise CanonicalResumeError(
             f"{owner} Phase-I scored positions do not close over every "
             "authenticated representative."
         )
+    if phase0_shortlist is not None:
+        # Phase 0 owns controller-root identities such as
+        # ``<generator>::pool[<index>]``.  The live-record projection used
+        # for Phase I deliberately keeps the root domain record and pool
+        # coordinates while replacing that controller identity with the
+        # canonical feature generator identity.  Both full record lists are
+        # independently authenticated above; bind them across that producer
+        # normalization seam by the fields the projection preserves.
+        def _stable_domain_identity(
+            record: Mapping[str, Any],
+        ) -> tuple[str, int, int, str]:
+            return (
+                str(record["domain_record_id"]),
+                int(record["pool_index"]),
+                int(record["insertion_position"]),
+                str(record["position_class"]),
+            )
+
+        if [
+            _stable_domain_identity(record)
+            for record in phase_i_records or []
+        ] != [
+            _stable_domain_identity(record)
+            for record in phase0_shortlist
+        ]:
+            raise CanonicalResumeError(
+                f"{owner} Phase-I scored population is not the ordered "
+                "authenticated gradient Phase-0 shortlist domain."
+            )
     interior_count = sum(
         record["position_class"] == "interior"
         for record in all_records
@@ -1244,14 +1425,38 @@ def _validate_problem_binding(
 ) -> tuple[str, str]:
     receipt = ResolvedProblemReceipt.from_problem(expected_problem)
     request = expected_problem.request
-    if (
-        str(expected_problem.family_key) != "hh"
-        or str(request.problem_key) != "hh"
-        or int(request.num_sites) != 2
-    ):
+    semantic_invariants = _mapping(
+        route_contract.get("semantic_invariants"),
+        owner="route contract semantic_invariants",
+    )
+    pure_hubbard_noise_application = bool(
+        str(expected_problem.family_key) == "hubbard"
+        and str(request.problem_key) == "hubbard"
+        and int(request.num_sites) == 2
+        and semantic_invariants.get("application_lane")
+        == "paper_i_pure_hubbard_page12_full_noise_v1"
+        and semantic_invariants.get("controller_noise_active") is True
+        and semantic_invariants.get(
+            "controller_noise_candidate_gradient_scoring"
+        )
+        == "noisy"
+        and semantic_invariants.get(
+            "controller_noise_powell_refit_objective"
+        )
+        == "noisy"
+        and semantic_invariants.get("controller_noise_geometry_and_gram")
+        == "exact"
+    )
+    canonical_hh = bool(
+        str(expected_problem.family_key) == "hh"
+        and str(request.problem_key) == "hh"
+        and int(request.num_sites) == 2
+    )
+    if not canonical_hh and not pure_hubbard_noise_application:
         raise CanonicalResumeError(
-            "Canonical accepted-state resume is restricted to L=2 "
-            "Hubbard--Holstein problems."
+            "Canonical accepted-state resume is restricted to canonical "
+            "L=2 Hubbard--Holstein or the exact named L=2 pure-Hubbard "
+            "controller-noise application."
         )
     expected_particles = tuple(expected_problem.default_num_particles)
     if (
@@ -1269,6 +1474,23 @@ def _validate_problem_binding(
         raise CanonicalResumeError(
             "Canonical HH resume cannot attest noncanonical problem "
             "extensions omitted by the direct checkpoint schema."
+        )
+    if pure_hubbard_noise_application and not (
+        float(request.t) == 1.0
+        and float(request.u) in {1.5, 8.0}
+        and float(request.dv) == 0.0
+        and float(request.omega0) == 0.0
+        and float(request.g_ep) == 0.0
+        and int(request.n_ph_max) == 0
+        and str(request.boson_encoding) == "binary"
+        and str(request.ordering) == "blocked"
+        and str(request.boundary) == "open"
+        and request.include_zero_point is False
+        and expected_particles == (1, 1)
+    ):
+        raise CanonicalResumeError(
+            "Named pure-Hubbard resume escaped its L=2 open blocked "
+            "half-filled U/t in {1.5, 8} application."
         )
 
     settings = _mapping(envelope.get("settings"), owner="settings")
@@ -1318,7 +1540,9 @@ def _validate_problem_binding(
         owner="route contract execution_settings",
     )
     required_route_settings = {
-        "problem": "hh",
+        "problem": (
+            "hubbard" if pure_hubbard_noise_application else "hh"
+        ),
         "adapt_pool": "full_meta",
         "adapt_inner_optimizer": "POWELL",
         "adapt_maxiter": 200,
@@ -1345,6 +1569,23 @@ def _validate_problem_binding(
             + ", ".join(route_mismatches)
             + "."
         )
+    if pure_hubbard_noise_application:
+        controller_noise = execution.get("ra_controller_noise_contract")
+        if (
+            not isinstance(controller_noise, Mapping)
+            or controller_noise.get("schema")
+            != "paper_i_pure_hubbard_full_noise_level_v1"
+            or controller_noise.get("optimizer_evaluation_order")
+            != "serial_v1"
+            or controller_noise.get("density_matrix_shotless") is not True
+            or not isinstance(
+                controller_noise.get("effective_oracle_config"), Mapping
+            )
+        ):
+            raise CanonicalResumeError(
+                "Named pure-Hubbard resume lost its authenticated full-noise "
+                "route contract."
+            )
 
     reference_manifest = _mapping(
         envelope.get("ansatz_input_state"),
@@ -2262,11 +2503,55 @@ def _validate_history_and_admissions(
         adapt.get("history_tail"),
         owner="adapt_vqe.history_tail",
     )
-    if tail != history or _integer(
+    tail_count = _integer(
         adapt.get("history_tail_count"),
         owner="adapt_vqe.history_tail_count",
-        minimum=1,
-    ) != controller_round:
+        minimum=0,
+    )
+    retention = adapt.get("history_tail_retention")
+    compact_tail = (
+        isinstance(retention, Mapping)
+        and str(retention.get("schema", ""))
+        == "static_adapt_verified_resume_history_retention_v2"
+    )
+    if compact_tail:
+        requested_limit = _integer(
+            retention.get("requested_limit"),
+            owner="adapt_vqe.history_tail_retention.requested_limit",
+            minimum=0,
+        )
+        expected_tail_count = min(requested_limit, controller_round)
+        expected_tail = (
+            []
+            if expected_tail_count == 0
+            else history[-expected_tail_count:]
+        )
+        if (
+            _integer(
+                retention.get("serialized_complete_history_count"),
+                owner=(
+                    "adapt_vqe.history_tail_retention."
+                    "serialized_complete_history_count"
+                ),
+                minimum=1,
+            )
+            != controller_round
+            or _integer(
+                retention.get("serialized_tail_count"),
+                owner=(
+                    "adapt_vqe.history_tail_retention.serialized_tail_count"
+                ),
+                minimum=0,
+            )
+            != expected_tail_count
+            or tail_count != expected_tail_count
+            or tail != expected_tail
+        ):
+            raise CanonicalResumeError(
+                "Accepted checkpoint compact history tail disagrees with "
+                "its complete authenticated history suffix."
+            )
+    elif tail != history or tail_count != controller_round:
         raise CanonicalResumeError(
             "Accepted checkpoint does not retain a complete authenticated "
             "history."
@@ -3696,6 +3981,10 @@ def _load_and_validate_ledger(
     history_prefixes: Sequence[_ValidatedSignedPrefix],
     terminal_receipt: Mapping[str, Any],
 ) -> tuple[dict[str, Any], list[dict[str, Any]], int, int, int]:
+    phase3_natural_terminal = bool(
+        adapt.get("terminal_controller_outcome")
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+    )
     expected_ledger_scope = (
         "all_executed_branches" if beam_enabled else "single_route"
     )
@@ -4725,6 +5014,7 @@ def _load_and_validate_ledger(
             not in {
                 "post_admission_prune",
                 "terminal_post_final_refit_and_prune",
+                "terminal_phase3_no_positive",
             }
             or receipt.get("runtime_estimator_occurrence_contract")
             != "all_instrumented_logical_scalar_estimator_calls_v1"
@@ -4860,7 +5150,11 @@ def _load_and_validate_ledger(
         != (
             "post_admission_prune"
             if round_finalized_current_checkpoint
-            else "terminal_post_final_refit_and_prune"
+            else (
+                "terminal_phase3_no_positive"
+                if phase3_natural_terminal
+                else "terminal_post_final_refit_and_prune"
+            )
         )
         or _integer(
             receipts[-1].get("outer_iteration"),
@@ -5051,6 +5345,272 @@ def _validate_checkpoint_envelope(
     return adapt, controller_round, beam_enabled
 
 
+def _validate_round_zero_phase3_natural_terminal_checkpoint(
+    *,
+    source_path: Path,
+    envelope: Mapping[str, Any],
+    expected_problem: ResolvedProblemContext,
+    expected_route_profile: str,
+    expected_route_contract_sha256: str,
+) -> None:
+    """Authenticate a zero-prefix V2 terminal without authorizing hydration."""
+
+    adapt = _mapping(envelope.get("adapt_vqe"), owner="adapt_vqe")
+    top_checkpoint = _mapping(envelope.get("checkpoint"), owner="checkpoint")
+    expected_digest = _sha256(
+        expected_route_contract_sha256,
+        owner="expected_route_contract_sha256",
+    )
+    if (
+        envelope.get("schema_version") != _CHECKPOINT_SCHEMA
+        or envelope.get("no_credentials_serialized") is not True
+        or adapt.get("terminal_controller_outcome")
+        != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        or adapt.get("history") != []
+        or adapt.get("history_count") != 0
+        or adapt.get("history_tail") != []
+        or adapt.get("active_prefix_checkpoints") != []
+        or adapt.get("operators") != []
+        or adapt.get("ansatz_depth") != 0
+        or adapt.get("num_parameters") != 0
+        or adapt.get("logical_num_parameters") != 0
+        or adapt.get("optimal_point") != []
+        or adapt.get("logical_optimal_point") != []
+        or top_checkpoint.get("depth") != 0
+        or top_checkpoint.get("ansatz_depth") != 0
+        or top_checkpoint.get("reason") != "iteration_done"
+        or top_checkpoint.get("complete") is not False
+        or top_checkpoint.get("beam_enabled") is not False
+        or top_checkpoint.get("branch_id") is not None
+        or top_checkpoint.get("parent_branch_id") is not None
+    ):
+        raise CanonicalResumeError(
+            "Round-zero Phase-III natural-terminal envelope is incomplete."
+        )
+
+    route_family, route_contract = _validate_route_binding(
+        envelope=envelope,
+        adapt=adapt,
+        expected_route_profile=expected_route_profile,
+        expected_route_contract_sha256=expected_digest,
+    )
+    if route_family != "ra_adapt":
+        raise CanonicalResumeError(
+            "Round-zero Phase-III terminal is restricted to RA-ADAPT."
+        )
+    from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+        validate_semantic_phase3_natural_terminal_route_contract,
+        validate_semantic_phase3_no_positive_terminal_receipt,
+    )
+
+    try:
+        validate_semantic_phase3_natural_terminal_route_contract(
+            route_contract,
+            expected_route_contract_sha256=expected_digest,
+        )
+    except ValueError as exc:
+        raise CanonicalResumeError(
+            "Round-zero Phase-III terminal lacks its authenticated V2 route."
+        ) from exc
+    _validate_beam_route_binding(
+        route_contract=route_contract,
+        declared_beam_enabled=False,
+    )
+    _validate_problem_binding(
+        envelope=envelope,
+        adapt=adapt,
+        route_contract=route_contract,
+        expected_problem=expected_problem,
+    )
+    initial_manifest = _validate_state_manifest(
+        envelope.get("initial_state"),
+        total_qubits=int(expected_problem.layout.total_qubits),
+    )
+
+    continuation = _mapping(
+        adapt.get("continuation"),
+        owner="adapt_vqe.continuation",
+    )
+    terminal_checkpoint = _mapping(
+        adapt.get("terminal_active_prefix_checkpoint"),
+        owner="adapt_vqe.terminal_active_prefix_checkpoint",
+    )
+    continuation_terminal = _mapping(
+        continuation.get("terminal_active_prefix_checkpoint"),
+        owner="continuation.terminal_active_prefix_checkpoint",
+    )
+    unsigned_terminal_checkpoint = dict(terminal_checkpoint)
+    supplied_checkpoint_sha = _sha256(
+        unsigned_terminal_checkpoint.pop("checkpoint_sha256", None),
+        owner="round-zero terminal checkpoint SHA-256",
+    )
+    parameterization = _mapping(
+        terminal_checkpoint.get("parameterization"),
+        owner="round-zero terminal parameterization",
+    )
+    expected_state_fingerprint = estimator_projective_state_fingerprint(
+        expected_problem.reference_state.build_state()
+    )
+    if (
+        supplied_checkpoint_sha != _digest_json(unsigned_terminal_checkpoint)
+        or terminal_checkpoint.get("schema") != _SIGNED_PREFIX_SCHEMA
+        or terminal_checkpoint.get("checkpoint_kind")
+        != "terminal_phase3_no_positive"
+        or terminal_checkpoint.get("outer_iteration") != 0
+        or terminal_checkpoint.get("active_ansatz_depth") != 0
+        or terminal_checkpoint.get("ordered_active_operator_labels") != []
+        or terminal_checkpoint.get("ordered_active_operators") != []
+        or terminal_checkpoint.get("signed_unwrapped_runtime_parameters") != []
+        or terminal_checkpoint.get("signed_unwrapped_logical_parameters") != []
+        or terminal_checkpoint.get("projective_state_fingerprint")
+        != expected_state_fingerprint
+        or terminal_checkpoint.get("sr_route_profile")
+        != expected_route_profile
+        or terminal_checkpoint.get("sr_route_profile_contract_sha256")
+        != expected_digest
+        or parameterization.get("logical_operator_count") != 0
+        or parameterization.get("runtime_parameter_count") != 0
+        or parameterization.get("blocks") != []
+        or continuation_terminal != terminal_checkpoint
+        or initial_manifest.get("amplitudes_qn_to_q0")
+        != _mapping(
+            envelope.get("ansatz_input_state"),
+            owner="ansatz_input_state",
+        ).get("amplitudes_qn_to_q0")
+    ):
+        raise CanonicalResumeError(
+            "Round-zero Phase-III terminal checkpoint changed the initial state."
+        )
+
+    pointer = _mapping(
+        adapt.get("estimator_call_ledger_checkpoint"),
+        owner="adapt_vqe.estimator_call_ledger_checkpoint",
+    )
+    if _mapping(
+        top_checkpoint.get("estimator_call_ledger_checkpoint"),
+        owner="checkpoint estimator ledger pointer",
+    ) != pointer:
+        raise CanonicalResumeError(
+            "Round-zero estimator-ledger pointers disagree."
+        )
+    relative_name = _text(
+        pointer.get("path"),
+        owner="round-zero estimator-ledger path",
+    )
+    relative_path = Path(relative_name)
+    if (
+        pointer.get("schema") != _LEDGER_POINTER_SCHEMA
+        or pointer.get("enabled") is not True
+        or pointer.get("status") != "complete"
+        or pointer.get("current_round_finalized") is not True
+        or pointer.get("checkpoint_depth") != 0
+        or pointer.get("checkpoint_reason") != "iteration_done"
+        or pointer.get("ledger_scope") != "single_route"
+        or pointer.get("beam_enabled") is not False
+        or relative_path.is_absolute()
+        or relative_path.parts != (relative_name,)
+    ):
+        raise CanonicalResumeError(
+            "Round-zero estimator-ledger pointer is incomplete."
+        )
+    sidecar_path = source_path.with_name(relative_name)
+    if sidecar_path.is_symlink() or not sidecar_path.is_file():
+        raise CanonicalResumeError(
+            "Round-zero estimator-ledger sidecar is absent."
+        )
+    if _file_sha256(sidecar_path) != _sha256(
+        pointer.get("sha256"),
+        owner="round-zero estimator-ledger SHA-256",
+    ):
+        raise CanonicalResumeError(
+            "Round-zero estimator-ledger sidecar SHA-256 mismatch."
+        )
+    sidecar = _load_json_object(
+        sidecar_path,
+        owner="round-zero estimator-ledger sidecar",
+    )
+    ledger_payload = _mapping(
+        sidecar.get("ledger"),
+        owner="round-zero estimator ledger",
+    )
+    try:
+        rebuilt_ledger = EstimatorCallLedger.from_payload(ledger_payload)
+    except (TypeError, ValueError) as exc:
+        raise CanonicalResumeError(
+            "Round-zero estimator ledger failed deterministic reconstruction."
+        ) from exc
+    rebuilt_payload = rebuilt_ledger.to_payload()
+    occurrence = _mapping(
+        rebuilt_payload.get("occurrence_summary"),
+        owner="round-zero ledger occurrence summary",
+    )
+    unique = _mapping(
+        rebuilt_payload.get("summary"),
+        owner="round-zero ledger unique summary",
+    )
+    sidecar_checkpoint = _mapping(
+        sidecar.get("checkpoint"),
+        owner="round-zero ledger sidecar checkpoint",
+    )
+    if (
+        rebuilt_payload != ledger_payload
+        or sidecar.get("schema") != _LEDGER_SIDECAR_SCHEMA
+        or sidecar.get("no_credentials_serialized") is not True
+        or sidecar.get("ledger_scope") != "single_route"
+        or sidecar_checkpoint.get("depth") != 0
+        or sidecar_checkpoint.get("reason") != "iteration_done"
+        or sidecar_checkpoint.get("current_round_finalized") is not True
+        or sidecar_checkpoint.get("beam_enabled") is not False
+        or pointer.get("ledger_fingerprint")
+        != rebuilt_payload.get("ledger_fingerprint")
+        or pointer.get("S_alg")
+        != occurrence.get("total_call_occurrences")
+        or pointer.get("raw_occurrence_count")
+        != occurrence.get("total_call_occurrences")
+        or pointer.get("S_unique") != unique.get("S_unique")
+        or sidecar.get("S_alg") != pointer.get("S_alg")
+        or sidecar.get("S_unique") != pointer.get("S_unique")
+    ):
+        raise CanonicalResumeError(
+            "Round-zero estimator ledger does not close to its pointer."
+        )
+
+    terminal_receipt = _mapping(
+        adapt.get("terminal_phase3_selection_receipt"),
+        owner="round-zero Phase-III terminal receipt",
+    )
+    if continuation.get("terminal_phase3_selection_receipt") != terminal_receipt:
+        raise CanonicalResumeError(
+            "Round-zero Phase-III terminal receipt disagrees with continuation."
+        )
+    authenticated_finalization = dict(adapt)
+    accounting = _mapping(
+        authenticated_finalization.get("estimator_call_accounting"),
+        owner="round-zero estimator accounting",
+    )
+    accounting["full_ledger"] = rebuilt_payload
+    authenticated_finalization["estimator_call_accounting"] = accounting
+    try:
+        validate_semantic_phase3_no_positive_terminal_receipt(
+            terminal_receipt,
+            route_variant=str(
+                _mapping(
+                    route_contract.get("native_semantic_contract"),
+                    owner="round-zero native semantic contract",
+                ).get("route_variant")
+            ),
+            route_contract=route_contract,
+            expected_route_contract_sha256=expected_digest,
+            accepted_round_count=0,
+            terminal_active_prefix_checkpoint=terminal_checkpoint,
+            finalization=authenticated_finalization,
+        )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise CanonicalResumeError(
+            "Round-zero Phase-III natural-terminal evidence is invalid."
+        ) from exc
+
+
 def load_canonical_accepted_state_resume(
     resume: AcceptedStateResume,
     *,
@@ -5088,6 +5648,27 @@ def load_canonical_accepted_state_resume(
         source_path,
         owner="canonical accepted checkpoint",
     )
+    raw_adapt = _mapping(envelope.get("adapt_vqe"), owner="adapt_vqe")
+    raw_checkpoint = _mapping(
+        envelope.get("checkpoint"),
+        owner="checkpoint",
+    )
+    if (
+        raw_adapt.get("terminal_controller_outcome")
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and raw_checkpoint.get("depth") == 0
+    ):
+        _validate_round_zero_phase3_natural_terminal_checkpoint(
+            source_path=source_path,
+            envelope=envelope,
+            expected_problem=expected_problem,
+            expected_route_profile=expected_route_profile,
+            expected_route_contract_sha256=expected_route_contract_sha256,
+        )
+        raise CanonicalResumeError(
+            "Authenticated Phase-III natural terminal is complete and "
+            "non-resumable."
+        )
     adapt, controller_round, beam_enabled = _validate_checkpoint_envelope(
         envelope=envelope
     )
@@ -5189,9 +5770,125 @@ def load_canonical_accepted_state_resume(
             == "macro_generator_v1"
         ),
     )
+    continuation_terminal = continuation.get(
+        "terminal_active_prefix_checkpoint"
+    )
+    terminal_outcome = adapt.get("terminal_controller_outcome")
+    phase3_natural_terminal = bool(
+        terminal_outcome
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+    )
+    if terminal_outcome not in {
+        None,
+        ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+    }:
+        raise CanonicalResumeError(
+            "Accepted checkpoint carries an unknown terminal outcome."
+        )
+    if phase3_natural_terminal:
+        from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+            validate_semantic_phase3_natural_terminal_route_contract,
+        )
+
+        try:
+            validate_semantic_phase3_natural_terminal_route_contract(
+                route_contract,
+                expected_route_contract_sha256=expected_digest,
+            )
+        except ValueError as exc:
+            raise CanonicalResumeError(
+                "Phase-III natural terminal requires the authenticated "
+                "V2 natural-terminal route."
+            ) from exc
+    terminal_phase3_raw = adapt.get(
+        "terminal_phase3_selection_receipt"
+    )
+    continuation_phase3_raw = continuation.get(
+        "terminal_phase3_selection_receipt"
+    )
+    if phase3_natural_terminal:
+        terminal_phase3 = _mapping(
+            terminal_phase3_raw,
+            owner="adapt_vqe terminal Phase-III selection receipt",
+        )
+        unsigned_terminal_phase3 = dict(terminal_phase3)
+        supplied_terminal_sha = unsigned_terminal_phase3.pop(
+            "sha256",
+            None,
+        )
+        terminal_estimator_receipt = _mapping(
+            terminal_phase3.get("terminal_estimator_prefix_receipt"),
+            owner="terminal Phase-III estimator-prefix receipt",
+        )
+        if (
+            continuation_phase3_raw != terminal_phase3
+            or supplied_terminal_sha
+            != _digest_json(unsigned_terminal_phase3)
+            or terminal_phase3.get("schema")
+            != "paper_i_ra_phase3_no_positive_selection_terminal_v1"
+            or terminal_phase3.get("terminal_controller_outcome")
+            != ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+            or terminal_phase3.get("accepted_controller_round")
+            != controller_round
+            or terminal_phase3.get("attempted_controller_round")
+            != controller_round + 1
+            or terminal_phase3.get("accepted_state_unchanged") is not True
+            or terminal_phase3.get("final_admission_record_id") is not None
+            or terminal_phase3.get("accepted_operator_count")
+            != len(terminal_prefix.operator_rows)
+            or terminal_phase3.get("accepted_state_fingerprint")
+            != terminal_prefix.payload.get(
+                "projective_state_fingerprint"
+            )
+            or terminal_phase3.get(
+                "terminal_active_prefix_checkpoint_sha256"
+            )
+            != _digest_json(terminal_prefix.payload)
+            or terminal_estimator_receipt
+            != terminal_prefix.ledger_receipt
+            or terminal_phase3.get(
+                "terminal_estimator_prefix_receipt_sha256"
+            )
+            != _digest_json(terminal_estimator_receipt)
+            or terminal_estimator_receipt.get("checkpoint_kind")
+            != "terminal_phase3_no_positive"
+        ):
+            raise CanonicalResumeError(
+                "Phase-III natural-terminal evidence is incomplete or "
+                "detached from the accepted prefix."
+            )
+    elif (
+        terminal_phase3_raw is not None
+        or continuation_phase3_raw is not None
+    ):
+        raise CanonicalResumeError(
+            "Nonterminal accepted checkpoint carries Phase-III terminal "
+            "evidence."
+        )
+    terminal_controller_noise = terminal_prefix.payload.get(
+        "controller_noise"
+    )
+    continuation_terminal_is_noise_binding = bool(
+        isinstance(continuation_terminal, Mapping)
+        and set(continuation_terminal) == {"schema", "checkpoint_sha256"}
+        and continuation_terminal.get("schema")
+        == "paper_i_signed_active_prefix_checkpoint_binding_v1"
+        and continuation_terminal.get("checkpoint_sha256")
+        == terminal_prefix.payload.get("checkpoint_sha256")
+        and isinstance(terminal_controller_noise, Mapping)
+        and terminal_controller_noise.get("schema")
+        == "paper_i_pure_hubbard_controller_noise_checkpoint_v1"
+        and _mapping(
+            route_contract.get("semantic_invariants"),
+            owner="RA route semantic invariants",
+        ).get("application_lane")
+        == "paper_i_pure_hubbard_page12_full_noise_v1"
+    )
     if (
-        continuation.get("terminal_active_prefix_checkpoint")
-        != terminal_prefix.payload
+        not (
+            continuation_terminal == terminal_prefix.payload
+            or continuation_terminal_is_noise_binding
+        )
         or terminal_prefix.operator_labels
         != history_prefixes[-1].operator_labels
         or terminal_prefix.operator_rows
@@ -5364,7 +6061,7 @@ def load_canonical_accepted_state_resume(
         trust_state.get("initialization_reason"),
         owner="route trust initialization_reason",
     )
-    return CanonicalAcceptedStateHydration(
+    hydration = CanonicalAcceptedStateHydration(
         source_path=source_path,
         source_sha256=source_sha,
         problem_request_sha256=problem_sha,
@@ -5411,6 +6108,12 @@ def load_canonical_accepted_state_resume(
             terminal_prefix.payload
         ),
     )
+    if phase3_natural_terminal:
+        raise CanonicalResumeError(
+            "Authenticated Phase-III natural terminal is complete and "
+            "non-resumable on the same route."
+        )
+    return hydration
 
 
 __all__ = [

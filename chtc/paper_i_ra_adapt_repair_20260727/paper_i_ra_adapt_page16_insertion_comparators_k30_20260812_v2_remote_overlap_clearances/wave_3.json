@@ -1,0 +1,61 @@
+{
+  "activation_dir": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page16_insertion_comparators_k30_20260812_v2_local_activation",
+  "activation_manifest_sha256": "e4813a5bcb8e154a621326badc7c922e1e78fccdc3891c8350cb0d36799ebc78",
+  "authenticated_remote_query": true,
+  "authentication_kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+  "execution_ids": [
+    "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+    "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only"
+  ],
+  "no_remote_overlap": true,
+  "observed_at_utc": "2026-08-13T03:25:19Z",
+  "overlapping_execution_ids": [],
+  "remote_active_execution_ids": [],
+  "remote_factories_frozen": true,
+  "runner_sha256": "bd9d61fb98b48911c3da04faf8b6c38eb391b1a02ab3362e22ef02316a414c4e",
+  "runtime_dir": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/local_runs/paper_i_page16_insertion_comparators_k30_20260812_v2",
+  "runtime_manifest_sha256": "ce892e8f31658df18cbe0ff65317bfc798b7de461e2bf2373f5b56fc2184577e",
+  "scheduler": "chtc_condor",
+  "scheduler_snapshot": {
+    "captured_at_utc": "2026-08-13T03:25:19Z",
+    "cluster_id": 9647386,
+    "factory": {
+      "job_materialize_limit": 1,
+      "job_materialize_max_idle": 0,
+      "job_materialize_next_proc_id": 2,
+      "job_materialize_next_row": 2,
+      "job_materialize_paused": 1,
+      "total_submit_procs": 11
+    },
+    "history": [
+      {
+        "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+        "exit_code": 0,
+        "job_status": 4,
+        "proc_id": 0
+      }
+    ],
+    "queue": [
+      {
+        "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+        "job_status": 2,
+        "num_job_starts": 1,
+        "proc_id": 1
+      }
+    ],
+    "source_host": "ap2001.chtc.wisc.edu",
+    "wave_execution_ids": [
+      "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only"
+    ],
+    "wave_execution_ids_in_history": [],
+    "wave_execution_ids_materialized": []
+  },
+  "scheduler_snapshot_sha256": "106478ef23aeb644ca424bf64c13535574a32ff240c43301f050dfbcd993cfe5",
+  "schema": "paper_i_page16_insertion_comparator_no_remote_overlap_clearance_v1",
+  "scientific_execution_performed": false,
+  "sha256": "899b1fa0c26b8ceb6e7b2760b18c43055e699ba023ab89f126c523b7dfac95eb",
+  "status": "passed_authenticated_no_remote_overlap_clearance",
+  "valid_until_utc": "2026-08-13T03:39:19Z",
+  "wave": 3
+}

@@ -1,0 +1,213 @@
+{
+  "action": {
+    "command": "condor_qedit 9647386 JobMaterializePaused 1 JobMaterializePauseReason \"User-paused after proc1 materialization to prevent remote/local comparator overlap; do not release without fresh audit\"",
+    "effect": "late_materialization_factory_paused_only",
+    "execution_jobs_held_or_removed": false,
+    "proc1_interrupted": false,
+    "scheduler_mutation_authority": "explicit_user_authority_for_full_macro_execution_without_duplicates",
+    "target_cluster_id": 9647386
+  },
+  "after": {
+    "captured_at_utc": "2026-08-13T03:11:03Z",
+    "factory": {
+      "job_materialize_limit": 1,
+      "job_materialize_max_idle": 0,
+      "job_materialize_next_proc_id": 2,
+      "job_materialize_next_row": 2,
+      "job_materialize_pause_reason": "User-paused after proc1 materialization to prevent remote/local comparator overlap; do not release without fresh audit",
+      "job_materialize_paused": 1,
+      "total_submit_procs": 11
+    },
+    "materialized_jobs": [
+      {
+        "cluster_id": 9647386,
+        "disk_usage_kib": 1000000,
+        "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+        "job_start_epoch": 1786587319,
+        "job_status": 2,
+        "memory_usage_mib": 2198,
+        "num_job_starts": 1,
+        "proc_id": 1,
+        "resident_set_size_kib": 2250000
+      }
+    ]
+  },
+  "authentication": {
+    "authenticated_remote_query": true,
+    "kind": "interactive_ssh_duo_condor_q_snapshot_v1",
+    "source_host": "ap2001.chtc.wisc.edu"
+  },
+  "before": {
+    "captured_at_utc": "2026-08-13T03:10:01Z",
+    "factory": {
+      "job_materialize_limit": 1,
+      "job_materialize_max_idle": 0,
+      "job_materialize_next_proc_id": 2,
+      "job_materialize_next_row": 2,
+      "job_materialize_paused": null,
+      "total_submit_procs": 11
+    },
+    "materialized_jobs": [
+      {
+        "cluster_id": 9647386,
+        "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+        "job_start_epoch": 1786587319,
+        "job_status": 2,
+        "num_job_starts": 1,
+        "proc_id": 1
+      }
+    ]
+  },
+  "created_at_utc": "2026-08-13T03:11:19Z",
+  "dry_run": {
+    "cluster_target": "Can Set attribute JobMaterializePaused for 1 matching jobs",
+    "factory_only_constraint": "rejected_without_change",
+    "factory_only_constraint_expression": "ClusterId == 9647386 && ProcId is undefined"
+  },
+  "factory_latent_rows": [
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+      "proc_id": 2
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+      "proc_id": 3
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+      "proc_id": 4
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 5
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 6
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 7
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 8
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 9
+    },
+    {
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+      "proc_id": 10
+    }
+  ],
+  "latest_proc1_progress": {
+    "depth": 36,
+    "energy": 0.5264595190026582,
+    "event_timestamp_utc": "2026-08-13T03:08:40.641506Z",
+    "max_grad": 0.0000399964743047628,
+    "source": "condor_tail -maxbytes 200000 9647386.1"
+  },
+  "official_semantics": {
+    "factory_attribute": "JobMaterializePaused",
+    "factory_attribute_value": 1,
+    "factory_attribute_value_meaning": "Held",
+    "manual_job_attribute_url": "https://htcondor.readthedocs.io/en/latest/classad-attributes/job-classad-attributes.html#jobmaterializepaused",
+    "manual_late_materialization_url": "https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html#submitting-lots-of-jobs"
+  },
+  "per_local_wave_remote_overlap": [
+    {
+      "active_remote_execution_ids": [],
+      "factory_frozen": true,
+      "latent_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only"
+      ],
+      "status": "eligible_for_short_lived_clearance_while_factory_remains_paused",
+      "wave": 1
+    },
+    {
+      "active_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced"
+      ],
+      "factory_frozen": true,
+      "latent_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced"
+      ],
+      "status": "blocked_active_remote_duplicate",
+      "wave": 2
+    },
+    {
+      "active_remote_execution_ids": [],
+      "factory_frozen": true,
+      "latent_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only"
+      ],
+      "status": "eligible_for_short_lived_clearance_while_factory_remains_paused",
+      "wave": 3
+    },
+    {
+      "active_remote_execution_ids": [],
+      "factory_frozen": true,
+      "latent_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced"
+      ],
+      "status": "eligible_for_short_lived_clearance_while_factory_remains_paused",
+      "wave": 4
+    },
+    {
+      "active_remote_execution_ids": [],
+      "factory_frozen": true,
+      "latent_remote_execution_ids": [
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only",
+        "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_append_only"
+      ],
+      "status": "eligible_for_short_lived_clearance_while_factory_remains_paused",
+      "wave": 5
+    }
+  ],
+  "remote_completed_rows": [
+    {
+      "archive_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page16_insertion_comparators_20260812/weak_weak_always__9644571__0.tar.gz",
+      "archive_sha256": "30ee791a285c7f4413e2f69f9e244053c81354707b55fb39f8054a97a00dc0c0",
+      "cluster_id": 9644571,
+      "controller_rounds_completed": 50,
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__weak_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+      "proc_id": 0,
+      "worker_receipt_sha256": "156eda9b2c2bd37c33d315f3af96ecd6d95067eeb69c910dcb13bbd1b73d9962"
+    },
+    {
+      "archive_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page16_insertion_comparators_20260812/intermediate_weak_always__9647386__0.tar.gz",
+      "archive_sha256": "ff20380198dd907b86308832851fe6a450ece26d75c1fccebd60626507066d08",
+      "cluster_id": 9647386,
+      "controller_rounds_completed": 50,
+      "execution_id": "page16_macro_gradient_phase0_phase23_qiskit_no_lanes__intermediate_weak__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced",
+      "proc_id": 0,
+      "worker_receipt_sha256": "29ff9337d38fd1c35016f24e58671aaf2dbec70e32ea74a62894140637162fb6"
+    }
+  ],
+  "schema": "paper_i_ra_adapt_page16_insertion_comparator_factory_pause_receipt_v1",
+  "scientific_execution_performed_by_this_action": false,
+  "sha256": "184c47edb41f03623e6e1464443f4f324d92c71be68aaf59c2ac897dfa5dc2d4",
+  "status": "passed_factory_paused_proc1_continues_running",
+  "verification": {
+    "captured_at_utc": "2026-08-13T03:11:19Z",
+    "factory_hold_count": 0,
+    "factory_idle_count": 0,
+    "factory_present_count": 1,
+    "factory_run_count": 1,
+    "history_completed_proc_ids": [
+      0
+    ],
+    "job_materialize_next_proc_id": 2,
+    "job_materialize_paused": 1,
+    "materialized_proc_ids": [
+      1
+    ],
+    "proc1_job_status": 2,
+    "proc1_num_job_starts": 1
+  }
+}

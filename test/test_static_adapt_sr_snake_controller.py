@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 import pipelines.static_adapt.sr_snake._controller as sr_controller
-from pipelines.static_adapt.sr_snake._selection import _SRControllerState
+from pipelines.static_adapt.sr_snake._selection import (
+    _PHASE0_STATIONARY_TERMINAL_OUTCOME,
+    _PhaseSelectionReceipt,
+    _SRControllerState,
+    _StationaryPhase0Selection,
+)
 from pipelines.static_adapt.sr_snake._transition import (
     _AcceptedStateSnapshot,
 )
@@ -88,6 +94,20 @@ def _selection_state(
     )
 
 
+def test_selection_state_accepts_only_roundoff_scale_energy_replay() -> None:
+    accepted = _accepted_state(50, energy=-0.6238167090829093)
+    replayed = replace(
+        _selection_state(accepted),
+        accepted_energy=-0.6238167090829091,
+    )
+
+    assert sr_controller._selection_state_matches_accepted(replayed, accepted)
+    assert not sr_controller._selection_state_matches_accepted(
+        replace(replayed, accepted_energy=-0.6238167089829093),
+        accepted,
+    )
+
+
 class _FakeRuntime:
     def __init__(
         self,
@@ -104,6 +124,7 @@ class _FakeRuntime:
         self.transition_states: list[_AcceptedStateSnapshot] = []
         self.projected_rounds: list[int] = []
         self.finalize_calls: list[dict[str, Any]] = []
+        self.stationary_finalize_calls: list[dict[str, Any]] = []
         self.close_calls = 0
 
     def prepare_selection(
@@ -191,6 +212,30 @@ class _FakeRuntime:
                 "continuation": {},
                 "final_round": kwargs["final_state"].controller_round,
                 "projection_count": len(kwargs["projected_rounds"]),
+            },
+        )
+
+    def finalize_stationary_phase0(
+        self,
+        **kwargs: Any,
+    ) -> sr_controller._DefaultControllerFinalization:
+        self.stationary_finalize_calls.append(dict(kwargs))
+        return sr_controller._DefaultControllerFinalization.from_mapping(
+            {
+                "success": True,
+                "route_family": "test",
+                "route_profile": "test",
+                "sr_route_profile_contract": {},
+                "sr_route_profile_contract_sha256": "test",
+                "history": [],
+                "estimator_call_accounting": {},
+                "continuation": {},
+                "terminal_controller_outcome": (
+                    _PHASE0_STATIONARY_TERMINAL_OUTCOME
+                ),
+                "terminal_phase0_selection_receipt": {
+                    "status": "stationary"
+                },
             },
         )
 
@@ -345,6 +390,46 @@ def test_default_controller_runs_fifty_accepted_cycles_without_science(
     assert outcome.stop.primary_reason == "maximum_controller_rounds"
     assert outcome.stop.fired_reasons == ("maximum_controller_rounds",)
     assert outcome.stop.completed_controller_rounds == 50
+    assert runtime.close_calls == 1
+
+
+def test_default_controller_cleanly_finalizes_stationary_phase0_without_transition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime = _FakeRuntime()
+    phase0 = _PhaseSelectionReceipt(
+        phase="phase0",
+        population=(SimpleNamespace(domain_record_id="g0"),),
+        shortlist=(),
+        shortlist_ranking=(),
+        estimator_event_ids=("estimator:0:g0",),
+        terminal_outcome=_PHASE0_STATIONARY_TERMINAL_OUTCOME,
+    )
+
+    def _stationary(*_args: object, **_kwargs: object) -> object:
+        raise _StationaryPhase0Selection(phase0)
+
+    monkeypatch.setattr(sr_controller, "_select_singleton", _stationary)
+
+    outcome = sr_controller._run_default_singleton_controller(
+        runtime,
+        SRStopPolicy(maximum_controller_rounds=50),
+    )
+
+    assert outcome.final_state == runtime.initial_accepted_state
+    assert outcome.accepted_states == ()
+    assert outcome.transitions == ()
+    assert outcome.events == ()
+    assert outcome.projected_rounds == ()
+    assert outcome.stop.primary_reason == "phase0_stationary"
+    assert outcome.stop.fired_reasons == ("phase0_stationary",)
+    assert outcome.stop.terminal_controller_outcome == (
+        _PHASE0_STATIONARY_TERMINAL_OUTCOME
+    )
+    assert outcome.stop.completed_controller_rounds == 0
+    assert len(runtime.stationary_finalize_calls) == 1
+    assert runtime.stationary_finalize_calls[0]["phase0"] is phase0
+    assert runtime.finalize_calls == []
     assert runtime.close_calls == 1
 
 

@@ -1,0 +1,32 @@
+{
+  "arm_id": "always_open_position_phase0",
+  "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+  "campaign_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v4",
+  "execution_authorized": true,
+  "execution_id": "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7",
+  "fresh_start": true,
+  "insertion_policy": "always_commutation_reduced",
+  "maximum_controller_rounds": 50,
+  "nph": 7,
+  "package_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v4_chtc",
+  "paper_adoption_authorized": false,
+  "phase0_population": "insertion_position_records",
+  "phase123_population": "insertion_position_records",
+  "protocol_file_sha256": "a48288bb867c290bef3217068c0f71423779b257ba2d2179270ff7eaa597e494",
+  "protocol_path": "protocols/allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7.json",
+  "protocol_sha256": "c9b6142d2a4548525d0ece8ba7c4f55a1561ffc4cd440322e214afb7fb26e16e",
+  "regime_id": "strong_strong_u8",
+  "resource_request": {
+    "cpus": 4,
+    "disk_mb": 30720,
+    "memory_mb": 12288,
+    "runtime_seconds": 259200
+  },
+  "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
+  "route_contract_sha256": "70b2f905b95e46840be90b1f47b7f88c9c6e7c60ac9009023b779122d6e75c0a",
+  "route_variant": "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_natural_terminal_v2",
+  "schema": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_job_v1",
+  "sha256": "5d152612dffb4f2ff346e2d9f904b1cede529e3449ca960944c539fcf8a16bd5",
+  "source_inventory_sha256": "2a5e820c7f211cc52adbaf18db98913425d99e03b28501fbe7f5589b59dc23bf",
+  "submission_authorized": true
+}

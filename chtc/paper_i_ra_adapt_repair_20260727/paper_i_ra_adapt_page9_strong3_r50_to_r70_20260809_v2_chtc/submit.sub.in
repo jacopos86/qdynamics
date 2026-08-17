@@ -1,0 +1,32 @@
+universe = vanilla
+executable = @@PACKAGE_RELATIVE@@/execute_authorized_job.sh
+transfer_executable = True
+
+arguments = @@PACKAGE_BASENAME@@ @@BASE_PACKAGE_BASENAME@@ @@PACKAGE_BASENAME@@/$(job_relative) @@ACTIVATION_BASENAME@@/$(authorization_relative) $(resume_manifest_basename) $(resume_archive_basename) $(resume_archive_sha256) @@IMAGE_BASENAME@@ @@IMAGE_SHA256@@ $(execution_id) transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = False
+transfer_input_files = @@PACKAGE_RELATIVE@@, @@BASE_PACKAGE_RELATIVE@@, $(resume_archive_path), $(resume_manifest_path), @@ACTIVATION_RELATIVE@@, @@IMAGE_RELATIVE@@
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+transfer_output_remaps = "transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz=@@REMOTE_OUTPUT_ROOT@@/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz"
+
+request_cpus = $(request_cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
++JobBatchName = "paper-i-page9-strong3-r50-to-r70-v2"
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = @@ACTIVATION_RELATIVE@@_runtime/logs/$(Cluster).$(Process)-$(execution_id).log
+output = @@ACTIVATION_RELATIVE@@_runtime/logs/$(Cluster).$(Process)-$(execution_id).out
+error = @@ACTIVATION_RELATIVE@@_runtime/logs/$(Cluster).$(Process)-$(execution_id).err
+
+queue execution_id, job_relative, authorization_relative, resume_archive_path, resume_manifest_path, resume_archive_basename, resume_manifest_basename, resume_archive_sha256, request_cpus, memory_mb, disk_mb, max_runtime_seconds from @@ACTIVATION_RELATIVE@@/ready_queue.tsv

@@ -153,6 +153,9 @@ from pipelines.static_adapt.ra_adapt.pools import (
     GUARDED_SINGLETON_POOL_SCHEMA,
     PARENT_TEMPLATE_INVENTORY_SCHEMA,
 )
+from pipelines.static_adapt.ra_adapt.numerical_runtime import (
+    build_numerical_runtime_contract,
+)
 from pipelines.static_adapt.sr_snake.contracts import (
     AlwaysCommutationReducedInsertion,
     AppendCommutationReducedInsertion,
@@ -171,6 +174,13 @@ from pipelines.static_adapt.sr_snake.contracts import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _numerical_runtime_contract() -> dict[str, Any]:
+    return build_numerical_runtime_contract(
+        container_image_sha256="f" * 64,
+        request_cpus=4,
+    )
 
 
 def _sha(payload: bytes) -> str:
@@ -2709,6 +2719,7 @@ def test_materializes_two_matched_canonical_nonexecuting_bundles(
         validation_horizon=6,
         repository_state=_state(),
         repo_root=REPO_ROOT,
+        numerical_runtime_contract=_numerical_runtime_contract(),
         environment_fingerprint={
             "python_implementation": "CPython",
             "python_version": "test",
@@ -2751,6 +2762,9 @@ def test_materializes_two_matched_canonical_nonexecuting_bundles(
             "macro_visible_provenance"
         )
         assert manifest["execution_target"] == EXECUTION_TARGET
+        assert manifest["numerical_runtime_contract"] == (
+            _numerical_runtime_contract()
+        )
         assert manifest["active_gradient_policy"] == policy
         assert manifest["resource_weighting_scope"] == (
             RESOURCE_WEIGHTING_LATE
@@ -2927,6 +2941,13 @@ def test_materializes_two_matched_canonical_nonexecuting_bundles(
             assert template["git_commit"] is None
             assert template["dirty_working_tree"] is None
             assert template["environment_fingerprint"] is None
+            assert template["numerical_runtime_contract"] == (
+                _numerical_runtime_contract()
+            )
+            assert template["numerical_runtime_receipt"] is None
+            assert template["numerical_runtime_receipt_status"] == (
+                "required_at_execution"
+            )
             assert template["working_directory_policy"] == "bundle_root_v1"
             fulfillment = template["execution_fulfillment"]
             assert fulfillment == expected["cells"][row["cell_id"]][
@@ -3119,6 +3140,26 @@ def test_materializes_two_matched_canonical_nonexecuting_bundles(
     assert stationary_manifest == measured_manifest
 
 
+def test_study1_rejects_missing_numerical_runtime_contract_before_writing(
+    tmp_path: Path,
+) -> None:
+    destination = tmp_path / "missing-runtime-contract"
+    with pytest.raises(
+        BundleMaterializationError,
+        match="numerical_runtime_contract",
+    ):
+        materialize_study1_bundles(
+            destination,
+            problem_resolver=_problem_resolver,
+            protocol_resolver=_fake_protocol,
+            source_locks=_source_locks(tmp_path),
+            validation_horizon=6,
+            repository_state=_state(),
+            repo_root=REPO_ROOT,
+        )
+    assert not destination.exists()
+
+
 def test_missing_validation_horizon_is_serialized_as_blocked(
     tmp_path: Path,
 ) -> None:
@@ -3131,6 +3172,7 @@ def test_missing_validation_horizon_is_serialized_as_blocked(
         validation_horizon=None,
         repository_state=_state(),
         repo_root=REPO_ROOT,
+        numerical_runtime_contract=_numerical_runtime_contract(),
         environment_fingerprint={"python_version": "test"},
     )
     assert {receipt.materialization_status for receipt in receipts} == {
@@ -3190,6 +3232,7 @@ def test_source_archive_or_member_drift_fails_closed_before_writing(
             validation_horizon=6,
             repository_state=_state(),
             repo_root=REPO_ROOT,
+            numerical_runtime_contract=_numerical_runtime_contract(),
         )
     assert not destination.exists()
 
@@ -3215,6 +3258,7 @@ def test_unconsumed_or_drifted_baseline_field_fails_closed(
             validation_horizon=6,
             repository_state=_state(),
             repo_root=REPO_ROOT,
+            numerical_runtime_contract=_numerical_runtime_contract(),
         )
     assert not destination.exists()
 
@@ -3233,4 +3277,5 @@ def test_materializer_refuses_to_replace_historical_bundle_directory(
             validation_horizon=6,
             repository_state=_state(),
             repo_root=REPO_ROOT,
+            numerical_runtime_contract=_numerical_runtime_contract(),
         )

@@ -19,6 +19,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from pipelines.static_adapt.adaptive_phase_contracts import (
+    ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
+)
+
 
 _CONTENT_ADDRESSED_SIDECAR_FIELDS = {
     "estimator_call_ledger_checkpoint": "estimator_call_ledger_checkpoint",
@@ -87,6 +91,77 @@ def _sha256_file(path: Path) -> str:
         while chunk := handle.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _write_json_temporary(
+    path: Path,
+    payload: Mapping[str, Any],
+) -> Path:
+    """Stream one deterministic pretty JSON document into its target directory."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=str(path.parent),
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(
+            descriptor,
+            "w",
+            encoding="utf-8",
+            newline="\n",
+        ) as handle:
+            json.dump(
+                payload,
+                handle,
+                sort_keys=True,
+                indent=2,
+                allow_nan=False,
+            )
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        temporary_path.unlink(missing_ok=True)
+        raise
+    return temporary_path
+
+
+def _publish_temporary(path: Path, temporary_path: Path) -> None:
+    try:
+        os.replace(temporary_path, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    temporary_path = _write_json_temporary(path, payload)
+    _publish_temporary(path, temporary_path)
+
+
+def _atomic_write_content_addressed_json(
+    current_path: Path,
+    *,
+    filename_role: str,
+    payload: Mapping[str, Any],
+) -> tuple[Path, str]:
+    temporary_path = _write_json_temporary(current_path, payload)
+    try:
+        sha256 = _sha256_file(temporary_path)
+        destination = current_path.with_name(
+            f"{current_path.stem}.{filename_role}.{sha256[:16]}.json"
+        )
+        _publish_temporary(destination, temporary_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+    return destination, sha256
 
 
 def _content_addressed_sidecar_reference(
@@ -314,14 +389,22 @@ def _compatibility_consumer_projection(
 
 
 def _stable_json_digest(value: Any) -> str:
-    encoded = json.dumps(
+    digest = hashlib.sha256()
+
+    class _DigestWriter:
+        def write(self, text: str) -> int:
+            digest.update(text.encode("utf-8"))
+            return len(text)
+
+    json.dump(
         value,
+        _DigestWriter(),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=True,
         allow_nan=False,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    )
+    return digest.hexdigest()
 
 
 def _build_verified_singleton_resume_sidecar(
@@ -754,12 +837,12 @@ def _publish_active_cli_current_checkpoint(
     """Publish one resumable accepted-prefix envelope and its private sidecar."""
 
     predecessor_sidecar_references = _load_predecessor_sidecar_references(path)
-    current = copy.deepcopy(dict(output_payload))
+    current = dict(output_payload)
     adapt = _require_mapping(
         current.get("adapt_vqe"),
         name="current ADAPT block",
     )
-    full_projection = copy.deepcopy(dict(adapt))
+    full_projection = dict(adapt)
     history = _require_sequence(
         full_projection.get("history"),
         name="current accepted history",
@@ -774,12 +857,10 @@ def _publish_active_cli_current_checkpoint(
         raise ValueError("keep_history_tail must be nonnegative.")
     resume_history: list[dict[str, Any]] = []
     for index, row_raw in enumerate(history):
-        row = copy.deepcopy(
-            dict(
-                _require_mapping(
-                    row_raw,
-                    name=f"current accepted history[{index}]",
-                )
+        row = dict(
+            _require_mapping(
+                row_raw,
+                name=f"current accepted history[{index}]",
             )
         )
         selected_batch = _require_sequence(
@@ -807,14 +888,16 @@ def _publish_active_cli_current_checkpoint(
     requested_history_tail = (
         []
         if tail_limit == 0
-        else copy.deepcopy(resume_history[-tail_limit:])
+        else list(resume_history[-tail_limit:])
     )
-    # The unchanged verified-singleton resume reader authenticates a complete
-    # append-only lineage through both ``history`` and ``history_tail``.  Keep
-    # the caller's requested window as an explicit receipt, but do not publish
-    # a checkpoint that the authoritative reader cannot resume.
-    history_tail = copy.deepcopy(resume_history)
-    adapt_current = _strip_embedded_full_ledgers(full_projection)
+    history_tail = requested_history_tail
+    adapt_current = _strip_embedded_full_ledgers(
+        {
+            key: value
+            for key, value in full_projection.items()
+            if key not in {"history", "history_tail"}
+        }
+    )
     if not isinstance(adapt_current, dict):
         raise AssertionError("Current ADAPT projection must remain a dictionary.")
     adapt_current["history"] = resume_history
@@ -876,10 +959,11 @@ def _publish_active_cli_current_checkpoint(
         adapt_current.get("route_family", "")
     ) == "combinatorial_batch_response_snake"
     adapt_current["history_tail_retention"] = {
-        "schema": "static_adapt_verified_resume_history_retention_v1",
+        "schema": "static_adapt_verified_resume_history_retention_v2",
         "requested_limit": tail_limit,
         "requested_window_count": len(requested_history_tail),
-        "serialized_complete_history_count": len(history_tail),
+        "serialized_complete_history_count": len(resume_history),
+        "serialized_tail_count": len(history_tail),
         "normalized_for_verified_singleton_resume": bool(
             not (
                 greedy_batch_checkpoint
@@ -904,7 +988,7 @@ def _publish_active_cli_current_checkpoint(
             "checkpoint_projection_only"
         ] = True
 
-    ledger = copy.deepcopy(dict(ledger_payload))
+    ledger = dict(ledger_payload)
     ledger_summary = _require_mapping(
         ledger.get("summary"),
         name="checkpoint ledger summary",
@@ -958,26 +1042,22 @@ def _publish_active_cli_current_checkpoint(
         "raw_occurrence_count": raw_occurrences,
         "S_alg": raw_occurrences,
         "S_unique": s_unique,
-        "consumer_complete_projection": _compatibility_consumer_projection(
-            full_projection
-        ),
+        "consumer_complete_projection": {
+            "schema": "static_adapt_consumer_projection_reference_v1",
+            "source_projection_sha256": _stable_json_digest(full_projection),
+            "source_projection_digest_scope": (
+                "static_adapt_full_projection_v1"
+            ),
+            "materialized_in": "current_checkpoint.adapt_vqe",
+            "embedded_full_ledgers_omitted": True,
+        },
         "no_credentials_serialized": True,
     }
-    sidecar_bytes = (
-        json.dumps(
-            sidecar,
-            sort_keys=True,
-            indent=2,
-            allow_nan=False,
-        )
-        + "\n"
-    ).encode("utf-8")
-    sidecar_sha256 = hashlib.sha256(sidecar_bytes).hexdigest()
-    sidecar_path = path.with_name(
-        f"{path.stem}.estimator_call_ledger_checkpoint."
-        f"{sidecar_sha256[:16]}.json"
+    sidecar_path, sidecar_sha256 = _atomic_write_content_addressed_json(
+        path,
+        filename_role="estimator_call_ledger_checkpoint",
+        payload=sidecar,
     )
-    _atomic_write_bytes(sidecar_path, sidecar_bytes)
 
     pointer = {
         "schema": "paper_i_estimator_call_ledger_checkpoint_pointer_v2",
@@ -1013,7 +1093,12 @@ def _publish_active_cli_current_checkpoint(
             "history_tail_count": len(history_tail),
             "history_checkpoint_complete": bool(
                 len(adapt_current["history"]) == int(depth)
-                and len(adapt_current["history_tail"]) == int(depth)
+                and adapt_current["history_tail"]
+                == (
+                    []
+                    if len(history_tail) == 0
+                    else adapt_current["history"][-len(history_tail) :]
+                )
             ),
             "beam_replay_telemetry": None,
             "formal_manifold_runtime_checkpoint": None,
@@ -1068,21 +1153,12 @@ def _publish_active_cli_current_checkpoint(
             source_path=path,
             source_sha256=source_projection_sha256,
         )
-        batch_sidecar_bytes = (
-            json.dumps(
-                batch_sidecar,
-                sort_keys=True,
-                indent=2,
-                allow_nan=False,
+        batch_sidecar_path, batch_sidecar_sha256 = (
+            _atomic_write_content_addressed_json(
+                path,
+                filename_role="greedy_batch_checkpoint",
+                payload=batch_sidecar,
             )
-            + "\n"
-        ).encode("utf-8")
-        batch_sidecar_sha256 = hashlib.sha256(
-            batch_sidecar_bytes
-        ).hexdigest()
-        batch_sidecar_path = path.with_name(
-            f"{path.stem}.greedy_batch_checkpoint."
-            f"{batch_sidecar_sha256[:16]}.json"
         )
         adapt_current["greedy_batch_checkpoint_sidecar"] = {
             "schema": (
@@ -1103,17 +1179,7 @@ def _publish_active_cli_current_checkpoint(
             "resume_status": "not_authorized_until_issue_19",
             "no_credentials_serialized": True,
         }
-        encoded = (
-            json.dumps(
-                current,
-                sort_keys=True,
-                indent=2,
-                allow_nan=False,
-            )
-            + "\n"
-        ).encode("utf-8")
-        _atomic_write_bytes(batch_sidecar_path, batch_sidecar_bytes)
-        _atomic_write_bytes(path, encoded)
+        _atomic_write_json(path, current)
         _retire_unreferenced_predecessor_sidecars(
             predecessor_sidecar_references,
             current_payload=current,
@@ -1126,21 +1192,12 @@ def _publish_active_cli_current_checkpoint(
             source_path=path,
             source_sha256=source_projection_sha256,
         )
-        batch_sidecar_bytes = (
-            json.dumps(
-                batch_sidecar,
-                sort_keys=True,
-                indent=2,
-                allow_nan=False,
+        batch_sidecar_path, batch_sidecar_sha256 = (
+            _atomic_write_content_addressed_json(
+                path,
+                filename_role="combinatorial_batch_checkpoint",
+                payload=batch_sidecar,
             )
-            + "\n"
-        ).encode("utf-8")
-        batch_sidecar_sha256 = hashlib.sha256(
-            batch_sidecar_bytes
-        ).hexdigest()
-        batch_sidecar_path = path.with_name(
-            f"{path.stem}.combinatorial_batch_checkpoint."
-            f"{batch_sidecar_sha256[:16]}.json"
         )
         adapt_current["combinatorial_batch_checkpoint_sidecar"] = {
             "schema": (
@@ -1164,17 +1221,26 @@ def _publish_active_cli_current_checkpoint(
             "resume_status": "not_authorized_until_issue_19",
             "no_credentials_serialized": True,
         }
-        encoded = (
-            json.dumps(
-                current,
-                sort_keys=True,
-                indent=2,
-                allow_nan=False,
-            )
-            + "\n"
-        ).encode("utf-8")
-        _atomic_write_bytes(batch_sidecar_path, batch_sidecar_bytes)
-        _atomic_write_bytes(path, encoded)
+        _atomic_write_json(path, current)
+        _retire_unreferenced_predecessor_sidecars(
+            predecessor_sidecar_references,
+            current_payload=current,
+            current_path=path,
+        )
+        return
+    round_zero_phase3_natural_terminal = bool(
+        int(depth) == 0
+        and not adapt_current.get("history")
+        and adapt_current.get("terminal_controller_outcome")
+        == ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1
+        and _require_mapping(
+            adapt_current.get("terminal_active_prefix_checkpoint"),
+            name="round-zero terminal active-prefix checkpoint",
+        ).get("checkpoint_kind")
+        == "terminal_phase3_no_positive"
+    )
+    if round_zero_phase3_natural_terminal:
+        _atomic_write_json(path, current)
         _retire_unreferenced_predecessor_sidecars(
             predecessor_sidecar_references,
             current_payload=current,
@@ -1186,21 +1252,12 @@ def _publish_active_cli_current_checkpoint(
         source_path=path,
         source_sha256=source_projection_sha256,
     )
-    resume_sidecar_bytes = (
-        json.dumps(
-            resume_sidecar,
-            sort_keys=True,
-            indent=2,
-            allow_nan=False,
+    resume_sidecar_path, resume_sidecar_sha256 = (
+        _atomic_write_content_addressed_json(
+            path,
+            filename_role="verified_singleton_resume",
+            payload=resume_sidecar,
         )
-        + "\n"
-    ).encode("utf-8")
-    resume_sidecar_sha256 = hashlib.sha256(
-        resume_sidecar_bytes
-    ).hexdigest()
-    resume_sidecar_path = path.with_name(
-        f"{path.stem}.verified_singleton_resume."
-        f"{resume_sidecar_sha256[:16]}.json"
     )
     adapt_current["verified_singleton_resume_sidecar"] = {
         "schema": (
@@ -1219,17 +1276,7 @@ def _publish_active_cli_current_checkpoint(
         "source_projection_sha256": source_projection_sha256,
         "no_credentials_serialized": True,
     }
-    encoded = (
-        json.dumps(
-            current,
-            sort_keys=True,
-            indent=2,
-            allow_nan=False,
-        )
-        + "\n"
-    ).encode("utf-8")
-    _atomic_write_bytes(resume_sidecar_path, resume_sidecar_bytes)
-    _atomic_write_bytes(path, encoded)
+    _atomic_write_json(path, current)
     _retire_unreferenced_predecessor_sidecars(
         predecessor_sidecar_references,
         current_payload=current,

@@ -1,0 +1,107 @@
+{
+  "method": "page9_ra",
+  "problems": [],
+  "regime_or_case": "weak_strong",
+  "root_metadata": {
+    "figure_label": "phase3_qiskit_denominator_no_lanes_singleton_r50_partial_v1",
+    "schema": "paper_i_page9_strong3_visible_source_map_v2"
+  },
+  "run_note_template": {
+    "method": "page9_ra",
+    "regime_or_case": "weak_strong",
+    "settings_changed": "list only the user-requested changes",
+    "settings_reused": "copy from settings_reused in this resolver output",
+    "source_json": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_r50_20260807_v3_chtc/jobs/phase3_qiskit_denominator_no_lanes__weak_strong__nph7__ra_global_singleton_plateau_commutation.json",
+    "source_map": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page9_strong3_r50_to_r70_20260809_v2_chtc/visible_source_map.json",
+    "source_sha256": "3f99d3be53403c1f3a6fbf68887a82ca619ed6cb692d090160732379a8238ae4",
+    "table_label": "phase3_qiskit_denominator_no_lanes_singleton_r50_partial_v1",
+    "visible_value": "complete"
+  },
+  "settings_changed": [],
+  "settings_reused": {
+    "algorithm_id": "paper_i_ra_adapt_global_singleton_plateau_commutation_qiskit_phase3_denominator_no_lanes_tau1em6_v1",
+    "route_contract": {
+      "route_profile": "paper_i_ra_adapt__single_pauli_word_v1__insertion_commutation_plateau_v2__global_guarded_singleton_phase_i__identity_phase_ii__stationary_source_response_v1__all_phase_resource_weighting_v1__qiskit_full_ansatz_positive_marginal_denominator_phase3_only_no_lanes_tau1em6_v1",
+      "sha256": "e649eaa50428f6f396c4ab6cf25542a21add58115beb61d42df32408ad1399b6"
+    },
+    "settings": {
+      "only_scientific_change": "maximum_controller_rounds_50_to_70",
+      "source_horizon": 50,
+      "target_horizon": 70
+    }
+  },
+  "settings_reused_sources": {
+    "source_entry": [
+      "algorithm_id",
+      "route_contract",
+      "settings"
+    ],
+    "source_payload": [
+      "algorithm_id"
+    ]
+  },
+  "source_entry": {
+    "algorithm_id": "paper_i_ra_adapt_global_singleton_plateau_commutation_qiskit_phase3_denominator_no_lanes_tau1em6_v1",
+    "route_contract": {
+      "route_profile": "paper_i_ra_adapt__single_pauli_word_v1__insertion_commutation_plateau_v2__global_guarded_singleton_phase_i__identity_phase_ii__stationary_source_response_v1__all_phase_resource_weighting_v1__qiskit_full_ansatz_positive_marginal_denominator_phase3_only_no_lanes_tau1em6_v1",
+      "sha256": "e649eaa50428f6f396c4ab6cf25542a21add58115beb61d42df32408ad1399b6"
+    },
+    "settings": {
+      "only_scientific_change": "maximum_controller_rounds_50_to_70",
+      "source_horizon": 50,
+      "target_horizon": 70
+    },
+    "source_json": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_r50_20260807_v3_chtc/jobs/phase3_qiskit_denominator_no_lanes__weak_strong__nph7__ra_global_singleton_plateau_commutation.json",
+    "source_sha256": "3f99d3be53403c1f3a6fbf68887a82ca619ed6cb692d090160732379a8238ae4",
+    "visible_value": "complete"
+  },
+  "source_json": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_r50_20260807_v3_chtc/jobs/phase3_qiskit_denominator_no_lanes__weak_strong__nph7__ra_global_singleton_plateau_commutation.json",
+  "source_json_exists_locally": true,
+  "source_json_is_local_path": true,
+  "source_json_resolved_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_global_singleton_phase3_qiskit_denominator_no_lanes_tau1em6_r50_20260807_v3_chtc/jobs/phase3_qiskit_denominator_no_lanes__weak_strong__nph7__ra_global_singleton_plateau_commutation.json",
+  "source_map": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_page9_strong3_r50_to_r70_20260809_v2_chtc/visible_source_map.json",
+  "source_payload_keys": [
+    "active_gradient_policy",
+    "algorithm_id",
+    "bundle_id",
+    "bundle_manifest_sha256",
+    "campaign_id",
+    "candidate_adapter_id",
+    "candidate_representation",
+    "cell_id",
+    "execution_authorized",
+    "execution_id",
+    "expected_artifacts_manifest_sha256",
+    "expected_output_archive",
+    "expected_run_artifacts",
+    "fresh_start_contract",
+    "implementation_source_inventory_sha256",
+    "nph",
+    "package_id",
+    "protocol_file_sha256",
+    "protocol_path",
+    "protocol_sha256",
+    "regime_id",
+    "resource_weighting_scope",
+    "resources",
+    "route_contract_sha256",
+    "route_id",
+    "schema",
+    "selector_compile_cost_scope",
+    "sha256",
+    "source_locks_sha256",
+    "source_route_contract_sha256",
+    "submission_authorized",
+    "submitted",
+    "target_horizon"
+  ],
+  "source_sha256_actual": "3f99d3be53403c1f3a6fbf68887a82ca619ed6cb692d090160732379a8238ae4",
+  "source_sha256_expected": "3f99d3be53403c1f3a6fbf68887a82ca619ed6cb692d090160732379a8238ae4",
+  "source_sha256_match": true,
+  "status": "ok",
+  "target_axis": "regimes",
+  "target_context": {
+    "nph": 7
+  },
+  "visible_value": "complete"
+}

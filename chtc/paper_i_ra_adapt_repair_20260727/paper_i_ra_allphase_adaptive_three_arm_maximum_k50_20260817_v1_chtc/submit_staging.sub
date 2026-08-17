@@ -1,0 +1,31 @@
+universe = vanilla
+initialdir = /staging/jsstrobel/paper_i_ra_allphase_adaptive_three_arm_maximum_k50_20260817_v1
+executable = package/execute_job.sh
+transfer_executable = True
+
+arguments = package package/$(job_path) package/$(protocol_path) package/execution_authorization.json package/source/source_locked.tar.gz 60bc725c33ae1dbd70c5d32fdc8d3d6625ed7d900dcf789f9ef6eb8fd24d4484 image.sif fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f $(execution_id) transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+preserve_relative_paths = True
+transfer_input_files = package, image.sif
+transfer_output_files = transfer/$(execution_id)__$(ClusterId)__$(ProcId).tar.gz
+
+request_cpus = $(request_cpus)
+request_memory = $(memory_mb)MB
+request_disk = $(disk_mb)MB
++MaxRuntime = $(max_runtime_seconds)
+
+notification = Never
+getenv = False
+stream_output = False
+stream_error = False
+on_exit_hold = (ExitBySignal == True) || (ExitCode != 0)
+periodic_release = False
+leave_in_queue = False
+
+log = logs/$(Cluster).$(Process)-$(execution_id).log
+output = logs/$(Cluster).$(Process)-$(execution_id).out
+error = logs/$(Cluster).$(Process)-$(execution_id).err
+
+queue execution_id, job_path, protocol_path, request_cpus, memory_mb, disk_mb, max_runtime_seconds from package/queue.tsv

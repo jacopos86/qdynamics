@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pipelines.static_adapt.hh_backend_compile_oracle import (
+    BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
     BackendCompileConfig,
     BackendCompileOracle,
     MARRAKESH_GRAPH_SPAN_MODE,
@@ -926,3 +927,141 @@ def test_backend_compile_oracle_incremental_prefix_suffix_uses_prefix_layout(mon
     assert meta["prefix_depth"] == 2
     assert meta["base_tail_depth"] == 0
     assert meta["trial_tail_depth"] == 1
+
+
+def test_phase123_cache_reuses_only_exact_candidate_position_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _fake_resolve(**_kwargs):
+        return (
+            (
+                ResolvedBackendTarget(
+                    requested_name="FakeMarrakesh",
+                    resolved_name="FakeMarrakesh",
+                    resolution_kind="fake_exact",
+                    using_fake_backend=True,
+                    backend_obj=_BackendStub("FakeMarrakesh"),
+                    target_snapshot={"backend_name": "FakeMarrakesh"},
+                ),
+            ),
+            [
+                {
+                    "requested_name": "FakeMarrakesh",
+                    "resolved_name": "FakeMarrakesh",
+                    "success": True,
+                }
+            ],
+        )
+
+    calls: list[int] = []
+
+    def _fake_compile(
+        circuit,
+        backend,
+        *,
+        seed_transpiler: int,
+        optimization_level: int = 1,
+    ):
+        calls.append(len(circuit.data))
+        compiled = QuantumCircuit(circuit.num_qubits)
+        compiled.metadata = {"instruction_count": len(circuit.data)}
+        return {
+            "compiled": compiled,
+            "logical_to_physical": tuple(range(circuit.num_qubits)),
+            "compiled_num_qubits": int(circuit.num_qubits),
+        }
+
+    def _fake_stats(compiled: QuantumCircuit) -> dict[str, object]:
+        count = int(compiled.metadata["instruction_count"])
+        return {
+            "compiled_count_1q": count,
+            "compiled_count_2q": count,
+            "compiled_depth_2q": count,
+            "compiled_cx_count": count,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {"cx": count},
+        }
+
+    import pipelines.static_adapt.hh_backend_compile_oracle as oracle_mod
+
+    monkeypatch.setattr(oracle_mod, "resolve_backend_targets", _fake_resolve)
+    monkeypatch.setattr(oracle_mod, "compile_circuit_for_backend", _fake_compile)
+    monkeypatch.setattr(oracle_mod, "compiled_gate_stats", _fake_stats)
+
+    oracle = BackendCompileOracle(
+        config=BackendCompileConfig(
+            mode="transpile_single_v1",
+            requested_backend_name="FakeMarrakesh",
+            reward_negative_deltas=True,
+            allow_preferred_fallback=False,
+        ),
+        num_qubits=6,
+        ref_state=np.array([1.0] + [0.0] * 63, dtype=complex),
+    )
+    base = _term("base", "xeeeee")
+    alias = _term("alias", "xeeeee")
+    snapshot = oracle.snapshot_base([base])
+    assert len(calls) == 1
+
+    identity_pos0 = {
+        "scope": BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        "candidate_label": "base",
+        "generator_id": "generator-base",
+        "position_id": 0,
+    }
+    first = oracle.estimate_insertion(
+        snapshot,
+        candidate_term=base,
+        position_id=0,
+        cache_identity=identity_pos0,
+    )
+    assert len(calls) == 3
+    repeated_other_phase = oracle.estimate_insertion(
+        snapshot,
+        candidate_term=base,
+        position_id=0,
+        cache_identity=identity_pos0,
+    )
+    assert len(calls) == 3
+
+    different_position = oracle.estimate_insertion(
+        snapshot,
+        candidate_term=base,
+        position_id=1,
+        cache_identity={**identity_pos0, "position_id": 1},
+    )
+    assert len(calls) == 5
+    different_candidate = oracle.estimate_insertion(
+        snapshot,
+        candidate_term=alias,
+        position_id=0,
+        cache_identity={
+            **identity_pos0,
+            "candidate_label": "alias",
+            "generator_id": "generator-alias",
+        },
+    )
+    assert len(calls) == 7
+
+    rows = [
+        estimate.selected_backend_row
+        for estimate in (
+            first,
+            repeated_other_phase,
+            different_position,
+            different_candidate,
+        )
+    ]
+    assert all(isinstance(row, dict) for row in rows)
+    cache_digests = [row["compile_cache_identity_sha256"] for row in rows]
+    assert cache_digests[0] == cache_digests[1]
+    assert len(set(cache_digests)) == 3
+    assert rows[0]["compile_cache_identity"] == {
+        "schema": "phase123_qiskit_candidate_position_compile_cache_v1",
+        "scope": BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+        "candidate_label": "base",
+        "generator_id": "generator-base",
+        "position_id": 0,
+        "base_structure_key": snapshot.base_structure_key,
+        "trial_structure_key": rows[0]["trial_structure_key"],
+    }

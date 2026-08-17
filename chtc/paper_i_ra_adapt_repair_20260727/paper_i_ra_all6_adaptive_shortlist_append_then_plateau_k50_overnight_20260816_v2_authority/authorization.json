@@ -1,0 +1,35 @@
+{
+  "archive_rotation_authorized": true,
+  "authorization_basis": "explicit_current_user_direct_all6_run_request",
+  "campaign_id": "paper_i_ra_all6_adaptive_shortlist_append_then_plateau_k50_overnight_20260816_v2",
+  "created_at": "2026-08-17T09:52:34.367225Z",
+  "execution_authorized": true,
+  "execution_ids": [
+    "all_phase_adaptive__weak_weak__nph3__append_only__k50",
+    "all_phase_adaptive__intermediate_weak__nph3__append_only__k50",
+    "all_phase_adaptive__strong_weak_u8__nph3__append_only__k50",
+    "all_phase_adaptive__weak_strong__nph7__append_only__k50",
+    "all_phase_adaptive__intermediate_strong__nph7__append_only__k50",
+    "all_phase_adaptive__strong_strong_u8__nph7__append_only__k50",
+    "all_phase_adaptive__weak_weak__nph3__plateau_commutation__k50",
+    "all_phase_adaptive__intermediate_weak__nph3__plateau_commutation__k50",
+    "all_phase_adaptive__strong_weak_u8__nph3__plateau_commutation__k50",
+    "all_phase_adaptive__weak_strong__nph7__plateau_commutation__k50",
+    "all_phase_adaptive__intermediate_strong__nph7__plateau_commutation__k50",
+    "all_phase_adaptive__strong_strong_u8__nph7__plateau_commutation__k50"
+  ],
+  "execution_path_canary": {
+    "accepted_round": 1,
+    "continues_same_trajectory_to_k50": true,
+    "execution_id": "all_phase_adaptive__weak_weak__nph3__append_only__k50",
+    "separate_scientific_trajectory": false
+  },
+  "paper_adoption_authorized": false,
+  "paper_evidence_adoption_authorized": false,
+  "plan_sha256": "b2ad29aef73d5ef6cc3acdd134bdb2f1d7201d6fe200f0ff5550ae35fc81a9c3",
+  "runner_sha256": "961358b76f6021f3c8e3afa67f2cb2e3e9fc958299266598f7a1ce4e4ad0af4c",
+  "schema": "paper_i_ra_all6_direct_execution_authorization_v1",
+  "sha256": "b7424d0e038826f134ad31c66ad24920e162c3351750cc318997deddfc65b7cc",
+  "source_implementation_inventory_sha256": "fd6fa1549ed19bd2de55bce697e5ef5f3adc6be573fef3b7c784634baeaeee62",
+  "submission_authorized": false
+}

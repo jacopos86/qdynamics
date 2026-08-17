@@ -1,0 +1,77 @@
+{
+  "schema": "paper_i_page12_strong_sector5_remote_hold_receipt_v1",
+  "status": "passed_authenticated_exact_remote_holds",
+  "recorded_at_utc": "2026-08-15T04:37:16Z",
+  "observed_at_utc": "2026-08-15T04:36:30Z",
+  "query_window_utc": {
+    "started": "2026-08-15T04:36:30Z",
+    "ended": "2026-08-15T04:36:30Z"
+  },
+  "scheduler": "chtc_condor",
+  "cluster_id": 9647385,
+  "authentication_kind": "interactive_ssh_duo_condor_hold_query_v1",
+  "authenticated_remote_query": true,
+  "held_procs": [
+    3,
+    4,
+    5,
+    10,
+    11
+  ],
+  "held_execution_ids": [
+    "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+    "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+    "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+    "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+    "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only"
+  ],
+  "remote_active_execution_ids": [],
+  "late_materialization_factory_active": false,
+  "factory": {
+    "job_factory_item_count": 12,
+    "job_factory_reader_done": true,
+    "job_materialize_paused": 2,
+    "total_procs": 12,
+    "next_proc_id": 12,
+    "next_row": -1,
+    "jobs_present": 5,
+    "held": 5,
+    "running": 0,
+    "idle": 0
+  },
+  "rows": [
+    {
+      "proc": 3,
+      "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__weak_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+      "job_status": 5,
+      "hold_reason": "authorized local replacement guard for five unfinished strong-Holstein Paper-I cells (by user jsstrobel)"
+    },
+    {
+      "proc": 4,
+      "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+      "job_status": 5,
+      "hold_reason": "authorized local replacement guard for five unfinished strong-Holstein Paper-I cells (by user jsstrobel)"
+    },
+    {
+      "proc": 5,
+      "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_always_commutation_reduced",
+      "job_status": 5,
+      "hold_reason": "authorized local replacement guard for five unfinished strong-Holstein Paper-I cells (by user jsstrobel)"
+    },
+    {
+      "proc": 10,
+      "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__intermediate_strong__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+      "job_status": 5,
+      "hold_reason": "authorized local replacement guard for five unfinished strong-Holstein Paper-I cells (by user jsstrobel)"
+    },
+    {
+      "proc": 11,
+      "execution_id": "global_singleton_gradient_phase0_phase23_qiskit_no_lanes__strong_strong_u8__nph7__ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_append_only",
+      "job_status": 5,
+      "hold_reason": "authorized local replacement guard for five unfinished strong-Holstein Paper-I cells (by user jsstrobel)"
+    }
+  ],
+  "remote_rows_sha256": "975712f3df8b8130cfa9cb4d0330687ca034d73692b6f59187628f40d4e6ed8b",
+  "scientific_execution_performed": false,
+  "sha256": "7d5cb342019b296234154d8b2edee8cbef91b3d413ba836c553c1d145df42dc4"
+}

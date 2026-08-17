@@ -45,10 +45,38 @@ BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1 = (
     "phase_i_phase_ii_marrakesh_graph_span_"
     "phase_iii_qiskit_transpile_v1"
 )
+BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1 = (
+    "phase_i_proxy_phase_ii_phase_iii_qiskit_transpile_v1"
+)
+BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1 = (
+    "phase0_proxy_or_off_phase_i_phase_ii_phase_iii_qiskit_transpile_v1"
+)
 ONE_QUBIT_COORDINATE_PROXY_BASELINE_V1 = "proxy_baseline_v1"
 ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1 = (
     "compiled_positive_delta_v1"
 )
+
+
+def backend_compile_scope_uses_qiskit_for_stage(
+    scope: str,
+    stage: str,
+) -> bool:
+    """Return whether a staged secondary oracle owns this scoring stage.
+
+    ``full`` is the legacy combined Phase-II/III evaluator stage.  It belongs
+    to the new Phase-I--III scope, while the older staged scopes retain their
+    exact historical routing.
+    """
+
+    scope_key = str(scope).strip()
+    stage_key = str(stage).strip().lower()
+    if scope_key == BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1:
+        return stage_key in {"phase1", "phase2", "phase3", "full"}
+    if scope_key == BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1:
+        return stage_key in {"phase2", "phase3"}
+    if scope_key == BACKEND_COMPILE_SCOPE_PHASE3_QISKIT_ONLY_V1:
+        return stage_key == "phase3"
+    return False
 
 
 @dataclass(frozen=True)
@@ -578,9 +606,9 @@ class BackendCompileOracle:
             allow_preferred_fallback=bool(config.allow_preferred_fallback),
             fallback_mode=str(fallback_mode),
         )
-        self.stats_cache: dict[tuple[str, str], dict[str, Any]] = {}
+        self.stats_cache: dict[tuple[str, ...], dict[str, Any]] = {}
         self._cache_lock = Lock()
-        self._cache_key_locks: dict[tuple[str, str], Lock] = {}
+        self._cache_key_locks: dict[tuple[str, ...], Lock] = {}
         self.row_hits = 0
         self.row_misses = 0
         self.compile_failures = 0
@@ -657,6 +685,7 @@ class BackendCompileOracle:
         initial_layout: Sequence[int] | None = None,
         initial_layout_by_backend: Mapping[str, Sequence[int] | None] | None = None,
         segment_kind: str = "full",
+        cache_namespace: str | None = None,
     ) -> tuple[dict[str, Any], ...]:
         ref_state_use = self.ref_state if ref_state is _REF_STATE_SENTINEL else ref_state
         if ref_state_use is not None and not isinstance(ref_state_use, np.ndarray):
@@ -689,7 +718,15 @@ class BackendCompileOracle:
                     segment_kind=str(segment_kind),
                 )
             )
-            cache_key = (str(row_structure_key), str(target.resolved_name))
+            cache_key = (
+                (str(row_structure_key), str(target.resolved_name))
+                if cache_namespace is None
+                else (
+                    str(row_structure_key),
+                    str(target.resolved_name),
+                    str(cache_namespace),
+                )
+            )
             with self._cache_lock:
                 cached = self.stats_cache.get(cache_key, None)
                 if cached is not None:
@@ -707,6 +744,11 @@ class BackendCompileOracle:
                     self.row_misses += 1
                 row: dict[str, Any] = {
                     "structure_key": str(row_structure_key),
+                    "compile_cache_namespace": (
+                        None
+                        if cache_namespace is None
+                        else str(cache_namespace)
+                    ),
                     "segment_kind": str(segment_kind),
                     "initial_layout": None if target_initial_layout_tuple is None else [int(q) for q in target_initial_layout_tuple],
                     "transpile_backend": str(target.resolved_name),
@@ -1130,8 +1172,16 @@ class BackendCompileOracle:
         candidate_term: AnsatzTerm,
         position_id: int,
         proxy_baseline: CompileCostEstimate | None = None,
+        cache_identity: Mapping[str, Any] | None = None,
     ) -> CompileCostEstimate:
         self.estimate_count += 1
+        if cache_identity is not None and str(self.config.mode) == (
+            _INCREMENTAL_PREFIX_SUFFIX_MODE
+        ):
+            raise ValueError(
+                "Phase-I--III candidate-position cache identity requires "
+                "full base/trial transpilation."
+            )
         if str(self.config.mode) == _INCREMENTAL_PREFIX_SUFFIX_MODE:
             return self._estimate_incremental_prefix_suffix(
                 snapshot,
@@ -1149,8 +1199,94 @@ class BackendCompileOracle:
             structure_theta_value=float(self.config.structure_theta_value),
         )
         trial_key = self._structure_key(trial_layout)
-        trial_rows = self._compile_structure(structure_key=str(trial_key), layout=trial_layout, ops=trial_ops)
-        return self._estimate_from_rows(base_rows=snapshot.base_backend_rows, trial_rows=trial_rows, proxy_baseline=proxy_baseline)
+        base_rows: Sequence[Mapping[str, Any]] = snapshot.base_backend_rows
+        cache_payload: dict[str, Any] | None = None
+        cache_digest: str | None = None
+        if cache_identity is not None:
+            raw_identity = dict(cache_identity)
+            expected_keys = {
+                "scope",
+                "candidate_label",
+                "generator_id",
+                "position_id",
+            }
+            if (
+                set(raw_identity) != expected_keys
+                or raw_identity.get("scope")
+                != BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
+                or str(raw_identity.get("candidate_label", ""))
+                != str(candidate_term.label)
+                or not str(raw_identity.get("generator_id", ""))
+                or isinstance(raw_identity.get("position_id"), bool)
+                or int(raw_identity.get("position_id", -1)) != int(pos)
+                or int(position_id) != int(pos)
+            ):
+                raise ValueError(
+                    "Phase-I--III compile cache identity is incomplete or "
+                    "does not match the candidate insertion."
+                )
+            cache_payload = {
+                "schema": (
+                    "phase123_qiskit_candidate_position_compile_cache_v1"
+                ),
+                "scope": BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
+                "candidate_label": str(candidate_term.label),
+                "generator_id": str(raw_identity["generator_id"]),
+                "position_id": int(pos),
+                "base_structure_key": str(snapshot.base_structure_key),
+                "trial_structure_key": str(trial_key),
+            }
+            cache_digest = hashlib.sha256(
+                json.dumps(
+                    cache_payload,
+                    allow_nan=False,
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest()
+            base_rows = self._compile_structure(
+                structure_key=str(snapshot.base_structure_key),
+                layout=snapshot.base_layout,
+                ops=snapshot.base_ops,
+                cache_namespace=f"{cache_digest}:base",
+            )
+        trial_rows = self._compile_structure(
+            structure_key=str(trial_key),
+            layout=trial_layout,
+            ops=trial_ops,
+            cache_namespace=(
+                None if cache_digest is None else f"{cache_digest}:trial"
+            ),
+        )
+        estimate = self._estimate_from_rows(
+            base_rows=base_rows,
+            trial_rows=trial_rows,
+            proxy_baseline=proxy_baseline,
+        )
+        if cache_payload is not None:
+            selected = estimate.selected_backend_row
+            if not isinstance(selected, Mapping) or (
+                str(selected.get("base_structure_key", ""))
+                != str(cache_payload["base_structure_key"])
+                or str(selected.get("trial_structure_key", ""))
+                != str(cache_payload["trial_structure_key"])
+            ):
+                raise RuntimeError(
+                    "Phase-I--III compile result drifted from its exact "
+                    "candidate-position cache identity."
+                )
+            estimate = CompileCostEstimate(
+                **{
+                    **estimate.__dict__,
+                    "selected_backend_row": {
+                        **dict(selected),
+                        "compile_cache_identity": cache_payload,
+                        "compile_cache_identity_sha256": str(cache_digest),
+                    },
+                }
+            )
+        return estimate
 
     def final_scaffold_summary(self, ops: Sequence[AnsatzTerm]) -> dict[str, Any]:
         snapshot = self.snapshot_base(ops)

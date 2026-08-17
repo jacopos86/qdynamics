@@ -940,7 +940,7 @@ def render_plot(adapter: Mapping[str, Any], *, png_path: Path, pdf_path: Path) -
                 [0],
                 color="#E45756",
                 marker="D",
-                label="RA historical-average plateau (last recoverable k=69)",
+                label="RA historical-average plateau (matched replacement k=69)",
             ),
         ),
         loc="outside lower center",

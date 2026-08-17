@@ -62,6 +62,18 @@ CROSS_REVISION_STEM = (
     "paper_i_ra_adapt_stationary_core_full48_r50_20260728_"
     "evolving_partial_progress"
 )
+APPEND_SINGLETON_R70_ADAPTER = CROSS_REVISION_OUTPUT_DIR / (
+    "paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_"
+    "append_singleton_r70_all6_adapter.json"
+)
+APPEND_SINGLETON_R70_SCHEMA = (
+    "paper_i_append_adapt_singleton_r70_progress_adapter_v1"
+)
+APPEND_SINGLETON_R70_PACKAGE_ID = (
+    "paper_i_append_adapt_stationary_core12_r70_fresh_20260731_v1_chtc"
+)
+APPEND_SINGLETON_TRAJECTORY_ROUND = 70
+PAPER_FACING_COST_ROUND = 50
 SELECTION_SCHEMA = "paper_i_ra_adapt_stationary_core_attempt_selection_v1"
 VALIDATION_SCHEMA = (
     "paper_i_ra_adapt_stationary_core_fetched_validation_v1"
@@ -5148,6 +5160,190 @@ def _merge_partial_with_pending(
     return ordered
 
 
+def _overlay_singleton_append_r70(
+    cells: Sequence[Mapping[str, Any]],
+    *,
+    adapter_path: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Replace only singleton Append energy curves with authenticated R70.
+
+    The plotted tail is diagnostic.  The marker and terminal five-tuple stay
+    bound to the authenticated k=50 observation.
+    """
+
+    adapter = _load_object(adapter_path, label="singleton Append R70 adapter")
+    canonical_sha256 = _verify_generic_self_digest(
+        adapter, label="singleton Append R70 adapter"
+    )
+    raw_cells = _sequence(
+        adapter.get("cells"), label="singleton Append R70 adapter cells"
+    )
+    if (
+        adapter.get("schema") != APPEND_SINGLETON_R70_SCHEMA
+        or adapter.get("status") != "passed"
+        or adapter.get("package_id") != APPEND_SINGLETON_R70_PACKAGE_ID
+        or tuple(adapter.get("regime_order", ())) != REGIME_ORDER
+        or tuple(adapter.get("completed_regimes", ())) != REGIME_ORDER
+        or tuple(adapter.get("pending_regimes", ())) != ()
+        or len(raw_cells) != len(REGIME_ORDER)
+    ):
+        raise ReportInputError("singleton Append R70 adapter identity drifted")
+    by_regime = {
+        str(_mapping(row, label="singleton Append R70 cell").get("regime_id")):
+        _mapping(row, label="singleton Append R70 cell")
+        for row in raw_cells
+    }
+    if tuple(by_regime) != REGIME_ORDER:
+        raise ReportInputError("singleton Append R70 regime closure drifted")
+
+    updated = [dict(row) for row in cells]
+    indexed = _cell_index(updated)
+    for regime in REGIME_ORDER:
+        cell = dict(
+            indexed[(REPRESENTATIONS["singleton"], regime, "append")]
+        )
+        source = by_regime[regime]
+        points = [
+            _mapping(row, label=f"{regime} singleton Append R70 point")
+            for row in _sequence(
+                source.get("points"),
+                label=f"{regime} singleton Append R70 points",
+            )
+        ]
+        if [
+            _integer(
+                row.get("round"),
+                label=f"{regime} singleton Append R70 round",
+            )
+            for row in points
+        ] != list(range(APPEND_SINGLETON_TRAJECTORY_ROUND + 1)):
+            raise ReportInputError(
+                f"{regime}: singleton Append trajectory is not k=0..70"
+            )
+        endpoints = _mapping(
+            source.get("endpoints"),
+            label=f"{regime} singleton Append endpoints",
+        )
+        fixed = _mapping(
+            endpoints.get("round_50"),
+            label=f"{regime} singleton Append round-50 endpoint",
+        )
+        trajectory = _mapping(
+            endpoints.get("round_70"),
+            label=f"{regime} singleton Append round-70 endpoint",
+        )
+        fixed_error = _finite(
+            fixed.get("delta_e"),
+            label=f"{regime} singleton Append round-50 error",
+        )
+        trajectory_error = _finite(
+            trajectory.get("delta_e"),
+            label=f"{regime} singleton Append round-70 error",
+        )
+        exact = _finite(
+            source.get("exact_same_cutoff_energy"),
+            label=f"{regime} singleton Append exact energy",
+        )
+        if (
+            fixed.get("round") != PAPER_FACING_COST_ROUND
+            or trajectory.get("round") != APPEND_SINGLETON_TRAJECTORY_ROUND
+            or not math.isclose(
+                fixed_error,
+                _finite(
+                    points[PAPER_FACING_COST_ROUND].get("delta_e"),
+                    label=f"{regime} singleton Append point-50 error",
+                ),
+                rel_tol=0.0,
+                abs_tol=1.0e-14,
+            )
+            or not math.isclose(
+                trajectory_error,
+                _finite(
+                    points[APPEND_SINGLETON_TRAJECTORY_ROUND].get("delta_e"),
+                    label=f"{regime} singleton Append point-70 error",
+                ),
+                rel_tol=0.0,
+                abs_tol=1.0e-14,
+            )
+            or not math.isclose(
+                exact,
+                _finite(
+                    cell.get("exact_same_cutoff_energy"),
+                    label=f"{regime} existing singleton Append exact energy",
+                ),
+                rel_tol=0.0,
+                abs_tol=1.0e-12,
+            )
+        ):
+            raise ReportInputError(
+                f"{regime}: singleton Append R70 endpoint binding drifted"
+            )
+        terminal = _mapping(
+            cell.get("terminal"),
+            label=f"{regime} existing singleton Append terminal",
+        )
+        fixed_costs = _mapping(
+            fixed.get("costs"),
+            label=f"{regime} singleton Append fixed costs",
+        )
+        for field in PAPER_I_QISKIT_COST_TUPLE_FIELDS:
+            expected = _integer(
+                fixed_costs.get(field),
+                label=f"{regime} singleton Append fixed {field}",
+            )
+            if _integer(
+                terminal.get(field),
+                label=f"{regime} existing singleton Append {field}",
+            ) != expected:
+                raise ReportInputError(
+                    f"{regime}: singleton Append round-50 {field} drifted"
+                )
+        cell["points"] = [
+            {
+                "k": int(row["round"]),
+                "error": _finite(
+                    row.get("delta_e"),
+                    label=f"{regime} singleton Append plotted error",
+                ),
+            }
+            for row in points
+        ]
+        cell["marker"] = {
+            "k": PAPER_FACING_COST_ROUND,
+            "error": fixed_error,
+            "policy": "paper_facing_cost_anchor_round_50",
+        }
+        cell["trajectory_terminal"] = {
+            "k": APPEND_SINGLETON_TRAJECTORY_ROUND,
+            "error": trajectory_error,
+        }
+        cell["trajectory_source_execution_id"] = str(
+            source.get("execution_id")
+        )
+        for index, current in enumerate(updated):
+            if (
+                current.get("representation") == REPRESENTATIONS["singleton"]
+                and current.get("regime") == regime
+                and current.get("method") == "append"
+            ):
+                updated[index] = cell
+                break
+        else:  # pragma: no cover - guarded by the 48-cell index above
+            raise ReportInputError(
+                f"{regime}: singleton Append cell disappeared during overlay"
+            )
+    binding = {
+        "path": str(adapter_path.resolve()),
+        "sha256": _sha256_file(adapter_path),
+        "size_bytes": adapter_path.stat().st_size,
+        "canonical_sha256": canonical_sha256,
+        "trajectory_round": APPEND_SINGLETON_TRAJECTORY_ROUND,
+        "paper_facing_cost_round": PAPER_FACING_COST_ROUND,
+    }
+    _cell_index(updated)
+    return updated, binding
+
+
 def _cell_index(
     cells: Sequence[Mapping[str, Any]],
 ) -> dict[tuple[str, str, str], Mapping[str, Any]]:
@@ -5569,6 +5765,7 @@ def _render_plot_grid(
     pending: bool,
     partial: bool = False,
     diagnostic_overlays: Sequence[Mapping[str, Any]] = (),
+    plot_horizon: int = 50,
 ) -> None:
     import matplotlib as mpl
 
@@ -5810,7 +6007,7 @@ def _render_plot_grid(
                 },
             )
         ax.set_yscale("log")
-        ax.set_xlim(0, 50)
+        ax.set_xlim(0, plot_horizon)
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=True))
         ax.yaxis.set_major_locator(LogLocator(base=10))
         ax.yaxis.set_minor_locator(
@@ -8004,6 +8201,7 @@ def build_cross_revision_partial_progress(
     global_singleton_weak_weak_adapter_path: Path | None = None,
     diagnostic_qiskit_singleton_run_dir: Path | None = None,
     diagnostic_cumulative_plateau_macro_run_dir: Path | None = None,
+    append_singleton_r70_adapter_path: Path | None = None,
 ) -> tuple[Path, Path]:
     """Build one evolving report from disjoint explicit package sources."""
 
@@ -8126,6 +8324,12 @@ def build_cross_revision_partial_progress(
             "local_paused_prefix_sources": local_paused_sources,
         }
     cells = _merge_partial_with_pending(included_cells)
+    append_singleton_r70_overlay: dict[str, Any] | None = None
+    if append_singleton_r70_adapter_path is not None:
+        cells, append_singleton_r70_overlay = _overlay_singleton_append_r70(
+            cells,
+            adapter_path=append_singleton_r70_adapter_path,
+        )
     included_execution_ids = sorted(
         str(row["execution_id"]) for row in included_cells
     )
@@ -8353,6 +8557,11 @@ def build_cross_revision_partial_progress(
         png_output=singleton_png,
         pending=False,
         partial=True,
+        plot_horizon=(
+            APPEND_SINGLETON_TRAJECTORY_ROUND
+            if append_singleton_r70_overlay is not None
+            else PAPER_FACING_COST_ROUND
+        ),
     )
     tex = _write_tex(
         output_dir=output_dir,
@@ -8757,6 +8966,12 @@ def build_cross_revision_partial_progress(
         "missing_execution_ids": missing_execution_ids,
         "metric": "same_cutoff_absolute_energy_error",
         "display_rounds": list(range(0, 51)),
+        "singleton_append_trajectory_rounds": (
+            None
+            if append_singleton_r70_overlay is None
+            else list(range(0, APPEND_SINGLETON_TRAJECTORY_ROUND + 1))
+        ),
+        "append_singleton_r70_overlay": append_singleton_r70_overlay,
         "parameter_manifest": parameter_manifest,
         "terminal_cost_policy": _terminal_cost_policy(),
         "layout": layout,
@@ -9028,6 +9243,15 @@ def _parser() -> argparse.ArgumentParser:
             "plateau diagnostic; cross-revision progress only"
         ),
     )
+    parser.add_argument(
+        "--append-singleton-r70-adapter",
+        type=Path,
+        help=(
+            "authenticated six-regime singleton Append adapter whose k=0..70 "
+            "energy curves extend page 2 while costs remain anchored at k=50; "
+            "cross-revision progress only"
+        ),
+    )
     parser.add_argument("--output-dir", type=Path)
     return parser
 
@@ -9062,6 +9286,7 @@ def main() -> int:
                     args.diagnostic_qiskit_singleton_run_dir,
                     args.diagnostic_local_always_prefix,
                     args.diagnostic_cumulative_plateau_macro_run_dir,
+                    args.append_singleton_r70_adapter,
                 )
             ):
                 raise ReportInputError(
@@ -9140,6 +9365,11 @@ def main() -> int:
                     is None
                     else args.diagnostic_cumulative_plateau_macro_run_dir.resolve()
                 ),
+                append_singleton_r70_adapter_path=(
+                    APPEND_SINGLETON_R70_ADAPTER.resolve()
+                    if args.append_singleton_r70_adapter is None
+                    else args.append_singleton_r70_adapter.resolve()
+                ),
             )
         elif args.partial_progress:
             if (
@@ -9155,6 +9385,7 @@ def main() -> int:
                 or args.diagnostic_qiskit_singleton_run_dir is not None
                 or args.diagnostic_local_always_prefix is not None
                 or args.diagnostic_cumulative_plateau_macro_run_dir is not None
+                or args.append_singleton_r70_adapter is not None
             ):
                 raise ReportInputError(
                     "partial-progress mode requires --validation and "
@@ -9180,6 +9411,7 @@ def main() -> int:
                 or args.diagnostic_qiskit_singleton_run_dir is not None
                 or args.diagnostic_local_always_prefix is not None
                 or args.diagnostic_cumulative_plateau_macro_run_dir is not None
+                or args.append_singleton_r70_adapter is not None
             ):
                 raise ReportInputError(
                     "final mode requires --selection, --validation, and "

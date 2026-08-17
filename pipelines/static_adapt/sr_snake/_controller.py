@@ -16,15 +16,20 @@ from __future__ import annotations
 import copy
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+import math
 from types import MappingProxyType
 from typing import Any, Callable, Protocol
 
 from pipelines.static_adapt.sr_snake._selection import (
+    _PHASE0_STATIONARY_TERMINAL_OUTCOME,
+    _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME,
     _CombinatorialBatchAdmissionDecision,
     _GreedyBatchAdmissionDecision,
     _SRControllerState,
     _SelectionWorkspace,
     _SingletonAdmissionDecision,
+    _NoPositivePhaseIIISelection,
+    _StationaryPhase0Selection,
     _select_combinatorial_batch,
     _select_greedy_batch,
     _select_singleton,
@@ -212,9 +217,85 @@ class _DefaultControllerFinalization:
             if not isinstance(row, Mapping):
                 raise TypeError("finalization history rows must be mappings")
             replay_rows.append(_AcceptedReplayProjection.from_mapping(row))
-        if not replay_rows:
+        terminal_outcome = self._record.get(
+            "terminal_controller_outcome"
+        )
+        if not replay_rows and terminal_outcome not in {
+            _PHASE0_STATIONARY_TERMINAL_OUTCOME,
+            _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME,
+        }:
             raise ValueError(
                 "default controller finalization requires accepted history"
+            )
+        if terminal_outcome is not None and terminal_outcome not in {
+            _PHASE0_STATIONARY_TERMINAL_OUTCOME,
+            _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME,
+        }:
+            raise ValueError("default controller terminal outcome is unknown")
+        phase3_terminal_receipt = self._record.get(
+            "terminal_phase3_selection_receipt"
+        )
+        continuation_phase3_terminal_receipt = continuation.get(
+            "terminal_phase3_selection_receipt"
+        )
+        if terminal_outcome == _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME:
+            if (
+                not isinstance(phase3_terminal_receipt, Mapping)
+                or continuation_phase3_terminal_receipt
+                != phase3_terminal_receipt
+                or (
+                    not replay_rows
+                    and int(
+                        phase3_terminal_receipt.get(
+                            "accepted_controller_round",
+                            -1,
+                        )
+                    )
+                    != 0
+                )
+            ):
+                raise ValueError(
+                    "Phase-III terminal receipt is missing or detached from "
+                    "continuation."
+                )
+            native_contract = route_contract.get("native_semantic_contract")
+            terminal_checkpoint = self._record.get(
+                "terminal_active_prefix_checkpoint"
+            )
+            if (
+                not isinstance(native_contract, Mapping)
+                or not isinstance(terminal_checkpoint, Mapping)
+            ):
+                raise ValueError(
+                    "Phase-III terminal finalization requires its authenticated "
+                    "V2 route and terminal checkpoint."
+                )
+            from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
+                validate_semantic_phase3_no_positive_terminal_receipt,
+            )
+
+            try:
+                validate_semantic_phase3_no_positive_terminal_receipt(
+                    phase3_terminal_receipt,
+                    route_variant=str(native_contract.get("route_variant", "")),
+                    route_contract=route_contract,
+                    expected_route_contract_sha256=route_contract_sha256,
+                    accepted_round_count=len(replay_rows),
+                    terminal_active_prefix_checkpoint=terminal_checkpoint,
+                    finalization=self._record.to_mutable_mapping(),
+                )
+            except (TypeError, ValueError, RuntimeError) as exc:
+                raise ValueError(
+                    "Phase-III terminal finalization requires independently "
+                    "authenticated V2 route and receipt evidence."
+                ) from exc
+        elif (
+            phase3_terminal_receipt is not None
+            or continuation_phase3_terminal_receipt is not None
+        ):
+            raise ValueError(
+                "Phase-III terminal receipt requires its exact terminal "
+                "outcome."
             )
         object.__setattr__(self, "route_family", route_family)
         object.__setattr__(self, "route_profile", route_profile)
@@ -292,6 +373,38 @@ class _DefaultControllerNumericalRuntime(Protocol):
         ],
         events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
         projected_rounds: tuple[_ProjectedAcceptedRound, ...],
+        stop: StopReceipt,
+    ) -> _DefaultControllerFinalization: ...
+
+    def finalize_stationary_phase0(
+        self,
+        *,
+        final_state: _AcceptedStateSnapshot,
+        transitions: tuple[
+            _AcceptedSingletonTransition
+            | _AcceptedGreedyBatchTransition
+            | _AcceptedCombinatorialBatchTransition,
+            ...,
+        ],
+        events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
+        projected_rounds: tuple[_ProjectedAcceptedRound, ...],
+        phase0: Any,
+        stop: StopReceipt,
+    ) -> _DefaultControllerFinalization: ...
+
+    def finalize_no_admission(
+        self,
+        *,
+        final_state: _AcceptedStateSnapshot,
+        transitions: tuple[
+            _AcceptedSingletonTransition
+            | _AcceptedGreedyBatchTransition
+            | _AcceptedCombinatorialBatchTransition,
+            ...,
+        ],
+        events: tuple[_CheckpointReadyAcceptedStateEvent, ...],
+        projected_rounds: tuple[_ProjectedAcceptedRound, ...],
+        terminal_selection: _NoPositivePhaseIIISelection,
         stop: StopReceipt,
     ) -> _DefaultControllerFinalization: ...
 
@@ -471,7 +584,21 @@ def _selection_state_matches_accepted(
         and selection.runtime_parameter_ids == accepted.runtime_parameter_ids
         and selection.runtime_parameter_values
         == accepted.runtime_parameter_values
-        and selection.accepted_energy == accepted.accepted_energy
+        and math.isclose(
+            selection.accepted_energy,
+            accepted.accepted_energy,
+            rel_tol=0.0,
+            abs_tol=(
+                128.0
+                * math.ulp(
+                    max(
+                        1.0,
+                        abs(selection.accepted_energy),
+                        abs(accepted.accepted_energy),
+                    )
+                )
+            ),
+        )
         and selection.accepted_state_fingerprint
         == accepted.accepted_state_fingerprint
         and selection.available_generator_ids
@@ -578,6 +705,78 @@ def _configured_stop_receipt(
     )
 
 
+def _phase0_stationary_stop_receipt(
+    accepted_state: _AcceptedStateSnapshot,
+    *,
+    phase0: Any,
+) -> StopReceipt:
+    """Close a valid empty Phase-0 competition without a fake transition."""
+
+    if (
+        getattr(phase0, "terminal_outcome", None)
+        != _PHASE0_STATIONARY_TERMINAL_OUTCOME
+        or tuple(getattr(phase0, "shortlist", ()))
+    ):
+        raise RuntimeError("stationary controller stop lost its Phase0 receipt")
+    return StopReceipt(
+        conditions=(
+            StopConditionReceipt(
+                reason="phase0_stationary",
+                active=True,
+                fired=True,
+            ),
+        ),
+        completed_controller_rounds=int(accepted_state.controller_round),
+        accepted_operator_count=len(accepted_state.accepted_operator_ids),
+        primary_reason="phase0_stationary",
+        fired_reasons=("phase0_stationary",),
+        accepted_energy=float(accepted_state.accepted_energy),
+        terminal_controller_outcome=(
+            _PHASE0_STATIONARY_TERMINAL_OUTCOME
+        ),
+    )
+
+
+def _phase3_no_positive_stop_receipt(
+    accepted_state: _AcceptedStateSnapshot,
+    *,
+    terminal_selection: _NoPositivePhaseIIISelection,
+) -> StopReceipt:
+    """Close an authenticated Phase-III competition without admission."""
+
+    terminal_selection.validate_natural_terminal_authority()
+    phase3 = terminal_selection.phase_iii
+    if (
+        phase3.terminal_outcome
+        != _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+        or phase3.shortlist
+        or phase3.adaptive_shortlist is None
+        or phase3.adaptive_shortlist.status != "no_positive_population"
+        or phase3.adaptive_shortlist.retained_record_ids
+    ):
+        raise RuntimeError(
+            "no-admission controller stop lost its Phase-III receipt"
+        )
+    reason = "phase_iii_no_positive_feasible_candidate"
+    return StopReceipt(
+        conditions=(
+            StopConditionReceipt(
+                reason=reason,
+                active=True,
+                fired=True,
+            ),
+        ),
+        completed_controller_rounds=int(accepted_state.controller_round),
+        accepted_operator_count=len(accepted_state.accepted_operator_ids),
+        primary_reason=reason,
+        fired_reasons=(reason,),
+        accepted_energy=float(accepted_state.accepted_energy),
+        terminal_controller_outcome=(
+            _PHASE3_NO_POSITIVE_TERMINAL_OUTCOME
+        ),
+    )
+
+
 def _assert_projected_event(
     projection: _ProjectedAcceptedRound,
     event: _CheckpointReadyAcceptedStateEvent,
@@ -618,10 +817,71 @@ def _run_default_singleton_controller(
                 raise RuntimeError(
                     "prepared selection identifies a different accepted state"
                 )
-            decision = _select_singleton(
-                prepared_selection.controller_state,
-                prepared_selection.workspace,
-            )
+            try:
+                decision = _select_singleton(
+                    prepared_selection.controller_state,
+                    prepared_selection.workspace,
+                )
+            except _StationaryPhase0Selection as stationary:
+                stop = _phase0_stationary_stop_receipt(
+                    state,
+                    phase0=stationary.receipt,
+                )
+                transitions_tuple = tuple(transitions)
+                events_tuple = tuple(events)
+                projected_tuple = tuple(projected_rounds)
+                finalization = runtime.finalize_stationary_phase0(
+                    final_state=state,
+                    transitions=transitions_tuple,
+                    events=events_tuple,
+                    projected_rounds=projected_tuple,
+                    phase0=stationary.receipt,
+                    stop=stop,
+                )
+                return _ControllerOutcome(
+                    initial_state=initial_state,
+                    final_state=state,
+                    accepted_states=tuple(accepted_states),
+                    transitions=transitions_tuple,
+                    events=events_tuple,
+                    projected_rounds=projected_tuple,
+                    accepted_prefix_all_work=tuple(
+                        _AcceptedPrefixAllWork.from_transition(transition)
+                        for transition in transitions_tuple
+                    ),
+                    stop=stop,
+                    finalization=finalization,
+                )
+            except _NoPositivePhaseIIISelection as exhausted:
+                stop = _phase3_no_positive_stop_receipt(
+                    state,
+                    terminal_selection=exhausted,
+                )
+                transitions_tuple = tuple(transitions)
+                events_tuple = tuple(events)
+                projected_tuple = tuple(projected_rounds)
+                finalization = runtime.finalize_no_admission(
+                    final_state=state,
+                    transitions=transitions_tuple,
+                    events=events_tuple,
+                    projected_rounds=projected_tuple,
+                    terminal_selection=exhausted,
+                    stop=stop,
+                )
+                return _ControllerOutcome(
+                    initial_state=initial_state,
+                    final_state=state,
+                    accepted_states=tuple(accepted_states),
+                    transitions=transitions_tuple,
+                    events=events_tuple,
+                    projected_rounds=projected_tuple,
+                    accepted_prefix_all_work=tuple(
+                        _AcceptedPrefixAllWork.from_transition(transition)
+                        for transition in transitions_tuple
+                    ),
+                    stop=stop,
+                    finalization=finalization,
+                )
             transition_workspace = runtime.prepare_transition(
                 state,
                 decision,

@@ -1,0 +1,16 @@
+{
+  "atomic_local_rename_completed": true,
+  "captured_at_utc": "2026-08-13T08:44:54Z",
+  "gzip_integrity_passed": true,
+  "local_path": "chtc/paper_i_ra_adapt_repair_20260727/retrieved_page16_insertion_comparators_20260812/strong_weak_u8_always__9647386__1.tar.gz",
+  "local_sha256": "53ad259181e863558765b042589a788a0bf064ebb7b9da1e2d95423e6387aee0",
+  "local_size_bytes": 302962447,
+  "remote_path": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page16_insertion_comparators_20260812_v1/outputs/transfer/page16_macro_gradient_phase0_phase23_qiskit_no_lanes__strong_weak_u8__nph3__ra_page16_macro_gradient_phase0_macro_phase123_qiskit_phase23_no_lanes_always_commutation_reduced__9647386__1.tar.gz",
+  "remote_sha256": "53ad259181e863558765b042589a788a0bf064ebb7b9da1e2d95423e6387aee0",
+  "remote_size_bytes": 302962447,
+  "remote_state": "preserved_after_exact_size_sha256_verified_fetch",
+  "schema": "paper_i_page16_sw_always_remote_archive_identity_v1",
+  "sha256": "ef8b8545b65517256af32ff67c3ab226edd125607f8f895d2b0f228484577ba8",
+  "status": "passed_remote_local_size_sha256_match_after_atomic_rename",
+  "tar_readability_passed": true
+}

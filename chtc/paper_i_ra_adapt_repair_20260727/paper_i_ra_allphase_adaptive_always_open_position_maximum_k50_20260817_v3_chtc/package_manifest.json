@@ -1,0 +1,39 @@
+{
+  "authorization_sha256": "fce42cd5818804db68144f1f02448c4f5529990460638b81cd15a04f850356de",
+  "campaign_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3",
+  "created_at": "2026-08-17T18:36:28.625165Z",
+  "execute_file_sha256": "b6dbf7a842d27337d8b21c1089e6c6d0fb45353615de1644186b6e613afd1dd8",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_maxk50__always_open_position_phase0__weak_weak__nph3",
+    "allphase_maxk50__always_open_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__always_open_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__always_open_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__always_open_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__always_open_position_phase0__strong_strong_u8__nph7"
+  ],
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "package_id": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_20260817_v3_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "4a7f1825f1f8b8f1987e49bbe5fc5ca92131412b419891895a1d66c1a5ae4293",
+  "queue_file_sha256": "e120d7e29f691af6e340c3be85c57e9f1db721bea66e680da98d318126a7de10",
+  "row_count": 6,
+  "schema": "paper_i_ra_allphase_adaptive_always_open_position_maximum_k50_package_v1",
+  "sha256": "102c0d4b37d4b7dc49baf102f6aaf7e1ba2d20aa2160177c7ecbdc5b85341347",
+  "source_archive": {
+    "archive_sha256": "d49617d474a76f31efc372af11f9158cf763e442eead354fd3e581ed55936c85",
+    "archive_size_bytes": 4898100,
+    "member_count": 576,
+    "members_sha256": "fa445361eca8f7dc827c7ae5c8d81cbbfc2c8ab8d1367da153a2735e1b0f338c",
+    "schema": "paper_i_ra_allphase_adaptive_always_open_position_source_archive_v1",
+    "sha256": "1e344df144624d5d0992a085ba8a07242758d81da76c5f4bccdfa7353c5ef62d",
+    "source_inventory_sha256": "4c1bc55ee8382c0de24734952322ecd46430e843df6b0b9afd38a41344675a52"
+  },
+  "source_inventory_sha256": "4c1bc55ee8382c0de24734952322ecd46430e843df6b0b9afd38a41344675a52",
+  "status": "authorized_six_cells",
+  "submission_authorized": true,
+  "submit_file_sha256": "7028a8020c1b0a8c4d8dac02e9c4f8febf18d3b16f1eae54c1f748a7381cc342",
+  "submitted": false,
+  "worker_file_sha256": "c65fde795bb898c801cf46c0ecc2af97076bc8c1904af13f708b838b788d19fe"
+}

@@ -76,6 +76,7 @@ class CarriedWitnessError(RuntimeError):
 class CWRMFSettings:
     """Frozen settings for the short carried-witness pilot."""
 
+    enforce_gram_guard: bool = True
     psd_inflation: float = 1e-11
     affine_tolerance: float = 1e-10
     spectral_entry_threshold: float = 1e-8
@@ -83,6 +84,8 @@ class CWRMFSettings:
     maximum_critical_modes: int | None = None
     maximum_local_corrections: int = 3
     solver_tolerance: float = 1e-10
+    bundle_solver_tolerance: float = 1e-12
+    enable_full_cone_fallback: bool = False
     readable_rate_tolerance: float = 1e-5
     archive_velocity_tolerance: float = 1e-10
     velocity_ceiling_factor: float = 10.0
@@ -94,7 +97,11 @@ class CWRMFSettings:
     def __post_init__(self) -> None:
         if self.psd_inflation < 0.0:
             raise ValueError("psd_inflation must be nonnegative")
-        if self.affine_tolerance <= 0.0 or self.solver_tolerance <= 0.0:
+        if (
+            self.affine_tolerance <= 0.0
+            or self.solver_tolerance <= 0.0
+            or self.bundle_solver_tolerance <= 0.0
+        ):
             raise ValueError("numerical tolerances must be positive")
         if not (
             0.0 < self.spectral_entry_threshold < self.spectral_exit_threshold
@@ -127,6 +134,37 @@ class CWRMFSettings:
         if self.maximum_critical_modes is None:
             return 61
         return min(self.maximum_critical_modes, 61)
+
+
+def cwrmf_settings_for_profile(
+    profile: str,
+    *,
+    maximum_critical_modes: int | None = None,
+) -> CWRMFSettings:
+    """Return a named numerical contract without changing strict defaults.
+
+    ``balanced`` keeps the literal full-Gram acceptance check but permits an
+    explicitly declared ``-1e-8`` unshifted numerical floor.  Its spectral
+    trigger is below the shifted image of a nominal null mode, so expensive
+    cone enlargement is reserved for modes that actually approach that floor.
+    """
+
+    if profile == "strict":
+        return CWRMFSettings(
+            maximum_critical_modes=maximum_critical_modes,
+        )
+    if profile == "balanced":
+        return CWRMFSettings(
+            psd_inflation=1e-8,
+            spectral_entry_threshold=2e-9,
+            spectral_exit_threshold=2e-8,
+            maximum_critical_modes=maximum_critical_modes,
+            solver_tolerance=1e-8,
+            bundle_solver_tolerance=1e-8,
+            enable_full_cone_fallback=True,
+            schur_safety_margin=1e-10,
+        )
+    raise ValueError(f"unknown CWRMF numerical profile: {profile}")
 
 
 @dataclass(frozen=True)
@@ -1932,7 +1970,7 @@ class CarriedWitnessModel:
             solver_settings.verbose = False
             solver_settings.max_threads = 1
             solver_settings.max_iter = 500
-            bundle_tolerance = min(self.settings.solver_tolerance, 1e-12)
+            bundle_tolerance = self.settings.bundle_solver_tolerance
             solver_settings.tol_gap_abs = bundle_tolerance
             solver_settings.tol_gap_rel = bundle_tolerance
             solver_settings.tol_feas = bundle_tolerance
@@ -2391,6 +2429,41 @@ class CarriedWitnessModel:
             62,
         )
 
+    def _solve_relaxed_readable(
+        self,
+        endpoint_retained: FloatArray,
+        completion: FloatArray,
+        step_size: float,
+        retained_velocity: FloatArray,
+        desired: FloatArray,
+    ) -> tuple[bool, FloatArray, str, float, float, int]:
+        """Use the adaptive bundle, with a balanced-profile full-cone fallback."""
+
+        bundle = self._solve_relaxed_readable_bundle_cone(
+            endpoint_retained,
+            completion,
+            step_size,
+            retained_velocity,
+            desired,
+        )
+        if bundle[0] or not self.settings.enable_full_cone_fallback:
+            return bundle
+        full = self._solve_relaxed_readable_full_cone(
+            endpoint_retained,
+            completion,
+            step_size,
+            retained_velocity,
+            desired,
+        )
+        return (
+            full[0],
+            full[1],
+            f"{bundle[2]}->{full[2]}",
+            full[3],
+            full[4],
+            max(bundle[5], full[5]),
+        )
+
     def radial_atom(
         self,
         time: float,
@@ -2410,6 +2483,61 @@ class CarriedWitnessModel:
         message = "unconstrained predictor"
         velocity_margin = 1.0
         maximum_critical_used = 0
+
+        if not self.settings.enforce_gram_guard:
+            endpoint_completion = completion + step_size * desired
+            endpoint_matrix = geometry.scaled_unified_matrix(
+                endpoint_retained, endpoint_completion
+            )
+            enclosure = self.spectral_enclosure(endpoint_matrix, shifted=True)
+            critical = int(
+                np.count_nonzero(
+                    enclosure.lower_bounds
+                    < self.settings.spectral_entry_threshold
+                )
+            )
+            restriction = geometry.restriction_residual(
+                endpoint_retained, endpoint_completion
+            )
+            if restriction > self.settings.affine_tolerance:
+                return RadialAtomResult(
+                    success=False,
+                    endpoint=np.asarray(state, dtype=float).copy(),
+                    archive_velocity=retained_velocity,
+                    completion_velocity=desired,
+                    desired_completion_velocity=desired,
+                    minimum_unshifted_eigenvalue=float("nan"),
+                    minimum_shifted_lower_bound=float("nan"),
+                    readable_rate_residual=float("inf"),
+                    archive_intervention=0.0,
+                    completion_correction_norm=0.0,
+                    velocity_margin=float("nan"),
+                    critical_modes=critical,
+                    correction_iterations=0,
+                    elapsed_seconds=perf_counter() - started,
+                    message="restriction_residual",
+                )
+            return RadialAtomResult(
+                success=True,
+                endpoint=geometry.pack_state(
+                    endpoint_retained, endpoint_completion
+                ),
+                archive_velocity=retained_velocity,
+                completion_velocity=desired,
+                desired_completion_velocity=desired,
+                minimum_unshifted_eigenvalue=float(
+                    np.linalg.eigvalsh(endpoint_matrix)[0]
+                ),
+                minimum_shifted_lower_bound=enclosure.minimum_lower_bound,
+                readable_rate_residual=0.0,
+                archive_intervention=0.0,
+                completion_correction_norm=0.0,
+                velocity_margin=float("nan"),
+                critical_modes=critical,
+                correction_iterations=0,
+                elapsed_seconds=perf_counter() - started,
+                message="unconstrained higher-moment predictor",
+            )
 
         while True:
             endpoint_completion = completion + step_size * candidate_velocity
@@ -2494,7 +2622,7 @@ class CarriedWitnessModel:
                     residual,
                     velocity_margin,
                     critical,
-                ) = self._solve_relaxed_readable_bundle_cone(
+                ) = self._solve_relaxed_readable(
                     endpoint_retained,
                     completion,
                     step_size,
@@ -2530,7 +2658,7 @@ class CarriedWitnessModel:
                         residual,
                         velocity_margin,
                         critical,
-                    ) = self._solve_relaxed_readable_bundle_cone(
+                    ) = self._solve_relaxed_readable(
                         endpoint_retained,
                         completion,
                         step_size,
@@ -2656,7 +2784,10 @@ def integrate_cwrmf_ssprk2(
         retained, completion = geometry.unpack_state(state)
         matrix = geometry.scaled_unified_matrix(retained, completion)
         enclosure = model.spectral_enclosure(matrix, shifted=True)
-        if enclosure.minimum_lower_bound < 0.0:
+        if (
+            model.settings.enforce_gram_guard
+            and enclosure.minimum_lower_bound < 0.0
+        ):
             return CWRMFTrajectory(
                 times=times[: step + 1],
                 states=states[: step + 1],
@@ -2739,5 +2870,6 @@ __all__ = [
     "CarriedWitnessModel",
     "RadialAtomResult",
     "SpectralEnclosure",
+    "cwrmf_settings_for_profile",
     "integrate_cwrmf_ssprk2",
 ]

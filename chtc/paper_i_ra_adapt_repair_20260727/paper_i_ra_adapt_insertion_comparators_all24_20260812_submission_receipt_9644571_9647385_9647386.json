@@ -1,0 +1,122 @@
+{
+  "schema": "paper_i_ra_adapt_insertion_comparator_all24_submission_receipt_v1",
+  "created_at_utc": "2026-08-12T22:03:08Z",
+  "status": "all_24_scheduler_submitted_quota_guarded_controlled_release",
+  "run_class": "diagnostic",
+  "paper_evidence_adopted": false,
+  "scientific_scope": {
+    "algorithm": "RA-ADAPT",
+    "policies": {
+      "always_commutation_reduced": {
+        "meaning": "always-open insertion using full_commutation_reduced",
+        "submitted_cells": 12
+      },
+      "append_only": {
+        "meaning": "RA-ADAPT append-only insertion ablation, not a separate Append-ADAPT method",
+        "submitted_cells": 12
+      }
+    },
+    "total_submitted_cells": 24,
+    "plateau_reference_reruns": 0
+  },
+  "clusters": [
+    {
+      "cluster_id": 9644571,
+      "submitted_procs": 1,
+      "scope": "Page 16 weak-weak always-insertion canary",
+      "batch_name": "paper-i-page16-insertion-weak-weak-always-wave01-20260812",
+      "qdate_epoch": 1786563858,
+      "observed_state_at_receipt": {
+        "proc": 0,
+        "job_status": 2,
+        "job_status_name": "running",
+        "num_job_starts": 1
+      }
+    },
+    {
+      "cluster_id": 9647385,
+      "submitted_procs": 12,
+      "scope": "Page 12 complete insertion-comparator matrix",
+      "batch_name": "paper-i-page12-insertion-all-20260812",
+      "qdate_epoch": 1786571910,
+      "global_job_id_proc0": "ap2001.chtc.wisc.edu#9647385.0#1786571910",
+      "factory": {
+        "total_submit_procs": 12,
+        "job_materialize_limit": 1,
+        "job_materialize_max_idle": 0
+      },
+      "observed_state_at_receipt": {
+        "materialized_proc": 0,
+        "job_status": 5,
+        "job_status_name": "held",
+        "num_job_starts": 0,
+        "hold_reason": "temporary CHTC staging-quota guard; all comparator rows submitted, exact-proc controlled release required"
+      }
+    },
+    {
+      "cluster_id": 9647386,
+      "submitted_procs": 11,
+      "scope": "Page 16 remaining insertion-comparator matrix after excluding the canary",
+      "batch_name": "paper-i-page16-insertion-remaining-20260812",
+      "qdate_epoch": 1786571924,
+      "global_job_id_proc0": "ap2001.chtc.wisc.edu#9647386.0#1786571924",
+      "factory": {
+        "total_submit_procs": 11,
+        "job_materialize_limit": 1,
+        "job_materialize_max_idle": 0
+      },
+      "observed_state_at_receipt": {
+        "materialized_proc": 0,
+        "job_status": 1,
+        "job_status_name": "idle",
+        "num_job_starts": 0
+      }
+    }
+  ],
+  "submission_inputs": {
+    "page12": {
+      "package_manifest_canonical_sha256": "efce225efdc04653e8fca7e34eb3f467d4a6ec594e2130cde4bbea45e3d040e9",
+      "source_archive_sha256": "690d54dbf5bafcaaf974dc11339ed927cb7f5d117265ed51adbb811785740762",
+      "activation_manifest_canonical_sha256": "9aa36c3362257dfdcd8624bf091adfbaae28edb06e0abadcb8d6b6936533a36d",
+      "queue_rows": 12,
+      "queue_sha256": "406610e80d3f73521225da7852f1ee57414ee2ee1cfd0d4c73979d4b9f47527c",
+      "submit_sha256": "c507d268c96d859a08e99aa5e70c915664ab966403ff949b2b9ea8812288f44f",
+      "dryrun_ad_sha256": "41d8455816c075129614bc24442e72b3acc87c99770f7accd2bd7ee57f444bfc",
+      "output_destination": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page12_insertion_comparators_20260812_v1/outputs/"
+    },
+    "page16_remaining": {
+      "package_manifest_canonical_sha256": "7d8a00196f25f8dd90c08b626dd8e4083868ca93e68aa883568f29b63d4bf0b1",
+      "source_archive_sha256": "95b3ea575a4590961b6a57337eb1c58ef3ba3855d9d342b179657973c129ef26",
+      "activation_manifest_canonical_sha256": "9674e5610d8acea63456560323039db0d6fdb33ecfd84fa97f1af7d765bd2dfa",
+      "queue_rows": 11,
+      "queue_sha256": "447fb2431c18a17376938954d4fef48660d3177e12c0928894edce3f28f8554b",
+      "submit_sha256": "42158832fa74faa7cbbd973fec5d8eb96ed08e7584067c3c42b4da0cccad3598",
+      "dryrun_ad_sha256": "4ef191af1cde35523321560bb008a3fa19dac15b72ca42040383d0326c106de6",
+      "canary_queue_intersection_rows": 0,
+      "output_destination": "osdf:///chtc/staging/j/jsstrobel/paper_i_ra_adapt_page16_insertion_comparators_20260812_v1/outputs/"
+    }
+  },
+  "validation": {
+    "package_tests": "5 passed",
+    "page12_dry_run_jobs": 12,
+    "page16_remaining_dry_run_jobs": 11,
+    "exact_lifecycle_validation": "passed for both submission descriptors",
+    "requirements": [
+      "HasSIF",
+      "HasCHTCStaging"
+    ],
+    "leave_in_queue": false,
+    "duplicate_comparator_rows_submitted": 0
+  },
+  "quota_guard": {
+    "home_usage_gb": 36.8379,
+    "home_quota_gb": 40.0,
+    "staging_usage_gb": 93.2328,
+    "staging_quota_gb": 100.0,
+    "reason": "Available staging headroom is insufficient for safe unattended fan-out of all output archives.",
+    "policy": "All rows remain scheduler-submitted, with future materialization frozen and exact-proc controlled release required after verified fetch and cleanup.",
+    "canary_cluster_9644571": "continues running",
+    "page12_cluster_9647385": "proc 0 quota-guard held; remaining rows latent",
+    "page16_cluster_9647386": "proc 0 released and idle; remaining rows latent"
+  }
+}

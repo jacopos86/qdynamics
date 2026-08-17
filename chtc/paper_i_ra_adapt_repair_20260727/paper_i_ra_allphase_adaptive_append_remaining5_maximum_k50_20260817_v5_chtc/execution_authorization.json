@@ -1,0 +1,21 @@
+{
+  "authority_basis": "explicit_user_authorization_in_active_side_conversation_20260817",
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v5",
+  "created_at": "2026-08-17T18:33:06.941575Z",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7"
+  ],
+  "package_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v5_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "ab51a9332be98db4672c2b041b671e18c4fcb6726a187c4cf327e259ce9d12bd",
+  "schema": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_authorization_v1",
+  "sha256": "f51e7a4584ec8f04858e031df10db26459c4a86775661a344470008ae634d48f",
+  "source_archive_sha256": "d49617d474a76f31efc372af11f9158cf763e442eead354fd3e581ed55936c85",
+  "source_inventory_sha256": "4c1bc55ee8382c0de24734952322ecd46430e843df6b0b9afd38a41344675a52",
+  "submission_authorized": true
+}

@@ -1,0 +1,38 @@
+{
+  "authorization_sha256": "22f3011e940c90461d40bed684ea046d0012a2327d3fd856b082405d95af1920",
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v4",
+  "created_at": "2026-08-17T17:13:12.300050Z",
+  "execute_file_sha256": "b6dbf7a842d27337d8b21c1089e6c6d0fb45353615de1644186b6e613afd1dd8",
+  "execution_authorized": true,
+  "execution_ids": [
+    "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7"
+  ],
+  "image_path": "chtc/phase3_optuna/image.sif",
+  "image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "package_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v4_chtc",
+  "paper_adoption_authorized": false,
+  "plan_sha256": "30899a8f9252e1c6decb8e017c450139ff366f0b0f8c3d9ba26edcacc1155cde",
+  "queue_file_sha256": "717fea0e20f3d877ec819f0c299535683297faec8c959552853862f62b0db2df",
+  "row_count": 5,
+  "schema": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_package_v1",
+  "sha256": "4b63fe294fa40659ccd04708cbf6b4e03d8a324b4a1b50a1f81dc8d29c58ddc6",
+  "source_archive": {
+    "archive_sha256": "0bdf10a467fe39c0994341cace2fa1789ad07dcf8959efa30a0481bba3f60690",
+    "archive_size_bytes": 4897676,
+    "member_count": 576,
+    "members_sha256": "44c975d48afb87515534e3764f53f0d4e14ebc61aebade3669252383cba1a125",
+    "schema": "paper_i_ra_allphase_adaptive_append_remaining5_source_archive_v1",
+    "sha256": "f093f77d2d53b93287ff7371dafe71efc4be42dd397033f929ce1424f1e4ec33",
+    "source_inventory_sha256": "ba468b7df462a12fec6ab81b6fa2beef272631a386df7b16bf868b9850d1034f"
+  },
+  "source_inventory_sha256": "ba468b7df462a12fec6ab81b6fa2beef272631a386df7b16bf868b9850d1034f",
+  "status": "authorized_five_cells",
+  "submission_authorized": true,
+  "submit_file_sha256": "9d56eaceac64eee287d0db52b5d0ede4e6668263f437563c1b86e2827a6ad610",
+  "submitted": false,
+  "worker_file_sha256": "505cfe59f4034b005d31ce92302b644ccceacc680019cc9aa0484ebfe8d826f3"
+}

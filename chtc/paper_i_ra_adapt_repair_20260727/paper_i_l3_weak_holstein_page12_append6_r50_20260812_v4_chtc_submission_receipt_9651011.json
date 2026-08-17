@@ -1,0 +1,79 @@
+{
+  "activation_manifest_file_sha256": "1fb30d0a3b38eec56eaffeed59d7625b85216d4069c1937585796c6df6a4972f",
+  "activation_manifest_sha256": "e9ff87e7c4b9aafbb4ef925611f974ddc89bfa079e023c03ecbfa40d279406dc",
+  "activation_request_file_sha256": "e242dc4d93fb07841f5e97843df6dd1b0f7753680f037d21d6c28c4ce2e08c88",
+  "activation_request_sha256": "3dd8a725498e24e6c0276ec903d336cc4457e0b247a84487aa5781d1ba7f049b",
+  "execution_plan_file_sha256": "25863ec7102030f1531b7a930d97a15483205f667a38456b961484617cf5d258",
+  "execution_plan_sha256": "331aedd8ff481d89aae3169defc9c729a8de2de358b04f8daefebfabbcd6cce0",
+  "image_probe_sha256": "003386d27d3f6aabfc88e77df0dfb92d239cced89d15d9d8e7e9e573a1bd251b",
+  "package_id": "paper_i_l3_weak_holstein_page12_append6_r50_20260812_v4_chtc",
+  "package_manifest_file_sha256": "1e44cff6aba40c736d5c44dfa130f71cd9867add3b5ac8463f802d14f41b85ae",
+  "package_manifest_sha256": "0c2634d8b69bbb74633ef66f4c1edc6f1706cb871177b57d042e11606ed149b0",
+  "paper_evidence_adopted": false,
+  "post_submit_observation": {
+    "all_num_job_starts_zero": true,
+    "completed": 0,
+    "held": 0,
+    "idle": 6,
+    "observed_at_local": "2026-08-13T09:04:47-05:00",
+    "running": 0
+  },
+  "pre_submit_validation": {
+    "archive_integrity_passed": true,
+    "dry_run_job_count": 6,
+    "focused_and_retrieval_tests_passed": 29,
+    "pinned_image_worker_preflights_passed": 6,
+    "submit_lifecycle_passed": true
+  },
+  "resource_requests": {
+    "append_conventional_unwhitened": {
+      "job_count": 3,
+      "request_cpus": 1,
+      "request_disk_mib": 61440,
+      "request_memory_mib": 49152,
+      "request_runtime_seconds": 259200
+    },
+    "ra_global_singleton_gradient_phase0_phase123_qiskit_phase23_plateau": {
+      "job_count": 3,
+      "request_cpus": 4,
+      "request_disk_mib": 81920,
+      "request_memory_mib": 65536,
+      "request_runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_l3_weak_holstein_page12_append_submission_receipt_v2",
+  "sha256": "f9984d6fa95b70a6b09b0ac4d7252607bc6e90b0f434a07181e6eff0c74e249d",
+  "source_archive_sha256": "2aa61620dee19e9dcadb9e90a1008969e8c1ce752f1ad7ee9ccfdc94c7973400",
+  "status": "passed",
+  "submission": {
+    "batch_name": "paper-i-l3-weak-holstein-page12-append6-r50-20260812-v4",
+    "cluster_id": 9651011,
+    "host": "ap2001.chtc.wisc.edu",
+    "job_count": 6,
+    "owner": "jsstrobel",
+    "remote_activation_identity": "paper_i_l3_weak_holstein_page12_append6_r50_20260812_v4_activation_20260813_v1",
+    "remote_root": "/home/jsstrobel/Holstein_phase3_optuna_chtc",
+    "submitted_at_local": "2026-08-13T09:03-05:00",
+    "submitted_at_precision": "minute"
+  },
+  "submit_descriptor_sha256": "c08e7d981a561fece123fcfa78e1ab1c50cc690f41a8d4a8cd8ef69d2665a71a",
+  "submitted": true,
+  "supersession": {
+    "removal_reason": "superseded before first start by provenance-clean resource-rightsized v4 activation",
+    "scientific_computation_lost": false,
+    "superseded_cluster_id": 9650825,
+    "superseded_job_count": 6,
+    "superseded_num_job_starts": 0,
+    "superseded_state": "six_idle_zero_starts",
+    "v3_submission_receipt": {
+      "file_sha256": "fab91964feb9f48b83753fa7959995988b36683409c454c4b6d8fe03c6f26d1d",
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/paper_i_l3_weak_holstein_page12_append6_r50_20260812_v3_chtc_submission_receipt_9650825.json",
+      "preserved": true,
+      "sha256": "97a4967f7c88b29a239d59c7f8bdc27b77ab6465665e2b8bfbe5d8c20591f72f"
+    }
+  },
+  "v3_scientific_equivalence": {
+    "file_sha256": "75fb3599e41f4d5c9d78e146582714e13db9688527bc230f441e3130383a78af",
+    "sha256": "f783c3b064eb6a139897e37ef755e05facac2c08e2474b6f7d05b4098c717e7f"
+  }
+}

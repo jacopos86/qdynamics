@@ -1,0 +1,181 @@
+{
+  "display_contract": {
+    "curve_markers": "one marker at displayed k=20 endpoint",
+    "guide_lines": "none",
+    "iteration_window": [
+      0,
+      20
+    ],
+    "later_source_points": "retained in source adapter and not displayed",
+    "quantity": "absolute same-cutoff energy error",
+    "source_history_window_used": [
+      1,
+      20
+    ],
+    "x_limits": [
+      0.0,
+      20.0
+    ],
+    "y_limits": [
+      5e-07,
+      2.0
+    ],
+    "y_scale": "log"
+  },
+  "generation_script": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/pipelines/reporting/build_paper_i_hubbard_noise_k20_figures.py",
+    "sha256": "02c36a83b56c7a9f6381689eba84ddb6c630a73fd3e52d2a52d1e514e8fe3285",
+    "size_bytes": 10527
+  },
+  "outputs": {
+    "u1p5": {
+      "pdf": {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u1p5_common_prefix_k20_20260814.pdf",
+        "sha256": "107fc44b2a208bc6e81e5e332cf4e1d79b45521c7aeb1312be9cb861d1b01617",
+        "size_bytes": 23980
+      },
+      "png": {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u1p5_common_prefix_k20_20260814.png",
+        "sha256": "06a853fb30484949bec39eae5f3d7fb330ab6210745592ff9b7b20d7dc855c34",
+        "size_bytes": 79394
+      }
+    },
+    "u8": {
+      "pdf": {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u8_common_prefix_k20_20260814.pdf",
+        "sha256": "2244dc42e09e986cdcfee97192fbf88f3e5df84e167b363281ba193bd9c3fa1f",
+        "size_bytes": 23870
+      },
+      "png": {
+        "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/MATH/paper_details/figures/paper_i_hubbard_noise_common_prefix_k20_20260814/paper_i_hubbard_noise_u8_common_prefix_k20_20260814.png",
+        "sha256": "e2a13945deee3da8fbe7c36a06e9038cf630ca0bf2b6b1b2a00a0b16b6bfbbaf",
+        "size_bytes": 83513
+      }
+    }
+  },
+  "panels": [
+    {
+      "curves": [
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 9.897457152074907e-06,
+          "display_terminal_k": 20,
+          "noise_level": "low",
+          "noise_tuple": [
+            1e-06,
+            1e-08,
+            1e-07,
+            0.0002,
+            0.0006
+          ],
+          "source_cluster_id": 9636601,
+          "source_point_count": 20,
+          "source_proc_id": 0,
+          "source_target_horizon": 20
+        },
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 0.0004972241554617174,
+          "display_terminal_k": 20,
+          "noise_level": "high",
+          "noise_tuple": [
+            7.071067811865475e-05,
+            1e-06,
+            1e-05,
+            0.002,
+            0.006
+          ],
+          "source_cluster_id": 9636601,
+          "source_point_count": 20,
+          "source_proc_id": 1,
+          "source_target_horizon": 20
+        },
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 0.028491019131919648,
+          "display_terminal_k": 20,
+          "noise_level": "extreme",
+          "noise_tuple": [
+            0.01,
+            0.001,
+            0.01,
+            0.06,
+            0.06
+          ],
+          "source_cluster_id": 9634547,
+          "source_point_count": 50,
+          "source_proc_id": 2,
+          "source_target_horizon": 50
+        }
+      ],
+      "u_key": "u1p5",
+      "u_over_t": 1.5
+    },
+    {
+      "curves": [
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 2.056455977356153e-05,
+          "display_terminal_k": 20,
+          "noise_level": "low",
+          "noise_tuple": [
+            1e-06,
+            1e-08,
+            1e-07,
+            0.0002,
+            0.0006
+          ],
+          "source_cluster_id": 9636601,
+          "source_point_count": 20,
+          "source_proc_id": 2,
+          "source_target_horizon": 20
+        },
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 0.0004115431601311448,
+          "display_terminal_k": 20,
+          "noise_level": "high",
+          "noise_tuple": [
+            7.071067811865475e-05,
+            1e-06,
+            1e-05,
+            0.002,
+            0.006
+          ],
+          "source_cluster_id": 9636601,
+          "source_point_count": 20,
+          "source_proc_id": 3,
+          "source_target_horizon": 20
+        },
+        {
+          "display_point_count": 20,
+          "display_terminal_error": 0.056584515552831505,
+          "display_terminal_k": 20,
+          "noise_level": "extreme",
+          "noise_tuple": [
+            0.01,
+            0.001,
+            0.01,
+            0.06,
+            0.06
+          ],
+          "source_cluster_id": 9634547,
+          "source_point_count": 50,
+          "source_proc_id": 5,
+          "source_target_horizon": 50
+        }
+      ],
+      "u_key": "u8",
+      "u_over_t": 8.0
+    }
+  ],
+  "schema": "paper_i_hubbard_noise_common_prefix_k20_figure_v1",
+  "sha256": "db35df4c8f6976913645c858c2214cce6ea04dc944d4f6706e6da42359aa95be",
+  "source_adapter": {
+    "canonical_sha256": "4991d37aa5c02d1cbd64ed5e707cd6e5265fed0563ad7c8b9c7b9d1f19439592",
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/pdf/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving/paper_i_ra_adapt_stationary_core_full48_r50_20260728_evolving_pure_hubbard_page12_fullnoise_page15_adapter.json",
+    "sha256": "92e0c559b82ca64ac5a4321f07e13a4433ee57e808eef76856da6051b207fa05",
+    "size_bytes": 58761,
+    "status": "completed_6_of_6_mixed_horizon"
+  }
+}

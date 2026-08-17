@@ -111,16 +111,17 @@ def _domain_records() -> tuple[_CandidatePositionRecord, ...]:
 
 def _child_record(
     root: _CandidatePositionRecord,
+    generator_id: str = "gen:child-a0",
 ) -> _CandidatePositionRecord:
     return _CandidatePositionRecord(
         domain_record_id=root.domain_record_id,
-        generator_id="gen:child-a0",
+        generator_id=generator_id,
         parent_generator_id=root.generator_id,
         pool_index=root.pool_index,
         pool_label=f"{root.pool_label}::child[0]",
         insertion_position=root.insertion_position,
         symmetry_identity="symmetry:number-spin:projected",
-        lineage_identity=(root.generator_id, "gen:child-a0"),
+        lineage_identity=(root.generator_id, generator_id),
     )
 
 
@@ -226,6 +227,79 @@ def _evaluation(
             value=0.75,
         ),
         estimator_events=events,
+    )
+
+
+def _phase0_evaluation(
+    domain: tuple[_CandidatePositionRecord, ...],
+) -> _SelectionEvaluation:
+    child = _child_record(domain[0])
+    phase0 = _PhaseSelectionReceipt(
+        phase="phase0",
+        population=domain,
+        shortlist=(domain[0],),
+        shortlist_ranking=_ranking((domain[0],)),
+        estimator_event_ids=("event:phase0:a", "event:phase0:b"),
+    )
+    phase_i = _PhaseSelectionReceipt(
+        phase="phase_i",
+        population=(child,),
+        shortlist=(child,),
+        shortlist_ranking=_ranking((child,)),
+        estimator_event_ids=("event:phase-i:a0",),
+    )
+    phase_ii = _PhaseSelectionReceipt(
+        phase="phase_ii",
+        population=(child,),
+        shortlist=(child,),
+        shortlist_ranking=_ranking((child,)),
+        estimator_event_ids=("event:phase-ii:a0",),
+    )
+    phase_iii = _PhaseSelectionReceipt(
+        phase="phase_iii",
+        population=(child,),
+        shortlist=(child,),
+        shortlist_ranking=_ranking((child,)),
+        estimator_event_ids=("event:phase-iii:a0",),
+    )
+    occurrence_ids = (
+        *phase0.estimator_event_ids,
+        *phase_i.estimator_event_ids,
+        *phase_ii.estimator_event_ids,
+        *phase_iii.estimator_event_ids,
+    )
+    return _SelectionEvaluation(
+        phase0=phase0,
+        phase_i=phase_i,
+        phase_ii=phase_ii,
+        phase_iii=phase_iii,
+        selected=child,
+        response=_ResponseReceipt(
+            identity="response:phase0-child-a0",
+            coordinate_ids=("logical:0", "proposal:child-a0"),
+            supported_rank=2,
+            supported_dimension=2,
+        ),
+        trust=_TrustSolveReceipt(
+            identity="trust:phase0-child-a0",
+            solver_identity="supported_projected_generalized_trust_v1",
+            response_identity="response:phase0-child-a0",
+            supported_rank=2,
+            proposed_coordinate_values=(0.0, -0.125),
+        ),
+        predictive_cost=_PredictiveCostReceipt(
+            identity="cost:phase0-child-a0",
+            policy_identity="symmetric_candidate_cost_v1",
+            value=0.75,
+        ),
+        estimator_events=tuple(
+            _EstimatorEventIdentity(
+                sequence_index=42 + index,
+                occurrence_id=occurrence_id,
+                reuse_identity=None,
+            )
+            for index, occurrence_id in enumerate(occurrence_ids)
+        ),
     )
 
 
@@ -622,6 +696,271 @@ def test_singleton_selection_owns_three_phase_decision_without_state_mutation() 
     )
     with pytest.raises(FrozenInstanceError):
         decision.selected = _domain_records()[1]  # type: ignore[misc]
+
+
+def test_optional_phase0_preserves_the_controller_domain_and_accepted_state() -> None:
+    state = _state()
+    state_before = tuple(
+        getattr(state, name) for name in state.__dataclass_fields__
+    )
+    seen_domains: list[tuple[_CandidatePositionRecord, ...]] = []
+
+    def _evaluate_with_phase0(
+        domain: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        seen_domains.append(domain)
+        return _phase0_evaluation(domain)
+
+    kernel = _TestSelectionKernel(_evaluate_with_phase0)
+    accepted_before = kernel.accepted_state_snapshot()
+    decision = _select_singleton(
+        state,
+        _SelectionWorkspace(
+            admissible_records=_domain_records(),
+            kernel=kernel,
+        ),
+    )
+
+    assert seen_domains == [_domain_records()]
+    assert kernel.accepted_state_snapshot() == accepted_before
+    assert tuple(
+        getattr(state, name) for name in state.__dataclass_fields__
+    ) == state_before
+    assert decision.selected.generator_id == "gen:child-a0"
+    assert decision.phase0 is not None
+    assert decision.phase0.population == _domain_records()
+
+
+def test_optional_phase0_population_must_equal_the_original_domain_tuple() -> None:
+    domain = _domain_records()
+
+    def _evaluate_with_incomplete_phase0(
+        received: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        evaluation = _phase0_evaluation(received)
+        assert evaluation.phase0 is not None
+        return replace(
+            evaluation,
+            phase0=replace(
+                evaluation.phase0,
+                population=tuple(reversed(received)),
+            ),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Phase0 population must equal the exact original admissible domain",
+    ):
+        _select_singleton(
+            _state(),
+            _SelectionWorkspace(
+                admissible_records=domain,
+                kernel=_TestSelectionKernel(
+                    _evaluate_with_incomplete_phase0
+                ),
+            ),
+        )
+
+
+def test_optional_phase0_phase_i_must_descend_from_a_retained_root() -> None:
+    domain = _domain_records()
+
+    def _evaluate_with_wrong_root(
+        received: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        evaluation = _phase0_evaluation(received)
+        wrong_child = _child_record(
+            received[1],
+            generator_id="gen:child-b0",
+        )
+        phase_i = replace(
+            evaluation.phase_i,
+            population=(wrong_child,),
+            shortlist=(wrong_child,),
+            shortlist_ranking=_ranking((wrong_child,)),
+        )
+        phase_ii = replace(
+            evaluation.phase_ii,
+            population=(wrong_child,),
+            shortlist=(wrong_child,),
+            shortlist_ranking=_ranking((wrong_child,)),
+        )
+        phase_iii = replace(
+            evaluation.phase_iii,
+            population=(wrong_child,),
+            shortlist=(wrong_child,),
+            shortlist_ranking=_ranking((wrong_child,)),
+        )
+        return replace(
+            evaluation,
+            phase_i=phase_i,
+            phase_ii=phase_ii,
+            phase_iii=phase_iii,
+            selected=wrong_child,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="did not descend from the Phase0 shortlist lineage",
+    ):
+        _select_singleton(
+            _state(),
+            _SelectionWorkspace(
+                admissible_records=domain,
+                kernel=_TestSelectionKernel(_evaluate_with_wrong_root),
+            ),
+        )
+
+
+def test_optional_phase0_rejects_phase_i_sibling_smuggling_into_phase_ii() -> None:
+    domain = _domain_records()
+
+    def _evaluate_with_sibling_smuggling(
+        received: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        evaluation = _phase0_evaluation(received)
+        admitted_child = _child_record(received[0])
+        sibling_child = _child_record(
+            received[0],
+            generator_id="gen:child-a1",
+        )
+        phase_i = replace(
+            evaluation.phase_i,
+            population=(admitted_child, sibling_child),
+            shortlist=(admitted_child,),
+            shortlist_ranking=_ranking((admitted_child,)),
+        )
+        phase_ii = replace(
+            evaluation.phase_ii,
+            population=(sibling_child,),
+            shortlist=(sibling_child,),
+            shortlist_ranking=_ranking((sibling_child,)),
+        )
+        phase_iii = replace(
+            evaluation.phase_iii,
+            population=(sibling_child,),
+            shortlist=(sibling_child,),
+            shortlist_ranking=_ranking((sibling_child,)),
+        )
+        return replace(
+            evaluation,
+            phase_i=phase_i,
+            phase_ii=phase_ii,
+            phase_iii=phase_iii,
+            selected=sibling_child,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="did not preserve shortlisted lineage",
+    ):
+        _select_singleton(
+            _state(),
+            _SelectionWorkspace(
+                admissible_records=domain,
+                kernel=_TestSelectionKernel(
+                    _evaluate_with_sibling_smuggling
+                ),
+            ),
+        )
+
+
+def test_optional_phase0_strict_progression_allows_root_to_child_descent() -> None:
+    domain = _domain_records()
+
+    def _evaluate_with_late_child_descent(
+        received: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        evaluation = _phase0_evaluation(received)
+        root = received[0]
+        child = _child_record(root)
+        phase_i = replace(
+            evaluation.phase_i,
+            population=(root,),
+            shortlist=(root,),
+            shortlist_ranking=_ranking((root,)),
+        )
+        return replace(evaluation, phase_i=phase_i, selected=child)
+
+    decision = _select_singleton(
+        _state(),
+        _SelectionWorkspace(
+            admissible_records=domain,
+            kernel=_TestSelectionKernel(
+                _evaluate_with_late_child_descent
+            ),
+        ),
+    )
+
+    assert decision.phase_i.shortlist == (domain[0],)
+    assert decision.phase_ii.shortlist[0].generator_id == "gen:child-a0"
+
+
+def test_optional_phase0_strict_progression_allows_same_key_lineage_extension() -> None:
+    domain = _domain_records()
+
+    def _evaluate_with_authenticated_owner_extension(
+        received: tuple[_CandidatePositionRecord, ...],
+    ) -> _SelectionEvaluation:
+        evaluation = _phase0_evaluation(received)
+        phase_i_child = evaluation.phase_i.shortlist[0]
+        extended_child = replace(
+            phase_i_child,
+            parent_generator_id="gen:authenticated-owner-a",
+            lineage_identity=(
+                received[0].generator_id,
+                "gen:authenticated-owner-a",
+                phase_i_child.generator_id,
+            ),
+        )
+        phase_ii = replace(
+            evaluation.phase_ii,
+            population=(extended_child,),
+            shortlist=(extended_child,),
+            shortlist_ranking=_ranking((extended_child,)),
+        )
+        phase_iii = replace(
+            evaluation.phase_iii,
+            population=(extended_child,),
+            shortlist=(extended_child,),
+            shortlist_ranking=_ranking((extended_child,)),
+        )
+        return replace(
+            evaluation,
+            phase_ii=phase_ii,
+            phase_iii=phase_iii,
+            selected=extended_child,
+        )
+
+    decision = _select_singleton(
+        _state(),
+        _SelectionWorkspace(
+            admissible_records=domain,
+            kernel=_TestSelectionKernel(
+                _evaluate_with_authenticated_owner_extension
+            ),
+        ),
+    )
+
+    assert decision.phase_i.shortlist[0].generator_id == (
+        decision.phase_ii.shortlist[0].generator_id
+    )
+    assert decision.phase_i.shortlist[0].lineage_identity != (
+        decision.phase_ii.shortlist[0].lineage_identity
+    )
+
+
+def test_legacy_singleton_without_phase0_preserves_root_only_progression() -> None:
+    decision = _select_singleton(
+        _state(),
+        _SelectionWorkspace(
+            admissible_records=_domain_records(),
+            kernel=_TestSelectionKernel(_evaluation),
+        ),
+    )
+
+    assert decision.phase_i.shortlist == _domain_records()
+    assert decision.phase_ii.shortlist[0].generator_id == "gen:child-a0"
 
 
 def test_greedy_selection_owns_one_ordered_joint_batch_without_state_mutation() -> None:

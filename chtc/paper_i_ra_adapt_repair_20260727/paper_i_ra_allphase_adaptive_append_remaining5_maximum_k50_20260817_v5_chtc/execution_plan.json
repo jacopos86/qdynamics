@@ -1,0 +1,139 @@
+{
+  "allowed_completion_kinds": [
+    "reached_maximum_controller_rounds_v1",
+    "authenticated_phase3_no_positive_natural_terminal_v1"
+  ],
+  "arms": [
+    {
+      "arm_id": "append_position_phase0",
+      "builder": "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
+      "insertion_policy": "append_only",
+      "phase0_population": "insertion_position_records",
+      "phase123_population": "insertion_position_records",
+      "route_constant": "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2"
+    }
+  ],
+  "campaign_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v5",
+  "canonical_execution_order": [
+    "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+    "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+    "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+    "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+    "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7"
+  ],
+  "created_at": "2026-08-17T18:33:06.941575Z",
+  "execution_authorized": false,
+  "jobs": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "ea7042aea978456d50e9042facee58da0502dc9a68a6561f12ee258a88b8db49",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "f6ff8837e0d8ca21a94707745f2a9ccec0c9b15615dc44e051df806ab6e8fe4e"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "bb44af544b533b9a173a3fbcfad63930b553eadaad3873b15f1d240a2c3a021b",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "8fd8325c2fd378e8114fa5e9fca86da746d7a16d89f00d4cef20f2936282c27b"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "822f4efd57d66b8c5256e76847462740fb57c19f2e0421ed085f8fe3b4af4d99",
+      "path": "jobs/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "f3bba98e0c0b868eee16551a44bae7089b41fdc8e4d787ba562619acb8d988de"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "44c8cad367353037a489f61934221e35ccd6d9237e008248e0b0eb3f2f32030b",
+      "path": "jobs/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "2a5588f9a76df4993254e7f882255af95a0ea835548cc47798fb2023edd94cbc"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "5fe28959317f5fed36175b30cd3d06836225e2e143b88e78c6d6fd832a01a3cc",
+      "path": "jobs/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "b90ce9c478f953bf0eb12684efda62de1063bea1aa4c4da6fd65cf71165b482c"
+    }
+  ],
+  "matrix_shape": {
+    "arms": 1,
+    "cells": 5,
+    "regimes": 5
+  },
+  "maximum_controller_rounds": 50,
+  "package_id": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_20260817_v5_chtc",
+  "paper_adoption_authorized": false,
+  "protocols": [
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_weak__nph3",
+      "file_sha256": "eda5edbc394415a42092ffad20a3c5935d06459e95a6ebea5eb561affef346b2",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_weak__nph3.json",
+      "sha256": "dd3bf9d3f7096fef578f7047fe5abe068fb50dfda77e4941a0ca7f23c9d8ce0c"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_weak_u8__nph3",
+      "file_sha256": "a6fadb7f408481e515605d7ca36378c33635b725448fccf0ca393c88afaeb8e4",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_weak_u8__nph3.json",
+      "sha256": "9c8d62ba4a2fe58d179820c3a652db408440ed4c189c9b9ec23c6848d3c016c3"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__weak_strong__nph7",
+      "file_sha256": "c1c646dc20106ab2ed6b8f36fcf3a210c50899082cac2eb373735bb2548e21f9",
+      "path": "protocols/allphase_maxk50__append_position_phase0__weak_strong__nph7.json",
+      "sha256": "4261a4d5d7eb56173b53366e3e4c003523b1f63f707af358dfe9c98738ae5acf"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__intermediate_strong__nph7",
+      "file_sha256": "43b1e2f76872fb06de4b5f4160e7bd4c38f8301695600ac0a1fa19961f8fdb73",
+      "path": "protocols/allphase_maxk50__append_position_phase0__intermediate_strong__nph7.json",
+      "sha256": "9e579c06152851b864da7f2b4b86981b3a881100f825255369b39f7b4f448faf"
+    },
+    {
+      "execution_id": "allphase_maxk50__append_position_phase0__strong_strong_u8__nph7",
+      "file_sha256": "a15dc5d2f57b99fe423e8c712956e1debdc0ac5186521a6f00dfb845287e204e",
+      "path": "protocols/allphase_maxk50__append_position_phase0__strong_strong_u8__nph7.json",
+      "sha256": "5eb0945a45a46eee3e67d7c999f12ddcf7bef3579da0507f8a128db8afa5b17d"
+    }
+  ],
+  "regimes": [
+    {
+      "nph": 3,
+      "regime_id": "intermediate_weak"
+    },
+    {
+      "nph": 3,
+      "regime_id": "strong_weak_u8"
+    },
+    {
+      "nph": 7,
+      "regime_id": "weak_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "intermediate_strong"
+    },
+    {
+      "nph": 7,
+      "regime_id": "strong_strong_u8"
+    }
+  ],
+  "resource_envelopes": {
+    "3": {
+      "cpus": 4,
+      "disk_mb": 20480,
+      "memory_mb": 8192,
+      "runtime_seconds": 259200
+    },
+    "7": {
+      "cpus": 4,
+      "disk_mb": 30720,
+      "memory_mb": 12288,
+      "runtime_seconds": 259200
+    }
+  },
+  "schema": "paper_i_ra_allphase_adaptive_append_remaining5_maximum_k50_plan_v1",
+  "sha256": "ab51a9332be98db4672c2b041b671e18c4fcb6726a187c4cf327e259ce9d12bd",
+  "source_archive_sha256": "d49617d474a76f31efc372af11f9158cf763e442eead354fd3e581ed55936c85",
+  "source_inventory_sha256": "4c1bc55ee8382c0de24734952322ecd46430e843df6b0b9afd38a41344675a52",
+  "submission_authorized": false
+}
