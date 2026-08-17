@@ -450,3 +450,88 @@ def test_zero_drive_parity_records_static_reduction() -> None:
     payload = provider.to_json_dict()
     assert payload["drive_enabled"] is True
     assert payload["metadata"]["zero_drive_static_parity"]["passed"] is True
+
+
+# ---------------------------------------------------------------------------
+# Dense-operator cache parity (runtime acceleration pass)
+# ---------------------------------------------------------------------------
+
+#: matrix_at() recombines two cached dense operators instead of rebuilding the
+#: combined Pauli polynomial, so agreement is to floating point, not bitwise.
+DENSE_CACHE_ATOL = 1.0e-11
+DENSE_CACHE_RTOL = 1.0e-12
+
+
+def _uncached_matrix_at(provider, time):
+    """The pre-acceleration construction, kept as the parity reference."""
+
+    from src.quantum.vqe_latex_python_pairs import hamiltonian_matrix
+
+    return np.asarray(hamiltonian_matrix(provider.polynomial_at(float(time))), dtype=complex)
+
+
+def _drive_provider():
+    """Driven provider whose static and drive operators share a Pauli label.
+
+    The shared ``x`` label is the case where recombination order matters: the
+    rebuild adds the coefficients before the dense mapping, the cache adds two
+    dense matrices.
+    """
+
+    return TimeDependentHamiltonian(
+        static_poly=_multi_poly((("z", 2.0), ("x", 0.5))),
+        drive_model=_DriveModel(),
+    )
+
+
+def test_dense_operator_cache_matches_polynomial_rebuild_across_times():
+    provider = _drive_provider()
+    for time in (0.0, 0.017, 0.5, 1.25, 2.0, 3.7, 12.5, 50.0):
+        cached = provider.matrix_at(time)
+        reference = _uncached_matrix_at(provider, time)
+        assert cached.shape == reference.shape
+        assert np.allclose(
+            cached, reference, atol=DENSE_CACHE_ATOL, rtol=DENSE_CACHE_RTOL
+        ), f"dense cache diverged at t={time}: max={np.max(np.abs(cached - reference)):.3e}"
+
+
+def test_dense_operator_cache_is_hermitian_and_repeatable():
+    provider = _drive_provider()
+    first = provider.matrix_at(0.9)
+    second = provider.matrix_at(0.9)
+    assert np.array_equal(first, second)
+    assert np.allclose(first, first.conj().T, atol=DENSE_CACHE_ATOL)
+
+
+def test_matrix_at_returns_a_fresh_writable_array_each_call():
+    """Callers historically owned the returned array; mutation must not leak."""
+
+    provider = _drive_provider()
+    first = provider.matrix_at(0.4)
+    assert first.flags.writeable
+    first[0, 0] += 12.5
+    assert not np.allclose(provider.matrix_at(0.4), first)
+
+
+def test_zero_drive_coefficient_returns_the_static_matrix_exactly():
+    """The A=0 parity requirement must stay exact, not merely close."""
+
+    provider = TimeDependentHamiltonian(
+        static_poly=_multi_poly((("z", 2.0), ("x", 0.5))),
+        drive_model=_ZeroDriveModel(),
+    )
+    static_reference = np.asarray(
+        _uncached_matrix_at(
+            TimeDependentHamiltonian(static_poly=_multi_poly((("z", 2.0), ("x", 0.5)))),
+            0.0,
+        ),
+        dtype=complex,
+    )
+    for time in (0.0, 1.0, 7.5):
+        assert np.array_equal(provider.matrix_at(time), static_reference)
+
+
+def test_undriven_provider_matches_the_static_rebuild_exactly():
+    provider = TimeDependentHamiltonian(static_poly=_multi_poly((("z", 2.0), ("x", 0.5))))
+    for time in (0.0, 2.5, 40.0):
+        assert np.array_equal(provider.matrix_at(time), _uncached_matrix_at(provider, time))

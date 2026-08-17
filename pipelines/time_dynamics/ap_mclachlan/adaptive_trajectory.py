@@ -6,8 +6,10 @@ import itertools
 import hashlib
 import json
 import math
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
+from functools import lru_cache
 from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
@@ -54,6 +56,29 @@ from pipelines.time_dynamics.ap_mclachlan.integrators import (
 from pipelines.time_dynamics.ap_mclachlan.inverse import (
     McLachlanInversePolicy,
     supported_inverse,
+)
+from pipelines.time_dynamics.ap_mclachlan.performance import (
+    NULL_PHASE as _NO_PHASE,
+    PHASE_APPEND_GEOMETRY_CACHE,
+    PHASE_APPEND_SCORE_BATCH,
+    PHASE_APPEND_SCORE_ONE,
+    PHASE_APPEND_SELECT,
+    PHASE_EXCHANGE_SCORE_ONE,
+    PHASE_FIXED_STEP_SOLVE,
+    PHASE_GEOMETRY_EVAL,
+    PHASE_INTEGRATE,
+    PHASE_PARENT_SCOUT,
+    PHASE_PRUNE_SAFETY,
+    PHASE_PRUNE_SCORE_BATCH,
+    PHASE_PRUNE_SCORE_ONE,
+    PHASE_PRUNE_SELECT,
+    PHASE_PRUNE_SMOOTHNESS,
+    PHASE_UNIFIED_SELECT,
+    active_profiler as _active_profiler,
+    attribute_nested as _attribute_nested,
+    count as _profile_count,
+    phase,
+    timed as _timed,
 )
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
@@ -1168,29 +1193,32 @@ def run_append_mclachlan_trajectory(
         dt_to_next = (
             None if index + 1 >= len(time_grid) else float(time_grid[index + 1] - time_value)
         )
-        evaluation = evaluate_mclachlan_geometry(
-            state=current_state,
-            hamiltonian=hamiltonian,
-            theta_runtime=theta_current,
-            time=float(time_value),
-            include_tangent_matrix=(
-                _use_combinatorial_append_ladder(support_patch_config)
-                or _needs_prune_patch_smoothness(support_patch_config)
-                or _needs_parent_macro_scout_tangent_matrix(support_patch_config)
-            ),
-        )
+        _profile_count("checkpoints")
+        with phase(PHASE_GEOMETRY_EVAL):
+            evaluation = evaluate_mclachlan_geometry(
+                state=current_state,
+                hamiltonian=hamiltonian,
+                theta_runtime=theta_current,
+                time=float(time_value),
+                include_tangent_matrix=(
+                    _use_combinatorial_append_ladder(support_patch_config)
+                    or _needs_prune_patch_smoothness(support_patch_config)
+                    or _needs_parent_macro_scout_tangent_matrix(support_patch_config)
+                ),
+            )
         kink_reference_theta_dot = _same_dimension_theta_dot_or_none(
             previous_accepted_theta_dot,
             int(evaluation.geometry.dimension),
         )
-        fixed_step, repair_hold_state = _solve_fixed_step_with_hold_for_trajectory(
-            evaluation.geometry,
-            inverse_policy=inverse_policy,
-            solve_repair_config=solve_repair_config,
-            repair_dt=None,
-            hold_state=repair_hold_state,
-            kink_reference_theta_dot=kink_reference_theta_dot,
-        )
+        with phase(PHASE_FIXED_STEP_SOLVE):
+            fixed_step, repair_hold_state = _solve_fixed_step_with_hold_for_trajectory(
+                evaluation.geometry,
+                inverse_policy=inverse_policy,
+                solve_repair_config=solve_repair_config,
+                repair_dt=None,
+                hold_state=repair_hold_state,
+                kink_reference_theta_dot=kink_reference_theta_dot,
+            )
         if progress_callback is not None:
             progress_callback(
                 {
@@ -1227,49 +1255,52 @@ def run_append_mclachlan_trajectory(
                     reason="append_before_min_time",
                 )
             elif _use_unified_support_patch_selector(support_patch_config):
-                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_unified_support_patch(
-                    state=current_state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    base_evaluation=evaluation,
-                    base_step=fixed_step,
-                    inverse_policy=decision_inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    support_config=support_patch_config,
-                    runtime_state=prune_runtime_state,
-                    repair_dt=None,
-                    time_index=int(index),
-                )
+                with phase(PHASE_UNIFIED_SELECT):
+                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_unified_support_patch(
+                        state=current_state,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=theta_current,
+                        time=float(time_value),
+                        base_evaluation=evaluation,
+                        base_step=fixed_step,
+                        inverse_policy=decision_inverse_policy,
+                        solve_repair_config=solve_repair_config,
+                        support_config=support_patch_config,
+                        runtime_state=prune_runtime_state,
+                        repair_dt=None,
+                        time_index=int(index),
+                    )
             elif _use_combinatorial_append_ladder(support_patch_config):
-                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_ladder_patch(
-                    state=current_state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    base_evaluation=evaluation,
-                    base_step=fixed_step,
-                    inverse_policy=decision_inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    support_config=support_patch_config,
-                    repair_dt=None,
-                    time_index=int(index),
-                    geometry_clock=float(geometry_clock),
-                    reuse_state=failed_append_reuse_state,
-                )
+                with phase(PHASE_APPEND_SELECT):
+                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_ladder_patch(
+                        state=current_state,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=theta_current,
+                        time=float(time_value),
+                        base_evaluation=evaluation,
+                        base_step=fixed_step,
+                        inverse_policy=decision_inverse_policy,
+                        solve_repair_config=solve_repair_config,
+                        support_config=support_patch_config,
+                        repair_dt=None,
+                        time_index=int(index),
+                        geometry_clock=float(geometry_clock),
+                        reuse_state=failed_append_reuse_state,
+                    )
             else:
-                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_patch(
-                    state=current_state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    base_evaluation=evaluation,
-                    base_step=fixed_step,
-                    inverse_policy=decision_inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    controller_config=controller_config,
-                    repair_dt=None,
-                )
+                with phase(PHASE_APPEND_SELECT):
+                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_patch(
+                        state=current_state,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=theta_current,
+                        time=float(time_value),
+                        base_evaluation=evaluation,
+                        base_step=fixed_step,
+                        inverse_policy=decision_inverse_policy,
+                        solve_repair_config=solve_repair_config,
+                        controller_config=controller_config,
+                        repair_dt=None,
+                    )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
                 failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
@@ -1298,20 +1329,21 @@ def run_append_mclachlan_trajectory(
             and not _use_unified_support_patch_selector(support_patch_config)
             and _use_active_prune_ladder(support_patch_config)
         ):
-            decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_ladder_patch(
-                state=current_state,
-                hamiltonian=hamiltonian,
-                theta_runtime=theta_current,
-                time=float(time_value),
-                base_evaluation=evaluation,
-                base_step=fixed_step,
-                inverse_policy=fixed_step.inverse_policy,
-                solve_repair_config=solve_repair_config,
-                support_config=support_patch_config,
-                runtime_state=prune_runtime_state,
-                repair_dt=None,
-                time_index=int(index),
-            )
+            with phase(PHASE_PRUNE_SELECT):
+                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_ladder_patch(
+                    state=current_state,
+                    hamiltonian=hamiltonian,
+                    theta_runtime=theta_current,
+                    time=float(time_value),
+                    base_evaluation=evaluation,
+                    base_step=fixed_step,
+                    inverse_policy=fixed_step.inverse_policy,
+                    solve_repair_config=solve_repair_config,
+                    support_config=support_patch_config,
+                    runtime_state=prune_runtime_state,
+                    repair_dt=None,
+                    time_index=int(index),
+                )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
                 failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
@@ -1339,18 +1371,19 @@ def run_append_mclachlan_trajectory(
             and support_patch_config is None
             and prune_count < int(controller_config.max_total_prunes)
         ):
-            decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_patch(
-                state=current_state,
-                hamiltonian=hamiltonian,
-                theta_runtime=theta_current,
-                time=float(time_value),
-                base_evaluation=evaluation,
-                base_step=fixed_step,
-                inverse_policy=fixed_step.inverse_policy,
-                solve_repair_config=solve_repair_config,
-                controller_config=controller_config,
-                repair_dt=None,
-            )
+            with phase(PHASE_PRUNE_SELECT):
+                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_patch(
+                    state=current_state,
+                    hamiltonian=hamiltonian,
+                    theta_runtime=theta_current,
+                    time=float(time_value),
+                    base_evaluation=evaluation,
+                    base_step=fixed_step,
+                    inverse_policy=fixed_step.inverse_policy,
+                    solve_repair_config=solve_repair_config,
+                    controller_config=controller_config,
+                    repair_dt=None,
+                )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
                 failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
@@ -1367,17 +1400,18 @@ def run_append_mclachlan_trajectory(
                 fixed_step,
                 solve_repair_config=solve_repair_config,
             )
-            integration = _integrate_interval_with_repair(
-                state=state_for_rhs,
-                hamiltonian=hamiltonian,
-                theta_runtime=theta_current,
-                time=float(time_value),
-                dt=dt,
-                inverse_policy=inverse_policy,
-                solve_repair_config=solve_repair_config,
-                integrator_method=str(integrator_method),
-                force_local_subdivision_request=force_local_subdivision_request,
-            )
+            with phase(PHASE_INTEGRATE):
+                integration = _integrate_interval_with_repair(
+                    state=state_for_rhs,
+                    hamiltonian=hamiltonian,
+                    theta_runtime=theta_current,
+                    time=float(time_value),
+                    dt=dt,
+                    inverse_policy=inverse_policy,
+                    solve_repair_config=solve_repair_config,
+                    integrator_method=str(integrator_method),
+                    force_local_subdivision_request=force_local_subdivision_request,
+                )
             theta_next = np.asarray(integration.theta_next, dtype=float).reshape(-1)
             path_increment = _mclachlan_path_increment(
                 fixed_step=fixed_step,
@@ -2342,16 +2376,59 @@ def _ordered_parallel_map(
     *,
     support_config: SupportPatchControllerConfig,
     score_one: Callable[[Any], Any],
+    batch_phase: str | None = None,
+    task_phase: str | None = None,
 ) -> tuple[Any, ...]:
     task_tuple = tuple(tasks)
     worker_count = _support_patch_scoring_worker_count(
         support_config,
         task_count=len(task_tuple),
     )
-    if worker_count <= 1:
-        return tuple(score_one(task) for task in task_tuple)
-    with ThreadPoolExecutor(max_workers=worker_count) as executor:
-        return tuple(executor.map(score_one, task_tuple))
+    profiling = _active_profiler() is not None
+    if not profiling:
+        # Ordinary runs pay nothing for the instrumentation.
+        if worker_count <= 1:
+            return tuple(score_one(task) for task in task_tuple)
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            return tuple(executor.map(score_one, task_tuple))
+
+    if batch_phase is not None:
+        _profile_count(f"{batch_phase}.tasks", len(task_tuple))
+        _profile_count(f"{batch_phase}.worker_count_{int(worker_count)}")
+
+    # Worker threads keep their own nested-phase stacks, so a task timed on a
+    # worker is not subtracted from the dispatching phase.  Sum the task spans
+    # and hand the total back to the parent after fan-in, otherwise the batch
+    # phase reports the whole parallel section as its own exclusive time.
+    task_seconds: list[float] = []
+    inner = score_one
+
+    def timed_task(task: Any) -> Any:
+        start = time.perf_counter()
+        try:
+            if task_phase is None:
+                return inner(task)
+            with phase(task_phase):
+                return inner(task)
+        finally:
+            task_seconds.append(time.perf_counter() - start)
+
+    def phased_task(task: Any) -> Any:
+        if task_phase is None:
+            return inner(task)
+        with phase(task_phase):
+            return inner(task)
+
+    with phase(batch_phase) if batch_phase is not None else _NO_PHASE:
+        if worker_count <= 1:
+            # Same thread: nested accounting already applies, so the parent must
+            # not be charged a second time.
+            return tuple(phased_task(task) for task in task_tuple)
+        try:
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                return tuple(executor.map(timed_task, task_tuple))
+        finally:
+            _attribute_nested(sum(task_seconds))
 
 
 def _prune_history_read_view(
@@ -3091,14 +3168,34 @@ def _stable_json_hash(payload: Mapping[str, Any] | Sequence[Any]) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def _support_identity_hash(state: APMcLachlanState) -> str:
+@lru_cache(maxsize=512)
+def _support_identity_hash_for(
+    parameterization_mode: str,
+    runtime_coordinate_labels: tuple[str, ...],
+) -> str:
     return _stable_json_hash(
         {
-            "parameterization_mode": str(state.parameterization_mode),
+            "parameterization_mode": str(parameterization_mode),
             "runtime_coordinate_labels": [
-                str(label) for label in state.runtime_coordinate_labels
+                str(label) for label in runtime_coordinate_labels
             ],
         }
+    )
+
+
+def _support_identity_hash(state: APMcLachlanState) -> str:
+    """Stable identity of the ordered runtime support.
+
+    The support changes only when a patch is accepted, but this is consulted
+    every checkpoint, so the JSON encode plus SHA-256 over every coordinate
+    label was repeated for each unchanged support.  Memoizing on the identity
+    inputs returns the same digest without recomputing it; tuple hashing reuses
+    the interned label hashes.
+    """
+
+    return _support_identity_hash_for(
+        str(state.parameterization_mode),
+        tuple(str(label) for label in state.runtime_coordinate_labels),
     )
 
 
@@ -3942,6 +4039,8 @@ def _select_unified_support_patch(
             tuple(exchange_tasks),
             support_config=support_config,
             score_one=score_exchange_task,
+            batch_phase="patch.exchange.score_batch",
+            task_phase=PHASE_EXCHANGE_SCORE_ONE,
         ):
             finalist = _exchange_scoring_result_to_finalist(
                 result,
@@ -4213,6 +4312,8 @@ def _score_append_ladder_batch(
                 tasks,
                 support_config=support_config,
                 score_one=score_task,
+                batch_phase=PHASE_APPEND_SCORE_BATCH,
+                task_phase=PHASE_APPEND_SCORE_ONE,
             ):
                 scores.append(candidate_score)
                 if candidate_score.score is not None:
@@ -4632,6 +4733,7 @@ class _AppendCandidateGeometryCache:
     K_active_schur_inverse: np.ndarray | None
 
 
+@_timed(PHASE_APPEND_GEOMETRY_CACHE)
 def _build_append_candidate_geometry_cache(
     *,
     state: APMcLachlanState,
@@ -4861,6 +4963,7 @@ def _parent_scout_base_context(
     )
 
 
+@_timed(PHASE_PARENT_SCOUT)
 def _score_cheap_parent_scout(
     *,
     context: _ParentScoutBaseContext,
@@ -5940,6 +6043,7 @@ def _transport_exact_adjacent_duplicate_angles(
     }
 
 
+@_timed(PHASE_PRUNE_SAFETY)
 def _evaluate_deletion_patch_safety(
     *,
     state: APMcLachlanState,
@@ -7115,6 +7219,8 @@ def _score_prune_ladder_batch(
                 tasks,
                 support_config=support_config,
                 score_one=score_task,
+                batch_phase=PHASE_PRUNE_SCORE_BATCH,
+                task_phase=PHASE_PRUNE_SCORE_ONE,
             ):
                 scores.append(candidate_score)
                 if candidate_score.score is not None:
@@ -7899,6 +8005,7 @@ def _materialize_prune_atom_set(
     return pruned_state, theta_pruned, evaluation, step
 
 
+@_timed(PHASE_PRUNE_SMOOTHNESS)
 def _evaluate_prune_patch_smoothness(
     *,
     base_evaluation: GeometryEvaluation,

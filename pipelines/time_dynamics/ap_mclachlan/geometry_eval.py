@@ -9,6 +9,7 @@ import numpy as np
 
 from pipelines.time_dynamics.ap_mclachlan.geometry import McLachlanGeometry
 from pipelines.time_dynamics.ap_mclachlan.hamiltonian import TimeDependentHamiltonian
+from pipelines.time_dynamics.ap_mclachlan.performance import phase
 from pipelines.time_dynamics.ap_mclachlan.state import APMcLachlanState
 
 
@@ -59,36 +60,45 @@ def evaluate_mclachlan_geometry(
         )
     indices = _runtime_indices(runtime_indices, size=int(state.runtime_parameter_count))
 
-    psi, tangents_by_index = state.executor.prepare_state_with_parameter_tangents(
-        theta,
-        np.asarray(state.psi_ref, dtype=complex).reshape(-1),
-        parameter_indices=indices,
-    )
-    psi = _normalize_state(psi, name="psi")
-    hmat = np.asarray(hamiltonian.matrix_at(float(time)), dtype=complex)
-    if hmat.shape != (int(psi.size), int(psi.size)):
-        raise ValueError(
-            f"Hamiltonian matrix shape {hmat.shape} does not match state dimension {psi.size}."
+    with phase("geometry.state_and_tangents"):
+        psi, tangents_by_index = state.executor.prepare_state_with_parameter_tangents(
+            theta,
+            np.asarray(state.psi_ref, dtype=complex).reshape(-1),
+            parameter_indices=indices,
         )
-    h_psi = np.asarray(hmat @ psi, dtype=complex).reshape(-1)
-    energy = float(np.real(np.vdot(psi, h_psi)))
-    b_bar = np.asarray(-1.0j * (h_psi - energy * psi), dtype=complex)
+        psi = _normalize_state(psi, name="psi")
 
-    tangent_columns = [
-        _horizontalize(
-            np.asarray(tangents_by_index[int(idx)], dtype=complex).reshape(-1),
-            psi=psi,
+    with phase("geometry.hamiltonian_action"):
+        hmat = np.asarray(hamiltonian.matrix_at(float(time)), dtype=complex)
+        if hmat.shape != (int(psi.size), int(psi.size)):
+            raise ValueError(
+                f"Hamiltonian matrix shape {hmat.shape} does not match state dimension {psi.size}."
+            )
+        h_psi = np.asarray(hmat @ psi, dtype=complex).reshape(-1)
+        energy = float(np.real(np.vdot(psi, h_psi)))
+        b_bar = np.asarray(-1.0j * (h_psi - energy * psi), dtype=complex)
+
+    with phase("geometry.horizontal_projection"):
+        tangent_columns = [
+            _horizontalize(
+                np.asarray(tangents_by_index[int(idx)], dtype=complex).reshape(-1),
+                psi=psi,
+            )
+            for idx in indices
+        ]
+        tangent_matrix = (
+            np.column_stack(tangent_columns)
+            if tangent_columns
+            else np.zeros((int(psi.size), 0), dtype=complex)
         )
-        for idx in indices
-    ]
-    if tangent_columns:
-        tangent_matrix = np.column_stack(tangent_columns)
-        K = np.asarray(np.real(tangent_matrix.conj().T @ tangent_matrix), dtype=float)
-        f = np.asarray(np.real(tangent_matrix.conj().T @ b_bar), dtype=float).reshape(-1)
-    else:
-        tangent_matrix = np.zeros((int(psi.size), 0), dtype=complex)
-        K = np.zeros((0, 0), dtype=float)
-        f = np.zeros(0, dtype=float)
+
+    with phase("geometry.gram_force"):
+        if tangent_columns:
+            K = np.asarray(np.real(tangent_matrix.conj().T @ tangent_matrix), dtype=float)
+            f = np.asarray(np.real(tangent_matrix.conj().T @ b_bar), dtype=float).reshape(-1)
+        else:
+            K = np.zeros((0, 0), dtype=float)
+            f = np.zeros(0, dtype=float)
 
     geometry_metadata = {
         "geometry_evaluation_schema": GEOMETRY_EVALUATION_SCHEMA_V1,

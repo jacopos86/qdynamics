@@ -35,6 +35,39 @@ class TimeDependentHamiltonian:
     def drive_enabled(self) -> bool:
         return self.drive_model is not None
 
+    # -- dense operator cache -------------------------------------------
+    #
+    # ``H(t) = H_static + c(t) D`` has two time-independent operators and one
+    # scalar envelope, so the dense matrices can be built once per provider and
+    # recombined per checkpoint.  Rebuilding them from Pauli terms on every call
+    # dominated ``geometry.hamiltonian_action`` in the AP-McLachlan profile.
+    #
+    # This is sound only because the provider is frozen and its polynomials are
+    # owned for its lifetime.  Mutating ``static_poly`` or the drive model's
+    # ``drive_poly`` after construction would invalidate the cache; nothing in
+    # the AP route does so.
+
+    def _dense_static(self) -> np.ndarray:
+        cached = self.__dict__.get("_dense_static_cache")
+        if cached is None:
+            cached = np.asarray(hamiltonian_matrix(self.static_poly), dtype=complex)
+            cached.setflags(write=False)
+            object.__setattr__(self, "_dense_static_cache", cached)
+        return cached
+
+    def _dense_drive(self) -> np.ndarray | None:
+        if self.drive_model is None:
+            return None
+        cached = self.__dict__.get("_dense_drive_cache")
+        if cached is None:
+            cached = np.asarray(
+                hamiltonian_matrix(getattr(self.drive_model, "drive_poly")),
+                dtype=complex,
+            )
+            cached.setflags(write=False)
+            object.__setattr__(self, "_dense_drive_cache", cached)
+        return cached
+
     @property
     def drive_poly(self) -> Any | None:
         if self.drive_model is None:
@@ -54,7 +87,35 @@ class TimeDependentHamiltonian:
         return static + float(coeff) * getattr(self.drive_model, "drive_poly")
 
     def matrix_at(self, time: float) -> np.ndarray:
-        return np.asarray(hamiltonian_matrix(self.polynomial_at(float(time))), dtype=complex)
+        r"""Return the dense ``H(t) = H_static + c(t) D``.
+
+        Callers receive a fresh writable array, as they did when this rebuilt
+        the matrix from Pauli terms on every call.
+
+        The cached recombination is not bitwise identical to rebuilding the
+        combined polynomial: it sums two dense matrices instead of summing
+        per-Pauli coefficients before the dense mapping, so results differ at
+        floating-point rounding, and a drive term whose *scaled* coefficient
+        straddles the ``1e-12`` term tolerance may be kept here where the
+        rebuild dropped it. Both effects are bounded by ~1e-12 absolute. The
+        ``c(t) == 0`` branch is exactly equal to the static matrix, which keeps
+        the ``A=0`` drive parity requirement intact.
+        """
+
+        static = self._dense_static()
+        drive = self._dense_drive()
+        if drive is None:
+            return np.array(static, dtype=complex)
+        coeff = self.drive_coefficient_at(float(time))
+        if coeff == 0.0:
+            return np.array(static, dtype=complex)
+        if static.shape != drive.shape:
+            # Degenerate polynomials (e.g. an empty static operator) fall back
+            # to the uncached construction rather than guessing a broadcast.
+            return np.asarray(
+                hamiltonian_matrix(self.polynomial_at(float(time))), dtype=complex
+            )
+        return np.asarray(static + float(coeff) * drive, dtype=complex)
 
     def to_json_dict(self) -> dict[str, Any]:
         drive_model = self.drive_model

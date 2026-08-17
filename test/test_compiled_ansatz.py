@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 # Ensure repo root is on path (same pattern as other integration tests).
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -459,3 +460,115 @@ def test_compiled_ansatz_logical_shared_tangents_match_finite_difference() -> No
             - executor.prepare_state(theta_minus, psi_ref)
         ) / (2.0 * eps)
         assert np.linalg.norm(fd - tangents[logical_idx]) < 5e-6
+
+
+# ---------------------------------------------------------------------------
+# Permutation/sign table cache (runtime acceleration pass)
+# ---------------------------------------------------------------------------
+
+
+def _reference_apply(psi, action):
+    """Pre-cache construction, kept as the bitwise parity reference."""
+
+    from src.quantum.pauli_actions import _basis_indices, _phase_signs
+
+    psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
+    indices = _basis_indices(int(action.nq))
+    source = (
+        indices
+        if int(action.flip_mask) == 0
+        else np.bitwise_xor(indices, np.int64(action.flip_mask))
+    )
+    out = np.asarray(psi_vec[source], dtype=complex)
+    signs = _phase_signs(source, int(action.phase_mask))
+    if signs is not None:
+        out = out * signs
+    prefactor = (1.0 + 0.0j, 0.0 + 1.0j, -1.0 + 0.0j, 0.0 - 1.0j)[
+        int(action.y_count_mod4)
+    ]
+    if prefactor != 1.0 + 0.0j:
+        out = out * prefactor
+    return out
+
+
+@pytest.mark.parametrize(
+    "word",
+    ["exyz", "xxxx", "zzzz", "eeee", "xyex", "yyyy", "zexy", "eeyx"],
+)
+def test_cached_pauli_action_is_bitwise_identical_to_rebuild(word: str) -> None:
+    from src.quantum.pauli_actions import apply_compiled_pauli, compile_pauli_action_exyz
+
+    action = compile_pauli_action_exyz(word, 4)
+    rng = np.random.default_rng(7)
+    psi = rng.standard_normal(16) + 1j * rng.standard_normal(16)
+    for _ in range(3):  # repeat so the second call hits the cache
+        assert np.array_equal(apply_compiled_pauli(psi, action), _reference_apply(psi, action))
+
+
+def test_cached_pauli_columns_match_single_vector_application() -> None:
+    from src.quantum.pauli_actions import (
+        apply_compiled_pauli,
+        apply_compiled_pauli_to_columns,
+        compile_pauli_action_exyz,
+    )
+
+    action = compile_pauli_action_exyz("xyzе".replace("е", "e"), 4)
+    rng = np.random.default_rng(11)
+    columns = rng.standard_normal((16, 5)) + 1j * rng.standard_normal((16, 5))
+    applied = apply_compiled_pauli_to_columns(columns, action)
+    for index in range(columns.shape[1]):
+        assert np.array_equal(applied[:, index], apply_compiled_pauli(columns[:, index], action))
+
+
+def test_cached_tables_are_read_only_and_not_mutated_by_callers() -> None:
+    """A caller scaling its result must not corrupt the shared table."""
+
+    from src.quantum.pauli_actions import (
+        _permutation_and_signs,
+        apply_compiled_pauli,
+        compile_pauli_action_exyz,
+    )
+
+    action = compile_pauli_action_exyz("xyzx", 4)
+    source, signs = _permutation_and_signs(action)
+    assert not source.flags.writeable
+    if signs is not None:
+        assert not signs.flags.writeable
+    before = (source.copy(), None if signs is None else signs.copy())
+    rng = np.random.default_rng(3)
+    psi = rng.standard_normal(16) + 1j * rng.standard_normal(16)
+    out = apply_compiled_pauli(psi, action)
+    out *= 5.0  # caller mutates its own result
+    after_source, after_signs = _permutation_and_signs(action)
+    assert np.array_equal(before[0], after_source)
+    if signs is not None:
+        assert np.array_equal(before[1], after_signs)
+
+
+def test_large_systems_bypass_the_table_cache() -> None:
+    """Above the ceiling the tables must not be retained."""
+
+    from src.quantum.pauli_actions import (
+        _PERMUTATION_TABLE_CACHE_MAX_NQ,
+        _cached_permutation_and_signs,
+        _permutation_and_signs,
+        compile_pauli_action_exyz,
+    )
+
+    big_nq = int(_PERMUTATION_TABLE_CACHE_MAX_NQ) + 2
+    action = compile_pauli_action_exyz("x" + "e" * (big_nq - 1), big_nq)
+    _cached_permutation_and_signs.cache_clear()
+    first, _ = _permutation_and_signs(action)
+    second, _ = _permutation_and_signs(action)
+    assert _cached_permutation_and_signs.cache_info().currsize == 0
+    assert first is not second  # rebuilt, not retained
+    assert np.array_equal(first, second)
+
+
+def test_small_systems_reuse_the_same_table_object() -> None:
+    from src.quantum.pauli_actions import _permutation_and_signs, compile_pauli_action_exyz
+
+    action = compile_pauli_action_exyz("xyzx", 4)
+    first, _ = _permutation_and_signs(action)
+    second, _ = _permutation_and_signs(action)
+    assert first is second

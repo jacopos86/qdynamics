@@ -1,16 +1,22 @@
 """Compiled Pauli-string action helpers (exyz convention).
 
 These utilities implement statevector action for a single Pauli string
-without forming dense matrices or retaining one ``2**n`` permutation and
-phase table per Pauli word.
+without forming dense matrices.
 
 For an input basis index ``i``, a Pauli word acts as
 
 ``P|i> = i**n_y (-1)**popcount(i & phase_mask) |i ^ flip_mask>``.
 
 The two integer masks are therefore a complete, constant-size compiled
-representation.  The index permutation is materialized only while applying
-the action or while explicitly constructing a grouped-exact matrix.
+representation, and they remain the stored form of every action.
+
+The permutation/sign arrays derived from those masks are ``2**n`` long, so
+retaining one per Pauli word does not scale: at 20 qubits a table is 9.2 MB and
+an operator pool holds hundreds of words.  They are therefore materialized on
+demand, and memoized only below ``_PERMUTATION_TABLE_CACHE_MAX_NQ`` where a
+table is small enough to be free (36 KB at 12 qubits, 0.6 KB at 6).  Above that
+ceiling the arrays are rebuilt per call exactly as before.  The cache changes no
+value it returns; it only avoids recomputing them.
 
 Math:
     P|psi>  via bit-mask permutation + phase
@@ -83,6 +89,64 @@ def _phase_signs(indices: np.ndarray, phase_mask: int) -> np.ndarray | None:
         copy=False,
     )
     return np.asarray(1 - 2 * parity, dtype=np.int8)
+
+
+#: Largest qubit count whose permutation/sign tables are memoized.  One table is
+#: ``9 * 2**nq`` bytes, so 12 qubits is 36 KB per Pauli word; beyond this the
+#: arrays are rebuilt per call to keep memory O(1) per operator.
+_PERMUTATION_TABLE_CACHE_MAX_NQ = 12
+
+#: Bound on retained tables, so a large operator pool cannot grow without limit.
+_PERMUTATION_TABLE_CACHE_MAX_ENTRIES = 512
+
+
+def _build_permutation_and_signs(
+    nq: int,
+    flip_mask: int,
+    phase_mask: int,
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Materialize the source permutation and phase signs for one action."""
+
+    indices = _basis_indices(int(nq))
+    source_indices = (
+        indices
+        if int(flip_mask) == 0
+        else np.bitwise_xor(indices, np.int64(flip_mask))
+    )
+    if source_indices is not indices:
+        source_indices.flags.writeable = False
+    signs = _phase_signs(source_indices, int(phase_mask))
+    if signs is not None:
+        signs.flags.writeable = False
+    return source_indices, signs
+
+
+@lru_cache(maxsize=_PERMUTATION_TABLE_CACHE_MAX_ENTRIES)
+def _cached_permutation_and_signs(
+    nq: int,
+    flip_mask: int,
+    phase_mask: int,
+) -> tuple[np.ndarray, np.ndarray | None]:
+    return _build_permutation_and_signs(nq, flip_mask, phase_mask)
+
+
+def _permutation_and_signs(
+    action: CompiledPauliAction,
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Return read-only permutation/sign arrays for ``action``.
+
+    Both arrays are pure functions of the action's masks, and the same handful
+    of actions is applied repeatedly during tangent transport, so small systems
+    reuse them.  Large systems rebuild, because the table is what does not
+    scale.  Returned arrays are read-only; callers index with them and must not
+    write through them.
+    """
+
+    nq = int(action.nq)
+    masks = (nq, int(action.flip_mask), int(action.phase_mask))
+    if nq <= _PERMUTATION_TABLE_CACHE_MAX_NQ:
+        return _cached_permutation_and_signs(*masks)
+    return _build_permutation_and_signs(*masks)
 
 
 def materialize_compiled_pauli_action(
@@ -172,14 +236,10 @@ def apply_compiled_pauli(psi: np.ndarray, action: CompiledPauliAction) -> np.nda
             "Statevector length does not match compiled Pauli action: "
             f"{psi_vec.size} vs {action.dimension}."
         )
-    indices = _basis_indices(int(action.nq))
-    source_indices = (
-        indices
-        if int(action.flip_mask) == 0
-        else np.bitwise_xor(indices, np.int64(action.flip_mask))
-    )
+    source_indices, signs = _permutation_and_signs(action)
+    # Fancy indexing returns a fresh array, so the in-place scaling below never
+    # writes through the shared read-only tables.
     out = np.asarray(psi_vec[source_indices], dtype=complex)
-    signs = _phase_signs(source_indices, int(action.phase_mask))
     if signs is not None:
         out *= signs
     prefactor = _phase_prefactor(action)
@@ -204,14 +264,8 @@ def apply_compiled_pauli_to_columns(
             "Pauli action dimension does not match tangent column matrix: "
             f"{action.dimension} vs {matrix.shape[0]}."
         )
-    indices = _basis_indices(int(action.nq))
-    source_indices = (
-        indices
-        if int(action.flip_mask) == 0
-        else np.bitwise_xor(indices, np.int64(action.flip_mask))
-    )
+    source_indices, signs = _permutation_and_signs(action)
     out = np.asarray(matrix[source_indices, :], dtype=complex)
-    signs = _phase_signs(source_indices, int(action.phase_mask))
     if signs is not None:
         out *= signs[:, None]
     prefactor = _phase_prefactor(action)

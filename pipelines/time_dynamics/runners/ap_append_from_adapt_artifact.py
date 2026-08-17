@@ -72,15 +72,46 @@ from pipelines.time_dynamics.normalized_pauli_pool import (
     build_normalized_pauli_pool,
     runtime_input_with_normalized_candidate_pool,
 )
-from pipelines.time_dynamics.redundancy_stress import (
-    REDUNDANCY_STRESS_LAYOUTS,
-    RedundancyStressConfig,
-    inject_zero_angle_redundancy_layers,
+from pipelines.time_dynamics.fixed_vqe_conditioning import (
+    fixed_vqe_stress_provenance_from_runtime_input as _fixed_vqe_conditioning_stress_provenance,
 )
 from pipelines.time_dynamics.runners.ap_fixed_from_adapt_artifact import (
     _drive_config_from_args,
     _parse_times,
 )
+
+
+# The online zero-angle redundancy injection path is gone.  Ansatz redundancy is
+# now constructed offline as a real fixed-structure VQE ansatz and consumed as an
+# ordinary serialized seed artifact.
+REMOVED_ONLINE_REDUNDANCY_FLAGS = (
+    "--diagnostic-redundancy-layer-count",
+    "--diagnostic-redundancy-pool-profile",
+    "--diagnostic-redundancy-layout-mode",
+    "--diagnostic-redundancy-state-parity-atol",
+)
+REMOVED_ONLINE_REDUNDANCY_MESSAGE = (
+    "the online zero-angle ANZATS redundancy injection path has been removed; it "
+    "manufactured redundancy at run time instead of constructing a genuine fixed "
+    "ansatz. Build a fixed-VQE conditioning-stress seed offline with "
+    "pipelines/time_dynamics/runners/build_fixed_vqe_conditioning_seed.py and pass "
+    "the resulting artifact to --artifact-json."
+)
+
+
+def reject_removed_online_redundancy_flags(argv: Sequence[str]) -> None:
+    """Reject the deleted ``--diagnostic-redundancy-*`` command line explicitly."""
+
+    used = sorted(
+        {
+            str(flag)
+            for token in argv
+            for flag in REMOVED_ONLINE_REDUNDANCY_FLAGS
+            if str(token) == flag or str(token).startswith(f"{flag}=")
+        }
+    )
+    if used:
+        raise SystemExit(f"error: {REMOVED_ONLINE_REDUNDANCY_MESSAGE} Rejected flags: {used}.")
 
 
 RUNNER_SCHEMA_V1 = "ap_mclachlan_append_from_adapt_artifact_v1"
@@ -108,7 +139,6 @@ def run_append_ap_mclachlan_from_runtime_input(
     progress_log_every: int = 0,
     progress_log_events: bool = True,
     normalized_candidate_pool_profile: str | None = None,
-    redundancy_stress_config: RedundancyStressConfig = RedundancyStressConfig(),
     runner_metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run append-first AP-McLachlan from an already-loaded scaffold contract."""
@@ -143,12 +173,6 @@ def run_append_ap_mclachlan_from_runtime_input(
         enabled=bool(enable_drive) and bool(drive_aligned_ansatz),
     )
     state = drive_augmentation.state
-    redundancy_stress = inject_zero_angle_redundancy_layers(
-        state,
-        pool_contract=normalized_pool_contract,
-        config=redundancy_stress_config,
-    )
-    state = redundancy_stress.state
     inverse_policy = McLachlanInversePolicy(
         pinv_rcond=float(pinv_rcond),
         ridge_lambda=float(ridge_lambda),
@@ -210,14 +234,18 @@ def run_append_ap_mclachlan_from_runtime_input(
     )
     if normalized_pool_payload is not None:
         summary["normalized_candidate_pool"] = dict(normalized_pool_payload)
-    summary["diagnostic_redundancy_stress"] = dict(redundancy_stress.receipt)
+    summary["fixed_vqe_conditioning_stress"] = _fixed_vqe_conditioning_stress_provenance(
+        runtime_input
+    )
     return {
         "schema": RUNNER_SCHEMA_V1,
         "initial_state": state.to_json_dict(),
         "final_state": trajectory.final_state.to_json_dict(),
         "normalized_candidate_pool": normalized_pool_payload,
         "drive_aligned_ansatz": drive_augmentation.to_json_dict(),
-        "diagnostic_redundancy_stress": dict(redundancy_stress.receipt),
+        "fixed_vqe_conditioning_stress": _fixed_vqe_conditioning_stress_provenance(
+            runtime_input
+        ),
         "hamiltonian": hamiltonian.to_json_dict(),
         "trajectory": trajectory.to_json_dict(),
         "plot_rows": rows,
@@ -1467,32 +1495,6 @@ def _build_parser() -> argparse.ArgumentParser:
             "Pauli-child set. Selected seed support is unchanged."
         ),
     )
-    parser.add_argument(
-        "--diagnostic-redundancy-layer-count",
-        type=int,
-        default=0,
-        help=(
-            "Append this many complete zero-angle copies of the selected "
-            "normalized Pauli pool before propagation. Diagnostic-only; zero "
-            "leaves the canonical route unchanged."
-        ),
-    )
-    parser.add_argument(
-        "--diagnostic-redundancy-layout-mode",
-        choices=REDUNDANCY_STRESS_LAYOUTS,
-        default="layered",
-        help=(
-            "Diagnostic stress ordering. layered appends full repeated pool layers; "
-            "adjacent_duplicates places repeated copies of each Pauli coordinate "
-            "next to one another so the manufactured redundancy is exact."
-        ),
-    )
-    parser.add_argument(
-        "--diagnostic-redundancy-state-parity-atol",
-        type=float,
-        default=1.0e-10,
-        help="Fail if the zero-angle stress layers alter the prepared seed state.",
-    )
     parser.add_argument("--times", default=None, help="Comma-separated time grid. Overrides --t-final/--num-times.")
     parser.add_argument("--t-final", type=float, default=0.2)
     parser.add_argument("--num-times", type=int, default=3)
@@ -1725,11 +1727,19 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--support-patch-scoring-workers",
         type=int,
-        default=1,
+        default=2,
         help=(
-            "Classical support-patch candidate scoring workers. "
-            "1 is serial/default; values >1 use ordered thread scoring inside "
-            "append/prune/exchange candidate scoring only."
+            "Classical support-patch candidate scoring workers. Threads cover "
+            "append/prune/exchange candidate scoring only, and reduce in "
+            "canonical task order, so worker count never changes a decision; "
+            "1 remains the serial reference execution of the same code path. "
+            "The default of 2 is calibrated rather than assumed: on an 8-core "
+            "Apple-Accelerate host one L=2 conditioning-stress trajectory "
+            "measured 10.7s at 1 worker, 8.5s at 2, 9.3s at 4 and 10.3s at 8, "
+            "because candidate scoring is GIL-bound and extra workers cost "
+            "more contention than they recover. Recalibrate for another host "
+            "or problem size with "
+            "pipelines.time_dynamics.diagnostics.ap_runtime_benchmark."
         ),
     )
     parser.add_argument(
@@ -1852,8 +1862,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    reject_removed_online_redundancy_flags(raw_argv)
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_argv)
     artifact_path = Path(args.artifact_json)
     try:
         replay_candidate_pool_mode = args.replay_candidate_pool_mode
@@ -2108,14 +2120,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if str(args.normalized_candidate_pool_profile) == "none"
                 else str(args.normalized_candidate_pool_profile)
             ),
-            redundancy_stress_config=RedundancyStressConfig(
-                layer_count=int(args.diagnostic_redundancy_layer_count),
-                pool_profile=str(args.normalized_candidate_pool_profile),
-                layout_mode=str(args.diagnostic_redundancy_layout_mode),
-                state_parity_atol=float(
-                    args.diagnostic_redundancy_state_parity_atol
-                ),
-            ),
             runner_metadata={
                 "artifact_json": str(artifact_path),
                 "loader_mode": args.loader_mode,
@@ -2127,12 +2131,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "normalized_candidate_pool_profile": str(
                     args.normalized_candidate_pool_profile
                 ),
-                "diagnostic_redundancy_layer_count": int(
-                    args.diagnostic_redundancy_layer_count
-                ),
-                "diagnostic_redundancy_layout_mode": str(
-                    args.diagnostic_redundancy_layout_mode
-                ),
+                "online_redundancy_injection_available": False,
                 "parameterization_mode": str(args.parameterization_mode),
                 "append_ladder_mode": str(args.append_ladder_mode),
                 "append_min_time": float(args.append_min_time),
@@ -2277,7 +2276,10 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "REMOVED_ONLINE_REDUNDANCY_FLAGS",
+    "REMOVED_ONLINE_REDUNDANCY_MESSAGE",
     "RUNNER_SCHEMA_V1",
     "main",
+    "reject_removed_online_redundancy_flags",
     "run_append_ap_mclachlan_from_runtime_input",
 ]
