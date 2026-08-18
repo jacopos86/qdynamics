@@ -394,14 +394,27 @@ def iter_structural_families(
             batch: list[
                 tuple[tuple[int, ...], InsertionPlan, tuple[tuple[str, int], ...]]
             ] = []
+            # Construction is pure Python and can vastly exceed the solve
+            # budget (plans scale with cut-position combinations), so cap it
+            # at the guard's remaining budget: crossing the line rejects the
+            # whole family with the constructed part discarded — families
+            # still admit whole or not at all.
+            construction_cap = guard.remaining
+            over_cap = False
             for removed in admitted_removed:
+                if over_cap:
+                    break
                 pool = set(candidate_pool_for_deletion(removed))
                 usable = [a for a in frontier if a in pool]
                 removed_keys = tuple(
                     cache.coordinate_keys[i] for i in removed
                 )
                 for size in range(2, int(max_insertion_batch_size) + 1):
+                    if over_cap:
+                        break
                     for subset in combinations(usable, size):
+                        if over_cap:
+                            break
                         tokens = inserted_tokens(subset)
                         plans = quotient_insertion_plans(
                             survivors=survivors,
@@ -416,6 +429,15 @@ def iter_structural_families(
                                 continue
                             scored_plans.add(identity)
                             batch.append((removed, plan, selection))
+                            if (
+                                construction_cap is not None
+                                and len(batch) > int(construction_cap)
+                            ):
+                                over_cap = True
+                                break
+            if over_cap:
+                guard.admit(family, len(batch))
+                break
             if not guard.admit(family, len(batch)):
                 break
             frontiers_used = level + 1

@@ -107,6 +107,14 @@ class JointWorkGuard:
     def exhausted(self) -> bool:
         return self.rejected_family is not None
 
+    @property
+    def remaining(self) -> int | None:
+        """Budget left before the next family must be rejected (None = unbounded)."""
+
+        if self.max_joint_patch_evaluations is None:
+            return None
+        return max(0, int(self.max_joint_patch_evaluations) - int(self.scored_count))
+
     def admit(self, family_label: str, family_size: int) -> bool:
         """Admit one complete family of ``family_size`` unique typed patches."""
 

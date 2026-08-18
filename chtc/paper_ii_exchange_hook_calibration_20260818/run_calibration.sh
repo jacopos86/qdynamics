@@ -26,6 +26,7 @@ python3 pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py \
   --max-certification-attempts-per-level 12 \
   --max-certification-attempts-per-deletion-branch 2 \
   --max-structural-pool-size 4 \
+  --max-insertion-batch-size 1 \
   --prune-target-policy appended_only \
   --progress-log-every 1 \
   "${REFIT_FLAGS[@]}" \
