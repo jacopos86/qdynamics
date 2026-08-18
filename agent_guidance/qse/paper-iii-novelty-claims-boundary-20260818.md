@@ -151,6 +151,14 @@ are implementation validation, never novelty.
   (`paper_iii_transition_strengths_20260818_v1/`): fixed class collapses
   at nph7 (relative errors up to ~10) while exchange supports hold
   1e-3..1e-9 — this is the C1 "and transition strengths" evidence.
+- L=3 pilot (2026-08-19, `pipelines/exact_bench/paper_iii_qse_l3_pilot.py`
+  -> `output/diagnostics/paper_iii_l3_pilot_20260819_v1/`): at L=3/nph1
+  the 200-element full pool collapses to retained rank 72 (overlap
+  condition ~1e10) and loses roots 4-6; the selected 60-support resolves
+  all six roots to 4e-9..2e-3 at ~290 2Q. Selection beats the FULL POOL,
+  the fixed class, and input order — the scaling/conditioning argument
+  for the paper. Spin-boson family is registry-ready for the generality
+  arm; Peierls-Hubbard would be a new problem family (user decision).
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
