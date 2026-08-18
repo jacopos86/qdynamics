@@ -117,6 +117,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--max-selected-paulis", type=int, default=40)
     parser.add_argument("--target-infidelity", type=float, default=1.0e-8)
     parser.add_argument("--refit-maxiter", type=int, default=2000)
+    parser.add_argument(
+        "--max-structural-pool-size",
+        type=int,
+        default=4,
+        help="Insertion-pool guard from the validated Paper II recipe; 0 disables the cap.",
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args(argv)
 
@@ -336,6 +342,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             sector_indices=np.asarray(sector_indices, dtype=int),
             inverse_policy=inverse_policy,
             progress_callback=_progress,
+            max_structural_pool_size=(
+                None if int(args.max_structural_pool_size) <= 0 else int(args.max_structural_pool_size)
+            ),
         )
         ap_fid = _fidelity_summary(grid["trajectory"], "ap_exact_state_fidelity")
         baseline_fid = _fidelity_summary(

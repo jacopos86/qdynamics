@@ -447,6 +447,7 @@ def _run_ap_grid(
     sector_indices: np.ndarray,
     inverse_policy: McLachlanInversePolicy,
     progress_callback: Any | None = None,
+    max_structural_pool_size: int | None = None,
 ) -> tuple[dict[str, Any], tuple[np.ndarray, ...]]:
     steps_float = float(drive["t_final"]) / float(dt)
     steps = int(round(steps_float))
@@ -490,6 +491,9 @@ def _run_ap_grid(
         allow_incomplete_candidate_pool=False,
         uses_reference_for_decision=False,
         uses_future_exact_forecast_for_decision=False,
+        max_structural_pool_size=(
+            None if max_structural_pool_size is None else int(max_structural_pool_size)
+        ),
     )
     solve_repair_config = SolveRepairConfig(
         enabled=True,
