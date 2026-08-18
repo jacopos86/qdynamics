@@ -1,0 +1,21 @@
+universe = vanilla
+executable = chtc/paper_v_cwrmf_event_guard_20260818/run_cwrmf_event_guard_apptainer.sh
+arguments = t05_balanced_hardfloor2em4 0.5 0.0025 2e-4
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = paper_5/src, chtc/paper_v_cwrmf_event_guard_20260818, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+stream_output = False
+stream_error = False
+log = logs/holstein-paper-v-cwrmf-event-guard-20260818-v1.$(Cluster).$(Process).log
+output = logs/holstein-paper-v-cwrmf-event-guard-20260818-v1.$(Cluster).$(Process).out
+error = logs/holstein-paper-v-cwrmf-event-guard-20260818-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 8GB
+request_disk = 20GB
++MaxRuntime = 43200
++JobBatchName = "holstein-paper-v-cwrmf-event-guard-20260818-v1"
+queue 1

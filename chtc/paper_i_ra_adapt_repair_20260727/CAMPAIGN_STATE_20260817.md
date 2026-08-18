@@ -132,6 +132,25 @@ from the pinned image, receipts machinery identical)
 | E | plateau_append weak_weak | v5 (corrected) | RUNNING — the bug-4 reproducer; must pass finalization to gate v5+AO-v2 submission |
 | F | always_open strong_weak_u8 | AO-v2 (corrected) | RUNNING |
 
+## Live cluster roster (as of 2026-08-17 ~21:30 CDT)
+
+| Cluster | Campaign | Cells | Queue now | Notes |
+|---|---|---|---|---|
+| 9662333 | three_arm v7 (natural) | 18 | 11 | 6 complete pre-submission + ongoing; position/nph7 cells memory-raised to 16/24 GB after OOM wave |
+| 9662334 | always_open v4 (natural) | 6 | 5 | weak_weak COMPLETE: natural k=40, 6.9e-15 — campaign's best number |
+| 9662370 | forced_k50_four_arm v2 | 24 | 18 | submitted ~17:55 after full-k50 package smoke passed (strong_weak: k=50, one forced round, terminal 1.384e-06 ≈ historical plateau value). 16/24 GB envelopes; nph3 position cells raised to 24 GB preemptively |
+| 9662396 | min_floors_four_arm v2 | 24 | 18 | completions include floors append-RA ww/iw nph3 and floors always-open strong_weak_u8 (k=26, 2.0e-08 — broke the 1.4e-06 "floor") |
+
+OOM policy: watcher auto-releases OOM holds (HoldReasonCode 34/26);
+RequestMemory pre-raised on all older jobs via condor_qedit; watcher must be
+re-armed after each exit (it exits on any queue-drop milestone).
+
+Floors family (min-retained {P0>=10, PI>=7, PII>=4}, natural terminal kept):
+fully implemented, packaged, smoked, and submitted as 9662396. Floors bind
+in ~9/32 rounds at ~0.3% S_alg overhead in fast regimes. Motivating evidence:
+plateau ww natural stop had Phase-III input of 8 (sign exhaustion, not
+starvation), but mid-run Phase-II collapse to 1-3 candidates is frequent.
+
 ## Forced-k50 route family (user-directed, in final validation 2026-08-17 evening)
 
 Motivation: plateau-RA weak_weak naturally terminates at k=32 (7.9e-10) while
@@ -168,6 +187,58 @@ gates; family-membership dispatch sites patched as the probe flushes them.
   split append vs position (redundant). W1q is compiled at paper time from
   retained checkpoints (`pipelines/exact_bench/table_i_qiskit_resource_compile.py`,
   `pipelines/reporting/paper_i_qiskit_cost_tuple.py`).
+
+- AAVQE provenance disruption (2026-08-17 21:24 CDT): another agent
+  regenerated the paper package's
+  `paper_i_ra_vs_append_matched_singleton_plateau_provenance.json` to schema
+  `paper_i_reader_facing_matched_singleton_plot_v8`, dropping
+  `adopted_replacements`. The PDF builder now falls back to
+  `output/pdf/paper_i_append_powell_tolmatch_overlay_20260816/…_provenance.json`
+  (same six published tolmatch r50 runs, receipt-pinned SHAs; weak_weak
+  terminal 3.7168296258e-04 cross-checked). Builder tries the old schema
+  first, so either file may change without breaking the refresh.
+
+## Benchmark verdicts (comparison_latest.pdf page 2, live)
+
+Winner = lowest terminal error among RA variants with data; matched-k rule.
+As of 2026-08-17 21:36 CDT:
+
+| regime | best RA variant | vs AAVQE | S_alg ratio |
+| --- | --- | --- | --- |
+| weak_weak | always-open-RA (natural k=40) | +10.7 decades (6.9e-15 vs 3.7e-04) | 8.20x |
+| intermediate_weak | forced-k50 plateau-RA (append-P0) | +10.9 decades (2.2e-15 vs 1.7e-04) | 3.13x |
+| strong_weak_u8 | floors-RA always-open (natural k=26) | +1.9 decades (2.0e-08 vs 1.4e-06) | 5.94x |
+| weak_strong / intermediate_strong / strong_strong_u8 | pending | — | — |
+
+Note: strong_weak_u8's 1.4e-06 was previously read as a regime error floor
+(AAVQE and forced append-RA both stall there); floors+always-open descended
+1.9 decades below it and terminated naturally at k=26 — it was a policy
+limit, not a regime floor.
+
+## Continuation / no-gamble recovery (2026-08-18)
+
+- Mid-run checkpoints ARE canonically resumable (only authenticated natural
+  terminals refuse resume). Engine writes `checkpoints/current.json` (~2 GB,
+  nph7) + estimator ledger checkpoint + signed resume sidecar EVERY round.
+- Live retrieval: `condor_ssh_to_job <job> 'gzip -c attempt_*/run/checkpoints/…'`.
+  Integrity = remote sha before/after transfer bracketing (sidecar sha is a
+  PROJECTION digest — never compare it to raw file bytes).
+- Kit: `continuation_kit_20260818/` — `continuation_worker.py` (runs the
+  sealed package worker verbatim with FreshStart swapped for
+  AcceptedStateResume; fails closed on auth), `stage_continuation.sh`
+  (stages snapshot + prints submit steps; refuses while the execution_id is
+  still queued). VALIDATED 2026-08-18 ~04:15 CDT: cluster 9662538 resumed
+  always-open swu8 from its round-40 checkpoint and advanced (depth 42+);
+  canonical loader authenticated checkpoint + ledger pair. First attempt
+  (9662536) failed closed on a stale-ledger pair captured by the unbracketed
+  pull script — pairs MUST be captured inside one sha-bracket (fixed).
+  Ledger filenames are self-naming: suffix = first 16 hex of content sha.
+- Snapshots on disk (scratchpad/checkpoint_snapshots/): plateau_append ssu8
+  natural @ round 32; forced plateau_append ssu8 @ round 27; re-pulled every
+  2h while those jobs live.
+- Memory guard (5-min sweeps): raises RequestMemory a tier at >=85% usage,
+  vacates early-round cells (k<=15) to rebind big, holds course on deep
+  cells, releases OOM holds only after a tier raise.
 
 ## Standing constraints
 

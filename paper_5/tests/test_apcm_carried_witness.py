@@ -251,6 +251,238 @@ def test_trajectory_records_spectrum_selected_critical_modes(
     assert np.all(trajectory.critical_modes >= 0)
 
 
+def test_event_guard_policy_validation_and_profile_defaults() -> None:
+    settings = CWRMFSettings()
+
+    assert settings.guard_policy == "always"
+    assert cwrmf_settings_for_profile("strict").guard_policy == "always"
+    assert cwrmf_settings_for_profile("balanced").guard_policy == "always"
+
+    event = replace(settings, guard_policy="event_triggered")
+    assert event.event_gram_floor < event.event_gram_hard_floor
+
+    with pytest.raises(ValueError, match="unknown CWRMF guard policy"):
+        replace(settings, guard_policy="sometimes")
+    with pytest.raises(ValueError, match="requires enforce_gram_guard"):
+        replace(
+            settings,
+            guard_policy="event_triggered",
+            enforce_gram_guard=False,
+        )
+    with pytest.raises(ValueError, match="positive and ordered"):
+        replace(settings, event_gram_floor=1e-2)
+    with pytest.raises(ValueError, match="event_coupling_threshold"):
+        replace(settings, event_coupling_threshold=0.0)
+
+
+def test_event_guard_fast_path_accepts_psd_endpoint_without_solver(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    original_settings = model.settings
+    model.settings = replace(original_settings, guard_policy="event_triggered")
+    try:
+        retained, completion = model.geometry.unpack_state(preparation.state)
+        expected_completion = model.desired_completion_velocity(
+            0.0, retained, completion
+        )
+        result = model.radial_atom(0.0, preparation.state, 1e-8)
+    finally:
+        model.settings = original_settings
+
+    assert result.success
+    assert result.message == "event_guard_fast_path"
+    assert result.correction_iterations == 0
+    assert result.completion_correction_norm == 0.0
+    np.testing.assert_allclose(
+        result.completion_velocity,
+        expected_completion,
+        atol=0.0,
+        rtol=0.0,
+    )
+
+
+def test_event_guard_tolerates_declared_benign_negativity(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    perturbed = completion.copy()
+    perturbed[0] += 1e-5
+    state = model.geometry.pack_state(retained, perturbed)
+    minimum = float(
+        np.linalg.eigvalsh(
+            model.geometry.scaled_unified_matrix(retained, perturbed)
+        )[0]
+    )
+    assert -1e-3 < minimum < -1e-8
+
+    original_settings = model.settings
+    model.settings = replace(
+        original_settings,
+        guard_policy="event_triggered",
+        event_coupling_threshold=1e6,
+    )
+    try:
+        result = model.radial_atom(0.0, state, 1e-8)
+    finally:
+        model.settings = original_settings
+
+    assert result.success
+    assert result.message.startswith("event_guard_tolerated:")
+    assert result.completion_correction_norm == 0.0
+
+
+def test_event_completion_retraction_restores_cone(prepared_model) -> None:
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    perturbed = completion.copy()
+    perturbed[0] += 1e-5
+    assert (
+        float(
+            np.linalg.eigvalsh(
+                model.geometry.scaled_unified_matrix(retained, perturbed)
+            )[0]
+        )
+        < -1e-8
+    )
+
+    retraction = model._event_completion_retraction(retained, perturbed)
+
+    assert retraction is not None
+    repaired, iterations = retraction
+    assert iterations >= 1
+    assert (
+        float(
+            np.linalg.eigvalsh(
+                model.geometry.scaled_unified_matrix(retained, repaired)
+            )[0]
+        )
+        >= -model.settings.event_gram_floor
+    )
+    assert np.linalg.norm(repaired - perturbed) < 1e-3
+
+
+def test_event_guard_trigger_retracts_endpoint_completion(
+    prepared_model,
+) -> None:
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    perturbed = completion.copy()
+    perturbed[0] += 1e-5
+    state = model.geometry.pack_state(retained, perturbed)
+
+    original_settings = model.settings
+    model.settings = replace(
+        original_settings,
+        guard_policy="event_triggered",
+        event_coupling_threshold=1e-30,
+    )
+    try:
+        result = model.radial_atom(0.0, state, 1e-8)
+    finally:
+        model.settings = original_settings
+
+    assert result.success
+    assert result.message.startswith("event_guard_retraction:")
+    assert result.correction_iterations >= 1
+    assert result.completion_correction_norm > 0.0
+    assert result.minimum_unshifted_eigenvalue >= (
+        -model.settings.event_gram_floor
+    )
+    endpoint_retained, _ = model.geometry.unpack_state(result.endpoint)
+    np.testing.assert_allclose(
+        endpoint_retained,
+        retained + 1e-8 * result.archive_velocity,
+        atol=2e-16,
+        rtol=2e-15,
+    )
+
+
+def test_event_guard_falls_back_to_conic_correction_when_retraction_fails(
+    prepared_model, monkeypatch
+) -> None:
+    model, preparation = prepared_model
+    retained, completion = model.geometry.unpack_state(preparation.state)
+    perturbed = completion.copy()
+    perturbed[0] += 1e-5
+    state = model.geometry.pack_state(retained, perturbed)
+
+    solver_calls: list[str] = []
+
+    def stub_solver(*args, **kwargs):
+        solver_calls.append("relaxed_readable")
+        desired = model.desired_completion_velocity(0.0, retained, perturbed)
+        return False, desired, "stubbed", float("inf"), 1.0, 0
+
+    monkeypatch.setattr(model, "_solve_relaxed_readable", stub_solver)
+    monkeypatch.setattr(
+        model, "_event_completion_retraction", lambda *args: None
+    )
+    original_settings = model.settings
+    model.settings = replace(
+        original_settings,
+        guard_policy="event_triggered",
+        event_coupling_threshold=1e-30,
+    )
+    try:
+        result = model.radial_atom(0.0, state, 1e-8)
+    finally:
+        model.settings = original_settings
+
+    assert solver_calls == ["relaxed_readable"]
+    assert not result.success
+    assert result.message.startswith("readable_relaxation:stubbed")
+
+
+def test_event_guard_measure_is_shared_with_offline_audit() -> None:
+    from paper5.stability import apcm_carried_witness as model_module
+    from paper5.stability import apcm_carried_witness_mode_audit as audit_module
+
+    assert audit_module.negative_mode_coupling is (
+        model_module.negative_mode_coupling
+    )
+
+
+def test_event_guard_trajectory_completes_smoke_step(prepared_model) -> None:
+    model, preparation = prepared_model
+    original_settings = model.settings
+    model.settings = replace(original_settings, guard_policy="event_triggered")
+    try:
+        trajectory = integrate_cwrmf_ssprk2(
+            model,
+            preparation.state,
+            final_time=1e-8,
+            time_step=1e-8,
+        )
+    finally:
+        model.settings = original_settings
+
+    assert trajectory.success
+    assert trajectory.completed_steps == 1
+
+
+def test_analysis_parser_rejects_conflicting_guard_flags(tmp_path) -> None:
+    from paper5.stability.apcm_carried_witness_analysis import _parser
+
+    parser = _parser()
+    arguments = parser.parse_args(
+        ["--output-directory", str(tmp_path), "--event-triggered-guard"]
+    )
+    assert arguments.event_triggered_guard
+    assert not arguments.no_gram_guard
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "--output-directory",
+                str(tmp_path),
+                "--event-triggered-guard",
+                "--no-gram-guard",
+            ]
+        )
+
+
 def test_accuracy_metrics_separate_fixed_offset_from_dynamic_error() -> None:
     parameters = DimerParameters()
     exact = np.zeros((3, 31), dtype=float)

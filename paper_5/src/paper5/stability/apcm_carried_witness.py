@@ -77,6 +77,12 @@ class CWRMFSettings:
     """Frozen settings for the short carried-witness pilot."""
 
     enforce_gram_guard: bool = True
+    guard_policy: str = "always"
+    event_gram_floor: float = 1e-8
+    event_gram_hard_floor: float = 1e-3
+    event_coupling_threshold: float = 1e-2
+    event_coupling_horizon: float = 0.05
+    event_retraction_iterations: int = 32
     psd_inflation: float = 1e-11
     affine_tolerance: float = 1e-10
     spectral_entry_threshold: float = 1e-8
@@ -95,6 +101,24 @@ class CWRMFSettings:
     maximum_cutting_plane_iterations: int = 256
 
     def __post_init__(self) -> None:
+        if self.guard_policy not in {"always", "event_triggered"}:
+            raise ValueError(
+                f"unknown CWRMF guard policy: {self.guard_policy}"
+            )
+        if self.guard_policy == "event_triggered" and not self.enforce_gram_guard:
+            raise ValueError(
+                "event_triggered guard policy requires enforce_gram_guard"
+            )
+        if not 0.0 < self.event_gram_floor < self.event_gram_hard_floor:
+            raise ValueError(
+                "event Gram floors must be positive and ordered"
+            )
+        if self.event_coupling_threshold <= 0.0:
+            raise ValueError("event_coupling_threshold must be positive")
+        if self.event_coupling_horizon <= 0.0:
+            raise ValueError("event_coupling_horizon must be positive")
+        if self.event_retraction_iterations <= 0:
+            raise ValueError("event_retraction_iterations must be positive")
         if self.psd_inflation < 0.0:
             raise ValueError("psd_inflation must be nonnegative")
         if (
@@ -235,6 +259,32 @@ class CWRMFTrajectory:
     atom_evaluations: int
     success: bool
     message: str
+
+
+def _minimum_norm_inequality_step(
+    gradients: FloatArray, offsets: FloatArray
+) -> FloatArray | None:
+    """Return the minimum-norm ``x`` with ``gradients @ x >= offsets``.
+
+    This is the Lawson--Hanson least-distance-programming reduction to
+    nonnegative least squares.  ``None`` signals an infeasible or degenerate
+    system, for example a required lift along a vanishing gradient.
+    """
+
+    from scipy.optimize import nnls
+
+    augmented = np.vstack((gradients.T, offsets[None, :]))
+    unit = np.zeros(augmented.shape[0], dtype=float)
+    unit[-1] = 1.0
+    try:
+        multipliers, _ = nnls(augmented, unit)
+    except RuntimeError:
+        return None
+    residual = augmented @ multipliers - unit
+    scale = float(residual[-1])
+    if not np.isfinite(scale) or scale >= -1e-14:
+        return None
+    return np.asarray(-residual[:-1] / scale, dtype=float)
 
 
 def _project_correlation_trace_velocity(
@@ -2464,6 +2514,210 @@ class CarriedWitnessModel:
             max(bundle[5], full[5]),
         )
 
+    def _event_completion_retraction(
+        self,
+        retained: FloatArray,
+        completion: FloatArray,
+    ) -> tuple[FloatArray, int] | None:
+        """Lift the deficient endpoint Gram modes with a Gauss--Newton flow.
+
+        Each iteration takes the exact eigendecomposition of the current
+        unshifted 62-row Gram and forms the eigenvalue gradients, in the
+        scaled completion coordinates, of every working mode below
+        ``+event_gram_floor``.  The linearized step is the minimum-norm
+        solution of the inequality system requiring every deficient mode to
+        reach ``+event_gram_floor`` while no working mode sinks below
+        ``-event_gram_floor`` (Lawson--Hanson least-distance programming):
+        genuine boundary modes with vanishing gradients keep feasible
+        do-not-sink rows instead of inconsistent equality demands.  The
+        retraction restores the same declared band the event fast path
+        already accepts without repair, without touching the retained
+        coordinates.  The authoritative acceptance is the final full
+        eigendecomposition against ``-event_gram_floor``; failure to
+        converge returns ``None`` so the caller can fall back to the guarded
+        conic correction.
+        """
+
+        geometry = self.geometry
+        settings = self.settings
+        floor = settings.event_gram_floor
+        coefficients: ComplexArray | None = None
+        current = np.asarray(completion, dtype=float).copy()
+        iterations = 0
+        for _ in range(settings.event_retraction_iterations):
+            matrix = geometry.scaled_unified_matrix(retained, current)
+            eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+            if not np.any(eigenvalues < -floor):
+                break
+            working = np.flatnonzero(eigenvalues < floor)
+            if coefficients is None:
+                coefficients = geometry.scaled_completion_coefficients()
+            gradients = np.empty(
+                (working.size, current.size), dtype=float
+            )
+            offsets = np.empty(working.size, dtype=float)
+            for row, index in enumerate(working):
+                value = float(eigenvalues[int(index)])
+                vector = eigenvectors[:, int(index)]
+                gradients[row] = np.einsum(
+                    "a,jab,b->j",
+                    vector.conjugate(),
+                    coefficients,
+                    vector,
+                    optimize=True,
+                ).real
+                offsets[row] = (
+                    (floor - value) if value < -floor else (-floor - value)
+                )
+            update = _minimum_norm_inequality_step(gradients, offsets)
+            if update is None or not np.all(np.isfinite(update)):
+                return None
+            current = current + update
+            iterations += 1
+        matrix = geometry.scaled_unified_matrix(retained, current)
+        if float(np.linalg.eigvalsh(matrix)[0]) < -floor:
+            return None
+        return current, iterations
+
+    def _event_guard_fast_path(
+        self,
+        time: float,
+        state: FloatArray,
+        step_size: float,
+        started: float,
+        retained: FloatArray,
+        completion: FloatArray,
+        retained_velocity: FloatArray,
+        desired: FloatArray,
+        endpoint_retained: FloatArray,
+    ) -> RadialAtomResult | None:
+        """Accept the unconstrained atom while the declared trigger is quiet.
+
+        The fast path accepts the unconstrained higher-moment predictor when
+        the endpoint unshifted 62-row Gram stays above ``-event_gram_floor``.
+        Below that floor the online negative-mode coupling measure decides:
+        the step is still accepted while every negative mode's predicted
+        retained-velocity and two-stage C-rate effects stay at or below
+        ``event_coupling_threshold`` and the Gram minimum stays above
+        ``-event_gram_hard_floor``.  A fired trigger first attempts the
+        minimum-norm Gauss--Newton retraction of the endpoint completion onto
+        the cone; only a failed retraction returns ``None``, which fires the
+        guarded conic correction for this atom.
+        """
+
+        geometry = self.geometry
+        settings = self.settings
+        endpoint_completion = completion + step_size * desired
+        endpoint_matrix = geometry.scaled_unified_matrix(
+            endpoint_retained, endpoint_completion
+        )
+        enclosure = self.spectral_enclosure(endpoint_matrix, shifted=True)
+        critical = int(
+            np.count_nonzero(
+                enclosure.lower_bounds < settings.spectral_entry_threshold
+            )
+        )
+        unshifted_minimum = float(np.linalg.eigvalsh(endpoint_matrix)[0])
+        triggered = unshifted_minimum < -settings.event_gram_hard_floor
+        message = "event_guard_fast_path"
+        if not triggered and unshifted_minimum < -settings.event_gram_floor:
+            coupling = negative_mode_coupling(
+                self,
+                time + step_size,
+                geometry.pack_state(endpoint_retained, endpoint_completion),
+                negative_threshold=settings.event_gram_floor,
+                coupling_horizon=settings.event_coupling_horizon,
+            )
+            measure = max(
+                float(
+                    coupling[
+                        "maximum_negative_mode_predicted_retained_velocity_relative_change"
+                    ]
+                ),
+                float(
+                    coupling[
+                        "maximum_negative_mode_two_stage_c_velocity_relative_change"
+                    ]
+                ),
+            )
+            triggered = measure > settings.event_coupling_threshold
+            if not triggered:
+                message = (
+                    "event_guard_tolerated:"
+                    f"minimum={unshifted_minimum:.3e}:coupling={measure:.3e}"
+                )
+        correction_norm = 0.0
+        readable_error = 0.0
+        retraction_iterations = 0
+        effective_velocity = desired
+        if triggered:
+            retraction = self._event_completion_retraction(
+                endpoint_retained, endpoint_completion
+            )
+            if retraction is None:
+                return None
+            endpoint_completion, retraction_iterations = retraction
+            displacement = (
+                endpoint_completion - (completion + step_size * desired)
+            )
+            effective_velocity = (endpoint_completion - completion) / step_size
+            correction_norm = float(np.linalg.norm(displacement))
+            readable = geometry.readable_completion_indices
+            readable_error = float(
+                np.linalg.norm(displacement[readable] / step_size)
+                / (1.0 + np.linalg.norm(desired[readable]))
+            )
+            endpoint_matrix = geometry.scaled_unified_matrix(
+                endpoint_retained, endpoint_completion
+            )
+            enclosure = self.spectral_enclosure(endpoint_matrix, shifted=True)
+            unshifted_minimum = float(np.linalg.eigvalsh(endpoint_matrix)[0])
+            message = (
+                "event_guard_retraction:"
+                f"iterations={retraction_iterations}:"
+                f"norm={correction_norm:.3e}"
+            )
+        restriction = geometry.restriction_residual(
+            endpoint_retained, endpoint_completion
+        )
+        if restriction > settings.affine_tolerance:
+            return RadialAtomResult(
+                success=False,
+                endpoint=np.asarray(state, dtype=float).copy(),
+                archive_velocity=retained_velocity,
+                completion_velocity=desired,
+                desired_completion_velocity=desired,
+                minimum_unshifted_eigenvalue=float("nan"),
+                minimum_shifted_lower_bound=float("nan"),
+                readable_rate_residual=float("inf"),
+                archive_intervention=0.0,
+                completion_correction_norm=0.0,
+                velocity_margin=float("nan"),
+                critical_modes=critical,
+                correction_iterations=0,
+                elapsed_seconds=perf_counter() - started,
+                message="restriction_residual",
+            )
+        return RadialAtomResult(
+            success=True,
+            endpoint=geometry.pack_state(
+                endpoint_retained, endpoint_completion
+            ),
+            archive_velocity=retained_velocity,
+            completion_velocity=effective_velocity,
+            desired_completion_velocity=desired,
+            minimum_unshifted_eigenvalue=unshifted_minimum,
+            minimum_shifted_lower_bound=enclosure.minimum_lower_bound,
+            readable_rate_residual=readable_error,
+            archive_intervention=0.0,
+            completion_correction_norm=correction_norm,
+            velocity_margin=float("nan"),
+            critical_modes=critical,
+            correction_iterations=retraction_iterations,
+            elapsed_seconds=perf_counter() - started,
+            message=message,
+        )
+
     def radial_atom(
         self,
         time: float,
@@ -2538,6 +2792,22 @@ class CarriedWitnessModel:
                 elapsed_seconds=perf_counter() - started,
                 message="unconstrained higher-moment predictor",
             )
+
+        if self.settings.guard_policy == "event_triggered":
+            fast = self._event_guard_fast_path(
+                time,
+                state,
+                step_size,
+                started,
+                retained,
+                completion,
+                retained_velocity,
+                desired,
+                endpoint_retained,
+            )
+            if fast is not None:
+                return fast
+            message = "event_guard_triggered"
 
         while True:
             endpoint_completion = completion + step_size * candidate_velocity
@@ -2693,6 +2963,173 @@ class CarriedWitnessModel:
         )
 
 
+def _directional_retained_derivative(
+    model: CarriedWitnessModel,
+    time: float,
+    retained: FloatArray,
+    completion: FloatArray,
+    direction: FloatArray,
+    *,
+    finite_difference_step: float = 1e-6,
+) -> FloatArray:
+    plus = model.retained_velocity(
+        time,
+        retained,
+        completion + finite_difference_step * direction,
+    )
+    minus = model.retained_velocity(
+        time,
+        retained,
+        completion - finite_difference_step * direction,
+    )
+    return (plus - minus) / (2.0 * finite_difference_step)
+
+
+def negative_mode_coupling(
+    model: CarriedWitnessModel,
+    time: float,
+    state: FloatArray,
+    *,
+    negative_threshold: float = 1e-8,
+    coupling_horizon: float = 0.05,
+) -> dict[str, float | int]:
+    """Return local coupling diagnostics for the negative extended-Gram modes.
+
+    For an eigenpair ``(lambda, v)``, the vector with entries
+    ``v^dagger (dG/dz_j) v`` is the eigenvalue gradient in the scaled hidden
+    coordinates.  The minimum-Euclidean-norm linearized displacement that
+    raises that eigenvalue to zero is used only as a sensitivity direction.
+    No trajectory state is repaired here.  The offline no-guard mode audit and
+    the online event-triggered guard evaluate this same measure.
+    """
+
+    retained, completion = model.geometry.unpack_state(state)
+    matrix = model.geometry.scaled_unified_matrix(retained, completion)
+    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+    coefficients = model.geometry.scaled_completion_coefficients()
+    retained_velocity = model.retained_velocity(time, retained, completion)
+    completion_velocity = model.desired_completion_velocity(
+        time, retained, completion
+    )
+    matrix_rate = (
+        model.geometry.scaled_unified_matrix(
+            retained + retained_velocity,
+            completion + completion_velocity,
+        )
+        - matrix
+    )
+    retained_norm = max(float(np.linalg.norm(retained_velocity)), 1e-15)
+    correlation_norm = max(
+        float(np.linalg.norm(retained_velocity[17:29])), 1e-15
+    )
+    entrance_norm = max(
+        float(np.linalg.norm(retained_velocity[29:])), 1e-15
+    )
+    negative_indices = np.flatnonzero(eigenvalues < -negative_threshold)
+
+    weakest_index = 0
+    weakest_vector = eigenvectors[:, weakest_index]
+    weakest_velocity = float(
+        np.real(weakest_vector.conjugate() @ matrix_rate @ weakest_vector)
+    )
+    weakest_repair_norm = 0.0
+    weakest_retained_relative = 0.0
+    weakest_correlation_relative = 0.0
+    maximum_retained_relative = 0.0
+    maximum_correlation_relative = 0.0
+    maximum_entrance_relative = 0.0
+    maximum_two_stage_c_relative = 0.0
+
+    audited_indices = (
+        negative_indices
+        if negative_indices.size
+        else np.asarray([weakest_index], dtype=int)
+    )
+    for index in audited_indices:
+        vector = eigenvectors[:, int(index)]
+        gradient = np.asarray(
+            np.einsum(
+                "a,jab,b->j",
+                vector.conjugate(),
+                coefficients,
+                vector,
+                optimize=True,
+            ).real,
+            dtype=float,
+        )
+        gradient_norm = float(np.linalg.norm(gradient))
+        if gradient_norm <= 1e-15:
+            continue
+        direction = gradient / gradient_norm
+        repair_norm = max(0.0, -float(eigenvalues[int(index)])) / gradient_norm
+        derivative = _directional_retained_derivative(
+            model, time, retained, completion, direction
+        )
+        predicted = repair_norm * derivative
+        retained_relative = float(np.linalg.norm(predicted)) / retained_norm
+        correlation_relative = (
+            float(np.linalg.norm(predicted[17:29])) / correlation_norm
+        )
+        entrance_relative = (
+            float(np.linalg.norm(predicted[29:])) / entrance_norm
+        )
+        two_stage_velocity = model.retained_velocity(
+            time,
+            retained + coupling_horizon * predicted,
+            completion,
+        )
+        two_stage_c_relative = (
+            float(
+                np.linalg.norm(
+                    two_stage_velocity[17:29]
+                    - retained_velocity[17:29]
+                )
+            )
+            / correlation_norm
+        )
+        maximum_retained_relative = max(
+            maximum_retained_relative, retained_relative
+        )
+        maximum_correlation_relative = max(
+            maximum_correlation_relative, correlation_relative
+        )
+        maximum_entrance_relative = max(
+            maximum_entrance_relative, entrance_relative
+        )
+        maximum_two_stage_c_relative = max(
+            maximum_two_stage_c_relative, two_stage_c_relative
+        )
+        if int(index) == weakest_index:
+            weakest_repair_norm = repair_norm
+            weakest_retained_relative = retained_relative
+            weakest_correlation_relative = correlation_relative
+
+    return {
+        "minimum_eigenvalue": float(eigenvalues[0]),
+        "negative_mode_count": int(negative_indices.size),
+        "weakest_eigenvalue_velocity": weakest_velocity,
+        "weakest_linearized_repair_coordinate_norm": weakest_repair_norm,
+        "weakest_predicted_retained_velocity_relative_change": (
+            weakest_retained_relative
+        ),
+        "weakest_predicted_c_velocity_relative_change": (
+            weakest_correlation_relative
+        ),
+        "maximum_negative_mode_predicted_retained_velocity_relative_change": (
+            maximum_retained_relative
+        ),
+        "maximum_negative_mode_predicted_c_velocity_relative_change": (
+            maximum_correlation_relative
+        ),
+        "maximum_negative_mode_predicted_entrance_velocity_relative_change": (
+            maximum_entrance_relative
+        ),
+        "maximum_negative_mode_two_stage_c_velocity_relative_change": (
+            maximum_two_stage_c_relative
+        ),
+    }
+
+
 def integrate_cwrmf_ssprk2(
     model: CarriedWitnessModel,
     initial_state: FloatArray,
@@ -2784,10 +3221,17 @@ def integrate_cwrmf_ssprk2(
         retained, completion = geometry.unpack_state(state)
         matrix = geometry.scaled_unified_matrix(retained, completion)
         enclosure = model.spectral_enclosure(matrix, shifted=True)
-        if (
-            model.settings.enforce_gram_guard
-            and enclosure.minimum_lower_bound < 0.0
-        ):
+        node_minimum = float(np.linalg.eigvalsh(matrix)[0])
+        # The Gram is affine in the state, so the convex SSPRK node cannot be
+        # below the weaker of the two accepted endpoint contracts; the
+        # event-triggered policy therefore checks its declared hard floor
+        # rather than the always-on shifted cone.
+        node_unresolved = (
+            node_minimum < -model.settings.event_gram_hard_floor
+            if model.settings.guard_policy == "event_triggered"
+            else enclosure.minimum_lower_bound < 0.0
+        )
+        if model.settings.enforce_gram_guard and node_unresolved:
             return CWRMFTrajectory(
                 times=times[: step + 1],
                 states=states[: step + 1],
@@ -2805,7 +3249,7 @@ def integrate_cwrmf_ssprk2(
                 message=f"SSPRK convex node unresolved at t={times[step + 1]:.6f}",
             )
         states[step + 1] = state
-        minima[step + 1] = float(np.linalg.eigvalsh(matrix)[0])
+        minima[step + 1] = node_minimum
         lower_bounds[step + 1] = enclosure.minimum_lower_bound
         maximum_atom_seconds[step + 1] = max(
             first.elapsed_seconds, second.elapsed_seconds
@@ -2872,4 +3316,5 @@ __all__ = [
     "SpectralEnclosure",
     "cwrmf_settings_for_profile",
     "integrate_cwrmf_ssprk2",
+    "negative_mode_coupling",
 ]

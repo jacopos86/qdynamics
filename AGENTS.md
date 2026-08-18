@@ -36,6 +36,7 @@ generated PDFs, run artifacts, route registries, or historical handoffs first.
 | Manuscript prose, title, abstract, caption, citation, `.tex`, or PDF-facing edit | `MATH/AGENTS.md`, then its manuscript contract and available journal-review workflow |
 | Prompt/GPT/Atlas handoff export | the matching available handoff workflow; write the requested export under `prompt-exports/` |
 | Issue or triage work | `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md` |
+| Storage, disk space, artifact retention, compression, or cleanup | `agent_guidance/shared/artifact-retention.md`, then the dated cleanup records under `agent_guidance/shared/` |
 | Domain terminology or architectural decision | `docs/agents/domain.md` and the selected lane `CONTEXT.md` when present |
 
 If a routed file does not exist, do not invent it. Continue read-only work under
@@ -102,7 +103,11 @@ or source-locked provenance.
 ## Hard invariants
 
 - Preserve unrelated work, completed evidence, manifests, and source locks.
-- Do not run, submit, stop, kill, resume, commit, push, promote evidence, or
+- Git commits are at the agent's discretion, always (user policy,
+  2026-08-17): commit deliberately with descriptive messages, without
+  asking. This deliberately overrules earlier commit gating anywhere in
+  this repository's documentation.
+- Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.
 - Never interfere with a job from another chat, agent, terminal, notebook, or

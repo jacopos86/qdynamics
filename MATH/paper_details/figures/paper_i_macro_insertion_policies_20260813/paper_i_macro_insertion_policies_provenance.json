@@ -1,7 +1,7 @@
 {
   "schema": "paper_i_intact_macro_four_policy_comparison_v1",
   "output": "MATH/paper_details/figures/paper_i_macro_insertion_policies_20260813/paper_i_macro_insertion_policies.pdf",
-  "output_sha256": "0b950e8725b0aec2c00314b4f918e3340fdf79c28d5d84e565649f1733273e59",
+  "output_sha256": "6e9c8e013eef13b7c22b29d0729bcdc0bb75bff7f5697a4ed66fa558d86f591c",
   "display_horizon": 50,
   "route_horizons": {
     "weak_holstein_ra_policies": 50,
@@ -4170,15 +4170,15 @@
       "sha256": "6bbf689169e451faa8f7ee8d287f0f13b2e4dd0028311bcf1098e823c1b04c7e"
     },
     {
-      "path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v7_9392883_20260729/core__weak_strong__nph7__append_macro__cluster_9392883__proc_24.tar.gz",
+      "path": "raw_outputs/paper_i_ra_adapt_stationary_core_v7_partial_report_20260729/proc24_validation_input/core__weak_strong__nph7__append_macro__cluster_9392883__proc_24.tar.gz",
       "sha256": "d9b2dfc02d26a0541d088a0ea9d0aa0bd54e8cf9e186e1b13689db3740016ea4"
     },
     {
-      "path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v7_9392883_20260729/core__intermediate_strong__nph7__append_macro__cluster_9392883__proc_32.tar.gz",
+      "path": "raw_outputs/paper_i_ra_adapt_stationary_core_v7_partial_report_20260729/proc32_validation_input/core__intermediate_strong__nph7__append_macro__cluster_9392883__proc_32.tar.gz",
       "sha256": "e0d6b8b16d66493561a0424b85e1981bb8e95f9d910e479f13d30e6181b78825"
     },
     {
-      "path": "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v7_9392883_20260729/core__strong_strong_u8__nph7__append_macro__cluster_9392883__proc_40.tar.gz",
+      "path": "raw_outputs/paper_i_ra_adapt_stationary_core_v7_partial_report_20260729/proc40_validation_input/core__strong_strong_u8__nph7__append_macro__cluster_9392883__proc_40.tar.gz",
       "sha256": "a5879fb547b19c340de6db40433afef070885042ec58f42e1ff43d390286b8b4"
     }
   ]

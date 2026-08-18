@@ -42,15 +42,18 @@ evidence, manuscript, or promotion gates.
 
 ## Compatibility quarantine
 
-The following are not ordinary navigation surfaces:
+`agent_guidance/static-adapt/history/` holds every quarantined compatibility
+and provenance document for this lane (relocated 2026-08-17 with user
+authorization; contents unchanged — see `history/README.md`). The following
+are not ordinary navigation surfaces:
 
-- `agent_guidance/static-adapt/route-identities.md`;
-- `agent_guidance/static-adapt/route-a-language.md`;
-- `agent_guidance/static-adapt/sr-snake-refactor-plan.md`;
-- `agent_guidance/static-adapt/handoffs/`;
+- `agent_guidance/static-adapt/history/route-identities.md`;
+- `agent_guidance/static-adapt/history/route-a-language.md`;
+- `agent_guidance/static-adapt/history/sr-snake-refactor-plan.md`;
+- `agent_guidance/static-adapt/history/handoffs/`;
 - numbered `sr-snake-issue-*-handoff.md` files;
-- `agent_guidance/static-adapt/paper-i-sr-snake-current-run-map.md`;
-- `agent_guidance/static-adapt/post-refactor-paper-i-evidence-queue.md`.
+- `agent_guidance/static-adapt/history/paper-i-sr-snake-current-run-map.md`;
+- `agent_guidance/static-adapt/history/post-refactor-paper-i-evidence-queue.md`.
 
 Read one of those files only when an explicit compatibility, replay,
 implementation-history, or provenance task names the corresponding identity or

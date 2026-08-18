@@ -138,6 +138,24 @@ def _sector_reference(dense: np.ndarray) -> tuple[np.ndarray, float, float]:
     return ground, float(energies[0]), float(energies[1])
 
 
+def _sector_spectrum(dense: np.ndarray, *, count: int = 8) -> tuple[np.ndarray, list[float]]:
+    """Exact (1,1)-sector ground state and lowest ``count`` sector energies."""
+
+    dim = int(dense.shape[0])
+    occupations_up = np.array(
+        [sum((index >> qubit) & 1 for qubit in _FERMION_QUBITS_UP) for index in range(dim)]
+    )
+    occupations_dn = np.array(
+        [sum((index >> qubit) & 1 for qubit in _FERMION_QUBITS_DN) for index in range(dim)]
+    )
+    sector = np.where((occupations_up == 1) & (occupations_dn == 1))[0]
+    restricted = dense[np.ix_(sector, sector)]
+    energies, vectors = np.linalg.eigh(0.5 * (restricted + restricted.conj().T))
+    ground = np.zeros(dim, dtype=complex)
+    ground[sector] = vectors[:, 0]
+    return ground, [float(value) for value in energies[: int(count)]]
+
+
 def _element_family(name: str) -> str:
     return str(name).split("(")[0].split("::")[0]
 

@@ -3754,3 +3754,118 @@ Plots:
 - `output/plots/paper_v_results_progression_20260804/initial_condition_raw_electronic-drive_observable_separation.pdf`;
 - `output/plots/paper_v_results_progression_20260804/initial_condition_raw_relative-phonon-position_observables.pdf`;
 - `output/plots/paper_v_results_progression_20260804/initial_condition_raw_relative-phonon-position_observable_separation.pdf`.
+
+## 2026-08-18: event-triggered carried-witness Gram guard
+
+### Implementation
+
+The event-triggered guard supported by the full-pulse no-guard mode audit is
+now a declared CWRMF guard policy in
+`paper_5/src/paper5/stability/apcm_carried_witness.py`.  `CWRMFSettings`
+gains `guard_policy` (`always` or `event_triggered`) and three event
+thresholds: `event_gram_floor=1e-8`, `event_gram_hard_floor=1e-3`, and
+`event_coupling_threshold=1e-2` with `event_coupling_horizon=0.05`.  Under
+the event policy each radial atom first evaluates the unconstrained
+higher-moment predictor and the full eigendecomposition of its endpoint
+unshifted 62-row Gram.  A minimum eigenvalue above `-event_gram_floor`
+accepts the atom directly.  Between the floor and the hard floor, the online
+negative-mode coupling measure decides: the atom is accepted while every
+negative mode's predicted retained-velocity and two-stage C-rate relative
+effects stay at or below the coupling threshold.  Below the hard floor, or
+above the coupling threshold, the existing guarded conic correction runs for
+that atom.  The measure is the same function the offline no-guard mode audit
+uses; it was moved into the model module and re-imported by
+`apcm_carried_witness_mode_audit.py` so the online trigger and the offline
+audit cannot drift apart.  The SSPRK convex-node rejection is policy-aware:
+the unified Gram is affine in the state, so the convex node cannot fall below
+the weaker of the two accepted endpoint contracts, and the event policy
+checks its declared hard floor there instead of the always-on shifted cone.
+Strict and balanced defaults, the always-on guard, and the named no-guard
+mode are unchanged.  The driver gains `--event-triggered-guard`, mutually
+exclusive with `--no-gram-guard`, with model classification
+`carried_witness_event_triggered_guard_flow`.
+
+Seven focused tests cover policy validation, the fast path, tolerated
+negativity, trigger routing into the guarded correction, shared-measure
+identity with the audit module, an event-policy smoke trajectory, and the
+driver flag exclusivity.  The carried-witness file passes 20/20 and the
+complete Paper V suite passes 299/299.
+
+### Strict-numerics pilot and the first trigger firing
+
+The strong-coupling cutoff-16 event-guard pilot at `h=0.0025` completed
+`t=0.05` in 6.43 seconds of autonomous time with dynamic all-coordinate
+scalar RMS `3.236e-6`, matching the strict always-on reference (`3.24e-6`)
+on the same interval.  The first atom used the fast path; every later atom
+was accepted under tolerated negativity with the coupling measure growing
+from `2.31e-5` to `6.67e-3` and the unshifted minimum reaching `-9.17e-5`,
+consistent with the offline audit's predicted crossing near `t=0.1`.
+Artifact:
+`output/local_runs/paper_v_cwrmf_event_guard_t005_h0025_cutoff16_20260818_v1/`.
+
+The continuation toward `t=0.5` under strict numerics fired the first
+trigger at the second atom of the `t=0.0825` step, from unshifted minimum
+near `-2.26e-4`.  The guarded bundle solve returned `AlmostSolved` at rank
+61 with independent residual `2.622e-9`, which the strict acceptance
+(`10 * solver_tolerance = 1e-9`) rejects, and the terminal full-cone polish
+declared `PrimalInfeasible`; the run stopped at `t=0.08` after 933.6
+seconds.  This is a numerical-acceptance stop of the strict profile at a
+triggered repair, not a failure of the trigger logic: the balanced profile's
+declared acceptance (`1e-7`) admits exactly this residual.  Artifact:
+`output/local_runs/paper_v_cwrmf_event_guard_t05_h0025_cutoff16_20260818_v1/`
+(truncated trajectory, success false).  A balanced-profile event-guard
+rerun of the same interval is the immediate next experiment.
+
+### Balanced stop, declared retraction, and the bounded-depth trigger
+
+The balanced-profile event-guard rerun passed the first triggered conic
+repair near `t=0.0825` (maximum readable-rate residual `6.34e-2`) and
+continued under tolerated negativity, but the coupling measure stayed below
+`1e-2` while the endpoint minimum drifted from `-2.5e-4` to `-5.9e-4`.  The
+next trigger, at the second atom of the `t=0.2025` step, failed with
+`NumericalError` in both the bundle and full-cone solves; the run stopped at
+`t=0.2` after 2,184 seconds.  Artifact:
+`output/local_runs/paper_v_cwrmf_event_guard_balanced_t05_h0025_cutoff16_20260818_v1/`.
+The conic repair is therefore depth-limited: it succeeded from `-2.3e-4`
+and failed from `-5.9e-4`.
+
+Two responses are implemented.  First, a declared minimum-norm completion
+retraction (`_event_completion_retraction`) now runs before the conic
+fallback on every triggered atom.  Each Gauss--Newton iteration solves a
+Lawson--Hanson least-distance program requiring every deficient mode of the
+endpoint 62-row Gram to reach `+event_gram_floor` while no working mode
+below that band sinks under `-event_gram_floor`; genuine boundary modes
+with vanishing gradients keep feasible do-not-sink rows.  Equality-only
+variants were rejected experimentally: the working-set equality system is
+inconsistent at the many-zero-mode preparation boundary, and overshoot
+factors above two diverge.  The retraction converges for shallow events
+(minimum `-3.3e-6` restored to `-8.2e-9` in 30 iterations, 0.5 s, no conic
+backend) but stalls from `-4e-5` and deeper, so it is a fast path for
+hysteresis-scale retriggers, not a replacement for the conic repair.
+
+Second, the event hard floor is now the depth bound for the conic problem:
+`--event-gram-hard-floor` overrides the declared `1e-3` default, and the
+next pilot uses `2e-4` so repairs always fire at a depth the balanced conic
+solve has already handled.  Focused carried-witness tests cover the
+retraction (22/22) and the full Paper V suite passes 301/301.
+
+The local rerun with the bounded depth was stopped by the user (thermal
+concern) before its first trigger; its checkpoint prefix is under
+`output/local_runs/paper_v_cwrmf_event_guard_balanced_hardfloor2em4_t05_h0025_cutoff16_20260818_v1/`.
+
+### First Paper V CHTC lane
+
+`chtc/paper_v_cwrmf_event_guard_20260818/` is the first CHTC lane for
+Paper V: apptainer wrapper and inner runner mirroring the Paper II
+exchange-hook lane, a single-job vanilla submit file
+(`submit_cwrmf_event_guard_t05_v1.sub`: 1 CPU, 8GB memory, 20GB disk,
+12 h MaxRuntime, batch
+`holstein-paper-v-cwrmf-event-guard-20260818-v1`), and a README with the
+exact upload/extract/submit commands.  The inner runner bootstraps a
+scratch venv with pinned numpy/scipy/cvxpy/clarabel only when the
+time-dynamics image lacks the conic stack.  The lifecycle validator
+passes on the final submit file.  The upload bundle
+`/tmp/paper_v_cwrmf_event_guard_20260818.tgz` (405,467 bytes, SHA-256
+`a1edccf60392c3468ad9675d644593c6a90b47f3ac4209a4fa2e249eee3ae8d8`)
+contains `paper_5/src`, `paper_5/pyproject.toml`, and the lane.  Nothing
+has been uploaded or submitted; login requires the user's Duo approval.

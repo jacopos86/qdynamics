@@ -226,6 +226,9 @@ def _adaptive_phase_shortlist_with_receipt(
             if str(phase) == "phase_iii"
             else ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
         ),
+        min_retained=int(
+            (runtime.phase_minimum_retained or {}).get(str(phase), 0)
+        ),
     )
     if not decision.retained_record_ids:
         terminal_authority = runtime.phase3_natural_terminal_authority
@@ -267,6 +270,7 @@ class PhaseShortlistRuntime:
     phase3_no_positive_policy: str = (
         ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
     )
+    phase_minimum_retained: Mapping[str, int] | None = None
 
     def __post_init__(self) -> None:
         authority = self.phase3_natural_terminal_authority

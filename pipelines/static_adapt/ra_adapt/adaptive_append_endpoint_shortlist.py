@@ -82,6 +82,7 @@ class AdaptivePhase0ActiveScoreShortlistDecision:
     rounded_effective_competitor_count: int
     active_score_policy: str
     _ranking_rows: tuple[_AdaptiveActiveScoreRankingRow, ...]
+    minimum_retained_floor: int = 0
 
     def to_receipt(self) -> dict[str, Any]:
         """Return the canonical v2 active-score shortlist decision receipt."""
@@ -136,6 +137,10 @@ class AdaptivePhase0ActiveScoreShortlistDecision:
             ),
             "ranking": ranking,
         }
+        if int(self.minimum_retained_floor) > 0:
+            payload["minimum_retained_floor"] = int(
+                self.minimum_retained_floor
+            )
         payload["sha256"] = _canonical_sha256(payload)
         return payload
 
@@ -237,6 +242,7 @@ def select_adaptive_phase0_active_score_shortlist(
     *,
     cap: int,
     active_score_policy: str,
+    min_retained: int = 0,
 ) -> AdaptivePhase0ActiveScoreShortlistDecision:
     """Choose an adaptive ranked prefix from already resolved active scores.
 
@@ -254,6 +260,11 @@ def select_adaptive_phase0_active_score_shortlist(
     score_policy = str(active_score_policy)
     if not score_policy:
         raise ValueError("Adaptive shortlist active-score policy is required.")
+    if isinstance(min_retained, bool):
+        raise ValueError("Adaptive shortlist floor must be an integer, not bool.")
+    floor_value = int(min_retained)
+    if floor_value < 0 or floor_value > cap_value:
+        raise ValueError("Adaptive shortlist floor must be in [0, cap].")
     records = tuple(population)
     if not records:
         raise ValueError("Adaptive shortlist population must be non-empty.")
@@ -316,6 +327,7 @@ def select_adaptive_phase0_active_score_shortlist(
             rounded_effective_competitor_count=0,
             active_score_policy=score_policy,
             _ranking_rows=ranking_rows,
+            minimum_retained_floor=floor_value,
         )
 
     normalized_scores = tuple(
@@ -346,6 +358,12 @@ def select_adaptive_phase0_active_score_shortlist(
         elif tied_end > target_size:
             target_size = cap_value
             tie_saturated = True
+    if floor_value > 0:
+        # Minimum-retention floor: never below min(floor, positives).  The
+        # floor draws only from positively scored candidates, so it can
+        # neither resurrect a stationary Phase 0 nor cross the positivity
+        # boundary of the admission law.
+        target_size = max(target_size, min(floor_value, positive_count))
     retained = ranked[:target_size]
     return AdaptivePhase0ActiveScoreShortlistDecision(
         ranked_generator_indices=ranked,
@@ -365,6 +383,7 @@ def select_adaptive_phase0_active_score_shortlist(
         rounded_effective_competitor_count=rounded_effective_count,
         active_score_policy=score_policy,
         _ranking_rows=ranking_rows,
+        minimum_retained_floor=floor_value,
     )
 
 

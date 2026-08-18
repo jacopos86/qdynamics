@@ -119,6 +119,7 @@ from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
 )
 from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
+    PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
     PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
@@ -3814,6 +3815,7 @@ def _validated_gradient_phase0_round_receipt(
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }:
             return validate_semantic_gradient_adaptive_phase0_receipt(
                 raw,

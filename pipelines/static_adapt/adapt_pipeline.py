@@ -69749,6 +69749,17 @@ def _default_no_prune_lane_runtime(
             "The authenticated route declares an unknown Phase-III "
             "no-positive policy."
         )
+    raw_shortlist_minimums = route_execution.get(
+        "ra_phase_shortlist_minimums", {}
+    )
+    if not isinstance(raw_shortlist_minimums, Mapping):
+        raise ValueError(
+            "The authenticated route shortlist minimums are malformed."
+        )
+    phase_minimum_retained = {
+        str(phase_name): int(value)
+        for phase_name, value in raw_shortlist_minimums.items()
+    }
     shortlist_runtime = PhaseShortlistRuntime(
         phase2_score_cfg=phase2_score,
         feature_updater=candidate_feature_with_updates,
@@ -69783,6 +69794,7 @@ def _default_no_prune_lane_runtime(
         if phase3_no_positive_policy
         == ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_FORCED_ADMISSION_V1
         else "typed_terminal_v1",
+        phase_minimum_retained=(phase_minimum_retained or None),
     )
     return _DefaultNoPruneLaneRuntime(
         phase1_shortlist_size=phase1_size,

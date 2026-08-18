@@ -60,12 +60,35 @@ def _parser() -> argparse.ArgumentParser:
             "without an artificial cap."
         ),
     )
-    parser.add_argument(
+    guard_group = parser.add_mutually_exclusive_group()
+    guard_group.add_argument(
         "--no-gram-guard",
         action="store_true",
         help=(
             "Propagate the carried higher-moment rates directly, without "
             "the 62-row PSD solve or endpoint rejection."
+        ),
+    )
+    guard_group.add_argument(
+        "--event-triggered-guard",
+        action="store_true",
+        help=(
+            "Propagate the unconstrained carried rates while the endpoint "
+            "62-row Gram stays above the declared event floor, evaluate the "
+            "online negative-mode coupling measure below it, and run the "
+            "declared retraction or guarded conic correction only on "
+            "triggered atoms."
+        ),
+    )
+    parser.add_argument(
+        "--event-gram-hard-floor",
+        type=float,
+        default=None,
+        help=(
+            "Optional override of the event policy's hard trigger floor. "
+            "Repairs fire unconditionally once the endpoint Gram minimum "
+            "falls below its negation, bounding how deep the conic repair "
+            "problem can become."
         ),
     )
     parser.add_argument("--compact-output", action="store_true")
@@ -204,6 +227,16 @@ def main() -> int:
     )
     if args.no_gram_guard:
         settings = replace(settings, enforce_gram_guard=False)
+    if args.event_triggered_guard:
+        settings = replace(settings, guard_policy="event_triggered")
+        if args.event_gram_hard_floor is not None:
+            settings = replace(
+                settings, event_gram_hard_floor=args.event_gram_hard_floor
+            )
+    elif args.event_gram_hard_floor is not None:
+        raise ValueError(
+            "--event-gram-hard-floor requires --event-triggered-guard"
+        )
     started = time.perf_counter()
     model = CarriedWitnessModel(parameters, settings=settings)
     preparation = model.prepare(phonon_cutoff=args.phonon_cutoff)
@@ -334,11 +367,16 @@ def main() -> int:
         "model": (
             "carried_higher_moment_flow_without_gram_guard"
             if args.no_gram_guard
-            else "carried_witness_radial_moment_flow"
+            else (
+                "carried_witness_event_triggered_guard_flow"
+                if args.event_triggered_guard
+                else "carried_witness_radial_moment_flow"
+            )
         ),
         "numerical_profile": args.numerical_profile,
         "numerical_settings": asdict(settings),
         "gram_guard_enabled": settings.enforce_gram_guard,
+        "guard_policy": settings.guard_policy,
         "strict_eight_mode_contract": args.maximum_critical_modes == 8,
         "parameters": {
             "hopping": parameters.hopping,
@@ -362,7 +400,11 @@ def main() -> int:
             "method": (
                 "SSPRK2 with unconstrained carried higher-moment rates"
                 if args.no_gram_guard
-                else "SSPRK2 with finite-step carried-witness radial atoms"
+                else (
+                    "SSPRK2 with event-triggered carried-witness radial atoms"
+                    if args.event_triggered_guard
+                    else "SSPRK2 with finite-step carried-witness radial atoms"
+                )
             ),
             "initial_time": initial_time,
             "final_time_requested": args.final_time,
@@ -419,8 +461,9 @@ def main() -> int:
                 np.max(trajectory.completion_correction_norms)
             ),
             "minimum_velocity_margin": (
-                float(np.min(trajectory.velocity_margins))
+                float(np.nanmin(trajectory.velocity_margins))
                 if settings.enforce_gram_guard
+                and bool(np.any(np.isfinite(trajectory.velocity_margins)))
                 else None
             ),
         },

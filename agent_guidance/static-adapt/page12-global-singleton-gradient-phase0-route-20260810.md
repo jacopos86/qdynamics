@@ -4,6 +4,15 @@ This file is the compact execution and preservation pointer for the route shown
 on page 12 of the evolving Paper-I results PDF. It is a named candidate route,
 not an alias for the ordinary `run_ra_adapt(problem)` default.
 
+> **Storage note (2026-08-17).** Three archive directories referenced in the
+> append-singleton source table below
+> (`retrieved_chtc_20260731_append_r70_strong_strong`,
+> `retrieved_chtc_20260801_append_r70_intermediate_weak`,
+> `retrieved_chtc_20260802_append_r70_remaining`) were removed in the
+> user-authorized storage cleanup; the recorded SHA-256 values remain the
+> provenance of their contents, and batch-local `resume_inputs/` copies remain
+> on disk. See `agent_guidance/shared/storage-cleanup-20260817.md`.
+
 ## Exact identity
 
 - Package:

@@ -44,12 +44,14 @@ ROUTER_TARGETS = (
     REPO_ROOT / "agent_guidance" / "skills" / "paper-i-run" / "SKILL.md",
 )
 
+STATIC_LANE_HISTORY = STATIC_LANE / "history"
+
 COMPATIBILITY_TARGETS = (
-    STATIC_LANE / "route-identities.md",
-    STATIC_LANE / "route-a-language.md",
-    STATIC_LANE / "sr-snake-refactor-plan.md",
-    STATIC_LANE / "paper-i-sr-snake-current-run-map.md",
-    STATIC_LANE / "post-refactor-paper-i-evidence-queue.md",
+    STATIC_LANE_HISTORY / "route-identities.md",
+    STATIC_LANE_HISTORY / "route-a-language.md",
+    STATIC_LANE_HISTORY / "sr-snake-refactor-plan.md",
+    STATIC_LANE_HISTORY / "paper-i-sr-snake-current-run-map.md",
+    STATIC_LANE_HISTORY / "post-refactor-paper-i-evidence-queue.md",
     AGENT_GUIDANCE / "paper-lane-refactor-plan.md",
     AGENT_GUIDANCE / "shared" / "icm-gitnexus-pilot-plan.md",
     ARCHIVE_MANIFEST,
@@ -76,7 +78,8 @@ def _is_quarantined_compatibility_doc(path: Path) -> bool:
     relative = path.relative_to(STATIC_LANE)
     name = relative.name
     return bool(
-        "handoffs" in relative.parts
+        "history" in relative.parts
+        or "handoffs" in relative.parts
         or name.startswith("sr-snake-issue-")
         or name.startswith("ra-adapt-unification-")
         or name
@@ -106,8 +109,8 @@ def test_ra_adapt_router_targets_exist() -> None:
         if not path.is_file()
     ]
     assert missing == []
-    assert tuple(STATIC_LANE.glob("sr-snake-issue-*-handoff.md"))
-    assert (STATIC_LANE / "handoffs").is_dir()
+    assert tuple(STATIC_LANE_HISTORY.glob("sr-snake-issue-*-handoff.md"))
+    assert (STATIC_LANE_HISTORY / "handoffs").is_dir()
 
 
 def test_ordinary_navigation_names_the_ra_adapt_seam() -> None:

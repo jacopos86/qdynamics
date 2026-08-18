@@ -305,7 +305,7 @@ Move or classify everything else by role during cleanup:
 - `route_a` and `paper_i_production_v1` remain compatibility/provenance labels
   for preserved manifests. They are not sufficient to distinguish JR-SNAKE,
   FM-SNAKE, and SR-SNAKE. Only for an explicit historical provenance request, use
-  `agent_guidance/static-adapt/route-identities.md` for the detailed registry
+  `agent_guidance/static-adapt/history/route-identities.md` for the detailed registry
   and executable-field map.
 - HH realtime/time-dynamics planning defaults to Paper-II AP-McLachlan:
   append-prune McLachlan support-patch control over time points/time
@@ -346,8 +346,8 @@ Move or classify everything else by role during cleanup:
   exact pruning, batching, beam, insertion, shortlist, stopping, and optimizer
   fields from the source lock or an explicit typed override. Only in that
   historical provenance workflow, use
-  `agent_guidance/static-adapt/route-identities.md` for family resolution and
-  `agent_guidance/static-adapt/route-a-language.md` only for legacy field
+  `agent_guidance/static-adapt/history/route-identities.md` for family resolution and
+  `agent_guidance/static-adapt/history/route-a-language.md` only for legacy field
   translation. Record observed fields explicitly instead of translating them
   into one stale Route-A flag.
 - For Paper-I phonon-bearing ADAPT work, the variational and exact-reference

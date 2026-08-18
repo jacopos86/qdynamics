@@ -166,6 +166,7 @@ class AdaptivePhaseShortlistReceipt:
     compile_work_in_s_alg: bool
     ranking: tuple[AdaptivePhaseRankReceipt, ...]
     no_positive_policy: str = ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
+    minimum_retained_floor: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -224,6 +225,10 @@ class AdaptivePhaseShortlistReceipt:
             ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
         ):
             payload["no_positive_policy"] = str(self.no_positive_policy)
+        if int(self.minimum_retained_floor) > 0:
+            payload["minimum_retained_floor"] = int(
+                self.minimum_retained_floor
+            )
         payload["sha256"] = canonical_sha256(payload)
         return payload
 
@@ -318,6 +323,7 @@ def select_adaptive_phase_shortlist(
     no_positive_policy: str = (
         ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
     ),
+    min_retained: int = 0,
 ) -> AdaptivePhaseShortlistDecision:
     """Select one deterministic prefix using the exact active phase score."""
 
@@ -335,6 +341,13 @@ def select_adaptive_phase_shortlist(
         and policy_key
         == ADAPTIVE_PHASE3_FORCED_ADMISSION_NO_POSITIVE_POLICY_V1
     )
+    if isinstance(min_retained, bool):
+        raise ValueError("Adaptive Phase-shortlist floor must be an integer.")
+    floor_value = int(min_retained)
+    if floor_value < 0 or floor_value > int(hard_cap):
+        raise ValueError(
+            "Adaptive Phase-shortlist floor must be in [0, hard_cap]."
+        )
     if (
         policy_key != ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1
         and phase_key != "phase_iii"
@@ -454,6 +467,15 @@ def select_adaptive_phase_shortlist(
             saturation_reason = "hard_cap_reached_before_population_exhausted"
         retained = tuple(frontier_eligible[:target])
 
+    if floor_value > 0:
+        # Minimum-retention floor: extend the retained prefix within the
+        # POSITIVE ranking (the frontier is eligibility-only and may not
+        # truncate below the floor).  Bounded by the positive population,
+        # so the no-positive terminal is untouched.
+        floored_size = min(floor_value, len(positive))
+        if len(retained) < floored_size:
+            retained = tuple(positive[:floored_size])
+
     forced_admission = False
     if forced_policy and not retained and ranked:
         # No candidate carries a positive score: force-admit the single
@@ -533,6 +555,7 @@ def select_adaptive_phase_shortlist(
         compile_work_in_s_alg=False,
         ranking=ranking,
         no_positive_policy=policy_key,
+        minimum_retained_floor=floor_value,
     )
     return AdaptivePhaseShortlistDecision(
         ranked_record_ids=tuple(
@@ -569,6 +592,7 @@ def validate_adaptive_phase_shortlist_receipt(
             ),
             frontier_ratio=receipt.frontier_ratio,
             no_positive_policy=receipt.no_positive_policy,
+            min_retained=receipt.minimum_retained_floor,
         ).receipt
         if receipt != expected or receipt.to_dict() != expected.to_dict():
             raise ValueError("receipt content drifted")
@@ -629,6 +653,7 @@ def adaptive_phase_shortlist_receipt_from_mapping(
                     ADAPTIVE_PHASE3_TYPED_TERMINAL_NO_POSITIVE_POLICY_V1,
                 )
             ),
+            min_retained=int(payload.get("minimum_retained_floor", 0)),
         ).receipt
         if rebuilt.to_dict() != payload:
             raise ValueError("serialized receipt failed recomputation")

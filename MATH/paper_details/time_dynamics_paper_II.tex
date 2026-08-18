@@ -469,7 +469,7 @@ The results identify mechanisms before surveying Hamiltonian regimes.  Every pai
 
 \subsection{Mechanism-level ablations}
 
-The structural comparison first holds numerical realization fixed and contrasts stay with child-resolved append, continuity-certified prune, and the joint support-patch policy.  It reports structural miss, accepted patch types, conditional gain and loss, same-checkpoint continuity, final support, and compiled cost.  The numerical-repair comparison then holds the support fixed and contrasts passive telemetry under the nominal solve with the intervening state-space policy.  It reports numerical miss, state-space displacement, temporal kink, inverse-policy changes, local subdivisions, unsupported checkpoints, and post-run energy and observable errors.  These comparisons separate support maintenance from numerical realization before their interaction is interpreted.
+The structural comparison holds numerical realization fixed and contrasts policy arms of one selector: append-only (deletions never eligible), prune-only (empty insertion pool), and the full exchange policy, each with and without the finalist trust-region refit, under one seed, Hamiltonian, drive, grid, and inverse policy.  It reports structural miss, accepted patch types by kind, conditional gain and loss, same-checkpoint continuity, final support, compiled cost, and the cumulative count of insertion candidates whose tangent overlaps had to be measured --- the measurement ledger that separates gated insertion enumeration from measurement-free pruning.  The numerical-repair comparison then holds the support fixed and contrasts passive telemetry under the nominal solve with the intervening state-space policy.  It reports numerical miss, state-space displacement, temporal kink, inverse-policy changes, local subdivisions, unsupported checkpoints, and post-run energy and observable errors.  These comparisons separate support maintenance from numerical realization before their interaction is interpreted.
 
 \begin{table}[t]
 \caption{Mechanism-level evidence plan.  Numerical entries remain provisional until transferred from source-locked paired trajectories under one seed, drive, grid, observable set, and compilation contract.  Exact-reference errors are post-run quantities.}
@@ -480,20 +480,21 @@ Configuration & $\bar\epsilon_E$ & $\epsilon_D$ & $\int\rho_{\rm expr}$ & $D_{\t
 \colrule
 fixed support, nominal solve & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
 fixed support, solve repair & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-append and solve repair & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-append, prune, and solve repair & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
+append-only & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
+exchange, no refit & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
+exchange with refit & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
 \subsection{Factorial interactions}
 
-The complete mechanism study switches append, prune, and state-space numerical repair independently while retaining the same nominal inverse and reporting grid.  Append changes the dimension and retained spectrum presented to the solve; prune can remove redundant or conditioning-toxic modes; repair determines how the selected support is realized over a finite step.  The three-factor comparison therefore reports main effects and append--prune, append--repair, prune--repair, and three-way interactions for trajectory error, integrated structural miss, unsupported checkpoints, final support, retained conditioning, controller estimator work, and compiled resources.  A deliberately disabled numerical stabilizer is treated as an ablation, not as the canonical operating condition.
+The complete mechanism study crosses the structural policy arm (append-only, prune-only, exchange without refit, exchange with refit) with state-space numerical repair while retaining the same nominal inverse and reporting grid.  Insertion changes the dimension and retained spectrum presented to the solve; deletion can remove redundant or conditioning-toxic modes; repair determines how the selected support is realized over a finite step.  The crossed comparison therefore reports main effects and policy--repair interactions for trajectory error, integrated structural miss, unsupported checkpoints, final support, retained conditioning, measured-candidate work, and compiled resources.  A deliberately disabled numerical stabilizer is treated as an ablation, not as the canonical operating condition.
 
 \subsection{Driven Hubbard--Holstein survey}
 
 \structlabel{Main trajectory layout}
-The primary results are organized as four one-column Hubbard--Holstein regime blocks.  Each block overlays the exact-diagonalization reference trajectory with AP-McLachlan dynamics and three pinned Qiskit-community baselines: TrotterQRTE, PVQD, and VarQRTE.  The plotted observable is the instantaneous total-energy expectation under the driven Hamiltonian; exact diagonalization is a diagnostic reference trajectory, not an input to the checkpoint controller.  The cost table below each trajectory uses the same Qiskit-compiled resource convention as the static-ansatz paper.  The four main regime blocks use the selected SNAKE plateau seed; append-only versus SNAKE seed effects are separated in Table~\ref{tab:dyn_seed_track_comparison}.
+The primary results are organized as four one-column Hubbard--Holstein regime blocks.  Each block overlays the exact-diagonalization reference trajectory with AP-McLachlan dynamics and three pinned Qiskit-community baselines: TrotterQRTE, PVQD, and VarQRTE.  The plotted observable is the instantaneous total-energy expectation under the driven Hamiltonian; exact diagonalization is a diagnostic reference trajectory, not an input to the checkpoint policy.  The cost table below each trajectory uses the same Qiskit-compiled resource convention as the static-ansatz paper.  The four main regime blocks use the selected SNAKE plateau seed; append-only versus SNAKE seed effects are separated in Table~\ref{tab:dyn_seed_track_comparison}.
 
 \noindent\begin{minipage}{\columnwidth}
 \begin{center}
@@ -625,244 +626,9 @@ strong--strong & SNAKE & \tentative{--} & \tentative{--} & \tentative{--} & \ten
 \end{center}
 \end{minipage}
 
-\subsection{Preserved provisional controller diagnostics}
+\subsection{Legacy controller diagnostics (archived)}
 
-The following current-evidence tables are retained to avoid losing existing data while the benchmark surface is reorganized around pinned Qiskit-community dynamics comparisons.  These values remain provisional placeholders until the new Qiskit TrotterQRTE, PVQD, and VarQRTE runs are generated on the same Hamiltonian/seed surfaces used in Figs.~\ref{fig:dyn_hh_weak_weak_trajectory}--\ref{fig:dyn_hh_strong_strong_trajectory}.
-
-% TABLE 1 / tab:dyn_claims PROVENANCE NOTE FOR REPO AGENTS:
-% Before updating this table, read:
-% MATH/paper_facing/paper_II_dynamics/tentative_table_artifact_appendix.md
-% Use the time-dynamics-benchmark-calibration gate before aggregating or editing.
-% Current controller setting lock:
-% chtc/generic_time_dynamics_table/input/class_settings/paper_ii_class_settings_lock_v1.json
-% This lock contains Optuna-promoted class-level AP-McLachlan settings:
-% - fermionic: trial 10, source
-%   raw_outputs/chtc_time_dynamics_optuna/td_class_policy_fermionic_A0p6_strict_append_prune_candidate_v1/run/class_settings_candidate.json
-% - bosonic: trial 44, source
-%   raw_outputs/chtc_time_dynamics_optuna/td_class_policy_bosonic_A0p6_strict_append_prune_candidate_retry1/run/class_settings_candidate.json
-% - hybrid/mixed fermion--boson: trial 7, source
-%   raw_outputs/chtc_time_dynamics_optuna/td_class_policy_mixed_A0p6_strict_append_prune_candidate_v1/run/class_settings_candidate.json
-% All three are strict exact-free online-feedback settings with
-% checkpoint_controller_mode=observable_v1,
-% checkpoint_controller_exact_input_mode=off. Paper-facing primary AP rows
-% should declare a fixed integrator_policy=rk4; auto_euler_rk4 is appendix-level
-% diagnostic evidence unless a completed ablation justifies elevating it.
-% The prepared static ADAPT ansatz may be benchmark-point specific, but all
-% methods inside one benchmark point must share exactly the same static seed hash,
-% drive, time grid, observables, diagnostic exact reference, and compile target.
-% Do not use staged/fallback dynamics seed artifacts in a paper-facing aggregate.
-% Current repaired run input set:
-% chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_cases_v2.json
-% chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_records_v2.tsv
-% submit smoke first with:
-% chtc/generic_time_dynamics_table/submit_paper_ii_seed_tracks_smoke_v2.sub
-% then submit:
-% chtc/generic_time_dynamics_table/submit_paper_ii_seed_tracks_table1_v2.sub
-% and:
-% chtc/generic_time_dynamics_table/submit_paper_ii_seed_tracks_controller_full_v2.sub
-% Calibration gate:
-% prompt-exports/dynamics_benchmark_pre_submit_audit_seed_tracks_v2_20260517.md
-% 2026-05-18 CHTC status for this v2 input family:
-% - Comparator cluster 6425190 completed 262/266 result JSON rows under
-%   raw_outputs/chtc_seedtracks_v2_full_20260518/.
-% - Qiskit-supported comparator sidecars passed 190/190 parity checks.  Treat
-%   these as implementation-parity checks, not physical accuracy.
-% - Four comparator rows failed mechanically: spin_boson/SNAKE at A=0.2 and
-%   A=0.6 for AVQDS and AVQDS-T.  Failure mode:
-%   grouped_exact execution is incompatible with parameterization_mode=
-%   per_pauli_term.  Repair or explicitly mark these four rows missing before a
-%   final table aggregate.
-% - Completed comparator median mean_abs_energy_total_error, grouped by current
-%   row table_class, was approximately:
-%   fermionic_lattice: product-formula 4.87e-5, fixed McLachlan 4.54e-3,
-%     fixed/adaptive pVQD 1.89e-3, qDRIFT 1.15e0;
-%   boson_chain: product-formula 1.34e-5, fixed McLachlan 1.20e-2,
-%     fixed/adaptive pVQD 1.20e-2, qDRIFT 3.98e-2;
-%   hubbard_holstein: product-formula 3.83e-5, fixed McLachlan 5.15e-3,
-%     fixed/adaptive pVQD 2.71e-3, qDRIFT 1.43e0;
-%   molecular_vibronic: product-formula 4.94e-7, fixed McLachlan 9.79e-3,
-%     fixed/adaptive pVQD 9.77e-3, qDRIFT 5.99e-3;
-%   spin_boson: product-formula 2.10e-6, fixed McLachlan 4.40e-2,
-%     fixed/adaptive pVQD 4.39e-2, qDRIFT 4.94e-2;
-%   spinless_fermion_lattice: product-formula 1.46e-5, fixed McLachlan 4.99e-2,
-%     fixed/adaptive pVQD 4.98e-2, qDRIFT 3.07e-2.
-% - Controller cluster 6425191 failed mechanically because the submit queued
-%   dyn_controller_full record ids that were absent from
-%   paper_ii_seed_tracks_records_v2.tsv.  This was an input-builder bug, not a
-%   physics result.
-% - build_paper_ii_seed_track_inputs.py is patched so the master TSV now
-%   includes 38 dyn_controller_full records.  Local run_task.sh smoke for
-%   hubbard/POS-GEO/A=0.2 passed with strict_decision_contract_passed=true,
-%   uses_reference_for_decision=false, exact_decision_checkpoints=0, and
-%   mean_abs_energy_total_error=1.1702353254352085e-3.
-% Patched checkpoint-controller rerun:
-% - Cluster 6483891 completed 38/38 controller-full rows with exit code 0.
-% - Fetched controller outputs:
-%   raw_outputs/chtc_seedtracks_v2_controller_6483891_20260518/
-% - Combined comparator+controller aggregate:
-%   raw_outputs/chtc_seedtracks_v2_combined_20260518/aggregated_completed_rows_with_controller_20260518.json
-% - Post-fetch run-skill audit:
-%   prompt-exports/dynamics_benchmark_post_fetch_audit_seedtracks_v2_combined_20260518.md
-%   Verdict: PASS with warnings.  Completed rows: 300.  Missing rows: four
-%   AVQDS/AVQDS-T spin_boson/SNAKE rows noted above.  Qiskit parity: 190/190.
-%   Controller rows with append/prune events: 16/38.
-% - Remaining table-critical warnings: epsilon_spec and shots_total are missing
-%   in current rows; one_minus_min_fidelity_exact is missing in McLachlan-style
-%   rows without exact-state fidelity output.
-% The v2 manifest is rebuilt from explicit static ADAPT seed artifacts and avoids
-% staged/fallback dynamics seeds.  The update agent must still treat Table 1 as
-% incomplete until this v2 same-seed matrix has completed, passed post-fetch
-% audit, and produced non-frozen McLachlan/controller trajectories for rows whose
-% exact diagnostic trajectory moves.
-% Important distinction: maintain two explicit harmonic-Kerr seed tracks for
-% the repaired Table-1 matrix rather than collapsing them into one generic
-% "best seed" entry.
-% POS-GEO harmonic-Kerr static seeds:
-% - L=2, nph=1, omega0=1.0:
-%   raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json
-%   abs_delta_e=5.739853037312059e-13, sha256=e54b71fbd6b0933bbc4e980bc61ca1fd72240242d4ee9a1be86324dcda6e0f26.
-% - L=2, nph=1, omega0=0.75:
-%   raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2_w0p75__static_pos_geo_adapt_vqe/result/generic_static_single.json
-%   abs_delta_e=7.514405764297294e-13, sha256=175b837a9f19f7989a98714faff8dea229af10074aefb8ebcd4229098aac8493.
-% SNAKE/full-meta harmonic-Kerr static seeds:
-% - L=2, nph=1, omega0=1.0:
-%   artifacts/agent_runs/20260513_hk_l2_nph1_accuracy_ceiling_optuna/run/trial_0001/result.json
-%   abs_delta_e=3.810174398211075e-12, ansatz_depth=8, sha256=a66d024d2674af5132bf77018d83bd45b8ae51f031bb510aeaee813a5084a945.
-% - L=2, nph=1, omega0=0.75:
-%   artifacts/agent_runs/20260513_hk_l2_w0p75_nph1_accuracy_ceiling_optuna/run/trial_0007/result.json
-%   abs_delta_e=2.236506532748983e-08, ansatz_depth=15, sha256=d09b9988d4950b3ee7bbac5e90bf2cc3e209726c52c172deed50f8ed8cb962e3.
-% For Paper-II dynamics, run POS-GEO-seed and SNAKE-seed tracks separately, do
-% not average or mix them before the audit, and require every method inside a
-% benchmark point to share the selected track's exact seed artifact hash.  High
-% static accuracy alone is insufficient: checkpoint/fixed McLachlan smoke must
-% show nonzero trajectory motion when the exact diagnostic trajectory moves.  A
-% row with theta_dot_l2=0, rho_miss≈1, and a flat algorithm trajectory is invalid
-% for Table 1 even if the static seed has sub-microhartree error.
-% Harmonic-Kerr PosGeo-seed diagnostic rerun:
-% raw_outputs/chtc_harmonic_kerr_posgeo_20260517/
-% output/pdf/20260517_harmonic_kerr_posgeo_time_dynamics_overlay.pdf
-% audit: prompt-exports/dynamics_benchmark_audit_harmonic_kerr_posgeo_post_fetch_20260517.md
-% clusters: 6368121 smoke, 6368122 full.  Seed hash c95a6f09... passed same-seed
-% checks, but checkpoint/fixed McLachlan froze: theta_dot_l2=0, rho_num=0,
-% rho_miss=1, and the algorithm state was essentially static while the exact
-% diagnostic trajectory moved.  Exclude those McLachlan rows from paper-facing
-% aggregates until a dynamically usable harmonic-Kerr seed/scaffold or controller
-% repair is used and the non-frozen smoke passes.
-% 2026-05-19 repaired checkpoint Table-1 promotion inputs:
-% - Repaired checkpoint diagnostic-best rows:
-%   raw_outputs/chtc_paper_ii_repaired_checkpoint_fullsearch_snake_v1_20260519/diagnostic_physical_best_summary.json
-% - Recovered final-scaffold FakeMarrakesh costs for the 20 selected checkpoint rows:
-%   raw_outputs/table_i_checkpoint_cost_recovery_20260519/cost_recovery_report.json
-% - Table-I aggregate emitted at:
-%   raw_outputs/dynamics_table_fill/table_i_repaired_checkpoint_costed_20260519/table_i_aggregated_metrics.json
-% - Visible table cells use SNAKE seed-track comparator rows from
-%   raw_outputs/chtc_seedtracks_v2_complete_20260518/aggregated_completed_rows_with_controller_and_avqds_repair_20260518.json
-%   with the checkpoint row replaced by best_diagnostic_physical_trial checkpoint rows.
-% - No visible prose/caption was updated in this pass; update prose separately if needed.
-% 2026-05-19 fixed-McLachlan RK4 validation refresh:
-% - Cluster 6590859 completed 20/20 fixed-McLachlan RK4 validation rows with exit code 0.
-% - Fetched outputs and aggregate summary:
-%   raw_outputs/chtc_fixed_rk4_v1_20260519/aggregate_summary.json
-%   raw_outputs/chtc_fixed_rk4_v1_20260519/aggregate_summary.md
-% - Qiskit parity passed for 20/20 rows.
-% - Visible fixed-McLachlan Table-I cells use this RK4 validation aggregate;
-%   checkpoint and non-McLachlan comparator cells remain from the repaired-checkpoint
-%   2026-05-19 Table-I aggregate and its retained SNAKE comparator rows.
-% Exact ED/reference data is valid for diagnostics/error columns, not
-% controller-decision inputs or strict Optuna online feedback.
-\clearpage
-\begin{widetext}
-\inlinetablecaption{tab:dyn_claims}{Hubbard--Holstein driven-dynamics matrix. The HH-regime label gives the interaction/electron--phonon benchmark coordinates: the first adjective refers to $U/t$, the second to $\lambda=2g^2/(t\omega_0)$, and weak/strong are manuscript-local low/high labels defined here as $0.25/1.25$ for that coordinate, not universal phase-regime labels. Drive amplitudes are listed directly as $A=0.2$ or $A=0.6$; blank regime, parameter, or drive cells repeat the preceding nonblank entry. The seed-cost column reports the Qiskit-compiled state-preparation seed cost $(N_{\twq}^{\rm prep},D_{\twq}^{\rm prep})$ using the same static-ansatz convention as the ground-state table; the Suzuki--Trotter row is unseeded. Variational method cells report the accuracy pair $(\bar\epsilon_E,\epsilon_n^{\max})$, where $\bar\epsilon_E$ is the mean absolute total-energy error versus the diagnostic exact/reference trajectory and $\epsilon_n^{\max}$ is the maximum site-occupation trajectory error versus that same reference. The Suzuki--Trotter cell reports $(\bar\epsilon_E,\epsilon_n^{\max};D_{\twq}^{\rm evol})$, where $D_{\twq}^{\rm evol}$ is the cumulative two-qubit evolution depth through the final time. A dash indicates a running, absent, or nonapplicable row; ``failed'' indicates a completed numerical failure. Exact/reference data in these error columns is diagnostic-only and is not available to checkpoint decisions.}
-\begin{center}
-\scriptsize
-\setlength{\tabcolsep}{2.0pt}
-\renewcommand{\arraystretch}{1.06}
-\begin{ruledtabular}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.075\textwidth}p{0.070\textwidth}p{0.040\textwidth}p{0.115\textwidth}p{0.075\textwidth}p{0.105\textwidth}p{0.095\textwidth}p{0.085\textwidth}p{0.095\textwidth}p{0.095\textwidth}@{}}
-HH regime & $(U/t,\lambda)$ & $A$ & Seed ansatz & \shortstack[c]{Seed cost\\$(N_{\twq}^{\rm prep},D_{\twq}^{\rm prep})$} & \shortstack[c]{Suzuki\\$(\bar\epsilon_E,\epsilon_n^{\max};D_{\twq}^{\rm evol})$} & \shortstack[c]{checkpoint McL\\$(\bar\epsilon_E,\epsilon_n^{\max})$} & \shortstack[c]{fixed McL\\$(\bar\epsilon_E,\epsilon_n^{\max})$} & \shortstack[c]{adaptive pVQD\\$(\bar\epsilon_E,\epsilon_n^{\max})$} & \shortstack[c]{AVQDS-T\\$(\bar\epsilon_E,\epsilon_n^{\max})$} \\
-\colrule
-weak/weak & $(0.25,0.25)$ & $0.2$ & none & -- & \tentative{\tdsuz{6.07e-6}{7.26e-5}{144}} & -- & -- & -- & --\\
- &  &  & SNAKE & \tentative{(124,48)} & -- & \tentative{\tdacc{1.20e-3}{0.109}} & \tentative{\tdacc{1.75e-3}{0.114}} & \tentative{\tdacc{0.0154}{0.156}} & \tentative{\tdacc{3.36}{0.217}}\\
- &  &  & append-only ADAPT & \tentative{(1002,874)} & -- & \tentative{\tdacc{6.02e-3}{0.13}} & \tentative{\tdacc{2.38}{0.338}} & \tentative{\tdacc{0.0185}{0.156}} & \tentative{\tdacc{3.58}{0.307}}\\
- &  & $0.6$ & none & -- & \tentative{\tdsuz{2.37e-5}{1.77e-4}{144}} & -- & -- & -- & --\\
- &  &  & SNAKE & \tentative{(124,48)} & -- & \tentative{\tdacc{0.013}{0.35}} & \tentative{\tdacc{0.0254}{0.386}} & \tentative{\tdacc{0.149}{0.439}} & \tentative{\tdacc{2.98}{0.484}}\\
- &  &  & append-only ADAPT & \tentative{(1002,874)} & -- & \tentative{\tdacc{0.0673}{0.319}} & \tentative{\tdacc{2.3}{0.451}} & \tentative{\tdacc{0.158}{0.438}} & \tentative{\tdacc{3.62}{0.564}}\\
-\colrule
-strong/weak & $(1.25,0.25)$ & $0.2$ & none & -- & \tentative{\tdsuz{1.92e-5}{3.03e-4}{144}} & -- & -- & -- & --\\
- &  &  & SNAKE & \tentative{(314,243)} & -- & \tentative{\tdacc{5.81e-4}{0.0371}} & \tentative{\tdacc{2.25e-4}{0.0423}} & -- & \tentative{\tdacc{3.37}{0.246}}\\
- &  &  & append-only ADAPT & \tentative{(2362,2061)} & -- & \tentative{\tdacc{0.0386}{0.0946}} & \tentative{\tdacc{0.9}{0.517}} & \tentative{\tdacc{0.0268}{0.0937}} & \tentative{\tdacc{3.4}{0.177}}\\
- &  & $0.6$ & none & -- & \tentative{\tdsuz{5.61e-5}{4.54e-4}{144}} & -- & -- & -- & --\\
- &  &  & SNAKE & \tentative{(314,243)} & -- & \tentative{\tdacc{2.68e-3}{0.141}} & \tentative{\tdacc{0.0143}{0.192}} & -- & \tentative{\tdacc{2.33}{0.225}}\\
- &  &  & append-only ADAPT & \tentative{(2362,2061)} & -- & \tentative{failed} & \tentative{\tdacc{0.614}{0.563}} & \tentative{\tdacc{0.0993}{0.276}} & \tentative{\tdacc{3.38}{0.332}}\\
-\colrule
-weak/strong & $(0.25,1.25)$ & $0.2$ & none & -- & -- & -- & -- & -- & --\\
- &  &  & SNAKE & -- & -- & -- & -- & -- & --\\
- &  &  & append-only ADAPT & -- & -- & -- & -- & -- & --\\
- &  & $0.6$ & none & -- & -- & -- & -- & -- & --\\
- &  &  & SNAKE & -- & -- & -- & -- & -- & --\\
- &  &  & append-only ADAPT & -- & -- & -- & -- & -- & --\\
-\colrule
-strong/strong & $(1.25,1.25)$ & $0.2$ & none & -- & -- & -- & -- & -- & --\\
- &  &  & SNAKE & -- & -- & -- & -- & -- & --\\
- &  &  & append-only ADAPT & -- & -- & -- & -- & -- & --\\
- &  & $0.6$ & none & -- & -- & -- & -- & -- & --\\
- &  &  & SNAKE & -- & -- & -- & -- & -- & --\\
- &  &  & append-only ADAPT & -- & -- & -- & -- & -- & --\\
-\end{tabular*}
-\end{ruledtabular}
-\end{center}
-\end{widetext}
-
-Table~\ref{tab:dyn_ablation_matrix} is now the source-of-truth layout for the three-factor mechanism study. It supersedes the earlier provisional table in which pruning was inactive on every selected row. Existing numerical values are not carried forward automatically: each cell requires a paired source record under the common benchmark contract.
-
-\begin{table*}[t]
-\caption{Append--prune--repair factorial comparison. ``Off'' repair retains passive numerical telemetry and the declared nominal inverse but does not intervene.}
-\label{tab:dyn_ablation_matrix}
-\begin{ruledtabular}
-\begin{tabular}{ccccccccc}
-Append & Prune & Repair & $\bar\epsilon_E$ & $\epsilon_D$ & $\epsilon_n^{\max}$ & unsupported & $|J(T)|$ & $D_{\twq}^{\rm final}$\\
-\colrule
-on  & on  & on  & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-off & on  & on  & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-on  & off & on  & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-off & off & on  & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-on  & on  & off & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-off & on  & off & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-on  & off & off & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-off & off & off & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{--}\\
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
-
-True exchange is reported separately from the limiting pure-append and pure-prune actions. If no exchange commits on the audited surface, the result will identify whether no pairs were formed, a limiting patch had greater utility, or conditional gain, loss, novelty, solve, persistence, refit, or continuity rejected the pair. No empirical exchange event is implied by the method definition.
-
-\begin{center}
-\centering
-\IfFileExists{../../plots/main_condensed_tentative_20260502/hh_dynamic_energy_tentative.png}{\includegraphics[width=0.97\columnwidth]{../../plots/main_condensed_tentative_20260502/hh_dynamic_energy_tentative.png}}{\placeholder{Missing figure}}
-\end{center}
-\noindent\emph{Driven-energy figure.} The trace shows the driven Hubbard--Holstein trajectory used for the filled comparison. The panel is a trajectory diagnostic for the AP-McLachlan run; quantitative McLachlan comparisons for the current fill are reported in Table~\ref{tab:dyn_claims} as same-seed accuracy--resource tradeoffs.
-
-\begin{center}
-\centering
-\IfFileExists{../../plots/main_condensed_tentative_20260502/hh_site_occupation_tentative.png}{\includegraphics[width=0.97\columnwidth]{../../plots/main_condensed_tentative_20260502/hh_site_occupation_tentative.png}}{\placeholder{Missing figure}}
-\end{center}
-\noindent\emph{Site-occupation figure.} The plotted site occupation uses the same driven Hubbard--Holstein trajectory. The panel shows the AP-McLachlan trajectory's density response on the filled example, while cross-method McLachlan error comparisons remain tied to the same-seed benchmark table.
-
-The spectral diagnostic Fourier-transforms the accepted site-occupation trajectories. For site occupation,
-\begin{equation}
-A_{n_i}(\omega;g)=
-\left|\sum_j w_j\left(\langle n_i(t_j;g)\rangle-\bar n_i(g)\right)
-\ee^{\ii\omega t_j}\right|^2 ,
-\label{eq:site_occupation_spectrum}
-\end{equation}
-where $w_j$ is the analysis window. The spectrum figure shows $A_{n_i}(\omega;g)$ across the coupling sweep, with peak positions and amplitudes compared to the $\phmax^{\rm ref}=4$ reference. It is used here as a response diagnostic for the accepted AP-McLachlan trajectory, not as an equal-depth product-formula comparison. The same sweep gives cutoff-stress errors $\tentative{2.16\!\times\!10^{-15}}$, $\tentative{8.18\!\times\!10^{-6}}$, $\tentative{5.33\!\times\!10^{-5}}$, $\tentative{1.07\!\times\!10^{-4}}$, and $\tentative{2.29\!\times\!10^{-4}}$ at $\lambda=0.0,0.2,0.5,0.7,1.0$, respectively.
-
-\begin{center}
-\centering
-\IfFileExists{../../plots/main_condensed_tentative_20260502/hh_site_spectrum_tentative.png}{\includegraphics[width=0.97\columnwidth]{../../plots/main_condensed_tentative_20260502/hh_site_spectrum_tentative.png}}{\placeholder{Missing figure}}
-\end{center}
-\noindent\emph{Spectrum figure.} The spectra use the same driven site occupation as above; the inset records the $\lambda$-sweep cutoff-stress errors used for the sweep panel.
-
+Provisional diagnostic tables produced by the retired checkpoint-controller implementation have been moved to the repository archive (\texttt{MATH/paper\_details/archive/}) pending regeneration under the exchange selector on the same Hamiltonian and seed surfaces.  No quantity from those tables is cited by this manuscript.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -957,7 +723,7 @@ so testing inverse candidates and the release metric in Eq.~(\ref{eq:repair_rele
 
 \subsection{Structural search and deletion history}
 
-Append uses a cost-weighted combinatorial batch ladder.  Candidate tangent overlaps are measured once and reused to assemble singleton and joint-batch Gram blocks.  A failed append search may be reused only while current-support geometry and selected sentinel couplings remain within declared staleness bounds; this is a search-reuse certificate, not a cap on the total number of append events.
+Candidate tangent overlaps are measured once per checkpoint and reused across the whole structural family: the positioned candidate tangents are assembled in one batched pass, the deletion-independent Gram and force blocks are cached, and every candidate solve is a submatrix solve of that cached geometry with memoized results.  Deletion branches reuse the base-support solve metadata, so the conditioning terms below require no additional eigendecompositions.
 
 Prune nomination retains Eq.~(\ref{eq:prune_loss}) as its physical authority.  Its implementation-level ranking may include historical loss, conditioning relief, Schur degeneracy, and conditioning damage:
 \begin{equation}
@@ -978,12 +744,12 @@ S_k^{\ominus,\kappa}(B)
 \end{equation}
 Conditioning terms change nomination only.  Current grouped deletion loss, current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
 
-True exchange is formed from the retained append and prune scouts.  Every pair is recomputed on
+True exchange is enumerated directly: within each admitted deletion rung, every deletion branch is paired with every positioned insertion from its deletion-conditioned pool, with the insertion cuts remapped onto the post-deletion survivor word.  Every candidate is evaluated on
 \[
 J_k^{\mathcal B}
 =(J_k\setminus I_{B,k}^{\ominus})\cup I_{B,k}^{\oplus},
 \]
-using conditional append gain, conditional deletion loss, patched Schur novelty, the full patched solve, and Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}).  This joint recomputation is what distinguishes exchange from sequential append followed by prune.
+using conditional insertion gain against the post-delete support, conditional deletion loss against the patched support, the full patched solve, and Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}) at certification.  This joint evaluation is what distinguishes exchange from sequential append followed by prune.  Certification order and the per-level and per-branch admission bounds are as in the main text; the historical-loss term \(\bar{\mathcal L}_k^{\ominus,\rm hist}\) in Eq.~(\ref{eq:app_prune_nomination}) is a windowed mean of previously attempted deletion losses recorded per surviving coordinate, and the conditioning relief and damage terms \(d_{\kappa}^{\rm rel},d_{\kappa}^{\rm dam}\) are the positive and negative parts of the base-versus-branch log-condition shift of the retained solve.
 
 
 \begin{thebibliography}{99}

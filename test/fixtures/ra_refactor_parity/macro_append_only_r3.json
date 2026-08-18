@@ -1,0 +1,94 @@
+{
+  "accepted_trajectory": [
+    {
+      "controller_round": 1,
+      "energy": 0.2192235936,
+      "generator_ids": [
+        "parent:c78693d97f183b73"
+      ],
+      "insertion_positions": [
+        0
+      ],
+      "logical_parameters": [
+        0.9078874922
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:31a4234bff3fa11a14db239968f8131a07b8c3185ea27530be69825bc6d0b2d1",
+      "runtime_parameters": [
+        0.9078874922,
+        0.9078874922
+      ]
+    },
+    {
+      "controller_round": 2,
+      "energy": -0.75,
+      "generator_ids": [
+        "parent:c78693d97f183b73",
+        "parent:6b51b391fac6ecf9"
+      ],
+      "insertion_positions": [
+        0,
+        1
+      ],
+      "logical_parameters": [
+        0.7853984502,
+        0.7853981344
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:e5129fd850962b801f1183aa633f419bb3204f3bc25d8bbe2688010a672cb6ec",
+      "runtime_parameters": [
+        0.7853984502,
+        0.7853984502,
+        0.7853981344,
+        0.7853981344
+      ]
+    },
+    {
+      "controller_round": 3,
+      "energy": -0.7566324915,
+      "generator_ids": [
+        "parent:c78693d97f183b73",
+        "parent:6b51b391fac6ecf9",
+        "parent:5be5d29e6b92a8e9"
+      ],
+      "insertion_positions": [
+        0,
+        1,
+        2
+      ],
+      "logical_parameters": [
+        0.7853981692,
+        0.7853981571,
+        -0.0661800904
+      ],
+      "operators": [
+        "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+        "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+        "paop_full:paop_disp(site=1)"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:44a4bce0e9896881832b8fb4f62843502f301206e5a209d95f3f99f7fdf13bdb",
+      "runtime_parameters": [
+        0.7853981692,
+        0.7853981692,
+        0.7853981571,
+        0.7853981571,
+        -0.0661800904,
+        -0.0661800904
+      ]
+    }
+  ],
+  "completed_controller_rounds": 3,
+  "protocol_sha256": "861eee9a565a7929b35db025edd16771234e66dfccd633bc40ab856247f08b04",
+  "result_schema": "paper_i_ra_adapt_result_v1",
+  "stop": {
+    "accepted_energy": -0.7566324915,
+    "accepted_operator_count": 3,
+    "completed_controller_rounds": 3,
+    "primary_reason": "maximum_controller_rounds"
+  }
+}

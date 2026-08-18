@@ -5,6 +5,11 @@ Each section was an inline `% BEGIN_<name> … % END_<name>` block. A one-line
 `% PROVENANCE(<name>) archived -> <this file>` pointer remains at the original site.
 **Agents/scripts updating provenance should edit the block here and keep the pointer in sync.**
 
+> Storage note, 2026-08-17: `raw_outputs/chtc_fetch_paper_i_hh_sr_pool_complements_20260719/`
+> referenced in an archived block below was removed in the user-authorized
+> storage cleanup (`agent_guidance/shared/storage-cleanup-20260817.md`).
+> Archived blocks are unchanged.
+
 ## EDITORIAL_FRAMING_NOTES_20260718
 _was Paper_I.tex lines 108–130_
 

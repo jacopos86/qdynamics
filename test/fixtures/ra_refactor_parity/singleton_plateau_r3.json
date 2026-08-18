@@ -1,0 +1,88 @@
+{
+  "accepted_trajectory": [
+    {
+      "controller_round": 1,
+      "energy": 0.2192235936,
+      "generator_ids": [
+        "child:e0ebb7216bd98c17"
+      ],
+      "insertion_positions": [
+        0
+      ],
+      "logical_parameters": [
+        -0.9078874968
+      ],
+      "operators": [
+        "guarded_singleton::eeeexy"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:265306482f0f953d9c70c6597415492522ebb1c4e492800ee322515ae2f970da",
+      "runtime_parameters": [
+        -0.9078874968
+      ]
+    },
+    {
+      "controller_round": 2,
+      "energy": -0.75,
+      "generator_ids": [
+        "child:e0ebb7216bd98c17",
+        "child:846c6511a251bf45"
+      ],
+      "insertion_positions": [
+        0,
+        1
+      ],
+      "logical_parameters": [
+        -0.7853981667,
+        -0.7853981607
+      ],
+      "operators": [
+        "guarded_singleton::eeeexy",
+        "guarded_singleton::eexyee"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:49c91ab774a5f3d109573b071449397b19d974a6306acc2ce0df57df19749cae",
+      "runtime_parameters": [
+        -0.7853981667,
+        -0.7853981607
+      ]
+    },
+    {
+      "controller_round": 3,
+      "energy": -0.7533296378,
+      "generator_ids": [
+        "child:e0ebb7216bd98c17",
+        "child:846c6511a251bf45",
+        "child:0f711649c02c3e2f"
+      ],
+      "insertion_positions": [
+        0,
+        1,
+        2
+      ],
+      "logical_parameters": [
+        -0.7853981656,
+        -0.7853981622,
+        0.0332840784
+      ],
+      "operators": [
+        "guarded_singleton::eeeexy",
+        "guarded_singleton::eexyee",
+        "guarded_singleton::yezeee"
+      ],
+      "projective_state_fingerprint": "projective_state_v1:2a26914003e3a94e142cfb8b1f785575c2bd2f54fe56faa2f9c63fb0378e0906",
+      "runtime_parameters": [
+        -0.7853981656,
+        -0.7853981622,
+        0.0332840784
+      ]
+    }
+  ],
+  "completed_controller_rounds": 3,
+  "protocol_sha256": "f2f84f7636d6bec029b551e6c34352cbd502c32b7794cb4849ff480794fbf1c6",
+  "result_schema": "paper_i_ra_adapt_result_v1",
+  "stop": {
+    "accepted_energy": -0.7533296378,
+    "accepted_operator_count": 3,
+    "completed_controller_rounds": 3,
+    "primary_reason": "maximum_controller_rounds"
+  }
+}

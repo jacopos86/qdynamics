@@ -119,7 +119,7 @@ For exact Paper-I notation, claims, artifact paths, and current cost-vs-energy r
 The non-archaic HH ADAPT implementation path is direct `pipelines/static_adapt/adapt_pipeline.py`; paper-facing defaults are governed by the relevant paper-specific run skill.
 
 - On the direct CLI, omitting `--adapt-continuation-mode` now defaults to `phase3_v1`.
-- Current Paper-I/static HH production uses Route A / `paper_i_production_v1`, the new problem-local `full_meta` pool, and Pauli-child / child-set candidate exploration by default. See `agent_guidance/static-adapt/route-a-language.md` for the visual Route-A language map.
+- Current Paper-I/static HH production uses Route A / `paper_i_production_v1`, the new problem-local `full_meta` pool, and Pauli-child / child-set candidate exploration by default. See `agent_guidance/static-adapt/history/route-a-language.md` for the visual Route-A language map.
 - Do not treat narrow cores, `paop_lf_std`, reduced winning pools, or old selected-logical surfaces as current HH production defaults. They are diagnostic, ablation, appendix, or legacy-reproduction surfaces unless explicitly requested.
 - `legacy`, `phase1_v1`, and `phase2_v1` remain explicit historical/compatibility modes only.
 

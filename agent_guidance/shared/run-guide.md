@@ -149,3 +149,17 @@ Scheduler identifiers and paths are secondary provenance.
 
 No run, report, artifact, setting, or table value is promoted or demoted
 without the user's explicit decision.
+
+## Stored-artifact compression and retention
+
+Run-artifact JSON files larger than 100 MB written before 2026-08-17 are
+stored gzip-compressed in place (for example `result.json.gz`,
+`estimator_ledger.json.gz`, `current.json.gz`). Decompress with `gunzip` or
+read via `gzip.open` before parsing; new runs still write plain `.json`.
+Superseded raw archives removed on that date are listed in
+`agent_guidance/shared/storage-cleanup-20260817.md`.
+
+Ongoing lifecycle rules — evidence/raw classification, the compression
+schedule, and staged user-approved expiry of superseded raw archives — are in
+`agent_guidance/shared/artifact-retention.md`. The report-only scan is
+`python3 pipelines/shell/artifact_retention_report.py`.

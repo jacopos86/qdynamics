@@ -42,7 +42,9 @@ The user's narrower scope always wins.
   ownership or purpose is uncertain.
 - Make the smallest coherent change that satisfies the requested behavior.
 - Diagnose read-only requests without implementing an unrequested fix.
-- Do not infer permission for commits, pushes, issue changes, scheduler
+- Git commits are at the agent's discretion, always (user policy,
+  2026-08-17); commit deliberately and descriptively without asking.
+- Do not infer permission for pushes, issue changes, scheduler
   actions, scientific runs, manuscript edits, or artifact promotion.
 - For non-semantic refactors, proceed against code and tests. Stop for the user
   only when code, tests, or contracts disagree about numerical conventions,

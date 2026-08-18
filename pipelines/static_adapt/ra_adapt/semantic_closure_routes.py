@@ -121,6 +121,14 @@ PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_FORCED_K50_IMPLEMENTATION_VERSION_V1 = (
     "paper_i_ra_all_phase_adaptive_position_gradient_phase0_phase123_"
     "qiskit_forced_admission_k50_semantic_closure_v1"
 )
+PAPER_I_RA_ALL_PHASE_ADAPTIVE_MIN_FLOORS_IMPLEMENTATION_VERSION_V1 = (
+    "paper_i_ra_all_phase_adaptive_gradient_phase0_phase123_qiskit_"
+    "min_floors_natural_terminal_semantic_closure_v1"
+)
+PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_MIN_FLOORS_IMPLEMENTATION_VERSION_V1 = (
+    "paper_i_ra_all_phase_adaptive_position_gradient_phase0_phase123_"
+    "qiskit_min_floors_natural_terminal_semantic_closure_v1"
+)
 PAPER_I_RA_SEMANTIC_ROUTE_CONTRACT_SCHEMA = (
     "paper_i_ra_phase0_proxy_ablation_phase123_qiskit_route_contract_v1"
 )
@@ -166,6 +174,14 @@ PAPER_I_RA_ALL_PHASE_ADAPTIVE_FORCED_K50_NATIVE_BUNDLE_ID_V1 = (
 PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_FORCED_K50_NATIVE_BUNDLE_ID_V1 = (
     "paper_i_ra_all_phase_adaptive_position_gradient_phase0_phase123_"
     "qiskit_forced_admission_k50_native_v1"
+)
+PAPER_I_RA_ALL_PHASE_ADAPTIVE_MIN_FLOORS_NATIVE_BUNDLE_ID_V1 = (
+    "paper_i_ra_all_phase_adaptive_gradient_phase0_phase123_qiskit_"
+    "min_floors_natural_terminal_native_v1"
+)
+PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_MIN_FLOORS_NATIVE_BUNDLE_ID_V1 = (
+    "paper_i_ra_all_phase_adaptive_position_gradient_phase0_phase123_"
+    "qiskit_min_floors_natural_terminal_native_v1"
 )
 PAPER_I_RA_PHASE123_QISKIT_COMPILE_SCOPE = (
     BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1
@@ -367,6 +383,19 @@ PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1 = (
     "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_"
     "forced_admission_k50_v1"
 )
+PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1 = (
+    "gradient_only_adaptive_shortlist_phase123_adaptive_min_floors_"
+    "natural_terminal_v1"
+)
+PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1 = (
+    "position_records_gradient_only_adaptive_shortlist_phase123_adaptive_"
+    "min_floors_natural_terminal_v1"
+)
+PAPER_I_RA_PHASE_SHORTLIST_MINIMUMS_V1 = {
+    "phase0": 10,
+    "phase_i": 7,
+    "phase_ii": 4,
+}
 PAPER_I_RA_PHASE0_POSITION_GRADIENT_FIXED24_V1 = (
     "position_records_gradient_only_fixed24_v1"
 )
@@ -403,6 +432,7 @@ PAPER_I_RA_PHASE0_POSITION_ROUTE_VARIANTS = frozenset(
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }
 )
 PAPER_I_RA_ALL_PHASE_ADAPTIVE_ROUTE_VARIANTS = frozenset(
@@ -410,9 +440,17 @@ PAPER_I_RA_ALL_PHASE_ADAPTIVE_ROUTE_VARIANTS = frozenset(
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
+    }
+)
+PAPER_I_RA_PHASE_SHORTLIST_MIN_FLOORS_ROUTE_VARIANTS = frozenset(
+    {
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }
 )
 PAPER_I_RA_PHASE3_FORCED_ADMISSION_ROUTE_VARIANTS = frozenset(
@@ -425,6 +463,8 @@ PAPER_I_RA_PHASE3_NATURAL_TERMINAL_ROUTE_VARIANTS = frozenset(
     {
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }
 )
 PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS = frozenset(
@@ -783,6 +823,55 @@ _ROUTE_IDENTITIES: Mapping[str, PaperIRASemanticClosureRouteIdentity] = {
             ),
         )
     ),
+    PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1: (
+        PaperIRASemanticClosureRouteIdentity(
+            route_variant=(
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+            ),
+            algorithm_id=(
+                "paper_i_ra_global_singleton_append_endpoint_gradient_"
+                "adaptive_phase123_adaptive_qiskit_min_floors_natural_"
+                "terminal_semantic_closure_v1"
+            ),
+            route_id=(
+                "paper_i_ra_phase0_gradient_adaptive_phase123_adaptive_"
+                "qiskit_min_floors_natural_terminal_semantic_closure_v1"
+            ),
+            route_profile=(
+                "paper_i_ra__global_singleton__phase0_gradient_adaptive__"
+                "phase123_adaptive__qiskit_signed__min_floors__natural_"
+                "terminal__semantic_closure_v1"
+            ),
+            semantic_implementation_version=(
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_MIN_FLOORS_IMPLEMENTATION_VERSION_V1
+            ),
+        )
+    ),
+    PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1: (
+        PaperIRASemanticClosureRouteIdentity(
+            route_variant=(
+                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+            ),
+            algorithm_id=(
+                "paper_i_ra_global_singleton_position_records_gradient_"
+                "adaptive_phase123_adaptive_qiskit_min_floors_natural_"
+                "terminal_semantic_closure_v1"
+            ),
+            route_id=(
+                "paper_i_ra_phase0_position_gradient_adaptive_phase123_"
+                "adaptive_qiskit_min_floors_natural_terminal_semantic_"
+                "closure_v1"
+            ),
+            route_profile=(
+                "paper_i_ra__global_singleton__phase0_position_gradient_"
+                "adaptive__phase123_adaptive__qiskit_signed__min_floors__"
+                "natural_terminal__semantic_closure_v1"
+            ),
+            semantic_implementation_version=(
+                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_MIN_FLOORS_IMPLEMENTATION_VERSION_V1
+            ),
+        )
+    ),
     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1: (
         PaperIRASemanticClosureRouteIdentity(
             route_variant=(
@@ -853,6 +942,27 @@ def semantic_phase3_no_positive_policy(route_variant: str) -> str:
     return ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_RAISE_V1
 
 
+def semantic_phase_shortlist_minimums(
+    route_variant: str,
+) -> dict[str, int] | None:
+    """Resolve the declared minimum-retention floors for one route."""
+
+    identity = semantic_closure_route_identity(route_variant)
+    if (
+        identity.route_variant
+        in PAPER_I_RA_PHASE_SHORTLIST_MIN_FLOORS_ROUTE_VARIANTS
+    ):
+        return dict(PAPER_I_RA_PHASE_SHORTLIST_MINIMUMS_V1)
+    return None
+
+
+def semantic_phase0_minimum_retained(route_variant: str) -> int:
+    """Resolve the Phase-0 minimum-retention floor for one route."""
+
+    minimums = semantic_phase_shortlist_minimums(route_variant)
+    return int(minimums.get("phase0", 0)) if minimums else 0
+
+
 def semantic_controller_horizon_policy(route_variant: str) -> str:
     """Resolve exact-target versus maximum-horizon completion semantics."""
 
@@ -894,6 +1004,16 @@ def semantic_closure_native_bundle_id(route_variant: str) -> str:
     ):
         return (
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_FORCED_K50_NATIVE_BUNDLE_ID_V1
+        )
+    if identity.route_variant == (
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+    ):
+        return PAPER_I_RA_ALL_PHASE_ADAPTIVE_MIN_FLOORS_NATIVE_BUNDLE_ID_V1
+    if identity.route_variant == (
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+    ):
+        return (
+            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_MIN_FLOORS_NATIVE_BUNDLE_ID_V1
         )
     return (
         PAPER_I_RA_SEMANTIC_NATIVE_EIGHT_ARM_BUNDLE_ID_V1
@@ -961,6 +1081,7 @@ class PaperIRASemanticClosureGlobalSingletonCandidateAdapter(
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }:
             return ADAPTIVE_PHASE0_ACTIVE_SCORE_SHORTLIST_POLICY_V2
         if self.route_variant in {
@@ -1467,6 +1588,7 @@ def build_semantic_position_phase0_receipt(
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }
     normalized: list[dict[str, Any]] = []
     identities: set[tuple[int, int, str]] = set()
@@ -1538,6 +1660,7 @@ def build_semantic_position_phase0_receipt(
         ),
         cap=int(cap),
         active_score_policy=str(score_policy),
+        min_retained=semantic_phase0_minimum_retained(variant),
     )
     decision_receipt = decision.to_receipt()
     ranked_offsets = [int(value) for value in decision.ranked_generator_indices]
@@ -1916,6 +2039,7 @@ def build_semantic_gradient_adaptive_phase0_receipt(
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }:
         raise ValueError("Route variant is not the v2 gradient-adaptive policy.")
     indices = tuple(sorted(int(value) for value in available_indices))
@@ -1945,6 +2069,7 @@ def build_semantic_gradient_adaptive_phase0_receipt(
         ),
         cap=int(cap),
         active_score_policy=active_score_policy,
+        min_retained=semantic_phase0_minimum_retained(route_variant),
     )
     decision_receipt = decision.to_receipt()
     retained = set(decision.retained_generator_indices)
@@ -2287,6 +2412,7 @@ def execute_semantic_phase0_runtime(
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }:
         return transaction.run_adaptive_gradient_phase0(
             admissible_domain=tuple(admissible_domain),
@@ -3026,6 +3152,7 @@ def validate_semantic_phase3_no_positive_terminal_receipt(
             PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }:
             validate_semantic_gradient_adaptive_phase0_receipt(
                 phase0,
@@ -3389,11 +3516,13 @@ def validate_semantic_final_selector_accounting(
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
             PAPER_I_RA_PHASE0_POSITION_GRADIENT_FIXED24_V1,
             PAPER_I_RA_PHASE0_POSITION_GRADIENT_ADAPTIVE_V1,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }
         expected_phase0_cost = (
             "none_standard_adapt_absolute_gradient_v1"
@@ -3469,10 +3598,12 @@ def validate_semantic_final_selector_accounting(
                 PAPER_I_RA_PHASE0_PROXY_ADAPTIVE_V2,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
                 PAPER_I_RA_PHASE0_POSITION_GRADIENT_ADAPTIVE_V1,
                 PAPER_I_RA_PHASE0_POSITION_PROXY_ADAPTIVE_V1,
                 PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
                 PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
+                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
             }
             if (
                 identity.route_variant not in adaptive_variants
@@ -3498,6 +3629,7 @@ def validate_semantic_final_selector_accounting(
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
             }:
                 validate_semantic_gradient_adaptive_phase0_receipt(
                     terminal_phase0
@@ -3569,6 +3701,7 @@ def validate_semantic_final_selector_accounting(
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
                 PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
             }:
                 validate_semantic_gradient_adaptive_phase0_receipt(
                     phase0,
@@ -3630,6 +3763,8 @@ def validate_semantic_final_selector_accounting(
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+                    PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
+                    PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
                 }:
                     retained_rows = phase0.get("retained_records")
                     if (
@@ -4110,6 +4245,7 @@ def _phase0_policy(route_variant: str) -> dict[str, Any]:
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
         PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+        PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
     }:
         return {
             **common,
@@ -4145,6 +4281,7 @@ def _phase0_policy(route_variant: str) -> dict[str, Any]:
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }
         policy = {
             "population": (
@@ -4174,6 +4311,7 @@ def _phase0_policy(route_variant: str) -> dict[str, Any]:
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
             PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
         }:
             policy.update(
                 {
@@ -4277,6 +4415,9 @@ def build_semantic_closure_route_contract(
         identity.route_variant
         in PAPER_I_RA_PHASE3_FORCED_ADMISSION_ROUTE_VARIANTS
     )
+    shortlist_minimums = semantic_phase_shortlist_minimums(
+        identity.route_variant
+    )
     native = {
         "schema": PAPER_I_RA_SEMANTIC_ROUTE_CONTRACT_SCHEMA,
         "route_variant": identity.route_variant,
@@ -4323,6 +4464,8 @@ def build_semantic_closure_route_contract(
                 "controller_horizon_policy": controller_horizon_policy,
             }
         )
+    if shortlist_minimums is not None:
+        native["phase_shortlist_minimums"] = dict(shortlist_minimums)
     if identity.route_variant in PAPER_I_RA_PHASE0_EXECUTABLE_ROUTE_VARIANTS:
         native.update(
             {
@@ -4393,6 +4536,8 @@ def build_semantic_closure_route_contract(
                 "ra_controller_horizon_policy": controller_horizon_policy,
             }
         )
+    if shortlist_minimums is not None:
+        execution["ra_phase_shortlist_minimums"] = dict(shortlist_minimums)
     if identity.route_variant in PAPER_I_RA_ALL_PHASE_ADAPTIVE_ROUTE_VARIANTS:
         execution["ra_phase123_shortlist_policy"] = (
             ADAPTIVE_PHASE123_SHORTLIST_POLICY_V1
@@ -4452,6 +4597,8 @@ def build_semantic_closure_route_contract(
                 "controller_horizon_policy": controller_horizon_policy,
             }
         )
+    if shortlist_minimums is not None:
+        invariants["phase_shortlist_minimums"] = dict(shortlist_minimums)
     route["semantic_invariants"] = invariants
     route["lineage_authority"] = {
         "parent_route_profile": str(parent_contract.get("route_profile", "")),
@@ -4465,6 +4612,7 @@ def build_semantic_closure_route_contract(
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
                     PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
+                    PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
                 }
                 else (
                     "paper_i_ra_gradient_phase0_all_phase_adaptive_semantic_"
@@ -4553,6 +4701,24 @@ def validate_semantic_closure_native_route_contract(
     declares_no_positive_policy = natural_terminal_route or (
         variant in PAPER_I_RA_PHASE3_FORCED_ADMISSION_ROUTE_VARIANTS
     )
+    expected_shortlist_minimums = semantic_phase_shortlist_minimums(variant)
+    shortlist_minimum_fields_valid = bool(
+        (
+            expected_shortlist_minimums is not None
+            and native.get("phase_shortlist_minimums")
+            == expected_shortlist_minimums
+            and execution.get("ra_phase_shortlist_minimums")
+            == expected_shortlist_minimums
+            and invariants.get("phase_shortlist_minimums")
+            == expected_shortlist_minimums
+        )
+        or (
+            expected_shortlist_minimums is None
+            and "phase_shortlist_minimums" not in native
+            and "ra_phase_shortlist_minimums" not in execution
+            and "phase_shortlist_minimums" not in invariants
+        )
+    )
     natural_terminal_policy_fields_valid = bool(
         (
             declares_no_positive_policy
@@ -4612,6 +4778,7 @@ def validate_semantic_closure_native_route_contract(
         or native.get("phase0_adaptive_cap") != 24
         or native.get("phase0_estimator_components") != ["N_grad"]
         or not natural_terminal_policy_fields_valid
+        or not shortlist_minimum_fields_valid
         or native.get("compile_scope")
         != PAPER_I_RA_PHASE123_QISKIT_COMPILE_SCOPE
         or native.get("qiskit_active_phases")
@@ -5524,6 +5691,95 @@ def build_paper_i_ra_all_phase_adaptive_forced_k50_request(
     )
 
 
+def build_paper_i_ra_all_phase_adaptive_min_floors_request(
+    *,
+    insertion_policy: str,
+    maximum_controller_rounds: int = 50,
+) -> RAAdaptRequest:
+    """Build the endpoint-P0 min-floors natural-terminal request."""
+
+    insertion_key = str(insertion_policy)
+    insertion_types = {
+        "append_only": AppendOnlyInsertion,
+        "plateau_commutation": PlateauCommutationInsertion,
+    }
+    try:
+        insertion = insertion_types[insertion_key]()
+    except KeyError as exc:
+        raise ValueError(
+            "All-phase min-floors insertion_policy must be "
+            "'append_only' or 'plateau_commutation'."
+        ) from exc
+    horizon = maximum_controller_rounds
+    if isinstance(horizon, bool) or not isinstance(horizon, int):
+        raise ValueError("All-phase min-floors horizon must be an integer.")
+    if not 1 <= horizon <= 50:
+        raise ValueError("All-phase min-floors horizon must be in [1, 50].")
+    return RAAdaptRequest(
+        adapter=PaperIRASemanticClosureGlobalSingletonCandidateAdapter(
+            route_variant=(
+                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+            )
+        ),
+        method=SRMethodPolicy(
+            admission=SingletonAdmission(),
+            insertion=insertion,
+            pruning=PruningOff(),
+            beam=BeamOff(),
+        ),
+        execution=SRExecutionPolicy(
+            stop=SRStopPolicy(maximum_controller_rounds=horizon),
+            resume=FreshStart(),
+        ),
+        observation=SRObservationPolicy(),
+    )
+
+
+def build_paper_i_ra_all_phase_position_adaptive_min_floors_request(
+    *,
+    insertion_policy: str,
+    maximum_controller_rounds: int = 50,
+) -> RAAdaptRequest:
+    """Build the position-P0 min-floors natural-terminal request."""
+
+    insertion_key = str(insertion_policy)
+    insertion_types = {
+        "append_only": AppendOnlyInsertion,
+        "plateau_commutation": PlateauCommutationInsertion,
+        "always_commutation_reduced": AlwaysCommutationReducedInsertion,
+    }
+    try:
+        insertion = insertion_types[insertion_key]()
+    except KeyError as exc:
+        raise ValueError(
+            "Position min-floors insertion_policy must be 'append_only', "
+            "'plateau_commutation', or 'always_commutation_reduced'."
+        ) from exc
+    horizon = maximum_controller_rounds
+    if isinstance(horizon, bool) or not isinstance(horizon, int):
+        raise ValueError("Position min-floors horizon must be an integer.")
+    if not 1 <= horizon <= 50:
+        raise ValueError("Position min-floors horizon must be in [1, 50].")
+    return RAAdaptRequest(
+        adapter=PaperIRASemanticClosureGlobalSingletonCandidateAdapter(
+            route_variant=(
+                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1
+            )
+        ),
+        method=SRMethodPolicy(
+            admission=SingletonAdmission(),
+            insertion=insertion,
+            pruning=PruningOff(),
+            beam=BeamOff(),
+        ),
+        execution=SRExecutionPolicy(
+            stop=SRStopPolicy(maximum_controller_rounds=horizon),
+            resume=FreshStart(),
+        ),
+        observation=SRObservationPolicy(),
+    )
+
+
 def build_paper_i_ra_all_phase_position_adaptive_forced_k50_request(
     *,
     insertion_policy: str,
@@ -5823,6 +6079,7 @@ __all__ = [
     "PAPER_I_RA_ALL_PHASE_ADAPTIVE_ROUTE_VARIANTS",
     "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1",
     "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1",
+    "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1",
     "PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_IMPLEMENTATION_VERSION_V1",
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_NATIVE_BUNDLE_ID_V1",
@@ -5830,6 +6087,7 @@ __all__ = [
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_NATURAL_TERMINAL_IMPLEMENTATION_VERSION_V2",
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_NATURAL_TERMINAL_NATIVE_BUNDLE_ID_V2",
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1",
+    "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1",
     "PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2",
     "PAPER_I_RA_CANONICAL_REGIME_IDS",
     "PAPER_I_RA_PHASE0_GRADIENT_FIXED24",
@@ -5872,9 +6130,11 @@ __all__ = [
     "PaperIRASemanticClosureRouteIdentity",
     "build_paper_i_ra_all_phase_adaptive_request",
     "build_paper_i_ra_all_phase_adaptive_forced_k50_request",
+    "build_paper_i_ra_all_phase_adaptive_min_floors_request",
     "build_paper_i_ra_all_phase_adaptive_natural_terminal_request",
     "build_paper_i_ra_all_phase_position_adaptive_request",
     "build_paper_i_ra_all_phase_position_adaptive_forced_k50_request",
+    "build_paper_i_ra_all_phase_position_adaptive_min_floors_request",
     "build_paper_i_ra_all_phase_position_adaptive_natural_terminal_request",
     "build_paper_i_ra_hh_regime_problem",
     "build_paper_i_ra_strong_weak_always_k5_request",

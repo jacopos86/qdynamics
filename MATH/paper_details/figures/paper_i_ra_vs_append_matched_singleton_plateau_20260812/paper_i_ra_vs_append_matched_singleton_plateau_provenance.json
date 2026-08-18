@@ -1,7 +1,7 @@
 {
   "schema": "paper_i_reader_facing_matched_singleton_plot_v8",
   "output": "MATH/paper_details/figures/paper_i_ra_vs_append_matched_singleton_plateau_20260812/paper_i_ra_vs_append_matched_singleton_plateau.pdf",
-  "output_sha256": "afebf3a9de573b4ff683ab3181cd5a19c315632266c3df31ecc6542f488e183e",
+  "output_sha256": "62122fd4dc8a7443859b2844436c07c5853e785a288df6c7c841e2032cf124c4",
   "horizon": 50,
   "sources": [
     {

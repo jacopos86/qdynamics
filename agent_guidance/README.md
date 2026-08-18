@@ -77,7 +77,7 @@ Paper-I results skill exists in this checkout.
 For an ordinary Paper-I RA-ADAPT request, read
 `static-adapt/AGENTS.md` and then `static-adapt/run-guide.md`. Do not load the
 historical route registry, refactor plans, or handoffs. Read
-`static-adapt/route-identities.md` only when the user explicitly asks to
+`static-adapt/history/route-identities.md` only when the user explicitly asks to
 interpret or replay a preserved route/profile identity such as the legacy
 `route_a` field.
 
