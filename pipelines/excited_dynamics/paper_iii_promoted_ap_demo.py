@@ -448,6 +448,7 @@ def _run_ap_grid(
     inverse_policy: McLachlanInversePolicy,
     progress_callback: Any | None = None,
     max_structural_pool_size: int | None = None,
+    route_mode: str = "append_only",
 ) -> tuple[dict[str, Any], tuple[np.ndarray, ...]]:
     steps_float = float(drive["t_final"]) / float(dt)
     steps = int(round(steps_float))
@@ -474,11 +475,8 @@ def _run_ap_grid(
         enabled=False,
     )
     state = augmentation.state
-    support_config = SupportPatchControllerConfig(
+    config_kwargs: dict[str, Any] = dict(
         parameterization_mode_default=AP_PARAMETERIZATION_PER_PAULI_TERM,
-        exchange_enabled=False,
-        prune_enabled=False,
-        prune_commit_enabled=False,
         append_ladder_mode="combinatorial",
         append_occurrence_policy="layer_reuse",
         max_append_batch_size=10,
@@ -487,7 +485,6 @@ def _run_ap_grid(
         append_gain_threshold=1.0e-10,
         append_batch_score_threshold=1.0e-10,
         append_min_time=float(dt),
-        residual_ratio_threshold=1.0e-3,
         allow_incomplete_candidate_pool=False,
         uses_reference_for_decision=False,
         uses_future_exact_forecast_for_decision=False,
@@ -502,6 +499,29 @@ def _run_ap_grid(
         max_certification_attempts_per_level=6,
         max_certification_attempts_per_deletion_branch=2,
     )
+    if str(route_mode) == "exchange":
+        # The validated Paper II working recipe: deletion-conditioned exchange
+        # with certification refit and the measurement-economics gate.
+        config_kwargs.update(
+            exchange_enabled=True,
+            prune_enabled=True,
+            prune_commit_enabled=True,
+            prune_target_policy="all_active",
+            residual_ratio_threshold=0.02,
+            certification_refit_enabled=True,
+            certification_refit_trust_radius=0.6,
+            certification_refit_max_iterations=15,
+        )
+    elif str(route_mode) == "append_only":
+        config_kwargs.update(
+            exchange_enabled=False,
+            prune_enabled=False,
+            prune_commit_enabled=False,
+            residual_ratio_threshold=1.0e-3,
+        )
+    else:
+        raise PromotedAPDemoError(f"Unknown route_mode {route_mode!r}")
+    support_config = SupportPatchControllerConfig(**config_kwargs)
     solve_repair_config = SolveRepairConfig(
         enabled=True,
         # The locked pulse starts at exactly zero, so the relative temporal-kink

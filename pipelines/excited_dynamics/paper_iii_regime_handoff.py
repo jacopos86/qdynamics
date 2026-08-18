@@ -123,6 +123,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=4,
         help="Insertion-pool guard from the validated Paper II recipe; 0 disables the cap.",
     )
+    parser.add_argument(
+        "--ap-route-mode",
+        choices=("append_only", "exchange"),
+        default="append_only",
+        help="AP support-patch configuration: demo append-only, or the validated exchange recipe.",
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args(argv)
 
@@ -345,6 +351,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_structural_pool_size=(
                 None if int(args.max_structural_pool_size) <= 0 else int(args.max_structural_pool_size)
             ),
+            route_mode=str(args.ap_route_mode),
         )
         ap_fid = _fidelity_summary(grid["trajectory"], "ap_exact_state_fidelity")
         baseline_fid = _fidelity_summary(
@@ -371,6 +378,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "drive": {**controller_drive, "omega_source": omega_source,
                   "operator": "staggered_density",
                   "waveform": "gaussian_sinusoid A*sin(w t + phi)*exp(-t^2/(2 tbar^2))"},
+        "ap_route_mode": str(args.ap_route_mode),
         "source_seed_json": str(seed_path),
         "qse_manifest_json": str(manifest_path),
         "selection": {
