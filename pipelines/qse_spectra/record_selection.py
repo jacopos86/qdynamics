@@ -482,7 +482,7 @@ def _geometry_select(
         """
 
         if not accepted_units:
-            return ([residual_hat] if residual_hat is not None else [], None, 0)
+            return ([residual_hat] if residual_hat is not None else [], None, 0, None)
         count = len(accepted_units)
         pencil = np.empty((count, count), dtype=complex)
         for row in range(count):
@@ -504,23 +504,24 @@ def _geometry_select(
                 hats.append(ritz_residual / norm)
         if not hats and residual_hat is not None:
             hats = [residual_hat]
-        return hats, max_norm, count
+        window_top = float(thetas[min(int(config.geometry_target_roots), count) - 1])
+        return hats, max_norm, count, window_top
 
     stop_reason = "budget_reached"
     last_max_residual: float | None = None
+    pending_convergence = False
     while pool and len(selected) < int(config.max_records):
-        round_residuals, last_max_residual, frame_size = _round_residual_hats()
-        if (
+        round_residuals, last_max_residual, frame_size, window_top = _round_residual_hats()
+        pending_convergence = (
             config.geometry_residual_stop is not None
             and last_max_residual is not None
             and frame_size >= int(config.geometry_target_roots)
             and last_max_residual < float(config.geometry_residual_stop)
-        ):
-            stop_reason = "residual_converged"
-            break
+        )
         round_scores: dict[int, float] = {}
         round_units: dict[int, np.ndarray] = {}
         round_h_units: dict[int, np.ndarray] = {}
+        round_thetas: dict[int, float] = {}
         for index, candidate in list(pool.items()):
             w = images[index]
             w_norm_sq = float(np.vdot(w, w).real)
@@ -566,6 +567,7 @@ def _geometry_select(
                 lam_min = float(np.min(np.linalg.eigvalsh(pencil)))
                 gain = max(0.0, e0 - lam_min)
                 ritz_term = gain / (1.0 + gain)
+                round_thetas[index] = float(h11)
                 for t_hat in transition_hats:
                     transition_capture = max(
                         transition_capture, float(abs(complex(np.vdot(unit_vec, t_hat))))
@@ -606,8 +608,29 @@ def _geometry_select(
             round_scores[index] = float(score)
 
         if not round_scores:
-            stop_reason = "pool_exhausted"
+            # An exhausted pool with pending residual convergence satisfies
+            # both conditions: no remaining pressure, residuals below eps.
+            stop_reason = "residual_converged" if pending_convergence else "pool_exhausted"
             break
+        if pending_convergence:
+            # Residual convergence alone is Ritz-blind: a frame's lowest-R
+            # Ritz states can all be true eigenstates (vanishing residuals)
+            # while lower sector states the frame does not overlap remain
+            # invisible. The completeness condition is spectral window
+            # pressure: a remaining candidate threatens the window only if
+            # its (novel-component) Rayleigh quotient lies at or below the
+            # current R-th Ritz value, i.e. it could still introduce a new
+            # state inside the window. Pure novelty above the window is not
+            # pressure.
+            margin = float(config.geometry_residual_stop)
+            window_pressure = window_top is not None and any(
+                round_thetas.get(idx) is not None
+                and float(round_thetas[idx]) < float(window_top) + margin
+                for idx in round_scores
+            )
+            if not window_pressure:
+                stop_reason = "residual_converged"
+                break
         best_index = min(round_scores, key=lambda idx: (-round_scores[idx], idx))
         selected.append(pool.pop(best_index))
         accepted_images.append(images[best_index])
@@ -620,6 +643,7 @@ def _geometry_select(
     stop_info = {
         "stop_reason": stop_reason,
         "final_max_target_residual_norm": last_max_residual,
+        "residual_converged_pending": bool(pending_convergence),
         "residual_stop_threshold": (
             float(config.geometry_residual_stop)
             if config.geometry_residual_stop is not None
