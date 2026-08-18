@@ -23,6 +23,8 @@ cost and conditioning components wire in unchanged at integration.
 
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Sequence
 
@@ -43,6 +45,7 @@ from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
     StructuralInsertionCache,
+    memoized_solve_metadata,
     structural_candidate_solve,
 )
 
@@ -58,13 +61,20 @@ class StructuralScoreWeights:
     alpha_del: float = 1.0
     w_delta: float = 1.0
     lambda_hist: float = 0.0
+    lambda_cond_relief: float = 0.0
+    lambda_cond_damage: float = 0.0
     epsilon_L: float = 1.0e-14
     epsilon_norm: float = 1.0e-12
 
     def __post_init__(self) -> None:
         if float(self.alpha_ins) < 0.0 or float(self.alpha_del) < 0.0:
             raise ValueError("cost exponents must be non-negative.")
-        if float(self.w_delta) < 0.0 or float(self.lambda_hist) < 0.0:
+        if (
+            float(self.w_delta) < 0.0
+            or float(self.lambda_hist) < 0.0
+            or float(self.lambda_cond_relief) < 0.0
+            or float(self.lambda_cond_damage) < 0.0
+        ):
             raise ValueError("score weights must be non-negative.")
         if float(self.epsilon_L) <= 0.0 or float(self.epsilon_norm) <= 0.0:
             raise ValueError("epsilon_L and epsilon_norm must be positive.")
@@ -256,12 +266,27 @@ def iter_structural_families(
         if removed:
             loss = max(0.0, q_of((), selection) - q_joint)
             cost_del = max(1.0, float(deletion_cost(removed)))
+            # Conditioning relief/damage from solves the enumeration already
+            # performed: the retained log-condition of the base support versus
+            # the deletion branch.  Both memo entries exist because q_of ran.
+            cond_base, _rank_b = memoized_solve_metadata(cache, ((), ()))
+            cond_del, _rank_d = memoized_solve_metadata(cache, (removed, ()))
+            relief = damage = 0.0
+            if cond_base is not None and cond_del is not None and cond_base > 0 and cond_del > 0:
+                log_shift = math.log10(cond_base) - math.log10(cond_del)
+                relief = max(0.0, log_shift)
+                damage = max(0.0, -log_shift)
             deletion_utility = (
                 (cost_del ** float(weights.alpha_del))
-                * (1.0 + max(0.0, float(conditioning(removed))))
+                * (
+                    1.0
+                    + float(weights.lambda_cond_relief) * relief
+                    + max(0.0, float(conditioning(removed)))
+                )
                 / (
                     loss
                     + float(weights.lambda_hist) * max(0.0, float(history_loss(removed)))
+                    + float(weights.lambda_cond_damage) * damage
                     + float(weights.epsilon_L)
                 )
             )

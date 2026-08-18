@@ -49,6 +49,7 @@ class AttemptRecord:
     reason: str
     ray_distance: float | None = None
     smoothness_eta: float | None = None
+    deletion_loss: float | None = None
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +63,7 @@ class AttemptRecord:
             "reason": self.reason,
             "ray_distance": self.ray_distance,
             "smoothness_eta": self.smoothness_eta,
+            "deletion_loss": self.deletion_loss,
         }
 
 
@@ -190,6 +192,9 @@ def select_exchange_patch(
                         removed_runtime_indices=candidate.removed_runtime_indices,
                         inserted_selection=candidate.inserted_selection,
                         reason=f"insertion_resolution_failed:{exc}",
+                        deletion_loss=float(candidate.deletion_loss)
+                        if candidate.removed_runtime_indices
+                        else None,
                     )
                 )
                 continue
@@ -217,6 +222,9 @@ def select_exchange_patch(
                     reason=result.reason,
                     ray_distance=result.ray_distance,
                     smoothness_eta=result.smoothness_eta,
+                    deletion_loss=float(candidate.deletion_loss)
+                    if candidate.removed_runtime_indices
+                    else None,
                 )
             )
             if result.certified:

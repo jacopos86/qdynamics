@@ -282,3 +282,85 @@ def test_deleted_children_may_reenter_branch_pools() -> None:
     _s, _e, _c, _cuts, kwargs = _setup(candidate_pool_for_deletion=pool)
     enumerate_structural_candidates(**kwargs)
     assert () in calls and (0,) in calls and (0, 1) in calls
+
+
+def test_conditioning_lambdas_reweight_deletion_utilities_exactly() -> None:
+    """Hook #1: relief/damage from memoized solve metadata, exact formula."""
+
+    import math
+    from dataclasses import replace
+
+    from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
+        memoized_solve_metadata,
+    )
+
+    _state_, _eval_, _cache_, _cuts_, base_kwargs = _setup()
+    base = {
+        c.order_key: c
+        for c in enumerate_structural_candidates(**base_kwargs).candidates
+    }
+
+    weights = replace(WEIGHTS, lambda_cond_relief=5.0, lambda_cond_damage=3.0)
+    _s2, _e2, cache2, _c2, kwargs2 = _setup(weights=weights)
+    result = enumerate_structural_candidates(**kwargs2)
+    cond_base, _rank = memoized_solve_metadata(cache2, ((), ()))
+    assert cond_base is not None and cond_base > 0.0
+
+    reweighted = 0
+    for c in result.candidates:
+        if c.kind == "stay":
+            continue
+        ref = base[c.order_key]
+        if not c.removed_runtime_indices:
+            # Insertion-only candidates never see the conditioning term.
+            assert c.score == pytest.approx(ref.score, rel=1.0e-12)
+            continue
+        cond_del, _rank_d = memoized_solve_metadata(
+            cache2, (c.removed_runtime_indices, ())
+        )
+        assert cond_del is not None and cond_del > 0.0
+        shift = math.log10(cond_base) - math.log10(cond_del)
+        relief, damage = max(0.0, shift), max(0.0, -shift)
+        cost_del = 1.0 + 0.25 * len(c.removed_runtime_indices)
+        expected = (
+            cost_del
+            * (1.0 + 5.0 * relief)
+            / (c.deletion_loss + 3.0 * damage + WEIGHTS.epsilon_L)
+        )
+        assert c.deletion_utility == pytest.approx(expected, rel=1.0e-9)
+        if relief > 0.0 or damage > 0.0:
+            reweighted += 1
+    assert reweighted > 0
+
+
+def test_history_term_enters_deletion_denominator_exactly() -> None:
+    """Hook #2: the injected historical-loss prior scales the denominator."""
+
+    from dataclasses import replace
+
+    _state_, _eval_, _cache_, _cuts_, base_kwargs = _setup()
+    base = {
+        c.order_key: c
+        for c in enumerate_structural_candidates(**base_kwargs).candidates
+    }
+
+    _s2, _e2, _cache2, _c2, kwargs2 = _setup(
+        weights=replace(WEIGHTS, lambda_hist=2.0),
+        deletion_history_loss=lambda removed: 0.5 * len(removed),
+    )
+    result = enumerate_structural_candidates(**kwargs2)
+    for c in result.candidates:
+        if c.kind == "stay":
+            continue
+        ref = base[c.order_key]
+        if not c.removed_runtime_indices:
+            assert c.score == pytest.approx(ref.score, rel=1.0e-12)
+            continue
+        cost_del = 1.0 + 0.25 * len(c.removed_runtime_indices)
+        expected = cost_del / (
+            c.deletion_loss
+            + 2.0 * 0.5 * len(c.removed_runtime_indices)
+            + WEIGHTS.epsilon_L
+        )
+        assert c.deletion_utility == pytest.approx(expected, rel=1.0e-9)
+        assert c.deletion_utility < ref.deletion_utility

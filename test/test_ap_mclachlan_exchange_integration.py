@@ -179,3 +179,126 @@ def test_min_surviving_support_bounds_deletions() -> None:
     # every attempt is insert-kind only.
     kinds = {a.kind for a in selection.attempts}
     assert "delete" not in kinds and "exchange" not in kinds
+
+
+def test_config_lambdas_map_onto_structural_weights() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+        build_selector_inputs,
+    )
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    inputs = build_selector_inputs(
+        state=state,
+        evaluation=evaluation,
+        support_config=_config(
+            prune_condition_lambda_kappa_rel=2.5,
+            prune_condition_lambda_kappa_dam=1.5,
+            prune_history_lambda=0.75,
+        ),
+        runtime_state=_PruneControllerRuntimeState(),
+        theta_runtime=state.theta_runtime,
+        time_index=0,
+        active_prune_atoms=_active_prune_atoms,
+    )
+    weights = inputs["structural_kwargs"]["weights"]
+    assert weights.lambda_cond_relief == 2.5
+    assert weights.lambda_cond_damage == 1.5
+    assert weights.lambda_hist == 0.75
+
+
+def test_history_prior_reads_windowed_mean_from_runtime_state() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+        build_selector_inputs,
+    )
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    labels = tuple(state.runtime_coordinate_labels)
+    runtime_state = _PruneControllerRuntimeState()
+    # Three records for coordinate 0; window 2 keeps only the last two.
+    runtime_state.loss_history[labels[0]] = [(0, 100.0), (1, 4.0), (2, 8.0)]
+    inputs = build_selector_inputs(
+        state=state,
+        evaluation=evaluation,
+        support_config=_config(prune_history_window=2),
+        runtime_state=runtime_state,
+        theta_runtime=state.theta_runtime,
+        time_index=3,
+        active_prune_atoms=_active_prune_atoms,
+    )
+    prior = inputs["structural_kwargs"]["deletion_history_loss"]
+    assert prior(()) == 0.0
+    assert prior((0,)) == pytest.approx(6.0)
+    # Coordinate 1 has no history: it contributes zero to the mean.
+    assert prior((0, 1)) == pytest.approx(3.0)
+
+
+def test_recorder_persists_attempted_deletion_losses_with_window() -> None:
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
+    runtime_state = _PruneControllerRuntimeState()
+    config = _config(
+        prune_history_window=2,
+        # Impossible gates (conditioning included, so the insert-only d0
+        # level cannot commit): every ranked candidate at every level is
+        # attempted, fails, and the deletion-bearing ones get recorded.
+        prune_ray_distance_tol=1.0e-15,
+        prune_patch_smoothness_eta_max=1.0e-15,
+        append_schur_max_condition_number=1.0e-30,
+    )
+
+    def run_once(time_index):
+        return select_deletion_conditioned_patch(
+            state=state,
+            hamiltonian=HAM,
+            theta_runtime=state.theta_runtime,
+            time=0.0,
+            base_evaluation=evaluation,
+            base_step=step,
+            inverse_policy=POLICY,
+            support_config=config,
+            runtime_state=runtime_state,
+            time_index=time_index,
+            active_prune_atoms=_active_prune_atoms,
+        )
+
+    selection, _payload = run_once(3)
+    deletion_attempts = [
+        a for a in selection.attempts if a.removed_runtime_indices
+    ]
+    assert deletion_attempts, "fixture must attempt deletion-bearing patches"
+    assert runtime_state.loss_history
+    labels = tuple(state.runtime_coordinate_labels)
+    for attempt in deletion_attempts:
+        assert attempt.deletion_loss is not None
+        for index in attempt.removed_runtime_indices:
+            records = runtime_state.loss_history[labels[int(index)]]
+            assert all(t == 3 for t, _loss in records)
+
+    # A second checkpoint appends and the window trims to the newest two.
+    run_once(4)
+    for records in runtime_state.loss_history.values():
+        assert 1 <= len(records) <= 2
+    assert any(
+        t == 4 for records in runtime_state.loss_history.values() for t, _ in records
+    )

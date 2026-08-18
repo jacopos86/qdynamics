@@ -250,6 +250,13 @@ def build_selector_inputs(
         alpha_ins=float(support_config.append_cost_alpha),
         alpha_del=float(support_config.prune_cost_alpha),
         w_delta=float(support_config.patch_utility_delta_weight),
+        lambda_hist=float(getattr(support_config, "prune_history_lambda", 0.0)),
+        lambda_cond_relief=float(
+            getattr(support_config, "prune_condition_lambda_kappa_rel", 0.0)
+        ),
+        lambda_cond_damage=float(
+            getattr(support_config, "prune_condition_lambda_kappa_dam", 0.0)
+        ),
         epsilon_L=float(support_config.eps_loss),
     )
 
@@ -257,6 +264,28 @@ def build_selector_inputs(
         getattr(support_config, "max_insertion_batch_size", None)
         or support_config.max_append_batch_size
     )
+
+    # Hook #2: historical deletion-loss prior.  ``runtime_state.loss_history``
+    # maps stable runtime coordinate labels to ``(time_index, loss)`` records;
+    # a deletion set's history term is the mean over its coordinates of each
+    # coordinate's windowed mean loss (coordinates without history contribute
+    # zero, so the term vanishes until evidence accumulates).
+    runtime_labels = tuple(state.runtime_coordinate_labels)
+    history_window = max(1, int(getattr(support_config, "prune_history_window", 3)))
+    loss_history: dict[str, list[tuple[int, float]]] = (
+        getattr(runtime_state, "loss_history", None) or {}
+    )
+
+    def deletion_history_loss(removed: tuple[int, ...]) -> float:
+        if not removed:
+            return 0.0
+        total = 0.0
+        for index in removed:
+            records = loss_history.get(runtime_labels[int(index)])
+            if records:
+                recent = records[-history_window:]
+                total += sum(loss for _t, loss in recent) / len(recent)
+        return total / len(removed)
 
     structural_kwargs = dict(
         cache=cache,
@@ -271,6 +300,7 @@ def build_selector_inputs(
         insertion_cost=insertion_cost,
         deletion_cost=deletion_cost,
         tokens_commute=tokens_commute_from_terms(terms_by_key),
+        deletion_history_loss=deletion_history_loss,
         max_insertion_batch_size=max_batch,
         interaction_frontier_widths=getattr(
             support_config, "interaction_frontier_widths", None
@@ -351,6 +381,22 @@ def select_deletion_conditioned_patch(
         escalate=escalate,
         solve_repair_config=solve_repair_config,
     )
+
+    # Record realized deletion losses so hook #2's prior sees this attempt at
+    # future checkpoints.  Loss is attributed equally across the deleted
+    # coordinates; keys are stable runtime coordinate labels, so survivors
+    # keep their record across later structural edits.
+    if runtime_state is not None and getattr(runtime_state, "loss_history", None) is not None:
+        window = max(1, int(getattr(support_config, "prune_history_window", 3)))
+        labels = tuple(state.runtime_coordinate_labels)
+        for attempt in selection.attempts:
+            if not attempt.removed_runtime_indices or attempt.deletion_loss is None:
+                continue
+            share = float(attempt.deletion_loss) / len(attempt.removed_runtime_indices)
+            for index in attempt.removed_runtime_indices:
+                records = runtime_state.loss_history.setdefault(labels[int(index)], [])
+                records.append((int(time_index), share))
+                del records[:-window]
 
     payload: dict[str, Any] = {
         "selection_policy": EXCHANGE_SELECTION_POLICY_V1,

@@ -1464,6 +1464,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prune-cost-alpha", type=float, default=1.0)
     parser.add_argument("--eps-loss", type=float, default=1.0e-14)
     parser.add_argument("--prune-ray-distance-tol", type=float, default=5.0e-2)
+    parser.add_argument("--prune-history-window", type=int, default=3)
+    parser.add_argument("--prune-history-lambda", type=float, default=1.0)
+    parser.add_argument(
+        "--prune-condition-lambda-kappa-rel", type=float, default=0.0
+    )
+    parser.add_argument(
+        "--prune-condition-lambda-kappa-dam", type=float, default=0.0
+    )
     parser.add_argument("--prune-patch-smoothness-eta-max", type=float, default=1.0e-3)
     parser.add_argument("--patch-utility-delta-weight", type=float, default=1.0)
     parser.add_argument(
@@ -1695,6 +1703,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             patch_utility_delta_weight=float(args.patch_utility_delta_weight),
             prune_cost_alpha=float(args.prune_cost_alpha),
+            prune_history_window=int(args.prune_history_window),
+            prune_history_lambda=float(args.prune_history_lambda),
+            prune_condition_lambda_kappa_rel=float(
+                args.prune_condition_lambda_kappa_rel
+            ),
+            prune_condition_lambda_kappa_dam=float(
+                args.prune_condition_lambda_kappa_dam
+            ),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),

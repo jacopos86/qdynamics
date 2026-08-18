@@ -263,9 +263,18 @@ def test_solve_memo_is_keyed_and_reused() -> None:
     )
     key = (("ca", 1), (0, 1, 2))
     first = structural_candidate_solve(memo_key=key, **kwargs)
-    assert cache.solve_memo[key] == first
-    cache.solve_memo[key] = (123.0, 456.0)  # poison to prove the memo is read
+    # The memo stores (Q, q, condition_number, rank); the solve returns (Q, q).
+    assert cache.solve_memo[key][:2] == first
+    assert len(cache.solve_memo[key]) == 4
+    cache.solve_memo[key] = (123.0, 456.0, 7.0, 3)  # poison: memo must be read
     assert structural_candidate_solve(memo_key=key, **kwargs) == (123.0, 456.0)
+
+    from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
+        memoized_solve_metadata,
+    )
+
+    assert memoized_solve_metadata(cache, key) == (7.0, 3)
+    assert memoized_solve_metadata(cache, ("absent",)) == (None, None)
 
 
 def test_empty_candidate_geometry_scores_zero() -> None:

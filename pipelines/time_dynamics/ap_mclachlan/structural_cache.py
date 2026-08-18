@@ -301,7 +301,7 @@ def structural_candidate_solve(
     if memo_key is not None:
         cached = cache.solve_memo.get(memo_key)
         if cached is not None:
-            return cached
+            return cached[:2]
     G, f = assemble_candidate_geometry(
         cache=cache,
         base_K=base_K,
@@ -310,19 +310,46 @@ def structural_candidate_solve(
         inserted_selection=inserted_selection,
     )
     if int(f.size) == 0:
-        result = (0.0, 0.0)
+        result = (0.0, 0.0, None, 0)
     else:
         solve = solve_theta_dot(G, f, policy=inverse_policy)
         Q = float(solve.captured_drift)
         denom = float(norm_b_sq) + max(0.0, float(epsilon_norm))
-        result = (Q, float(Q / denom))
+        result = (
+            Q,
+            float(Q / denom),
+            (
+                None
+                if solve.inverse.condition_number is None
+                else float(solve.inverse.condition_number)
+            ),
+            int(solve.inverse.rank),
+        )
     if memo_key is not None:
         cache.solve_memo[memo_key] = result
-    return result
+    return result[:2]
+
+
+def memoized_solve_metadata(
+    cache: StructuralInsertionCache,
+    memo_key: tuple,
+) -> tuple[float | None, int | None]:
+    """(condition_number, retained rank) of a memoized candidate solve.
+
+    Returns ``(None, None)`` when the solve has not been performed; callers
+    such as the conditioning-relief term consult only solves the enumeration
+    already paid for.
+    """
+
+    cached = cache.solve_memo.get(memo_key)
+    if cached is None or len(cached) < 4:
+        return (None, None)
+    return (cached[2], cached[3])
 
 
 __all__ = [
     "STRUCTURAL_CACHE_SCHEMA_V1",
+    "memoized_solve_metadata",
     "StructuralInsertionCache",
     "assemble_candidate_geometry",
     "build_structural_insertion_cache",
