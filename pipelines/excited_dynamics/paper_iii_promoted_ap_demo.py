@@ -494,6 +494,13 @@ def _run_ap_grid(
         max_structural_pool_size=(
             None if max_structural_pool_size is None else int(max_structural_pool_size)
         ),
+        # Computational guards mandated by the route handoff doc for any run
+        # with a nontrivial candidate set (values from the validated 2026-08-18
+        # working recipe); the post-purge selector grinds and accumulates
+        # memoized candidate solves without them.
+        max_joint_patch_evaluations=50000,
+        max_certification_attempts_per_level=6,
+        max_certification_attempts_per_deletion_branch=2,
     )
     solve_repair_config = SolveRepairConfig(
         enabled=True,
