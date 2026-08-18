@@ -93,10 +93,16 @@ are implementation validation, never novelty.
   `pipelines/exact_bench/paper_iii_qse_comparator_arms.py`.
 - Multi-regime sweep (six HH regimes, exact-sector references, alpha sweep):
   `output/diagnostics/paper_iii_regime_frontier_sweep_20260818_v1/`; driver
-  `pipelines/exact_bench/paper_iii_qse_regime_frontier_sweep.py`. Notable:
-  at u=8 the full 158-operator manifold itself misses the sector gap
-  (limit error 5.2e-1) — report as a pool limitation, never a selection
-  failure; selection reaches the manifold optimum at the lowest cost there.
+  `pipelines/exact_bench/paper_iii_qse_regime_frontier_sweep.py`. Two
+  corrections locked in on 2026-08-18: (a) the u=8 "pool limitation" first
+  recorded was a reference artifact — the true sector E1 is the spin
+  triplet (dE=0.475, exactly degenerate with its S_z=+-1 partners in the
+  (2,0)/(0,2) sectors), which expectation-based sector filtering dropped;
+  with the exact sector-projected reference the u=8 manifold limit is
+  2.4e-9 and all selection arms reach 5e-6 or better. Sector references
+  must always come from the exact sector-restricted eigenproblem. (b) The
+  genuinely truncation-limited regime at nph3 is weak_strong (manifold
+  limit 4.3e-5), motivating the canonical nph7 strong-phonon pools.
 - Exchange maintenance (C3 implementation):
   `pipelines/qse_spectra/exchange_maintenance.py` — certified joint
   delete--add patches with atomic commit; evidence in

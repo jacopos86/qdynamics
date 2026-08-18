@@ -111,7 +111,15 @@ def _dense_hamiltonian(hamiltonian: Any, dim: int) -> np.ndarray:
 
 
 def _sector_reference(dense: np.ndarray) -> tuple[np.ndarray, float, float]:
-    """Exact ground state and first two energies of the (1,1) fermion sector."""
+    """Exact ground state and first two energies of the (1,1) fermion sector.
+
+    The sector restriction is exact (fermion numbers are diagonal in the
+    computational basis), never expectation-based: eigenstates that are
+    degenerate across number sectors (e.g. the u=8 spin triplet, exactly
+    degenerate with its S_z = +-1 partners in the (2,0)/(0,2) sectors) would
+    otherwise be mixed by the dense eigensolver and silently dropped,
+    corrupting the reference.
+    """
 
     dim = int(dense.shape[0])
     occupations_up = np.array(
@@ -120,18 +128,14 @@ def _sector_reference(dense: np.ndarray) -> tuple[np.ndarray, float, float]:
     occupations_dn = np.array(
         [sum((index >> qubit) & 1 for qubit in _FERMION_QUBITS_DN) for index in range(dim)]
     )
-    energies, vectors = np.linalg.eigh(dense)
-    sector_indices = []
-    for column in range(dim):
-        weights = np.abs(vectors[:, column]) ** 2
-        n_up = float(weights @ occupations_up)
-        n_dn = float(weights @ occupations_dn)
-        if abs(n_up - 1.0) < 1.0e-9 and abs(n_dn - 1.0) < 1.0e-9:
-            sector_indices.append(column)
-    if len(sector_indices) < 2:
-        raise ValueError("(1,1) sector has fewer than two eigenstates; check the Hamiltonian.")
-    ground = vectors[:, sector_indices[0]]
-    return ground, float(energies[sector_indices[0]]), float(energies[sector_indices[1]])
+    sector = np.where((occupations_up == 1) & (occupations_dn == 1))[0]
+    if int(sector.size) < 2:
+        raise ValueError("(1,1) sector has fewer than two basis states; check the Hamiltonian.")
+    restricted = dense[np.ix_(sector, sector)]
+    energies, vectors = np.linalg.eigh(0.5 * (restricted + restricted.conj().T))
+    ground = np.zeros(dim, dtype=complex)
+    ground[sector] = vectors[:, 0]
+    return ground, float(energies[0]), float(energies[1])
 
 
 def _element_family(name: str) -> str:
