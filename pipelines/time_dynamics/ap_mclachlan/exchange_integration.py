@@ -406,6 +406,9 @@ def select_deletion_conditioned_patch(
         max_certification_attempts_per_level=getattr(
             support_config, "max_certification_attempts_per_level", None
         ),
+        max_certification_attempts_per_deletion_branch=getattr(
+            support_config, "max_certification_attempts_per_deletion_branch", None
+        ),
     )
 
     # Record realized deletion losses so hook #2's prior sees this attempt at

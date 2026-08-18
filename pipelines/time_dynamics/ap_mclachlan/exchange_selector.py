@@ -143,6 +143,7 @@ def select_exchange_patch(
     | None = None,
     solve_repair_config: Any | None = None,
     max_certification_attempts_per_level: int | None = None,
+    max_certification_attempts_per_deletion_branch: int | None = None,
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
@@ -157,6 +158,14 @@ def select_exchange_patch(
     same spirit as the joint-work guard: certification is the expensive stage
     (full state materialization per attempt), and a level whose gates reject
     broadly would otherwise grind through every ranked candidate.
+
+    ``max_certification_attempts_per_deletion_branch`` bounds failures per
+    distinct removed-set within a level.  Deletion-branch-level score terms
+    (conditioning relief, history) are constant across every insertion
+    variant of one branch, so a favored branch floods the ranking with tied
+    variants; at zero insertion angle the ray displacement is a function of
+    the deletion alone, so once a branch fails the ray gate repeatedly its
+    remaining variants are skipped and the budget reaches other branches.
     """
 
     should_escalate = escalate or (lambda: True)
@@ -170,6 +179,11 @@ def select_exchange_patch(
         None
         if max_certification_attempts_per_level is None
         else max(1, int(max_certification_attempts_per_level))
+    )
+    branch_budget = (
+        None
+        if max_certification_attempts_per_deletion_branch is None
+        else max(1, int(max_certification_attempts_per_deletion_branch))
     )
     iterator = iter_structural_families(**dict(structural_kwargs))
     pushback: list = []
@@ -209,6 +223,7 @@ def select_exchange_patch(
                 scored.extend(nxt[1])
         attempts_this_level = 0
         budget_hit = False
+        branch_failures: dict = {}
         ranked = sorted(
             (
                 c
@@ -225,6 +240,13 @@ def select_exchange_patch(
             if budget is not None and attempts_this_level >= budget:
                 budget_hit = True
                 break
+            if (
+                branch_budget is not None
+                and candidate.removed_runtime_indices
+                and branch_failures.get(candidate.removed_runtime_indices, 0)
+                >= branch_budget
+            ):
+                continue
             attempted.add(candidate.order_key)
             attempts_this_level += 1
             try:
@@ -278,6 +300,10 @@ def select_exchange_patch(
                     else None,
                 )
             )
+            if not result.certified and candidate.removed_runtime_indices:
+                branch_failures[candidate.removed_runtime_indices] = (
+                    branch_failures.get(candidate.removed_runtime_indices, 0) + 1
+                )
             if result.certified:
                 # Drain the iterator's telemetry without acquiring families:
                 # closing is enough; telemetry stays None on early commit.

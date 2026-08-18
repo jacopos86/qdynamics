@@ -1507,6 +1507,15 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--max-certification-attempts-per-deletion-branch",
+        type=int,
+        default=None,
+        help=(
+            "Skip further insertion variants of one deletion branch after "
+            "this many certification failures at a level (None = unbounded)."
+        ),
+    )
+    parser.add_argument(
         "--max-certification-attempts-per-level",
         type=int,
         default=None,
@@ -1772,6 +1781,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else int(args.max_structural_pool_size)
             ),
             prune_appended_origin_target_policy=str(args.prune_target_policy),
+            max_certification_attempts_per_deletion_branch=(
+                None
+                if args.max_certification_attempts_per_deletion_branch is None
+                else int(args.max_certification_attempts_per_deletion_branch)
+            ),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),

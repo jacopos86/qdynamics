@@ -23,7 +23,8 @@ python3 pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py \
   --t-final "${CALIB_T_FINAL:-1.0}" --num-times "${CALIB_NUM_TIMES:-26}" \
   --residual-ratio-threshold 0.0 \
   --max-joint-patch-evaluations 50000 \
-  --max-certification-attempts-per-level 6 \
+  --max-certification-attempts-per-level 12 \
+  --max-certification-attempts-per-deletion-branch 2 \
   --max-structural-pool-size 4 \
   --prune-target-policy appended_only \
   --progress-log-every 1 \

@@ -219,6 +219,7 @@ class SupportPatchControllerConfig:
     certification_refit_max_iterations: int = 15
     max_certification_attempts_per_level: int | None = None
     max_structural_pool_size: int | None = None
+    max_certification_attempts_per_deletion_branch: int | None = None
     exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
@@ -484,6 +485,11 @@ class SupportPatchControllerConfig:
                 None
                 if self.max_structural_pool_size is None
                 else int(self.max_structural_pool_size)
+            ),
+            "max_certification_attempts_per_deletion_branch": (
+                None
+                if self.max_certification_attempts_per_deletion_branch is None
+                else int(self.max_certification_attempts_per_deletion_branch)
             ),
             "exchange_cost_alpha": float(self.exchange_cost_alpha),
             "eps_loss": float(self.eps_loss),
