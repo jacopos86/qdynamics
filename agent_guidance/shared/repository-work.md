@@ -44,6 +44,10 @@ The user's narrower scope always wins.
 - Diagnose read-only requests without implementing an unrequested fix.
 - Git commits are at the agent's discretion, always (user policy,
   2026-08-17); commit deliberately and descriptively without asking.
+- When other agent sessions may be active in this checkout, work in your
+  own git worktree on your own branch and stage with explicit paths
+  only; never `git add -A` in a shared checkout (user-relayed policy,
+  2026-08-18).
 - Do not infer permission for pushes, issue changes, scheduler
   actions, scientific runs, manuscript edits, or artifact promotion.
 - For non-semantic refactors, proceed against code and tests. Stop for the user

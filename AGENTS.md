@@ -107,6 +107,12 @@ or source-locked provenance.
   2026-08-17): commit deliberately with descriptive messages, without
   asking. This deliberately overrules earlier commit gating anywhere in
   this repository's documentation.
+- Multi-agent isolation (user-relayed policy, 2026-08-18): when other
+  agent sessions may be active in this repository, do repo-changing work
+  in your own git worktree (under `Holstein_test_fullclone_3.worktrees/`)
+  on your own branch. Stage commits with explicit paths only — a broad
+  `git add -A` in a shared checkout sweeps other agents' uncommitted
+  work into your commit (incident: `ba7f2ac9`, 2026-08-18).
 - Do not run, submit, stop, kill, resume, push, promote evidence, or
   change external state without authority from the current request or an
   already-active authorized objective.
