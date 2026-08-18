@@ -32,6 +32,9 @@ EXCHANGE_DIMER_JSON = (
     DIAG / "paper_iii_cost_frontier_arms_20260818_v1/exchange_maintenance_evidence.json"
 )
 PEIERLS_JSON = DIAG / "paper_iii_peierls_pilot_20260819_v1/peierls_pilot_v4.json"
+COMPARATOR_MATRIX_JSON = (
+    DIAG / "paper_iii_comparator_matrix_20260819_v1/comparator_matrix.json"
+)
 
 _ARM_LABELS = {
     "fixed_linear_response_complete": "fixed linear-response class (complete)",
@@ -188,6 +191,58 @@ def build_peierls_fragment() -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_comparator_matrix_fragment() -> str:
+    matrix = _load(COMPARATOR_MATRIX_JSON)
+    multiroot = _load(MULTIROOT_JSON)
+    peierls = _load(PEIERLS_JSON)
+    ours: dict[str, tuple[float, float]] = {}
+    for source in (multiroot, peierls):
+        for regime, record in source["regimes"].items():
+            arm = record["arms"].get("exchange_dominance_R6")
+            if arm:
+                errors = [e for e in arm["root_abs_errors"] if e is not None]
+                ours[regime] = (max(errors), float(arm["total_2q"]))
+    lines = [_fragment_header([COMPARATOR_MATRIX_JSON, MULTIROOT_JSON, PEIERLS_JSON])]
+    lines.append(r"\begin{widetext}")
+    lines.append(
+        r"\inlinetablecaption{tab:qse_comparator_matrix}{Cross-family "
+        r"comparator matrix on identical Hamiltonians, sectors, and "
+        r"references: maximum error over the lowest six excitations versus "
+        r"compiled two-qubit cost. The Krylov arm uses a seeded random "
+        r"sector kick (overlapping every target state), exact propagation, "
+        r"best-matching-root scoring, and first-order-Trotter state-"
+        r"preparation costing --- every convention favoring Krylov.}"
+    )
+    lines.append(r"\begin{center}")
+    lines.append(r"\scriptsize")
+    lines.append(r"\begin{ruledtabular}")
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccc@{}}")
+    lines.append(
+        r"Case & fixed class & real-time Krylov (best) & selected + exchange \\"
+    )
+    lines.append(r"\colrule")
+    for case, record in matrix["cases"].items():
+        fixed = record["fixed_linear_response"]
+        krylov = record["krylov"].get("best_per_cost_envelope") or []
+        krylov_cell = (
+            rf"{_sci(krylov[-1]['max_root_abs_error'])} @ {krylov[-1]['cum_2q']:.0f}"
+            if krylov
+            else "--"
+        )
+        ours_cell = (
+            rf"{_sci(ours[case][0])} @ {ours[case][1]:.0f}" if case in ours else "--"
+        )
+        lines.append(
+            rf"{_escape(case)} & {_sci(fixed['max_root_abs_error'])} @ "
+            rf"{fixed['total_2q']:.0f} & {krylov_cell} & {ours_cell} \\"
+        )
+    lines.append(r"\end{tabular*}")
+    lines.append(r"\end{ruledtabular}")
+    lines.append(r"\end{center}")
+    lines.append(r"\end{widetext}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
@@ -197,6 +252,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "paper_iii_multiroot_table.tex": build_multiroot_fragment(),
         "paper_iii_comparator_table.tex": build_comparator_fragment(),
         "paper_iii_peierls_table.tex": build_peierls_fragment(),
+        "paper_iii_comparator_matrix_table.tex": build_comparator_matrix_fragment(),
     }
     for name, content in fragments.items():
         (args.output_dir / name).write_text(content, encoding="utf-8")
