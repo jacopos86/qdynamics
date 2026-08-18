@@ -477,13 +477,192 @@ def state_with_appended_runtime_coordinates(
     return next_state, theta
 
 
-# NOTE: a compatibility alias named ``state_with_inserted_runtime_coordinates``
-# used to live here and silently forwarded to the *append* function above.  It
-# had zero callers and its name promised positional insertion that this module
-# has never implemented.  It was removed 2026-08-15 so the name stays free for
-# the real insertion-at-cut materialization introduced by the
-# deletion-conditioned exchange selector (see
-# prompt-exports/paper_ii_noiseless_conditional_exchange_implementation_spec.md).
+def _per_coordinate_terms(state: APMcLachlanState) -> tuple[Any, ...]:
+    """One single-child term per runtime coordinate, in runtime order.
+
+    Multi-child parent blocks are split into their ordered Pauli children.
+    The executor applies term plans as an ordered product, so the split
+    preserves the implemented unitary and every tangent exactly; labels stay
+    the stable per-coordinate labels.
+    """
+
+    labels = state.runtime_coordinate_labels
+    out: list[Any] = []
+    for term, block in zip(state.terms, state.layout.blocks):
+        block_indices = tuple(range(int(block.runtime_start), int(block.runtime_stop)))
+        if len(block_indices) == 1 and str(getattr(term, "execution_mode", "termwise_product") or "termwise_product").strip().lower() == "termwise_product":
+            out.append(_term_with_label(term, label=str(labels[block_indices[0]])))
+            continue
+        repr_mode = _polynomial_repr_mode(getattr(term, "polynomial"))
+        for runtime_index in block_indices:
+            spec = block.terms[int(runtime_index - int(block.runtime_start))]
+            out.append(
+                _single_child_term_from_spec(
+                    label=str(labels[runtime_index]),
+                    spec=spec,
+                    repr_mode=repr_mode,
+                )
+            )
+    return tuple(out)
+
+
+def state_with_inserted_runtime_coordinates(
+    state: APMcLachlanState,
+    *,
+    insertions: Sequence[tuple[int, Any, str]],
+    theta_runtime: np.ndarray | Sequence[float] | None = None,
+    metadata: Mapping[str, Any] | None = None,
+) -> tuple[APMcLachlanState, np.ndarray]:
+    """Return a new AP state with zero-angle coordinates inserted at cuts.
+
+    This is positional insertion, not the tail append a former alias of the
+    same name silently performed.  Each entry of ``insertions`` is
+    ``(cut, term, label)``: ``cut`` indexes the *current* ordered runtime
+    coordinate sequence (``0`` before every coordinate, ``n`` after the last,
+    i.e. ordinary tail append); several insertions at one cut keep their given
+    order.  Inserted coordinates start at angle zero, so the prepared state is
+    unchanged — the identity every zero-angle structural patch relies on, and
+    verified here after the rebuild.
+
+    Only ``per_pauli_term`` states are supported: the exchange selector's
+    support granularity is the Pauli child, and internal insertion may split a
+    multi-child parent block into its ordered children (implemented-unitary
+    preserving; see :func:`_per_coordinate_terms`).
+    """
+
+    if state.parameterization_mode != AP_PARAMETERIZATION_PER_PAULI_TERM:
+        raise ValueError(
+            "state_with_inserted_runtime_coordinates requires "
+            "parameterization_mode='per_pauli_term'; got "
+            f"{state.parameterization_mode!r}."
+        )
+    theta_base = (
+        np.asarray(state.theta_runtime, dtype=float).reshape(-1)
+        if theta_runtime is None
+        else np.asarray(theta_runtime, dtype=float).reshape(-1)
+    )
+    validate_runtime_state_parity(
+        state, theta_base, context="insert_runtime_coordinates(input)"
+    )
+    entries = tuple(insertions)
+    if not entries:
+        return state, theta_base
+
+    n = int(state.runtime_parameter_count)
+    for cut, _term, label in entries:
+        if int(cut) < 0 or int(cut) > n:
+            raise ValueError(
+                f"insertion cut {int(cut)} out of range [0, {n}] for label {label!r}."
+            )
+
+    inserted_terms = tuple(
+        _term_with_label(term, label=str(label)) for _cut, term, label in entries
+    )
+    inserted_layout = build_parameter_layout(
+        inserted_terms,
+        ignore_identity=bool(state.layout.ignore_identity),
+        coefficient_tolerance=float(state.layout.coefficient_tolerance),
+        sort_terms=(str(state.layout.term_order).strip().lower() == "sorted"),
+    )
+    multi = [
+        str(block.candidate_label)
+        for block in inserted_layout.blocks
+        if int(block.runtime_count) != 1
+    ]
+    if multi:
+        raise ValueError(
+            "per_pauli_term runtime-coordinate insertion requires one Pauli "
+            f"child per inserted term; invalid labels: {multi}."
+        )
+
+    survivor_terms = _per_coordinate_terms(state)
+    inserted_by_cut: dict[int, list[tuple[Any, str]]] = {}
+    for (cut, _term, label), resolved in zip(entries, inserted_terms):
+        inserted_by_cut.setdefault(int(cut), []).append((resolved, str(label)))
+
+    interleaved_terms: list[Any] = []
+    interleaved_labels: list[str] = []
+    interleaved_theta: list[float] = []
+    old_labels = state.runtime_coordinate_labels
+    for position in range(n + 1):
+        for resolved, label in inserted_by_cut.get(position, ()):
+            interleaved_terms.append(resolved)
+            interleaved_labels.append(label)
+            interleaved_theta.append(0.0)
+        if position < n:
+            interleaved_terms.append(survivor_terms[position])
+            interleaved_labels.append(str(old_labels[position]))
+            interleaved_theta.append(float(theta_base[position]))
+
+    if len(set(interleaved_labels)) != len(interleaved_labels):
+        raise ValueError(
+            "inserted coordinate labels collide with existing runtime labels."
+        )
+
+    layout = build_parameter_layout(
+        tuple(interleaved_terms),
+        ignore_identity=bool(state.layout.ignore_identity),
+        coefficient_tolerance=float(state.layout.coefficient_tolerance),
+        sort_terms=(str(state.layout.term_order).strip().lower() == "sorted"),
+    )
+    theta = np.asarray(interleaved_theta, dtype=float).reshape(-1)
+    expected = int(parameter_count_for_layout(layout, state.parameterization_mode))
+    if int(theta.size) != expected:
+        raise APMcLachlanStateParityError(
+            "Inserted theta length does not match rebuilt layout: "
+            f"got {theta.size}, expected {expected}."
+        )
+    new_labels = runtime_coordinate_labels(
+        layout, parameterization_mode=state.parameterization_mode
+    )
+    if tuple(new_labels) != tuple(interleaved_labels):
+        raise APMcLachlanStateParityError(
+            "Runtime-coordinate insertion did not produce the requested layout: "
+            f"{tuple(new_labels)!r} vs {tuple(interleaved_labels)!r}."
+        )
+
+    executor = _executor_for_terms(
+        tuple(interleaved_terms),
+        layout,
+        parameterization_mode=state.parameterization_mode,
+    )
+    psi_before = np.asarray(
+        state.prepare_state(theta_base), dtype=complex
+    ).reshape(-1)
+    psi_initial = _normalize_state(
+        executor.prepare_state(
+            theta, np.asarray(state.psi_ref, dtype=complex).reshape(-1)
+        ),
+        name="psi_initial",
+    )
+    insertion_error = float(np.linalg.norm(psi_initial - psi_before))
+    if not np.isfinite(insertion_error) or insertion_error > AP_PREPARED_STATE_PARITY_ATOL:
+        raise APMcLachlanStateParityError(
+            "Zero-angle insertion changed the prepared state: "
+            f"||psi_after - psi_before||_2 = {insertion_error:.6e} "
+            f"(context={str((metadata or {}).get('context', 'insert_runtime_coordinates'))!r})."
+        )
+
+    next_state = APMcLachlanState(
+        terms=tuple(interleaved_terms),
+        layout=layout,
+        theta_runtime=theta,
+        psi_ref=state.psi_ref,
+        psi_initial=psi_initial,
+        executor=executor,
+        static_hamiltonian=state.static_hamiltonian,
+        resolved_problem=state.resolved_problem,
+        parameterization_mode=state.parameterization_mode,
+        exact_energy=state.exact_energy,
+        candidate_pool_terms=state.candidate_pool_terms,
+        candidate_pool_source=state.candidate_pool_source,
+        provenance=state.provenance,
+        extensions=state.extensions,
+    )
+    validate_runtime_state_parity(
+        next_state, theta, context="insert_runtime_coordinates(output)"
+    )
+    return next_state, theta
 
 
 def _term_label_for_appended_coordinate(state: APMcLachlanState, label: str) -> str:
@@ -1086,6 +1265,7 @@ __all__ = [
     "state_from_scaffold_runtime_input",
     "state_with_appended_runtime_coordinates",
     "state_with_appended_terms",
+    "state_with_inserted_runtime_coordinates",
     "state_with_runtime_coordinate_patch",
     "state_without_runtime_indices",
     "state_without_term_labels",

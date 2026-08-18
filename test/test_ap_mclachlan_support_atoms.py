@@ -537,18 +537,32 @@ def test_append_batch_rejects_duplicate_base_atom_occurrences() -> None:
 
 
 def test_insertion_named_aliases_for_append_are_gone() -> None:
-    """The removed ``*_inserted_*`` aliases must not silently reappear.
+    """``*_inserted_*`` names must never again be silent append aliases.
 
-    Both promised positional insertion while forwarding to tail append.  The
-    names are reserved for the real insertion-at-cut materialization of the
-    deletion-conditioned exchange selector.
+    The support-atoms alias stays removed.  The state-module name now exists
+    as *real* positional insertion (2026-08-15); the functional check pins
+    that a cut-0 insertion lands first, which the old append alias could not
+    do.
     """
 
     import pipelines.time_dynamics.ap_mclachlan.state as state_mod
     import pipelines.time_dynamics.ap_mclachlan.support_atoms as atoms_mod
 
-    assert not hasattr(state_mod, "state_with_inserted_runtime_coordinates")
     assert not hasattr(atoms_mod, "state_with_inserted_atoms")
+    assert hasattr(state_mod, "state_with_inserted_runtime_coordinates")
+
+    selected = (AnsatzTerm(label="seed_x", polynomial=_poly((("x", 1.0),))),)
+    state = state_from_scaffold_runtime_input(
+        _runtime_input(selected=selected, theta_runtime=np.array([0.1]))
+    )
+    inserted_state, theta = state_mod.state_with_inserted_runtime_coordinates(
+        state,
+        insertions=(
+            (0, AnsatzTerm(label="front", polynomial=_poly((("y", 1.0),))), "front::r0::y"),
+        ),
+    )
+    assert inserted_state.runtime_coordinate_labels[0] == "front::r0::y"
+    assert theta.tolist() == [0.0, 0.1]
 
 
 def test_candidate_append_atoms_rejects_incomplete_pool_by_default() -> None:
