@@ -41,7 +41,7 @@ REGIMES = (
 )
 STRONG_HOLSTEIN = {"weak_strong", "intermediate_strong", "strong_strong_u8"}
 APPEND_ARCHIVES = ROOT / (
-    "raw_outputs/chtc_fetch_paper_i_ra_adapt_stationary_core_v7_9392883_20260729"
+    "raw_outputs/paper_i_ra_adapt_stationary_core_v7_partial_report_20260729"
 )
 CURVE_CACHE = ROOT / (
     "MATH/paper_details/figures/paper_i_hh_macro_common_accuracy_20260723/"
@@ -107,7 +107,7 @@ def _strong_append_k30(regime: str) -> tuple[dict[str, int], dict[str, str]]:
     )
 
     proc = APPEND_PROCS[regime]
-    archive = APPEND_ARCHIVES / (
+    archive = APPEND_ARCHIVES / f"proc{proc}_validation_input" / (
         f"core__{regime}__nph7__append_macro__cluster_9392883__proc_{proc}.tar.gz"
     )
     if not archive.is_file() or archive.is_symlink():
@@ -253,10 +253,10 @@ def main() -> None:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     styles = {
-        "plateau": ("#d62728", 1.8, "o", "RA-ADAPT, plateau insertion"),
+        "plateau": ("#d62728", 1.8, "o", "RA, plateau insertion"),
         "conventional_append": ("#1f77b4", 1.4, "^", "Append-ADAPT VQE"),
-        "always": ("#e69f00", 1.45, "D", "RA-ADAPT, always insertion"),
-        "ra_append": ("#9467bd", 1.35, "s", "RA-ADAPT, append only"),
+        "always": ("#e69f00", 1.45, "D", "RA, always insertion"),
+        "ra_append": ("#9467bd", 1.35, "s", "RA, append only"),
     }
     plt.rcParams.update({"font.family": "serif", "font.size": 8.5})
     fig, axes = plt.subplots(2, 3, figsize=(11.0, 5.15), sharex=True)

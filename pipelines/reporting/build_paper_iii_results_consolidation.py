@@ -39,7 +39,7 @@ EVIDENCE = {
     "nph3_sweep": DIAG / "paper_iii_regime_frontier_sweep_20260818_v1/regime_frontier_sweep.json",
     "child_granularity": DIAG
     / "paper_iii_child_granularity_20260818_v1/child_granularity_summary.json",
-    "multiroot_b60": DIAG / "paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_b60_retained.json",
+    "multiroot_b60": DIAG / "paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_epsstop.json",
     "transition_strengths": DIAG
     / "paper_iii_transition_strengths_20260818_v1/transition_strengths_retained.json",
 }
@@ -159,7 +159,7 @@ def build_markdown() -> str:
         )
     add("")
 
-    add("## Multi-root window: lowest six excitations (budget 60, Ky Fan R=6)")
+    add("## Multi-root window: lowest six excitations (residual stop eps=1e-3, Ky Fan R=6; support is an output)")
     add("")
     multiroot = _load("multiroot_b60")
     add("| regime | arm | 2Q | root errors (E1..E6) |")

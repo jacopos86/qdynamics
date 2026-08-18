@@ -26,7 +26,7 @@ if str(REPO_ROOT) not in sys.path:
 DIAG = REPO_ROOT / "output/diagnostics"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "MATH/paper_details/generated"
 
-MULTIROOT_JSON = DIAG / "paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_b60_retained.json"
+MULTIROOT_JSON = DIAG / "paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_epsstop.json"
 COMPARATORS_JSON = DIAG / "paper_iii_cost_frontier_arms_20260818_v1/comparator_arms_summary.json"
 EXCHANGE_DIMER_JSON = (
     DIAG / "paper_iii_cost_frontier_arms_20260818_v1/exchange_maintenance_evidence.json"
@@ -74,7 +74,8 @@ def build_multiroot_fragment() -> str:
         r"\inlinetablecaption{tab:qse_multiroot_diag}{Statevector-diagnostic "
         r"multi-root accuracy over the six Paper-I Hubbard--Holstein regimes "
         r"(lowest six excitations, exact sector-restricted references, "
-        r"budget 60, Ky Fan $R=6$ objective). Cost is compiled two-qubit "
+        r"residual-norm stop $\varepsilon=10^{-3}$ with window-pressure "
+        r"completeness; support size is an output). Cost is compiled two-qubit "
         r"gate count under the \texttt{two\_qubit\_only\_v1} scalarization.}"
     )
     lines.append(r"\begin{center}")

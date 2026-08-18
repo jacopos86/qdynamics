@@ -101,6 +101,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--budget", type=int, default=_BUDGET)
     parser.add_argument("--target-roots", type=int, default=_TARGET_ROOTS)
     parser.add_argument("--max-rounds", type=int, default=30)
+    parser.add_argument(
+        "--residual-stop",
+        type=float,
+        default=None,
+        help="Residual-norm stopping tolerance; when set, budget becomes a safety cap only.",
+    )
     args = parser.parse_args(argv)
     target_roots = int(args.target_roots)
 
@@ -143,13 +149,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         _record_arm("input_order", list(range(min(int(args.budget), len(basis)))))
         _record_arm("fixed_linear_response_complete", linear_indices)
 
+        safety_cap = len(basis) if args.residual_stop is not None else int(args.budget)
         selection = select_static_qse_records(
             basis,
             config=StaticRecordSelectionConfig(
                 mode="geometry_selected",
-                max_records=int(args.budget),
+                max_records=safety_cap,
                 geometry_target_roots=target_roots,
                 geometry_cost_discount_alpha=1.0,
+                geometry_residual_stop=(
+                    float(args.residual_stop) if args.residual_stop is not None else None
+                ),
             ),
             hamiltonian=hamiltonian,
             prepared_state=ground,
@@ -157,6 +167,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             compiled_costs=costs,
         )
         _record_arm("geometry_alpha1_R6", selection.selected_original_indices)
+        if selection.geometry_stop is not None:
+            arms["geometry_alpha1_R6"]["geometry_stop"] = dict(selection.geometry_stop)
 
         for arm_name, exchange_config in (
             (

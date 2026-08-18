@@ -348,7 +348,7 @@ def main() -> None:
     axes[0, 0].set_ylabel(r"same-cutoff $|\Delta E|$")
     axes[1, 0].set_ylabel(r"same-cutoff $|\Delta E|$")
     legend = [
-        Line2D([0], [0], color=ra_color, lw=1.8, label="RA-ADAPT, plateau insertion"),
+        Line2D([0], [0], color=ra_color, lw=1.8, label="RA, plateau insertion"),
         Line2D([0], [0], color=append_color, lw=1.4, label="Append-ADAPT VQE"),
         Line2D(
             [0],
@@ -357,7 +357,7 @@ def main() -> None:
             marker="D",
             markevery=[1],
             lw=1.45,
-            label="RA-ADAPT, always insertion",
+            label="RA, always insertion",
         ),
         Line2D(
             [0],
@@ -366,10 +366,10 @@ def main() -> None:
             marker="s",
             markevery=[1],
             lw=1.35,
-            label="RA-ADAPT, append only",
+            label="RA, append only",
         ),
         Line2D([0], [0], marker="o", color="0.25", markerfacecolor="white", lw=0, label="first common-accuracy crossing"),
-        Line2D([0], [0], marker="^", color="0.25", lw=0, label=r"best error within shared $S_{\rm alg}$"),
+        Line2D([0], [0], marker="^", color="0.25", lw=0, label=r"best error within shared $\mathcal{E}$"),
     ]
     fig.legend(handles=legend, loc="upper center", ncol=3, frameon=False, fontsize=7.2)
     fig.subplots_adjust(left=0.065, right=0.995, bottom=0.085, top=0.855, hspace=0.39, wspace=0.24)
