@@ -1057,13 +1057,14 @@ The supported inverse, integrator switching, append confirmation, stay rule, and
 % frequency sweep grid per family, which broad-survey comparators are missing in code,
 % and the CHTC budget cap for the large all-wired sweep.
 
-The results section follows a compact accuracy/resource order: mixed Hubbard--Holstein static spectral table over the four-regime Cartesian grid, QSE-selection ablation table, dynamics table, QSE-to-dynamics handoff ablation table, and then figures.  The static results focus on excitation spectra.  The dynamics results compare frozen QSE, adaptive QSE, and QSE-triggered live McLachlan refinement.
+The results section reports the completed statevector-diagnostic evidence in a compact accuracy/resource order: the accuracy--cost frontier figure, the multi-root regime table, the cross-family comparator tables, the Peierls--Hubbard generality table, and the driven-dynamics and adaptive-growth tables.  The locked CHTC production matrix and its ablation companions are deferred to the production data collection; their designs are retained in the source as the locked contract.
 
 \subsection{Static excited-state results}
 
 \structlabel{Static excited-state results}
-Table~\ref{tab:qse_static_claims} gives the static mixed Hubbard--Holstein comparison over the weak--weak, strong--weak, weak--strong, and strong--strong regimes.  Each regime compares same-cutoff exact diagonalization, regular mixed Fullmeta QSE, and geometry-selected mixed Fullmeta QSE.  The same-cutoff columns test whether the QSE basis recovers the ED spectrum inside the working Hilbert space; the higher-cutoff columns test whether lower-cutoff QSE spectra remain physically stable after embedding.  Resource columns report effective basis size, overlap conditioning, final matrix-measurement proxy, and optional compiled two-qubit cost.
+The locked production comparison over the four-regime Cartesian grid---same-cutoff ED reference versus regular and geometry-selected mixed full-meta QSE, with conditioning and measurement-proxy resource columns---and its selection-ablation companion are deferred to the production data collection; their table designs are retained in the source as the locked contract.  The completed statevector-diagnostic evidence at the Paper-I regime conventions follows.
 
+\iffalse
 \begin{widetext}
 \inlinetablecaption{tab:qse_static_claims}{Static mixed Hubbard--Holstein QSE benchmark by regime and basis policy.}
 \begin{center}
@@ -1111,14 +1112,31 @@ no root-beaming/tracking guard & \placeholder{...} & \placeholder{...} & \placeh
 \end{ruledtabular}
 \end{center}
 \end{widetext}
+\fi
 
 \subsection{Statevector-diagnostic evidence (pre-production)}
 
 \structlabel{Statevector-diagnostic evidence}
-Ahead of the locked CHTC production matrix, Tables~\ref{tab:qse_multiroot_diag}--\ref{tab:qse_peierls_diag} report the completed statevector-diagnostic evidence sweep at the Paper-I regime conventions ($n_{\rm ph}=3$ weak-phonon and $n_{\rm ph}=7$ strong-phonon sectors, per-regime full-meta pools, exact sector-restricted references).  Three findings organize these tables.  First, over the lowest six excitations the geometry-selected support with certified exchange reaches (near-)manifold-limit accuracy in every regime, while the complete fixed linear-response class fails several higher roots in five of six regimes and, being complete, cannot be repaired by additional budget.  Second, the cross-family comparison shows the deterministic fixed class and a Krylov-from-kick construction are both dominated on the shared compiled two-qubit cost axis at the dimer benchmark point, and Table~\ref{tab:qse_comparator_matrix} extends this to every benchmark Hamiltonian over the full six-root window: under conventions chosen to favor the baselines, the complete fixed class and the Krylov envelope fail the window on every case (maximum errors $10^{-1}$--$10^{0}$) while the selected-plus-exchange support resolves it wherever the pool permits.  Third, the Peierls--Hubbard generality check shows the physically ``obvious'' fixed class collapsing for bond coupling---the required spin-structure directions are absent---while the same selection-plus-exchange machinery recovers all six excitations without hand redesign.  Two methodological requirements surfaced by this sweep apply to all production rows: sector references must come from the exact sector-restricted eigenproblem (expectation-based filtering silently drops states that are degenerate across number sectors), and the selection metric must measure candidate novelty against the \emph{numerically retained} subspace of the current support under the solver's overlap cutoff, since the exact span counts directions the pencil's stabilization will discard.  All numbers below are regenerated directly from the committed evidence records by \texttt{pipelines/reporting/build\_paper\_iii\_tex\_fragments.py}.
+Ahead of the locked CHTC production matrix, Fig.~\ref{fig:qse_frontier} and Tables~\ref{tab:qse_multiroot_diag}--\ref{tab:qse_peierls_diag} report the completed statevector-diagnostic evidence sweep at the Paper-I regime conventions ($n_{\rm ph}=3$ weak-phonon and $n_{\rm ph}=7$ strong-phonon sectors, per-regime full-meta pools, exact sector-restricted references).  Three findings organize these tables.  First, over the lowest six excitations the geometry-selected support with certified exchange reaches (near-)manifold-limit accuracy in every regime, while the complete fixed linear-response class fails several higher roots in five of six regimes and, being complete, cannot be repaired by additional budget.  Second, the cross-family comparison shows the deterministic fixed class and a Krylov-from-kick construction are both dominated on the shared compiled two-qubit cost axis at the dimer benchmark point, and Table~\ref{tab:qse_comparator_matrix} extends this to every benchmark Hamiltonian over the full six-root window: under conventions chosen to favor the baselines, the complete fixed class and the Krylov envelope fail the window on every case (maximum errors $10^{-1}$--$10^{0}$) while the selected-plus-exchange support resolves it wherever the pool permits.  Third, the Peierls--Hubbard generality check shows the physically ``obvious'' fixed class collapsing for bond coupling---the required spin-structure directions are absent---while the same selection-plus-exchange machinery recovers all six excitations without hand redesign.  Two methodological requirements surfaced by this sweep apply to all production rows: sector references must come from the exact sector-restricted eigenproblem (expectation-based filtering silently drops states that are degenerate across number sectors), and the selection metric must measure candidate novelty against the \emph{numerically retained} subspace of the current support under the solver's overlap cutoff, since the exact span counts directions the pencil's stabilization will discard.  All numbers below are regenerated directly from the committed evidence records by \texttt{pipelines/reporting/build\_paper\_iii\_tex\_fragments.py}.
 
 \structlabel{Ground-state seed}
 The seed states in these tables are exact sector-restricted ground states, which isolates excitation-manifold construction from seed quality.  This idealization is validated against the actual Paper-I workflow at the stored weak-coupling dimer point: the source-locked ADAPT-prepared ground state has fidelity $1-\mathcal O(10^{-12})$ with the exact $(1,1)$-sector ground state, and seeding the full residual-stop pipeline with it reproduces the exact-seeded results (maximum error over the lowest six excitations $1.72\times10^{-7}$ versus $1.73\times10^{-7}$, converged support 73 versus 75 records).  Compiled two-qubit costs in all tables count excitation-record measurement circuits only; the Paper-I seed-preparation cost is a separate, regime-fixed overhead shared identically by every method compared.
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{generated/paper_iii_frontier_figure.pdf}
+\caption{Accuracy--cost frontier at the stored weak-coupling dimer point:
+first-excitation error against cumulative compiled two-qubit cost
+(\texttt{two\_qubit\_only\_v1}, graph-span oracle, cross-validated against
+full transpilation at Spearman $0.9999$).  Cheapest-first orderings never
+descend, input order stalls, and the Krylov best-per-cost envelope
+(baseline-favoring conventions) remains above $3\times10^{-2}$ at
+$70\times$ the cost; the geometry-selected acquisition drops five decades
+at ${\sim}40$--$50$ gates, and certified exchange (star) reaches within
+$3\times$ of the complete linear-response class's accuracy at under half
+its cost.  Regenerated from the committed evidence records by
+\texttt{pipelines/reporting/build\_paper\_iii\_frontier\_figure.py}.}
+\label{fig:qse_frontier}
+\end{figure}
 
 \input{generated/paper_iii_multiroot_table}
 
@@ -1145,8 +1163,9 @@ Table~\ref{tab:qse_adaptive_diag} reports the adaptive-growth arm at each regime
 \input{generated/paper_iii_adaptive_table}
 
 \structlabel{Dynamics results}
-Table~\ref{tab:excited_dyn_claims} compares frozen QSE propagation, adaptive-QSE propagation, and QSE-triggered live McLachlan refinement against projected-variational and product-formula baselines.  Within each benchmark point all methods start from the same optimized ground-state ansatz and the same selected excitation root, use the same drive, and are evaluated on the same time grid.
+The production dynamics Pareto matrix---frozen QSE, adaptive QSE, and QSE-triggered live McLachlan refinement per Hamiltonian class, all starting from the same seed and selected excitation root under the same drive and time grid---and its handoff-ablation companion are deferred to the production data collection; their table designs are retained in the source as the locked contract.  The statevector-diagnostic driven-dynamics evidence above stands in their place for this preprint.
 
+\iffalse
 \begin{widetext}
 \inlinetablecaption{tab:excited_dyn_claims}{Excited-state driven-dynamics Pareto benchmark by Hamiltonian class and method.}
 \begin{center}
@@ -1189,6 +1208,7 @@ no QSE root-protection guard & \placeholder{...} & \placeholder{...} & \placehol
 \end{ruledtabular}
 \end{center}
 \end{widetext}
+\fi
 
 \subsection{Spectral attribution figures}
 
