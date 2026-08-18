@@ -97,6 +97,15 @@ are implementation validation, never novelty.
   at u=8 the full 158-operator manifold itself misses the sector gap
   (limit error 5.2e-1) — report as a pool limitation, never a selection
   failure; selection reaches the manifold optimum at the lowest cost there.
+- Exchange maintenance (C3 implementation):
+  `pipelines/qse_spectra/exchange_maintenance.py` — certified joint
+  delete--add patches with atomic commit; evidence in
+  `exchange_maintenance_evidence.json` (v1 evidence dir): geometry support
+  improved 6.8e-5 -> 4.0e-6 at identical 48 2Q via four certified patches;
+  budgeted variant reaches 6.8e-5 at 12 2Q from the cheapest-first support.
+  C3's standing obligation (joint patch, not prune-then-append) is satisfied
+  by this module; keep the budgeted variant described as budgeted, not as
+  plain dominance.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
