@@ -103,6 +103,16 @@ are implementation validation, never novelty.
   must always come from the exact sector-restricted eigenproblem. (b) The
   genuinely truncation-limited regime at nph3 is weak_strong (manifold
   limit 4.3e-5), motivating the canonical nph7 strong-phonon pools.
+- Exchange repair of the stuck strong-phonon supports
+  (`pipelines/exact_bench/paper_iii_qse_exchange_repair.py` ->
+  `output/diagnostics/paper_iii_exchange_repair_20260818_v1/`): from the
+  stalled alpha=1 supports, certified exchange reaches weak_strong
+  2.8e-5 @ 218 2Q (one dominance patch; beats the complete class 9.4e-4 @
+  412 in both coordinates) and intermediate_strong 1.1e-4 @ 182
+  (dominance) / 8.5e-6 @ 254 (budgeted at class parity, vs class 4.8e-5 @
+  412). Select-then-exchange dominates the fixed class in accuracy and
+  compiled cost in every tested regime — this is the paper's central
+  results narrative.
 - Exchange maintenance (C3 implementation):
   `pipelines/qse_spectra/exchange_maintenance.py` — certified joint
   delete--add patches with atomic commit; evidence in
@@ -116,9 +126,10 @@ are implementation validation, never novelty.
   canonical u/g from stationary-core artifacts, per-regime full_meta pools):
   `pipelines/exact_bench/paper_iii_qse_paper_i_convention_sweep.py` ->
   `output/diagnostics/paper_iii_paper_i_convention_sweep_20260818_v1/`.
-  Honest mixed result in the strong-phonon sector: alpha=1 dominates
-  strong_strong_u8 but the complete linear-response class wins absolute
-  accuracy at weak_strong/intermediate_strong — cite as motivation for
+  The sweep's raw selection arms show a mixed strong-phonon picture
+  (alpha=1 dominates strong_strong_u8; the complete linear-response class
+  wins at weak_strong/intermediate_strong), which the exchange repair
+  resolves — cite the raw sweep as motivation for
   exchange maintenance and multi-root objectives, never hide it.
 - Child-granularity study (Paper II atom coordinate):
   `pipelines/exact_bench/paper_iii_qse_child_granularity.py` ->
