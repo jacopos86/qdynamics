@@ -125,6 +125,12 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--static-record-selection-residual-stop",
+        type=float,
+        default=None,
+        help="Residual-norm stopping tolerance for geometry selection (budget becomes a safety cap).",
+    )
+    parser.add_argument(
         "--static-record-selection-cost-frontier",
         action="store_true",
         help="Emit the accuracy-versus-compiled-cost frontier over admitted prefixes of the selected basis.",
@@ -551,6 +557,10 @@ def _build_static_record_selection_config(
             "--static-record-selection-cost-frontier",
             True if args.static_record_selection_cost_frontier else None,
         ),
+        (
+            "--static-record-selection-residual-stop",
+            args.static_record_selection_residual_stop,
+        ),
     )
     supplied_dependents = [flag for flag, value in dependent_flags if value is not None]
     if args.static_record_selection_mode is None:
@@ -613,6 +623,11 @@ def _build_static_record_selection_config(
             geometry_cost_discount_alpha=(
                 float(args.static_record_selection_geometry_cost_discount_alpha)
                 if args.static_record_selection_geometry_cost_discount_alpha is not None
+                else None
+            ),
+            geometry_residual_stop=(
+                float(args.static_record_selection_residual_stop)
+                if args.static_record_selection_residual_stop is not None
                 else None
             ),
         )
