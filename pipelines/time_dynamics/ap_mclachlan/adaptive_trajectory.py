@@ -217,6 +217,7 @@ class SupportPatchControllerConfig:
     certification_refit_enabled: bool = False
     certification_refit_trust_radius: float = 0.1
     certification_refit_max_iterations: int = 15
+    max_certification_attempts_per_level: int | None = None
     exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
@@ -472,6 +473,11 @@ class SupportPatchControllerConfig:
             ),
             "certification_refit_max_iterations": int(
                 self.certification_refit_max_iterations
+            ),
+            "max_certification_attempts_per_level": (
+                None
+                if self.max_certification_attempts_per_level is None
+                else int(self.max_certification_attempts_per_level)
             ),
             "exchange_cost_alpha": float(self.exchange_cost_alpha),
             "eps_loss": float(self.eps_loss),

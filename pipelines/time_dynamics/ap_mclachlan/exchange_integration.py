@@ -397,6 +397,9 @@ def select_deletion_conditioned_patch(
         escalate=escalate,
         refit=refit,
         solve_repair_config=solve_repair_config,
+        max_certification_attempts_per_level=getattr(
+            support_config, "max_certification_attempts_per_level", None
+        ),
     )
 
     # Record realized deletion losses so hook #2's prior sees this attempt at

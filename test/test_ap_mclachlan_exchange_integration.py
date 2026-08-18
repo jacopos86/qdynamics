@@ -315,3 +315,31 @@ def test_certification_refit_flag_runs_through_route_adapter() -> None:
     assert selection.kind in {"insert", "delete", "exchange", "stay"}
     if selection.committed is not None:
         assert selection.certification.certified
+
+
+def test_attempt_budget_bounds_certifications_per_level() -> None:
+    # Impossible gates (conditioning included) force every attempt to fail;
+    # without a budget the selector would attempt every ranked candidate.
+    unbounded, _ = _run(
+        _config(
+            prune_ray_distance_tol=1.0e-15,
+            prune_patch_smoothness_eta_max=1.0e-15,
+            append_schur_max_condition_number=1.0e-30,
+        )
+    )
+    assert unbounded.kind == "stay"
+    assert len(unbounded.attempts) > 2
+
+    bounded, payload = _run(
+        _config(
+            prune_ray_distance_tol=1.0e-15,
+            prune_patch_smoothness_eta_max=1.0e-15,
+            append_schur_max_condition_number=1.0e-30,
+            max_certification_attempts_per_level=1,
+        )
+    )
+    assert bounded.kind == "stay"
+    assert bounded.stop_reason == "attempt_budget_exhausted"
+    # One attempt per acquired level, never the unbounded grind.
+    assert 0 < len(bounded.attempts) < len(unbounded.attempts)
+    assert payload["stop_reason"] == "attempt_budget_exhausted"

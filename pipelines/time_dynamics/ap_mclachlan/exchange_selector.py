@@ -31,6 +31,7 @@ from pipelines.time_dynamics.ap_mclachlan.fixed_step import FixedMcLachlanStep
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import GeometryEvaluation
 from pipelines.time_dynamics.ap_mclachlan.hamiltonian import TimeDependentHamiltonian
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
+from pipelines.time_dynamics.ap_mclachlan.performance import phase
 from pipelines.time_dynamics.ap_mclachlan.state import APMcLachlanState
 
 
@@ -141,6 +142,7 @@ def select_exchange_patch(
     refit: Callable[[APMcLachlanState, np.ndarray], tuple[APMcLachlanState, np.ndarray]]
     | None = None,
     solve_repair_config: Any | None = None,
+    max_certification_attempts_per_level: int | None = None,
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
@@ -148,6 +150,13 @@ def select_exchange_patch(
     :func:`iter_structural_families`.  ``escalate`` gates acquisition of the
     *next* family after a level certifies nothing (default: always escalate;
     the trajectory integration passes the structural-repair predicate).
+
+    ``max_certification_attempts_per_level`` bounds how many finalists one
+    level may materialize before the level is declared exhausted (``None`` =
+    unbounded, the specification default).  It is a computational guard in the
+    same spirit as the joint-work guard: certification is the expensive stage
+    (full state materialization per attempt), and a level whose gates reject
+    broadly would otherwise grind through every ranked candidate.
     """
 
     should_escalate = escalate or (lambda: True)
@@ -157,12 +166,24 @@ def select_exchange_patch(
     telemetry: StructuralEnumeration | None = None
     stop_reason = "no_structural_families"
 
+    budget = (
+        None
+        if max_certification_attempts_per_level is None
+        else max(1, int(max_certification_attempts_per_level))
+    )
     iterator = iter_structural_families(**dict(structural_kwargs))
-    for family, members, final in iterator:
+    while True:
+        with phase("patch.exchange.enumerate_family"):
+            item = next(iterator, None)
+        if item is None:
+            break
+        family, members, final = item
         if family == "__telemetry__":
             telemetry = final
             continue
         scored.extend(members)
+        attempts_this_level = 0
+        budget_hit = False
         ranked = sorted(
             (
                 c
@@ -176,7 +197,11 @@ def select_exchange_patch(
         for candidate in ranked:
             if candidate.order_key in attempted:
                 continue
+            if budget is not None and attempts_this_level >= budget:
+                budget_hit = True
+                break
             attempted.add(candidate.order_key)
+            attempts_this_level += 1
             try:
                 insertions = candidate_insertions(
                     candidate,
@@ -198,20 +223,21 @@ def select_exchange_patch(
                     )
                 )
                 continue
-            result = certify_finalist(
-                state=state,
-                hamiltonian=hamiltonian,
-                theta_runtime=theta_runtime,
-                time=float(time),
-                base_evaluation=base_evaluation,
-                base_step=base_step,
-                removed_runtime_indices=candidate.removed_runtime_indices,
-                insertions=insertions,
-                inverse_policy=inverse_policy,
-                gates=gates,
-                refit=refit,
-                solve_repair_config=solve_repair_config,
-            )
+            with phase("patch.exchange.certify"):
+                result = certify_finalist(
+                    state=state,
+                    hamiltonian=hamiltonian,
+                    theta_runtime=theta_runtime,
+                    time=float(time),
+                    base_evaluation=base_evaluation,
+                    base_step=base_step,
+                    removed_runtime_indices=candidate.removed_runtime_indices,
+                    insertions=insertions,
+                    inverse_policy=inverse_policy,
+                    gates=gates,
+                    refit=refit,
+                    solve_repair_config=solve_repair_config,
+                )
             attempts.append(
                 AttemptRecord(
                     family=candidate.family,
@@ -238,7 +264,7 @@ def select_exchange_patch(
                     telemetry=telemetry,
                     stop_reason="committed",
                 )
-        stop_reason = "level_exhausted"
+        stop_reason = "attempt_budget_exhausted" if budget_hit else "level_exhausted"
         if not should_escalate():
             iterator.close()
             stop_reason = "escalation_predicate_false"

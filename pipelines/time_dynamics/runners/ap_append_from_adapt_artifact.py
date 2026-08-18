@@ -1486,6 +1486,15 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--certification-refit-max-iterations", type=int, default=15
     )
+    parser.add_argument(
+        "--max-certification-attempts-per-level",
+        type=int,
+        default=None,
+        help=(
+            "Bound how many finalists one selector level may materialize "
+            "before the level is declared exhausted (None = unbounded)."
+        ),
+    )
     parser.add_argument("--prune-patch-smoothness-eta-max", type=float, default=1.0e-3)
     parser.add_argument("--patch-utility-delta-weight", type=float, default=1.0)
     parser.add_argument(
@@ -1731,6 +1740,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             certification_refit_max_iterations=int(
                 args.certification_refit_max_iterations
+            ),
+            max_certification_attempts_per_level=(
+                None
+                if args.max_certification_attempts_per_level is None
+                else int(args.max_certification_attempts_per_level)
             ),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,

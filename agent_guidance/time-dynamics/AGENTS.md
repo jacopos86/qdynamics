@@ -62,8 +62,14 @@ after the 2026-08-18 purge). Selector-specific settings, all typed on
 - `--interaction-frontier-widths` (comma ints; None → `2,4,8,…`)
 - `--structural-score-floor` — τ_score; the floor, not certification, excludes
   numerical-noise candidates
-- `--max-joint-patch-evaluations` — the sole work cap; admits complete
+- `--max-joint-patch-evaluations` — enumeration work cap; admits complete
   families only; `None` is for small systems and oracles
+- `--max-certification-attempts-per-level` — certification work cap: bounds
+  finalist materializations per level (`None` = unbounded). Needed whenever
+  gates can reject broadly — e.g. on a converged ray `||b||^2 ~ 0` makes the
+  smoothness denominator vanish, every deletion-containing finalist fails,
+  and an unbounded level grinds through every ranked candidate at one full
+  state materialization each
 
 Certification thresholds reuse `--prune-ray-distance-tol`,
 `--prune-patch-smoothness-eta-max`, `--append-schur-max-condition-number`.
