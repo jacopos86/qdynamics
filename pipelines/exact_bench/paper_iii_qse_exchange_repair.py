@@ -66,7 +66,7 @@ DEFAULT_OUTPUT = (
 _Q0_POLICY = QSEBasisVectorPolicy(
     reference_projection="q0", basis_vector_normalization="raw_projected"
 )
-_REPAIR_REGIMES = ("weak_strong", "intermediate_strong")
+_ALL_REGIMES = tuple(name for name, _u, _g, _nph in PAPER_I_REGIMES)
 _BUDGET = 40
 
 
@@ -75,11 +75,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--budget", type=int, default=_BUDGET)
     parser.add_argument("--max-rounds", type=int, default=30)
+    parser.add_argument("--regimes", nargs="+", default=list(_ALL_REGIMES))
     args = parser.parse_args(argv)
 
     regime_params = {name: (u, g, nph) for name, u, g, nph in PAPER_I_REGIMES}
     regimes_payload: dict[str, Any] = {}
-    for regime in _REPAIR_REGIMES:
+    for regime in args.regimes:
         u, g_ep, n_ph_max = regime_params[regime]
         nq = _num_qubits(n_ph_max)
         hamiltonian, basis, _pool_meta = _build_regime_pool(u=u, g_ep=g_ep, n_ph_max=n_ph_max)
