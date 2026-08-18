@@ -1,0 +1,18 @@
+universe = vanilla
+executable = chtc/paper_iii_regime_handoff_20260819/run_handoff_apptainer.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/paper_iii_regime_handoff_20260819, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/paper-iii-regime-handoff-v1.$(Cluster).$(Process).log
+output = logs/paper-iii-regime-handoff-v1.$(Cluster).$(Process).out
+error = logs/paper-iii-regime-handoff-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 8GB
+request_disk = 20GB
++MaxRuntime = 72000
++JobBatchName = "holstein-paper-iii-regime-handoff-v1"
+queue 1
