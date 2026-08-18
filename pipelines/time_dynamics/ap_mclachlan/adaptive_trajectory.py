@@ -146,11 +146,8 @@ PRUNE_LADDER_SELECTION_POLICY_V1 = "cost_pressure_combinatorial_prune_ladder_v1"
 PRUNE_LADDER_PREFILTER_POLICY_V1 = "cost_pressure_singleton_prune_prefilter_v1"
 SUPPORT_PATCH_CONTROLLER_PROFILE_V1 = "support_patch_exchange_family_v1"
 LEGACY_APPEND_CONTROLLER_PROFILE_V1 = "legacy_append_compat_v1"
-FAILED_APPEND_REUSE_POLICY_V1 = "failed_append_search_reuse_v1"
 SUPPORT_PATCH_EXCHANGE_SELECTION_POLICY_V1 = "paper_ii_unified_support_patch_exchange_v1"
 LEGACY_APPEND_PATCH_KINDS = frozenset({PATCH_APPEND, PATCH_INSERT})
-FAILED_APPEND_REOPEN_DIRECT = "direct_threshold"
-FAILED_APPEND_REOPEN_MODEL_CHANGE = "model_change_with_direct_fallback"
 DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD = 1.0e-3
 PRUNE_PERSISTENCE_EXACT_BATCH = "exact_batch"
 PRUNE_PERSISTENCE_ATOM_HISTORY = "atom_history"
@@ -203,20 +200,6 @@ class SupportPatchControllerConfig:
     append_macro_scout_audit_parent_fraction: float = 0.0
     append_macro_scout_parent_cost_alpha: float = 1.0
     append_min_time: float = 0.0
-    failed_append_reuse_enabled: bool = False
-    failed_append_reuse_reopen_mode: str = FAILED_APPEND_REOPEN_DIRECT
-    failed_append_reuse_tau_min: float = 1.0e-4
-    failed_append_reuse_tau_margin_scale: float = 1.0
-    failed_append_reuse_tau_max: float = 1.0
-    failed_append_reuse_eta_reopen: float = 0.5
-    failed_append_reuse_model_l_min: float = 1.0e-12
-    failed_append_reuse_naturalization_floor: float = 1.0e-14
-    failed_append_reuse_sentinel_count: int = 4
-    failed_append_reuse_secant_wait_min: float = 0.0
-    failed_append_reuse_secant_wait_max: float = 1.0
-    failed_append_reuse_secant_wait_margin_scale: float = 1.0
-    failed_append_reuse_secant_positive_safety: float = 0.5
-    failed_append_reuse_secant_negative_growth: float = 2.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     max_prune_batch_size: int = 0
     prune_rung_set_cap: int = 0
@@ -298,7 +281,6 @@ class SupportPatchControllerConfig:
             "max_exchange_append_branches",
             "max_exchange_prune_branches",
             "max_exchange_pair_count",
-            "failed_append_reuse_sentinel_count",
         ):
             if int(getattr(self, name)) < 0:
                 raise ValueError(f"{name} must be non-negative.")
@@ -315,17 +297,6 @@ class SupportPatchControllerConfig:
             "append_macro_scout_audit_parent_fraction",
             "append_macro_scout_parent_cost_alpha",
             "append_min_time",
-            "failed_append_reuse_tau_min",
-            "failed_append_reuse_tau_margin_scale",
-            "failed_append_reuse_tau_max",
-            "failed_append_reuse_eta_reopen",
-            "failed_append_reuse_model_l_min",
-            "failed_append_reuse_naturalization_floor",
-            "failed_append_reuse_secant_wait_min",
-            "failed_append_reuse_secant_wait_max",
-            "failed_append_reuse_secant_wait_margin_scale",
-            "failed_append_reuse_secant_positive_safety",
-            "failed_append_reuse_secant_negative_growth",
             "residual_ratio_threshold",
             "prune_loss_threshold",
             "prune_history_lambda",
@@ -390,24 +361,6 @@ class SupportPatchControllerConfig:
                 "prune_appended_origin_target_policy must be one of "
                 f"{sorted(PRUNE_TARGET_POLICIES)!r}."
             )
-        if float(self.failed_append_reuse_tau_min) > float(self.failed_append_reuse_tau_max):
-            raise ValueError("failed_append_reuse_tau_min must be <= failed_append_reuse_tau_max.")
-        if float(self.failed_append_reuse_secant_wait_min) > float(
-            self.failed_append_reuse_secant_wait_max
-        ):
-            raise ValueError(
-                "failed_append_reuse_secant_wait_min must be <= "
-                "failed_append_reuse_secant_wait_max."
-            )
-        reopen_mode = str(self.failed_append_reuse_reopen_mode).strip().lower()
-        if reopen_mode not in {
-            FAILED_APPEND_REOPEN_DIRECT,
-            FAILED_APPEND_REOPEN_MODEL_CHANGE,
-        }:
-            raise ValueError(
-                "failed_append_reuse_reopen_mode must be "
-                f"{FAILED_APPEND_REOPEN_DIRECT!r} or {FAILED_APPEND_REOPEN_MODEL_CHANGE!r}."
-            )
         if bool(self.uses_reference_for_decision):
             raise ValueError("AP support-patch decisions must not use reference trajectories.")
         if bool(self.uses_future_exact_forecast_for_decision):
@@ -464,39 +417,6 @@ class SupportPatchControllerConfig:
                 self.append_macro_scout_parent_cost_alpha
             ),
             "append_min_time": float(self.append_min_time),
-            "failed_append_reuse_policy": FAILED_APPEND_REUSE_POLICY_V1,
-            "failed_append_reuse_enabled": bool(self.failed_append_reuse_enabled),
-            "failed_append_reuse_reopen_mode": str(self.failed_append_reuse_reopen_mode),
-            "failed_append_reuse_tau_min": float(self.failed_append_reuse_tau_min),
-            "failed_append_reuse_tau_margin_scale": float(
-                self.failed_append_reuse_tau_margin_scale
-            ),
-            "failed_append_reuse_tau_max": float(self.failed_append_reuse_tau_max),
-            "failed_append_reuse_eta_reopen": float(self.failed_append_reuse_eta_reopen),
-            "failed_append_reuse_model_l_min": float(
-                self.failed_append_reuse_model_l_min
-            ),
-            "failed_append_reuse_naturalization_floor": float(
-                self.failed_append_reuse_naturalization_floor
-            ),
-            "failed_append_reuse_sentinel_count": int(
-                self.failed_append_reuse_sentinel_count
-            ),
-            "failed_append_reuse_secant_wait_min": float(
-                self.failed_append_reuse_secant_wait_min
-            ),
-            "failed_append_reuse_secant_wait_max": float(
-                self.failed_append_reuse_secant_wait_max
-            ),
-            "failed_append_reuse_secant_wait_margin_scale": float(
-                self.failed_append_reuse_secant_wait_margin_scale
-            ),
-            "failed_append_reuse_secant_positive_safety": float(
-                self.failed_append_reuse_secant_positive_safety
-            ),
-            "failed_append_reuse_secant_negative_growth": float(
-                self.failed_append_reuse_secant_negative_growth
-            ),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
             "max_prune_batch_size": int(self.max_prune_batch_size),
             "prune_rung_set_cap": int(self.prune_rung_set_cap),
@@ -950,71 +870,6 @@ class _PruneSmoothnessDeferredRecord:
         }
 
 
-@dataclass(frozen=True)
-class _FailedAppendSentinelState:
-    """Compact candidate-level secant state for failed append-search reuse."""
-
-    candidate_key: str
-    utility: float
-    margin: float
-    geometry_clock: float
-    wait_path: float
-    due_geometry_clock: float
-    secant_slope: float | None = None
-
-
-@dataclass(frozen=True)
-class _FailedAppendCandidateRecord:
-    """Measured rejected candidate/batch utility and margin."""
-
-    candidate_key: str
-    candidate_label: str | None
-    atom_ids: tuple[str, ...]
-    utility: float
-    margin: float
-    rejection_reason: str
-    score_index: int
-    rung_size: int
-
-
-@dataclass(frozen=True)
-class _FailedAppendCertificate:
-    """Local geometry certificate created after a full append search fails."""
-
-    certificate_id: str
-    time_index: int
-    time: float
-    geometry_clock: float
-    support_identity_hash: str
-    pool_identity_hash: str
-    policy_identity_hash: str
-    retained_rank_signature_hash: str
-    retained_rank: int
-    support_dimension: int
-    K: np.ndarray
-    f: np.ndarray
-    naturalizer: np.ndarray
-    best_rejected_margin: float
-    best_rejected_utility: float
-    utility_change_scale: float | None
-    sentinel_utility_drift: float
-    sentinel_keys: tuple[str, ...]
-    created_reason: str
-    scored_count: int
-
-
-@dataclass
-class _FailedAppendReuseState:
-    """Mutable append-controller state for one trajectory run."""
-
-    certificate: _FailedAppendCertificate | None = None
-    sentinels: dict[str, _FailedAppendSentinelState] = field(default_factory=dict)
-    geometry_clock_available: bool = True
-
-    def clear_certificate(self) -> None:
-        self.certificate = None
-
-
 @dataclass
 class _PruneControllerRuntimeState:
     """Mutable active-prune state for one trajectory run."""
@@ -1185,9 +1040,7 @@ def run_append_mclachlan_trajectory(
         controller_config=controller_config,
         support_patch_config=support_patch_config,
     )
-    failed_append_reuse_state = _FailedAppendReuseState()
     prune_runtime_state = _PruneControllerRuntimeState()
-    geometry_clock = 0.0
 
     for index, time_value in enumerate(time_grid):
         dt_to_next = (
@@ -1284,8 +1137,6 @@ def run_append_mclachlan_trajectory(
                         support_config=support_patch_config,
                         repair_dt=None,
                         time_index=int(index),
-                        geometry_clock=float(geometry_clock),
-                        reuse_state=failed_append_reuse_state,
                     )
             else:
                 with phase(PHASE_APPEND_SELECT):
@@ -1302,7 +1153,6 @@ def run_append_mclachlan_trajectory(
                         repair_dt=None,
                     )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
                 theta_current = maybe_theta
                 evaluation = maybe_eval
@@ -1345,7 +1195,6 @@ def run_append_mclachlan_trajectory(
                     time_index=int(index),
                 )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
                 theta_current = maybe_theta
                 evaluation = maybe_eval
@@ -1385,7 +1234,6 @@ def run_append_mclachlan_trajectory(
                     repair_dt=None,
                 )
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                failed_append_reuse_state.clear_certificate()
                 current_state = maybe_state
                 theta_current = maybe_theta
                 evaluation = maybe_eval
@@ -1413,15 +1261,6 @@ def run_append_mclachlan_trajectory(
                     force_local_subdivision_request=force_local_subdivision_request,
                 )
             theta_next = np.asarray(integration.theta_next, dtype=float).reshape(-1)
-            path_increment = _mclachlan_path_increment(
-                fixed_step=fixed_step,
-                evaluation=evaluation,
-                dt=dt,
-            )
-            if path_increment is None:
-                failed_append_reuse_state.geometry_clock_available = False
-            elif failed_append_reuse_state.geometry_clock_available:
-                geometry_clock += float(path_increment)
         else:
             theta_next = theta_current
 
@@ -2317,14 +2156,6 @@ def _use_unified_support_patch_selector(
         return False
     if not _use_combinatorial_append_ladder(support_patch_config):
         return False
-    # Failed-append reuse is an append-only diagnostic optimization. Keep it on
-    # the old append-ladder path until the reuse certificate is generalized to
-    # branch-coupled stay/append/delete/exchange finalist sets.
-    if (
-        bool(support_patch_config.failed_append_reuse_enabled)
-        and not bool(support_patch_config.prune_enabled)
-    ):
-        return False
     return True
 
 
@@ -2475,665 +2306,6 @@ def _append_ladder_prefilter_policy_effective(policy: str) -> str:
     }:
         return APPEND_LADDER_PREFILTER_POLICY_V1
     raise ValueError(f"Unsupported append_prefilter_policy for diagnostic ladder: {policy!r}.")
-
-
-def _failed_append_reuse_enabled(
-    support_config: SupportPatchControllerConfig,
-) -> bool:
-    return bool(support_config.failed_append_reuse_enabled)
-
-
-def _metadata_with_failed_append_reuse(
-    metadata: Mapping[str, Any],
-    reuse_metadata: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    out = dict(metadata)
-    if reuse_metadata is not None:
-        out["failed_append_reuse"] = _json_safe(dict(reuse_metadata))
-    return out
-
-
-def _batch_with_failed_append_reuse_metadata(
-    batch: PatchBatchEvaluation,
-    reuse_metadata: Mapping[str, Any],
-) -> PatchBatchEvaluation:
-    return replace(
-        batch,
-        metadata=_metadata_with_failed_append_reuse(
-            dict(batch.metadata or {}),
-            reuse_metadata,
-        ),
-    )
-
-
-def _failed_append_reuse_pre_search_decision(
-    *,
-    state: APMcLachlanState,
-    atoms: Sequence[SupportAtom],
-    support_config: SupportPatchControllerConfig,
-    inverse_policy: McLachlanInversePolicy,
-    base_evaluation: GeometryEvaluation,
-    base_step: FixedMcLachlanStep,
-    time: float,
-    time_index: int,
-    geometry_clock: float,
-    reuse_state: _FailedAppendReuseState | None,
-) -> dict[str, Any]:
-    metadata: dict[str, Any] = {
-        "policy": FAILED_APPEND_REUSE_POLICY_V1,
-        "enabled": bool(_failed_append_reuse_enabled(support_config)),
-        "time": float(time),
-        "time_index": int(time_index),
-        "geometry_clock": _finite_or_none(geometry_clock),
-        "full_search_run": True,
-        "reopen_mode": str(support_config.failed_append_reuse_reopen_mode),
-        "reopen_route": "disabled",
-        "certificate_present": False,
-    }
-    if not _failed_append_reuse_enabled(support_config):
-        return metadata
-    if reuse_state is None:
-        metadata["reopen_route"] = "invalidated_fail_open"
-        metadata["invalidation_reason"] = "missing_reuse_state"
-        return metadata
-    if not bool(reuse_state.geometry_clock_available):
-        reuse_state.clear_certificate()
-        metadata["reopen_route"] = "invalidated_fail_open"
-        metadata["invalidation_reason"] = "nonfinite_geometry_clock"
-        return metadata
-
-    certificate = reuse_state.certificate
-    if certificate is None:
-        metadata["reopen_route"] = "no_certificate"
-        return metadata
-
-    metadata["certificate_present"] = True
-    metadata["certificate_id"] = str(certificate.certificate_id)
-    identity = _failed_append_reuse_identity(
-        state=state,
-        atoms=atoms,
-        support_config=support_config,
-        inverse_policy=inverse_policy,
-        base_step=base_step,
-    )
-    mismatch = _failed_append_identity_mismatch(identity, certificate)
-    if mismatch is not None:
-        reuse_state.clear_certificate()
-        metadata.update(
-            {
-                "reopen_route": "invalidated_fail_open",
-                "invalidation_reason": str(mismatch),
-            }
-        )
-        return metadata
-
-    drift = _failed_append_certificate_drift(
-        certificate=certificate,
-        base_evaluation=base_evaluation,
-        geometry_clock=float(geometry_clock),
-    )
-    if drift is None:
-        reuse_state.clear_certificate()
-        metadata.update(
-            {
-                "reopen_route": "invalidated_fail_open",
-                "invalidation_reason": "nonfinite_certificate_drift",
-            }
-        )
-        return metadata
-
-    margin = max(float(certificate.best_rejected_margin), float(support_config.eps_loss))
-    tau_reopen = _failed_append_tau_reopen(support_config, margin=margin)
-    d_cert = float(drift["D_cert"])
-    direct_reopen = bool(d_cert >= float(tau_reopen))
-    l_scale = certificate.utility_change_scale
-    l_useful = (
-        l_scale is not None
-        and np.isfinite(float(l_scale))
-        and float(l_scale) >= float(support_config.failed_append_reuse_model_l_min)
-    )
-    model_threshold = float(support_config.failed_append_reuse_eta_reopen) * margin
-    model_product = None if not l_useful else float(l_scale) * d_cert
-    model_reopen = bool(l_useful and model_product is not None and model_product >= model_threshold)
-    mode = str(support_config.failed_append_reuse_reopen_mode).strip().lower()
-    if mode == FAILED_APPEND_REOPEN_MODEL_CHANGE:
-        if l_useful:
-            full_search_run = bool(model_reopen)
-            route = "model_change" if full_search_run else "skipped"
-            reopen_basis = "model_change"
-        else:
-            full_search_run = bool(direct_reopen)
-            route = "fallback_direct" if full_search_run else "skipped"
-            reopen_basis = "fallback_direct"
-    else:
-        full_search_run = bool(direct_reopen)
-        route = "direct" if full_search_run else "skipped"
-        reopen_basis = "direct"
-
-    sentinel_due_count = sum(
-        1
-        for sentinel in reuse_state.sentinels.values()
-        if float(geometry_clock) >= float(sentinel.due_geometry_clock)
-    )
-    metadata.update(
-        {
-            **drift,
-            "full_search_run": bool(full_search_run),
-            "reopen_route": route,
-            "reopen_basis": reopen_basis,
-            "best_rejected_margin": float(certificate.best_rejected_margin),
-            "best_rejected_utility": float(certificate.best_rejected_utility),
-            "tau_reopen": float(tau_reopen),
-            "direct_reopen": bool(direct_reopen),
-            "model_change_scale": _finite_or_none(l_scale),
-            "model_change_scale_useful": bool(l_useful),
-            "eta_reopen": float(support_config.failed_append_reuse_eta_reopen),
-            "model_change_threshold": float(model_threshold),
-            "model_change_product": _finite_or_none(model_product),
-            "model_change_reopen": bool(model_reopen),
-            "sentinel_due_count": int(sentinel_due_count),
-            "sentinel_due_is_advisory": True,
-        }
-    )
-    return metadata
-
-
-def _record_failed_append_ladder_search(
-    *,
-    batch: PatchBatchEvaluation,
-    state: APMcLachlanState,
-    atoms: Sequence[SupportAtom],
-    support_config: SupportPatchControllerConfig,
-    inverse_policy: McLachlanInversePolicy,
-    base_evaluation: GeometryEvaluation,
-    base_step: FixedMcLachlanStep,
-    time: float,
-    time_index: int,
-    geometry_clock: float,
-    reuse_state: _FailedAppendReuseState | None,
-    pre_search_metadata: Mapping[str, Any] | None,
-    failure_reason: str,
-) -> tuple[PatchBatchEvaluation, dict[str, Any]]:
-    metadata = dict(pre_search_metadata or {})
-    metadata.update(
-        {
-            "policy": FAILED_APPEND_REUSE_POLICY_V1,
-            "enabled": bool(_failed_append_reuse_enabled(support_config)),
-            "full_search_run": True,
-            "full_search_failure_reason": str(failure_reason),
-            "certificate_created": False,
-        }
-    )
-    if not _failed_append_reuse_enabled(support_config) or reuse_state is None:
-        return _batch_with_failed_append_reuse_metadata(batch, metadata), metadata
-
-    records = _failed_append_candidate_records(
-        batch=batch,
-        support_config=support_config,
-    )
-    if not records:
-        reuse_state.clear_certificate()
-        metadata["certificate_failure_reason"] = "no_finite_rejected_candidate_records"
-        return _batch_with_failed_append_reuse_metadata(batch, metadata), metadata
-
-    naturalized = _failed_append_naturalizer(
-        np.asarray(base_evaluation.geometry.K, dtype=float),
-        policy=inverse_policy,
-        floor=float(support_config.failed_append_reuse_naturalization_floor),
-    )
-    if naturalized is None:
-        reuse_state.clear_certificate()
-        metadata["certificate_failure_reason"] = "naturalizer_unavailable"
-        return _batch_with_failed_append_reuse_metadata(batch, metadata), metadata
-    naturalizer, retained_rank = naturalized
-    identity = _failed_append_reuse_identity(
-        state=state,
-        atoms=atoms,
-        support_config=support_config,
-        inverse_policy=inverse_policy,
-        base_step=base_step,
-    )
-    sentinels, secant_slopes, sentinel_utility_drift = _update_failed_append_sentinels(
-        records=records,
-        support_config=support_config,
-        reuse_state=reuse_state,
-        geometry_clock=float(geometry_clock),
-    )
-    best_margin = min(float(record.margin) for record in records)
-    best_utility = max(float(record.utility) for record in records)
-    utility_change_scale = None
-    if secant_slopes:
-        utility_change_scale = max(abs(float(value)) for value in secant_slopes)
-    certificate_payload = {
-        **identity,
-        "time": float(time),
-        "time_index": int(time_index),
-        "geometry_clock": float(geometry_clock),
-        "best_rejected_margin": float(best_margin),
-        "best_rejected_utility": float(best_utility),
-        "sentinel_keys": [str(s.candidate_key) for s in sentinels],
-        "scored_count": int(batch.scored_count),
-    }
-    certificate = _FailedAppendCertificate(
-        certificate_id=_stable_json_hash(certificate_payload),
-        time_index=int(time_index),
-        time=float(time),
-        geometry_clock=float(geometry_clock),
-        support_identity_hash=str(identity["support_identity_hash"]),
-        pool_identity_hash=str(identity["pool_identity_hash"]),
-        policy_identity_hash=str(identity["policy_identity_hash"]),
-        retained_rank_signature_hash=str(identity["retained_rank_signature_hash"]),
-        retained_rank=int(retained_rank),
-        support_dimension=int(np.asarray(base_evaluation.geometry.K).shape[0]),
-        K=np.asarray(base_evaluation.geometry.K, dtype=float),
-        f=np.asarray(base_evaluation.geometry.f, dtype=float).reshape(-1),
-        naturalizer=np.asarray(naturalizer, dtype=float),
-        best_rejected_margin=float(best_margin),
-        best_rejected_utility=float(best_utility),
-        utility_change_scale=utility_change_scale,
-        sentinel_utility_drift=float(sentinel_utility_drift),
-        sentinel_keys=tuple(str(s.candidate_key) for s in sentinels),
-        created_reason=str(failure_reason),
-        scored_count=int(batch.scored_count),
-    )
-    reuse_state.certificate = certificate
-    metadata.update(
-        {
-            "certificate_created": True,
-            "certificate_id": str(certificate.certificate_id),
-            "best_rejected_margin": float(best_margin),
-            "best_rejected_utility": float(best_utility),
-            "model_change_scale": _finite_or_none(utility_change_scale),
-            "sentinel_count": int(len(sentinels)),
-            "sentinel_utility_drift": float(sentinel_utility_drift),
-            "retained_rank": int(retained_rank),
-            "support_dimension": int(certificate.support_dimension),
-        }
-    )
-    return _batch_with_failed_append_reuse_metadata(batch, metadata), metadata
-
-
-def _accepted_failed_append_reuse_metadata(
-    pre_search_metadata: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    metadata = dict(pre_search_metadata or {})
-    if metadata.get("enabled"):
-        metadata.update(
-            {
-                "full_search_run": True,
-                "certificate_created": False,
-                "certificate_cleared_by_accept": True,
-            }
-        )
-    return metadata
-
-
-def _failed_append_reuse_identity(
-    *,
-    state: APMcLachlanState,
-    atoms: Sequence[SupportAtom],
-    support_config: SupportPatchControllerConfig,
-    inverse_policy: McLachlanInversePolicy,
-    base_step: FixedMcLachlanStep,
-) -> dict[str, str]:
-    support_payload = {
-        "parameterization_mode": str(state.parameterization_mode),
-        "runtime_coordinate_labels": [str(v) for v in state.runtime_coordinate_labels],
-        "runtime_parameter_count": int(state.runtime_parameter_count),
-        "logical_parameter_count": int(state.logical_parameter_count),
-    }
-    pool_payload = {
-        "candidate_pool_source": _candidate_pool_source_payload(state),
-        "atom_identities": [_support_atom_identity(atom) for atom in tuple(atoms)],
-    }
-    policy_payload = {
-        "append_ladder_mode": str(support_config.append_ladder_mode),
-        "max_append_batch_size": int(support_config.max_append_batch_size),
-        "append_rung_set_cap": int(support_config.append_rung_set_cap),
-        "append_prefilter_size": int(support_config.append_prefilter_size),
-        "append_prefilter_policy": str(support_config.append_prefilter_policy),
-        "append_gain_threshold": float(support_config.append_gain_threshold),
-        "append_batch_score_threshold": float(support_config.append_batch_score_threshold),
-        "append_schur_guard_enabled": bool(support_config.append_schur_guard_enabled),
-        "append_schur_min_rank_fraction": float(
-            support_config.append_schur_min_rank_fraction
-        ),
-        "append_schur_max_condition_number": float(
-            support_config.append_schur_max_condition_number
-        ),
-        "append_schur_novelty_ridge_lambda": float(
-            support_config.append_schur_novelty_ridge_lambda
-        ),
-        "cost_model": str(support_config.cost_model),
-        "cost_normalization_mode": str(support_config.cost_normalization_mode),
-        "append_cost_alpha": float(support_config.append_cost_alpha),
-        "append_cost_lambda_2q": float(support_config.append_cost_lambda_2q),
-        "append_cost_lambda_d": float(support_config.append_cost_lambda_d),
-        "append_cost_lambda_1q": float(support_config.append_cost_lambda_1q),
-        "append_cost_lambda_theta": float(support_config.append_cost_lambda_theta),
-        "append_cost_lambda_shot": float(support_config.append_cost_lambda_shot),
-        "append_cost_scale_floor": float(support_config.append_cost_scale_floor),
-        "inverse_policy_id": str(inverse_policy.policy_id),
-        "pinv_rcond": float(inverse_policy.pinv_rcond),
-        "ridge_lambda": float(inverse_policy.ridge_lambda),
-        "solve_damping": float(inverse_policy.solve_damping),
-        "epsilon": float(inverse_policy.epsilon),
-    }
-    retained_payload = {
-        "support_dimension": int(len(state.runtime_coordinate_labels)),
-        "retained_rank": int(base_step.rank),
-        "inverse_policy_id": str(base_step.inverse_policy.policy_id),
-        "pinv_rcond": float(base_step.inverse_policy.pinv_rcond),
-        "ridge_lambda": float(base_step.inverse_policy.ridge_lambda),
-        "solve_damping": float(base_step.inverse_policy.solve_damping),
-    }
-    return {
-        "support_identity_hash": _stable_json_hash(support_payload),
-        "pool_identity_hash": _stable_json_hash(pool_payload),
-        "policy_identity_hash": _stable_json_hash(policy_payload),
-        "retained_rank_signature_hash": _stable_json_hash(retained_payload),
-    }
-
-
-def _failed_append_identity_mismatch(
-    identity: Mapping[str, str],
-    certificate: _FailedAppendCertificate,
-) -> str | None:
-    for field_name in (
-        "support_identity_hash",
-        "pool_identity_hash",
-        "policy_identity_hash",
-        "retained_rank_signature_hash",
-    ):
-        if str(identity.get(field_name)) != str(getattr(certificate, field_name)):
-            return field_name
-    return None
-
-
-def _failed_append_certificate_drift(
-    *,
-    certificate: _FailedAppendCertificate,
-    base_evaluation: GeometryEvaluation,
-    geometry_clock: float,
-) -> dict[str, Any] | None:
-    K = np.asarray(base_evaluation.geometry.K, dtype=float)
-    f = np.asarray(base_evaluation.geometry.f, dtype=float).reshape(-1)
-    K0 = np.asarray(certificate.K, dtype=float)
-    f0 = np.asarray(certificate.f, dtype=float).reshape(-1)
-    N = np.asarray(certificate.naturalizer, dtype=float)
-    if K.shape != K0.shape or N.shape != K0.shape or f.shape != f0.shape:
-        return None
-    if not (
-        np.all(np.isfinite(K))
-        and np.all(np.isfinite(f))
-        and np.all(np.isfinite(K0))
-        and np.all(np.isfinite(f0))
-        and np.all(np.isfinite(N))
-    ):
-        return None
-    try:
-        dK = float(np.linalg.norm(N @ (0.5 * ((K - K0) + (K - K0).T)) @ N, ord=2))
-    except np.linalg.LinAlgError:
-        return None
-    f0_nat = np.asarray(N @ f0, dtype=float).reshape(-1)
-    df_nat = np.asarray(N @ (f - f0), dtype=float).reshape(-1)
-    f_norm = float(np.linalg.norm(f0_nat))
-    df = float(np.linalg.norm(df_nat) / max(1.0, f_norm))
-    d_path = float(max(0.0, float(geometry_clock) - float(certificate.geometry_clock)))
-    d_sentinel = float(max(0.0, certificate.sentinel_utility_drift))
-    values = (dK, df, d_path, d_sentinel)
-    if any(not np.isfinite(value) for value in values):
-        return None
-    return {
-        "D_cert": float(max(values)),
-        "D_cert_gram": float(dK),
-        "D_cert_force": float(df),
-        "D_cert_path": float(d_path),
-        "D_cert_sentinel": float(d_sentinel),
-    }
-
-
-def _failed_append_tau_reopen(
-    support_config: SupportPatchControllerConfig,
-    *,
-    margin: float,
-) -> float:
-    margin_value = max(0.0, float(margin))
-    tau = float(support_config.failed_append_reuse_tau_min) + float(
-        support_config.failed_append_reuse_tau_margin_scale
-    ) * margin_value
-    return float(
-        min(
-            float(support_config.failed_append_reuse_tau_max),
-            max(float(support_config.failed_append_reuse_tau_min), tau),
-        )
-    )
-
-
-def _failed_append_candidate_records(
-    *,
-    batch: PatchBatchEvaluation,
-    support_config: SupportPatchControllerConfig,
-) -> tuple[_FailedAppendCandidateRecord, ...]:
-    records: list[_FailedAppendCandidateRecord] = []
-    for candidate in tuple(batch.candidate_scores):
-        if bool(candidate.accepted_eligible):
-            continue
-        utility = _failed_append_candidate_utility(candidate)
-        margin = _failed_append_candidate_margin(candidate, support_config=support_config)
-        if utility is None or margin is None:
-            continue
-        metadata = dict(candidate.metadata or {})
-        atom_ids = tuple(str(atom_id) for atom_id in metadata.get("atom_ids", ()))
-        candidate_key = _failed_append_candidate_key(candidate)
-        records.append(
-            _FailedAppendCandidateRecord(
-                candidate_key=candidate_key,
-                candidate_label=candidate.candidate_label,
-                atom_ids=tuple(sorted(atom_ids)),
-                utility=float(utility),
-                margin=float(margin),
-                rejection_reason=str(candidate.rejection_reason),
-                score_index=int(metadata.get("score_index", len(records))),
-                rung_size=int(metadata.get("rung_size", 0)),
-            )
-        )
-    records.sort(
-        key=lambda record: (
-            float(record.margin),
-            -float(record.utility),
-            int(record.score_index),
-            str(record.candidate_key),
-        )
-    )
-    return tuple(records)
-
-
-def _failed_append_candidate_utility(
-    candidate: PatchCandidateScore,
-) -> float | None:
-    if candidate.rank_score is not None and np.isfinite(float(candidate.rank_score)):
-        return float(candidate.rank_score)
-    score = candidate.score
-    if score is not None and score.rank_score is not None and np.isfinite(float(score.rank_score)):
-        return float(score.rank_score)
-    return None
-
-
-def _failed_append_candidate_margin(
-    candidate: PatchCandidateScore,
-    *,
-    support_config: SupportPatchControllerConfig,
-) -> float | None:
-    score = candidate.score
-    rank_score = candidate.rank_score
-    insertion_gain = None if score is None else score.insertion_gain
-    margins: list[float] = []
-    if rank_score is not None and np.isfinite(float(rank_score)):
-        margins.append(
-            max(
-                0.0,
-                float(support_config.append_batch_score_threshold) - float(rank_score),
-            )
-        )
-    if insertion_gain is not None and np.isfinite(float(insertion_gain)):
-        margins.append(
-            max(
-                0.0,
-                float(support_config.append_gain_threshold) - float(insertion_gain),
-            )
-        )
-    if not margins:
-        return None
-    if str(candidate.rejection_reason) not in {
-        "append_gain_below_threshold",
-        "append_batch_score_below_threshold",
-        "nonfinite_rank_score",
-        "missing_insertion_gain",
-        "candidate_scoring_failed",
-    }:
-        margins.append(float(support_config.eps_loss))
-    margin = max(float(value) for value in margins)
-    if margin <= 0.0 and not bool(candidate.accepted_eligible):
-        margin = float(support_config.eps_loss)
-    return margin if np.isfinite(float(margin)) else None
-
-
-def _failed_append_candidate_key(candidate: PatchCandidateScore) -> str:
-    metadata = dict(candidate.metadata or {})
-    atom_ids = tuple(str(atom_id) for atom_id in metadata.get("atom_ids", ()))
-    if atom_ids:
-        return "atoms:" + "|".join(sorted(atom_ids))
-    labels = tuple(str(label) for label in candidate.patch.inserted_labels)
-    if labels:
-        return "labels:" + "|".join(sorted(labels))
-    return f"score_index:{int(metadata.get('score_index', -1))}"
-
-
-def _update_failed_append_sentinels(
-    *,
-    records: Sequence[_FailedAppendCandidateRecord],
-    support_config: SupportPatchControllerConfig,
-    reuse_state: _FailedAppendReuseState,
-    geometry_clock: float,
-) -> tuple[tuple[_FailedAppendSentinelState, ...], tuple[float, ...], float]:
-    limit = int(support_config.failed_append_reuse_sentinel_count)
-    if limit <= 0:
-        return tuple(), tuple(), 0.0
-    selected_records = tuple(records)[:limit]
-    updated: list[_FailedAppendSentinelState] = []
-    slopes: list[float] = []
-    utility_drifts: list[float] = []
-    for record in selected_records:
-        previous = reuse_state.sentinels.get(record.candidate_key)
-        secant = None
-        if previous is not None:
-            ds = float(geometry_clock) - float(previous.geometry_clock)
-            if ds > 0.0 and np.isfinite(ds):
-                secant = (float(record.utility) - float(previous.utility)) / ds
-                if np.isfinite(secant):
-                    slopes.append(float(secant))
-                    utility_drifts.append(abs(float(record.utility) - float(previous.utility)))
-                else:
-                    secant = None
-        wait = _failed_append_secant_wait(
-            margin=float(record.margin),
-            secant_slope=secant,
-            previous=previous,
-            support_config=support_config,
-        )
-        sentinel = _FailedAppendSentinelState(
-            candidate_key=str(record.candidate_key),
-            utility=float(record.utility),
-            margin=float(record.margin),
-            geometry_clock=float(geometry_clock),
-            wait_path=float(wait),
-            due_geometry_clock=float(geometry_clock) + float(wait),
-            secant_slope=secant,
-        )
-        reuse_state.sentinels[str(record.candidate_key)] = sentinel
-        updated.append(sentinel)
-    utility_drift = max(utility_drifts) if utility_drifts else 0.0
-    return tuple(updated), tuple(slopes), float(utility_drift)
-
-
-def _failed_append_secant_wait(
-    *,
-    margin: float,
-    secant_slope: float | None,
-    previous: _FailedAppendSentinelState | None,
-    support_config: SupportPatchControllerConfig,
-) -> float:
-    wait_min = float(support_config.failed_append_reuse_secant_wait_min)
-    wait_max = float(support_config.failed_append_reuse_secant_wait_max)
-    scale = max(
-        float(support_config.failed_append_reuse_secant_wait_margin_scale),
-        float(support_config.eps_loss),
-    )
-    margin_value = max(0.0, float(margin))
-    base_wait = wait_min + (wait_max - wait_min) * margin_value / (margin_value + scale)
-    wait = float(base_wait)
-    if secant_slope is not None and np.isfinite(float(secant_slope)):
-        slope = float(secant_slope)
-        if slope > 0.0:
-            wait = min(
-                wait,
-                max(
-                    wait_min,
-                    float(support_config.failed_append_reuse_secant_positive_safety)
-                    * margin_value
-                    / max(slope, float(support_config.eps_loss)),
-                ),
-            )
-        elif previous is not None and slope < 0.0:
-            wait = max(
-                wait,
-                min(
-                    wait_max,
-                    float(support_config.failed_append_reuse_secant_negative_growth)
-                    * float(previous.wait_path),
-                ),
-            )
-    return float(min(wait_max, max(wait_min, wait)))
-
-
-def _failed_append_naturalizer(
-    K: np.ndarray,
-    *,
-    policy: McLachlanInversePolicy,
-    floor: float,
-) -> tuple[np.ndarray, int] | None:
-    matrix = np.asarray(K, dtype=float)
-    if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
-        return None
-    if not np.all(np.isfinite(matrix)):
-        return None
-    if int(matrix.shape[0]) == 0:
-        return np.zeros((0, 0), dtype=float), 0
-    mat = 0.5 * (matrix + matrix.T)
-    ridge = float(policy.ridge_lambda)
-    if ridge != 0.0:
-        mat = mat + ridge * np.eye(int(mat.shape[0]), dtype=float)
-    try:
-        eigenvalues, vectors = np.linalg.eigh(mat)
-    except np.linalg.LinAlgError:
-        return None
-    abs_eigs = np.abs(eigenvalues)
-    max_abs = float(np.max(abs_eigs)) if abs_eigs.size else 0.0
-    threshold = float(policy.pinv_rcond) * max_abs
-    retained = abs_eigs > threshold
-    if not np.any(retained):
-        return np.zeros_like(mat), 0
-    inv_sqrt = np.zeros_like(eigenvalues, dtype=float)
-    inv_sqrt[retained] = 1.0 / np.sqrt(
-        np.maximum(abs_eigs[retained], float(floor))
-    )
-    naturalizer = (vectors * inv_sqrt) @ vectors.T
-    if not np.all(np.isfinite(naturalizer)):
-        return None
-    return np.asarray(naturalizer, dtype=float), int(np.count_nonzero(retained))
-
-
 def _candidate_pool_source_payload(state: APMcLachlanState) -> Any:
     source = getattr(state, "candidate_pool_source", None)
     if source is None:
@@ -3212,8 +2384,6 @@ def _select_append_ladder_patch(
     support_config: SupportPatchControllerConfig,
     repair_dt: float | None = None,
     time_index: int = 0,
-    geometry_clock: float = 0.0,
-    reuse_state: _FailedAppendReuseState | None = None,
 ) -> tuple[
     PatchDecision,
     APMcLachlanState | None,
@@ -3335,47 +2505,6 @@ def _select_append_ladder_patch(
             None,
         )
 
-    reuse_pre = _failed_append_reuse_pre_search_decision(
-        state=state,
-        atoms=atoms,
-        support_config=support_config,
-        inverse_policy=inverse_policy,
-        base_evaluation=base_evaluation,
-        base_step=base_step,
-        time=float(time),
-        time_index=int(time_index),
-        geometry_clock=float(geometry_clock),
-        reuse_state=reuse_state,
-    )
-    ladder_metadata = _metadata_with_failed_append_reuse(
-        ladder_metadata,
-        reuse_pre,
-    )
-    if not bool(reuse_pre.get("full_search_run", True)):
-        batch = _empty_patch_batch(
-            time=float(time),
-            state=state,
-            base_step=base_step,
-            reason="failed_append_reuse_skip",
-            selection_policy=APPEND_LADDER_SELECTION_POLICY_V1,
-            metadata=ladder_metadata,
-        )
-        return (
-            PatchDecision(
-                patch_kind=PATCH_NO_EDIT,
-                accepted=False,
-                candidate_count=0,
-                scored_count=0,
-                reason="failed_append_reuse_skip",
-                batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_pre},
-            ),
-            None,
-            None,
-            None,
-            None,
-        )
-
     batch = _score_append_ladder_batch(
         state=state,
         hamiltonian=hamiltonian,
@@ -3391,21 +2520,6 @@ def _select_append_ladder_patch(
     )
     selected = batch.selected_score
     if selected is None or selected.score is None:
-        batch, reuse_meta = _record_failed_append_ladder_search(
-            batch=batch,
-            state=state,
-            atoms=atoms,
-            support_config=support_config,
-            inverse_policy=inverse_policy,
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            time=float(time),
-            time_index=int(time_index),
-            geometry_clock=float(geometry_clock),
-            reuse_state=reuse_state,
-            pre_search_metadata=reuse_pre,
-            failure_reason=batch.reason or "no_finite_append_ladder_score",
-        )
         return (
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
@@ -3414,7 +2528,6 @@ def _select_append_ladder_patch(
                 scored_count=batch.scored_count,
                 reason=batch.reason or "no_finite_append_ladder_score",
                 batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_meta},
             ),
             None,
             None,
@@ -3425,21 +2538,6 @@ def _select_append_ladder_patch(
     insertion_gain = None if score.insertion_gain is None else float(score.insertion_gain)
     rank_score = selected.rank_score
     if insertion_gain is None or rank_score is None or not np.isfinite(float(rank_score)):
-        batch, reuse_meta = _record_failed_append_ladder_search(
-            batch=batch,
-            state=state,
-            atoms=atoms,
-            support_config=support_config,
-            inverse_policy=inverse_policy,
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            time=float(time),
-            time_index=int(time_index),
-            geometry_clock=float(geometry_clock),
-            reuse_state=reuse_state,
-            pre_search_metadata=reuse_pre,
-            failure_reason="no_finite_append_ladder_score",
-        )
         return (
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
@@ -3450,7 +2548,6 @@ def _select_append_ladder_patch(
                 selected_score=score,
                 reason="no_finite_append_ladder_score",
                 batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_meta},
             ),
             None,
             None,
@@ -3458,21 +2555,6 @@ def _select_append_ladder_patch(
             None,
         )
     if insertion_gain < float(support_config.append_gain_threshold):
-        batch, reuse_meta = _record_failed_append_ladder_search(
-            batch=batch,
-            state=state,
-            atoms=atoms,
-            support_config=support_config,
-            inverse_policy=inverse_policy,
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            time=float(time),
-            time_index=int(time_index),
-            geometry_clock=float(geometry_clock),
-            reuse_state=reuse_state,
-            pre_search_metadata=reuse_pre,
-            failure_reason="append_gain_below_threshold",
-        )
         return (
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
@@ -3483,7 +2565,6 @@ def _select_append_ladder_patch(
                 selected_score=score,
                 reason="append_gain_below_threshold",
                 batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_meta},
             ),
             None,
             None,
@@ -3491,21 +2572,6 @@ def _select_append_ladder_patch(
             None,
         )
     if float(rank_score) < float(support_config.append_batch_score_threshold):
-        batch, reuse_meta = _record_failed_append_ladder_search(
-            batch=batch,
-            state=state,
-            atoms=atoms,
-            support_config=support_config,
-            inverse_policy=inverse_policy,
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            time=float(time),
-            time_index=int(time_index),
-            geometry_clock=float(geometry_clock),
-            reuse_state=reuse_state,
-            pre_search_metadata=reuse_pre,
-            failure_reason="append_batch_score_below_threshold",
-        )
         return (
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
@@ -3516,7 +2582,6 @@ def _select_append_ladder_patch(
                 selected_score=score,
                 reason="append_batch_score_below_threshold",
                 batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_meta},
             ),
             None,
             None,
@@ -3524,21 +2589,6 @@ def _select_append_ladder_patch(
             None,
         )
     if not bool(selected.accepted_eligible):
-        batch, reuse_meta = _record_failed_append_ladder_search(
-            batch=batch,
-            state=state,
-            atoms=atoms,
-            support_config=support_config,
-            inverse_policy=inverse_policy,
-            base_evaluation=base_evaluation,
-            base_step=base_step,
-            time=float(time),
-            time_index=int(time_index),
-            geometry_clock=float(geometry_clock),
-            reuse_state=reuse_state,
-            pre_search_metadata=reuse_pre,
-            failure_reason=str(selected.rejection_reason),
-        )
         return (
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
@@ -3549,7 +2599,6 @@ def _select_append_ladder_patch(
                 selected_score=score,
                 reason=str(selected.rejection_reason),
                 batch_evaluation=batch,
-                metadata={"failed_append_reuse": reuse_meta},
             ),
             None,
             None,
@@ -3571,10 +2620,6 @@ def _select_append_ladder_patch(
         repair_dt=repair_dt,
     )
     appended_state, theta_aug, evaluation, step = materialized
-    if reuse_state is not None:
-        reuse_state.clear_certificate()
-    accepted_reuse_meta = _accepted_failed_append_reuse_metadata(reuse_pre)
-    batch = _batch_with_failed_append_reuse_metadata(batch, accepted_reuse_meta)
     return (
         PatchDecision(
             patch_kind=PATCH_APPEND,
@@ -3585,7 +2630,6 @@ def _select_append_ladder_patch(
             selected_score=score,
             reason=batch.reason or "accepted_best_append_ladder_gain",
             batch_evaluation=batch,
-            metadata={"failed_append_reuse": accepted_reuse_meta},
         ),
         appended_state,
         theta_aug,
@@ -9096,26 +8140,6 @@ def _progress_payload_from_point(point: AdaptiveTrajectoryPoint) -> dict[str, An
             "prune_cooldown_dropped_count"
         ),
     }
-
-
-def _mclachlan_path_increment(
-    *,
-    fixed_step: FixedMcLachlanStep,
-    evaluation: GeometryEvaluation,
-    dt: float,
-) -> float | None:
-    theta_dot = np.asarray(fixed_step.theta_dot, dtype=float).reshape(-1)
-    K = np.asarray(evaluation.geometry.K, dtype=float)
-    if K.shape != (int(theta_dot.size), int(theta_dot.size)):
-        return None
-    if not np.all(np.isfinite(K)) or not np.all(np.isfinite(theta_dot)):
-        return None
-    quadratic = float(theta_dot @ (K @ theta_dot))
-    if not np.isfinite(quadratic):
-        return None
-    return float(abs(float(dt)) * math.sqrt(max(0.0, quadratic)))
-
-
 def _finite_or_none(value: Any) -> float | None:
     try:
         out = float(value)
@@ -9152,9 +8176,6 @@ __all__ = [
     "APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN",
     "APPEND_MACRO_SCOUT_SCORE_MODES",
     "APPEND_BATCH_SELECTION_POLICY_V1",
-    "FAILED_APPEND_REOPEN_DIRECT",
-    "FAILED_APPEND_REOPEN_MODEL_CHANGE",
-    "FAILED_APPEND_REUSE_POLICY_V1",
     "APPEND_LADDER_PREFILTER_POLICY_V1",
     "APPEND_LADDER_SELECTION_POLICY_V1",
     "AppendControllerConfig",

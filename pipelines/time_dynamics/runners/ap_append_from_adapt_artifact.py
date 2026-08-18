@@ -21,8 +21,6 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
     APPEND_MACRO_SCOUT_SCORE_MODES,
     DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD,
-    FAILED_APPEND_REOPEN_DIRECT,
-    FAILED_APPEND_REOPEN_MODEL_CHANGE,
     PRUNE_PERSISTENCE_ATOM_HISTORY,
     PRUNE_PERSISTENCE_EXACT_BATCH,
     PRUNE_TARGET_POLICIES,
@@ -414,13 +412,6 @@ def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
         batch = decision.batch_evaluation
         decision_metadata = dict(getattr(decision, "metadata", {}) or {})
         batch_metadata = {} if batch is None else dict(batch.metadata or {})
-        reuse_metadata = dict(
-            decision_metadata.get(
-                "failed_append_reuse",
-                batch_metadata.get("failed_append_reuse", {}),
-            )
-            or {}
-        )
         selected_candidate = None if batch is None else batch.selected_score
         selected_metadata = (
             {} if selected_candidate is None else dict(selected_candidate.metadata or {})
@@ -964,40 +955,6 @@ def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
                     patch_metadata.get("prune_patch_smoothness_trend_slope_per_index")
                 ),
                 "patch_prune_refit_mode": patch_metadata.get("prune_patch_refit_mode"),
-                "failed_append_reuse_enabled": bool(
-                    reuse_metadata.get("enabled", False)
-                ),
-                "failed_append_reuse_full_search_run": (
-                    None
-                    if "full_search_run" not in reuse_metadata
-                    else bool(reuse_metadata.get("full_search_run"))
-                ),
-                "failed_append_reuse_reopen_route": reuse_metadata.get("reopen_route"),
-                "failed_append_reuse_reopen_basis": reuse_metadata.get("reopen_basis"),
-                "failed_append_reuse_certificate_present": bool(
-                    reuse_metadata.get("certificate_present", False)
-                ),
-                "failed_append_reuse_certificate_created": bool(
-                    reuse_metadata.get("certificate_created", False)
-                ),
-                "failed_append_reuse_certificate_id": reuse_metadata.get("certificate_id"),
-                "failed_append_reuse_D_cert": _finite_or_none(
-                    reuse_metadata.get("D_cert")
-                ),
-                "failed_append_reuse_tau_reopen": _finite_or_none(
-                    reuse_metadata.get("tau_reopen")
-                ),
-                "failed_append_reuse_best_rejected_margin": _finite_or_none(
-                    reuse_metadata.get("best_rejected_margin")
-                ),
-                "failed_append_reuse_best_rejected_utility": _finite_or_none(
-                    reuse_metadata.get("best_rejected_utility")
-                ),
-                "failed_append_reuse_sentinel_due_count": (
-                    None
-                    if reuse_metadata.get("sentinel_due_count") is None
-                    else int(reuse_metadata.get("sentinel_due_count"))
-                ),
             }
         row.update(
             observable_row_fields(
@@ -1051,16 +1008,6 @@ def _summary_from_rows(
     prune_patch_smoothness_severities = _finite_row_values(
         rows, "patch_prune_smoothness_severity"
     )
-    reuse_rows = [
-        row for row in rows if bool(row.get("failed_append_reuse_enabled", False))
-    ]
-    reuse_route_counts: dict[str, int] = {}
-    for row in reuse_rows:
-        route = row.get("failed_append_reuse_reopen_route")
-        if route is None:
-            continue
-        key = str(route)
-        reuse_route_counts[key] = int(reuse_route_counts.get(key, 0) + 1)
     if not rows:
         summary = {
             "point_count": 0,
@@ -1105,14 +1052,6 @@ def _summary_from_rows(
             "prune_patch_smoothness_passed_count": 0,
             "prune_patch_smoothness_retry_count": 0,
             "prune_patch_smoothness_accepted_after_retry_count": 0,
-            "failed_append_reuse_enabled": bool(
-                support_patch_config is not None
-                and support_patch_config.failed_append_reuse_enabled
-            ),
-            "failed_append_reuse_full_search_count": 0,
-            "failed_append_reuse_skip_count": 0,
-            "failed_append_reuse_certificate_created_count": 0,
-            "failed_append_reuse_route_counts": {},
         }
         summary.update(reference_energy_summary(rows))
         summary.update(reference_energy_summary(rows, field_prefix="seed_", summary_prefix="seed_"))
@@ -1380,32 +1319,6 @@ def _summary_from_rows(
         ),
         "append_ladder_enabled": append_ladder_enabled,
         "append_ladder_mode": append_ladder_mode,
-        "failed_append_reuse_enabled": bool(
-            support_patch_config is not None
-            and support_patch_config.failed_append_reuse_enabled
-        ),
-        "failed_append_reuse_full_search_count": int(
-            sum(
-                1
-                for row in reuse_rows
-                if bool(row.get("failed_append_reuse_full_search_run", False))
-            )
-        ),
-        "failed_append_reuse_skip_count": int(
-            sum(
-                1
-                for row in reuse_rows
-                if row.get("failed_append_reuse_full_search_run") is False
-            )
-        ),
-        "failed_append_reuse_certificate_created_count": int(
-            sum(
-                1
-                for row in reuse_rows
-                if bool(row.get("failed_append_reuse_certificate_created", False))
-            )
-        ),
-        "failed_append_reuse_route_counts": dict(reuse_route_counts),
         "append_selection_policy": (
             None
             if not append_ladder_enabled
@@ -1743,32 +1656,6 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--failed-append-reuse",
-        action="store_true",
-        help=(
-            "Enable Paper-II failed append-search reuse. Disabled by default; "
-            "when enabled, a failed full append search can be reused until the "
-            "certificate drift reopens the normal search."
-        ),
-    )
-    parser.add_argument(
-        "--failed-append-reuse-reopen-mode",
-        choices=(FAILED_APPEND_REOPEN_DIRECT, FAILED_APPEND_REOPEN_MODEL_CHANGE),
-        default=FAILED_APPEND_REOPEN_DIRECT,
-    )
-    parser.add_argument("--failed-append-reuse-tau-min", type=float, default=1.0e-4)
-    parser.add_argument("--failed-append-reuse-tau-margin-scale", type=float, default=1.0)
-    parser.add_argument("--failed-append-reuse-tau-max", type=float, default=1.0)
-    parser.add_argument("--failed-append-reuse-eta-reopen", type=float, default=0.5)
-    parser.add_argument("--failed-append-reuse-model-l-min", type=float, default=1.0e-12)
-    parser.add_argument("--failed-append-reuse-naturalization-floor", type=float, default=1.0e-14)
-    parser.add_argument("--failed-append-reuse-sentinel-count", type=int, default=4)
-    parser.add_argument("--failed-append-reuse-secant-wait-min", type=float, default=0.0)
-    parser.add_argument("--failed-append-reuse-secant-wait-max", type=float, default=1.0)
-    parser.add_argument("--failed-append-reuse-secant-wait-margin-scale", type=float, default=1.0)
-    parser.add_argument("--failed-append-reuse-secant-positive-safety", type=float, default=0.5)
-    parser.add_argument("--failed-append-reuse-secant-negative-growth", type=float, default=2.0)
-    parser.add_argument(
         "--solve-repair",
         action="store_true",
         help=(
@@ -1945,40 +1832,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 append_cost_lambda_shot=float(args.append_cost_lambda_shot),
                 append_cost_scale_floor=float(args.append_cost_scale_floor),
                 append_min_time=float(args.append_min_time),
-                failed_append_reuse_enabled=bool(args.failed_append_reuse),
-                failed_append_reuse_reopen_mode=str(
-                    args.failed_append_reuse_reopen_mode
-                ),
-                failed_append_reuse_tau_min=float(args.failed_append_reuse_tau_min),
-                failed_append_reuse_tau_margin_scale=float(
-                    args.failed_append_reuse_tau_margin_scale
-                ),
-                failed_append_reuse_tau_max=float(args.failed_append_reuse_tau_max),
-                failed_append_reuse_eta_reopen=float(args.failed_append_reuse_eta_reopen),
-                failed_append_reuse_model_l_min=float(
-                    args.failed_append_reuse_model_l_min
-                ),
-                failed_append_reuse_naturalization_floor=float(
-                    args.failed_append_reuse_naturalization_floor
-                ),
-                failed_append_reuse_sentinel_count=int(
-                    args.failed_append_reuse_sentinel_count
-                ),
-                failed_append_reuse_secant_wait_min=float(
-                    args.failed_append_reuse_secant_wait_min
-                ),
-                failed_append_reuse_secant_wait_max=float(
-                    args.failed_append_reuse_secant_wait_max
-                ),
-                failed_append_reuse_secant_wait_margin_scale=float(
-                    args.failed_append_reuse_secant_wait_margin_scale
-                ),
-                failed_append_reuse_secant_positive_safety=float(
-                    args.failed_append_reuse_secant_positive_safety
-                ),
-                failed_append_reuse_secant_negative_growth=float(
-                    args.failed_append_reuse_secant_negative_growth
-                ),
                 residual_ratio_threshold=float(args.residual_ratio_threshold),
                 prune_enabled=bool(args.support_patch_prune),
                 prune_commit_enabled=bool(
@@ -2190,10 +2043,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                     int(args.max_prune_candidates) > 0 or int(args.max_total_prunes) > 0
                 ),
                 "legacy_prune_flags_activated_active_prune": False,
-                "failed_append_reuse_requested": bool(args.failed_append_reuse),
-                "failed_append_reuse_reopen_mode": str(
-                    args.failed_append_reuse_reopen_mode
-                ),
                 "solve_damping": float(args.solve_damping),
                 "solve_repair_requested": bool(args.solve_repair),
                 "solve_repair_config": solve_repair_config.to_json_dict(),

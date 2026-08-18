@@ -619,7 +619,8 @@ def test_support_patch_controller_defaults_are_exchange_family_combinatorial() -
     assert config.to_json_dict()["append_macro_scout_policy"] == (
         APPEND_MACRO_SCOUT_POLICY_V2
     )
-    assert config.failed_append_reuse_enabled is False
+    # failed-append-reuse was removed 2026-08-15; the attribute must be gone.
+    assert not hasattr(config, "failed_append_reuse_enabled")
     assert config.exchange_enabled is True
     assert config.branch_scoring_enabled is True
     assert config.support_patch_scoring_workers == 1
