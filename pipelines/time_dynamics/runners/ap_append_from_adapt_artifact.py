@@ -1487,6 +1487,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--certification-refit-max-iterations", type=int, default=15
     )
     parser.add_argument(
+        "--max-structural-pool-size",
+        type=int,
+        default=None,
+        help=(
+            "Truncate the deduplicated structural candidate pool to this many "
+            "atoms in frozen order (None = full pool). Configuration-level "
+            "bound; selector-side prefilters remain forbidden."
+        ),
+    )
+    parser.add_argument(
         "--max-certification-attempts-per-level",
         type=int,
         default=None,
@@ -1745,6 +1755,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 None
                 if args.max_certification_attempts_per_level is None
                 else int(args.max_certification_attempts_per_level)
+            ),
+            max_structural_pool_size=(
+                None
+                if args.max_structural_pool_size is None
+                else int(args.max_structural_pool_size)
             ),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,

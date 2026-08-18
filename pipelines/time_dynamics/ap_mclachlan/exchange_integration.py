@@ -132,6 +132,12 @@ def build_selector_inputs(
             seen_words.add(word)
         atoms.append(atom)
     atoms = tuple(atoms)
+    # Config-level pool bound (the specification permits bounding the pool in
+    # the run configuration, never with score prefilters): truncate the
+    # deduplicated pool in frozen order.
+    pool_cap = getattr(support_config, "max_structural_pool_size", None)
+    if pool_cap is not None:
+        atoms = atoms[: max(0, int(pool_cap))]
     pool_dedup_telemetry = {
         "candidate_pool_raw": int(len(raw_atoms)),
         "candidate_pool_deduplicated": int(len(atoms)),
