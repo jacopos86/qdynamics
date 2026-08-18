@@ -159,6 +159,15 @@ are implementation validation, never novelty.
   the fixed class, and input order — the scaling/conditioning argument
   for the paper. Spin-boson family is registry-ready for the generality
   arm; Peierls-Hubbard would be a new problem family (user decision).
+- Peierls-Hubbard pilot (2026-08-19,
+  `pipelines/exact_bench/paper_iii_qse_peierls_pilot.py` ->
+  `paper_iii_peierls_pilot_20260819_v1/`): second e-ph family (bond
+  coupling). Fixed linear-response class fails catastrophically (0.5-6.8,
+  cannot resolve six roots); selection matches the full-pool manifold at
+  ~4x lower cost. peierls_v1 pool span limits several roots (needs higher
+  displacement powers); registry promotion pending user architecture
+  review. Supports the generality claim: the right class is
+  coupling-structure-dependent, selection finds it automatically.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
