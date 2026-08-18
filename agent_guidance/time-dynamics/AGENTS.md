@@ -97,6 +97,20 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
+## Canonical numerics (2026-08-18 sweep)
+
+For accurate trajectories always run `--integrator rk4 --solve-repair
+--solve-repair-state-motion-l2-step-max 1.0e-2 --solve-repair-kink-eta-max
+5.0e-3`. Measured on the stress seed (append-only, dt=0.04, exact
+reference): Euler+default caps 1.6e-2 energy error, rk4 alone 1.1e-2,
+rk4+tight caps 1.3e-3. The runner's Euler default is a fast-diagnostic
+setting, not the accuracy configuration. Deletion gates: ray tolerance
+5e-2 admits cumulative structural damage over long horizons (44 certified
+deletions -> 0.19 drift); 2e-3 or tighter for trajectory work. Class-tuned
+controller-era settings live in
+`chtc/generic_time_dynamics_table/input/class_settings/` (restored from
+CHTC 2026-08-18).
+
 ## Scale guidance
 
 The singleton level is `|pool| × |retained cuts|` candidates, each one
