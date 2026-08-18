@@ -21,9 +21,23 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
 - first electron--phonon VQD/qEOM treatment (`ZhouShang2024EPhQC`);
 - first mixed fermion--boson excited-state quantum method (`PavosevicFlick2021QEDEOM`, `SawayaHuh2019VibronicSpectra`);
 - first quantized electron--phonon quantum simulation (`Macridin2018ElectronPhonon`);
+- adaptive enlargement of a quantum Rayleigh--Ritz subspace, or adaptive
+  operator-pool selection over a nonorthogonal generalized eigenproblem —
+  this lineage rests on ESTABLISHED, refereed work, not on A-CASE:
+  residual-guided QDavidson (`Tkachenko2024QDavidson`, 2022/2024) and
+  gradient-based ADAPT-GCIM over UCC generator pools
+  (`Zheng2024ADAPTGCIM`, arXiv:2312.07691, npj QI 2024). A-CASE itself
+  concedes "neither adaptive subspace growth nor replacing variational
+  optimization by a generalized eigenproblem is new";
 - utility-per-measurement-cost subspace growth, or a multiplicative cost
   denominator in the acquisition score (`UtamaDipojono2026ACASE`,
-  `UtamaDipojono2026DACASE`);
+  `UtamaDipojono2026DACASE`) — this NARROW cost-normalization point is
+  the only place A-CASE is the operative collision. Framing rule
+  (user-directed 2026-08-19): concede adaptive construction to
+  QDavidson/ADAPT-GCIM, cite A-CASE only for the cost denominator; never
+  present A-CASE as the principal threat to adaptive-basis novelty.
+  Judge A-CASE solely by its public disclosure — authorship/provenance
+  impressions must not enter any priority argument;
 - QSE excitation-pool pruning or compaction (`LiuDeng2026CSQSE`,
   `Getelina2024HardwareNoiseQSE`);
 - resource-aware quantum-subspace design or measurement optimization
