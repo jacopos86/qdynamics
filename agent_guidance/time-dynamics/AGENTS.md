@@ -73,7 +73,13 @@ after the 2026-08-18 purge). Selector-specific settings, all typed on
 
 Certification thresholds reuse `--prune-ray-distance-tol`,
 `--prune-patch-smoothness-eta-max`, `--append-schur-max-condition-number`.
-Below `--residual-ratio-threshold` no structural family is acquired at all.
+
+**Measurement economics** (`--residual-ratio-threshold`): insertion
+candidates require new quantum measurements, so they are enumerated only at
+checkpoints whose residual ratio meets the threshold. Pure deletions are
+row/column selections of the already-paid frozen-ray geometry —
+measurement-free — and are considered at every checkpoint (prune-only mode,
+`insertions_enabled: false` in the decision payload).
 
 Deletion-utility hooks (all recorded in provenance):
 

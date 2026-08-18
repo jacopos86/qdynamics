@@ -366,6 +366,11 @@ def test_solve_repair_subdivides_for_nonlinear_trial_state_motion() -> None:
         pinv_rcond=1.0e-12,
         ridge_lambda=1.0e-10,
         controller_config=AppendControllerConfig(max_append_candidates=0),
+        # Pin the 4-parameter scenario: prune-only search now runs below the
+        # residual threshold and would delete the ray-redundant z rotation.
+        support_patch_config=SupportPatchControllerConfig(
+            min_runtime_parameter_count=4,
+        ),
         solve_repair_config=SolveRepairConfig(
             enabled=True,
             condition_number_max=1.0e12,

@@ -343,3 +343,37 @@ def test_attempt_budget_bounds_certifications_per_level() -> None:
     # One attempt per acquired level, never the unbounded grind.
     assert 0 < len(bounded.attempts) < len(unbounded.attempts)
     assert payload["stop_reason"] == "attempt_budget_exhausted"
+
+
+def test_prune_only_mode_empties_insertion_pool_but_keeps_deletions() -> None:
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
+    selection, payload = select_deletion_conditioned_patch(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        base_evaluation=evaluation,
+        base_step=step,
+        inverse_policy=POLICY,
+        support_config=_config(
+            prune_ray_distance_tol=1.0e-15,
+            prune_patch_smoothness_eta_max=1.0e-15,
+        ),
+        runtime_state=_PruneControllerRuntimeState(),
+        time_index=3,
+        active_prune_atoms=_active_prune_atoms,
+        insertions_enabled=False,
+    )
+    assert payload["insertions_enabled"] is False
+    assert payload["candidate_pool_deduplicated"] == 0
+    # Measurement-free pure deletions are still enumerated and attempted.
+    kinds = {a.kind for a in selection.attempts}
+    assert kinds <= {"delete"} and "delete" in kinds

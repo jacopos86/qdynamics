@@ -96,6 +96,7 @@ def build_selector_inputs(
     theta_runtime: np.ndarray,
     time_index: int,
     active_prune_atoms: Any,
+    insertions_enabled: bool = True,
 ) -> dict[str, Any]:
     """Assemble every selector input from route objects.
 
@@ -104,13 +105,20 @@ def build_selector_inputs(
     policy, drive-aligned protection, cooldown, and surviving-support gates.
     """
 
-    raw_atoms = candidate_append_atoms(
-        state,
-        allow_incomplete_candidate_pool=bool(
-            support_config.allow_incomplete_candidate_pool
-        ),
-        occurrence_policy=str(support_config.append_occurrence_policy),
-    )
+    if insertions_enabled:
+        raw_atoms = candidate_append_atoms(
+            state,
+            allow_incomplete_candidate_pool=bool(
+                support_config.allow_incomplete_candidate_pool
+            ),
+            occurrence_policy=str(support_config.append_occurrence_policy),
+        )
+    else:
+        # Prune-only mode: insertion candidates need new quantum measurements
+        # and the structural-repair predicate is inactive, so the insertion
+        # pool is empty — the enumeration reduces to pure deletion rungs on
+        # the already-paid frozen-ray geometry.
+        raw_atoms = ()
     # Identity-level deduplication: two candidates with the same single Pauli
     # child generate the same one-parameter family exp(-i theta c P) (the
     # coefficient rescales theta), so they are the same insertion operator.
@@ -141,6 +149,7 @@ def build_selector_inputs(
     pool_dedup_telemetry = {
         "candidate_pool_raw": int(len(raw_atoms)),
         "candidate_pool_deduplicated": int(len(atoms)),
+        "insertions_enabled": bool(insertions_enabled),
     }
     atoms_by_id = {str(atom.atom_id): atom for atom in atoms}
     ordered_atom_ids = tuple(str(atom.atom_id) for atom in atoms)
@@ -338,6 +347,7 @@ def select_deletion_conditioned_patch(
     time_index: int,
     active_prune_atoms: Any,
     solve_repair_config: Any | None = None,
+    insertions_enabled: bool = True,
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
     """Run the exchange selector at one checkpoint with route wiring.
 
@@ -355,6 +365,7 @@ def select_deletion_conditioned_patch(
         theta_runtime=theta_runtime,
         time_index=int(time_index),
         active_prune_atoms=active_prune_atoms,
+        insertions_enabled=bool(insertions_enabled),
     )
     inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
     gates = CertificationGates(
