@@ -231,10 +231,12 @@ def test_escalation_predicate_false_stops_after_first_level() -> None:
     )
     assert selection.kind == "stay"
     assert selection.stop_reason == "escalation_predicate_false"
-    # Only the d=0 family (stay alone here) was acquired: no rung attempts,
-    # and the telemetry yield was never reached (iterator closed early).
-    assert selection.attempts == ()
-    assert selection.telemetry is None
+    # Every deletion rung belongs to the first certification level (deletions
+    # always compete on score), so pure-deletion attempts exist even with the
+    # escalation predicate false — it gates only insertion frontiers.
+    assert all(a.kind == "delete" for a in selection.attempts)
+    assert selection.attempts, "deletion rungs must be scored and attempted"
+    assert selection.telemetry is not None
 
 
 def test_score_floor_excludes_low_candidates_from_certification() -> None:

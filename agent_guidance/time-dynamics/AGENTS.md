@@ -31,7 +31,7 @@ Selector stack (bottom-up; each layer only imports below itself):
 | `structural_cache.py` | Checkpoint-local frozen-ray geometry: positioned tangents in one batched pass, deletion-independent cross/Gram/force blocks, memoized candidate solves |
 | `exchange_structural.py` | Family enumeration (singleton level, rungs, priorities, frontiers), the scalar score `U_ins + U_del + w·δ`, deterministic ordering |
 | `exchange_certification.py` | Finalist materialization (delete → remapped-cut insert), optional refit hook, hard gates (ray/smoothness are deletion-containing checks; every finalist gets finite/conditioning) |
-| `exchange_selector.py` | Level-by-level selection loop: rank, certify one at a time, commit atomically, escalate on the structural-repair predicate |
+| `exchange_selector.py` | Selection loop: every guard-admitted deletion rung is scored with the d0 singletons before the first certification pass (deletions always compete on score); frontiers are escalation-gated; certify one at a time, commit atomically |
 | `exchange_integration.py` | Route adapter: atoms/cuts/costs/labels/gates from route objects → selector; `PatchDecision` payload back |
 
 Route core:
@@ -100,6 +100,10 @@ checkpoint) versus ~188k candidates (616 params, nph=3 seed, ~85 s plus
 large pool rejects the singleton level entirely (permanent stay): bound the
 candidate pool in the run configuration, not with selector-side prefilters,
 which the specification forbids.
+
+Because every admitted deletion rung is scored before certification, running
+with `--max-joint-patch-evaluations None` at scale enumerates ALL rungs
+(spec-mandated) — set the guard on any run with a nontrivial deletable set.
 
 ## Test baseline
 

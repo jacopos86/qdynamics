@@ -172,9 +172,16 @@ def select_exchange_patch(
         else max(1, int(max_certification_attempts_per_level))
     )
     iterator = iter_structural_families(**dict(structural_kwargs))
-    while True:
+    pushback: list = []
+
+    def acquire():
+        if pushback:
+            return pushback.pop()
         with phase("patch.exchange.enumerate_family"):
-            item = next(iterator, None)
+            return next(iterator, None)
+
+    while True:
+        item = acquire()
         if item is None:
             break
         family, members, final = item
@@ -182,6 +189,24 @@ def select_exchange_patch(
             telemetry = final
             continue
         scored.extend(members)
+        # Deletion-cardinality rungs are one certification level with the
+        # singleton family: the specification enumerates and scores every
+        # guard-admitted rung BEFORE certification ("with no work guard,
+        # every hard-feasible deletion subset is enumerated"), so deletions
+        # always compete with insertions on structural score.  Only insertion
+        # frontiers remain escalation-gated below.
+        if family.startswith("singleton_d"):
+            while True:
+                nxt = acquire()
+                if nxt is None:
+                    break
+                if nxt[0] == "__telemetry__":
+                    telemetry = nxt[2]
+                    continue
+                if not str(nxt[0]).startswith("singleton_d"):
+                    pushback.append(nxt)
+                    break
+                scored.extend(nxt[1])
         attempts_this_level = 0
         budget_hit = False
         ranked = sorted(
