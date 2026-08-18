@@ -506,7 +506,7 @@ def _run_ap_grid(
             exchange_enabled=True,
             prune_enabled=True,
             prune_commit_enabled=True,
-            prune_target_policy="all_active",
+            prune_appended_origin_target_policy="all_active",
             residual_ratio_threshold=0.02,
             certification_refit_enabled=True,
             certification_refit_trust_radius=0.6,
