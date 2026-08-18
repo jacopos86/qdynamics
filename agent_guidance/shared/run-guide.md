@@ -99,6 +99,11 @@ for an explicit request covering that run, a wrong physics point, failed
 precondition, documented policy conflict, resource failure, debugging need, or
 an immediate machine-safety emergency.
 
+Before launching any run or heavy process, apply the hard memory-budget
+contract in `agent_guidance/shared/memory-budget.md`: 10 GB aggregate
+agent ceiling, free-memory check first, heavy trees wrapped in
+`pipelines/shell/ram_guard.py`, one heavy job per machine.
+
 Jobs started from another chat, agent, terminal, notebook, remote-runner entry,
 or scheduler submission are intentional and out of scope unless the user says
 otherwise. Never cancel, pause, renice, replace, or delete their artifacts.
