@@ -446,6 +446,7 @@ def _run_ap_grid(
     phonon_full: np.ndarray,
     sector_indices: np.ndarray,
     inverse_policy: McLachlanInversePolicy,
+    progress_callback: Any | None = None,
 ) -> tuple[dict[str, Any], tuple[np.ndarray, ...]]:
     steps_float = float(drive["t_final"]) / float(dt)
     steps = int(round(steps_float))
@@ -507,6 +508,7 @@ def _run_ap_grid(
         integrator_method="rk4",
         support_patch_config=support_config,
         solve_repair_config=solve_repair_config,
+        progress_callback=progress_callback,
         metadata={
             "diagnostic_schema": SCHEMA_VERSION,
             "exact_reference_visible_to_integrator": False,

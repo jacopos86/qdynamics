@@ -311,6 +311,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         pinv_rcond=1.0e-10, ridge_lambda=1.0e-7, solve_damping=0.0
     )
     grids: dict[str, Any] = {}
+    def _progress(payload: Any) -> None:
+        index = int(payload.get("index", -1))
+        if payload.get("phase") == "checkpoint_start" or index % 10 == 0:
+            print(
+                f"   [ap-progress] i={index} t={payload.get('time'):.3f} "
+                f"params={payload.get('runtime_parameter_count')} "
+                f"rr={payload.get('mclachlan_residual_ratio'):.2e}",
+                flush=True,
+            )
+
     for dt in sorted({float(v) for v in str(args.dts).split(",")}, reverse=True):
         print(f"AP-McLachlan arm (dt={dt:g}) ...", flush=True)
         grid, _states = _run_ap_grid(
@@ -325,6 +335,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             phonon_full=phonon_full,
             sector_indices=np.asarray(sector_indices, dtype=int),
             inverse_policy=inverse_policy,
+            progress_callback=_progress,
         )
         ap_fid = _fidelity_summary(grid["trajectory"], "ap_exact_state_fidelity")
         baseline_fid = _fidelity_summary(
