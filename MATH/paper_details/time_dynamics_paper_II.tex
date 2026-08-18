@@ -98,7 +98,7 @@
 
 
 \begin{abstract}
-Projected variational dynamics can fail because the active tangent manifold does not represent the driven Schr\"odinger drift or because the numerical solve and finite time step do not realize motion that the manifold already contains.  We present Append--Prune McLachlan dynamics (AP-McLachlan), a checkpoint-local policy that diagnoses these structural and numerical failures separately.  Its primary structural decision is one support patch chosen from stay, zero-initialized append, continuity-certified prune, and true delete--append exchange.  Append and prune are the one-sided limits of this joint decision.  Candidate patches are assembled through bounded append and prune scouts, then confirmed on the complete patched tangent support using conditional gain and loss, retained-support Schur novelty, the patched McLachlan solve, and same-checkpoint continuity.  On the accepted fixed support, state-space solve repair compares stronger and weaker retained-spectrum inverse policies, invokes local subdivision for excessive state-space motion, and releases repaired policies through hysteresis.  Exact trajectories remain post-run references and never enter support selection, solve repair, or time-step decisions.  Driven Hubbard--Holstein diagnostics isolate the numerical-repair, append, and prune mechanisms through same-seed energy, doublon, site-occupation, residual, and compiled-resource comparisons; quantitative cross-regime claims remain \tentative{to be transferred from the source-locked benchmark record}.
+Projected variational dynamics can fail because the active tangent manifold does not represent the driven Schr\"odinger drift or because the numerical solve and finite time step do not realize motion that the manifold already contains.  We present Append--Prune McLachlan dynamics (AP-McLachlan), a checkpoint-local policy that diagnoses these structural and numerical failures separately.  Its primary structural decision is one support patch chosen from stay, zero-initialized append, continuity-certified prune, and true delete--append exchange.  Append and prune are the one-sided limits of this joint decision.  Candidate patches are enumerated as complete deletion-cardinality rungs paired with positioned zero-angle insertions at commutation-reduced circuit cuts, scored by realized captured drift per compiled hardware cost, and certified one finalist at a time on the complete patched tangent support through conditioning, ray-continuity, and velocity-smoothness gates with a bounded trust-region refit.  Insertion candidates require new tangent measurements and are enumerated only at checkpoints whose structural residual exceeds a declared threshold; measurement-free pruning is considered at every checkpoint.  On the accepted fixed support, state-space solve repair compares stronger and weaker retained-spectrum inverse policies, invokes local subdivision for excessive state-space motion, and releases repaired policies through hysteresis.  Exact trajectories remain post-run references and never enter support selection, solve repair, or time-step decisions.  Driven Hubbard--Holstein diagnostics isolate the numerical-repair, append, and prune mechanisms through same-seed energy, doublon, site-occupation, residual, and compiled-resource comparisons; quantitative cross-regime claims remain \tentative{to be transferred from the source-locked benchmark record}.
 \end{abstract}
 
 \maketitle
@@ -147,7 +147,7 @@ where \(G_k=\Re(\bar T_k^\dagger\bar T_k)\) and \(f_k=\Re(\bar T_k^\dagger\bar b
 The remaining failure has two components.  First, the manifold can be structurally wrong: useful tangent directions may be absent, while obsolete or mutually redundant directions remain.  A compact ADAPT ansatz may prepare the initial state accurately yet fail to span the later driven velocity \cite{Grimsley2019,Tang2021,Yordanov2021}.  Append-only dynamics addresses missing directions but permits redundant support, compiled depth, and nearly dependent tangent modes to accumulate \cite{Yao2021,Linteau2024,Zhang2025}.  Second, a suitable manifold can still be realized badly.  Ridge loading, eigencutoffs, damped inverses, and local subdivision are established numerical tools, but a condition number does not determine whether regularization should increase or decrease.  Stronger damping can suppress unstable modes or erase useful motion; a large physically accurate velocity instead calls for a smaller local step.  Structural expressivity miss must therefore be separated from numerical realization miss.
 
 \subsection{AP-McLachlan: joint support-patch dynamics}
-AP-McLachlan first treats structural maintenance as one bidirectional support-patch decision.  At a structural checkpoint it evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  Append acquires child-resolved tangent directions through cost-weighted combinatorial scoring, retained-support Schur novelty, and augmented-solve confirmation.  Prune retires support only after full active-support deletion loss, reduced-state refit, same-checkpoint ray and velocity continuity, persistence, cooldown, and rollback authorize removal.  Among the many possible combinatorial support-search strategies, the implementation uses bounded append and prune scout lists followed by full joint confirmation of retained pure and exchange finalists.
+AP-McLachlan first treats structural maintenance as one bidirectional support-patch decision.  At a structural checkpoint it evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  Append acquires child-resolved tangent directions as positioned zero-angle insertions at commutation-reduced circuit cuts, ranked by realized captured drift per compiled hardware cost.  Prune retires support only after full active-support deletion loss, reduced-state refit, same-checkpoint ray and velocity continuity, cooldown, and atomic rejection authorize removal.  Among the many possible combinatorial support-search strategies, the implementation enumerates complete deletion-cardinality rungs under an explicit work budget, so every deletion and exchange competes with every insertion on one structural score before any finalist is materialized.
 
 After the support decision, the numerical lane determines how to realize Eq.~(\ref{eq:mclachlan_velocity}) on the accepted fixed support.  It compares stronger and weaker inverse policies, uses state-space motion and temporal kink to nominate local subdivision, selects the least-intervention admissible response, and returns to the base solve through release hysteresis.  Structural maintenance and numerical stabilization therefore act on different questions: which tangent directions should be active, and how should motion on that active tangent space be realized over the finite step?
 
@@ -206,7 +206,7 @@ Solving Eq.~(\ref{eq:mclachlan_velocity}) on the resolved tangent support gives 
 
 \subsection{Structural and numerical failure}
 
-A trajectory can fail because the active tangent support cannot represent the physical drift, or because the implemented inverse realizes an available tangent motion poorly.  We separate these mechanisms by comparing supported geometric explained drift with the realized stabilized motion.  This produces distinct structural and numerical misses for the checkpoint controller, rather than one residual that conflates support inadequacy with solve error.
+A trajectory can fail because the active tangent support cannot represent the physical drift, or because the implemented inverse realizes an available tangent motion poorly.  We separate these mechanisms by comparing supported geometric explained drift with the realized stabilized motion.  This produces distinct structural and numerical misses for the checkpoint policy, rather than one residual that conflates support inadequacy with solve error.
 
 For any coordinate subset $S\subseteq J_k$, define the supported explained drift
 \begin{equation}
@@ -214,6 +214,13 @@ For any coordinate subset $S\subseteq J_k$, define the supported explained drift
 =f_{k,S}^{\top}(G_{k,SS})^\dagger f_{k,S}.
 \label{eq:explained_drift}
 \end{equation}
+$\Gamma_k$ is the idealized capacity of the support under an exact pseudo-inverse.  The structural scores below instead use the drift captured by the motion the solver actually returns.  For the realized velocity $v_S$ produced by the declared inverse policy on $S$ (retained-mode truncation, ridge, and damping included), the realized captured drift is
+\begin{equation}
+Q_k(S)
+=2f_{k,S}^{\top}v_S-v_S^{\top}G_{k,SS}v_S.
+\label{eq:realized_captured_drift}
+\end{equation}
+$Q_k(S)$ equals the reduction of the McLachlan objective in Eq.~(\ref{eq:mclachlan_metric_objective}) achieved by $v_S$, is exact under any regularized inverse, and reduces to $\Gamma_k(S)$ when $v_S=(G_{k,SS})^\dagger f_{k,S}$.  $\Gamma_k$ is retained as the idealized diagnostic; $Q_k$ is the scoring authority for every structural decision.
 The normalized structural miss is
 \begin{equation}
 \rho_{\rm expr,k}(J_k)
@@ -250,14 +257,14 @@ The empty patch gives stay.  Setting \(B_k^{\ominus}=\varnothing\) gives pure ap
 
 \subsection{Pure append limit}
 
-Set \(B_k^{\ominus}=\varnothing\).  Let \(B_k^{\oplus}\) be a candidate append batch and \(I_{B,k}^{\oplus}\) its new coordinate indices.  Added coordinates enter at zero amplitude, so the checkpoint state is unchanged.  The normalized gain from refitting the old and new tangent coordinates together is
+Set \(B_k^{\ominus}=\varnothing\).  Let \(B_k^{\oplus}\) be a candidate append batch and \(I_{B,k}^{\oplus}\) its new coordinate indices.  Added coordinates enter at zero amplitude, so the checkpoint state is unchanged, and this invariance holds at every circuit position.  Each candidate therefore carries an insertion position: the new rotation may be placed at any cut of the existing product circuit, positions related by block-swap commutation certificates generate identical one-parameter families, and only one representative per equivalence class is enumerated.  Distinct retained cuts produce distinct tangent directions and are scored as distinct candidates.  The normalized gain from refitting the old and new tangent coordinates together is
 \begin{equation}
 \Delta_k^{\oplus}(B_k^{\oplus})
 =
 \frac{
 \left[
-\Gamma_k(J_k\cup I_{B,k}^{\oplus})
--\Gamma_k(J_k)
+Q_k(J_k\cup I_{B,k}^{\oplus})
+-Q_k(J_k)
 \right]_+
 }{
 \|\bar b_k\|_2^2+\eps_{\rm norm}
@@ -287,7 +294,7 @@ G_{k,I_BI_B}
 G_{k,JI_B}.
 \label{eq:append_schur_novelty}
 \end{equation}
-An append batch must retain the declared rank in \(\mathsf S_{B|J,k}\) and yield a finite augmented McLachlan solve.  The combinatorial ladder increases the tested batch cardinality only when smaller batches do not clear the gain and residual criteria.  Whitening, retained-mode compression, and failed-search reuse are implementation accelerations collected in Appendix~\ref{app:technical_realization}; they do not replace Eq.~(\ref{eq:append_gain}).
+An append batch must yield a finite augmented McLachlan solve within the declared conditioning bound; Eq.~(\ref{eq:append_schur_novelty}) is its conditioning diagnostic.  Multi-child insertion batches are ordered words over the inserted children and the survivors, quotiented to a canonical normal form by pairwise commutation so that only inequivalent orderings are enumerated; wider insertion frontiers are acquired only while smaller families certify no patch and the structural-repair predicate remains active.  Whitening and retained-mode compression are implementation accelerations collected in Appendix~\ref{app:technical_realization}; they do not replace Eq.~(\ref{eq:append_gain}).
 
 Append scoring requires overlaps involving candidate tangent directions and can therefore require additional quantum measurements beyond the active-support McLachlan data.  After those candidate blocks have been measured, batch assembly, Schur projection, ranking, and the augmented solve are classical linear algebra.
 
@@ -299,8 +306,8 @@ Set \(B_k^{\oplus}=\varnothing\).  For a candidate deletion batch \(B_k^{\ominus
 =
 \frac{
 \left[
-\Gamma_k(J_k)
--\Gamma_k(J_k\setminus I_{B,k}^{\ominus})
+Q_k(J_k)
+-Q_k(J_k\setminus I_{B,k}^{\ominus})
 \right]_+
 }{
 \|\bar b_k\|_2^2+\eps_{\rm norm}
@@ -309,7 +316,7 @@ Set \(B_k^{\oplus}=\varnothing\).  For a candidate deletion batch \(B_k^{\ominus
 \end{equation}
 Equation~(\ref{eq:prune_loss}) is the backward counterpart of Eq.~(\ref{eq:append_gain}): append asks how much explained drift is gained by enlarging the support, whereas prune asks how much is lost after deleting a block and refitting the survivors.  Low loss nominates a block for deletion.  Resource cost, historical redundancy, Schur degeneracy, and conditioning relief prioritize among low-loss batches, but cannot authorize a deletion with excessive current loss.
 
-Because Eq.~(\ref{eq:prune_loss}) uses submatrices of the active \(G_k\) and \(f_k\) already acquired for McLachlan propagation, prune nomination itself requires no new quantum measurements.  A deletion commit is stricter.  The candidate block is first set to the identity and, if necessary, the surviving parameters are locally refit to the pre-patch state.  This reduced-state fit or overlap certification can require additional circuits on a QPU.
+Because Eq.~(\ref{eq:prune_loss}) uses submatrices of the active \(G_k\) and \(f_k\) already acquired for McLachlan propagation, prune nomination itself requires no new quantum measurements.  A deletion commit is stricter.  The candidate block is first set to the identity and, if necessary, the surviving parameters are locally refit to the pre-patch state by a bounded trust-region minimization of the Fubini--Study infidelity to the checkpoint ray: the coordinate word is held fixed, the angles move inside a declared box radius, the refit is accepted only if it strictly reduces the infidelity, and finalists already on the ray (every pure zero-angle insertion) are left untouched.  This reduced-state fit or overlap certification can require additional circuits on a QPU.
 
 Let \(J_k^{\mathcal B}\) be the proposed post-patch support and \(\vartheta_{\mathcal B,k}^{\star}\) the zero-transported or locally refit parameters on that support.  Deletion can commit only if
 \begin{equation}
@@ -337,15 +344,17 @@ where
 }.
 \label{eq:patch_velocity_continuity}
 \end{equation}
-Persistence prevents a transiently redundant block from being removed after one checkpoint; cooldown and exact rollback prevent repeated unsafe attempts.  The history and conditioning nomination score is given in Appendix~\ref{app:technical_realization}.
+Persistence prevents a transiently redundant block from being removed after one checkpoint; cooldown and atomic finalist rejection prevent repeated unsafe attempts.  The history and conditioning nomination score is given in Appendix~\ref{app:technical_realization}.
 
 \subsection{Bounded support-patch search used here}
 
-The ideal support-patch problem is combinatorial.  Exhaustive enumeration, mixed-integer optimization, branch-and-bound, greedy forward--backward selection, and local exchange are all possible search strategies for related subset problems \cite{Natarajan1995SparseApprox,BertsimasKingMazumder2016,DasKempe2011,Elenberg2018WeakSubmodularity}.  AP-McLachlan uses a bounded two-pass search because candidate tangent measurements, not only classical subset enumeration, contribute to the checkpoint cost.
+The ideal support-patch problem is combinatorial.  Exhaustive enumeration, mixed-integer optimization, branch-and-bound, greedy forward--backward selection, and local exchange are all possible search strategies for related subset problems \cite{Natarajan1995SparseApprox,BertsimasKingMazumder2016,DasKempe2011,Elenberg2018WeakSubmodularity}.  AP-McLachlan enumerates complete candidate families under one explicit work budget because candidate tangent measurements, not only classical subset enumeration, contribute to the checkpoint cost.
 
-The first pass constructs separate append and prune scout lists.  Append scouts are ranked by explained-drift gain per hardware cost and must retain Schur novelty.  Prune scouts are ranked among low-loss deletions using recovered hardware cost, historical redundancy, and conditioning relief.  The default executable atoms are Pauli- or polynomial-child terms, and candidate batches are evaluated jointly through a combinatorial cardinality ladder rather than by summing singleton scores.
+Deletion candidates are organized into cardinality rungs: the rung at cardinality $d$ contains every hard-feasible deletion of $d$ active coordinates.  A rung is admitted whole or not at all against a joint-work budget on scored candidates, and every admitted rung is enumerated completely; nothing inside a rung is sampled or prefiltered by score.  For each admitted deletion branch $D$, the deletion-conditioned insertion candidates are the deduplicated pool children placed at their commutation-reduced cuts remapped onto the post-deletion survivor word.  Pure deletions, pure insertions, and true exchanges therefore appear in one ranked family, each scored on its complete patched support by realized captured drift: conditional insertion gain per hardware cost, conditional deletion loss with its history and conditioning terms (Appendix~\ref{app:technical_realization}), and the net drift change of the patch.
 
-The second pass forms a finite frontier containing stay, independently admissible pure append and pure prune candidates, and true exchanges obtained by pairing retained append and prune scouts.  Every retained candidate is recomputed on its complete patched support.  Selection uses conditional append gain, conditional deletion loss, hardware cost, Schur and conditioning terms, refit effort, the full patched solve, and the state and velocity continuity tests.  Scout-list sizes and pair-count limits bound classical and measurement work; they do not force a scientific batch size.  Exact trajectories do not enter the frontier, ranking, or commit tests.  Further history, conditioning, and retry conventions are collected in Appendix~\ref{app:technical_realization}.
+Certification then proceeds one finalist at a time in descending structural score.  A finalist is materialized (delete, remap cuts, insert at zero angle), locally refit toward the checkpoint ray, and passed through the hard commit gates: a finite patched solve within the conditioning bound for every finalist, and the ray-continuity and velocity-smoothness tests of Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}) for deletion-containing patches.  The first finalist that passes commits atomically; a failed finalist is rejected whole and certification advances.  Two admission bounds keep certification work finite without touching the ranking: a per-level budget on materialized finalists, and a per-branch budget that skips further insertion variants of a deletion branch after repeated failures, since branch-level score terms are shared by every variant of that branch.  Wider multi-child insertion frontiers are acquired only while the structural-repair predicate remains active and the work budget admits the complete family.
+
+Measurement economics fixes when this search runs at all.  Insertion candidates require new tangent-overlap measurements, so insertion enumeration is activated only at checkpoints whose structural residual ratio meets the declared repair threshold.  Pure deletions are row and column selections of geometry already acquired for propagation and are considered at every checkpoint; a quiet checkpoint therefore performs a measurement-free prune-only search.  Exact trajectories do not enter the enumeration, ranking, or commit tests.  Further history, conditioning, and retry conventions are collected in Appendix~\ref{app:technical_realization}.
 
 \section{Fixed-support numerical stabilization}
 \label{sec:numerical_solve_repair}
