@@ -168,6 +168,16 @@ are implementation validation, never novelty.
   displacement powers); registry promotion pending user architecture
   review. Supports the generality claim: the right class is
   coupling-structure-dependent, selection finds it automatically.
+- Retained-frame selection correction (2026-08-19, algorithmically
+  important): geometry novelty is now measured against the numerically
+  RETAINED principal directions of the selected images under the solver's
+  relative overlap cutoff, not the exact span — span-based novelty counts
+  directions carried below the pencil's retention weight and permanently
+  floors the operators that could re-supply them (found via the Peierls
+  triplet sector). With the fix the Peierls pilot resolves all six roots
+  to 1e-10..1e-15 in every regime; HH/L=3 evidence rerun (`*_retained.json`,
+  consolidation repointed). Manuscript point: the selection metric must
+  share the pencil's stabilization scale.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
