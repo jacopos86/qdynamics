@@ -94,6 +94,17 @@ def test_qse_spectra_package_does_not_import_qiskit_or_pipeline_facades() -> Non
             Path("pipelines/qse_spectra/static_adapt_adapter.py"),
             "pipelines.static_adapt.builders.problem_setup",
         ),
+        # compiled_costs.py is the declared bridge to the Paper I compile-cost
+        # oracles (Paper III Phase 1); it reuses that machinery rather than
+        # duplicating a second cost model inside qse_spectra.
+        (
+            Path("pipelines/qse_spectra/compiled_costs.py"),
+            "pipelines.static_adapt.hh_backend_compile_oracle",
+        ),
+        (
+            Path("pipelines/qse_spectra/compiled_costs.py"),
+            "pipelines.static_adapt.paper_i_config",
+        ),
     }
     for path in _python_files():
         offenders: list[str] = []

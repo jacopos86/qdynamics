@@ -1266,6 +1266,7 @@ def qse_result_to_manifest(
     qse_conductivity_response_payload: Mapping[str, Any] | None = None,
     qse_green_function_payload: Mapping[str, Any] | None = None,
     paper_iii_contract_payload: Mapping[str, Any] | None = None,
+    compiled_costs_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Serialize a QSE result to the sidecar's normalized JSON manifest."""
 
@@ -1380,6 +1381,11 @@ def qse_result_to_manifest(
             raise ValueError("paper_iii_contract_payload must serialize to a JSON object.")
         paper_iii_contract.setdefault("generated_utc", generated_utc)
         manifest["paper_iii_contract"] = paper_iii_contract
+    if compiled_costs_payload is not None:
+        compiled_costs = _json_safe(compiled_costs_payload)
+        if not isinstance(compiled_costs, dict):
+            raise ValueError("compiled_costs_payload must serialize to a JSON object.")
+        manifest["qse_compiled_costs_v1"] = compiled_costs
     return manifest
 
 

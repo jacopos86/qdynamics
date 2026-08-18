@@ -98,7 +98,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Append non-identity Hamiltonian Pauli terms to artifact-derived bases.",
     )
 
-    parser.add_argument("--static-record-selection-mode", choices=["input_order", "cost_proxy", "geometry_selected"], default=None)
+    parser.add_argument("--static-record-selection-mode", choices=["input_order", "cost_proxy", "geometry_selected", "compiled_cost"], default=None)
+    parser.add_argument(
+        "--static-record-selection-compiled-cost-oracle",
+        choices=["marrakesh_graph_span_v1", "backend_transpile_single_v1"],
+        default=None,
+        help=(
+            "Annotate candidates with Paper I compiled hardware costs from this oracle. "
+            "Required by mode compiled_cost (defaults there to marrakesh_graph_span_v1); "
+            "with geometry_selected it replaces the structural cost proxy in the cost term."
+        ),
+    )
+    parser.add_argument(
+        "--static-record-selection-geometry-cost-discount-alpha",
+        type=float,
+        default=None,
+        help="Optional multiplicative geometry cost discount: score = utility / cost^alpha (default off).",
+    )
+    parser.add_argument(
+        "--static-record-selection-cost-frontier",
+        action="store_true",
+        help="Emit the accuracy-versus-compiled-cost frontier over admitted prefixes of the selected basis.",
+    )
     parser.add_argument("--static-record-selection-max-records", type=int, default=None)
     parser.add_argument("--static-record-selection-max-term-count", type=int, default=None)
     parser.add_argument("--static-record-selection-max-pauli-weight", type=int, default=None)
@@ -509,6 +530,18 @@ def _build_static_record_selection_config(
             "--static-record-selection-geometry-min-metric-novelty",
             args.static_record_selection_geometry_min_metric_novelty,
         ),
+        (
+            "--static-record-selection-compiled-cost-oracle",
+            args.static_record_selection_compiled_cost_oracle,
+        ),
+        (
+            "--static-record-selection-geometry-cost-discount-alpha",
+            args.static_record_selection_geometry_cost_discount_alpha,
+        ),
+        (
+            "--static-record-selection-cost-frontier",
+            True if args.static_record_selection_cost_frontier else None,
+        ),
     )
     supplied_dependents = [flag for flag, value in dependent_flags if value is not None]
     if args.static_record_selection_mode is None:
@@ -567,6 +600,11 @@ def _build_static_record_selection_config(
                 float(args.static_record_selection_geometry_min_metric_novelty)
                 if args.static_record_selection_geometry_min_metric_novelty is not None
                 else 1.0e-12
+            ),
+            geometry_cost_discount_alpha=(
+                float(args.static_record_selection_geometry_cost_discount_alpha)
+                if args.static_record_selection_geometry_cost_discount_alpha is not None
+                else None
             ),
         )
     except ValueError as exc:
@@ -837,8 +875,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     static_record_selection_result = None
+    compiled_cost_rows = None
+    compiled_cost_oracle_kind = None
     if static_record_selection_config is not None:
         candidate_basis = tuple(basis)
+        compiled_cost_oracle_kind = args.static_record_selection_compiled_cost_oracle
+        if compiled_cost_oracle_kind is None and str(static_record_selection_config.mode) == "compiled_cost":
+            compiled_cost_oracle_kind = "marrakesh_graph_span_v1"
+        candidate_compiled_costs = None
+        if compiled_cost_oracle_kind is not None:
+            from pipelines.qse_spectra.compiled_costs import annotate_basis_with_compiled_costs
+
+            try:
+                compiled_cost_rows = annotate_basis_with_compiled_costs(
+                    candidate_basis,
+                    num_qubits=int(nq),
+                    oracle_kind=str(compiled_cost_oracle_kind),
+                )
+            except ValueError as exc:
+                parser.error(str(exc))
+            candidate_compiled_costs = tuple(
+                float(row.scalarized_canonical_cost) for row in compiled_cost_rows
+            )
         try:
             static_record_selection_result = select_static_qse_records(
                 candidate_basis,
@@ -848,6 +906,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 qse_config=config,
                 basis_vector_policy=basis_vector_policy,
                 transition_observables=transition_observables,
+                compiled_costs=candidate_compiled_costs,
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -872,11 +931,42 @@ def main(argv: Sequence[str] | None = None) -> int:
         transition_observables=transition_observables,
     )
     static_record_selection_payload = None
+    compiled_costs_payload = None
     if static_record_selection_result is not None:
         static_record_selection_payload = finalize_static_record_selection_payload(
             static_record_selection_result,
             result,
         )
+        if compiled_cost_rows is not None:
+            from pipelines.qse_spectra.compiled_costs import (
+                build_accuracy_cost_frontier,
+                compiled_costs_manifest_payload,
+            )
+
+            compiled_costs_payload = compiled_costs_manifest_payload(
+                compiled_cost_rows,
+                oracle_kind=str(compiled_cost_oracle_kind),
+                num_qubits=int(nq),
+            )
+            if bool(args.static_record_selection_cost_frontier):
+                selected_rows = tuple(
+                    compiled_cost_rows[int(index)]
+                    for index in static_record_selection_result.selected_original_indices
+                )
+                try:
+                    static_record_selection_payload["accuracy_cost_frontier"] = (
+                        build_accuracy_cost_frontier(
+                            static_record_selection_result.selected_basis_elements,
+                            selected_rows,
+                            hamiltonian=hamiltonian,
+                            prepared_state=prepared_state,
+                            qse_config=config,
+                            basis_vector_policy=basis_vector_policy,
+                            transition_observables=tuple(transition_observables),
+                        )
+                    )
+                except ValueError as exc:
+                    parser.error(str(exc))
     spectral_functions_payload = None
     spectral_window_metrics_payload = None
     if spectral_requested and transition_observables:
@@ -1118,6 +1208,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         qse_conductivity_response_payload=conductivity_response_payload,
         qse_green_function_payload=green_function_payload,
         paper_iii_contract_payload=paper_iii_contract_payload,
+        compiled_costs_payload=compiled_costs_payload,
     )
     write_manifest_json(output_json, manifest)
 
