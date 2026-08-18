@@ -1427,11 +1427,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--max-append-candidates", type=int, default=8)
-    parser.add_argument("--max-prune-candidates", type=int, default=0)
-    parser.add_argument("--max-total-prunes", type=int, default=0)
-    parser.add_argument("--append-gain-threshold", type=float, default=1.0e-10)
     parser.add_argument("--append-min-time", type=float, default=0.0)
-    parser.add_argument("--prune-loss-threshold", type=float, default=0.0)
     parser.add_argument(
         "--residual-ratio-threshold",
         type=float,
@@ -1439,15 +1435,6 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--min-logical-parameter-count", type=int, default=1)
     parser.add_argument("--require-complete-candidate-pool", action="store_true")
-    parser.add_argument(
-        "--append-ladder-mode",
-        choices=("legacy_singleton", "combinatorial"),
-        default="combinatorial",
-        help=(
-            "Append batching mode. combinatorial is the canonical append-only "
-            "Pauli-child ladder; legacy_singleton is retained for compatibility."
-        ),
-    )
     parser.add_argument(
         "--append-occurrence-policy",
         choices=APPEND_OCCURRENCE_POLICIES,
@@ -1459,25 +1446,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--max-append-batch-size", type=int, default=10)
-    parser.add_argument("--append-rung-set-cap", type=int, default=64)
-    parser.add_argument("--append-prefilter-size", type=int, default=12)
-    parser.add_argument(
-        "--append-prefilter-policy",
-        default=APPEND_LADDER_PREFILTER_POLICY_V1,
-    )
-    parser.add_argument("--append-batch-score-threshold", type=float, default=1.0e-10)
-    parser.add_argument(
-        "--append-schur-guard",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Require appended candidate batches to add checkpoint-local Schur-novel "
-            "directions against the current support."
-        ),
-    )
-    parser.add_argument("--append-schur-min-rank-fraction", type=float, default=1.0)
     parser.add_argument("--append-schur-max-condition-number", type=float, default=1.0e12)
-    parser.add_argument("--append-schur-novelty-ridge-lambda", type=float, default=0.0)
     parser.add_argument("--append-cost-alpha", type=float, default=1.0)
     parser.add_argument(
         "--append-cost-normalization-mode",
@@ -1490,155 +1459,54 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--append-cost-lambda-theta", type=float, default=0.0)
     parser.add_argument("--append-cost-lambda-shot", type=float, default=0.02)
     parser.add_argument("--append-cost-scale-floor", type=float, default=1.0e-12)
-    parser.add_argument(
-        "--support-patch-prune",
-        action="store_true",
-        help=(
-            "Enable active Paper-II support-patch prune scoring. This does not "
-            "commit deletions unless --support-patch-prune-commit and a positive "
-            "--max-prune-commits are also supplied."
-        ),
-    )
-    parser.add_argument(
-        "--support-patch-prune-commit",
-        action="store_true",
-        help=(
-            "Allow active support-patch prune commits after safety checks. "
-            "Requires --support-patch-prune and --max-prune-commits > 0."
-        ),
-    )
-    parser.add_argument("--max-prune-batch-size", type=int, default=0)
-    parser.add_argument("--prune-rung-set-cap", type=int, default=0)
-    parser.add_argument("--prune-prefilter-size", type=int, default=0)
-    parser.add_argument("--prune-history-window", type=int, default=3)
-    parser.add_argument("--prune-history-lambda", type=float, default=1.0)
-    parser.add_argument("--prune-persistence-required", type=int, default=1)
-    parser.add_argument(
-        "--prune-persistence-mode",
-        choices=(PRUNE_PERSISTENCE_EXACT_BATCH, PRUNE_PERSISTENCE_ATOM_HISTORY),
-        default=PRUNE_PERSISTENCE_ATOM_HISTORY,
-    )
-    parser.add_argument("--prune-atom-history-fraction", type=float, default=1.0)
-    parser.add_argument(
-        "--prune-appended-origin-target-policy",
-        choices=sorted(PRUNE_TARGET_POLICIES),
-        default="all_active",
-        help=(
-            "Select whether prune may test all active support or only coordinates "
-            "recorded as post-seed appends. The latter is useful for controlled "
-            "redundancy-recovery diagnostics."
-        ),
-    )
     parser.add_argument("--prune-cooldown-steps", type=int, default=2)
     parser.add_argument("--min-runtime-parameter-count", type=int, default=1)
     parser.add_argument("--prune-cost-alpha", type=float, default=1.0)
-    parser.add_argument("--prune-condition-lambda-kappa-rel", type=float, default=0.0)
-    parser.add_argument("--prune-condition-lambda-schur", type=float, default=0.0)
-    parser.add_argument("--prune-condition-lambda-kappa-hist", type=float, default=0.0)
-    parser.add_argument("--prune-condition-lambda-kappa-dam", type=float, default=0.0)
     parser.add_argument("--eps-loss", type=float, default=1.0e-14)
     parser.add_argument("--prune-ray-distance-tol", type=float, default=5.0e-2)
-    parser.add_argument("--prune-differential-miss-tol", type=float, default=1.0e-2)
-    parser.add_argument(
-        "--prune-shadow-enabled",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Require the future no-harm/shadow gate before prune commits. "
-            "Currently unsupported for commits, so the default is fail-closed."
-        ),
-    )
-    parser.add_argument("--prune-shadow-horizon-steps", type=int, default=2)
-    parser.add_argument("--prune-shadow-score-tol", type=float, default=1.0e-2)
-    parser.add_argument(
-        "--prune-patch-smoothness",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Require same-checkpoint state-space prune patch smoothness before "
-            "committing a deletion."
-        ),
-    )
     parser.add_argument("--prune-patch-smoothness-eta-max", type=float, default=1.0e-3)
-    parser.add_argument(
-        "--prune-patch-smoothness-cooldown-max-steps",
-        type=int,
-        default=8,
-    )
-    parser.add_argument(
-        "--prune-patch-smoothness-severity-scale",
-        type=float,
-        default=1.0,
-    )
-    parser.add_argument("--max-prune-commits", type=int, default=0)
-    parser.add_argument(
-        "--support-patch-exchange",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Enable the Paper-II unified support-patch decision family. True "
-            "exchange candidates are generated only when append and prune scouts "
-            "are both available."
-        ),
-    )
-    parser.add_argument("--max-exchange-append-branches", type=int, default=3)
-    parser.add_argument("--max-exchange-prune-branches", type=int, default=3)
-    parser.add_argument("--max-exchange-pair-count", type=int, default=0)
-    parser.add_argument("--exchange-append-score-min", type=float, default=0.0)
-    parser.add_argument("--exchange-prune-score-min", type=float, default=0.0)
     parser.add_argument("--patch-utility-delta-weight", type=float, default=1.0)
-    parser.add_argument("--patch-utility-refit-weight", type=float, default=0.0)
-    parser.add_argument("--patch-utility-velocity-weight", type=float, default=1.0)
-    parser.add_argument("--patch-utility-threshold", type=float, default=0.0)
     parser.add_argument(
-        "--append-macro-scout",
-        action=argparse.BooleanOptionalAction,
-        default=False,
+        "--max-insertion-batch-size",
+        type=int,
+        default=None,
         help=(
-            "Optionally rank parent/macro generators as a prefilter, then expand "
-            "retained parents back to Pauli/poly-child atoms for the actual "
-            "support-patch decision."
+            "Upper bound on inserted child occurrences in one structural "
+            "patch. None falls back to --max-append-batch-size. Zero leaves "
+            "stay plus pure deletion."
         ),
     )
-    parser.add_argument("--append-macro-scout-parent-cap", type=int, default=0)
     parser.add_argument(
-        "--append-macro-scout-score-mode",
-        choices=tuple(sorted(APPEND_MACRO_SCOUT_SCORE_MODES)),
-        default=APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
+        "--interaction-frontier-widths",
+        default=None,
         help=(
-            "Parent/frontier scout score mode. Cheap parent-tangent modes are "
-            "non-authoritative and fail open when parent tangent construction is "
-            "unsupported; full_child_block_diagnostic is explicitly non-cheap."
+            "Comma-separated strictly increasing child-frontier widths for "
+            "multi-child insertion plans; default None resolves to "
+            "2,4,8,...,|eligible universe|."
         ),
     )
-    parser.add_argument("--append-macro-scout-score-min", type=float, default=0.0)
     parser.add_argument(
-        "--append-macro-scout-fail-open",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Return the original child append frontier when parent scouting is uncertified.",
-    )
-    parser.add_argument(
-        "--append-macro-scout-expand-if-residual-high",
+        "--structural-score-floor",
         type=float,
         default=0.0,
         help=(
-            "Fail open when the McLachlan residual ratio is at or above this "
-            "value. 0 disables this guard."
+            "Structural score a candidate must exceed to reach certification "
+            "(tau_score). The floor, not certification, excludes numerical-"
+            "noise candidates such as no-op zero-angle insertions."
         ),
     )
     parser.add_argument(
-        "--append-macro-scout-exchange-fail-open",
-        action=argparse.BooleanOptionalAction,
-        default=True,
+        "--max-joint-patch-evaluations",
+        type=int,
+        default=None,
         help=(
-            "Preserve the full append frontier in exchange-enabled runs unless "
-            "the caller explicitly accepts uncertified parent filtering."
+            "Sole computational cap on structural enumeration: a complete "
+            "deletion rung or insertion frontier is admitted only when the "
+            "cumulative unique-candidate count stays within this budget; "
+            "families are never partially sampled. None disables the guard "
+            "and is intended for small systems and oracles only."
         ),
     )
-    parser.add_argument("--append-macro-scout-audit-parent-count", type=int, default=0)
-    parser.add_argument("--append-macro-scout-audit-parent-fraction", type=float, default=0.0)
-    parser.add_argument("--append-macro-scout-parent-cost-alpha", type=float, default=1.0)
     parser.add_argument(
         "--support-patch-scoring-workers",
         type=int,
@@ -1776,137 +1644,61 @@ def main(argv: Sequence[str] | None = None) -> int:
         drive_config = _drive_config_from_args(args, runtime_input)
         controller_config = AppendControllerConfig(
             max_append_candidates=int(args.max_append_candidates),
-            max_prune_candidates=int(args.max_prune_candidates),
-            max_total_prunes=int(args.max_total_prunes),
-            append_gain_threshold=float(args.append_gain_threshold),
             append_min_time=float(args.append_min_time),
-            prune_loss_threshold=float(args.prune_loss_threshold),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
             min_logical_parameter_count=int(args.min_logical_parameter_count),
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
-        support_patch_config = None
-        if str(args.append_ladder_mode) == "combinatorial":
-            support_patch_config = SupportPatchControllerConfig(
-                append_ladder_mode="combinatorial",
-                append_occurrence_policy=str(args.append_occurrence_policy),
-                max_append_batch_size=int(args.max_append_batch_size),
-                append_rung_set_cap=int(args.append_rung_set_cap),
-                append_prefilter_size=int(args.append_prefilter_size),
-                append_prefilter_policy=str(args.append_prefilter_policy),
-                append_gain_threshold=float(args.append_gain_threshold),
-                append_batch_score_threshold=float(args.append_batch_score_threshold),
-                append_schur_guard_enabled=bool(args.append_schur_guard),
-                append_schur_min_rank_fraction=float(args.append_schur_min_rank_fraction),
-                append_schur_max_condition_number=float(
-                    args.append_schur_max_condition_number
-                ),
-                append_schur_novelty_ridge_lambda=float(
-                    args.append_schur_novelty_ridge_lambda
-                ),
-                append_macro_scout_enabled=bool(args.append_macro_scout),
-                append_macro_scout_score_mode=str(args.append_macro_scout_score_mode),
-                append_macro_scout_parent_cap=int(args.append_macro_scout_parent_cap),
-                append_macro_scout_score_min=float(args.append_macro_scout_score_min),
-                append_macro_scout_fail_open=bool(args.append_macro_scout_fail_open),
-                append_macro_scout_expand_if_residual_high=float(
-                    args.append_macro_scout_expand_if_residual_high
-                ),
-                append_macro_scout_exchange_fail_open=bool(
-                    args.append_macro_scout_exchange_fail_open
-                ),
-                append_macro_scout_audit_parent_count=int(
-                    args.append_macro_scout_audit_parent_count
-                ),
-                append_macro_scout_audit_parent_fraction=float(
-                    args.append_macro_scout_audit_parent_fraction
-                ),
-                append_macro_scout_parent_cost_alpha=float(
-                    args.append_macro_scout_parent_cost_alpha
-                ),
-                support_patch_scoring_workers=int(args.support_patch_scoring_workers),
-                cost_normalization_mode=str(args.append_cost_normalization_mode),
-                append_cost_alpha=float(args.append_cost_alpha),
-                append_cost_lambda_2q=float(args.append_cost_lambda_2q),
-                append_cost_lambda_d=float(args.append_cost_lambda_d),
-                append_cost_lambda_1q=float(args.append_cost_lambda_1q),
-                append_cost_lambda_theta=float(args.append_cost_lambda_theta),
-                append_cost_lambda_shot=float(args.append_cost_lambda_shot),
-                append_cost_scale_floor=float(args.append_cost_scale_floor),
-                append_min_time=float(args.append_min_time),
-                residual_ratio_threshold=float(args.residual_ratio_threshold),
-                prune_enabled=bool(args.support_patch_prune),
-                prune_commit_enabled=bool(
-                    args.support_patch_prune_commit
-                    and bool(args.support_patch_prune)
-                    and int(args.max_prune_commits) > 0
-                ),
-                max_prune_batch_size=(
-                    max(1, int(args.max_prune_batch_size))
-                    if bool(args.support_patch_prune)
-                    else 0
-                ),
-                prune_rung_set_cap=int(args.prune_rung_set_cap),
-                prune_prefilter_size=int(args.prune_prefilter_size),
-                prune_loss_threshold=float(args.prune_loss_threshold),
-                prune_history_window=int(args.prune_history_window),
-                prune_history_lambda=float(args.prune_history_lambda),
-                prune_persistence_required=int(args.prune_persistence_required),
-                prune_persistence_mode=str(args.prune_persistence_mode),
-                prune_atom_history_fraction=float(args.prune_atom_history_fraction),
-                prune_appended_origin_target_policy=str(
-                    args.prune_appended_origin_target_policy
-                ),
-                prune_cooldown_steps=int(args.prune_cooldown_steps),
-                min_runtime_parameter_count=int(args.min_runtime_parameter_count),
-                prune_ray_distance_tol=float(args.prune_ray_distance_tol),
-                prune_differential_miss_tol=float(args.prune_differential_miss_tol),
-                prune_shadow_enabled=bool(args.prune_shadow_enabled),
-                prune_shadow_horizon_steps=int(args.prune_shadow_horizon_steps),
-                prune_shadow_score_tol=float(args.prune_shadow_score_tol),
-                prune_patch_smoothness_enabled=bool(args.prune_patch_smoothness),
-                prune_patch_smoothness_eta_max=float(
-                    args.prune_patch_smoothness_eta_max
-                ),
-                prune_patch_smoothness_cooldown_max_steps=int(
-                    args.prune_patch_smoothness_cooldown_max_steps
-                ),
-                prune_patch_smoothness_severity_scale=float(
-                    args.prune_patch_smoothness_severity_scale
-                ),
-                max_prune_commits=(
-                    int(args.max_prune_commits)
-                    if bool(args.support_patch_prune)
-                    else 0
-                ),
-                exchange_enabled=bool(
-                    args.support_patch_exchange and bool(args.support_patch_prune)
-                ),
-                branch_scoring_enabled=True,
-                max_exchange_append_branches=int(args.max_exchange_append_branches),
-                max_exchange_prune_branches=int(args.max_exchange_prune_branches),
-                max_exchange_pair_count=int(args.max_exchange_pair_count),
-                exchange_append_score_min=float(args.exchange_append_score_min),
-                exchange_prune_score_min=float(args.exchange_prune_score_min),
-                patch_utility_delta_weight=float(args.patch_utility_delta_weight),
-                patch_utility_refit_weight=float(args.patch_utility_refit_weight),
-                patch_utility_velocity_weight=float(args.patch_utility_velocity_weight),
-                patch_utility_threshold=float(args.patch_utility_threshold),
-                prune_cost_alpha=float(args.prune_cost_alpha),
-                prune_condition_lambda_kappa_rel=float(
-                    args.prune_condition_lambda_kappa_rel
-                ),
-                prune_condition_lambda_schur=float(args.prune_condition_lambda_schur),
-                prune_condition_lambda_kappa_hist=float(
-                    args.prune_condition_lambda_kappa_hist
-                ),
-                prune_condition_lambda_kappa_dam=float(
-                    args.prune_condition_lambda_kappa_dam
-                ),
-                eps_loss=float(args.eps_loss),
-                cost_required_for_decisions=False,
-                allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
-            )
+        support_patch_config = SupportPatchControllerConfig(
+            append_ladder_mode="combinatorial",
+            append_occurrence_policy=str(args.append_occurrence_policy),
+            max_append_batch_size=int(args.max_append_batch_size),
+            max_insertion_batch_size=(
+                None
+                if args.max_insertion_batch_size is None
+                else int(args.max_insertion_batch_size)
+            ),
+            interaction_frontier_widths=(
+                None
+                if args.interaction_frontier_widths in (None, "")
+                else tuple(
+                    int(token)
+                    for token in str(args.interaction_frontier_widths).split(",")
+                    if token.strip()
+                )
+            ),
+            structural_score_floor=float(args.structural_score_floor),
+            max_joint_patch_evaluations=(
+                None
+                if args.max_joint_patch_evaluations is None
+                else int(args.max_joint_patch_evaluations)
+            ),
+            append_schur_max_condition_number=float(
+                args.append_schur_max_condition_number
+            ),
+            support_patch_scoring_workers=int(args.support_patch_scoring_workers),
+            cost_normalization_mode=str(args.append_cost_normalization_mode),
+            append_cost_alpha=float(args.append_cost_alpha),
+            append_cost_lambda_2q=float(args.append_cost_lambda_2q),
+            append_cost_lambda_d=float(args.append_cost_lambda_d),
+            append_cost_lambda_1q=float(args.append_cost_lambda_1q),
+            append_cost_lambda_theta=float(args.append_cost_lambda_theta),
+            append_cost_lambda_shot=float(args.append_cost_lambda_shot),
+            append_cost_scale_floor=float(args.append_cost_scale_floor),
+            append_min_time=float(args.append_min_time),
+            residual_ratio_threshold=float(args.residual_ratio_threshold),
+            prune_cooldown_steps=int(args.prune_cooldown_steps),
+            min_runtime_parameter_count=int(args.min_runtime_parameter_count),
+            prune_ray_distance_tol=float(args.prune_ray_distance_tol),
+            prune_patch_smoothness_eta_max=float(
+                args.prune_patch_smoothness_eta_max
+            ),
+            patch_utility_delta_weight=float(args.patch_utility_delta_weight),
+            prune_cost_alpha=float(args.prune_cost_alpha),
+            eps_loss=float(args.eps_loss),
+            cost_required_for_decisions=False,
+            allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
+        )
         solve_repair_config = SolveRepairConfig(
             enabled=bool(args.solve_repair),
             condition_number_max=float(args.solve_repair_condition_number_max),
@@ -1988,63 +1780,30 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
                 "online_redundancy_injection_available": False,
                 "parameterization_mode": str(args.parameterization_mode),
-                "append_ladder_mode": str(args.append_ladder_mode),
                 "append_min_time": float(args.append_min_time),
-                "support_patch_prune_requested": bool(args.support_patch_prune),
-                "support_patch_prune_commit_requested": bool(
-                    args.support_patch_prune_commit
-                ),
-                "prune_patch_smoothness_requested": bool(
-                    args.prune_patch_smoothness
-                ),
                 "prune_patch_smoothness_eta_max": float(
                     args.prune_patch_smoothness_eta_max
                 ),
-                "prune_patch_smoothness_cooldown_max_steps": int(
-                    args.prune_patch_smoothness_cooldown_max_steps
-                ),
-                "prune_patch_smoothness_severity_scale": float(
-                    args.prune_patch_smoothness_severity_scale
-                ),
-                "support_patch_exchange_requested": bool(args.support_patch_exchange),
-                "max_exchange_append_branches": int(args.max_exchange_append_branches),
-                "max_exchange_prune_branches": int(args.max_exchange_prune_branches),
-                "max_exchange_pair_count": int(args.max_exchange_pair_count),
-                "exchange_append_score_min": float(args.exchange_append_score_min),
-                "exchange_prune_score_min": float(args.exchange_prune_score_min),
                 "patch_utility_delta_weight": float(args.patch_utility_delta_weight),
-                "patch_utility_refit_weight": float(args.patch_utility_refit_weight),
-                "patch_utility_velocity_weight": float(args.patch_utility_velocity_weight),
-                "patch_utility_threshold": float(args.patch_utility_threshold),
-                "append_macro_scout_requested": bool(args.append_macro_scout),
-                "append_macro_scout_score_mode": str(args.append_macro_scout_score_mode),
-                "append_macro_scout_parent_cap": int(
-                    args.append_macro_scout_parent_cap
+                "structural_score_floor": float(args.structural_score_floor),
+                "max_joint_patch_evaluations": (
+                    None
+                    if args.max_joint_patch_evaluations is None
+                    else int(args.max_joint_patch_evaluations)
                 ),
-                "append_macro_scout_score_min": float(args.append_macro_scout_score_min),
-                "append_macro_scout_fail_open": bool(args.append_macro_scout_fail_open),
-                "append_macro_scout_expand_if_residual_high": float(
-                    args.append_macro_scout_expand_if_residual_high
+                "max_insertion_batch_size": (
+                    None
+                    if args.max_insertion_batch_size is None
+                    else int(args.max_insertion_batch_size)
                 ),
-                "append_macro_scout_exchange_fail_open": bool(
-                    args.append_macro_scout_exchange_fail_open
-                ),
-                "append_macro_scout_audit_parent_count": int(
-                    args.append_macro_scout_audit_parent_count
-                ),
-                "append_macro_scout_audit_parent_fraction": float(
-                    args.append_macro_scout_audit_parent_fraction
-                ),
-                "append_macro_scout_parent_cost_alpha": float(
-                    args.append_macro_scout_parent_cost_alpha
+                "interaction_frontier_widths": (
+                    None
+                    if args.interaction_frontier_widths in (None, "")
+                    else str(args.interaction_frontier_widths)
                 ),
                 "support_patch_scoring_workers": int(
                     args.support_patch_scoring_workers
                 ),
-                "legacy_prune_flags_seen": bool(
-                    int(args.max_prune_candidates) > 0 or int(args.max_total_prunes) > 0
-                ),
-                "legacy_prune_flags_activated_active_prune": False,
                 "solve_damping": float(args.solve_damping),
                 "solve_repair_requested": bool(args.solve_repair),
                 "solve_repair_config": solve_repair_config.to_json_dict(),
