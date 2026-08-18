@@ -65,6 +65,7 @@ class QSEExchangeConfig:
     insertion_shortlist_size: int = 8
     allow_pure_deletion: bool = True
     allow_pure_insertion: bool = False
+    target_root_count: int = 1
     accuracy_tolerance: float = 1.0e-9
     min_root_improvement: float = 1.0e-10
     cost_budget: float | None = None
@@ -75,6 +76,8 @@ class QSEExchangeConfig:
     def __post_init__(self) -> None:
         if int(self.max_rounds) < 1:
             raise ValueError("max_rounds must be >= 1.")
+        if int(self.target_root_count) < 1:
+            raise ValueError("target_root_count must be >= 1.")
         if int(self.deletion_shortlist_size) < 0 or int(self.insertion_shortlist_size) < 0:
             raise ValueError("shortlist sizes must be >= 0.")
         for name in ("accuracy_tolerance", "min_root_improvement"):
@@ -118,6 +121,7 @@ def _solve_summary(
     prepared_state: np.ndarray,
     qse_config: Any,
     basis_vector_policy: Any,
+    target_root_count: int = 1,
 ) -> dict[str, Any]:
     result = compute_qse_spectra(
         hamiltonian,
@@ -130,9 +134,14 @@ def _solve_summary(
     if energies.size == 0:
         raise ValueError("Exchange certification solve retained no roots.")
     condition = result.overlap_condition_estimate
+    roots = [float(value) for value in energies[: max(int(target_root_count), 1)]]
     return {
         "indices": tuple(int(index) for index in indices),
         "root0_energy": float(energies[0]),
+        # Ky Fan trace over the lowest R retained roots: a variational upper
+        # bound on the sum of the true lowest R sector excitations.
+        "root_energies": roots,
+        "objective_energy": float(sum(roots)),
         "retained_rank": int(result.retained_rank),
         "overlap_condition_estimate": float(condition) if condition is not None else None,
         "total_compiled_cost": float(sum(float(costs[int(index)]) for index in indices)),
@@ -149,12 +158,15 @@ def _deletion_shortlist(
     costs: Sequence[float],
     *,
     size: int,
+    target_root_count: int = 1,
 ) -> list[int]:
-    """Lowest root-0 coefficient magnitude, then highest cost, deduplicated."""
+    """Lowest target-root coefficient magnitude, then highest cost, deduplicated."""
 
     indices = list(summary["indices"])
     result = summary["result"]
-    coefficients = np.abs(np.asarray(result.eigenvectors_basis)[:, 0]).reshape(-1)
+    matrix = np.abs(np.asarray(result.eigenvectors_basis))
+    root_count = min(max(int(target_root_count), 1), matrix.shape[1])
+    coefficients = matrix[:, :root_count].max(axis=1).reshape(-1)
     by_weight = sorted(range(len(indices)), key=lambda pos: float(coefficients[pos]))
     by_cost = sorted(
         range(len(indices)), key=lambda pos: -float(costs[int(indices[pos])])
@@ -176,6 +188,7 @@ def _insertion_shortlist(
     qse_config: Any,
     basis_vector_policy: Any,
     size: int,
+    target_root_count: int = 1,
 ) -> list[int]:
     """Rank unused pool members by novelty and target-root residual capture.
 
@@ -207,13 +220,17 @@ def _insertion_shortlist(
         if norm > 1.0e-12:
             basis_units.append(projected / norm)
 
-    coefficients = np.asarray(result.eigenvectors_basis)[:, 0].reshape(-1)
-    root_state = np.zeros_like(psi)
-    for position, vector in enumerate(matrix_vectors):
-        root_state += complex(coefficients[position]) * vector
-    root_norm = float(np.linalg.norm(root_state))
-    residual_hat = None
-    if root_norm > 1.0e-12:
+    eigenvector_matrix = np.asarray(result.eigenvectors_basis)
+    root_count = min(max(int(target_root_count), 1), eigenvector_matrix.shape[1])
+    residual_hats: list[np.ndarray] = []
+    for root in range(root_count):
+        coefficients = eigenvector_matrix[:, root].reshape(-1)
+        root_state = np.zeros_like(psi)
+        for position, vector in enumerate(matrix_vectors):
+            root_state += complex(coefficients[position]) * vector
+        root_norm = float(np.linalg.norm(root_state))
+        if root_norm <= 1.0e-12:
+            continue
         root_state = root_state / root_norm
         h_root = np.asarray(
             _apply_polynomial_operator(
@@ -225,7 +242,7 @@ def _insertion_shortlist(
         residual = h_root - complex(np.vdot(root_state, h_root)) * root_state
         residual_norm = float(np.linalg.norm(residual))
         if residual_norm > 1.0e-12:
-            residual_hat = residual / residual_norm
+            residual_hats.append(residual / residual_norm)
 
     scored: list[tuple[float, int]] = []
     for index, element in enumerate(pool):
@@ -243,9 +260,10 @@ def _insertion_shortlist(
         p_norm_sq = float(np.vdot(projected, projected).real)
         novelty = max(0.0, p_norm_sq / norm_sq)
         capture = 0.0
-        if residual_hat is not None and p_norm_sq > 0.0:
+        if residual_hats and p_norm_sq > 0.0:
             unit_vec = projected / math.sqrt(p_norm_sq)
-            capture = float(abs(complex(np.vdot(unit_vec, residual_hat))))
+            for hat in residual_hats:
+                capture = max(capture, float(abs(complex(np.vdot(unit_vec, hat)))))
         scored.append((0.25 * novelty + capture, int(index)))
     scored.sort(key=lambda item: (-item[0], item[1]))
     return [index for _score, index in scored[: int(size)]]
@@ -277,7 +295,10 @@ def _certify_patch(
         ):
             reasons.append("relative_condition_guard")
 
-    delta_root = float(candidate["root0_energy"]) - float(current["root0_energy"])
+    shared_roots = min(len(current["root_energies"]), len(candidate["root_energies"]))
+    delta_root = float(
+        sum(candidate["root_energies"][:shared_roots]) - sum(current["root_energies"][:shared_roots])
+    )
     delta_cost = float(candidate["total_compiled_cost"]) - float(current["total_compiled_cost"])
     improves_root = delta_root < -float(config.min_root_improvement)
     improves_cost = delta_cost < 0.0
@@ -327,13 +348,19 @@ def run_qse_exchange_maintenance(
         prepared_state=prepared_state,
         qse_config=qse_config,
         basis_vector_policy=basis_vector_policy,
+        target_root_count=int(cfg.target_root_count),
     )
     current = _solve_summary(pool_tuple, current_indices, costs, **solve_kwargs)
     initial_summary = _public_summary(current)
 
     rounds: list[dict[str, Any]] = []
     for round_index in range(int(cfg.max_rounds)):
-        deletions = _deletion_shortlist(current, costs, size=int(cfg.deletion_shortlist_size))
+        deletions = _deletion_shortlist(
+            current,
+            costs,
+            size=int(cfg.deletion_shortlist_size),
+            target_root_count=int(cfg.target_root_count),
+        )
         insertions = _insertion_shortlist(
             pool_tuple,
             current,
@@ -342,6 +369,7 @@ def run_qse_exchange_maintenance(
             qse_config=qse_config,
             basis_vector_policy=basis_vector_policy,
             size=int(cfg.insertion_shortlist_size),
+            target_root_count=int(cfg.target_root_count),
         )
 
         patches: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
@@ -380,6 +408,9 @@ def run_qse_exchange_maintenance(
                 "insert_names": [str(pool_tuple[index].name) for index in b_plus],
                 "root0_energy": candidate["root0_energy"],
                 "delta_root0": candidate["root0_energy"] - current["root0_energy"],
+                "root_energies": list(candidate["root_energies"]),
+                "objective_energy": candidate["objective_energy"],
+                "delta_objective": candidate["objective_energy"] - current["objective_energy"],
                 "total_compiled_cost": candidate["total_compiled_cost"],
                 "delta_cost": candidate["total_compiled_cost"] - current["total_compiled_cost"],
                 "overlap_condition_estimate": candidate["overlap_condition_estimate"],
@@ -391,7 +422,7 @@ def run_qse_exchange_maintenance(
             if accepted:
                 admissible.append(
                     (
-                        float(record["delta_root0"]),
+                        float(record["delta_objective"]),
                         float(record["delta_cost"]),
                         patch_number,
                         {"record": record, "candidate": candidate},

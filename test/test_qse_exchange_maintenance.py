@@ -143,3 +143,47 @@ def test_exchange_config_validation() -> None:
             prepared_state=computational_basis_state(1, "0"),
             basis_vector_policy=_Q0,
         )
+
+
+def test_multi_root_objective_accepts_higher_root_improvements() -> None:
+    # H = -Z_q0 - 0.4 Z_q1 on |00>: roots reachable via q0-projected flips are
+    # |10> (E=-0.6), |01> (E=+0.6), |11> (E=+1.4). Starting from {q1 flip,
+    # double flip}, swapping the double flip for the q0 flip leaves root 0
+    # untouched but lowers root 1 (1.4 -> 0.6): invisible to the single-root
+    # objective, accepted under the Ky Fan trace with target_root_count=2.
+    hamiltonian = PauliPolynomial("JW")
+    hamiltonian.add_term(PauliTerm(2, ps="ez", pc=-1.0))
+    hamiltonian.add_term(PauliTerm(2, ps="ze", pc=-0.4))
+    psi = computational_basis_state(2, "00")
+    pool = [
+        pauli_string_basis_element("XI", nq=2, name="flip_q1"),
+        pauli_string_basis_element("XX", nq=2, name="double_flip"),
+        pauli_string_basis_element("IX", nq=2, name="flip_q0"),
+    ]
+    costs = (1.0, 1.0, 1.0)
+
+    single_root = run_qse_exchange_maintenance(
+        pool,
+        (0, 1),
+        costs,
+        hamiltonian=hamiltonian,
+        prepared_state=psi,
+        basis_vector_policy=_Q0,
+        config=QSEExchangeConfig(max_rounds=4, target_root_count=1),
+    )
+    assert single_root.final_indices == (0, 1)
+
+    multi_root = run_qse_exchange_maintenance(
+        pool,
+        (0, 1),
+        costs,
+        hamiltonian=hamiltonian,
+        prepared_state=psi,
+        basis_vector_policy=_Q0,
+        config=QSEExchangeConfig(max_rounds=4, target_root_count=2),
+    )
+    assert 2 in multi_root.final_indices
+    assert 1 not in multi_root.final_indices
+    assert multi_root.final_summary["root_energies"] == pytest.approx([-0.6, 0.6], abs=1.0e-9)
+    with pytest.raises(ValueError, match="target_root_count"):
+        QSEExchangeConfig(target_root_count=0)

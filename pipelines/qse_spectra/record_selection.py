@@ -339,7 +339,7 @@ def _geometry_select(
     policy-projected images O_i|psi>):
 
         novelty_i   = ||P_S w_i||^2 / ||w_i||^2          (0 for zero images)
-        residual_i  = |<u_i, r>| / ||r||                 (r = (H - <H>)|psi>)
+        residual_i  = max_j |<u_i, r_j>| / ||r_j||       (multi-root residuals)
         ritz_i      = g_i / (1 + g_i), g_i = max(0, E0 - lambda_min) of the
                       2x2 Rayleigh pencil in span{psi, u_i}
         trans_i     = max_k |<u_i, t_k>| over projected transition images
@@ -351,6 +351,13 @@ def _geometry_select(
     Candidates whose novelty falls below geometry_min_metric_novelty are
     rejected with reason "metric_novelty_floor"; novelty is non-increasing
     as the span grows, so the rejection is permanent.
+
+    Multi-root targeting (geometry_target_roots = R): before the first
+    acceptance the residual is the ground-reference residual (H - <H>)|psi>.
+    Once directions are accepted, the small Ritz pencil over the accepted
+    orthonormal units is solved each round and the residuals of the lowest
+    min(R, K) Ritz states drive residual capture, so acquisition targets the
+    whole low excitation window rather than the first root alone.
     """
 
     if hamiltonian is None or prepared_state is None or basis_vector_policy is None:
@@ -404,6 +411,7 @@ def _geometry_select(
         max_cost = 1.0
 
     accepted_units: list[np.ndarray] = []
+    accepted_h_units: list[np.ndarray] = []
     selected: list[StaticRecordCandidate] = []
     floor_rejected: set[int] = set()
     geometry_rows: dict[int, dict[str, Any]] = {}
@@ -412,9 +420,35 @@ def _geometry_select(
         int(c.original_basis_index): c for c in eligible_candidates
     }
 
+    def _round_residual_hats() -> list[np.ndarray]:
+        if not accepted_units:
+            return [residual_hat] if residual_hat is not None else []
+        count = len(accepted_units)
+        pencil = np.empty((count, count), dtype=complex)
+        for row in range(count):
+            for col in range(count):
+                pencil[row, col] = complex(np.vdot(accepted_units[row], accepted_h_units[col]))
+        pencil = 0.5 * (pencil + pencil.conj().T)
+        thetas, ritz_vectors = np.linalg.eigh(pencil)
+        hats: list[np.ndarray] = []
+        for root in range(min(int(config.geometry_target_roots), count)):
+            coefficients = ritz_vectors[:, root]
+            state = sum(complex(coefficients[k]) * accepted_units[k] for k in range(count))
+            h_state = sum(complex(coefficients[k]) * accepted_h_units[k] for k in range(count))
+            ritz_residual = h_state - float(thetas[root]) * state
+            ritz_residual = ritz_residual - complex(np.vdot(psi, ritz_residual)) * psi
+            norm = float(np.linalg.norm(ritz_residual))
+            if norm > 1.0e-12:
+                hats.append(ritz_residual / norm)
+        if not hats and residual_hat is not None:
+            hats = [residual_hat]
+        return hats
+
     while pool and len(selected) < int(config.max_records):
+        round_residuals = _round_residual_hats()
         round_scores: dict[int, float] = {}
         round_units: dict[int, np.ndarray] = {}
+        round_h_units: dict[int, np.ndarray] = {}
         for index, candidate in list(pool.items()):
             w = images[index]
             w_norm_sq = float(np.vdot(w, w).real)
@@ -434,8 +468,10 @@ def _geometry_select(
             transition_capture = 0.0
             if p_norm_sq > 0.0:
                 unit_vec = projected / math.sqrt(p_norm_sq)
-                if residual_hat is not None:
-                    residual_capture = float(abs(complex(np.vdot(unit_vec, residual_hat))))
+                for hat in round_residuals:
+                    residual_capture = max(
+                        residual_capture, float(abs(complex(np.vdot(unit_vec, hat))))
+                    )
                 h_unit = np.asarray(
                     _apply_polynomial_operator(
                         hamiltonian,
@@ -458,6 +494,7 @@ def _geometry_select(
                         transition_capture, float(abs(complex(np.vdot(unit_vec, t_hat))))
                     )
                 round_units[index] = unit_vec
+                round_h_units[index] = h_unit
 
             cost_norm = _cost_value(candidate) / max_cost
             utility = (
@@ -493,6 +530,7 @@ def _geometry_select(
         selected.append(pool.pop(best_index))
         if best_index in round_units:
             accepted_units.append(round_units[best_index])
+            accepted_h_units.append(round_h_units[best_index])
 
     return selected, floor_rejected, geometry_rows, scores
 
