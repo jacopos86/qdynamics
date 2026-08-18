@@ -229,3 +229,22 @@ are implementation validation, never novelty.
   scan) is fully premeasurable. Per-regime promoted-AP handoff is NOT
   yet evidence (July demo is locked to the weak_weak advisor
   artifacts); do not cite it as regime-wide.
+- Three-tier handoff validation (2026-08-19,
+  `pipelines/excited_dynamics/paper_iii_regime_handoff.py` ->
+  `paper_iii_regime_handoff_20260819_v1{,_exchange}/`): weak_weak,
+  worst-escape omega=1.25. Compact refit 32 Paulis @ 2.1e-14; promotion
+  at numerical precision. Min fidelity vs exact: frozen pencil (73
+  records) 0.958 > AP append-only adaptive 0.639 > AP exchange recipe
+  0.431 (locally certified deletions accumulate; drive never quiets;
+  params 30->12) > fixed-support circuit 0.143. CLAIM BOUNDARY: C4
+  remains a WORKFLOW claim only — never claim live McLachlan refinement
+  outperforms frozen-QSE propagation (measured: it does not, at this
+  scale with a generic 30-atom pool); DO claim mechanism validation and
+  that structural adaptation dominates fixed circuits (3-4.5x). Forward
+  path (unevidenced — do not claim): QSE-informed live pools (selected
+  records' Pauli children). Ops lesson pinned: the demo-era
+  `_run_ap_grid` config lacked the route doc's mandatory guards
+  (max_joint_patch_evaluations / max_certification_attempts_per_level /
+  max_structural_pool_size) — without them the post-purge selector
+  grinds (~8 CPU-min/step) and accumulates memoized solves (~500
+  MB/min); with them, ~3 s/step at flat 250 MB.
