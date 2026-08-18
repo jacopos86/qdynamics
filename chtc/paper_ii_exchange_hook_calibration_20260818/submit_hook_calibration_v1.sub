@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_ii_exchange_hook_calibration_20260818/run_calibration_apptainer.sh
+arguments = $(config_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/paper_ii_exchange_hook_calibration_20260818, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/paper-ii-exchange-hook-calibration-v1.$(Cluster).$(Process).log
+output = logs/paper-ii-exchange-hook-calibration-v1.$(Cluster).$(Process).out
+error = logs/paper-ii-exchange-hook-calibration-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 16GB
+request_disk = 40GB
++MaxRuntime = 21600
++JobBatchName = "holstein-paper-ii-exchange-hook-calibration-v1"
+queue config_id from chtc/paper_ii_exchange_hook_calibration_20260818/input/config_ids.txt

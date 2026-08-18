@@ -1487,6 +1487,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--certification-refit-max-iterations", type=int, default=15
     )
     parser.add_argument(
+        "--prune-target-policy",
+        choices=["all_active", "appended_only", "redundant_appended_only"],
+        default="all_active",
+        help=(
+            "Deletable-atom policy: all_active considers every active atom; "
+            "appended_only restricts deletions to appended-origin atoms, "
+            "bounding the deletion-rung width at scale."
+        ),
+    )
+    parser.add_argument(
         "--max-structural-pool-size",
         type=int,
         default=None,
@@ -1761,6 +1771,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.max_structural_pool_size is None
                 else int(args.max_structural_pool_size)
             ),
+            prune_appended_origin_target_policy=str(args.prune_target_policy),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),

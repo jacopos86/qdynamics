@@ -1,0 +1,8 @@
+config_id	extra_flags
+baseline	--prune-history-lambda 0.0
+conditioning	--prune-history-lambda 0.0 --prune-condition-lambda-kappa-rel 0.5 --prune-condition-lambda-kappa-dam 0.5
+conditioning_strong	--prune-history-lambda 0.0 --prune-condition-lambda-kappa-rel 2.0 --prune-condition-lambda-kappa-dam 2.0
+history	--prune-history-lambda 1.0
+history_strong	--prune-history-lambda 4.0
+norefit	--prune-history-lambda 0.0 --strip-refit
+all_hooks	--prune-history-lambda 1.0 --prune-condition-lambda-kappa-rel 0.5 --prune-condition-lambda-kappa-dam 0.5
