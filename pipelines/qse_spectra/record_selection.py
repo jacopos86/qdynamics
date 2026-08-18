@@ -416,7 +416,49 @@ def _geometry_select(
 
     accepted_units: list[np.ndarray] = []
     accepted_h_units: list[np.ndarray] = []
+    accepted_images: list[np.ndarray] = []
+    retention_cutoff = float(getattr(cfg, "overlap_relative_cutoff", 1.0e-10))
     selected: list[StaticRecordCandidate] = []
+
+    def _rebuild_retained_frame() -> None:
+        # Frame = numerically RETAINED principal directions of the selected
+        # images under the same relative overlap cutoff the QSE solver uses.
+        # Measuring novelty against the exact span would count directions
+        # that are technically present but carried at overlap weights the
+        # pencil's stabilization will discard — exactly the failure mode
+        # where a support "covers" a root direction yet the solve loses it.
+        accepted_units.clear()
+        accepted_h_units.clear()
+        if not accepted_images:
+            return
+        count = len(accepted_images)
+        gram = np.empty((count, count), dtype=complex)
+        for row in range(count):
+            for col in range(count):
+                gram[row, col] = complex(np.vdot(accepted_images[row], accepted_images[col]))
+        gram = 0.5 * (gram + gram.conj().T)
+        eigvals, eigvecs = np.linalg.eigh(gram)
+        cutoff = retention_cutoff * float(max(eigvals.max(), 0.0))
+        for position in range(count):
+            if eigvals[position] <= cutoff:
+                continue
+            coefficients = eigvecs[:, position] / math.sqrt(float(eigvals[position]))
+            unit_vec = np.zeros_like(accepted_images[0])
+            for k in range(count):
+                unit_vec = unit_vec + complex(coefficients[k]) * accepted_images[k]
+            h_unit = np.asarray(
+                _apply_polynomial_operator(
+                    hamiltonian,
+                    unit_vec,
+                    nq=int(nq),
+                    name="hamiltonian",
+                    config=cfg,
+                    pauli_action_cache=cache,
+                ),
+                dtype=complex,
+            ).reshape(-1)
+            accepted_units.append(unit_vec)
+            accepted_h_units.append(h_unit)
     floor_rejected: set[int] = set()
     geometry_rows: dict[int, dict[str, Any]] = {}
     scores: dict[int, float] = {}
@@ -458,8 +500,13 @@ def _geometry_select(
             w_norm_sq = float(np.vdot(w, w).real)
             if w_norm_sq > 0.0:
                 projected = w.copy()
-                for unit in accepted_units:
-                    projected = projected - complex(np.vdot(unit, projected)) * unit
+                # Two projection passes (reorthogonalized Gram-Schmidt):
+                # a single pass lets numerical noise from near-dependent
+                # accepted units masquerade as zero novelty and permanently
+                # floor operators that still carry rank.
+                for _pass in range(2):
+                    for unit in accepted_units:
+                        projected = projected - complex(np.vdot(unit, projected)) * unit
                 p_norm_sq = float(np.vdot(projected, projected).real)
                 novelty = max(0.0, p_norm_sq / w_norm_sq)
             else:
@@ -536,9 +583,8 @@ def _geometry_select(
             break
         best_index = min(round_scores, key=lambda idx: (-round_scores[idx], idx))
         selected.append(pool.pop(best_index))
-        if best_index in round_units:
-            accepted_units.append(round_units[best_index])
-            accepted_h_units.append(round_h_units[best_index])
+        accepted_images.append(images[best_index])
+        _rebuild_retained_frame()
 
     return selected, floor_rejected, geometry_rows, scores
 

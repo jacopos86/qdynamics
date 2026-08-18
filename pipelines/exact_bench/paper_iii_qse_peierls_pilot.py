@@ -177,6 +177,9 @@ def build_peierls_pool() -> list[Any]:
     # hop/current pair spans the same single-excitation directions, and the
     # double excitation is the paired-hop product.
     double_hop = hop_up * hop_dn
+    spin_z_site0 = jw_number_operator("JW", _NQ, _UP_MODES[0]) + (-1.0) * jw_number_operator("JW", _NQ, _DN_MODES[0])
+    spin_z_site1 = jw_number_operator("JW", _NQ, _UP_MODES[1]) + (-1.0) * jw_number_operator("JW", _NQ, _DN_MODES[1])
+    spin_z_diff = spin_z_site0 + (-1.0) * spin_z_site1
 
     named: list[tuple[str, PauliPolynomial]] = [
         ("uccsd_sing_up_hop", hop_up),
@@ -210,6 +213,32 @@ def build_peierls_pool() -> list[Any]:
         ("peierls_dn_curP", cur_dn * momentum),
         ("site0_density", jw_number_operator("JW", _NQ, _UP_MODES[0]) + jw_number_operator("JW", _NQ, _DN_MODES[0])),
         ("site0_densityX", (jw_number_operator("JW", _NQ, _UP_MODES[0]) + jw_number_operator("JW", _NQ, _DN_MODES[0])) * displacement),
+        # v2 enrichment: multi-quanta phonon powers and their dressed products
+        # so the manifold spans the 2- and 3-quantum sector states at nph3.
+        ("bond_XXX", displacement * (displacement * displacement)),
+        ("bond_PP", momentum * momentum),
+        ("bond_XPP", displacement * (momentum * momentum)),
+        ("peierls_hopXXX", hop_total * (displacement * (displacement * displacement))),
+        ("peierls_hopPP", hop_total * (momentum * momentum)),
+        ("peierls_curXX", cur_total * (displacement * displacement)),
+        ("peierls_curPP", cur_total * (momentum * momentum)),
+        ("peierls_dnXX", density_diff * (displacement * displacement)),
+        ("peierls_dblXX", double_hop * (displacement * displacement)),
+        ("peierls_dblP", double_hop * momentum),
+        ("site0_densityXX", (jw_number_operator("JW", _NQ, _UP_MODES[0]) + jw_number_operator("JW", _NQ, _DN_MODES[0])) * (displacement * displacement)),
+        ("site0_densityP", (jw_number_operator("JW", _NQ, _UP_MODES[0]) + jw_number_operator("JW", _NQ, _DN_MODES[0])) * momentum),
+        ("bond_nX", _bond_number() * displacement),
+        ("bond_nHop", _bond_number() * hop_total),
+        # v3: S^2-breaking (S_z- and number-conserving) spin-structure
+        # operators — the parity-odd triplet-like sector states are invisible
+        # to every spin-symmetric operator above.
+        ("spin_z_diff", spin_z_diff),
+        ("spin_z_total_site0", spin_z_site0),
+        ("spin_z_diffX", spin_z_diff * displacement),
+        ("spin_z_diffP", spin_z_diff * momentum),
+        ("spin_z_diffXX", spin_z_diff * (displacement * displacement)),
+        ("spin_z_diff_hop", spin_z_diff * hop_total),
+        ("spin_z_diff_cur", spin_z_diff * cur_total),
     ]
     basis = [pauli_string_basis_element("e" * _NQ, nq=_NQ, name="identity")]
     for name, poly in named:
