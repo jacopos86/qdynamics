@@ -129,6 +129,81 @@ def _ray_distance(psi_a: np.ndarray, psi_b: np.ndarray) -> float:
     return float(math.sqrt(max(0.0, 1.0 - min(1.0, abs(overlap) ** 2))))
 
 
+def build_local_ray_refit(
+    *,
+    target_psi: np.ndarray,
+    trust_radius: float,
+    max_iterations: int = 15,
+    skip_below: float = 1.0e-14,
+) -> Callable[[APMcLachlanState, np.ndarray], tuple[APMcLachlanState, np.ndarray]]:
+    """Bounded local refit minimizing Fubini--Study distance to the frozen ray.
+
+    Returns a ``certify_finalist``-compatible hook: it keeps the coordinate
+    word fixed and moves only the angles, inside the box trust region
+    ``|theta - theta_0|_inf <= trust_radius`` around the materialized point.
+    The objective ``F = 1 - |<psi_k|phi(theta)>|^2`` and its analytic gradient
+    come from one batched tangent pass per iterate; a finalist already on the
+    ray (``F <= skip_below``, every pure insertion at zero angle) is returned
+    untouched, and the refit is discarded unless it strictly reduced ``F``.
+    """
+
+    if float(trust_radius) <= 0.0:
+        raise ValueError("trust_radius must be positive.")
+    if int(max_iterations) < 1:
+        raise ValueError("max_iterations must be at least 1.")
+    target = np.asarray(target_psi, dtype=complex).reshape(-1)
+    target = target / float(np.linalg.norm(target))
+
+    def refit(
+        state: APMcLachlanState, theta: np.ndarray
+    ) -> tuple[APMcLachlanState, np.ndarray]:
+        from scipy.optimize import minimize
+
+        theta0 = np.asarray(theta, dtype=float).reshape(-1)
+        if theta0.size == 0:
+            return state, theta0
+        indices = tuple(range(int(theta0.size)))
+        psi_ref = np.asarray(state.psi_ref, dtype=complex).reshape(-1)
+
+        def objective(values: np.ndarray) -> tuple[float, np.ndarray]:
+            psi, tangents = state.executor.prepare_state_with_parameter_tangents(
+                np.asarray(values, dtype=float),
+                psi_ref,
+                parameter_indices=indices,
+            )
+            psi = np.asarray(psi, dtype=complex).reshape(-1)
+            overlap = complex(np.vdot(target, psi))
+            grad = np.empty(theta0.size, dtype=float)
+            for j, idx in enumerate(indices):
+                tangent = np.asarray(tangents[int(idx)], dtype=complex).reshape(-1)
+                grad[j] = -2.0 * float(
+                    np.real(np.conj(overlap) * np.vdot(target, tangent))
+                )
+            return float(1.0 - abs(overlap) ** 2), grad
+
+        f0, _g0 = objective(theta0)
+        if f0 <= float(skip_below):
+            return state, theta0
+        bounds = [
+            (float(v - trust_radius), float(v + trust_radius)) for v in theta0
+        ]
+        result = minimize(
+            objective,
+            theta0,
+            jac=True,
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"maxiter": int(max_iterations)},
+        )
+        refitted = np.asarray(result.x, dtype=float).reshape(-1)
+        f1, _g1 = objective(refitted)
+        if not np.all(np.isfinite(refitted)) or f1 >= f0:
+            return state, theta0
+        return state, refitted
+
+    return refit
+
+
 def certify_finalist(
     *,
     state: APMcLachlanState,
@@ -278,6 +353,7 @@ def certify_finalist(
 
 __all__ = [
     "CERTIFICATION_SCHEMA_V1",
+    "build_local_ray_refit",
     "CertificationGates",
     "CertificationResult",
     "certify_finalist",

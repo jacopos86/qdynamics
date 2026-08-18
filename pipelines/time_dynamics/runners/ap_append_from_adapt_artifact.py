@@ -1472,6 +1472,20 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--prune-condition-lambda-kappa-dam", type=float, default=0.0
     )
+    parser.add_argument(
+        "--certification-refit",
+        action="store_true",
+        help=(
+            "Enable the bounded local trust-region refit of materialized "
+            "finalists toward the frozen checkpoint ray before commit gates."
+        ),
+    )
+    parser.add_argument(
+        "--certification-refit-trust-radius", type=float, default=0.1
+    )
+    parser.add_argument(
+        "--certification-refit-max-iterations", type=int, default=15
+    )
     parser.add_argument("--prune-patch-smoothness-eta-max", type=float, default=1.0e-3)
     parser.add_argument("--patch-utility-delta-weight", type=float, default=1.0)
     parser.add_argument(
@@ -1710,6 +1724,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             prune_condition_lambda_kappa_dam=float(
                 args.prune_condition_lambda_kappa_dam
+            ),
+            certification_refit_enabled=bool(args.certification_refit),
+            certification_refit_trust_radius=float(
+                args.certification_refit_trust_radius
+            ),
+            certification_refit_max_iterations=int(
+                args.certification_refit_max_iterations
             ),
             eps_loss=float(args.eps_loss),
             cost_required_for_decisions=False,

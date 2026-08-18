@@ -302,3 +302,16 @@ def test_recorder_persists_attempted_deletion_losses_with_window() -> None:
     assert any(
         t == 4 for records in runtime_state.loss_history.values() for t, _ in records
     )
+
+
+def test_certification_refit_flag_runs_through_route_adapter() -> None:
+    selection, payload = _run(
+        _config(
+            certification_refit_enabled=True,
+            certification_refit_trust_radius=0.3,
+            certification_refit_max_iterations=10,
+        )
+    )
+    assert selection.kind in {"insert", "delete", "exchange", "stay"}
+    if selection.committed is not None:
+        assert selection.certification.certified

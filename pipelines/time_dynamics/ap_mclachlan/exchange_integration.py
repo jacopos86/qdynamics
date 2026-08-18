@@ -38,6 +38,7 @@ from pipelines.time_dynamics.ap_mclachlan.append_cost import (
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
 from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     CertificationGates,
+    build_local_ray_refit,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
     EXCHANGE_SELECTION_POLICY_V1,
@@ -363,6 +364,21 @@ def select_deletion_conditioned_patch(
             support_config.residual_ratio_threshold
         )
 
+    # Hook #3: optional bounded local refit toward the frozen checkpoint ray,
+    # applied to materialized finalists before the hard gates.  Pure
+    # insertions start on the ray and are skipped inside the hook.
+    refit = None
+    if bool(getattr(support_config, "certification_refit_enabled", False)):
+        refit = build_local_ray_refit(
+            target_psi=base_evaluation.psi,
+            trust_radius=float(
+                getattr(support_config, "certification_refit_trust_radius", 0.1)
+            ),
+            max_iterations=int(
+                getattr(support_config, "certification_refit_max_iterations", 15)
+            ),
+        )
+
     selection = select_exchange_patch(
         state=state,
         hamiltonian=hamiltonian,
@@ -379,6 +395,7 @@ def select_deletion_conditioned_patch(
             getattr(support_config, "structural_score_floor", 0.0) or 0.0
         ),
         escalate=escalate,
+        refit=refit,
         solve_repair_config=solve_repair_config,
     )
 

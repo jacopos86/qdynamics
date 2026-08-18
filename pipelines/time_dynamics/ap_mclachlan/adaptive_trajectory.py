@@ -214,6 +214,9 @@ class SupportPatchControllerConfig:
     prune_condition_lambda_schur: float = 0.0
     prune_condition_lambda_kappa_hist: float = 0.0
     prune_condition_lambda_kappa_dam: float = 0.0
+    certification_refit_enabled: bool = False
+    certification_refit_trust_radius: float = 0.1
+    certification_refit_max_iterations: int = 15
     exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
@@ -462,6 +465,13 @@ class SupportPatchControllerConfig:
             ),
             "prune_condition_lambda_kappa_dam": float(
                 self.prune_condition_lambda_kappa_dam
+            ),
+            "certification_refit_enabled": bool(self.certification_refit_enabled),
+            "certification_refit_trust_radius": float(
+                self.certification_refit_trust_radius
+            ),
+            "certification_refit_max_iterations": int(
+                self.certification_refit_max_iterations
             ),
             "exchange_cost_alpha": float(self.exchange_cost_alpha),
             "eps_loss": float(self.eps_loss),

@@ -69,6 +69,22 @@ Certification thresholds reuse `--prune-ray-distance-tol`,
 `--prune-patch-smoothness-eta-max`, `--append-schur-max-condition-number`.
 Below `--residual-ratio-threshold` no structural family is acquired at all.
 
+Deletion-utility hooks (all recorded in provenance):
+
+- **Conditioning** — `--prune-condition-lambda-kappa-rel/-dam` (default 0 =
+  off) weight the log10 condition-number relief/damage of the deletion branch
+  versus the base support, read from solve metadata the enumeration already
+  paid for (no extra eigendecompositions).
+- **History** — `--prune-history-lambda` (default 1) weights a windowed-mean
+  prior (`--prune-history-window`) of previously attempted deletion losses,
+  recorded per stable runtime coordinate label on the prune runtime state.
+- **Certification refit** — `--certification-refit` (default off) runs a
+  bounded L-BFGS-B trust-region refit (`--certification-refit-trust-radius`,
+  `--certification-refit-max-iterations`) of each materialized finalist's
+  angles toward the frozen checkpoint ray before the hard gates; pure
+  zero-angle insertions are skipped, and a refit that fails to reduce the
+  Fubini–Study infidelity is discarded.
+
 ## Scale guidance
 
 The singleton level is `|pool| × |retained cuts|` candidates, each one

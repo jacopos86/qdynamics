@@ -229,3 +229,131 @@ def test_materialization_failure_is_a_reported_rejection() -> None:
     )
     assert not result.certified
     assert result.reason.startswith("materialization_failed:")
+
+
+def test_local_ray_refit_recovers_deleted_angle_via_duplicate_generator() -> None:
+    """Hook #3: a survivor with the same generator absorbs the deleted angle."""
+
+    from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
+        build_local_ray_refit,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.state import (
+        state_without_runtime_indices,
+    )
+
+    xa = AnsatzTerm(label="sx0a", polynomial=_poly(("ex", 1.0)))
+    xb = AnsatzTerm(label="sx0b", polynomial=_poly(("ex", 1.0)))
+    state = _state((xa, xb, Z0), np.array([0.4, 0.3, -0.2]))
+    target = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+    ).psi
+
+    pruned_state, pruned_theta = state_without_runtime_indices(
+        state, (0,), theta_runtime=state.theta_runtime
+    )
+    refit = build_local_ray_refit(
+        target_psi=target, trust_radius=0.6, max_iterations=50
+    )
+    refit_state, refit_theta = refit(pruned_state, pruned_theta)
+    assert refit_state is pruned_state
+    psi = evaluate_mclachlan_geometry(
+        state=pruned_state,
+        hamiltonian=HAM,
+        theta_runtime=refit_theta,
+        time=0.0,
+    ).psi
+    fidelity = abs(complex(np.vdot(target, psi))) ** 2
+    assert fidelity == pytest.approx(1.0, abs=1.0e-10)
+    # The surviving same-generator coordinate absorbed the deleted 0.4.
+    assert refit_theta[0] == pytest.approx(0.7, abs=1.0e-5)
+    assert refit_theta[1] == pytest.approx(-0.2, abs=1.0e-5)
+
+
+def test_local_ray_refit_respects_trust_region_and_monotonicity() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
+        build_local_ray_refit,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.state import (
+        state_without_runtime_indices,
+    )
+
+    xa = AnsatzTerm(label="sx0a", polynomial=_poly(("ex", 1.0)))
+    xb = AnsatzTerm(label="sx0b", polynomial=_poly(("ex", 1.0)))
+    state = _state((xa, xb, Z0), np.array([0.4, 0.3, -0.2]))
+    target = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+    ).psi
+    pruned_state, pruned_theta = state_without_runtime_indices(
+        state, (0,), theta_runtime=state.theta_runtime
+    )
+
+    # Radius 0.1 cannot reach the exact compensation (+0.4): the refit stays
+    # inside the box and still strictly improves the overlap.
+    refit = build_local_ray_refit(
+        target_psi=target, trust_radius=0.1, max_iterations=50
+    )
+    _s, refit_theta = refit(pruned_state, pruned_theta)
+    assert np.all(np.abs(refit_theta - pruned_theta) <= 0.1 + 1.0e-12)
+
+    def infidelity(theta):
+        psi = evaluate_mclachlan_geometry(
+            state=pruned_state, hamiltonian=HAM, theta_runtime=theta, time=0.0
+        ).psi
+        return 1.0 - abs(complex(np.vdot(target, psi))) ** 2
+
+    assert infidelity(refit_theta) < infidelity(pruned_theta)
+
+    # A state already on the ray is returned untouched (pure-insert skip).
+    on_ray = build_local_ray_refit(target_psi=target, trust_radius=0.5)
+    same_state, same_theta = on_ray(state, state.theta_runtime)
+    assert same_state is state
+    assert np.array_equal(same_theta, np.asarray(state.theta_runtime, dtype=float))
+
+
+def test_refit_certifies_deletion_that_fails_without_it() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
+        build_local_ray_refit,
+    )
+
+    xa = AnsatzTerm(label="sx0a", polynomial=_poly(("ex", 1.0)))
+    xb = AnsatzTerm(label="sx0b", polynomial=_poly(("ex", 1.0)))
+    state = _state((xa, xb, Z0), np.array([0.4, 0.3, -0.2]))
+    evaluation = evaluate_mclachlan_geometry(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        include_tangent_matrix=True,
+    )
+    step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
+    gates = CertificationGates(ray_distance_max=1.0e-4, smoothness_eta_max=1.0e6)
+    common = dict(
+        state=state,
+        hamiltonian=HAM,
+        theta_runtime=state.theta_runtime,
+        time=0.0,
+        base_evaluation=evaluation,
+        base_step=step,
+        removed_runtime_indices=(0,),
+        insertions=(),
+        inverse_policy=POLICY,
+        gates=gates,
+    )
+
+    rejected = certify_finalist(**common)
+    assert not rejected.certified
+    assert rejected.reason == "ray_distance_above_max"
+
+    refit = build_local_ray_refit(
+        target_psi=evaluation.psi, trust_radius=0.6, max_iterations=50
+    )
+    certified = certify_finalist(**common, refit=refit)
+    assert certified.certified
+    assert certified.ray_distance <= 1.0e-4
+    assert certified.theta[0] == pytest.approx(0.7, abs=1.0e-5)
