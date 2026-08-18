@@ -21,6 +21,12 @@ is FileProvider/iCloud-managed recovery material unless the current task
 explicitly revalidates it. Before a run, confirm the active path and verify that
 Python sources under `src/` and `pipelines/` are not `compressed,dataless`.
 
+Invariant: other agent sessions may be active in this checkout at any
+time. For repo-changing work, create your own git worktree (under
+`Holstein_test_fullclone_3.worktrees/`) on your own branch, and stage
+commits with explicit paths only — never `git add -A` here. See Hard
+invariants.
+
 ## Route first
 
 Read only the next surface triggered by the request. Do not mine manuscripts,
