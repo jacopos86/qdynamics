@@ -112,6 +112,22 @@ are implementation validation, never novelty.
   C3's standing obligation (joint patch, not prune-then-append) is satisfied
   by this module; keep the budgeted variant described as budgeted, not as
   plain dominance.
+- Paper-I-convention sweep (nph3 weak / nph7 strong phonon sectors,
+  canonical u/g from stationary-core artifacts, per-regime full_meta pools):
+  `pipelines/exact_bench/paper_iii_qse_paper_i_convention_sweep.py` ->
+  `output/diagnostics/paper_iii_paper_i_convention_sweep_20260818_v1/`.
+  Honest mixed result in the strong-phonon sector: alpha=1 dominates
+  strong_strong_u8 but the complete linear-response class wins absolute
+  accuracy at weak_strong/intermediate_strong — cite as motivation for
+  exchange maintenance and multi-root objectives, never hide it.
+- Child-granularity study (Paper II atom coordinate):
+  `pipelines/exact_bench/paper_iii_qse_child_granularity.py` ->
+  `output/diagnostics/paper_iii_child_granularity_20260818_v1/`. The child
+  span is numerically exact (1e-15) in the studied regimes — the earlier
+  weak_strong "nph3 truncation limit" (4.3e-5) was macro-span limitation,
+  not phonon truncation; children require exact sector projection in
+  general (number non-conservation); macro granularity wins at low budget,
+  children beyond ~200 2Q.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
