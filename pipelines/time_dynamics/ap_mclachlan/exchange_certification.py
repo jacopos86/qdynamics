@@ -7,11 +7,14 @@ deletion-remapped cuts, preserve surviving parameters — optionally applies an
 injected local refit, rebuilds the patched geometry and fixed-step solve under
 the propagation policy, and evaluates the hard commit gates:
 
-* finite patched solve (theta_dot, gamma, captured drift);
-* Fubini--Study ray displacement against the checkpoint state;
-* phase-aligned state-space velocity smoothness
-  ``eta = ||v_patched - v_base||^2 / (||b||^2 + eps) <= tau_vel``;
-* retained-solve conditioning bound.
+* finite patched solve and retained-solve conditioning bound (every
+  finalist); and,
+* for **deletion-containing** finalists only, the Fubini--Study ray
+  displacement and the phase-aligned state-space velocity smoothness
+  ``eta = ||v_patched - v_base||^2 / (||b||^2 + eps) <= tau_vel``.
+  These are the route's deletion commit checks; a pure insertion exists to
+  change the realized velocity and starts at zero angle on the same ray, so
+  the deletion gates are computed for telemetry but not enforced on it.
 
 A failed finalist is rejected whole (patch atomicity) and certification
 advances to the next candidate; when none passes, the selector returns stay.
@@ -31,6 +34,7 @@ from pipelines.time_dynamics.ap_mclachlan.fixed_step import (
     FixedMcLachlanStep,
     SolveRepairConfig,
     solve_fixed_mclachlan_step,
+    solve_fixed_mclachlan_step_with_repair,
 )
 from pipelines.time_dynamics.ap_mclachlan.geometry import residual_denominator
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
@@ -139,6 +143,7 @@ def certify_finalist(
     gates: CertificationGates,
     refit: Callable[[APMcLachlanState, np.ndarray], tuple[APMcLachlanState, np.ndarray]]
     | None = None,
+    solve_repair_config: SolveRepairConfig | None = None,
 ) -> CertificationResult:
     """Materialize one finalist and run every hard commit gate.
 
@@ -179,10 +184,18 @@ def certify_finalist(
             time=float(time),
             include_tangent_matrix=True,
         )
-        patched_step = solve_fixed_mclachlan_step(
-            patched_evaluation.geometry,
-            inverse_policy=inverse_policy,
-        )
+        if solve_repair_config is not None and bool(solve_repair_config.enabled):
+            patched_step = solve_fixed_mclachlan_step_with_repair(
+                patched_evaluation.geometry,
+                inverse_policy=inverse_policy,
+                repair_config=solve_repair_config,
+                repair_dt=None,
+            )
+        else:
+            patched_step = solve_fixed_mclachlan_step(
+                patched_evaluation.geometry,
+                inverse_policy=inverse_policy,
+            )
     except (ValueError, np.linalg.LinAlgError) as exc:
         return CertificationResult(
             certified=False, reason=f"patched_solve_failed:{exc}"
@@ -204,8 +217,9 @@ def certify_finalist(
             condition_number=float(condition),
         )
 
+    deletion_containing = bool(removed)
     ray = _ray_distance(base_evaluation.psi, patched_evaluation.psi)
-    if ray > float(gates.ray_distance_max):
+    if deletion_containing and ray > float(gates.ray_distance_max):
         return CertificationResult(
             certified=False,
             reason="ray_distance_above_max",
@@ -239,7 +253,7 @@ def certify_finalist(
             reason=f"smoothness_unavailable:{exc}",
             ray_distance=ray,
         )
-    if eta > float(gates.smoothness_eta_max):
+    if deletion_containing and eta > float(gates.smoothness_eta_max):
         return CertificationResult(
             certified=False,
             reason="smoothness_eta_above_max",

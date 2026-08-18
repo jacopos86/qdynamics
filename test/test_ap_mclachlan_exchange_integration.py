@@ -154,18 +154,17 @@ def test_work_guard_and_frontier_telemetry_flow_through_payload() -> None:
 
 
 def test_escalation_respects_residual_threshold_predicate() -> None:
-    # Threshold far above the toy residual: after the d0 level fails, no
-    # further families are acquired.
+    # A score floor removes every d0 candidate; with the residual threshold
+    # far above the toy residual, escalation stops before any rung opens.
     selection, payload = _run(
         _config(
             residual_ratio_threshold=1.0e9,
-            prune_ray_distance_tol=1.0e-15,
-            prune_patch_smoothness_eta_max=1.0e-15,
+            structural_score_floor=1.0e30,
         )
     )
     assert selection.kind == "stay"
     assert selection.stop_reason == "escalation_predicate_false"
-    assert {a.family for a in selection.attempts} <= {"singleton_d0"}
+    assert selection.attempts == ()
 
 
 def test_min_surviving_support_bounds_deletions() -> None:

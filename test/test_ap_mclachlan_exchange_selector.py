@@ -192,33 +192,29 @@ def test_all_gates_failing_returns_stay_with_full_attempt_record() -> None:
 
 
 def test_failed_higher_score_advances_to_next_candidate() -> None:
-    # Harvest the d0 insert etas, then set the smoothness gate between the
-    # largest and the smallest: the top-scored (most useful, largest velocity
-    # change) insert fails and a lower-scored one certifies.
-    kwargs = _selection_kwargs()
-    survey = select_exchange_patch(
-        gates=CertificationGates(ray_distance_max=1.0, smoothness_eta_max=1e9),
-        **kwargs,
+    # Deletion-only pool with per-branch costs that rank the big-angle
+    # deletion first; the ray gate sits between the two deletions' ray
+    # displacements, so the top-ranked fails and the tiny-angle one passes.
+    def deletion_cost(removed):
+        return 1.0e15 if 0 in removed else 1.0
+
+    kwargs = _selection_kwargs(
+        theta=(0.3, 1.0e-6, 0.06),
+        candidate_pool_for_deletion=lambda removed: (),
+        cuts_by_atom={},
+        deletion_cost=deletion_cost,
     )
-    top_eta = survey.attempts[-1].smoothness_eta
-    assert top_eta is not None and top_eta > 0.0
-    kwargs = _selection_kwargs()
     selection = select_exchange_patch(
-        gates=CertificationGates(
-            ray_distance_max=1.0, smoothness_eta_max=top_eta / 2.0
-        ),
-        escalate=lambda: False,
+        gates=CertificationGates(ray_distance_max=1.0e-3, smoothness_eta_max=1e6),
         **kwargs,
     )
-    if selection.committed is None:
-        # Every d0 candidate exceeded half the top eta; the ordering property
-        # still holds vacuously, but the intended construction is a commit.
-        pytest.skip("no candidate below the reduced eta gate on this toy")
+    assert selection.kind == "delete"
+    assert selection.committed.removed_runtime_indices == (1,)
     reasons = [a.reason for a in selection.attempts]
-    assert "smoothness_eta_above_max" in reasons
+    assert reasons[0] == "ray_distance_above_max"
     assert reasons[-1] == "certified"
     failed_scores = [a.score for a in selection.attempts if a.reason != "certified"]
-    assert min(failed_scores) > selection.committed.score
+    assert max(failed_scores) > selection.committed.score
 
 
 def test_escalation_predicate_false_stops_after_first_level() -> None:

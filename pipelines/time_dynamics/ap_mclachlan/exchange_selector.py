@@ -138,6 +138,7 @@ def select_exchange_patch(
     escalate: Callable[[], bool] | None = None,
     refit: Callable[[APMcLachlanState, np.ndarray], tuple[APMcLachlanState, np.ndarray]]
     | None = None,
+    solve_repair_config: Any | None = None,
 ) -> ExchangeSelection:
     """Run structural families and certify per level until one commit passes.
 
@@ -204,6 +205,7 @@ def select_exchange_patch(
                 inverse_policy=inverse_policy,
                 gates=gates,
                 refit=refit,
+                solve_repair_config=solve_repair_config,
             )
             attempts.append(
                 AttemptRecord(

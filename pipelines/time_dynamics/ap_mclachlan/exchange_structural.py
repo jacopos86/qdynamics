@@ -100,13 +100,22 @@ class StructuralCandidate:
 
     @property
     def order_key(self) -> tuple:
-        """Frozen tie order: deletion tuple, then plan raw word."""
+        """Frozen tie order: deletion tuple, then a type-homogeneous plan key.
 
-        plan_key = (
-            self.inserted_selection
-            if self.plan is None
-            else tuple(token.lex_key for token in self.plan.full_word)
-        )
+        Singleton selections and full-word plans encode into the same string
+        shape so ties across candidate shapes always compare.
+        """
+
+        if self.plan is None:
+            plan_key = tuple(
+                ("sel", str(atom_id), f"{int(cut):06d}")
+                for atom_id, cut in self.inserted_selection
+            )
+        else:
+            plan_key = tuple(
+                ("tok", str(token.kind), f"{int(token.sort_index):06d}", token.key)
+                for token in self.plan.full_word
+            )
         return (self.removed_runtime_indices, plan_key)
 
 

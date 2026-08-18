@@ -274,6 +274,7 @@ def select_deletion_conditioned_patch(
     runtime_state: Any,
     time_index: int,
     active_prune_atoms: Any,
+    solve_repair_config: Any | None = None,
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
     """Run the exchange selector at one checkpoint with route wiring.
 
@@ -322,6 +323,7 @@ def select_deletion_conditioned_patch(
             getattr(support_config, "structural_score_floor", 0.0) or 0.0
         ),
         escalate=escalate,
+        solve_repair_config=solve_repair_config,
     )
 
     payload: dict[str, Any] = {

@@ -110,9 +110,15 @@ def test_append_reference_energy_does_not_change_decision_or_theta() -> None:
     assert absurd_reference["plot_rows"][0]["patch_selected_label"] == no_reference["plot_rows"][0]["patch_selected_label"]
     for key in ("patch_candidate_count", "patch_scored_count", "patch_batch_score_count"):
         assert absurd_reference["plot_rows"][0][key] == no_reference["plot_rows"][0][key]
-    no_reference_scores = no_reference["trajectory"]["points"][0]["patch_decision"]["batch_evaluation"]["candidate_scores"]
-    absurd_reference_scores = absurd_reference["trajectory"]["points"][0]["patch_decision"]["batch_evaluation"]["candidate_scores"]
-    assert absurd_reference_scores == no_reference_scores
+    # The exchange selector records its full attempt trail in the decision
+    # metadata; identical trails prove the reference never entered scoring.
+    no_reference_attempts = no_reference["trajectory"]["points"][0][
+        "patch_decision"
+    ]["metadata"]["attempts"]
+    absurd_reference_attempts = absurd_reference["trajectory"]["points"][0][
+        "patch_decision"
+    ]["metadata"]["attempts"]
+    assert absurd_reference_attempts == no_reference_attempts
     theta_no_ref = [
         point["theta_runtime"]
         for point in no_reference["trajectory"]["points"]

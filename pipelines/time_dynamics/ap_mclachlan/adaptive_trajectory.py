@@ -57,6 +57,13 @@ from pipelines.time_dynamics.ap_mclachlan.inverse import (
     McLachlanInversePolicy,
     supported_inverse,
 )
+from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+    select_deletion_conditioned_patch,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
+    EXCHANGE_SELECTION_POLICY_V1,
+    ExchangeSelection,
+)
 from pipelines.time_dynamics.ap_mclachlan.performance import (
     NULL_PHASE as _NO_PHASE,
     PHASE_APPEND_GEOMETRY_CACHE,
@@ -1035,6 +1042,66 @@ class AppendMclachlanTrajectory:
         }
 
 
+_EXCHANGE_KIND_TO_PATCH = {
+    "insert": PATCH_APPEND,
+    "delete": PATCH_DELETE,
+    "exchange": PATCH_EXCHANGE,
+    "stay": PATCH_NO_EDIT,
+}
+
+
+def _decision_from_exchange_selection(
+    selection: ExchangeSelection,
+    payload: Mapping[str, Any],
+) -> tuple[
+    PatchDecision,
+    APMcLachlanState | None,
+    np.ndarray | None,
+    GeometryEvaluation | None,
+    FixedMcLachlanStep | None,
+]:
+    """Map an exchange selection onto the trajectory's PatchDecision contract."""
+
+    scored_count = int(
+        (payload.get("work_guard") or {}).get("scored_count", len(selection.attempts))
+    )
+    metadata = dict(payload)
+    if selection.committed is None or selection.certification is None:
+        return (
+            PatchDecision(
+                patch_kind=PATCH_NO_EDIT,
+                accepted=False,
+                candidate_count=scored_count,
+                scored_count=scored_count,
+                reason=str(selection.stop_reason),
+                metadata=metadata,
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+    committed = selection.committed
+    certification = selection.certification
+    return (
+        PatchDecision(
+            patch_kind=_EXCHANGE_KIND_TO_PATCH[str(selection.kind)],
+            accepted=True,
+            candidate_count=scored_count,
+            scored_count=scored_count,
+            selected_label=(
+                ",".join(a for a, _p in committed.inserted_selection) or None
+            ),
+            reason=f"accepted_deletion_conditioned_{selection.kind}",
+            metadata=metadata,
+        ),
+        certification.state,
+        np.asarray(certification.theta, dtype=float).reshape(-1),
+        certification.evaluation,
+        certification.step,
+    )
+
+
 def run_append_mclachlan_trajectory(
     *,
     state: APMcLachlanState,
@@ -1062,6 +1129,13 @@ def run_append_mclachlan_trajectory(
         support_patch_config=support_patch_config,
     )
     prune_runtime_state = _PruneControllerRuntimeState()
+    # The deletion-conditioned exchange selector is the single current route;
+    # a missing support-patch config resolves to its typed defaults.
+    effective_support_config = (
+        support_patch_config
+        if support_patch_config is not None
+        else SupportPatchControllerConfig(append_ladder_mode="combinatorial")
+    )
 
     for index, time_value in enumerate(time_grid):
         dt_to_next = (
@@ -1074,11 +1148,9 @@ def run_append_mclachlan_trajectory(
                 hamiltonian=hamiltonian,
                 theta_runtime=theta_current,
                 time=float(time_value),
-                include_tangent_matrix=(
-                    _use_combinatorial_append_ladder(support_patch_config)
-                    or _needs_prune_patch_smoothness(support_patch_config)
-                    or _needs_parent_macro_scout_tangent_matrix(support_patch_config)
-                ),
+                # The exchange selector's structural cache and certification
+                # smoothness gate always consume the frozen tangent matrix.
+                include_tangent_matrix=True,
             )
         kink_reference_theta_dot = _same_dimension_theta_dot_or_none(
             previous_accepted_theta_dot,
@@ -1128,40 +1200,9 @@ def run_append_mclachlan_trajectory(
                     scored_count=0,
                     reason="append_before_min_time",
                 )
-            elif _use_unified_support_patch_selector(support_patch_config):
-                with phase(PHASE_UNIFIED_SELECT):
-                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_unified_support_patch(
-                        state=current_state,
-                        hamiltonian=hamiltonian,
-                        theta_runtime=theta_current,
-                        time=float(time_value),
-                        base_evaluation=evaluation,
-                        base_step=fixed_step,
-                        inverse_policy=decision_inverse_policy,
-                        solve_repair_config=solve_repair_config,
-                        support_config=support_patch_config,
-                        runtime_state=prune_runtime_state,
-                        repair_dt=None,
-                        time_index=int(index),
-                    )
-            elif _use_combinatorial_append_ladder(support_patch_config):
-                with phase(PHASE_APPEND_SELECT):
-                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_ladder_patch(
-                        state=current_state,
-                        hamiltonian=hamiltonian,
-                        theta_runtime=theta_current,
-                        time=float(time_value),
-                        base_evaluation=evaluation,
-                        base_step=fixed_step,
-                        inverse_policy=decision_inverse_policy,
-                        solve_repair_config=solve_repair_config,
-                        support_config=support_patch_config,
-                        repair_dt=None,
-                        time_index=int(index),
-                    )
             else:
-                with phase(PHASE_APPEND_SELECT):
-                    decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_append_patch(
+                with phase(PHASE_UNIFIED_SELECT):
+                    selection, selection_payload = select_deletion_conditioned_patch(
                         state=current_state,
                         hamiltonian=hamiltonian,
                         theta_runtime=theta_current,
@@ -1169,10 +1210,19 @@ def run_append_mclachlan_trajectory(
                         base_evaluation=evaluation,
                         base_step=fixed_step,
                         inverse_policy=decision_inverse_policy,
+                        support_config=effective_support_config,
+                        runtime_state=prune_runtime_state,
+                        time_index=int(index),
+                        active_prune_atoms=_active_prune_atoms,
                         solve_repair_config=solve_repair_config,
-                        controller_config=controller_config,
-                        repair_dt=None,
                     )
+                (
+                    decision,
+                    maybe_state,
+                    maybe_theta,
+                    maybe_eval,
+                    maybe_step,
+                ) = _decision_from_exchange_selection(selection, selection_payload)
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
                 current_state = maybe_state
                 theta_current = maybe_theta
@@ -1193,73 +1243,6 @@ def run_append_mclachlan_trajectory(
                         **transition_metadata,
                     },
                 )
-
-        if (
-            index + 1 < len(time_grid)
-            and not bool(decision.accepted)
-            and not _use_unified_support_patch_selector(support_patch_config)
-            and _use_active_prune_ladder(support_patch_config)
-        ):
-            with phase(PHASE_PRUNE_SELECT):
-                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_ladder_patch(
-                    state=current_state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    base_evaluation=evaluation,
-                    base_step=fixed_step,
-                    inverse_policy=fixed_step.inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    support_config=support_patch_config,
-                    runtime_state=prune_runtime_state,
-                    repair_dt=None,
-                    time_index=int(index),
-                )
-            if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                current_state = maybe_state
-                theta_current = maybe_theta
-                evaluation = maybe_eval
-                fixed_step = maybe_step
-                prune_count += 1
-                prune_runtime_state.accepted_commit_count += 1
-                transition_metadata = prune_runtime_state.update_after_support_change(
-                    new_state=current_state,
-                    theta_runtime=theta_current,
-                    patch_kind=str(decision.patch_kind),
-                )
-                decision = replace(
-                    decision,
-                    metadata={
-                        **dict(decision.metadata or {}),
-                        **transition_metadata,
-                    },
-                )
-
-        if (
-            index + 1 < len(time_grid)
-            and not bool(decision.accepted)
-            and support_patch_config is None
-            and prune_count < int(controller_config.max_total_prunes)
-        ):
-            with phase(PHASE_PRUNE_SELECT):
-                decision, maybe_state, maybe_theta, maybe_eval, maybe_step = _select_prune_patch(
-                    state=current_state,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    base_evaluation=evaluation,
-                    base_step=fixed_step,
-                    inverse_policy=fixed_step.inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    controller_config=controller_config,
-                    repair_dt=None,
-                )
-            if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                current_state = maybe_state
-                theta_current = maybe_theta
-                evaluation = maybe_eval
-                fixed_step = maybe_step
-                prune_count += 1
 
         integration: IntegrationStep | None = None
         if index + 1 < len(time_grid):
@@ -1312,15 +1295,8 @@ def run_append_mclachlan_trajectory(
         support_patch_config=support_patch_config,
         solve_repair_config=solve_repair_config,
         metadata={
-            "trajectory_kind": "append_first_support_patch",
-            "append_ladder_enabled": bool(
-                _use_combinatorial_append_ladder(support_patch_config)
-            ),
-            "append_ladder_mode": (
-                "legacy_singleton"
-                if support_patch_config is None
-                else str(support_patch_config.append_ladder_mode)
-            ),
+            "trajectory_kind": "deletion_conditioned_exchange_support_patch",
+            "selection_policy": EXCHANGE_SELECTION_POLICY_V1,
             "uses_reference_for_decision": False,
             "uses_exact_reference_for_decision": False,
             "uses_future_exact_forecast_for_decision": False,
