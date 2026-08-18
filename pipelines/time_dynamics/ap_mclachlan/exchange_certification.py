@@ -42,6 +42,7 @@ from pipelines.time_dynamics.ap_mclachlan.hamiltonian import TimeDependentHamilt
 from pipelines.time_dynamics.ap_mclachlan.inverse import McLachlanInversePolicy
 from pipelines.time_dynamics.ap_mclachlan.state import (
     APMcLachlanState,
+    APMcLachlanStateParityError,
     state_with_inserted_runtime_coordinates,
     state_without_runtime_indices,
 )
@@ -165,7 +166,7 @@ def certify_finalist(
         if refit is not None:
             patched_state, patched_theta = refit(patched_state, patched_theta)
             patched_theta = np.asarray(patched_theta, dtype=float).reshape(-1)
-    except (ValueError, np.linalg.LinAlgError) as exc:
+    except (ValueError, APMcLachlanStateParityError, np.linalg.LinAlgError) as exc:
         return CertificationResult(
             certified=False, reason=f"materialization_failed:{exc}"
         )

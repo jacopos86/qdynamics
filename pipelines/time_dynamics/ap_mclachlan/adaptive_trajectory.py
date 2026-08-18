@@ -201,6 +201,11 @@ class SupportPatchControllerConfig:
     append_macro_scout_parent_cost_alpha: float = 1.0
     append_min_time: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
+    # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
+    interaction_frontier_widths: tuple[int, ...] | None = None
+    max_insertion_batch_size: int | None = None
+    structural_score_floor: float = 0.0
+    max_joint_patch_evaluations: int | None = None
     max_prune_batch_size: int = 0
     prune_rung_set_cap: int = 0
     prune_prefilter_size: int = 0
@@ -418,6 +423,22 @@ class SupportPatchControllerConfig:
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
+            "interaction_frontier_widths": (
+                None
+                if self.interaction_frontier_widths is None
+                else [int(w) for w in self.interaction_frontier_widths]
+            ),
+            "max_insertion_batch_size": (
+                None
+                if self.max_insertion_batch_size is None
+                else int(self.max_insertion_batch_size)
+            ),
+            "structural_score_floor": float(self.structural_score_floor),
+            "max_joint_patch_evaluations": (
+                None
+                if self.max_joint_patch_evaluations is None
+                else int(self.max_joint_patch_evaluations)
+            ),
             "max_prune_batch_size": int(self.max_prune_batch_size),
             "prune_rung_set_cap": int(self.prune_rung_set_cap),
             "prune_prefilter_size": int(self.prune_prefilter_size),
