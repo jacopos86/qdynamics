@@ -35,6 +35,8 @@ PEIERLS_JSON = DIAG / "paper_iii_peierls_pilot_20260819_v1/peierls_pilot_v4.json
 COMPARATOR_MATRIX_JSON = (
     DIAG / "paper_iii_comparator_matrix_20260819_v1/comparator_matrix.json"
 )
+DRIVEN_JSON = DIAG / "paper_iii_driven_dynamics_20260819_v1/driven_dynamics.json"
+ADAPTIVE_JSON = DIAG / "paper_iii_driven_dynamics_20260819_v1/adaptive_dynamics.json"
 
 _ARM_LABELS = {
     "fixed_linear_response_complete": "fixed linear-response class (complete)",
@@ -243,6 +245,83 @@ def build_comparator_matrix_fragment() -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_driven_dynamics_fragment() -> str:
+    payload = _load(DRIVEN_JSON)
+    lines = [_fragment_header([DRIVEN_JSON])]
+    lines.append(r"\begin{widetext}")
+    lines.append(
+        r"\inlinetablecaption{tab:qse_driven_diag}{Statevector-diagnostic "
+        r"frozen-QSE driven propagation on the six Paper-I regimes: initial "
+        r"state is the selected first-excitation Ritz root, driven by the "
+        r"staggered-density gaussian-sinusoid pulse ($A=0.2$, $T=8$, 160 "
+        r"midpoint steps) at the worst frequency of a QSE-anchored sweep. "
+        r"The escape flux $\smash{[\Var_\Psi(H(t))-\|(\widehat M(t)-E)y\|^2]_+^{1/2}}$ "
+        r"is measurement-compatible; its $t{=}0$ value is the static Ritz "
+        r"residual and stays below the selection stop "
+        r"$\varepsilon=10^{-3}$.}"
+    )
+    lines.append(r"\begin{center}")
+    lines.append(r"\scriptsize")
+    lines.append(r"\begin{ruledtabular}")
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}")
+    lines.append(
+        r"Regime & $k$ & $\omega^\ast$ & flux $t{=}0$ & max flux & "
+        r"min $|\langle\Psi_{\rm ex}|\Psi\rangle|^2$ & exact response (ptp) \\"
+    )
+    lines.append(r"\colrule")
+    for regime, record in payload["regimes"].items():
+        worst = max(
+            record["omega_sweep"], key=lambda row: float(row["summary"]["max_escape_flux"])
+        )
+        summary = worst["summary"]
+        lines.append(
+            rf"{_escape(regime)} & {record['selection']['support_size']} & "
+            rf"{worst['omega']:.3f} & {_sci(summary['initial_escape_flux'])} & "
+            rf"{_sci(summary['max_escape_flux'])} & {summary['min_fidelity']:.4f} & "
+            rf"{_sci(summary['exact_density_peak_to_peak'])} \\"
+        )
+    lines.append(r"\end{tabular*}")
+    lines.append(r"\end{ruledtabular}")
+    lines.append(r"\end{center}")
+    lines.append(r"\end{widetext}")
+    return "\n".join(lines) + "\n"
+
+
+def build_adaptive_dynamics_fragment() -> str:
+    payload = _load(ADAPTIVE_JSON)
+    lines = [_fragment_header([ADAPTIVE_JSON])]
+    lines.append(
+        r"\inlinetablecaption{tab:qse_adaptive_diag}{Frozen versus adaptive "
+        r"QSE propagation at each regime's worst-escape drive frequency. "
+        r"Adaptive growth admits, when the escape flux exceeds $10^{-2}$, "
+        r"the pool record whose manifold-orthogonal component best aligns "
+        r"with the unrepresented drift, then rebuilds the retained support "
+        r"in place.}"
+    )
+    lines.append(r"\begin{center}")
+    lines.append(r"\scriptsize")
+    lines.append(r"\begin{ruledtabular}")
+    lines.append(r"\begin{tabular}{lccccc}")
+    lines.append(
+        r"Regime & $\omega^\ast$ & min fid.\ (frozen) & min fid.\ (adaptive) & "
+        r"records added & added 2Q \\"
+    )
+    lines.append(r"\colrule")
+    for regime, record in payload["regimes"].items():
+        frozen = record["arms"]["frozen"]["summary"]
+        adaptive = record["arms"]["adaptive"]["summary"]
+        lines.append(
+            rf"{_escape(regime)} & {record['omega']:.3f} & "
+            rf"{frozen['min_fidelity']:.4f} & {adaptive['min_fidelity']:.4f} & "
+            rf"{adaptive['growth_event_count']} & "
+            rf"{record['arms']['adaptive']['added_2q_total']:.0f} \\"
+        )
+    lines.append(r"\end{tabular}")
+    lines.append(r"\end{ruledtabular}")
+    lines.append(r"\end{center}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
@@ -254,6 +333,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         "paper_iii_peierls_table.tex": build_peierls_fragment(),
         "paper_iii_comparator_matrix_table.tex": build_comparator_matrix_fragment(),
     }
+    optional = {
+        "paper_iii_driven_table.tex": (build_driven_dynamics_fragment, DRIVEN_JSON),
+        "paper_iii_adaptive_table.tex": (build_adaptive_dynamics_fragment, ADAPTIVE_JSON),
+    }
+    for name, (builder, source) in optional.items():
+        if source.is_file():
+            fragments[name] = builder()
+        else:
+            print(f"skipped {name}: missing {source}")
     for name, content in fragments.items():
         (args.output_dir / name).write_text(content, encoding="utf-8")
         print(f"wrote {args.output_dir / name}")

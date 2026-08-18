@@ -43,6 +43,10 @@ EVIDENCE = {
     "transition_strengths": DIAG
     / "paper_iii_transition_strengths_20260818_v1/transition_strengths_retained.json",
 }
+OPTIONAL_EVIDENCE = {
+    "driven_dynamics": DIAG / "paper_iii_driven_dynamics_20260819_v1/driven_dynamics.json",
+    "adaptive_dynamics": DIAG / "paper_iii_driven_dynamics_20260819_v1/adaptive_dynamics.json",
+}
 
 
 def _load(key: str) -> dict[str, Any]:
@@ -276,10 +280,67 @@ def build_markdown() -> str:
     )
     add("")
 
+    driven_path = OPTIONAL_EVIDENCE["driven_dynamics"]
+    if driven_path.is_file():
+        driven = json.loads(driven_path.read_text(encoding="utf-8"))
+        add("## Driven excited-state dynamics (frozen QSE, worst-escape frequency)")
+        add("")
+        add(
+            "Initial state: selected first-excitation Ritz root; drive: staggered "
+            "density, gaussian-sinusoid envelope (A=0.2, tbar=4, T=8, 160 midpoint "
+            "steps); frequency swept over a QSE-anchored grid, worst-escape row shown. "
+            "Escape flux = sqrt([Var(H(t)) - represented drift]+), measurement-"
+            "compatible; its t=0 value is the static Ritz residual (below the "
+            "selection stop 1e-3 by construction)."
+        )
+        add("")
+        add("| Regime | k | w* | flux t=0 | max flux | min fidelity | max dens err | exact response (ptp) |")
+        add("|---|---|---|---|---|---|---|---|")
+        for regime, record in driven["regimes"].items():
+            worst = max(
+                record["omega_sweep"],
+                key=lambda row: float(row["summary"]["max_escape_flux"]),
+            )
+            summary = worst["summary"]
+            add(
+                f"| {regime} | {record['selection']['support_size']} | "
+                f"{worst['omega']:.3f} | {_sci(summary['initial_escape_flux'])} | "
+                f"{_sci(summary['max_escape_flux'])} | {summary['min_fidelity']:.4f} | "
+                f"{_sci(summary['max_staggered_density_abs_error'])} | "
+                f"{_sci(summary['exact_density_peak_to_peak'])} |"
+            )
+        add("")
+
+    adaptive_path = OPTIONAL_EVIDENCE["adaptive_dynamics"]
+    if adaptive_path.is_file():
+        adaptive = json.loads(adaptive_path.read_text(encoding="utf-8"))
+        add("## Adaptive vs frozen QSE propagation at the worst-escape frequency")
+        add("")
+        add(
+            "Growth rule: escape flux above 1e-2 admits the pool record whose "
+            "manifold-orthogonal component best aligns with the unrepresented "
+            "drift; the retained support is rebuilt and the state re-injected."
+        )
+        add("")
+        add("| Regime | w* | min fid (frozen) | min fid (adaptive) | records added | added 2Q |")
+        add("|---|---|---|---|---|---|")
+        for regime, record in adaptive["regimes"].items():
+            frozen = record["arms"]["frozen"]["summary"]
+            grown = record["arms"]["adaptive"]["summary"]
+            add(
+                f"| {regime} | {record['omega']:.3f} | {frozen['min_fidelity']:.4f} | "
+                f"{grown['min_fidelity']:.4f} | {grown['growth_event_count']} | "
+                f"{record['arms']['adaptive']['added_2q_total']:.0f} |"
+            )
+        add("")
+
     add("## Evidence inventory")
     add("")
     for key, path in EVIDENCE.items():
         add(f"- {key}: `{path.relative_to(REPO_ROOT)}`")
+    for key, path in OPTIONAL_EVIDENCE.items():
+        if path.is_file():
+            add(f"- {key}: `{path.relative_to(REPO_ROOT)}`")
     add(
         "- drivers: `pipelines/exact_bench/paper_iii_qse_paper_i_convention_sweep.py`, "
         "`paper_iii_qse_exchange_repair.py`, `paper_iii_qse_comparator_arms.py`, "

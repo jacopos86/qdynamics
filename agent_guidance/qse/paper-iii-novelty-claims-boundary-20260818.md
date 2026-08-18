@@ -181,3 +181,37 @@ are implementation validation, never novelty.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
+- Driven-dynamics matrix (2026-08-19,
+  `pipelines/exact_bench/paper_iii_qse_driven_dynamics.py` ->
+  `paper_iii_driven_dynamics_20260819_v1/driven_dynamics.json`): frozen
+  QSE propagation of the selected first-excitation root under the
+  staggered-density gaussian-sinusoid drive (A=0.2, tbar=4, T=8, 160
+  midpoint steps), frequency swept on a QSE-anchored grid. Finding: the
+  manuscript escape FRACTION saturates at 1 for near-eigenstate initial
+  states (variance = squared static residual); the informative,
+  measurement-compatible scalar is the escape FLUX (unnormalized
+  numerator, sqrt). Baseline flux = static Ritz residual (< eps=1e-3
+  everywhere); drive amplifies it 40-240x in the four responsive
+  regimes, tracking fidelity loss (min 0.937-0.981) and observable
+  error. Both u=8 regimes are drive-dark (first excitation = sector
+  spin triplet, one electron/site, annihilated by staggered density):
+  zero response, flux flat at baseline, frozen propagation exact — the
+  diagnostic certifies dynamical closure without exact references.
+- Adaptive-growth negative result (2026-08-19,
+  `pipelines/exact_bench/paper_iii_qse_adaptive_dynamics.py` ->
+  `adaptive_dynamics.json`): admitting the best drift-aligned pool
+  record at escape checkpoints (support rebuild + state re-injection,
+  losses <=1e-8) does NOT improve driven fidelity: admitted records
+  align up to ~60% with the instantaneous drift at isolated
+  checkpoints (few percent at most others), yet peak flux and fidelity
+  are unchanged at the 16-addition cap — the drive regenerates
+  out-of-pool directions faster than records can supply them. Driven
+  escape is POOL-LIMITED — the missing directions are not any pool
+  record applied to the reference — so
+  record-level adaptivity cannot close it and live circuit refinement
+  (AP-McLachlan handoff, Paper II exchange route) is the principled
+  third tier. Claim boundary: do NOT claim adaptive-QSE growth closes
+  driven escape; DO claim the escalation trigger (flux + alignment
+  scan) is fully premeasurable. Per-regime promoted-AP handoff is NOT
+  yet evidence (July demo is locked to the weak_weak advisor
+  artifacts); do not cite it as regime-wide.
