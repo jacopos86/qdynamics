@@ -53,6 +53,30 @@ ORACLE_KIND_MARRAKESH_GRAPH_SPAN = "marrakesh_graph_span_v1"
 ORACLE_KIND_BACKEND_TRANSPILE = "backend_transpile_single_v1"
 _ORACLE_KINDS = (ORACLE_KIND_MARRAKESH_GRAPH_SPAN, ORACLE_KIND_BACKEND_TRANSPILE)
 
+COST_WEIGHTS_PRESET_CANONICAL = "canonical_paper_i_v1"
+COST_WEIGHTS_PRESET_TWO_QUBIT_ONLY = "two_qubit_only_v1"
+_COST_WEIGHTS_PRESETS = (COST_WEIGHTS_PRESET_CANONICAL, COST_WEIGHTS_PRESET_TWO_QUBIT_ONLY)
+
+
+def resolve_cost_weights_preset(preset: str) -> PaperICostWeights:
+    """Resolve a named cost-weight preset.
+
+    ``two_qubit_only_v1`` makes the scalarized cost exactly the compiled
+    two-qubit gate coordinate (lambda_2q=1, all other components zero) — the
+    cost measure the Paper III C2 claim is stated in.
+    """
+
+    name = str(preset)
+    if name == COST_WEIGHTS_PRESET_CANONICAL:
+        return PAPER_I_CANONICAL_COST_WEIGHTS
+    if name == COST_WEIGHTS_PRESET_TWO_QUBIT_ONLY:
+        return PaperICostWeights(
+            lambda_2q=1.0, lambda_d=0.0, lambda_1q=0.0, lambda_theta=0.0, lambda_shot=0.0
+        )
+    raise ValueError(
+        f"cost weights preset must be one of {list(_COST_WEIGHTS_PRESETS)!r}; got {name!r}."
+    )
+
 
 def qse_basis_element_to_ansatz_term(element: QSEBasisElement) -> AnsatzTerm:
     """Map one QSE basis element to the Paper I ``AnsatzTerm`` contract."""
@@ -292,6 +316,7 @@ def compiled_costs_manifest_payload(
     oracle_kind: str,
     num_qubits: int,
     cost_weights: PaperICostWeights | None = None,
+    cost_weights_preset: str | None = None,
 ) -> dict[str, Any]:
     """Render annotation rows as an additive, diagnostic-only manifest payload."""
 
@@ -326,6 +351,7 @@ def compiled_costs_manifest_payload(
         },
         "oracle_kind": str(oracle_kind),
         "num_qubits": int(num_qubits),
+        "cost_weights_preset": cost_weights_preset,
         "cost_weights": {str(key): float(value) for key, value in weights.as_lambda_dict().items()},
         "shot_component_annotated": False,
         "rows": row_payloads,

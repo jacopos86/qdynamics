@@ -116,6 +116,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional multiplicative geometry cost discount: score = utility / cost^alpha (default off).",
     )
     parser.add_argument(
+        "--static-record-selection-cost-weights",
+        choices=["canonical_paper_i_v1", "two_qubit_only_v1"],
+        default="canonical_paper_i_v1",
+        help=(
+            "Scalarization preset for compiled costs: the canonical Paper I lambda blend, "
+            "or two_qubit_only_v1 (cost = compiled 2Q gate coordinate exactly)."
+        ),
+    )
+    parser.add_argument(
         "--static-record-selection-cost-frontier",
         action="store_true",
         help="Emit the accuracy-versus-compiled-cost frontier over admitted prefixes of the selected basis.",
@@ -884,13 +893,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             compiled_cost_oracle_kind = "marrakesh_graph_span_v1"
         candidate_compiled_costs = None
         if compiled_cost_oracle_kind is not None:
-            from pipelines.qse_spectra.compiled_costs import annotate_basis_with_compiled_costs
+            from pipelines.qse_spectra.compiled_costs import (
+                annotate_basis_with_compiled_costs,
+                resolve_cost_weights_preset,
+            )
 
             try:
+                compiled_cost_weights = resolve_cost_weights_preset(
+                    str(args.static_record_selection_cost_weights)
+                )
                 compiled_cost_rows = annotate_basis_with_compiled_costs(
                     candidate_basis,
                     num_qubits=int(nq),
                     oracle_kind=str(compiled_cost_oracle_kind),
+                    cost_weights=compiled_cost_weights,
                 )
             except ValueError as exc:
                 parser.error(str(exc))
@@ -947,6 +963,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 compiled_cost_rows,
                 oracle_kind=str(compiled_cost_oracle_kind),
                 num_qubits=int(nq),
+                cost_weights=resolve_cost_weights_preset(
+                    str(args.static_record_selection_cost_weights)
+                ),
+                cost_weights_preset=str(args.static_record_selection_cost_weights),
             )
             if bool(args.static_record_selection_cost_frontier):
                 selected_rows = tuple(
