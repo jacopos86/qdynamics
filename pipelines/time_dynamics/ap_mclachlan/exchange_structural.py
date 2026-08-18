@@ -168,7 +168,7 @@ def resolve_frontier_schedule(
     return tuple(dict.fromkeys(clipped))
 
 
-def enumerate_structural_candidates(
+def iter_structural_families(
     *,
     cache: StructuralInsertionCache,
     base_K: np.ndarray,
@@ -188,8 +188,15 @@ def enumerate_structural_candidates(
     max_insertion_batch_size: int = 1,
     interaction_frontier_widths: Sequence[int] | None = None,
     max_joint_patch_evaluations: int | None = None,
-) -> StructuralEnumeration:
-    """Run the complete structural search at one frozen checkpoint.
+):
+    """Yield ``(family_label, candidates, telemetry)`` in acquisition order.
+
+    Families follow the specification's acquisition order — the ``d = 0``
+    singleton family, each deletion-cardinality rung, then each insertion
+    frontier — with the joint-work guard admitting every family whole before
+    any member is scored.  The final yield is ``("__telemetry__", (), state)``
+    carrying priorities, universe, schedule, and ``q_base`` so consumers can
+    stop early without losing reproduction data.
 
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
     frozen child order (occurrence policy applied by the caller; a deleted
@@ -284,14 +291,16 @@ def enumerate_structural_candidates(
     pure_pool = candidate_pool_for_deletion(())
     d0_size = 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pure_pool)
     if guard.admit("singleton_d0", d0_size):
-        candidates.append(scored((), (), None, "singleton_d0"))
+        family_out = [scored((), (), None, "singleton_d0")]
         for atom_id in pure_pool:
             for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
                 candidate = scored(
                     (), ((str(atom_id), cut),), None, "singleton_d0"
                 )
-                candidates.append(candidate)
+                family_out.append(candidate)
                 note_priority(str(atom_id), candidate.score)
+        candidates.extend(family_out)
+        yield "singleton_d0", tuple(family_out), None
 
     # ---- d >= 1 rungs: pure deletion + singleton exchange ------------------
     for d, rung in iter_deletion_rungs(
@@ -310,15 +319,18 @@ def enumerate_structural_candidates(
             size += 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pool)
         if not guard.admit(family, size):
             break
+        family_out = []
         for removed, pool in members:
-            candidates.append(scored(removed, (), None, family))
+            family_out.append(scored(removed, (), None, family))
             for atom_id in pool:
                 for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
                     candidate = scored(
                         removed, ((str(atom_id), cut),), None, family
                     )
-                    candidates.append(candidate)
+                    family_out.append(candidate)
                     note_priority(str(atom_id), candidate.score)
+        candidates.extend(family_out)
+        yield family, tuple(family_out), None
 
     # ---- child acquisition priorities and nested frontiers -----------------
     eligible = tuple(
@@ -339,16 +351,15 @@ def enumerate_structural_candidates(
         and not guard.exhausted
     ):
         survivors = survivor_tokens(cache.coordinate_keys)
-        index_by_key = {key: i for i, key in enumerate(cache.coordinate_keys)}
         scored_plans: set[tuple] = set()
+        from itertools import combinations
+
         for level, width in enumerate(schedule):
             frontier = eligible[:width]
             family = f"frontier_{level}_w{width}"
             batch: list[
                 tuple[tuple[int, ...], InsertionPlan, tuple[tuple[str, int], ...]]
             ] = []
-            from itertools import combinations
-
             for removed in admitted_removed:
                 pool = set(candidate_pool_for_deletion(removed))
                 usable = [a for a in frontier if a in pool]
@@ -374,10 +385,14 @@ def enumerate_structural_candidates(
             if not guard.admit(family, len(batch)):
                 break
             frontiers_used = level + 1
-            for removed, plan, selection in batch:
-                candidates.append(scored(removed, selection, plan, family))
+            family_out = [
+                scored(removed, selection, plan, family)
+                for removed, plan, selection in batch
+            ]
+            candidates.extend(family_out)
+            yield family, tuple(family_out), None
 
-    return StructuralEnumeration(
+    yield "__telemetry__", (), StructuralEnumeration(
         candidates=tuple(candidates),
         guard=guard,
         priorities=dict(singleton_best),
@@ -386,6 +401,17 @@ def enumerate_structural_candidates(
         frontiers_used=frontiers_used,
         q_base=q_base,
     )
+
+
+def enumerate_structural_candidates(**kwargs) -> StructuralEnumeration:
+    """Collect every admitted family; the non-lazy view of the same search."""
+
+    telemetry: StructuralEnumeration | None = None
+    for family, _candidates, final in iter_structural_families(**kwargs):
+        if family == "__telemetry__":
+            telemetry = final
+    assert telemetry is not None
+    return telemetry
 
 
 def _plan_selection(
@@ -423,6 +449,7 @@ def _plan_selection(
 
 __all__ = [
     "STRUCTURAL_SELECTION_POLICY_V1",
+    "iter_structural_families",
     "StructuralCandidate",
     "StructuralEnumeration",
     "StructuralScoreWeights",
