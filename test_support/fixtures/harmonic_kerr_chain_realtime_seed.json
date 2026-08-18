@@ -1,0 +1,273 @@
+{
+  "pipeline": "harmonic_kerr_chain_static_adapt_fixture",
+  "fixture_source_artifact": "repo-derived via problem_registry + build_runtime_pool_terms + CompiledAnsatzExecutor",
+  "settings": {
+    "problem": "harmonic_kerr_chain",
+    "L": 2,
+    "t": 0.7,
+    "u": 1.0,
+    "dv": 0.0,
+    "omega0": -0.8,
+    "g_ep": 0.0,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "include_zero_point": true,
+    "adapt_pool": "full_meta"
+  },
+  "adapt_vqe": {
+    "success": true,
+    "pool_type": "full_meta",
+    "operators": [
+      "full_meta::x_0",
+      "full_meta::x_1"
+    ],
+    "optimal_point": [
+      0.05,
+      0.05,
+      0.05,
+      0.05,
+      -0.08,
+      -0.08,
+      -0.08,
+      -0.08
+    ],
+    "logical_optimal_point": [
+      0.05,
+      -0.08
+    ],
+    "parameterization": {
+      "mode": "per_pauli_term_v1",
+      "term_order": "sorted",
+      "ignore_identity": true,
+      "coefficient_tolerance": 1e-12,
+      "logical_operator_count": 2,
+      "runtime_parameter_count": 8,
+      "blocks": [
+        {
+          "candidate_label": "full_meta::x_0",
+          "logical_index": 0,
+          "runtime_start": 0,
+          "runtime_count": 4,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "eeex",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eexx",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eeyy",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eezx",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            }
+          ]
+        },
+        {
+          "candidate_label": "full_meta::x_1",
+          "logical_index": 1,
+          "runtime_start": 4,
+          "runtime_count": 4,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "exee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "xxee",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "yyee",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "zxee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            }
+          ]
+        }
+      ]
+    },
+    "structure_locked": false,
+    "energy": -0.8070838987168271,
+    "abs_delta_e": 3.354884276791742,
+    "exact_gs_energy": -4.161968175508569
+  },
+  "ansatz_input_state": {
+    "source": "harmonic_kerr_chain_boson_vacuum",
+    "nq_total": 4,
+    "amplitudes_qn_to_q0": {
+      "0000": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 4,
+    "amplitudes_qn_to_q0": {
+      "0000": {
+        "re": 0.9955677311281231,
+        "im": 0.0
+      },
+      "0001": {
+        "re": 0.0,
+        "im": -0.04975758333030002
+      },
+      "0010": {
+        "re": -0.0017599295945291559,
+        "im": 0.0
+      },
+      "0011": {
+        "re": 0.0,
+        "im": -4.400740845535525e-05
+      },
+      "0100": {
+        "re": 0.0,
+        "im": 0.07955981069074924
+      },
+      "0101": {
+        "re": 0.003976328065296032,
+        "im": 0.0
+      },
+      "0110": {
+        "re": 0.0,
+        "im": -0.00014064303310747534
+      },
+      "0111": {
+        "re": 3.5168085266596067e-06,
+        "im": 0.0
+      },
+      "1000": {
+        "re": -0.004505389306079811,
+        "im": 0.0
+      },
+      "1001": {
+        "re": 0.0,
+        "im": 0.00022517532140046693
+      },
+      "1010": {
+        "re": 7.964468641083953e-06,
+        "im": 0.0
+      },
+      "1011": {
+        "re": 0.0,
+        "im": 1.991532080076305e-07
+      },
+      "1100": {
+        "re": 0.0,
+        "im": 0.00018031174876850068
+      },
+      "1101": {
+        "re": 9.011819672594168e-06,
+        "im": 0.0
+      },
+      "1110": {
+        "re": 0.0,
+        "im": -3.1874876311970167e-07
+      },
+      "1111": {
+        "re": 7.97037964294327e-09,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "continuation": {
+    "selected_generator_metadata": [
+      {
+        "family_id": "full_meta",
+        "candidate_label": "full_meta::x_0",
+        "compile_metadata": {
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeex",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eexx",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eeyy",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "eezx",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            }
+          ]
+        }
+      },
+      {
+        "family_id": "full_meta",
+        "candidate_label": "full_meta::x_1",
+        "compile_metadata": {
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "xxee",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "yyee",
+              "coeff_re": 0.7071067811865476,
+              "coeff_im": 0.0,
+              "nq": 4
+            },
+            {
+              "pauli_exyz": "zxee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 4
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

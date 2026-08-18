@@ -456,6 +456,57 @@ def _phase_fix_state(state: np.ndarray, *, cutoff: float) -> tuple[np.ndarray, d
     return np.asarray(psi, dtype=complex), phase_info
 
 
+def _projected_ritz_root(
+    matrix_vectors: Sequence[np.ndarray],
+    *,
+    hamiltonian: PauliPolynomial,
+    root_index: int,
+    amplitude_cutoff: float,
+) -> np.ndarray:
+    """Return Ritz root ``root_index`` of the pencil spanned by nonzero vectors."""
+
+    from src.quantum.compiled_polynomial import apply_compiled_polynomial
+
+    vectors = [
+        np.asarray(vector, dtype=complex).reshape(-1)
+        for vector in matrix_vectors
+        if float(np.linalg.norm(vector)) > float(amplitude_cutoff)
+    ]
+    if not vectors:
+        raise QSERootRefitError(
+            "q0-projected Ritz fallback found no nonzero projected basis vectors."
+        )
+    compiled = compile_polynomial_action(hamiltonian)
+    count = len(vectors)
+    overlap = np.empty((count, count), dtype=complex)
+    ham = np.empty((count, count), dtype=complex)
+    h_vectors = [apply_compiled_polynomial(vector, compiled) for vector in vectors]
+    for i in range(count):
+        for j in range(count):
+            overlap[i, j] = complex(np.vdot(vectors[i], vectors[j]))
+            ham[i, j] = complex(np.vdot(vectors[i], h_vectors[j]))
+    overlap = 0.5 * (overlap + overlap.conj().T)
+    ham = 0.5 * (ham + ham.conj().T)
+    overlap_eigenvalues, overlap_eigenvectors = np.linalg.eigh(overlap)
+    cutoff = 1.0e-12 * float(max(float(overlap_eigenvalues.max()), 0.0))
+    retained = overlap_eigenvalues > cutoff
+    if not bool(retained.any()):
+        raise QSERootRefitError("q0-projected Ritz fallback pencil has no retained rank.")
+    transform = overlap_eigenvectors[:, retained] / np.sqrt(overlap_eigenvalues[retained])
+    reduced = transform.conj().T @ ham @ transform
+    _energies, reduced_vectors = np.linalg.eigh(0.5 * (reduced + reduced.conj().T))
+    if int(root_index) >= int(reduced_vectors.shape[1]):
+        raise QSERootRefitError(
+            f"q0-projected Ritz fallback has {int(reduced_vectors.shape[1])} roots; "
+            f"state_index={int(root_index)} is out of range."
+        )
+    coefficients = transform @ reduced_vectors[:, int(root_index)]
+    state = np.zeros_like(vectors[0])
+    for idx in range(count):
+        state += complex(coefficients[idx]) * vectors[idx]
+    return state
+
+
 def _nearest_energy_gap(payload: Mapping[str, Any], *, state_index: int, energy: float) -> float | None:
     gaps: list[float] = []
     for raw in _sequence(payload.get("eigenvalues"), name="eigenvalues"):
@@ -478,6 +529,7 @@ def reconstruct_qse_root_target(
     prepared_state_json_key: str = "auto",
     prepared_state_bitstring: str | None = None,
     amplitude_cutoff: float = 1.0e-12,
+    hamiltonian: PauliPolynomial | None = None,
 ) -> tuple[QSERootTarget, PreparedStateResolution, tuple[QSEBasisElement, ...], int]:
     nq, basis_size, selected = _validate_qse_manifest(
         qse_payload,
@@ -518,11 +570,30 @@ def reconstruct_qse_root_target(
     for idx, coeff in enumerate(coeffs):
         target += complex(coeff) * np.asarray(prepared_vectors.matrix_vectors[idx], dtype=complex).reshape(-1)
     target_norm = float(np.linalg.norm(target))
+    extra_warnings: list[str] = []
+    if (
+        target_norm <= float(amplitude_cutoff)
+        and str(policy.reference_projection) == "q0"
+        and hamiltonian is not None
+    ):
+        # The stored coefficients place their mass on q0-projected-out basis
+        # directions (e.g. a manifest whose coefficients predate the declared
+        # projection policy). Root zero under q0 is defined as the lowest
+        # orthogonal Ritz root, so re-derive the requested root from the
+        # projected pencil instead of failing on a zero reconstruction.
+        target = _projected_ritz_root(
+            prepared_vectors.matrix_vectors,
+            hamiltonian=hamiltonian,
+            root_index=int(state_index),
+            amplitude_cutoff=float(amplitude_cutoff),
+        )
+        target_norm = float(np.linalg.norm(target))
+        extra_warnings.append("q0_zero_coefficient_reconstruction_replaced_by_projected_ritz_root")
     target_fixed, phase_info = _phase_fix_state(target, cutoff=float(amplitude_cutoff))
 
     energy = _finite_float(selected.get("energy"), name=f"eigenvalues[{state_index}].energy")
     gap = _nearest_energy_gap(qse_payload, state_index=int(state_index), energy=float(energy))
-    warnings: list[str] = []
+    warnings: list[str] = list(extra_warnings)
     if gap is not None and gap <= 1.0e-8:
         warnings.append("selected_qse_root_nearly_degenerate")
     if int(state_index) == 0 and str(policy.reference_projection) == "q0":
@@ -974,6 +1045,12 @@ def run_qse_root_refit(config: QSERootRefitConfig) -> dict[str, Any]:
     validate_qse_root_refit_config(config)
     qse_path = Path(config.qse_result_json)
     qse_payload = _mapping(_read_json(qse_path), name="qse_result")
+    hamiltonian = _resolve_hamiltonian(
+        qse_payload,
+        qse_result_json=qse_path,
+        hamiltonian_json=config.hamiltonian_json,
+        require_energy=config.max_energy_error is not None,
+    )
     target, prepared, basis, nq = reconstruct_qse_root_target(
         qse_payload,
         qse_result_json=qse_path,
@@ -983,12 +1060,7 @@ def run_qse_root_refit(config: QSERootRefitConfig) -> dict[str, Any]:
         prepared_state_json_key=str(config.prepared_state_json_key),
         prepared_state_bitstring=config.prepared_state_bitstring,
         amplitude_cutoff=float(config.amplitude_cutoff),
-    )
-    hamiltonian = _resolve_hamiltonian(
-        qse_payload,
-        qse_result_json=qse_path,
-        hamiltonian_json=config.hamiltonian_json,
-        require_energy=config.max_energy_error is not None,
+        hamiltonian=hamiltonian.polynomial,
     )
     fit = fit_pauli_rotation_ansatz(
         target_state=target.state,

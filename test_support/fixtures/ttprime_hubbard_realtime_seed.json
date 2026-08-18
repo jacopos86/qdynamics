@@ -1,0 +1,178 @@
+{
+  "pipeline": "ttprime_hubbard_static_adapt_fixture",
+  "fixture_source_artifact": "repo-derived via problem_registry + build_runtime_pool_terms + CompiledAnsatzExecutor",
+  "settings": {
+    "problem": "ttprime_hubbard",
+    "L": 3,
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.25,
+    "t_prime": 0.4,
+    "omega0": 0.0,
+    "g_ep": 0.0,
+    "n_ph_max": 0,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "include_zero_point": true,
+    "adapt_pool": "uccsd"
+  },
+  "ground_state": {
+    "exact_energy_filtered": -2.922852431646786,
+    "exact_energy": -2.922852431646786
+  },
+  "adapt_vqe": {
+    "success": true,
+    "pool_type": "uccsd",
+    "operators": [
+      "uccsd_sing(alpha:0->2)",
+      "uccsd_sing(beta:3->4)"
+    ],
+    "optimal_point": [
+      0.05,
+      0.05,
+      -0.04,
+      -0.04
+    ],
+    "logical_optimal_point": [
+      0.05,
+      -0.04
+    ],
+    "parameterization": {
+      "mode": "per_pauli_term_v1",
+      "term_order": "sorted",
+      "ignore_identity": true,
+      "coefficient_tolerance": 1e-12,
+      "logical_operator_count": 2,
+      "runtime_parameter_count": 4,
+      "blocks": [
+        {
+          "candidate_label": "uccsd_sing(alpha:0->2)",
+          "logical_index": 0,
+          "runtime_start": 0,
+          "runtime_count": 2,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "eeexzy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "eeeyzx",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        },
+        {
+          "candidate_label": "uccsd_sing(beta:3->4)",
+          "logical_index": 1,
+          "runtime_start": 2,
+          "runtime_count": 2,
+          "runtime_terms_exyz": [
+            {
+              "pauli_exyz": "exyeee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "eyxeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        }
+      ]
+    },
+    "structure_locked": false,
+    "energy": 3.280005636013198,
+    "abs_delta_e": 6.202858067659984,
+    "exact_gs_energy": -2.922852431646786
+  },
+  "ansatz_input_state": {
+    "source": "hf",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "001011": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "001011": {
+        "re": 0.9979513667143298,
+        "im": 0.0
+      },
+      "001110": {
+        "re": -0.04993919126608885,
+        "im": 0.0
+      },
+      "010011": {
+        "re": -0.039939357931922194,
+        "im": 0.0
+      },
+      "010110": {
+        "re": 0.0019986337023355123,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "continuation": {
+    "selected_generator_metadata": [
+      {
+        "family_id": "uccsd",
+        "candidate_label": "uccsd_sing(alpha:0->2)",
+        "compile_metadata": {
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeexzy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "eeeyzx",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        }
+      },
+      {
+        "family_id": "uccsd",
+        "candidate_label": "uccsd_sing(beta:3->4)",
+        "compile_metadata": {
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exyeee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            },
+            {
+              "pauli_exyz": "eyxeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 6
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

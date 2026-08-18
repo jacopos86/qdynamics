@@ -1,0 +1,42 @@
+{
+  "pipeline": "spinless_tv_static_adapt_fixture",
+  "fixture_source_artifact": "compact hand-authored from spinless_tv problem_registry + hamiltonian_blocks pool",
+  "settings": {
+    "problem": "spinless_tv",
+    "L": 4,
+    "t": 1.0,
+    "u": 0.0,
+    "dv": 0.2,
+    "v_nn": 1.5,
+    "n_fermions": 2,
+    "omega0": 0.0,
+    "g_ep": 0.0,
+    "n_ph_max": 0,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "include_zero_point": true,
+    "adapt_pool": "hamiltonian_blocks"
+  },
+  "ground_state": {
+    "exact_energy_filtered": -2.319366207862396,
+    "exact_energy": -2.319366207862396
+  },
+  "adapt_vqe": {
+    "success": true,
+    "pool_type": "hamiltonian_blocks",
+    "operators": [
+      "ham_block::spinless_hop_layer"
+    ],
+    "optimal_point": [
+      0.07
+    ],
+    "logical_optimal_point": [
+      0.07
+    ],
+    "structure_locked": false,
+    "energy": -0.2,
+    "abs_delta_e": 2.119366207862396,
+    "exact_gs_energy": -2.319366207862396
+  }
+}

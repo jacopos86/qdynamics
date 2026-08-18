@@ -376,9 +376,14 @@ def polynomial_observable(
     name: str,
     metadata: Mapping[str, Any] | None = None,
 ) -> QSEObservable:
-    """Create a polynomial transition observable without mutating ``poly``."""
+    """Create a polynomial transition observable without mutating ``poly``.
 
-    _polynomial_nq(poly)
+    An empty polynomial (all terms dropped, e.g. an explicit zero current
+    source) is accepted; its application yields the zero vector.
+    """
+
+    if list(poly.return_polynomial()):
+        _polynomial_nq(poly)
     return QSEObservable(name=str(name), kind="pauli_polynomial", polynomial=poly, metadata=metadata)
 
 
@@ -458,6 +463,8 @@ def _apply_polynomial_operator(
     config: QSEPruningConfig,
     pauli_action_cache: dict[str, CompiledPauliAction],
 ) -> np.ndarray:
+    if not list(poly.return_polynomial()):
+        return np.zeros_like(psi, dtype=complex)
     clean = _clean_polynomial_terms(
         poly,
         drop_abs_tol=float(config.polynomial_drop_abs_tol),
