@@ -450,6 +450,9 @@ def build_qse_table_aggregate(config: QSETableAggregateConfig) -> dict[str, Any]
             "compatibility_tiers": sorted(
                 {row["compatibility_tier"] for row in rows if row.get("compatibility_tier")}
             ),
+            "rows_with_response_payload": sum(
+                1 for row in rows if row.get("response_channel_count") is not None
+            ),
             "rows_with_conductivity_payload": sum(
                 1 for row in rows if row.get("conductivity_response_present") is True
             ),
