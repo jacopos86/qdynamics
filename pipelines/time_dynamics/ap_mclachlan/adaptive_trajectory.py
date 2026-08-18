@@ -1057,6 +1057,19 @@ def run_append_mclachlan_trajectory(
                     scored_count=0,
                     reason="append_before_min_time",
                 )
+            elif float(fixed_step.residual_ratio) < float(
+                effective_support_config.residual_ratio_threshold
+            ):
+                # Structural-repair predicate is inactive: the realized miss is
+                # already below threshold, so no structural family is acquired
+                # and the checkpoint pays no candidate solves.
+                decision = PatchDecision(
+                    patch_kind=PATCH_NO_EDIT,
+                    accepted=False,
+                    candidate_count=0,
+                    scored_count=0,
+                    reason="residual_below_threshold",
+                )
             else:
                 with phase(PHASE_UNIFIED_SELECT):
                     selection, selection_payload = select_deletion_conditioned_patch(
