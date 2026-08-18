@@ -174,6 +174,9 @@ As such, we define a geometry- and cost-aware excitation-record acquisition rule
 
 Selected QSE roots then enter two dynamics routes.  The first route performs frozen-coefficient propagation inside the projected QSE manifold.  The second route compresses/refits selected QSE roots into live ansatz states and hands them to a checkpoint McLachlan route through the QSE-root interface when the escape diagnostic indicates frozen-manifold failure.  The resulting workflow organizes fermion--boson excited-state simulation around spectral expressivity of operator alphabets, nonorthogonal geometry, matrix-measurement cost, and explicit diagnostics for when a frozen spectral manifold ceases to be dynamically closed.
 
+\structlabel{Relation to prior and concurrent work}
+The claims of this paper are deliberately bounded by the surrounding literature.  Quantum-Krylov spectral calculations on the Hubbard--Holstein model exist \cite{Backes2023HHDMFT}, VQD and qEOM have been applied to electron--phonon quantities \cite{ZhouShang2024EPhQC}, and mixed fermion--boson excited-state quantum algorithms exist for vibrational and polaritonic systems \cite{Ollitrault2020qEOM,PavosevicFlick2021QEDEOM}; we therefore claim none of these firsts.  To our knowledge, this is the first operator-based QSE calculation of low-lying Ritz roots and transition strengths for an explicit Hubbard--Holstein lattice Hamiltonian with quantized phonon registers.  Cost-aware adaptive subspace growth, including a multiplicative utility-per-measurement-cost acquisition score, appears in concurrent preprint work \cite{UtamaDipojono2026ACASE,UtamaDipojono2026DACASE}; our contribution is the specialization in which response-basis membership is selected against \emph{compiled two-qubit measurement-circuit cost} for a mixed fermion--boson response manifold, with the resulting gate-cost--spectral-accuracy frontier reported explicitly.  Deletion-and-regrowth of diagonalization subspaces is established classically \cite{WuSimon2000ThickRestart,Sorensen1992IRA} and, concurrently, on quantum subspaces \cite{Rammal2026OQKD,Patra2025PIGenSQD,LiuDeng2026CSQSE}; building on that logic, we introduce a certified cost-gated \emph{joint} delete--add move for the measured nonorthogonal QSE response basis, committed atomically only after recomputation of the projected pencil verifies the declared target-root objective and compiled cost under overlap-conditioning and stability guards.  Finally, adaptive-support real-time propagation \cite{Yao2021AVQDS,Gomes2023AVQDSGreen,Mootz2024AdaptiveGreen} and subspace-eigensolver-to-dynamics workflows \cite{Gandon2024NonadiabaticQSE,Sambasivam2026TIMESADAPT,Berthusen2024MRQDDynamics} exist separately; the specific handoff in which a selected QSE Ritz root is prepared as the initial state of McLachlan dynamics whose support continues to adapt along the excited-state trajectory is, to our knowledge, new and is retained as a secondary workflow contribution.
+
 \section{Static excited-state QSE selection}
 \label{sec:static_qse_method}
 
@@ -1107,6 +1110,21 @@ no root-beaming/tracking guard & \placeholder{...} & \placeholder{...} & \placeh
 \end{tabular*}
 \end{ruledtabular}
 \end{center}
+\end{widetext}
+
+\subsection{Statevector-diagnostic evidence (pre-production)}
+
+\structlabel{Statevector-diagnostic evidence}
+Ahead of the locked CHTC production matrix, Tables~\ref{tab:qse_multiroot_diag}--\ref{tab:qse_peierls_diag} report the completed statevector-diagnostic evidence sweep at the Paper-I regime conventions ($n_{\rm ph}=3$ weak-phonon and $n_{\rm ph}=7$ strong-phonon sectors, per-regime full-meta pools, exact sector-restricted references).  Three findings organize these tables.  First, over the lowest six excitations the geometry-selected support with certified exchange reaches (near-)manifold-limit accuracy in every regime, while the complete fixed linear-response class fails several higher roots in five of six regimes and, being complete, cannot be repaired by additional budget.  Second, the cross-family comparison shows the deterministic fixed class and a Krylov-from-kick construction are both dominated on the shared compiled two-qubit cost axis at the dimer benchmark point.  Third, the Peierls--Hubbard generality check shows the physically ``obvious'' fixed class collapsing for bond coupling---the required spin-structure directions are absent---while the same selection-plus-exchange machinery recovers all six excitations without hand redesign.  Two methodological requirements surfaced by this sweep apply to all production rows: sector references must come from the exact sector-restricted eigenproblem (expectation-based filtering silently drops states that are degenerate across number sectors), and the selection metric must measure candidate novelty against the \emph{numerically retained} subspace of the current support under the solver's overlap cutoff, since the exact span counts directions the pencil's stabilization will discard.  All numbers below are regenerated directly from the committed evidence records by \texttt{pipelines/reporting/build\_paper\_iii\_tex\_fragments.py}.
+
+\input{generated/paper_iii_multiroot_table}
+
+\begin{widetext}
+\input{generated/paper_iii_comparator_table}
+\end{widetext}
+
+\begin{widetext}
+\input{generated/paper_iii_peierls_table}
 \end{widetext}
 
 \subsection{Dynamics results}
