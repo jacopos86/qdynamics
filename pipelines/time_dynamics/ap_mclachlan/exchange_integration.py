@@ -103,13 +103,38 @@ def build_selector_inputs(
     policy, drive-aligned protection, cooldown, and surviving-support gates.
     """
 
-    atoms = candidate_append_atoms(
+    raw_atoms = candidate_append_atoms(
         state,
         allow_incomplete_candidate_pool=bool(
             support_config.allow_incomplete_candidate_pool
         ),
         occurrence_policy=str(support_config.append_occurrence_policy),
     )
+    # Identity-level deduplication: two candidates with the same single Pauli
+    # child generate the same one-parameter family exp(-i theta c P) (the
+    # coefficient rescales theta), so they are the same insertion operator.
+    # Keep the first occurrence in frozen pool order.  This is not a score
+    # prefilter: no geometry or score is consulted, only operator identity.
+    atoms = []
+    seen_words: set[str] = set()
+    for atom in raw_atoms:
+        specs = iter_runtime_rotation_terms(
+            getattr(atom.term, "polynomial"),
+            ignore_identity=bool(state.executor.ignore_identity),
+            coefficient_tolerance=float(state.executor.coefficient_tolerance),
+            sort_terms=bool(state.executor.sort_terms),
+        )
+        word = str(specs[0].pauli_exyz) if len(specs) == 1 else None
+        if word is not None and word in seen_words:
+            continue
+        if word is not None:
+            seen_words.add(word)
+        atoms.append(atom)
+    atoms = tuple(atoms)
+    pool_dedup_telemetry = {
+        "candidate_pool_raw": int(len(raw_atoms)),
+        "candidate_pool_deduplicated": int(len(atoms)),
+    }
     atoms_by_id = {str(atom.atom_id): atom for atom in atoms}
     ordered_atom_ids = tuple(str(atom.atom_id) for atom in atoms)
 
@@ -258,6 +283,7 @@ def build_selector_inputs(
         "atoms_by_id": atoms_by_id,
         "occurrence_label": occurrence_label,
         "structural_kwargs": structural_kwargs,
+        "pool_dedup_telemetry": pool_dedup_telemetry,
     }
 
 
@@ -328,6 +354,7 @@ def select_deletion_conditioned_patch(
 
     payload: dict[str, Any] = {
         "selection_policy": EXCHANGE_SELECTION_POLICY_V1,
+        **inputs.get("pool_dedup_telemetry", {}),
         "kind": selection.kind,
         "stop_reason": selection.stop_reason,
         "attempt_count": len(selection.attempts),
