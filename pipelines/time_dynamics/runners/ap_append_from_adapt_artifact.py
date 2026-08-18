@@ -19,7 +19,6 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     APPEND_LADDER_PREFILTER_POLICY_V1,
     APPEND_LADDER_SELECTION_POLICY_V1,
     APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
-    APPEND_MACRO_SCOUT_SCORE_MODES,
     DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD,
     PRUNE_PERSISTENCE_ATOM_HISTORY,
     PRUNE_PERSISTENCE_EXACT_BATCH,
@@ -55,6 +54,9 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
     load_reference_energy_trajectory,
     reference_energy_summary,
     reference_energy_trajectory_from_payload,
+)
+from pipelines.time_dynamics.ap_mclachlan.support_frontier import (
+    APPEND_MACRO_SCOUT_SCORE_MODES,
 )
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
