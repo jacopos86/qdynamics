@@ -64,6 +64,7 @@ class StaticRecordSelectionConfig:
     geometry_condition_penalty_weight: float = 0.05
     geometry_min_metric_novelty: float = 1.0e-12
     geometry_cost_discount_alpha: float | None = None
+    geometry_cost_discount_floor: float = 0.05
 
     def __post_init__(self) -> None:
         mode = str(self.mode)
@@ -92,6 +93,9 @@ class StaticRecordSelectionConfig:
             alpha = float(self.geometry_cost_discount_alpha)
             if not math.isfinite(alpha) or alpha <= 0.0:
                 raise ValueError("geometry_cost_discount_alpha must be finite and > 0 when supplied.")
+        floor_value = float(self.geometry_cost_discount_floor)
+        if not math.isfinite(floor_value) or floor_value <= 0.0 or floor_value > 1.0:
+            raise ValueError("geometry_cost_discount_floor must be in (0, 1].")
 
 
 @dataclass(frozen=True)
@@ -506,7 +510,11 @@ def _geometry_select(
             condition_penalty = float(config.geometry_condition_penalty_weight) * (1.0 - novelty)
             if config.geometry_cost_discount_alpha is not None:
                 alpha = float(config.geometry_cost_discount_alpha)
-                score = utility / ((1.0e-12 + cost_norm) ** alpha) - condition_penalty
+                # Clamp the discount denominator: an unbounded 1/cost blows up
+                # for zero-compiled-cost candidates and lets cheap junk crowd
+                # out the excitation window at larger pools.
+                clamped = max(float(config.geometry_cost_discount_floor), cost_norm)
+                score = utility / (clamped ** alpha) - condition_penalty
             else:
                 score = utility - float(config.geometry_cost_weight) * cost_norm - condition_penalty
             geometry_rows[index] = {
