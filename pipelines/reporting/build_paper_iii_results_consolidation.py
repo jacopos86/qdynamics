@@ -39,6 +39,9 @@ EVIDENCE = {
     "nph3_sweep": DIAG / "paper_iii_regime_frontier_sweep_20260818_v1/regime_frontier_sweep.json",
     "child_granularity": DIAG
     / "paper_iii_child_granularity_20260818_v1/child_granularity_summary.json",
+    "multiroot_b60": DIAG / "paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_b60.json",
+    "transition_strengths": DIAG
+    / "paper_iii_transition_strengths_20260818_v1/transition_strengths.json",
 }
 
 
@@ -154,6 +157,50 @@ def build_markdown() -> str:
         add(
             f"| real-time Krylov (best) | {_cell(best['abs_err_vs_reference'], best['cum_2q_graph_span'])} | K={best['krylov_dimension']}, dt={best['dt']}; kicked source, Krylov-favoring costing |"
         )
+    add("")
+
+    add("## Multi-root window: lowest six excitations (budget 60, Ky Fan R=6)")
+    add("")
+    multiroot = _load("multiroot_b60")
+    add("| regime | arm | 2Q | root errors (E1..E6) |")
+    add("|---|---|---|---|")
+    for regime, record in multiroot["regimes"].items():
+        for arm_name in (
+            "fixed_linear_response_complete",
+            "geometry_alpha1_R6",
+            "exchange_dominance_R6",
+        ):
+            arm = record["arms"][arm_name]
+            roots = " ".join(_sci(e) for e in arm["root_abs_errors"])
+            add(f"| {regime} | {arm_name} | {arm['total_2q']:.0f} | {roots} |")
+    add("")
+    add(
+        "At budget 60 the select-then-exchange support resolves all six "
+        "excitations to (near-)manifold-limit accuracy in every regime; the "
+        "complete fixed class fails several higher roots in five of six "
+        "regimes and cannot be repaired by budget (it is already complete)."
+    )
+    add("")
+    add("## Transition strengths (site-0 density and displacement, max relative error)")
+    add("")
+    strengths = _load("transition_strengths")
+    add("| regime | arm | 2Q | density | displacement |")
+    add("|---|---|---|---|---|")
+    for regime, record in strengths["regimes"].items():
+        for arm_name, arm in record["arms"].items():
+            cells = []
+            for obs in ("site0_density", "site0_displacement"):
+                data = arm["observables"][obs]
+                rel = data["max_relative_error"]
+                cell = _sci(rel) if rel is not None else "--"
+                if data["unresolved_roots"]:
+                    cell += f" ({data['unresolved_roots']}u)"
+                cells.append(cell)
+            add(
+                f"| {regime} | {arm_name} | {arm['total_2q']:.0f} | "
+                + " | ".join(cells)
+                + " |"
+            )
     add("")
 
     add("## Compiled-cost oracle cross-check")

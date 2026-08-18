@@ -139,6 +139,18 @@ are implementation validation, never novelty.
   not phonon truncation; children require exact sector projection in
   general (number non-conservation); macro granularity wins at low budget,
   children beyond ~200 2Q.
+- Multi-root evidence (2026-08-19 overnight): Ky Fan trace objective
+  (`target_root_count`) in exchange and multi-root residual scoring in
+  geometry selection (`geometry_target_roots`, bounded discount floor
+  `geometry_cost_discount_floor` after the zero-cost pathology). At budget
+  60 select-then-exchange resolves all six excitations to
+  (near-)manifold-limit accuracy in every Paper I regime
+  (`paper_iii_multiroot_sweep_20260818_v1/multiroot_sweep_b60.json`); the
+  complete fixed class fails several higher roots in five regimes and,
+  being complete, cannot be repaired by budget. Transition strengths
+  (`paper_iii_transition_strengths_20260818_v1/`): fixed class collapses
+  at nph7 (relative errors up to ~10) while exchange supports hold
+  1e-3..1e-9 — this is the C1 "and transition strengths" evidence.
 - Machinery: `pipelines/qse_spectra/compiled_costs.py` (2Q-only preset
   `two_qubit_only_v1`), selection modes in
   `pipelines/qse_spectra/record_selection.py`.
