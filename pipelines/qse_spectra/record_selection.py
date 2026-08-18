@@ -65,6 +65,7 @@ class StaticRecordSelectionConfig:
     geometry_min_metric_novelty: float = 1.0e-12
     geometry_cost_discount_alpha: float | None = None
     geometry_cost_discount_floor: float = 0.05
+    geometry_residual_stop: float | None = None
 
     def __post_init__(self) -> None:
         mode = str(self.mode)
@@ -96,6 +97,10 @@ class StaticRecordSelectionConfig:
         floor_value = float(self.geometry_cost_discount_floor)
         if not math.isfinite(floor_value) or floor_value <= 0.0 or floor_value > 1.0:
             raise ValueError("geometry_cost_discount_floor must be in (0, 1].")
+        if self.geometry_residual_stop is not None:
+            stop = float(self.geometry_residual_stop)
+            if not math.isfinite(stop) or stop <= 0.0:
+                raise ValueError("geometry_residual_stop must be finite and > 0 when supplied.")
 
 
 @dataclass(frozen=True)
@@ -127,6 +132,7 @@ class StaticRecordSelectionResult:
     candidate_decisions: tuple[Mapping[str, Any], ...]
     compiled_costs: tuple[float, ...] | None = None
     geometry_cost_source: str | None = None
+    geometry_stop: Mapping[str, Any] | None = None
 
 
 def _validate_int(value: Any, *, name: str, min_value: int) -> int:
@@ -466,9 +472,17 @@ def _geometry_select(
         int(c.original_basis_index): c for c in eligible_candidates
     }
 
-    def _round_residual_hats() -> list[np.ndarray]:
+    def _round_residual_hats() -> tuple[list[np.ndarray], float | None, int]:
+        """Return (residual hats, max target-root residual norm, frame size).
+
+        The max residual norm over the lowest min(R, frame) Ritz roots is the
+        natural convergence measure: for Hermitian pencils each Ritz value's
+        error is bounded by its residual norm, so it plays the role ADAPT's
+        gradient norm plays for ground states.
+        """
+
         if not accepted_units:
-            return [residual_hat] if residual_hat is not None else []
+            return ([residual_hat] if residual_hat is not None else [], None, 0)
         count = len(accepted_units)
         pencil = np.empty((count, count), dtype=complex)
         for row in range(count):
@@ -477,6 +491,7 @@ def _geometry_select(
         pencil = 0.5 * (pencil + pencil.conj().T)
         thetas, ritz_vectors = np.linalg.eigh(pencil)
         hats: list[np.ndarray] = []
+        max_norm = 0.0
         for root in range(min(int(config.geometry_target_roots), count)):
             coefficients = ritz_vectors[:, root]
             state = sum(complex(coefficients[k]) * accepted_units[k] for k in range(count))
@@ -484,14 +499,25 @@ def _geometry_select(
             ritz_residual = h_state - float(thetas[root]) * state
             ritz_residual = ritz_residual - complex(np.vdot(psi, ritz_residual)) * psi
             norm = float(np.linalg.norm(ritz_residual))
+            max_norm = max(max_norm, norm)
             if norm > 1.0e-12:
                 hats.append(ritz_residual / norm)
         if not hats and residual_hat is not None:
             hats = [residual_hat]
-        return hats
+        return hats, max_norm, count
 
+    stop_reason = "budget_reached"
+    last_max_residual: float | None = None
     while pool and len(selected) < int(config.max_records):
-        round_residuals = _round_residual_hats()
+        round_residuals, last_max_residual, frame_size = _round_residual_hats()
+        if (
+            config.geometry_residual_stop is not None
+            and last_max_residual is not None
+            and frame_size >= int(config.geometry_target_roots)
+            and last_max_residual < float(config.geometry_residual_stop)
+        ):
+            stop_reason = "residual_converged"
+            break
         round_scores: dict[int, float] = {}
         round_units: dict[int, np.ndarray] = {}
         round_h_units: dict[int, np.ndarray] = {}
@@ -580,13 +606,27 @@ def _geometry_select(
             round_scores[index] = float(score)
 
         if not round_scores:
+            stop_reason = "pool_exhausted"
             break
         best_index = min(round_scores, key=lambda idx: (-round_scores[idx], idx))
         selected.append(pool.pop(best_index))
         accepted_images.append(images[best_index])
         _rebuild_retained_frame()
 
-    return selected, floor_rejected, geometry_rows, scores
+    if pool and len(selected) >= int(config.max_records) and stop_reason == "budget_reached":
+        pass  # explicit: cap hit with candidates remaining
+    elif not pool and stop_reason == "budget_reached":
+        stop_reason = "pool_exhausted"
+    stop_info = {
+        "stop_reason": stop_reason,
+        "final_max_target_residual_norm": last_max_residual,
+        "residual_stop_threshold": (
+            float(config.geometry_residual_stop)
+            if config.geometry_residual_stop is not None
+            else None
+        ),
+    }
+    return selected, floor_rejected, geometry_rows, scores, stop_info
 
 
 def select_static_qse_records(
@@ -647,7 +687,13 @@ def select_static_qse_records(
     geometry_rows: dict[int, dict[str, Any]] = {}
     geometry_scores: dict[int, float] = {}
     if str(config.mode) == "geometry_selected":
-        selected_list, geometry_floor_rejected, geometry_rows, geometry_scores = _geometry_select(
+        (
+            selected_list,
+            geometry_floor_rejected,
+            geometry_rows,
+            geometry_scores,
+            geometry_stop_info,
+        ) = _geometry_select(
             basis_tuple=basis_tuple,
             eligible_candidates=eligible_candidates,
             config=config,
@@ -714,6 +760,8 @@ def select_static_qse_records(
     geometry_cost_source: str | None = None
     if str(config.mode) == "geometry_selected":
         geometry_cost_source = "compiled" if resolved_compiled_costs is not None else "cost_proxy"
+    else:
+        geometry_stop_info = None
 
     return StaticRecordSelectionResult(
         config=config,
@@ -723,6 +771,7 @@ def select_static_qse_records(
         candidate_decisions=tuple(decisions),
         compiled_costs=resolved_compiled_costs,
         geometry_cost_source=geometry_cost_source,
+        geometry_stop=geometry_stop_info,
     )
 
 
@@ -833,6 +882,7 @@ def static_record_selection_payload(result: StaticRecordSelectionResult) -> dict
         },
         "compiled_costs_present": result.compiled_costs is not None,
         "geometry_cost_source": result.geometry_cost_source,
+        "geometry_stop": _json_safe(dict(result.geometry_stop)) if result.geometry_stop else None,
         "candidates": candidates_payload,
         "selected_records": selected_records,
         "selected_mapping": [

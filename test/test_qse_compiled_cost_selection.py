@@ -211,3 +211,46 @@ def test_cli_compiled_cost_mode_emits_costs_and_frontier(tmp_path: Path) -> None
     cumulative = [row["cumulative_scalarized_cost"] for row in frontier["rows"]]
     assert cumulative == sorted(cumulative)
     assert all(row["solve_status"] in {"solved", "failed"} for row in frontier["rows"])
+
+
+def test_geometry_residual_stop_terminates_before_budget() -> None:
+    # H = z + 0.5x on |0>: after accepting the flip direction the R=1 Ritz
+    # residual (projected off the reference) vanishes, so the residual-norm
+    # stopping rule must end selection with one operator despite budget 3.
+    hamiltonian = PauliPolynomial("JW")
+    hamiltonian.add_term(PauliTerm(1, ps="z", pc=1.0))
+    hamiltonian.add_term(PauliTerm(1, ps="x", pc=0.5))
+    psi = computational_basis_state(1, "0")
+    basis = [
+        pauli_string_basis_element("X", nq=1, name="flip"),
+        pauli_string_basis_element("Y", nq=1, name="flip_dup"),
+        pauli_string_basis_element("Z", nq=1, name="dead"),
+    ]
+    from pipelines.qse_spectra.core import QSEBasisVectorPolicy
+
+    result = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=3,
+            geometry_target_roots=1,
+            geometry_residual_stop=1.0e-8,
+        ),
+        hamiltonian=hamiltonian,
+        prepared_state=psi,
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0", basis_vector_normalization="raw_projected"
+        ),
+        compiled_costs=(1.0, 1.0, 1.0),
+    )
+
+    assert len(result.selected_original_indices) == 1
+    assert result.geometry_stop is not None
+    assert result.geometry_stop["stop_reason"] == "residual_converged"
+    assert result.geometry_stop["final_max_target_residual_norm"] < 1.0e-8
+    payload = static_record_selection_payload(result)
+    assert payload["geometry_stop"]["stop_reason"] == "residual_converged"
+    with pytest.raises(ValueError, match="geometry_residual_stop"):
+        StaticRecordSelectionConfig(
+            mode="geometry_selected", max_records=1, geometry_residual_stop=0.0
+        )
