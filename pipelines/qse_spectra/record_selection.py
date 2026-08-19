@@ -58,10 +58,15 @@ class StaticRecordSelectionConfig:
     geometry_target_roots: int = 6
     geometry_metric_novelty_weight: float = 0.25
     geometry_residual_weight: float = 1.0
-    geometry_ritz_weight: float = 0.25
+    # Ablation (2026-08-19): the Ritz window gain and the explicit conditioning
+    # penalty do not improve selection at the production stop -- the penalty is
+    # bit-identical to the anchor and the Ritz term costs 38% more compiled 2Q
+    # for the same accuracy. Both default off; metric novelty already supplies
+    # the conditioning control.
+    geometry_ritz_weight: float = 0.0
     geometry_transition_weight: float = 0.5
     geometry_cost_weight: float = 1.0
-    geometry_condition_penalty_weight: float = 0.05
+    geometry_condition_penalty_weight: float = 0.0
     geometry_min_metric_novelty: float = 1.0e-12
     geometry_cost_discount_alpha: float | None = None
     geometry_cost_discount_floor: float = 0.05
