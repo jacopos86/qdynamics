@@ -11,7 +11,7 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
 | Claim | Verdict | Most damaging prior work |
 |---|---|---|
 | C1: QSE on Hubbard--Holstein | PARTIALLY NOVEL | Backes et al., PRB 107, 165155 (2023) — HH quantum-Krylov spectral calculation on hardware (`Backes2023HHDMFT`) |
-| C2: cost-weighted QSE basis construction | **NOT NOVEL generically** | utility/cost acquisition with a multiplicative measurement-cost denominator is a previously suggested heuristic. **Sources excluded from citation by user decision (see below); the disclaimer stands uncited.** |
+| C2: cost-weighted QSE basis construction | **CLAIMED (user decision 2026-08-19)** | none cited. The cost-weighted acquisition principle is this series' own: Paper I (geometry/cost-aware ADAPT) and Paper II (cost-weighted structural patches) — cited as `PaperI`/`PaperII`. Paper III claims the QSE-manifold specialization. |
 | C3: exchange-maintained (delete--add) QSE bases | PARTIALLY NOVEL | Patra et al. PIGen-SQD, arXiv:2512.06858 (preprint) — drop/blacklist/regenerate in a measured SQD subspace (`Patra2025PIGenSQD`); classically Wu--Simon thick-restart Lanczos (`WuSimon2000ThickRestart`) |
 | C4: QSE-root handoff to adaptive McLachlan dynamics | NOVEL, NARROWLY | Gomes, Williams-Young & de Jong, JCTC 19 (2023) — adaptive propagation of particle-added response branches (`Gomes2023AVQDSGreen`) |
 
@@ -29,10 +29,11 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
   (`Zheng2024ADAPTGCIM`, arXiv:2312.07691, npj QI 2024). A-CASE itself
   concedes "neither adaptive subspace growth nor replacing variational
   optimization by a generalized eigenproblem is new";
-- utility-per-measurement-cost subspace growth, or a multiplicative cost
-  denominator in the acquisition score — the disclaimer stays in the
-  manuscript UNCITED (see citation-exclusion rule below). Concede
-  adaptive construction to QDavidson/ADAPT-GCIM, which are cited;
+- adaptive subspace growth AS SUCH (conceded to QDavidson/ADAPT-GCIM,
+  both cited). NOTE: the utility-per-cost denominator is NO LONGER
+  conceded — user decision 2026-08-19. The cost-weighted acquisition
+  lineage is this series' own (Paper I, Paper II), cited as such, and
+  Paper III claims the compiled-2Q QSE specialization;
 - QSE excitation-pool pruning or compaction (`LiuDeng2026CSQSE`,
   `Getelina2024HardwareNoiseQSE`);
 - resource-aware quantum-subspace design or measurement optimization
@@ -81,13 +82,15 @@ are implementation validation, never novelty.
 
 1. C2 language must always say *compiled two-qubit measurement-circuit cost*
    — never generic "hardware cost" or "measurement cost" — and must cite
-   no source for the generic cost-denominator heuristic.
+   Papers I and II for the cost-weighted acquisition lineage.
    **CITATION EXCLUSION (user decision 2026-08-19, final): neither A-CASE
    (arXiv:2608.00560) nor DA-CASE (arXiv:2608.08739) is cited anywhere in
    this lane. Do not re-add either, and do not rely on them in argument.
-   The corresponding disclaimers REMAIN in the manuscript without
-   attribution, so removing the citations never converts a concession
-   into a priority claim — that invariant is the thing to preserve.**
+   Per user decision the cost-denominator and retained-subspace
+   concessions are WITHDRAWN, not merely unattributed: the cost-weighted
+   acquisition principle is credited to Papers I and II of this series,
+   and the retained-frame mismatch is claimed. Do not reinstate either
+   concession.**
 2. C3 survives only as an atomic joint patch with before/after pencil
    certification; if the implementation degrades to sequential prune + append,
    the claim degrades with it (Paper II selector dependency).
@@ -254,7 +257,7 @@ are implementation validation, never novelty.
 
 | Candidate | Verdict | Most damaging prior work |
 |---|---|---|
-| A: retained-frame novelty | NOVEL-NARROWLY | audit named DA-CASE/A-CASE (both excluded from citation by user decision). Manuscript disclaims retained-subspace novelty uncited and claims only the mismatch diagnosis + shared cutoff. |
+| A: retained-frame novelty | **CLAIMED (user decision 2026-08-19)** | none cited. The retained-subspace disclaimer was REMOVED; the manuscript states the exact-span/retained-frame mismatch diagnosis and the shared-cutoff requirement as its own contribution. |
 | B: residual + window pressure | PARTIALLY NOVEL | McCombs & Stathopoulos, SIAM J. Sci. Comput. 28, 2337-2358 (2006) — validates converged Ritz sets by searching the orthogonal complement for missed roots (`McCombs2006IVE`) |
 | C-i: escape flux | PARTIALLY NOVEL | Yao et al. AVQDS, PRX Quantum 2, 030307 (2021) — McLachlan distance IS variance minus captured drift (`Yao2021AVQDS`) |
 | C-ii: flux + alignment escalation | PARTIALLY NOVEL | AVQDS again — threshold, then scan every pool operator for max residual reduction |
@@ -262,10 +265,10 @@ are implementation validation, never novelty.
 
 ### Additional never-claim items (from this pass)
 
-- "retained-subspace novelty" as a phrase or concept (disclaimed
-  uncited). Claim ONLY the exact-span
-  vs solver-retained-frame MISMATCH diagnosis, the shared-cutoff
-  requirement, and the re-supply mechanism;
+- (retained-subspace novelty: NO LONGER disclaimed — user decision
+  2026-08-19. The manuscript claims the exact-span vs
+  solver-retained-frame mismatch diagnosis, the shared-cutoff
+  requirement, and the re-supply mechanism.);
 - residual-norm stopping, residual-guided enrichment, or missed-root
   validation (`Tkachenko2024QDavidson`, `McCombs2006IVE`);
 - **never call the window test a spectrum-completeness certificate.** It
