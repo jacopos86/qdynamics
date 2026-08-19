@@ -141,10 +141,10 @@ class SupportPatchControllerConfig:
     append_prefilter_policy: str = APPEND_LADDER_PREFILTER_POLICY_V1
     append_gain_threshold: float = 1.0e-10
     append_batch_score_threshold: float = 1.0e-10
-    append_schur_guard_enabled: bool = True
-    append_schur_min_rank_fraction: float = 1.0
+    # Certification conditioning cap on the patched retained solve. Retains
+    # its historical flag name for run-provenance compatibility; it is not a
+    # Schur-block criterion (that guard belonged to the retired append route).
     append_schur_max_condition_number: float = 1.0e12
-    append_schur_novelty_ridge_lambda: float = 0.0
     append_macro_scout_enabled: bool = False
     append_macro_scout_score_mode: str = APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN
     append_macro_scout_parent_cap: int = 0
@@ -259,9 +259,7 @@ class SupportPatchControllerConfig:
         for name in (
             "append_gain_threshold",
             "append_batch_score_threshold",
-            "append_schur_min_rank_fraction",
             "append_schur_max_condition_number",
-            "append_schur_novelty_ridge_lambda",
             "append_macro_scout_score_min",
             "append_macro_scout_expand_if_residual_high",
             "append_macro_scout_audit_parent_fraction",
@@ -304,8 +302,6 @@ class SupportPatchControllerConfig:
             value = float(getattr(self, name))
             if not np.isfinite(value) or value < 0.0:
                 raise ValueError(f"{name} must be finite and non-negative.")
-        if float(self.append_schur_min_rank_fraction) > 1.0:
-            raise ValueError("append_schur_min_rank_fraction must be <= 1.")
         validate_append_macro_scout_score_mode(self.append_macro_scout_score_mode)
         normalize_append_occurrence_policy(self.append_occurrence_policy)
         if float(self.append_macro_scout_audit_parent_fraction) > 1.0:
@@ -357,13 +353,8 @@ class SupportPatchControllerConfig:
             "append_prefilter_policy": str(self.append_prefilter_policy),
             "append_gain_threshold": float(self.append_gain_threshold),
             "append_batch_score_threshold": float(self.append_batch_score_threshold),
-            "append_schur_guard_enabled": bool(self.append_schur_guard_enabled),
-            "append_schur_min_rank_fraction": float(self.append_schur_min_rank_fraction),
             "append_schur_max_condition_number": float(
                 self.append_schur_max_condition_number
-            ),
-            "append_schur_novelty_ridge_lambda": float(
-                self.append_schur_novelty_ridge_lambda
             ),
             "append_macro_scout_enabled": bool(self.append_macro_scout_enabled),
             "append_macro_scout_policy": APPEND_MACRO_SCOUT_POLICY_V2,

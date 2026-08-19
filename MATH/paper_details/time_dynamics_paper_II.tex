@@ -284,17 +284,7 @@ K_{t_k}(B_k^{\oplus})^{\alpha_{\rm append}}
 \end{equation}
 The batch is evaluated jointly rather than by summing singleton gains.
 
-Gain alone is insufficient when the incoming tangent block duplicates the active span.  Partitioning the augmented Gram matrix into current coordinates \(J_k\) and incoming coordinates \(I_{B,k}^{\oplus}\), the checkpoint-local novelty block is
-\begin{equation}
-\mathsf S_{B|J,k}
-=
-G_{k,I_BI_B}
--G_{k,I_BJ}
-(G_{k,JJ})^\dagger
-G_{k,JI_B}.
-\label{eq:append_schur_novelty}
-\end{equation}
-An append batch must yield a finite augmented McLachlan solve within the declared conditioning bound; Eq.~(\ref{eq:append_schur_novelty}) is its conditioning diagnostic.  Multi-child insertion batches are ordered words over the inserted children and the survivors, quotiented to a canonical normal form by pairwise commutation so that only inequivalent orderings are enumerated; wider insertion frontiers are acquired only while smaller families certify no patch and the structural-repair predicate remains active.  Whitening and retained-mode compression are implementation accelerations collected in Appendix~\ref{app:technical_realization}; they do not replace Eq.~(\ref{eq:append_gain}).
+Gain alone is insufficient when the incoming tangent block duplicates the active span; duplicate Pauli words generate the same one-parameter family and are removed by operator identity before scoring, and an append batch must yield a finite augmented McLachlan solve within the declared conditioning bound.  Multi-child insertion batches are ordered words over the inserted children and the survivors, quotiented to a canonical normal form by pairwise commutation so that only inequivalent orderings are enumerated; wider insertion frontiers are acquired only while smaller families certify no patch and the structural-repair predicate remains active.  Whitening and retained-mode compression are implementation accelerations collected in Appendix~\ref{app:technical_realization}; they do not replace Eq.~(\ref{eq:append_gain}).
 
 Append scoring requires overlaps involving candidate tangent directions and can therefore require additional quantum measurements beyond the active-support McLachlan data.  After those candidate blocks have been measured, batch assembly, Schur projection, ranking, and the augmented solve are classical linear algebra.
 
@@ -763,7 +753,7 @@ Thus \(W_k\) maps orthonormal retained tangent coordinates back to circuit-coord
 \mathsf S_k=C_k-\widetilde B_k^\top\widetilde B_k,
 \label{eq:app_whitened_schur}
 \end{equation}
-which is the retained-support form of Eq.~(\ref{eq:append_schur_novelty}).  Whitening and damping stabilize the computation; the undamped \(G\)-based gain and loss in the main text remain the structural definitions.
+which is the retained-support novelty block of the incoming coordinates against the active span.  Whitening and damping stabilize the computation; the undamped \(G\)-based gain and loss in the main text remain the structural definitions.
 
 \subsection{Numerical-repair candidate construction}
 

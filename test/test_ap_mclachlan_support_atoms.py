@@ -615,9 +615,10 @@ def test_support_patch_controller_defaults_are_exchange_family_combinatorial() -
     assert config.append_ladder_mode == "combinatorial"
     assert config.append_occurrence_policy == APPEND_OCCURRENCE_POLICY_LAYER_REUSE
     assert config.max_append_batch_size == 10
-    assert config.append_schur_guard_enabled is True
-    assert config.append_schur_min_rank_fraction == 1.0
-    assert config.append_schur_novelty_ridge_lambda == 0.0
+    # The Schur guard, rank fraction, and novelty ridge belonged to the
+    # retired append route and were removed; the surviving cap is the
+    # certification conditioning bound.
+    assert config.append_schur_max_condition_number == 1.0e12
     assert config.append_macro_scout_enabled is False
     assert config.append_macro_scout_score_mode == (
         APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN
