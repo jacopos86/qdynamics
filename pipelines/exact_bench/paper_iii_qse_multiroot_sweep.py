@@ -78,7 +78,7 @@ def _root_errors(
     *,
     hamiltonian: Any,
     ground: np.ndarray,
-) -> tuple[list[float | None], int]:
+) -> tuple[list[float | None], int, list[float | None]]:
     result = compute_qse_spectra(
         hamiltonian,
         ground,
@@ -87,12 +87,15 @@ def _root_errors(
     )
     energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
     errors: list[float | None] = []
+    root_energies: list[float | None] = []
     for root, reference in enumerate(references):
         if root < energies.size:
             errors.append(abs(float(energies[root]) - float(reference)))
+            root_energies.append(float(energies[root]))
         else:
             errors.append(None)
-    return errors, int(result.retained_rank)
+            root_energies.append(None)
+    return errors, int(result.retained_rank), root_energies
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -135,7 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         arms: dict[str, Any] = {}
 
         def _record_arm(arm_name: str, indices: Sequence[int]) -> None:
-            errors, rank = _root_errors(
+            errors, rank, root_energies = _root_errors(
                 basis, indices, references, hamiltonian=hamiltonian, ground=ground
             )
             arms[arm_name] = {
@@ -143,6 +146,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "retained_rank": rank,
                 "total_2q": float(sum(costs[int(index)] for index in indices)),
                 "root_abs_errors": errors,
+                "root_energies": root_energies,
+                "selected_original_indices": [int(index) for index in indices],
                 "max_root_abs_error": max((e for e in errors if e is not None), default=None),
             }
 
@@ -204,6 +209,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "g_ep": float(g_ep),
             "n_ph_max": int(n_ph_max),
             "pool_size": len(basis),
+            "reference_ground_energy": float(spectrum[0]),
             "reference_excitations": references,
             "linear_response_class_total_2q": linear_total,
             "arms": arms,
