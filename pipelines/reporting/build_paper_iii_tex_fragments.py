@@ -196,49 +196,52 @@ def build_peierls_fragment() -> str:
 
 def build_comparator_matrix_fragment() -> str:
     matrix = _load(COMPARATOR_MATRIX_JSON)
-    multiroot = _load(MULTIROOT_JSON)
-    peierls = _load(PEIERLS_JSON)
-    ours: dict[str, tuple[float, float]] = {}
-    for source in (multiroot, peierls):
-        for regime, record in source["regimes"].items():
-            arm = record["arms"].get("exchange_dominance_R6")
-            if arm:
-                errors = [e for e in arm["root_abs_errors"] if e is not None]
-                ours[regime] = (max(errors), float(arm["total_2q"]))
-    lines = [_fragment_header([COMPARATOR_MATRIX_JSON, MULTIROOT_JSON, PEIERLS_JSON])]
+    lines = [_fragment_header([COMPARATOR_MATRIX_JSON])]
     lines.append(r"\begin{widetext}")
     lines.append(
         r"\inlinetablecaption{tab:qse_comparator_matrix}{Cross-family "
         r"comparator matrix on identical Hamiltonians, sectors, and "
-        r"references: maximum error over the lowest six excitations versus "
-        r"compiled two-qubit cost. The Krylov arm uses a seeded random "
-        r"sector kick (overlapping every target state), exact propagation, "
-        r"best-matching-root scoring, and first-order-Trotter state-"
-        r"preparation costing --- every convention favoring Krylov.}"
+        r"references: maximum error over the lowest six excitations at the "
+        r"arm's compiled two-qubit cost, written $|\Delta E|$ @ 2Q. The "
+        r"Krylov arm uses a seeded random sector kick overlapping every "
+        r"target state, exact propagation, best-matching-root scoring, and "
+        r"first-order-Trotter state-preparation costing --- every convention "
+        r"favoring Krylov. The residual-guided arm is adaptive subspace growth "
+        r"on the same record pool with a linear-independence admission check "
+        r"and no hardware-cost weighting, isolating what cost-weighted "
+        r"acquisition contributes. Daggers mark arms that exhausted the pool "
+        r"without meeting the residual stop.}"
     )
     lines.append(r"\begin{center}")
     lines.append(r"\scriptsize")
     lines.append(r"\begin{ruledtabular}")
-    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccc@{}}")
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}")
     lines.append(
-        r"Case & fixed class & real-time Krylov (best) & selected + exchange \\"
+        r"Case & fixed class & real-time Krylov & residual-guided & "
+        r"selected $+$ exchange \\"
     )
     lines.append(r"\colrule")
     for case, record in matrix["cases"].items():
         fixed = record["fixed_linear_response"]
-        krylov = record["krylov"].get("best_per_cost_envelope") or []
-        krylov_cell = (
-            rf"{_sci(krylov[-1]['max_root_abs_error'])} @ {krylov[-1]['cum_2q']:.0f}"
-            if krylov
-            else "--"
-        )
-        ours_cell = (
-            rf"{_sci(ours[case][0])} @ {ours[case][1]:.0f}" if case in ours else "--"
-        )
-        lines.append(
-            rf"{_escape(case)} & {_sci(fixed['max_root_abs_error'])} @ "
-            rf"{fixed['total_2q']:.0f} & {krylov_cell} & {ours_cell} \\"
-        )
+        krylov = (record["krylov"].get("best_per_cost_envelope") or [None])[-1]
+        cells = [
+            rf"{_sci(fixed['max_root_abs_error'])} @ {fixed['total_2q']:.0f}",
+            (
+                rf"{_sci(krylov['max_root_abs_error'])} @ {krylov['cum_2q']:.0f}"
+                if krylov
+                else "--"
+            ),
+        ]
+        for key in ("residual_guided_adaptive", "selected_plus_exchange"):
+            arm = record.get(key)
+            if arm is None:
+                cells.append("--")
+                continue
+            mark = r"$^\dagger$" if arm.get("stop_reason") == "pool_exhausted" else ""
+            cells.append(
+                rf"{_sci(arm['max_root_abs_error'])} @ {arm['total_2q']:.0f}{mark}"
+            )
+        lines.append(f"{_escape(case)} & " + " & ".join(cells) + r" \\")
     lines.append(r"\end{tabular*}")
     lines.append(r"\end{ruledtabular}")
     lines.append(r"\end{center}")

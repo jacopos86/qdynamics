@@ -185,6 +185,35 @@ class SolveRepairConfig:
     profile_id: str = SOLVE_REPAIR_PROFILE_V2
     selection_policy: str = SOLVE_REPAIR_SELECTION_STATE_SPACE_SCORE_V1
 
+    @classmethod
+    def minimal_profile(cls, **overrides: object) -> "SolveRepairConfig":
+        """Repair reduced to the mechanism that measurably acts.
+
+        Audit of 885 integration steps across 33 trajectories: 11,499 repair
+        candidates were evaluated and 6 were applied; the inverse-policy
+        ladders left the base policy on 883/885 steps and damping never moved.
+        The only mechanism that repeatedly changed a step was local
+        subdivision triggered by excessive prospective state motion.  This
+        profile keeps that trigger and its subdivision, pins the inverse
+        policy to its base rung, and disables the conditioning, residual, and
+        kink triggers that fired without changing the accepted solve.  The
+        full candidate search remains available for diagnosis.
+        """
+
+        params: dict[str, object] = dict(
+            enabled=True,
+            condition_number_max=None,
+            rho_num_max=None,
+            state_space_kink_eta_max=None,
+            state_motion_l2_step_max=1.0e-2,
+            local_subdivision_enabled=True,
+            ridge_ladder=(DEFAULT_MCLACHLAN_RIDGE_LAMBDA,),
+            pinv_rcond_ladder=(1.0e-10,),
+            solve_damping_ladder=(DEFAULT_MCLACHLAN_SOLVE_DAMPING,),
+        )
+        params.update(overrides)
+        return cls(**params)  # type: ignore[arg-type]
+
     def __post_init__(self) -> None:
         for name in (
             "condition_number_max",

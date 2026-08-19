@@ -1602,6 +1602,17 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--solve-repair-profile",
+        choices=["minimal", "full"],
+        default="minimal",
+        help=(
+            "Repair candidate set. 'minimal' keeps the mechanism that "
+            "measurably acts (prospective state-motion trigger plus local "
+            "subdivision) with the inverse policy pinned to its base rung; "
+            "'full' restores the complete ladder search for diagnosis."
+        ),
+    )
+    parser.add_argument(
         "--solve-repair",
         action="store_true",
         help=(
@@ -1811,7 +1822,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
-        solve_repair_config = SolveRepairConfig(
+        _repair_kwargs = dict(
             enabled=bool(args.solve_repair),
             condition_number_max=float(args.solve_repair_condition_number_max),
             condition_number_fail=(
@@ -1846,6 +1857,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             pinv_rcond_ladder=_parse_float_ladder(args.solve_repair_pinv_rcond_ladder),
             solve_damping_ladder=_parse_float_ladder(args.solve_repair_damping_ladder),
         )
+        if str(args.solve_repair_profile) == "minimal":
+            _minimal = SolveRepairConfig.minimal_profile(
+                enabled=bool(args.solve_repair)
+            )
+            for _field in (
+                "condition_number_max",
+                "rho_num_max",
+                "state_space_kink_eta_max",
+                "state_motion_l2_step_max",
+                "ridge_ladder",
+                "pinv_rcond_ladder",
+                "solve_damping_ladder",
+            ):
+                _repair_kwargs[_field] = getattr(_minimal, _field)
+        solve_repair_config = SolveRepairConfig(**_repair_kwargs)
         payload = run_append_ap_mclachlan_from_runtime_input(
             runtime_input,
             times=_parse_times(args),

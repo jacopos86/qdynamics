@@ -183,14 +183,15 @@ def _selection_arm(
 ) -> dict[str, Any]:
     """Run a selection arm and score it on the shared reference window."""
 
-    config = StaticRecordSelectionConfig(
-        mode="geometry_selected",
-        max_records=len(basis),
-        geometry_target_roots=_TARGET_ROOTS,
-        geometry_cost_discount_alpha=1.0,
-        geometry_residual_stop=1.0e-3,
-        **overrides,
-    )
+    kwargs: dict[str, Any] = {
+        "mode": "geometry_selected",
+        "max_records": len(basis),
+        "geometry_target_roots": _TARGET_ROOTS,
+        "geometry_cost_discount_alpha": 1.0,
+        "geometry_residual_stop": 1.0e-3,
+    }
+    kwargs.update(overrides)
+    config = StaticRecordSelectionConfig(**kwargs)
     selection = select_static_qse_records(
         basis,
         config=config,

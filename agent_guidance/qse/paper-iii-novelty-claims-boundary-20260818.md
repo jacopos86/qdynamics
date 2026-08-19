@@ -350,3 +350,30 @@ improves selection. The three-term score (visibility x novelty x
 residual capture, cost-discounted) reproduces the same spectra at lower
 cost. Production keeps it at 1/4 for continuity only — if the production
 matrix is re-run, w=0 is the better default and should be stated as such.
+
+## Minimal score + four-way comparator (2026-08-19, final of session)
+
+**PRODUCTION SCORE IS TWO TERMS**: metric novelty + residual capture,
+cost-discounted (alpha=1, floor 0.05), plus the metric-novelty floor.
+Ritz window gain, explicit conditioning penalty, and probe-transition
+visibility were each evaluated and set to zero by default; the
+transition ablation reproduces the anchor BIT-IDENTICALLY in all six
+regimes, so no downstream evidence changed. Both surviving terms are
+necessary: removing either exhausts the pool at 3-8x cost in most
+regimes. Evidence: `minimality.json`, `score_ablation.json`.
+
+**FOUR-WAY COMPARATOR** (`comparator_matrix.json`, nine Hamiltonians,
+identical sectors/references): fixed class, real-time Krylov,
+residual-guided adaptive (NEW - closest prior art: same pool, same
+linear-independence check, no cost weighting), selected+exchange.
+- fixed class and Krylov fail every case (1e-1..1e0);
+- residual-guided is 3-5 orders better than those (adaptive growth IS
+  the right family - say so);
+- ours dominates residual-guided on BOTH axes in 8/9 cases (1-2 orders
+  accuracy at ~half cost) and converges where it pool-exhausts in 6/9;
+- ONE exception, report it: peierls_weak_weak, residual-guided 2e-11 @
+  258 vs ours 2e-10 @ 188 (accuracy-for-cost trade, both far past
+  target). Do not suppress this row.
+CLAIM FRAME: cost discounting changes WHICH directions are acquired,
+not merely how many - a different and here better search, not a
+resource concession.
