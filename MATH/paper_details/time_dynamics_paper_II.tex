@@ -411,56 +411,15 @@ d_{\rm FS}\!\left(
 \end{aligned}
 \label{eq:state_space_step}
 \end{equation}
-The third diagnostic detects a temporal kink in the physical tangent velocity,
-\begin{equation}
-\eta_{{\rm time},k}^{\psi}(v)
-=
-\frac{
-\left\|
-\bar T_kv-
-\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
-\right\|_2^2
-}{
-\tfrac12\left(
-\|\bar b_k\|_2^2+
-\|\bar b_{k-1}\|_2^2
-\right)+\eps_{\rm norm}
-}.
-\label{eq:temporal_kink}
-\end{equation}
-For \(k=0\), the temporal-kink diagnostic is set to zero.
 
-The repair lane opens only when the base realization is invalid or one of these measured defects is excessive:
-\begin{equation}
-g_{{\rm invalid},k}
-\ \vee\
-\rho_{{\rm num},k}>\tau_{\rm num}
-\ \vee\
-\delta_{{\rm step},k}>\tau_\Delta
-\ \vee\
-\eta_{{\rm time},k}^{\psi}>\tau_{\rm kink}.
-\label{eq:repair_entry}
-\end{equation}
-Hard invalidity means nonfinite or dimensionally inconsistent checkpoint data, not merely a large diagnostic value.  The retained-spectrum condition number \(\kappa_{\rm eff}\) is intentionally absent from Eq.~(\ref{eq:repair_entry}).  It measures sensitivity of a candidate inverse and therefore modifies candidate risk; by itself it neither proves that motion was lost nor determines whether regularization should increase or decrease.
 
-The response follows the measured failure channel.  Excessive state displacement opens local time-step subdivision, because damping is not the first cure for a physically accurate velocity evaluated over too large a step; subdivision refines the internal integration grid only, leaving the reporting grid and the accepted support unchanged.  A diagnostic mode additionally opens a bidirectional inverse search on excessive numerical miss, since a base solve may be under- or over-regularized, and selects the least intervention among finite candidates satisfying the numerical-miss, state-motion, and temporal-continuity thresholds; that mode is not used for the results reported here.  If no finite candidate passes, a diagnostic trajectory may continue with the least-bad finite candidate and mark the checkpoint unsupported.  The supported inverse, whitening map, candidate construction, and release patience are given in Appendix~\ref{app:technical_realization}.
+
+
+\paragraph*{Operating rule.}  The operating response is a single rule: when \(\delta_{{\rm step},k}\) of Eq.~(\ref{eq:state_space_step}) exceeds \(\tau_\Delta\), the interval is subdivided, because damping is not the first cure for a physically accurate velocity evaluated over too large a step.  Subdivision refines the internal integration grid only, leaving the reporting grid and the accepted support unchanged.  Hard invalidity --- nonfinite or dimensionally inconsistent checkpoint data --- rejects the step outright.  A wider diagnostic mode that opens a bidirectional inverse search on the remaining defect channels, together with the release rule that returns a held repair to the base inverse, is specified in Appendix~\ref{app:technical_realization} with the measurements motivating its exclusion from the operating configuration.
 
 The measurement boundary is important.  Once \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^2\) have been estimated at a checkpoint, Eqs.~(\ref{eq:realized_residual}) and the tangent-plane part of Eq.~(\ref{eq:state_space_step}) are classical quadratic forms.  Testing stronger or weaker inverse policies on those same data requires no new quantum measurements.  The trial-state ray check requires an additional overlap experiment on a QPU when that stricter guard is enabled; in the present statevector diagnostics it is evaluated classically.  Local subdivision is different: it introduces new intermediate states and therefore requires new checkpoint evaluations.  Temporal continuity uses current and previously retained checkpoint data and never an exact reference trajectory.
 
-After a repaired inverse has been held, return to the base inverse is tested at the same checkpoint.  If \(v_k^{\rm rep}\) and \(v_k^{0}\) are the repaired and base velocities, respectively, then
-\begin{equation}
-\eta_{{\rm rel},k}^{\psi}
-=
-\frac{
-(v_k^{\rm rep}-v_k^{0})^\top
-G_k
-(v_k^{\rm rep}-v_k^{0})
-}{
-\|\bar b_k\|_2^2+\eps_{\rm norm}
-}.
-\label{eq:repair_release}
-\end{equation}
-Equation~(\ref{eq:repair_release}) is computed classically from the already measured \(G_k\); it does not require a second quantum measurement of either velocity.  Release uses a stricter threshold and severity-dependent persistence so that a repair is not switched off immediately after a large accepted correction.
+
 
 \subsection{Time integration convention}
 
@@ -510,7 +469,7 @@ exchange with refit & \tentative{--} & \tentative{--} & \tentative{--} & \tentat
 
 \subsection{Adaptive-append comparison}
 
-The closest adaptive-ansatz comparator is adaptive variational quantum dynamics simulation \cite{Yao2021AVQDS}, which grows the ansatz during evolution using the McLachlan distance
+The closest adaptive-ansatz comparator is adaptive variational quantum dynamics simulation \cite{Yao2021}, which grows the ansatz during evolution using the McLachlan distance
 \begin{equation}
 L_k^2(J)=\|\bar b_k\|_2^2-Q_k(J)
 \label{eq:mclachlan_distance}
@@ -525,7 +484,7 @@ as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator 
 Policy & $\overline{|\Delta E|}$ & $|\Delta E|_{t=T}$ & $N_{\rm param}^{\rm final}$\\
 \colrule
 append-only (ablation) & \tentative{$1.7\times10^{-3}$} & \tentative{$3.8\times10^{-3}$} & \tentative{46}\\
-adaptive append \cite{Yao2021AVQDS} & \tentative{$1.8\times10^{-3}$} & \tentative{$8.5\times10^{-3}$} & \tentative{68}\\
+adaptive append \cite{Yao2021} & \tentative{$1.8\times10^{-3}$} & \tentative{$8.5\times10^{-3}$} & \tentative{68}\\
 exchange (this work) & \tentative{$3.5\times10^{-3}$} & \tentative{$6.3\times10^{-3}$} & \tentative{24}\\
 \end{tabular}
 \end{ruledtabular}
@@ -780,6 +739,64 @@ Same-checkpoint inverse candidates reuse \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^
 \end{equation}
 so testing inverse candidates and the release metric in Eq.~(\ref{eq:repair_release}) is classical after the checkpoint data have been acquired.  Local subdivision creates new states and therefore requires new checkpoint evaluations.
 
+\subsection{Diagnostic-only machinery (not part of the operating method)}
+\label{app:diagnostic_only}
+
+Everything in this subsection is measured and retained for diagnosis of
+pathological trajectories.  None of it is part of the method used for any
+result in this paper: the operating numerical rule is the single
+state-displacement subdivision of Sec.~\ref{sec:numerical_solve_repair}, and
+the operating structural rule is Eq.~(\ref{eq:operating_score}).  The material
+is recorded because it is the evidence that the reduced configuration loses
+nothing, not because a reader must apply it.
+
+The third diagnostic detects a temporal kink in the physical tangent velocity,
+\begin{equation}
+\eta_{{\rm time},k}^{\psi}(v)
+=
+\frac{
+\left\|
+\bar T_kv-
+\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
+\right\|_2^2
+}{
+\tfrac12\left(
+\|\bar b_k\|_2^2+
+\|\bar b_{k-1}\|_2^2
+\right)+\eps_{\rm norm}
+}.
+\label{eq:temporal_kink}
+\end{equation}
+For \(k=0\), the temporal-kink diagnostic is set to zero.
+
+The repair lane opens only when the base realization is invalid or one of these measured defects is excessive:
+\begin{equation}
+g_{{\rm invalid},k}
+\ \vee\
+\rho_{{\rm num},k}>\tau_{\rm num}
+\ \vee\
+\delta_{{\rm step},k}>\tau_\Delta
+\ \vee\
+\eta_{{\rm time},k}^{\psi}>\tau_{\rm kink}.
+\label{eq:repair_entry}
+\end{equation}
+Hard invalidity means nonfinite or dimensionally inconsistent checkpoint data, not merely a large diagnostic value.  The retained-spectrum condition number \(\kappa_{\rm eff}\) is intentionally absent from Eq.~(\ref{eq:repair_entry}).  It measures sensitivity of a candidate inverse and therefore modifies candidate risk; by itself it neither proves that motion was lost nor determines whether regularization should increase or decrease.
+
+After a repaired inverse has been held, return to the base inverse is tested at the same checkpoint.  If \(v_k^{\rm rep}\) and \(v_k^{0}\) are the repaired and base velocities, respectively, then
+\begin{equation}
+\eta_{{\rm rel},k}^{\psi}
+=
+\frac{
+(v_k^{\rm rep}-v_k^{0})^\top
+G_k
+(v_k^{\rm rep}-v_k^{0})
+}{
+\|\bar b_k\|_2^2+\eps_{\rm norm}
+}.
+\label{eq:repair_release}
+\end{equation}
+Equation~(\ref{eq:repair_release}) is computed classically from the already measured \(G_k\); it does not require a second quantum measurement of either velocity.  Release uses a stricter threshold and severity-dependent persistence so that a repair is not switched off immediately after a large accepted correction.
+
 \paragraph*{Operating configuration.}  The candidate set above is the diagnostic superset.  Across every trajectory reported here --- 885 integration steps --- the inverse-candidate search left the base regularization in place on all but two steps, damping never moved from its base value, and of $1.15\times10^4$ evaluated candidates six were accepted; the conditioning, numerical-miss, and temporal-kink triggers opened searches that did not change the accepted solve.  Local subdivision opened by excessive prospective state displacement is the only repair mechanism that repeatedly altered a step.  The reported runs therefore use a reduced configuration containing that trigger, its subdivision, and the base inverse convention alone.  Substituting the reduced configuration for the full candidate search on the driven seed of Table~\ref{tab:comparator_hh_snake} changes the mean energy error from $3.4735\times10^{-3}$ to $3.4738\times10^{-3}$ at identical final support, while removing a quarter of the candidate solves.  The wider set is retained for diagnosis of pathological checkpoints, not as the operating point.
 
 \subsection{Structural search and deletion history}
@@ -819,11 +836,6 @@ using conditional insertion gain against the post-delete support, conditional de
 J. Strobel, J. Simoni, and Y. Ping,
 ``Geometric and Resource-Aware Adaptive Ansatz Construction for Fermion--Boson Hamiltonian Systems,''
 manuscript in preparation (2026).
-
-\bibitem{Yao2021AVQDS}
-Y.-X. Yao, N. Gomes, F. Zhang, C.-Z. Wang, K.-M. Ho, T. Iadecola, and P. P. Orth,
-``Adaptive variational quantum dynamics simulations,''
-\emph{PRX Quantum} \textbf{2}, 030307 (2021).
 
 \bibitem{Weisse2008}
 A. Wei{\ss}e and H. Fehske,
