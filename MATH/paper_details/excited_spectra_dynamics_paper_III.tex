@@ -35,6 +35,7 @@
 \newcommand{\Ncal}{\mathcal{N}}
 \newcommand{\Gcal}{\mathcal{G}}
 \newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\Ucal}{\mathcal{U}}
 \newcommand{\Ccal}{\mathcal{C}}
 \newcommand{\Qcal}{\mathcal{Q}}
 \newcommand{\Vcal}{\mathcal{V}}
@@ -259,22 +260,30 @@ F_r
 \structlabel{Selection score}
 Before the staged approximation, we state the acquisition rule top down.  A candidate excitation record $r$ is ranked by a single scalar built from three geometric factors, each answering one question about what the record contributes to the \emph{currently retained} manifold:
 \begin{equation}
-\Scal(r;\ell)
+\Ucal(r;\ell)
 =
-\underbrace{\Delta_{\qse}(r;\ell)}_{\text{visibility}}
-\cdot
-\underbrace{\Ncal_2^{\qse}(r;\ell)}_{\text{metric novelty}}
-\cdot
-\underbrace{\Gcal(r;\ell)}_{\text{window gain}} ,
+w_{\Ncal}\,\Ncal_2^{\qse}(r;\ell)
++w_{R}\,C^{\rm res}(r;\ell)
++w_{G}\,\Gcal(r;\ell)
++w_{T}\,T(r;\ell),
 \label{eq:qse_score_topdown}
 \end{equation}
-where
+whose four ingredients are
 \begin{itemize}
-\item $\Delta_{\qse}$ is \emph{probe-transition visibility}: how strongly the record displaces the reference along directions the target observables can see (Sec.~\ref{sec:phase1});
-\item $\Ncal_2^{\qse}$ is \emph{metric novelty}, the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero (Sec.~\ref{sec:phase2});
-\item $\Gcal$ is \emph{window gain}, combining eigen-equation residual capture with the two-dimensional Ritz improvement for the targeted roots (Sec.~\ref{sec:phase3}).
+\item $\Ncal_2^{\qse}$, \emph{metric novelty}: the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero (Sec.~\ref{sec:phase2});
+\item $C^{\rm res}$, \emph{residual capture}: the fraction of the targeted roots' eigen-equation residual that the record's direction absorbs (Sec.~\ref{sec:phase3});
+\item $\Gcal$, \emph{Ritz window gain}: the exact two-level energy lowering obtained by adjoining the record's direction to the current Ritz vector (Sec.~\ref{sec:phase3});
+\item $T$, \emph{probe-transition visibility}: the largest overlap of the record's direction with the normalized images of the target observables (Sec.~\ref{sec:phase1}).
 \end{itemize}
-The three factors are multiplicative because they are independent veto conditions: a record that is invisible to the probes, redundant in the metric, or irrelevant to the target window is not worth measuring, regardless of its other properties.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
+The ranked quantity is this utility discounted by the record's incremental compiled hardware cost and penalized for conditioning,
+\begin{equation}
+\Scal(r;\ell)
+=
+\frac{\Ucal(r;\ell)}{\left[\max\!\left(\widehat C(r;\ell),C_{\rm floor}\right)\right]^{\alpha}}
+-\lambda_\kappa\left(1-\Ncal_2^{\qse}(r;\ell)\right),
+\label{eq:qse_score_ranked}
+\end{equation}
+with the cost model deferred to Sec.~\ref{sec:cost_weighting}.  The ingredients enter additively rather than as a product, so a record strong in one coordinate can still be admitted when another is weak; the veto behavior that a product would impose is instead supplied by the hard admissibility floors of Sec.~\ref{sec:stopping_rule} and by the metric-novelty floor, below which a candidate is rejected outright as unrepresentable.  Section~\ref{sec:ablations} reports which of these terms are load bearing: metric novelty, residual capture, and the cost discount each prove necessary, whereas the conditioning penalty is inert and the Ritz window gain is optional.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
 
 The remainder of this section makes each factor precise.  Section~\ref{sec:acquisition_objective} states the underlying spectral-window utility that Eq.~(\ref{eq:qse_score_topdown}) approximates; Secs.~\ref{sec:phase1}--\ref{sec:phase3} give the three factors as a staged screen of increasing cost; Sec.~\ref{sec:cost_weighting} attaches the hardware discount; Sec.~\ref{sec:stopping_rule} gives the stopping rule that makes support size an output rather than a budget; and Sec.~\ref{sec:exchange_maintenance} gives the certified exchange move that maintains an already-selected support.
 
@@ -1253,6 +1262,7 @@ its cost.  Regenerated from the committed evidence records by
 \input{generated/paper_iii_peierls_table}
 \end{widetext}
 
+\label{sec:ablations}
 \structlabel{Score-term ablations}
 Table~\ref{tab:qse_ablation_matrix} ablates one ingredient of the selection score at a time, at the production stop so that support size is an output.  Three conclusions follow, and none of them is uniform across the regimes.  In the weak-phonon regimes the metric-novelty weight, the residual-capture term, and the cost discount are each individually load bearing: removing any one of them roughly doubles the converged support, multiplies compiled cost by three to four, and prevents convergence altogether, the run instead exhausting its pool at an error one to two orders of magnitude worse.  The metric-novelty result is worth stating explicitly because it differs from the companion ansatz-construction setting, where an analogous novelty term did not improve selection and was removed \cite{PaperI}.  Both settings invert a metric---the Fubini--Study metric of the variational manifold there, the overlap Gram matrix of the nonorthogonal excitation basis here---so the difference is not the presence of a metric but what happens to a redundant admission.  In ansatz construction the angles are re-optimized after every insertion, so a redundant generator is variationally absorbed and costs only depth.  In subspace expansion there is no such re-optimization: the basis is the answer, its retained rank fixes which spectral directions exist at all, and a direction the stabilized pencil cannot represent consumes measurement budget while contributing nothing to the window.  Second, the explicit conditioning penalty is inert: it reproduces the anchor exactly in five of six regimes, because the novelty term already supplies the conditioning control it was meant to add.  Third, the two strong-phonon regimes at $n_{\rm ph}=7$ are pool limited rather than score limited---every arm exhausts the pool within ten percent of the same error---so they carry no ablation signal, and the honest reading of those columns is that no acquisition rule can repair a manifold the record pool does not span.
 
