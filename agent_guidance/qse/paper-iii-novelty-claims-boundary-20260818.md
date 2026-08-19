@@ -248,3 +248,46 @@ are implementation validation, never novelty.
   max_structural_pool_size) — without them the post-purge selector
   grinds (~8 CPU-min/step) and accumulates memoized solves (~500
   MB/min); with them, ~3 s/step at flat 250 MB.
+
+## Secondary-method audit (cutoff 2026-08-18; user-supplied second pass)
+
+| Candidate | Verdict | Most damaging prior work |
+|---|---|---|
+| A: retained-frame novelty | NOVEL-NARROWLY | DA-CASE arXiv:2608.08739 (preprint) — candidate rejection by component outside a "retained span" + explicit overlap-mode retention (`UtamaDipojono2026DACASE`) |
+| B: residual + window pressure | PARTIALLY NOVEL | McCombs & Stathopoulos, SIAM J. Sci. Comput. 28, 2337-2358 (2006) — validates converged Ritz sets by searching the orthogonal complement for missed roots (`McCombs2006IVE`) |
+| C-i: escape flux | PARTIALLY NOVEL | Yao et al. AVQDS, PRX Quantum 2, 030307 (2021) — McLachlan distance IS variance minus captured drift (`Yao2021AVQDS`) |
+| C-ii: flux + alignment escalation | PARTIALLY NOVEL | AVQDS again — threshold, then scan every pool operator for max residual reduction |
+| C-iii: pool-limited escape | PARTIALLY NOVEL | Gomes, Williams-Young & de Jong, JCTC 19, 3313-3323 (2023) — fixed pool can be unable to lower the McLachlan distance past a floor (`Gomes2023AVQDSGreen`) |
+
+### Additional never-claim items (from this pass)
+
+- "retained-subspace novelty" as a phrase or concept — DA-CASE places it
+  adjacent to explicit overlap-mode retention. Claim ONLY the exact-span
+  vs solver-retained-frame MISMATCH diagnosis, the shared-cutoff
+  requirement, and the re-supply mechanism;
+- residual-norm stopping, residual-guided enrichment, or missed-root
+  validation (`Tkachenko2024QDavidson`, `McCombs2006IVE`);
+- **never call the window test a spectrum-completeness certificate.** It
+  is a pool-relative window-closure SURROGATE: it certifies only that no
+  remaining SINGLE candidate in the declared pool exerts window pressure.
+  A low eigenvector may need a combination of high-Rayleigh images, may
+  lie outside the pool, or may need multiple acquisitions. IVE is
+  stronger in spectral reach (full complement solve); ours is weaker but
+  compatible with measured access — that is the contribution;
+- the escape scalar as a new error functional — it is the
+  McLachlan/Galerkin defect; claim only the frozen-premeasured-pencil
+  specialization and the saturation identity (rho_esc = 1 exactly at a
+  Ritz root, since the projected residual vanishes there);
+- threshold-plus-pool-scan adaptation (`Yao2021AVQDS`); claim only the
+  premeasured routing architecture (offline record enrichment vs live
+  manifold);
+- pool-limited adaptive dynamics generally (`Gomes2023AVQDSGreen`); claim
+  only the measured-QSE instance result (growth fails despite ~60%
+  instantaneous alignment) and qualify escalation as "within the tested
+  architecture and accuracy target", never a universal impossibility.
+
+Manuscript status 2026-08-19: all five concessions are written into the
+prior-work paragraph and the results text; `McCombs2006IVE` added to the
+bibliography; the multiroot table caption now says "pool-relative
+window-closure test" (generator updated), not "window-pressure
+completeness".

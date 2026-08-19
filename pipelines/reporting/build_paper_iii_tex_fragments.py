@@ -79,8 +79,8 @@ def build_multiroot_fragment() -> str:
         r"\inlinetablecaption{tab:qse_multiroot_diag}{Statevector-diagnostic "
         r"multi-root accuracy over the six Paper-I Hubbard--Holstein regimes "
         r"(lowest six excitations, exact sector-restricted references, "
-        r"residual-norm stop $\varepsilon=10^{-3}$ with window-pressure "
-        r"completeness; support size is an output). Cost is compiled two-qubit "
+        r"residual-norm stop $\varepsilon=10^{-3}$ with a pool-relative "
+        r"window-closure test; support size is an output). Cost is compiled two-qubit "
         r"gate count under the \texttt{two\_qubit\_only\_v1} scalarization.}"
     )
     lines.append(r"\begin{center}")
