@@ -97,6 +97,19 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
+## Campaign specification
+
+`pipelines/time_dynamics/campaign.py` declares a run matrix as the product of
+`SeedSpec` x `DriveSpec` x `HorizonSpec` x `PolicyArm`, resolving each cell to
+a runner argv with canonical numerics, the four computational guards, and
+locked seed provenance (sha256 per seed, binary-aligned nph enforced at
+construction). Arms: `exchange_arm(ray_tol)`, `append_only_arm()`,
+`avqds_arm(l2_cut)` (flagged `is_comparator`). `write_campaign_manifest`
+records every cell. It owns no scientific defaults - physics comes from the
+seed/drive, structure from the arm - and never searches artifact trees.
+Golden-run parity locks in `test/test_ap_mclachlan_route_parity.py` pin the
+route's decisions and energies across refactors.
+
 ## Operating configuration vs configuration surface
 
 Knob audit (`pipelines/time_dynamics/diagnostics/knob_audit.py`, 885 steps /
