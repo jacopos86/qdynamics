@@ -309,7 +309,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 costs,
                 references,
                 overrides={
-                    "geometry_transition_weight": 0.0,
                     "geometry_cost_discount_alpha": None,
                 },
                 with_exchange=False,

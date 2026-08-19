@@ -37,10 +37,7 @@ _STATIC_RECORD_SELECTION_MODES = {
 _GEOMETRY_WEIGHT_FIELDS = (
     "geometry_metric_novelty_weight",
     "geometry_residual_weight",
-    "geometry_ritz_weight",
-    "geometry_transition_weight",
     "geometry_cost_weight",
-    "geometry_condition_penalty_weight",
 )
 _VALID_INTERNAL_PAULIS = set("exyz")
 
@@ -58,19 +55,7 @@ class StaticRecordSelectionConfig:
     geometry_target_roots: int = 6
     geometry_metric_novelty_weight: float = 0.25
     geometry_residual_weight: float = 1.0
-    # Ablation (2026-08-19): the Ritz window gain and the explicit conditioning
-    # penalty do not improve selection at the production stop -- the penalty is
-    # bit-identical to the anchor and the Ritz term costs 38% more compiled 2Q
-    # for the same accuracy. Both default off; metric novelty already supplies
-    # the conditioning control.
-    geometry_ritz_weight: float = 0.0
-    # Ablation (2026-08-19): probe-transition visibility is inert at the
-    # production stop -- disabling it reproduces the anchor bit-for-bit in
-    # every regime tested. The minimal score is metric novelty + residual
-    # capture, cost-discounted.
-    geometry_transition_weight: float = 0.0
     geometry_cost_weight: float = 1.0
-    geometry_condition_penalty_weight: float = 0.0
     geometry_min_metric_novelty: float = 1.0e-12
     geometry_cost_discount_alpha: float | None = None
     geometry_cost_discount_floor: float = 0.05
@@ -551,8 +536,6 @@ def _geometry_select(
                 novelty = 0.0
 
             residual_capture = 0.0
-            ritz_term = 0.0
-            transition_capture = 0.0
             if p_norm_sq > 0.0:
                 unit_vec = projected / math.sqrt(p_norm_sq)
                 for hat in round_residuals:
@@ -570,17 +553,10 @@ def _geometry_select(
                     ),
                     dtype=complex,
                 ).reshape(-1)
-                h01 = complex(np.vdot(psi, h_unit))
+                # h11 is the candidate's one-direction Rayleigh value; the
+                # stopping rule's window-closure test consumes it.
                 h11 = float(complex(np.vdot(unit_vec, h_unit)).real)
-                pencil = np.array([[e0, h01], [np.conj(h01), h11]], dtype=complex)
-                lam_min = float(np.min(np.linalg.eigvalsh(pencil)))
-                gain = max(0.0, e0 - lam_min)
-                ritz_term = gain / (1.0 + gain)
                 round_thetas[index] = float(h11)
-                for t_hat in transition_hats:
-                    transition_capture = max(
-                        transition_capture, float(abs(complex(np.vdot(unit_vec, t_hat))))
-                    )
                 round_units[index] = unit_vec
                 round_h_units[index] = h_unit
 
@@ -588,24 +564,19 @@ def _geometry_select(
             utility = (
                 float(config.geometry_metric_novelty_weight) * novelty
                 + float(config.geometry_residual_weight) * residual_capture
-                + float(config.geometry_ritz_weight) * ritz_term
-                + float(config.geometry_transition_weight) * transition_capture
             )
-            condition_penalty = float(config.geometry_condition_penalty_weight) * (1.0 - novelty)
             if config.geometry_cost_discount_alpha is not None:
                 alpha = float(config.geometry_cost_discount_alpha)
                 # Clamp the discount denominator: an unbounded 1/cost blows up
                 # for zero-compiled-cost candidates and lets cheap junk crowd
                 # out the excitation window at larger pools.
                 clamped = max(float(config.geometry_cost_discount_floor), cost_norm)
-                score = utility / (clamped ** alpha) - condition_penalty
+                score = utility / (clamped ** alpha)
             else:
-                score = utility - float(config.geometry_cost_weight) * cost_norm - condition_penalty
+                score = utility - float(config.geometry_cost_weight) * cost_norm
             geometry_rows[index] = {
                 "metric_novelty_fraction": float(novelty),
                 "residual_capture": float(residual_capture),
-                "ritz_gain_term": float(ritz_term),
-                "transition_capture": float(transition_capture),
                 "cost_norm": float(cost_norm),
                 "cost_source": "compiled" if compiled_costs is not None else "cost_proxy",
             }

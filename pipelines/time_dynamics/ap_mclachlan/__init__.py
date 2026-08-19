@@ -40,7 +40,6 @@ _LAZY_EXPORTS = {
         "PRUNE_LADDER_SELECTION_POLICY_V1",
     ),
     "PruneCostSettings": ("prune_cost", "PruneCostSettings"),
-    "PruneCostTelemetry": ("prune_cost", "PruneCostTelemetry"),
     "RungDiagnostics": ("support_decision", "RungDiagnostics"),
     "SolveGuardReport": ("fixed_step", "SolveGuardReport"),
     "SolveRepairAttempt": ("fixed_step", "SolveRepairAttempt"),

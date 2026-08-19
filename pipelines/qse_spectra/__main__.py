@@ -143,10 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--static-record-selection-geometry-target-roots", type=int, default=None)
     parser.add_argument("--static-record-selection-geometry-metric-novelty-weight", type=float, default=None)
     parser.add_argument("--static-record-selection-geometry-residual-weight", type=float, default=None)
-    parser.add_argument("--static-record-selection-geometry-ritz-weight", type=float, default=None)
-    parser.add_argument("--static-record-selection-geometry-transition-weight", type=float, default=None)
     parser.add_argument("--static-record-selection-geometry-cost-weight", type=float, default=None)
-    parser.add_argument("--static-record-selection-geometry-condition-penalty-weight", type=float, default=None)
     parser.add_argument("--static-record-selection-geometry-min-metric-novelty", type=float, default=None)
 
     parser.add_argument(
@@ -531,16 +528,7 @@ def _build_static_record_selection_config(
             args.static_record_selection_geometry_metric_novelty_weight,
         ),
         ("--static-record-selection-geometry-residual-weight", args.static_record_selection_geometry_residual_weight),
-        ("--static-record-selection-geometry-ritz-weight", args.static_record_selection_geometry_ritz_weight),
-        (
-            "--static-record-selection-geometry-transition-weight",
-            args.static_record_selection_geometry_transition_weight,
-        ),
         ("--static-record-selection-geometry-cost-weight", args.static_record_selection_geometry_cost_weight),
-        (
-            "--static-record-selection-geometry-condition-penalty-weight",
-            args.static_record_selection_geometry_condition_penalty_weight,
-        ),
         (
             "--static-record-selection-geometry-min-metric-novelty",
             args.static_record_selection_geometry_min_metric_novelty,
@@ -595,25 +583,10 @@ def _build_static_record_selection_config(
                 if args.static_record_selection_geometry_residual_weight is not None
                 else 1.0
             ),
-            geometry_ritz_weight=(
-                float(args.static_record_selection_geometry_ritz_weight)
-                if args.static_record_selection_geometry_ritz_weight is not None
-                else 0.25
-            ),
-            geometry_transition_weight=(
-                float(args.static_record_selection_geometry_transition_weight)
-                if args.static_record_selection_geometry_transition_weight is not None
-                else 0.5
-            ),
             geometry_cost_weight=(
                 float(args.static_record_selection_geometry_cost_weight)
                 if args.static_record_selection_geometry_cost_weight is not None
                 else 1.0
-            ),
-            geometry_condition_penalty_weight=(
-                float(args.static_record_selection_geometry_condition_penalty_weight)
-                if args.static_record_selection_geometry_condition_penalty_weight is not None
-                else 0.05
             ),
             geometry_min_metric_novelty=(
                 float(args.static_record_selection_geometry_min_metric_novelty)

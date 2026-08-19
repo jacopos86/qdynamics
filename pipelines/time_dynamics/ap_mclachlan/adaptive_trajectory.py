@@ -211,8 +211,6 @@ class SupportPatchControllerConfig:
     append_cost_scale_floor: float = 1.0e-12
     prune_cost_alpha: float = 1.0
     prune_condition_lambda_kappa_rel: float = 0.0
-    prune_condition_lambda_schur: float = 0.0
-    prune_condition_lambda_kappa_hist: float = 0.0
     prune_condition_lambda_kappa_dam: float = 0.0
     certification_refit_enabled: bool = False
     certification_refit_trust_radius: float = 0.1
@@ -293,8 +291,6 @@ class SupportPatchControllerConfig:
             "append_cost_scale_floor",
             "prune_cost_alpha",
             "prune_condition_lambda_kappa_rel",
-            "prune_condition_lambda_schur",
-            "prune_condition_lambda_kappa_hist",
             "prune_condition_lambda_kappa_dam",
             "exchange_cost_alpha",
             "eps_loss",
@@ -455,10 +451,6 @@ class SupportPatchControllerConfig:
             "prune_cost_alpha": float(self.prune_cost_alpha),
             "prune_condition_lambda_kappa_rel": float(
                 self.prune_condition_lambda_kappa_rel
-            ),
-            "prune_condition_lambda_schur": float(self.prune_condition_lambda_schur),
-            "prune_condition_lambda_kappa_hist": float(
-                self.prune_condition_lambda_kappa_hist
             ),
             "prune_condition_lambda_kappa_dam": float(
                 self.prune_condition_lambda_kappa_dam
