@@ -299,3 +299,36 @@ prior-work paragraph and the results text; `McCombs2006IVE` added to the
 bibliography; the multiroot table caption now says "pool-relative
 window-closure test" (generator updated), not "window-pressure
 completeness".
+
+## Score-term ablation findings (2026-08-19, `paper_iii_qse_score_ablation.py`)
+
+Evidence: `output/diagnostics/paper_iii_score_ablation_20260819_v1/score_ablation.json`;
+manuscript table `tab:qse_ablation_matrix` (fills a former placeholder).
+
+- novelty WEIGHT, residual capture, cost discount: load-bearing in the
+  weak-phonon regimes — removing any one doubles support, triples-to-
+  quadruples cost, and prevents convergence (pool_exhausted, 10-20x worse).
+- novelty FLOOR: structural, decisive exactly where the metric is worst
+  conditioned — strong_strong_u8 degrades 1.1e-7 -> 4.8e-1 without it,
+  while the same ablation is benign at nph3. Weight ranks useful
+  directions; floor excludes unrepresentable ones. (An earlier
+  nph3-only read called the floor a mere efficiency guard — wrong,
+  corrected by the nph7 data. Do not repeat that.)
+- conditioning penalty: INERT (identical to anchor in 5/6 regimes).
+  Removal candidate.
+- Ritz gain: inert at weight 0.25 vs residual 1.0, yet carries different
+  information (0/10 top-10 candidate overlap with residual capture at
+  supports of 10 and 25; Spearman 0.56-0.64). Shares the numerator
+  |eta|^2 exactly since <u_r|R_nu> = eta; differs by the 1/delta window
+  weighting. Weight sweep pending.
+- nph7 weak_strong / intermediate_strong are POOL-limited, not score-
+  limited: all arms exhaust the pool within 10% of the same error. Do
+  not read ablation signal from those columns.
+
+**CORRECTION (user, 2026-08-19): Paper I's selection DOES invert a
+Fubini--Study metric.** Never claim ADAPT has "no metric to invert". The
+defensible contrast is what happens to a redundant admission: ansatz
+construction re-optimizes angles after each insertion so redundancy is
+variationally absorbed (costing depth), whereas QSE has no
+re-optimization — the basis is the answer and its retained rank fixes
+which spectral directions exist.
