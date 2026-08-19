@@ -11,7 +11,7 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
 | Claim | Verdict | Most damaging prior work |
 |---|---|---|
 | C1: QSE on Hubbard--Holstein | PARTIALLY NOVEL | Backes et al., PRB 107, 165155 (2023) — HH quantum-Krylov spectral calculation on hardware (`Backes2023HHDMFT`) |
-| C2: cost-weighted QSE basis construction | **NOT NOVEL generically** | Utama & Dipojono A-CASE, arXiv:2608.00560 (2026, preprint) — utility/cost acquisition with a multiplicative measurement-cost denominator (`UtamaDipojono2026ACASE`) |
+| C2: cost-weighted QSE basis construction | **NOT NOVEL generically** | utility/cost acquisition with a multiplicative measurement-cost denominator is a previously suggested heuristic. **Sources excluded from citation by user decision (see below); the disclaimer stands uncited.** |
 | C3: exchange-maintained (delete--add) QSE bases | PARTIALLY NOVEL | Patra et al. PIGen-SQD, arXiv:2512.06858 (preprint) — drop/blacklist/regenerate in a measured SQD subspace (`Patra2025PIGenSQD`); classically Wu--Simon thick-restart Lanczos (`WuSimon2000ThickRestart`) |
 | C4: QSE-root handoff to adaptive McLachlan dynamics | NOVEL, NARROWLY | Gomes, Williams-Young & de Jong, JCTC 19 (2023) — adaptive propagation of particle-added response branches (`Gomes2023AVQDSGreen`) |
 
@@ -30,13 +30,9 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
   concedes "neither adaptive subspace growth nor replacing variational
   optimization by a generalized eigenproblem is new";
 - utility-per-measurement-cost subspace growth, or a multiplicative cost
-  denominator in the acquisition score (`UtamaDipojono2026ACASE`) — this NARROW cost-normalization point is
-  the only place A-CASE is the operative collision. Framing rule
-  (user-directed 2026-08-19): concede adaptive construction to
-  QDavidson/ADAPT-GCIM, cite A-CASE only for the cost denominator; never
-  present A-CASE as the principal threat to adaptive-basis novelty.
-  Judge A-CASE solely by its public disclosure — authorship/provenance
-  impressions must not enter any priority argument;
+  denominator in the acquisition score — the disclaimer stays in the
+  manuscript UNCITED (see citation-exclusion rule below). Concede
+  adaptive construction to QDavidson/ADAPT-GCIM, which are cited;
 - QSE excitation-pool pruning or compaction (`LiuDeng2026CSQSE`,
   `Getelina2024HardwareNoiseQSE`);
 - resource-aware quantum-subspace design or measurement optimization
@@ -85,17 +81,19 @@ are implementation validation, never novelty.
 
 1. C2 language must always say *compiled two-qubit measurement-circuit cost*
    — never generic "hardware cost" or "measurement cost" — and must cite
-   A-CASE as concurrent preprint work in the same design space.
-   **DA-CASE (arXiv:2608.08739) is NOT cited and is not to be cited or
-   relied on anywhere in this lane — user decision 2026-08-19. Do not
-   re-add it; every concession it would support is carried by A-CASE,
-   which states the same retained-subspace novelty language.**
+   no source for the generic cost-denominator heuristic.
+   **CITATION EXCLUSION (user decision 2026-08-19, final): neither A-CASE
+   (arXiv:2608.00560) nor DA-CASE (arXiv:2608.08739) is cited anywhere in
+   this lane. Do not re-add either, and do not rely on them in argument.
+   The corresponding disclaimers REMAIN in the manuscript without
+   attribution, so removing the citations never converts a concession
+   into a priority claim — that invariant is the thing to preserve.**
 2. C3 survives only as an atomic joint patch with before/after pencil
    certification; if the implementation degrades to sequential prune + append,
    the claim degrades with it (Paper II selector dependency).
 3. C2 claims require the implemented cost ledger and frontier data, which
    exist: see the evidence inventory below.
-4. Preprint-only sources (A-CASE, PIGen-SQD, OQKD, TIMES-ADAPT) are
+4. Preprint-only sources (PIGen-SQD, OQKD, TIMES-ADAPT) are
    marked "preprint" in the bibliography; keep that marking at submission and
    re-verify their publication status.
 
@@ -256,7 +254,7 @@ are implementation validation, never novelty.
 
 | Candidate | Verdict | Most damaging prior work |
 |---|---|---|
-| A: retained-frame novelty | NOVEL-NARROWLY | A-CASE arXiv:2608.00560 (preprint) — states candidate novelty as the component outside a "retained subspace" (`UtamaDipojono2026ACASE`). (The audit named DA-CASE here; that source is excluded by user decision and its overlapping disclosure is carried by A-CASE.) |
+| A: retained-frame novelty | NOVEL-NARROWLY | audit named DA-CASE/A-CASE (both excluded from citation by user decision). Manuscript disclaims retained-subspace novelty uncited and claims only the mismatch diagnosis + shared cutoff. |
 | B: residual + window pressure | PARTIALLY NOVEL | McCombs & Stathopoulos, SIAM J. Sci. Comput. 28, 2337-2358 (2006) — validates converged Ritz sets by searching the orthogonal complement for missed roots (`McCombs2006IVE`) |
 | C-i: escape flux | PARTIALLY NOVEL | Yao et al. AVQDS, PRX Quantum 2, 030307 (2021) — McLachlan distance IS variance minus captured drift (`Yao2021AVQDS`) |
 | C-ii: flux + alignment escalation | PARTIALLY NOVEL | AVQDS again — threshold, then scan every pool operator for max residual reduction |
@@ -264,8 +262,8 @@ are implementation validation, never novelty.
 
 ### Additional never-claim items (from this pass)
 
-- "retained-subspace novelty" as a phrase or concept — A-CASE already
-  states it. Claim ONLY the exact-span
+- "retained-subspace novelty" as a phrase or concept (disclaimed
+  uncited). Claim ONLY the exact-span
   vs solver-retained-frame MISMATCH diagnosis, the shared-cutoff
   requirement, and the re-supply mechanism;
 - residual-norm stopping, residual-guided enrichment, or missed-root
