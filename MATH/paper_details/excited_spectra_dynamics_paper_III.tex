@@ -31,6 +31,10 @@
 \newcommand{\Ocal}{\mathcal{O}}
 \newcommand{\Ecal}{\mathcal{E}}
 \newcommand{\Acal}{\mathcal{A}}
+\newcommand{\Scal}{\mathcal{S}}
+\newcommand{\Ncal}{\mathcal{N}}
+\newcommand{\Gcal}{\mathcal{G}}
+\newcommand{\Fcal}{\mathcal{F}}
 \newcommand{\Ccal}{\mathcal{C}}
 \newcommand{\Qcal}{\mathcal{Q}}
 \newcommand{\Vcal}{\mathcal{V}}
@@ -250,7 +254,32 @@ F_r
 \label{eq:qse_record_fs_norm}
 \end{equation}
 
+\subsection{Selection score}
+
+\structlabel{Selection score}
+Before the staged approximation, we state the acquisition rule top down.  A candidate excitation record $r$ is ranked by a single scalar built from three geometric factors, each answering one question about what the record contributes to the \emph{currently retained} manifold:
+\begin{equation}
+\Scal(r;\ell)
+=
+\underbrace{\Delta_{\qse}(r;\ell)}_{\text{visibility}}
+\cdot
+\underbrace{\Ncal_2^{\qse}(r;\ell)}_{\text{metric novelty}}
+\cdot
+\underbrace{\Gcal(r;\ell)}_{\text{window gain}} ,
+\label{eq:qse_score_topdown}
+\end{equation}
+where
+\begin{itemize}
+\item $\Delta_{\qse}$ is \emph{probe-transition visibility}: how strongly the record displaces the reference along directions the target observables can see (Sec.~\ref{sec:phase1});
+\item $\Ncal_2^{\qse}$ is \emph{metric novelty}, the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero (Sec.~\ref{sec:phase2});
+\item $\Gcal$ is \emph{window gain}, combining eigen-equation residual capture with the two-dimensional Ritz improvement for the targeted roots (Sec.~\ref{sec:phase3}).
+\end{itemize}
+The three factors are multiplicative because they are independent veto conditions: a record that is invisible to the probes, redundant in the metric, or irrelevant to the target window is not worth measuring, regardless of its other properties.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
+
+The remainder of this section makes each factor precise.  Section~\ref{sec:acquisition_objective} states the underlying spectral-window utility that Eq.~(\ref{eq:qse_score_topdown}) approximates; Secs.~\ref{sec:phase1}--\ref{sec:phase3} give the three factors as a staged screen of increasing cost; Sec.~\ref{sec:cost_weighting} attaches the hardware discount; Sec.~\ref{sec:stopping_rule} gives the stopping rule that makes support size an output rather than a budget; and Sec.~\ref{sec:exchange_maintenance} gives the certified exchange move that maintains an already-selected support.
+
 \subsection{Acquisition objective and three-phase approximation}
+\label{sec:acquisition_objective}
 
 The retained set \(\Acal\) is selected by a greedy approximation to spectral-window utility.  For target roots \(\nu\in\Wcal_{\rm targ}\), define the supported metric projector
 \begin{equation}
@@ -289,13 +318,14 @@ r_\ell^\star
 Direct evaluation of Eq.~(\ref{eq:qse_greedy_utility_update}) for every candidate would require the expensive matrix elements that the selector is designed to avoid.  The implementation therefore uses a staged approximation.  Phase I performs a cheap probe-transition screen.  Phase II adds overlap-metric novelty and conditioning.  Phase III performs reduced-window residual and Ritz spectral reranking after measuring a smaller candidate set.  Throughout this acquisition section, \(\ell\) denotes the discrete QSE-basis growth index; physical time is reserved for the dynamics variable \(t\).
 
 \subsubsection{Phase I}
+\label{sec:phase1}
 
-Phase 1 scoring takes the form
+Phase I scores the visibility factor of Eq.~(\ref{eq:qse_score_topdown}),
 \begin{equation}
-S_1(r;\ell)=\frac{\Delta_{\qse,1}(r;\ell)}{1+K_1(r;\ell)}.
+S_1(r;\ell)=\Delta_{\qse,1}(r;\ell),
 \label{eq:qse_phase1_score}
 \end{equation}
-Here $K_1(r;\ell)$ is the cheap acquisition cost proxy, and $\Delta_{\qse,1}$ is a lower-confidence probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
+before the hardware discount of Sec.~\ref{sec:cost_weighting} is applied.  Here $\Delta_{\qse,1}$ is a lower-confidence probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
 \begin{equation}
 \ket{\psi_0}\ \mapsto\ \ket{\psi_0}+\alpha\ket{\phi_r},
 \label{eq:qse_phase1_trial_displacement}
@@ -337,43 +367,8 @@ g_ra_r-\frac{\lambda_F}{2}(F_r+\eps_F)a_r^2 .
 \end{equation}
 The meaning is parallel to trust-region energy gain in variational ADAPT: records that give strong observable-accessible displacement per unit state-space norm are preferred over records whose large coefficient scale merely reflects normalization artifacts, with the state-space metric language following the Fubini--Study geometry of quantum states and quantum natural-gradient methods \cite{ProvostVallee1980,Stokes2020QNG}.
 
-The cost proxy includes incremental overlap/Hamiltonian matrix elements, new Pauli groups, conditioning risk, and optional compiled preparation cost for controlled-overlap or Hadamard-test implementations; Pauli grouping and measurement-reuse considerations enter this proxy as resource estimates rather than as spectral evidence \cite{Verteletskyi2020MeasurementGrouping}:
-\begin{equation}
-\begin{aligned}
-K_1(r;\ell)
-&=
-w_S\widehat C_S(r)+w_M\widehat C_M(r)
-+w_{\obs}\widehat C_{\obs}(r)\\
-&\quad
-+w_\kappa\widehat C_\kappa(r)
-+w_{\twq}\widehat C_{\twq}(r;\ell).
-\end{aligned}
-\label{eq:qse_cost_proxy}
-\end{equation}
-The reported matrix-measurement proxy is tracked separately from the normalized score penalty,
-\begin{equation}
-S_{\rm mat}^{\rm proxy}
-=
-\sum_{g\in\mathcal G_{\rm meas}}N_g,
-\qquad
-C_{\rm group}
-=
-\#\mathcal G_{\rm meas},
-\label{eq:qse_reported_measurement_proxy}
-\end{equation}
-where \(\mathcal G_{\rm meas}\) is the grouped-observable set used for all required overlap, Hamiltonian, transition, and probe matrix elements, and \(N_g\) is the allocated shot count for group \(g\).  Tables report \(M_{\rm eff}=\rank(S_\tau)\), \(\kappa(S_\tau)\), \(C_{\rm group}\), and \(S_{\rm mat}^{\rm proxy}\) whenever the corresponding artifacts are available.
-The weights are nonnegative controller weights, and the hatted quantities are dimensionless normalized resource or risk predictors.  The term $\widehat C_S(r)$ estimates the additional grouped measurements needed for overlap entries involving $\phi_r$; $\widehat C_M(r)$ estimates the additional grouped measurements needed for projected Hamiltonian entries; $\widehat C_{\obs}(r)$ estimates additional observable or transition-matrix groups for the probe set; $\widehat C_\kappa(r)$ estimates numerical conditioning risk from adding a nearly dependent basis direction; and $\widehat C_{\twq}(r;\ell)$ estimates the incremental compiled two-qubit or controlled-preparation burden of measuring record $r$ at growth step $\ell$.  These are acquisition costs, not evidence that the candidate is physically unimportant.  If $\Acal_\ell$ denotes the current admitted record set, then a cheap Hamiltonian-matrix measurement proxy is
-\begin{equation}
-\widehat C_M(r)\propto
-\sum_{a\in\Acal_\ell}
-\#\operatorname{groups}\left[
-\Omega_a^\dagger Q_{\mathfrak s,0}H_0Q_{\mathfrak s,0}\Omega_r
-\right],
-\label{eq:qse_matrix_cost_proxy}
-\end{equation}
-with the analogous expression for $\widehat C_S$ obtained by replacing $H_0$ with $I$, and the analogous expression for $\widehat C_{\obs}$ obtained by replacing $H_0$ with the measured probe or observable $O$.
-
 \subsubsection{Phase II}
+\label{sec:phase2}
 
 Phase II corrects the Phase I screen for nonorthogonal expressibility.  Let $\Acal_\ell$ denote the set of excitation records already admitted into the QSE basis at growth step $\ell$, and let $\Phi_{\Acal_\ell}=[\ket{\phi_a}]_{a\in\Acal_\ell}$.  Define
 \begin{equation}
@@ -435,6 +430,7 @@ S_2(r;\ell)=
 \end{equation}
 
 \subsubsection{Phase III}
+\label{sec:phase3}
 
 Phase III performs reduced-window spectral reranking.  Let $\Acal_\ell$ be the current retained excitation-record set, let
 $M_{\Acal_\ell}:=(\bra{\phi_a}H_0\ket{\phi_b})_{a,b\in\Acal_\ell}$ be the projected Hamiltonian matrix, and let $c^{(\nu)}=(c_a^{(\nu)})_{a\in\Acal_\ell}$ be the coefficient vector for QSE root $\nu$.  The projected generalized eigenproblem on $\Acal_\ell$ is
@@ -559,7 +555,108 @@ S_3(r;\ell)-z_\alpha\widehat\sigma_{S_3,r}
 \end{align}
 where \(\lambda_{\rm new}^{\min}\) is the smallest overlap eigenvalue associated with the newly supported direction after adding \(r\), and the hatted standard deviations are estimated from the same matrix-element uncertainty model used for reported error bars.
 
-\subsubsection{Batching, root-beaming, and root tracking}
+
+\subsection{Hardware-cost weighting}
+\label{sec:cost_weighting}
+
+\structlabel{Hardware-cost weighting}
+The geometric score of Eq.~(\ref{eq:qse_score_topdown}) is discounted by the incremental compiled-hardware cost of the candidate record, which is the acquisition principle established in the companion papers of this series for ansatz construction \cite{PaperI} and for structural patches in checkpoint dynamics \cite{PaperII}.  Writing $C(r;\ell)$ for that incremental cost, the ranked quantity is
+\begin{equation}
+\Scal_C(r;\ell)=\frac{\Scal(r;\ell)}{\left[\max\!\left(C(r;\ell),\,C_{\rm floor}\right)\right]^{\alpha}},
+\label{eq:qse_cost_discount}
+\end{equation}
+with discount exponent $\alpha$ and a bounded floor $C_{\rm floor}$.  The floor is not cosmetic: without it, records whose compiled cost rounds to zero acquire unbounded discounted score and crowd out the spectrally useful directions.  We use $\alpha=1$ and $C_{\rm floor}=0.05$ throughout; $\alpha=2$ is too greedy at small support in the strong-coupling regimes.
+
+For this paper the cost coordinate is the \emph{compiled two-qubit gate count} of the record's measurement circuit under the Paper-I oracle, the \texttt{two\_qubit\_only\_v1} scalarization of the component ledger, evaluated either analytically from the backend graph span or by full transpilation; the two agree to Spearman $0.9999$ and select identical supports.  The remaining components of the Paper-I ledger, and the separately reported matrix-measurement work, enter the resource accounting rather than the acquisition score:
+The cost proxy includes incremental overlap/Hamiltonian matrix elements, new Pauli groups, conditioning risk, and optional compiled preparation cost for controlled-overlap or Hadamard-test implementations; Pauli grouping and measurement-reuse considerations enter this proxy as resource estimates rather than as spectral evidence \cite{Verteletskyi2020MeasurementGrouping}:
+\begin{equation}
+\begin{aligned}
+K_1(r;\ell)
+&=
+w_S\widehat C_S(r)+w_M\widehat C_M(r)
++w_{\obs}\widehat C_{\obs}(r)\\
+&\quad
++w_\kappa\widehat C_\kappa(r)
++w_{\twq}\widehat C_{\twq}(r;\ell).
+\end{aligned}
+\label{eq:qse_cost_proxy}
+\end{equation}
+The reported matrix-measurement proxy is tracked separately from the normalized score penalty,
+\begin{equation}
+S_{\rm mat}^{\rm proxy}
+=
+\sum_{g\in\mathcal G_{\rm meas}}N_g,
+\qquad
+C_{\rm group}
+=
+\#\mathcal G_{\rm meas},
+\label{eq:qse_reported_measurement_proxy}
+\end{equation}
+where \(\mathcal G_{\rm meas}\) is the grouped-observable set used for all required overlap, Hamiltonian, transition, and probe matrix elements, and \(N_g\) is the allocated shot count for group \(g\).  Tables report \(M_{\rm eff}=\rank(S_\tau)\), \(\kappa(S_\tau)\), \(C_{\rm group}\), and \(S_{\rm mat}^{\rm proxy}\) whenever the corresponding artifacts are available.
+The weights are nonnegative controller weights, and the hatted quantities are dimensionless normalized resource or risk predictors.  The term $\widehat C_S(r)$ estimates the additional grouped measurements needed for overlap entries involving $\phi_r$; $\widehat C_M(r)$ estimates the additional grouped measurements needed for projected Hamiltonian entries; $\widehat C_{\obs}(r)$ estimates additional observable or transition-matrix groups for the probe set; $\widehat C_\kappa(r)$ estimates numerical conditioning risk from adding a nearly dependent basis direction; and $\widehat C_{\twq}(r;\ell)$ estimates the incremental compiled two-qubit or controlled-preparation burden of measuring record $r$ at growth step $\ell$.  These are acquisition costs, not evidence that the candidate is physically unimportant.  If $\Acal_\ell$ denotes the current admitted record set, then a cheap Hamiltonian-matrix measurement proxy is
+\begin{equation}
+\widehat C_M(r)\propto
+\sum_{a\in\Acal_\ell}
+\#\operatorname{groups}\left[
+\Omega_a^\dagger Q_{\mathfrak s,0}H_0Q_{\mathfrak s,0}\Omega_r
+\right],
+\label{eq:qse_matrix_cost_proxy}
+\end{equation}
+with the analogous expression for $\widehat C_S$ obtained by replacing $H_0$ with $I$, and the analogous expression for $\widehat C_{\obs}$ obtained by replacing $H_0$ with the measured probe or observable $O$.
+
+
+\subsection{Stopping rule: residual convergence and window closure}
+\label{sec:stopping_rule}
+
+\structlabel{Stopping rule}
+Growth is terminated by a spectral criterion rather than a support budget, so the support size is an output of the accuracy target.  Let $\ket{R_\nu^{(\ell)}}$ be the residual of Eq.~(\ref{eq:qse_eigen_residual}) for target root $\nu$.  The first condition is residual convergence of every targeted root,
+\begin{equation}
+\max_{\nu\le R}\left\|\,\ket{R_\nu^{(\ell)}}\right\|\le\eps .
+\label{eq:qse_stop_residual}
+\end{equation}
+Condition~(\ref{eq:qse_stop_residual}) alone is Ritz-blind: a support can converge tightly onto $R$ represented roots while an unrepresented state sits inside the target window, which is the classical missed-root failure of Rayleigh--Ritz methods and is addressed there by validating a converged set against its orthogonal complement \cite{McCombs2006IVE}.  A full complement solve is unavailable under measured access, so we use a pool-relative surrogate.  For each remaining candidate, take the normalized retained-frame-orthogonal direction $\ket{u_r}$ of Eq.~(\ref{eq:qse_reduced_candidate_direction}) and its one-direction Rayleigh value $\rho_r=\bra{u_r}H_0\ket{u_r}$.  The second condition is that no remaining candidate exerts window pressure,
+\begin{equation}
+\rho_r>\varepsilon_R^{(\ell)}+\delta
+\qquad\text{for every admissible }r\notin\Acal_\ell ,
+\label{eq:qse_stop_window}
+\end{equation}
+with $\varepsilon_R^{(\ell)}$ the highest targeted Ritz value and $\delta$ a declared margin.  Selection stops when Eqs.~(\ref{eq:qse_stop_residual}) and~(\ref{eq:qse_stop_window}) hold together.
+
+The interpretation must stay exact.  Equation~(\ref{eq:qse_stop_window}) certifies only that no remaining \emph{single} record of the declared pool visibly enters the window; it is not a certificate that the full Hamiltonian has no omitted eigenstate below $\varepsilon_R^{(\ell)}+\delta$, since such a state may require a combination of individually high-Rayleigh images, may lie outside the pool, or may appear only after several acquisitions.  If the pool is exhausted before both conditions hold, the run reports \texttt{pool\_exhausted} rather than convergence; that outcome is distinguished from success everywhere in the results, and the residual bound is in practice conservative by one to two orders of magnitude relative to the realized energy error.
+
+\subsection{Certified exchange maintenance}
+\label{sec:exchange_maintenance}
+
+\structlabel{Certified exchange}
+Greedy acquisition is monotone: a record admitted early on the evidence then available is never reconsidered, even after later records change what the support expresses.  We therefore maintain the selected support with an atomic \emph{exchange} move that removes and inserts records as one transaction.  Let $\Acal$ be the current support and let $B^-\subseteq\Acal$, $B^+\cap\Acal=\emptyset$ be a candidate deletion and insertion set.  The proposed patch is
+\begin{equation}
+\Acal\ \longmapsto\ \Acal'=(\Acal\setminus B^-)\cup B^+ .
+\label{eq:qse_exchange_patch}
+\end{equation}
+The patch is scored on the recomputed pencil, not on a surrogate.  For $R$ targeted roots let $\varepsilon_1^{(\Acal)}\le\cdots\le\varepsilon_R^{(\Acal)}$ be the lowest retained Ritz values of the support and define the Ky Fan objective
+\begin{equation}
+\Fcal_R(\Acal)=\sum_{\nu=1}^{R}\varepsilon_\nu^{(\Acal)} ,
+\label{eq:qse_kyfan}
+\end{equation}
+a variational upper bound on the sum of the true lowest $R$ sector excitations, so that decreasing $\Fcal_R$ improves the represented window as a whole rather than any single root.  Writing $C(\Acal)$ for the support's total compiled cost, the patch is committed only if it dominates the incumbent,
+\begin{equation}
+\Fcal_R(\Acal')\le\Fcal_R(\Acal)+\eta_{\rm acc}
+\quad\text{and}\quad
+C(\Acal')\le C(\Acal),
+\label{eq:qse_exchange_dominance}
+\end{equation}
+with at least one inequality strict by a declared margin, and only if the recomputed support satisfies the conditioning and retained-rank guards
+\begin{equation}
+\kappa\!\left(S_{\Acal',\tau}\right)\le\kappa_{\max},
+\qquad
+\operatorname{rank}_\tau S_{\Acal'}\ \ge\ \operatorname{rank}_\tau S_{\Acal} .
+\label{eq:qse_exchange_guards}
+\end{equation}
+An optional budgeted variant replaces the cost inequality in Eq.~(\ref{eq:qse_exchange_dominance}) by a declared envelope $C(\Acal')\le C_{\rm budget}$, which lets the move trade cost for accuracy up to a stated ceiling; budgeted numbers are always labeled with their envelope.
+
+Three properties distinguish this from pruning followed by regrowth.  The deletion and insertion sets are evaluated \emph{jointly}, so a patch may be accepted whose benefit does not decompose into individually favorable single moves --- a survivor record can absorb the deleted direction only once the replacement is present.  Acceptance is decided by a full re-solve of the projected pencil on $\Acal'$, so the objective, the conditioning, and the compiled cost are all evaluated on the object that will actually be measured.  And the commit is atomic: a patch failing any gate leaves $\Acal$ untouched, so the maintained support is at every step a certified improvement on its predecessor.  In practice exchange acts both as a repair for supports where greedy acquisition stalls and as a cost compressor after convergence, and it reduces matrix-measurement work as well as circuit cost.
+
+\subsection{Batching, root-beaming, and root tracking}
 
 The Phase III results produce a ranked record set
 \begin{equation}
