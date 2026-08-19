@@ -37,6 +37,7 @@ COMPARATOR_MATRIX_JSON = (
 )
 DRIVEN_JSON = DIAG / "paper_iii_driven_dynamics_20260819_v1/driven_dynamics.json"
 ADAPTIVE_JSON = DIAG / "paper_iii_driven_dynamics_20260819_v1/adaptive_dynamics.json"
+ABLATION_JSON = DIAG / "paper_iii_score_ablation_20260819_v1/score_ablation.json"
 
 _ARM_LABELS = {
     "fixed_linear_response_complete": "fixed linear-response class (complete)",
@@ -322,6 +323,70 @@ def build_adaptive_dynamics_fragment() -> str:
     return "\n".join(lines) + "\n"
 
 
+
+_ABLATION_LABELS = {
+    "full": "full score (anchor)",
+    "no_novelty_weight": "no metric-novelty weight",
+    "no_novelty_floor": "no metric-novelty floor",
+    "no_residual": "no residual capture",
+    "no_ritz": "no Ritz window gain",
+    "no_condition": "no conditioning penalty",
+    "no_cost_discount": "no cost discount",
+}
+_ABLATION_ORDER = (
+    "weak_weak",
+    "intermediate_weak",
+    "strong_weak_u8",
+    "weak_strong",
+    "intermediate_strong",
+    "strong_strong_u8",
+)
+
+
+def build_ablation_fragment() -> str:
+    payload = _load(ABLATION_JSON)
+    lines = [_fragment_header([ABLATION_JSON])]
+    lines.append(r"\begin{widetext}")
+    lines.append(
+        r"\inlinetablecaption{tab:qse_ablation_matrix}{Selection-score ablations "
+        r"at the production residual stop $\varepsilon=10^{-3}$, so support size "
+        r"$k$ is an output: a redundant term shows as equal accuracy at larger "
+        r"$k$, and a load-bearing term shows as failure to converge "
+        r"(\texttt{pool\_exhausted}). Entries are $k$, compiled two-qubit cost, "
+        r"and maximum error over the lowest six excitations; daggers mark runs "
+        r"that exhausted the pool without meeting the stop.}"
+    )
+    lines.append(r"\begin{center}")
+    lines.append(r"\scriptsize")
+    lines.append(r"\begin{ruledtabular}")
+    regimes = [r for r in _ABLATION_ORDER if r in payload["regimes"]]
+    lines.append(
+        r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l" + "c" * len(regimes) + r"@{}}"
+    )
+    lines.append(
+        "Variant & " + " & ".join(_escape(r) for r in regimes) + r" \\"
+    )
+    lines.append(r"\colrule")
+    for arm_key, arm_label in _ABLATION_LABELS.items():
+        cells = []
+        for regime in regimes:
+            arm = payload["regimes"][regime]["arms"].get(arm_key)
+            if arm is None:
+                cells.append("--")
+                continue
+            mark = r"$^\dagger$" if arm.get("stop_reason") == "pool_exhausted" else ""
+            cells.append(
+                rf"{arm['support_size']}{mark} / {arm['total_2q']:.0f} / "
+                rf"{_sci(arm['max_root_abs_error'])}"
+            )
+        lines.append(f"{arm_label} & " + " & ".join(cells) + r" \\")
+    lines.append(r"\end{tabular*}")
+    lines.append(r"\end{ruledtabular}")
+    lines.append(r"\end{center}")
+    lines.append(r"\end{widetext}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
@@ -336,6 +401,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     optional = {
         "paper_iii_driven_table.tex": (build_driven_dynamics_fragment, DRIVEN_JSON),
         "paper_iii_adaptive_table.tex": (build_adaptive_dynamics_fragment, ADAPTIVE_JSON),
+        "paper_iii_ablation_table.tex": (build_ablation_fragment, ABLATION_JSON),
     }
     for name, (builder, source) in optional.items():
         if source.is_file():
