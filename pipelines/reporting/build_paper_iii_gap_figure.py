@@ -61,8 +61,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    # Clip the vertical range to the target window. A handful of fixed-class
+    # roots land far above it; those are drawn as off-scale carets with their
+    # value printed, so nothing is hidden but the informative range stays
+    # readable.
+    exact_max = max(
+        float(r) - float(payload["regimes"][reg]["reference_ground_energy"])
+        for reg in regimes
+        for r in payload["regimes"][reg]["reference_excitations"]
+    )
+    ylim_top = exact_max * 1.30
+
     fig, ax = plt.subplots(figsize=(7.0, 4.6), constrained_layout=True)
     width = 1.0
+    offscale: list[tuple[float, float]] = []
     xticks: list[float] = []
     xlabels: list[str] = []
 
@@ -98,8 +110,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             gaps = [
                 None if e is None else float(e) - float(e0) for e in arm["root_energies"]
             ]
-            xs = [x for x, g in zip(offsets, gaps) if g is not None]
-            ys = [g for g in gaps if g is not None]
+            xs, ys = [], []
+            for x, g in zip(offsets, gaps):
+                if g is None:
+                    continue
+                if g > ylim_top:
+                    offscale.append((x, g))
+                    continue
+                xs.append(x)
+                ys.append(g)
             ax.plot(
                 xs,
                 ys,
@@ -112,12 +131,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                 zorder=2,
             )
 
+    for x, value in offscale:
+        ax.plot(
+            [x], [ylim_top * 0.985], marker="^", color="#c05020", markersize=7, zorder=3
+        )
+        ax.annotate(
+            f"{value:.1f}",
+            (x, ylim_top * 0.985),
+            textcoords="offset points",
+            xytext=(0, -11),
+            ha="center",
+            fontsize=7,
+            color="#c05020",
+        )
+    ax.set_ylim(0.0, ylim_top)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xlabels, fontsize=8)
     ax.set_ylabel(r"excitation gap $\omega_\nu = E_\nu - E_0$")
     ax.set_xlabel("regime (six lowest excitations, left to right within each group)")
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
-    ax.legend(fontsize=8, loc="upper left")
+    if offscale:
+        from matplotlib.lines import Line2D
+
+        handles, labels = ax.get_legend_handles_labels()
+        handles.append(
+            Line2D([], [], marker="^", color="#c05020", linestyle="none", markersize=7)
+        )
+        labels.append("fixed class, off scale (value shown)")
+        ax.legend(handles, labels, fontsize=8, loc="lower left", framealpha=0.95)
+    else:
+        ax.legend(fontsize=8, loc="lower left", framealpha=0.95)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output)
