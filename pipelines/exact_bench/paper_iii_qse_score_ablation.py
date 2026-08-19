@@ -85,6 +85,26 @@ _RITZ_SWEEP: dict[str, dict[str, Any]] = {
     "ritz_w4.00": {"geometry_ritz_weight": 4.0},
 }
 
+# Minimality frontier: how few terms retain the accuracy/cost advantage.
+_MINIMALITY: dict[str, dict[str, Any]] = {
+    "production_3term": {},
+    "no_transition": {"geometry_transition_weight": 0.0},
+    "novelty_plus_transition": {"geometry_residual_weight": 0.0},
+    "residual_plus_transition": {"geometry_metric_novelty_weight": 0.0},
+    "residual_only": {
+        "geometry_metric_novelty_weight": 0.0,
+        "geometry_transition_weight": 0.0,
+    },
+    "novelty_only": {
+        "geometry_residual_weight": 0.0,
+        "geometry_transition_weight": 0.0,
+    },
+    "transition_only": {
+        "geometry_metric_novelty_weight": 0.0,
+        "geometry_residual_weight": 0.0,
+    },
+}
+
 # Candidate production scores, compared head to head. "merged" replaces the
 # residual-capture + Ritz-gain pair by the exact two-level gain alone, which
 # contains residual capture as its small-eta limit and removes one weight.
@@ -113,7 +133,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regimes", default=None)
     parser.add_argument("--residual-stop", type=float, default=1.0e-3)
-    parser.add_argument("--mode", choices=("ablation", "ritz_sweep", "score_variants"), default="ablation")
+    parser.add_argument("--mode", choices=("ablation", "ritz_sweep", "score_variants", "minimality"), default="ablation")
     args = parser.parse_args(argv)
 
     wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
@@ -147,7 +167,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         print(f"\n== {regime} (u={u}, g={g_ep:.4f}, nph{n_ph_max}) pool={len(basis)}", flush=True)
         arms_payload: dict[str, Any] = {}
-        arm_set = {"ablation": _ARMS, "ritz_sweep": _RITZ_SWEEP, "score_variants": _SCORE_VARIANTS}[args.mode]
+        arm_set = {"ablation": _ARMS, "ritz_sweep": _RITZ_SWEEP, "score_variants": _SCORE_VARIANTS, "minimality": _MINIMALITY}[args.mode]
         for arm_name, overrides in arm_set.items():
             config = replace(base, **overrides) if overrides else base
             selection = select_static_qse_records(

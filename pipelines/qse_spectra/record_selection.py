@@ -64,7 +64,11 @@ class StaticRecordSelectionConfig:
     # for the same accuracy. Both default off; metric novelty already supplies
     # the conditioning control.
     geometry_ritz_weight: float = 0.0
-    geometry_transition_weight: float = 0.5
+    # Ablation (2026-08-19): probe-transition visibility is inert at the
+    # production stop -- disabling it reproduces the anchor bit-for-bit in
+    # every regime tested. The minimal score is metric novelty + residual
+    # capture, cost-discounted.
+    geometry_transition_weight: float = 0.0
     geometry_cost_weight: float = 1.0
     geometry_condition_penalty_weight: float = 0.0
     geometry_min_metric_novelty: float = 1.0e-12

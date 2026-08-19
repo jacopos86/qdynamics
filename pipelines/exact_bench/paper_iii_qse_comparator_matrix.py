@@ -71,6 +71,14 @@ from pipelines.qse_spectra.core import (
     compute_qse_spectra,
     polynomial_basis_element,
 )
+from pipelines.qse_spectra.exchange_maintenance import (
+    QSEExchangeConfig,
+    run_qse_exchange_maintenance,
+)
+from pipelines.qse_spectra.record_selection import (
+    StaticRecordSelectionConfig,
+    select_static_qse_records,
+)
 
 DEFAULT_OUTPUT = (
     REPO_ROOT
@@ -163,6 +171,70 @@ def _krylov_arm(
     }
 
 
+def _selection_arm(
+    basis: Sequence[Any],
+    hamiltonian: Any,
+    ground: np.ndarray,
+    costs: Sequence[float],
+    references: Sequence[float],
+    *,
+    overrides: dict[str, Any],
+    with_exchange: bool,
+) -> dict[str, Any]:
+    """Run a selection arm and score it on the shared reference window."""
+
+    config = StaticRecordSelectionConfig(
+        mode="geometry_selected",
+        max_records=len(basis),
+        geometry_target_roots=_TARGET_ROOTS,
+        geometry_cost_discount_alpha=1.0,
+        geometry_residual_stop=1.0e-3,
+        **overrides,
+    )
+    selection = select_static_qse_records(
+        basis,
+        config=config,
+        hamiltonian=hamiltonian,
+        prepared_state=ground,
+        basis_vector_policy=_Q0_POLICY,
+        compiled_costs=tuple(costs),
+    )
+    indices = list(selection.selected_original_indices)
+    if with_exchange:
+        exchange = run_qse_exchange_maintenance(
+            basis,
+            indices,
+            tuple(costs),
+            hamiltonian=hamiltonian,
+            prepared_state=ground,
+            basis_vector_policy=_Q0_POLICY,
+            config=QSEExchangeConfig(
+                max_rounds=30, target_root_count=_TARGET_ROOTS, insertion_shortlist_size=16
+            ),
+        )
+        indices = list(exchange.final_indices)
+    result = compute_qse_spectra(
+        hamiltonian,
+        ground,
+        tuple(basis[int(i)] for i in indices),
+        basis_vector_policy=_Q0_POLICY,
+    )
+    energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
+    errors = [
+        abs(float(energies[r]) - float(ref)) if r < energies.size else None
+        for r, ref in enumerate(references)
+    ]
+    finite = [e for e in errors if e is not None]
+    stop = selection.geometry_stop or {}
+    return {
+        "support_size": len(indices),
+        "total_2q": float(sum(float(costs[int(i)]) for i in indices)),
+        "stop_reason": stop.get("stop_reason"),
+        "root_abs_errors": errors,
+        "max_root_abs_error": max(finite) if finite else None,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
@@ -226,12 +298,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             },
             "krylov": _krylov_arm(dense, ground, references, step_2q=step_2q),
+            # Closest adaptive prior art: residual-guided subspace growth with a
+            # linear-independence (metric-novelty) admission check and no
+            # hardware-cost weighting, in the spirit of quantum Davidson.
+            "residual_guided_adaptive": _selection_arm(
+                basis,
+                hamiltonian,
+                ground,
+                costs,
+                references,
+                overrides={
+                    "geometry_transition_weight": 0.0,
+                    "geometry_cost_discount_alpha": None,
+                },
+                with_exchange=False,
+            ),
+            "selected_plus_exchange": _selection_arm(
+                basis, hamiltonian, ground, costs, references,
+                overrides={}, with_exchange=True,
+            ),
         }
         record = cases_payload[case_name]
         krylov_best = (
             record["krylov"]["best_per_cost_envelope"][-1]
             if record["krylov"].get("best_per_cost_envelope")
             else None
+        )
+        print(
+            f"   residual-guided: {record['residual_guided_adaptive']['max_root_abs_error']:.1e}"
+            f"@{record['residual_guided_adaptive']['total_2q']:.0f}2Q "
+            f"(k={record['residual_guided_adaptive']['support_size']}, "
+            f"{record['residual_guided_adaptive']['stop_reason']})   "
+            f"ours: {record['selected_plus_exchange']['max_root_abs_error']:.1e}"
+            f"@{record['selected_plus_exchange']['total_2q']:.0f}2Q "
+            f"(k={record['selected_plus_exchange']['support_size']})",
+            flush=True,
         )
         print(
             f"{case_name:<22} fixed: {record['fixed_linear_response']['max_root_abs_error']:.1e}"
