@@ -220,6 +220,9 @@ class SupportPatchControllerConfig:
     max_certification_attempts_per_level: int | None = None
     max_structural_pool_size: int | None = None
     max_certification_attempts_per_deletion_branch: int | None = None
+    dynamics_policy: str = "exchange"
+    avqds_l2_cut: float = 1.0e-3
+    avqds_max_appends_per_checkpoint: int = 8
     exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
@@ -485,6 +488,11 @@ class SupportPatchControllerConfig:
                 None
                 if self.max_structural_pool_size is None
                 else int(self.max_structural_pool_size)
+            ),
+            "dynamics_policy": str(self.dynamics_policy),
+            "avqds_l2_cut": float(self.avqds_l2_cut),
+            "avqds_max_appends_per_checkpoint": int(
+                self.avqds_max_appends_per_checkpoint
             ),
             "max_certification_attempts_per_deletion_branch": (
                 None
@@ -1095,29 +1103,51 @@ def run_append_mclachlan_trajectory(
                 insertions_active = float(fixed_step.residual_ratio) >= float(
                     effective_support_config.residual_ratio_threshold
                 )
-                with phase(PHASE_UNIFIED_SELECT):
-                    selection, selection_payload = select_deletion_conditioned_patch(
+                if str(
+                    getattr(effective_support_config, "dynamics_policy", "exchange")
+                ).strip().lower() == "avqds":
+                    (
+                        decision,
+                        maybe_state,
+                        maybe_theta,
+                        maybe_eval,
+                        maybe_step,
+                    ) = _avqds_decision_at_checkpoint(
                         state=current_state,
                         hamiltonian=hamiltonian,
                         theta_runtime=theta_current,
                         time=float(time_value),
-                        base_evaluation=evaluation,
-                        base_step=fixed_step,
+                        evaluation=evaluation,
                         inverse_policy=decision_inverse_policy,
                         support_config=effective_support_config,
                         runtime_state=prune_runtime_state,
                         time_index=int(index),
-                        active_prune_atoms=_active_prune_atoms,
                         solve_repair_config=solve_repair_config,
-                        insertions_enabled=insertions_active,
                     )
-                (
-                    decision,
-                    maybe_state,
-                    maybe_theta,
-                    maybe_eval,
-                    maybe_step,
-                ) = _decision_from_exchange_selection(selection, selection_payload)
+                else:
+                    with phase(PHASE_UNIFIED_SELECT):
+                        selection, selection_payload = select_deletion_conditioned_patch(
+                            state=current_state,
+                            hamiltonian=hamiltonian,
+                            theta_runtime=theta_current,
+                            time=float(time_value),
+                            base_evaluation=evaluation,
+                            base_step=fixed_step,
+                            inverse_policy=decision_inverse_policy,
+                            support_config=effective_support_config,
+                            runtime_state=prune_runtime_state,
+                            time_index=int(index),
+                            active_prune_atoms=_active_prune_atoms,
+                            solve_repair_config=solve_repair_config,
+                            insertions_enabled=insertions_active,
+                        )
+                    (
+                        decision,
+                        maybe_state,
+                        maybe_theta,
+                        maybe_eval,
+                        maybe_step,
+                    ) = _decision_from_exchange_selection(selection, selection_payload)
             if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
                 current_state = maybe_state
                 theta_current = maybe_theta
@@ -2149,6 +2179,145 @@ def _support_identity_hash(state: APMcLachlanState) -> str:
     return _support_identity_hash_for(
         str(state.parameterization_mode),
         tuple(str(label) for label in state.runtime_coordinate_labels),
+    )
+
+
+def _avqds_decision_at_checkpoint(
+    *,
+    state: APMcLachlanState,
+    hamiltonian: TimeDependentHamiltonian,
+    theta_runtime: np.ndarray,
+    time: float,
+    evaluation: GeometryEvaluation,
+    inverse_policy: McLachlanInversePolicy,
+    support_config: SupportPatchControllerConfig,
+    runtime_state: _PruneControllerRuntimeState,
+    time_index: int,
+    solve_repair_config: Any | None = None,
+):
+    """AVQDS comparator decision: greedy appends to the McLachlan-distance cut.
+
+    Shares this route's geometry, inverse policy, repair, and integrator; only
+    the structural decision rule differs (see :mod:`avqds`).
+    """
+
+    from pipelines.time_dynamics.ap_mclachlan.avqds import (
+        AVQDS_POLICY_V1,
+        select_avqds_appends,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
+        candidate_append_atoms,
+    )
+    from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
+
+    raw_atoms = candidate_append_atoms(
+        state,
+        allow_incomplete_candidate_pool=bool(
+            support_config.allow_incomplete_candidate_pool
+        ),
+        occurrence_policy=str(support_config.append_occurrence_policy),
+    )
+    atoms: dict[str, Any] = {}
+    pauli_by_atom: dict[str, str] = {}
+    seen_words: set[str] = set()
+    for atom in raw_atoms:
+        specs = iter_runtime_rotation_terms(
+            getattr(atom.term, "polynomial"),
+            ignore_identity=bool(state.executor.ignore_identity),
+            coefficient_tolerance=float(state.executor.coefficient_tolerance),
+            sort_terms=bool(state.executor.sort_terms),
+        )
+        if len(specs) != 1:
+            continue
+        word = str(specs[0].pauli_exyz)
+        if word in seen_words:
+            continue
+        seen_words.add(word)
+        atoms[str(atom.atom_id)] = atom
+        pauli_by_atom[str(atom.atom_id)] = word
+    pool_cap = getattr(support_config, "max_structural_pool_size", None)
+    if pool_cap is not None:
+        keep = sorted(atoms)[: max(0, int(pool_cap))]
+        atoms = {k: atoms[k] for k in keep}
+
+    def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
+        return (
+            f"{atom.atom_label}::avqds{int(time_index)}c{int(cut)}o{int(ordinal)}"
+            f"::r0::{pauli_by_atom[str(atom.atom_id)]}"
+        )
+
+    result = select_avqds_appends(
+        state=state,
+        hamiltonian=hamiltonian,
+        theta_runtime=theta_runtime,
+        time=float(time),
+        evaluation=evaluation,
+        atoms_by_id=atoms,
+        occurrence_label=occurrence_label,
+        inverse_policy=inverse_policy,
+        l2_cut=float(getattr(support_config, "avqds_l2_cut", 1.0e-3)),
+        max_appends_per_checkpoint=int(
+            getattr(support_config, "avqds_max_appends_per_checkpoint", 8)
+        ),
+    )
+    payload = dict(result.to_json_dict())
+    payload["candidate_pool_deduplicated"] = int(len(atoms))
+    payload["insertions_enabled"] = True
+    payload["kind"] = "insert" if result.accepted else "stay"
+    if not result.accepted:
+        return (
+            PatchDecision(
+                patch_kind=PATCH_NO_EDIT,
+                accepted=False,
+                candidate_count=int(len(atoms)),
+                scored_count=int(result.candidates_scored),
+                reason=f"avqds_{result.stop_reason}",
+                metadata=payload,
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+    patched_step = _solve_step_with_optional_repair(
+        result.evaluation,
+        inverse_policy=inverse_policy,
+        solve_repair_config=solve_repair_config,
+    )
+    return (
+        PatchDecision(
+            patch_kind=PATCH_APPEND,
+            accepted=True,
+            candidate_count=int(len(atoms)),
+            scored_count=int(result.candidates_scored),
+            selected_label=str(result.appended_atom_ids[-1]),
+            reason=f"accepted_{AVQDS_POLICY_V1}",
+            metadata=payload,
+        ),
+        result.state,
+        result.theta,
+        result.evaluation,
+        patched_step,
+    )
+
+
+def _solve_step_with_optional_repair(
+    evaluation: GeometryEvaluation,
+    *,
+    inverse_policy: McLachlanInversePolicy,
+    solve_repair_config: Any | None,
+):
+    if solve_repair_config is not None and bool(
+        getattr(solve_repair_config, "enabled", False)
+    ):
+        return solve_fixed_mclachlan_step_with_repair(
+            evaluation.geometry,
+            inverse_policy=inverse_policy,
+            repair_config=solve_repair_config,
+            repair_dt=None,
+        )
+    return solve_fixed_mclachlan_step(
+        evaluation.geometry, inverse_policy=inverse_policy
     )
 
 

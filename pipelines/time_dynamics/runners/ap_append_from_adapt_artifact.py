@@ -1487,6 +1487,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "--certification-refit-max-iterations", type=int, default=15
     )
     parser.add_argument(
+        "--dynamics-policy",
+        choices=["exchange", "avqds"],
+        default="exchange",
+        help=(
+            "Structural decision rule: 'exchange' is this paper's "
+            "deletion-conditioned route; 'avqds' is the adaptive-append "
+            "comparator (McLachlan-distance threshold, greedy max-reduction "
+            "appends at the circuit end, no deletion) on identical geometry, "
+            "inverse policy, repair, and integrator."
+        ),
+    )
+    parser.add_argument("--avqds-l2-cut", type=float, default=1.0e-3)
+    parser.add_argument(
+        "--avqds-max-appends-per-checkpoint", type=int, default=8
+    )
+    parser.add_argument(
         "--prune-target-policy",
         choices=["all_active", "appended_only", "redundant_appended_only"],
         default="all_active",
@@ -1781,6 +1797,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else int(args.max_structural_pool_size)
             ),
             prune_appended_origin_target_policy=str(args.prune_target_policy),
+            dynamics_policy=str(args.dynamics_policy),
+            avqds_l2_cut=float(args.avqds_l2_cut),
+            avqds_max_appends_per_checkpoint=int(
+                args.avqds_max_appends_per_checkpoint
+            ),
             max_certification_attempts_per_deletion_branch=(
                 None
                 if args.max_certification_attempts_per_deletion_branch is None
