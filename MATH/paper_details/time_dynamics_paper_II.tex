@@ -775,6 +775,8 @@ Same-checkpoint inverse candidates reuse \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^
 \end{equation}
 so testing inverse candidates and the release metric in Eq.~(\ref{eq:repair_release}) is classical after the checkpoint data have been acquired.  Local subdivision creates new states and therefore requires new checkpoint evaluations.
 
+\paragraph*{Operating configuration.}  The candidate set above is the diagnostic superset.  Across every trajectory reported here --- 885 integration steps --- the inverse-candidate search left the base regularization in place on all but two steps, damping never moved from its base value, and of $1.15\times10^4$ evaluated candidates six were accepted; the conditioning, numerical-miss, and temporal-kink triggers opened searches that did not change the accepted solve.  Local subdivision opened by excessive prospective state displacement is the only repair mechanism that repeatedly altered a step.  The reported runs therefore use a reduced configuration containing that trigger, its subdivision, and the base inverse convention alone.  Substituting the reduced configuration for the full candidate search on the driven seed of Table~\ref{tab:comparator_hh_snake} changes the mean energy error from $3.4735\times10^{-3}$ to $3.4738\times10^{-3}$ at identical final support, while removing a quarter of the candidate solves.  The wider set is retained for diagnosis of pathological checkpoints, not as the operating point.
+
 \subsection{Structural search and deletion history}
 
 Candidate tangent overlaps are measured once per checkpoint and reused across the whole structural family: the positioned candidate tangents are assembled in one batched pass, the deletion-independent Gram and force blocks are cached, and every candidate solve is a submatrix solve of that cached geometry with memoized results.  Deletion branches reuse the base-support solve metadata, so the conditioning terms below require no additional eigendecompositions.
@@ -796,7 +798,7 @@ S_k^{\ominus,\kappa}(B)
 \end{aligned}
 \label{eq:app_prune_nomination}
 \end{equation}
-Conditioning terms change nomination only.  Current grouped deletion loss, current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
+The conditioning and history terms in Eq.~(\ref{eq:app_prune_nomination}) are extensions carried at zero weight in every run reported here; the operating deletion score is the cost-over-loss ratio alone, and no result in this paper depends on a nonzero $\lambda$.  Conditioning terms change nomination only.  Current grouped deletion loss, current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
 
 True exchange is enumerated directly: within each admitted deletion rung, every deletion branch is paired with every positioned insertion from its deletion-conditioned pool, with the insertion cuts remapped onto the post-deletion survivor word.  Every candidate is evaluated on
 \[

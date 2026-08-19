@@ -97,6 +97,18 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
+## Operating configuration vs configuration surface
+
+Knob audit (`pipelines/time_dynamics/diagnostics/knob_audit.py`, 885 steps /
+33 runs, 2026-08-18): of 11,499 repair candidates, 6 were applied; inverse
+ladders stayed on the base rung 883/885 steps; damping never moved; the
+conditioning gate never bound (peak kappa 5.1e7 vs 1e12 cap). Only
+state-motion-triggered local subdivision repeatedly acts. `--solve-repair-profile
+minimal` (default) keeps exactly that; `full` restores the ladder search for
+diagnosis. Score hooks (conditioning relief/damage, history) are carried at
+zero weight and no result depends on them. Rerun the audit before claiming a
+knob matters.
+
 ## Canonical numerics (2026-08-18 sweep)
 
 For accurate trajectories always run `--integrator rk4 --solve-repair
