@@ -71,6 +71,13 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
   McLachlan real-time dynamics and the variational support continues to
   adapt along the resulting excited-state trajectory."
 
+**PRIORITY (user directive 2026-08-19): the multi-regime QSE excited-state
+manifold is the PRIMARY contribution; time dynamics is SECONDARY.** Abstract
+and conclusion state the spectral result first (six HH regimes x two cutoffs,
+Peierls--Hubbard, L=3, lowest six roots, baselines failing at equal-or-higher
+compiled 2Q cost) and mark the dynamics route as secondary. Do not let
+dynamics lead the framing in abstract, intro, or conclusion.
+
 Lead framing: the **conjunction** — a compiled-cost-selected,
 exchange-maintained QSE response manifold for an explicit mixed fermion--boson
 lattice Hamiltonian, with the QSE-root-to-adaptive-McLachlan handoff as a
