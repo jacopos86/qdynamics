@@ -324,13 +324,14 @@ def build_adaptive_dynamics_fragment() -> str:
 
 
 
+# Only the terms of the production three-term score are ablated; the Ritz
+# window gain and the explicit conditioning penalty were evaluated and
+# removed, so arms disabling them coincide with the anchor by construction.
 _ABLATION_LABELS = {
-    "full": "full score (anchor)",
+    "full": "production score (anchor)",
     "no_novelty_weight": "no metric-novelty weight",
     "no_novelty_floor": "no metric-novelty floor",
     "no_residual": "no residual capture",
-    "no_ritz": "no Ritz window gain",
-    "no_condition": "no conditioning penalty",
     "no_cost_discount": "no cost discount",
 }
 _ABLATION_ORDER = (

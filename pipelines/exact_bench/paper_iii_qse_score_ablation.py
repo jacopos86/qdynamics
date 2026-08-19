@@ -85,13 +85,35 @@ _RITZ_SWEEP: dict[str, dict[str, Any]] = {
     "ritz_w4.00": {"geometry_ritz_weight": 4.0},
 }
 
+# Candidate production scores, compared head to head. "merged" replaces the
+# residual-capture + Ritz-gain pair by the exact two-level gain alone, which
+# contains residual capture as its small-eta limit and removes one weight.
+_SCORE_VARIANTS: dict[str, dict[str, Any]] = {
+    "current_four_term": {},
+    "drop_condition": {"geometry_condition_penalty_weight": 0.0},
+    "drop_ritz": {"geometry_ritz_weight": 0.0},
+    "three_term": {
+        "geometry_condition_penalty_weight": 0.0,
+        "geometry_ritz_weight": 0.0,
+    },
+    "merged_window_gain": {
+        "geometry_residual_weight": 0.0,
+        "geometry_ritz_weight": 1.0,
+    },
+    "merged_no_condition": {
+        "geometry_residual_weight": 0.0,
+        "geometry_ritz_weight": 1.0,
+        "geometry_condition_penalty_weight": 0.0,
+    },
+}
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regimes", default=None)
     parser.add_argument("--residual-stop", type=float, default=1.0e-3)
-    parser.add_argument("--mode", choices=("ablation", "ritz_sweep"), default="ablation")
+    parser.add_argument("--mode", choices=("ablation", "ritz_sweep", "score_variants"), default="ablation")
     args = parser.parse_args(argv)
 
     wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
@@ -125,7 +147,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         print(f"\n== {regime} (u={u}, g={g_ep:.4f}, nph{n_ph_max}) pool={len(basis)}", flush=True)
         arms_payload: dict[str, Any] = {}
-        arm_set = _ARMS if args.mode == "ablation" else _RITZ_SWEEP
+        arm_set = {"ablation": _ARMS, "ritz_sweep": _RITZ_SWEEP, "score_variants": _SCORE_VARIANTS}[args.mode]
         for arm_name, overrides in arm_set.items():
             config = replace(base, **overrides) if overrides else base
             selection = select_static_qse_records(

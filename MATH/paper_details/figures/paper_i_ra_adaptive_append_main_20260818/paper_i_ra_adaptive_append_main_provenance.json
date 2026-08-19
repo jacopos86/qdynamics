@@ -1,0 +1,173 @@
+{
+  "schema": "paper_i_ra_adaptive_append_main_v7",
+  "evidence_class": "preliminary_partial_campaign_author_authorized_20260818",
+  "output": "MATH/paper_details/figures/paper_i_ra_adaptive_append_main_20260818/paper_i_ra_adaptive_append_main.pdf",
+  "output_sha256": "6661459607b8e56c291d3589a7718c10158dbdbba2515f10e4377586a7dadc07",
+  "display": {
+    "series": [
+      "published_append_tolmatch_r50 (blue dashed); series per comparison page 1 (forced-k50 arms, exact horizon 50)",
+      "forced_append_ra (green solid, solid circles)",
+      "forced_always_open_position_phase0 (blood-red solid, solid diamonds; completed and live partial cells)"
+    ],
+    "excluded_arms": [
+      "plateau/forced/floors arms (unreported diagnostics)"
+    ],
+    "kstar_rule": "baseline plateau onset: first baseline round with error at or below err_final * 10^0.1 (comparison-builder rule); reported in prose, not marked on panels",
+    "markers": "series-distinguishing; drawn at first and final iteration only",
+    "y_axis": "anchored at 1e0; weak row shared to 1e-16, strong panels floored at own data scale (ws 3e-5, is 3e-6, ss 3e-10)"
+  },
+  "per_regime": {
+    "weak_weak": {
+      "kstar_baseline_plateau": 11,
+      "baseline_error_at_kstar": 0.0004594932538475316,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 0.0003716829625830531,
+      "ra_append_error_at_kstar": 0.00038402516319224755,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 1.2306511365522965e-10,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__weak_weak",
+      "insertion": {
+        "latest_k": 50,
+        "latest_error": 5.10702591327572e-15,
+        "error_at_kstar": 0.0004026792213480679,
+        "live_partial": false,
+        "cell_name": "x_allphase_maxk50__forced_always_open_position_phase0__weak_weak"
+      }
+    },
+    "intermediate_weak": {
+      "kstar_baseline_plateau": 9,
+      "baseline_error_at_kstar": 0.0002128817926291826,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 0.0001724379847692914,
+      "ra_append_error_at_kstar": 0.0002128818283578804,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 7.825538916872432e-08,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__intermediate_weak",
+      "insertion": {
+        "latest_k": 50,
+        "latest_error": 1.6653345369377348e-16,
+        "error_at_kstar": 0.0004514359949429614,
+        "live_partial": false,
+        "cell_name": "x_allphase_maxk50__forced_always_open_position_phase0__intermediate_weak"
+      }
+    },
+    "strong_weak_u8": {
+      "kstar_baseline_plateau": 10,
+      "baseline_error_at_kstar": 1.5929813839132834e-06,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 1.3954949522609894e-06,
+      "ra_append_error_at_kstar": 1.5925504381897326e-06,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 1.383672606047881e-06,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__strong_weak_u8",
+      "insertion": {
+        "latest_k": 50,
+        "latest_error": 2.9976021664879227e-15,
+        "error_at_kstar": 1.2011519379129254e-06,
+        "live_partial": false,
+        "cell_name": "x_allphase_maxk50__forced_always_open_position_phase0__strong_weak_u8"
+      }
+    },
+    "weak_strong": {
+      "kstar_baseline_plateau": 46,
+      "baseline_error_at_kstar": 0.0006800207848745021,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 0.0005676475182097018,
+      "ra_append_error_at_kstar": 0.00018968069491576145,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 0.00013750955517144448,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__weak_strong",
+      "insertion": {
+        "latest_k": 22,
+        "latest_error": 0.0017668505264432088,
+        "error_at_kstar": null,
+        "live_partial": true,
+        "cell_name": "live_forced_always_open_position_phase0_weak_strong"
+      }
+    },
+    "intermediate_strong": {
+      "kstar_baseline_plateau": 50,
+      "baseline_error_at_kstar": 0.00011461120786127044,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 0.00011461120786127044,
+      "ra_append_error_at_kstar": 1.0218718406784788e-05,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 1.0218718406784788e-05,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__intermediate_strong",
+      "insertion": {
+        "latest_k": 28,
+        "latest_error": 0.00030653068405639416,
+        "error_at_kstar": null,
+        "live_partial": true,
+        "cell_name": "live_forced_always_open_position_phase0_intermediate_strong"
+      }
+    },
+    "strong_strong_u8": {
+      "kstar_baseline_plateau": 27,
+      "baseline_error_at_kstar": 2.6107142283793294e-05,
+      "baseline_terminal_k": 50,
+      "baseline_terminal_error": 2.314116031365554e-05,
+      "ra_append_error_at_kstar": 2.281062022413405e-05,
+      "ra_append_terminal_k": 50,
+      "ra_append_terminal_error": 5.332452035489155e-09,
+      "cell_name": "x_allphase_maxk50__forced_append_ra__strong_strong_u8",
+      "insertion": {
+        "latest_k": 10,
+        "latest_error": 3.8718367493251193e-05,
+        "error_at_kstar": null,
+        "live_partial": true,
+        "cell_name": "live_forced_always_open_position_phase0_strong_strong_u8"
+      }
+    }
+  },
+  "sources": {
+    "cells_dir": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data",
+    "cell_summaries": {
+      "forced_append_ra__weak_weak": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__weak_weak/run/summary/summary.json",
+        "sha256": "422d8bcc8bc0dc8985833996956e808fec33f7759f6c0ab782b73693fc4c7539"
+      },
+      "forced_always_open_position_phase0__weak_weak": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_always_open_position_phase0__weak_weak/run/summary/summary.json",
+        "sha256": "0395e2e2cdd24df6a7a62acf69157c919a51f050af76c6ae829b8023059639aa"
+      },
+      "forced_append_ra__intermediate_weak": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__intermediate_weak/run/summary/summary.json",
+        "sha256": "6af90219a7d5bc1b8e204555121b092aff7722e409d6967e6efbbb9525201888"
+      },
+      "forced_always_open_position_phase0__intermediate_weak": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_always_open_position_phase0__intermediate_weak/run/summary/summary.json",
+        "sha256": "d926a65b3ce649b5adda4ac5220dc75c4436b2426cab65ce4ef032f9021278ae"
+      },
+      "forced_append_ra__strong_weak_u8": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__strong_weak_u8/run/summary/summary.json",
+        "sha256": "2d2f33c0a57dfc3ea61a2957cd9b46bc07fc94e9dbe6419aa61b76ee63816984"
+      },
+      "forced_always_open_position_phase0__strong_weak_u8": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_always_open_position_phase0__strong_weak_u8/run/summary/summary.json",
+        "sha256": "e11e98400765ca08af1f330db7e06e859928c6c79c49a043499f40db1f1222e5"
+      },
+      "forced_append_ra__weak_strong": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__weak_strong/run/summary/summary.json",
+        "sha256": "d0617dba5a79f6b66b79a452435772ec275133b5c99d2acb2a3a28c5fa113cca"
+      },
+      "forced_append_ra__intermediate_strong": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__intermediate_strong/run/summary/summary.json",
+        "sha256": "26b5bc4a17abe5b12a3bda8449a66ac993172a2af976efa74e8000516eedef3f"
+      },
+      "forced_append_ra__strong_strong_u8": {
+        "path": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/x_allphase_maxk50__forced_append_ra__strong_strong_u8/run/summary/summary.json",
+        "sha256": "d34bd8e8017faefb3025a669d0a49a6d94d0eeb7bea2f42937afa3c34fa9b900"
+      }
+    },
+    "live_tails_dir": "output/local_runs/paper_i_ra_allphase_adaptive_20260817_comparison_data/live_tails",
+    "published_baseline_provenance": {
+      "path": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/output/paper_packages/Paper_I_full_20260816/figures/paper_i_ra_vs_append_matched_singleton_plateau_20260812/paper_i_ra_vs_append_matched_singleton_plateau_provenance.json",
+      "sha256": "b9eb2f3c41505cf554c8718c252bda1924cbe91604e828eaff2b277383150272"
+    },
+    "loader_module": {
+      "path": "chtc/paper_i_ra_adapt_repair_20260727/build_paper_i_ra_phase123_qiskit_comparison_pdf_20260817.py",
+      "sha256": "4dcc6a7650627ff190e9233b48fd504ade0acb5ed285d5be84162c49d1723b29"
+    }
+  }
+}
