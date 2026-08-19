@@ -1261,6 +1261,11 @@ The exception is instructive.  At strong--strong coupling with $u=8$ the metric-
 
 \input{generated/paper_iii_ablation_table}
 
+\structlabel{Ritz-term weight sweep}
+The inertness of the Ritz window gain in Table~\ref{tab:qse_ablation_matrix} is a property of its weight rather than of its content.  The term shares the numerator $|\eta_{\nu r}|^2$ exactly with residual capture, since $\braket{u_r}{R_\nu}=\eta_{\nu r}$ for a retained-frame-orthogonal candidate, and differs only by the $1/\delta_{\nu r}$ weighting that penalizes candidates whose own energy lies far from the target root.  That difference is not cosmetic: at supports of ten and twenty-five records the two rankings share none of their ten highest-scoring candidates, with Spearman correlation $0.56$--$0.64$.  Sweeping the Ritz weight over $\{0,\tfrac14,\tfrac12,1,2,4\}$ at fixed residual weight nevertheless shows no setting that dominates.  In the two weak-phonon regimes at $u<8$ the sweep is exactly flat: every weight returns the same support, cost, and error.  In the remaining two regimes the term acts, but with opposite sign---at strong--weak $u=8$ raising the weight from zero to unity reduces the converged support from $88$ to $59$ records and the compiled cost from $2880$ to $2076$, while at strong--strong $u=8$ the same change raises the support from $84$ to $119$ and the cost from $12254$ to $13908$, with the production setting $\tfrac14$ the most expensive of all at $27366$.  Summed over the four converging regimes, disabling the term is the cheapest configuration ($23272$ compiled two-qubit gates against $37878$ at the production weight), and all settings meet the stop with maximum errors between $5.5\times10^{-9}$ and $1.7\times10^{-7}$, four to six orders below the residual tolerance that terminated them.  Weights above unity are saturated and indistinguishable.  We therefore report the Ritz window gain as an optional term: it is retained in the production configuration for continuity with the staged screen, but the evidence does not support a claim that it improves selection, and a three-term score---visibility, metric novelty, residual capture, cost-discounted---reproduces the same spectra at lower cost.
+
+
+
 
 \subsection{Dynamics results}
 

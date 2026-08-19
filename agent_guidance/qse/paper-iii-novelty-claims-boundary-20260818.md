@@ -332,3 +332,21 @@ construction re-optimizes angles after each insertion so redundancy is
 variationally absorbed (costing depth), whereas QSE has no
 re-optimization — the basis is the answer and its retained rank fixes
 which spectral directions exist.
+
+### Ritz weight sweep (2026-08-19, `--mode ritz_sweep` -> `ritz_sweep.json`)
+
+Weights {0, 1/4, 1/2, 1, 2, 4} at fixed residual weight, four converging
+regimes. No setting dominates:
+- weak_weak, intermediate_weak: EXACTLY flat at every weight (term inert).
+- strong_weak_u8: term HELPS — 0 -> 1 cuts support 88->59, cost 2880->2076.
+- strong_strong_u8: term HURTS — 0 -> 1/4 raises support 84->103 and cost
+  12254->27366 (production weight is the worst setting there).
+- weights >= 1 are saturated and indistinguishable.
+- Totals over the four regimes: w=0 is cheapest (23272 2Q) vs w=1/4
+  (37878) vs w=1 (24106). All errors 5.5e-9..1.7e-7, far below the stop.
+
+CLAIM RULE: report the Ritz window gain as OPTIONAL. Do not claim it
+improves selection. The three-term score (visibility x novelty x
+residual capture, cost-discounted) reproduces the same spectra at lower
+cost. Production keeps it at 1/4 for continuity only — if the production
+matrix is re-run, w=0 is the better default and should be stated as such.

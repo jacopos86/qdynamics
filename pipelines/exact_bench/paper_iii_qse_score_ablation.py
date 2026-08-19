@@ -76,12 +76,22 @@ _ARMS: dict[str, dict[str, Any]] = {
     "no_cost_discount": {"geometry_cost_discount_alpha": None},
 }
 
+_RITZ_SWEEP: dict[str, dict[str, Any]] = {
+    "ritz_w0.00": {"geometry_ritz_weight": 0.0},
+    "ritz_w0.25": {},
+    "ritz_w0.50": {"geometry_ritz_weight": 0.5},
+    "ritz_w1.00": {"geometry_ritz_weight": 1.0},
+    "ritz_w2.00": {"geometry_ritz_weight": 2.0},
+    "ritz_w4.00": {"geometry_ritz_weight": 4.0},
+}
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regimes", default=None)
     parser.add_argument("--residual-stop", type=float, default=1.0e-3)
+    parser.add_argument("--mode", choices=("ablation", "ritz_sweep"), default="ablation")
     args = parser.parse_args(argv)
 
     wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
@@ -115,7 +125,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         print(f"\n== {regime} (u={u}, g={g_ep:.4f}, nph{n_ph_max}) pool={len(basis)}", flush=True)
         arms_payload: dict[str, Any] = {}
-        for arm_name, overrides in _ARMS.items():
+        arm_set = _ARMS if args.mode == "ablation" else _RITZ_SWEEP
+        for arm_name, overrides in arm_set.items():
             config = replace(base, **overrides) if overrides else base
             selection = select_static_qse_records(
                 basis,
@@ -173,6 +184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     payload = {
         "schema_version": "paper_iii_qse_score_ablation_v1",
+        "mode": str(args.mode),
         "policy": "diagnostic_only_score_term_ablation",
         "controller_boundary": {
             "feeds_controller_decisions": False,
