@@ -22,18 +22,15 @@ lane-scoped guidance: agents not working on Paper III have no reason to load it.
 - first mixed fermion--boson excited-state quantum method (`PavosevicFlick2021QEDEOM`, `SawayaHuh2019VibronicSpectra`);
 - first quantized electron--phonon quantum simulation (`Macridin2018ElectronPhonon`);
 - adaptive enlargement of a quantum Rayleigh--Ritz subspace, or adaptive
-  operator-pool selection over a nonorthogonal generalized eigenproblem —
-  this lineage rests on ESTABLISHED, refereed work, not on A-CASE:
-  residual-guided QDavidson (`Tkachenko2024QDavidson`, 2022/2024) and
-  gradient-based ADAPT-GCIM over UCC generator pools
-  (`Zheng2024ADAPTGCIM`, arXiv:2312.07691, npj QI 2024). A-CASE itself
-  concedes "neither adaptive subspace growth nor replacing variational
-  optimization by a generalized eigenproblem is new";
-- adaptive subspace growth AS SUCH (conceded to QDavidson/ADAPT-GCIM,
-  both cited). NOTE: the utility-per-cost denominator is NO LONGER
-  conceded — user decision 2026-08-19. The cost-weighted acquisition
-  lineage is this series' own (Paper I, Paper II), cited as such, and
-  Paper III claims the compiled-2Q QSE specialization;
+  operator-pool selection over a nonorthogonal generalized eigenproblem.
+  This lineage rests on ESTABLISHED, refereed work: residual-guided
+  QDavidson (`Tkachenko2024QDavidson`, 2022/2024) and gradient-based
+  ADAPT-GCIM over UCC generator pools (`Zheng2024ADAPTGCIM`,
+  arXiv:2312.07691, npj QI 2024). Both are cited; the concession stands
+  on them alone. NOTE: the utility-per-cost denominator is NOT part of
+  this concession — the cost-weighted acquisition lineage is this
+  series' own (Paper I, Paper II), cited as such, and Paper III claims
+  the compiled-2Q QSE specialization;
 - QSE excitation-pool pruning or compaction (`LiuDeng2026CSQSE`,
   `Getelina2024HardwareNoiseQSE`);
 - resource-aware quantum-subspace design or measurement optimization
