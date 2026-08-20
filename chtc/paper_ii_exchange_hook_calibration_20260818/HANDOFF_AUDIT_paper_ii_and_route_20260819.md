@@ -1,32 +1,32 @@
-# Audit handoff — Paper II manuscript and the exchange route (2026-08-19)
+# Audit handoff — drift, source locks, and run streamlining (2026-08-19)
 
 **For:** Codex (repo access, executing)
 **From:** Claude session that implemented the exchange route, simplified it, and
 wrote today's manuscript sections
-**Contract:** `agent_guidance/shared/agent-handoff-contract.md` — read it first;
+**Contract:** `agent_guidance/shared/agent-handoff-contract.md` — read first;
 this document does not restate it.
 
-## Why this audit exists
+## What this audit is for
 
-Everything below was written by one agent over one long session: the route, the
-simplification, the manuscript sections, and the numbers in them. The parts most
-worth distrusting are the ones where that agent both produced a result and
-described it. Three specific exposures:
+Not re-deriving numbers. A number recomputed from the same configuration
+reproduces the same error, so that check buys little. The exposures worth an
+independent pass are the three places where a claim can be true at one layer and
+false at the next:
 
-1. **Numbers introduced today came from runs the same agent configured.** A
-   misconfiguration (wrong integrator, missing guard, loose gate) produces a
-   plausible number that survives review because the reviewer is the author.
-   Several such misconfigurations *were* caught mid-session; assume others were
-   not.
-2. **The AVQDS comparator was implemented from the implementing agent's
-   understanding of Yao et al., PRX Quantum 2, 030307**, not from a line-by-line
-   reading during implementation. If its decision rule is wrong, the comparison
-   table in the manuscript is wrong in our favor, which is the worst direction.
-3. **Manuscript-code alignment was repaired by the agent that broke it.** One
-   equation (Schur novelty) was found defined-but-unused only because the user
-   asked. There may be more.
-
-Audit for *whether the claims are true*, not for whether the work was done.
+1. **Math → code → run drift.** The manuscript states an equation; the code
+   implements something; the run actually executed something else. Each link
+   breaks independently, and today's session broke two of them (a scoring
+   quantity that changed in code before the paper caught up; runs that used
+   diagnostic integrator defaults while the method section described the
+   accurate configuration).
+2. **Source locks and comparator robustness.** A method comparison is only a
+   comparison if every arm demonstrably shared the same physics, seed,
+   integrator, grid, cutoff, and inverse policy. Today that was verified by
+   reading launch scripts — which is how one "append-only" arm silently ran the
+   exchange configuration for a whole batch.
+3. **Streamlining regime/Hamiltonian matrices.** Repeated runs across regimes,
+   cutoffs, and Hamiltonians should be declarative and locked, not rebuilt as
+   ad-hoc shell each time.
 
 ## Anchors
 
@@ -34,130 +34,137 @@ Audit for *whether the claims are true*, not for whether the work was done.
 |---|---|
 | Checkout | `/Users/jakestrobel/local_repos/Holstein_test_fullclone_3` (NOT the `~/Documents/Holstein_implementation/...` iCloud mirror) |
 | Branch | `paper-ii-exchange-selector` |
-| Commit | `047e050a` — confirm with `git rev-parse --short HEAD`; if it differs, another agent has committed here (they share this tree) and you should report the drift before proceeding |
+| Commit | `047e050a` — confirm with `git rev-parse --short HEAD`; a different SHA means another agent committed here (shared tree) — report the drift before proceeding |
 | Test baseline | `python3 -m pytest $(ls test/test_ap_*.py) test/test_time_dynamics_campaign.py -q` → `226 passed` |
-| Manuscript | `MATH/paper_details/time_dynamics_paper_II.tex`, builds to 13 pages via `pdflatex` run twice |
-| Route entry | `pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py` |
+| Manuscript | `MATH/paper_details/time_dynamics_paper_II.tex` (13 pages, `pdflatex` twice) |
+| Spec | `prompt-exports/paper_ii_noiseless_conditional_exchange_implementation_spec.md` |
 
 ## Scope
 
 **In scope:** `MATH/paper_details/time_dynamics_paper_II.tex`,
 `pipelines/time_dynamics/ap_mclachlan/**`,
 `pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py`,
-`pipelines/time_dynamics/campaign.py`, `test/test_ap_mclachlan_*.py`.
+`pipelines/time_dynamics/campaign.py`, `test/test_ap_mclachlan_*.py`,
+`agent_guidance/time-dynamics/AGENTS.md`.
 
 **Out of scope:** `pipelines/excited_dynamics/**`, `pipelines/qse_spectra/**`
-(Paper III lane — another agent commits there daily; a conflicting edit costs
-more than the delay). Also out of scope: `pipelines/static_adapt/**` except
-read-only, and the Paper-I manuscripts.
+(Paper III lane, another agent commits there daily — a conflicting edit costs
+more than the delay); `pipelines/static_adapt/**` read-only.
 
 **Shared-resource limits:** one heavy local run at a time; other agents use this
-machine. Long or wide runs belong on CHTC, and CHTC access needs a login the
-user must perform.
+machine. Wide or long runs belong on CHTC, and CHTC access needs a login only
+the user can perform.
 
-**Autonomy:** proceed through all increments without pausing. Report findings at
-the end. Stop early only if an increment reveals a scientific error that would
-invalidate later increments — say so rather than working around it.
+**Autonomy:** proceed through all increments without pausing; report at the end.
+Stop early only if a finding invalidates later increments.
 
-## Increment 1 — Reproduce every number the manuscript states
+## Increment 1 — Math → code → run drift
 
-The manuscript contains numbers introduced today. Reproduce each from committed
-artifacts and report agreement or disagreement. Do not accept a number because
-it appears in a caption.
+For each mechanism the manuscript presents as part of the method, verify the
+same object at three layers and report any layer that disagrees:
 
-| claim | stated value | where to verify |
-|---|---|---|
-| Comparator table (Table II) | append-only 1.7e-3 / 3.8e-3 / 46 params; adaptive append 1.8e-3 / 8.5e-3 / 68; exchange 3.5e-3 / 6.3e-3 / 24 | `output/three_way_hh_snake_20260818/*/run.json` via `output/three_way_report.py` |
-| Mechanism figure captions | exchange at tau_ray=2e-3 conserves to 2.9e-4 vs append-only 1.3e-3; 616→607 vs 624 params | `output/paper_arms_rk4_20260818/` |
-| Repair audit | 6 of 11,499 candidates applied; base rung on 883/885 steps; peak kappa 5.1e7 | `pipelines/time_dynamics/diagnostics/knob_audit.py` |
-| Minimal-profile parity | 3.4735e-3 → 3.4738e-3, identical support, ~26% fewer candidate solves | `output/repair_profile_parity_20260818/` |
-| Seed quality | HH L=2 nph=1 seed at 7.0e-5 static energy error | `chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_seed_ledger_v2.json` |
+- **paper**: the equation and what it claims is minimized, thresholded, or ranked;
+- **code**: the implementing expression, by file:line;
+- **run**: what a completed `run.json` shows was actually used — provenance
+  block, config echo, and decision payloads, not the launch command.
 
-`output/` is gitignored, so these artifacts exist in the working tree but not in
-git. If any is missing, say so rather than regenerating silently — a
-regenerated number is a different measurement.
+Mechanisms to check, in priority order:
 
-Expected: every stated value reproduces, or a precise list of those that do not.
+1. Realized captured drift `Q = 2 f^T theta_dot - theta_dot^T K theta_dot` as
+   *the* scoring authority. Legacy `Gamma = f^T theta_dot` survives as telemetry;
+   any use of `Gamma` in a decision path is a drift bug. The paper defines both
+   and says which governs — confirm the code agrees.
+2. The operating score (insertion gain per cost + deletion cost per loss +
+   weighted net drift change) as the complete criterion, with conditioning and
+   history extensions at zero weight.
+3. Deletion loss and insertion gain: same normalization in paper and code
+   (`||b||^2 + eps` denominators), same positivity clipping.
+4. Commit gates: Fubini–Study ray displacement and phase-aligned velocity
+   smoothness, applied to deletion-containing patches only.
+5. Measurement gating: below the residual threshold, insertions unenumerated and
+   the pool empty; deletions still scored.
+6. Numerical rule: the manuscript now claims one operating mechanism
+   (state-displacement subdivision). Verify runs used it and not the wider
+   candidate search.
 
-## Increment 2 — AVQDS comparator fidelity
+**AVQDS comparator (`pipelines/time_dynamics/ap_mclachlan/avqds.py`) is a
+drift case of its own.** It was implemented from the implementing agent's
+understanding of Yao et al., PRX Quantum **2**, 030307 (2021), not a
+line-by-line reading. Check the decision rule against the paper: is the
+thresholded `L^2` the same quantity with the same normalization, does the greedy
+append loop match, does AVQDS regularize its inverse the same way, and is
+end-of-circuit placement faithful. A wrong rule biases the comparison in our
+favor, which is the direction that matters.
 
-Read Yao et al., PRX Quantum **2**, 030307 (2021) and check
-`pipelines/time_dynamics/ap_mclachlan/avqds.py` against it. The implementation
-claims to reproduce AVQDS's *decision rule* on our geometry: McLachlan distance
-`L^2 = ||b||^2 - Q` as trigger, greedy append of the operator maximally reducing
-`L^2`, placed at the circuit end, no deletion, no cost weighting.
+Expected: a per-mechanism verdict (paper/code/run agree, or which layer
+diverges), with file:line and the run artifact consulted.
 
-Check specifically:
+## Increment 2 — Source locks and comparator robustness
 
-- Is `L^2` as implemented the same quantity AVQDS thresholds, including
-  normalization? Ours is absolute where our own route uses a normalized residual
-  ratio; a normalization mismatch would make the threshold comparison
-  meaningless.
-- Does AVQDS append one operator or a set per step, and does our greedy loop
-  match?
-- Does AVQDS use a regularized inverse, and does ours match its convention?
-- Is "append at the circuit end" faithful, or does AVQDS position operators?
+The question: given only completed artifacts, can you *prove* that any two arms
+being compared shared the same physics?
 
-Then judge the fairness question the manuscript already flags: at the reported
-threshold the comparator saturates its per-checkpoint append budget, so the
-threshold never binds. Is the manuscript's framing of that limitation honest, or
-does it understate a comparison that favors us?
+- Determine what a `run.json` currently pins: seed artifact identity and hash,
+  Hamiltonian family and cutoff, drive profile, time grid, integrator, inverse
+  policy, repair configuration, structural settings.
+- Identify what it does **not** pin, such that two runs could differ without the
+  artifact showing it. Same-cutoff comparison is a hard invariant here (binary-
+  aligned phonon cutoffs 1/3/7; the exact reference must be the exact evolution
+  of the same truncated Hamiltonian, never the untruncated model).
+- Propose a comparison lock: a single record, emitted per campaign, that binds
+  every arm to a shared physics/numerics fingerprint, plus a verifier that
+  refuses to aggregate arms whose fingerprints differ.
 
-Expected: a fidelity verdict with specific line references, plus a
-recommendation on whether Table II can stand as written.
+Concrete failure to design against: today an "append-only" arm ran the exchange
+configuration because a shell array substitution silently did not match, and the
+two arms produced byte-identical results. Nothing in the artifacts flagged it —
+only the suspicious equality did.
 
-## Increment 3 — Manuscript claims against live code
+Expected: an inventory of what is and is not locked, plus a proposed lock format
+and verifier entry point. Do not implement yet.
 
-For every equation and mechanism the manuscript presents as part of the method,
-confirm live code implements it and the route reaches it. The evidence standard
-in the contract applies: a code index proposes, source ratifies — GitNexus
-missed three live closure-mediated calls out of four "unreachable" symbols
-today, so grep and read before concluding anything is dead.
+## Increment 3 — Streamlining regime/Hamiltonian matrices
 
-Known-and-deliberate, do not re-report:
+`pipelines/time_dynamics/campaign.py` declares a matrix as
+`SeedSpec x DriveSpec x HorizonSpec x PolicyArm`, resolving each cell to a runner
+argv with canonical numerics, the four computational guards, per-seed sha256, and
+binary-aligned cutoff enforcement. It is new and unproven beyond its own tests.
+
+Assess it against the ICM architecture in
+`agent_guidance/shared/icm-gitnexus-pilot-plan.md`, whose stated gap is that
+Paper-II launch surfaces route by artifact paths rather than one neutral
+accepted-ansatz export. Then answer:
+
+- Does the campaign spec belong on top of the seed ledger
+  (`chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_seed_ledger_v2.json`)
+  so a seed is named by ledger key rather than by path?
+- What is missing to run a matrix on CHTC from one declaration — submit-file
+  generation, per-cell output routing, fetch and aggregation?
+- Where should the lock from Increment 2 attach so every cell inherits it?
+
+Expected: a concrete plan with named entry points, sequenced so each step is
+independently testable. Do not implement yet.
+
+## Deliberate, do not re-report
 
 - Appendix A.3 is labeled diagnostic-only; its equations intentionally describe
   machinery not used for results.
 - Conditioning and history score hooks exist at zero weight by design.
 - `append_ladder_mode` is vestigial in this route but retained because
   `pipelines/excited_dynamics/paper_iii_promoted_ap_demo.py` passes it — a
-  cross-lane coordination item, not an oversight.
-
-Expected: a list of any remaining manuscript claims with no live implementation,
-or confirmation there are none.
-
-## Increment 4 — Route implementation audit
-
-Read the selector stack for correctness against
-`prompt-exports/paper_ii_noiseless_conditional_exchange_implementation_spec.md`:
-`exchange_structural.py`, `exchange_certification.py`, `exchange_selector.py`,
-`exchange_integration.py`, `structural_cache.py`.
-
-Priorities, highest first:
-
-1. **Scoring authority** — realized captured drift `Q = 2 f^T theta_dot -
-   theta_dot^T K theta_dot` should be used everywhere the score is computed; any
-   surviving use of the legacy `Gamma = f^T theta_dot` in a decision path is a
-   bug.
-2. **Deletion competition** — every guard-admitted deletion rung must be scored
-   before the first certification attempt. This was fixed today; verify it holds.
-3. **Measurement gating** — below the residual threshold the insertion pool must
-   be empty and no insertion candidate enumerated. `test_ap_mclachlan_route_parity.py`
-   locks this; confirm the lock actually binds.
-4. **Guards** — the four computational guards should bound work without altering
-   ranking. A guard that changes *which* candidate wins is a science bug.
-
-Expected: defects with file:line, severity, and a regression test proposal each,
-in the style of `chtc/paper_i_ra_adapt_repair_20260727/HANDOFF_REFACTOR_cost_path_20260819.md`.
+  cross-lane coordination item.
+- Short horizons (t<=1) and the comparator's non-binding threshold are known
+  evidence limitations, already stated in the manuscript.
 
 ## Report back
 
 Use the per-increment block from the contract. Additionally:
 
-- Rank findings by whether they change a manuscript claim, change a number, or
-  are code hygiene only.
-- For anything you would fix, propose the fix but do not apply it — this session
-  is an audit, and the user decides what lands.
+- Rank findings by whether they change a manuscript claim, invalidate a
+  comparison, or are hygiene only.
+- Propose fixes; do not apply them. The user decides what lands.
+- Evidence standard from the contract applies: an index proposes, source
+  ratifies. GitNexus missed three live closure-mediated calls out of four
+  "unreachable" symbols today.
 - If you find a trap worth carrying forward, add it to
-  `agent_guidance/shared/agent-handoff-contract.md` §5 rather than only
-  mentioning it here.
+  `agent_guidance/shared/agent-handoff-contract.md` §5.
