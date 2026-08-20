@@ -190,23 +190,30 @@ class SolveRepairConfig:
         """Repair reduced to the mechanism that measurably acts.
 
         Audit of 885 integration steps across 33 trajectories: 11,499 repair
-        candidates were evaluated and 6 were applied; the inverse-policy
-        ladders left the base policy on 883/885 steps and damping never moved.
-        The only mechanism that repeatedly changed a step was local
-        subdivision triggered by excessive prospective state motion.  This
-        profile keeps that trigger and its subdivision, pins the inverse
-        policy to its base rung, and disables the conditioning, residual, and
-        kink triggers that fired without changing the accepted solve.  The
-        full candidate search remains available for diagnosis.
+        candidates were evaluated and 6 were applied, and the inverse-policy
+        ladders left the base policy on 883/885 steps while damping never
+        moved.  Local subdivision is what repeatedly changes a step, through
+        both of its triggers: 372 subdivisions opened on excessive prospective
+        state motion and 254 on the temporal-kink diagnostic.  This profile
+        therefore keeps both subdivision triggers and pins the inverse policy
+        to its base rung, retiring only the candidate search that measurement
+        shows inert.  The full search remains available for diagnosis.
         """
 
         params: dict[str, object] = dict(
             enabled=True,
+            # Both subdivision triggers are retained: across 33 trajectories
+            # they opened 372 (state motion) and 254 (temporal kink)
+            # subdivisions, so both act on real steps.
+            state_motion_l2_step_max=1.0e-2,
+            state_space_kink_eta_max=5.0e-3,
+            local_subdivision_enabled=True,
+            # What never acts is the inverse-candidate search: 6 of 11,499
+            # candidates were accepted and the base rung held on 883 of 885
+            # steps, so the ladders collapse to their base convention and the
+            # conditioning/numerical-miss channels no longer open a search.
             condition_number_max=None,
             rho_num_max=None,
-            state_space_kink_eta_max=None,
-            state_motion_l2_step_max=1.0e-2,
-            local_subdivision_enabled=True,
             ridge_ladder=(DEFAULT_MCLACHLAN_RIDGE_LAMBDA,),
             pinv_rcond_ladder=(1.0e-10,),
             solve_damping_ladder=(DEFAULT_MCLACHLAN_SOLVE_DAMPING,),

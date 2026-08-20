@@ -364,7 +364,7 @@ Measurement economics fixes when this search runs at all.  Insertion candidates 
 
 An expressive tangent support can still fail numerically.  The inverse may lose motion that lies in the resolved tangent span, a finite time step may move too far for the local linearization, or the accepted state-space velocity may change discontinuously between neighboring time points.  These are three different failures, and the three diagnostics below measure them separately.
 
-Only one of the three responses is part of the operating method.  Across every trajectory reported here, candidate inverse conventions other than the base regularization were selected on two integration steps out of $885$, and step subdivision triggered by excessive projected state displacement was the mechanism that repeatedly changed a step (Appendix~\ref{app:technical_realization}).  The operating rule is therefore: evaluate the three diagnostics, and subdivide the interval when the state-space step of Eq.~(\ref{eq:state_space_step}) exceeds its bound.  The numerical-miss and temporal-kink diagnostics are reported but do not open an inverse search in the reported configuration.
+The three diagnostics are measured at every checkpoint, but they do not all open the same response.  Local subdivision is what repeatedly changes a step: across the trajectories reported here it opened $372$ times on excessive projected state displacement and $254$ times on the temporal-kink diagnostic.  The inverse-candidate search is what does not act: candidate conventions other than the base regularization were selected on two integration steps out of $885$, and six of $1.15\times10^{4}$ evaluated candidates were accepted (Appendix~\ref{app:diagnostic_only}).  The operating rule is therefore: subdivide the interval when the state-space step of Eq.~(\ref{eq:state_space_step}) or the temporal kink of Eq.~(\ref{eq:temporal_kink}) exceeds its bound; the numerical-miss channel opens no search in the reported configuration.
 
 For any realized candidate velocity \(v\), the best geometric residual available on the current support is
 \begin{equation}
@@ -411,11 +411,29 @@ d_{\rm FS}\!\left(
 \end{aligned}
 \label{eq:state_space_step}
 \end{equation}
+The third diagnostic detects a temporal kink in the physical tangent velocity,
+\begin{equation}
+\eta_{{\rm time},k}^{\psi}(v)
+=
+\frac{
+\left\|
+\bar T_kv-
+\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
+\right\|_2^2
+}{
+\tfrac12\left(
+\|\bar b_k\|_2^2+
+\|\bar b_{k-1}\|_2^2
+\right)+\eps_{\rm norm}
+}.
+\label{eq:temporal_kink}
+\end{equation}
+For \(k=0\), the temporal-kink diagnostic is set to zero.
 
 
 
 
-\paragraph*{Operating rule.}  The operating response is a single rule: when \(\delta_{{\rm step},k}\) of Eq.~(\ref{eq:state_space_step}) exceeds \(\tau_\Delta\), the interval is subdivided, because damping is not the first cure for a physically accurate velocity evaluated over too large a step.  Subdivision refines the internal integration grid only, leaving the reporting grid and the accepted support unchanged.  Hard invalidity --- nonfinite or dimensionally inconsistent checkpoint data --- rejects the step outright.  A wider diagnostic mode that opens a bidirectional inverse search on the remaining defect channels, together with the release rule that returns a held repair to the base inverse, is specified in Appendix~\ref{app:technical_realization} with the measurements motivating its exclusion from the operating configuration.
+\paragraph*{Operating rule.}  The operating response is local subdivision: when \(\delta_{{\rm step},k}\) of Eq.~(\ref{eq:state_space_step}) or \(\eta_{{\rm time},k}^{\psi}\) of Eq.~(\ref{eq:temporal_kink}) exceeds its bound, the interval is subdivided, because damping is not the first cure for a physically accurate velocity evaluated over too large a step, nor for a velocity that has turned sharply between neighboring checkpoints.  Subdivision refines the internal integration grid only, leaving the reporting grid and the accepted support unchanged.  Hard invalidity --- nonfinite or dimensionally inconsistent checkpoint data --- rejects the step outright.  The bidirectional inverse search over candidate regularizations, together with the release rule that returns a held repair to the base convention, is specified in Appendix~\ref{app:diagnostic_only} with the measurements motivating its exclusion from the operating configuration.
 
 The measurement boundary is important.  Once \(G_k\), \(f_k\), and \(\|\bar b_k\|_2^2\) have been estimated at a checkpoint, Eqs.~(\ref{eq:realized_residual}) and the tangent-plane part of Eq.~(\ref{eq:state_space_step}) are classical quadratic forms.  Testing stronger or weaker inverse policies on those same data requires no new quantum measurements.  The trial-state ray check requires an additional overlap experiment on a QPU when that stricter guard is enabled; in the present statevector diagnostics it is evaluated classically.  Local subdivision is different: it introduces new intermediate states and therefore requires new checkpoint evaluations.  Temporal continuity uses current and previously retained checkpoint data and never an exact reference trajectory.
 
@@ -742,32 +760,15 @@ so testing inverse candidates and the release metric in Eq.~(\ref{eq:repair_rele
 \subsection{Diagnostic-only machinery (not part of the operating method)}
 \label{app:diagnostic_only}
 
-Everything in this subsection is measured and retained for diagnosis of
-pathological trajectories.  None of it is part of the method used for any
-result in this paper: the operating numerical rule is the single
+Everything in this subsection is retained for diagnosis of pathological
+trajectories.  None of it is part of the method used for any result in this
+paper: the operating numerical rule is the single
 state-displacement subdivision of Sec.~\ref{sec:numerical_solve_repair}, and
 the operating structural rule is Eq.~(\ref{eq:operating_score}).  The material
 is recorded because it is the evidence that the reduced configuration loses
 nothing, not because a reader must apply it.
 
-The third diagnostic detects a temporal kink in the physical tangent velocity,
-\begin{equation}
-\eta_{{\rm time},k}^{\psi}(v)
-=
-\frac{
-\left\|
-\bar T_kv-
-\bar T_{k-1}\dot\theta_{k-1}^{\rm acc}
-\right\|_2^2
-}{
-\tfrac12\left(
-\|\bar b_k\|_2^2+
-\|\bar b_{k-1}\|_2^2
-\right)+\eps_{\rm norm}
-}.
-\label{eq:temporal_kink}
-\end{equation}
-For \(k=0\), the temporal-kink diagnostic is set to zero.
+
 
 The repair lane opens only when the base realization is invalid or one of these measured defects is excessive:
 \begin{equation}
@@ -797,7 +798,7 @@ G_k
 \end{equation}
 Equation~(\ref{eq:repair_release}) is computed classically from the already measured \(G_k\); it does not require a second quantum measurement of either velocity.  Release uses a stricter threshold and severity-dependent persistence so that a repair is not switched off immediately after a large accepted correction.
 
-\paragraph*{Operating configuration.}  The candidate set above is the diagnostic superset.  Across every trajectory reported here --- 885 integration steps --- the inverse-candidate search left the base regularization in place on all but two steps, damping never moved from its base value, and of $1.15\times10^4$ evaluated candidates six were accepted; the conditioning, numerical-miss, and temporal-kink triggers opened searches that did not change the accepted solve.  Local subdivision opened by excessive prospective state displacement is the only repair mechanism that repeatedly altered a step.  The reported runs therefore use a reduced configuration containing that trigger, its subdivision, and the base inverse convention alone.  Substituting the reduced configuration for the full candidate search on the driven seed of Table~\ref{tab:comparator_hh_snake} changes the mean energy error from $3.4735\times10^{-3}$ to $3.4738\times10^{-3}$ at identical final support, while removing a quarter of the candidate solves.  The wider set is retained for diagnosis of pathological checkpoints, not as the operating point.
+\paragraph*{Operating configuration.}  The candidate set above is the diagnostic superset.  Across every trajectory reported here --- 885 integration steps --- the inverse-candidate search left the base regularization in place on all but two steps, damping never moved from its base value, and of $1.15\times10^4$ evaluated candidates six were accepted; the conditioning, numerical-miss, and temporal-kink triggers opened searches that did not change the accepted solve.  Local subdivision is the repair mechanism that repeatedly altered a step, through both of its triggers: $372$ subdivisions opened on excessive prospective state displacement and $254$ on the temporal-kink diagnostic.  The reported runs therefore use a reduced configuration containing both subdivision triggers and the base inverse convention alone.  Substituting the reduced configuration for the full candidate search on the driven seed of Table~\ref{tab:comparator_hh_snake} changes the mean energy error from $3.4735\times10^{-3}$ to $3.4738\times10^{-3}$ at identical final support, while removing a quarter of the candidate solves.  The wider set is retained for diagnosis of pathological checkpoints, not as the operating point.
 
 \subsection{Structural search and deletion history}
 
