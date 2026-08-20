@@ -18,7 +18,6 @@ from pipelines.scaffold.runtime_loader import (
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     APPEND_LADDER_PREFILTER_POLICY_V1,
     APPEND_LADDER_SELECTION_POLICY_V1,
-    APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
     DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD,
     PRUNE_PERSISTENCE_ATOM_HISTORY,
     PRUNE_PERSISTENCE_EXACT_BATCH,
@@ -54,9 +53,6 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
     load_reference_energy_trajectory,
     reference_energy_summary,
     reference_energy_trajectory_from_payload,
-)
-from pipelines.time_dynamics.ap_mclachlan.support_frontier import (
-    APPEND_MACRO_SCOUT_SCORE_MODES,
 )
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
@@ -612,74 +608,6 @@ def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
                     None
                     if batch is None
                     else batch.metadata.get("append_ladder_mode")
-                ),
-                "append_macro_scout_enabled": bool(
-                    batch_metadata.get("macro_scout_enabled", False)
-                ),
-                "append_macro_scout_score_mode": batch_metadata.get(
-                    "macro_scout_score_mode"
-                ),
-                "append_macro_scout_applied": bool(
-                    batch_metadata.get("macro_scout_applied", False)
-                ),
-                "append_macro_scout_reason": batch_metadata.get("macro_scout_reason"),
-                "append_macro_scout_fail_open_applied": bool(
-                    batch_metadata.get("macro_scout_fail_open_applied", False)
-                ),
-                "append_macro_scout_exchange_fail_open_applied": bool(
-                    batch_metadata.get(
-                        "macro_scout_exchange_fail_open_applied", False
-                    )
-                ),
-                "append_macro_scout_exchange_fail_open_frontier_preserved": bool(
-                    batch_metadata.get(
-                        "macro_scout_exchange_fail_open_frontier_preserved", False
-                    )
-                ),
-                "append_macro_scout_exchange_filtering_diagnostic_only": bool(
-                    batch_metadata.get(
-                        "macro_scout_exchange_filtering_diagnostic_only", False
-                    )
-                ),
-                "append_macro_scout_exchange_filtering_certification": (
-                    batch_metadata.get(
-                        "macro_scout_exchange_filtering_certification"
-                    )
-                ),
-                "append_macro_scout_parent_count_total": (
-                    None
-                    if batch_metadata.get("macro_scout_parent_count_total") is None
-                    else int(batch_metadata.get("macro_scout_parent_count_total"))
-                ),
-                "append_macro_scout_parent_count_scored": (
-                    None
-                    if batch_metadata.get("macro_scout_parent_count_scored") is None
-                    else int(batch_metadata.get("macro_scout_parent_count_scored"))
-                ),
-                "append_macro_scout_parent_count_selected": (
-                    None
-                    if batch_metadata.get("macro_scout_parent_count_selected") is None
-                    else int(batch_metadata.get("macro_scout_parent_count_selected"))
-                ),
-                "append_macro_scout_child_count_before": (
-                    None
-                    if batch_metadata.get("macro_scout_child_count_before") is None
-                    else int(batch_metadata.get("macro_scout_child_count_before"))
-                ),
-                "append_macro_scout_child_count_after": (
-                    None
-                    if batch_metadata.get("macro_scout_child_count_after") is None
-                    else int(batch_metadata.get("macro_scout_child_count_after"))
-                ),
-                "append_macro_scout_diagnostic_full_child_set_scoring": bool(
-                    batch_metadata.get(
-                        "macro_scout_diagnostic_full_child_set_scoring", False
-                    )
-                ),
-                "append_macro_scout_measurement_saving_score_available": bool(
-                    batch_metadata.get(
-                        "macro_scout_measurement_saving_score_available", False
-                    )
                 ),
                 "patch_insertion_gain": (
                     None

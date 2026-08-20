@@ -7,8 +7,6 @@ import pytest
 
 from pipelines.contracts.scaffold import CandidatePoolSource, ScaffoldRuntimeInput
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
-    APPEND_MACRO_SCOUT_POLICY_V2,
-    APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
     AppendControllerConfig,
     LEGACY_APPEND_CONTROLLER_PROFILE_V1,
     SupportPatchControllerConfig,
@@ -619,21 +617,6 @@ def test_support_patch_controller_defaults_are_exchange_family_combinatorial() -
     # retired append route and were removed; the surviving cap is the
     # certification conditioning bound.
     assert config.append_schur_max_condition_number == 1.0e12
-    assert config.append_macro_scout_enabled is False
-    assert config.append_macro_scout_score_mode == (
-        APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN
-    )
-    assert config.append_macro_scout_parent_cap == 0
-    assert config.append_macro_scout_score_min == 0.0
-    assert config.append_macro_scout_fail_open is True
-    assert config.append_macro_scout_expand_if_residual_high == 0.0
-    assert config.append_macro_scout_exchange_fail_open is True
-    assert config.append_macro_scout_audit_parent_count == 0
-    assert config.append_macro_scout_audit_parent_fraction == 0.0
-    assert config.append_macro_scout_parent_cost_alpha == 1.0
-    assert config.to_json_dict()["append_macro_scout_policy"] == (
-        APPEND_MACRO_SCOUT_POLICY_V2
-    )
     # failed-append-reuse was removed 2026-08-15; the attribute must be gone.
     assert not hasattr(config, "failed_append_reuse_enabled")
     assert config.exchange_enabled is True
@@ -646,12 +629,17 @@ def test_support_patch_controller_defaults_are_exchange_family_combinatorial() -
     assert config.max_prune_batch_size == 0
 
 
-def test_support_patch_controller_validates_macro_scout_settings() -> None:
-    with pytest.raises(ValueError, match="append_macro_scout_score_mode"):
-        SupportPatchControllerConfig(append_macro_scout_score_mode="not_a_mode")
-    with pytest.raises(ValueError, match="append_macro_scout_audit_parent_count"):
-        SupportPatchControllerConfig(append_macro_scout_audit_parent_count=-1)
-    with pytest.raises(ValueError, match="append_macro_scout_audit_parent_fraction"):
-        SupportPatchControllerConfig(append_macro_scout_audit_parent_fraction=1.1)
-    with pytest.raises(ValueError, match="append_macro_scout_parent_cost_alpha"):
-        SupportPatchControllerConfig(append_macro_scout_parent_cost_alpha=-1.0)
+def test_support_patch_controller_rejects_retired_macro_scout_settings() -> None:
+    # The macro-scout surface was seed-construction machinery the exchange
+    # selector never read; its settings were removed, so passing one is now
+    # an error rather than a silently inert configuration.
+    for field in (
+        "append_macro_scout_score_mode",
+        "append_macro_scout_audit_parent_count",
+        "append_macro_scout_audit_parent_fraction",
+        "append_macro_scout_parent_cost_alpha",
+    ):
+        with pytest.raises(TypeError):
+            SupportPatchControllerConfig(**{field: 1})
+
+

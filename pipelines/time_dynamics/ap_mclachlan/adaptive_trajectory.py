@@ -77,11 +77,6 @@ from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
     appended_origin_atom_labels,
     normalize_append_occurrence_policy,
 )
-from pipelines.time_dynamics.ap_mclachlan.support_frontier import (
-    APPEND_MACRO_SCOUT_POLICY_V2,
-    APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN,
-    validate_append_macro_scout_score_mode,
-)
 from pipelines.time_dynamics.ap_mclachlan.support_decision import RungDiagnostics
 from pipelines.time_dynamics.ap_mclachlan.support_patch import (
     PATCH_APPEND,
@@ -145,16 +140,6 @@ class SupportPatchControllerConfig:
     # its historical flag name for run-provenance compatibility; it is not a
     # Schur-block criterion (that guard belonged to the retired append route).
     append_schur_max_condition_number: float = 1.0e12
-    append_macro_scout_enabled: bool = False
-    append_macro_scout_score_mode: str = APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN
-    append_macro_scout_parent_cap: int = 0
-    append_macro_scout_score_min: float = 0.0
-    append_macro_scout_fail_open: bool = True
-    append_macro_scout_expand_if_residual_high: float = 0.0
-    append_macro_scout_exchange_fail_open: bool = True
-    append_macro_scout_audit_parent_count: int = 0
-    append_macro_scout_audit_parent_fraction: float = 0.0
-    append_macro_scout_parent_cost_alpha: float = 1.0
     append_min_time: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
@@ -233,8 +218,6 @@ class SupportPatchControllerConfig:
             "max_append_batch_size",
             "append_rung_set_cap",
             "append_prefilter_size",
-            "append_macro_scout_parent_cap",
-            "append_macro_scout_audit_parent_count",
             "max_prune_batch_size",
             "prune_rung_set_cap",
             "prune_prefilter_size",
@@ -258,10 +241,6 @@ class SupportPatchControllerConfig:
             "append_gain_threshold",
             "append_batch_score_threshold",
             "append_schur_max_condition_number",
-            "append_macro_scout_score_min",
-            "append_macro_scout_expand_if_residual_high",
-            "append_macro_scout_audit_parent_fraction",
-            "append_macro_scout_parent_cost_alpha",
             "append_min_time",
             "residual_ratio_threshold",
             "prune_loss_threshold",
@@ -298,10 +277,7 @@ class SupportPatchControllerConfig:
             value = float(getattr(self, name))
             if not np.isfinite(value) or value < 0.0:
                 raise ValueError(f"{name} must be finite and non-negative.")
-        validate_append_macro_scout_score_mode(self.append_macro_scout_score_mode)
         normalize_append_occurrence_policy(self.append_occurrence_policy)
-        if float(self.append_macro_scout_audit_parent_fraction) > 1.0:
-            raise ValueError("append_macro_scout_audit_parent_fraction must be <= 1.")
         if float(self.prune_atom_history_fraction) > 1.0:
             raise ValueError("prune_atom_history_fraction must be <= 1.")
         if bool(self.prune_patch_smoothness_enabled):
@@ -351,27 +327,6 @@ class SupportPatchControllerConfig:
             "append_batch_score_threshold": float(self.append_batch_score_threshold),
             "append_schur_max_condition_number": float(
                 self.append_schur_max_condition_number
-            ),
-            "append_macro_scout_enabled": bool(self.append_macro_scout_enabled),
-            "append_macro_scout_policy": APPEND_MACRO_SCOUT_POLICY_V2,
-            "append_macro_scout_score_mode": str(self.append_macro_scout_score_mode),
-            "append_macro_scout_parent_cap": int(self.append_macro_scout_parent_cap),
-            "append_macro_scout_score_min": float(self.append_macro_scout_score_min),
-            "append_macro_scout_fail_open": bool(self.append_macro_scout_fail_open),
-            "append_macro_scout_expand_if_residual_high": float(
-                self.append_macro_scout_expand_if_residual_high
-            ),
-            "append_macro_scout_exchange_fail_open": bool(
-                self.append_macro_scout_exchange_fail_open
-            ),
-            "append_macro_scout_audit_parent_count": int(
-                self.append_macro_scout_audit_parent_count
-            ),
-            "append_macro_scout_audit_parent_fraction": float(
-                self.append_macro_scout_audit_parent_fraction
-            ),
-            "append_macro_scout_parent_cost_alpha": float(
-                self.append_macro_scout_parent_cost_alpha
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
@@ -2530,10 +2485,8 @@ def _json_safe(value: Any) -> Any:
 
 __all__ = [
     "ADAPTIVE_TRAJECTORY_SCHEMA_V1",
-    "APPEND_MACRO_SCOUT_POLICY_V2",
     "APPEND_MACRO_SCOUT_SCORE_MODE_FULL_CHILD_BLOCK_DIAGNOSTIC",
     "APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_LINEAR_RESIDUAL_V1",
-    "APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_TANGENT_SCHUR_GAIN",
     "APPEND_MACRO_SCOUT_SCORE_MODES",
     "APPEND_BATCH_SELECTION_POLICY_V1",
     "APPEND_LADDER_PREFILTER_POLICY_V1",
