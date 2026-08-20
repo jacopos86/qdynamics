@@ -205,3 +205,49 @@ def test_avqds_respects_append_budget() -> None:
     assert len(decision.appended_atom_ids) <= 2
     assert decision.state is not None
     assert decision.state.runtime_parameter_count == 2 + len(decision.appended_atom_ids)
+
+
+def test_comparator_and_exchange_share_one_capped_pool() -> None:
+    """Both policies must rank the same candidates, in the same order.
+
+    A capped pool selected differently per policy turns a rule comparison into
+    a pool comparison. This regressed once: the comparator truncated its pool
+    alphabetically while the exchange route truncated in frozen order, so the
+    two arms of a published table saw different operators.
+    """
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+        build_candidate_pool,
+        build_selector_inputs,
+    )
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        _active_prune_atoms,
+        _PruneControllerRuntimeState,
+    )
+
+    state = _state()
+    evaluation = evaluate_mclachlan_geometry(
+        state=state, hamiltonian=HAM, theta_runtime=state.theta_runtime,
+        time=0.0, include_tangent_matrix=True,
+    )
+    config = _config(max_structural_pool_size=1)
+
+    pool_atoms, _pauli, telemetry = build_candidate_pool(
+        state, support_config=config, insertions_enabled=True
+    )
+    selector_inputs = build_selector_inputs(
+        state=state, evaluation=evaluation, support_config=config,
+        runtime_state=_PruneControllerRuntimeState(),
+        theta_runtime=state.theta_runtime, time_index=0,
+        active_prune_atoms=_active_prune_atoms,
+    )
+
+    shared_ids = [str(a.atom_id) for a in pool_atoms]
+    selector_ids = list(selector_inputs["atoms_by_id"])
+    assert shared_ids == selector_ids, "selector must use the shared pool order"
+    assert telemetry["candidate_pool_order"] == "frozen_pool_order"
+    # The cap keeps a prefix of the frozen order, never a sorted selection.
+    full_atoms, _p2, _t2 = build_candidate_pool(
+        state, support_config=_config(max_structural_pool_size=None),
+        insertions_enabled=True,
+    )
+    assert shared_ids == [str(a.atom_id) for a in full_atoms][: len(shared_ids)]

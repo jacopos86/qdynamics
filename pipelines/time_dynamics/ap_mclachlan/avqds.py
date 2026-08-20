@@ -124,7 +124,10 @@ def select_avqds_appends(
             break
         best = None  # (l2_candidate, atom_id, state, theta, evaluation)
         cut = int(current_state.runtime_parameter_count)
-        for atom_id in sorted(atoms_by_id):
+        # Iterate in the pool's frozen order, not sorted order: ties then break
+        # the same way they do for the exchange route, so a comparison between
+        # the two reflects their rules rather than their candidate ordering.
+        for atom_id in atoms_by_id:
             atom = atoms_by_id[atom_id]
             label = occurrence_label(atom, cut, len(appended) + round_index)
             try:

@@ -87,6 +87,73 @@ def _paper_i_proxy_denominator(
     return max(1.0, float(telemetry.hardware_cost_denominator))
 
 
+def build_candidate_pool(
+    state: APMcLachlanState,
+    *,
+    support_config: Any,
+    insertions_enabled: bool = True,
+) -> tuple[tuple[Any, ...], dict[str, str], dict[str, Any]]:
+    """The candidate insertion pool, identically for every structural policy.
+
+    Every policy that ranks insertions must choose from the same set, or a
+    comparison between policies measures the pools instead of the rules.  This
+    is the single place that decides pool membership and order: occurrence
+    policy, single-Pauli-word identity deduplication (two candidates with the
+    same word generate the same one-parameter family, since the coefficient
+    only rescales theta), and the configuration-level cap.
+
+    The cap keeps the pool's frozen order rather than sorting, because any
+    reordering here silently changes which operators a capped policy can see.
+
+    Returns the ordered atoms, their Pauli words, and pool telemetry.
+    """
+
+    if insertions_enabled:
+        raw_atoms = candidate_append_atoms(
+            state,
+            allow_incomplete_candidate_pool=bool(
+                support_config.allow_incomplete_candidate_pool
+            ),
+            occurrence_policy=str(support_config.append_occurrence_policy),
+        )
+    else:
+        # Prune-only mode: insertions need new measurements and the
+        # structural-repair predicate is inactive, so the pool is empty.
+        raw_atoms = ()
+
+    atoms: list[Any] = []
+    pauli_by_atom: dict[str, str] = {}
+    seen_words: set[str] = set()
+    for atom in raw_atoms:
+        specs = iter_runtime_rotation_terms(
+            getattr(atom.term, "polynomial"),
+            ignore_identity=bool(state.executor.ignore_identity),
+            coefficient_tolerance=float(state.executor.coefficient_tolerance),
+            sort_terms=bool(state.executor.sort_terms),
+        )
+        word = str(specs[0].pauli_exyz) if len(specs) == 1 else None
+        if word is not None:
+            if word in seen_words:
+                continue
+            seen_words.add(word)
+            pauli_by_atom[str(atom.atom_id)] = word
+        atoms.append(atom)
+
+    pool_cap = getattr(support_config, "max_structural_pool_size", None)
+    if pool_cap is not None:
+        atoms = atoms[: max(0, int(pool_cap))]
+        kept = {str(a.atom_id) for a in atoms}
+        pauli_by_atom = {k: v for k, v in pauli_by_atom.items() if k in kept}
+
+    telemetry = {
+        "candidate_pool_raw": int(len(raw_atoms)),
+        "candidate_pool_deduplicated": int(len(atoms)),
+        "candidate_pool_order": "frozen_pool_order",
+        "insertions_enabled": bool(insertions_enabled),
+    }
+    return tuple(atoms), pauli_by_atom, telemetry
+
+
 def build_selector_inputs(
     *,
     state: APMcLachlanState,
@@ -105,52 +172,11 @@ def build_selector_inputs(
     policy, drive-aligned protection, cooldown, and surviving-support gates.
     """
 
-    if insertions_enabled:
-        raw_atoms = candidate_append_atoms(
-            state,
-            allow_incomplete_candidate_pool=bool(
-                support_config.allow_incomplete_candidate_pool
-            ),
-            occurrence_policy=str(support_config.append_occurrence_policy),
-        )
-    else:
-        # Prune-only mode: insertion candidates need new quantum measurements
-        # and the structural-repair predicate is inactive, so the insertion
-        # pool is empty — the enumeration reduces to pure deletion rungs on
-        # the already-paid frozen-ray geometry.
-        raw_atoms = ()
-    # Identity-level deduplication: two candidates with the same single Pauli
-    # child generate the same one-parameter family exp(-i theta c P) (the
-    # coefficient rescales theta), so they are the same insertion operator.
-    # Keep the first occurrence in frozen pool order.  This is not a score
-    # prefilter: no geometry or score is consulted, only operator identity.
-    atoms = []
-    seen_words: set[str] = set()
-    for atom in raw_atoms:
-        specs = iter_runtime_rotation_terms(
-            getattr(atom.term, "polynomial"),
-            ignore_identity=bool(state.executor.ignore_identity),
-            coefficient_tolerance=float(state.executor.coefficient_tolerance),
-            sort_terms=bool(state.executor.sort_terms),
-        )
-        word = str(specs[0].pauli_exyz) if len(specs) == 1 else None
-        if word is not None and word in seen_words:
-            continue
-        if word is not None:
-            seen_words.add(word)
-        atoms.append(atom)
-    atoms = tuple(atoms)
-    # Config-level pool bound (the specification permits bounding the pool in
-    # the run configuration, never with score prefilters): truncate the
-    # deduplicated pool in frozen order.
-    pool_cap = getattr(support_config, "max_structural_pool_size", None)
-    if pool_cap is not None:
-        atoms = atoms[: max(0, int(pool_cap))]
-    pool_dedup_telemetry = {
-        "candidate_pool_raw": int(len(raw_atoms)),
-        "candidate_pool_deduplicated": int(len(atoms)),
-        "insertions_enabled": bool(insertions_enabled),
-    }
+    atoms, pauli_by_atom, pool_dedup_telemetry = build_candidate_pool(
+        state,
+        support_config=support_config,
+        insertions_enabled=bool(insertions_enabled),
+    )
     atoms_by_id = {str(atom.atom_id): atom for atom in atoms}
     ordered_atom_ids = tuple(str(atom.atom_id) for atom in atoms)
 
@@ -241,17 +267,6 @@ def build_selector_inputs(
         return _paper_i_proxy_denominator(
             estimate_prune_atom_set_cost(selected), settings=cost_settings
         )
-
-    pauli_by_atom: dict[str, str] = {}
-    for atom_id in ordered_atom_ids:
-        specs = iter_runtime_rotation_terms(
-            getattr(atoms_by_id[atom_id].term, "polynomial"),
-            ignore_identity=bool(state.executor.ignore_identity),
-            coefficient_tolerance=float(state.executor.coefficient_tolerance),
-            sort_terms=bool(state.executor.sort_terms),
-        )
-        if len(specs) == 1:
-            pauli_by_atom[atom_id] = str(specs[0].pauli_exyz)
 
     def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
         # Stable child form ("::r0::<pauli>" suffix) so the rebuilt layout
@@ -475,6 +490,7 @@ def select_deletion_conditioned_patch(
 
 
 __all__ = [
+    "build_candidate_pool",
     "build_selector_inputs",
     "select_deletion_conditioned_patch",
 ]

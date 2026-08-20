@@ -2143,40 +2143,17 @@ def _avqds_decision_at_checkpoint(
         AVQDS_POLICY_V1,
         select_avqds_appends,
     )
-    from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
-        candidate_append_atoms,
+    from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
+        build_candidate_pool,
     )
-    from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
 
-    raw_atoms = candidate_append_atoms(
-        state,
-        allow_incomplete_candidate_pool=bool(
-            support_config.allow_incomplete_candidate_pool
-        ),
-        occurrence_policy=str(support_config.append_occurrence_policy),
+    # The comparator must choose from the same pool as this route, in the same
+    # order, or the comparison measures the pools rather than the decision
+    # rules.  One builder owns membership, dedup, and the cap for both.
+    pool_atoms, pauli_by_atom, pool_telemetry = build_candidate_pool(
+        state, support_config=support_config, insertions_enabled=True
     )
-    atoms: dict[str, Any] = {}
-    pauli_by_atom: dict[str, str] = {}
-    seen_words: set[str] = set()
-    for atom in raw_atoms:
-        specs = iter_runtime_rotation_terms(
-            getattr(atom.term, "polynomial"),
-            ignore_identity=bool(state.executor.ignore_identity),
-            coefficient_tolerance=float(state.executor.coefficient_tolerance),
-            sort_terms=bool(state.executor.sort_terms),
-        )
-        if len(specs) != 1:
-            continue
-        word = str(specs[0].pauli_exyz)
-        if word in seen_words:
-            continue
-        seen_words.add(word)
-        atoms[str(atom.atom_id)] = atom
-        pauli_by_atom[str(atom.atom_id)] = word
-    pool_cap = getattr(support_config, "max_structural_pool_size", None)
-    if pool_cap is not None:
-        keep = sorted(atoms)[: max(0, int(pool_cap))]
-        atoms = {k: atoms[k] for k in keep}
+    atoms = {str(atom.atom_id): atom for atom in pool_atoms}
 
     def occurrence_label(atom: Any, cut: int, ordinal: int) -> str:
         return (
