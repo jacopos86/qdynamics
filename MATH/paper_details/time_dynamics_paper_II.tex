@@ -495,14 +495,15 @@ L_k^2(J)=\|\bar b_k\|_2^2-Q_k(J)
 as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator whose zero-angle addition maximally reduces $L_k^2$, at the end of the circuit, and never deletes.  We implement that decision rule on the same checkpoint geometry, regularized inverse, solve repair, integrator, seed, drive, and time grid used by the exchange route, so the comparison isolates the structural rule rather than the numerical realization.  Two structural differences from Eq.~(\ref{eq:append_score}) remain by construction: the comparator ranks by drift reduction alone rather than drift reduction per compiled cost, and it does not position insertions at commutation-reduced cuts.
 
 \begin{table}[t]
-\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$, static-ansatz energy error $7.0\times10^{-5}$), with all methods sharing the seed, drive, reporting grid, candidate pool, inverse policy, solve repair, and fourth-order integration, and all errors taken against the exact time-ordered trajectory of the same truncated Hamiltonian.  \tentative{Preliminary short-horizon evidence ($t\le1$); to be regenerated at production horizon.}}
+\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$, static-ansatz energy error $7.0\times10^{-5}$), with all policies sharing the seed, drive, reporting grid, candidate pool (identical membership and order, capped at eight words), inverse policy, solve repair, and fourth-order integration; errors are taken against the exact time-ordered trajectory of the same truncated Hamiltonian.  At this pool cap the comparator's McLachlan-distance cut is not reachable at most checkpoints, so it appends to its per-checkpoint budget and the two comparator rows differ by that budget rather than by their thresholds; the comparison is therefore at matched pool and stated budget, not at matched threshold satisfaction.  \tentative{Preliminary short-horizon evidence ($t\le1$); to be regenerated at production horizon and at a pool cap that admits threshold satisfaction.}}
 \label{tab:comparator_hh_snake}
 \begin{ruledtabular}
 \begin{tabular}{lccc}
 Policy & $\overline{|\Delta E|}$ & $|\Delta E|_{t=T}$ & $N_{\rm param}^{\rm final}$\\
 \colrule
 append-only (ablation) & \tentative{$1.7\times10^{-3}$} & \tentative{$3.8\times10^{-3}$} & \tentative{46}\\
-adaptive append \cite{Yao2021} & \tentative{$1.8\times10^{-3}$} & \tentative{$8.5\times10^{-3}$} & \tentative{68}\\
+adaptive append, budget 2 \cite{Yao2021} & \tentative{$1.0\times10^{-3}$} & \tentative{$2.6\times10^{-3}$} & \tentative{76}\\
+adaptive append, budget 8 \cite{Yao2021} & \tentative{$8.5\times10^{-4}$} & \tentative{$1.8\times10^{-3}$} & \tentative{148}\\
 exchange (this work) & \tentative{$3.5\times10^{-3}$} & \tentative{$6.3\times10^{-3}$} & \tentative{24}\\
 \end{tabular}
 \end{ruledtabular}
@@ -512,12 +513,12 @@ exchange (this work) & \tentative{$3.5\times10^{-3}$} & \tentative{$6.3\times10^
 \begin{center}
 \IfFileExists{figures/paper_ii_comparator_params_hh_snake.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_comparator_params_hh_snake.pdf}}{}
 \end{center}
-\captionof{figure}{Active support size under the three structural policies of Table~\ref{tab:comparator_hh_snake}.  The adaptive-append comparator grows monotonically because its rule contains no removal mechanism; the exchange policy reaches a comparable accuracy at roughly one third of that support by removing coordinates whose deletion loss is certified negligible.  \tentative{Preliminary short-horizon diagnostic.}}
+\captionof{figure}{Active support size under the three structural policies of Table~\ref{tab:comparator_hh_snake}.  The adaptive-append comparator grows monotonically because its rule contains no removal mechanism, while the exchange policy contracts by removing coordinates whose deletion loss is certified negligible; the two bound an accuracy-versus-support trade rather than one dominating the other.  \tentative{Preliminary short-horizon diagnostic.}}
 \label{fig:comparator_params}
 \end{minipage}
 \par\addvspace{1.0ex}
 
-At this horizon the comparator's threshold is not the binding constraint on its growth: below a cut of $3\times10^{-4}$ it exhausts its per-checkpoint append budget at every checkpoint, so the reported configuration is its slowest-growing binding setting.  The exchange policy reaches its accuracy with $24$ coordinates against $68$, at a comparable count of measured candidate directions, while the append-only ablation of our own route sits between them.  Two qualifications bound this evidence: a single seed and a short horizon, and a comparator threshold that never enters its own asymptotic regime here.  Both are removed by the production-horizon batch.
+The comparison is an accuracy-versus-support trade, not a dominance result.  Adaptive append is the most accurate policy here, reaching $1.0\times10^{-3}$ mean energy error at $76$ coordinates and $8.5\times10^{-4}$ at $148$; the exchange policy is the smallest, holding $3.5\times10^{-3}$ on $24$ coordinates, a factor of three to six fewer.  The append-only ablation of our own route sits between them on both axes.  Read together, growth buys accuracy at a roughly linear cost in support on this seed, and removal buys support at a proportionate cost in accuracy; which side is preferable depends on whether circuit size or trajectory error is the binding constraint.  Three qualifications bound the evidence: one seed, a short horizon, and a comparator whose threshold the capped pool cannot satisfy, so its growth is set by budget rather than by its own stopping rule.
 
 \subsection{Factorial interactions}
 
