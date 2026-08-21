@@ -97,6 +97,18 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
+## Run locks
+
+Every `run.json` carries `run_lock` (`pipelines/time_dynamics/run_lock.py`):
+seed path and sha256, family, phonon cutoff, time grid, drive profile,
+integrator, inverse policy, repair config, structural policy, guards, and the
+code revision. `physics_fingerprint` hashes only the physics a comparison must
+hold fixed — policy and code revision are deliberately excluded, since arms
+*should* differ in policy. Call `assert_comparable(locks)` before aggregating
+arms into any table or figure; it refuses runs whose physics differs. This
+exists because an arm once silently ran another arm's configuration and nothing
+in the artifacts flagged it.
+
 ## Campaign specification
 
 `pipelines/time_dynamics/campaign.py` declares a run matrix as the product of

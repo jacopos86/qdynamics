@@ -54,6 +54,7 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
     reference_energy_summary,
     reference_energy_trajectory_from_payload,
 )
+from pipelines.time_dynamics.run_lock import build_run_lock
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
     AP_SUPPORTED_PARAMETERIZATION_MODES,
@@ -233,8 +234,61 @@ def run_append_ap_mclachlan_from_runtime_input(
     summary["fixed_vqe_conditioning_stress"] = _fixed_vqe_conditioning_stress_provenance(
         runtime_input
     )
+    run_lock = build_run_lock(
+        seed_artifact_json=str(
+            dict(getattr(runtime_input, "provenance", {}) or {}).get("artifact_json")
+            or ""
+        ) or None,
+        family_key=getattr(
+            getattr(runtime_input, "resolved_problem", None), "family_key", None
+        ),
+        n_ph_max=getattr(
+            getattr(getattr(runtime_input, "resolved_problem", None), "request", None),
+            "n_ph_max",
+            None,
+        ),
+        times=list(times),
+        drive_profile=(
+            (hamiltonian.to_json_dict().get("drive_profile"))
+            if bool(enable_drive)
+            else None
+        ),
+        integrator_method=str(integrator_method),
+        inverse_policy={
+            "pinv_rcond": float(pinv_rcond),
+            "ridge_lambda": float(ridge_lambda),
+            "solve_damping": float(solve_damping),
+        },
+        solve_repair=(
+            solve_repair_config.to_json_dict()
+            if hasattr(solve_repair_config, "to_json_dict")
+            else None
+        ),
+        structural_policy=str(
+            getattr(support_patch_config, "dynamics_policy", "exchange")
+            if support_patch_config is not None
+            else "exchange"
+        ),
+        guards={
+            key: getattr(support_patch_config, key, None)
+            for key in (
+                "max_joint_patch_evaluations",
+                "max_certification_attempts_per_level",
+                "max_certification_attempts_per_deletion_branch",
+                "max_structural_pool_size",
+                "max_insertion_batch_size",
+                "residual_ratio_threshold",
+            )
+        } if support_patch_config is not None else {},
+        exact_reference_json=(
+            str(reference_energy_trajectory)
+            if isinstance(reference_energy_trajectory, (str, Path))
+            else None
+        ),
+    )
     return {
         "schema": RUNNER_SCHEMA_V1,
+        "run_lock": run_lock,
         "initial_state": state.to_json_dict(),
         "final_state": trajectory.final_state.to_json_dict(),
         "normalized_candidate_pool": normalized_pool_payload,
