@@ -41,6 +41,52 @@ manifest records the supersession. Selecting the better of two production
 configurations after seeing both is the failure this rule prevents, and it is
 invisible in the final tables unless we refuse it here.
 
+## Framing decision (2026-08-20)
+
+**The contribution is prune and exchange.** Online removal of support during
+variational dynamics, with certification that removal is safe, is the claim;
+everything else — positioned insertion, measurement gating, the numerical
+repair lane, seed construction — is supporting machinery that makes the claim
+testable. Seed construction in particular is settled work consumed from the
+static lane, not a contribution here.
+
+**The success criterion is reduced circuit cost at matched or better
+accuracy.** That single sentence determines the run matrix: every production
+cell exists to place a policy on the cost--accuracy plane against a comparator
+that shares its physics.
+
+### What the current evidence does and does not support
+
+On a **redundant seed** (620 coordinates, driven, matched numerics) exchange
+achieved both: mean energy error $1.31\times10^{-3}$ against append-only's
+$1.54\times10^{-3}$, at 619 coordinates against 631. Better accuracy, smaller
+circuit — the claim as stated.
+
+On a **compact seed** (28 coordinates) it did not: exchange held
+$3.5\times10^{-3}$ on 24 coordinates while the adaptive-append comparator
+reached $1.0\times10^{-3}$ on 76. Cheaper, but less accurate — a trade, not the
+claim.
+
+The honest reading is that the claim holds where support carries redundancy and
+fails where it does not, which is exactly what a removal mechanism should do.
+That is a scope statement, not a caveat to bury: **the paper claims cost
+reduction at matched-or-better accuracy for ansätze that carry redundant
+support**, and reports the compact-seed trade as the boundary of that claim.
+
+### What this demands of the run matrix
+
+1. **Seeds must carry realistic redundancy.** A referee will ask whether
+   redundancy was manufactured to be removed. Answer it with seeds from the
+   static lane's own ledger at depth, where redundancy accumulates naturally,
+   rather than only the deliberately bloated conditioning-stress seed. If a
+   stress seed appears, it is labeled as a stress test, not as the result.
+2. **Cost must be reported in compiled hardware terms**, not only in
+   coordinate count, since the claim is about circuit cost.
+3. **Accuracy must be matched-or-better against a comparator sharing physics**,
+   verified by the run-lock fingerprint rather than asserted.
+4. **The boundary must be mapped, not avoided**: include at least one compact
+   seed so the trade is visible and quantified.
+
 ## P0.5 — Framing: what the paper claims to contribute
 
 `MATH/paper_facing/paper_II_dynamics/novelty_and_prior_art_audit_20260718.md`
@@ -69,9 +115,13 @@ Conversely the route has since acquired elements the audit never scoped:
   idealized explained drift;
 - **bounded trust-region refit** as what makes deletions certifiable at all.
 
-So the framing question is live, and it is narrower than a general survey: what
-is prior art for *positioned* insertion and for *measurement-economic* gating of
-structural maintenance in variational dynamics? A refreshed literature pass
+Under the framing decision above, the live literature question narrows further:
+what is prior art for **online support removal during variational real-time
+dynamics**, and for certifying that a removal is safe mid-trajectory? Pruned-
+ADAPT-VQE is the nearest quantum precedent but prunes after ground-state
+optimization, not online. Positioned insertion and measurement-economic gating
+matter as supporting mechanisms and should be checked, but they are not the
+claim. A refreshed literature pass
 scoped to those two, plus a check that the retired elements are not still
 claimed anywhere in the manuscript, is the useful next step. It is a pure
 literature question needing no repo access, which makes it a good external
