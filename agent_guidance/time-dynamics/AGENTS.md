@@ -97,6 +97,20 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
+## Canonical defaults (2026-08-20)
+
+Defaults now reproduce the reported configuration, so a flagless call runs the
+paper's route rather than a diagnostic one: `rk4`, solve repair on at the
+`minimal` profile, certification refit on with trust radius 0.6, insertion gate
+`residual_ratio_threshold = 2e-2`, deletion ray tolerance `2e-3`, and all four
+computational guards populated (joint 50000, per-level 12, per-branch 2, pool
+8, insertion batch 1). Euler, loose caps, and unbounded guards remain available
+as explicit opt-outs (`--integrator euler`, `--no-solve-repair`,
+`--solve-repair-profile full`, `--no-certification-refit`).
+
+Guards being unset was not merely slow: the same three-checkpoint run took over
+ten minutes with `None` guards and 25 seconds with them populated.
+
 ## Run locks
 
 Every `run.json` carries `run_lock` (`pipelines/time_dynamics/run_lock.py`):

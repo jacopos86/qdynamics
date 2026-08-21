@@ -35,6 +35,7 @@ from pipelines.time_dynamics.ap_mclachlan.hamiltonian import (
 )
 from pipelines.time_dynamics.ap_mclachlan.integrators import (
     INTEGRATOR_EULER,
+    INTEGRATOR_RK4,
     SUPPORTED_INTEGRATORS,
 )
 from pipelines.time_dynamics.ap_mclachlan.inverse import (
@@ -1395,7 +1396,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--times", default=None, help="Comma-separated time grid. Overrides --t-final/--num-times.")
     parser.add_argument("--t-final", type=float, default=0.2)
     parser.add_argument("--num-times", type=int, default=3)
-    parser.add_argument("--integrator", choices=SUPPORTED_INTEGRATORS, default=INTEGRATOR_EULER)
+    parser.add_argument(
+        "--integrator",
+        choices=SUPPORTED_INTEGRATORS,
+        default=INTEGRATOR_RK4,
+        help="Canonical default: rk4. Euler is a fast diagnostic integrator.",
+    )
     parser.add_argument("--pinv-rcond", type=float, default=1.0e-10)
     parser.add_argument("--ridge-lambda", type=float, default=DEFAULT_MCLACHLAN_RIDGE_LAMBDA)
     parser.add_argument("--solve-damping", type=float, default=DEFAULT_MCLACHLAN_SOLVE_DAMPING)
@@ -1445,7 +1451,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-runtime-parameter-count", type=int, default=1)
     parser.add_argument("--prune-cost-alpha", type=float, default=1.0)
     parser.add_argument("--eps-loss", type=float, default=1.0e-14)
-    parser.add_argument("--prune-ray-distance-tol", type=float, default=5.0e-2)
+    parser.add_argument("--prune-ray-distance-tol", type=float, default=2.0e-3)
     parser.add_argument("--prune-history-window", type=int, default=3)
     parser.add_argument("--prune-history-lambda", type=float, default=1.0)
     parser.add_argument(
@@ -1456,14 +1462,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--certification-refit",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
             "Enable the bounded local trust-region refit of materialized "
             "finalists toward the frozen checkpoint ray before commit gates."
         ),
     )
     parser.add_argument(
-        "--certification-refit-trust-radius", type=float, default=0.1
+        "--certification-refit-trust-radius", type=float, default=0.6
     )
     parser.add_argument(
         "--certification-refit-max-iterations", type=int, default=15
@@ -1497,7 +1504,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-structural-pool-size",
         type=int,
-        default=None,
+        default=8,
         help=(
             "Truncate the deduplicated structural candidate pool to this many "
             "atoms in frozen order (None = full pool). Configuration-level "
@@ -1507,7 +1514,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-certification-attempts-per-deletion-branch",
         type=int,
-        default=None,
+        default=2,
         help=(
             "Skip further insertion variants of one deletion branch after "
             "this many certification failures at a level (None = unbounded)."
@@ -1516,7 +1523,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-certification-attempts-per-level",
         type=int,
-        default=None,
+        default=12,
         help=(
             "Bound how many finalists one selector level may materialize "
             "before the level is declared exhausted (None = unbounded)."
@@ -1527,7 +1534,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-insertion-batch-size",
         type=int,
-        default=None,
+        default=1,
         help=(
             "Upper bound on inserted child occurrences in one structural "
             "patch. None falls back to --max-append-batch-size. Zero leaves "
@@ -1556,7 +1563,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-joint-patch-evaluations",
         type=int,
-        default=None,
+        default=50000,
         help=(
             "Sole computational cap on structural enumeration: a complete "
             "deletion rung or insertion frontier is admitted only when the "
@@ -1596,7 +1603,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--solve-repair",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
             "Enable the AP-McLachlan Paper-II solve-repair candidate set. "
             "Finite diagnostic runs continue with unsupported telemetry when "

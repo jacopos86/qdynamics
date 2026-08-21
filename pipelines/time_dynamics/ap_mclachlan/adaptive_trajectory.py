@@ -99,7 +99,10 @@ SUPPORT_PATCH_CONTROLLER_PROFILE_V1 = "support_patch_exchange_family_v1"
 LEGACY_APPEND_CONTROLLER_PROFILE_V1 = "legacy_append_compat_v1"
 SUPPORT_PATCH_EXCHANGE_SELECTION_POLICY_V1 = "paper_ii_unified_support_patch_exchange_v1"
 LEGACY_APPEND_PATCH_KINDS = frozenset({PATCH_APPEND, PATCH_INSERT})
-DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD = 1.0e-3
+# Canonical insertion gate (2026-08-20): below this normalized structural
+# residual the manifold already represents the drift, so new tangent
+# measurements are not bought; deletions stay eligible at every checkpoint.
+DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD = 2.0e-2
 PRUNE_PERSISTENCE_EXACT_BATCH = "exact_batch"
 PRUNE_PERSISTENCE_ATOM_HISTORY = "atom_history"
 PRUNE_PERSISTENCE_MODES = frozenset(
@@ -144,9 +147,12 @@ class SupportPatchControllerConfig:
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
     interaction_frontier_widths: tuple[int, ...] | None = None
-    max_insertion_batch_size: int | None = None
+    max_insertion_batch_size: int | None = 1
     structural_score_floor: float = 0.0
-    max_joint_patch_evaluations: int | None = None
+    # Canonical operating values (2026-08-20): defaults reproduce the
+    # reported configuration, so a flagless call is the paper's route
+    # rather than a diagnostic one.
+    max_joint_patch_evaluations: int | None = 50000
     max_prune_batch_size: int = 0
     prune_rung_set_cap: int = 0
     prune_prefilter_size: int = 0
@@ -163,7 +169,7 @@ class SupportPatchControllerConfig:
     prune_projection_rounds: int = 2
     prune_projection_trust_radius: float = 5.0e-2
     prune_projection_regularization: float = 1.0e-8
-    prune_ray_distance_tol: float = 5.0e-2
+    prune_ray_distance_tol: float = 2.0e-3
     prune_differential_miss_tol: float = 1.0e-2
     prune_shadow_enabled: bool = True
     prune_shadow_horizon_steps: int = 2
@@ -197,12 +203,12 @@ class SupportPatchControllerConfig:
     prune_cost_alpha: float = 1.0
     prune_condition_lambda_kappa_rel: float = 0.0
     prune_condition_lambda_kappa_dam: float = 0.0
-    certification_refit_enabled: bool = False
-    certification_refit_trust_radius: float = 0.1
+    certification_refit_enabled: bool = True
+    certification_refit_trust_radius: float = 0.6
     certification_refit_max_iterations: int = 15
-    max_certification_attempts_per_level: int | None = None
-    max_structural_pool_size: int | None = None
-    max_certification_attempts_per_deletion_branch: int | None = None
+    max_certification_attempts_per_level: int | None = 12
+    max_structural_pool_size: int | None = 8
+    max_certification_attempts_per_deletion_branch: int | None = 2
     dynamics_policy: str = "exchange"
     avqds_l2_cut: float = 1.0e-3
     avqds_max_appends_per_checkpoint: int = 8
