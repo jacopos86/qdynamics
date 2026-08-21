@@ -437,8 +437,10 @@ class SupportPatchControllerConfig:
             ),
             "dynamics_policy": str(self.dynamics_policy),
             "avqds_l2_cut": float(self.avqds_l2_cut),
-            "avqds_max_appends_per_checkpoint": int(
-                self.avqds_max_appends_per_checkpoint
+            "avqds_max_appends_per_checkpoint": (
+                None
+                if self.avqds_max_appends_per_checkpoint is None
+                else int(self.avqds_max_appends_per_checkpoint)
             ),
             "max_certification_attempts_per_deletion_branch": (
                 None
