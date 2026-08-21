@@ -85,6 +85,7 @@
 }
 
 
+\usepackage{multirow}
 \begin{document}
 
 \title{Append--Prune McLachlan Dynamics}
@@ -484,6 +485,71 @@ exchange with refit & \tentative{--} & \tentative{--} & \tentative{--} & \tentat
 \end{tabular}
 \end{ruledtabular}
 \end{table}
+
+\subsection{Support-removal evidence at production horizon}
+\label{sec:production_matrix}
+
+The claim this paper makes is that online support removal reduces circuit cost
+at matched or better trajectory accuracy for ans\"atze that carry redundant
+support.  Table~\ref{tab:production_matrix} tests it on three starting points
+spanning the redundancy axis, each propagated to $t=5$ over $126$ reporting
+intervals under the same drive, integrator, inverse policy, repair
+configuration, candidate pool, and computational guards.  Each cell records a
+physics fingerprint binding its seed, cutoff, drive, and grid; the arms within
+a seed group were verified to share that fingerprint before being tabulated, so
+comparability is a property of the artifacts rather than of the launch
+procedure.
+
+\begin{table}[t]
+\caption{Structural policies at production horizon ($t=5$, $126$ intervals, driven).  Errors are against the exact time-ordered trajectory of the same truncated Hamiltonian.  ``Measured'' counts candidate directions whose tangent overlaps had to be estimated, the quantum cost of structural maintenance; deletions contribute nothing to it because they reuse geometry already acquired for propagation.  \tentative{Preliminary: this horizon is short relative to the intended regime, and continuation runs from these $t=5$ end states are planned.}}
+\label{tab:production_matrix}
+\begin{ruledtabular}
+\begin{tabular}{llcccc}
+Seed & Policy & $\overline{|\Delta E|}$ & $|\Delta E|_{t=T}$ & $N_{\rm param}$ & measured\\
+\colrule
+\multirow{3}{*}{redundant} & append-only & \tentative{$1.6\times10^{-2}$} & \tentative{$3.1\times10^{-2}$} & \tentative{668} & \tentative{384}\\
+ & adaptive append & \tentative{$1.8\times10^{-2}$} & \tentative{$4.5\times10^{-2}$} & \tentative{866} & \tentative{1000}\\
+ & exchange & \tentative{$1.9\times10^{-2}$} & \tentative{$2.4\times10^{-2}$} & \tentative{606} & \tentative{400}\\
+\colrule
+\multirow{3}{*}{fermionic} & append-only & \tentative{$1.49\times10^{-2}$} & \tentative{$2.42\times10^{-2}$} & \tentative{20} & \tentative{0}\\
+ & adaptive append & \tentative{$1.49\times10^{-2}$} & \tentative{$2.42\times10^{-2}$} & \tentative{20} & \tentative{0}\\
+ & exchange & \tentative{$1.49\times10^{-2}$} & \tentative{$2.42\times10^{-2}$} & \tentative{10} & \tentative{0}\\
+\colrule
+\multirow{3}{*}{compact} & append-only & \tentative{$5.7\times10^{-3}$} & \tentative{$9.1\times10^{-3}$} & \tentative{77} & \tentative{392}\\
+ & adaptive append & \tentative{$3.9\times10^{-2}$} & \tentative{$6.0\times10^{-2}$} & \tentative{233} & \tentative{1000}\\
+ & exchange & \tentative{$1.7\times10^{-2}$} & \tentative{$2.4\times10^{-2}$} & \tentative{13} & \tentative{792}\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+On the redundant seed --- a fixed-structure VQE ansatz of $620$ coordinates,
+whose redundancy is a property of that ansatz family rather than an arrangement
+made for this test --- the three policies reach the same mean error to within
+their spread, while exchange ends on the smallest support and with the smallest
+final error.  Growth without removal costs both: the adaptive-append comparator
+ends $43\%$ larger than exchange and with roughly twice its final error, having
+spent two and a half times as many measured candidate directions.
+
+The fermionic control isolates the removal mechanism from the phonon sector.
+There no policy adds a coordinate, so append-only and adaptive append are
+indistinguishable; exchange reaches the same trajectory to four significant
+figures on half the support, using no additional measurements at all.  This is
+the claim in its simplest form: the removed coordinates were carrying no
+trajectory information, and removing them is free.
+
+The compact seed marks the boundary.  With little redundancy to remove,
+exchange compresses hardest ($28\to13$) but pays in accuracy against
+append-only, and the trade rather than the win is what the data supports.  We
+report it because the claim is scoped to redundancy-carrying support, and the
+boundary of a claim belongs in evidence rather than in a caveat.
+
+\noindent\begin{minipage}{\columnwidth}
+\begin{center}
+\IfFileExists{figures/paper_ii_prod_params_hh_fixedvqe_nph3.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_prod_params_hh_fixedvqe_nph3.pdf}}{}
+\end{center}
+\captionof{figure}{Active support on the redundant seed under the three policies of Table~\ref{tab:production_matrix}.  The comparator grows monotonically because its rule contains no removal mechanism; exchange holds and then reduces support while tracking the same trajectory.  \tentative{Preliminary horizon.}}
+\label{fig:production_params}
+\end{minipage}
 
 \subsection{Adaptive-append comparison}
 
