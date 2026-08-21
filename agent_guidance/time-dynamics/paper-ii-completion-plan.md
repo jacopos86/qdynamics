@@ -16,10 +16,13 @@ Read with `agent_guidance/time-dynamics/AGENTS.md` (lane contract) and
         └───────────── method tweaks ───────┘   (tweaks return to P1, never skip ahead)
 ```
 
-The back edge is the dangerous one. Collecting data will suggest improvements to
-the method — that is expected and healthy. What must not happen is choosing a
-method variant *because it beat the comparator on the runs that will be
-reported*. The separation rule below exists for that.
+The back edge is the dangerous one. Collecting data will suggest changes to
+three things in particular — the **ansatz seed**, the **drive**, and the
+**AP-McLachlan parameters** (thresholds, tolerances, pool and guard settings).
+Adjusting those is expected and healthy; that surface is what calibration is
+for. What must not happen is choosing a seed, drive, or parameter set *because
+it beat the comparator on the runs that will be reported*. The separation rule
+below exists for that.
 
 ## The separation rule (read before tweaking anything)
 
@@ -37,6 +40,45 @@ changes, the affected production cells are relaunched *whole*, and the
 manifest records the supersession. Selecting the better of two production
 configurations after seeing both is the failure this rule prevents, and it is
 invisible in the final tables unless we refuse it here.
+
+## P0.5 — Framing: what the paper claims to contribute
+
+`MATH/paper_facing/paper_II_dynamics/novelty_and_prior_art_audit_20260718.md`
+already records an external prior-art audit with a per-element claim ledger and
+the closest prior-art families (AVQDS, pVQD and adaptive pVQD, AVQDS(T),
+Pruned-ADAPT-VQE, open-system adaptive VQS). Its evidence boundary still holds:
+those are research leads to verify against primary sources, and negative
+searches are bounded by literature through 2026-07-18.
+
+**That audit predates this route.** Several elements it classified as candidate
+contributions have since been removed as vestigial: Schur novelty plus
+augmented-solve confirmation, failed-append certificate reuse and secant retry,
+the cost-weighted combinatorial batch ladder, and — as an operating claim —
+bidirectional inverse repair with release hysteresis, now diagnostic-only.
+History- and conditioning-aware prune nomination survives only at zero weight.
+
+Conversely the route has since acquired elements the audit never scoped:
+
+- **positioned insertion at commutation-reduced cuts**, with block-swap
+  equivalence classes quotienting the placement choice;
+- **measurement-gated structural maintenance** — insertions enumerated only
+  above the residual threshold because they cost new tangent measurements,
+  while deletions, being row and column selections of already-acquired
+  geometry, are considered at every checkpoint;
+- **realized captured drift** as the scoring authority in place of the
+  idealized explained drift;
+- **bounded trust-region refit** as what makes deletions certifiable at all.
+
+So the framing question is live, and it is narrower than a general survey: what
+is prior art for *positioned* insertion and for *measurement-economic* gating of
+structural maintenance in variational dynamics? A refreshed literature pass
+scoped to those two, plus a check that the retired elements are not still
+claimed anywhere in the manuscript, is the useful next step. It is a pure
+literature question needing no repo access, which makes it a good external
+deep-research task rather than repo work.
+
+Exit criterion: a claim ledger matching the current route, with each surviving
+claim tied to a specific comparison the run matrix will support.
 
 ## P1 — Requirements: what data completes the paper
 
@@ -123,5 +165,8 @@ in hand, with scope limits named rather than implied.
 - **P0 complete**: route implemented and spec-faithful; simplification audited;
   comparator matched to its source (published L² convention, no append cap,
   shared pool); run locks binding physics; canonical defaults; parity locks.
+- **P0.5 in progress**: a 2026-07-18 prior-art audit exists but predates the
+  simplification; it credits retired machinery and misses positioned insertion
+  and measurement gating. Needs a scoped refresh.
 - **P1 in progress**: table above drafted; the four open decisions are unsettled.
 - **P2 not started**: campaign spec exists, CHTC generation does not.
