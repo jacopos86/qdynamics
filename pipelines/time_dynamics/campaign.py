@@ -311,9 +311,27 @@ def write_chtc_package(
     (out / "input" / "cell_ids.txt").write_text(
         "\n".join(c.cell_id for c in cells) + "\n", encoding="utf-8"
     )
+
+    # Seeds travel inside the package. An execute node receives only what
+    # transfer_input_files names, and seeds otherwise live in sibling chtc
+    # directories that a submit file has no reason to know about; copying them
+    # here also means the campaign carries the exact bytes it ran on.
+    seed_dir = out / "input" / "seeds"
+    seed_dir.mkdir(parents=True, exist_ok=True)
+    packaged: dict[str, str] = {}
+    for seed in spec.seeds:
+        src = Path(seed.artifact_json)
+        dst = seed_dir / f"{seed.seed_id}.json"
+        if src.exists():
+            dst.write_bytes(src.read_bytes())
+        packaged[seed.artifact_json] = dst.as_posix()
+
+    def _repoint(argv: list[str]) -> list[str]:
+        return [packaged.get(token, token) for token in argv]
+
     # Each cell's argv, one line per cell, so the shell need not re-derive it.
     argv_lines = [
-        c.cell_id + "\t" + " ".join(c.runner_argv()) for c in cells
+        c.cell_id + "\t" + " ".join(_repoint(c.runner_argv())) for c in cells
     ]
     (out / "input" / "cell_argv.tsv").write_text(
         "\n".join(argv_lines) + "\n", encoding="utf-8"
@@ -329,7 +347,7 @@ def write_chtc_package(
         'ARGV=$(awk -F"\\t" -v id="$CELL_ID" \'$1==id {print $2}\' '
         '"$BASE/input/cell_argv.tsv")\n'
         'if [[ -z "$ARGV" ]]; then echo "unknown cell_id $CELL_ID" >&2; exit 3; fi\n'
-        'mkdir -p logs\n'
+        'mkdir -p logs raw_outputs\n'
         'export PYTHONPATH="$PWD" PYTHONUNBUFFERED=1\n'
         "# shellcheck disable=SC2086\n"
         "python3 pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py $ARGV\n",
