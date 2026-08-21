@@ -52,15 +52,32 @@ def mclachlan_distance_squared(
     *,
     inverse_policy: McLachlanInversePolicy,
 ) -> float:
-    """``L^2 = ||b||^2 - Q`` on the evaluated support (realized solve)."""
+    """McLachlan distance in the convention of Yao et al., Eq. (8).
+
+    The source defines ``L^2 = 2 var[H] - V M^{-1} V`` at optimal parameter
+    velocity.  Here ``||b||^2`` is the energy variance and the realized
+    captured drift ``Q`` plays the role of ``V M^{-1} V`` up to the same factor
+    of two, so
+
+        ``L^2 = 2 (||b||^2 - Q)``
+
+    reproduces the published quantity and vanishes when the manifold captures
+    the drift exactly.  The factor matters: thresholds quoted for AVQDS are in
+    this convention, and dropping it silently halves every cut, which is how an
+    earlier comparison ran the comparator at half its intended threshold.
+
+    This is an absolute quantity with units of energy squared, unlike this
+    route's own normalized residual ratio; the two gates are not interchangeable
+    and a run records both.
+    """
 
     K = np.asarray(evaluation.geometry.K, dtype=float)
     f = np.asarray(evaluation.geometry.f, dtype=float).reshape(-1)
     norm_b_sq = float(evaluation.geometry.norm_b_sq)
     if f.size == 0:
-        return float(norm_b_sq)
+        return float(2.0 * norm_b_sq)
     solve = solve_theta_dot(K, f, policy=inverse_policy)
-    return float(max(0.0, norm_b_sq - float(solve.captured_drift)))
+    return float(max(0.0, 2.0 * (norm_b_sq - float(solve.captured_drift))))
 
 
 @dataclass(frozen=True)
@@ -102,9 +119,17 @@ def select_avqds_appends(
     occurrence_label: Callable[[Any, int, int], str],
     inverse_policy: McLachlanInversePolicy,
     l2_cut: float,
-    max_appends_per_checkpoint: int = 8,
+    max_appends_per_checkpoint: int | None = None,
 ) -> AVQDSDecision:
-    """Greedy AVQDS appends until the McLachlan distance falls below ``l2_cut``."""
+    """Greedy AVQDS appends until the McLachlan distance falls below ``l2_cut``.
+
+    The rule's own stopping conditions are the threshold and the absence of an
+    improving candidate; both are algorithmic.  ``max_appends_per_checkpoint``
+    is a safety valve, not part of the method, and defaults to unbounded --
+    capping it turns "append until satisfied" into "append k per checkpoint",
+    which is a different algorithm and was how an earlier comparison
+    misrepresented this comparator.
+    """
 
     if float(l2_cut) < 0.0:
         raise ValueError("l2_cut must be non-negative.")
@@ -118,7 +143,13 @@ def select_avqds_appends(
     scored = 0
     stop_reason = "below_threshold"
 
-    for round_index in range(max(0, int(max_appends_per_checkpoint))):
+    budget = (
+        None if max_appends_per_checkpoint is None
+        else max(0, int(max_appends_per_checkpoint))
+    )
+    round_index = -1
+    while budget is None or round_index + 1 < budget:
+        round_index += 1
         if l2 <= float(l2_cut):
             stop_reason = "below_threshold"
             break

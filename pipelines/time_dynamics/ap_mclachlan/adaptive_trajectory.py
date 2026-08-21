@@ -211,7 +211,9 @@ class SupportPatchControllerConfig:
     max_certification_attempts_per_deletion_branch: int | None = 2
     dynamics_policy: str = "exchange"
     avqds_l2_cut: float = 1.0e-3
-    avqds_max_appends_per_checkpoint: int = 8
+    # Safety valve only; the comparator's algorithmic stopping conditions
+    # are its threshold and the absence of an improving candidate.
+    avqds_max_appends_per_checkpoint: int | None = None
     exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
@@ -2177,8 +2179,8 @@ def _avqds_decision_at_checkpoint(
         occurrence_label=occurrence_label,
         inverse_policy=inverse_policy,
         l2_cut=float(getattr(support_config, "avqds_l2_cut", 1.0e-3)),
-        max_appends_per_checkpoint=int(
-            getattr(support_config, "avqds_max_appends_per_checkpoint", 8)
+        max_appends_per_checkpoint=getattr(
+            support_config, "avqds_max_appends_per_checkpoint", None
         ),
     )
     payload = dict(result.to_json_dict())

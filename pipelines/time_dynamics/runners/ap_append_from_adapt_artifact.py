@@ -1489,7 +1489,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--avqds-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
-        "--avqds-max-appends-per-checkpoint", type=int, default=8
+        "--avqds-max-appends-per-checkpoint",
+        type=int,
+        default=None,
+        help=(
+            "Safety valve only (default unbounded). The comparator stops on "
+            "its threshold or when no candidate improves the McLachlan "
+            "distance; capping this changes the algorithm."
+        ),
     )
     parser.add_argument(
         "--prune-target-policy",
@@ -1800,8 +1807,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             prune_appended_origin_target_policy=str(args.prune_target_policy),
             dynamics_policy=str(args.dynamics_policy),
             avqds_l2_cut=float(args.avqds_l2_cut),
-            avqds_max_appends_per_checkpoint=int(
-                args.avqds_max_appends_per_checkpoint
+            avqds_max_appends_per_checkpoint=(
+                None
+                if args.avqds_max_appends_per_checkpoint is None
+                else int(args.avqds_max_appends_per_checkpoint)
             ),
             max_certification_attempts_per_deletion_branch=(
                 None

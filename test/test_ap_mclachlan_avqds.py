@@ -139,7 +139,10 @@ def test_l2_matches_norm_b_minus_captured_drift() -> None:
         np.asarray(ev.geometry.f, dtype=float).reshape(-1),
         policy=POLICY,
     )
-    expected = float(ev.geometry.norm_b_sq) - float(solve.captured_drift)
+    # Yao et al. Eq. (8): L^2 = 2 var[H] - V M^-1 V, so the factor of two is
+    # part of the published convention and a threshold quoted for AVQDS is in
+    # these units.
+    expected = 2.0 * (float(ev.geometry.norm_b_sq) - float(solve.captured_drift))
     assert mclachlan_distance_squared(ev, inverse_policy=POLICY) == pytest.approx(
         max(0.0, expected), rel=1e-12
     )
