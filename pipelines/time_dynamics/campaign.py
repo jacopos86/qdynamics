@@ -282,4 +282,106 @@ __all__ = [
     "avqds_arm",
     "exchange_arm",
     "write_campaign_manifest",
+    "write_chtc_package",
 ]
+
+
+def write_chtc_package(
+    spec: CampaignSpec,
+    package_dir: str | Path,
+    *,
+    image_path: str = "chtc/time_dynamics_optuna/image.sif",
+    request_cpus: int = 2,
+    request_memory_gb: int = 16,
+    max_runtime_seconds: int = 86400,
+) -> dict[str, Path]:
+    """Emit a runnable CHTC package for the whole matrix.
+
+    One declaration produces the cell list, the per-cell runner invocation, the
+    apptainer wrapper, the submit file, and the manifest that records what each
+    cell means.  Cells are addressed by id, so a cluster's job N maps back to a
+    seed, drive, horizon, and policy arm without consulting anything else.
+    """
+
+    out = Path(package_dir)
+    (out / "input").mkdir(parents=True, exist_ok=True)
+    rel = out.as_posix()
+
+    cells = list(spec.cells())
+    (out / "input" / "cell_ids.txt").write_text(
+        "\n".join(c.cell_id for c in cells) + "\n", encoding="utf-8"
+    )
+    # Each cell's argv, one line per cell, so the shell need not re-derive it.
+    argv_lines = [
+        c.cell_id + "\t" + " ".join(c.runner_argv()) for c in cells
+    ]
+    (out / "input" / "cell_argv.tsv").write_text(
+        "\n".join(argv_lines) + "\n", encoding="utf-8"
+    )
+    manifest = write_campaign_manifest(spec, out / "input" / "manifest.json")
+
+    run_sh = out / "run_cell.sh"
+    run_sh.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'CELL_ID="${1:?cell_id required}"\n'
+        f'BASE={rel}\n'
+        'ARGV=$(awk -F"\\t" -v id="$CELL_ID" \'$1==id {print $2}\' '
+        '"$BASE/input/cell_argv.tsv")\n'
+        'if [[ -z "$ARGV" ]]; then echo "unknown cell_id $CELL_ID" >&2; exit 3; fi\n'
+        'mkdir -p logs\n'
+        'export PYTHONPATH="$PWD" PYTHONUNBUFFERED=1\n'
+        "# shellcheck disable=SC2086\n"
+        "python3 pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py $ARGV\n",
+        encoding="utf-8",
+    )
+    run_sh.chmod(0o755)
+
+    wrapper = out / "run_cell_apptainer.sh"
+    wrapper.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'IMAGE="${{PROJECT_IMAGE:-{image_path}}}"\n'
+        'if [[ ! -f "$IMAGE" ]]; then echo "Missing Apptainer image: $IMAGE" >&2; exit 2; fi\n'
+        'if command -v apptainer >/dev/null 2>&1; then APPTAINER_BIN="$(command -v apptainer)";\n'
+        'elif command -v singularity >/dev/null 2>&1; then APPTAINER_BIN="$(command -v singularity)";\n'
+        'else echo "No apptainer/singularity on this execute node." >&2; exit 127; fi\n'
+        'ROOT="$PWD"\n'
+        f'"$APPTAINER_BIN" exec --cleanenv --bind "$ROOT:/work" "$IMAGE" \\\n'
+        f"  bash -lc 'cd /work && bash {rel}/run_cell.sh \"$@\"' -- \"$@\"\n",
+        encoding="utf-8",
+    )
+    wrapper.chmod(0o755)
+
+    tag = spec.campaign_id.replace("_", "-")
+    submit = out / f"submit_{spec.campaign_id}.sub"
+    submit.write_text(
+        "universe = vanilla\n"
+        f"executable = {rel}/run_cell_apptainer.sh\n"
+        "arguments = $(cell_id)\n"
+        "should_transfer_files = YES\n"
+        "when_to_transfer_output = ON_EXIT\n"
+        "transfer_executable = True\n"
+        "preserve_relative_paths = True\n"
+        f"transfer_input_files = pipelines, src, {rel}, {image_path}\n"
+        "transfer_output_files = raw_outputs, logs\n"
+        f"log = logs/{tag}.$(Cluster).$(Process).log\n"
+        f"output = logs/{tag}.$(Cluster).$(Process).out\n"
+        f"error = logs/{tag}.$(Cluster).$(Process).err\n"
+        "requirements = TARGET.HasSIF\n"
+        f"request_cpus = {int(request_cpus)}\n"
+        f"request_memory = {int(request_memory_gb)}GB\n"
+        "request_disk = 40GB\n"
+        f"+MaxRuntime = {int(max_runtime_seconds)}\n"
+        f'+JobBatchName = "{tag}"\n'
+        f"queue cell_id from {rel}/input/cell_ids.txt\n",
+        encoding="utf-8",
+    )
+    return {
+        "manifest": manifest,
+        "cell_ids": out / "input" / "cell_ids.txt",
+        "cell_argv": out / "input" / "cell_argv.tsv",
+        "run_cell": run_sh,
+        "wrapper": wrapper,
+        "submit": submit,
+    }

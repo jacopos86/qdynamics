@@ -1,0 +1,19 @@
+universe = vanilla
+executable = chtc/paper_ii_production_v1/run_cell_apptainer.sh
+arguments = $(cell_id)
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/paper_ii_production_v1, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = raw_outputs, logs
+log = logs/paper-ii-production-v1.$(Cluster).$(Process).log
+output = logs/paper-ii-production-v1.$(Cluster).$(Process).out
+error = logs/paper-ii-production-v1.$(Cluster).$(Process).err
+requirements = TARGET.HasSIF
+request_cpus = 2
+request_memory = 16GB
+request_disk = 40GB
++MaxRuntime = 86400
++JobBatchName = "paper-ii-production-v1"
+queue cell_id from chtc/paper_ii_production_v1/input/cell_ids.txt
