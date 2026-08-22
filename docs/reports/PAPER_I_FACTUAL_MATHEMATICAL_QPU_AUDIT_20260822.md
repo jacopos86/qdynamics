@@ -283,9 +283,20 @@ evidence and the strongest defensible interpretation.
 
 ### A. Core mathematical model
 
-- [ ] **MATH-01 — Candidate-augmented energy surface.** Verify that expansion
-  variables, source point, gradient, Hessian, and Fubini--Study Gram matrix
-  match the executed mathematical model.
+- [x] **MATH-01 — Candidate-augmented energy surface.** The manuscript and the
+  Bundle-5 receipts use the same zero-insertion source chart: candidate
+  amplitude plus active-coordinate displacement, evaluated at candidate
+  amplitude zero and the accepted optimized source state. The archived
+  derivative convention is `compiled_ansatz_exact_parameter_derivatives_v1`;
+  the gradient sign follows the stated `exp(-i alpha A)` convention, the
+  ordered energy Hessian retains candidate, cross, and active blocks, and the
+  Gram receipt identifies the horizontal/projective Fubini--Study metric.
+  The source state, logical-coordinate registry, insertion position, and
+  Hamiltonian fingerprints are bound in each measured geometry receipt.
+  - Finding: the reader-facing energy surface is a faithful mathematical
+    representation of the executed derivative chart. The code's internal
+    descent vector is the negative of the manuscript energy gradient; this is
+    a sign convention, not a different model.
 - [x] **MATH-02 — Signed change versus predicted decrease.** Eq. 11 uses
   `Delta E(z)` for the signed quadratic change, while the phase quantities use
   the same symbol for a nonnegative predicted decrease. The formulas and signs
@@ -301,27 +312,110 @@ evidence and the strongest defensible interpretation.
   candidate score is joint predicted decrease minus the candidate-independent
   active-only predicted decrease, and the manuscript describes the intended
   marginal quantity.
-- [ ] **MATH-05 — Phase-I and Phase-II restrictions.** Verify that Phase I uses
-  candidate gradient plus self metric, Phase II adds candidate curvature, and
-  both are genuine restrictions of Phase III.
+- [x] **MATH-05 — Phase-I and Phase-II restrictions.** Phase I is faithful:
+  Bundle 5 uses the candidate gradient and candidate self metric in the
+  one-dimensional first-order Fubini--Study trust model. Phase II does acquire
+  and authenticate the signed candidate curvature `h_raw = H_alphaalpha`, but
+  its executed ranking model replaces that curvature by `max(0, h_raw)` before
+  calling the scalar trust solver. Thus positive curvature is included while
+  negative curvature is conservatively clipped to zero.
+  - Direct evidence: in Bundle-5 W--W round 1, the selected feature records
+    `g_signed = 2`, `G_BB = 1`, and `H_BB = h_raw = -0.5`. The stored Phase-II
+    gain is `0.5`, the first-order boundary gain at `rho = 0.25`; the signed
+    quadratic restriction printed in the manuscript would instead give
+    `0.515625`. The source-locked `energy_model/phases.py` has SHA-256
+    `7ecf3a74...4894`, matching the audited branch, and calls
+    `trust_region_drop(g, max(0,h_raw), G, rho)`; the archived helper itself
+    applies the same nonnegative-curvature clipping.
+  - Finding: the phases are nested in measured information and coordinate
+    scope, but the active Phase-II score is not literally the signed scalar
+    restriction of the printed Phase-III quadratic for negative curvature.
+    This can change the Phase-II shortlist.
+  - Manuscript consequence: author decision required between (a) disclosing
+    Phase II as a conservative positive-curvature restriction, or (b) rerunning
+    with the signed scalar model currently derived in the paper. This is not an
+    implementation-detail equivalence.
 - [x] **MATH-06 — Nonstationary source.** All twelve transferred Bundle-5
   contracts record `measured_residual_response_v1`, and the Phase-III receipts
   carry the measured active residual into both the full and active-only solves.
   The active manuscript retains `g_theta` and states the measured-residual
   policy. No stationarity assumption is needed for the Bundle-5 score.
-- [ ] **MATH-07 — Trust-region solve.** Verify retained-support projection,
-  generalized optimality conditions, boundary and infeasible cases, and the
-  distinction between the trust multiplier and numerical regularization.
-- [ ] **MATH-08 — Trust-radius update.** Verify the exact update equation,
-  expansion veto, unresolved-displacement behavior, branch locality, and
-  empirical range; link closure to RHO-04.
-- [ ] **MATH-09 — Accepted-refit whitening.** Verify Gram-null quotient,
-  spectral support, affine chart, fixed whitening frame, warm/zero start, and
-  the claim that no new Gram measurement is required.
-- [ ] **MATH-10 — Numerical inverses.** Enumerate every pseudoinverse,
-  eigensolve, Schur complement, ridge, damping term, and tolerance. Distinguish
-  the zero-ridge retained Phase-III inverse from auxiliary batch/prune
-  regularization.
+- [x] **MATH-07 — Trust-region solve.** Bundle 5 uses
+  `supported_metric_projected_generalized_trust_v1`. The source-locked solver
+  and the audited branch file are byte-identical (SHA-256
+  `655a7209...6bc04`). It diagonalizes the raw Gram only to remove unsupported
+  directions, preserves the retained eigenvalues as the generalized trust
+  metric, and solves the supported system without forming a Gram inverse or
+  inverse square root. Empty support, eigensolve failure, failed trust-radius
+  bracketing, nonfinite solutions, and materially negative predicted decrease
+  are infeasible cases.
+  - The code receives the negative of the physical energy gradient, so its
+    internal `(H + mu G) z = g_descent` is exactly the manuscript equation
+    `(H + mu G) z = -g_energy`. The predicted decrease is evaluated with the
+    unshifted Hessian.
+  - Numerical curvature stabilization is recorded separately as `kappa`; the
+    trust-boundary multiplier is `lambda`, and the total metric shift is
+    `mu = kappa + lambda`. Across all twelve transferred Bundle-5 histories,
+    no selected solve had `kappa > 0` with `lambda = 0`; every stabilized
+    selected solve was also boundary-active. The manuscript's one-symbol KKT
+    form is therefore faithful to the executed population, while the generic
+    numerical distinction remains to be documented under MATH-10.
+
+- [ ] **MATH-08 — Trust-radius update.** The mathematical update and its
+  safeguards are verified; only the final empirical population closure remains
+  open under RHO-04.
+  - All twelve transferred Bundle-5 histories use
+    `source_metric_inverse_sqrt_no_overlap_v1`. Every changed radius closes
+    `rho_after = rho_before * sqrt(d_pred/d_real)` to serialized numerical
+    precision. The largest normalized residual in the streamed audit was
+    `8.1e-9`.
+  - Every expansion in those archives was both boundary-active and followed a
+    positive complete-refit energy decrease. No unresolved transaction changed
+    the radius. Contractions apply without that expansion veto. Every
+    endpoint-overlap charge is zero.
+  - Trust state is cloned into each beam child and the selected child's state
+    is promoted, so the update is branch-local rather than one global scalar
+    shared across parallel branches.
+  - Finding: the manuscript's adaptive-radius equation and its safeguard prose
+    represent the executed update.
+    The empirical range sentence cannot be frozen until RHO-04 closes the live
+    strong trajectories and beam branch scope.
+
+- [x] **MATH-09 — Accepted-refit whitening.** All twelve transferred
+  Bundle-5 histories record `supported_fs_whitened_fixed_v1`. Each accepted
+  refit quotients the raw Gram-null complement, applies the relative spectral
+  support threshold, and maps the retained eigenvectors through an
+  inverse-square-root metric factor into an affine Powell chart. The mapping
+  explicitly permutes Phase-III response order into post-admission logical
+  parameter order.
+  - The inherited zero-growth state is the affine origin. A guarded Phase-III
+    joint step is mapped into the whitened chart when it is a valid downhill
+    initialization; otherwise the incumbent origin is used. Powell remains
+    authoritative for the completed refit.
+  - Every chart is fixed for one Powell invocation, discarded afterward, and
+    recomputed after the next admission. The archived receipts report no
+    metric-backend evaluation and zero incremental metric-query charge: the
+    same-state Phase-III joint Gram is reused.
+  - The executed whitening uses a `1e-9` numerical metric ridge on the retained
+    support. This does not restore discarded Gram-null directions; it changes
+    only the inverse-square-root scaling of retained positive modes. The
+    manuscript's undamped spectral formula is the high-level map, but the
+    numerical ridge belongs in the reproducibility convention audited under
+    MATH-10.
+
+- [ ] **MATH-10 — Numerical inverses.** Partial closure:
+  - Phase III: raw-Gram eigensupport projection, relative rank tolerance
+    `1e-6`, zero metric ridge, generalized eigensolve, and a curvature
+    denominator floor governed by `1e-9` plus floating-point error.
+  - Accepted refit: retained-support eigensolve, `1e-9` whitening ridge, and a
+    `pinv(..., rcond=1e-12)` only for the inverse coordinate map used to express
+    warm starts; the optimizer's forward affine map uses the retained
+    inverse-square-root factor.
+  - Trust update: no Gram inverse and no endpoint-overlap solve.
+  - TODO: enumerate the active-only Phase-III baseline, batch structured solve,
+    ablation Schur loss, deferred Gram fallback, cost zero-MAD floor, and every
+    noise finite-difference regularizer before declaring one complete numerical
+    convention.
 - [ ] **MATH-11 — Adaptive shortlist.** Verify gamma, hard caps,
   participation-ratio rounding, zero/negative-score handling, and application
   to both HH and pure-Hubbard benchmarks.
@@ -330,18 +424,38 @@ evidence and the strongest defensible interpretation.
 
 ### B. Candidate records, positions, and equivalence classes
 
-- [ ] **REC-01 — Raw, quotient, and positioned populations.** Determine whether
-  distinct notation is needed or current prose is mathematically unambiguous.
-- [ ] **REC-02 — Cut versus position terminology.** Verify every occurrence
-  against whether a circuit is being split or an insertion location selected.
-- [ ] **REC-03 — Eq. 17 commutation relation.** Verify the quantified crossed
-  block set, ordering conventions, and equivalence relation.
-- [ ] **REC-04 — Class-invariant observables.** Verify that reused response
-  primitives are invariant within each certified commutation class.
-- [ ] **REC-05 — Class representative.** Verify that cost-minimizing p-star is
-  selected within each class and changes classical compilation only.
-- [ ] **REC-06 — Insertion policies.** Verify append, plateau-triggered, and
-  always-open position domains and class recomputation timing.
+- [x] **REC-01 — Raw, quotient, and positioned populations.** The current
+  notation is mathematically sufficient without a separate raw-population
+  symbol: `P(A)` is explicitly the set of commutation-inequivalent positions,
+  so `R_k` is already the quotient-representative population. The later map
+  from a class representative to `p-star` changes only its positioned record.
+  A three-object notation would expose implementation stages more literally
+  but is not required for correctness.
+- [x] **REC-02 — Cut versus position terminology.** Active text uses
+  “position” for the selectable integer and “factors/factoring” when splitting
+  the circuit into prefix and suffix. This is the clean distinction; no
+  reader-facing `cut` object is required.
+- [x] **REC-03 — Eq. 17 commutation relation.** Verified. Positions 0 through
+  n lie before, between, and after the n active blocks; moving from j to j-prime
+  crosses exactly blocks `min(j,j-prime)+1` through `max(j,j-prime)`. The code
+  uses the same componentwise all-pairs Pauli-commutation certificate and
+  partitions contiguous positions at each noncommuting crossing.
+- [x] **REC-04 — Class-invariant observables.** The componentwise certificate
+  is sufficient for the implemented ordered Pauli-rotation blocks to commute
+  exactly. Crossing only certified blocks leaves the candidate-augmented
+  unitary, source state, and response derivatives unchanged. Reusing one set
+  of response primitives per class is therefore mathematically faithful; no
+  empirical approximate-commutation reuse was found in this route.
+- [x] **REC-05 — Class representative.** COST-CORE-04 records the evaluated
+  result: Bundle 5 takes the earliest representative, which is a valid cost tie
+  under its position-independent graph-span oracle. It did not transpile all
+  class members to establish the stronger manuscript claim.
+- [x] **REC-06 — Insertion policies.** Route contracts and accepted histories
+  verify append-only endpoint restriction, plateau-gated opening, always-open
+  commutation-class exposure, and recomputation from the current accepted
+  ansatz each round. One wording defect remains: “Always-insertion admits from
+  every class” should mean it *permits candidates* from every class; only the
+  selected record is admitted in a singleton round.
 
 ### C. Resource-cost mathematics
 
