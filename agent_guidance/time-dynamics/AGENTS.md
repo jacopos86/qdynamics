@@ -111,6 +111,22 @@ as explicit opt-outs (`--integrator euler`, `--no-solve-repair`,
 Guards being unset was not merely slow: the same three-checkpoint run took over
 ten minutes with `None` guards and 25 seconds with them populated.
 
+## Continuation
+
+Every `run.json` carries `resume_state` (`pipelines/time_dynamics/resume.py`):
+per-coordinate Pauli word, coefficient, register width, plus the final
+parameter vector and stop time. `--resume-from-run-json <prior>` rebuilds that
+support and continues; the seed artifact is still required for the problem and
+reference state. The grid origin follows automatically (`--t-initial` defaults
+to the prior stop time) so the reporting grid and drive phase continue rather
+than replay -- omitting that was a real bug, silently propagating the resumed
+state from t=0 with the wrong drive phase.
+
+Continuation is physically faithful, not decision-identical: energies agree
+with an uninterrupted run to solver tolerance (2.8e-9 measured), but controller
+history does not cross the boundary, so structural choices in the continued leg
+may differ.
+
 ## Run locks
 
 Every `run.json` carries `run_lock` (`pipelines/time_dynamics/run_lock.py`):

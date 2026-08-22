@@ -56,6 +56,10 @@ from pipelines.time_dynamics.ap_mclachlan.reference_diagnostics import (
     reference_energy_trajectory_from_payload,
 )
 from pipelines.time_dynamics.run_lock import build_run_lock
+from pipelines.time_dynamics.resume import (
+    build_resume_state,
+    runtime_input_from_resume_state,
+)
 from pipelines.time_dynamics.ap_mclachlan.state import (
     AP_PARAMETERIZATION_PER_PAULI_TERM,
     AP_SUPPORTED_PARAMETERIZATION_MODES,
@@ -287,9 +291,19 @@ def run_append_ap_mclachlan_from_runtime_input(
             else None
         ),
     )
+    try:
+        resume_state = build_resume_state(
+            trajectory.final_state,
+            theta_runtime=trajectory.points[-1].theta_runtime,
+            time=float(trajectory.points[-1].time),
+            seed_artifact_json=run_lock["physics"]["seed_artifact_json"],
+        )
+    except Exception as exc:  # never lose a completed trajectory over telemetry
+        resume_state = {"unavailable": str(exc)}
     return {
         "schema": RUNNER_SCHEMA_V1,
         "run_lock": run_lock,
+        "resume_state": resume_state,
         "initial_state": state.to_json_dict(),
         "final_state": trajectory.final_state.to_json_dict(),
         "normalized_candidate_pool": normalized_pool_payload,
@@ -310,6 +324,30 @@ def run_append_ap_mclachlan_from_runtime_input(
             "seed_reference_energy_error_scope": "post_run_reporting",
         },
     }
+
+
+def _resolve_times(args: argparse.Namespace) -> tuple[float, ...]:
+    """Reporting grid, honoring an explicit start time.
+
+    The shared parser spans [0, t_final]; a continuation must instead span
+    [t_initial, t_final] so that both the reported grid and the drive phase
+    continue the prior trajectory rather than replaying it from zero.
+    """
+
+    t_initial = getattr(args, "t_initial", None)
+    if t_initial is None or getattr(args, "times", None) not in {None, ""}:
+        return _parse_times(args)
+    num_times = int(args.num_times)
+    if num_times <= 0:
+        raise ValueError("--num-times must be positive.")
+    if float(args.t_final) < float(t_initial):
+        raise ValueError(
+            f"--t-final ({args.t_final}) precedes --t-initial ({t_initial})."
+        )
+    return tuple(
+        float(x)
+        for x in np.linspace(float(t_initial), float(args.t_final), num_times)
+    )
 
 
 def _build_progress_callback(
@@ -1364,6 +1402,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run append-first AP-McLachlan from a static scaffold artifact."
     )
+    parser.add_argument(
+        "--resume-from-run-json",
+        default=None,
+        help=(
+            "Continue a completed trajectory from its recorded final state "
+            "instead of starting from the seed. The seed artifact is still "
+            "required for the problem definition and reference state; the "
+            "support and parameters come from the prior run."
+        ),
+    )
     parser.add_argument("--artifact-json", required=True)
     parser.add_argument("--output-json", required=True)
     parser.add_argument("--loader-mode", default=None)
@@ -1395,6 +1443,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--times", default=None, help="Comma-separated time grid. Overrides --t-final/--num-times.")
     parser.add_argument("--t-final", type=float, default=0.2)
+    parser.add_argument(
+        "--t-initial",
+        type=float,
+        default=None,
+        help=(
+            "First reporting time (default 0). When continuing with "
+            "--resume-from-run-json this defaults to the time the prior run "
+            "stopped, so the grid and the drive phase pick up where it left "
+            "off instead of restarting at zero."
+        ),
+    )
     parser.add_argument("--num-times", type=int, default=3)
     parser.add_argument(
         "--integrator",
@@ -1725,6 +1784,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             fallback_family=str(args.fallback_family),
             replay_candidate_pool_mode=replay_candidate_pool_mode,
         )
+        if args.resume_from_run_json:
+            # Continue a prior trajectory: the seed still supplies the problem
+            # and reference state, while support and parameters come from where
+            # the previous run stopped.
+            with open(args.resume_from_run_json, encoding="utf-8") as handle:
+                prior = json.load(handle)
+            resume_state = prior.get("resume_state") or {}
+            if "coordinates" not in resume_state:
+                raise SystemExit(
+                    f"{args.resume_from_run_json} carries no resumable final "
+                    "state (it predates resume support, or the run failed)."
+                )
+            runtime_input = runtime_input_from_resume_state(
+                resume_state, base_runtime_input=runtime_input
+            )
+            if args.t_initial is None:
+                args.t_initial = float(resume_state["time"])
+            print(
+                f"[ap-resume] continuing from t={resume_state['time']:.4f} "
+                f"with {len(resume_state['coordinates'])} coordinates",
+                flush=True,
+            )
         drive_config = _drive_config_from_args(args, runtime_input)
         controller_config = AppendControllerConfig(
             max_append_candidates=int(args.max_append_candidates),
@@ -1873,7 +1954,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         solve_repair_config = SolveRepairConfig(**_repair_kwargs)
         payload = run_append_ap_mclachlan_from_runtime_input(
             runtime_input,
-            times=_parse_times(args),
+            times=_resolve_times(args),
             integrator_method=str(args.integrator),
             pinv_rcond=float(args.pinv_rcond),
             ridge_lambda=float(args.ridge_lambda),
