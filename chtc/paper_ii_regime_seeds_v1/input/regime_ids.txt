@@ -1,0 +1,6 @@
+weak_weak
+intermediate_weak
+strong_weak_u8
+weak_strong
+intermediate_strong
+strong_strong_u8

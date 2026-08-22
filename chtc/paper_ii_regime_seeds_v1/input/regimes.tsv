@@ -1,0 +1,7 @@
+regime_id	u	g_ep	nph	search_seed
+weak_weak	0.25	0.353553390593	3	11
+intermediate_weak	1.25	0.353553390593	3	23
+strong_weak_u8	8.00	0.353553390593	3	37
+weak_strong	0.25	0.790569415042	7	53
+intermediate_strong	1.25	0.790569415042	7	71
+strong_strong_u8	8.00	0.790569415042	7	89
