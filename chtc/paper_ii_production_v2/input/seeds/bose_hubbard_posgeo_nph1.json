@@ -1,0 +1,228 @@
+{
+  "adapt_vqe": {
+    "abs_delta_e": 9.992007221626409e-16,
+    "adapt_pool": "full_meta",
+    "ansatz_depth": 1,
+    "delta_e": 9.992007221626409e-16,
+    "energy": 0.969223593595586,
+    "energy_source": "generic_static_table_payload",
+    "exact_gs_energy": 0.969223593595585,
+    "logical_num_parameters": 1,
+    "logical_optimal_point": [
+      1.325817707196371
+    ],
+    "method": "static_pos_geo_adapt_vqe",
+    "num_parameters": 1,
+    "operators": [
+      "full_meta::density_current_0_1_left"
+    ],
+    "optimal_point": [
+      1.325817707196371
+    ],
+    "parameterization_mode": "legacy_logical_theta_runtime_expansion",
+    "pool_pauli_labels_exyz": {
+      "full_meta::current_0_1": [
+        "yx",
+        "xy"
+      ],
+      "full_meta::density_current_0_1_left": [
+        "yx",
+        "xy"
+      ],
+      "full_meta::density_hop_0_1_left": [
+        "yy",
+        "xx"
+      ],
+      "full_meta::hop_0_1": [
+        "xx",
+        "yy"
+      ],
+      "full_meta::n_0": [
+        "ee",
+        "ez"
+      ],
+      "full_meta::n_1": [
+        "ee",
+        "ze"
+      ],
+      "full_meta::n_p_0": [
+        "ey"
+      ],
+      "full_meta::n_p_1": [
+        "ye"
+      ],
+      "full_meta::n_x_0": [
+        "ex"
+      ],
+      "full_meta::n_x_1": [
+        "xe"
+      ],
+      "full_meta::nn_0_1": [
+        "ee",
+        "ze",
+        "ez",
+        "zz"
+      ],
+      "full_meta::p_0": [
+        "ey"
+      ],
+      "full_meta::p_1": [
+        "ye"
+      ],
+      "full_meta::pp_0_1": [
+        "yy"
+      ],
+      "full_meta::staggered_number_0": [
+        "ee",
+        "ez"
+      ],
+      "full_meta::staggered_number_1": [
+        "ee",
+        "ze"
+      ],
+      "full_meta::x_0": [
+        "ex"
+      ],
+      "full_meta::x_1": [
+        "xe"
+      ],
+      "full_meta::xx_0_1": [
+        "xx"
+      ],
+      "ham_term(ez)": [
+        "ez"
+      ],
+      "ham_term(xx)": [
+        "xx"
+      ],
+      "ham_term(yy)": [
+        "yy"
+      ],
+      "ham_term(ze)": [
+        "ze"
+      ]
+    },
+    "pool_qubit_supports": {
+      "full_meta::current_0_1": [
+        0,
+        1
+      ],
+      "full_meta::density_current_0_1_left": [
+        0,
+        1
+      ],
+      "full_meta::density_hop_0_1_left": [
+        0,
+        1
+      ],
+      "full_meta::hop_0_1": [
+        0,
+        1
+      ],
+      "full_meta::n_0": [
+        0
+      ],
+      "full_meta::n_1": [
+        1
+      ],
+      "full_meta::n_p_0": [
+        0
+      ],
+      "full_meta::n_p_1": [
+        1
+      ],
+      "full_meta::n_x_0": [
+        0
+      ],
+      "full_meta::n_x_1": [
+        1
+      ],
+      "full_meta::nn_0_1": [
+        0,
+        1
+      ],
+      "full_meta::p_0": [
+        0
+      ],
+      "full_meta::p_1": [
+        1
+      ],
+      "full_meta::pp_0_1": [
+        0,
+        1
+      ],
+      "full_meta::staggered_number_0": [
+        0
+      ],
+      "full_meta::staggered_number_1": [
+        1
+      ],
+      "full_meta::x_0": [
+        0
+      ],
+      "full_meta::x_1": [
+        1
+      ],
+      "full_meta::xx_0_1": [
+        0,
+        1
+      ],
+      "ham_term(ez)": [
+        0
+      ],
+      "ham_term(xx)": [
+        0,
+        1
+      ],
+      "ham_term(yy)": [
+        0,
+        1
+      ],
+      "ham_term(ze)": [
+        1
+      ]
+    },
+    "pool_type": "full_meta",
+    "selected_operator_pauli_labels_exyz": [
+      [
+        "yx",
+        "xy"
+      ]
+    ],
+    "source_generic_static_algorithm_id": "static_pos_geo_adapt_vqe",
+    "source_generic_static_case_id": "bose_hubbard_L2",
+    "static_route_identity": "Paper-II posgeo static seed export",
+    "success": true
+  },
+  "generated_utc": "2026-05-17T00:00:00+00:00",
+  "ground_state": {
+    "exact_energy": 0.969223593595585,
+    "exact_energy_source": "generic_static_table_same_cutoff"
+  },
+  "paper_ii_seed_lock": {
+    "same_cutoff": true,
+    "seed_track": "posgeo",
+    "source_artifact_json": "raw_outputs/generic_static_table/static_table__bose_hubbard__bose_hubbard_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+    "source_case_id": "bose_hubbard_L2",
+    "source_family": "bose_hubbard",
+    "static_abs_delta_e": 9.992007221626409e-16
+  },
+  "pipeline": "paper_ii_seed_track_static_seed_export_v2",
+  "settings": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.25,
+    "g_ep": 0.5,
+    "molecular_problem_json": null,
+    "n_ph_max": 1,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "bose_hubbard",
+    "t": 1.0,
+    "t_prime": 0.0,
+    "u": 4.0,
+    "v_nn": 0.0
+  },
+  "source_artifact_json": "raw_outputs/generic_static_table/static_table__bose_hubbard__bose_hubbard_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json"
+}

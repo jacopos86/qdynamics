@@ -1,0 +1,163 @@
+{
+  "adapt_vqe": {
+    "abs_delta_e": 2.223757031849516e-07,
+    "adapt_pool": "full_meta",
+    "ansatz_depth": 1,
+    "delta_e": 2.223757031849516e-07,
+    "energy": -1.2499997776242968,
+    "energy_source": "generic_static_table_payload",
+    "exact_gs_energy": -1.25,
+    "logical_num_parameters": 1,
+    "logical_optimal_point": [
+      -0.7857316118280077
+    ],
+    "method": "static_pos_geo_adapt_vqe",
+    "num_parameters": 1,
+    "operators": [
+      "ham_quad::hop_nn_quadrature(0,1)"
+    ],
+    "optimal_point": [
+      -0.7857316118280077
+    ],
+    "parameterization_mode": "legacy_logical_theta_runtime_expansion",
+    "pool_pauli_labels_exyz": {
+      "ham_block::spinless_potential_layer": [
+        "ez",
+        "ee",
+        "ze"
+      ],
+      "ham_full": [
+        "ez",
+        "ze",
+        "yy",
+        "xx",
+        "zz"
+      ],
+      "ham_quad::hop_nn(0,1)": [
+        "yy",
+        "xx"
+      ],
+      "ham_quad::hop_nn_quadrature(0,1)": [
+        "xy",
+        "yx"
+      ],
+      "ham_quad::nn_density(0,1)": [
+        "ee",
+        "ze",
+        "ez",
+        "zz"
+      ],
+      "ham_quad::site_density(0)": [
+        "ez",
+        "ee"
+      ],
+      "ham_quad::site_density(1)": [
+        "ze",
+        "ee"
+      ],
+      "ham_term(ez)": [
+        "ez"
+      ],
+      "ham_term(xx)": [
+        "xx"
+      ],
+      "ham_term(yy)": [
+        "yy"
+      ],
+      "ham_term(ze)": [
+        "ze"
+      ],
+      "ham_term(zz)": [
+        "zz"
+      ]
+    },
+    "pool_qubit_supports": {
+      "ham_block::spinless_potential_layer": [
+        0,
+        1
+      ],
+      "ham_full": [
+        0,
+        1
+      ],
+      "ham_quad::hop_nn(0,1)": [
+        0,
+        1
+      ],
+      "ham_quad::hop_nn_quadrature(0,1)": [
+        0,
+        1
+      ],
+      "ham_quad::nn_density(0,1)": [
+        0,
+        1
+      ],
+      "ham_quad::site_density(0)": [
+        0
+      ],
+      "ham_quad::site_density(1)": [
+        1
+      ],
+      "ham_term(ez)": [
+        0
+      ],
+      "ham_term(xx)": [
+        0,
+        1
+      ],
+      "ham_term(yy)": [
+        0,
+        1
+      ],
+      "ham_term(ze)": [
+        1
+      ],
+      "ham_term(zz)": [
+        0,
+        1
+      ]
+    },
+    "pool_type": "full_meta",
+    "selected_operator_pauli_labels_exyz": [
+      [
+        "xy",
+        "yx"
+      ]
+    ],
+    "source_generic_static_algorithm_id": "static_pos_geo_adapt_vqe",
+    "source_generic_static_case_id": "spinless_tv_L2",
+    "static_route_identity": "Paper-II posgeo static seed export",
+    "success": true
+  },
+  "generated_utc": "2026-05-17T00:00:00+00:00",
+  "ground_state": {
+    "exact_energy": -1.25,
+    "exact_energy_source": "generic_static_table_same_cutoff"
+  },
+  "paper_ii_seed_lock": {
+    "same_cutoff": true,
+    "seed_track": "posgeo",
+    "source_artifact_json": "raw_outputs/generic_static_table/static_table__spinless_tv__spinless_tv_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+    "source_case_id": "spinless_tv_L2",
+    "source_family": "spinless_tv",
+    "static_abs_delta_e": 2.223757031849516e-07
+  },
+  "pipeline": "paper_ii_seed_track_static_seed_export_v2",
+  "settings": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.25,
+    "g_ep": 0.5,
+    "molecular_problem_json": null,
+    "n_ph_max": 1,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "spinless_tv",
+    "t": 1.0,
+    "t_prime": 0.0,
+    "u": 4.0,
+    "v_nn": 1.0
+  },
+  "source_artifact_json": "raw_outputs/generic_static_table/static_table__spinless_tv__spinless_tv_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json"
+}

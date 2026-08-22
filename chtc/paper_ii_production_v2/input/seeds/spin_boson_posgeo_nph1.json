@@ -1,0 +1,265 @@
+{
+  "adapt_vqe": {
+    "abs_delta_e": 6.543654507140673e-13,
+    "adapt_pool": "full_meta",
+    "ansatz_depth": 1,
+    "delta_e": 6.543654507140673e-13,
+    "energy": -0.5811388300835356,
+    "energy_source": "generic_static_table_payload",
+    "exact_gs_energy": -0.58113883008419,
+    "logical_num_parameters": 1,
+    "logical_optimal_point": [
+      -0.32175146410152705
+    ],
+    "method": "static_pos_geo_adapt_vqe",
+    "num_parameters": 1,
+    "operators": [
+      "full_meta::n_p_imbalance"
+    ],
+    "optimal_point": [
+      -0.32175146410152705
+    ],
+    "parameterization_mode": "legacy_logical_theta_runtime_expansion",
+    "pool_pauli_labels_exyz": {
+      "full_meta::boson_displacement": [
+        "xee"
+      ],
+      "full_meta::boson_momentum": [
+        "yee"
+      ],
+      "full_meta::boson_number": [
+        "eee",
+        "zee"
+      ],
+      "full_meta::emitter_flip": [
+        "exx",
+        "eyy"
+      ],
+      "full_meta::emitter_imbalance": [
+        "eez",
+        "eze"
+      ],
+      "full_meta::emitter_y": [
+        "eyx",
+        "exy"
+      ],
+      "full_meta::longitudinal_p": [
+        "yez",
+        "yze"
+      ],
+      "full_meta::longitudinal_x": [
+        "xez",
+        "xze"
+      ],
+      "full_meta::n_p": [
+        "yee"
+      ],
+      "full_meta::n_p_flip": [
+        "yyy",
+        "yxx"
+      ],
+      "full_meta::n_p_imbalance": [
+        "yez",
+        "yze"
+      ],
+      "full_meta::n_x": [
+        "xee"
+      ],
+      "full_meta::n_x_flip": [
+        "xyy",
+        "xxx"
+      ],
+      "full_meta::n_x_imbalance": [
+        "xez",
+        "xze"
+      ],
+      "full_meta::number_weighted_flip": [
+        "eyy",
+        "exx",
+        "zyy",
+        "zxx"
+      ],
+      "full_meta::number_weighted_imbalance": [
+        "eez",
+        "eze",
+        "zez",
+        "zze"
+      ],
+      "full_meta::transverse_p": [
+        "yyy",
+        "yxx"
+      ],
+      "full_meta::transverse_x": [
+        "xyy",
+        "xxx"
+      ],
+      "ham_full": [
+        "eyy",
+        "exx",
+        "zee",
+        "xez",
+        "xze"
+      ],
+      "ham_term(exx)": [
+        "exx"
+      ],
+      "ham_term(eyy)": [
+        "eyy"
+      ],
+      "ham_term(xez)": [
+        "xez"
+      ],
+      "ham_term(xze)": [
+        "xze"
+      ],
+      "ham_term(zee)": [
+        "zee"
+      ]
+    },
+    "pool_qubit_supports": {
+      "full_meta::boson_displacement": [
+        2
+      ],
+      "full_meta::boson_momentum": [
+        2
+      ],
+      "full_meta::boson_number": [
+        2
+      ],
+      "full_meta::emitter_flip": [
+        0,
+        1
+      ],
+      "full_meta::emitter_imbalance": [
+        0,
+        1
+      ],
+      "full_meta::emitter_y": [
+        0,
+        1
+      ],
+      "full_meta::longitudinal_p": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::longitudinal_x": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::n_p": [
+        2
+      ],
+      "full_meta::n_p_flip": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::n_p_imbalance": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::n_x": [
+        2
+      ],
+      "full_meta::n_x_flip": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::n_x_imbalance": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::number_weighted_flip": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::number_weighted_imbalance": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::transverse_p": [
+        0,
+        1,
+        2
+      ],
+      "full_meta::transverse_x": [
+        0,
+        1,
+        2
+      ],
+      "ham_full": [
+        0,
+        1,
+        2
+      ],
+      "ham_term(exx)": [
+        0,
+        1
+      ],
+      "ham_term(eyy)": [
+        0,
+        1
+      ],
+      "ham_term(xez)": [
+        0,
+        2
+      ],
+      "ham_term(xze)": [
+        1,
+        2
+      ],
+      "ham_term(zee)": [
+        2
+      ]
+    },
+    "pool_type": "full_meta",
+    "selected_operator_pauli_labels_exyz": [
+      [
+        "yez",
+        "yze"
+      ]
+    ],
+    "source_generic_static_algorithm_id": "static_pos_geo_adapt_vqe",
+    "source_generic_static_case_id": "spin_boson_L1",
+    "static_route_identity": "Paper-II posgeo static seed export",
+    "success": true
+  },
+  "generated_utc": "2026-05-17T00:00:00+00:00",
+  "ground_state": {
+    "exact_energy": -0.58113883008419,
+    "exact_energy_source": "generic_static_table_same_cutoff"
+  },
+  "paper_ii_seed_lock": {
+    "same_cutoff": true,
+    "seed_track": "posgeo",
+    "source_artifact_json": "raw_outputs/generic_static_table/static_table__spin_boson__spin_boson_L1__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+    "source_case_id": "spin_boson_L1",
+    "source_family": "spin_boson",
+    "static_abs_delta_e": 6.543654507140673e-13
+  },
+  "pipeline": "paper_ii_seed_track_static_seed_export_v2",
+  "settings": {
+    "L": 1,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.0,
+    "g_ep": 0.5,
+    "molecular_problem_json": null,
+    "n_ph_max": 1,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "spin_boson",
+    "t": 1.0,
+    "t_prime": 0.0,
+    "u": 0.0,
+    "v_nn": 0.0
+  },
+  "source_artifact_json": "raw_outputs/generic_static_table/static_table__spin_boson__spin_boson_L1__static_pos_geo_adapt_vqe/result/generic_static_single.json"
+}

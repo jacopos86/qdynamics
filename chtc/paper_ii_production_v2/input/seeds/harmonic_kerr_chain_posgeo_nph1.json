@@ -1,0 +1,198 @@
+{
+  "adapt_vqe": {
+    "abs_delta_e": 5.739853037312059e-13,
+    "adapt_pool": "full_meta",
+    "ansatz_depth": 3,
+    "delta_e": 5.739853037312059e-13,
+    "energy": 0.28316768510892965,
+    "energy_source": "generic_static_table_payload",
+    "exact_gs_energy": 0.28316768510835566,
+    "logical_num_parameters": 3,
+    "logical_optimal_point": [
+      -1.2085089268282911,
+      0.4033112836911045,
+      -1.4722034231642673
+    ],
+    "method": "static_pos_geo_adapt_vqe",
+    "num_parameters": 3,
+    "operators": [
+      "full_meta::n_p_0",
+      "full_meta::current_0_1",
+      "full_meta::n_p_1"
+    ],
+    "optimal_point": [
+      -1.2085089268282911,
+      0.4033112836911045,
+      -1.4722034231642673
+    ],
+    "parameterization_mode": "legacy_logical_theta_runtime_expansion",
+    "pool_pauli_labels_exyz": {
+      "full_meta::current_0_1": [
+        "yx",
+        "xy"
+      ],
+      "full_meta::drive_x_0": [
+        "ex"
+      ],
+      "full_meta::drive_x_1": [
+        "xe"
+      ],
+      "full_meta::hop_0_1": [
+        "yy",
+        "xx"
+      ],
+      "full_meta::n_0": [
+        "ee",
+        "ez"
+      ],
+      "full_meta::n_1": [
+        "ee",
+        "ze"
+      ],
+      "full_meta::n_p_0": [
+        "ey"
+      ],
+      "full_meta::n_p_1": [
+        "ye"
+      ],
+      "full_meta::n_x_0": [
+        "ex"
+      ],
+      "full_meta::n_x_1": [
+        "xe"
+      ],
+      "full_meta::p_0": [
+        "ey"
+      ],
+      "full_meta::p_1": [
+        "ye"
+      ],
+      "full_meta::pp_0_1": [
+        "yy"
+      ],
+      "full_meta::x_0": [
+        "ex"
+      ],
+      "full_meta::x_1": [
+        "xe"
+      ],
+      "full_meta::xx_0_1": [
+        "xx"
+      ],
+      "ham_term(ez)": [
+        "ez"
+      ],
+      "ham_term(ze)": [
+        "ze"
+      ]
+    },
+    "pool_qubit_supports": {
+      "full_meta::current_0_1": [
+        0,
+        1
+      ],
+      "full_meta::drive_x_0": [
+        0
+      ],
+      "full_meta::drive_x_1": [
+        1
+      ],
+      "full_meta::hop_0_1": [
+        0,
+        1
+      ],
+      "full_meta::n_0": [
+        0
+      ],
+      "full_meta::n_1": [
+        1
+      ],
+      "full_meta::n_p_0": [
+        0
+      ],
+      "full_meta::n_p_1": [
+        1
+      ],
+      "full_meta::n_x_0": [
+        0
+      ],
+      "full_meta::n_x_1": [
+        1
+      ],
+      "full_meta::p_0": [
+        0
+      ],
+      "full_meta::p_1": [
+        1
+      ],
+      "full_meta::pp_0_1": [
+        0,
+        1
+      ],
+      "full_meta::x_0": [
+        0
+      ],
+      "full_meta::x_1": [
+        1
+      ],
+      "full_meta::xx_0_1": [
+        0,
+        1
+      ],
+      "ham_term(ez)": [
+        0
+      ],
+      "ham_term(ze)": [
+        1
+      ]
+    },
+    "pool_type": "full_meta",
+    "selected_operator_pauli_labels_exyz": [
+      [
+        "ey"
+      ],
+      [
+        "yx",
+        "xy"
+      ],
+      [
+        "ye"
+      ]
+    ],
+    "source_generic_static_algorithm_id": "static_pos_geo_adapt_vqe",
+    "source_generic_static_case_id": "harmonic_kerr_chain_L2",
+    "static_route_identity": "Paper-II posgeo static seed export",
+    "success": true
+  },
+  "generated_utc": "2026-05-17T00:00:00+00:00",
+  "ground_state": {
+    "exact_energy": 0.28316768510835566,
+    "exact_energy_source": "generic_static_table_same_cutoff"
+  },
+  "paper_ii_seed_lock": {
+    "same_cutoff": true,
+    "seed_track": "posgeo",
+    "source_artifact_json": "raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+    "source_case_id": "harmonic_kerr_chain_L2",
+    "source_family": "harmonic_kerr_chain",
+    "static_abs_delta_e": 5.739853037312059e-13
+  },
+  "pipeline": "paper_ii_seed_track_static_seed_export_v2",
+  "settings": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.25,
+    "g_ep": 0.5,
+    "molecular_problem_json": null,
+    "n_ph_max": 1,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "harmonic_kerr_chain",
+    "t": 1.0,
+    "t_prime": 0.0,
+    "u": 4.0,
+    "v_nn": 0.0
+  },
+  "source_artifact_json": "raw_outputs/generic_static_table/static_table__harmonic_kerr_chain__harmonic_kerr_chain_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json"
+}

@@ -1,0 +1,320 @@
+{
+  "adapt_vqe": {
+    "abs_delta_e": 1.567830310023055e-10,
+    "adapt_pool": "full_meta",
+    "ansatz_depth": 6,
+    "delta_e": 1.567830310023055e-10,
+    "energy": -1.1295780950185386,
+    "energy_source": "generic_static_table_payload",
+    "exact_gs_energy": -1.1295780951753216,
+    "logical_num_parameters": 6,
+    "logical_optimal_point": [
+      -0.14995494990736938,
+      -0.09743862246374158,
+      -0.1143250818738823,
+      -0.02380690833542786,
+      0.08388432331134096,
+      -0.0009952176791887678
+    ],
+    "method": "static_pos_geo_adapt_vqe",
+    "num_parameters": 6,
+    "operators": [
+      "coupled::dH_dR_times_p",
+      "coupled::factored::cross_pair::p",
+      "el::uccsd_dbl(ab:0,2->1,3)",
+      "coupled::factored::n_bond_pair::p",
+      "coupled::factored::n_anti_pair::p",
+      "el::uccsd_sing(beta:2->3)"
+    ],
+    "optimal_point": [
+      -0.14995494990736938,
+      -0.09743862246374158,
+      -0.1143250818738823,
+      -0.02380690833542786,
+      0.08388432331134096,
+      -0.0009952176791887678
+    ],
+    "parameterization_mode": "legacy_logical_theta_runtime_expansion",
+    "pool_pauli_labels_exyz": {
+      "boson::p": [
+        "yeeee"
+      ],
+      "coupled::dH_dR_times_p": [
+        "yeezz",
+        "yezez",
+        "yezxx",
+        "yezyy",
+        "yezze",
+        "yxxez",
+        "yyyez",
+        "yeeez",
+        "yzeez",
+        "yxxxx",
+        "yxxyy",
+        "yyyxx",
+        "yyyyy",
+        "yxxee",
+        "yxxze",
+        "yyyee",
+        "yyyze",
+        "yeexx",
+        "yzexx",
+        "yeeyy",
+        "yzeyy",
+        "yeeze",
+        "yzeze",
+        "yeeee",
+        "yzeee",
+        "yezee",
+        "yzzee"
+      ],
+      "coupled::factored::cross_pair::p": [
+        "yezze",
+        "yeeze",
+        "yezee",
+        "yeeee",
+        "yzeez",
+        "yeeez",
+        "yzeee"
+      ],
+      "coupled::factored::mix_x::p": [
+        "yyyee",
+        "yxxee",
+        "yeeyy",
+        "yeexx"
+      ],
+      "coupled::factored::n_anti_pair::p": [
+        "yzeze",
+        "yeeze",
+        "yzeee",
+        "yeeee"
+      ],
+      "coupled::factored::n_bond_pair::p": [
+        "yezez",
+        "yeeez",
+        "yezee",
+        "yeeee"
+      ],
+      "coupled::factored::pair_x::p": [
+        "yxxxx",
+        "yyxyx",
+        "yxyyx",
+        "yyyxx",
+        "yxxyy",
+        "yyxxy",
+        "yxyxy",
+        "yyyyy"
+      ],
+      "coupled::occ::anti_occ::p": [
+        "yeeee",
+        "yzeee",
+        "yeeze"
+      ],
+      "coupled::occ::bond_occ::p": [
+        "yeeee",
+        "yezee",
+        "yeeez"
+      ],
+      "coupled::occ::orbital_imbalance::p": [
+        "yeeez",
+        "yezee",
+        "yzeee",
+        "yeeze"
+      ],
+      "el::uccsd_dbl(ab:0,2->1,3)": [
+        "eyyxy",
+        "exyyy",
+        "eyxyy",
+        "exxxy",
+        "eyyyx",
+        "exyxx",
+        "eyxxx",
+        "exxyx"
+      ],
+      "el::uccsd_sing(alpha:0->1)": [
+        "eeexy",
+        "eeeyx"
+      ],
+      "el::uccsd_sing(beta:2->3)": [
+        "exyee",
+        "eyxee"
+      ]
+    },
+    "pool_qubit_supports": {
+      "boson::p": [
+        4
+      ],
+      "coupled::dH_dR_times_p": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "coupled::factored::cross_pair::p": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "coupled::factored::mix_x::p": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "coupled::factored::n_anti_pair::p": [
+        1,
+        3,
+        4
+      ],
+      "coupled::factored::n_bond_pair::p": [
+        0,
+        2,
+        4
+      ],
+      "coupled::factored::pair_x::p": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "coupled::occ::anti_occ::p": [
+        1,
+        3,
+        4
+      ],
+      "coupled::occ::bond_occ::p": [
+        0,
+        2,
+        4
+      ],
+      "coupled::occ::orbital_imbalance::p": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "el::uccsd_dbl(ab:0,2->1,3)": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "el::uccsd_sing(alpha:0->1)": [
+        0,
+        1
+      ],
+      "el::uccsd_sing(beta:2->3)": [
+        2,
+        3
+      ]
+    },
+    "pool_type": "full_meta",
+    "selected_operator_pauli_labels_exyz": [
+      [
+        "yeezz",
+        "yezez",
+        "yezxx",
+        "yezyy",
+        "yezze",
+        "yxxez",
+        "yyyez",
+        "yeeez",
+        "yzeez",
+        "yxxxx",
+        "yxxyy",
+        "yyyxx",
+        "yyyyy",
+        "yxxee",
+        "yxxze",
+        "yyyee",
+        "yyyze",
+        "yeexx",
+        "yzexx",
+        "yeeyy",
+        "yzeyy",
+        "yeeze",
+        "yzeze",
+        "yeeee",
+        "yzeee",
+        "yezee",
+        "yzzee"
+      ],
+      [
+        "yezze",
+        "yeeze",
+        "yezee",
+        "yeeee",
+        "yzeez",
+        "yeeez",
+        "yzeee"
+      ],
+      [
+        "eyyxy",
+        "exyyy",
+        "eyxyy",
+        "exxxy",
+        "eyyyx",
+        "exyxx",
+        "eyxxx",
+        "exxyx"
+      ],
+      [
+        "yezez",
+        "yeeez",
+        "yezee",
+        "yeeee"
+      ],
+      [
+        "yzeze",
+        "yeeze",
+        "yzeee",
+        "yeeee"
+      ],
+      [
+        "exyee",
+        "eyxee"
+      ]
+    ],
+    "source_generic_static_algorithm_id": "static_pos_geo_adapt_vqe",
+    "source_generic_static_case_id": "molecular_vibronic_h2_L2",
+    "static_route_identity": "Paper-II posgeo static seed export",
+    "success": true
+  },
+  "generated_utc": "2026-05-17T00:00:00+00:00",
+  "ground_state": {
+    "exact_energy": -1.1295780951753216,
+    "exact_energy_source": "generic_static_table_same_cutoff"
+  },
+  "paper_ii_seed_lock": {
+    "same_cutoff": true,
+    "seed_track": "posgeo",
+    "source_artifact_json": "raw_outputs/generic_static_table/static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json",
+    "source_case_id": "molecular_vibronic_h2_L2",
+    "source_family": "molecular_vibronic_h2",
+    "static_abs_delta_e": 1.567830310023055e-10
+  },
+  "pipeline": "paper_ii_seed_track_static_seed_export_v2",
+  "settings": {
+    "L": 2,
+    "boson_encoding": "binary",
+    "boundary": "open",
+    "dv": 0.0,
+    "g_ep": 0.5,
+    "molecular_problem_json": null,
+    "n_ph_max": 1,
+    "omega0": 1.0,
+    "ordering": "blocked",
+    "problem": "molecular_vibronic_h2",
+    "t": 1.0,
+    "t_prime": 0.0,
+    "u": 4.0,
+    "v_nn": 0.0
+  },
+  "source_artifact_json": "raw_outputs/generic_static_table/static_table__molecular_vibronic_h2__molecular_vibronic_h2_L2__static_pos_geo_adapt_vqe/result/generic_static_single.json"
+}
