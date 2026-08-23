@@ -32,7 +32,8 @@ CAMPAIGN_SCHEMA_V1 = "paper_ii_dynamics_campaign_v1"
 # cap was identified as the largest single accuracy defect in the lane (it
 # discarded ~117 of the 125 deduplicated pool words). Any campaign built from
 # the stale copy would have silently reproduced it.
-CANONICAL_NUMERICS: tuple[str, ...] = _runs.CANONICAL_NUMERICS
+SHARED_NUMERICS = _runs.SHARED_NUMERICS
+STATE_MOTION_CONTROL = _runs.STATE_MOTION_CONTROL
 PRODUCTION_STRUCTURE: tuple[str, ...] = _runs.PRODUCTION_STRUCTURE
 
 
@@ -148,7 +149,8 @@ class CampaignSpec:
     # (normalized residual ratio, absolute McLachlan distance) take different
     # flags and are not interchangeable.
     gate_id: str = _runs.MCLACHLAN_L2_GATE.gate_id
-    numerics: tuple[str, ...] = CANONICAL_NUMERICS
+    numerics_id: str = _runs.SHARED_NUMERICS.numerics_id
+    step_control_id: str = _runs.STATE_MOTION_CONTROL.control_id
     structure: tuple[str, ...] = PRODUCTION_STRUCTURE
     output_root: str = "output"
 
@@ -206,7 +208,8 @@ class CampaignCell:
             "--output-json", str(Path(self.output_dir) / "run.json"),
             "--t-final", repr(float(self.horizon.t_final)),
             "--num-times", str(int(self.horizon.num_times)),
-            *self.campaign.numerics,
+            *_runs.NUMERICS[self.campaign.numerics_id].flags,
+            *_runs.STEP_CONTROLS[self.campaign.step_control_id].flags,
             *self.campaign.structure,
             *gate_flags,
             *self.drive.flags(),
@@ -264,7 +267,7 @@ def write_campaign_manifest(spec: CampaignSpec, path: str | Path) -> Path:
 
 __all__ = [
     "CAMPAIGN_SCHEMA_V1",
-    "CANONICAL_NUMERICS",
+    "SHARED_NUMERICS",
     "PRODUCTION_STRUCTURE",
     "CampaignCell",
     "CampaignSpec",

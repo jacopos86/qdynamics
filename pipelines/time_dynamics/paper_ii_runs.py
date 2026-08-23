@@ -13,8 +13,11 @@ artifacts.
 Layout
 ------
 
-* :data:`CANONICAL_NUMERICS` -- integrator and solve-repair settings that every
-  accuracy-bearing run shares.  Never varied by an arm.
+* :class:`Numerics` -- the inner numerical method (integrator, regularization,
+  damping) shared by every arm in a comparison.
+* :class:`StepControl` -- how the step size is chosen. Both this route and
+  AVQDS control their step; they differ in the quantity they bound, so this is
+  a separate axis from the structural rule and can be isolated from it.
 * :data:`PRODUCTION_STRUCTURE` -- candidate pool and guard settings.
 * :class:`Arm` -- the structural policy under test (this is what a comparison
   is allowed to vary).
@@ -35,30 +38,106 @@ from typing import Mapping, Sequence
 RUNNER_MODULE = "pipelines.time_dynamics.runners.ap_append_from_adapt_artifact"
 RUNNER_PATH = "pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py"
 
-# Numerics that every accuracy-bearing run shares.  Measured 2026-08-18 on the
-# stress seed: Euler + loose repair caps gave 1.6e-2 energy error, rk4 alone
-# 1.1e-2, rk4 + these caps 1.3e-3.  The subdivision budget was raised from 4 to
-# 10 on 2026-08-22: at 4 a step could exhaust its budget, fail to cure a cap
-# violation, and then advance unsubdivided anyway, which took a measured HH
-# error from 3.8e-3 to 2.1e-1.
-CANONICAL_NUMERICS: tuple[str, ...] = (
-    "--integrator", "rk4",
-    "--solve-repair",
-    "--solve-repair-profile", "minimal",
-    "--solve-repair-state-motion-l2-step-max", "1.0e-2",
-    "--solve-repair-kink-eta-max", "5.0e-3",
-    "--solve-repair-max-local-subdivisions", "10",
-    "--certification-refit",
-    "--certification-refit-trust-radius", "0.6",
-    "--certification-refit-max-iterations", "15",
+@dataclass(frozen=True)
+class Numerics:
+    """Inner numerical method, shared by every arm in a comparison.
+
+    A comparison is only about structural rules if everything under them is
+    identical: the ODE integrator, the regularization and damping of the
+    McLachlan solve, and the reporting grid.  These were previously spread
+    across a shared flag tuple, a campaign module, and each comparator's own
+    flags, and the copies drifted -- an arm labelled as a published method
+    ended up running this route's solve repair with local subdivision applied
+    at 249 of 251 checkpoints.
+    """
+
+    numerics_id: str
+    integrator: str = "euler"
+    ridge_lambda: float = 1.0e-6
+    solve_damping: float = 0.0
+    pinv_rcond: float = 1.0e-10
+    note: str = ""
+
+    @property
+    def flags(self) -> tuple[str, ...]:
+        return (
+            "--integrator", str(self.integrator),
+            "--ridge-lambda", repr(float(self.ridge_lambda)),
+            "--solve-damping", repr(float(self.solve_damping)),
+            "--pinv-rcond", repr(float(self.pinv_rcond)),
+        )
+
+
+# Euler is the shared integrator: it is what AVQDS specifies, it is cheaper per
+# step, and with either step-control law below the step size rather than the
+# integrator order is what sets the error. Tikhonov xi=1e-6 matches the value
+# AVQDS states, so the regularization is not a hidden difference either.
+SHARED_NUMERICS = Numerics(
+    numerics_id="euler_ridge1e-6",
+    note="Shared inner method: Euler, Tikhonov xi=1e-6, no extra damping.",
 )
 
-# Structural settings.  The pool cap is deliberately above the deduplicated
-# pool size (125 words on the HH nph=1 seed) so it does not bind: a cap of 8
-# discarded ~117 usable words and was the single largest accuracy defect found
-# in the 2026-08-22 audit.  The conditioning gate is off because no setting of
-# it was useful -- 5e7 never binds against observed kappa ~1e8, 3e7 costs
-# accuracy, and 1e7 rejects every candidate and starves the ansatz.
+RK4_NUMERICS = Numerics(
+    numerics_id="rk4_ridge1e-6",
+    integrator="rk4",
+    note=(
+        "Higher-order integrator, retained as an ablation of the integrator "
+        "itself. Measured 2026-08-18 with loose step control: Euler 1.6e-2 "
+        "against rk4 1.3e-3, so the integrator matters when the step is not "
+        "controlled; both step-control laws below are meant to remove that."
+    ),
+)
+
+NUMERICS: Mapping[str, Numerics] = {
+    n.numerics_id: n for n in (SHARED_NUMERICS, RK4_NUMERICS)
+}
+
+
+@dataclass(frozen=True)
+class StepControl:
+    """How the step size is chosen -- the axis to isolate.
+
+    Both methods control their step; they differ in the quantity they bound.
+    AVQDS bounds parameter motion (max|d theta| <= d theta_max); this route
+    bounds state motion and subdivides. Pairing each rule with each control is
+    what separates "their rule is better" from "their step control is better".
+    """
+
+    control_id: str
+    flags: tuple[str, ...]
+    note: str = ""
+
+
+DELTA_THETA_CONTROL = StepControl(
+    control_id="delta_theta_5e-3",
+    flags=("--avqds-delta-theta-max", "5.0e-3", "--no-solve-repair"),
+    note="AVQDS control law, at the source's own value.",
+)
+
+STATE_MOTION_CONTROL = StepControl(
+    control_id="state_motion_1e-2",
+    flags=(
+        "--solve-repair",
+        "--solve-repair-profile", "minimal",
+        "--solve-repair-state-motion-l2-step-max", "1.0e-2",
+        "--solve-repair-kink-eta-max", "5.0e-3",
+        "--solve-repair-max-local-subdivisions", "10",
+    ),
+    note=(
+        "This route's control law. The subdivision budget is 10 because at 4 a "
+        "step could exhaust it, fail to cure a violation, and advance anyway, "
+        "taking a measured error from 3.8e-3 to 2.1e-1."
+    ),
+)
+
+STEP_CONTROLS: Mapping[str, StepControl] = {
+    c.control_id: c for c in (DELTA_THETA_CONTROL, STATE_MOTION_CONTROL)
+}
+
+# Structural settings shared by every arm. The pool cap sits above the 125-word
+# deduplicated pool so it does not bind: a cap of 8 discarded ~117 usable words
+# and was the largest single accuracy defect found in the 2026-08-22 audit. The
+# conditioning gate is off because no setting of it was useful.
 PRODUCTION_STRUCTURE: tuple[str, ...] = (
     "--max-structural-pool-size", "128",
     "--no-append-schur-condition-gate",
@@ -128,14 +207,9 @@ AVQDS_PUBLISHED = Arm(
     flags=(
         "--dynamics-policy", "avqds",
         "--avqds-l2-cut", "1.0e-3",
-        "--integrator", "euler",
-        "--no-solve-repair",
         "--no-certification-refit",
-        "--ridge-lambda", "1.0e-6",
-        "--avqds-delta-theta-max", "5.0e-3",
     ),
     is_comparator=True,
-    owns_numerics=True,
     note=(
         "Yao et al. with the paper's own numerics: Euler, Tikhonov xi=1e-6, "
         "and the published parameter-controlled step (delta_theta_max=5e-3). "
@@ -248,24 +322,27 @@ class RunCommand:
     extra_flags: tuple[str, ...] = ()
 
     regime_id: str = "unregistered"
+    numerics: "Numerics" = SHARED_NUMERICS
+    step_control: "StepControl" = STATE_MOTION_CONTROL
 
     @property
     def run_id(self) -> str:
         return (
             f"{self.regime_id}_{self.drive.drive_id}_{self.horizon.horizon_id}"
             f"_{self.arm.arm_id}_{self.gate.gate_id}"
+            f"_{self.numerics.numerics_id}_{self.step_control.control_id}"
         )
 
     def argv(self) -> tuple[str, ...]:
         # AVQDS carries its own append condition; layering this route's
         # insertion gate on top would misrepresent the comparator.
         gate_flags = () if self.arm.is_comparator else self.gate.flags
-        numerics = () if self.arm.owns_numerics else CANONICAL_NUMERICS
         return (
             "--artifact-json", str(self.seed_path),
             *self.horizon.flags,
             *self.drive.flags,
-            *numerics,
+            *self.numerics.flags,
+            *self.step_control.flags,
             *PRODUCTION_STRUCTURE,
             *gate_flags,
             *self.arm.flags,
@@ -288,6 +365,8 @@ def build_run(
     seed_path: str | None = None,
     regime: str | None = None,
     gate: str = MCLACHLAN_L2_GATE.gate_id,
+    numerics: str = SHARED_NUMERICS.numerics_id,
+    step_control: str = STATE_MOTION_CONTROL.control_id,
     extra_flags: Sequence[str] = (),
     require_seed: bool = False,
 ) -> RunCommand:
@@ -310,6 +389,12 @@ def build_run(
         raise KeyError(f"unknown drive {drive!r}; known: {sorted(DRIVES)}")
     if horizon not in HORIZONS:
         raise KeyError(f"unknown horizon {horizon!r}; known: {sorted(HORIZONS)}")
+    if numerics not in NUMERICS:
+        raise KeyError(f"unknown numerics {numerics!r}; known: {sorted(NUMERICS)}")
+    if step_control not in STEP_CONTROLS:
+        raise KeyError(
+            f"unknown step_control {step_control!r}; known: {sorted(STEP_CONTROLS)}"
+        )
     return RunCommand(
         seed_path=str(seed_path),
         regime_id=str(regime) if regime is not None else "unregistered",
@@ -317,6 +402,8 @@ def build_run(
         gate=GATES[gate],
         drive=DRIVES[drive],
         horizon=HORIZONS[horizon],
+        numerics=NUMERICS[numerics],
+        step_control=STEP_CONTROLS[step_control],
         output_json=str(output_json),
         extra_flags=tuple(str(f) for f in extra_flags),
     )
@@ -528,7 +615,9 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "CANONICAL_NUMERICS", "DRIVES", "EXCHANGE",
+    "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
+    "DRIVES", "EXCHANGE", "NUMERICS", "Numerics", "SHARED_NUMERICS",
+    "STATE_MOTION_CONTROL", "STEP_CONTROLS", "StepControl",
     "GATES", "HH_SNAKE_NPH1", "HORIZONS", "REGIMES", "Regime",
     "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
     "PRODUCTION_STRUCTURE", "RESIDUAL_GATE", "Arm", "Drive", "Horizon",

@@ -1374,15 +1374,16 @@ def run_append_mclachlan_trajectory(
             avqds_delta_theta_max = getattr(
                 effective_support_config, "avqds_delta_theta_max", None
             )
-            use_avqds_stepping = (
-                avqds_delta_theta_max is not None
-                and str(
-                    getattr(effective_support_config, "dynamics_policy", "exchange")
-                ).strip().lower() == "avqds"
-            )
+            # Parameter-controlled stepping is a numerics choice, not a policy
+            # choice: it applies to whichever structural rule is running, so
+            # that the step-control law can be isolated from the rule it is
+            # paired with.  Restricting it to the avqds policy would make the
+            # two inseparable and leave "is the comparator better, or is its
+            # step control better?" unanswerable.
+            use_avqds_stepping = avqds_delta_theta_max is not None
             if use_avqds_stepping:
-                # Published AVQDS control law: Euler substeps sized so that no
-                # parameter moves more than delta_theta_max.  Integrating this
+                # AVQDS control law (Yao et al.): Euler substeps sized so that
+                # no parameter moves more than delta_theta_max.  Integrating a
                 # comparator on the reporting grid instead is what produced
                 # mean energy errors of 3.5e-1 to 2.6e0 on this seed -- an
                 # artifact of the imposed step, not the method.

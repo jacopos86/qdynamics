@@ -62,37 +62,6 @@ def test_comparator_does_not_carry_this_routes_insertion_gate() -> None:
     assert "--residual-ratio-threshold" not in run.argv()
 
 
-def test_canonical_numerics_are_not_arm_dependent() -> None:
-    """A comparison may vary the arm and nothing else.
-
-    Exempt: arms that reproduce a published method own their numerics by
-    design, because reproducing the method means reproducing its integrator and
-    regularization too. Those are comparators against an external baseline, not
-    members of the matched-numerics comparison this invariant protects.
-    """
-
-    argvs = {}
-    for arm in ARMS:
-        if ARMS[arm].owns_numerics:
-            continue
-        run = build_run(
-            seed_path="seed.json", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
-            drive="fastweak", horizon="t2", output_json="out/run.json",
-        )
-        parsed = _parser().parse_args(list(run.argv()))
-        argvs[arm] = (
-            parsed.integrator,
-            parsed.solve_repair_max_local_subdivisions,
-            parsed.solve_repair_state_motion_l2_step_max,
-            parsed.max_structural_pool_size,
-            parsed.t_final,
-            parsed.num_times,
-            parsed.drive_A,
-            parsed.drive_omega,
-        )
-    assert len(set(argvs.values())) == 1, argvs
-
-
 def test_pool_cap_does_not_bind_the_deduplicated_pool() -> None:
     """A cap below the pool size silently discards usable words."""
 
@@ -279,49 +248,61 @@ def test_build_run_requires_exactly_one_seed_source() -> None:
             )
 
 
-def test_published_avqds_arm_uses_the_papers_own_numerics() -> None:
-    """Yao et al. specify Euler, Tikhonov xi=1e-6, and no repair mechanism.
+def test_published_avqds_is_arm_plus_its_own_step_control() -> None:
+    """Yao et al. specify Euler, Tikhonov xi=1e-6, and d theta_max = 5e-3.
 
-    The shared-numerics `avqds` arm is a different object: measured on the
-    strong fast drive it ran with this route's local subdivision applied at 249
-    of 251 checkpoints. An arm labelled as the published method must not
-    inherit stabilization the published method does not specify.
+    The published method is now expressed as a structural arm paired with its
+    own step-control law, rather than an arm carrying a private numerics blob:
+    that is what lets the step control be paired with the other rule too.
     """
 
     run = build_run(
         regime="hh_snake_nph1", arm="avqds_published",
         gate=MCLACHLAN_L2_GATE.gate_id, drive="strongfast", horizon="t10",
-        output_json="out/run.json",
+        step_control="delta_theta_5e-3", output_json="out/run.json",
     )
     parsed = _parser().parse_args(list(run.argv()))
     assert parsed.integrator == "euler"
     assert parsed.solve_repair is False
     assert parsed.certification_refit is False
     assert parsed.ridge_lambda == pytest.approx(1.0e-6)
+    assert parsed.avqds_delta_theta_max == pytest.approx(5.0e-3)
     assert parsed.dynamics_policy == "avqds"
 
 
-def test_published_arm_does_not_emit_the_canonical_numerics_block() -> None:
-    """Owning numerics means omitting the shared block, not overriding it."""
+def test_step_control_is_separable_from_the_structural_rule() -> None:
+    """The 2x2 that isolates step control from structure must be expressible."""
 
-    run = build_run(
-        regime="hh_snake_nph1", arm="avqds_published",
-        gate=MCLACHLAN_L2_GATE.gate_id, drive="strongfast", horizon="t10",
-        output_json="out/run.json",
-    )
-    argv = list(run.argv())
-    assert argv.count("--integrator") == 1
-    assert "--solve-repair" not in argv
-    assert "--solve-repair-max-local-subdivisions" not in argv
+    seen = {}
+    for arm in ("exchange", "avqds"):
+        for control in ("state_motion_1e-2", "delta_theta_5e-3"):
+            run = build_run(
+                regime="hh_snake_nph1", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
+                drive="strongfast", horizon="t10", step_control=control,
+                output_json="out/run.json",
+            )
+            parsed = _parser().parse_args(list(run.argv()))
+            seen[(arm, control)] = (
+                parsed.solve_repair, parsed.avqds_delta_theta_max
+            )
+            # The inner numerical method is identical across all four cells.
+            assert parsed.integrator == "euler"
+            assert parsed.ridge_lambda == pytest.approx(1.0e-6)
+    assert seen[("exchange", "delta_theta_5e-3")][1] == pytest.approx(5.0e-3)
+    assert seen[("avqds", "state_motion_1e-2")][0] is True
+    assert len({v for v in seen.values()}) == 2
 
 
-def test_shared_numerics_avqds_arm_still_carries_this_routes_stack() -> None:
-    """The shared-numerics comparator is retained and must stay distinguishable."""
+def test_every_arm_shares_the_same_inner_numerics() -> None:
+    """Damping, regularization, and integrator may never vary by arm."""
 
-    run = build_run(
-        regime="hh_snake_nph1", arm="avqds", gate=MCLACHLAN_L2_GATE.gate_id,
-        drive="strongfast", horizon="t10", output_json="out/run.json",
-    )
-    parsed = _parser().parse_args(list(run.argv()))
-    assert parsed.integrator == "rk4"
-    assert parsed.solve_repair is True
+    values = set()
+    for arm in ARMS:
+        run = build_run(
+            regime="hh_snake_nph1", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
+            drive="strongfast", horizon="t10", output_json="out/run.json",
+        )
+        parsed = _parser().parse_args(list(run.argv()))
+        values.add((parsed.integrator, parsed.ridge_lambda,
+                    parsed.solve_damping, parsed.pinv_rcond))
+    assert len(values) == 1, values

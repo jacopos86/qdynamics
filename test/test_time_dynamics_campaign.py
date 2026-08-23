@@ -58,7 +58,7 @@ def test_cell_argv_carries_numerics_guards_drive_and_arm() -> None:
     argv = next(iter(spec.cells())).runner_argv()
     joined = " ".join(argv)
     # canonical numerics
-    assert "--integrator rk4" in joined
+    assert "--integrator euler" in joined
     assert "--solve-repair" in argv
     assert "--solve-repair-profile minimal" in joined
     # guards
