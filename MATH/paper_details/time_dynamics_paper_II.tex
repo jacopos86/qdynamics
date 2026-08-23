@@ -590,7 +590,7 @@ exchange & \tentative{$1.26\times10^{-1}$} & \tentative{$2.8\times10^{-2}$} & \t
 \begin{center}
 \IfFileExists{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}}{}
 \end{center}
-\captionof{figure}{Deviation of the doublon fraction from the exact trajectory, same runs as Fig.~\ref{fig:obs_doublon_strongfast}.  The raw observable cannot separate the policies because all of them track it; the deviation can.  The exchange route and the comparator run an order of magnitude below the append-only ablation for most of the horizon.  \tentative{One drive.}}
+\captionof{figure}{Deviation of the doublon fraction from the exact trajectory, same runs as Fig.~\ref{fig:obs_doublon_strongfast}.  The raw observable cannot separate the policies because all of them track it; the deviation can.  The append-only ablation sits near $10^{-2}$ for the whole horizon, while the exchange route and the AVQDS comparator run an order of magnitude below it and interleave, neither dominating.  \tentative{One drive.}}
 \label{fig:obs_doublon_error_strongfast}
 \end{minipage}
 \par\addvspace{1.0ex}
@@ -608,7 +608,7 @@ exchange & \tentative{$1.26\times10^{-1}$} & \tentative{$2.8\times10^{-2}$} & \t
 \begin{center}
 \IfFileExists{figures/paper_ii_comparator_params_hh_strongfast.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_comparator_params_hh_strongfast.pdf}}{}
 \end{center}
-\captionof{figure}{Active support size under the two structural policies of Table~\ref{tab:comparator_hh_snake}.  The adaptive-append comparator grows monotonically because its rule contains no removal mechanism and then holds $46$ coordinates; the exchange policy front-loads growth under the same append condition and then contracts to $37$ by removing coordinates whose deletion loss is certified negligible.  \tentative{One drive.}}
+\captionof{figure}{Active support size under the three policies of Table~\ref{tab:comparator_hh_snake}.  The AVQDS comparator and the append-only ablation both grow monotonically, to $46$ and $44$ coordinates, because neither rule contains a removal mechanism; the exchange policy front-loads growth under the same append condition and then contracts to $37$ by removing coordinates whose deletion loss is certified negligible, including a late contraction near $t\approx8.5$.  \tentative{One drive.}}
 \label{fig:comparator_params}
 \end{minipage}
 \par\addvspace{1.0ex}
