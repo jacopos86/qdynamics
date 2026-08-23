@@ -12,6 +12,9 @@ import pytest
 
 from pipelines.time_dynamics.paper_ii_runs import (
     ARMS,
+    REGIMES,
+    SeedNotBuiltError,
+    available_regimes,
     DRIVES,
     GATES,
     HORIZONS,
@@ -194,3 +197,75 @@ def test_no_campaign_arm_reintroduces_the_pool_cap_of_eight() -> None:
 
     flags = list(PRODUCTION_STRUCTURE)
     assert int(flags[flags.index("--max-structural-pool-size") + 1]) >= 125
+
+
+@pytest.mark.parametrize("regime", sorted(REGIMES))
+def test_every_regime_builds_the_same_algorithm(regime: str) -> None:
+    """Sweeping regimes must change the seed path and nothing else."""
+
+    parser = _parser()
+    reference = None
+    run = build_run(
+        regime=regime, arm="exchange", gate=MCLACHLAN_L2_GATE.gate_id,
+        drive="fastweak", horizon="t10", output_json="out/run.json",
+    )
+    parsed = parser.parse_args(list(run.argv()))
+    policy = (
+        parsed.integrator,
+        parsed.solve_repair_max_local_subdivisions,
+        parsed.max_structural_pool_size,
+        parsed.insertion_gate_mode,
+        parsed.insertion_l2_cut,
+        parsed.prune_target_policy,
+        parsed.t_final,
+        parsed.num_times,
+    )
+    baseline = build_run(
+        regime="hh_snake_nph1", arm="exchange", gate=MCLACHLAN_L2_GATE.gate_id,
+        drive="fastweak", horizon="t10", output_json="out/run.json",
+    )
+    base_parsed = _parser().parse_args(list(baseline.argv()))
+    reference = (
+        base_parsed.integrator,
+        base_parsed.solve_repair_max_local_subdivisions,
+        base_parsed.max_structural_pool_size,
+        base_parsed.insertion_gate_mode,
+        base_parsed.insertion_l2_cut,
+        base_parsed.prune_target_policy,
+        base_parsed.t_final,
+        base_parsed.num_times,
+    )
+    assert policy == reference
+    assert parsed.artifact_json == REGIMES[regime].seed_path
+
+
+def test_unbuilt_regime_fails_before_the_runner_sees_it() -> None:
+    missing = [k for k, r in REGIMES.items() if not r.available]
+    if not missing:
+        pytest.skip("every regime seed is built")
+    with pytest.raises(SeedNotBuiltError):
+        build_run(
+            regime=missing[0], arm="exchange", gate=MCLACHLAN_L2_GATE.gate_id,
+            drive="fastweak", horizon="t10", output_json="out/run.json",
+            require_seed=True,
+        )
+
+
+def test_regime_requires_binary_aligned_phonon_cutoff() -> None:
+    from pipelines.time_dynamics.paper_ii_runs import Regime
+
+    with pytest.raises(ValueError, match="binary phonon register"):
+        Regime(regime_id="bad", seed_path="x.json", n_ph_max=2)
+
+
+def test_calibration_regime_is_available() -> None:
+    assert "hh_snake_nph1" in available_regimes()
+
+
+def test_build_run_requires_exactly_one_seed_source() -> None:
+    for kwargs in ({}, {"regime": "hh_snake_nph1", "seed_path": "s.json"}):
+        with pytest.raises(ValueError, match="exactly one"):
+            build_run(
+                arm="exchange", gate=MCLACHLAN_L2_GATE.gate_id, drive="fastweak",
+                horizon="t2", output_json="out/run.json", **kwargs,
+            )

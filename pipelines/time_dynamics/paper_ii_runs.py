@@ -208,9 +208,14 @@ class RunCommand:
     output_json: str
     extra_flags: tuple[str, ...] = ()
 
+    regime_id: str = "unregistered"
+
     @property
     def run_id(self) -> str:
-        return f"{self.drive.drive_id}_{self.horizon.horizon_id}_{self.arm.arm_id}_{self.gate.gate_id}"
+        return (
+            f"{self.regime_id}_{self.drive.drive_id}_{self.horizon.horizon_id}"
+            f"_{self.arm.arm_id}_{self.gate.gate_id}"
+        )
 
     def argv(self) -> tuple[str, ...]:
         # AVQDS carries its own append condition; layering this route's
@@ -236,16 +241,27 @@ class RunCommand:
 
 def build_run(
     *,
-    seed_path: str,
     arm: str,
     drive: str,
     horizon: str,
     output_json: str,
+    seed_path: str | None = None,
+    regime: str | None = None,
     gate: str = MCLACHLAN_L2_GATE.gate_id,
     extra_flags: Sequence[str] = (),
+    require_seed: bool = False,
 ) -> RunCommand:
-    """Compose one run from registered parts, rejecting unknown names."""
+    """Compose one run from registered parts, rejecting unknown names.
 
+    Give either ``regime`` (preferred -- names the physics) or ``seed_path``
+    (an unregistered one-off).  Sweeping regimes must change nothing else, so
+    the regime resolves only to a seed path.
+    """
+
+    if (seed_path is None) == (regime is None):
+        raise ValueError("pass exactly one of regime= or seed_path=")
+    if regime is not None:
+        seed_path = resolve_regime(regime, require_available=require_seed).seed_path
     if arm not in ARMS:
         raise KeyError(f"unknown arm {arm!r}; known: {sorted(ARMS)}")
     if gate not in GATES:
@@ -256,6 +272,7 @@ def build_run(
         raise KeyError(f"unknown horizon {horizon!r}; known: {sorted(HORIZONS)}")
     return RunCommand(
         seed_path=str(seed_path),
+        regime_id=str(regime) if regime is not None else "unregistered",
         arm=ARMS[arm],
         gate=GATES[gate],
         drive=DRIVES[drive],
@@ -266,29 +283,147 @@ def build_run(
 
 
 HH_SNAKE_NPH1 = "chtc/paper_ii_production_v2/input/seeds/hh_snake_nph1.json"
+SEED_ROOT = "chtc/paper_ii_production_v2/input/seeds"
+REGIME_SEED_ROOT = "chtc/paper_ii_regime_seeds_v1/input/seeds"
+
+
+@dataclass(frozen=True)
+class Regime:
+    """One Hubbard-Holstein physical regime.
+
+    A regime is a property of the *seed*, not of the trajectory policy, so
+    sweeping regimes must never change anything else about a run.  Naming them
+    here is what makes "the same algorithm across regimes" a one-word change
+    instead of a hand-edited seed path.
+    """
+
+    regime_id: str
+    seed_path: str
+    u: float | None = None
+    g_ep: float | None = None
+    n_ph_max: int = 1
+    note: str = ""
+
+    def __post_init__(self) -> None:
+        # Binary-aligned phonon cutoffs only: 1, 3, 7 fill the register exactly,
+        # and a same-cutoff comparison is mandatory for any regime claim.
+        if int(self.n_ph_max) not in (1, 3, 7):
+            raise ValueError(
+                "n_ph_max must fill the binary phonon register (1, 3, or 7); "
+                f"got {self.n_ph_max} for regime {self.regime_id!r}."
+            )
+
+    @property
+    def available(self) -> bool:
+        from pathlib import Path as _Path
+
+        return _Path(self.seed_path).exists()
+
+
+# The six-cell HH regime matrix (chtc/paper_ii_regime_seeds_v1/input/regimes.tsv).
+# The nph=7 cells are the expensive ones: 10 qubits against 8, and the three
+# strong-phonon seed builds died on a 24 GB memory limit on 2026-08-22.
+_HH_REGIME_ROWS = (
+    ("weak_weak", 0.25, 0.353553390593, 3),
+    ("intermediate_weak", 1.25, 0.353553390593, 3),
+    ("strong_weak_u8", 8.00, 0.353553390593, 3),
+    ("weak_strong", 0.25, 0.790569415042, 7),
+    ("intermediate_strong", 1.25, 0.790569415042, 7),
+    ("strong_strong_u8", 8.00, 0.790569415042, 7),
+)
+
+REGIMES: Mapping[str, Regime] = {
+    r.regime_id: r
+    for r in (
+        Regime(
+            regime_id="hh_snake_nph1",
+            seed_path=HH_SNAKE_NPH1,
+            n_ph_max=1,
+            note="The calibration seed every measurement in this lane was taken on.",
+        ),
+        Regime(
+            regime_id="hh_fixedvqe_nph3",
+            seed_path=f"{SEED_ROOT}/hh_fixedvqe_nph3.json",
+            n_ph_max=3,
+            note="Fixed-VQE conditioning stress seed.",
+        ),
+        *(
+            Regime(
+                regime_id=regime_id,
+                seed_path=f"{REGIME_SEED_ROOT}/{regime_id}.json",
+                u=u,
+                g_ep=g_ep,
+                n_ph_max=nph,
+                note="HH regime matrix cell; seed build pending.",
+            )
+            for regime_id, u, g_ep, nph in _HH_REGIME_ROWS
+        ),
+    )
+}
+
+
+class SeedNotBuiltError(FileNotFoundError):
+    """A named regime whose seed artifact does not exist yet."""
+
+
+def resolve_regime(regime_id: str, *, require_available: bool = True) -> Regime:
+    """Look up a regime, failing loudly when its seed has not been built.
+
+    Failing here beats failing inside a runner: a missing seed otherwise
+    surfaces as a loader error hundreds of lines into a job log, or worse, as a
+    held cluster job whose input file was never transferred.
+    """
+
+    if regime_id not in REGIMES:
+        raise KeyError(f"unknown regime {regime_id!r}; known: {sorted(REGIMES)}")
+    regime = REGIMES[regime_id]
+    if require_available and not regime.available:
+        raise SeedNotBuiltError(
+            f"regime {regime_id!r} has no seed at {regime.seed_path}. "
+            "Build it before running; see chtc/paper_ii_regime_seeds_v1/."
+        )
+    return regime
+
+
+def available_regimes() -> tuple[str, ...]:
+    return tuple(k for k, r in REGIMES.items() if r.available)
 
 
 def paper_ii_runs(
     *,
-    seed_path: str = HH_SNAKE_NPH1,
+    regimes: Sequence[str] = ("hh_snake_nph1",),
+    drives: Sequence[str] | None = None,
+    arms: Sequence[str] | None = None,
     horizon: str = "t10",
     gate: str = MCLACHLAN_L2_GATE.gate_id,
     output_root: str = "output/paper_ii",
+    require_seed: bool = False,
 ) -> tuple[RunCommand, ...]:
-    """The full drive x arm matrix the paper reports."""
+    """The regime x drive x arm matrix, one algorithm across all of it.
 
+    Every axis is a list of registered names, so widening the study is a longer
+    list rather than an edited command.
+    """
+
+    drive_ids = tuple(drives) if drives is not None else tuple(DRIVES)
+    arm_ids = tuple(arms) if arms is not None else tuple(ARMS)
     runs: list[RunCommand] = []
-    for drive_id in DRIVES:
-        for arm_id in ARMS:
-            run = build_run(
-                seed_path=seed_path,
-                arm=arm_id,
-                drive=drive_id,
-                horizon=horizon,
-                gate=gate,
-                output_json=f"{output_root}/{drive_id}_{arm_id}/run.json",
-            )
-            runs.append(run)
+    for regime_id in regimes:
+        for drive_id in drive_ids:
+            for arm_id in arm_ids:
+                runs.append(
+                    build_run(
+                        regime=regime_id,
+                        arm=arm_id,
+                        drive=drive_id,
+                        horizon=horizon,
+                        gate=gate,
+                        require_seed=require_seed,
+                        output_json=(
+                            f"{output_root}/{regime_id}/{drive_id}_{arm_id}/run.json"
+                        ),
+                    )
+                )
     return tuple(runs)
 
 
@@ -298,15 +433,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="list registered arms, gates, drives, horizons")
+    sub.add_parser("regimes", help="list regimes and whether their seed is built")
     show = sub.add_parser("show", help="print the shell command for one run")
-    show.add_argument("--seed", default=HH_SNAKE_NPH1)
+    show.add_argument("--regime", default="hh_snake_nph1")
     show.add_argument("--arm", default="exchange")
     show.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
     show.add_argument("--drive", default="fastweak")
     show.add_argument("--horizon", default="t10")
     show.add_argument("--output-json", default="output/paper_ii/run.json")
     matrix = sub.add_parser("matrix", help="print the whole drive x arm matrix")
-    matrix.add_argument("--seed", default=HH_SNAKE_NPH1)
+    matrix.add_argument("--regimes", default="hh_snake_nph1",
+                        help="comma-separated regime ids")
     matrix.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
     matrix.add_argument("--horizon", default="t10")
     matrix.add_argument("--output-root", default="output/paper_ii")
@@ -321,15 +458,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 note = getattr(registry[key], "note", "")
                 print(f"  {key}" + (f" -- {note.splitlines()[0]}" if note else ""))
         return 0
+    if args.command == "regimes":
+        for regime_id, regime in REGIMES.items():
+            mark = "built  " if regime.available else "MISSING"
+            extra = "" if regime.u is None else f" u={regime.u} g={regime.g_ep:.4f}"
+            print(f"  [{mark}] {regime_id:20s} nph={regime.n_ph_max}{extra}")
+        missing = [k for k, r in REGIMES.items() if not r.available]
+        if missing:
+            print(f"\n{len(missing)} regime seed(s) not built: {', '.join(missing)}")
+        return 0
     if args.command == "show":
         print(build_run(
-            seed_path=args.seed, arm=args.arm, gate=args.gate, drive=args.drive,
+            regime=args.regime, arm=args.arm, gate=args.gate, drive=args.drive,
             horizon=args.horizon, output_json=args.output_json,
         ).shell())
         return 0
     for run in paper_ii_runs(
-        seed_path=args.seed, horizon=args.horizon, gate=args.gate,
-        output_root=args.output_root,
+        regimes=tuple(r.strip() for r in args.regimes.split(",") if r.strip()),
+        horizon=args.horizon, gate=args.gate, output_root=args.output_root,
     ):
         print(f"# {run.run_id}")
         print(run.shell())
@@ -343,7 +489,8 @@ if __name__ == "__main__":
 
 __all__ = [
     "ARMS", "AVQDS", "APPEND_ONLY", "CANONICAL_NUMERICS", "DRIVES", "EXCHANGE",
-    "GATES", "HH_SNAKE_NPH1", "HORIZONS", "MCLACHLAN_L2_GATE",
+    "GATES", "HH_SNAKE_NPH1", "HORIZONS", "REGIMES", "Regime",
+    "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
     "PRODUCTION_STRUCTURE", "RESIDUAL_GATE", "Arm", "Drive", "Horizon",
     "InsertionGate", "RunCommand", "build_run", "main", "paper_ii_runs",
 ]
