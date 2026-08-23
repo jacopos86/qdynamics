@@ -47,6 +47,9 @@ from pipelines.time_dynamics.ap_mclachlan.integrators import (
 from pipelines.time_dynamics.ap_mclachlan.inverse import (
     McLachlanInversePolicy,
 )
+from pipelines.time_dynamics.ap_mclachlan.avqds import (
+    mclachlan_distance_squared,
+)
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     select_deletion_conditioned_patch,
 )
@@ -157,6 +160,21 @@ class SupportPatchControllerConfig:
     # edit, which is measurable on device (no exact reference).  `None`
     # keeps the historical residual-only behaviour.
     escalation_accumulated_drift_threshold: float | None = None
+    # Insertion gate mode. "residual_ratio" is this route's historical
+    # normalized gate. "mclachlan_l2" adopts the AVQDS append condition
+    # (Yao et al., PRX Quantum 2, 030307): the absolute McLachlan distance
+    # L^2 = 2(||b||^2 - Q), with greedy insertion repeated within one
+    # checkpoint until L^2 falls below the cut.  Measured motivation: the
+    # normalized ratio is small precisely while the state is still accurate,
+    # so it defers growth past the cheap early window -- under a strong fast
+    # drive our L^2 reached 3.6e-1 while AVQDS, having grown early, held
+    # 1.5e-8 at the same instant.
+    insertion_gate_mode: str = "residual_ratio"
+    insertion_l2_cut: float = 1.0e-3
+    # Safety valve on the greedy within-checkpoint repeat, not part of the
+    # rule: the rule stops on its threshold or on the absence of an improving
+    # candidate.
+    max_insertion_rounds_per_checkpoint: int = 12
     # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
     interaction_frontier_widths: tuple[int, ...] | None = None
     max_insertion_batch_size: int | None = 1
@@ -257,6 +275,16 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        if str(self.insertion_gate_mode) not in {"residual_ratio", "mclachlan_l2"}:
+            raise ValueError(
+                "insertion_gate_mode must be 'residual_ratio' or 'mclachlan_l2'."
+            )
+        if float(self.insertion_l2_cut) < 0.0:
+            raise ValueError("insertion_l2_cut must be non-negative.")
+        if int(self.max_insertion_rounds_per_checkpoint) < 1:
+            raise ValueError(
+                "max_insertion_rounds_per_checkpoint must be at least 1."
+            )
         if (
             self.escalation_accumulated_drift_threshold is not None
             and float(self.escalation_accumulated_drift_threshold) <= 0.0
@@ -367,6 +395,11 @@ class SupportPatchControllerConfig:
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
+            "insertion_gate_mode": str(self.insertion_gate_mode),
+            "insertion_l2_cut": float(self.insertion_l2_cut),
+            "max_insertion_rounds_per_checkpoint": int(
+                self.max_insertion_rounds_per_checkpoint
+            ),
             "escalation_accumulated_drift_threshold": (
                 None
                 if self.escalation_accumulated_drift_threshold is None
@@ -1039,6 +1072,37 @@ def run_append_mclachlan_trajectory(
         else SupportPatchControllerConfig(append_ladder_mode="combinatorial")
     )
 
+    def _commit_patch_decision() -> None:
+        """Apply an accepted patch to the running trajectory state.
+
+        Factored out because the AVQDS append condition commits more than once
+        per checkpoint (greedy repeat until the McLachlan distance clears the
+        cut), while the historical residual gate commits at most once.
+        """
+
+        nonlocal current_state, theta_current, evaluation, fixed_step
+        nonlocal prune_count, decision
+
+        current_state = maybe_state
+        theta_current = maybe_theta
+        evaluation = maybe_eval
+        fixed_step = maybe_step
+        if str(decision.patch_kind) in {PATCH_DELETE, PATCH_EXCHANGE}:
+            prune_count += 1
+            prune_runtime_state.accepted_commit_count += 1
+        transition_metadata = prune_runtime_state.update_after_support_change(
+            new_state=current_state,
+            theta_runtime=theta_current,
+            patch_kind=str(decision.patch_kind),
+        )
+        decision = replace(
+            decision,
+            metadata={
+                **dict(decision.metadata or {}),
+                **transition_metadata,
+            },
+        )
+
     for index, time_value in enumerate(time_grid):
         dt_to_next = (
             None if index + 1 >= len(time_grid) else float(time_grid[index + 1] - time_value)
@@ -1092,6 +1156,7 @@ def run_append_mclachlan_trajectory(
             scored_count=0,
             reason="append_not_considered",
         )
+        committed_in_round_loop = False
 
         if index + 1 < len(time_grid):
             if float(time_value) + 1.0e-15 < append_min_time:
@@ -1129,7 +1194,26 @@ def run_append_mclachlan_trajectory(
                 # ratio catches a checkpoint that is locally hard, the drift
                 # integral catches a trajectory that has quietly banked error
                 # while every individual checkpoint looked easy.
-                insertions_active = bool(residual_escalates or drift_escalates)
+                gate_mode = str(
+                    getattr(
+                        effective_support_config,
+                        "insertion_gate_mode",
+                        "residual_ratio",
+                    )
+                ).strip().lower()
+                l2_cut = float(
+                    getattr(effective_support_config, "insertion_l2_cut", 1.0e-3)
+                )
+                checkpoint_l2 = mclachlan_distance_squared(
+                    evaluation, inverse_policy=decision_inverse_policy
+                )
+                if gate_mode == "mclachlan_l2":
+                    # AVQDS append condition: absolute McLachlan distance.
+                    insertions_active = bool(checkpoint_l2 > l2_cut)
+                else:
+                    insertions_active = bool(
+                        residual_escalates or drift_escalates
+                    )
                 if str(
                     getattr(effective_support_config, "dynamics_policy", "exchange")
                 ).strip().lower() == "avqds":
@@ -1152,49 +1236,117 @@ def run_append_mclachlan_trajectory(
                         solve_repair_config=solve_repair_config,
                     )
                 else:
-                    with phase(PHASE_UNIFIED_SELECT):
-                        selection, selection_payload = select_deletion_conditioned_patch(
-                            state=current_state,
-                            hamiltonian=hamiltonian,
-                            theta_runtime=theta_current,
-                            time=float(time_value),
-                            base_evaluation=evaluation,
-                            base_step=fixed_step,
-                            inverse_policy=decision_inverse_policy,
-                            support_config=effective_support_config,
-                            runtime_state=prune_runtime_state,
-                            time_index=int(index),
-                            active_prune_atoms=_active_prune_atoms,
-                            solve_repair_config=solve_repair_config,
-                            insertions_enabled=insertions_active,
+                    # AVQDS's append condition is greedy WITHIN one checkpoint:
+                    # keep inserting until the McLachlan distance falls below
+                    # the cut or no candidate improves it.  Under the historical
+                    # residual gate this collapses to exactly one round, so the
+                    # default path is unchanged.
+                    max_rounds = (
+                        int(
+                            effective_support_config.max_insertion_rounds_per_checkpoint
                         )
-                    (
-                        decision,
-                        maybe_state,
-                        maybe_theta,
-                        maybe_eval,
-                        maybe_step,
-                    ) = _decision_from_exchange_selection(selection, selection_payload)
-            if decision.accepted and maybe_state is not None and maybe_theta is not None and maybe_eval is not None and maybe_step is not None:
-                current_state = maybe_state
-                theta_current = maybe_theta
-                evaluation = maybe_eval
-                fixed_step = maybe_step
-                if str(decision.patch_kind) in {PATCH_DELETE, PATCH_EXCHANGE}:
-                    prune_count += 1
-                    prune_runtime_state.accepted_commit_count += 1
-                transition_metadata = prune_runtime_state.update_after_support_change(
-                    new_state=current_state,
-                    theta_runtime=theta_current,
-                    patch_kind=str(decision.patch_kind),
-                )
-                decision = replace(
-                    decision,
-                    metadata={
-                        **dict(decision.metadata or {}),
-                        **transition_metadata,
-                    },
-                )
+                        if gate_mode == "mclachlan_l2"
+                        else 1
+                    )
+                    insertion_rounds = 0
+                    round_labels: list[str] = []
+
+                    def _round_prune_atoms(state_arg, **kwargs):
+                        """Deletion eligibility for one greedy round.
+
+                        Under the AVQDS append condition, accuracy debt and
+                        cost relief are sequenced rather than scored against
+                        each other: while L^2 is above the cut the checkpoint
+                        owes accuracy and only insertions may be considered;
+                        once L^2 clears the cut the geometry is already paid
+                        for and pruning is free.  Without this the greedy
+                        repeat inverts -- deletions always improve the
+                        cost-weighted score, so rounds get spent shedding
+                        coordinates while L^2 climbs (measured: 26 -> 19
+                        parameters as L^2 went 4.5e-4 -> 2.2e-1).
+                        """
+
+                        if gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut:
+                            return ()
+                        return _active_prune_atoms(state_arg, **kwargs)
+
+                    for _round in range(max_rounds):
+                        with phase(PHASE_UNIFIED_SELECT):
+                            selection, selection_payload = select_deletion_conditioned_patch(
+                                state=current_state,
+                                hamiltonian=hamiltonian,
+                                theta_runtime=theta_current,
+                                time=float(time_value),
+                                base_evaluation=evaluation,
+                                base_step=fixed_step,
+                                inverse_policy=decision_inverse_policy,
+                                support_config=effective_support_config,
+                                runtime_state=prune_runtime_state,
+                                time_index=int(index),
+                                active_prune_atoms=_round_prune_atoms,
+                                solve_repair_config=solve_repair_config,
+                                insertions_enabled=insertions_active,
+                            )
+                        (
+                            decision,
+                            maybe_state,
+                            maybe_theta,
+                            maybe_eval,
+                            maybe_step,
+                        ) = _decision_from_exchange_selection(
+                            selection, selection_payload
+                        )
+                        if gate_mode != "mclachlan_l2":
+                            break
+                        if not (
+                            decision.accepted
+                            and maybe_state is not None
+                            and maybe_theta is not None
+                            and maybe_eval is not None
+                            and maybe_step is not None
+                        ):
+                            break
+                        l2_before_round = checkpoint_l2
+                        _commit_patch_decision()
+                        committed_in_round_loop = True
+                        insertion_rounds += 1
+                        round_labels.append(str(decision.patch_kind))
+                        checkpoint_l2 = mclachlan_distance_squared(
+                            evaluation, inverse_policy=decision_inverse_policy
+                        )
+                        if checkpoint_l2 <= l2_cut:
+                            break
+                        # AVQDS also stops when no candidate improves the
+                        # distance.  Without this the repeat is not an "append
+                        # until satisfied" loop at all: deletions are always
+                        # eligible and score well, so the rounds get spent
+                        # removing coordinates and L^2 climbs -- measured on a
+                        # strong fast drive, 12 rounds took 26 parameters down
+                        # to 20 while L^2 went from 4.5e-4 to 1.3e-3.
+                        if checkpoint_l2 >= l2_before_round:
+                            break
+                        insertions_active = True
+                    if gate_mode == "mclachlan_l2":
+                        decision = replace(
+                            decision,
+                            metadata={
+                                **dict(decision.metadata or {}),
+                                "insertion_gate_mode": gate_mode,
+                                "insertion_rounds": int(insertion_rounds),
+                                "insertion_round_kinds": list(round_labels),
+                                "checkpoint_l2_final": float(checkpoint_l2),
+                                "insertion_l2_cut": float(l2_cut),
+                            },
+                        )
+            if (
+                not committed_in_round_loop
+                and decision.accepted
+                and maybe_state is not None
+                and maybe_theta is not None
+                and maybe_eval is not None
+                and maybe_step is not None
+            ):
+                _commit_patch_decision()
 
         integration: IntegrationStep | None = None
         if index + 1 < len(time_grid):

@@ -1579,6 +1579,22 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--avqds-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
+        "--insertion-gate-mode",
+        choices=["residual_ratio", "mclachlan_l2"],
+        default="residual_ratio",
+        help=(
+            "Condition under which the exchange route considers insertions. "
+            "'residual_ratio' is this route's normalized gate; "
+            "'mclachlan_l2' adopts the AVQDS append condition -- absolute "
+            "McLachlan distance with greedy repeat inside one checkpoint."
+        ),
+    )
+    parser.add_argument("--insertion-l2-cut", type=float, default=1.0e-3)
+    parser.add_argument(
+        "--max-insertion-rounds-per-checkpoint", type=int, default=12,
+        help="Safety valve on the greedy repeat; not part of the rule.",
+    )
+    parser.add_argument(
         "--avqds-max-appends-per-checkpoint",
         type=int,
         default=None,
@@ -1889,6 +1905,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 None
                 if args.escalation_accumulated_drift_threshold is None
                 else float(args.escalation_accumulated_drift_threshold)
+            ),
+            insertion_gate_mode=str(args.insertion_gate_mode),
+            insertion_l2_cut=float(args.insertion_l2_cut),
+            max_insertion_rounds_per_checkpoint=int(
+                args.max_insertion_rounds_per_checkpoint
             ),
             prune_cooldown_steps=int(args.prune_cooldown_steps),
             min_runtime_parameter_count=int(args.min_runtime_parameter_count),
