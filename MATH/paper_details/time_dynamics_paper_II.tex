@@ -454,22 +454,6 @@ The results identify mechanisms before surveying Hamiltonian regimes.  Every pai
 
 The structural comparison holds numerical realization fixed and contrasts policy arms of one selector: append-only (deletions never eligible), prune-only (empty insertion pool), and the full exchange policy, each with and without the finalist trust-region refit, under one seed, Hamiltonian, drive, grid, and inverse policy.  It reports structural miss, accepted patch types by kind, conditional gain and loss, same-checkpoint continuity, final support, compiled cost, and the cumulative count of insertion candidates whose tangent overlaps had to be measured --- the measurement ledger that separates gated insertion enumeration from measurement-free pruning.  The numerical-repair comparison then holds the support fixed and contrasts passive telemetry under the nominal solve with the intervening state-space policy.  It reports numerical miss, state-space displacement, temporal kink, inverse-policy changes, local subdivisions, unsupported checkpoints, and post-run energy and observable errors.  These comparisons separate support maintenance from numerical realization before their interaction is interpreted.
 
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_mechanism_energy_stress_seed_prelim.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_mechanism_energy_stress_seed_prelim.pdf}}{}
-\end{center}
-\captionof{figure}{Preliminary mechanism diagnostic on the deliberately redundant conditioning-stress seed (Hubbard--Holstein, $L=2$, $n_{\rm ph}^{\max}=3$, same-cutoff exact reference, no drive; fourth-order integration with state-space solve repair, twenty-five reporting intervals to $t{=}1$): total energy under the append-only ablation and the full exchange policy at two deletion ray tolerances.  At $\tau_{\rm ray}{=}2\times10^{-3}$ the exchange policy conserves energy to $2.9\times10^{-4}$ --- $4.6\times$ better than the append-only ablation ($1.3\times10^{-3}$) --- while ending seventeen coordinates smaller at equal measured-candidate count, consistent with deletion of redundant coordinates improving the conditioning of the retained solve.  Over-constraining the gate ($\tau_{\rm ray}{=}5\times10^{-4}$) forces insert--delete churn and degrades both accuracy and measurement cost, so the tolerance has an interior optimum.  A loose gate ($5\times10^{-2}$, not shown) admits cumulative structural damage: per-patch continuity certificates do not compose over a trajectory.  \tentative{Preliminary stress-seed diagnostic; to be regenerated on a conventional fixed-structure VQE seed before quantitative claims.}}
-\label{fig:mechanism_energy_stress_prelim}
-\end{minipage}
-\par\addvspace{1.0ex}
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_mechanism_params_stress_seed_prelim.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_mechanism_params_stress_seed_prelim.pdf}}{}
-\end{center}
-\captionof{figure}{Active support size for the runs of Fig.~\ref{fig:mechanism_energy_stress_prelim}.  Insertion enumeration is residual-gated in every arm; the exchange arms additionally perform measurement-free pruning at quiet checkpoints.  At the optimal gate the redundant seed is compressed from 616 to 607 coordinates while the append-only ablation grows to 624; the over-constrained gate churns without net compression.  \tentative{Preliminary stress-seed diagnostic.}}
-\label{fig:mechanism_params_stress_prelim}
-\end{minipage}
-\par\addvspace{1.5ex}
 \begin{table}[t]
 \caption{Mechanism-level evidence plan.  Numerical entries remain provisional until transferred from source-locked paired trajectories under one seed, drive, grid, observable set, and compilation contract.  Exact-reference errors are post-run quantities.}
 \label{tab:mechanism_ablation}
@@ -543,51 +527,19 @@ append-only, and the trade rather than the win is what the data supports.  We
 report it because the claim is scoped to redundancy-carrying support, and the
 boundary of a claim belongs in evidence rather than in a caveat.
 
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_prod_params_hh_fixedvqe_nph3.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_prod_params_hh_fixedvqe_nph3.pdf}}{}
-\end{center}
-\captionof{figure}{Active support on the redundant seed under the three policies of Table~\ref{tab:production_matrix}.  The comparator grows monotonically because its rule contains no removal mechanism; exchange holds and then reduces support while tracking the same trajectory.  \tentative{Preliminary horizon.}}
-\label{fig:production_params}
-\end{minipage}
 
 \subsection{Observable tracking on the driven Holstein seed}
 \label{sec:hh_observables}
 
 Energy error summarizes accuracy but hides whether a policy tracks the physics
-or merely its scale.  Figures~\ref{fig:obs_doublon_fastweak}--\ref{fig:obs_doublon_slowstrong}
-follow the doublon fraction on the driven Holstein seed to $t=10$ under both
-drive conditions, against the exact time-ordered trajectory of the same
-truncated Hamiltonian.
-
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_obs_doublon_hh_fastweak_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_hh_fastweak_t10.pdf}}{}
-\end{center}
-\captionof{figure}{Doublon fraction to $t=10$ under the fast weak drive ($A=0.6$, $\omega=3$), Holstein seed.  Mean absolute deviations from the exact trajectory are \tentative{$8.5\times10^{-3}$} (append-only, $134$ coordinates), \tentative{$1.7\times10^{-2}$} (exchange, $13$), and \tentative{$2.5\times10^{-2}$} (adaptive append, $888$).  The comparator's support exceeds the exchange policy's by a factor near seventy while tracking the observable less accurately.  \tentative{Preliminary: drawn from runs continuing to $t=20$.}}
-\label{fig:obs_doublon_fastweak}
-\end{minipage}
-\par\addvspace{1.0ex}
-
-\noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_obs_doublon_hh_slowstrong_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_hh_slowstrong_t10.pdf}}{}
-\end{center}
-\captionof{figure}{Doublon fraction to $t=10$ under the slow strong drive ($A=1.2$, $\omega=1$).  Here the adaptive-append comparator is the most accurate on energy (\tentative{$2.7\times10^{-3}$} against \tentative{$1.2\times10^{-2}$} for both other policies) and reaches it on $924$ coordinates against $12$; on the doublon fraction the three agree to within a factor of two.  Accuracy and support therefore trade differently under the two drives, and the exchange policy holds the smaller support in both.  \tentative{Preliminary.}}
-\label{fig:obs_doublon_slowstrong}
-\end{minipage}
-\par\addvspace{1.0ex}
-
-Two features are stable across both drives.  The exchange policy runs on one to
-two orders of magnitude fewer coordinates than the growth policies while
-tracking the same observable, and the growth policies pay for accuracy with
-support that increases monotonically.  What is not stable is which policy is
-most accurate: append-only leads under the fast weak drive and adaptive append
-under the slow strong one, by margins comparable to the spread between them.
-The evidence supports a cost claim across drives and does not yet support an
-accuracy ordering.
+or merely its scale.  The observable evidence is reported with the
+adaptive-append comparison in Sec.~\ref{sec:comparator}, on the drive that
+stresses the structural rule hardest; the doublon fraction and the site
+occupations are followed to $t=10$ against the exact time-ordered trajectory of
+the same truncated Hamiltonian.
 
 \subsection{Adaptive-append comparison}
+\label{sec:comparator}
 
 The closest adaptive-ansatz comparator is adaptive variational quantum dynamics simulation \cite{Yao2021}, which grows the ansatz during evolution using the McLachlan distance
 \begin{equation}
@@ -636,6 +588,24 @@ exchange & \tentative{$1.26\times10^{-1}$} & \tentative{$2.8\times10^{-2}$} & \t
 
 \noindent\begin{minipage}{\columnwidth}
 \begin{center}
+\IfFileExists{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}}{}
+\end{center}
+\captionof{figure}{Deviation of the doublon fraction from the exact trajectory, same runs as Fig.~\ref{fig:obs_doublon_strongfast}.  The raw observable cannot separate the policies because all of them track it; the deviation can.  The exchange route and the comparator run an order of magnitude below the append-only ablation for most of the horizon.  \tentative{One drive.}}
+\label{fig:obs_doublon_error_strongfast}
+\end{minipage}
+\par\addvspace{1.0ex}
+
+\noindent\begin{minipage}{\columnwidth}
+\begin{center}
+\IfFileExists{figures/paper_ii_obs_energy_error_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_energy_error_hh_strongfast_t10.pdf}}{}
+\end{center}
+\captionof{figure}{Absolute energy error against the exact trajectory.  The discrete step in the exchange route near $t\approx8.6$ is the stabilization defect discussed in the text: it carries no structural edit, and it dominates that route's mean energy error while leaving the observables of Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast} essentially unchanged.  \tentative{One drive.}}
+\label{fig:obs_energy_error_strongfast}
+\end{minipage}
+\par\addvspace{1.0ex}
+
+\noindent\begin{minipage}{\columnwidth}
+\begin{center}
 \IfFileExists{figures/paper_ii_comparator_params_hh_strongfast.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_comparator_params_hh_strongfast.pdf}}{}
 \end{center}
 \captionof{figure}{Active support size under the two structural policies of Table~\ref{tab:comparator_hh_snake}.  The adaptive-append comparator grows monotonically because its rule contains no removal mechanism and then holds $46$ coordinates; the exchange policy front-loads growth under the same append condition and then contracts to $37$ by removing coordinates whose deletion loss is certified negligible.  \tentative{One drive.}}
@@ -659,15 +629,7 @@ The complete mechanism study crosses the structural policy arm (append-only, pru
 The primary results are organized as four one-column Hubbard--Holstein regime blocks.  Each block overlays the exact-diagonalization reference trajectory with AP-McLachlan dynamics and three pinned Qiskit-community baselines: TrotterQRTE, PVQD, and VarQRTE.  The plotted observable is the instantaneous total-energy expectation under the driven Hamiltonian; exact diagonalization is a diagnostic reference trajectory, not an input to the checkpoint policy.  The cost table below each trajectory uses the same Qiskit-compiled resource convention as the static-ansatz paper.  The four main regime blocks use the selected SNAKE plateau seed; append-only versus SNAKE seed effects are separated in Table~\ref{tab:dyn_seed_track_comparison}.
 
 \noindent\begin{minipage}{\columnwidth}
-\begin{center}
-\IfFileExists{figures/paper_ii_weak_weak_diagnostic_energy_placeholder.png}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_weak_weak_diagnostic_energy_placeholder.png}}{\trajectoryplaceholder{Weak--weak Hubbard--Holstein}}
-\end{center}
-\captionof{figure}{Weak--weak Hubbard--Holstein total-energy trajectory.  The plotted curves show exact diagonalization, AP-McLachlan, pinned Qiskit-community TrotterQRTE, PVQD, and VarQRTE on the same diagnostic Hamiltonian, drive, time grid, and SNAKE prefix seed.  This panel is a candidate-settings placeholder from the corrected energy-observable parity smoke, not locked manuscript evidence.}
-\label{fig:dyn_hh_weak_weak_trajectory}
-\end{minipage}
-\par\addvspace{1.0ex}
-\noindent\begin{minipage}{\columnwidth}
-\inlinetablecaption{tab:dyn_hh_weak_weak_cost}{Weak--weak Hubbard--Holstein trajectory and Qiskit-cost comparison.  The table is structurally fixed; red entries are diagnostic placeholders from the same corrected energy-parity smoke as Fig.~\ref{fig:dyn_hh_weak_weak_trajectory}.  The run uses candidate class settings and a three-sample grid, so these values are included to show structure rather than to support final claims.}
+\inlinetablecaption{tab:dyn_hh_weak_weak_cost}{Weak--weak Hubbard--Holstein trajectory and Qiskit-cost comparison.  The table is structurally fixed; red entries are diagnostic placeholders from a corrected energy-parity smoke.  The run uses candidate class settings and a three-sample grid, so these values are included to show structure rather than to support final claims.}
 \begin{center}
 \scriptsize
 \setlength{\tabcolsep}{0.4pt}
@@ -686,12 +648,6 @@ VarQRTE & \tentative{3.8e-3} & \tentative{5.1e-3} & \tentative{1.5e-3} & \tentat
 \end{minipage}
 
 \par\addvspace{1.5ex}
-\noindent\begin{minipage}{\columnwidth}
-\trajectoryplaceholder{Strong--weak Hubbard--Holstein}
-\captionof{figure}{Strong--weak Hubbard--Holstein total-energy trajectory with the same curve and seed conventions as Fig.~\ref{fig:dyn_hh_weak_weak_trajectory}.}
-\label{fig:dyn_hh_strong_weak_trajectory}
-\end{minipage}
-\par\addvspace{1.0ex}
 \noindent\begin{minipage}{\columnwidth}
 \inlinetablecaption{tab:dyn_hh_strong_weak_cost}{Strong--weak Hubbard--Holstein trajectory and Qiskit-cost comparison.}
 \begin{center}
@@ -713,12 +669,6 @@ Qiskit VarQRTE & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{-
 
 \par\addvspace{1.5ex}
 \noindent\begin{minipage}{\columnwidth}
-\trajectoryplaceholder{Weak--strong Hubbard--Holstein}
-\captionof{figure}{Weak--strong Hubbard--Holstein total-energy trajectory with the same curve and seed conventions as Fig.~\ref{fig:dyn_hh_weak_weak_trajectory}.}
-\label{fig:dyn_hh_weak_strong_trajectory}
-\end{minipage}
-\par\addvspace{1.0ex}
-\noindent\begin{minipage}{\columnwidth}
 \inlinetablecaption{tab:dyn_hh_weak_strong_cost}{Weak--strong Hubbard--Holstein trajectory and Qiskit-cost comparison.}
 \begin{center}
 \scriptsize
@@ -738,12 +688,6 @@ Qiskit VarQRTE & \tentative{--} & \tentative{--} & \tentative{--} & \tentative{-
 \end{minipage}
 
 \par\addvspace{1.5ex}
-\noindent\begin{minipage}{\columnwidth}
-\trajectoryplaceholder{Strong--strong Hubbard--Holstein}
-\captionof{figure}{Strong--strong Hubbard--Holstein total-energy trajectory with the same curve and seed conventions as Fig.~\ref{fig:dyn_hh_weak_weak_trajectory}.}
-\label{fig:dyn_hh_strong_strong_trajectory}
-\end{minipage}
-\par\addvspace{1.0ex}
 \noindent\begin{minipage}{\columnwidth}
 \inlinetablecaption{tab:dyn_hh_strong_strong_cost}{Strong--strong Hubbard--Holstein trajectory and Qiskit-cost comparison.}
 \begin{center}
