@@ -78,6 +78,10 @@ class Arm:
     arm_id: str
     flags: tuple[str, ...]
     is_comparator: bool = False
+    # An arm that reproduces a published method owns its own numerics; the
+    # shared canonical block is then omitted rather than emitted and silently
+    # overridden by flag ordering.
+    owns_numerics: bool = False
     note: str = ""
 
 
@@ -102,13 +106,44 @@ AVQDS = Arm(
     flags=("--dynamics-policy", "avqds", "--avqds-l2-cut", "1.0e-3"),
     is_comparator=True,
     note=(
-        "Yao et al., PRX Quantum 2, 030307, on shared geometry/integrator/pool. "
-        "Deliberately uncapped: the rule appends until L^2 < cut, and capping "
-        "it is a different algorithm."
+        "AVQDS decision RULE on this route's numerical stack (shared geometry, "
+        "inverse, solve repair, integrator, pool). Isolates structure from "
+        "numerics; it is NOT the published method -- use avqds_published for "
+        "that. Uncapped: the rule appends until L^2 < cut."
     ),
 )
 
-ARMS: Mapping[str, Arm] = {a.arm_id: a for a in (EXCHANGE, APPEND_ONLY, AVQDS)}
+# Published AVQDS, as specified in Yao et al. (PRX Quantum 2, 030307), rather
+# than the AVQDS decision rule running on this route's numerical stack.  The
+# distinction is not cosmetic: measured on the strong fast drive, the
+# shared-numerics arm had this route's local subdivision applied at 249 of 251
+# checkpoints, plus solve repair and certification refit enabled, so it was
+# stabilized by machinery the published method does not specify.  The paper
+# states its own numerics explicitly -- "we adopt the Euler method", Tikhonov
+# regularization with xi = 1e-6 added to the diagonal of M before inversion,
+# a fixed step, and no repair or subdivision mechanism -- and this arm runs
+# exactly that.
+AVQDS_PUBLISHED = Arm(
+    arm_id="avqds_published",
+    flags=(
+        "--dynamics-policy", "avqds",
+        "--avqds-l2-cut", "1.0e-3",
+        "--integrator", "euler",
+        "--no-solve-repair",
+        "--no-certification-refit",
+        "--ridge-lambda", "1.0e-6",
+    ),
+    is_comparator=True,
+    owns_numerics=True,
+    note=(
+        "Yao et al. with the paper's own numerics: Euler, Tikhonov xi=1e-6, "
+        "fixed step, no solve repair, no subdivision, no refit."
+    ),
+)
+
+ARMS: Mapping[str, Arm] = {
+    a.arm_id: a for a in (EXCHANGE, APPEND_ONLY, AVQDS, AVQDS_PUBLISHED)
+}
 
 
 @dataclass(frozen=True)
@@ -221,11 +256,12 @@ class RunCommand:
         # AVQDS carries its own append condition; layering this route's
         # insertion gate on top would misrepresent the comparator.
         gate_flags = () if self.arm.is_comparator else self.gate.flags
+        numerics = () if self.arm.owns_numerics else CANONICAL_NUMERICS
         return (
             "--artifact-json", str(self.seed_path),
             *self.horizon.flags,
             *self.drive.flags,
-            *CANONICAL_NUMERICS,
+            *numerics,
             *PRODUCTION_STRUCTURE,
             *gate_flags,
             *self.arm.flags,
@@ -488,7 +524,7 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "ARMS", "AVQDS", "APPEND_ONLY", "CANONICAL_NUMERICS", "DRIVES", "EXCHANGE",
+    "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "CANONICAL_NUMERICS", "DRIVES", "EXCHANGE",
     "GATES", "HH_SNAKE_NPH1", "HORIZONS", "REGIMES", "Regime",
     "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
     "PRODUCTION_STRUCTURE", "RESIDUAL_GATE", "Arm", "Drive", "Horizon",
