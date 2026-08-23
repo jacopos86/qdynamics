@@ -278,6 +278,15 @@ def iter_structural_families(
             gain = 0.0
             insertion_utility = 0.0
         if removed:
+            # One-sided by construction.  Under exact projection the
+            # unclipped quantity is r_{D|R}^T S_{D|R}^+ r_{D|R} >= 0
+            # (schur_identity.exact_deletion_loss), so clipping is
+            # exact-arithmetic-faithful -- but the realized solve is
+            # regularized, where a deletion CAN lower L^2, and the clip
+            # then maps "helpful" and "harmless" onto the same zero.
+            # That collapse is why `debt_ranking` exists: while in L^2
+            # debt the signed delta below, not this loss, is the
+            # primary key.
             loss = max(0.0, q_of((), selection) - q_joint)
             cost_del = max(1.0, float(deletion_cost(removed)))
             # Conditioning relief/damage from solves the enumeration already

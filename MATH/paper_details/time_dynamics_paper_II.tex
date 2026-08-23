@@ -307,6 +307,29 @@ Q_k(J_k)
 \end{equation}
 Equation~(\ref{eq:prune_loss}) is the backward counterpart of Eq.~(\ref{eq:append_gain}): append asks how much explained drift is gained by enlarging the support, whereas prune asks how much is lost after deleting a block and refitting the survivors.  Low loss nominates a block for deletion.  Resource cost, historical redundancy, Schur degeneracy, and conditioning relief prioritize among low-loss batches, but cannot authorize a deletion with excessive current loss.
 
+The quantity in Eq.~(\ref{eq:prune_loss}) has an exact algebraic form, and it is worth stating because it fixes what pruning can and cannot do.  Partition the checkpoint Gram system between the coordinates a candidate retains, \(R=J_k\setminus D\), and those it proposes to delete, \(D\),
+\begin{equation}
+G_k=
+\begin{bmatrix} G_{RR} & G_{RD}\\ G_{DR} & G_{DD}\end{bmatrix},
+\qquad
+f_k=\begin{bmatrix} f_R\\ f_D\end{bmatrix},
+\end{equation}
+and define the reverse Schur novelty block and its drive residual
+\begin{equation}
+S_{D|R}=G_{DD}-G_{DR}G_{RR}^{+}G_{RD},
+\qquad
+r_{D|R}=f_D-G_{DR}G_{RR}^{+}f_R .
+\label{eq:schur_novelty}
+\end{equation}
+Then under an exact, unregularized solve
+\begin{equation}
+Q_k(J_k)-Q_k(R)=r_{D|R}^{\mathsf T}S_{D|R}^{+}r_{D|R}\;\ge\;0 .
+\label{eq:schur_identity}
+\end{equation}
+The identity requires \(f_k\in\operatorname{range}(G_k)\), which this route satisfies by construction rather than by assumption: \(G_k=T_k^{\mathsf T}T_k\) and \(f_k=T_k^{\mathsf T}\bar b_k\) are formed from the same tangent matrix, so \(f_k\in\operatorname{range}(T_k^{\mathsf T})=\operatorname{range}(G_k)\), and restricting to a coordinate subset restricts \(T_k\) to those columns and preserves the property.
+
+Two consequences follow, and the route is built around them.  First, the right-hand side of Eq.~(\ref{eq:schur_identity}) is a quadratic form in a positive-semidefinite Schur complement, so \emph{under exact projection a deletion can never increase captured drift}, and therefore can never lower \(L_k^2=2[\|\bar b_k\|_2^2-Q_k]\).  Any helpful deletion observed in a run is possible only because the realized solve is not exact --- ridge regularization, rank truncation, damping, or the trust-region refit.  Pruning helps by relieving the conditioning of the realized solve, not by improving the variational manifold, and this is the precise content of the accuracy half of the prune claim.  Second, \(S_{D|R}\) measures how much of the deleted tangent block cannot be synthesized from the retained tangents and \(r_{D|R}\) how much forcing remains aligned with that novel part, so Schur degeneracy \emph{nominates} a coordinate but cannot \emph{authorize} its removal: only the realized post-deletion solve establishes that removing it helps.  Eq.~(\ref{eq:schur_identity}) is pinned numerically in the implementation, on random systems and on the route's own construction, so that a change to the geometry, the inverse policy, or the scoring cannot silently break it.
+
 Because Eq.~(\ref{eq:prune_loss}) uses submatrices of the active \(G_k\) and \(f_k\) already acquired for McLachlan propagation, prune nomination itself requires no new quantum measurements.  A deletion commit is stricter.  The candidate block is first set to the identity and, if necessary, the surviving parameters are locally refit to the pre-patch state by a bounded trust-region minimization of the Fubini--Study infidelity to the checkpoint ray: the coordinate word is held fixed, the angles move inside a declared box radius, the refit is accepted only if it strictly reduces the infidelity, and finalists already on the ray (every pure zero-angle insertion) are left untouched.  This reduced-state fit or overlap certification can require additional circuits on a QPU.
 
 Let \(J_k^{\mathcal B}\) be the proposed post-patch support and \(\vartheta_{\mathcal B,k}^{\star}\) the zero-transported or locally refit parameters on that support.  Deletion can commit only if
