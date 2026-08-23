@@ -1842,11 +1842,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_append_candidates=int(args.max_append_candidates),
             append_min_time=float(args.append_min_time),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
-            escalation_accumulated_drift_threshold=(
-                None
-                if args.escalation_accumulated_drift_threshold is None
-                else float(args.escalation_accumulated_drift_threshold)
-            ),
             min_logical_parameter_count=int(args.min_logical_parameter_count),
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
@@ -1890,6 +1885,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             append_cost_scale_floor=float(args.append_cost_scale_floor),
             append_min_time=float(args.append_min_time),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
+            escalation_accumulated_drift_threshold=(
+                None
+                if args.escalation_accumulated_drift_threshold is None
+                else float(args.escalation_accumulated_drift_threshold)
+            ),
             prune_cooldown_steps=int(args.prune_cooldown_steps),
             min_runtime_parameter_count=int(args.min_runtime_parameter_count),
             prune_ray_distance_tol=float(args.prune_ray_distance_tol),
