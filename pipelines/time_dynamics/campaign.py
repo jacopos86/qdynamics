@@ -128,13 +128,20 @@ def append_only_arm() -> PolicyArm:
     )
 
 
-def avqds_arm(l2_cut: float, max_appends: int = 2) -> PolicyArm:
+def avqds_arm(l2_cut: float, max_appends: int | None = None) -> PolicyArm:
+    # Unbounded by default: Yao et al. (PRX Quantum 2, 030307) append
+    # "repeated until L^2 < L^2_cut" with no per-checkpoint cap, so a cap
+    # here would handicap the comparator rather than reproduce it.
+
     return PolicyArm(
         arm_id=f"avqds_cut{l2_cut:g}",
         flags=(
             "--dynamics-policy", "avqds",
             "--avqds-l2-cut", repr(float(l2_cut)),
-            "--avqds-max-appends-per-checkpoint", str(int(max_appends)),
+        ) + (
+            ()
+            if max_appends is None
+            else ("--avqds-max-appends-per-checkpoint", str(int(max_appends)))
         ),
         is_comparator=True,
     )

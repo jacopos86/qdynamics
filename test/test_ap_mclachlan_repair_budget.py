@@ -54,3 +54,31 @@ def test_conditioning_gate_default_is_recorded_as_float() -> None:
     config = SupportPatchControllerConfig()
     recorded = config.to_json_dict()["append_schur_max_condition_number"]
     assert isinstance(recorded, float)
+
+
+def test_accumulated_drift_integral_and_reset() -> None:
+    """The drift integral advances as sqrt(2*residual_sq)*dt and resets on an edit."""
+
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        _PruneControllerRuntimeState,
+    )
+
+    state = _PruneControllerRuntimeState()
+    assert state.advance_accumulated_drift(time=0.0, residual_sq=1.0) == 0.0
+    assert state.advance_accumulated_drift(time=1.0, residual_sq=0.5) == pytest.approx(1.0)
+    assert state.advance_accumulated_drift(time=2.0, residual_sq=0.5) == pytest.approx(2.0)
+    # A non-advancing or backwards checkpoint must not add to the integral.
+    assert state.advance_accumulated_drift(time=2.0, residual_sq=0.5) == pytest.approx(2.0)
+    state.clear_for_support("new-support")
+    assert state.accumulated_drift == 0.0
+
+
+def test_accumulated_drift_escalation_defaults_off() -> None:
+    """Default None preserves the historical residual-only escalation."""
+
+    assert SupportPatchControllerConfig().escalation_accumulated_drift_threshold is None
+
+
+def test_accumulated_drift_threshold_rejects_nonpositive() -> None:
+    with pytest.raises(ValueError, match="escalation_accumulated_drift_threshold"):
+        SupportPatchControllerConfig(escalation_accumulated_drift_threshold=0.0)

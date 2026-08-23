@@ -1495,6 +1495,19 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-append-batch-size", type=int, default=10)
     parser.add_argument("--append-schur-max-condition-number", type=float, default=1.0e12)
     parser.add_argument(
+        "--escalation-accumulated-drift-threshold",
+        type=float,
+        default=None,
+        help=(
+            "Escalate insertion enumeration when the McLachlan error-bound "
+            "integral accumulated since the last accepted structural edit "
+            "reaches this value, even if the instantaneous residual ratio is "
+            "below its threshold. Default None keeps residual-only "
+            "escalation, which is blind to error already banked into the "
+            "trajectory."
+        ),
+    )
+    parser.add_argument(
         "--no-append-schur-condition-gate",
         dest="append_schur_condition_gate",
         action="store_false",
@@ -1829,6 +1842,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_append_candidates=int(args.max_append_candidates),
             append_min_time=float(args.append_min_time),
             residual_ratio_threshold=float(args.residual_ratio_threshold),
+            escalation_accumulated_drift_threshold=(
+                None
+                if args.escalation_accumulated_drift_threshold is None
+                else float(args.escalation_accumulated_drift_threshold)
+            ),
             min_logical_parameter_count=int(args.min_logical_parameter_count),
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )

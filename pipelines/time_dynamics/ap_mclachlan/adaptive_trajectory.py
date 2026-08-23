@@ -146,6 +146,17 @@ class SupportPatchControllerConfig:
     append_schur_max_condition_number: float | None = 1.0e12
     append_min_time: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
+    # Accumulated-drift escalation. The residual-ratio predicate above is
+    # instantaneous and therefore blind to error already banked into the
+    # trajectory: measured on the HH snake seed under a strong fast drive,
+    # the route absorbed a 1.3e-1 energy error near t=2 and then reported
+    # `escalation_predicate_false` on 175 of the next 176 checkpoints,
+    # freezing the error to four digits from t=5 to t=10 while never
+    # attempting a repair.  This threshold escalates on the McLachlan
+    # error-bound integral accumulated since the last accepted structural
+    # edit, which is measurable on device (no exact reference).  `None`
+    # keeps the historical residual-only behaviour.
+    escalation_accumulated_drift_threshold: float | None = None
     # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
     interaction_frontier_widths: tuple[int, ...] | None = None
     max_insertion_batch_size: int | None = 1
@@ -246,6 +257,14 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        if (
+            self.escalation_accumulated_drift_threshold is not None
+            and float(self.escalation_accumulated_drift_threshold) <= 0.0
+        ):
+            raise ValueError(
+                "escalation_accumulated_drift_threshold must be positive "
+                "when set (None disables accumulated-drift escalation)."
+            )
         if (
             self.append_schur_max_condition_number is not None
             and float(self.append_schur_max_condition_number) <= 0.0
@@ -348,6 +367,11 @@ class SupportPatchControllerConfig:
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
+            "escalation_accumulated_drift_threshold": (
+                None
+                if self.escalation_accumulated_drift_threshold is None
+                else float(self.escalation_accumulated_drift_threshold)
+            ),
             "interaction_frontier_widths": (
                 None
                 if self.interaction_frontier_widths is None
@@ -766,7 +790,33 @@ class _PruneControllerRuntimeState:
         default_factory=dict
     )
     accepted_commit_count: int = 0
+    # McLachlan error-bound integral accumulated since the last accepted
+    # structural edit, and the checkpoint time it was last advanced to.
+    accumulated_drift: float = 0.0
+    accumulated_drift_time: float | None = None
     last_support_transition_metadata: dict[str, Any] = field(default_factory=dict)
+
+    def advance_accumulated_drift(self, *, time: float, residual_sq: float) -> float:
+        """Advance the McLachlan error-bound integral to ``time``.
+
+        The variational error bound accumulates as int L dt with
+        ``L = sqrt(2 * residual_sq)``; a right-endpoint rule over the
+        checkpoint interval is enough for a monotone trigger.
+        """
+
+        previous = self.accumulated_drift_time
+        self.accumulated_drift_time = float(time)
+        if previous is None:
+            return float(self.accumulated_drift)
+        dt = float(time) - float(previous)
+        if dt <= 0.0:
+            return float(self.accumulated_drift)
+        distance = float(np.sqrt(max(0.0, 2.0 * float(residual_sq))))
+        self.accumulated_drift = float(self.accumulated_drift) + distance * dt
+        return float(self.accumulated_drift)
+
+    def reset_accumulated_drift(self) -> None:
+        self.accumulated_drift = 0.0
 
     def ensure_support_identity(self, state: APMcLachlanState) -> None:
         identity = _support_identity_hash(state)
@@ -775,6 +825,7 @@ class _PruneControllerRuntimeState:
 
     def clear_for_support(self, identity: str | None = None) -> None:
         self.support_identity_hash = identity
+        self.accumulated_drift = 0.0
         self.loss_history.clear()
         self.conditioning_history.clear()
         self.atom_seen_history.clear()
@@ -1058,9 +1109,27 @@ def run_append_mclachlan_trajectory(
                 # threshold).  Pure deletions are row/column selections of the
                 # already-paid geometry — measurement-free — and are considered
                 # at every checkpoint.
-                insertions_active = float(fixed_step.residual_ratio) >= float(
+                accumulated_drift = prune_runtime_state.advance_accumulated_drift(
+                    time=float(time_value),
+                    residual_sq=float(fixed_step.residual_sq),
+                )
+                drift_threshold = getattr(
+                    effective_support_config,
+                    "escalation_accumulated_drift_threshold",
+                    None,
+                )
+                residual_escalates = float(fixed_step.residual_ratio) >= float(
                     effective_support_config.residual_ratio_threshold
                 )
+                drift_escalates = (
+                    drift_threshold is not None
+                    and accumulated_drift >= float(drift_threshold)
+                )
+                # Either predicate opens insertion enumeration: the residual
+                # ratio catches a checkpoint that is locally hard, the drift
+                # integral catches a trajectory that has quietly banked error
+                # while every individual checkpoint looked easy.
+                insertions_active = bool(residual_escalates or drift_escalates)
                 if str(
                     getattr(effective_support_config, "dynamics_policy", "exchange")
                 ).strip().lower() == "avqds":

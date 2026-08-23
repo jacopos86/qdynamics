@@ -393,9 +393,21 @@ def select_deletion_conditioned_patch(
         ),
     )
 
+    drift_threshold = getattr(
+        support_config, "escalation_accumulated_drift_threshold", None
+    )
+    accumulated_drift = float(getattr(runtime_state, "accumulated_drift", 0.0))
+
     def escalate() -> bool:
-        return float(base_step.residual_ratio) >= float(
+        # Mirrors the caller's insertion predicate: locally hard checkpoint
+        # (residual ratio) OR a trajectory that has banked error while every
+        # checkpoint looked locally easy (accumulated McLachlan bound).
+        if float(base_step.residual_ratio) >= float(
             support_config.residual_ratio_threshold
+        ):
+            return True
+        return drift_threshold is not None and accumulated_drift >= float(
+            drift_threshold
         )
 
     # Hook #3: optional bounded local refit toward the frozen checkpoint ray,
@@ -488,6 +500,21 @@ def select_deletion_conditioned_patch(
         }
         if selection.certification is not None:
             payload["certification"] = selection.certification.to_json_dict()
+    payload["accumulated_drift"] = float(accumulated_drift)
+    payload["escalation_accumulated_drift_threshold"] = (
+        None if drift_threshold is None else float(drift_threshold)
+    )
+    payload["escalation_source"] = (
+        "residual_ratio"
+        if float(base_step.residual_ratio)
+        >= float(support_config.residual_ratio_threshold)
+        else (
+            "accumulated_drift"
+            if drift_threshold is not None
+            and accumulated_drift >= float(drift_threshold)
+            else "none"
+        )
+    )
     return selection, payload
 
 
