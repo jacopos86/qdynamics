@@ -1603,6 +1603,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--insertion-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
+        "--debt-policy",
+        choices=["insertion_only", "any_improving"],
+        default="insertion_only",
+        help=(
+            "What may fire while L^2 exceeds the cut. 'insertion_only' "
+            "withdraws removal until the debt is paid; 'any_improving' keeps "
+            "removal eligible and admits any patch that reduces L^2."
+        ),
+    )
+    parser.add_argument(
         "--max-insertion-rounds-per-checkpoint", type=int, default=12,
         help="Safety valve on the greedy repeat; not part of the rule.",
     )
@@ -1923,6 +1933,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.avqds_delta_theta_max is None
                 else float(args.avqds_delta_theta_max)
             ),
+            debt_policy=str(args.debt_policy),
             insertion_gate_mode=str(args.insertion_gate_mode),
             insertion_l2_cut=float(args.insertion_l2_cut),
             max_insertion_rounds_per_checkpoint=int(

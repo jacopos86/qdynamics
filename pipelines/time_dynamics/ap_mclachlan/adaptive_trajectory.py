@@ -179,6 +179,18 @@ class SupportPatchControllerConfig:
     # stabilization mechanism.  `None` integrates on the reporting grid,
     # which is NOT the published method.
     avqds_delta_theta_max: float | None = None
+    # What may fire while L^2 is above the cut ("accuracy debt").
+    #   "insertion_only" -- removal withdrawn until the debt is paid. Measured
+    #       best today: peak L^2 5.7e-3, final 4.6e-4, 32 coordinates.
+    #   "any_improving"  -- removal stays eligible and any patch that reduces
+    #       L^2 is admitted. Physically the better rule, since removing a
+    #       near-degenerate coordinate relieves conditioning, but it is worse
+    #       in practice while ranking is cost-weighted: deletions always win
+    #       that score, exhaust the per-level certification budget, and starve
+    #       the insertions that would pay the debt (peak L^2 2.1e-2, 24
+    #       coordinates). Fixing it properly means ranking by L^2 reduction
+    #       under debt, which is a change in exchange_structural, not a guard.
+    debt_policy: str = "insertion_only"
     insertion_gate_mode: str = "residual_ratio"
     insertion_l2_cut: float = 1.0e-3
     # Safety valve on the greedy within-checkpoint repeat, not part of the
@@ -285,6 +297,10 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        if str(self.debt_policy) not in {"insertion_only", "any_improving"}:
+            raise ValueError(
+                "debt_policy must be 'insertion_only' or 'any_improving'."
+            )
         if str(self.insertion_gate_mode) not in {"residual_ratio", "mclachlan_l2"}:
             raise ValueError(
                 "insertion_gate_mode must be 'residual_ratio' or 'mclachlan_l2'."
@@ -410,6 +426,7 @@ class SupportPatchControllerConfig:
                 if self.avqds_delta_theta_max is None
                 else float(self.avqds_delta_theta_max)
             ),
+            "debt_policy": str(self.debt_policy),
             "insertion_gate_mode": str(self.insertion_gate_mode),
             "insertion_l2_cut": float(self.insertion_l2_cut),
             "max_insertion_rounds_per_checkpoint": int(
@@ -1266,26 +1283,42 @@ def run_append_mclachlan_trajectory(
                     insertion_rounds = 0
                     round_labels: list[str] = []
 
+                    # Deletions stay eligible under accuracy debt.  Removing a
+                    # near-degenerate coordinate relieves conditioning and can
+                    # reduce the McLachlan distance, so barring deletion while
+                    # L^2 is high forbids exactly the repair that a badly
+                    # conditioned ansatz needs.  What must be prevented is the
+                    # inversion -- a deletion always improves the cost-weighted
+                    # score, so an unguarded greedy loop sheds coordinates while
+                    # L^2 climbs (measured: 26 -> 19 parameters as L^2 went
+                    # 4.5e-4 -> 2.2e-1).  The guard is therefore on the
+                    # *outcome*, applied below before any commit under debt:
+                    # a patch that does not reduce L^2 is refused.
+                    # Deletions are eligible under debt, but a deletion that
+                    # ranks top on the cost-weighted score and does not reduce
+                    # L^2 must not consume the checkpoint.  `deletions_offered`
+                    # is cleared for a retry so the round falls back to
+                    # insertion-only rather than stalling: measured without the
+                    # retry, one such deletion left the checkpoint doing nothing
+                    # at all while L^2 ran from 5.7e-3 to 3.4e-1 and the support
+                    # sat at 18 coordinates.
+                    deletions_offered = (
+                        str(
+                            getattr(
+                                effective_support_config, "debt_policy",
+                                "insertion_only",
+                            )
+                        ) == "any_improving"
+                        or gate_mode != "mclachlan_l2"
+                        or checkpoint_l2 <= l2_cut
+                    )
+
                     def _round_prune_atoms(state_arg, **kwargs):
-                        """Deletion eligibility for one greedy round.
-
-                        Under the AVQDS append condition, accuracy debt and
-                        cost relief are sequenced rather than scored against
-                        each other: while L^2 is above the cut the checkpoint
-                        owes accuracy and only insertions may be considered;
-                        once L^2 clears the cut the geometry is already paid
-                        for and pruning is free.  Without this the greedy
-                        repeat inverts -- deletions always improve the
-                        cost-weighted score, so rounds get spent shedding
-                        coordinates while L^2 climbs (measured: 26 -> 19
-                        parameters as L^2 went 4.5e-4 -> 2.2e-1).
-                        """
-
-                        if gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut:
+                        if not deletions_offered:
                             return ()
                         return _active_prune_atoms(state_arg, **kwargs)
 
-                    for _round in range(max_rounds):
+                    for _round in range(max_rounds + 1):
                         with phase(PHASE_UNIFIED_SELECT):
                             selection, selection_payload = select_deletion_conditioned_patch(
                                 state=current_state,
@@ -1301,6 +1334,10 @@ def run_append_mclachlan_trajectory(
                                 active_prune_atoms=_round_prune_atoms,
                                 solve_repair_config=solve_repair_config,
                                 insertions_enabled=insertions_active,
+                                escalation_override=(
+                                    gate_mode == "mclachlan_l2"
+                                    and insertions_active
+                                ),
                             )
                         (
                             decision,
@@ -1322,6 +1359,29 @@ def run_append_mclachlan_trajectory(
                         ):
                             break
                         l2_before_round = checkpoint_l2
+                        if gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut:
+                            # Under debt the admissible patches are exactly the
+                            # ones that pay the debt down, whichever kind they
+                            # are.  Evaluating the materialized candidate costs
+                            # nothing extra: the selector already built it.
+                            l2_candidate = mclachlan_distance_squared(
+                                maybe_eval, inverse_policy=decision_inverse_policy
+                            )
+                            if l2_candidate >= checkpoint_l2:
+                                if deletions_offered and str(
+                                    decision.patch_kind
+                                ) in {PATCH_DELETE, PATCH_EXCHANGE}:
+                                    # Retry this same checkpoint with removal
+                                    # withdrawn, so an unhelpful deletion costs
+                                    # one attempt rather than the whole step.
+                                    deletions_offered = False
+                                    continue
+                                decision = replace(
+                                    decision,
+                                    accepted=False,
+                                    reason="refused_non_improving_patch_under_l2_debt",
+                                )
+                                break
                         _commit_patch_decision()
                         committed_in_round_loop = True
                         insertion_rounds += 1

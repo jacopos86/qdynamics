@@ -538,6 +538,43 @@ stresses the structural rule hardest; the doublon fraction and the site
 occupations are followed to $t=10$ against the exact time-ordered trajectory of
 the same truncated Hamiltonian.
 
+\subsection{Integrator dependence of the shared numerical method}
+\label{sec:integrator_ablation}
+
+Because every arm in this comparison runs one inner numerical method, the choice
+of that method is a property of the comparison rather than of any policy, and it
+is reported here rather than assumed.  Table~\ref{tab:integrator_ablation}
+varies only the integrator, holding the seed, drive, grid, Tikhonov
+regularization ($\xi=10^{-6}$), candidate pool, and step control fixed.
+
+\begin{table}[t]
+\caption{Integrator dependence at fixed regularization and step control, adaptive-append policy on the driven Hubbard--Holstein seed to $t=10$.  The state-motion step guard is active and satisfied in every cell --- no step exhausted its subdivision budget --- so the difference is the integrator order alone.  \tentative{Two drives; the remaining four and the other policies are in progress.}}
+\label{tab:integrator_ablation}
+\begin{ruledtabular}
+\begin{tabular}{llcc}
+Drive & Integrator & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$\\
+\colrule
+fast weak & fourth order & \tentative{$2.3\times10^{-4}$} & \tentative{$7.4\times10^{-4}$}\\
+fast weak & Euler & \tentative{$2.6\times10^{-2}$} & \tentative{$6.3\times10^{-3}$}\\
+strong fast & fourth order & \tentative{$3.8\times10^{-3}$} & \tentative{$1.0\times10^{-3}$}\\
+strong fast & Euler & \tentative{$3.8\times10^{-2}$} & \tentative{$1.2\times10^{-2}$}\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+Euler costs between one and two orders of magnitude in trajectory accuracy at
+this reporting grid, and the step-size guard does not recover it: the guard was
+satisfied at every checkpoint in all four cells, so the residual difference is
+truncation error of the integrator itself rather than an uncontrolled step.
+This bears on how the comparison should be read.  A first-order integrator is
+what the adaptive-append source specifies, and it is cheaper per step, so a
+comparison run entirely in Euler is faithful to that source and inexpensive; but
+it places every policy in a regime where integrator error is comparable to or
+larger than the structural differences under study, which is the regime in which
+a structural claim is least legible.  We therefore report the integrator
+alongside every result rather than fixing one, and we do not select it by which
+choice favours the policy proposed here.
+
 \subsection{Adaptive-append comparison}
 \label{sec:comparator}
 
@@ -546,12 +583,12 @@ The closest adaptive-ansatz comparator is adaptive variational quantum dynamics 
 L_k^2(J)=\|\bar b_k\|_2^2-Q_k(J)
 \label{eq:mclachlan_distance}
 \end{equation}
-as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator whose zero-angle addition maximally reduces $L_k^2$, at the end of the circuit, and never deletes.  We implement that decision rule on the same checkpoint geometry, regularized inverse, solve repair, integrator, seed, drive, and time grid used by the exchange route, so the comparison isolates the structural rule rather than the numerical realization.  We further adopt the comparator's append \emph{condition} for the exchange route's own insertions, since growth is not this work's contribution: insertions are considered when $L_k^2$ exceeds the cut and are repeated within one checkpoint until it is met or no candidate improves it.  The route's normalized residual-ratio gate is retained only as an ablation.  The reason is measured rather than stylistic: a normalized gate is small precisely while the state is still accurate, so it defers growth past the window in which growth is cheap, and on this drive the comparator completed its growth by $t\approx0.9$ and held $46$ coordinates thereafter while the residual-gated route was still adding coordinates at $t\approx2$ with $L_k^2$ four orders of magnitude larger and a state already off the exact trajectory.  Two structural differences from Eq.~(\ref{eq:append_score}) remain by construction: the comparator ranks by drift reduction alone rather than drift reduction per compiled cost, and it does not position insertions at commutation-reduced cuts.
+as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator whose zero-angle addition maximally reduces $L_k^2$, at the end of the circuit, and never deletes.  We implement that decision rule on the same checkpoint geometry, regularized inverse, solve repair, integrator, seed, drive, and time grid used by the exchange route, so the comparison isolates the structural rule rather than the numerical realization.  This is a comparison against the AVQDS \emph{rule}, not against its published implementation: the comparator inherits stabilization machinery that AVQDS as published does not specify, including the state-motion and temporal-kink subdivision guards of Sec.~\ref{sec:numerical_stabilization} and the regularized inverse.  We therefore make no claim to reproduce published AVQDS trajectories, and the growth-only ablation of our own route --- which retains positioned insertion at commutation-reduced cuts, cost-weighted ranking, and certification with refit, and differs from the full route only in that removal is disabled --- is reported separately from it rather than as the same object.  We further adopt the comparator's append \emph{condition} for the exchange route's own insertions, since growth is not this work's contribution: insertions are considered when $L_k^2$ exceeds the cut and are repeated within one checkpoint until it is met or no candidate improves it.  The route's normalized residual-ratio gate is retired: under it the same route reached only $1.26\times10^{-1}$ mean energy error and $2.8\times10^{-2}$ on the doublon fraction at $67$ coordinates on this drive, against $2.1\times10^{-2}$ and $3.3\times10^{-3}$ at $37$ under the adopted condition.  The reason is measured rather than stylistic: a normalized gate is small precisely while the state is still accurate, so it defers growth past the window in which growth is cheap, and on this drive the comparator completed its growth by $t\approx0.9$ and held $46$ coordinates thereafter while the residual-gated route was still adding coordinates at $t\approx2$ with $L_k^2$ four orders of magnitude larger and a state already off the exact trajectory.  Two structural differences from Eq.~(\ref{eq:append_score}) remain by construction: the comparator ranks by drift reduction alone rather than drift reduction per compiled cost, and it does not position insertions at commutation-reduced cuts.
 
 Under this condition accuracy debt and cost relief are sequenced rather than scored against one another.  While $L_k^2$ exceeds the cut the checkpoint owes accuracy and only insertions are admitted; once it falls below, the geometry has already been paid for and removal is free.  Scoring them jointly inverts the rule, because a deletion always improves the cost-weighted objective: without the sequencing the within-checkpoint repeat spends its rounds shedding coordinates while $L_k^2$ climbs, measured on this seed as $26\rightarrow19$ coordinates with $L_k^2$ rising from $4.5\times10^{-4}$ to $2.2\times10^{-1}$.
 
 \begin{table}[t]
-\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$) under the strong fast drive ($A=2.4$, $\omega=3$) to $t=10$ over $251$ checkpoints.  Both policies share the seed, drive, reporting grid, inverse policy, solve repair, fourth-order integration, and the full deduplicated candidate pool of $125$ words; errors are against the exact time-ordered trajectory of the same truncated Hamiltonian.  The pool is no longer capped below its own size, so the comparator reaches its McLachlan-distance cut by its own stopping rule rather than by a per-checkpoint budget, and no budget is imposed on it.  The residual-gated rows are the superseded insertion condition, retained as ablations of the gate itself and marked as such.  \tentative{One drive and one seed; the remaining five drives are in progress.}}
+\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$) under the strong fast drive ($A=2.4$, $\omega=3$) to $t=10$ over $251$ checkpoints.  Both policies share the seed, drive, reporting grid, inverse policy, solve repair, fourth-order integration, and the full deduplicated candidate pool of $125$ words; errors are against the exact time-ordered trajectory of the same truncated Hamiltonian.  The pool is no longer capped below its own size, so the comparator reaches its McLachlan-distance cut by its own stopping rule rather than by a per-checkpoint budget, and no budget is imposed on it.  \tentative{One drive and one seed; the remaining five drives are in progress.}}
 \label{tab:comparator_hh_snake}
 \begin{ruledtabular}
 \begin{tabular}{lccc}
@@ -560,10 +597,6 @@ Policy & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$ & $N_{\rm par
 adaptive append \cite{Yao2021} & \tentative{$9.1\times10^{-3}$} & \tentative{$2.7\times10^{-3}$} & \tentative{46}\\
 append-only (ablation) & \tentative{$5.3\times10^{-2}$} & \tentative{$9.8\times10^{-3}$} & \tentative{44}\\
 exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^{-3}$} & \tentative{37}\\
-\colrule
-\multicolumn{4}{l}{\emph{superseded residual-ratio gate, retained as gate ablations}}\\
-append-only & \tentative{$1.33\times10^{-1}$} & \tentative{$2.9\times10^{-2}$} & \tentative{74}\\
-exchange & \tentative{$1.26\times10^{-1}$} & \tentative{$2.8\times10^{-2}$} & \tentative{67}\\
 \end{tabular}
 \end{ruledtabular}
 \end{table}

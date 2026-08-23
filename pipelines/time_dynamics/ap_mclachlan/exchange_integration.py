@@ -363,6 +363,7 @@ def select_deletion_conditioned_patch(
     active_prune_atoms: Any,
     solve_repair_config: Any | None = None,
     insertions_enabled: bool = True,
+    escalation_override: bool = False,
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
     """Run the exchange selector at one checkpoint with route wiring.
 
@@ -399,9 +400,17 @@ def select_deletion_conditioned_patch(
     accumulated_drift = float(getattr(runtime_state, "accumulated_drift", 0.0))
 
     def escalate() -> bool:
-        # Mirrors the caller's insertion predicate: locally hard checkpoint
-        # (residual ratio) OR a trajectory that has banked error while every
-        # checkpoint looked locally easy (accumulated McLachlan bound).
+        # `escalation_override` carries the caller's own gate decision, which
+        # under the McLachlan-L2 condition is the authority.  Without it the
+        # selector kept escalating on the normalized residual ratio at its
+        # default 2e-2 while the caller was gating on L^2, so a checkpoint in
+        # accuracy debt could acquire no families at all and return no patch --
+        # measured as stalled checkpoints with L^2 above the cut and zero
+        # rounds attempted.
+        if bool(escalation_override):
+            return True
+        # Otherwise: locally hard checkpoint (residual ratio) OR a trajectory
+        # that has banked error while every checkpoint looked locally easy.
         if float(base_step.residual_ratio) >= float(
             support_config.residual_ratio_threshold
         ):

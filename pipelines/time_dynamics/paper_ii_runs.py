@@ -565,6 +565,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     show.add_argument("--regime", default="hh_snake_nph1")
     show.add_argument("--arm", default="exchange")
     show.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
+    show.add_argument("--numerics", default=SHARED_NUMERICS.numerics_id)
+    show.add_argument(
+        "--step-control", default=STATE_MOTION_CONTROL.control_id
+    )
     show.add_argument("--drive", default="fastweak")
     show.add_argument("--horizon", default="t10")
     show.add_argument("--output-json", default="output/paper_ii/run.json")
@@ -578,7 +582,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "list":
         for title, registry in (
-            ("arms", ARMS), ("gates", GATES), ("drives", DRIVES), ("horizons", HORIZONS)
+            ("arms", ARMS), ("gates", GATES), ("numerics", NUMERICS),
+            ("step controls", STEP_CONTROLS), ("drives", DRIVES),
+            ("horizons", HORIZONS),
         ):
             print(f"{title}:")
             for key in registry:
@@ -597,7 +603,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "show":
         print(build_run(
             regime=args.regime, arm=args.arm, gate=args.gate, drive=args.drive,
-            horizon=args.horizon, output_json=args.output_json,
+            horizon=args.horizon, numerics=args.numerics,
+            step_control=args.step_control, output_json=args.output_json,
         ).shell())
         return 0
     for run in paper_ii_runs(
