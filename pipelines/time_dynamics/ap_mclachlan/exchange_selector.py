@@ -232,7 +232,12 @@ def select_exchange_patch(
                 and np.isfinite(float(c.score))
                 and float(c.score) > float(score_floor)
             ),
-            key=lambda c: (-float(c.score), c.order_key),
+            # Lexicographic: accuracy first, utility only among exact ties.
+            key=lambda c: (
+                -float(getattr(c, "rank_primary", c.score)),
+                -float(getattr(c, "rank_secondary", 0.0)),
+                c.order_key,
+            ),
         )
         for candidate in ranked:
             if candidate.order_key in attempted:

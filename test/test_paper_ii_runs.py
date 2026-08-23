@@ -265,7 +265,7 @@ def test_published_avqds_is_arm_plus_its_own_step_control() -> None:
     assert parsed.integrator == "euler"
     assert parsed.solve_repair is False
     assert parsed.certification_refit is False
-    assert parsed.ridge_lambda == pytest.approx(1.0e-6)
+    assert parsed.ridge_lambda == pytest.approx(1.0e-7)
     assert parsed.avqds_delta_theta_max == pytest.approx(5.0e-3)
     assert parsed.dynamics_policy == "avqds"
 
@@ -287,7 +287,7 @@ def test_step_control_is_separable_from_the_structural_rule() -> None:
             )
             # The inner numerical method is identical across all four cells.
             assert parsed.integrator == "euler"
-            assert parsed.ridge_lambda == pytest.approx(1.0e-6)
+            assert parsed.ridge_lambda == pytest.approx(1.0e-7)
     assert seen[("exchange", "delta_theta_5e-3")][1] == pytest.approx(5.0e-3)
     assert seen[("avqds", "state_motion_1e-2")][0] is True
     assert len({v for v in seen.values()}) == 2

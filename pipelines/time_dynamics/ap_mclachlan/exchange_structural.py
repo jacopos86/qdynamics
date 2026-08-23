@@ -79,6 +79,9 @@ class StructuralScoreWeights:
     # act only as tiebreakers among them, so cost can never re-invert an
     # accuracy decision.
     debt_ranking: bool = False
+    # Two candidates whose signed delta agrees to within this are treated
+    # as exactly tied on accuracy, and only then may utility order them.
+    delta_rank_tolerance: float = 1.0e-12
 
     def __post_init__(self) -> None:
         if float(self.alpha_ins) < 0.0 or float(self.alpha_del) < 0.0:
@@ -109,6 +112,8 @@ class StructuralCandidate:
     insertion_utility: float
     deletion_utility: float
     score: float
+    rank_primary: float = 0.0
+    rank_secondary: float = 0.0
 
     @property
     def kind(self) -> str:
@@ -316,21 +321,24 @@ def iter_structural_families(
         else:
             loss = 0.0
             deletion_utility = 0.0
+        score = (
+            insertion_utility
+            + deletion_utility
+            + float(weights.w_delta) * delta
+        )
         if bool(weights.debt_ranking):
-            # Primary key: signed accuracy change. The composite utility is
-            # retained as a bounded tiebreaker, scaled far below any resolvable
-            # difference in delta so it can only order candidates that improve
-            # L^2 by the same amount.
-            tiebreak = insertion_utility + deletion_utility
-            score = float(delta) + 1.0e-12 * float(
-                np.tanh(tiebreak)
-            )
+            # True lexicographic key. A scalar encoding (delta + eps*tanh(u))
+            # only approximates this: it silently degrades to the utility
+            # ordering whenever two deltas differ by less than eps, which is
+            # exactly the regime where the divergent deletion utility is most
+            # dangerous. Quantizing delta makes "tied on accuracy" an explicit,
+            # declared tolerance rather than a floating-point accident.
+            tol = float(weights.delta_rank_tolerance)
+            rank_primary = float(round(float(delta) / tol)) if tol > 0.0 else float(delta)
+            rank_secondary = float(np.tanh(insertion_utility + deletion_utility))
         else:
-            score = (
-                insertion_utility
-                + deletion_utility
-                + float(weights.w_delta) * delta
-            )
+            rank_primary = float(score)
+            rank_secondary = 0.0
         return StructuralCandidate(
             removed_runtime_indices=removed,
             inserted_selection=tuple(selection),
@@ -343,6 +351,8 @@ def iter_structural_families(
             insertion_utility=insertion_utility,
             deletion_utility=deletion_utility,
             score=float(score),
+            rank_primary=float(rank_primary),
+            rank_secondary=float(rank_secondary),
         )
 
     candidates: list[StructuralCandidate] = []

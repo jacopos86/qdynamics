@@ -53,7 +53,7 @@ class Numerics:
 
     numerics_id: str
     integrator: str = "euler"
-    ridge_lambda: float = 1.0e-6
+    ridge_lambda: float = 1.0e-7
     solve_damping: float = 0.0
     pinv_rcond: float = 1.0e-10
     note: str = ""
@@ -73,12 +73,12 @@ class Numerics:
 # integrator order is what sets the error. Tikhonov xi=1e-6 matches the value
 # AVQDS states, so the regularization is not a hidden difference either.
 SHARED_NUMERICS = Numerics(
-    numerics_id="euler_ridge1e-6",
-    note="Shared inner method: Euler, Tikhonov xi=1e-6, no extra damping.",
+    numerics_id="euler_ridge1e-7",
+    note="Shared inner method: Euler, ridge 1e-7, no extra damping.",
 )
 
 RK4_NUMERICS = Numerics(
-    numerics_id="rk4_ridge1e-6",
+    numerics_id="rk4_ridge1e-7",
     integrator="rk4",
     note=(
         "Higher-order integrator, retained as an ablation of the integrator "

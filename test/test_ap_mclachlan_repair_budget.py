@@ -84,16 +84,96 @@ def test_accumulated_drift_threshold_rejects_nonpositive() -> None:
         SupportPatchControllerConfig(escalation_accumulated_drift_threshold=0.0)
 
 
-def test_debt_ranking_orders_by_signed_accuracy_change() -> None:
-    """Under L^2 debt the primary key must be the signed drift change.
+def _candidate(delta, ins_u=0.0, del_u=0.0, *, debt, tol=1.0e-12, order=(0,)):
+    """Build a scored candidate the way exchange_structural does."""
 
-    The default composite score cannot discriminate there. The deletion loss is
-    one-sided, l = [q(0,I) - q(D,I)]_+, so a deletion that LOWERS L^2 and one
-    that merely leaves it unchanged both score l = 0; that tie then goes into
-    the utility denominator, giving a near-free deletion a score of order
-    cost/epsilon_L ~ 1e14 against an insertion utility of order gain/cost.
+    import numpy as np
+
+    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+        StructuralCandidate,
+    )
+
+    if debt:
+        rank_primary = float(round(float(delta) / tol))
+        rank_secondary = float(np.tanh(ins_u + del_u))
+    else:
+        rank_primary = float(ins_u + del_u + delta)
+        rank_secondary = 0.0
+    return StructuralCandidate(
+        removed_runtime_indices=(),
+        inserted_selection=(),
+        plan=None,
+        family="test",
+        q=0.0,
+        insertion_gain=0.0,
+        deletion_loss=0.0,
+        delta=float(delta),
+        insertion_utility=float(ins_u),
+        deletion_utility=float(del_u),
+        score=float(ins_u + del_u + delta),
+        rank_primary=rank_primary,
+        rank_secondary=rank_secondary,
+    )
+
+
+def _rank(candidates):
+    return sorted(
+        candidates,
+        key=lambda c: (
+            -float(getattr(c, "rank_primary", c.score)),
+            -float(getattr(c, "rank_secondary", 0.0)),
+            c.order_key,
+        ),
+    )
+
+
+def test_larger_delta_beats_an_arbitrarily_large_deletion_utility() -> None:
+    """The divergent deletion utility must not outrank a better delta.
+
+    A near-zero-loss deletion scores ~cost/epsilon_L ~ 1e14 in the composite
+    score. Under debt ranking it must still lose to any candidate with a
+    strictly larger signed drift change.
     """
 
+    improving_insert = _candidate(1.0e-3, ins_u=1.0e-6, debt=True)
+    cheap_deletion = _candidate(-1.0e-4, del_u=1.0e14, debt=True)
+    assert _rank([cheap_deletion, improving_insert])[0] is improving_insert
+
+
+def test_equal_delta_is_ordered_by_the_secondary_utility() -> None:
+    lo = _candidate(5.0e-4, ins_u=1.0, debt=True, order=(1,))
+    hi = _candidate(5.0e-4, del_u=1.0e9, debt=True, order=(2,))
+    ranked = _rank([lo, hi])
+    assert ranked[0] is hi and ranked[1] is lo
+
+
+def test_delta_differences_below_tolerance_count_as_tied() -> None:
+    """`delta_rank_tolerance` makes the tie explicit rather than accidental."""
+
+    tol = 1.0e-12
+    a = _candidate(1.0e-3, ins_u=0.0, debt=True, tol=tol)
+    b = _candidate(1.0e-3 + tol / 4.0, del_u=1.0e12, debt=True, tol=tol)
+    assert a.rank_primary == b.rank_primary
+    assert _rank([a, b])[0] is b          # utility breaks the declared tie
+
+
+def test_below_debt_the_composite_score_still_orders() -> None:
+    cheap_deletion = _candidate(-1.0e-4, del_u=1.0e14, debt=False)
+    improving_insert = _candidate(1.0e-3, ins_u=1.0e-6, debt=False)
+    assert _rank([improving_insert, cheap_deletion])[0] is cheap_deletion
+
+
+def test_a_non_improving_deletion_cannot_head_the_debt_ranking() -> None:
+    """Negative delta must sort below every improving candidate."""
+
+    improving = [_candidate(d, debt=True) for d in (1e-6, 1e-5, 1e-4)]
+    harmful = _candidate(-1.0e-3, del_u=1.0e14, debt=True)
+    ranked = _rank([harmful, *improving])
+    assert ranked[-1] is harmful
+    assert ranked[0].delta == pytest.approx(1e-4)
+
+
+def test_debt_ranking_weights_carry_the_declared_tolerance() -> None:
     from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
         StructuralScoreWeights,
     )
@@ -101,9 +181,7 @@ def test_debt_ranking_orders_by_signed_accuracy_change() -> None:
     default = StructuralScoreWeights()
     assert default.debt_ranking is False
     assert default.epsilon_L == pytest.approx(1.0e-14)
-
-    debt = StructuralScoreWeights(debt_ranking=True)
-    assert debt.debt_ranking is True
+    assert StructuralScoreWeights(debt_ranking=True).delta_rank_tolerance > 0.0
 
 
 def test_debt_policy_choices_are_validated() -> None:
