@@ -148,7 +148,7 @@ where \(G_k=\Re(\bar T_k^\dagger\bar T_k)\) and \(f_k=\Re(\bar T_k^\dagger\bar b
 The remaining failure has two components.  First, the manifold can be structurally wrong: useful tangent directions may be absent, while obsolete or mutually redundant directions remain.  A compact ADAPT ansatz may prepare the initial state accurately yet fail to span the later driven velocity \cite{Grimsley2019,Tang2021,Yordanov2021}.  Append-only dynamics addresses missing directions but permits redundant support, compiled depth, and nearly dependent tangent modes to accumulate \cite{Yao2021,Linteau2024,Zhang2025}.  Second, a suitable manifold can still be realized badly.  Ridge loading, eigencutoffs, damped inverses, and local subdivision are established numerical tools, but a condition number does not determine whether regularization should increase or decrease.  Stronger damping can suppress unstable modes or erase useful motion; a large physically accurate velocity instead calls for a smaller local step.  Structural expressivity miss must therefore be separated from numerical realization miss.
 
 \subsection{AP-McLachlan: joint support-patch dynamics}
-AP-McLachlan first treats structural maintenance as one bidirectional support-patch decision.  At a structural checkpoint it evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  Append acquires child-resolved tangent directions as positioned zero-angle insertions at commutation-reduced circuit cuts, ranked by realized captured drift per compiled hardware cost.  Prune retires support only after full active-support deletion loss, reduced-state refit, same-checkpoint ray and velocity continuity, cooldown, and atomic rejection authorize removal.  Among the many possible combinatorial support-search strategies, the implementation enumerates complete deletion-cardinality rungs under an explicit work budget, so every deletion and exchange competes with every insertion on one structural score before any finalist is materialized.
+AP-McLachlan first treats structural maintenance as one bidirectional support-patch decision.  At a structural checkpoint it evaluates one patch $\mathcal B_k=(B_k^{\ominus},B_k^{\oplus})$.  Empty components recover stay, pure append, and pure prune; two nonempty components define a true exchange evaluated jointly on the patched support.  During accuracy debt, every candidate kind is ordered first by its signed change in realized captured drift, with resource utility confined to a bounded numerical tiebreaker; after the McLachlan-distance cut is met, the ordinary cost-aware append and prune utilities resume.  Prune retires support only after the realized patched solve, reduced-state refit, same-checkpoint ray and velocity continuity, cooldown, and atomic rejection authorize removal.  Among the many possible combinatorial support-search strategies, the implementation enumerates complete deletion-cardinality rungs under an explicit work budget, so every deletion and exchange competes with every insertion under the checkpoint's active ranking rule before any finalist is materialized.
 
 After the support decision, the numerical lane determines how to realize Eq.~(\ref{eq:mclachlan_velocity}) on the accepted fixed support.  It compares stronger and weaker inverse policies, uses state-space motion and temporal kink to nominate local subdivision, selects the least-intervention admissible response, and returns to the base solve through release hysteresis.  Structural maintenance and numerical stabilization therefore act on different questions: which tangent directions should be active, and how should motion on that active tangent space be realized over the finite step?
 
@@ -305,7 +305,7 @@ Q_k(J_k)
 }.
 \label{eq:prune_loss}
 \end{equation}
-Equation~(\ref{eq:prune_loss}) is the backward counterpart of Eq.~(\ref{eq:append_gain}): append asks how much explained drift is gained by enlarging the support, whereas prune asks how much is lost after deleting a block and refitting the survivors.  Low loss nominates a block for deletion.  Resource cost, historical redundancy, Schur degeneracy, and conditioning relief prioritize among low-loss batches, but cannot authorize a deletion with excessive current loss.
+Equation~(\ref{eq:prune_loss}) is the backward counterpart of Eq.~(\ref{eq:append_gain}): append asks how much explained drift is gained by enlarging the support, whereas prune asks how much is lost after deleting a block and refitting the survivors.  The positive-part operation makes $\mathcal L_k^{\ominus}$ a damage quantity: it is positive for a harmful deletion and zero for both a harmless deletion and a deletion that improves the realized solve.  Low loss can therefore nominate a block for cost-aware compression, but it cannot order deletion-containing patches while the checkpoint owes accuracy.  The signed net drift change defined below has that authority; resource cost, historical redundancy, Schur degeneracy, and conditioning relief remain secondary nomination information.
 
 The quantity in Eq.~(\ref{eq:prune_loss}) has an exact algebraic form, and it is worth stating because it fixes what pruning can and cannot do.  Partition the checkpoint Gram system between the coordinates a candidate retains, \(R=J_k\setminus D\), and those it proposes to delete, \(D\),
 \begin{equation}
@@ -316,9 +316,10 @@ f_k=\begin{bmatrix} f_R\\ f_D\end{bmatrix},
 \end{equation}
 and define the reverse Schur novelty block and its drive residual
 \begin{equation}
-S_{D|R}=G_{DD}-G_{DR}G_{RR}^{+}G_{RD},
-\qquad
-r_{D|R}=f_D-G_{DR}G_{RR}^{+}f_R .
+\begin{aligned}
+S_{D|R}&=G_{DD}-G_{DR}G_{RR}^{+}G_{RD},\\
+r_{D|R}&=f_D-G_{DR}G_{RR}^{+}f_R .
+\end{aligned}
 \label{eq:schur_novelty}
 \end{equation}
 Then under an exact, unregularized solve
@@ -328,7 +329,7 @@ Q_k(J_k)-Q_k(R)=r_{D|R}^{\mathsf T}S_{D|R}^{+}r_{D|R}\;\ge\;0 .
 \end{equation}
 The identity requires \(f_k\in\operatorname{range}(G_k)\), which this route satisfies by construction rather than by assumption: \(G_k=T_k^{\mathsf T}T_k\) and \(f_k=T_k^{\mathsf T}\bar b_k\) are formed from the same tangent matrix, so \(f_k\in\operatorname{range}(T_k^{\mathsf T})=\operatorname{range}(G_k)\), and restricting to a coordinate subset restricts \(T_k\) to those columns and preserves the property.
 
-Two consequences follow, and the route is built around them.  First, the right-hand side of Eq.~(\ref{eq:schur_identity}) is a quadratic form in a positive-semidefinite Schur complement, so \emph{under exact projection a deletion can never increase captured drift}, and therefore can never lower \(L_k^2=2[\|\bar b_k\|_2^2-Q_k]\).  Any helpful deletion observed in a run is possible only because the realized solve is not exact --- ridge regularization, rank truncation, damping, or the trust-region refit.  Pruning helps by relieving the conditioning of the realized solve, not by improving the variational manifold, and this is the precise content of the accuracy half of the prune claim.  Second, \(S_{D|R}\) measures how much of the deleted tangent block cannot be synthesized from the retained tangents and \(r_{D|R}\) how much forcing remains aligned with that novel part, so Schur degeneracy \emph{nominates} a coordinate but cannot \emph{authorize} its removal: only the realized post-deletion solve establishes that removing it helps.  Eq.~(\ref{eq:schur_identity}) is pinned numerically in the implementation, on random systems and on the route's own construction, so that a change to the geometry, the inverse policy, or the scoring cannot silently break it.
+Two consequences follow, and the route is built around them.  First, the right-hand side of Eq.~(\ref{eq:schur_identity}) is a quadratic form in a positive-semidefinite Schur complement, so \emph{under exact projection a deletion can never increase captured drift}, and therefore can never lower \(L_k^2=2[\|\bar b_k\|_2^2-Q_k]_+\).  Any helpful deletion observed in a run is possible only because the realized solve is not exact --- ridge regularization, rank truncation, damping, or the trust-region refit.  Pruning helps by relieving the conditioning of the realized solve, not by improving the variational manifold, and this is the precise content of the accuracy half of the prune claim.  Second, \(S_{D|R}\) measures how much of the deleted tangent block cannot be synthesized from the retained tangents and \(r_{D|R}\) how much forcing remains aligned with that novel part, so Schur degeneracy \emph{nominates} a coordinate but cannot \emph{authorize} its removal: only the realized post-deletion solve establishes that removing it helps.  Eq.~(\ref{eq:schur_identity}) is pinned numerically in the implementation, on random systems and on the route's own construction, so that a change to the geometry, the inverse policy, or the scoring cannot silently break it.
 
 Because Eq.~(\ref{eq:prune_loss}) uses submatrices of the active \(G_k\) and \(f_k\) already acquired for McLachlan propagation, prune nomination itself requires no new quantum measurements.  A deletion commit is stricter.  The candidate block is first set to the identity and, if necessary, the surviving parameters are locally refit to the pre-patch state by a bounded trust-region minimization of the Fubini--Study infidelity to the checkpoint ray: the coordinate word is held fixed, the angles move inside a declared box radius, the refit is accepted only if it strictly reduces the infidelity, and finalists already on the ray (every pure zero-angle insertion) are left untouched.  This reduced-state fit or overlap certification can require additional circuits on a QPU.
 
@@ -362,29 +363,57 @@ Persistence prevents a transiently redundant block from being removed after one 
 
 \subsection{Operating decision rule}
 
-Collecting the pieces, the rule evaluated at every checkpoint is compact.  Deletions are always eligible: a candidate deletion is a row and column selection of geometry already acquired for propagation, so its loss $\mathcal L_k^{\ominus}$ costs no additional measurement.  Insertions are eligible only when the structural-repair predicate is active, because a candidate insertion requires new tangent overlaps.  Every admitted candidate carries the single scalar score
+Collecting the pieces, the rule evaluated at every checkpoint is compact.  Deletions are always eligible: a candidate deletion is a row and column selection of geometry already acquired for propagation, so its structural evaluation costs no additional measurement.  Insertions are eligible while the McLachlan distance exceeds its declared cut, because candidate insertion requires new tangent overlaps.  For every admitted patch define the signed normalized change in realized captured drift
 \begin{equation}
-S_k(\mathcal B)
+\delta_k(\mathcal B)
 =
-\underbrace{\frac{\Delta_k^{\oplus}}{K_{t_k}^{\alpha_{\rm ins}}}}_{\text{insertion gain per cost}}
-+\underbrace{\frac{K_{t_k}^{\alpha_{\rm del}}}{\mathcal L_k^{\ominus}+\eps_L}}_{\text{deletion cost per loss}}
-+w_\delta\,\delta_k(\mathcal B),
+\frac{Q_k(J_k^{\mathcal B})-Q_k(J_k)}
+{\|\bar b_k\|_2^2+\eps_{\rm norm}}.
+\label{eq:signed_patch_drift}
+\end{equation}
+At the frozen checkpoint geometry, positive $\delta_k$ is equivalent, up to the nonnegative numerical clip, to a reduction of
+$L_k^2=2[\|\bar b_k\|_2^2-Q_k]_+$; explicitly,
+$L_k^2(J_k)-L_k^2(J_k^{\mathcal B})=2(\|\bar b_k\|_2^2+\eps_{\rm norm})\delta_k(\mathcal B)$ whenever the clip is inactive.  The ordinary resource-aware utility is
+\begin{equation}
+\begin{aligned}
+U_k(\mathcal B)
+&=U_k^{\oplus}(\mathcal B)+U_k^{\ominus}(\mathcal B)
++w_\delta\delta_k(\mathcal B),\\
+U_k^{\oplus}(\mathcal B)
+&=\frac{\Delta_k^{\oplus}}{K_{t_k}^{\alpha_{\rm ins}}},
+\qquad
+U_k^{\ominus}(\mathcal B)
+=\frac{K_{t_k}^{\alpha_{\rm del}}}{\mathcal L_k^{\ominus}+\eps_L}.
+\end{aligned}
 \label{eq:operating_score}
 \end{equation}
-with $\delta_k$ the net change in realized captured drift.  Ranked candidates are certified one at a time against the ray and velocity-continuity tests of Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}) after a bounded local refit, and the first patch that passes commits atomically.  A finiteness and conditioning assertion protects every finalist but is not a tuned threshold: across the reported runs the largest committed retained condition number is five orders of magnitude below its bound.  The history and conditioning extensions of Appendix~\ref{app:technical_realization} are carried at zero weight, so Eq.~(\ref{eq:operating_score}) is the complete operating criterion.
+where an absent insertion or deletion component contributes zero.  While $L_k^2$ exceeds the cut, the operating score is instead
+\begin{equation}
+\begin{aligned}
+S_k^{\rm debt}(\mathcal B)
+&=\delta_k(\mathcal B)
++\eps_{\rm tie}\tanh\!\left(
+U_k^{\oplus}+U_k^{\ominus}
+\right),\\
+\eps_{\rm tie}&=10^{-12}.
+\end{aligned}
+\label{eq:debt_score}
+\end{equation}
+where $U_k^{\oplus}$ and $U_k^{\ominus}$ are the first two terms of Eq.~(\ref{eq:operating_score}).  The bounded perturbation orders candidates whose signed drift changes are indistinguishable at the declared numerical resolution, while preventing the reciprocal deletion utility from overwhelming a resolved accuracy difference.  Once $L_k^2$ is below the cut, candidates are ranked by Eq.~(\ref{eq:operating_score}) and the route performs cost-aware support maintenance.  Ranked candidates are certified one at a time against the ray and velocity-continuity tests of Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}) after a bounded local refit, and the first patch that passes commits atomically.  During debt, the materialized candidate must also strictly lower the realized $L_k^2$ before it can commit.  A finiteness and conditioning assertion protects every finalist but is not a tuned threshold: across the reported runs the largest committed retained condition number is five orders of magnitude below its bound.  The history and conditioning extensions of Appendix~\ref{app:technical_realization} are carried at zero weight in the provisional runs reported below.
 
 \subsection{Bounded support-patch search used here}
 
 The ideal support-patch problem is combinatorial.  Exhaustive enumeration, mixed-integer optimization, branch-and-bound, greedy forward--backward selection, and local exchange are all possible search strategies for related subset problems \cite{Natarajan1995SparseApprox,BertsimasKingMazumder2016,DasKempe2011,Elenberg2018WeakSubmodularity}.  AP-McLachlan enumerates complete candidate families under one explicit work budget because candidate tangent measurements, not only classical subset enumeration, contribute to the checkpoint cost.
 
-Deletion candidates are organized into cardinality rungs: the rung at cardinality $d$ contains every hard-feasible deletion of $d$ active coordinates.  A rung is admitted whole or not at all against a joint-work budget on scored candidates, and every admitted rung is enumerated completely; nothing inside a rung is sampled or prefiltered by score.  For each admitted deletion branch $D$, the deletion-conditioned insertion candidates are the deduplicated pool children placed at their commutation-reduced cuts remapped onto the post-deletion survivor word.  Pure deletions, pure insertions, and true exchanges therefore appear in one ranked family, each scored on its complete patched support by realized captured drift: conditional insertion gain per hardware cost, conditional deletion loss with its history and conditioning terms (Appendix~\ref{app:technical_realization}), and the net drift change of the patch.
+Deletion candidates are organized into cardinality rungs: the rung at cardinality $d$ contains every hard-feasible deletion of $d$ active coordinates.  A rung is admitted whole or not at all against a joint-work budget on scored candidates, and every admitted rung is enumerated completely; nothing inside a rung is sampled or prefiltered by score.  For each admitted deletion branch $D$, the deletion-conditioned insertion candidates are the deduplicated pool children placed at their commutation-reduced cuts remapped onto the post-deletion survivor word.  Pure deletions, pure insertions, and true exchanges therefore appear in one ranked family, each evaluated on its complete patched support.  Equation~(\ref{eq:debt_score}) orders that family by signed realized drift while accuracy debt remains; Eq.~(\ref{eq:operating_score}) restores conditional gain, deletion loss, history, conditioning, and resource cost after the distance cut is met.
 
 Certification then proceeds one finalist at a time in descending structural score.  A finalist is materialized (delete, remap cuts, insert at zero angle), locally refit toward the checkpoint ray, and passed through the hard commit gates: a finite patched solve within the conditioning bound for every finalist, and the ray-continuity and velocity-smoothness tests of Eqs.~(\ref{eq:patch_continuity})--(\ref{eq:patch_velocity_continuity}) for deletion-containing patches.  The first finalist that passes commits atomically; a failed finalist is rejected whole and certification advances.  Two admission bounds keep certification work finite without touching the ranking: a per-level budget on materialized finalists, and a per-branch budget that skips further insertion variants of a deletion branch after repeated failures, since branch-level score terms are shared by every variant of that branch.  Wider multi-child insertion frontiers are acquired only while the structural-repair predicate remains active and the work budget admits the complete family.
 
-Measurement economics fixes when this search runs at all.  Insertion candidates require new tangent-overlap measurements, so insertion enumeration is activated only at checkpoints whose structural residual ratio meets the declared repair threshold.  Pure deletions are row and column selections of geometry already acquired for propagation and are considered at every checkpoint; a quiet checkpoint therefore performs a measurement-free prune-only search.  Exact trajectories do not enter the enumeration, ranking, or commit tests.  Further history, conditioning, and retry conventions are collected in Appendix~\ref{app:technical_realization}.
+Measurement economics fixes when this search runs at all.  Insertion candidates require new tangent-overlap measurements, so insertion enumeration is activated while $L_k^2$ exceeds its declared cut.  Pure deletions are row and column selections of geometry already acquired for propagation and are considered at every checkpoint; a quiet checkpoint therefore performs a measurement-free prune-only search.  Exact trajectories do not enter the enumeration, ranking, or commit tests.  Further history, conditioning, and retry conventions are collected in Appendix~\ref{app:technical_realization}.
 
 \section{Fixed-support numerical stabilization}
 \label{sec:numerical_solve_repair}
+\label{sec:numerical_stabilization}
 
 An expressive tangent support can still fail numerically.  The inverse may lose motion that lies in the resolved tangent span, a finite time step may move too far for the local linearization, or the accepted state-space velocity may change discontinuously between neighboring time points.  These are three different failures, and the three diagnostics below measure them separately.
 
@@ -561,6 +590,69 @@ stresses the structural rule hardest; the doublon fraction and the site
 occupations are followed to $t=10$ against the exact time-ordered trajectory of
 the same truncated Hamiltonian.
 
+\subsection{Frozen adaptive-append baseline}
+\label{sec:competitor_baseline}
+
+The comparator is measured once, across the full drive set, and then held fixed;
+every subsequent result for the route of this work is reported against that
+frozen baseline rather than against a comparator re-run alongside it.  Two
+variants are recorded because they answer different questions.  The
+\emph{published} variant reproduces Ref.~\cite{Yao2021} as specified --- first-order
+integration, Tikhonov regularization $\xi=10^{-6}$, and the step
+dynamically adjusted so that $\max_\mu|\delta\theta_\mu|\le\delta\theta_{\max}=5\times10^{-3}$,
+which is that method's own stated stabilization mechanism.  The
+\emph{shared-numerics} variant runs the same decision rule on this route's inner
+numerical method, isolating the structural rule from the numerics.  Neither is a
+substitute for the other: a claim about the published method must cite the first,
+and a claim about structural policy must cite the second.
+
+\begin{table}[t]
+\caption{Frozen adaptive-append baseline on the driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$) to $t=10$ over $251$ checkpoints, against the exact time-ordered trajectory of the same truncated Hamiltonian.  Both variants share the seed, drive, reporting grid, and the full deduplicated candidate pool of $125$ words, and neither is capped: each appends until its McLachlan-distance cut is met.  \tentative{Provisional pending the source-locked matched matrix for this work's route.}}
+\label{tab:competitor_baseline}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+& \multicolumn{3}{c}{published numerics} & \multicolumn{3}{c}{shared numerics}\\
+\cline{2-4}\cline{5-7}
+Drive & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$ & $N_{\rm param}$ & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$ & $N_{\rm param}$\\
+\colrule
+strong fast ($A{=}2.4$, $\omega{=}3$) & \tentative{$6.97\times10^{-3}$} & \tentative{$3.24\times10^{-3}$} & \tentative{47} & \tentative{$3.84\times10^{-3}$} & \tentative{$1.01\times10^{-3}$} & \tentative{47}\\
+fast weak ($A{=}0.6$, $\omega{=}3$) & \tentative{$7.79\times10^{-3}$} & \tentative{$2.10\times10^{-3}$} & \tentative{48} & \tentative{$2.28\times10^{-4}$} & \tentative{$7.45\times10^{-4}$} & \tentative{48}\\
+slow strong ($A{=}1.2$, $\omega{=}1$) & \tentative{$8.74\times10^{-3}$} & \tentative{$3.11\times10^{-3}$} & \tentative{48} & \tentative{$2.44\times10^{-4}$} & \tentative{$1.01\times10^{-3}$} & \tentative{51}\\
+mid resonance ($A{=}1.2$, $\omega{=}2$) & \tentative{$3.10\times10^{-2}$} & \tentative{$5.08\times10^{-3}$} & \tentative{64} & \tentative{$2.06\times10^{-4}$} & \tentative{$8.94\times10^{-4}$} & \tentative{52}\\
+weak slow ($A{=}0.3$, $\omega{=}1$) & \tentative{$1.14\times10^{-3}$} & \tentative{$5.54\times10^{-4}$} & \tentative{47} & \tentative{$1.82\times10^{-4}$} & \tentative{$4.94\times10^{-4}$} & \tentative{48}\\
+fast fast ($A{=}0.6$, $\omega{=}6$) & \tentative{$2.06\times10^{-2}$} & \tentative{$3.69\times10^{-3}$} & \tentative{47} & \tentative{$3.10\times10^{-3}$} & \tentative{$1.04\times10^{-3}$} & \tentative{50}\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+The two columns differ by up to two orders of magnitude on the same decision
+rule --- most sharply under the fast weak drive, \tentative{$7.8\times10^{-3}$}
+against \tentative{$2.3\times10^{-4}$} --- with support sizes that agree to
+within a few coordinates throughout.  The comparator's accuracy on this problem
+is therefore set largely by its numerical method rather than by its structural
+rule, which is the reason both variants are carried: reporting only the
+shared-numerics column would overstate the published method, and reporting only
+the published column would attribute to structure what belongs to integration.
+
+
+\noindent\begin{minipage}{\columnwidth}
+\begin{center}
+\IfFileExists{figures/paper_ii_competitor_doublon_error_strongfast.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_competitor_doublon_error_strongfast.pdf}}{}
+\end{center}
+\captionof{figure}{Doublon-fraction deviation from the exact trajectory under the strong fast drive, for the two frozen comparator variants of Table~\ref{tab:competitor_baseline}.  The raw observable cannot separate methods on this problem --- all of them track it --- so the deviation is plotted instead.  Panels for the remaining five drives are generated by the same script and overlay this work's route when a matched run is available.  \tentative{Comparator baseline; this work's overlay pending the source-locked matrix.}}
+\label{fig:competitor_doublon_strongfast}
+\end{minipage}
+\par\addvspace{1.0ex}
+
+\noindent\begin{minipage}{\columnwidth}
+\begin{center}
+\IfFileExists{figures/paper_ii_competitor_doublon_error_fastfast.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_competitor_doublon_error_fastfast.pdf}}{}
+\end{center}
+\captionof{figure}{The same quantity under the fast fast drive, the cell where the two comparator variants separate most and where the published numerics are least favourable.  Reporting only one variant would misstate the baseline by roughly an order of magnitude here.  \tentative{Comparator baseline.}}
+\label{fig:competitor_doublon_fastfast}
+\end{minipage}
+\par\addvspace{1.0ex}
+
 \subsection{Integrator dependence of the shared numerical method}
 \label{sec:integrator_ablation}
 
@@ -603,15 +695,15 @@ choice favours the policy proposed here.
 
 The closest adaptive-ansatz comparator is adaptive variational quantum dynamics simulation \cite{Yao2021}, which grows the ansatz during evolution using the McLachlan distance
 \begin{equation}
-L_k^2(J)=\|\bar b_k\|_2^2-Q_k(J)
+L_k^2(J)=2\left[\|\bar b_k\|_2^2-Q_k(J)\right]_+
 \label{eq:mclachlan_distance}
 \end{equation}
-as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator whose zero-angle addition maximally reduces $L_k^2$, at the end of the circuit, and never deletes.  We implement that decision rule on the same checkpoint geometry, regularized inverse, solve repair, integrator, seed, drive, and time grid used by the exchange route, so the comparison isolates the structural rule rather than the numerical realization.  This is a comparison against the AVQDS \emph{rule}, not against its published implementation: the comparator inherits stabilization machinery that AVQDS as published does not specify, including the state-motion and temporal-kink subdivision guards of Sec.~\ref{sec:numerical_stabilization} and the regularized inverse.  We therefore make no claim to reproduce published AVQDS trajectories, and the growth-only ablation of our own route --- which retains positioned insertion at commutation-reduced cuts, cost-weighted ranking, and certification with refit, and differs from the full route only in that removal is disabled --- is reported separately from it rather than as the same object.  We further adopt the comparator's append \emph{condition} for the exchange route's own insertions, since growth is not this work's contribution: insertions are considered when $L_k^2$ exceeds the cut and are repeated within one checkpoint until it is met or no candidate improves it.  The route's normalized residual-ratio gate is retired: under it the same route reached only $1.26\times10^{-1}$ mean energy error and $2.8\times10^{-2}$ on the doublon fraction at $67$ coordinates on this drive, against $2.1\times10^{-2}$ and $3.3\times10^{-3}$ at $37$ under the adopted condition.  The reason is measured rather than stylistic: a normalized gate is small precisely while the state is still accurate, so it defers growth past the window in which growth is cheap, and on this drive the comparator completed its growth by $t\approx0.9$ and held $46$ coordinates thereafter while the residual-gated route was still adding coordinates at $t\approx2$ with $L_k^2$ four orders of magnitude larger and a state already off the exact trajectory.  Two structural differences from Eq.~(\ref{eq:append_score}) remain by construction: the comparator ranks by drift reduction alone rather than drift reduction per compiled cost, and it does not position insertions at commutation-reduced cuts.
+as its trigger: while $L_k^2$ exceeds a fixed cut, it appends the pool operator whose zero-angle addition maximally reduces $L_k^2$, at the end of the circuit, and never deletes.  We implement that decision rule on the same checkpoint geometry, regularized inverse, solve repair, integrator, seed, drive, and time grid used by the exchange route, so the comparison isolates the structural rule rather than the numerical realization.  This is a comparison against the AVQDS \emph{rule}, not against its published implementation: the comparator inherits stabilization machinery that AVQDS as published does not specify, including the state-motion and temporal-kink subdivision guards of Sec.~\ref{sec:numerical_stabilization} and the regularized inverse.  We therefore make no claim to reproduce published AVQDS trajectories, and the growth-only ablation of our own route --- which retains positioned insertion at commutation-reduced cuts, cost-weighted ranking, and certification with refit, and differs from the full route only in that removal is disabled --- is reported separately from it rather than as the same object.  We adopt the comparator's append \emph{condition} for the exchange route's own insertions, since growth is not this work's contribution: insertions are considered when $L_k^2$ exceeds the cut and are repeated within one checkpoint until it is met or no candidate improves it.  The route's normalized residual-ratio gate is retired: under it the same route reached only $1.26\times10^{-1}$ mean energy error and $2.8\times10^{-2}$ on the doublon fraction at $67$ coordinates on this drive, against $2.1\times10^{-2}$ and $3.3\times10^{-3}$ at $37$ under the adopted condition.  The reason is measured rather than stylistic: a normalized gate is small precisely while the state is still accurate, so it defers growth past the window in which growth is cheap, and on this drive the comparator completed its growth by $t\approx0.9$ and held $46$ coordinates thereafter while the residual-gated route was still adding coordinates at $t\approx2$ with $L_k^2$ four orders of magnitude larger and a state already off the exact trajectory.  Under the adopted condition, the comparator considers only end-appended insertions, whereas the exchange route ranks pure deletion, positioned insertion, and joint exchange by the same signed realized-drift change of Eq.~(\ref{eq:signed_patch_drift}); its bounded resource term acts only at numerical ties.
 
-Under this condition accuracy debt and cost relief are sequenced rather than scored against one another.  While $L_k^2$ exceeds the cut the checkpoint owes accuracy and only insertions are admitted; once it falls below, the geometry has already been paid for and removal is free.  Scoring them jointly inverts the rule, because a deletion always improves the cost-weighted objective: without the sequencing the within-checkpoint repeat spends its rounds shedding coordinates while $L_k^2$ climbs, measured on this seed as $26\rightarrow19$ coordinates with $L_k^2$ rising from $4.5\times10^{-4}$ to $2.2\times10^{-1}$.
+Under this condition accuracy debt and cost relief are ordered rather than blended.  While $L_k^2$ exceeds the cut, signed realized-drift change is the primary score for every patch kind; after the cut is met, the cost-aware utility of Eq.~(\ref{eq:operating_score}) resumes.  This distinction is necessary because the clipped deletion loss maps a helpful deletion and a harmless deletion to the same zero, after which the reciprocal cost-over-loss utility diverges as $1/\eps_L$.  Ranking by that composite utility during debt therefore spends the finalist budget on inexpensive deletions even when insertions would reduce the distance.  The insertion-only debt policy used for the provisional one-drive comparison below prevents that inversion by withdrawing removal, but it is retained as an ablation rather than the operating rule of Eqs.~(\ref{eq:signed_patch_drift})--(\ref{eq:debt_score}).
 
 \begin{table}[t]
-\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$) under the strong fast drive ($A=2.4$, $\omega=3$) to $t=10$ over $251$ checkpoints.  Both policies share the seed, drive, reporting grid, inverse policy, solve repair, fourth-order integration, and the full deduplicated candidate pool of $125$ words; errors are against the exact time-ordered trajectory of the same truncated Hamiltonian.  The pool is no longer capped below its own size, so the comparator reaches its McLachlan-distance cut by its own stopping rule rather than by a per-checkpoint budget, and no budget is imposed on it.  \tentative{One drive and one seed; the remaining five drives are in progress.}}
+\caption{Adaptive-append comparison on one driven Hubbard--Holstein seed ($L=2$, $n_{\rm ph}^{\max}=1$) under the strong fast drive ($A=2.4$, $\omega=3$) to $t=10$ over $251$ checkpoints.  All policies share the seed, drive, reporting grid, inverse policy, solve repair, fourth-order integration, and the full deduplicated candidate pool of $125$ words; errors are against the exact time-ordered trajectory of the same truncated Hamiltonian.  The exchange row uses the insertion-only accuracy-debt ablation and is not evidence for the signed-drift operating rule of Eq.~(\ref{eq:debt_score}).  The pool is no longer capped below its own size, so the comparator reaches its McLachlan-distance cut by its own stopping rule rather than by a per-checkpoint budget, and no budget is imposed on it.  \tentative{One drive and one seed; the six-drive signed-drift validation is in progress.}}
 \label{tab:comparator_hh_snake}
 \begin{ruledtabular}
 \begin{tabular}{lccc}
@@ -619,7 +711,7 @@ Policy & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$ & $N_{\rm par
 \colrule
 adaptive append \cite{Yao2021} & \tentative{$9.1\times10^{-3}$} & \tentative{$2.7\times10^{-3}$} & \tentative{46}\\
 append-only (ablation) & \tentative{$5.3\times10^{-2}$} & \tentative{$9.8\times10^{-3}$} & \tentative{44}\\
-exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^{-3}$} & \tentative{37}\\
+exchange (sequenced debt) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^{-3}$} & \tentative{37}\\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
@@ -628,7 +720,7 @@ exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^
 \begin{center}
 \IfFileExists{figures/paper_ii_obs_doublon_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_hh_strongfast_t10.pdf}}{}
 \end{center}
-\captionof{figure}{Doublon fraction to $t=10$ under the strong fast drive ($A=2.4$, $\omega=3$), Hubbard--Holstein seed, against the exact time-ordered trajectory.  Mean absolute deviations are \tentative{$3.3\times10^{-3}$} (exchange, $37$ coordinates) and \tentative{$2.7\times10^{-3}$} (adaptive append, $46$).  \tentative{One drive; the remaining five are in progress.}}
+\captionof{figure}{Doublon fraction to $t=10$ under the strong fast drive ($A=2.4$, $\omega=3$), Hubbard--Holstein seed, against the exact time-ordered trajectory.  Mean absolute deviations are \tentative{$3.3\times10^{-3}$} (insertion-only-debt exchange ablation, $37$ coordinates) and \tentative{$2.7\times10^{-3}$} (adaptive append, $46$).  \tentative{One drive; the signed-drift exchange validation is in progress.}}
 \label{fig:obs_doublon_strongfast}
 \end{minipage}
 \par\addvspace{1.0ex}
@@ -646,7 +738,7 @@ exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^
 \begin{center}
 \IfFileExists{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_doublon_error_hh_strongfast_t10.pdf}}{}
 \end{center}
-\captionof{figure}{Deviation of the doublon fraction from the exact trajectory, same runs as Fig.~\ref{fig:obs_doublon_strongfast}.  The raw observable cannot separate the policies because all of them track it; the deviation can.  The append-only ablation sits near $10^{-2}$ for the whole horizon, while the exchange route and the AVQDS comparator run an order of magnitude below it and interleave, neither dominating.  \tentative{One drive.}}
+\captionof{figure}{Deviation of the doublon fraction from the exact trajectory, same runs as Fig.~\ref{fig:obs_doublon_strongfast}.  The raw observable cannot separate the policies because all of them track it; the deviation can.  The append-only ablation sits near $10^{-2}$ for the whole horizon, while the insertion-only-debt exchange ablation and the AVQDS comparator run an order of magnitude below it and interleave, neither dominating.  \tentative{One drive.}}
 \label{fig:obs_doublon_error_strongfast}
 \end{minipage}
 \par\addvspace{1.0ex}
@@ -655,7 +747,7 @@ exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^
 \begin{center}
 \IfFileExists{figures/paper_ii_obs_energy_error_hh_strongfast_t10.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_obs_energy_error_hh_strongfast_t10.pdf}}{}
 \end{center}
-\captionof{figure}{Absolute energy error against the exact trajectory.  The discrete step in the exchange route near $t\approx8.6$ is the stabilization defect discussed in the text: it carries no structural edit, and it dominates that route's mean energy error while leaving the observables of Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast} essentially unchanged.  \tentative{One drive.}}
+\captionof{figure}{Absolute energy error against the exact trajectory.  The discrete step in the insertion-only-debt exchange ablation near $t\approx8.6$ is the stabilization defect discussed in the text: it carries no structural edit, and it dominates that run's mean energy error while leaving the observables of Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast} essentially unchanged.  \tentative{One drive.}}
 \label{fig:obs_energy_error_strongfast}
 \end{minipage}
 \par\addvspace{1.0ex}
@@ -664,16 +756,16 @@ exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^
 \begin{center}
 \IfFileExists{figures/paper_ii_comparator_params_hh_strongfast.pdf}{\includegraphics[width=0.98\columnwidth]{figures/paper_ii_comparator_params_hh_strongfast.pdf}}{}
 \end{center}
-\captionof{figure}{Active support size under the three policies of Table~\ref{tab:comparator_hh_snake}.  The AVQDS comparator and the append-only ablation both grow monotonically, to $46$ and $44$ coordinates, because neither rule contains a removal mechanism; the exchange policy front-loads growth under the same append condition and then contracts to $37$ by removing coordinates whose deletion loss is certified negligible, including a late contraction near $t\approx8.5$.  \tentative{One drive.}}
+\captionof{figure}{Active support size under the three policies of Table~\ref{tab:comparator_hh_snake}.  The AVQDS comparator and the append-only ablation both grow monotonically, to $46$ and $44$ coordinates, because neither rule contains a removal mechanism; the insertion-only-debt exchange ablation front-loads growth under the same append condition and then contracts to $37$ after the distance cut is met, including a late contraction near $t\approx8.5$.  \tentative{One drive.}}
 \label{fig:comparator_params}
 \end{minipage}
 \par\addvspace{1.0ex}
 
-On the observables the two policies are equivalent: the exchange route tracks the doublon fraction to $3.3\times10^{-3}$ against the comparator's $2.7\times10^{-3}$, and both overlay the exact site occupations through the full horizon (Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast}), which oscillate strongly to $t=10$ and are the discriminating observables on this drive.  The exchange route holds $37$ coordinates against $46$, a $20\%$ smaller support, because it removes coordinates whose deletion loss is certified negligible while the comparator's rule contains no removal mechanism.  Matched observable accuracy at smaller support is the claim this comparison supports.
+On the observables the two provisional policies are equivalent: the insertion-only-debt exchange ablation tracks the doublon fraction to $3.3\times10^{-3}$ against the comparator's $2.7\times10^{-3}$, and both overlay the exact site occupations through the full horizon (Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast}), which oscillate strongly to $t=10$ and are the discriminating observables on this drive.  The ablation holds $37$ coordinates against $46$, a $20\%$ smaller support, because it removes coordinates after the accuracy debt is paid while the comparator's rule contains no removal mechanism.  This comparison supports the bounded claim for that ablation only; the signed-drift operating route awaits the matched six-drive validation.
 
-The append-only ablation, run under the same insertion condition and differing only in that removal is disabled, is worse on both axes: $9.8\times10^{-3}$ on the doublon fraction at $44$ coordinates, three times the exchange route's deviation on seven more coordinates.  Removal is therefore not merely a cost device on this drive; forbidding it costs accuracy as well as support, which is consistent with the conditioning relief that removal provides.
+The append-only ablation, run under the same insertion condition and differing from the insertion-only-debt exchange ablation only in that removal is disabled, is worse on both axes: $9.8\times10^{-3}$ on the doublon fraction at $44$ coordinates, three times the exchange ablation's deviation on seven more coordinates.  Removal is therefore not merely a cost device on this drive; forbidding it costs accuracy as well as support, which is consistent with the conditioning relief that removal provides.
 
-The energy is the one axis where the two separate, and the separation is not distributed over the trajectory: the exchange route holds $\sim\!1.5\times10^{-2}$ from $t\approx2$ to $t\approx8.6$ and then takes a single discrete step to $\sim\!8\times10^{-2}$, which dominates its mean.  That step carries no structural edit; the state-motion guard is active and escalating at it, to depth six and $64$ substeps with per-substep prospective motion $1.8\times10^{-3}$ against a $10^{-2}$ cap.  The guard bounds displacement per substep, so subdividing further shrinks each substep while permitting more of them and leaves the displacement accumulated across one checkpoint unbounded.  We report this as an open defect of the stabilization layer rather than of the structural rule, and note that it is nearly invisible in the observables the method targets: $\langle H\rangle$ resolves it because the truncated spectrum spans $[-0.4,\,10.4]$.  Three qualifications bound the evidence: one seed, a short horizon, and a comparator whose threshold the capped pool cannot satisfy, so its growth is set by budget rather than by its own stopping rule.
+The energy is the one axis where the two separate, and the separation is not distributed over the trajectory: the insertion-only-debt exchange ablation holds $\sim\!1.5\times10^{-2}$ from $t\approx2$ to $t\approx8.6$ and then takes a single discrete step to $\sim\!8\times10^{-2}$, which dominates its mean.  That step carries no structural edit; the state-motion guard is active and escalating at it, to depth six and $64$ substeps with per-substep prospective motion $1.8\times10^{-3}$ against a $10^{-2}$ cap.  The guard bounds displacement per substep, so subdividing further shrinks each substep while permitting more of them and leaves the displacement accumulated across one checkpoint unbounded.  We report this as an open defect of the stabilization layer rather than evidence about the revised signed-drift structural rule, and note that it is nearly invisible in the observables the method targets: $\langle H\rangle$ resolves it because the truncated spectrum spans $[-0.4,\,10.4]$.  Three qualifications bound the evidence: one seed, a short horizon, and an insertion-only-debt policy superseded at the method level pending matched validation of Eq.~(\ref{eq:debt_score}).
 
 \subsection{Factorial interactions}
 
@@ -894,7 +986,8 @@ Everything in this subsection is retained for diagnosis of pathological
 trajectories.  None of it is part of the method used for any result in this
 paper: the operating numerical rule is the single
 state-displacement subdivision of Sec.~\ref{sec:numerical_solve_repair}, and
-the operating structural rule is Eq.~(\ref{eq:operating_score}).  The material
+the operating structural rule is Eqs.~(\ref{eq:operating_score}) and
+(\ref{eq:debt_score}).  The material
 is recorded because it is the evidence that the reduced configuration loses
 nothing, not because a reader must apply it.
 
@@ -934,7 +1027,7 @@ Equation~(\ref{eq:repair_release}) is computed classically from the already meas
 
 Candidate tangent overlaps are measured once per checkpoint and reused across the whole structural family: the positioned candidate tangents are assembled in one batched pass, the deletion-independent Gram and force blocks are cached, and every candidate solve is a submatrix solve of that cached geometry with memoized results.  Deletion branches reuse the base-support solve metadata, so the conditioning terms below require no additional eigendecompositions.
 
-Prune nomination retains Eq.~(\ref{eq:prune_loss}) as its physical authority.  Its implementation-level ranking may include historical loss, conditioning relief, Schur degeneracy, and conditioning damage:
+Outside accuracy debt, prune nomination retains Eq.~(\ref{eq:prune_loss}) as its damage authority.  Its implementation-level utility may include historical loss, conditioning relief, Schur degeneracy, and conditioning damage:
 \begin{equation}
 \begin{aligned}
 S_k^{\ominus,\kappa}(B)
@@ -951,7 +1044,7 @@ S_k^{\ominus,\kappa}(B)
 \end{aligned}
 \label{eq:app_prune_nomination}
 \end{equation}
-The conditioning and history terms in Eq.~(\ref{eq:app_prune_nomination}) are extensions carried at zero weight in every run reported here; the operating deletion score is the cost-over-loss ratio alone, and no result in this paper depends on a nonzero $\lambda$.  Conditioning terms change nomination only.  Current grouped deletion loss, current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
+The conditioning and history terms in Eq.~(\ref{eq:app_prune_nomination}) are extensions carried at zero weight in every provisional run reported here, and no reported result depends on a nonzero $\lambda$.  During accuracy debt, Eq.~(\ref{eq:app_prune_nomination}) contributes only through the bounded secondary term of Eq.~(\ref{eq:debt_score}); the signed realized-drift change is primary.  After the distance cut is met, the cost-over-loss utility resumes.  Current patched solve geometry, reduced-state refit, ray continuity, velocity continuity, persistence, cooldown, and rollback retain commit authority.  Atom-level persistence survives append-only support changes for atoms that remain active; support-conditional loss and smoothness histories are invalidated when the support changes.
 
 True exchange is enumerated directly: within each admitted deletion rung, every deletion branch is paired with every positioned insertion from its deletion-conditioned pool, with the insertion cuts remapped onto the post-deletion survivor word.  Every candidate is evaluated on
 \[
