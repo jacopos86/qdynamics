@@ -142,7 +142,8 @@ class SupportPatchControllerConfig:
     # Certification conditioning cap on the patched retained solve. Retains
     # its historical flag name for run-provenance compatibility; it is not a
     # Schur-block criterion (that guard belonged to the retired append route).
-    append_schur_max_condition_number: float = 1.0e12
+    # `None` disables the certification conditioning gate entirely.
+    append_schur_max_condition_number: float | None = 1.0e12
     append_min_time: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
@@ -245,10 +246,17 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
+        if (
+            self.append_schur_max_condition_number is not None
+            and float(self.append_schur_max_condition_number) <= 0.0
+        ):
+            raise ValueError(
+                "append_schur_max_condition_number must be positive when set "
+                "(None disables the certification conditioning gate)."
+            )
         for name in (
             "append_gain_threshold",
             "append_batch_score_threshold",
-            "append_schur_max_condition_number",
             "append_min_time",
             "residual_ratio_threshold",
             "prune_loss_threshold",
@@ -333,8 +341,10 @@ class SupportPatchControllerConfig:
             "append_prefilter_policy": str(self.append_prefilter_policy),
             "append_gain_threshold": float(self.append_gain_threshold),
             "append_batch_score_threshold": float(self.append_batch_score_threshold),
-            "append_schur_max_condition_number": float(
-                self.append_schur_max_condition_number
+            "append_schur_max_condition_number": (
+                None
+                if self.append_schur_max_condition_number is None
+                else float(self.append_schur_max_condition_number)
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),

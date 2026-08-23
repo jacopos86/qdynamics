@@ -1494,6 +1494,24 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-append-batch-size", type=int, default=10)
     parser.add_argument("--append-schur-max-condition-number", type=float, default=1.0e12)
+    parser.add_argument(
+        "--no-append-schur-condition-gate",
+        dest="append_schur_condition_gate",
+        action="store_false",
+        help=(
+            "Disable the certification conditioning gate entirely. The gate is "
+            "recorded as null in run provenance when off."
+        ),
+    )
+    parser.set_defaults(append_schur_condition_gate=True)
+    parser.add_argument(
+        "--fail-on-unsupported-steps",
+        action="store_true",
+        help=(
+            "Exit non-zero when any integration step advanced without a "
+            "supported repair (default: warn on stderr only)."
+        ),
+    )
     parser.add_argument("--append-cost-alpha", type=float, default=1.0)
     parser.add_argument(
         "--append-cost-normalization-mode",
@@ -1689,7 +1707,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
     )
-    parser.add_argument("--solve-repair-max-local-subdivisions", type=int, default=4)
+    parser.add_argument("--solve-repair-max-local-subdivisions", type=int, default=10)
     parser.add_argument("--solve-repair-local-subdivision-factor", type=int, default=2)
     parser.add_argument("--solve-repair-min-local-dt", type=float, default=1.0e-6)
     parser.add_argument("--solve-repair-release-patience-min", type=int, default=1)
@@ -1838,8 +1856,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.max_joint_patch_evaluations is None
                 else int(args.max_joint_patch_evaluations)
             ),
-            append_schur_max_condition_number=float(
-                args.append_schur_max_condition_number
+            append_schur_max_condition_number=(
+                float(args.append_schur_max_condition_number)
+                if args.append_schur_condition_gate
+                else None
             ),
             support_patch_scoring_workers=int(args.support_patch_scoring_workers),
             cost_normalization_mode=str(args.append_cost_normalization_mode),
@@ -2038,6 +2058,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
     except ValueError as exc:
         parser.exit(2, f"error: {exc}\n")
+    # The alarm condition is NOT `solve_repair_unsupported_count`: that counter
+    # runs 16-27 on perfectly accurate trajectories (it means the repair lane
+    # found no better candidate than the base policy, which is usually fine).
+    # The dangerous case is a subdivision that fired, exhausted its budget, and
+    # then advanced the step anyway.  Two of those out of 51 moved a measured HH
+    # energy error from 3.8e-3 to 2.1e-1.
+    uncured = sum(
+        1
+        for point in (payload.get("trajectory") or {}).get("points", [])
+        if "not_cured"
+        in str((point.get("integration_to_next") or {}).get("local_subdivision_reason") or "")
+    )
+    if uncured:
+        print(
+            f"[ap-warning] {uncured} integration step(s) exhausted the local "
+            "subdivision budget without curing the violation and advanced "
+            "anyway; trajectory accuracy is not trustworthy. Raise "
+            "--solve-repair-max-local-subdivisions.",
+            file=sys.stderr,
+            flush=True,
+        )
+        if bool(getattr(args, "fail_on_unsupported_steps", False)):
+            return 3
     return 0
 
 

@@ -150,7 +150,7 @@ class SolveRepairConfig:
     state_motion_l2_step_max: float | None = 5.0e-2
     state_space_kink_eta_max: float | None = 1.0e-2
     local_subdivision_enabled: bool = True
-    max_local_subdivisions: int = 4
+    max_local_subdivisions: int = 10
     local_subdivision_factor: int = 2
     min_local_dt: float = 1.0e-6
     release_patience_min: int = 1

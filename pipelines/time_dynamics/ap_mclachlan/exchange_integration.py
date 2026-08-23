@@ -386,8 +386,10 @@ def select_deletion_conditioned_patch(
     gates = CertificationGates(
         ray_distance_max=float(support_config.prune_ray_distance_tol),
         smoothness_eta_max=float(support_config.prune_patch_smoothness_eta_max),
-        condition_number_max=float(
-            support_config.append_schur_max_condition_number
+        condition_number_max=(
+            None
+            if support_config.append_schur_max_condition_number is None
+            else float(support_config.append_schur_max_condition_number)
         ),
     )
 
