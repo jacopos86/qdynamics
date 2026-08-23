@@ -21,26 +21,19 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
+from pipelines.time_dynamics import paper_ii_runs as _runs
+
 CAMPAIGN_SCHEMA_V1 = "paper_ii_dynamics_campaign_v1"
 
-# Canonical numerics (2026-08-18 stabilization sweep): rk4 with the state-motion
-# guard is the accuracy configuration; the runner's Euler default is diagnostic.
-CANONICAL_NUMERICS: dict[str, Any] = {
-    "integrator": "rk4",
-    "solve_repair": True,
-    "solve_repair_profile": "minimal",
-    "solve_repair_state_motion_l2_step_max": 1.0e-2,
-    "solve_repair_kink_eta_max": 5.0e-3,
-}
-
-# Computational guards required at scale (see lane AGENTS.md).
-DEFAULT_GUARDS: dict[str, Any] = {
-    "max_joint_patch_evaluations": 50000,
-    "max_certification_attempts_per_level": 12,
-    "max_certification_attempts_per_deletion_branch": 2,
-    "max_insertion_batch_size": 1,
-    "max_structural_pool_size": 8,
-}
+# Numerics, structure, and arms come from the run registry -- this module owns
+# the *matrix* (seed x drive x horizon x arm), never the run configuration.
+# They were duplicated here until 2026-08-23, and the copies drifted: this
+# module's guards still carried `max_structural_pool_size: 8` weeks after that
+# cap was identified as the largest single accuracy defect in the lane (it
+# discarded ~117 of the 125 deduplicated pool words). Any campaign built from
+# the stale copy would have silently reproduced it.
+CANONICAL_NUMERICS: tuple[str, ...] = _runs.CANONICAL_NUMERICS
+PRODUCTION_STRUCTURE: tuple[str, ...] = _runs.PRODUCTION_STRUCTURE
 
 
 @dataclass(frozen=True)
@@ -101,49 +94,37 @@ class PolicyArm:
 
 
 def exchange_arm(ray_tol: float = 2.0e-3) -> PolicyArm:
-    return PolicyArm(
-        arm_id=f"exchange_tau{ray_tol:g}",
-        flags=(
-            "--prune-target-policy", "all_active",
-            "--prune-ray-distance-tol", repr(float(ray_tol)),
-            "--certification-refit",
-            "--certification-refit-trust-radius", "0.6",
-            "--certification-refit-max-iterations", "15",
-            "--prune-history-lambda", "0.0",
-        ),
-    )
+    """The paper's route, from the run registry.
+
+    ``ray_tol`` stays a parameter because tightening it is a real ablation;
+    everything else comes from :mod:`pipelines.time_dynamics.paper_ii_runs`.
+    """
+
+    flags = list(_runs.EXCHANGE.flags)
+    idx = flags.index("--prune-ray-distance-tol")
+    flags[idx + 1] = repr(float(ray_tol))
+    return PolicyArm(arm_id=f"exchange_tau{ray_tol:g}", flags=tuple(flags))
 
 
 def append_only_arm() -> PolicyArm:
-    return PolicyArm(
-        arm_id="append_only",
-        flags=(
-            "--prune-target-policy", "appended_only",
-            "--prune-cooldown-steps", "1000000",
-            "--certification-refit",
-            "--certification-refit-trust-radius", "0.6",
-            "--certification-refit-max-iterations", "15",
-            "--prune-history-lambda", "0.0",
-        ),
-    )
+    return PolicyArm(arm_id="append_only", flags=tuple(_runs.APPEND_ONLY.flags))
 
 
 def avqds_arm(l2_cut: float, max_appends: int | None = None) -> PolicyArm:
-    # Unbounded by default: Yao et al. (PRX Quantum 2, 030307) append
-    # "repeated until L^2 < L^2_cut" with no per-checkpoint cap, so a cap
-    # here would handicap the comparator rather than reproduce it.
+    """The comparator, from the run registry.
 
+    Unbounded by default: Yao et al. (PRX Quantum 2, 030307) append "repeated
+    until L^2 < L^2_cut" with no per-checkpoint cap, so a cap here would
+    handicap the comparator rather than reproduce it.
+    """
+
+    flags = list(_runs.AVQDS.flags)
+    idx = flags.index("--avqds-l2-cut")
+    flags[idx + 1] = repr(float(l2_cut))
+    if max_appends is not None:
+        flags.extend(["--avqds-max-appends-per-checkpoint", str(int(max_appends))])
     return PolicyArm(
-        arm_id=f"avqds_cut{l2_cut:g}",
-        flags=(
-            "--dynamics-policy", "avqds",
-            "--avqds-l2-cut", repr(float(l2_cut)),
-        ) + (
-            ()
-            if max_appends is None
-            else ("--avqds-max-appends-per-checkpoint", str(int(max_appends)))
-        ),
-        is_comparator=True,
+        arm_id=f"avqds_cut{l2_cut:g}", flags=tuple(flags), is_comparator=True
     )
 
 
@@ -163,9 +144,12 @@ class CampaignSpec:
     drives: tuple[DriveSpec, ...]
     horizons: tuple[HorizonSpec, ...]
     arms: tuple[PolicyArm, ...]
-    residual_ratio_threshold: float = 0.02
-    guards: Mapping[str, Any] = field(default_factory=lambda: dict(DEFAULT_GUARDS))
-    numerics: Mapping[str, Any] = field(default_factory=lambda: dict(CANONICAL_NUMERICS))
+    # The insertion gate is a registry part, not a bare float: the two gates
+    # (normalized residual ratio, absolute McLachlan distance) take different
+    # flags and are not interchangeable.
+    gate_id: str = _runs.MCLACHLAN_L2_GATE.gate_id
+    numerics: tuple[str, ...] = CANONICAL_NUMERICS
+    structure: tuple[str, ...] = PRODUCTION_STRUCTURE
     output_root: str = "output"
 
     def cells(self) -> Iterator["CampaignCell"]:
@@ -205,27 +189,30 @@ class CampaignCell:
                    / self.cell_id)
 
     def runner_argv(self) -> list[str]:
-        argv: list[str] = [
+        """Compose this cell's argv from the run registry.
+
+        Numerics and structure are shared verbatim across every arm, so a
+        comparison can only differ in the arm's own flags -- which is the
+        property `assert_comparable` checks after the fact and this method
+        guarantees before it.
+        """
+
+        gate = _runs.GATES[self.campaign.gate_id]
+        # A comparator carries its own append condition; layering this route's
+        # insertion gate on top would misrepresent it.
+        gate_flags = () if self.arm.is_comparator else gate.flags
+        return [
             "--artifact-json", self.seed.artifact_json,
             "--output-json", str(Path(self.output_dir) / "run.json"),
             "--t-final", repr(float(self.horizon.t_final)),
             "--num-times", str(int(self.horizon.num_times)),
-            "--residual-ratio-threshold",
-            repr(float(self.campaign.residual_ratio_threshold)),
+            *self.campaign.numerics,
+            *self.campaign.structure,
+            *gate_flags,
+            *self.drive.flags(),
+            *self.arm.flags,
             "--progress-log-every", "5",
         ]
-        numerics = dict(self.campaign.numerics)
-        if numerics.pop("solve_repair", False):
-            argv.append("--solve-repair")
-        for key, value in numerics.items():
-            flag = "--" + key.replace("_", "-")
-            argv.extend([flag, repr(value) if isinstance(value, float) else str(value)])
-        for key, value in dict(self.campaign.guards).items():
-            argv.extend(["--" + key.replace("_", "-"),
-                         repr(value) if isinstance(value, float) else str(value)])
-        argv.extend(self.drive.flags())
-        argv.extend(self.arm.flags)
-        return argv
 
     def provenance(self) -> dict[str, Any]:
         return {
@@ -278,7 +265,7 @@ def write_campaign_manifest(spec: CampaignSpec, path: str | Path) -> Path:
 __all__ = [
     "CAMPAIGN_SCHEMA_V1",
     "CANONICAL_NUMERICS",
-    "DEFAULT_GUARDS",
+    "PRODUCTION_STRUCTURE",
     "CampaignCell",
     "CampaignSpec",
     "DriveSpec",

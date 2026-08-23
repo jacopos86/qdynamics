@@ -122,3 +122,75 @@ def test_unknown_names_are_rejected() -> None:
 
 def test_registries_are_non_empty() -> None:
     assert ARMS and GATES and DRIVES and HORIZONS
+
+
+def test_campaign_cells_agree_with_the_registry() -> None:
+    """A campaign cell and a registry run must configure the same trajectory.
+
+    These were separate copies until 2026-08-23 and they drifted: the campaign
+    module still carried `max_structural_pool_size: 8` after that cap had been
+    identified as the lane's largest accuracy defect, so any campaign built
+    from it would have silently reproduced the defect.
+    """
+
+    from pipelines.time_dynamics.campaign import (
+        CampaignSpec,
+        DriveSpec,
+        HorizonSpec,
+        SeedSpec,
+        append_only_arm,
+        avqds_arm,
+        exchange_arm,
+    )
+
+    spec = CampaignSpec(
+        campaign_id="parity",
+        seeds=(SeedSpec("s", "seed.json", "hh", 1, "weak"),),
+        drives=(DriveSpec("fastweak", True, 0.6, 3.0),),
+        horizons=(HorizonSpec("t2", 2.0, 51),),
+        arms=(exchange_arm(2.0e-3), append_only_arm(), avqds_arm(1.0e-3)),
+    )
+    parser = _parser()
+    by_arm = {}
+    for cell in spec.cells():
+        parsed = parser.parse_args(list(cell.runner_argv()))
+        by_arm[cell.arm.arm_id] = parsed
+
+    for arm_id, registry_arm in (
+        ("exchange_tau0.002", "exchange"),
+        ("append_only", "append_only"),
+        ("avqds_cut0.001", "avqds"),
+    ):
+        run = build_run(
+            seed_path="seed.json", arm=registry_arm,
+            gate=MCLACHLAN_L2_GATE.gate_id, drive="fastweak", horizon="t2",
+            output_json="out/run.json",
+        )
+        registry = _parser().parse_args(list(run.argv()))
+        campaign = by_arm[arm_id]
+        for field in (
+            "integrator",
+            "solve_repair_max_local_subdivisions",
+            "solve_repair_state_motion_l2_step_max",
+            "solve_repair_kink_eta_max",
+            "max_structural_pool_size",
+            "append_schur_condition_gate",
+            "insertion_gate_mode",
+            "insertion_l2_cut",
+            "max_joint_patch_evaluations",
+            "t_final",
+            "num_times",
+            "drive_A",
+            "drive_omega",
+        ):
+            assert getattr(campaign, field) == getattr(registry, field), (
+                f"{arm_id}.{field}: campaign={getattr(campaign, field)!r} "
+                f"registry={getattr(registry, field)!r}"
+            )
+
+
+def test_no_campaign_arm_reintroduces_the_pool_cap_of_eight() -> None:
+    from pipelines.time_dynamics.campaign import PRODUCTION_STRUCTURE
+
+    flags = list(PRODUCTION_STRUCTURE)
+    assert int(flags[flags.index("--max-structural-pool-size") + 1]) >= 125

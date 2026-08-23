@@ -97,19 +97,55 @@ Deletion-utility hooks (all recorded in provenance):
   zero-angle insertions are skipped, and a refit that fails to reduce the
   Fubini–Study infidelity is discarded.
 
-## Canonical defaults (2026-08-20)
+## Run commands — one source (2026-08-23)
 
-Defaults now reproduce the reported configuration, so a flagless call runs the
-paper's route rather than a diagnostic one: `rk4`, solve repair on at the
-`minimal` profile, certification refit on with trust radius 0.6, insertion gate
-`residual_ratio_threshold = 2e-2`, deletion ray tolerance `2e-3`, and all four
-computational guards populated (joint 50000, per-level 12, per-branch 2, pool
-8, insertion batch 1). Euler, loose caps, and unbounded guards remain available
-as explicit opt-outs (`--integrator euler`, `--no-solve-repair`,
-`--solve-repair-profile full`, `--no-certification-refit`).
+`pipelines/time_dynamics/paper_ii_runs.py` is the single authority for Paper-II
+run configuration. Compose runs from named parts (arm x insertion gate x drive
+x horizon); never hand-spell a runner invocation, and never restate numerics or
+guards in a script, a campaign module, or a document.
 
-Guards being unset was not merely slow: the same three-checkpoint run took over
-ten minutes with `None` guards and 25 seconds with them populated.
+```bash
+PYTHONPATH=. python3 -m pipelines.time_dynamics.paper_ii_runs list
+PYTHONPATH=. python3 -m pipelines.time_dynamics.paper_ii_runs show --arm exchange --drive fastweak --horizon t10 --output-json output/x/run.json
+```
+
+`test/test_paper_ii_runs.py` parses every registered command against the
+runner's live parser and asserts that campaign cells and registry runs
+configure the same trajectory. This exists because the copies drifted: the
+campaign module carried `max_structural_pool_size: 8` for weeks after that cap
+was identified as the lane's largest accuracy defect (it discarded ~117 of the
+125 deduplicated pool words), and any campaign built from it silently
+reproduced the defect.
+
+Current registry contents:
+
+- **Numerics** (never arm-dependent): rk4, solve repair at the `minimal`
+  profile, state-motion cap 1e-2, kink cap 5e-3, **local subdivision budget
+  10**, certification refit on at trust radius 0.6.
+- **Structure**: candidate pool cap 128 (above the 125-word deduplicated pool,
+  so it does not bind), **conditioning gate off**, guards 50000 / 12 / 2, and
+  insertion batch 1.
+- **Arms**: `exchange`, `append_only`, `avqds` (comparator, uncapped).
+- **Insertion gates**: `residual_1e-4` (this route's normalized gate) and
+  `mclachlan_l2_1e-3` (the published AVQDS append condition).
+
+### Why the two repaired guards read as they do
+
+The **subdivision budget** was 4 until 2026-08-22. At 4 a step could exhaust its
+budget, fail to cure a state-motion cap violation, and then advance
+unsubdivided anyway, marked only by a counter in the summary; two such steps out
+of 51 took a measured HH energy error from 3.8e-3 to 2.1e-1. At 10 there are
+none, and 14 is identical to 10. The runner now warns on stderr whenever a step
+advances uncured; `--fail-on-unsupported-steps` makes it exit non-zero. Note
+that `solve_repair_unsupported_count` is *not* that alarm — it runs 16-27 on
+accurate trajectories.
+
+The **certification conditioning gate** is off because no setting of it is
+useful. Measured at residual 1e-4: off and 5e7 are identical (7.79e-4 mean
+|dE|, and kappa never reaches 5e7); 3e7 rejects 20 candidates for 1.15e-3; 1e7
+rejects all 600, certifies nothing, and starves the ansatz to 28 parameters
+(6.89e-3, doublon 1.75e-2). kappa is a symptom of the manifold, not a cause of
+trajectory error; the step-size guard is what protects a trajectory.
 
 ## Continuation
 
