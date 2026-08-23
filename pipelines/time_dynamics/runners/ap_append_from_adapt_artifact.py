@@ -1604,7 +1604,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--insertion-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
         "--debt-policy",
-        choices=["insertion_only", "any_improving"],
+        choices=["insertion_only", "any_improving", "drift_ranked"],
         default="insertion_only",
         help=(
             "What may fire while L^2 exceeds the cut. 'insertion_only' "

@@ -65,6 +65,20 @@ class StructuralScoreWeights:
     lambda_cond_damage: float = 0.0
     epsilon_L: float = 1.0e-14
     epsilon_norm: float = 1.0e-12
+    # Lexicographic accuracy-first ranking, used while the checkpoint is in
+    # L^2 debt.  The default composite score cannot discriminate there: the
+    # deletion loss is one-sided, l = [q(0,I) - q(D,I)]_+, so a deletion that
+    # LOWERS L^2 and one that merely leaves it unchanged both score l = 0, and
+    # that tie is then divided into the utility denominator, giving any
+    # near-free deletion a score of order cost/epsilon_L ~ 1e14 against an
+    # insertion utility of order gain/cost.  Cheap deletions therefore crowd
+    # out the insertions that would actually pay the debt down.  Under
+    # `debt_ranking` the primary key becomes the SIGNED normalized drift change
+    # delta = q(D,I) - q(0,0), which is dL^2/2(||b||^2 + eps): candidates that
+    # improve accuracy sort first, and cost, conditioning relief, and history
+    # act only as tiebreakers among them, so cost can never re-invert an
+    # accuracy decision.
+    debt_ranking: bool = False
 
     def __post_init__(self) -> None:
         if float(self.alpha_ins) < 0.0 or float(self.alpha_del) < 0.0:
@@ -293,11 +307,21 @@ def iter_structural_families(
         else:
             loss = 0.0
             deletion_utility = 0.0
-        score = (
-            insertion_utility
-            + deletion_utility
-            + float(weights.w_delta) * delta
-        )
+        if bool(weights.debt_ranking):
+            # Primary key: signed accuracy change. The composite utility is
+            # retained as a bounded tiebreaker, scaled far below any resolvable
+            # difference in delta so it can only order candidates that improve
+            # L^2 by the same amount.
+            tiebreak = insertion_utility + deletion_utility
+            score = float(delta) + 1.0e-12 * float(
+                np.tanh(tiebreak)
+            )
+        else:
+            score = (
+                insertion_utility
+                + deletion_utility
+                + float(weights.w_delta) * delta
+            )
         return StructuralCandidate(
             removed_runtime_indices=removed,
             inserted_selection=tuple(selection),

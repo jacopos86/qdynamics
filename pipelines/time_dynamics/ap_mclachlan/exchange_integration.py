@@ -289,6 +289,7 @@ def build_selector_inputs(
             getattr(support_config, "prune_condition_lambda_kappa_dam", 0.0)
         ),
         epsilon_L=float(support_config.eps_loss),
+        debt_ranking=bool(getattr(support_config, "debt_ranking", False)),
     )
 
     max_batch = int(

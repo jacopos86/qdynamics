@@ -82,3 +82,46 @@ def test_accumulated_drift_escalation_defaults_off() -> None:
 def test_accumulated_drift_threshold_rejects_nonpositive() -> None:
     with pytest.raises(ValueError, match="escalation_accumulated_drift_threshold"):
         SupportPatchControllerConfig(escalation_accumulated_drift_threshold=0.0)
+
+
+def test_debt_ranking_orders_by_signed_accuracy_change() -> None:
+    """Under L^2 debt the primary key must be the signed drift change.
+
+    The default composite score cannot discriminate there. The deletion loss is
+    one-sided, l = [q(0,I) - q(D,I)]_+, so a deletion that LOWERS L^2 and one
+    that merely leaves it unchanged both score l = 0; that tie then goes into
+    the utility denominator, giving a near-free deletion a score of order
+    cost/epsilon_L ~ 1e14 against an insertion utility of order gain/cost.
+    """
+
+    from pipelines.time_dynamics.ap_mclachlan.exchange_structural import (
+        StructuralScoreWeights,
+    )
+
+    default = StructuralScoreWeights()
+    assert default.debt_ranking is False
+    assert default.epsilon_L == pytest.approx(1.0e-14)
+
+    debt = StructuralScoreWeights(debt_ranking=True)
+    assert debt.debt_ranking is True
+
+
+def test_debt_policy_choices_are_validated() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        SupportPatchControllerConfig,
+    )
+
+    for policy in ("insertion_only", "any_improving", "drift_ranked"):
+        assert SupportPatchControllerConfig(debt_policy=policy).debt_policy == policy
+    with pytest.raises(ValueError, match="debt_policy"):
+        SupportPatchControllerConfig(debt_policy="nope")
+
+
+def test_debt_ranking_is_not_a_user_flag_default() -> None:
+    """`debt_ranking` is set per checkpoint by the loop, never left on."""
+
+    from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
+        SupportPatchControllerConfig,
+    )
+
+    assert SupportPatchControllerConfig().debt_ranking is False

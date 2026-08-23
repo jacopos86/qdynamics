@@ -182,15 +182,19 @@ class SupportPatchControllerConfig:
     # What may fire while L^2 is above the cut ("accuracy debt").
     #   "insertion_only" -- removal withdrawn until the debt is paid. Measured
     #       best today: peak L^2 5.7e-3, final 4.6e-4, 32 coordinates.
-    #   "any_improving"  -- removal stays eligible and any patch that reduces
-    #       L^2 is admitted. Physically the better rule, since removing a
-    #       near-degenerate coordinate relieves conditioning, but it is worse
-    #       in practice while ranking is cost-weighted: deletions always win
-    #       that score, exhaust the per-level certification budget, and starve
-    #       the insertions that would pay the debt (peak L^2 2.1e-2, 24
-    #       coordinates). Fixing it properly means ranking by L^2 reduction
-    #       under debt, which is a change in exchange_structural, not a guard.
+    #   "drift_ranked"   -- removal stays eligible and candidates are ranked
+    #       cost-blind while in debt.  This is ranking by L^2 reduction:
+    #       ||b||^2 is built from the state and is independent of the support,
+    #       so L^2 = 2(||b||^2 - Q) is strictly decreasing in the realized
+    #       captured drift Q, and ranking by Q *is* ranking by L^2 reduction.
+    #       Because Q is realized through the regularized solve rather than
+    #       idealized, a deletion that relieves conditioning is credited
+    #       automatically -- conditioning-awareness falls out of the quantity
+    #       instead of needing a kappa heuristic.  Cost returns as the
+    #       objective once the debt is paid.
     debt_policy: str = "insertion_only"
+    # Set per-checkpoint by the trajectory loop, never by a user flag.
+    debt_ranking: bool = False
     insertion_gate_mode: str = "residual_ratio"
     insertion_l2_cut: float = 1.0e-3
     # Safety valve on the greedy within-checkpoint repeat, not part of the
@@ -297,9 +301,12 @@ class SupportPatchControllerConfig:
                 raise ValueError(f"{name} must be non-negative.")
         if int(self.support_patch_scoring_workers) < 1:
             raise ValueError("support_patch_scoring_workers must be positive.")
-        if str(self.debt_policy) not in {"insertion_only", "any_improving"}:
+        if str(self.debt_policy) not in {
+            "insertion_only", "any_improving", "drift_ranked"
+        }:
             raise ValueError(
-                "debt_policy must be 'insertion_only' or 'any_improving'."
+                "debt_policy must be 'insertion_only', 'any_improving', or "
+                "'drift_ranked'."
             )
         if str(self.insertion_gate_mode) not in {"residual_ratio", "mclachlan_l2"}:
             raise ValueError(
@@ -427,6 +434,7 @@ class SupportPatchControllerConfig:
                 else float(self.avqds_delta_theta_max)
             ),
             "debt_policy": str(self.debt_policy),
+            "debt_ranking": bool(self.debt_ranking),
             "insertion_gate_mode": str(self.insertion_gate_mode),
             "insertion_l2_cut": float(self.insertion_l2_cut),
             "max_insertion_rounds_per_checkpoint": int(
@@ -1302,13 +1310,21 @@ def run_append_mclachlan_trajectory(
                     # retry, one such deletion left the checkpoint doing nothing
                     # at all while L^2 ran from 5.7e-3 to 3.4e-1 and the support
                     # sat at 18 coordinates.
+                    _debt_policy = str(
+                        getattr(
+                            effective_support_config, "debt_policy",
+                            "insertion_only",
+                        )
+                    )
+                    in_debt = gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut
+                    # Under debt the objective is drift capture, not cost.
+                    round_support_config = (
+                        replace(effective_support_config, debt_ranking=True)
+                        if (_debt_policy == "drift_ranked" and in_debt)
+                        else effective_support_config
+                    )
                     deletions_offered = (
-                        str(
-                            getattr(
-                                effective_support_config, "debt_policy",
-                                "insertion_only",
-                            )
-                        ) == "any_improving"
+                        _debt_policy in {"any_improving", "drift_ranked"}
                         or gate_mode != "mclachlan_l2"
                         or checkpoint_l2 <= l2_cut
                     )
@@ -1328,7 +1344,7 @@ def run_append_mclachlan_trajectory(
                                 base_evaluation=evaluation,
                                 base_step=fixed_step,
                                 inverse_policy=decision_inverse_policy,
-                                support_config=effective_support_config,
+                                support_config=round_support_config,
                                 runtime_state=prune_runtime_state,
                                 time_index=int(index),
                                 active_prune_atoms=_round_prune_atoms,
