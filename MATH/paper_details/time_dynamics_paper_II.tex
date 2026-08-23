@@ -606,6 +606,7 @@ Under this condition accuracy debt and cost relief are sequenced rather than sco
 Policy & $\overline{|\Delta E|}$ & $\overline{|\Delta n_{\rm d}|}$ & $N_{\rm param}^{\rm final}$\\
 \colrule
 adaptive append \cite{Yao2021} & \tentative{$9.1\times10^{-3}$} & \tentative{$2.7\times10^{-3}$} & \tentative{46}\\
+append-only (ablation) & \tentative{$5.3\times10^{-2}$} & \tentative{$9.8\times10^{-3}$} & \tentative{44}\\
 exchange (this work) & \tentative{$2.1\times10^{-2}$} & \tentative{$3.3\times10^{-3}$} & \tentative{37}\\
 \colrule
 \multicolumn{4}{l}{\emph{superseded residual-ratio gate, retained as gate ablations}}\\
@@ -643,6 +644,8 @@ exchange & \tentative{$1.26\times10^{-1}$} & \tentative{$2.8\times10^{-2}$} & \t
 \par\addvspace{1.0ex}
 
 On the observables the two policies are equivalent: the exchange route tracks the doublon fraction to $3.3\times10^{-3}$ against the comparator's $2.7\times10^{-3}$, and both overlay the exact site occupations through the full horizon (Figs.~\ref{fig:obs_doublon_strongfast}--\ref{fig:obs_occupations_strongfast}), which oscillate strongly to $t=10$ and are the discriminating observables on this drive.  The exchange route holds $37$ coordinates against $46$, a $20\%$ smaller support, because it removes coordinates whose deletion loss is certified negligible while the comparator's rule contains no removal mechanism.  Matched observable accuracy at smaller support is the claim this comparison supports.
+
+The append-only ablation, run under the same insertion condition and differing only in that removal is disabled, is worse on both axes: $9.8\times10^{-3}$ on the doublon fraction at $44$ coordinates, three times the exchange route's deviation on seven more coordinates.  Removal is therefore not merely a cost device on this drive; forbidding it costs accuracy as well as support, which is consistent with the conditioning relief that removal provides.
 
 The energy is the one axis where the two separate, and the separation is not distributed over the trajectory: the exchange route holds $\sim\!1.5\times10^{-2}$ from $t\approx2$ to $t\approx8.6$ and then takes a single discrete step to $\sim\!8\times10^{-2}$, which dominates its mean.  That step carries no structural edit; the state-motion guard is active and escalating at it, to depth six and $64$ substeps with per-substep prospective motion $1.8\times10^{-3}$ against a $10^{-2}$ cap.  The guard bounds displacement per substep, so subdividing further shrinks each substep while permitting more of them and leaves the displacement accumulated across one checkpoint unbounded.  We report this as an open defect of the stabilization layer rather than of the structural rule, and note that it is nearly invisible in the observables the method targets: $\langle H\rangle$ resolves it because the truncated spectrum spans $[-0.4,\,10.4]$.  Three qualifications bound the evidence: one seed, a short horizon, and a comparator whose threshold the capped pool cannot satisfy, so its growth is set by budget rather than by its own stopping rule.
 
