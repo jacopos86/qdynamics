@@ -50,6 +50,9 @@ from pipelines.time_dynamics.ap_mclachlan.inverse import (
 from pipelines.time_dynamics.ap_mclachlan.avqds import (
     mclachlan_distance_squared,
 )
+from pipelines.time_dynamics.ap_mclachlan.avqds_stepping import (
+    advance_interval_delta_theta_controlled,
+)
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
     select_deletion_conditioned_patch,
 )
@@ -169,6 +172,13 @@ class SupportPatchControllerConfig:
     # so it defers growth past the cheap early window -- under a strong fast
     # drive our L^2 reached 3.6e-1 while AVQDS, having grown early, held
     # 1.5e-8 at the same instant.
+    # AVQDS parameter-controlled stepping (Yao et al.).  When set and the
+    # dynamics policy is `avqds`, each reporting interval is advanced with
+    # Euler substeps sized so that no parameter moves more than this
+    # budget -- the published control law and the method's own stated
+    # stabilization mechanism.  `None` integrates on the reporting grid,
+    # which is NOT the published method.
+    avqds_delta_theta_max: float | None = None
     insertion_gate_mode: str = "residual_ratio"
     insertion_l2_cut: float = 1.0e-3
     # Safety valve on the greedy within-checkpoint repeat, not part of the
@@ -395,6 +405,11 @@ class SupportPatchControllerConfig:
             ),
             "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
+            "avqds_delta_theta_max": (
+                None
+                if self.avqds_delta_theta_max is None
+                else float(self.avqds_delta_theta_max)
+            ),
             "insertion_gate_mode": str(self.insertion_gate_mode),
             "insertion_l2_cut": float(self.insertion_l2_cut),
             "max_insertion_rounds_per_checkpoint": int(
@@ -1356,19 +1371,67 @@ def run_append_mclachlan_trajectory(
                 fixed_step,
                 solve_repair_config=solve_repair_config,
             )
-            with phase(PHASE_INTEGRATE):
-                integration = _integrate_interval_with_repair(
-                    state=state_for_rhs,
-                    hamiltonian=hamiltonian,
-                    theta_runtime=theta_current,
-                    time=float(time_value),
-                    dt=dt,
-                    inverse_policy=inverse_policy,
-                    solve_repair_config=solve_repair_config,
-                    integrator_method=str(integrator_method),
-                    force_local_subdivision_request=force_local_subdivision_request,
-                )
-            theta_next = np.asarray(integration.theta_next, dtype=float).reshape(-1)
+            avqds_delta_theta_max = getattr(
+                effective_support_config, "avqds_delta_theta_max", None
+            )
+            use_avqds_stepping = (
+                avqds_delta_theta_max is not None
+                and str(
+                    getattr(effective_support_config, "dynamics_policy", "exchange")
+                ).strip().lower() == "avqds"
+            )
+            if use_avqds_stepping:
+                # Published AVQDS control law: Euler substeps sized so that no
+                # parameter moves more than delta_theta_max.  Integrating this
+                # comparator on the reporting grid instead is what produced
+                # mean energy errors of 3.5e-1 to 2.6e0 on this seed -- an
+                # artifact of the imposed step, not the method.
+                def _avqds_rhs(theta_value: np.ndarray, t_value: float) -> np.ndarray:
+                    ev = evaluate_mclachlan_geometry(
+                        state=state_for_rhs,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=np.asarray(
+                            theta_value, dtype=float
+                        ).reshape(-1),
+                        time=float(t_value),
+                    )
+                    st = _solve_fixed_step_for_trajectory(
+                        ev.geometry,
+                        inverse_policy=inverse_policy,
+                        solve_repair_config=solve_repair_config,
+                        repair_dt=None,
+                    )
+                    return np.asarray(st.theta_dot, dtype=float).reshape(-1)
+
+                with phase(PHASE_INTEGRATE):
+                    stepping = advance_interval_delta_theta_controlled(
+                        theta=theta_current,
+                        time=float(time_value),
+                        dt_interval=dt,
+                        theta_dot_rhs=_avqds_rhs,
+                        delta_theta_max=float(avqds_delta_theta_max),
+                    )
+                theta_next = np.asarray(
+                    stepping.theta_next, dtype=float
+                ).reshape(-1)
+                integration = None
+                avqds_stepping_record = stepping.to_json_dict()
+            else:
+                with phase(PHASE_INTEGRATE):
+                    integration = _integrate_interval_with_repair(
+                        state=state_for_rhs,
+                        hamiltonian=hamiltonian,
+                        theta_runtime=theta_current,
+                        time=float(time_value),
+                        dt=dt,
+                        inverse_policy=inverse_policy,
+                        solve_repair_config=solve_repair_config,
+                        integrator_method=str(integrator_method),
+                        force_local_subdivision_request=force_local_subdivision_request,
+                    )
+                theta_next = np.asarray(
+                    integration.theta_next, dtype=float
+                ).reshape(-1)
         else:
             theta_next = theta_current
 

@@ -132,12 +132,16 @@ AVQDS_PUBLISHED = Arm(
         "--no-solve-repair",
         "--no-certification-refit",
         "--ridge-lambda", "1.0e-6",
+        "--avqds-delta-theta-max", "5.0e-3",
     ),
     is_comparator=True,
     owns_numerics=True,
     note=(
         "Yao et al. with the paper's own numerics: Euler, Tikhonov xi=1e-6, "
-        "fixed step, no solve repair, no subdivision, no refit."
+        "and the published parameter-controlled step (delta_theta_max=5e-3). "
+        "AVQDS is NOT a fixed-step method -- it adapts dt so no parameter "
+        "moves more than that budget, which the source calls its "
+        "stabilization mechanism."
     ),
 )
 

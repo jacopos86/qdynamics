@@ -1579,6 +1579,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--avqds-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
+        "--avqds-delta-theta-max",
+        type=float,
+        default=None,
+        help=(
+            "AVQDS parameter-controlled stepping (Yao et al.): advance each "
+            "reporting interval with Euler substeps sized so no parameter "
+            "moves more than this budget. The source uses 5e-3. Omitting it "
+            "integrates on the reporting grid, which is not the published "
+            "method."
+        ),
+    )
+    parser.add_argument(
         "--insertion-gate-mode",
         choices=["residual_ratio", "mclachlan_l2"],
         default="residual_ratio",
@@ -1905,6 +1917,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 None
                 if args.escalation_accumulated_drift_threshold is None
                 else float(args.escalation_accumulated_drift_threshold)
+            ),
+            avqds_delta_theta_max=(
+                None
+                if args.avqds_delta_theta_max is None
+                else float(args.avqds_delta_theta_max)
             ),
             insertion_gate_mode=str(args.insertion_gate_mode),
             insertion_l2_cut=float(args.insertion_l2_cut),
