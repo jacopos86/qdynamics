@@ -212,7 +212,6 @@ class SupportPatchControllerConfig:
     max_prune_batch_size: int = 0
     prune_rung_set_cap: int = 0
     prune_prefilter_size: int = 0
-    prune_loss_threshold: float = 1.0e-2
     prune_history_window: int = 3
     prune_history_lambda: float = 1.0
     prune_persistence_required: int = 1
@@ -339,7 +338,6 @@ class SupportPatchControllerConfig:
             "append_batch_score_threshold",
             "append_min_time",
             "residual_ratio_threshold",
-            "prune_loss_threshold",
             "prune_history_lambda",
             "prune_atom_history_fraction",
             "prune_projection_trust_radius",
@@ -464,7 +462,6 @@ class SupportPatchControllerConfig:
             "max_prune_batch_size": int(self.max_prune_batch_size),
             "prune_rung_set_cap": int(self.prune_rung_set_cap),
             "prune_prefilter_size": int(self.prune_prefilter_size),
-            "prune_loss_threshold": float(self.prune_loss_threshold),
             "prune_history_window": int(self.prune_history_window),
             "prune_history_lambda": float(self.prune_history_lambda),
             "prune_persistence_required": int(self.prune_persistence_required),
@@ -632,7 +629,6 @@ class AppendControllerConfig:
             max_prune_batch_size=1 if int(self.max_prune_candidates) > 0 else 0,
             prune_rung_set_cap=int(self.max_prune_candidates),
             prune_prefilter_size=int(self.max_prune_candidates),
-            prune_loss_threshold=float(self.prune_loss_threshold),
             min_runtime_parameter_count=int(self.min_logical_parameter_count),
             cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=bool(self.allow_incomplete_candidate_pool),
