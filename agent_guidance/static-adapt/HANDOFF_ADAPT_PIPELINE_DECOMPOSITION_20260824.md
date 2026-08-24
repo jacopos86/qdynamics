@@ -1,5 +1,13 @@
 # Handoff — decompose `adapt_pipeline.py` and stop Paper-I settings drift (2026-08-24)
 
+> **CORRECTION NOTICE (2026-08-24, added after this handoff was committed).**
+> Three numbers below were re-measured from source on `00a5f098` and are wrong,
+> and **Increment 1 should not be run as written** — restoring `route_identity.py`
+> fixes **2** collection errors, not 34, and no production code imports it.
+> Read `agent_guidance/shared/paper-i-refactor-worklog.md` before executing any
+> increment here. The diagnosis in this document still stands; the increment
+> numbering and the `route_identity` claim do not.
+
 **For:** Codex (repo-access executor)
 **From:** Claude, session on Paper-I route comprehension
 **Contract:** `agent_guidance/shared/agent-handoff-contract.md` — read first; not restated here.
@@ -279,7 +287,13 @@ Stop if: any source is already missing. Report which — do not reconstruct it
 from another bundle. The contract is explicit that missing Bundle-3 cells are
 "missing historical evidence", not permission to borrow Bundle-5/Bundle-9 values.
 
-### 1. Restore `route_identity.py` — fixes 34 of 55 collection errors
+### 1. Restore `route_identity.py` — SUPERSEDED, DO NOT RUN AS WRITTEN
+
+> Measured: this fixes **2** of 55 collection errors (55 → 53), not 34.
+> 17 of the 18 test files mentioning `route_identity` use it in test names
+> and assertion strings; the one real import is `historical_route_identity`,
+> which already exists. Zero production modules import the missing file.
+> See the worklog's "Why Increment 1 is wrong".
 
 ```bash
 git show codex/static-adapt-beam-refactor:pipelines/static_adapt/route_identity.py \
