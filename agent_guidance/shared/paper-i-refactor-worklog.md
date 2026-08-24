@@ -374,6 +374,47 @@ checks then have nothing left to disagree about.
 
 ---
 
+### 2026-08-24 — Claude — CORRECTION: Bundle 3 is probably re-derivable
+
+Corrects "Evidence state" above, which says Bundle 3 "cannot currently be
+re-derived from its recorded inputs, so contract Gate 1 is not satisfiable for
+it." **That was over-claimed.** What is gone are *derived intermediates* from a
+dead scratchpad, not the upstream evidence.
+
+Measured:
+
+- The 18 Bundle-3 run archives are intact and hash-recorded. Each carries
+  `run/checkpoints/current.json`, `run/result/estimator_ledger.json`, **and a
+  full `source/` snapshot of the pipeline that produced it**.
+- The renderer named in the manifest, `results_tooling/build_variant_pages_v7.py`,
+  **exists at the exact recorded tooling commit `551a9fe0`**:
+
+```bash
+git show 551a9fe0:chtc/paper_i_ra_adapt_repair_20260727/results_tooling/build_variant_pages_v7.py
+```
+
+So the path archives → renderer → `kstar_tables.json` appears intact.
+`kstar_tables.json` is an aggregate reporting table (keys: `kstar`, `aavqe`,
+`b1`, `b3`, `live_star`, `spot_check`, by regime), i.e. a *derived* artifact.
+
+**Status: plausibly recoverable, not confirmed.** One experiment settles it —
+regenerate with the recorded renderer and compare against
+`bundle3_final_results_manifest.json`. Do not describe Bundle 3 as lost
+evidence until that experiment has been run and failed.
+
+### 2026-08-24 — Claude — CORRECTION: `pipelines/hardcoded/` was not deleted
+
+Corrects "What the 55 collection errors actually are" above, which reads as if
+the package was removed. **The package still exists** with 8 modules
+(`adapt_circuit_execution.py`, `hh_continuation_pruning.py`,
+`hh_staged_noise*.py`, and others). What is missing are ~12 specific modules
+the tests import (`hubbard_pipeline`, `hh_pareto_tracking`, `hh_staged_cli_args`,
+`hh_time_dynamics_spectra`, …). Last touched by `6442fbb5`
+"Replace Snake snapshot with RA". This reads as a partial deliberate retirement
+that left its tests behind — still an author question, but a narrower one.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
