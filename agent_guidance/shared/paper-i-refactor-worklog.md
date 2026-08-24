@@ -631,6 +631,12 @@ than assembling one — an assembled Hessian block would change the numbers.
 
 ## 6h. The value half is located — 6g's gap is closed
 
+> **PARTLY WRONG — see 6j.** `FormalAdmissionCurvatureReceipt` has **zero
+> production callers**; it is reached only from
+> `test/test_static_adapt_selector_query_closure.py`. The live partition exists,
+> but elsewhere and under different names. Implement 6j.
+
+
 Found by Codex, 2026-08-24. `build_formal_admission_curvature_receipt`
 (`selector_query_closure.py:2458`) returns `FormalAdmissionCurvatureReceipt`
 (`:2207`), which carries **actual arrays**:
@@ -678,6 +684,200 @@ increment that follows them.
 | 348-name reflective filter and its parameter surface | **~326** parameter lines + 15 filter lines | blocked on the typed payload replacing it |
 | 26 geometry scalar summaries on `CandidateFeatures` | 26 fields x construction + read sites, in a 249-field dataclass | unblocked by 6h — the arrays now have a located source |
 | `del q_window, Q_window` dead threading | signature + call sites | unblocked by 6h |
+
+## 6j. The live response partition — reconciled, correcting 6h and 6b
+
+Ratified against source after 6h was recorded on Codex's find without checking
+callers.
+
+### Correction 1 — the full-partition receipt is test-only
+
+`build_formal_admission_curvature_receipt` / `FormalAdmissionCurvatureReceipt`
+have **no production callers**. Every reference outside their own module is in
+`test/test_static_adapt_selector_query_closure.py`. Same for
+`FormalGrowthGeometryReceipt`. They are a validated freeze-frame for an FM
+handoff, not the live value half.
+
+### Correction 2 — `Q_window` is the Hessian, not the Gram
+
+6b called `phase2_raw_geometry_score`'s discarded `q_window, Q_window` "the Gram
+blocks". **Wrong.** The live naming is:
+
+| symbol | object |
+|---|---|
+| `G_AA`, `G_AC`, `G_CC` | Fubini--Study **metric** |
+| `Q_AA`, `Q_AC`, `Q_CC` | ordinary coordinate **Hessian** (Paper I's `H`) |
+| `b_A`, `b_C` | descent **gradient** |
+
+So `del q_window, Q_window` discards **Hessian** blocks. Stronger than 6b said,
+not weaker.
+
+### Where each live piece is
+
+| piece | class | fields | site |
+|---|---|---|---|
+| A side (active), per accepted state | `SelectorGeometryAnchor` | `active_coordinate_indices`, `G_AA`, `b_A`, state/hamiltonian fingerprints | `selector_query_closure.py` |
+| C side (candidate population) | `QueryClosedPopulationWorkspace` | `G_AC`, `G_CC`, `b_C` | same |
+| restriction to a candidate subset | `subset_geometry(indices)` | `(G_AB, G_BB, b_B)` | `:795` |
+| Hessian partition | `Phase2OrdinaryHessianBlocks` | `Q_AA`, `Q_AC`, `Q_CC`, `source_query_receipts` | `:1155` |
+
+The anchor already carries `state_fingerprint` and `hamiltonian_fingerprint`, so
+charge and value share one identity.
+
+### The reconciled interface
+
+`_support(order)` in 6e conflated two index sets. Paper I partitions into active
+`theta` and candidate `alpha`, so there are two, and **the restriction is over
+candidates** while the active side is the anchor:
+
+```python
+class Response(Protocol):
+    """A = active coordinates (anchor, fixed per accepted state).
+       C = candidate population; B = a restriction of C."""
+    def restrict(self, candidates: Sequence[int]) -> ResponseBlocks: ...
+    def charge(self, candidates: Sequence[int]) -> EstimatorCharge: ...
+
+@dataclass(frozen=True)
+class ResponseBlocks:
+    G_AB: np.ndarray; G_BB: np.ndarray      # metric
+    Q_AB: np.ndarray; Q_BB: np.ndarray      # Hessian (Paper I H)
+    b_B:  np.ndarray                        # gradient
+```
+
+Order selects which blocks `_descent` reads, not a different index set:
+
+| order | reads |
+|---|---|
+| 0 | `b_B` |
+| 1 | `b_B`, `diag(G_BB)` |
+| 2 | `b_B`, `G_BB`, `Q_BB` |
+| 3 | `b_B`, `G_AB`, `G_BB`, `Q_AB`, `Q_BB` |
+
+Smaller than 6e implied.
+
+### Remaining gap — do not assume
+
+`Phase2OrdinaryHessianBlocks` is referenced only within
+`selector_query_closure.py`; no other `pipelines/` module names it. Whether the
+live Phase-II path constructs one, or computes curvature only through the
+`_energy_hessian_entry` scalar route (`hh_continuation_scoring.py:5546`), is
+**not established**. Codex must not assume the block form is populated.
+
+## 6k. The 6j gap is closed — the Hessian partition is live, just unpackaged
+
+Ratified 2026-08-24. 6j said it was "not established" whether the live Phase-II
+path constructs `Phase2OrdinaryHessianBlocks`. It does not — and that does not
+matter.
+
+**The dataclass is dead.** `Phase2OrdinaryHessianBlocks(` is constructed at 6
+sites: 4 in `test/test_static_adapt_selector_query_closure.py`, and 2 in
+`chtc/paper_iv_h2o_sr_source_locked_resume_d12_20260716/runtime_source/pipelines/static_adapt/adapt_pipeline.py`
+— a **frozen source overlay**, an archived copy of an older `adapt_pipeline.py`.
+The live tree once built it and no longer does. Deletion candidate.
+
+**The partition itself is live, as bare arrays:**
+
+| block | live site | shape / note |
+|---|---|---|
+| `H_AB` | `adapt_pipeline.py:1417` | `_matrix("H_AB_raw", (window_count, 1))` — candidate vs active window |
+| `H_AB` | `hh_continuation_scoring.py:5959` | `np.zeros(active_count)` |
+| `H_AB` | `hh_continuation_scoring.py:6165` | `np.asarray(source.get("H_AB", ()))` |
+| entries | `_energy_hessian_entry:4481` | fills `hess[row, col]` at `:5184`; mixed block at `:5584`; active-candidate at `:5964` |
+
+So all three response objects have live sources:
+
+| object | live source |
+|---|---|
+| metric `G` | `SelectorGeometryAnchor.G_AA`, `QueryClosedPopulationWorkspace.G_AC/G_CC`, `subset_geometry:795` |
+| Hessian `Q`/`H` | `H_AB_raw` and `_energy_hessian_entry`, unpackaged |
+| gradient `b` | `b_A`, `b_C`, `b_B` |
+
+**Consequence: the 26-scalar deletion is unblocked.** Every scalar summary on
+`CandidateFeatures` now has a located array source, so each can be replaced by an
+indexing expression rather than a stored field. The work is packaging the
+existing arrays behind `ResponseBlocks`, not computing anything new — which keeps
+it inside the "no numerical change" envelope.
+
+## 6l. `metric_proxy` fails the Paper-I test, and is a rule-7 fallback
+
+Author's test applied 2026-08-24: *if it is not defined in Paper I, it is
+probably archaic.*
+
+**Result: there is no metric proxy in Paper I.** All 8 occurrences of "proxy" in
+`Paper_I_author_revision.tex` are **cost** proxies — `eq:pauli_2count_proxy`,
+`eq:pauli_2depth_proxy`, `eq:pauli_1q_proxy`, `eq:shot_cost_proxy`. The metric is
+the Fubini--Study pullback metric with no proxy variant.
+
+**It is also a silent substitution.** `phase1_trust_region_gain:2614`:
+
+```python
+F_measured = max(0.0, float(feat.metric_proxy), float(feat.F_metric))
+```
+
+Whichever is larger wins. When `metric_proxy > F_metric`, Phase I's
+trust-region gain is computed from a quantity the manuscript does not define,
+with no signal that it happened. That is rule 7 (no fallbacks) in the scoring
+path, not just in the cost oracle.
+
+The default energy model is `PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1` —
+"legacy" again.
+
+Surface: 6 sites set `metric_proxy` (`adapt_pipeline.py:30362, 31170, 40410,
+42581, 60612, 61212`); 35 references to `cheap_metric_proxy` /
+`phase1_lambda_f_proxy_applied` / `phase2_lambda_f_proxy_applied`.
+
+**Deletion is numerically safe only if the proxy never won.** `max()` means
+removing it changes results in exactly those rounds where
+`metric_proxy > F_metric`. Both values are carried on `CandidateFeatures`, so
+this is checkable from completed-run receipts. **Check before deleting** —
+otherwise this is a silent scientific change, not a cleanup.
+
+## 6m. HOOKS for the `metric_proxy` unification (Q20)
+
+### What it actually is
+
+Not a proxy. `candidate_metric_proxy` is assigned straight from
+`exact_first_order_geometry["fubini_study_metric"]` at `adapt_pipeline.py:40298,
+40375, 42471, 64663`, and `F_metric` is populated *from it* at
+`hh_continuation_scoring.py:19013` (`F_metric = max(0.0, metric_proxy)`). Two
+field names, one quantity, reconciled by `max()` because nothing guarantees which
+path wrote.
+
+### The one branch that is a real substitution
+
+`_base_metric_for_candidate`, `adapt_pipeline.py:39614`:
+
+```python
+gradient_abs = float(abs(float(gradient_signed)))
+if not phase3_enabled:
+    return float(gradient_abs)      # |g| standing in for F
+```
+
+`phase3_enabled = bool(continuation_mode == "phase3_v1" and staged_problem_enabled)`
+(`adapt_pipeline.py:18340`).
+
+### Hooks
+
+| piece | site |
+|---|---|
+| the `max()` to collapse | `hh_continuation_scoring.py:2625-2630` in `phase1_trust_region_gain` |
+| `metric_proxy` setters (6) | `adapt_pipeline.py:30362, 31170, 40410, 42581, 60612, 61212` |
+| `F_metric` setters (3) | `adapt_pipeline.py:65072` (`=1.0`), `hh_continuation_scoring.py:6586, 19013` |
+| the `|g|` branch | `adapt_pipeline.py:39614` |
+| `cheap_metric_proxy` / `*_lambda_f_proxy_applied` | 35 references |
+| field definitions | `hh_continuation_types.py`, `CandidateFeatures` |
+
+### MANDATORY CHECK BEFORE DELETING
+
+The `|g|` branch changes numbers **only when Phase III is off**. Canonical
+`adapt_continuation_mode: "phase3_v1"` is declared at
+`sr_snake_route_profile.py:467`, inside `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS`
+— **the 116-key root that the 20-profile active family does not inherit** (F3).
+So source alone does not establish that Phase III was on in the Bundle runs.
+
+Verify from a completed-run receipt that `phase3_enabled` was true, or that
+`metric_proxy` never exceeded `F_metric`, before removing the branch. If it ever
+fired, this is a scientific change and stops being a cleanup.
 
 ## 7. No fallbacks
 
@@ -736,6 +936,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
 | Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
 | Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
+| Q20 | `metric_proxy` — delete? | **Yes, delete.** It is the Fubini--Study metric under a second name, not a distinct object: unify `metric_proxy` and `F_metric` into one `F` field, and delete the `not phase3_enabled` branch that substitutes `abs(gradient)` for the metric. | 2026-08-24 |
 
 ### Standing rules from the author
 
