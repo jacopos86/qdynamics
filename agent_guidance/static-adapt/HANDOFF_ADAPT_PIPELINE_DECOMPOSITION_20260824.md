@@ -11,6 +11,40 @@
 `pipelines/static_adapt/adapt_pipeline_teaching_refactor_map.md`,
 `pipelines/static_adapt/adapt_pipeline_route_alignment.md`
 
+**GOVERNING AUTHORITY — read before anything else:**
+`/Users/jakestrobel/local_repos/ADAPT---Paper-I/PAPER_I_REFACTOR_BEHAVIORAL_CONTRACT.md`
+(separate repo, Overleaf-synced; never merge it into this checkout).
+
+That document, not this one, defines what "correct" means for this refactor. It
+supersedes any acceptance criterion stated here. Three things in it change how
+you should work:
+
+1. **It licenses aggressive restructuring.** Verbatim: *"It does not require the
+   old implementation structure, internal class names, environment-variable
+   surface, or route-builder hierarchy to survive."* You are not preserving
+   shape — you are preserving four named evidence profiles: `H-L3`, `HH-B3`,
+   `HH-B5`, `HH-B9`.
+2. **It already prescribes the target seam** — see "Recommended refactor seam":
+   ```
+   run_profile(profile_id, problem_id, arm, horizon) -> run_result
+   ```
+   with *"Callers should not reconstruct a profile by setting dozens of
+   independent flags."* That is the answer to the settings-drift problem
+   diagnosed below, and it is already an authored decision. Do not design a
+   different one.
+3. **It defines five acceptance gates** with exact numbers — golden generator/
+   position sequences, integer compiled resources (`N_2q`, `D_2q`, `D_c`),
+   corrected estimator totals, energies to 1e-10, and `k*=12`. Those gates are
+   the regression harness. *"A different accepted generator sequence is a failed
+   reproduction even if the terminal energy is similar."*
+
+Its "Deliberately out of scope" list binds you: do not change optimizer
+tolerances, estimator accounting, forced-admission behavior, or cost
+normalization under the label of refactoring. Note also its open Bundle-9
+authority item (`phase3_candidate_gain_policy=joint_total_gain_v1` versus the
+marginal joint-minus-active-only score in the current mathematics) — it is
+explicitly *not* yours to resolve silently.
+
 ---
 
 ## Read this first: the refactor already happened once
@@ -201,7 +235,9 @@ new modules under `pipelines/static_adapt/`, and `test/` files covering them.
 - `pipelines/time_dynamics/**`, `excited_dynamics/**`, `qse_spectra/**` — Paper II/III lanes, other agents commit daily.
 - `chtc/**`, `raw_outputs/**`, `history/**`, `archive/**` — preserved evidence and source locks.
 - The 21 non-`route_identity` collection errors (`docs.reports.report_labels`, `chtc.phase3_optuna` symbols) — unrelated rot.
-- **Scientific behavior.** Every increment is behavior-preserving. A changed run number means a mistake — stop.
+- **Scientific behavior.** Acceptance is defined by the behavioral contract's five
+  gates, not by this document. A changed accepted generator/position sequence,
+  integer resource, or corrected estimator total is a failure — stop.
 - Relocating H2O/Paper-IV material — author's decision.
 
 **Shared-resource limits:** 10 GB resident RAM across all agent work on this 16 GB
@@ -214,6 +250,34 @@ after 4.** Increment 5 is where behavior risk begins.
 ---
 
 ## Increments
+
+### 0. Rescue the golden regression data — DO THIS FIRST
+
+The behavioral contract's acceptance gates depend on data that is **not in
+version control and partly lives in disposable worktrees**:
+
+| path | risk |
+|---|---|
+| `output/pdf/paper_i_ra_allphase_adaptive_20260817/bundle3_final_results_manifest.json` | **`output/` is gitignored** (`.gitignore:49`) |
+| `output/local_runs/paper_i_hh_b3_measured_residual_20260821/transfer/` | gitignored |
+| `output/local_runs/paper_i_hh_b9_mr_measured_costexp_20260824/transfer/` | gitignored |
+| `…worktrees/ra-refactor-stage2/…/results_tooling/kstar_tables.json` | worktree; `git worktree prune` destroys it |
+| `…worktrees/ra-refactor-stage2/…/paper_i_hh_b9_mr_measured_costexp_20260824_chtc/package_manifest.json` | worktree |
+| `…worktrees/appendix-demos-20260820/…/RESULTS_SOURCES.md` | worktree |
+
+All six exist today (verified on `7edf45e3`). If any is lost, **the refactor
+becomes unverifiable** — gates 1, 3 and 4 cannot run.
+
+Before touching any code: copy these into a tracked path, record SHA-256 for
+each, and commit. Suggested destination
+`agent_guidance/static-adapt/golden/` with a `MANIFEST.sha256`.
+
+Expected: six files (or trees) preserved under version control with hashes
+recorded; `sha256sum -c` passes.
+
+Stop if: any source is already missing. Report which — do not reconstruct it
+from another bundle. The contract is explicit that missing Bundle-3 cells are
+"missing historical evidence", not permission to borrow Bundle-5/Bundle-9 values.
 
 ### 1. Restore `route_identity.py` — fixes 34 of 55 collection errors
 
@@ -231,7 +295,8 @@ stubbing them — a stub here silently changes route identity metadata.
 
 ### 2. Materialize effective settings (fixes the stated symptom)
 
-New module `pipelines/static_adapt/route_profile_effective.py` exposing:
+This is the first step toward the contract's prescribed `run_profile()` seam,
+not an alternative to it. New module `pipelines/static_adapt/route_profile_effective.py` exposing:
 
 ```python
 effective_settings(profile_name) -> dict[str, Any]        # flattened, all 7 levels
@@ -312,8 +377,10 @@ report-back **before** writing it.
 ### 6. Base + delta profiles
 
 Only after 1–5. Rewrite the 31 dicts as one base plus explicit named deltas so an
-ablation is `base + {one field}` rather than a new leaf on a 7-deep chain.
-Increment 2's flattening test is what makes this safe.
+ablation is `base + {one field}` rather than a new leaf on a 7-deep chain, then
+land the contract's `run_profile(profile_id, problem_id, arm, horizon)` seam over
+it, with the receipt fields the contract's "Required run receipt" section
+enumerates. Increment 2's flattening test is what makes this safe.
 
 ---
 
@@ -355,6 +422,21 @@ Increment 2's flattening test is what makes this safe.
   you start so you can prove you did not add to it.
 - **`output/` and `prompt-exports/` are gitignored.** This handoff sits in
   `agent_guidance/static-adapt/` so it survives in version control.
+- **The golden data is gitignored and partly in worktrees.** See increment 0.
+  This is the single failure that would make the whole refactor unverifiable.
+- **A dormant configuration field does not establish runtime behavior.** The
+  contract states runtime receipts take precedence for child splitting, cost
+  source, shortlist population, and insertion representative. Bundle 3 records
+  `runtime_split_mode=off` while a settings field still mentions a splitting
+  mode; Bundle 5's nominal `single_pauli_word_v1` label contradicts its actual
+  `guarded_singleton_children_only_v1` receipts. **Never infer behavior from a
+  config field — read the receipt.** This is the same class of bug as the
+  settings drift you are fixing.
+- **Selection-time cost, compiled-circuit resources, and estimator work are three
+  different quantities** and must never share a field or be reconstructed from
+  each other. Bundles 3 and 9 use exact `backend_transpile_v1` marginals;
+  Bundle 5 uses the `marrakesh_graph_span_v1` proxy. Collapsing them during a
+  "cleanup" silently corrupts every cost table.
 - **Another agent's broad `git add` can sweep your uncommitted work.** Commit at
   increment boundaries with explicit paths.
 
