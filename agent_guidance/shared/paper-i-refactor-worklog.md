@@ -1780,9 +1780,19 @@ diff -u errors-before.txt errors-after.txt
 Thus the collection-error list is exactly unchanged and no focused test that
 already collected began failing.
 
-**Located, not extracted: the g/H/G value half.** There is no single current
-object exposing `g(support)`, `H(support)`, and `G(support)`. The closest full
-materializations are
+**Located, not extracted: the g/H/G value half.** The newly merged Paper-I
+interface correction led to the typed full-block carrier that the first search
+missed:
+`selector_query_closure.py:FormalAdmissionCurvatureReceipt`. The function
+`build_formal_admission_curvature_receipt` returns that object with actual
+arrays `G_AA`, `G_AB`, `G_BB`, `H_AA`, `H_AB`, `H_BB`,
+`descent_gradient_A`, and `descent_gradient_B`. It validates and freezes a
+historical Phase-III summary; it is not yet a `restrict(support)` response
+interface. In the manuscript-faithful partitioned form,
+`QueryClosedPopulationWorkspace.subset_geometry` already returns actual
+`(G_AB, G_BB, b_B)` arrays for a candidate subset.
+
+The upstream full materializations feeding related paths are
 `hh_continuation_scoring.py:_build_phase2_joint_geometry_cache`, which returns
 `_Phase2JointGeometryCache` arrays `g_A`, `g_B`, `G_AA`, `G_AB`,
 `G_BB_diagonal`, `H_AA`, `H_AB`, and `H_BB_diagonal`, and
@@ -1790,7 +1800,7 @@ materializations are
 returns `_BatchFullGeometryWorkspace` arrays `g_A`, `g_B`, `G_AA`, `G_AB`,
 `G_BB`, `H_AA`, `H_AB`, and `H_BB`.
 
-Related partial producers are
+Other partial producers are
 `engine_support.py:evaluate_exact_gradient_surface` (gradient arrays),
 `accepted_refit.py:_fubini_study_gram` (a Gram array),
 `hh_continuation_scoring.py:_selector_scaffold_context` and
