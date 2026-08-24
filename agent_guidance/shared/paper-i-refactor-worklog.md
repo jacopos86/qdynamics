@@ -1108,6 +1108,31 @@ form: non-zero scoring weights that no profile pins, so their values come from
 argparse and are invisible to profile review. If batching is ever enabled, the
 score depends on numbers no profile records.
 
+## 6r. Batch admission: two nested defaults (Q24)
+
+```
+batch                     default OFF
+  └─ if batch = true:
+       paper_i_batch      DEFAULT     Schur additivity defect
+       legacy_batch       default OFF five-weight heuristic
+```
+
+**Canonical (Paper I).** A block **B** is feasible when the joint drop is nearly
+additive:
+
+    defect = 1 - dE_joint / sum_i dE_i          (hh_continuation_scoring.py:7302)
+    feasible iff defect <= batch_additivity_tol  (:7309)
+
+This follows from the Schur-reduced quadratic, as the manuscript states.
+
+**Legacy.** `_compatibility_penalty_components:6935-7002`, a weighted sum of
+support overlap, non-commutation, cross curvature, schedule and measurement
+mismatch, with the five `phase2_compat_*_weight` constants.
+
+Both live under batch in `extensions.py`; neither belongs on the core executor
+signature. Reaching the legacy path requires two explicit opt-ins, so no parser
+default can select it.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1169,6 +1194,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q21 | The `lambda_F * F` substitution — metric standing in for the energy second order | **Delete it.** "Subbing in the gram part squared for the energy second order was an old proxy I want deleted." Covers both the Phase-I legacy energy model and the Phase-II cheap curvature proxy. | 2026-08-24 |
 | Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
 | Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
+| Q24 | The five-term compatibility penalty vs the Schur additivity defect | **Two nested defaults, both off.** `batch` defaults **off**. If `batch = true`, the default is **canonical Paper-I batch** — block feasibility from the Schur-reduced quadratic, `defect = 1 - dE_joint / sum(dE_i)` against `batch_additivity_tol`. The five-weight heuristic becomes a separate legacy `batch_mode`, **also default off**. Reaching it requires opting in twice. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
