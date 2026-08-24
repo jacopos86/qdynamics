@@ -270,6 +270,7 @@ not a proxy number.
 | Increment 0 — golden data rescue | Claude | 2026-08-24 | done, `5e6fcb17` on `golden-rescue-20260824` |
 | Full-suite failure census | Claude | 2026-08-24 | in progress |
 | Worklog consistency and reproducibility audit | Codex | 2026-08-24 | done; documentation-only findings below |
+| Algorithm/ansatz/generator boundary and cost-source audit | Codex | 2026-08-24 | done; author clarification and measured correction below |
 | _(add yours)_ | | | |
 
 ---
@@ -810,6 +811,109 @@ author's drift symptom, and it is rule 3 of the design target.
 
 Reproduce: wrap `adapt_pipeline._canonical_sr_snake_legacy_executor_kwargs` and
 record keys absent from `_CANONICAL_SR_SNAKE_LEGACY_EXECUTOR_PARAMETER_NAMES`.
+
+---
+
+### 2026-08-24 — Codex — author clarification: the algorithm calls domain objects
+
+This corrects the **"Three files"** target above. The mathematical algorithm
+must not construct or encode the ansatz or the generator population. It calls
+those domain objects through small interfaces.
+
+| module | owns |
+|---|---|
+| `algorithm.py` | only the controller loop, Phase 0--III restriction/evaluation order, shortlist, admission, and acceptance orchestration |
+| `ansatz.py` | the ordered accepted generators and parameters, state construction, insertion, and refit/update operations |
+| `generators.py` | generator identity and support, population construction, records, macro-to-singleton exposure, scoring, and the two cost terms |
+| `extensions.py` | optional batch, prune, and beam composition after the singleton route |
+
+Only `algorithm.py` is the algorithm. Its functions receive an `Ansatz` and a
+generator population and return their next immutable values. Concrete pool
+construction, operator algebra, circuit construction, telemetry, and receipts
+do not enter that file. The public command may still be
+`run_ra_adapt(problem, request=None)`; its adapter constructs the domain
+objects before calling the mathematical route.
+
+The existing `CandidateRepresentationAdapter` already points toward the
+generator boundary: it owns `parent_inventory`, `executable_pool`, and
+`expose_children`. The Bundle-5 macro-to-singleton step should become one
+population transformation after Phase I, while `score` remains unchanged.
+
+### 2026-08-24 — Codex — correction: cost normalization is partly shared already
+
+This corrects the design-target sentence saying the current cost sources have
+"no shared normalization." They lack one small `CostTerm` interface, but the
+normalization math is already partially centralized in
+`pipelines/scaffold/hh_continuation_scoring.py`:
+
+- `hardware_cost_family_normalization(...)` dispatches the population
+  statistics;
+- `apply_symmetric_hardware_cost_normalization(...)` applies the common
+  bounded transform; and
+- `rescore_hardware_cost_family(...)` applies the resulting factor to Phase
+  I, II, and III score fields. Targeted tests cover both the proxy-family and
+  signed-Qiskit policies in all three phases.
+
+For component $a\in\{2q,d,1q,\theta,\mathrm{shot}\}$, both current signed
+policies use
+
+\[
+u_a=\frac{2}{\pi}\arctan\!\left(\frac{c_a-\mu_a}{s_a}\right),\qquad
+I=\frac{\sum_a\lambda_a u_a}{\sum_a\lambda_a},\qquad
+f=\operatorname{clip}(1-\tfrac12 I,0.5,1.5).
+\]
+
+They differ only in the statistics supplied to that transform:
+
+- proxy-family `family_robust_symmetric_arctan_v1` uses the population median
+  for \(\mu_a\) and `max(scale_floor, MAD)` for \(s_a\);
+- signed-Qiskit `zero_centered_signed_arctan_v1` uses \(\mu_a=0\) and
+  `max(scale_floor, median(nonzero(abs(delta))))` for \(s_a\).
+
+The cost-source vocabulary is currently three-layered, not two-layered:
+`proxy_logical_ladder_span_v1` is the structural baseline,
+`marrakesh_graph_span_v1` is the graph-aware no-transpile proxy, and
+`backend_transpile_v1` is the compiled full-base/full-trial marginal. The
+simplest source-faithful two-implementation target is therefore:
+
+- `ProxyCost`: the Marrakesh graph-span estimate, using the logical-ladder
+  helper only for the coordinates it supplies; and
+- `QiskitCost`: signed deltas of compiled \(N_{2q}\), \(D_{2q}\), and
+  \(N_{1q}\), with zero theta and shot coordinates.
+
+Both return the same typed `Cost`; the shared normalizer receives that cost and
+the selected statistics policy. There is no string alias dispatch and no
+substitution between implementations. In particular, the current branch in
+`normalize_hardware_cost_feature_family(...)` that changes a requested signed
+policy to `family_robust_v1` when signed telemetry is absent violates the
+author's no-fallback rule and must become an error at the extracted seam.
+
+One semantic mismatch must remain explicit: the target says cost is available
+in Phases I--III and Phase 0 is the raw-gradient pilot, while current semantic
+Phase-0 proxy routes divide by a graph-proxy denominator. Removing Phase-0 cost
+would change rankings; do not hide that change inside the structural
+extraction. Make it a separately named semantic change with its own evidence.
+
+GitNexus was used only for exact Paper-I symbols
+`CandidateRepresentationAdapter` and `select_adaptive_phase_shortlist`. Its
+index is stale at `ade04b3`, so the newer cost functions were ratified directly
+from the Paper-I source and targeted tests rather than triggering a repo-wide
+re-index.
+
+Reproduce:
+
+```bash
+rg -n 'class Phase1CompileCostOracle|class MarrakeshGraphSpanCostOracle' \
+  pipelines/scaffold/hh_continuation_scoring.py \
+  pipelines/static_adapt/hh_backend_compile_oracle.py
+sed -n '1050,1210p' pipelines/scaffold/hh_continuation_scoring.py
+sed -n '1359,1445p' pipelines/scaffold/hh_continuation_scoring.py
+sed -n '430,525p' pipelines/static_adapt/hh_backend_compile_oracle.py
+python3 -m pytest -q \
+  test/test_hh_continuation_scoring.py::test_symmetric_hardware_cost_factor_applies_to_phase1_phase2_and_phase3 \
+  'test/test_ra_adapt_phase123_qiskit_scope.py::test_signed_qiskit_cost_can_reverse_raw_benefit_order_in_every_phase'
+# -> 4 passed in 2.85s
+```
 
 ---
 
