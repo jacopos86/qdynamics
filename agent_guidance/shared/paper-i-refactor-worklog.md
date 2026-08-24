@@ -415,6 +415,63 @@ that left its tests behind — still an author question, but a narrower one.
 
 ---
 
+### 2026-08-24 — Claude — author's design target, and two measured facts behind it
+
+**Design target:** `agent_guidance/static-adapt/ra-adapt-minimal-algorithm.md`.
+Author's specification, not an agent proposal. Three files: the loop, the
+generators/score/cost, the optional extensions. Phases 0-III are one function at
+increasing response order, not four code paths. One cost-term interface with a
+qiskit and a proxy implementation sharing one normalization, selected at
+runtime. Batch/prune/beam defined after, absent from the default path. Fixed vs
+adaptive shortlisting is a rule over the score, not a mode.
+
+**Fact 1 — candidate-gain semantics differ by bundle.** Census over all 13
+Bundle-9 archives and 5 Bundle-3 archives, from the run checkpoints:
+
+| bundle | `joint_gain_semantics` | `active_only_baseline` | receipts |
+|---|---|---|---|
+| Bundle 9 (13/13 cells) | `full_joint_trust_gain_legacy_v1` | `None` in all | 2,040 |
+| Bundle 3 (5 cells) | `incremental_candidate_gain_v1` | populated in all | 1,746 |
+
+Unanimous, no mixing. Bundle 9 ranked candidates by legacy total joint gain;
+Bundle 3 by the incremental gain. **Both gain policies have been run, but on
+different bundles**, so they are confounded with every other B3/B9 difference.
+A clean comparison requires both within one bundle — which is why the author's
+answer to "which policy" is "try both, full".
+
+The counterfactual cannot be recovered from existing receipts: Bundle 9 never
+computed the active-only baseline, so there is no second ranking to extract.
+
+Reproduce: extract `./run/checkpoints/current.json` from an archive and collect
+objects with `schema == "phase3_candidate_gain_receipt_v1"`.
+
+**Fact 2 — a profile's keys have three different fates, and nothing says
+which.** Instrumenting the 348-name filter on the typed path, 22 keys are
+dropped per call. They are not one thing:
+
+- **7** reach the executor under an unprefixed twin with the identical value
+  (`adapt_seed=7` → `seed=7`). Harmless duplication.
+- **several** are consumed through the typed contracts instead, not the legacy
+  kwargs (`phase_live_hysteresis_enabled` is read by `sr_snake/contracts.py` and
+  `ra_adapt/runtime.py`). Dropping them here is correct.
+- **at least one is read by nothing at all**: `phase1_prune_small_theta_abs` is
+  declared in `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS` and appears in no other
+  `.py` file.
+
+20 of the 22 are declared by a canonical profile;
+`phase_live_hysteresis_enabled` by seven of them.
+
+**This corrects an earlier over-claim of mine in this session** that the filter
+was silently losing science. It is not, mostly. The real defect is that reading
+a profile does not tell you which of its keys take effect — some reach the
+executor, some reach a different channel, some reach nothing. That is the
+author's drift symptom, and it is rule 3 of the design target.
+
+Reproduce: wrap `adapt_pipeline._canonical_sr_snake_legacy_executor_kwargs` and
+record keys absent from `_CANONICAL_SR_SNAKE_LEGACY_EXECUTOR_PARAMETER_NAMES`.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
