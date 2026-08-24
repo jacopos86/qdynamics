@@ -622,7 +622,7 @@ not a proxy number.
 | Algorithm/ansatz/generator boundary and cost-source audit | Codex | 2026-08-24 | done; author clarification and measured correction below |
 
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
-| Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | in progress on `codex/paper-i-worklog-audit-20260824` |
+| Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
 | _(add yours)_ | | | |
 
 ---
@@ -1527,3 +1527,114 @@ The handoff explicitly requires stopping if an orphaned test imports a module
 that still exists. The stop condition therefore triggered before deletion.
 No test file was deleted, no after-collection run was made, and no ERROR-list
 diff exists. No implementation or scoring file was touched.
+
+### 2026-08-24 — `ResponseAccounting` extraction — COMPLETE
+
+**Goal:** move the default no-prune estimator-charge service and its tangent
+identity helpers out of `adapt_pipeline.py`, without changing a ledger key,
+primitive id, receipt, cache replay, or ordering.
+
+**Coordination and clean baseline:** the local `paper-ii-exchange-selector`
+branch resolved to `432135036d3f770e874c0f7556a771b19d9c290f`; it was merged before
+the claim was appended. The clean pre-extraction baseline, including the
+claim-only commit, was
+`aa76c086283ce36509b4de39c85d88b5ef8d0c4b`.
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# -> 5573 tests collected, 54 errors in 21.33s
+# -> peak RSS 435 MB
+```
+
+**Impact and extraction:** Paper-I-scoped GitNexus reported CRITICAL upstream
+risk for `_physical_generator_block_payload` (36 upstream symbols, seven
+processes, 12 modules), `_physical_tangent_operand_identity` (three direct
+callers, eight processes, 16 modules), and
+`_candidate_physical_tangent_operand_identity` (two direct callers, eight
+processes, 11 modules). The scoped class lookup under-reported
+`_DefaultNoPruneEstimatorService` as zero upstream callers, so source
+ratification governed: there is one construction site and the helpers also
+serve legacy closures and direct test imports. To preserve that surface,
+`adapt_pipeline.py` imports the same private names from the new module; no call
+site changed.
+
+Commit `4b33e682` adds
+`pipelines/static_adapt/response_accounting.py` and moves, without rewriting,
+these definitions:
+
+- `_DefaultNoPruneEstimatorService`;
+- `_physical_generator_block_payload`;
+- `_physical_tangent_operand_identity`;
+- `_candidate_physical_tangent_operand_identity`; and
+- the candidate-cache estimator replay schema and field constants.
+
+`PhysicalTangentOperandIdentity` remains owned by
+`estimator_call_ledger.py`. Phase scorers, cost terms, legacy closures, and the
+g/H/G value interface were not edited.
+
+The dedicated Paper-I GitNexus index is `--skip-git` scoped. A pre-commit
+`detect-changes` invocation against this worktree therefore failed closed with
+"Repository ... not found" instead of silently using the repo-wide index.
+Path-limited Git diff/checks, import identity, focused tests, collection, and
+the ledger lock below supplied the change evidence.
+
+**Receipt-identity lock:** the same bounded, cache-disabled completed
+Hubbard--Holstein run was executed before and after extraction (`L=2`,
+`n_ph_max=1`, full-Hamiltonian pool, one admitted operator, no
+prune/batch/rescue/Phase-0). Both runs stopped at `max_depth`, recorded 18 raw
+occurrences and 13 unique primitives, and serialized the same full ledger.
+
+```bash
+shasum -a 256 ledger-before.json ledger-after.json
+# -> 5e1f2ff05251262d30d9eff6dbc09993d77b6d443d9dbb6949cf3033027c34de  (both)
+cmp -s ledger-before.json ledger-after.json
+# -> exit 0
+```
+
+The byte identity covers primitive ids, call keys, entries, occurrence order,
+consumer receipts, and the ledger fingerprint. The stop condition did not
+trigger.
+
+**Regression evidence:**
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest -q \
+    test/test_static_adapt_estimator_call_ledger.py \
+    test/test_adapt_candidate_record_cache.py \
+    test/test_static_adapt_sr_v4_runtime.py::test_v4_disabled_finite_angle_switch_skips_flat_gradient_guard \
+    test/test_ra_adapt_refactor_parity.py
+# -> 61 passed, 2 warnings in 18.72s; peak RSS 476 MB
+
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# -> 5573 tests collected, 54 errors in 19.04s; peak RSS 429 MB
+
+diff -u errors-before.txt errors-after.txt
+# -> empty diff
+```
+
+Thus the collection-error list is exactly unchanged and no focused test that
+already collected began failing.
+
+**Located, not extracted: the g/H/G value half.** There is no single current
+object exposing `g(support)`, `H(support)`, and `G(support)`. The closest full
+materializations are
+`hh_continuation_scoring.py:_build_phase2_joint_geometry_cache`, which returns
+`_Phase2JointGeometryCache` arrays `g_A`, `g_B`, `G_AA`, `G_AB`,
+`G_BB_diagonal`, `H_AA`, `H_AB`, and `H_BB_diagonal`, and
+`hh_continuation_scoring.py:_build_batch_full_geometry_workspace`, which
+returns `_BatchFullGeometryWorkspace` arrays `g_A`, `g_B`, `G_AA`, `G_AB`,
+`G_BB`, `H_AA`, `H_AB`, and `H_BB`.
+
+Related partial producers are
+`engine_support.py:evaluate_exact_gradient_surface` (gradient arrays),
+`accepted_refit.py:_fubini_study_gram` (a Gram array),
+`hh_continuation_scoring.py:_selector_scaffold_context` and
+`OrderedInsertionGeometryOracle.prepare_scaffold_context` (`Q_window` and
+`H_window_hessian`), and
+`exact_geometry_backend.py:CompiledExactManifoldAdapter._state_gradient_tangents`
+(a gradient and tangent arrays). None was changed in this increment.
