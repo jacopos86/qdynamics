@@ -203,3 +203,54 @@ def test_debt_ranking_is_not_a_user_flag_default() -> None:
     )
 
     assert SupportPatchControllerConfig().debt_ranking is False
+
+
+def test_state_and_parameter_guards_compose() -> None:
+    """Both bounds must be expressible at once, not one instead of the other.
+
+    The state bound passes a step whenever the state barely moves, which is
+    exactly when an ill-conditioned solve returns a large spurious theta_dot.
+    Measured on the fast weak drive: under the state bound alone the three
+    largest step-to-step jumps carried 81% of all error growth; under a
+    parameter bound alone, 6%.
+    """
+
+    from pipelines.time_dynamics.ap_mclachlan.fixed_step import SolveRepairConfig
+
+    config = SolveRepairConfig.minimal_profile(parameter_step_max=5.0e-3)
+    assert config.state_motion_l2_step_max == pytest.approx(1.0e-2)
+    assert config.parameter_step_max == pytest.approx(5.0e-3)
+    recorded = config.to_json_dict()
+    assert recorded["state_motion_l2_step_max"] == pytest.approx(1.0e-2)
+    assert recorded["parameter_step_max"] == pytest.approx(5.0e-3)
+
+
+def test_parameter_guard_defaults_off_so_existing_runs_are_unchanged() -> None:
+    from pipelines.time_dynamics.ap_mclachlan.fixed_step import SolveRepairConfig
+
+    assert SolveRepairConfig().parameter_step_max is None
+    assert SolveRepairConfig.minimal_profile().parameter_step_max is None
+
+
+def test_parameter_guard_opens_a_subdivision_lane() -> None:
+    """An exceeded parameter bound must schedule subdivision, like state motion."""
+
+    from pipelines.time_dynamics.ap_mclachlan.fixed_step import (
+        SolveGuardReport,
+        SolveRepairConfig,
+        _repair_response_schedule,
+    )
+
+    config = SolveRepairConfig.minimal_profile(parameter_step_max=5.0e-3)
+    report = SolveGuardReport(
+        repair_dt=0.04, g_empty=False, g_kappa=False, g_delta=False,
+        g_theta=True, g_rho=False, g_kink=False, retained_support_empty=False,
+        state_motion_l2_step=1.0e-4,     # state bound satisfied
+        parameter_step=4.0e-2,           # parameter bound exceeded 8x
+        state_space_kink_eta=None, rho_real=None, rho_expr=None, rho_num=None,
+        projected_velocity_l2=None, realized_residual_sq=None,
+        best_case_residual_sq=None, guard_reason="parameter_step_above_max",
+    )
+    schedule = _repair_response_schedule(report, repair_config=config)
+    assert "theta" in schedule.active_lanes
+    assert schedule.local_subdivision_breadth >= 1

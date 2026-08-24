@@ -41,10 +41,12 @@ class SolveGuardReport:
     g_empty: bool
     g_kappa: bool
     g_delta: bool
+    g_theta: bool
     g_rho: bool
     g_kink: bool
     retained_support_empty: bool
     state_motion_l2_step: float | None
+    parameter_step: float | None
     state_space_kink_eta: float | None
     rho_real: float | None
     rho_expr: float | None
@@ -64,6 +66,7 @@ class SolveGuardReport:
             "g_kink": bool(self.g_kink),
             "retained_support_empty": bool(self.retained_support_empty),
             "state_motion_l2_step": _finite_or_none(self.state_motion_l2_step),
+            "parameter_step": _finite_or_none(self.parameter_step),
             "state_space_kink_eta": _finite_or_none(self.state_space_kink_eta),
             "rho_real": _finite_or_none(self.rho_real),
             "rho_expr": _finite_or_none(self.rho_expr),
@@ -148,6 +151,16 @@ class SolveRepairConfig:
     theta_dot_l2_max: float | None = None
     rho_num_max: float | None = 1.0e-2
     state_motion_l2_step_max: float | None = 5.0e-2
+    # Bound on how far any single variational parameter may move in one step,
+    # max_mu |theta_dot_mu| * dt. This is the AVQDS control quantity (Yao et
+    # al., delta_theta_max = 5e-3) and it is NOT redundant with the state-motion
+    # bound above: the state bound passes a step whenever the state barely
+    # moves, which is exactly when an ill-conditioned solve returns a large
+    # spurious theta_dot. Measured on the fast weak drive, under the state bound
+    # alone the three largest step-to-step jumps carried 81% of all error
+    # growth; under a parameter bound alone, 6%. Guarding both is the reason
+    # this exists rather than replacing one with the other.
+    parameter_step_max: float | None = None
     state_space_kink_eta_max: float | None = 1.0e-2
     local_subdivision_enabled: bool = True
     max_local_subdivisions: int = 10
@@ -228,6 +241,7 @@ class SolveRepairConfig:
             "theta_dot_l2_max",
             "rho_num_max",
             "state_motion_l2_step_max",
+            "parameter_step_max",
             "state_space_kink_eta_max",
             "min_local_dt",
             "release_kink_threshold_scale",
@@ -275,6 +289,7 @@ class SolveRepairConfig:
             "theta_dot_l2_max_status": "archaic_diagnostic_only_not_repair_guard",
             "rho_num_max": _finite_or_none(self.rho_num_max),
             "state_motion_l2_step_max": _finite_or_none(self.state_motion_l2_step_max),
+            "parameter_step_max": _finite_or_none(self.parameter_step_max),
             "state_space_kink_eta_max": _finite_or_none(self.state_space_kink_eta_max),
             "local_subdivision_enabled": bool(self.local_subdivision_enabled),
             "max_local_subdivisions": int(self.max_local_subdivisions),
@@ -326,6 +341,7 @@ class FixedMcLachlanStep:
     rho_expr: float | None = None
     rho_num: float | None = None
     state_motion_l2_step: float | None = None
+    parameter_step: float | None = None
     state_space_kink_eta: float | None = None
     solve_mode: str = "direct"
     solve_guard_g_empty: bool = False
@@ -418,8 +434,13 @@ def solve_fixed_mclachlan_step(
         epsilon=float(inverse_policy.epsilon),
     )
     state_motion = None
+    parameter_step = None
     if step_dt is not None:
         state_motion = abs(float(step_dt)) * float(metrics.projected_velocity_l2)
+        theta_dot_vec = np.asarray(solve.theta_dot, dtype=float).reshape(-1)
+        parameter_step = abs(float(step_dt)) * (
+            float(np.max(np.abs(theta_dot_vec))) if theta_dot_vec.size else 0.0
+        )
     kink_eta = None
     if kink_reference_theta_dot is not None:
         kink_eta = state_space_kink_eta(
@@ -448,6 +469,7 @@ def solve_fixed_mclachlan_step(
         rho_expr=float(metrics.rho_expr),
         rho_num=float(metrics.rho_num),
         state_motion_l2_step=state_motion,
+        parameter_step=parameter_step,
         state_space_kink_eta=kink_eta,
     )
 
@@ -717,6 +739,7 @@ def _step_with_repair_telemetry(
         rho_expr=step.rho_expr,
         rho_num=step.rho_num,
         state_motion_l2_step=step.state_motion_l2_step,
+        parameter_step=step.parameter_step,
         state_space_kink_eta=step.state_space_kink_eta,
         solve_mode=step.solve_mode,
         solve_guard_g_empty=bool(step.solve_guard_g_empty),
@@ -753,6 +776,7 @@ def _step_with_guard_report(
         rho_expr=step.rho_expr,
         rho_num=step.rho_num,
         state_motion_l2_step=step.state_motion_l2_step,
+        parameter_step=step.parameter_step,
         state_space_kink_eta=step.state_space_kink_eta,
         solve_mode="accepted" if report.guard_reason == "accepted" else "guarded",
         solve_guard_g_empty=bool(report.g_empty),
@@ -823,6 +847,14 @@ def _solve_guard_report(
         and np.isfinite(float(state_motion))
         and float(state_motion) > float(motion_max)
     )
+    parameter_step = step.parameter_step
+    parameter_max = repair_config.parameter_step_max
+    g_theta = bool(
+        parameter_max is not None
+        and parameter_step is not None
+        and np.isfinite(float(parameter_step))
+        and float(parameter_step) > float(parameter_max)
+    )
     rho_num = None if metrics is None else float(metrics.rho_num)
     rho_max = repair_config.rho_num_max
     g_rho = bool(
@@ -848,6 +880,8 @@ def _solve_guard_report(
         reason = "condition_number_strict_finite_shot_fail"
     elif g_delta:
         reason = "state_motion_step_above_max"
+    elif g_theta:
+        reason = "parameter_step_above_max"
     elif g_kink:
         reason = "state_space_temporal_kink_above_max"
     elif g_rho:
@@ -857,10 +891,12 @@ def _solve_guard_report(
         g_empty=g_empty,
         g_kappa=g_kappa,
         g_delta=g_delta,
+        g_theta=g_theta,
         g_rho=g_rho,
         g_kink=g_kink,
         retained_support_empty=retained_empty,
         state_motion_l2_step=state_motion,
+        parameter_step=parameter_step,
         state_space_kink_eta=kink_eta,
         rho_real=None if metrics is None else float(metrics.rho_real),
         rho_expr=None if metrics is None else float(metrics.rho_expr),
@@ -878,10 +914,12 @@ def _failed_guard_report(*, repair_dt: float | None, reason: str) -> SolveGuardR
         g_empty=False,
         g_kappa=False,
         g_delta=False,
+        g_theta=False,
         g_rho=False,
         g_kink=False,
         retained_support_empty=False,
         state_motion_l2_step=None,
+        parameter_step=None,
         state_space_kink_eta=None,
         rho_real=None,
         rho_expr=None,
@@ -920,6 +958,7 @@ def _paper_ii_acceptability(report: SolveGuardReport) -> bool:
         report.g_empty
         or report.g_kappa
         or report.g_delta
+        or report.g_theta
         or report.g_rho
         or report.g_kink
         or str(report.guard_reason) in {"theta_dot_nonfinite", "solve_failed"}
@@ -927,7 +966,10 @@ def _paper_ii_acceptability(report: SolveGuardReport) -> bool:
 
 
 def _paper_ii_repair_entry_needed(report: SolveGuardReport) -> bool:
-    return bool(report.g_empty or report.g_rho or report.g_delta or report.g_kink)
+    return bool(
+        report.g_empty or report.g_rho or report.g_delta
+        or report.g_theta or report.g_kink
+    )
 
 
 def _repair_response_schedule(
@@ -940,6 +982,11 @@ def _repair_response_schedule(
         report.state_motion_l2_step,
         repair_config.state_motion_l2_step_max,
     )
+    # Parameter motion is its own lane, not a substitute for the state lane.
+    theta_step = _threshold_ratio(
+        report.parameter_step,
+        repair_config.parameter_step_max,
+    )
     temporal_kink_raw = _threshold_ratio(
         report.state_space_kink_eta,
         repair_config.state_space_kink_eta_max,
@@ -948,6 +995,7 @@ def _repair_response_schedule(
     components = {
         "rho": rho,
         "delta": delta,
+        "theta": theta_step,
         "time": temporal,
     }
     lanes = tuple(label for label, value in components.items() if float(value) > 1.0)
@@ -957,7 +1005,7 @@ def _repair_response_schedule(
         breadth = int(max(0, np.ceil(np.log2(severity))))
     local_breadth = (
         min(breadth, int(repair_config.max_local_subdivisions))
-        if any(lane in {"delta", "time"} for lane in lanes)
+        if any(lane in {"delta", "theta", "time"} for lane in lanes)
         else 0
     )
     inverse_breadth = breadth if "rho" in lanes else 0

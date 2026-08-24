@@ -282,6 +282,21 @@ DRIVES: Mapping[str, Drive] = {
         Drive("strongfast", 2.4, 3.0),
         Drive("midres", 1.2, 2.0),
         Drive("fastfast", 0.6, 6.0),
+        # Resonance discriminator. Both drives where this route loses to the
+        # comparator sit at omega = 3, across a 4x amplitude range, while it
+        # wins at omega = 1, 2, and 6. The seed has phonon frequency
+        # omega_0 = 1, so omega = 3 is a third harmonic, and an n_ph = 1
+        # truncation represents multi-phonon transitions badly. These drives
+        # separate "sharp in omega" (resonance) from "smeared" (not).
+        Drive("res_w2p5", 0.6, 2.5),
+        Drive("res_w2p75", 0.6, 2.75),
+        Drive("res_w3p25", 0.6, 3.25),
+        Drive("res_w3p5", 0.6, 3.5),
+        Drive("res_w4", 0.6, 4.0),
+        # Amplitude at fixed omega = 3, to confirm the failure is frequency
+        # selective rather than amplitude driven.
+        Drive("res_a0p3", 0.3, 3.0),
+        Drive("res_a1p2", 1.2, 3.0),
     )
 }
 

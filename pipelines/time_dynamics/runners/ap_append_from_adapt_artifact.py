@@ -1796,6 +1796,18 @@ def _build_parser() -> argparse.ArgumentParser:
         default=True,
     )
     parser.add_argument("--solve-repair-max-local-subdivisions", type=int, default=10)
+    parser.add_argument(
+        "--solve-repair-parameter-step-max",
+        type=float,
+        default=None,
+        help=(
+            "Bound on max_mu |theta_dot_mu| * dt per step, subdividing when "
+            "exceeded. Composes with the state-motion bound rather than "
+            "replacing it: the state bound passes a step whenever the state "
+            "barely moves, which is when an ill-conditioned solve returns a "
+            "large spurious theta_dot."
+        ),
+    )
     parser.add_argument("--solve-repair-local-subdivision-factor", type=int, default=2)
     parser.add_argument("--solve-repair-min-local-dt", type=float, default=1.0e-6)
     parser.add_argument("--solve-repair-release-patience-min", type=int, default=1)
@@ -2028,6 +2040,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         _repair_kwargs = dict(
             enabled=bool(args.solve_repair),
+            parameter_step_max=(
+                None
+                if args.solve_repair_parameter_step_max is None
+                else float(args.solve_repair_parameter_step_max)
+            ),
             condition_number_max=float(args.solve_repair_condition_number_max),
             condition_number_fail=(
                 None
