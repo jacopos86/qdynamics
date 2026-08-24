@@ -1510,6 +1510,32 @@ callers anywhere in `pipelines/` — the only reference outside its own definiti
 is the version string in its own return payload (`:3400`). It never ranked a
 Phase-III candidate.
 
+## 6ad. The maturity controller (Q36) — delete
+
+An adaptive per-candidate **shot-budget controller**: as a candidate accumulates
+measurements it "matures", and the caps bound its shots at each phase.
+
+| evidence | value |
+|---|---|
+| occurrences of "maturity" in `Paper_I_author_revision.tex` | **0** |
+| parameters on the executor signature | **12** |
+| read sites in `hh_continuation_scoring.py` | **0** |
+
+Every cap defaults off: `phase{1,2,3}_maturity_cap_min/max = None`,
+`phase{1,2,3}_maturity_shot_cap = 0`, `phase_maturity_shot_min/max = 1`.
+`phase1_prune_maturity_threshold = 0.5` goes with prune (Q27).
+
+**Resume coupling — the one complication.** The controller serializes state into
+`current.json` as `phase123_controller_maturity_v2`
+(`resume_scaffold.py:291-292, 3292, 3354-3355, 5770`), and resume *validates the
+snapshot version*, raising if it is unsupported. Deleting the controller changes
+the checkpoint schema, so existing Bundle checkpoints carry a snapshot the new
+code will not write.
+
+Same situation as the Phase-0 fields under Q17, where the author's decision was
+to drop outright and treat any resume failure as a real bug to find rather than
+shim around. Apply that here.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1583,6 +1609,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q33 | Is cost source per-phase or run-level? | **Single run-level choice.** It used to be per-phase; simplify to one selection applying across Phases I-III. With Phase-0 cost deleted (Q14), there is no phase that differs. | 2026-08-24 |
 | Q34 | `phase3_backend_transpile_seed` — per-phase or run-level? | **Run-level.** The seed joins the compilation contract with the target and optimization level, as Paper I's COST block fixes `seed_transpiler = 7` for the run. No phase may compile against a different seed. | 2026-08-24 |
 | Q35 | The six lambda weights — per-phase or run-level? | **Run-level, not per-phase.** Applies to the cost weights `lambda_2q`, `lambda_d`, `lambda_1q`, `lambda_theta`, `lambda_shot`. **`lambda_F` is different — it does not survive Q21 at all**, see 6ac. | 2026-08-24 |
+| Q36 | The maturity shot-budget controller | **Archaic — delete.** Adaptive per-candidate shot allocation. Absent from Paper I, no read sites in the scorer, and every cap defaults off. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
