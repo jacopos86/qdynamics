@@ -122,6 +122,7 @@ RUNNER_SCHEMA_V1 = "ap_mclachlan_append_from_adapt_artifact_v1"
 def run_append_ap_mclachlan_from_runtime_input(
     runtime_input: Any,
     *,
+    record_statevector: bool = False,
     times: Sequence[float],
     integrator_method: str = INTEGRATOR_EULER,
     pinv_rcond: float = 1.0e-10,
@@ -208,7 +209,10 @@ def run_append_ap_mclachlan_from_runtime_input(
         progress_callback=progress_callback,
     )
     rows = attach_reference_energy_diagnostics(
-        plot_rows=_plot_rows(trajectory, initial_state=state),
+        plot_rows=_plot_rows(
+            trajectory, initial_state=state,
+            record_statevector=bool(record_statevector),
+        ),
         reference=reference,
         atol=float(reference_energy_atol),
     )
@@ -489,7 +493,21 @@ def _format_progress_float(value: Any) -> str:
     return f"{float(finite):.6g}"
 
 
-def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
+def _plot_rows(
+    trajectory: Any, *, initial_state: Any, record_statevector: bool = False
+) -> list[dict[str, Any]]:
+    """Per-checkpoint reporting rows.
+
+    ``record_statevector`` stores the checkpoint state so that state infidelity
+    ``1 - |<psi|psi_exact>|^2`` can be computed after the fact. That is the
+    error metric this literature reports (Yao et al., PRX Quantum 2, 030307,
+    Fig. 6); per-observable deviation is observable-dependent and can be made to
+    favour either method by choosing the observable. The state is already on the
+    trajectory point via its geometry evaluation, so recording costs only
+    serialization -- about 1 KB per checkpoint at Hilbert dimension 64 -- and
+    the exact reference is never handed to the controller.
+    """
+
     rows: list[dict[str, Any]] = []
     observable_plan = build_site_doublon_observable_plan(
         initial_state.resolved_problem,
@@ -497,6 +515,15 @@ def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
     )
     for point in trajectory.points:
         theta = np.asarray(point.theta_runtime, dtype=float).reshape(-1)
+        psi_record: dict[str, Any] = {}
+        if record_statevector:
+            psi = getattr(getattr(point, "geometry", None), "psi", None)
+            if psi is not None:
+                psi = np.asarray(psi, dtype=complex).reshape(-1)
+                psi_record = {
+                    "psi_real": [float(v) for v in psi.real],
+                    "psi_imag": [float(v) for v in psi.imag],
+                }
         theta_dot = np.asarray(point.fixed_step.theta_dot, dtype=float).reshape(-1)
         decision = point.patch_decision
         selected_score = decision.selected_score
@@ -985,6 +1012,7 @@ def _plot_rows(trajectory: Any, *, initial_state: Any) -> list[dict[str, Any]]:
                 plan=observable_plan,
             )
         )
+        row.update(psi_record)
         rows.append(row)
     return rows
 
@@ -1603,6 +1631,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--insertion-l2-cut", type=float, default=1.0e-3)
     parser.add_argument(
+        "--record-statevector",
+        action="store_true",
+        help=(
+            "Record the checkpoint statevector in plot_rows so state "
+            "infidelity can be computed afterwards. ~1 KB per checkpoint "
+            "at Hilbert dimension 64."
+        ),
+    )
+    parser.add_argument(
         "--debt-policy",
         choices=["insertion_only", "any_improving", "drift_ranked"],
         default="insertion_only",
@@ -2041,6 +2078,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         solve_repair_config = SolveRepairConfig(**_repair_kwargs)
         payload = run_append_ap_mclachlan_from_runtime_input(
             runtime_input,
+            record_statevector=bool(args.record_statevector),
             times=_resolve_times(args),
             integrator_method=str(args.integrator),
             pinv_rcond=float(args.pinv_rcond),
