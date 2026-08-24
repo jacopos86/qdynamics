@@ -1174,6 +1174,33 @@ Verified rather than left as a flag:
 So batching is not silently on, but its effective value comes from a funnel
 cardinality (`batch_size_cap > 1`) rather than from any profile.
 
+## 6t. Extension surface to relocate (Q27)
+
+| surface | batch | prune | beam | total | of |
+|---|---|---|---|---|---|
+| executor parameters | 11 | 35 | 11 | **57** | 348 |
+| CLI flags | 20 | 36 | 11 | **67** | 409 |
+| lines mentioning, `adapt_pipeline.py` | 1105 | 2293 | 814 | **~4212** | 72063 |
+| lines mentioning, `hh_continuation_scoring.py` | 611 | 4 | 1 | ~616 | 19420 |
+
+Mentions are not all movable lines — extension logic is interleaved with the
+controller rather than blocked — so treat the line figures as the surface to
+work through, not the deletion target.
+
+**Destination.** `extensions.py`, per the design target: batch, prune and beam
+are optional extensions defined *after* the algorithm, absent from the default
+path. `maintain(state, extensions)` iterates an empty list unless one is enabled.
+
+**Consequences that make this more than a move.** Their choices come from the
+conditional policy interview (Q25/Q26), so the 57 parameters and 67 flags do not
+reappear as defaults elsewhere — they cease to exist as a default surface. That
+is what makes this a deletion under rule 6i rather than a relocation like the
+`ResponseAccounting` extraction.
+
+`prune` is the largest by far — 35 parameters, 36 flags, 2293 mentions — and the
+active family root already pins `phase1_prune_enabled: False`
+(`sr_snake_route_profile.py:760`), so canonical evidence does not exercise it.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1238,6 +1265,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q24 | The five-term compatibility penalty vs the Schur additivity defect | **Two nested defaults, both off.** `batch` defaults **off**. If `batch = true`, the default is **canonical Paper-I batch** — block feasibility from the Schur-reduced quadratic, `defect = 1 - dE_joint / sum(dE_i)` against `batch_additivity_tol`. The five-weight heuristic becomes a separate legacy `batch_mode`, **also default off**. Reaching it requires opting in twice. | 2026-08-24 |
 | Q25 | Should legacy-batch weights be pinned in a profile? | **No — the if-then asks for them.** Enabling `legacy_batch` requires supplying the five weights; they have no defaults. This is `CONTEXT.md`'s **conditional policy interview**: silent while the policy is off, reveals its required choices when enabled. Nothing to drift from, and every legacy-batch run records them by construction. | 2026-08-24 |
 | Q26 | Do prune and beam follow the batch shape? | **Yes.** All optional extensions are off by default, and enabling one asks for its required choices through a conditional policy interview rather than supplying defaults. | 2026-08-24 |
+| Q27 | Move batch, prune and beam out of the main algorithm and the run commands? | **Yes.** They leave both `adapt_pipeline.py` and `cli_config.py` for `extensions.py`, with their choices supplied by the conditional policy interview (Q25/Q26) rather than by flags and parameter defaults. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
