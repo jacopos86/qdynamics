@@ -631,6 +631,12 @@ than assembling one — an assembled Hessian block would change the numbers.
 
 ## 6h. The value half is located — 6g's gap is closed
 
+> **PARTLY WRONG — see 6j.** `FormalAdmissionCurvatureReceipt` has **zero
+> production callers**; it is reached only from
+> `test/test_static_adapt_selector_query_closure.py`. The live partition exists,
+> but elsewhere and under different names. Implement 6j.
+
+
 Found by Codex, 2026-08-24. `build_formal_admission_curvature_receipt`
 (`selector_query_closure.py:2458`) returns `FormalAdmissionCurvatureReceipt`
 (`:2207`), which carries **actual arrays**:
@@ -678,6 +684,84 @@ increment that follows them.
 | 348-name reflective filter and its parameter surface | **~326** parameter lines + 15 filter lines | blocked on the typed payload replacing it |
 | 26 geometry scalar summaries on `CandidateFeatures` | 26 fields x construction + read sites, in a 249-field dataclass | unblocked by 6h — the arrays now have a located source |
 | `del q_window, Q_window` dead threading | signature + call sites | unblocked by 6h |
+
+## 6j. The live response partition — reconciled, correcting 6h and 6b
+
+Ratified against source after 6h was recorded on Codex's find without checking
+callers.
+
+### Correction 1 — the full-partition receipt is test-only
+
+`build_formal_admission_curvature_receipt` / `FormalAdmissionCurvatureReceipt`
+have **no production callers**. Every reference outside their own module is in
+`test/test_static_adapt_selector_query_closure.py`. Same for
+`FormalGrowthGeometryReceipt`. They are a validated freeze-frame for an FM
+handoff, not the live value half.
+
+### Correction 2 — `Q_window` is the Hessian, not the Gram
+
+6b called `phase2_raw_geometry_score`'s discarded `q_window, Q_window` "the Gram
+blocks". **Wrong.** The live naming is:
+
+| symbol | object |
+|---|---|
+| `G_AA`, `G_AC`, `G_CC` | Fubini--Study **metric** |
+| `Q_AA`, `Q_AC`, `Q_CC` | ordinary coordinate **Hessian** (Paper I's `H`) |
+| `b_A`, `b_C` | descent **gradient** |
+
+So `del q_window, Q_window` discards **Hessian** blocks. Stronger than 6b said,
+not weaker.
+
+### Where each live piece is
+
+| piece | class | fields | site |
+|---|---|---|---|
+| A side (active), per accepted state | `SelectorGeometryAnchor` | `active_coordinate_indices`, `G_AA`, `b_A`, state/hamiltonian fingerprints | `selector_query_closure.py` |
+| C side (candidate population) | `QueryClosedPopulationWorkspace` | `G_AC`, `G_CC`, `b_C` | same |
+| restriction to a candidate subset | `subset_geometry(indices)` | `(G_AB, G_BB, b_B)` | `:795` |
+| Hessian partition | `Phase2OrdinaryHessianBlocks` | `Q_AA`, `Q_AC`, `Q_CC`, `source_query_receipts` | `:1155` |
+
+The anchor already carries `state_fingerprint` and `hamiltonian_fingerprint`, so
+charge and value share one identity.
+
+### The reconciled interface
+
+`_support(order)` in 6e conflated two index sets. Paper I partitions into active
+`theta` and candidate `alpha`, so there are two, and **the restriction is over
+candidates** while the active side is the anchor:
+
+```python
+class Response(Protocol):
+    """A = active coordinates (anchor, fixed per accepted state).
+       C = candidate population; B = a restriction of C."""
+    def restrict(self, candidates: Sequence[int]) -> ResponseBlocks: ...
+    def charge(self, candidates: Sequence[int]) -> EstimatorCharge: ...
+
+@dataclass(frozen=True)
+class ResponseBlocks:
+    G_AB: np.ndarray; G_BB: np.ndarray      # metric
+    Q_AB: np.ndarray; Q_BB: np.ndarray      # Hessian (Paper I H)
+    b_B:  np.ndarray                        # gradient
+```
+
+Order selects which blocks `_descent` reads, not a different index set:
+
+| order | reads |
+|---|---|
+| 0 | `b_B` |
+| 1 | `b_B`, `diag(G_BB)` |
+| 2 | `b_B`, `G_BB`, `Q_BB` |
+| 3 | `b_B`, `G_AB`, `G_BB`, `Q_AB`, `Q_BB` |
+
+Smaller than 6e implied.
+
+### Remaining gap — do not assume
+
+`Phase2OrdinaryHessianBlocks` is referenced only within
+`selector_query_closure.py`; no other `pipelines/` module names it. Whether the
+live Phase-II path constructs one, or computes curvature only through the
+`_energy_hessian_entry` scalar route (`hh_continuation_scoring.py:5546`), is
+**not established**. Codex must not assume the block form is populated.
 
 ## 7. No fallbacks
 
