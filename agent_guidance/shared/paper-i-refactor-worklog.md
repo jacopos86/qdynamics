@@ -832,6 +832,53 @@ removing it changes results in exactly those rounds where
 this is checkable from completed-run receipts. **Check before deleting** —
 otherwise this is a silent scientific change, not a cleanup.
 
+## 6m. HOOKS for the `metric_proxy` unification (Q20)
+
+### What it actually is
+
+Not a proxy. `candidate_metric_proxy` is assigned straight from
+`exact_first_order_geometry["fubini_study_metric"]` at `adapt_pipeline.py:40298,
+40375, 42471, 64663`, and `F_metric` is populated *from it* at
+`hh_continuation_scoring.py:19013` (`F_metric = max(0.0, metric_proxy)`). Two
+field names, one quantity, reconciled by `max()` because nothing guarantees which
+path wrote.
+
+### The one branch that is a real substitution
+
+`_base_metric_for_candidate`, `adapt_pipeline.py:39614`:
+
+```python
+gradient_abs = float(abs(float(gradient_signed)))
+if not phase3_enabled:
+    return float(gradient_abs)      # |g| standing in for F
+```
+
+`phase3_enabled = bool(continuation_mode == "phase3_v1" and staged_problem_enabled)`
+(`adapt_pipeline.py:18340`).
+
+### Hooks
+
+| piece | site |
+|---|---|
+| the `max()` to collapse | `hh_continuation_scoring.py:2625-2630` in `phase1_trust_region_gain` |
+| `metric_proxy` setters (6) | `adapt_pipeline.py:30362, 31170, 40410, 42581, 60612, 61212` |
+| `F_metric` setters (3) | `adapt_pipeline.py:65072` (`=1.0`), `hh_continuation_scoring.py:6586, 19013` |
+| the `|g|` branch | `adapt_pipeline.py:39614` |
+| `cheap_metric_proxy` / `*_lambda_f_proxy_applied` | 35 references |
+| field definitions | `hh_continuation_types.py`, `CandidateFeatures` |
+
+### MANDATORY CHECK BEFORE DELETING
+
+The `|g|` branch changes numbers **only when Phase III is off**. Canonical
+`adapt_continuation_mode: "phase3_v1"` is declared at
+`sr_snake_route_profile.py:467`, inside `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS`
+— **the 116-key root that the 20-profile active family does not inherit** (F3).
+So source alone does not establish that Phase III was on in the Bundle runs.
+
+Verify from a completed-run receipt that `phase3_enabled` was true, or that
+`metric_proxy` never exceeded `F_metric`, before removing the branch. If it ever
+fired, this is a scientific change and stops being a cleanup.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -889,6 +936,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
 | Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
 | Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
+| Q20 | `metric_proxy` — delete? | **Yes, delete.** It is the Fubini--Study metric under a second name, not a distinct object: unify `metric_proxy` and `F_metric` into one `F` field, and delete the `not phase3_enabled` branch that substitutes `abs(gradient)` for the metric. | 2026-08-24 |
 
 ### Standing rules from the author
 
