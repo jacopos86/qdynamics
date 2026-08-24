@@ -935,6 +935,52 @@ That is the shape of the 26-scalar deletion: almost none of it is data the metho
 needs. It is policy on the wrong object, index sets passed as fields, telemetry
 mixed into inputs, and undefined proxies.
 
+## 6o. The six remaining Paper-I test failures, ratified against source
+
+6n screened by keyword. These are ratified. `metric_proxy` is already covered by
+Q20 and 6m.
+
+| field | ratified finding |
+|---|---|
+| `phase2_missing_curvature_fallback_used` | **Never set `True` anywhere.** Three `False` literals (`hh_continuation_scoring.py:3268, 3890, 6617`) and ~7 `.get(..., False)` reads forwarded into payloads (`adapt_pipeline.py:21044, 37863, 48701, 50732, 60232`). The flag can only ever be `False`. Dead. |
+| `phase1_lambda_f_proxy_applied` | Pass-through telemetry. Read with `.get(..., False)` and forwarded into a payload at `adapt_pipeline.py:37853, 48691, 50722`. Carries no decision. |
+| `phase2_lambda_f_proxy_applied` | Same pattern, `:37858, 48696, 50727`. |
+| `cheap_metric_proxy` | Dataclass default `0.0` (`hh_continuation_types.py:112`), set to `1.0` once (`adapt_pipeline.py:65089`), otherwise forwarded (`:51058-51061`). Effectively a constant. |
+| `selector_geometry_mode` | 56 references, default `"reduced"`, living in `historical_route_identity.py:62,130` and `selector_debug.py`. Route-identity and debug policy, not a value. |
+| `phase2_cheap_curvature_proxy_policy` | **The important one — see below.** |
+
+### The curvature proxy: rule 7 is already canonical policy
+
+The proxy substitutes `lambda_F * F` for measured curvature — the Fubini--Study
+**metric** standing in for the energy **Hessian**, two objects Paper I defines
+separately (`hh_continuation_scoring.py:2656, 5518`).
+
+Two profiles set the policy, and they disagree:
+
+| profile | `phase2_curvature_policy` | `phase2_cheap_curvature_proxy_policy` |
+|---|---|---|
+| `CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS` (:659) | `MEASURED_REQUIRED_FAIL_CLOSED_V1` | **`OFF`** |
+| `HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS` (:614) | `LEGACY_OPTIONAL_V1` | `LEGACY_LAMBDA_F_RATIO_V1` |
+
+V4 carries an explicit comment: *"Keep it explicitly disabled so neither a
+generic parser default nor a source-locked command can silently activate the
+guard."*
+
+**So the canonical modern profile already implements rule 7 for curvature:
+measured required, fail closed, proxy off.** The substitution survives only on
+the historical phase-1/2 energy model, reached through the conventional v3.1
+compatibility route.
+
+That changes how the no-fallbacks rule should be argued in the refactor. It is
+not a new constraint being imposed — it is an existing canonical decision being
+generalized, with a precedent and a rationale already written in the source.
+
+### Deletion summary
+
+Six of the seven are dead flags, constants, pass-through telemetry, or
+compatibility-route policy. None carries a live decision in a canonical run. The
+seventh (`metric_proxy`) is Q20.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
