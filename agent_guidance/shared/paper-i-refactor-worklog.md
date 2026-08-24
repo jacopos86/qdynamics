@@ -1483,6 +1483,55 @@ A worklog entry on an unmerged branch has not been communicated.
 
 ---
 
+### 2026-08-24 — Claude — Paper I defines the partitioned form; Phase-0 cost deletion verified safe
+
+**Q13 settled from the manuscript.** `subset_geometry` returning
+`(G_AB, G_BB, b_B)` is not archaic — it is Paper I's own structure.
+`Paper_I_author_revision.tex`, Eq. `hessian_block_def`:
+
+```
+H = [ H_aa      H_a-theta     ]
+    [ H_theta-a H_theta-theta ]
+```
+
+"three distinct blocks: candidate curvature (alpha-alpha), candidate--ansatz
+coupling (alpha-theta), and active-ansatz response (theta-theta)", with **G** the
+Fubini--Study metric defining the trust region. Line 231 likewise: "RA uses
+candidate--active Gram blocks to define the trust regions of its local response
+models".
+
+**Therefore 6d/6e are wrong in their interface shape.** `g()/H()/G()` as three
+independent accessors is the generic framing, not this method's.
+`Response.restrict(support) -> (cross_block, own_block, rhs)` is the faithful one,
+and `selector_query_closure.py:795` already implements it on
+`QueryClosedPopulationWorkspace`. The `_support(order)` table in 6e stands; only
+the return shape changes.
+
+**Phase-0 cost deletion is a no-op on recorded evidence.** Author approved
+deletion 2026-08-24. Verified before any edit:
+
+- `phase0_cost_lambdas = {}` and `phase0_cost_lambda_source = "unresolved"` in
+  **5 of 5** cells sampled across Bundle 3 and Bundle 9.
+- `phase0_K0` is recorded 30 times in one Bundle-9 cell and is **exactly 1.0
+  every time** — one distinct value.
+
+The Phase-0 score is `DeltaE0_upper * N0 / K0` (`adapt_pipeline.py:22346`) with
+`denominator = cost_row["hardware_cost_denominator"]` (`:22341`). Dividing by a
+denominator that is always 1.0 means removing it cannot change any recorded
+ranking.
+
+**Open concern for whoever implements it:** `phase0_K0`,
+`phase0_hardware_cost_denominator` and `phase0_hardware_cost_excess_sum` are
+written into the checkpoint payload. Removing them changes the checkpoint schema,
+which resume and replay read. The numerical no-op does not imply a schema no-op.
+
+**Clean baseline, this worktree, `claude/paper-i-20260824` @ `43213503`:**
+`5573 collected, 54 errors` — identical to Codex's independently measured figure,
+confirming that the earlier 5598 came from uncommitted Paper-II test edits in the
+shared checkout.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
