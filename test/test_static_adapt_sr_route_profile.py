@@ -18,6 +18,10 @@ from pipelines.static_adapt.cli_config import (
     _build_run_hardcoded_adapt_vqe_kwargs,
     _resolve_beam_capacity_policy,
 )
+from pipelines.static_adapt.extensions import (
+    PRUNING_RUNTIME_KEYS,
+    extensions_from_route_contract,
+)
 from pipelines.static_adapt.resume_scaffold import (
     validate_resume_sr_route_profile_contract,
 )
@@ -1496,7 +1500,10 @@ def test_appendix_beam_profile_round_trips_into_runtime_kwargs() -> None:
     assert kwargs["adapt_beam_terminated_keep"] == 3
     assert kwargs["adapt_beam_terminal_archive_mode"] == "legacy"
     assert kwargs["adapt_beam_lambda"] == pytest.approx(0.005)
-    assert kwargs["phase1_prune_enabled"] is False
+    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
+    assert extensions_from_route_contract(
+        kwargs["sr_route_profile_contract"]
+    ).pruning is None
     assert kwargs["phase2_enable_batching"] is False
 
 
@@ -1522,27 +1529,32 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
         "adapt_beam_live_branches": 1,
         "adapt_beam_children_per_parent": 1,
         "adapt_beam_terminated_keep": 0,
-        "phase1_prune_mode": "live",
-        "phase1_prune_local_window_size": 0,
-        "phase1_prune_schur_nomination_route": (
-            "full_logical_fs_trust_delete_refit_v1"
-        ),
-        "phase1_prune_metric_schur_solve_mode": (
-            "affine_deletion_global_trust_v1"
-        ),
-        "phase1_prune_trust_update_policy": (
-            "modeled_local_fs_conservative_v1"
-        ),
-        "phase1_prune_metric_mu_update_policy": (
-            "same_trial_underprediction_monotone_v1"
-        ),
-        "phase1_prune_endpoint_overlap_policy": "off",
         "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
         "finite_angle_fallback": False,
         "phase3_enable_rescue": False,
     }
     for field, expected in expected_runtime_fields.items():
         assert kwargs[field] == expected, field
+    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
+    pruning = extensions_from_route_contract(
+        kwargs["sr_route_profile_contract"]
+    ).pruning
+    assert pruning is not None
+    assert pruning["phase1_prune_mode"] == "live"
+    assert pruning["phase1_prune_local_window_size"] == 0
+    assert pruning["phase1_prune_schur_nomination_route"] == (
+        "full_logical_fs_trust_delete_refit_v1"
+    )
+    assert pruning["phase1_prune_metric_schur_solve_mode"] == (
+        "affine_deletion_global_trust_v1"
+    )
+    assert pruning["phase1_prune_trust_update_policy"] == (
+        "modeled_local_fs_conservative_v1"
+    )
+    assert pruning["phase1_prune_metric_mu_update_policy"] == (
+        "same_trial_underprediction_monotone_v1"
+    )
+    assert pruning["phase1_prune_endpoint_overlap_policy"] == "off"
 
 
 def test_candidate_v4_identity_is_readable_but_not_execution_authority(

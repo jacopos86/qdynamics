@@ -148,6 +148,13 @@ from pipelines.static_adapt.adapt_candidate_record_cache import (
     _candidate_record_payload_digest,
     _outer_curvature_prior_cache_identity,
 )
+from pipelines.static_adapt.extensions import (
+    Extensions,
+    NO_EXTENSIONS,
+    extensions_from_route_contract,
+    resolve_pruning_runtime,
+    without_extension_runtime_keys,
+)
 from pipelines.scaffold.hh_continuation_types import (
     CandidateFeatures,
     CompileCostEstimate,
@@ -5019,7 +5026,6 @@ def _default_no_prune_accepted_selection_snapshot(
 class _DefaultRecoverabilityPruneConfig:
     """Exact optional deletion policy for the fd5ec direct-route child."""
 
-    enabled: bool
     max_candidates: int
     max_regression: float
     retained_gain_ratio: float
@@ -5027,13 +5033,9 @@ class _DefaultRecoverabilityPruneConfig:
     initial_radius: float
     radius_contraction_factor: float
     radius_floor: float
-    nomination_policy_identity: str = (
-        PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-    )
-    metric_mu: float = 0.0
-    metric_solve_mode: str = (
-        PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-    )
+    nomination_policy_identity: str
+    metric_mu: float
+    metric_solve_mode: str
 
     def __post_init__(self) -> None:
         if self.max_candidates != 1:
@@ -7447,7 +7449,7 @@ def _default_no_prune_prepare_transition(
         artifacts=None,
         operation_sequence=[],
         pruning_enabled=bool(
-            session.context.recoverability_prune_config.enabled
+            session.context.recoverability_prune_config is not None
         ),
         prune_trust_state=copy.deepcopy(
             session.cursor.prune_trust_state
@@ -7804,7 +7806,7 @@ class _DefaultNoPruneTransitionContext:
     historical_singleton_trust_update_cfg: TrustRegionUpdateConfig
     phase2_memory_adapter: Phase2OptimizerMemoryAdapter
     phase2_score_cfg: FullScoreConfig
-    recoverability_prune_config: _DefaultRecoverabilityPruneConfig
+    recoverability_prune_config: _DefaultRecoverabilityPruneConfig | None
     phase2_novelty_oracle: OrderedInsertionGeometryOracle | None
     reference_state: np.ndarray | None
     pauli_action_cache: dict[str, CompiledPauliAction] | None
@@ -7900,7 +7902,7 @@ def _run_default_recoverability_prune_transaction(
 
     config = context.recoverability_prune_config
     services = context.services
-    if not config.enabled or not numerical_runtime.pruning_enabled:
+    if config is None or not numerical_runtime.pruning_enabled:
         raise RuntimeError(
             "Recoverability transaction requires the exact enabled child."
         )
@@ -14879,40 +14881,7 @@ def _run_hardcoded_adapt_vqe(
     phase1_probe_max_positions: int = 6,
     phase1_plateau_patience: int = 2,
     phase1_trough_margin_ratio: float = 1.0,
-    phase1_prune_enabled: bool = True,
-    phase1_prune_policy: str = PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
-    phase1_prune_mode: str = "live",
-    phase1_prune_fraction: float = 0.25,
-    phase1_prune_min_candidates: int = 1,
-    phase1_prune_max_candidates: int = 6,
-    phase1_prune_max_regression: float = 1e-8,
-    phase1_prune_tolerance_mode: str = PRUNE_TOLERANCE_AUTO,
-    phase1_prune_tolerance_shot_coeff: float = 0.0,
-    phase1_prune_tolerance_screen_coeff: float = 0.01,
-    phase1_prune_tolerance_chem: float = 0.0,
-    phase1_prune_tolerance_rel_coeff: float = 0.0,
-    phase1_prune_tolerance_target_energy: float | None = None,
-    phase1_prune_retained_gain_ratio: float = 0.5,
-    phase1_prune_protect_steps: int = 2,
-    phase1_prune_cooldown_steps: int = 2,
-    phase1_prune_local_window_size: int = 4,
-    phase1_prune_recovery_trust_radius: float = 0.0,
-    phase1_prune_schur_nomination_route: str = PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-    phase1_prune_metric_schur_mu: float = 1e-6,
-    phase1_prune_metric_schur_solve_mode: str = PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-    phase1_prune_metric_schur_cost_weighting: str = PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-    phase1_prune_trust_update_policy: str = "off",
-    phase1_prune_metric_mu_update_policy: str = "off",
-    phase1_prune_endpoint_overlap_policy: str = "off",
-    phase1_prune_old_fraction: float = 0.25,
-    phase1_prune_checkpoint_period: int = 3,
-    phase1_prune_live_min_depth: int = 0,
-    phase1_prune_maturity_threshold: float = 0.5,
-    phase1_prune_snr_threshold: float = 1.0,
-    phase1_prune_prefilter_policy: str = PRUNE_PREFILTER_OFF,
-    phase1_prune_prefilter_json: Path | str | None = None,
-    phase1_prune_risk_threshold: float = 0.0,
-    phase1_prune_prefilter_max_candidates: int = 1,
+    extensions: Extensions = NO_EXTENSIONS,
     phase2_shortlist_fraction: float = 0.2,
     phase2_shortlist_size: int = 12,
     phase3_shortlist_size: int | None = None,
@@ -15092,6 +15061,20 @@ def _run_hardcoded_adapt_vqe(
             "The resolved SR-SNAKE route-profile id disagrees with its "
             "complete contract."
         )
+    if not isinstance(extensions, Extensions):
+        raise TypeError("extensions must be an Extensions value.")
+    route_extensions = extensions_from_route_contract(
+        sr_route_profile_contract_resolved
+    )
+    if extensions != NO_EXTENSIONS and extensions != route_extensions:
+        raise ValueError(
+            "Explicit extensions disagree with the authenticated route contract."
+        )
+    resolved_extensions = (
+        route_extensions if extensions == NO_EXTENSIONS else extensions
+    )
+    pruning_extension = resolved_extensions.pruning
+    phase1_prune_enabled = pruning_extension is not None
     problem_key = str(problem).strip().lower()
     if float(finite_angle) <= 0.0:
         raise ValueError("finite_angle must be > 0.")
@@ -15301,26 +15284,6 @@ def _run_hardcoded_adapt_vqe(
         )
     sr_controller_ablation_contract_key = str(
         sr_controller_ablation_contract
-    ).strip().lower()
-    # These normalized prune-policy keys participate in the complete
-    # route-profile invariant check below, before the live-prune controller is
-    # constructed.  Define them here as well as validating them at controller
-    # construction time so an opt-in profile cannot reach that check with
-    # unbound runtime state.
-    phase1_prune_trust_update_policy_key = str(
-        phase1_prune_trust_update_policy or "off"
-    ).strip().lower()
-    phase1_prune_metric_mu_update_policy_key = str(
-        phase1_prune_metric_mu_update_policy or "off"
-    ).strip().lower()
-    phase1_prune_endpoint_overlap_policy_key = str(
-        phase1_prune_endpoint_overlap_policy or "off"
-    ).strip().lower()
-    phase1_prune_prefilter_policy_key = str(
-        phase1_prune_prefilter_policy or PRUNE_PREFILTER_OFF
-    ).strip().lower()
-    phase1_prune_tolerance_mode_requested = str(
-        phase1_prune_tolerance_mode or PRUNE_TOLERANCE_AUTO
     ).strip().lower()
     if (
         sr_controller_ablation_contract_key
@@ -17097,161 +17060,12 @@ def _run_hardcoded_adapt_vqe(
             "phase3_runtime_split_child_padding_policy": str(
                 route_a_child_padding_cfg.policy
             ),
-            "phase1_prune_enabled": bool(phase1_prune_enabled),
-            "phase1_prune_policy": str(phase1_prune_policy),
-            "phase1_prune_mode": str(phase1_prune_mode),
             **(
                 {
-                    "phase1_prune_max_candidates": int(
-                        phase1_prune_max_candidates
-                    ),
-                    "phase1_prune_local_window_size": int(
-                        phase1_prune_local_window_size
-                    ),
-                    "phase1_prune_recovery_trust_radius": float(
-                        phase1_prune_recovery_trust_radius
-                    ),
-                    "phase1_prune_schur_nomination_route": str(
-                        phase1_prune_schur_nomination_route
-                    ),
-                    "phase1_prune_metric_schur_mu": float(
-                        phase1_prune_metric_schur_mu
-                    ),
-                    "phase1_prune_metric_schur_solve_mode": str(
-                        phase1_prune_metric_schur_solve_mode
-                    ),
-                    "phase1_prune_metric_schur_cost_weighting": str(
-                        phase1_prune_metric_schur_cost_weighting
-                    ),
-                    "phase1_prune_live_min_depth": int(
-                        phase1_prune_live_min_depth
-                    ),
+                    "phase1_prune_enabled": True,
+                    **pruning_extension.to_runtime_dict(),
                 }
-                if sr_route_profile_contract_resolved is not None
-                and str(sr_route_profile_contract_resolved.get("route_profile"))
-                in {
-                    SR_ROUTE_PROFILE_CONVENTIONAL_V2,
-                    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-                    SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2,
-                    SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3,
-                }
-                else {}
-            ),
-            **(
-                {
-                    "phase1_prune_trust_update_policy": str(
-                        phase1_prune_trust_update_policy_key
-                    ),
-                    "phase1_prune_metric_mu_update_policy": str(
-                        phase1_prune_metric_mu_update_policy_key
-                    ),
-                    "phase1_prune_endpoint_overlap_policy": str(
-                        phase1_prune_endpoint_overlap_policy_key
-                    ),
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                }
-                else {}
-            ),
-            **(
-                {
-                    "phase1_prune_checkpoint_period": int(
-                        phase1_prune_checkpoint_period
-                    ),
-                    "phase1_prune_cooldown_steps": int(
-                        phase1_prune_cooldown_steps
-                    ),
-                    "phase1_prune_fraction": float(phase1_prune_fraction),
-                    "phase1_prune_min_candidates": int(
-                        phase1_prune_min_candidates
-                    ),
-                    "phase1_prune_max_regression": float(
-                        phase1_prune_max_regression
-                    ),
-                    "phase1_prune_maturity_threshold": float(
-                        phase1_prune_maturity_threshold
-                    ),
-                    "phase1_prune_old_fraction": float(
-                        phase1_prune_old_fraction
-                    ),
-                    "phase1_prune_prefilter_json": (
-                        None
-                        if phase1_prune_prefilter_json in {None, ""}
-                        else str(phase1_prune_prefilter_json)
-                    ),
-                    "phase1_prune_prefilter_max_candidates": int(
-                        phase1_prune_prefilter_max_candidates
-                    ),
-                    "phase1_prune_prefilter_policy": str(
-                        phase1_prune_prefilter_policy_key
-                    ),
-                    "phase1_prune_protect_steps": int(
-                        phase1_prune_protect_steps
-                    ),
-                    "phase1_prune_retained_gain_ratio": float(
-                        phase1_prune_retained_gain_ratio
-                    ),
-                    "phase1_prune_risk_threshold": float(
-                        phase1_prune_risk_threshold
-                    ),
-                    "phase1_prune_snr_threshold": float(
-                        phase1_prune_snr_threshold
-                    ),
-                    "phase1_prune_tolerance_chem": float(
-                        phase1_prune_tolerance_chem
-                    ),
-                    "phase1_prune_tolerance_mode": str(
-                        phase1_prune_tolerance_mode_requested
-                    ),
-                    "phase1_prune_tolerance_rel_coeff": float(
-                        phase1_prune_tolerance_rel_coeff
-                    ),
-                    "phase1_prune_tolerance_screen_coeff": float(
-                        phase1_prune_tolerance_screen_coeff
-                    ),
-                    "phase1_prune_tolerance_shot_coeff": float(
-                        phase1_prune_tolerance_shot_coeff
-                    ),
-                    "phase1_prune_tolerance_target_energy": (
-                        None
-                        if phase1_prune_tolerance_target_energy is None
-                        else float(phase1_prune_tolerance_target_energy)
-                    ),
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                }
+                if pruning_extension is not None
                 else {}
             ),
             "adapt_beam_live_branches": int(
@@ -22346,260 +22160,96 @@ def _run_hardcoded_adapt_vqe(
     phase1_features_history: list[dict[str, Any]] = []
     phase1_stage_events: list[dict[str, Any]] = []
     phase1_scaffold_pre_prune: dict[str, Any] | None = None
-    phase1_prune_mode = str(phase1_prune_mode or "live").strip().lower()
-    if phase1_prune_mode not in {"live", "final", "both"}:
-        raise ValueError(f"Unsupported phase1_prune_mode: {phase1_prune_mode}")
-    phase1_prune_checkpoint_period = int(max(1, phase1_prune_checkpoint_period))
-    phase1_prune_live_min_depth = int(max(0, phase1_prune_live_min_depth))
-    phase1_prune_maturity_threshold = float(max(0.0, phase1_prune_maturity_threshold))
-    phase1_prune_snr_threshold = float(max(0.0, phase1_prune_snr_threshold))
-    phase1_prune_prefilter_policy_key = str(
-        phase1_prune_prefilter_policy or PRUNE_PREFILTER_OFF
-    ).strip().lower()
-    if phase1_prune_prefilter_policy_key not in {
-        PRUNE_PREFILTER_OFF,
-        PRUNE_PREFILTER_MOTIF_RISK_V1,
-    }:
-        raise ValueError(f"Unsupported phase1_prune_prefilter_policy: {phase1_prune_prefilter_policy}")
-    phase1_prune_tolerance_mode_requested = str(
-        phase1_prune_tolerance_mode or PRUNE_TOLERANCE_AUTO
-    ).strip().lower()
-    phase1_prune_tolerance_mode_effective = resolve_prune_tolerance_mode(
-        mode=phase1_prune_tolerance_mode_requested,
-        prune_policy=str(
-            phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1
-        ),
+    pruning_runtime = resolve_pruning_runtime(
+        pruning_extension,
+        repo_root=REPO_ROOT,
     )
-    phase1_prune_schur_nomination_route = str(
-        phase1_prune_schur_nomination_route or PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1
-    ).strip().lower()
-    if phase1_prune_schur_nomination_route not in {
-        PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-        PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
-        PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1,
-    }:
-        raise ValueError(
-            "phase1_prune_schur_nomination_route must be "
-            f"{PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1!r} or "
-            f"{PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1!r}, or "
-            "'full_logical_fs_trust_delete_refit_v1'"
-        )
-    phase1_prune_metric_schur_solve_mode = str(
-        phase1_prune_metric_schur_solve_mode
-        or PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1
-    ).strip().lower()
-    if phase1_prune_metric_schur_solve_mode not in {
-        PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-        PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1,
-        PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1,
-    }:
-        raise ValueError(
-            "phase1_prune_metric_schur_solve_mode must be "
-            f"{PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1!r} or "
-            f"{PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1!r}, or "
-            "'affine_deletion_global_trust_v1'"
-        )
-    phase1_prune_metric_schur_cost_weighting = str(
-        phase1_prune_metric_schur_cost_weighting
-        or PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1
-    ).strip().lower()
-    if phase1_prune_metric_schur_cost_weighting not in {
-        PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-        PRUNE_METRIC_COST_WEIGHT_OFF,
-    }:
-        raise ValueError(
-            "phase1_prune_metric_schur_cost_weighting must be "
-            f"{PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1!r} or "
-            f"{PRUNE_METRIC_COST_WEIGHT_OFF!r}"
-        )
-    phase1_prune_trust_update_policy_key = str(
-        phase1_prune_trust_update_policy or "off"
-    ).strip().lower()
-    if phase1_prune_trust_update_policy_key not in {
-        "off",
-        "modeled_local_fs_conservative_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_trust_update_policy must be one of "
-            "{'off','modeled_local_fs_conservative_v1'}."
-        )
-    phase1_prune_metric_mu_update_policy_key = str(
-        phase1_prune_metric_mu_update_policy or "off"
-    ).strip().lower()
-    if phase1_prune_metric_mu_update_policy_key not in {
-        "off",
-        "same_trial_underprediction_monotone_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_metric_mu_update_policy must be one of "
-            "{'off','same_trial_underprediction_monotone_v1'}."
-        )
-    phase1_prune_endpoint_overlap_policy_key = str(
-        phase1_prune_endpoint_overlap_policy or "off"
-    ).strip().lower()
-    if phase1_prune_endpoint_overlap_policy_key not in {
-        "off",
-        "energy_safe_trial_only_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_endpoint_overlap_policy must be one of "
-            "{'off','energy_safe_trial_only_v1'}."
-        )
-    if (
-        phase1_prune_schur_nomination_route
-        == PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-    ):
-        if (
-            phase1_prune_metric_schur_solve_mode
-            != PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-        ):
-            raise ValueError(
-                "full-logical FS trust pruning requires "
-                "affine_deletion_global_trust_v1."
-            )
-        if phase1_prune_local_window_size != 0:
-            raise ValueError(
-                "full-logical FS trust pruning requires "
-                "phase1_prune_local_window_size=0."
-            )
-        if not math.isfinite(float(phase1_prune_recovery_trust_radius)) or float(
-            phase1_prune_recovery_trust_radius
-        ) <= 0.0:
-            raise ValueError(
-                "full-logical FS trust pruning requires a positive finite radius."
-            )
-        if phase1_prune_endpoint_overlap_policy_key != "off":
-            raise ValueError(
-                "The v4 zero-query prune route forbids endpoint-overlap probes."
-            )
-
-    def _nonnegative_finite_config(value: float | None, *, name: str) -> float:
-        if value is None:
-            return 0.0
-        out = float(value)
-        if not math.isfinite(out) or out < 0.0:
-            raise ValueError(f"{name} must be finite and non-negative")
-        return float(out)
-
-    phase1_prune_tolerance_shot_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_shot_coeff,
-        name="phase1_prune_tolerance_shot_coeff",
+    phase1_prune_cfg = (
+        None if pruning_runtime is None else pruning_runtime.config
     )
-    phase1_prune_tolerance_screen_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_screen_coeff,
-        name="phase1_prune_tolerance_screen_coeff",
+    phase1_prune_mode = (
+        None if pruning_runtime is None else pruning_runtime.mode
     )
-    phase1_prune_tolerance_chem = _nonnegative_finite_config(
-        phase1_prune_tolerance_chem,
-        name="phase1_prune_tolerance_chem",
+    phase1_prune_checkpoint_period = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.checkpoint_period
     )
-    phase1_prune_max_regression = _nonnegative_finite_config(
-        phase1_prune_max_regression,
-        name="phase1_prune_max_regression",
+    phase1_prune_live_min_depth = (
+        None if pruning_runtime is None else pruning_runtime.live_min_depth
     )
-    phase1_prune_tolerance_rel_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_rel_coeff,
-        name="phase1_prune_tolerance_rel_coeff",
+    phase1_prune_maturity_threshold = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.maturity_threshold
     )
-    phase1_prune_risk_threshold = _nonnegative_finite_config(
-        phase1_prune_risk_threshold,
-        name="phase1_prune_risk_threshold",
+    phase1_prune_snr_threshold = (
+        None if pruning_runtime is None else pruning_runtime.snr_threshold
     )
-    phase1_prune_metric_schur_mu = _nonnegative_finite_config(
-        phase1_prune_metric_schur_mu,
-        name="phase1_prune_metric_schur_mu",
+    phase1_prune_prefilter_policy_key = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_policy
     )
-    phase1_prune_prefilter_max_candidates = int(max(0, phase1_prune_prefilter_max_candidates))
-    phase1_prune_prefilter_json_path: Path | None = None
-    phase1_prune_prefilter_profile: dict[str, Any] | None = None
-    if phase1_prune_prefilter_policy_key == PRUNE_PREFILTER_MOTIF_RISK_V1:
-        if phase1_prune_prefilter_json in {None, ""}:
-            raise ValueError("phase1_prune_prefilter_json is required for motif_risk_v1 pruning.")
-        phase1_prune_prefilter_json_path = Path(str(phase1_prune_prefilter_json))
-        if not phase1_prune_prefilter_json_path.is_absolute():
-            phase1_prune_prefilter_json_path = REPO_ROOT / phase1_prune_prefilter_json_path
-        phase1_prune_prefilter_profile = load_prune_prefilter_profile(
-            phase1_prune_prefilter_json_path
-        )
-    if phase1_prune_tolerance_target_energy is not None and not math.isfinite(
-        float(phase1_prune_tolerance_target_energy)
-    ):
-        raise ValueError("phase1_prune_tolerance_target_energy must be finite when provided")
-
-    def _build_phase1_prune_cfg() -> PruneConfig:
-        recoverability_prune_policy = bool(
-            str(phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1)
-            == PRUNE_POLICY_RECOVERABILITY_LADDER_V1
-        )
-        return PruneConfig(
-            policy=str(phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1),
-            max_candidates=int(max(1, phase1_prune_max_candidates)),
-            min_candidates=int(max(1, phase1_prune_min_candidates)),
-            fraction_candidates=float(max(0.0, phase1_prune_fraction)),
-            max_regression=float(max(0.0, phase1_prune_max_regression)),
-            tolerance_mode_requested=str(phase1_prune_tolerance_mode_requested),
-            tolerance_mode=str(phase1_prune_tolerance_mode_effective),
-            tolerance_shot_coeff=float(phase1_prune_tolerance_shot_coeff),
-            tolerance_screen_coeff=float(phase1_prune_tolerance_screen_coeff),
-            tolerance_chem=float(phase1_prune_tolerance_chem),
-            tolerance_rel_coeff=float(phase1_prune_tolerance_rel_coeff),
-            tolerance_target_energy=(
-                None
-                if phase1_prune_tolerance_target_energy is None
-                else float(phase1_prune_tolerance_target_energy)
-            ),
-            retained_gain_ratio=float(max(0.0, phase1_prune_retained_gain_ratio)),
-            protect_steps=int(max(0, phase1_prune_protect_steps)),
-            cooldown_steps=int(max(0, phase1_prune_cooldown_steps)),
-            local_window_size=int(max(0, phase1_prune_local_window_size)),
-            surrogate_recovery_trust_radius=float(
-                max(0.0, phase1_prune_recovery_trust_radius)
-            ),
-            schur_nomination_route=str(phase1_prune_schur_nomination_route),
-            metric_schur_mu=float(max(0.0, phase1_prune_metric_schur_mu)),
-            metric_schur_solve_mode=str(phase1_prune_metric_schur_solve_mode),
-            metric_schur_cost_weighting=str(phase1_prune_metric_schur_cost_weighting),
-            old_fraction=float(min(1.0, max(0.0, phase1_prune_old_fraction))),
-            surrogate_enabled=bool(recoverability_prune_policy),
-            surrogate_nomination_gate_enabled=bool(recoverability_prune_policy),
-            surrogate_nomination_gate_factor=1.0,
-            surrogate_exact_trial_cap=1 if bool(recoverability_prune_policy) else int(max(1, phase1_prune_max_candidates)),
-        )
-
-    def _resolve_phase1_prune_modes() -> tuple[bool, bool]:
-        enabled_now = bool(phase1_enabled and phase1_prune_enabled)
-        return (
-            bool(enabled_now and phase1_prune_mode in {"live", "both"}),
-            bool(enabled_now and phase1_prune_mode in {"final", "both"}),
-        )
-
-    phase1_prune_cfg = _build_phase1_prune_cfg()
+    phase1_prune_prefilter_json_path = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_path
+    )
+    phase1_prune_prefilter_profile = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_profile
+    )
+    phase1_prune_risk_threshold = (
+        None if pruning_runtime is None else pruning_runtime.risk_threshold
+    )
+    phase1_prune_prefilter_max_candidates = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.prefilter_max_candidates
+    )
+    phase1_prune_trust_update_policy_key = (
+        None if pruning_runtime is None else pruning_runtime.trust_update_policy
+    )
+    phase1_prune_metric_mu_update_policy_key = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.metric_mu_update_policy
+    )
+    phase1_prune_endpoint_overlap_policy_key = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.endpoint_overlap_policy
+    )
+    phase1_prune_live_mode, phase1_prune_final_mode = (
+        (False, False)
+        if pruning_runtime is None
+        else pruning_runtime.modes(phase1_enabled=phase1_enabled)
+    )
     phase1_prune_affine_trust_route_active = bool(
-        str(phase1_prune_cfg.schur_nomination_route)
+        phase1_prune_cfg is not None
+        and str(phase1_prune_cfg.schur_nomination_route)
         == PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
     )
     phase1_prune_material_window_source_reuse_active = bool(
-        sr_route_profile_contract_resolved is not None
+        pruning_runtime is not None
+        and sr_route_profile_contract_resolved is not None
         and str(
             sr_route_profile_contract_resolved.get("route_profile", "")
         )
         == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1
     )
     phase1_prune_query_neutral_full_geometry_active = bool(
-        sr_route_profile_contract_resolved is not None
+        pruning_runtime is not None
+        and sr_route_profile_contract_resolved is not None
         and str(
             sr_route_profile_contract_resolved.get("route_profile", "")
         )
         == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
     )
     phase1_prune_metric_route_active = bool(
-        str(phase1_prune_cfg.schur_nomination_route)
+        phase1_prune_cfg is not None
+        and str(phase1_prune_cfg.schur_nomination_route)
         in {
             PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
             PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1,
         }
     )
-    phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
     static_route_id_key = _normalize_retained_route_observation(
         static_route_id
     )
@@ -22636,8 +22286,14 @@ def _run_hardcoded_adapt_vqe(
         "phase3_nested_window_application": str(
             phase3_nested_window_application
         ),
-        "phase1_prune_policy": str(phase1_prune_cfg.policy),
-        "phase1_prune_mode": str(phase1_prune_mode),
+        **(
+            {}
+            if phase1_prune_cfg is None
+            else {
+                "phase1_prune_policy": str(phase1_prune_cfg.policy),
+                "phase1_prune_mode": str(phase1_prune_mode),
+            }
+        ),
         "valid": True,
         "canonical": False,
         "route_registry_active": False,
@@ -22802,6 +22458,8 @@ def _run_hardcoded_adapt_vqe(
         }
 
     def _populate_prune_policy_fields(summary: dict[str, Any]) -> dict[str, Any]:
+        if phase1_prune_cfg is None:
+            return summary
         summary.update(
             {
                 "prune_mode": str(phase1_prune_mode),
@@ -23927,6 +23585,12 @@ def _run_hardcoded_adapt_vqe(
             return {}, payload
 
     def _default_prune_summary(*, reason: str, energy: float) -> dict[str, Any]:
+        if phase1_prune_cfg is None:
+            return {
+                "enabled": False,
+                "executed": False,
+                "permission_reason": str(reason),
+            }
         return _populate_prune_policy_fields({
             "enabled": bool(phase1_enabled and phase1_prune_enabled),
             "executed": False,
@@ -24544,6 +24208,19 @@ def _run_hardcoded_adapt_vqe(
         source_geometry_unavailable_reason: str | None = None,
     ) -> tuple[list[AnsatzTerm], np.ndarray, float, dict[str, Any], list[ScaffoldCoordinateMetadata], dict[str, int], dict[str, Any]]:
         summary = _default_prune_summary(reason="live_after_admission", energy=float(energy_now))
+        if phase1_prune_cfg is None:
+            return (
+                list(ops_now),
+                np.asarray(theta_now, dtype=float),
+                float(energy_now),
+                dict(optimizer_memory_now),
+                [
+                    ScaffoldCoordinateMetadata(**dict(row.__dict__))
+                    for row in metadata_rows
+                ],
+                {str(key): int(value) for key, value in first_seen_steps.items()},
+                summary,
+            )
         history_source = (
             list(history_rows) if history_rows is not None else list(history)
         )
@@ -26733,7 +26410,8 @@ def _run_hardcoded_adapt_vqe(
         finite_angle_fallback = False
         if not phase3_oracle_inner_objective_enabled:
             phase1_prune_enabled = False
-            phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
+            phase1_prune_live_mode = False
+            phase1_prune_final_mode = False
 
     try:
         def _phase3_oracle_gradient_scout(
@@ -47494,18 +47172,7 @@ def _run_hardcoded_adapt_vqe(
                         ),
                         phase2_memory_adapter=phase2_memory_adapter,
                         phase2_score_cfg=phase2_score_cfg,
-                        recoverability_prune_config=(
-                            _DefaultRecoverabilityPruneConfig(
-                                enabled=False,
-                                max_candidates=1,
-                                max_regression=1.0e-8,
-                                retained_gain_ratio=0.5,
-                                protect_steps=2,
-                                initial_radius=0.125,
-                                radius_contraction_factor=0.5,
-                                radius_floor=1.0e-8,
-                            )
-                        ),
+                        recoverability_prune_config=None,
                         phase2_novelty_oracle=None,
                         reference_state=None,
                         pauli_action_cache=None,
@@ -55826,7 +55493,15 @@ def _default_no_prune_prune_summary_template(
     kwargs: Mapping[str, Any],
     parameterization_mode: str,
 ) -> dict[str, Any]:
-    """Build the exact inert-pruning receipt retained by signed checkpoints."""
+    """Build pruning telemetry only for an enabled extension."""
+
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    pruning = extensions.pruning
+    if pruning is None:
+        return {"enabled": False, "executed": False}
+    kwargs = {**dict(kwargs), **pruning.to_runtime_dict()}
 
     policy = str(kwargs["phase1_prune_policy"])
     recoverability = bool(
@@ -56135,10 +55810,13 @@ def _default_no_prune_prune_summary_template(
 
 def _default_recoverability_prune_config(
     kwargs: Mapping[str, Any],
-) -> _DefaultRecoverabilityPruneConfig:
-    """Resolve the exact optional prune child without legacy fallbacks."""
+) -> _DefaultRecoverabilityPruneConfig | None:
+    """Resolve the exact optional prune child from one extension value."""
 
-    enabled = bool(kwargs["phase1_prune_enabled"])
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    pruning = extensions.pruning
     ra_adapt_contract = _validated_ra_adapt_route_contract(kwargs)
     composed_contract = _validated_canonical_composed_route_contract(kwargs)
     typed_contract = (
@@ -56155,106 +55833,35 @@ def _default_recoverability_prune_config(
         typed_invariants.get("canonical_pruning_policy", "off")
     )
     profile_enables_pruning = bool(
-        str(kwargs.get("sr_route_profile_resolved", ""))
-        == (
-            SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
-            )
-            or (
-                typed_contract is not None
-                and typed_pruning_policy != "off"
-            )
+        typed_invariants.get(
+            "pruning_active",
+            typed_pruning_policy != "off",
+        )
+        if typed_contract is not None
+        else str(kwargs.get("sr_route_profile_resolved", ""))
+        == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
     )
-    if enabled != profile_enables_pruning:
+    if (pruning is not None) != profile_enables_pruning:
         raise ValueError(
-            "The direct route identity and recoverability-prune enablement "
-            "disagree."
+            "The direct route identity and pruning extension disagree."
         )
-    if enabled:
-        nomination_policy = (
-            PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1
-            if (
-                typed_contract is not None
-                and typed_pruning_policy == "metric"
-            )
-            else PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-        )
-        metric_nomination = (
-            nomination_policy == PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1
-        )
-        expected = {
-            "phase1_prune_policy": PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
-            "phase1_prune_mode": "live",
-            "phase1_prune_max_candidates": 1,
-            "phase1_prune_local_window_size": 0,
-            "phase1_prune_max_regression": 1.0e-8,
-            "phase1_prune_retained_gain_ratio": 0.5,
-            "phase1_prune_protect_steps": 2,
-            "phase1_prune_recovery_trust_radius": 0.125,
-            "phase1_prune_schur_nomination_route": nomination_policy,
-            "phase1_prune_metric_schur_mu": (
-                1.0e-6 if metric_nomination else 0.0
-            ),
-            "phase1_prune_metric_schur_solve_mode": (
-                PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1
-                if metric_nomination
-                else PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-            ),
-            "phase1_prune_metric_schur_cost_weighting": (
-                PRUNE_METRIC_COST_WEIGHT_OFF
-            ),
-            "phase1_prune_trust_update_policy": (
-                "modeled_local_fs_conservative_v1"
-            ),
-            "phase1_prune_metric_mu_update_policy": "off",
-            "phase1_prune_endpoint_overlap_policy": "off",
-        }
-        mismatches = {
-            key: (kwargs.get(key), value)
-            for key, value in expected.items()
-            if kwargs.get(key) != value
-        }
-        if mismatches:
-            raise ValueError(
-                "The direct recoverability child received settings outside "
-                f"its exact contract: {mismatches!r}."
-            )
-    else:
-        nomination_policy = (
-            PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-        )
-        metric_nomination = False
+    if pruning is None:
+        return None
+    runtime = resolve_pruning_runtime(pruning, repo_root=REPO_ROOT)
+    if runtime is None:
+        raise AssertionError("Enabled pruning failed to resolve its runtime.")
+    config = runtime.config
     return _DefaultRecoverabilityPruneConfig(
-        enabled=enabled,
-        max_candidates=(
-            int(kwargs["phase1_prune_max_candidates"])
-            if enabled
-            else 1
-        ),
-        max_regression=max(
-            0.0, float(kwargs["phase1_prune_max_regression"])
-        ),
-        retained_gain_ratio=max(
-            0.0, float(kwargs["phase1_prune_retained_gain_ratio"])
-        ),
-        protect_steps=max(0, int(kwargs["phase1_prune_protect_steps"])),
-        initial_radius=(
-            float(kwargs["phase1_prune_recovery_trust_radius"])
-            if enabled
-            else 0.125
-        ),
+        max_candidates=int(config.max_candidates),
+        max_regression=float(config.max_regression),
+        retained_gain_ratio=float(config.retained_gain_ratio),
+        protect_steps=int(config.protect_steps),
+        initial_radius=float(config.surrogate_recovery_trust_radius),
         radius_contraction_factor=0.5,
         radius_floor=1.0e-8,
-        nomination_policy_identity=nomination_policy,
-        metric_mu=(
-            float(kwargs["phase1_prune_metric_schur_mu"])
-            if metric_nomination
-            else 0.0
-        ),
-        metric_solve_mode=(
-            str(kwargs["phase1_prune_metric_schur_solve_mode"])
-            if metric_nomination
-            else PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-        ),
+        nomination_policy_identity=str(config.schur_nomination_route),
+        metric_mu=float(config.metric_schur_mu),
+        metric_solve_mode=str(config.metric_schur_solve_mode),
     )
 
 
@@ -56265,6 +55872,8 @@ def _default_no_prune_round_prune_summary(
     active_depth: int,
 ) -> dict[str, Any]:
     summary = copy.deepcopy(dict(template))
+    if not bool(summary.get("enabled", False)):
+        return summary
     summary["energy_before"] = float(energy)
     summary["energy_after_prune"] = float(energy)
     summary["energy_after_post_refit"] = float(energy)
@@ -59418,18 +59027,7 @@ class _DefaultNoPruneKernelContext:
     checkpoint_history_tail: int
     estimator_service: _DefaultNoPruneEstimatorService
     oracle_cleanup: _Phase3OracleCleanupGuard | None = None
-    recoverability_prune_config: _DefaultRecoverabilityPruneConfig = (
-        _DefaultRecoverabilityPruneConfig(
-            enabled=False,
-            max_candidates=1,
-            max_regression=1.0e-8,
-            retained_gain_ratio=0.5,
-            protect_steps=2,
-            initial_radius=0.125,
-            radius_contraction_factor=0.5,
-            radius_floor=1.0e-8,
-        )
-    )
+    recoverability_prune_config: _DefaultRecoverabilityPruneConfig | None = None
 
 
 @dataclass(slots=True)
@@ -62528,7 +62126,7 @@ class _DefaultNoPruneNumericalSession:
                 history_rows=self.cursor.history,
                 base_winning_branch_ids=beam_winning_branch_ids,
             )
-            if self.context.recoverability_prune_config.enabled
+            if self.context.recoverability_prune_config is not None
             else None
         )
         winning_occurrence_summary = (
@@ -63484,7 +63082,7 @@ class _DefaultNoPruneNumericalSession:
                 history_rows=self.cursor.history,
                 base_winning_branch_ids=beam_winning_branch_ids,
             )
-            if self.context.recoverability_prune_config.enabled
+            if self.context.recoverability_prune_config is not None
             else None
         )
         winning_occurrence_summary = (
@@ -70486,7 +70084,7 @@ def _finish_default_no_prune_numerical_session_initialization(
                     recoverability_prune_config.initial_radius
                 )
             )
-            if recoverability_prune_config.enabled
+            if recoverability_prune_config is not None
             else None
         ),
         operator_admission_rounds=[],
@@ -70883,7 +70481,7 @@ def _hydrate_default_no_prune_numerical_session(
         )
 
     prune_state = hydration.prune_trust_state
-    if session.context.recoverability_prune_config.enabled:
+    if session.context.recoverability_prune_config is not None:
         if prune_state is None:
             raise RuntimeError(
                 "Pruning-enabled resume lacks its authenticated prune state."
@@ -71304,7 +70902,8 @@ def _build_canonical_sr_snake_runtime_kwargs(
     )
     if not isinstance(kwargs, dict):
         raise AssertionError("Canonical SR-SNAKE infrastructure must thaw to dict.")
-    kwargs.update(execution_settings)
+    resolved_extensions = extensions_from_route_contract(route_contract)
+    kwargs.update(without_extension_runtime_keys(execution_settings))
     kwargs.update(
         {
             "h_poly": resolved_problem_context.hamiltonian,
@@ -71392,6 +70991,7 @@ def _build_canonical_sr_snake_runtime_kwargs(
             "sr_route_profile_resolved": str(route_profile),
             "sr_route_profile_contract": dict(route_contract),
             "sr_route_profile_contract_sha256": str(route_contract_sha256),
+            "extensions": resolved_extensions,
         }
     )
     if gradient_tolerance is not None:
