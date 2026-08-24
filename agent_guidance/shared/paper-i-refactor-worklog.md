@@ -1110,6 +1110,12 @@ score depends on numbers no profile records.
 
 ## 6r. Batch admission: two nested defaults (Q24)
 
+> **REFINED by Q28.** The author's preference is deletion of the legacy path, or
+> a true extrication that makes it unreachable from the working code. A
+> `legacy_batch` mode that merely defaults off still leaves it reachable, so it
+> is the weaker option.
+
+
 > **CORRECTED by 6u.** Q24 called the additivity-defect gate "canonical Paper-I
 > batch". Paper I's criterion is different: feasibility is *existence of the
 > supported joint Phase-III solve*, and admission is
@@ -1300,6 +1306,26 @@ Under Q24 they belong to the legacy `batch_mode`, default off, reached only by
 opting in twice — and their five weights come from the conditional policy
 interview (Q25) rather than from defaults.
 
+## 6w. Standing preference: delete, do not demote (Q28)
+
+When a path is found to be superseded — not the manuscript's, and not the route
+that produced the evidence — the order of preference is:
+
+1. **Delete it.**
+2. Failing that, **extricate it completely** so it cannot be reached from the
+   working part of the tree.
+3. An off-by-default flag is **not** sufficient. It leaves the code present,
+   reachable, and one setting away from firing.
+
+Rationale: every defect catalogued in this file — the settings drift, the 1,878
+guards, the 1,622 fallbacks, the five unpinned compat weights — is something that
+was left reachable "just in case". Reachable dead paths are what the guards
+exist to defend against.
+
+Applies to the Phase-II batch path (`_compatibility_penalty_components`,
+`additivity_defect`/`batch_additivity_tol`) confirmed off the published route in
+6v, and to anything later found in the same position.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1365,6 +1391,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q25 | Should legacy-batch weights be pinned in a profile? | **No — the if-then asks for them.** Enabling `legacy_batch` requires supplying the five weights; they have no defaults. This is `CONTEXT.md`'s **conditional policy interview**: silent while the policy is off, reveals its required choices when enabled. Nothing to drift from, and every legacy-batch run records them by construction. | 2026-08-24 |
 | Q26 | Do prune and beam follow the batch shape? | **Yes.** All optional extensions are off by default, and enabling one asks for its required choices through a conditional policy interview rather than supplying defaults. | 2026-08-24 |
 | Q27 | Move batch, prune and beam out of the main algorithm and the run commands? | **Yes.** They leave both `adapt_pipeline.py` and `cli_config.py` for `extensions.py`, with their choices supplied by the conditional policy interview (Q25/Q26) rather than by flags and parameter defaults. | 2026-08-24 |
+| Q28 | Keep superseded paths as off-by-default options, or remove them? | **Preference is deletion**, or failing that a **true extrication** so the path cannot be reached from the working part at all. An off-by-default flag is not sufficient — it leaves the code reachable and re-enableable. Refines Q24. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
