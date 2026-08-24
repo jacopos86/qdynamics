@@ -879,6 +879,62 @@ Verify from a completed-run receipt that `phase3_enabled` was true, or that
 `metric_proxy` never exceeded `F_metric`, before removing the branch. If it ever
 fired, this is a scientific change and stops being a cleanup.
 
+## 6n. The 26 geometry fields, classified by the author's Paper-I test
+
+Screen run 2026-08-24. **This is a screen, not a verdict** — "in Paper I" means
+the concept word appears in `Paper_I_author_revision.tex`. Ratify each against
+source before deleting, per the standing rule.
+
+Only **4 of 26 are actually values.** The rest are policy, index sets,
+telemetry, or proxies.
+
+| field | in Paper I | kind |
+|---|---|---|
+| `F_metric` | yes | **VALUE** |
+| `hardware_cost_lambdas` | yes | **VALUE** |
+| `phase2_raw_overlap_max` | yes | **VALUE** |
+| `phase2_span_projection_z` | yes | **VALUE** |
+| `phase0_cost_lambdas` | yes | VALUE — but deleted by Q14 |
+| `metric_proxy` | **NO** | proxy/fallback → Q20 |
+| `cheap_metric_proxy` | **NO** | proxy/fallback → Q20 |
+| `phase1_lambda_f_proxy_applied` | **NO** | proxy/fallback |
+| `phase2_lambda_f_proxy_applied` | **NO** | proxy/fallback |
+| `phase2_cheap_curvature_proxy_policy` | **NO** | proxy policy |
+| `phase2_missing_curvature_fallback_used` | **NO** | **fallback flag — rule 7** |
+| `selector_geometry_mode` | **NO** | policy |
+| `curvature_mode` | yes | policy → `request` |
+| `phase2_curvature_policy` | yes | policy → `request` |
+| `phase2_geometry_window_policy` | yes | policy → `request` |
+| `phase3_geometry_window_policy` | yes | policy → `request` |
+| `hardware_cost_lambda_source` | yes | policy → `request` |
+| `phase0_cost_lambda_source` | yes | policy → deleted by Q14 |
+| `phase2_geometry_window_indices` | yes | support (index set) |
+| `phase3_geometry_refit_window_indices` | yes | support |
+| `phase3_geometry_active_post_indices` | yes | support |
+| `phase3_geometry_nested_refit_window` | yes | support |
+| `phase3_geometry_window_size` | yes | support (derivable) |
+| `phase3_geometry_window_accounting` | yes | support/telemetry |
+| `phase2_joint_geometry_reuse` | yes | telemetry (an output) |
+| `phase2_curvature_receipt` | yes | telemetry (an output) |
+
+### What each class becomes
+
+| class | count | destination |
+|---|---|---|
+| VALUE | 4 | `ResponseBlocks` entries — indexing expressions, not fields |
+| policy | 7 | `request`, resolved once per run |
+| support (index set) | 6 | the `candidates` argument to `restrict()` |
+| telemetry | 2 | built outside `evaluate()` from the `Scored` list |
+| proxy/fallback | 7 | **delete** — 6 fail the Paper-I test outright |
+
+**Seven fields fail the Paper-I test.** Six are proxy or fallback machinery;
+`phase2_missing_curvature_fallback_used` is a flag recording that a fallback
+fired, which rule 7 says should not exist.
+
+That is the shape of the 26-scalar deletion: almost none of it is data the method
+needs. It is policy on the wrong object, index sets passed as fields, telemetry
+mixed into inputs, and undefined proxies.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
