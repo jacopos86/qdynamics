@@ -1326,6 +1326,29 @@ Applies to the Phase-II batch path (`_compatibility_penalty_components`,
 `additivity_defect`/`batch_additivity_tol`) confirmed off the published route in
 6v, and to anything later found in the same position.
 
+## 6x. The fallback-reporting surface (Q29)
+
+**222 distinct fallback-related keys** across `pipelines/`. They are not one
+thing; sort before deleting:
+
+| kind | examples | disposition |
+|---|---|---|
+| **reporting** — records that a fallback fired | `fallback_used` (36), `fallback_reason` (16), `legacy_fallback_used` (12), `fallback_detail` (9), `phase2_missing_curvature_fallback_used` (10), `phase1/2_lambda_f_proxy_applied` (18) | **delete with the fallback** (Q29) |
+| **policy** — permits a fallback | `allow_aer_fallback` (28), `fallback_policy` (10), `fallback_mode` (15), `actual_fallback_mode` (11), `fallback_family` (25) | delete the permission and the path (Q28) |
+| **mechanism** — the fallback itself | `fallback_to_incumbent` (25), `deferred_gram_fallback_ridge` (9), `qngd_fallback_optimizer` (8), `phase3_joint_rescue_v1` (8), `adapt_finite_angle_fallback` (10) | delete per rule 7, after checking whether it ever fired |
+
+`phase2_missing_curvature_fallback_used` is the clearest case: 10 occurrences,
+**never set `True` anywhere**, so it reports an event that cannot occur.
+
+**Rule.** A field whose only job is to record that a fallback fired has no
+purpose once the fallback is gone. Keeping it as always-`False` is not evidence
+that nothing went wrong; it is a receipt field describing an impossible event,
+and it keeps the concept alive in every payload and schema that carries it.
+
+**Caveat.** "Fallback" in a name does not prove a fallback. Some of the 222 are
+legitimate — a *nominated* alternative that is then tested, rather than a silent
+substitution. Ratify each against source, as with everything else here.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1392,6 +1415,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q26 | Do prune and beam follow the batch shape? | **Yes.** All optional extensions are off by default, and enabling one asks for its required choices through a conditional policy interview rather than supplying defaults. | 2026-08-24 |
 | Q27 | Move batch, prune and beam out of the main algorithm and the run commands? | **Yes.** They leave both `adapt_pipeline.py` and `cli_config.py` for `extensions.py`, with their choices supplied by the conditional policy interview (Q25/Q26) rather than by flags and parameter defaults. | 2026-08-24 |
 | Q28 | Keep superseded paths as off-by-default options, or remove them? | **Preference is deletion**, or failing that a **true extrication** so the path cannot be reached from the working part at all. An off-by-default flag is not sufficient — it leaves the code reachable and re-enableable. Refines Q24. | 2026-08-24 |
+| Q29 | Delete fallback-*reporting* fields along with the fallbacks? | **Yes.** No receipt field should exist for an event rule 7 says cannot happen. An always-`False` flag is not evidence that nothing went wrong — it is a field describing an impossible event. Fallback, and the field recording it, go together. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
