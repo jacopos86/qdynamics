@@ -1421,6 +1421,42 @@ The proxy remains a peer implementation behind the single `CostTerm` interface
 (the author's design target, section 3), selected explicitly. It is never
 substituted for a failed qiskit cost (rule 7).
 
+## 6aa. Collapsing the per-phase cost encoding (Q33)
+
+**Three scope constants exist only to encode which phase uses which cost source**
+(`hh_backend_compile_oracle.py:45-53`):
+
+```
+phase_i_phase_ii_marrakesh_graph_span_phase_iii_qiskit_transpile_v1
+phase_i_proxy_phase_ii_phase_iii_qiskit_transpile_v1
+phase0_proxy_or_off_phase_i_phase_ii_phase_iii_qiskit_transpile_v1
+```
+
+Under a single run-level choice these collapse to `request.cost`, one of
+`qiskit` or `proxy`, applied across Phases I-III.
+
+**23 per-phase cost/compile parameters** sit on the executor signature. Five are
+duplicated verbatim between Phase I and Phase II and become one each:
+
+| pair | becomes |
+|---|---|
+| `phase1/phase2_compile_cx_proxy_weight` | `compile_cx_proxy_weight` |
+| `phase1/phase2_compile_sq_proxy_weight` | `compile_sq_proxy_weight` |
+| `phase1/phase2_compile_rotation_step_weight` | `compile_rotation_step_weight` |
+| `phase1/phase2_compile_position_shift_weight` | `compile_position_shift_weight` |
+| `phase1/phase2_compile_refit_active_weight` | `compile_refit_active_weight` |
+| `phase1/phase2_opt_dim_cost_scale` | `opt_dim_cost_scale` |
+| `phase1/phase2_family_repeat_cost_scale` | `family_repeat_cost_scale` |
+
+Seven duplicated pairs, so 14 parameters become 7. Combined with the three scope
+constants and the Phase-0 cost deletion (Q14), the cost surface reduces to:
+
+- `request.cost` — `qiskit` or `proxy`
+- the compilation contract — `FakeMarrakesh`, optimization level 1,
+  `seed_transpiler` 7 (Q31)
+- one shared normalization (`_hardware_cost_denominator_payload`, already exists)
+- the proxy weight set, once rather than per phase
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1491,6 +1527,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q30 | `allow_aer_fallback` | **Delete it.** "We have FakeMarrakesh backend we compile to; why would we need some fallback?" An unavailable backend stops the run. | 2026-08-24 |
 | Q31 | The preferred-fakes chain on the compile path | **Delete it.** `FakeMarrakesh` is the single compile target, as Paper I's COST block states. No chain, no `allow_preferred_fallback`. An unavailable backend stops the run rather than compiling to a device the manuscript does not name. | 2026-08-24 |
 | Q32 | `BackendCompileConfig.mode` defaults to `"proxy"` | **Invert it.** Qiskit compiled cost is the default; the proxy is used only when explicitly requested. Paper I's headline axis is the compiled resource tuple, so the default must produce it. The proxy stays as a peer implementation behind the one `CostTerm` interface, never as a substitute (rule 7). | 2026-08-24 |
+| Q33 | Is cost source per-phase or run-level? | **Single run-level choice.** It used to be per-phase; simplify to one selection applying across Phases I-III. With Phase-0 cost deleted (Q14), there is no phase that differs. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
