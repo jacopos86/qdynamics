@@ -763,6 +763,41 @@ live Phase-II path constructs one, or computes curvature only through the
 `_energy_hessian_entry` scalar route (`hh_continuation_scoring.py:5546`), is
 **not established**. Codex must not assume the block form is populated.
 
+## 6k. The 6j gap is closed — the Hessian partition is live, just unpackaged
+
+Ratified 2026-08-24. 6j said it was "not established" whether the live Phase-II
+path constructs `Phase2OrdinaryHessianBlocks`. It does not — and that does not
+matter.
+
+**The dataclass is dead.** `Phase2OrdinaryHessianBlocks(` is constructed at 6
+sites: 4 in `test/test_static_adapt_selector_query_closure.py`, and 2 in
+`chtc/paper_iv_h2o_sr_source_locked_resume_d12_20260716/runtime_source/pipelines/static_adapt/adapt_pipeline.py`
+— a **frozen source overlay**, an archived copy of an older `adapt_pipeline.py`.
+The live tree once built it and no longer does. Deletion candidate.
+
+**The partition itself is live, as bare arrays:**
+
+| block | live site | shape / note |
+|---|---|---|
+| `H_AB` | `adapt_pipeline.py:1417` | `_matrix("H_AB_raw", (window_count, 1))` — candidate vs active window |
+| `H_AB` | `hh_continuation_scoring.py:5959` | `np.zeros(active_count)` |
+| `H_AB` | `hh_continuation_scoring.py:6165` | `np.asarray(source.get("H_AB", ()))` |
+| entries | `_energy_hessian_entry:4481` | fills `hess[row, col]` at `:5184`; mixed block at `:5584`; active-candidate at `:5964` |
+
+So all three response objects have live sources:
+
+| object | live source |
+|---|---|
+| metric `G` | `SelectorGeometryAnchor.G_AA`, `QueryClosedPopulationWorkspace.G_AC/G_CC`, `subset_geometry:795` |
+| Hessian `Q`/`H` | `H_AB_raw` and `_energy_hessian_entry`, unpackaged |
+| gradient `b` | `b_A`, `b_C`, `b_B` |
+
+**Consequence: the 26-scalar deletion is unblocked.** Every scalar summary on
+`CandidateFeatures` now has a located array source, so each can be replaced by an
+indexing expression rather than a stored field. The work is packaging the
+existing arrays behind `ResponseBlocks`, not computing anything new — which keeps
+it inside the "no numerical change" envelope.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
