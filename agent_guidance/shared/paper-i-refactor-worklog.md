@@ -1623,6 +1623,37 @@ failure as a bug. Continuation of *new* runs is unaffected.
 maturity fields (Q36) in the same change so the new version string describes what
 the snapshot actually holds.
 
+## 6ag. PAOP (Q39) — verified unused by both producer lanes
+
+An alternative operator-pool family from `src.quantum.operator_pools.hh_paop`,
+reached through its own pool keys (`uccsd_otimes_paop_lf_std`,
+`uccsd_otimes_paop_lf2_std`, `paop_bond_disp_std`, and siblings —
+`primitive_pools.py:84-99`).
+
+| check | result |
+|---|---|
+| occurrences in `Paper_I_author_revision.tex` | **0** |
+| selected by any canonical profile | **no** — profiles select `full_meta` / `full_meta_derivative_resolved_v2` |
+| inside `full_meta` construction | **no** — `_build_full_meta_pool` (`primitive_pools.py:895-1214`, 320 lines) contains no `paop`, no `make_paop_pool`, no motif families. It assembles CSE, family-HVA, full-Hamiltonian(+flow), Hamiltonian-blocks, Hamiltonian-quadratures, UCCSD and molecular-UCCSD pools |
+| used by Paper IV | **no** — the Paper-IV H2O run receipt records `adapt_pool = "full_meta"`; its four `paop_*` entries are echoed defaults (`normalization "none"`, `prune_eps 0.0`, `r 1`, `split_paulis false`) |
+| references in code | 812 |
+| executor parameters | 4 — `paop_r`, `paop_split_paulis`, `paop_prune_eps`, `paop_normalization` |
+
+The 2026-08-17 inventory already flagged `paop_r` and `paop_split_paulis` as
+`unknown_needs_evidence` (`adapt_pipeline_inventory_20260817.md:353-354`). This
+is that evidence.
+
+**One contact point with the canonical path.**
+`_build_selected_logical_pool_match_report` (`pool_resolution.py:321-505`) takes
+`paop_split_paulis` and uses it only to choose a report label,
+`"deliberate_split"` vs `"preserve"` (`:423`). It does not affect pool
+construction, and goes with the rest.
+
+**Note for Codex:** `pipelines/scaffold/hh_vqe_from_adapt_family.py` carries 131
+`paop` references and `builders/hh_pool_presets.py` 223 — the largest
+concentrations. Check whether either has non-PAOP responsibilities before
+removing wholesale.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1699,6 +1730,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q36 | The maturity shot-budget controller | **Archaic — delete.** Adaptive per-candidate shot allocation. Absent from Paper I, no read sites in the scorer, and every cap defaults off. | 2026-08-24 |
 | Q37 | The resume guard that raises on an unrecognised maturity snapshot | **Delete it with the controller.** Completed Bundle runs do not need restarting, and this is exactly the class of guard the author has said hurts rather than helps — it exists only to police a serialized section that is itself being removed. | 2026-08-24 |
 | Q38 | The snapshot version string `phase123_controller_maturity_v2` | **Rename it, and drop the old string** — no alias, no dual-read. The name no longer describes what the snapshot holds (6ae). **Consequence accepted: existing locked-bundle sidecars can no longer be continued** by the new code, since resume validates the version and will not recognise the old one. | 2026-08-24 |
+| Q39 | The PAOP pool family | **Delete.** Absent from Paper I, selected by no profile, and unused by Paper IV — verified from that lane's own run receipt, which records `adapt_pool = "full_meta"`. 812 references, 4 executor parameters. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
