@@ -1654,6 +1654,35 @@ construction, and goes with the rest.
 concentrations. Check whether either has non-PAOP responsibilities before
 removing wholesale.
 
+## 6ah. `paop_prune_eps` — reconciling Codex's Q27 call with Q39
+
+Codex, working Q27, kept `paop_prune_eps` in core rather than moving it to
+`extensions.py`, on the grounds that it is **pool/generator truncation, not
+accepted-coordinate pruning**. That call is right, and it does not conflict with
+Q39.
+
+The two decisions answer different questions:
+
+| | question | answer |
+|---|---|---|
+| Q27 (Codex) | does it belong in `extensions.py` with the prune extension? | **No** — it truncates pool polynomial coefficients at construction, nothing to do with deleting accepted generators |
+| Q39 (author) | does the PAOP family get deleted? | **Yes** — and `paop_prune_eps` is one of its 4 parameters |
+
+Verified so the later deletion is safe:
+
+- The **mechanism** is generic: `_clean_real_pool_polynomial(..., prune_eps)`
+  drops terms with `abs(coeff) <= prune_eps` (`primitive_pools.py:1558-1583`).
+  It stays.
+- The **parameter** `paop_prune_eps` reaches it only through
+  `hh_pool_presets.py` (`:223, 361, 376, 392, 410, 461, 485`) — the PAOP presets.
+- `_build_full_meta_pool` calls `_clean_real_pool_polynomial` but **passes no
+  `prune_eps`**, so the canonical pool uses the `0.0` default and truncates
+  nothing.
+
+**So deleting `paop_prune_eps` under Q39 does not change `full_meta`.** Keep
+`_clean_real_pool_polynomial` and its `prune_eps` argument; delete only the
+PAOP-level parameter that feeds it.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
