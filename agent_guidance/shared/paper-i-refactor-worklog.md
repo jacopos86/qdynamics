@@ -1683,6 +1683,52 @@ Verified so the later deletion is safe:
 `_clean_real_pool_polynomial` and its `prune_eps` argument; delete only the
 PAOP-level parameter that feeds it.
 
+## 6ai. The policy/mode/flag block — surveyed
+
+Executor signature is now **313 parameters** (Codex's prune cut removed 34).
+55 are policy/mode/flag: 30 `_mode`, 17 `_policy`, 3 enable, 2 `_source`,
+1 `allow`, 2 other.
+
+### The one that matters: the estimator ledger defaults OFF
+
+```python
+adapt_estimator_call_ledger_enabled: bool = False          # :14753
+...
+EstimatorCallLedger() if bool(adapt_estimator_call_ledger_enabled) else None   # :19496
+```
+
+When false there is **no ledger object at all** — no estimator accounting. The
+estimator count is one of the three axes the author named for "at least as good"
+(Q6).
+
+**Canonical is safe**: `_build_canonical_sr_snake_runtime_kwargs`
+(`:70853-71002`) hardcodes `"adapt_estimator_call_ledger_enabled": True`
+(`:70954`), which is why Bundle-9 archives carry 20,949 unique primitives. No
+profile sets it; the canonical runtime builder does.
+
+But off the canonical path — a direct executor call, or the CLI without the flag
+— a run produces no estimator accounting and nothing says so. **Same shape as
+Q32**, where the cost defaulted to proxy and produced the non-headline quantity
+unless asked. See Q40.
+
+### The rest
+
+| group | count | note |
+|---|---|---|
+| `_policy` + `_mode` | 47 | |
+| ...defaulting `off` / `none` / `disabled` | **16** | features present but inert by default |
+| ...legacy-valued or legacy-named | 3 | `historical_singleton_coordinate_solve_policy = archival_reduced_scalar_v1`, `historical_singleton_trust_region_update_policy`, `phase3_shadow_legacy_geometry_mode = off` |
+
+The 16 default-off modes are the Q28 population: features reachable by flag but
+inert in every canonical run — `adapt_child_pool_expansion_mode`,
+`adapt_schur_warm_start_mode`, `phase2_gram_novelty_policy`,
+`phase3_gram_novelty_policy`, `phase3_runtime_split_mode`,
+`phase3_shadow_damping_policy`, `adapt_noise_floor_stop_policy`, and others.
+Under Q28 the preference is deletion rather than demotion; each needs the usual
+source ratification first.
+
+The 3 legacy-named ones join the 10 already listed in 6q.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
