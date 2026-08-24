@@ -357,6 +357,72 @@ def evaluate(record, state, geometry, cost_term, order, stats) -> Scored:
    derivable from `G`, that is a defect in the restriction, not a reason for a
    new `CandidateFeatures` field.
 
+## 6d. CORRECTION to 6c — the accessor is over the response, not the Gram alone
+
+Committed 6c said `_descent` "may read only `G` and the record". **That is
+wrong**, verified 2026-08-24:
+
+- `_selector_gradient_lcb` returns `g_hw_lcb` from
+  `_selector_gradient_resolution(feat, cfg)` — the **gradient**, not the Gram.
+- `h_raw` is measured **curvature**, passed separately into
+  `phase2_raw_geometry_score`.
+
+The method acquires three response objects, exactly as the author states it:
+progressively richer **g, H and G**. The accessor must be over all three.
+
+```python
+class Response(Protocol):
+    """One response set at one accepted state, read by restriction."""
+    def g(self, support: Sequence[int]) -> np.ndarray: ...   # coordinate gradient
+    def H(self, support: Sequence[int]) -> np.ndarray: ...   # ordered-coordinate energy Hessian
+    def G(self, support: Sequence[int]) -> np.ndarray: ...   # Fubini-Study Gram
+    def charge(self, order: int, support: Sequence[int]) -> EstimatorCharge: ...
+
+def evaluate(record, state, response, cost_term, order, stats) -> Scored:
+    support = _support(order, state, record)
+    dE      = _descent(order, record, response, support)
+    K       = normalized(cost_term(record, state), stats)
+    return Scored(record, value=dE / K,
+                  charge=response.charge(order, support), admitted=False)
+```
+
+Phase table, corrected:
+
+| order | reads | support |
+|---|---|---|
+| 0 | `g` | candidate only |
+| 1 | `g`, `G[c,c]` | `(c,)` |
+| 2 | `g`, `H(W)`, `G[W u c]` | `W + (c,)` |
+| 3 | `g`, `H(R)`, `G[R u c]` | `R + (c,)` |
+
+Phase II's own formula is `DeltaE_TR_raw / (1 + K2)` and Phase III's is
+`DeltaE_TR / (1 + K3)` (`PHASE2_CANONICAL_RAW_SCORE_FORMULA:275`,
+`PHASE3_CANONICAL_SCORE_FORMULA:281`) — same shape, different order. The
+collapse still holds; only the accessor was under-specified.
+
+### The estimator charge is uniform, and reuse survives
+
+`EstimatorCallKey` already carries either **one unary operand** or **one
+symmetric pair**, never both, plus a `primitive_kind`. So:
+
+| response | key form | `primitive_kind` in use |
+|---|---|---|
+| `g` | unary `operand_identity` (schema v2) | `coordinate_gradient` |
+| `G` | `symmetric_pair` | `metric_element` |
+| `H` | pair | **no dedicated kind exists** |
+
+**`precision_contract` is a run-level constant**
+(`complex128_float64_deterministic_v1`, or `analytic_exact_float64_v1` on the
+exact backend), not per-phase. Therefore a `G[i,j]` measured at order 1 has an
+identical key at order 3, dedup applies, and **nesting reuse holds in practice**,
+not just in principle.
+
+**Open, for the author:** curvature has no `primitive_kind` of its own. The kinds
+in use are `hamiltonian_expectation`, `coordinate_gradient`, `metric_element`,
+`state_overlap`. Either `H` is correctly composed from `hamiltonian_expectation`
+primitives and needs no kind, or curvature work is not being separately charged.
+This bears directly on the reported estimator totals.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
