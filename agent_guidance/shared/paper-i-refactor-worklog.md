@@ -1532,14 +1532,31 @@ snapshot version*, raising if it is unsupported. Deleting the controller changes
 the checkpoint schema, so existing Bundle checkpoints carry a snapshot the new
 code will not write.
 
-**Resolved (Q37): the guard goes too.** Completed Bundle runs do not need
-restarting, so nothing depends on reading those old snapshots. The version check
-at `resume_scaffold.py:3354-3355` exists only to police a serialized section that
-is itself being deleted — a guard defending a representation that will not exist.
+**CORRECTION.** I recorded Q37 on the premise that "completed Bundle runs do not
+need restarting". **That is wrong.** The author: *a finished run can be continued
+to longer iteration horizons.* Continuation of a locked bundle is a live use
+case, so old checkpoints must stay readable.
 
-This is the F4 pattern at its clearest: the guard is not protecting the method,
-it is protecting a duplicate copy of state. Remove the state and the guard has
-nothing to check.
+What that code actually does (`resume_scaffold.py:3288-3296`): legacy
+`current.json` did **not** serialize the maturity-controller state, so
+continuation loads it from a **compact signed-prefix sidecar**, "source-result
+authenticated by the locked bundle", which carries the unique final-round
+controller snapshot.
+
+Its validation at `:3348-3362` is **two things entangled**:
+
+| check | serves |
+|---|---|
+| snapshot is typed; `snapshot_version == "phase123_controller_maturity_v2"` | the maturity controller — goes with it |
+| `step_index`, `depth_local`, `depth_left` identify the unique pre-round state | **continuation correctness generally** — proves you resume from the right round |
+
+The second is not maturity machinery and is load-bearing for extending a bundle's
+horizon. Deleting the controller must not take it.
+
+**Open:** whether the maturity state carries anything that affects a continued
+trajectory. Every cap defaults off (`None`/`0`), so an inert controller's snapshot
+should carry no trajectory-relevant information — but that is inference from
+defaults, not from a locked bundle's sidecar.
 
 ## 7. No fallbacks
 
