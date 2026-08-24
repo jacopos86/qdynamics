@@ -1141,6 +1141,25 @@ no default to drift from; the weights appear in every legacy-batch receipt by
 construction; and the five `phase2_compat_*_weight` parameters leave the 348-name
 signature entirely rather than moving to a new default.
 
+## 6s. Extension parameters on the core signature (Q26)
+
+**57 of the 348 executor parameters belong to the three optional extensions** —
+16% of the signature, for behaviour that is off by default.
+
+| extension | params | notable defaults |
+|---|---|---|
+| batch | 11 | `phase2_enable_batching=True`, `batch_target_size=2`, `batch_additivity_tol=0.25` |
+| prune | 35 | `phase1_prune_enabled=True`, `prune_fraction=0.25`, `retained_gain_ratio=0.5`, 6 tolerance coefficients |
+| beam | 11 | `tie_beam_max_branches=1`, `beam_live_branches=1`, `beam_lambda=0.0` |
+
+Under Q24/Q26 these move to `extensions.py`, and their constants come from the
+conditional policy interview rather than parameter defaults.
+
+**Two defaults contradict the decision:** `phase2_enable_batching` and
+`phase1_prune_enabled` both default to `True` on the executor signature, while
+Q24/Q26 say extensions are off by default. The canonical profile sets
+`phase3_enable_batching: False`, but that is a different phase's flag. See Q27.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1204,6 +1223,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
 | Q24 | The five-term compatibility penalty vs the Schur additivity defect | **Two nested defaults, both off.** `batch` defaults **off**. If `batch = true`, the default is **canonical Paper-I batch** — block feasibility from the Schur-reduced quadratic, `defect = 1 - dE_joint / sum(dE_i)` against `batch_additivity_tol`. The five-weight heuristic becomes a separate legacy `batch_mode`, **also default off**. Reaching it requires opting in twice. | 2026-08-24 |
 | Q25 | Should legacy-batch weights be pinned in a profile? | **No — the if-then asks for them.** Enabling `legacy_batch` requires supplying the five weights; they have no defaults. This is `CONTEXT.md`'s **conditional policy interview**: silent while the policy is off, reveals its required choices when enabled. Nothing to drift from, and every legacy-batch run records them by construction. | 2026-08-24 |
+| Q26 | Do prune and beam follow the batch shape? | **Yes.** All optional extensions are off by default, and enabling one asks for its required choices through a conditional policy interview rather than supplying defaults. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
