@@ -133,6 +133,39 @@ def _direct_augmented(state, insertions):
     return next_state, evaluation
 
 
+def _finite_difference_positioned_tangent(
+    state,
+    *,
+    cut: int,
+    term: AnsatzTerm,
+    label: str,
+    step: float = 1.0e-6,
+) -> np.ndarray:
+    """Differentiate an explicitly materialized inserted coordinate.
+
+    This oracle deliberately does not use ``evaluate_mclachlan_geometry`` or
+    the compiled executor's all-tangents path.  It perturbs only the inserted
+    zero-angle coordinate in the realized circuit, prepares the two states,
+    and central-differences them before applying the same projective
+    horizontalization that defines the McLachlan tangent geometry.
+    """
+
+    inserted_state, theta_zero = state_with_inserted_runtime_coordinates(
+        state,
+        insertions=((int(cut), term, str(label)),),
+    )
+    inserted_index = inserted_state.runtime_coordinate_labels.index(str(label))
+    theta_plus = np.asarray(theta_zero, dtype=float).copy()
+    theta_minus = np.asarray(theta_zero, dtype=float).copy()
+    theta_plus[inserted_index] += float(step)
+    theta_minus[inserted_index] -= float(step)
+    psi_plus = inserted_state.prepare_state(theta_plus)
+    psi_minus = inserted_state.prepare_state(theta_minus)
+    raw = np.asarray((psi_plus - psi_minus) / (2.0 * float(step)), dtype=complex)
+    psi = np.asarray(inserted_state.prepare_state(theta_zero), dtype=complex)
+    return raw - psi * np.vdot(psi, raw)
+
+
 def test_every_positioned_tangent_matches_direct_materialization() -> None:
     state, _evaluation, atoms, cuts, cache = _setup()
     for atom_id, atom_cuts in cuts.items():
@@ -154,6 +187,36 @@ def test_every_positioned_tangent_matches_direct_materialization() -> None:
                 f"tangent mismatch for ({atom_id}, {cut}): "
                 f"max={np.max(np.abs(cached_column - direct_column)):.3e}"
             )
+
+
+def test_every_cut_matches_independent_finite_difference_oracle() -> None:
+    """A positioned tangent must match the realized circuit at every cut."""
+
+    state, evaluation, atoms, _cuts, _cache = _setup()
+    all_cuts = tuple(range(state.runtime_parameter_count + 1))
+    cache = build_structural_insertion_cache(
+        state=state,
+        evaluation=evaluation,
+        cuts_by_atom={"ca": all_cuts},
+        atoms_by_id={"ca": atoms["ca"]},
+        checkpoint_key=("finite_difference_oracle", 0),
+    )
+    discrepancies: dict[int, float] = {}
+    for cut in all_cuts:
+        label = f"ca_fd_at_{cut}::r0::xe"
+        oracle = _finite_difference_positioned_tangent(
+            state,
+            cut=cut,
+            term=atoms["ca"].term,
+            label=label,
+        )
+        cached = np.asarray(
+            cache.tangent_matrix[:, cache.column_index[("ca", cut)]],
+            dtype=complex,
+        )
+        discrepancies[cut] = float(np.max(np.abs(cached - oracle)))
+
+    assert max(discrepancies.values()) < 1.0e-8, discrepancies
 
 
 def test_columns_are_horizontal_at_the_frozen_ray() -> None:
