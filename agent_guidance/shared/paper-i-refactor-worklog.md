@@ -211,6 +211,70 @@ built outside the algorithm, from that list.
    keep them agreeing; that guard is the signal to collapse them.
 
 
+## 6b. Geometry is one Gram; phases are restrictions of it
+
+Author's formulation, 2026-08-24. There is **one** geometry Gram over
+generators and ansatz. Phases II, I and 0 are successive restrictions of it,
+coupled to the phase scoring. The complication is that each restriction must
+carry **recorded amounts for estimator-count reporting**.
+
+### The nesting
+
+Let `G` be the Gram at the current accepted state, `c` a candidate index, `W`
+the Phase-II geometry window, `R` the Phase-III retained/refit support, with
+`{c} subset W union {c} subset R union {c}`. Each phase reads a principal
+submatrix:
+
+| phase | restriction | today's scattered form |
+|---|---|---|
+| 0 | no Gram; gradient only | `phase0_cost_lambdas`, raw pilot |
+| I | `G[c, c]` — one diagonal entry | `F_metric`, `metric_proxy`, `cheap_metric_proxy` |
+| II | `G[W u {c}, W u {c}]` | `Q_window`, `q_window`, `phase2_geometry_window_indices`, `phase2_raw_overlap_max`, `phase2_span_projection_z` |
+| III | `G[R u {c}, R u {c}]` | `phase3_geometry_refit_window_indices`, `phase3_geometry_active_post_indices`, `phase3_geometry_window_size` |
+
+Confirmed in source: the window fields are integer index lists
+(`phase2_geometry_window_indices=[int(i) for i in ...]`,
+`phase3_geometry_refit_window_indices=[int(i) for i in ...]`), and `F_metric` is
+a scalar taken from `F_raw` or `metric_proxy`. They are already index sets and a
+diagonal element — that is, already restrictions, just materialized separately
+and passed as unrelated arguments.
+
+### Estimator accounting falls out, it does not need adding
+
+`estimator_call_ledger.py` already keys a primitive by
+`projective_state_fingerprint` plus `canonical_symmetric_pair(left, right)`,
+content-addressed through `_digest`. **That key is a Gram entry**: an unordered
+operand pair at a state.
+
+So:
+
+- measuring `G[i, j]` is exactly one estimator primitive, keyed `(state, {i,j})`;
+- a phase's estimator cost is the number of pairs in its restriction **not
+  already in the ledger**;
+- because the restrictions nest, Phase II reuses Phase I's diagonal and Phase
+  III reuses Phase II's block automatically — the ledger's dedup *is* the reuse
+  policy;
+- `CONTEXT.md`'s **Estimator primitive** ("counted once regardless of repeated
+  consumption") is satisfied structurally rather than by bookkeeping.
+
+The restriction therefore carries its own recorded amount: `|pairs(restriction)|`
+requested, and `|new pairs|` charged. Both are derivable from the index set and
+the ledger, and neither needs a field on the candidate.
+
+### What this deletes
+
+Of the 26 geometry summaries on `CandidateFeatures` (249 fields total,
+`hh_continuation_types.py:79-334`), the map above replaces the data-carrying
+ones with submatrix selections. Four are not data at all but policy smuggled
+onto every candidate — `phase2_curvature_policy`,
+`phase2_geometry_window_policy`, `phase3_geometry_window_policy`,
+`selector_geometry_mode` — and belong in `request`, resolved once.
+
+It also removes the dead threading: `phase2_raw_geometry_score` currently takes
+`q_window, Q_window` and runs `del q_window, Q_window` on the first line, keeping
+the Gram in its signature purely because the same geometry is reused elsewhere.
+With one Gram there is nothing to thread.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
