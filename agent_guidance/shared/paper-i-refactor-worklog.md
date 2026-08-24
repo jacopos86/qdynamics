@@ -1601,6 +1601,28 @@ renaming it breaks reading existing sidecars — leave the string alone.
 This is why the author's rule applies: *always check things you do not know.*
 The name said inert knob; the bundle said phase controller.
 
+## 6af. Snapshot version rename (Q38) — and what it costs
+
+The snapshot is versioned `phase123_controller_maturity_v2`, but 6ae established
+that 37 of its 38 fields are phase-controller state and only
+`phase_shots_maturity_floor` is maturity. The name is wrong.
+
+**Decision: rename, drop the old string.** An alias that reads the old version
+while writing the new was offered and declined.
+
+**Consequence, accepted by the author.** `resume_scaffold.py:3354-3355` validates
+the version and raises on anything it does not recognise. After the rename,
+**existing locked-bundle sidecars cannot be continued to longer horizons** — the
+Bundle-3 and Bundle-9 archives carry the old string.
+
+This is the one decision in this file that costs a capability rather than
+removing dead weight. It is recorded here so nobody later reads the resulting
+failure as a bug. Continuation of *new* runs is unaffected.
+
+**Codex:** rename the constant and the written value together, and delete the
+maturity fields (Q36) in the same change so the new version string describes what
+the snapshot actually holds.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1676,6 +1698,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q35 | The six lambda weights — per-phase or run-level? | **Run-level, not per-phase.** Applies to the cost weights `lambda_2q`, `lambda_d`, `lambda_1q`, `lambda_theta`, `lambda_shot`. **`lambda_F` is different — it does not survive Q21 at all**, see 6ac. | 2026-08-24 |
 | Q36 | The maturity shot-budget controller | **Archaic — delete.** Adaptive per-candidate shot allocation. Absent from Paper I, no read sites in the scorer, and every cap defaults off. | 2026-08-24 |
 | Q37 | The resume guard that raises on an unrecognised maturity snapshot | **Delete it with the controller.** Completed Bundle runs do not need restarting, and this is exactly the class of guard the author has said hurts rather than helps — it exists only to police a serialized section that is itself being removed. | 2026-08-24 |
+| Q38 | The snapshot version string `phase123_controller_maturity_v2` | **Rename it, and drop the old string** — no alias, no dual-read. The name no longer describes what the snapshot holds (6ae). **Consequence accepted: existing locked-bundle sidecars can no longer be continued** by the new code, since resume validates the version and will not recognise the old one. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
