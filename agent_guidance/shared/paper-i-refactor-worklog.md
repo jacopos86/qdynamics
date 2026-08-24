@@ -1326,6 +1326,38 @@ Applies to the Phase-II batch path (`_compatibility_penalty_components`,
 `additivity_defect`/`batch_additivity_tol`) confirmed off the published route in
 6v, and to anything later found in the same position.
 
+## 6y. Backend fallbacks — there are two, and the second is worse (Q30)
+
+**1. `allow_aer_fallback` — delete (Q30).** 28 occurrences. Hard-coded `True` at
+`oracle_lifecycle.py:178, 402` and `ra_adapt/pure_hubbard_noise_page12.py:171`,
+and configurable in `hardcoded/hh_staged_noise_workflow.py`. It sits on the
+**noise-oracle execution** path, not the compile path.
+
+**2. The preferred-fakes chain — not yet dispositioned.**
+`hh_backend_compile_oracle.py`:
+
+```python
+_DEFAULT_PREFERRED_FAKES = ("FakeMarrakesh", "FakeNighthawk", "FakeFez")   # :34
+allow_preferred_fallback: bool = True                                       # BackendCompileConfig
+```
+
+This one is on the **compiled-cost** path. Paper I names the cost target
+explicitly — `Paper_I_author_revision.tex:1400`:
+
+```
+% COST  FakeMarrakesh, optimization level 1, seed_transpiler 7, full
+%       circuit including reference-state preparation, no initial layout,
+%       weights (w_2q, w_D2q, w_D) = (0.30, 0.30, 0.25), 1q and size 0
+```
+
+`N_2q`, `D_2q` and `D_c` are properties of a specific coupling graph. A silent
+fall through to `FakeNighthawk` or `FakeFez` would report compiled resources for
+a device the manuscript does not name, in the paper's headline cost axis. That is
+the qiskit-to-proxy pattern (rule 7) applied to the backend itself.
+
+Related, already recorded in section 7: `hh_backend_compile_oracle.py:350` is a
+bare `except Exception: pass` around backend loading.
+
 ## 6x. The fallback-reporting surface (Q29)
 
 **222 distinct fallback-related keys** across `pipelines/`. They are not one
@@ -1416,6 +1448,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q27 | Move batch, prune and beam out of the main algorithm and the run commands? | **Yes.** They leave both `adapt_pipeline.py` and `cli_config.py` for `extensions.py`, with their choices supplied by the conditional policy interview (Q25/Q26) rather than by flags and parameter defaults. | 2026-08-24 |
 | Q28 | Keep superseded paths as off-by-default options, or remove them? | **Preference is deletion**, or failing that a **true extrication** so the path cannot be reached from the working part at all. An off-by-default flag is not sufficient — it leaves the code reachable and re-enableable. Refines Q24. | 2026-08-24 |
 | Q29 | Delete fallback-*reporting* fields along with the fallbacks? | **Yes.** No receipt field should exist for an event rule 7 says cannot happen. An always-`False` flag is not evidence that nothing went wrong — it is a field describing an impossible event. Fallback, and the field recording it, go together. | 2026-08-24 |
+| Q30 | `allow_aer_fallback` | **Delete it.** "We have FakeMarrakesh backend we compile to; why would we need some fallback?" An unavailable backend stops the run. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
