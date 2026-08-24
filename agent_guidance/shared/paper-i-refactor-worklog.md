@@ -1532,9 +1532,14 @@ snapshot version*, raising if it is unsupported. Deleting the controller changes
 the checkpoint schema, so existing Bundle checkpoints carry a snapshot the new
 code will not write.
 
-Same situation as the Phase-0 fields under Q17, where the author's decision was
-to drop outright and treat any resume failure as a real bug to find rather than
-shim around. Apply that here.
+**Resolved (Q37): the guard goes too.** Completed Bundle runs do not need
+restarting, so nothing depends on reading those old snapshots. The version check
+at `resume_scaffold.py:3354-3355` exists only to police a serialized section that
+is itself being deleted — a guard defending a representation that will not exist.
+
+This is the F4 pattern at its clearest: the guard is not protecting the method,
+it is protecting a duplicate copy of state. Remove the state and the guard has
+nothing to check.
 
 ## 7. No fallbacks
 
@@ -1610,6 +1615,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q34 | `phase3_backend_transpile_seed` — per-phase or run-level? | **Run-level.** The seed joins the compilation contract with the target and optimization level, as Paper I's COST block fixes `seed_transpiler = 7` for the run. No phase may compile against a different seed. | 2026-08-24 |
 | Q35 | The six lambda weights — per-phase or run-level? | **Run-level, not per-phase.** Applies to the cost weights `lambda_2q`, `lambda_d`, `lambda_1q`, `lambda_theta`, `lambda_shot`. **`lambda_F` is different — it does not survive Q21 at all**, see 6ac. | 2026-08-24 |
 | Q36 | The maturity shot-budget controller | **Archaic — delete.** Adaptive per-candidate shot allocation. Absent from Paper I, no read sites in the scorer, and every cap defaults off. | 2026-08-24 |
+| Q37 | The resume guard that raises on an unrecognised maturity snapshot | **Delete it with the controller.** Completed Bundle runs do not need restarting, and this is exactly the class of guard the author has said hurts rather than helps — it exists only to police a serialized section that is itself being removed. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
