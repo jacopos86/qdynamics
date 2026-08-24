@@ -618,6 +618,8 @@ not a proxy number.
 |---|---|---|---|
 | Increment 0 — golden data rescue | Claude | 2026-08-24 | done, `5e6fcb17` on `golden-rescue-20260824` |
 | Full-suite failure census | Claude | 2026-08-24 | in progress |
+| Worklog consistency and reproducibility audit | Codex | 2026-08-24 | done; documentation-only findings below |
+| Algorithm/ansatz/generator boundary and cost-source audit | Codex | 2026-08-24 | done; author clarification and measured correction below |
 | _(add yours)_ | | | |
 
 ---
@@ -928,6 +930,139 @@ Adding checks does not fix this, and deleting checks is unsafe because they are
 catching real drift. Collapsing the duplicate representations fixes it, and the
 checks then have nothing left to disagree about.
 
+### 2026-08-24 — Codex — worklog consistency and reproducibility audit
+
+This entry corrects the **Anchors**, **Evidence state**, F1, the
+`route_identity` correction row, and the worktree-count trap without rewriting
+their owners' text.
+
+#### Current integration state
+
+The active coordination branch advanced after the measurements above:
+`paper-ii-exchange-selector` is now at `c223b419`, which includes the
+golden-data rescue merged by `e0cb8175`. Commit `5e6fcb17` is an ancestor of
+that HEAD, and the tracked golden
+manifest passes. Therefore, the statement in **Evidence state** that the branch
+is not merged no longer applies. Keep `00a5f098` as the explicit measurement
+baseline for the 55-error census and F1–F4 unless a later entry remeasures them;
+do not treat it as the current integration HEAD.
+
+Reproduce:
+
+```bash
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  branch --show-current
+# -> paper-ii-exchange-selector
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  rev-parse --short HEAD
+# -> c223b419
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  merge-base --is-ancestor 5e6fcb17 HEAD
+# -> exit 0
+(cd agent_guidance/static-adapt/golden && \
+  shasum -a 256 -c MANIFEST.sha256)
+# -> ten entries report OK
+```
+
+#### F1 is an existing implementation seam, not yet a proved contract seam
+
+The implementation has two positional parameters, `problem` and `request`,
+plus the keyword-only `operational_controls`. The Paper-I lane contracts define
+the ordinary public interface exactly as `run_ra_adapt(problem, request=None)`;
+the behavioral contract's `run_profile(profile_id, problem_id, arm, horizon)`
+is explicitly conceptual. Read F1 as evidence that migration has a destination,
+not as proof that the current facade already satisfies profile selection,
+receipt completeness, or Gates 1–4. `operational_controls` must remain limited
+to the validated-protocol use described by its docstring.
+
+The same guard currently contains explicit exceptional admissions for HH
+`L=3`, a named pure-Hubbard application, and the H2O family even though its
+error text and the ordinary lane contract say the facade is locked to HH
+`L=2`. This is pre-existing admissibility/compatibility debt related to open
+decision 5, not permission to remove or generalize those paths during the seam
+migration.
+
+Reproduce:
+
+```bash
+python3 - <<'PY'
+import ast
+from pathlib import Path
+
+tree = ast.parse(Path("pipelines/static_adapt/ra_adapt/engine.py").read_text())
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef) and node.name == "run_ra_adapt":
+        args = node.args
+        print("positional", [arg.arg for arg in args.posonlyargs + args.args])
+        print("keyword_only", [arg.arg for arg in args.kwonlyargs])
+PY
+sed -n '5625,5675p' pipelines/static_adapt/ra_adapt/engine.py
+```
+
+#### Three measurement corrections
+
+- The test-baseline paragraph's ~16% figure is superseded by Claude's settled
+  census at `c223b419` and must not be quoted. The Claims row still says the
+  census is in progress; use the settled Live finding for its status and
+  isolation warning.
+- At `00a5f098`, **11** Markdown files mention `route_identity`, not two. The
+  load-bearing conclusion remains narrower and supported: no Python file under
+  the active `pipelines/`, `src/`, or `test/` surfaces imports the missing
+  `pipelines.static_adapt.route_identity` module. Archived/CHTC snapshots do
+  contain imports and are outside that conclusion. Documentation mentions must
+  not be used as an importer count.
+- Worktree counts are volatile. There were **16** registered worktrees during
+  this audit, not 13. Always run `git worktree list`; never use the recorded
+  count as a cleanup target. In addition, `output/` is ignored at
+  `.gitignore:49`, while `prompt-exports/*` is ignored at `.gitignore:37`.
+  `git check-ignore -v` is the durable check.
+
+Reproduce:
+
+```bash
+git grep -l route_identity 00a5f098 -- '*.md' | wc -l
+# -> 11
+git grep -l -E \
+  '^[[:space:]]*from[[:space:]]+(\.+|pipelines\.static_adapt\.)route_identity[[:space:]]+import|^[[:space:]]*import[[:space:]]+pipelines\.static_adapt\.route_identity' \
+  00a5f098 -- 'pipelines/**/*.py' 'src/**/*.py' 'test/**/*.py' | wc -l
+# -> 0
+git worktree list --porcelain | awk '$1 == "worktree" { count++ } END { print count }'
+# -> 16 at audit time; refresh rather than preserve this count
+git check-ignore -v output/example prompt-exports/example
+# -> .gitignore:49 and .gitignore:37, respectively
+```
+
+#### F3 needs a provenance boundary
+
+"Base + delta" may be an implementation strategy for materializing complete
+effective settings, but it is not a scientific inheritance claim. The
+behavioral contract defines H-L3, HH-B3, HH-B5, and HH-B9 as separate protected
+regression profiles and explicitly forbids treating Bundles 3, 5, and 9 as a
+one-factor ablation. Each resolved profile must therefore remain independently
+complete and receipt-identifiable; any shared base must be internal, with every
+effective difference explicit and no fallback to parser defaults.
+
+#### GitNexus scope — author directive, 2026-08-24
+
+GitNexus use for this refactor is Paper-I-local, not repository-wide. Limit
+queries and change analysis to `pipelines/static_adapt/`,
+`agent_guidance/static-adapt/`, named Paper-I tests, this worklog, and the ADR
+named in **Anchors**. Do not run a repository-wide re-index or use unrelated
+paper-lane symbols, test failures, or execution flows to justify a Paper-I
+change. If the current index cannot isolate that surface, ratify claims with
+path-limited source, AST, and Git commands until a dedicated Paper-I index is
+available.
+
+#### The recommended order is diagnostic, not executable yet
+
+Items 1–3 do not yet meet handoff-contract §3: they lack exact verification
+commands, expected results tied to the `00a5f098` baseline, and stop conditions.
+Do not claim an implementation increment from this list alone. First append a
+bounded increment containing those four elements and state whether Codex should
+continue autonomously or pause. The broken full-suite baseline makes targeted
+profile/adapter tests and change-specific failure deltas mandatory; a raw
+"tests pass" statement is not an acceptance result.
+
 ---
 
 ### 2026-08-24 — Claude — CORRECTION: Bundle 3 is probably re-derivable
@@ -1181,6 +1316,108 @@ Gradients are **10x** every other primitive combined (14,325 vs 1,436 + 1,300).
 The estimator economy is dominated by `coordinate_gradient`, not by the
 expensive-looking high-order geometry. If screening cost is discussed as a
 motivation for staged phases, this is the number that supports or undercuts it.
+
+
+### 2026-08-24 — Codex — author clarification: the algorithm calls domain objects
+
+This corrects the **"Three files"** target above. The mathematical algorithm
+must not construct or encode the ansatz or the generator population. It calls
+those domain objects through small interfaces.
+
+| module | owns |
+|---|---|
+| `algorithm.py` | only the controller loop, Phase 0--III restriction/evaluation order, shortlist, admission, and acceptance orchestration |
+| `ansatz.py` | the ordered accepted generators and parameters, state construction, insertion, and refit/update operations |
+| `generators.py` | generator identity and support, population construction, records, macro-to-singleton exposure, scoring, and the two cost terms |
+| `extensions.py` | optional batch, prune, and beam composition after the singleton route |
+
+Only `algorithm.py` is the algorithm. Its functions receive an `Ansatz` and a
+generator population and return their next immutable values. Concrete pool
+construction, operator algebra, circuit construction, telemetry, and receipts
+do not enter that file. The public command may still be
+`run_ra_adapt(problem, request=None)`; its adapter constructs the domain
+objects before calling the mathematical route.
+
+The existing `CandidateRepresentationAdapter` already points toward the
+generator boundary: it owns `parent_inventory`, `executable_pool`, and
+`expose_children`. The Bundle-5 macro-to-singleton step should become one
+population transformation after Phase I, while `score` remains unchanged.
+
+### 2026-08-24 — Codex — correction: cost normalization is partly shared already
+
+This corrects the design-target sentence saying the current cost sources have
+"no shared normalization." They lack one small `CostTerm` interface, but the
+normalization math is already partially centralized in
+`pipelines/scaffold/hh_continuation_scoring.py`:
+
+- `hardware_cost_family_normalization(...)` dispatches the population
+  statistics;
+- `apply_symmetric_hardware_cost_normalization(...)` applies the common
+  bounded transform; and
+- `rescore_hardware_cost_family(...)` applies the resulting factor to Phase
+  I, II, and III score fields. Targeted tests cover both the proxy-family and
+  signed-Qiskit policies in all three phases.
+
+For component $a\in\{2q,d,1q,\theta,\mathrm{shot}\}$, both current signed
+policies use
+
+\[
+u_a=\frac{2}{\pi}\arctan\!\left(\frac{c_a-\mu_a}{s_a}\right),\qquad
+I=\frac{\sum_a\lambda_a u_a}{\sum_a\lambda_a},\qquad
+f=\operatorname{clip}(1-\tfrac12 I,0.5,1.5).
+\]
+
+They differ only in the statistics supplied to that transform:
+
+- proxy-family `family_robust_symmetric_arctan_v1` uses the population median
+  for \(\mu_a\) and `max(scale_floor, MAD)` for \(s_a\);
+- signed-Qiskit `zero_centered_signed_arctan_v1` uses \(\mu_a=0\) and
+  `max(scale_floor, median(nonzero(abs(delta))))` for \(s_a\).
+
+The cost-source vocabulary is currently three-layered, not two-layered:
+`proxy_logical_ladder_span_v1` is the structural baseline,
+`marrakesh_graph_span_v1` is the graph-aware no-transpile proxy, and
+`backend_transpile_v1` is the compiled full-base/full-trial marginal. The
+simplest source-faithful two-implementation target is therefore:
+
+- `ProxyCost`: the Marrakesh graph-span estimate, using the logical-ladder
+  helper only for the coordinates it supplies; and
+- `QiskitCost`: signed deltas of compiled \(N_{2q}\), \(D_{2q}\), and
+  \(N_{1q}\), with zero theta and shot coordinates.
+
+Both return the same typed `Cost`; the shared normalizer receives that cost and
+the selected statistics policy. There is no string alias dispatch and no
+substitution between implementations. In particular, the current branch in
+`normalize_hardware_cost_feature_family(...)` that changes a requested signed
+policy to `family_robust_v1` when signed telemetry is absent violates the
+author's no-fallback rule and must become an error at the extracted seam.
+
+One semantic mismatch must remain explicit: the target says cost is available
+in Phases I--III and Phase 0 is the raw-gradient pilot, while current semantic
+Phase-0 proxy routes divide by a graph-proxy denominator. Removing Phase-0 cost
+would change rankings; do not hide that change inside the structural
+extraction. Make it a separately named semantic change with its own evidence.
+
+GitNexus was used only for exact Paper-I symbols
+`CandidateRepresentationAdapter` and `select_adaptive_phase_shortlist`. Its
+index is stale at `ade04b3`, so the newer cost functions were ratified directly
+from the Paper-I source and targeted tests rather than triggering a repo-wide
+re-index.
+
+Reproduce:
+
+```bash
+rg -n 'class Phase1CompileCostOracle|class MarrakeshGraphSpanCostOracle' \
+  pipelines/scaffold/hh_continuation_scoring.py \
+  pipelines/static_adapt/hh_backend_compile_oracle.py
+sed -n '1050,1210p' pipelines/scaffold/hh_continuation_scoring.py
+sed -n '1359,1445p' pipelines/scaffold/hh_continuation_scoring.py
+sed -n '430,525p' pipelines/static_adapt/hh_backend_compile_oracle.py
+python3 -m pytest -q \
+  test/test_hh_continuation_scoring.py::test_symmetric_hardware_cost_factor_applies_to_phase1_phase2_and_phase3 \
+  'test/test_ra_adapt_phase123_qiskit_scope.py::test_signed_qiskit_cost_can_reverse_raw_benefit_order_in_every_phase'
+# -> 4 passed in 2.85s
+```
 
 ---
 
