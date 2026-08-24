@@ -423,6 +423,58 @@ in use are `hamiltonian_expectation`, `coordinate_gradient`, `metric_element`,
 primitives and needs no kind, or curvature work is not being separately charged.
 This bears directly on the reported estimator totals.
 
+## 6e. Curvature is a restriction of the Hessian — one support, three responses
+
+Author's correction, 2026-08-24, verified in source. 6d still treated `h_raw` as
+a separate scalar parameter. It is not: **curvature is `H[c,c]`**, the exact
+analogue of `F = G[c,c]`.
+
+Evidence:
+
+```
+hh_continuation_scoring.py:5546   h_raw = _energy_hessian_entry(...)
+hh_continuation_scoring.py:6507   "H_BB": float(phase2_h_raw)
+```
+
+`_energy_hessian_entry` is an entry of the ordered-coordinate energy Hessian, and
+the code already labels it `H_BB` — the candidate's own diagonal block. It is
+charged as `hessian_element` with observable identity `energy_hessian_v2`
+(`estimator_call_ledger.py:67`, `adapt_pipeline.py:20393` and others).
+
+### The design collapses further: one support, applied to three responses
+
+| response | order 0 | order 1 | order 2 | order 3 |
+|---|---|---|---|---|
+| `g` | `g[c]` | `g[c]` | `g[W u c]` | `g[R u c]` |
+| `H` | — | — | `H[c,c]` = `h_raw` = `H_BB` | `H[R u c]` |
+| `G` | — | `G[c,c]` = `F` | `G[W u c]` | `G[R u c]` |
+
+There is **one** `_support(order)`. Each response object is restricted to it.
+Nothing is passed as a pre-extracted scalar.
+
+```python
+def evaluate(record, state, response, cost_term, order, stats) -> Scored:
+    support = _support(order, state, record)
+    dE      = _descent(order, record,
+                       response.g(support),
+                       response.H(support),
+                       response.G(support))
+    K       = normalized(cost_term(record, state), stats)
+    return Scored(record, value=dE / K,
+                  charge=response.charge(order, support), admitted=False)
+```
+
+### What this deletes
+
+`F_metric`, `metric_proxy`, `cheap_metric_proxy`, `h_raw`, `phase2_h_raw`,
+`H_BB`, `h_hat` are all diagonal entries of `G` or `H` that today travel as
+independent scalars on `CandidateFeatures` or as keyword arguments. Under one
+support they are `response.G(support)[c,c]` and `response.H(support)[c,c]`.
+
+This is the same defect as F3, F4 and the test pollution, in a fourth place: one
+fact — an entry of a response object — materialized in several places, each copy
+then needing a guard that it still agrees with the others.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
