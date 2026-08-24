@@ -1689,6 +1689,70 @@ not a proxy number.
 
 ---
 
+## WORK PLAN — execute in this order
+
+Derived from decisions Q1-Q39. Each item names its decision, its sites, and what
+it removes. Rule 6i applies throughout: report measured net lines.
+
+### Stage 1 — verified-dead deletions (no numerical effect)
+
+| # | item | decision | surface | verified by |
+|---|---|---|---|---|
+| 1.1 | PAOP pool family | Q39 | 812 refs, 4 params | absent from Paper I; no profile selects it; not in `_build_full_meta_pool`; Paper-IV receipt shows `adapt_pool="full_meta"` (6ag) |
+| 1.2 | `maturity_*` parameters | Q36 | 12 params | 0 in Paper I, 0 read sites in scorer, all caps default off (6ad) |
+| 1.3 | `phase3_cheap_ratio_v1` | Q21 | `:3378-3430` | **no callers anywhere** (6ac) |
+| 1.4 | Phase-0 cost path | Q14, Q17 | 46 refs / ~94 lines in `adapt_pipeline.py`, 9 in types, 6 in `ra_adapt/*`, 7 in tests | `phase0_K0 == 1.0` in all 30 recorded instances (6p) |
+
+**Do not** delete the phase controller in 1.2 — only the `maturity_*` parameters
+and `phase_shots_maturity_floor`. The snapshot named `..._maturity_v2` holds 37
+fields of live controller state including the funnel caps (6ae).
+
+### Stage 2 — substitutions and fallbacks
+
+| # | item | decision | note |
+|---|---|---|---|
+| 2.1 | `lambda_F * F` metric-for-Hessian substitution | Q21 | 3 sites; it is in the score **numerator** (6p). `lambda_F` itself goes entirely — every use is the substitution (6ac) |
+| 2.2 | `metric_proxy` / `F_metric` unification | Q20 | one `F` field; delete the `abs(gradient)` branch at `:39614` (6m) |
+| 2.3 | fallbacks **and** fallback-reporting fields | Q29 | 222 keys, sorted into reporting / policy / mechanism in 6x. `phase2_missing_curvature_fallback_used` is never `True` |
+| 2.4 | `allow_aer_fallback` | Q30 | 28 refs, noise-oracle path |
+| 2.5 | preferred-fakes chain | Q31 | `_DEFAULT_PREFERRED_FAKES`, `allow_preferred_fallback`, `requested_backend_shortlist`, `shortlist_reduction_mode`, and the bare `except Exception: pass` at `:350` |
+
+### Stage 3 — defaults and contracts
+
+| # | item | decision |
+|---|---|---|
+| 3.1 | cost default `"proxy"` -> qiskit compiled | Q32 |
+| 3.2 | cost source per-phase -> single run-level `request.cost` | Q33 — collapses 3 scope constants and 7 duplicated pairs |
+| 3.3 | transpiler seed -> run-level compilation contract | Q34 |
+| 3.4 | six `lambda_*` cost weights -> run-level | Q35 (**not** `lambda_F`) |
+| 3.5 | rename the snapshot version, drop the old string | Q38 — costs continuation of existing bundles, accepted |
+
+### Stage 4 — extension relocation
+
+| # | item | decision | surface |
+|---|---|---|---|
+| 4.1 | prune -> `extensions.py` | Q27 | 35 params, 36 flags, 2293 mentions — safest first, active family pins it off |
+| 4.2 | beam -> `extensions.py` | Q27 | 11 params, 11 flags, 814 mentions |
+| 4.3 | batch -> `extensions.py` | Q27, Q24 | 11 params, 20 flags, 1105 mentions |
+| 4.4 | delete the non-manuscript batch gates | Q28 | `batch_additivity_tol` and the 5-weight penalty — off the published route (6v) |
+
+Extension choices come from the **conditional policy interview** (Q25, Q26), so
+the 57 params and 67 flags do not reappear as defaults. Canonical batch is
+`argmax_B dE_3(B)/K_3(B)` over cap-bounded generator-distinct subsets whose joint
+solve exists (6u) — keep `batch_size_cap` and `enable_batching`, both are in the
+manuscript.
+
+### Stage 5 — the core refactor
+
+| # | item | reference |
+|---|---|---|
+| 5.1 | `Response.restrict(candidates) -> ResponseBlocks` | 6j, 6k — restriction is over **candidates**; the active side is the anchor |
+| 5.2 | `evaluate(record, state, response, cost, order)` = `descent(order) / cost` | 6g, corrected by 6j |
+| 5.3 | delete the 26 `CandidateFeatures` geometry fields | 6n, 6o — only 4 are values; 7 are policy, 6 index sets, 2 telemetry, 7 proxy/fallback |
+| 5.4 | phases 0-III as one `score()` over a phase table | design target section 2 |
+
+---
+
 ## DECISIONS — author's answers, poll this section
 
 **Codex: re-read this section before each increment.** It is the running record
