@@ -277,6 +277,11 @@ With one Gram there is nothing to thread.
 
 ## 6c. `evaluate()` and the Gram accessor — the implementable signature
 
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
+
 Written against the real call sites, 2026-08-24. This is what Codex implements.
 
 ```python
@@ -359,6 +364,11 @@ def evaluate(record, state, geometry, cost_term, order, stats) -> Scored:
 
 ## 6d. CORRECTION to 6c — the accessor is over the response, not the Gram alone
 
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
+
 Committed 6c said `_descent` "may read only `G` and the record". **That is
 wrong**, verified 2026-08-24:
 
@@ -424,6 +434,11 @@ primitives and needs no kind, or curvature work is not being separately charged.
 This bears directly on the reported estimator totals.
 
 ## 6e. Curvature is a restriction of the Hessian — one support, three responses
+
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
 
 Author's correction, 2026-08-24, verified in source. 6d still treated `h_raw` as
 a separate scalar parameter. It is not: **curvature is `H[c,c]`**, the exact
@@ -560,6 +575,60 @@ full `1 + K`, selected by `_hardware_cost_normalization_mode:862`, default
 | `cli_config.py:3736` | the CLI adapter |
 | `exact_bench/hh_static_ground_state_benchmark.py:975` | second product caller |
 
+## 6g. The response interface, in Paper I's own form — IMPLEMENT THIS
+
+Supersedes the return shape of 6c/6d/6e. Settled by Q13: the partitioned block
+form is the manuscript's structure, not an implementation artifact.
+
+Paper I, Eq. `hessian_block_def`:
+
+```
+H = [ H_aa        H_a-theta     ]      three distinct blocks: candidate curvature
+    [ H_theta-a   H_theta-theta ]      (aa), candidate--ansatz coupling (a-theta),
+                                       active-ansatz response (theta-theta)
+```
+
+with **G** the Fubini--Study metric defining the trust region `z^T G z <= ...`,
+and Phase III isolating the candidate contribution by subtracting the active-only
+response (see Q16 — selectable).
+
+### Interface
+
+```python
+@dataclass(frozen=True)
+class ResponseBlocks:
+    """One response set restricted to one support, in the paper's partition."""
+    G_AB: np.ndarray     # active-candidate cross block
+    G_BB: np.ndarray     # candidate-candidate block
+    b_B:  np.ndarray     # candidate-direction residual
+
+class Response(Protocol):
+    def restrict(self, support: Sequence[int]) -> ResponseBlocks: ...
+    def charge(self, order: int, support: Sequence[int]) -> EstimatorCharge: ...
+
+def evaluate(record, state, response, cost_term, order, stats) -> Scored:
+    support = _support(order, state, record)
+    blocks  = response.restrict(support)
+    dE      = _descent(order, record, blocks)
+    K       = normalized(cost_term(record, state), stats)
+    return Scored(record, value=dE / K,
+                  charge=response.charge(order, support), admitted=False)
+```
+
+`_support(order)` is unchanged from 6e: `()`, `(c,)`, `W + (c,)`, `R + (c,)`.
+
+### Verified vs still to locate
+
+| piece | status |
+|---|---|
+| `(G_AB, G_BB, b_B)` at a support | **verified** — `selector_query_closure.py:795`, `QueryClosedPopulationWorkspace.subset_geometry`, returns `G_AC[:, idx]`, `G_CC[ix_(idx,idx)]`, `b_C[idx]` |
+| the charge half | **verified** — `_DefaultNoPruneEstimatorService`, `adapt_pipeline.py:56603-56905` |
+| the Hessian partition `H_aa / H_a-theta / H_theta-theta` | **NOT located.** `h_raw` comes from `_energy_hessian_entry` (`hh_continuation_scoring.py:5546`) and is labelled `H_BB` at `:6507`, so the `aa` block exists as a scalar path. The full partition returned as blocks has not been found. |
+
+**Codex: do not invent the Hessian partition.** If `_descent` at order 2 or 3
+needs a block that no existing symbol returns, stop and report the gap rather
+than assembling one — an assembled Hessian block would change the numbers.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -616,6 +685,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q15 | Should Claude move to its own worktree? | Author: not a technical call. **Claude decided yes** — `claude/paper-i-20260824`. Measurements from the shared checkout were contaminated by another agent's uncommitted files. | 2026-08-24 |
 | Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
 | Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
+| Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
 
 ### Standing rules from the author
 
