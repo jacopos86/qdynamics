@@ -277,6 +277,11 @@ With one Gram there is nothing to thread.
 
 ## 6c. `evaluate()` and the Gram accessor — the implementable signature
 
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
+
 Written against the real call sites, 2026-08-24. This is what Codex implements.
 
 ```python
@@ -359,6 +364,11 @@ def evaluate(record, state, geometry, cost_term, order, stats) -> Scored:
 
 ## 6d. CORRECTION to 6c — the accessor is over the response, not the Gram alone
 
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
+
 Committed 6c said `_descent` "may read only `G` and the record". **That is
 wrong**, verified 2026-08-24:
 
@@ -424,6 +434,11 @@ primitives and needs no kind, or curvature work is not being separately charged.
 This bears directly on the reported estimator totals.
 
 ## 6e. Curvature is a restriction of the Hessian — one support, three responses
+
+> **SUPERSEDED by 6g.** The `g()/H()/G()` three-accessor shape below is the
+> generic framing, not Paper I's. The support table and the estimator-charge
+> reasoning still hold; the return shape does not. Implement 6g.
+
 
 Author's correction, 2026-08-24, verified in source. 6d still treated `h_raw` as
 a separate scalar parameter. It is not: **curvature is `H[c,c]`**, the exact
@@ -560,6 +575,60 @@ full `1 + K`, selected by `_hardware_cost_normalization_mode:862`, default
 | `cli_config.py:3736` | the CLI adapter |
 | `exact_bench/hh_static_ground_state_benchmark.py:975` | second product caller |
 
+## 6g. The response interface, in Paper I's own form — IMPLEMENT THIS
+
+Supersedes the return shape of 6c/6d/6e. Settled by Q13: the partitioned block
+form is the manuscript's structure, not an implementation artifact.
+
+Paper I, Eq. `hessian_block_def`:
+
+```
+H = [ H_aa        H_a-theta     ]      three distinct blocks: candidate curvature
+    [ H_theta-a   H_theta-theta ]      (aa), candidate--ansatz coupling (a-theta),
+                                       active-ansatz response (theta-theta)
+```
+
+with **G** the Fubini--Study metric defining the trust region `z^T G z <= ...`,
+and Phase III isolating the candidate contribution by subtracting the active-only
+response (see Q16 — selectable).
+
+### Interface
+
+```python
+@dataclass(frozen=True)
+class ResponseBlocks:
+    """One response set restricted to one support, in the paper's partition."""
+    G_AB: np.ndarray     # active-candidate cross block
+    G_BB: np.ndarray     # candidate-candidate block
+    b_B:  np.ndarray     # candidate-direction residual
+
+class Response(Protocol):
+    def restrict(self, support: Sequence[int]) -> ResponseBlocks: ...
+    def charge(self, order: int, support: Sequence[int]) -> EstimatorCharge: ...
+
+def evaluate(record, state, response, cost_term, order, stats) -> Scored:
+    support = _support(order, state, record)
+    blocks  = response.restrict(support)
+    dE      = _descent(order, record, blocks)
+    K       = normalized(cost_term(record, state), stats)
+    return Scored(record, value=dE / K,
+                  charge=response.charge(order, support), admitted=False)
+```
+
+`_support(order)` is unchanged from 6e: `()`, `(c,)`, `W + (c,)`, `R + (c,)`.
+
+### Verified vs still to locate
+
+| piece | status |
+|---|---|
+| `(G_AB, G_BB, b_B)` at a support | **verified** — `selector_query_closure.py:795`, `QueryClosedPopulationWorkspace.subset_geometry`, returns `G_AC[:, idx]`, `G_CC[ix_(idx,idx)]`, `b_C[idx]` |
+| the charge half | **verified** — `_DefaultNoPruneEstimatorService`, `adapt_pipeline.py:56603-56905` |
+| the Hessian partition `H_aa / H_a-theta / H_theta-theta` | **NOT located.** `h_raw` comes from `_energy_hessian_entry` (`hh_continuation_scoring.py:5546`) and is labelled `H_BB` at `:6507`, so the `aa` block exists as a scalar path. The full partition returned as blocks has not been found. |
+
+**Codex: do not invent the Hessian partition.** If `_descent` at order 2 or 3
+needs a block that no existing symbol returns, stop and report the gap rather
+than assembling one — an assembled Hessian block would change the numbers.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -592,6 +661,48 @@ Concrete instances in the cost path:
 In the target design the two cost terms are peers selected by `request.cost`.
 Neither substitutes for the other, ever. `qiskit_cost` failing is a stopped run,
 not a proxy number.
+
+---
+
+## DECISIONS — author's answers, poll this section
+
+**Codex: re-read this section before each increment.** It is the running record
+of decisions the author has made. Every row is binding unless a later dated row
+supersedes it. Questions are appended by Claude; answers are the author's.
+
+An unanswered question is **not** permission to choose. Stop and report instead.
+
+| # | question | author's answer | date |
+|---|---|---|---|
+| Q1 | What makes two runs "the same run"? | **Not** exact sequence reproduction. Ideally the same results, but initial sensitivity exists, so what matters is that new results are **at least as good** as old. Bug fixes that alter trajectories are unavoidable and acceptable. | 2026-08-24 |
+| Q2 | Keep the route family vs route profile distinction? | **No.** Semantic differentiation that hurts more than helps. "Realization" settings can change trajectories too, which disproves the split. Drop the taxonomy. | 2026-08-24 |
+| Q3 | Candidate gain: total joint or marginal? | **Try both.** Full matrix, not one representative cell. | 2026-08-24 |
+| Q4 | Was `pipelines/hardcoded/` retirement deliberate? | **Yes, definitely deliberate.** | 2026-08-24 |
+| Q5 | Re-run Bundle 3 to prove Gate 1? | **No.** Reverting via git covers recovery. Withdrawn by Claude; only an archive readability check was warranted, and it passed. | 2026-08-24 |
+| Q6 | What does "at least as good" measure? | **DeltaE, the qiskit costs, and the estimator count** — the three Paper-I axes. | 2026-08-24 |
+| Q13 | Is `(G_AB, G_BB, b_B)` archaic? | **No — it is Paper I's own structure**, Eq. `hessian_block_def`. Test applied: if it is not defined in Paper I it is probably archaic. It is defined there. | 2026-08-24 |
+| Q14 | Delete the Phase-0 cost path? | **Yes, delete.** Verified a numerical no-op first: `phase0_K0` is 1.0 in all 30 recorded instances. | 2026-08-24 |
+| Q15 | Should Claude move to its own worktree? | Author: not a technical call. **Claude decided yes** — `claude/paper-i-20260824`. Measurements from the shared checkout were contaminated by another agent's uncommitted files. | 2026-08-24 |
+| Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
+| Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
+| Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
+
+### Standing rules from the author
+
+| rule | source |
+|---|---|
+| **No fallbacks.** A failing qiskit cost stops the run; it never degrades to proxy. | 2026-08-24, section 7 |
+| **A profile is a run plus a diff.** One base with complete effective settings; every other profile a named delta. | 2026-08-24, F3 |
+| **Separate the mathematical algorithm from the ansatz and generators**, so the algorithm calls those objects. | 2026-08-24, Codex session |
+| **No arbitrary constraints.** A check earns its place only if it catches something that cannot be made structurally impossible. | 2026-08-24 |
+| **One file for coordination.** Do not create new `.md` files for this effort. | 2026-08-24 |
+| **GitNexus stays scoped to Paper I.** No repo-wide re-index. | 2026-08-24, Codex session |
+
+### OPEN — awaiting the author
+
+| # | question | why it matters |
+|---|---|---|
+| Q18 | Q16 makes marginal vs non-marginal an **option**. Paper I currently states it as the definition — line 442 defines Phase III as isolating the candidate contribution "by subtracting the corresponding active-only response", with no alternative offered. **Does the manuscript text need to change to present it as a selectable policy?** | Not a re-litigation of Q16. If both are legitimate options but the paper defines only one, then evidence produced under the other cannot be described as implementing the stated Phase III. Affects Gate 5 manuscript synchronization. |
 
 ---
 
@@ -1481,6 +1592,55 @@ Live findings and Execution log are append-only.
 **Added to the protocol:** before appending, `git fetch` and merge the other
 agent's branch into yours; after committing, say which branch the commit is on.
 A worklog entry on an unmerged branch has not been communicated.
+
+---
+
+### 2026-08-24 — Claude — Paper I defines the partitioned form; Phase-0 cost deletion verified safe
+
+**Q13 settled from the manuscript.** `subset_geometry` returning
+`(G_AB, G_BB, b_B)` is not archaic — it is Paper I's own structure.
+`Paper_I_author_revision.tex`, Eq. `hessian_block_def`:
+
+```
+H = [ H_aa      H_a-theta     ]
+    [ H_theta-a H_theta-theta ]
+```
+
+"three distinct blocks: candidate curvature (alpha-alpha), candidate--ansatz
+coupling (alpha-theta), and active-ansatz response (theta-theta)", with **G** the
+Fubini--Study metric defining the trust region. Line 231 likewise: "RA uses
+candidate--active Gram blocks to define the trust regions of its local response
+models".
+
+**Therefore 6d/6e are wrong in their interface shape.** `g()/H()/G()` as three
+independent accessors is the generic framing, not this method's.
+`Response.restrict(support) -> (cross_block, own_block, rhs)` is the faithful one,
+and `selector_query_closure.py:795` already implements it on
+`QueryClosedPopulationWorkspace`. The `_support(order)` table in 6e stands; only
+the return shape changes.
+
+**Phase-0 cost deletion is a no-op on recorded evidence.** Author approved
+deletion 2026-08-24. Verified before any edit:
+
+- `phase0_cost_lambdas = {}` and `phase0_cost_lambda_source = "unresolved"` in
+  **5 of 5** cells sampled across Bundle 3 and Bundle 9.
+- `phase0_K0` is recorded 30 times in one Bundle-9 cell and is **exactly 1.0
+  every time** — one distinct value.
+
+The Phase-0 score is `DeltaE0_upper * N0 / K0` (`adapt_pipeline.py:22346`) with
+`denominator = cost_row["hardware_cost_denominator"]` (`:22341`). Dividing by a
+denominator that is always 1.0 means removing it cannot change any recorded
+ranking.
+
+**Open concern for whoever implements it:** `phase0_K0`,
+`phase0_hardware_cost_denominator` and `phase0_hardware_cost_excess_sum` are
+written into the checkpoint payload. Removing them changes the checkpoint schema,
+which resume and replay read. The numerical no-op does not imply a schema no-op.
+
+**Clean baseline, this worktree, `claude/paper-i-20260824` @ `43213503`:**
+`5573 collected, 54 errors` — identical to Codex's independently measured figure,
+confirming that the earlier 5598 came from uncommitted Paper-II test edits in the
+shared checkout.
 
 ---
 
