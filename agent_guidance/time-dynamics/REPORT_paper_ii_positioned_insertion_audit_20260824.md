@@ -114,4 +114,6 @@ captured drift exceeds the ordinary tail cut 28 by
 - Focused positioned-tangent test: 1 passed.
 - Exchange oracle, structural selector, structural cache, and insertion-state
   files: 31 passed.
+- Full Paper-II lane baseline after the two added tests: 353 passed in 14.26 s
+  under the 8 GB process guard (308 MB peak).
 - No production source or manuscript file changed.
