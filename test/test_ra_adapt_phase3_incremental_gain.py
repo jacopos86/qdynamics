@@ -86,7 +86,7 @@ def test_candidate_feature_stamps_configured_incremental_gain_policy() -> None:
         "append_position": 0,
         "positions_considered": [0],
         "gradient_signed": 0.5,
-        "metric_proxy": 1.0,
+        "F": 1.0,
         "sigma_hat": 0.0,
         "refit_window_indices": [],
         "compile_cost": compile_cost,

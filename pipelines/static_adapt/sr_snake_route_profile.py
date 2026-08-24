@@ -42,9 +42,7 @@ from pipelines.static_adapt.phase3_material_window import (
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
     PHASE1_SCORE_MODE_TRUST_REGION_V1,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
@@ -66,9 +64,6 @@ SR_ROUTE_PROFILE_CONVENTIONAL_V2 = (
 )
 SR_ROUTE_PROFILE_CONVENTIONAL_V3 = (
     "supported_whitened_adaptive_trust_full_response_full_accepted_refit_v3"
-)
-SR_ROUTE_PROFILE_CONVENTIONAL_V3_1 = (
-    "supported_whitened_adaptive_trust_full_response_full_accepted_refit_v3_1"
 )
 SR_ROUTE_PROFILE_CANDIDATE_V4 = (
     "supported_whitened_adaptive_trust_full_response_symmetric_cost_fs_prune_v4"
@@ -187,7 +182,6 @@ SR_ROUTE_PROFILE_CANONICAL_ALIAS = "sr_snake_v1"
 SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS = "sr_snake"
 SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V2 = "sr_snake_v2"
 SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3 = "sr_snake_v3"
-SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3_1 = "sr_snake_v3_1"
 SR_ROUTE_PROFILE_CANDIDATE_ALIAS_V4 = "sr_snake_v4"
 SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1 = (
     "sr_snake_no_prune_symmetric_cost_v1"
@@ -290,8 +284,6 @@ SR_ROUTE_PROFILE_REQUEST_CHOICES = (
     SR_ROUTE_PROFILE_CONVENTIONAL_V2,
     SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3,
     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-    SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3_1,
-    SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
     SR_ROUTE_PROFILE_CANDIDATE_ALIAS_V4,
     SR_ROUTE_PROFILE_CANDIDATE_V4,
     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1,
@@ -606,18 +598,12 @@ HISTORICAL_SR_SNAKE_RESPONSE_SCOPE_SETTINGS: dict[str, Any] = {
 }
 
 
-# The Phase-I/II energy-model policy is outside the frozen v1-v3 contract
-# payloads so the already published digests remain byte-for-byte stable.
-# Historical requests nevertheless receive and validate this explicit overlay;
-# a legacy replay therefore cannot silently acquire the v4 first-order/
-# measured-curvature contract from generic parser defaults.
+# The retained historical profiles still resolve their score and measured-
+# curvature requirements explicitly.  The retired metric-for-Hessian proxy
+# policies are intentionally absent.
 HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS: dict[str, Any] = {
     "phase1_score_mode": PHASE1_SCORE_MODE_TRUST_REGION_V1,
-    "phase1_energy_model": PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
     "phase2_curvature_policy": PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
-    "phase2_cheap_curvature_proxy_policy": (
-        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1
-    ),
 }
 
 
@@ -647,15 +633,6 @@ CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS: dict[str, Any] = {
 }
 
 
-CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS: dict[str, Any] = {
-    **CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS,
-    # The canonical HH controller keeps every phase live.  V3.1 makes this
-    # previously external requirement part of the hashed route identity while
-    # leaving the frozen v3 payload untouched for exact replay.
-    "phase_live_hysteresis_enabled": False,
-}
-
-
 CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS: dict[str, Any] = {
     **CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS,
     # V4 promises a full Phase-III response on every controller round.  The
@@ -668,7 +645,7 @@ CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS: dict[str, Any] = {
     "adapt_disable_hh_seed": True,
     # Phase I is a genuinely first-order energy screen.  Phase II must carry
     # a finite measured directional-curvature receipt for every scored
-    # candidate.  No active v4 selector may consult either lambda-F proxy.
+    # candidate.
     "phase1_score_mode": PHASE1_SCORE_MODE_TRUST_REGION_V1,
     "phase1_energy_model": PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
     "phase2_curvature_policy": (
@@ -1383,17 +1360,6 @@ _DEST_OPTION_STRINGS: dict[str, tuple[str, ...]] = {
 }
 
 
-# These options configure only the retired Phase-I/II lambda-F curvature
-# proxies.  Their mere presence on a v4 command is rejected, including when
-# the supplied numerical value happens to equal an old parser default.  This
-# is deliberately narrower than the hardware-cost lambda controls.
-_V4_DISALLOWED_LAMBDA_F_OPTIONS = frozenset(
-    {
-        "--phase1-lambda-F",
-        "--phase2-lambda-F",
-    }
-)
-
 _DISALLOWED_BOOLEAN_OPTIONS = frozenset(
     {
         "--adapt-no-repeats",
@@ -1597,35 +1563,6 @@ def canonical_sr_snake_v3_contract_sha256() -> str:
     return _json_sha256(canonical_sr_snake_v3_contract())
 
 
-def canonical_sr_snake_v3_1_contract() -> dict[str, Any]:
-    """Return conventional v3.1 with its passive historical phase field."""
-
-    payload: dict[str, Any] = {
-        "schema": SR_ROUTE_PROFILE_CONTRACT_SCHEMA,
-        "route_family": "singleton_response_snake",
-        "route_profile": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        "execution_settings": dict(CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS),
-        "semantic_invariants": {
-            **canonical_sr_snake_v3_contract()["semantic_invariants"],
-            "phase_live_hysteresis_enabled": False,
-            "phase_retirement_policy": "disabled_v1",
-        },
-        "lineage_authority": {
-            "parent_route_profile": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-            "parent_contract_sha256": canonical_sr_snake_v3_contract_sha256(),
-            "only_intended_parent_setting_change": {
-                "phase_live_hysteresis_enabled": False,
-            },
-            "scientific_result_anchor_claimed": False,
-        },
-    }
-    return json.loads(json.dumps(payload, sort_keys=True))
-
-
-def canonical_sr_snake_v3_1_contract_sha256() -> str:
-    return _json_sha256(canonical_sr_snake_v3_1_contract())
-
-
 def canonical_sr_snake_v4_contract() -> dict[str, Any]:
     """Return the opt-in symmetric-cost/trusted-prune SR-SNAKE contract."""
 
@@ -1658,7 +1595,6 @@ def canonical_sr_snake_v4_contract() -> dict[str, Any]:
                 PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
             ),
             "phase2_curvature_failure_policy": "abort_run_v1",
-            "phase1_phase2_lambda_f_proxy_active": False,
             "ordinary_gram_novelty_multiplier_active": False,
             "all_energy_models_infeasible_policy": (
                 "collective_span_novelty_over_symmetric_cost_v1"
@@ -1739,7 +1675,6 @@ def canonical_sr_snake_no_prune_symmetric_cost_v1_contract() -> dict[str, Any]:
                 PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
             ),
             "phase2_curvature_failure_policy": "abort_run_v1",
-            "phase1_phase2_lambda_f_proxy_active": False,
             "ordinary_phase2_novelty_multiplier_active": False,
             "ordinary_phase3_novelty_multiplier_active": False,
             "all_energy_models_infeasible_novelty_fallback_active": True,
@@ -3508,8 +3443,6 @@ def canonical_sr_snake_contract(profile: Any) -> dict[str, Any]:
         return canonical_sr_snake_v2_contract()
     if requested == SR_ROUTE_PROFILE_CONVENTIONAL_V3:
         return canonical_sr_snake_v3_contract()
-    if requested == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1:
-        return canonical_sr_snake_v3_1_contract()
     if requested == SR_ROUTE_PROFILE_CANDIDATE_V4:
         return canonical_sr_snake_v4_contract()
     if requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
@@ -3602,18 +3535,15 @@ def normalize_sr_route_profile_request(raw: Any) -> str:
         "sr_snake_v1": SR_ROUTE_PROFILE_CANONICAL_V1,
         "canonical_v1": SR_ROUTE_PROFILE_CANONICAL_V1,
         SR_ROUTE_PROFILE_CANONICAL_V1: SR_ROUTE_PROFILE_CANONICAL_V1,
-        "sr_snake": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        "conventional": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        "canonical": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
+        "sr_snake": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+        "conventional": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+        "canonical": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
         "sr_snake_v2": SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         "canonical_v2": SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         SR_ROUTE_PROFILE_CONVENTIONAL_V2: SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         "sr_snake_v3": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
         "canonical_v3": SR_ROUTE_PROFILE_CONVENTIONAL_V3,
         SR_ROUTE_PROFILE_CONVENTIONAL_V3: SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-        "sr_snake_v3_1": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        "canonical_v3_1": SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        SR_ROUTE_PROFILE_CONVENTIONAL_V3_1: SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
         "sr_snake_v4": SR_ROUTE_PROFILE_CANDIDATE_V4,
         "candidate_v4": SR_ROUTE_PROFILE_CANDIDATE_V4,
         SR_ROUTE_PROFILE_CANDIDATE_V4: SR_ROUTE_PROFILE_CANDIDATE_V4,
@@ -3831,7 +3761,6 @@ def normalize_sr_route_profile_request(raw: Any) -> str:
         SR_ROUTE_PROFILE_CANONICAL_V1,
         SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-        SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
         SR_ROUTE_PROFILE_CANDIDATE_V4,
         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
@@ -3928,12 +3857,7 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
     else:
         explicit_options = frozenset(str(value) for value in explicit_raw)
 
-    if requested == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1:
-        execution_settings = {
-            **CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS,
-            **HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS,
-        }
-    elif requested == SR_ROUTE_PROFILE_CANDIDATE_V4:
+    if requested == SR_ROUTE_PROFILE_CANDIDATE_V4:
         execution_settings = CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS
     elif requested == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1:
         execution_settings = (
@@ -4147,48 +4071,6 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
                     "required": "explicit_positive_per_regime_source_lock",
                 }
             )
-    if requested in {
-        SR_ROUTE_PROFILE_CANDIDATE_V4,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
-        SR_ROUTE_PROFILE_GREEDY_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
-        SR_ROUTE_PROFILE_COMBINATORIAL_BATCH_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1,
-        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V1,
-        SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1,
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-        SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3,
-    } and explicit_options is not None:
-        forbidden_lambda_f_options = sorted(
-            explicit_options.intersection(_V4_DISALLOWED_LAMBDA_F_OPTIONS)
-        )
-        if forbidden_lambda_f_options:
-            conflicts.append(
-                {
-                    "field": "phase1_phase2_lambda_f_curvature_proxies",
-                    "explicit_options": forbidden_lambda_f_options,
-                    "current": "explicit_cli_control_present",
-                    "required": (
-                        "inactive_under_sr_snake_v4"
-                        if requested == SR_ROUTE_PROFILE_CANDIDATE_V4
-                        else "inactive_under_no_prune_symmetric_cost_profile"
-                    ),
-                }
-            )
     for field, expected in execution_settings.items():
         current = getattr(namespace, field, None)
         option_strings = _DEST_OPTION_STRINGS.get(field, ())
@@ -4319,7 +4201,6 @@ def validate_sr_route_profile_runtime_settings(
         SR_ROUTE_PROFILE_CANONICAL_V1,
         SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-        SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
         SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
         SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2,
     }:
@@ -4418,7 +4299,6 @@ __all__ = [
     "CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS",
     "CANONICAL_SR_SNAKE_V2_EXECUTION_SETTINGS",
     "CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS",
-    "CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS",
     "CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS",
     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS",
     "CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1_EXECUTION_SETTINGS",
@@ -4460,7 +4340,6 @@ __all__ = [
     "SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS",
     "SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V2",
     "SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3",
-    "SR_ROUTE_PROFILE_CONVENTIONAL_ALIAS_V3_1",
     "SR_ROUTE_PROFILE_CANDIDATE_ALIAS_V4",
     "SR_ROUTE_PROFILE_CANDIDATE_V4",
     "SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_ALIAS_V1",
@@ -4513,7 +4392,6 @@ __all__ = [
     "SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3",
     "SR_ROUTE_PROFILE_CONVENTIONAL_V2",
     "SR_ROUTE_PROFILE_CONVENTIONAL_V3",
-    "SR_ROUTE_PROFILE_CONVENTIONAL_V3_1",
     "SR_ROUTE_PROFILE_CONTRACT_DIGEST_SCHEMA",
     "SR_ROUTE_PROFILE_CONTRACT_SCHEMA",
     "SR_ROUTE_PROFILE_REQUEST_CHOICES",
@@ -4526,8 +4404,6 @@ __all__ = [
     "canonical_sr_snake_v2_contract_sha256",
     "canonical_sr_snake_v3_contract",
     "canonical_sr_snake_v3_contract_sha256",
-    "canonical_sr_snake_v3_1_contract",
-    "canonical_sr_snake_v3_1_contract_sha256",
     "canonical_sr_snake_v4_contract",
     "canonical_sr_snake_v4_contract_sha256",
     "canonical_sr_snake_no_prune_symmetric_cost_v1_contract",

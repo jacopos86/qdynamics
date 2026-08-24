@@ -16,13 +16,11 @@ from pipelines.scaffold.hh_continuation_stage_control import (
 )
 from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.sr_snake_route_profile import (
-    SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-    canonical_sr_snake_v3_1_contract,
-    canonical_sr_snake_v3_1_contract_sha256,
+    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
+    canonical_sr_snake_v3_contract,
     canonical_sr_snake_v3_contract_sha256,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
-    validate_sr_route_profile_runtime_settings,
 )
 
 
@@ -48,17 +46,14 @@ def test_phase_live_runtime_options_are_retired(removed_option: str) -> None:
         _parser().parse_args([removed_option, "1"])
 
 
-@pytest.mark.parametrize("profile", ["sr_snake", "sr_snake_v3_1"])
-def test_current_conventional_alias_has_no_phase_live_runtime_attribute(
-    profile: str,
-) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile])
+def test_current_conventional_alias_resolves_to_retained_v3() -> None:
+    args = _parser().parse_args(["--sr-route-profile", "sr_snake"])
 
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
+    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
     assert not hasattr(args, "phase_live_hysteresis_enabled")
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_1_contract()
+    assert args.sr_route_profile_contract == canonical_sr_snake_v3_contract()
     assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v3_1_contract_sha256()
+        canonical_sr_snake_v3_contract_sha256()
     )
 
 
@@ -143,26 +138,8 @@ def test_historical_route_contract_digests_remain_byte_stable() -> None:
         "435910592e88f0136a0d45f611f79fe96b21d75fd25bad58276c871f39dc080e"
     )
     assert canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256() == (
-        "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91"
+        "ac973c2cd6f5dec3a6cd3274b9e255da6783196072bb2656ffabecd893e0da08"
     )
     contract = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
     assert contract["execution_settings"]["phase_live_hysteresis_enabled"] is False
     assert contract["semantic_invariants"]["phase_retirement_policy"] == "disabled_v1"
-
-
-def test_historical_contract_field_does_not_become_runtime_authority() -> None:
-    contract = canonical_sr_snake_v3_1_contract()
-    digest = canonical_sr_snake_v3_1_contract_sha256()
-
-    assert validate_sr_route_profile_runtime_settings(
-        profile_request=SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        contract=contract,
-        contract_sha256=digest,
-        runtime_settings={},
-    ) == contract
-    assert validate_sr_route_profile_runtime_settings(
-        profile_request=SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-        contract=contract,
-        contract_sha256=digest,
-        runtime_settings={"phase_live_hysteresis_enabled": True},
-    ) == contract

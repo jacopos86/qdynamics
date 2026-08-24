@@ -1,8 +1,7 @@
 """Stable SR-SNAKE Phase-I/II energy-model policy identifiers.
 
-The historical profiles intentionally retain the lambda-F proxy policies.
-SR-SNAKE v4 selects the first-order Phase-I model and requires a measured,
-finite Phase-II directional curvature receipt.  Keeping these identifiers in a
+Phase I uses the measured Fubini--Study metric only to set the trust radius;
+Phase II uses measured directional curvature.  Keeping these identifiers in a
 small dependency-free module lets CLI, route resolution, scoring, checkpoint,
 and result code share one fail-closed vocabulary.
 """
@@ -19,12 +18,8 @@ PHASE1_SCORE_MODE_CHOICES = (
     PHASE1_SCORE_MODE_LEGACY_SIMPLE_V1,
 )
 
-PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1 = (
-    "legacy_lambda_f_quadratic_v1"
-)
 PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1 = "first_order_fs_trust_v1"
 PHASE1_ENERGY_MODEL_CHOICES = (
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
     PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
 )
 
@@ -37,12 +32,8 @@ PHASE2_CURVATURE_POLICY_CHOICES = (
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
 )
 
-PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1 = (
-    "legacy_lambda_f_ratio_v1"
-)
 PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF = "off"
 PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES = (
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
 )
 
@@ -101,9 +92,7 @@ __all__ = [
     "PHASE1_SCORE_MODE_TRUST_REGION_V1",
     "PHASE1_ENERGY_MODEL_CHOICES",
     "PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1",
-    "PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1",
     "PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES",
-    "PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1",
     "PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF",
     "PHASE2_CURVATURE_POLICY_CHOICES",
     "PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1",

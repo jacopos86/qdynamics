@@ -52,7 +52,7 @@ def _feature(*, position: int):
         append_position=1,
         positions_considered=[position, 1],
         gradient_signed=0.3,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=compile_cost,

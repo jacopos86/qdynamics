@@ -81,9 +81,9 @@ from pipelines.static_adapt.sr_snake_route_profile import (
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_CHOICES,
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
+    PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_CHOICES,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
 )
@@ -1414,12 +1414,10 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         choices=list(SR_ROUTE_PROFILE_REQUEST_CHOICES),
         default=SR_ROUTE_PROFILE_REQUEST_OFF,
         help=(
-            "Executable SR-SNAKE route profile. sr_snake (or sr_snake_v3_1) "
-            "materializes the full-active-plus-singleton Phase-III response "
-            "policy with every configured phase live and full-ansatz "
-            "supported-FS accepted refits in the expanded "
-            "runtime/projected-logical chart. sr_snake_v3 preserves its "
-            "frozen historical profile, sr_snake_v2 preserves "
+            "Executable SR-SNAKE route profile. sr_snake resolves to the "
+            "retained v3 conventional route with full-active-plus-singleton "
+            "Phase-III response and full-ansatz supported-FS accepted refits. "
+            "sr_snake_v2 preserves "
             "the 2026-07-15 window-coupled response policy and sr_snake_v1 "
             "preserves the older historical policy. "
             "sr_snake_no_novelty_metric_prune_beam_v1 preserves the v3 "
@@ -1724,16 +1722,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
             "Default 1 preserves serial beam behavior; pass 0 for CPU-aware auto sizing."
         ),
     )
-    p.add_argument("--phase1-lambda-F", type=float, default=1.0)
     p.add_argument(
         "--phase1-energy-model",
         choices=list(PHASE1_ENERGY_MODEL_CHOICES),
-        default=PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-        help=(
-            "Phase-I energy model. SR-SNAKE v4 resolves to the genuinely "
-            "first-order FS-trust model; the lambda-F quadratic form is "
-            "historical replay only."
-        ),
+        default=PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
+        help="Phase-I first-order Fubini--Study trust model.",
     )
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
@@ -1807,157 +1800,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument("--phase1-probe-max-positions", type=int, default=6)
     p.add_argument("--phase1-plateau-patience", type=int, default=2)
     p.add_argument("--phase1-trough-margin-ratio", type=float, default=1.0)
-    p.set_defaults(phase1_prune_enabled=True)
-    p.add_argument("--phase1-prune-enabled", dest="phase1_prune_enabled", action="store_true")
-    p.add_argument("--phase1-no-prune", dest="phase1_prune_enabled", action="store_false")
-    p.add_argument(
-        "--phase1-prune-policy",
-        choices=["recoverability_ladder_v1"],
-        default="recoverability_ladder_v1",
-        help=(
-            "Static ADAPT pruning uses typed metric/trust nomination and "
-            "measured delete-and-complete-refit acceptance."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-mode",
-        choices=["live", "final", "both"],
-        default="live",
-        help="Choose whether phase-1 pruning runs live after admission, only at final checkpoint, or both.",
-    )
-    p.add_argument("--phase1-prune-fraction", type=float, default=0.25)
-    p.add_argument("--phase1-prune-min-candidates", type=int, default=1)
-    p.add_argument("--phase1-prune-max-candidates", type=int, default=6)
-    p.add_argument("--phase1-prune-max-regression", type=float, default=1e-8)
-    p.add_argument(
-        "--phase1-prune-tolerance-mode",
-        choices=["auto", "fixed", "adaptive_v1"],
-        default="auto",
-        help="Prune regression tolerance mode; auto selects adaptive_v1.",
-    )
-    p.add_argument("--phase1-prune-tolerance-shot-coeff", type=float, default=0.0)
-    p.add_argument("--phase1-prune-tolerance-screen-coeff", type=float, default=0.01)
-    p.add_argument("--phase1-prune-tolerance-chem", type=float, default=0.0)
-    p.add_argument("--phase1-prune-tolerance-rel-coeff", type=float, default=0.0)
-    p.add_argument("--phase1-prune-tolerance-target-energy", type=float, default=None)
-    p.add_argument("--phase1-prune-retained-gain-ratio", type=float, default=0.5)
-    p.add_argument("--phase1-prune-protect-steps", type=int, default=2)
-    p.add_argument("--phase1-prune-cooldown-steps", type=int, default=2)
-    p.add_argument(
-        "--phase1-prune-local-window-size",
-        type=int,
-        default=4,
-        help="Local prune compensation/refit window size; 0 uses the full survivor ansatz.",
-    )
-    p.add_argument(
-        "--phase1-prune-recovery-trust-radius",
-        type=float,
-        default=0.0,
-        help=(
-            "Positive trust radius for Schur prune nomination compensation. "
-            "When positive, nominations use the best predicted recovery under "
-            "||delta theta_W|| <= radius; 0 preserves the unconstrained Schur score."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-schur-nomination-route",
-        choices=[
-            PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-            PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
-            "full_logical_fs_trust_delete_refit_v1",
-        ],
-        default=PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-        help=(
-            "Prune Schur nomination model. The default preserves the Hessian-only "
-            "route; metric_regularized_v1 uses post-refit G,g,H blocks computed "
-            "once at the child branch and sliced per candidate."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-metric-schur-mu",
-        type=float,
-        default=1e-6,
-        help="Nonnegative Fubini-Study metric weight for metric_regularized_v1 prune nomination.",
-    )
-    p.add_argument(
-        "--phase1-prune-metric-schur-solve-mode",
-        choices=[
-            PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-            PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1,
-            "affine_deletion_global_trust_v1",
-        ],
-        default=PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-        help=(
-            "Survivor response RHS for metric prune Schur nomination. "
-            "stationary_gw_zero_v1 assumes post-refit g_W is zero; "
-            "gradient_corrected_v1 subtracts the retained-coordinate gradient block."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-metric-schur-cost-weighting",
-        choices=[
-            PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-            PRUNE_METRIC_COST_WEIGHT_OFF,
-        ],
-        default=PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-        help=(
-            "Cost weighting for metric prune nomination. ansatz_entry_denominator_v1 "
-            "divides predicted loss by the Paper-I hardware denominator normalized "
-            "over current ansatz entries."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-trust-update-policy",
-        choices=["off", "modeled_local_fs_conservative_v1"],
-        default="off",
-        help=(
-            "Prune-radius update policy. The modeled-local policy consumes the "
-            "existing same-state Gram/coordinate receipt and adds no endpoint "
-            "overlap measurement."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-metric-mu-update-policy",
-        choices=["off", "same_trial_underprediction_monotone_v1"],
-        default="off",
-        help=(
-            "Metric-damping update for trusted prune trials. The monotone "
-            "policy updates only from a complete measured delete/refit receipt."
-        ),
-    )
-    p.add_argument(
-        "--phase1-prune-endpoint-overlap-policy",
-        choices=["off", "energy_safe_trial_only_v1"],
-        default="off",
-        help=(
-            "Optional genuine endpoint-overlap gate. off is the zero-new-query "
-            "route and must not be reported as an exact realized FS distance."
-        ),
-    )
-    p.add_argument("--phase1-prune-old-fraction", type=float, default=0.25)
-    p.add_argument("--phase1-prune-checkpoint-period", type=int, default=3)
-    p.add_argument(
-        "--phase1-prune-live-min-depth",
-        type=int,
-        default=0,
-        help="Minimum current ansatz depth before live post-admission pruning may run; 0 disables this extra gate.",
-    )
-    p.add_argument("--phase1-prune-maturity-threshold", type=float, default=0.5)
-    p.add_argument("--phase1-prune-snr-threshold", type=float, default=1.0)
-    p.add_argument(
-        "--phase1-prune-prefilter-policy",
-        choices=["off", "motif_risk_v1"],
-        default="off",
-        help="Pre-delete prune candidate prefilter. motif_risk_v1 blocks motifs with prior rollback rejections before remove-refit trials.",
-    )
-    p.add_argument(
-        "--phase1-prune-prefilter-json",
-        type=Path,
-        default=None,
-        help="JSON motif-risk profile produced by pipelines.static_adapt.prune_risk_dataset.",
-    )
-    p.add_argument("--phase1-prune-risk-threshold", type=float, default=0.0)
-    p.add_argument("--phase1-prune-prefilter-max-candidates", type=int, default=1)
     p.add_argument(
         "--phase2-shortlist-fraction",
         type=float,
@@ -2024,12 +1866,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         help="Optional Phase-2/3 confidence multiplier z_alpha. Defaults to --phase1-score-z-alpha when omitted.",
     )
     p.add_argument(
-        "--phase2-lambda-F",
-        type=float,
-        default=None,
-        help="Optional Phase-2 cheap-ratio metric scale lambda_F. Defaults to --phase1-lambda-F when omitted.",
-    )
-    p.add_argument(
         "--phase2-curvature-policy",
         choices=list(PHASE2_CURVATURE_POLICY_CHOICES),
         default=PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
@@ -2042,11 +1878,8 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument(
         "--phase2-cheap-curvature-proxy-policy",
         choices=list(PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES),
-        default=PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
-        help=(
-            "Whether the historical g^2/(2 lambda_F F) Phase-II cheap proxy "
-            "is available. SR-SNAKE v4 resolves this policy to off."
-        ),
+        default=PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
+        help="Phase-II cheap curvature proxies are disabled.",
     )
     p.add_argument("--phase2-depth-ref", type=float, default=1.0)
     p.add_argument("--phase2-group-ref", type=float, default=1.0)
@@ -4128,12 +3961,11 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "adapt_gradient_parity_check": bool(args.adapt_gradient_parity_check),
         "adapt_parallel_gradient_workers": int(args.adapt_parallel_gradient_workers),
         "exact_gs_override": float(exact_gs_override),
-        "phase1_lambda_F": float(args.phase1_lambda_F),
         "phase1_energy_model": str(
             getattr(
                 args,
                 "phase1_energy_model",
-                PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
+                PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
             )
         ),
         "phase1_lambda_compile": float(args.phase1_lambda_compile),
@@ -4169,58 +4001,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase1_probe_max_positions": int(args.phase1_probe_max_positions),
         "phase1_plateau_patience": int(args.phase1_plateau_patience),
         "phase1_trough_margin_ratio": float(args.phase1_trough_margin_ratio),
-        "phase1_prune_enabled": bool(args.phase1_prune_enabled),
-        "phase1_prune_policy": str(args.phase1_prune_policy),
-        "phase1_prune_mode": str(args.phase1_prune_mode),
-        "phase1_prune_fraction": float(args.phase1_prune_fraction),
-        "phase1_prune_min_candidates": int(args.phase1_prune_min_candidates),
-        "phase1_prune_max_candidates": int(args.phase1_prune_max_candidates),
-        "phase1_prune_max_regression": float(args.phase1_prune_max_regression),
-        "phase1_prune_tolerance_mode": str(args.phase1_prune_tolerance_mode),
-        "phase1_prune_tolerance_shot_coeff": float(args.phase1_prune_tolerance_shot_coeff),
-        "phase1_prune_tolerance_screen_coeff": float(args.phase1_prune_tolerance_screen_coeff),
-        "phase1_prune_tolerance_chem": float(args.phase1_prune_tolerance_chem),
-        "phase1_prune_tolerance_rel_coeff": float(args.phase1_prune_tolerance_rel_coeff),
-        "phase1_prune_tolerance_target_energy": (
-            None if args.phase1_prune_tolerance_target_energy is None else float(args.phase1_prune_tolerance_target_energy)
-        ),
-        "phase1_prune_retained_gain_ratio": float(args.phase1_prune_retained_gain_ratio),
-        "phase1_prune_protect_steps": int(args.phase1_prune_protect_steps),
-        "phase1_prune_cooldown_steps": int(args.phase1_prune_cooldown_steps),
-        "phase1_prune_local_window_size": int(args.phase1_prune_local_window_size),
-        "phase1_prune_recovery_trust_radius": float(
-            args.phase1_prune_recovery_trust_radius
-        ),
-        "phase1_prune_schur_nomination_route": str(
-            args.phase1_prune_schur_nomination_route
-        ),
-        "phase1_prune_metric_schur_mu": float(args.phase1_prune_metric_schur_mu),
-        "phase1_prune_metric_schur_solve_mode": str(
-            args.phase1_prune_metric_schur_solve_mode
-        ),
-        "phase1_prune_metric_schur_cost_weighting": str(
-            args.phase1_prune_metric_schur_cost_weighting
-        ),
-        "phase1_prune_trust_update_policy": str(
-            args.phase1_prune_trust_update_policy
-        ),
-        "phase1_prune_metric_mu_update_policy": str(
-            args.phase1_prune_metric_mu_update_policy
-        ),
-        "phase1_prune_endpoint_overlap_policy": str(
-            args.phase1_prune_endpoint_overlap_policy
-        ),
-        "phase1_prune_old_fraction": float(args.phase1_prune_old_fraction),
-        "phase1_prune_checkpoint_period": int(args.phase1_prune_checkpoint_period),
-        "phase1_prune_live_min_depth": int(args.phase1_prune_live_min_depth),
-        "phase1_prune_maturity_threshold": float(args.phase1_prune_maturity_threshold),
-        "phase1_prune_snr_threshold": float(args.phase1_prune_snr_threshold),
-        "phase1_prune_prefilter_policy": str(args.phase1_prune_prefilter_policy),
-        "phase1_prune_prefilter_json": (
-            None if args.phase1_prune_prefilter_json is None else Path(args.phase1_prune_prefilter_json)
-        ),
-        "phase1_prune_risk_threshold": float(args.phase1_prune_risk_threshold),
-        "phase1_prune_prefilter_max_candidates": int(args.phase1_prune_prefilter_max_candidates),
         "phase2_shortlist_fraction": float(args.phase2_shortlist_fraction),
         "phase2_shortlist_size": int(args.phase2_shortlist_size),
         "phase3_shortlist_size": (
@@ -4247,9 +4027,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase2_score_z_alpha": float(args.phase2_score_z_alpha)
                 if args.phase2_score_z_alpha is not None
                 else None,
-        "phase2_lambda_F": float(args.phase2_lambda_F)
-                if args.phase2_lambda_F is not None
-                else None,
         "phase2_curvature_policy": str(
             getattr(
                 args,
@@ -4261,7 +4038,7 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
             getattr(
                 args,
                 "phase2_cheap_curvature_proxy_policy",
-                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
             )
         ),
         "phase2_depth_ref": float(args.phase2_depth_ref),

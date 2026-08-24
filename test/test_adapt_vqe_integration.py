@@ -65,6 +65,7 @@ from pipelines.static_adapt.hardware_resolution_profiles import (
     HARDWARE_RESOLUTION_PROFILE_MANIFEST_SCHEMA,
     HARDWARE_RESOLUTION_PROFILE_UNITS,
 )
+from pipelines.static_adapt.extensions import PRUNING_RUNTIME_KEYS
 
 _run_hardcoded_adapt_vqe = _adapt_mod._run_hardcoded_adapt_vqe
 _build_uccsd_pool = _adapt_mod._build_uccsd_pool
@@ -2012,37 +2013,15 @@ class TestAdaptCLIParsing:
         assert str(args.phase2_batch_selection_mode) == mode
         assert float(args.adapt_beam_lambda) == pytest.approx(0.125)
 
-    def test_parse_defaults_phase1_prune_surface_to_current_values(self, monkeypatch: pytest.MonkeyPatch):
+    def test_parse_defaults_omit_pruning_extension_surface(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
         monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
         args = _adapt_mod.parse_args()
-        assert str(args.phase1_prune_policy) == "recoverability_ladder_v1"
-        assert str(args.phase1_prune_mode) == "live"
-        assert int(args.phase1_prune_min_candidates) == 1
-        assert float(args.phase1_prune_retained_gain_ratio) == pytest.approx(0.5)
-        assert str(args.phase1_prune_tolerance_mode) == "auto"
-        assert float(args.phase1_prune_tolerance_shot_coeff) == pytest.approx(0.0)
-        assert float(args.phase1_prune_tolerance_screen_coeff) == pytest.approx(0.01)
-        assert float(args.phase1_prune_tolerance_chem) == pytest.approx(0.0)
-        assert float(args.phase1_prune_tolerance_rel_coeff) == pytest.approx(0.0)
-        assert args.phase1_prune_tolerance_target_energy is None
-        assert int(args.phase1_prune_protect_steps) == 2
-        assert not hasattr(args, "phase1_prune_stale_age")
-        assert not hasattr(args, "phase1_prune_stagnation_threshold")
-        assert not hasattr(args, "phase1_prune_small_theta_abs")
-        assert not hasattr(args, "phase1_prune_small_theta_relative")
-        assert int(args.phase1_prune_cooldown_steps) == 2
-        assert int(args.phase1_prune_local_window_size) == 4
-        assert float(args.phase1_prune_old_fraction) == pytest.approx(0.25)
-        assert int(args.phase1_prune_checkpoint_period) == 3
-        assert int(args.phase1_prune_live_min_depth) == 0
-        assert float(args.phase1_prune_maturity_threshold) == pytest.approx(0.5)
-        assert float(args.phase1_prune_snr_threshold) == pytest.approx(1.0)
-        assert not hasattr(args, "phase1_prune_amplitude_witness_required")
-        assert not hasattr(args, "phase1_prune_collapse_peak_abs_min")
-        assert not hasattr(args, "phase1_prune_collapse_current_abs_max")
-        assert not hasattr(args, "phase1_prune_collapse_ratio")
-        assert not hasattr(args, "phase1_prune_collapse_min_abs_drop")
-        assert not hasattr(args, "phase1_prune_collapse_min_observations")
+        assert all(
+            not hasattr(args, name) for name in PRUNING_RUNTIME_KEYS
+        )
         assert args.phase1_maturity_cap_min is None
         assert args.phase1_maturity_cap_max is None
         assert args.phase2_maturity_cap_min is None
@@ -2065,7 +2044,10 @@ class TestAdaptCLIParsing:
         assert float(args.physical_phase1_lane_quota_pressure) == pytest.approx(0.70)
         assert float(args.physical_phase2_lane_quota_pressure) == pytest.approx(0.70)
 
-    def test_parse_accepts_custom_phase1_prune_surface(self, monkeypatch: pytest.MonkeyPatch):
+    def test_parse_rejects_retired_pruning_extension_flags(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
         monkeypatch.setattr(
             sys,
             "argv",
@@ -2073,105 +2055,10 @@ class TestAdaptCLIParsing:
                 "adapt_pipeline.py",
                 "--phase1-prune-policy",
                 "recoverability_ladder_v1",
-                "--phase1-prune-mode",
-                "both",
-                "--phase1-prune-min-candidates",
-                "3",
-                "--phase1-prune-retained-gain-ratio",
-                "0.2",
-                "--phase1-prune-tolerance-mode",
-                "adaptive_v1",
-                "--phase1-prune-tolerance-shot-coeff",
-                "0.3",
-                "--phase1-prune-tolerance-screen-coeff",
-                "0.02",
-                "--phase1-prune-tolerance-chem",
-                "1e-7",
-                "--phase1-prune-tolerance-rel-coeff",
-                "0.04",
-                "--phase1-prune-tolerance-target-energy",
-                "-1.23",
-                "--phase1-prune-protect-steps",
-                "4",
-                "--phase1-prune-cooldown-steps",
-                "6",
-                "--phase1-prune-local-window-size",
-                "11",
-                "--phase1-prune-old-fraction",
-                "0.4",
-                "--phase1-prune-checkpoint-period",
-                "9",
-                "--phase1-prune-live-min-depth",
-                "17",
-                "--phase1-prune-maturity-threshold",
-                "0.3",
-                "--phase1-prune-snr-threshold",
-                "1.7",
-                "--phase1-maturity-cap-min",
-                "9",
-                "--phase1-maturity-cap-max",
-                "21",
-                "--phase2-maturity-cap-min",
-                "7",
-                "--phase2-maturity-cap-max",
-                "17",
-                "--phase3-maturity-cap-min",
-                "3",
-                "--phase3-maturity-cap-max",
-                "11",
-                "--phase-maturity-shot-min",
-                "2",
-                "--phase-maturity-shot-max",
-                "5",
-                "--phase1-maturity-shot-cap",
-                "2",
-                "--phase2-maturity-shot-cap",
-                "4",
-                "--phase3-maturity-shot-cap",
-                "5",
             ],
         )
-        args = _adapt_mod.parse_args()
-        assert str(args.phase1_prune_policy) == "recoverability_ladder_v1"
-        assert str(args.phase1_prune_mode) == "both"
-        assert int(args.phase1_prune_min_candidates) == 3
-        assert float(args.phase1_prune_retained_gain_ratio) == pytest.approx(0.2)
-        assert str(args.phase1_prune_tolerance_mode) == "adaptive_v1"
-        assert float(args.phase1_prune_tolerance_shot_coeff) == pytest.approx(0.3)
-        assert float(args.phase1_prune_tolerance_screen_coeff) == pytest.approx(0.02)
-        assert float(args.phase1_prune_tolerance_chem) == pytest.approx(1e-7)
-        assert float(args.phase1_prune_tolerance_rel_coeff) == pytest.approx(0.04)
-        assert float(args.phase1_prune_tolerance_target_energy) == pytest.approx(-1.23)
-        assert int(args.phase1_prune_protect_steps) == 4
-        assert int(args.phase1_prune_cooldown_steps) == 6
-        assert int(args.phase1_prune_local_window_size) == 11
-        assert float(args.phase1_prune_old_fraction) == pytest.approx(0.4)
-        assert int(args.phase1_prune_checkpoint_period) == 9
-        assert int(args.phase1_prune_live_min_depth) == 17
-        assert float(args.phase1_prune_maturity_threshold) == pytest.approx(0.3)
-        assert float(args.phase1_prune_snr_threshold) == pytest.approx(1.7)
-        assert not hasattr(args, "phase1_prune_stale_age")
-        assert not hasattr(args, "phase1_prune_stagnation_threshold")
-        assert not hasattr(args, "phase1_prune_small_theta_abs")
-        assert not hasattr(args, "phase1_prune_small_theta_relative")
-        assert not hasattr(args, "phase1_prune_amplitude_witness_required")
-        assert not hasattr(args, "phase1_prune_collapse_peak_abs_min")
-        assert not hasattr(args, "phase1_prune_collapse_current_abs_max")
-        assert not hasattr(args, "phase1_prune_collapse_ratio")
-        assert not hasattr(args, "phase1_prune_collapse_min_abs_drop")
-        assert not hasattr(args, "phase1_prune_collapse_min_observations")
-        assert int(args.phase1_maturity_cap_min) == 9
-        assert int(args.phase1_maturity_cap_max) == 21
-        assert int(args.phase2_maturity_cap_min) == 7
-        assert int(args.phase2_maturity_cap_max) == 17
-        assert int(args.phase3_maturity_cap_min) == 3
-        assert int(args.phase3_maturity_cap_max) == 11
-        assert int(args.phase_maturity_shot_min) == 2
-        assert int(args.phase_maturity_shot_max) == 5
-        assert int(args.phase1_maturity_shot_cap) == 2
-        assert int(args.phase2_maturity_shot_cap) == 4
-        assert int(args.phase3_maturity_shot_cap) == 5
-        assert not hasattr(args, "phase_live_hysteresis_enabled")
+        with pytest.raises(SystemExit, match="2"):
+            _adapt_mod.parse_args()
 
     def test_parse_rejects_archival_phase3_runtime_split_mode(
         self,
@@ -4796,8 +4683,7 @@ class TestHHPhase1Continuation:
             g_abs=0.0,
             g_lcb=0.0,
             sigma_hat=0.0,
-            F_metric=1.0,
-            metric_proxy=1.0,
+            F=1.0,
             novelty=1.0,
             curvature_mode="test",
             novelty_mode="test",
@@ -5850,8 +5736,7 @@ class TestHHPhase3Continuation:
             assert "remaining_evaluations_proxy" in row
             assert "cheap_score" in row
             assert row["cheap_score_version"] == "simple_v1"
-            assert "cheap_metric_proxy" in row
-            assert "metric_proxy" in row
+            assert "F" in row
             assert "cheap_benefit_proxy" in row
             assert "cheap_burden_total" in row
             assert "sigma_hat" in row
@@ -5877,7 +5762,7 @@ class TestHHPhase3Continuation:
             assert set(prune["cooldown_blocked_indices"]).isdisjoint(set(prune["mature_eligible_indices"]))
             assert len(prune["gate_rows"]) == len(prune["metadata"])
             assert row["sigma_hat"] == pytest.approx(0.0)
-            assert row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+            assert math.isfinite(float(row["F"]))
         assert continuation["phase2_shortlist_rows"]
         assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
         assert all(
@@ -5889,7 +5774,7 @@ class TestHHPhase3Continuation:
             for row in continuation["phase2_shortlist_rows"]
         )
         assert all(
-            row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+            math.isfinite(float(row["F"]))
             for row in continuation["phase2_shortlist_rows"]
         )
 
@@ -5909,9 +5794,9 @@ class TestHHPhase3Continuation:
             if score_key == "simple_score":
                 for rec in records:
                     feat = rec.get("feature")
-                    if feat is not None and hasattr(feat, "cheap_metric_proxy") and hasattr(feat, "g_abs"):
+                    if feat is not None and hasattr(feat, "F") and hasattr(feat, "g_abs"):
                         captured_phase1_metrics.append(
-                            (float(feat.cheap_metric_proxy), float(feat.g_abs))
+                            (float(feat.F), float(feat.g_abs))
                         )
             return original_shortlist_records(
                 records,
@@ -7892,38 +7777,6 @@ class TestHHPhase3Continuation:
                 adapt_continuation_mode="phase3_v1",
                 phase3_backend_cost_mode=str(backend_cost_mode),
                 phase3_backend_w_depth=math.nan,
-            )
-
-    def test_phase3_requires_positive_lambda_f_for_ratio_cheap_score(self):
-        with pytest.raises(ValueError, match="phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0"):
-            _run_hardcoded_adapt_vqe(
-                h_poly=self._hh_h(),
-                num_sites=2,
-                ordering="blocked",
-                problem="hh",
-                adapt_pool="paop_lf_std",
-                t=1.0,
-                u=2.0,
-                dv=0.0,
-                boundary="periodic",
-                omega0=1.0,
-                g_ep=0.5,
-                n_ph_max=1,
-                boson_encoding="binary",
-                max_depth=2,
-                eps_grad=1e-3,
-                eps_energy=1e-8,
-                maxiter=20,
-                seed=7,
-                allow_repeats=True,
-                finite_angle_fallback=False,
-                finite_angle=0.1,
-                finite_angle_min_improvement=1e-12,
-                adapt_reopt_policy="windowed",
-                adapt_window_size=1,
-                adapt_window_topk=0,
-                adapt_continuation_mode="phase3_v1",
-                phase1_lambda_F=0.0,
             )
 
     def test_phase3_backend_cost_mode_emits_backend_compile_summary(self, monkeypatch: pytest.MonkeyPatch):
