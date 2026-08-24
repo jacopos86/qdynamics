@@ -1259,6 +1259,47 @@ So under Q24's structure, canonical batch is `argmax dE_3(B)/K_3(B)` over
 cap-bounded subsets with an existing joint solve. The additivity tolerance and
 the five-weight compatibility penalty are both outside the manuscript.
 
+## 6v. The published batching route does not use the extra gates
+
+Question: were `batch_additivity_tol` and the five-weight compatibility penalty
+the route that produced Paper I's batching result? **No.**
+
+**The arm.** `Paper_I_author_revision.tex:1406` records the source label:
+
+```
+l3_batching_h15   CombinatorialBatchAdmission, maximum_size=3, search_window_size=6
+```
+
+matching the text at `:1499`, "batch admission enumerates subsets of at most
+three", and `maximum_size=3` = the batch-size cap bounding `B_k`,
+`search_window_size=6` = the score-ordered window `W_k`.
+
+**The route.**
+
+```
+CombinatorialBatchAdmission            sr_snake/contracts.py:175
+  -> run_combinatorial_batch_proposals adapt_pipeline.py:68311-68324
+       "Enumerate generator-distinct subsets of one fixed ranked prefix."
+  -> _run_batch_proposals              adapt_pipeline.py:68062-68294 (233 lines)
+```
+
+`_run_batch_proposals` contains **none** of `additivity_defect`,
+`batch_additivity_tol`, `compatibility_penalty`, or `compat_*`. Neither does any
+module under `sr_snake/`.
+
+Its docstring restates the manuscript's definition — generator-distinct subsets
+of a score-ordered prefix — which is exactly `B_k(W_k)`.
+
+**Conclusion.** The additivity tolerance
+(`hh_continuation_scoring.py:7302, 7309`) and the five-weight compatibility
+penalty (`:6935-7002`) sit on a different Phase-II batch path that the published
+`l3_batching_h15` result never crossed. They are not the manuscript's criterion
+and were not the route used for the published evidence.
+
+Under Q24 they belong to the legacy `batch_mode`, default off, reached only by
+opting in twice — and their five weights come from the conditional policy
+interview (Q25) rather than from defaults.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
