@@ -801,6 +801,52 @@ most of the 26 fields and the call-contract threading with them.
 
 ---
 
+### 2026-08-24 — Claude — scoped GitNexus index: useful for inventory, unsafe for reachability
+
+Built a second index scoped to the Paper-I lane, including the mega file:
+
+```bash
+cd pipelines/static_adapt
+GITNEXUS_MAX_FILE_SIZE=8192 node ../../.gitnexus/run.cjs analyze pipelines/static_adapt \
+  --skip-git --skip-agents-md --skip-skills --force
+# 26.7s, peak 1812 MB, 122 MB index
+# 13,097 nodes | 20,971 edges | 358 clusters
+```
+
+Notes:
+
+- `pipelines/static_adapt` is not itself a git repo, so `--skip-git` is
+  required. **Consequence: no `detect_changes` on this index** — the root index
+  keeps commit tracking but is stale at `ade04b3`.
+- `adapt_pipeline.py` is 3.3 MB and is skipped by the default 512 KB cap. With
+  the cap raised it contributes ~1,890 nodes and ~3,483 edges, so the mega
+  function does decompose into symbols rather than collapsing to one node.
+- All three indexes are named `Holstein_test`, so every CLI call needs
+  `--repo <absolute path>`.
+- `--skip-agents-md --skip-skills` matter here: `AGENTS.md` and `CLAUDE.md` have
+  uncommitted edits in the working tree.
+
+**Do not trust its reachability verdicts.** `impact _run_hardcoded_adapt_vqe
+--direction upstream` returns `impactedCount: 0, risk: LOW` for a 41,210-line
+function. Source shows real callers:
+
+| caller | note |
+|---|---|
+| `sr_snake/_context.py:885` | `adapt_pipeline._run_hardcoded_adapt_vqe(**executor_kwargs)` — the typed path's real invocation, **inside the indexed subtree** |
+| `exact_bench/hh_static_ground_state_benchmark.py:975` | second product caller, outside the subtree |
+| `test/test_static_adapt_full_reopt_duplicate_guard.py`, `test/test_paper_i_hh_route_a_repair.py` | tests |
+
+The in-subtree miss is a module-attribute call through a **function-local
+deferred import**. Static call graphs do not follow that, and this codebase uses
+the pattern heavily.
+
+**This is the third wrong index verdict in this effort**, after the three live
+cost symbols marked dead through closures and `route_identity` credited with 34
+collection errors it does not cause. Use the index for inventory, clustering and
+navigation. Ratify every reachability or deletion claim against source.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
