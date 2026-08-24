@@ -615,6 +615,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q14 | Delete the Phase-0 cost path? | **Yes, delete.** Verified a numerical no-op first: `phase0_K0` is 1.0 in all 30 recorded instances. | 2026-08-24 |
 | Q15 | Should Claude move to its own worktree? | Author: not a technical call. **Claude decided yes** — `claude/paper-i-20260824`. Measurements from the shared checkout were contaminated by another agent's uncommitted files. | 2026-08-24 |
 | Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
+| Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
 
 ### Standing rules from the author
 
@@ -631,7 +632,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 
 | # | question | why it matters |
 |---|---|---|
-| Q16 | Paper I line 442 defines Phase III as isolating the candidate contribution "by subtracting the corresponding active-only response" — the marginal gain. All 13 Bundle-9 cells ran `full_joint_trust_gain_legacy_v1` with the active-only baseline never computed. **Is Bundle 9 therefore inconsistent with the published method, rather than one side of an open choice?** | If yes, "try both" (Q3) is not a policy comparison but a reproduction of the paper against a legacy path, and Bundle 9's numbers do not implement the published Phase III. Bears on the contract's pre-lock authority item. |
+| Q18 | Q16 makes marginal vs non-marginal an **option**. Paper I currently states it as the definition — line 442 defines Phase III as isolating the candidate contribution "by subtracting the corresponding active-only response", with no alternative offered. **Does the manuscript text need to change to present it as a selectable policy?** | Not a re-litigation of Q16. If both are legitimate options but the paper defines only one, then evidence produced under the other cannot be described as implementing the stated Phase III. Affects Gate 5 manuscript synchronization. |
 
 ---
 
