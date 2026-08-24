@@ -1457,6 +1457,31 @@ constants and the Phase-0 cost deletion (Q14), the cost surface reduces to:
 - one shared normalization (`_hardware_cost_denominator_payload`, already exists)
 - the proxy weight set, once rather than per phase
 
+## 6ab. Per-phase parameter duplication — 60 into 28, but not all of it
+
+**28 parameter stems repeat across phases; 60 parameters carry them.** Collapsing
+every one would remove 32 — but some per-phase splits are the method, not
+duplication.
+
+**The method (keep per-phase):**
+
+| stem | why |
+|---|---|
+| `shortlist_size` | the funnel narrows: `macro_phase1_cap` -> `macro_phase2_cap` -> `child_phase3_cap` (`adapt_pipeline.py:15559-15562`). Distinct caps per phase are what staged screening *is*. |
+
+**Duplication (collapse):**
+
+| stem | why |
+|---|---|
+| `lambda_F`, `lambda_2q`, `lambda_d`, `lambda_1q`, `lambda_theta`, `lambda_shot` | Paper I's COST block states one weight set for the run: `(w_2q, w_D2q, w_D) = (0.30, 0.30, 0.25)`. Not per-phase. |
+| the 7 `compile_*` / `*_cost_scale` pairs | already collapsed by Q33 |
+| `backend_transpile_seed` | run-level by Q34 |
+| `maturity_cap_min` / `_max` / `maturity_shot_cap` | disposition not yet determined |
+
+**Test to apply per stem:** does Paper I specify a *different* value at each
+phase, or one value for the run? The funnel caps differ by construction; the cost
+weights do not.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1528,6 +1553,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q31 | The preferred-fakes chain on the compile path | **Delete it.** `FakeMarrakesh` is the single compile target, as Paper I's COST block states. No chain, no `allow_preferred_fallback`. An unavailable backend stops the run rather than compiling to a device the manuscript does not name. | 2026-08-24 |
 | Q32 | `BackendCompileConfig.mode` defaults to `"proxy"` | **Invert it.** Qiskit compiled cost is the default; the proxy is used only when explicitly requested. Paper I's headline axis is the compiled resource tuple, so the default must produce it. The proxy stays as a peer implementation behind the one `CostTerm` interface, never as a substitute (rule 7). | 2026-08-24 |
 | Q33 | Is cost source per-phase or run-level? | **Single run-level choice.** It used to be per-phase; simplify to one selection applying across Phases I-III. With Phase-0 cost deleted (Q14), there is no phase that differs. | 2026-08-24 |
+| Q34 | `phase3_backend_transpile_seed` — per-phase or run-level? | **Run-level.** The seed joins the compilation contract with the target and optimization level, as Paper I's COST block fixes `seed_transpiler = 7` for the run. No phase may compile against a different seed. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
