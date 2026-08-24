@@ -629,6 +629,56 @@ def evaluate(record, state, response, cost_term, order, stats) -> Scored:
 needs a block that no existing symbol returns, stop and report the gap rather
 than assembling one — an assembled Hessian block would change the numbers.
 
+## 6h. The value half is located — 6g's gap is closed
+
+Found by Codex, 2026-08-24. `build_formal_admission_curvature_receipt`
+(`selector_query_closure.py:2458`) returns `FormalAdmissionCurvatureReceipt`
+(`:2207`), which carries **actual arrays**:
+
+```
+G_AA, G_AB, G_BB          Fubini-Study metric partition
+H_AA, H_AB, H_BB          energy Hessian partition, Paper I Eq. hessian_block_def
+active / candidate gradients
+```
+
+That is the complete Paper-I partition, Hessian blocks included. 6g listed the
+Hessian partition as "NOT located"; it is located. **Codex must no longer treat
+that as a stop condition** — nothing needs assembling.
+
+Caveat recorded by Codex: it is shaped as a **Phase-III handoff**, not as a
+`restrict(support)` interface. `subset_geometry:795` is the restriction-shaped
+one but returns only `(G_AB, G_BB, b_B)`. So the two halves exist in different
+shapes and the work is reconciling them, not building either.
+
+## 6i. RULE: every increment states a net-line target
+
+Prompted by the author's observation on the `ResponseAccounting` extraction:
+*"all it did was change and actually added more code than what we had before."*
+
+Measured, and correct: `adapt_pipeline.py` -465, `response_accounting.py` +505,
+**net +40**. The extraction was verified safe (ledger SHA256 identical, 18
+occurrences, 13 unique primitives, error diff empty) but condensed nothing.
+
+**Moving code between files cannot reduce total lines.** It reduces one file. The
+goal is condensation, so:
+
+> Every increment from here declares a **net lines removed** target in its
+> claim row, and reports the measured net in its execution-log entry. An
+> increment with a target of zero must say why it is worth doing anyway —
+> "it unblocks X" is a valid reason, "it is cleaner" is not.
+
+Extraction increments are permitted only as a *prerequisite* to a named deletion
+increment that follows them.
+
+### Deletion targets now available, sized
+
+| target | size | status |
+|---|---|---|
+| Phase-0 cost path | **124** references in `adapt_pipeline.py` | approved (Q14, Q17), verified numerical no-op |
+| 348-name reflective filter and its parameter surface | **~326** parameter lines + 15 filter lines | blocked on the typed payload replacing it |
+| 26 geometry scalar summaries on `CandidateFeatures` | 26 fields x construction + read sites, in a 249-field dataclass | unblocked by 6h — the arrays now have a located source |
+| `del q_window, Q_window` dead threading | signature + call sites | unblocked by 6h |
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
