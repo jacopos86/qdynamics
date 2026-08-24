@@ -1164,7 +1164,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
-| Q20 — unify `metric_proxy` / `F_metric` and delete the `abs(gradient)` substitution | Codex | 2026-08-24 | in progress; target at least 15 net lines removed, with the 35-reference proxy cluster removed only if reachability proves it dead |
+| Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | in progress; target at least 60 net lines removed; Q22 explicitly authorizes retiring conventional-v3.1 compatibility behavior |
 | _(add yours)_ | | | |
 
 ---
