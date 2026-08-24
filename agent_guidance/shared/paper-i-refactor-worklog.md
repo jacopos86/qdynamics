@@ -1333,7 +1333,7 @@ Applies to the Phase-II batch path (`_compatibility_penalty_components`,
 and configurable in `hardcoded/hh_staged_noise_workflow.py`. It sits on the
 **noise-oracle execution** path, not the compile path.
 
-**2. The preferred-fakes chain — not yet dispositioned.**
+**2. The preferred-fakes chain — DELETE (Q31).**
 `hh_backend_compile_oracle.py`:
 
 ```python
@@ -1380,6 +1380,25 @@ and it keeps the concept alive in every payload and schema that carries it.
 **Caveat.** "Fallback" in a name does not prove a fallback. Some of the 222 are
 legitimate — a *nominated* alternative that is then tested, rather than a silent
 substitution. Ratify each against source, as with everything else here.
+
+
+### What deleting the chain also removes (Q31)
+
+With a single fixed target, the backend-selection machinery around it loses its
+subject:
+
+| symbol | why it goes |
+|---|---|
+| `_DEFAULT_PREFERRED_FAKES` (`:34`) | a three-element chain becomes one constant |
+| `allow_preferred_fallback` | nothing to fall back to |
+| `requested_backend_shortlist` | no shortlist to reduce |
+| `shortlist_reduction_mode="best_backend_in_shortlist_v1"` | selects among a shortlist of one |
+| `except Exception: pass` (`:350`) | a swallowed backend-load failure must now stop the run |
+
+`requested_backend_name` stays — it names the target, and Paper I's COST block
+fixes it to `FakeMarrakesh` alongside `optimization_level=1` and
+`seed_transpiler=7`. Those three are the compilation contract and are the thing
+that makes `N_2q`, `D_2q`, `D_c` reproducible.
 
 ## 7. No fallbacks
 
@@ -1449,6 +1468,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q28 | Keep superseded paths as off-by-default options, or remove them? | **Preference is deletion**, or failing that a **true extrication** so the path cannot be reached from the working part at all. An off-by-default flag is not sufficient — it leaves the code reachable and re-enableable. Refines Q24. | 2026-08-24 |
 | Q29 | Delete fallback-*reporting* fields along with the fallbacks? | **Yes.** No receipt field should exist for an event rule 7 says cannot happen. An always-`False` flag is not evidence that nothing went wrong — it is a field describing an impossible event. Fallback, and the field recording it, go together. | 2026-08-24 |
 | Q30 | `allow_aer_fallback` | **Delete it.** "We have FakeMarrakesh backend we compile to; why would we need some fallback?" An unavailable backend stops the run. | 2026-08-24 |
+| Q31 | The preferred-fakes chain on the compile path | **Delete it.** `FakeMarrakesh` is the single compile target, as Paper I's COST block states. No chain, no `allow_preferred_fallback`. An unavailable backend stops the run rather than compiling to a device the manuscript does not name. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
