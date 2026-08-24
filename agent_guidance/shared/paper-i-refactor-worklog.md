@@ -333,6 +333,7 @@ not a proxy number.
 |---|---|---|---|
 | Increment 0 — golden data rescue | Claude | 2026-08-24 | done, `5e6fcb17` on `golden-rescue-20260824` |
 | Full-suite failure census | Claude | 2026-08-24 | in progress |
+| Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | in progress; source ratification and before/after collection diff required |
 | _(add yours)_ | | | |
 
 ---
