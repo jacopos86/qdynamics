@@ -275,6 +275,88 @@ It also removes the dead threading: `phase2_raw_geometry_score` currently takes
 the Gram in its signature purely because the same geometry is reused elsewhere.
 With one Gram there is nothing to thread.
 
+## 6c. `evaluate()` and the Gram accessor — the implementable signature
+
+Written against the real call sites, 2026-08-24. This is what Codex implements.
+
+```python
+# ---------- one Gram, read by restriction ----------
+
+@dataclass(frozen=True)
+class EstimatorCharge:
+    requested: int                 # |pairs(restriction)|
+    charged:   int                 # pairs not already in the ledger
+    keys:      tuple[str, ...]     # EstimatorCallKey digests, for the receipt
+
+class Geometry(Protocol):
+    """One Fubini-Study Gram at one accepted state. Phases read submatrices."""
+    def restrict(self, support: Sequence[int]) -> np.ndarray: ...
+    def charge(self, support: Sequence[int]) -> EstimatorCharge: ...
+
+# ---------- one cost term, two implementations ----------
+
+@dataclass(frozen=True)
+class Cost:
+    n_2q: int
+    d_2q: int
+    d_c:  int
+    source: str          # "qiskit" | "proxy" -- recorded, NEVER substituted
+
+class CostTerm(Protocol):
+    def __call__(self, record: Record, state: State) -> Cost: ...
+
+def normalized(cost: Cost, stats: Stats) -> float:
+    """Shared normalization, identical for both sources. Returns the full 1+K."""
+
+# ---------- the one scorer ----------
+
+def evaluate(record, state, geometry, cost_term, order, stats) -> Scored:
+    support = _support(order, state, record)
+    G       = geometry.restrict(support)
+    charge  = geometry.charge(support)
+    dE      = _descent(order, record, state, G)
+    K       = normalized(cost_term(record, state), stats)
+    return Scored(record=record, value=dE / K, charge=charge, admitted=False)
+```
+
+`_support` is the whole phase table:
+
+| order | support | meaning |
+|---|---|---|
+| 0 | `()` | no Gram; gradient pilot only |
+| 1 | `(c,)` | the diagonal entry `G[c,c]` |
+| 2 | `W + (c,)` | geometry window block |
+| 3 | `R + (c,)` | retained/refit support block |
+
+`_descent` is the existing phase formula at that order, and nothing more:
+
+| order | today |
+|---|---|
+| 0 | `phase0_raw_gradient_pilot_components:3004` |
+| 1 | `phase1_trust_region_gain:2614` — `trust_region_drop(g, lambda_F*F, F, rho)`, `F = G[c,c]` |
+| 2 | `phase2_raw_geometry_score:3168` — adds measured curvature from the window block |
+| 3 | `phase3_canonical_score_components:3831` — `DeltaE_TR / (1 + K3)` |
+
+### What already exists and must be reused, not rewritten
+
+| target | existing |
+|---|---|
+| `normalized()` | `_hardware_cost_denominator_payload:550` already returns the full `1 + K3`; `_hardware_cost_normalization_mode:862` selects it, default `HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1` |
+| `Geometry.charge()` | `estimator_call_ledger.py` — `projective_state_fingerprint` + `canonical_symmetric_pair`, digested. One Gram entry = one primitive |
+| `Cost.source` | today's `backend_transpile_v1` / `proxy_logical_ladder_span_v1` |
+
+### Invariants
+
+1. `evaluate` takes no telemetry argument and returns no receipt. Receipts are
+   built outside, from a list of `Scored`.
+2. `cost_term` is chosen by the caller. **A failing `qiskit_cost` raises.** It
+   never returns a proxy number (rule 7).
+3. `geometry.charge()` is the only place estimator work is counted, and because
+   supports nest, reuse across phases is the ledger dedup rather than a policy.
+4. `_descent` may read only `G` and the record. If it needs a scalar summary not
+   derivable from `G`, that is a defect in the restriction, not a reason for a
+   new `CandidateFeatures` field.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
