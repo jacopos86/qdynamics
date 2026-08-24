@@ -784,7 +784,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
-| Delete the Phase-0 cost path | Codex | 2026-08-24 | in progress on `codex/paper-i-worklog-audit-20260824`; target: at least 80 net lines removed |
+| Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | _(add yours)_ | | | |
 
 ---
@@ -1859,3 +1859,71 @@ Other partial producers are
 `H_window_hessian`), and
 `exact_geometry_backend.py:CompiledExactManifoldAdapter._state_gradient_tangents`
 (a gradient and tangent arrays). None was changed in this increment.
+
+### 2026-08-24 — Phase-0 cost-path deletion — STOPPED
+
+**Goal:** delete the numerically inert Phase-0 cost denominator and its
+checkpoint fields under Q14/Q17, with at least 80 net lines removed, while
+preserving estimator receipt identity and resuming an existing Bundle-9
+checkpoint that still carries `phase0_K0`.
+
+**Coordination and clean baseline:** `paper-ii-exchange-selector` at
+`bfd62d8d` was fast-forward merged before the claim was appended. The clean
+baseline, including the claim-only commit, is
+`eeaa858e02a44022c30d75e4a529ab8122b9fc54`.
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# -> 5573 tests collected, 54 errors in 23.77s
+# -> peak RSS 368 MB
+```
+
+The uncommitted implementation draft removes 189 lines and adds 22, for 167
+net lines removed across 11 files. It deletes the nine Phase-0 cost fields
+from `CandidateFeatures`, removes cost estimation and normalization from the
+Phase-0 pilot, ranks directly by `DeltaE0_upper * N0`, and removes the retired
+cost source from route accounting. Threshold, record/operator caps, `alpha0`,
+and shortlist-unit metadata remain. No compatibility shim was added.
+
+**Receipt-identity lock:** before reaching the stop condition, the same
+cache-disabled completed Hubbard--Holstein run was repeated on the draft. Both
+runs stopped at `max_depth`, had ansatz depth 5, recorded 244 raw occurrences
+and 202 unique primitives, and retained ledger fingerprint
+`98f1aea9c0dc4dff91748b159da2b71ab1247cf614068972037dfdbcc509f839`.
+The canonical serialized ledgers were byte-identical:
+
+```bash
+shasum -a 256 ledger-before.json ledger-after.json
+# -> 6ac9108e809e7142797bf124f637247b81affef641cdf6c0f8504ad474875f40  (both)
+cmp -s ledger-before.json ledger-after.json
+# -> exit 0
+```
+
+Nine directly affected tests passed under the 8 GB RAM guard. Wider focused
+runs also exposed two pre-existing, unrelated failures: a missing molecular
+vibronic fixture and a stale semantic-route expected set. Neither surface was
+edited.
+
+**Stop condition:** the existing archive
+`b9mr__b_depth_append_ra__strong_weak_u8__nph3__9675590__2.tar.gz` contains a
+113,343,339-byte `current.json` with SHA-256
+`b8c330923f083bb0b3221bd289717174cd734968d13054a5578941522dce788f`
+and exactly 30 objects carrying `phase0_K0`. Its authenticated estimator-ledger
+and verified-singleton sidecars were staged beside it.
+
+`load_static_resume_source(current.json)` fails before strict replay or
+checkpoint extraction. The untouched resume validator rejects
+`settings.sr_route_profile_request` because the checkpoint stores
+`paper_i_ra__global_singleton__phase0_measured_residual__phase123_adaptive__qiskit_signed__forced_admission_k50__semantic_closure_v1__insertion-append_only__cost-explicit_depth_qiskit_cost_v1`,
+which is an RA algorithm identity rather than a recognized SR profile. The
+same loader source is byte-identical at the clean baseline, and neither
+`resume_scaffold.py` nor `sr_snake_route_profile.py` is in the draft diff.
+
+Per Q17's explicit stop rule, no override or compatibility shim was attempted.
+The after-collection run, ERROR-list diff, and implementation commit were not
+performed. Paper-I-scoped `detect-changes` was attempted, but this isolated
+worktree is not registered in the scoped index; it failed closed rather than
+using the repo-wide index. The 11-file draft remains uncommitted for author
+inspection.
