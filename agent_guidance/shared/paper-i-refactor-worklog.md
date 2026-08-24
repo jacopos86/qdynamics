@@ -269,6 +269,7 @@ not a proxy number.
 |---|---|---|---|
 | Increment 0 — golden data rescue | Claude | 2026-08-24 | done, `5e6fcb17` on `golden-rescue-20260824` |
 | Full-suite failure census | Claude | 2026-08-24 | in progress |
+| Worklog consistency and reproducibility audit | Codex | 2026-08-24 | done; documentation-only findings below |
 | _(add yours)_ | | | |
 
 ---
@@ -578,6 +579,139 @@ places, and each copy needs a check that it still agrees with the others.**
 Adding checks does not fix this, and deleting checks is unsafe because they are
 catching real drift. Collapsing the duplicate representations fixes it, and the
 checks then have nothing left to disagree about.
+
+### 2026-08-24 — Codex — worklog consistency and reproducibility audit
+
+This entry corrects the **Anchors**, **Evidence state**, F1, the
+`route_identity` correction row, and the worktree-count trap without rewriting
+their owners' text.
+
+#### Current integration state
+
+The active coordination branch advanced after the measurements above:
+`paper-ii-exchange-selector` is now at `c223b419`, which includes the
+golden-data rescue merged by `e0cb8175`. Commit `5e6fcb17` is an ancestor of
+that HEAD, and the tracked golden
+manifest passes. Therefore, the statement in **Evidence state** that the branch
+is not merged no longer applies. Keep `00a5f098` as the explicit measurement
+baseline for the 55-error census and F1–F4 unless a later entry remeasures them;
+do not treat it as the current integration HEAD.
+
+Reproduce:
+
+```bash
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  branch --show-current
+# -> paper-ii-exchange-selector
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  rev-parse --short HEAD
+# -> c223b419
+git -C /Users/jakestrobel/local_repos/Holstein_test_fullclone_3 \
+  merge-base --is-ancestor 5e6fcb17 HEAD
+# -> exit 0
+(cd agent_guidance/static-adapt/golden && \
+  shasum -a 256 -c MANIFEST.sha256)
+# -> ten entries report OK
+```
+
+#### F1 is an existing implementation seam, not yet a proved contract seam
+
+The implementation has two positional parameters, `problem` and `request`,
+plus the keyword-only `operational_controls`. The Paper-I lane contracts define
+the ordinary public interface exactly as `run_ra_adapt(problem, request=None)`;
+the behavioral contract's `run_profile(profile_id, problem_id, arm, horizon)`
+is explicitly conceptual. Read F1 as evidence that migration has a destination,
+not as proof that the current facade already satisfies profile selection,
+receipt completeness, or Gates 1–4. `operational_controls` must remain limited
+to the validated-protocol use described by its docstring.
+
+The same guard currently contains explicit exceptional admissions for HH
+`L=3`, a named pure-Hubbard application, and the H2O family even though its
+error text and the ordinary lane contract say the facade is locked to HH
+`L=2`. This is pre-existing admissibility/compatibility debt related to open
+decision 5, not permission to remove or generalize those paths during the seam
+migration.
+
+Reproduce:
+
+```bash
+python3 - <<'PY'
+import ast
+from pathlib import Path
+
+tree = ast.parse(Path("pipelines/static_adapt/ra_adapt/engine.py").read_text())
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef) and node.name == "run_ra_adapt":
+        args = node.args
+        print("positional", [arg.arg for arg in args.posonlyargs + args.args])
+        print("keyword_only", [arg.arg for arg in args.kwonlyargs])
+PY
+sed -n '5625,5675p' pipelines/static_adapt/ra_adapt/engine.py
+```
+
+#### Three measurement corrections
+
+- The test-baseline paragraph's ~16% figure is superseded by Claude's settled
+  census at `c223b419` and must not be quoted. The Claims row still says the
+  census is in progress; use the settled Live finding for its status and
+  isolation warning.
+- At `00a5f098`, **11** Markdown files mention `route_identity`, not two. The
+  load-bearing conclusion remains narrower and supported: no Python file under
+  the active `pipelines/`, `src/`, or `test/` surfaces imports the missing
+  `pipelines.static_adapt.route_identity` module. Archived/CHTC snapshots do
+  contain imports and are outside that conclusion. Documentation mentions must
+  not be used as an importer count.
+- Worktree counts are volatile. There were **16** registered worktrees during
+  this audit, not 13. Always run `git worktree list`; never use the recorded
+  count as a cleanup target. In addition, `output/` is ignored at
+  `.gitignore:49`, while `prompt-exports/*` is ignored at `.gitignore:37`.
+  `git check-ignore -v` is the durable check.
+
+Reproduce:
+
+```bash
+git grep -l route_identity 00a5f098 -- '*.md' | wc -l
+# -> 11
+git grep -l -E \
+  '^[[:space:]]*from[[:space:]]+(\.+|pipelines\.static_adapt\.)route_identity[[:space:]]+import|^[[:space:]]*import[[:space:]]+pipelines\.static_adapt\.route_identity' \
+  00a5f098 -- 'pipelines/**/*.py' 'src/**/*.py' 'test/**/*.py' | wc -l
+# -> 0
+git worktree list --porcelain | awk '$1 == "worktree" { count++ } END { print count }'
+# -> 16 at audit time; refresh rather than preserve this count
+git check-ignore -v output/example prompt-exports/example
+# -> .gitignore:49 and .gitignore:37, respectively
+```
+
+#### F3 needs a provenance boundary
+
+"Base + delta" may be an implementation strategy for materializing complete
+effective settings, but it is not a scientific inheritance claim. The
+behavioral contract defines H-L3, HH-B3, HH-B5, and HH-B9 as separate protected
+regression profiles and explicitly forbids treating Bundles 3, 5, and 9 as a
+one-factor ablation. Each resolved profile must therefore remain independently
+complete and receipt-identifiable; any shared base must be internal, with every
+effective difference explicit and no fallback to parser defaults.
+
+#### GitNexus scope — author directive, 2026-08-24
+
+GitNexus use for this refactor is Paper-I-local, not repository-wide. Limit
+queries and change analysis to `pipelines/static_adapt/`,
+`agent_guidance/static-adapt/`, named Paper-I tests, this worklog, and the ADR
+named in **Anchors**. Do not run a repository-wide re-index or use unrelated
+paper-lane symbols, test failures, or execution flows to justify a Paper-I
+change. If the current index cannot isolate that surface, ratify claims with
+path-limited source, AST, and Git commands until a dedicated Paper-I index is
+available.
+
+#### The recommended order is diagnostic, not executable yet
+
+Items 1–3 do not yet meet handoff-contract §3: they lack exact verification
+commands, expected results tied to the `00a5f098` baseline, and stop conditions.
+Do not claim an implementation increment from this list alone. First append a
+bounded increment containing those four elements and state whether Codex should
+continue autonomously or pause. The broken full-suite baseline makes targeted
+profile/adapter tests and change-specific failure deltas mandatory; a raw
+"tests pass" statement is not an acceptance result.
 
 ---
 
