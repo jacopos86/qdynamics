@@ -1400,6 +1400,27 @@ fixes it to `FakeMarrakesh` alongside `optimization_level=1` and
 `seed_transpiler=7`. Those three are the compilation contract and are the thing
 that makes `N_2q`, `D_2q`, `D_c` reproducible.
 
+## 6z. Cost default inversion (Q32)
+
+`BackendCompileConfig.mode` currently defaults to `"proxy"`
+(`hh_backend_compile_oracle.py:84`), so a run that does not ask produces the
+non-headline quantity.
+
+**This is a default change, not an evidence change.** Canonical runs already
+recorded `hardware_cost_source = "backend_transpile_v1"` and
+`compile_cost_source = "backend_transpile_v1"` (verified in a completed Bundle-9
+checkpoint), so they were explicitly requesting qiskit compiled cost. Inverting
+the default matches what the evidence already did; it removes the possibility of
+a run silently producing proxy numbers because nobody set the flag.
+
+Combined with Q31, the compile path becomes: one target (`FakeMarrakesh`), one
+optimization level, one transpiler seed, and compiled cost by default — the
+contract Paper I's COST block states.
+
+The proxy remains a peer implementation behind the single `CostTerm` interface
+(the author's design target, section 3), selected explicitly. It is never
+substituted for a failed qiskit cost (rule 7).
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1469,6 +1490,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q29 | Delete fallback-*reporting* fields along with the fallbacks? | **Yes.** No receipt field should exist for an event rule 7 says cannot happen. An always-`False` flag is not evidence that nothing went wrong — it is a field describing an impossible event. Fallback, and the field recording it, go together. | 2026-08-24 |
 | Q30 | `allow_aer_fallback` | **Delete it.** "We have FakeMarrakesh backend we compile to; why would we need some fallback?" An unavailable backend stops the run. | 2026-08-24 |
 | Q31 | The preferred-fakes chain on the compile path | **Delete it.** `FakeMarrakesh` is the single compile target, as Paper I's COST block states. No chain, no `allow_preferred_fallback`. An unavailable backend stops the run rather than compiling to a device the manuscript does not name. | 2026-08-24 |
+| Q32 | `BackendCompileConfig.mode` defaults to `"proxy"` | **Invert it.** Qiskit compiled cost is the default; the proxy is used only when explicitly requested. Paper I's headline axis is the compiled resource tuple, so the default must produce it. The proxy stays as a peer implementation behind the one `CostTerm` interface, never as a substitute (rule 7). | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
