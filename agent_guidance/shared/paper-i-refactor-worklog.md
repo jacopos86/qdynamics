@@ -1116,6 +1116,30 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
 | Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
 
+### Handoff register — author's guidance, 2026-08-24
+
+*"I think your prompts are too aggressive; they should be like 'work into your
+refactor naturally if it comes up, or afterwards.'"*
+
+An executing agent is usually mid-task and holding context. A findings handoff
+that arrives as a blocking increment, with hard gates and stop conditions, fights
+that context and forces a switch that costs more than the fix.
+
+**Write findings as things to fold in, not as interrupts:**
+
+- Lead with "when you are next in this area" or "afterwards", not "TASK:".
+- Keep the evidence and the caveats — those are the value. Drop the imperative
+  mood and the mandatory sequencing.
+- A contradiction is "worth raising rather than working around", not
+  "STOP AND REPORT".
+- State the basis for a decision so the executor can judge it, rather than
+  ordering compliance with it.
+- Let the executor choose the moment. Only genuine blockers — evidence at risk,
+  a change that would invalidate work already done — justify an interrupt.
+
+This applies to handoffs of *findings*. A scoped increment the author has
+explicitly commissioned may still be written as a task.
+
 ### Standing rules from the author
 
 | rule | source |
