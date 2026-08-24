@@ -73,7 +73,7 @@ from pipelines.static_adapt.sr_snake.contracts import (
 
 
 SOURCE_ROUTE_SHA256 = (
-    "69af64db5bbaf5b811685b8353b82b748dc13d16306e4c08ddfe5ffde07f301b"
+    "3f4ebed3d48ca972abb2867e8300032f6816a57ba3c5845f28fe1cf37cbbdcdd"
 )
 SOURCE_ROUTE_PROFILE = (
     "paper_i_ra_adapt__single_pauli_word_v1__"
@@ -355,8 +355,7 @@ def _compiled_feature(
         g_abs=0.8,
         g_lcb=0.8,
         sigma_hat=0.0,
-        F_metric=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         novelty=1.0,
         curvature_mode="fixture",
         novelty_mode="fixture",

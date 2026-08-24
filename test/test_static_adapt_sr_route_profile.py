@@ -18,6 +18,10 @@ from pipelines.static_adapt.cli_config import (
     _build_run_hardcoded_adapt_vqe_kwargs,
     _resolve_beam_capacity_policy,
 )
+from pipelines.static_adapt.extensions import (
+    PRUNING_RUNTIME_KEYS,
+    extensions_from_route_contract,
+)
 from pipelines.static_adapt.resume_scaffold import (
     validate_resume_sr_route_profile_contract,
 )
@@ -26,7 +30,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_V2_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS,
-    CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1_EXECUTION_SETTINGS,
@@ -42,7 +45,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_CANDIDATE_V4,
     SR_ROUTE_PROFILE_CONVENTIONAL_V2,
     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-    SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
     SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
     SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
@@ -55,8 +57,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_v2_contract_sha256,
     canonical_sr_snake_v3_contract,
     canonical_sr_snake_v3_contract_sha256,
-    canonical_sr_snake_v3_1_contract,
-    canonical_sr_snake_v3_1_contract_sha256,
     canonical_sr_snake_v4_contract,
     canonical_sr_snake_v4_contract_sha256,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
@@ -75,8 +75,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
@@ -430,30 +428,6 @@ def test_conventional_v3_sr_route_profile_materializes_complete_contract(
 
 @pytest.mark.parametrize(
     "profile_name",
-    ["sr_snake", "sr_snake_v3_1", SR_ROUTE_PROFILE_CONVENTIONAL_V3_1],
-)
-def test_conventional_v3_1_materializes_hysteresis_disabled_contract(
-    profile_name: str,
-) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
-
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_1_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v3_1_contract_sha256()
-    )
-    for field, expected in _active_profile_execution_settings(
-        CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS
-    ).items():
-        if field == "phase_live_hysteresis_enabled":
-            continue
-        assert getattr(args, field) == expected, field
-    assert not hasattr(args, "phase_live_hysteresis_enabled")
-
-
-@pytest.mark.parametrize(
-    "profile_name",
     ["sr_snake_v4", SR_ROUTE_PROFILE_CANDIDATE_V4],
 )
 def test_candidate_v4_materializes_exact_combined_contract(
@@ -523,9 +497,6 @@ def test_candidate_v4_contract_selects_first_order_measured_curvature_triplet() 
     assert settings["phase2_cheap_curvature_proxy_policy"] == (
         PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
     )
-    assert contract["semantic_invariants"][
-        "phase1_phase2_lambda_f_proxy_active"
-    ] is False
     assert contract["semantic_invariants"][
         "phase2_curvature_failure_policy"
     ] == "abort_run_v1"
@@ -715,7 +686,7 @@ def test_appendix_beam_profile_changes_only_historical_beam_fields() -> None:
 
     contract = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
     assert canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256() == (
-        "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168"
+        "ce283eeb38a7426bcc4c36f55d35265fa99a0029c571343c17803bd6d87df6f5"
     )
     assert contract["semantic_invariants"]["appendix_one_factor_ablation"] is True
     assert contract["semantic_invariants"]["beam_expanded_child_cap_per_round"] == 6
@@ -848,19 +819,6 @@ def test_no_prune_symmetric_cost_profile_rejects_scientific_drift(
 ) -> None:
     with pytest.raises(SystemExit, match="2"):
         _no_prune_symmetric_cost_args(*override)
-
-
-@pytest.mark.parametrize("option", ["--phase1-lambda-F", "--phase2-lambda-F"])
-def test_no_prune_symmetric_cost_rejects_lambda_f_proxy_controls(
-    option: str,
-) -> None:
-    with pytest.raises(ValueError, match="lambda_f_curvature_proxies"):
-        normalize_sr_route_profile_namespace(
-            _route_profile_namespace(
-                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-                explicit_options=(option,),
-            )
-        )
 
 
 def test_no_prune_symmetric_cost_runtime_validator_is_exact() -> None:
@@ -1130,15 +1088,11 @@ def test_historical_phase12_policy_overlay_is_explicit_but_outside_frozen_digest
     namespace = normalize_sr_route_profile_namespace(
         _route_profile_namespace(profile)
     )
-    assert namespace.phase1_energy_model == (
-        PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
-    )
+    assert not hasattr(namespace, "phase1_energy_model")
     assert namespace.phase2_curvature_policy == (
         PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1
     )
-    assert namespace.phase2_cheap_curvature_proxy_policy == (
-        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1
-    )
+    assert not hasattr(namespace, "phase2_cheap_curvature_proxy_policy")
     contract_by_profile = {
         SR_ROUTE_PROFILE_CANONICAL_V1: canonical_sr_snake_v1_contract,
         SR_ROUTE_PROFILE_CONVENTIONAL_V2: canonical_sr_snake_v2_contract,
@@ -1158,17 +1112,6 @@ def test_historical_phase12_policy_overlay_is_explicit_but_outside_frozen_digest
     ) == contract
 
 
-@pytest.mark.parametrize("option", ["--phase1-lambda-F", "--phase2-lambda-F"])
-def test_candidate_v4_rejects_explicit_lambda_f_proxy_controls(option: str) -> None:
-    with pytest.raises(ValueError, match="lambda_f_curvature_proxies"):
-        normalize_sr_route_profile_namespace(
-            _route_profile_namespace(
-                SR_ROUTE_PROFILE_CANDIDATE_V4,
-                explicit_options=(option,),
-            )
-        )
-
-
 @pytest.mark.parametrize(
     ("option", "field", "legacy_value"),
     [
@@ -1178,19 +1121,9 @@ def test_candidate_v4_rejects_explicit_lambda_f_proxy_controls(option: str) -> N
             "legacy_simple_v1",
         ),
         (
-            "--phase1-energy-model",
-            "phase1_energy_model",
-            PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-        ),
-        (
             "--phase2-curvature-policy",
             "phase2_curvature_policy",
             PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
-        ),
-        (
-            "--phase2-cheap-curvature-proxy-policy",
-            "phase2_cheap_curvature_proxy_policy",
-            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
         ),
     ],
 )
@@ -1226,9 +1159,7 @@ def test_candidate_v4_runtime_validator_requires_exact_phase12_triplet() -> None
         runtime_settings=runtime_settings,
     ) == canonical_sr_snake_v4_contract()
 
-    runtime_settings["phase2_cheap_curvature_proxy_policy"] = (
-        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1
-    )
+    runtime_settings["phase2_cheap_curvature_proxy_policy"] = "removed_proxy"
     with pytest.raises(ValueError, match="effective runtime settings drifted"):
         validate_sr_route_profile_runtime_settings(
             profile_request=SR_ROUTE_PROFILE_CANDIDATE_V4,
@@ -1238,12 +1169,12 @@ def test_candidate_v4_runtime_validator_requires_exact_phase12_triplet() -> None
         )
 
 
-def test_unqualified_sr_snake_alias_advances_to_v3_1_not_candidate_v4() -> None:
+def test_unqualified_sr_snake_alias_resolves_to_v3_not_candidate_v4() -> None:
     args = _conventional_args()
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_1_contract()
+    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert args.sr_route_profile_contract == canonical_sr_snake_v3_contract()
     assert not hasattr(args, "phase_live_hysteresis_enabled")
     assert args.sr_route_profile_contract != canonical_sr_snake_v4_contract()
 
@@ -1314,7 +1245,6 @@ def test_sr_profiles_resolve_expected_hardware_cost_normalization(
 def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> None:
     assert SR_ROUTE_PROFILE_CANONICAL_V1 != SR_ROUTE_PROFILE_CONVENTIONAL_V2
     assert SR_ROUTE_PROFILE_CONVENTIONAL_V2 != SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert SR_ROUTE_PROFILE_CONVENTIONAL_V3 != SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
     assert canonical_sr_snake_v1_contract_sha256() == (
         "fab7b5a6c4bd2ab019139367aa2a507356a5c969b6b88cd72d32365ae766e13e"
     )
@@ -1324,11 +1254,8 @@ def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> N
     assert canonical_sr_snake_v3_contract_sha256() == (
         "435910592e88f0136a0d45f611f79fe96b21d75fd25bad58276c871f39dc080e"
     )
-    assert canonical_sr_snake_v3_1_contract_sha256() == (
-        "9b96179935ed80967a3335dfbbf8eece86a04c2d412e6b92aa8a466fa6913542"
-    )
     assert canonical_sr_snake_v4_contract_sha256() == (
-            "d705671019543f676ee23ea9e1de8a7658183e3926939f2c389b8f015db6fe2f"
+            "0b36d0c505244809c131c473165db546587c5a38ffa7f885e77d382e4243e4c3"
     )
     assert canonical_sr_snake_v1_contract_sha256() != (
         canonical_sr_snake_v2_contract_sha256()
@@ -1348,7 +1275,7 @@ def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> N
         != canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
     )
     assert canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256() == (
-        "49fb8c2f069722ce87cbaaedc8d7d32726a11dad92a624e3326269d75dcd1168"
+        "ce283eeb38a7426bcc4c36f55d35265fa99a0029c571343c17803bd6d87df6f5"
     )
     assert canonical_sr_snake_v1_contract()["execution_settings"] == (
         CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS
@@ -1359,12 +1286,6 @@ def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> N
     assert canonical_sr_snake_v3_contract()["execution_settings"] == (
         CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS
     )
-    assert canonical_sr_snake_v3_1_contract()["execution_settings"] == (
-        CANONICAL_SR_SNAKE_V3_1_EXECUTION_SETTINGS
-    )
-    assert canonical_sr_snake_v3_1_contract()["lineage_authority"][
-        "parent_contract_sha256"
-    ] == canonical_sr_snake_v3_contract_sha256()
     assert canonical_sr_snake_v3_contract()["semantic_invariants"][
         "phase3_response_pre_support_invariant"
     ] == "response_count_equals_active_logical_count_plus_one_v1"
@@ -1539,11 +1460,11 @@ def test_conventional_sr_route_profile_round_trips_into_runtime_kwargs() -> None
     args = _conventional_args()
     kwargs = _runtime_kwargs(args)
 
-    assert kwargs["sr_route_profile_request"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3_1
-    assert kwargs["sr_route_profile_contract"] == canonical_sr_snake_v3_1_contract()
+    assert kwargs["sr_route_profile_request"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert kwargs["sr_route_profile_contract"] == canonical_sr_snake_v3_contract()
     assert kwargs["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_v3_1_contract_sha256()
+        canonical_sr_snake_v3_contract_sha256()
     )
     assert "phase_live_hysteresis_enabled" not in kwargs
     assert kwargs["phase3_response_coordinate_scope"] == (
@@ -1579,7 +1500,10 @@ def test_appendix_beam_profile_round_trips_into_runtime_kwargs() -> None:
     assert kwargs["adapt_beam_terminated_keep"] == 3
     assert kwargs["adapt_beam_terminal_archive_mode"] == "legacy"
     assert kwargs["adapt_beam_lambda"] == pytest.approx(0.005)
-    assert kwargs["phase1_prune_enabled"] is False
+    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
+    assert extensions_from_route_contract(
+        kwargs["sr_route_profile_contract"]
+    ).pruning is None
     assert kwargs["phase2_enable_batching"] is False
 
 
@@ -1605,27 +1529,32 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
         "adapt_beam_live_branches": 1,
         "adapt_beam_children_per_parent": 1,
         "adapt_beam_terminated_keep": 0,
-        "phase1_prune_mode": "live",
-        "phase1_prune_local_window_size": 0,
-        "phase1_prune_schur_nomination_route": (
-            "full_logical_fs_trust_delete_refit_v1"
-        ),
-        "phase1_prune_metric_schur_solve_mode": (
-            "affine_deletion_global_trust_v1"
-        ),
-        "phase1_prune_trust_update_policy": (
-            "modeled_local_fs_conservative_v1"
-        ),
-        "phase1_prune_metric_mu_update_policy": (
-            "same_trial_underprediction_monotone_v1"
-        ),
-        "phase1_prune_endpoint_overlap_policy": "off",
         "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
         "finite_angle_fallback": False,
         "phase3_enable_rescue": False,
     }
     for field, expected in expected_runtime_fields.items():
         assert kwargs[field] == expected, field
+    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
+    pruning = extensions_from_route_contract(
+        kwargs["sr_route_profile_contract"]
+    ).pruning
+    assert pruning is not None
+    assert pruning["phase1_prune_mode"] == "live"
+    assert pruning["phase1_prune_local_window_size"] == 0
+    assert pruning["phase1_prune_schur_nomination_route"] == (
+        "full_logical_fs_trust_delete_refit_v1"
+    )
+    assert pruning["phase1_prune_metric_schur_solve_mode"] == (
+        "affine_deletion_global_trust_v1"
+    )
+    assert pruning["phase1_prune_trust_update_policy"] == (
+        "modeled_local_fs_conservative_v1"
+    )
+    assert pruning["phase1_prune_metric_mu_update_policy"] == (
+        "same_trial_underprediction_monotone_v1"
+    )
+    assert pruning["phase1_prune_endpoint_overlap_policy"] == "off"
 
 
 def test_candidate_v4_identity_is_readable_but_not_execution_authority(

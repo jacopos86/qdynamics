@@ -64,6 +64,6 @@ def test_macro_phase0_parent_context_is_gradient_only_and_position_exact(
     assert feature.g_abs == 0.75
     assert feature.phase0_raw_gradient_abs == 0.75
     assert feature.phase0_cost_enabled is False
-    assert feature.metric_proxy == 1.0
+    assert feature.F == 1.0
     assert feature.compile_cost_source == "not_acquired_macro_phase0_context_v1"
     assert feature.measurement_cache_stats == {}

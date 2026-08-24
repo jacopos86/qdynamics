@@ -88,8 +88,7 @@ class CandidateFeatures:
     g_abs: float
     g_lcb: float
     sigma_hat: float
-    F_metric: float
-    metric_proxy: float
+    F: float
     novelty: float | None
     curvature_mode: str
     novelty_mode: str
@@ -109,7 +108,6 @@ class CandidateFeatures:
     ridge_used: float | None = None
     cheap_score: float | None = None
     cheap_score_version: str = "simple_v1"
-    cheap_metric_proxy: float = 0.0
     cheap_benefit_proxy: float | None = None
     cheap_burden_total: float | None = None
     phase1_score_mode: str = "trust_region_v1"
@@ -119,8 +117,7 @@ class CandidateFeatures:
     phase1_trust_region_score: float | None = None
     phase1_rho: float | None = None
     phase1_burden_total: float | None = None
-    phase1_energy_model: str = "legacy_lambda_f_quadratic_v1"
-    phase1_lambda_f_proxy_applied: bool = True
+    phase1_energy_model: str = "first_order_fs_trust_v1"
     h_hat: float | None = None
     b_hat: list[float] | None = None
     H_window: list[list[float]] | None = None
@@ -215,10 +212,8 @@ class CandidateFeatures:
     phase2_raw_score: float | None = None
     phase2_burden_total: float | None = None
     phase2_curvature_policy: str = "legacy_optional_v1"
-    phase2_cheap_curvature_proxy_policy: str = "legacy_lambda_f_ratio_v1"
+    phase2_cheap_curvature_proxy_policy: str = "off"
     phase2_curvature_receipt: dict[str, Any] = field(default_factory=dict)
-    phase2_lambda_f_proxy_applied: bool = False
-    phase2_missing_curvature_fallback_used: bool = False
     phase3_reduced_novelty: float | None = None
     phase3_reduced_trust_gain: float | None = None
     phase3_full_joint_trust_gain: float | None = None

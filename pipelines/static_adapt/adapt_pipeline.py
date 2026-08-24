@@ -148,6 +148,13 @@ from pipelines.static_adapt.adapt_candidate_record_cache import (
     _candidate_record_payload_digest,
     _outer_curvature_prior_cache_identity,
 )
+from pipelines.static_adapt.extensions import (
+    Extensions,
+    NO_EXTENSIONS,
+    extensions_from_route_contract,
+    resolve_pruning_runtime,
+    without_extension_runtime_keys,
+)
 from pipelines.scaffold.hh_continuation_types import (
     CandidateFeatures,
     CompileCostEstimate,
@@ -811,7 +818,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_CANONICAL_V1,
     SR_ROUTE_PROFILE_CONVENTIONAL_V2,
     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-    SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
     SR_ROUTE_PROFILE_CANDIDATE_V4,
     SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
@@ -925,7 +931,6 @@ _REGISTERED_COMPLETE_SR_ROUTE_PROFILES = frozenset(
     {
         SR_ROUTE_PROFILE_CONVENTIONAL_V2,
         SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-        SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
         SR_ROUTE_PROFILE_CANDIDATE_V4,
         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
         SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
@@ -998,8 +1003,7 @@ from pipelines.static_adapt.phase3_material_window import (
     DEFAULT_PHASE3_MATERIAL_WINDOW_POLICY,
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+    PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
@@ -5022,7 +5026,6 @@ def _default_no_prune_accepted_selection_snapshot(
 class _DefaultRecoverabilityPruneConfig:
     """Exact optional deletion policy for the fd5ec direct-route child."""
 
-    enabled: bool
     max_candidates: int
     max_regression: float
     retained_gain_ratio: float
@@ -5030,13 +5033,9 @@ class _DefaultRecoverabilityPruneConfig:
     initial_radius: float
     radius_contraction_factor: float
     radius_floor: float
-    nomination_policy_identity: str = (
-        PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-    )
-    metric_mu: float = 0.0
-    metric_solve_mode: str = (
-        PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-    )
+    nomination_policy_identity: str
+    metric_mu: float
+    metric_solve_mode: str
 
     def __post_init__(self) -> None:
         if self.max_candidates != 1:
@@ -7450,7 +7449,7 @@ def _default_no_prune_prepare_transition(
         artifacts=None,
         operation_sequence=[],
         pruning_enabled=bool(
-            session.context.recoverability_prune_config.enabled
+            session.context.recoverability_prune_config is not None
         ),
         prune_trust_state=copy.deepcopy(
             session.cursor.prune_trust_state
@@ -7807,7 +7806,7 @@ class _DefaultNoPruneTransitionContext:
     historical_singleton_trust_update_cfg: TrustRegionUpdateConfig
     phase2_memory_adapter: Phase2OptimizerMemoryAdapter
     phase2_score_cfg: FullScoreConfig
-    recoverability_prune_config: _DefaultRecoverabilityPruneConfig
+    recoverability_prune_config: _DefaultRecoverabilityPruneConfig | None
     phase2_novelty_oracle: OrderedInsertionGeometryOracle | None
     reference_state: np.ndarray | None
     pauli_action_cache: dict[str, CompiledPauliAction] | None
@@ -7903,7 +7902,7 @@ def _run_default_recoverability_prune_transaction(
 
     config = context.recoverability_prune_config
     services = context.services
-    if not config.enabled or not numerical_runtime.pruning_enabled:
+    if config is None or not numerical_runtime.pruning_enabled:
         raise RuntimeError(
             "Recoverability transaction requires the exact enabled child."
         )
@@ -14848,10 +14847,7 @@ def _run_hardcoded_adapt_vqe(
     sr_escape_mode: str = SR_ESCAPE_DISABLED,
     physical_lane_shortlist_aggressiveness: int = 3,
     phase1_lane_retention_enabled: bool = True,
-    phase1_lambda_F: float = 1.0,
-    phase1_energy_model: str = (
-        PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
-    ),
+    phase1_energy_model: str = PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
     phase1_lambda_compile: float = 0.05,
     phase1_lambda_measure: float = 0.02,
     phase1_lambda_leak: float = 0.0,
@@ -14885,40 +14881,7 @@ def _run_hardcoded_adapt_vqe(
     phase1_probe_max_positions: int = 6,
     phase1_plateau_patience: int = 2,
     phase1_trough_margin_ratio: float = 1.0,
-    phase1_prune_enabled: bool = True,
-    phase1_prune_policy: str = PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
-    phase1_prune_mode: str = "live",
-    phase1_prune_fraction: float = 0.25,
-    phase1_prune_min_candidates: int = 1,
-    phase1_prune_max_candidates: int = 6,
-    phase1_prune_max_regression: float = 1e-8,
-    phase1_prune_tolerance_mode: str = PRUNE_TOLERANCE_AUTO,
-    phase1_prune_tolerance_shot_coeff: float = 0.0,
-    phase1_prune_tolerance_screen_coeff: float = 0.01,
-    phase1_prune_tolerance_chem: float = 0.0,
-    phase1_prune_tolerance_rel_coeff: float = 0.0,
-    phase1_prune_tolerance_target_energy: float | None = None,
-    phase1_prune_retained_gain_ratio: float = 0.5,
-    phase1_prune_protect_steps: int = 2,
-    phase1_prune_cooldown_steps: int = 2,
-    phase1_prune_local_window_size: int = 4,
-    phase1_prune_recovery_trust_radius: float = 0.0,
-    phase1_prune_schur_nomination_route: str = PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-    phase1_prune_metric_schur_mu: float = 1e-6,
-    phase1_prune_metric_schur_solve_mode: str = PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-    phase1_prune_metric_schur_cost_weighting: str = PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-    phase1_prune_trust_update_policy: str = "off",
-    phase1_prune_metric_mu_update_policy: str = "off",
-    phase1_prune_endpoint_overlap_policy: str = "off",
-    phase1_prune_old_fraction: float = 0.25,
-    phase1_prune_checkpoint_period: int = 3,
-    phase1_prune_live_min_depth: int = 0,
-    phase1_prune_maturity_threshold: float = 0.5,
-    phase1_prune_snr_threshold: float = 1.0,
-    phase1_prune_prefilter_policy: str = PRUNE_PREFILTER_OFF,
-    phase1_prune_prefilter_json: Path | str | None = None,
-    phase1_prune_risk_threshold: float = 0.0,
-    phase1_prune_prefilter_max_candidates: int = 1,
+    extensions: Extensions = NO_EXTENSIONS,
     phase2_shortlist_fraction: float = 0.2,
     phase2_shortlist_size: int = 12,
     phase3_shortlist_size: int | None = None,
@@ -14939,10 +14902,9 @@ def _run_hardcoded_adapt_vqe(
     phase2_lambda_H: float = 1e-6,
     phase2_rho: float = 0.25,
     phase2_score_z_alpha: float | None = None,
-    phase2_lambda_F: float | None = None,
     phase2_curvature_policy: str = PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     phase2_cheap_curvature_proxy_policy: str = (
-        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1
+        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
     ),
     phase2_depth_ref: float = 1.0,
     phase2_group_ref: float = 1.0,
@@ -15099,6 +15061,20 @@ def _run_hardcoded_adapt_vqe(
             "The resolved SR-SNAKE route-profile id disagrees with its "
             "complete contract."
         )
+    if not isinstance(extensions, Extensions):
+        raise TypeError("extensions must be an Extensions value.")
+    route_extensions = extensions_from_route_contract(
+        sr_route_profile_contract_resolved
+    )
+    if extensions != NO_EXTENSIONS and extensions != route_extensions:
+        raise ValueError(
+            "Explicit extensions disagree with the authenticated route contract."
+        )
+    resolved_extensions = (
+        route_extensions if extensions == NO_EXTENSIONS else extensions
+    )
+    pruning_extension = resolved_extensions.pruning
+    phase1_prune_enabled = pruning_extension is not None
     problem_key = str(problem).strip().lower()
     if float(finite_angle) <= 0.0:
         raise ValueError("finite_angle must be > 0.")
@@ -15308,26 +15284,6 @@ def _run_hardcoded_adapt_vqe(
         )
     sr_controller_ablation_contract_key = str(
         sr_controller_ablation_contract
-    ).strip().lower()
-    # These normalized prune-policy keys participate in the complete
-    # route-profile invariant check below, before the live-prune controller is
-    # constructed.  Define them here as well as validating them at controller
-    # construction time so an opt-in profile cannot reach that check with
-    # unbound runtime state.
-    phase1_prune_trust_update_policy_key = str(
-        phase1_prune_trust_update_policy or "off"
-    ).strip().lower()
-    phase1_prune_metric_mu_update_policy_key = str(
-        phase1_prune_metric_mu_update_policy or "off"
-    ).strip().lower()
-    phase1_prune_endpoint_overlap_policy_key = str(
-        phase1_prune_endpoint_overlap_policy or "off"
-    ).strip().lower()
-    phase1_prune_prefilter_policy_key = str(
-        phase1_prune_prefilter_policy or PRUNE_PREFILTER_OFF
-    ).strip().lower()
-    phase1_prune_tolerance_mode_requested = str(
-        phase1_prune_tolerance_mode or PRUNE_TOLERANCE_AUTO
     ).strip().lower()
     if (
         sr_controller_ablation_contract_key
@@ -15974,22 +15930,6 @@ def _run_hardcoded_adapt_vqe(
     )
     if (not math.isfinite(phase2_score_z_alpha_val)) or phase2_score_z_alpha_val < 0.0:
         raise ValueError("phase2_score_z_alpha must be finite and >= 0.")
-    phase2_lambda_F_val = float(phase1_lambda_F if phase2_lambda_F is None else phase2_lambda_F)
-    if (
-        phase2_cheap_curvature_proxy_policy_key
-        != PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
-        and (
-            (not math.isfinite(phase2_lambda_F_val))
-            or phase2_lambda_F_val <= 0.0
-        )
-    ):
-        if (
-            phase2_lambda_F is None
-            and str(problem).strip().lower() == "hh"
-            and str(adapt_continuation_mode).strip().lower() == "phase3_v1"
-        ):
-            raise ValueError("phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0")
-        raise ValueError("phase2_lambda_F must be finite and > 0.")
     phase2_depth_ref_val = float(phase2_depth_ref)
     phase2_group_ref_val = float(phase2_group_ref)
     phase2_shot_ref_val = float(phase2_shot_ref)
@@ -17120,162 +17060,12 @@ def _run_hardcoded_adapt_vqe(
             "phase3_runtime_split_child_padding_policy": str(
                 route_a_child_padding_cfg.policy
             ),
-            "phase1_prune_enabled": bool(phase1_prune_enabled),
-            "phase1_prune_policy": str(phase1_prune_policy),
-            "phase1_prune_mode": str(phase1_prune_mode),
             **(
                 {
-                    "phase1_prune_max_candidates": int(
-                        phase1_prune_max_candidates
-                    ),
-                    "phase1_prune_local_window_size": int(
-                        phase1_prune_local_window_size
-                    ),
-                    "phase1_prune_recovery_trust_radius": float(
-                        phase1_prune_recovery_trust_radius
-                    ),
-                    "phase1_prune_schur_nomination_route": str(
-                        phase1_prune_schur_nomination_route
-                    ),
-                    "phase1_prune_metric_schur_mu": float(
-                        phase1_prune_metric_schur_mu
-                    ),
-                    "phase1_prune_metric_schur_solve_mode": str(
-                        phase1_prune_metric_schur_solve_mode
-                    ),
-                    "phase1_prune_metric_schur_cost_weighting": str(
-                        phase1_prune_metric_schur_cost_weighting
-                    ),
-                    "phase1_prune_live_min_depth": int(
-                        phase1_prune_live_min_depth
-                    ),
+                    "phase1_prune_enabled": True,
+                    **pruning_extension.to_runtime_dict(),
                 }
-                if sr_route_profile_contract_resolved is not None
-                and str(sr_route_profile_contract_resolved.get("route_profile"))
-                in {
-                    SR_ROUTE_PROFILE_CONVENTIONAL_V2,
-                    SR_ROUTE_PROFILE_CONVENTIONAL_V3,
-                    SR_ROUTE_PROFILE_CONVENTIONAL_V3_1,
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-                    SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2,
-                    SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3,
-                }
-                else {}
-            ),
-            **(
-                {
-                    "phase1_prune_trust_update_policy": str(
-                        phase1_prune_trust_update_policy_key
-                    ),
-                    "phase1_prune_metric_mu_update_policy": str(
-                        phase1_prune_metric_mu_update_policy_key
-                    ),
-                    "phase1_prune_endpoint_overlap_policy": str(
-                        phase1_prune_endpoint_overlap_policy_key
-                    ),
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                }
-                else {}
-            ),
-            **(
-                {
-                    "phase1_prune_checkpoint_period": int(
-                        phase1_prune_checkpoint_period
-                    ),
-                    "phase1_prune_cooldown_steps": int(
-                        phase1_prune_cooldown_steps
-                    ),
-                    "phase1_prune_fraction": float(phase1_prune_fraction),
-                    "phase1_prune_min_candidates": int(
-                        phase1_prune_min_candidates
-                    ),
-                    "phase1_prune_max_regression": float(
-                        phase1_prune_max_regression
-                    ),
-                    "phase1_prune_maturity_threshold": float(
-                        phase1_prune_maturity_threshold
-                    ),
-                    "phase1_prune_old_fraction": float(
-                        phase1_prune_old_fraction
-                    ),
-                    "phase1_prune_prefilter_json": (
-                        None
-                        if phase1_prune_prefilter_json in {None, ""}
-                        else str(phase1_prune_prefilter_json)
-                    ),
-                    "phase1_prune_prefilter_max_candidates": int(
-                        phase1_prune_prefilter_max_candidates
-                    ),
-                    "phase1_prune_prefilter_policy": str(
-                        phase1_prune_prefilter_policy_key
-                    ),
-                    "phase1_prune_protect_steps": int(
-                        phase1_prune_protect_steps
-                    ),
-                    "phase1_prune_retained_gain_ratio": float(
-                        phase1_prune_retained_gain_ratio
-                    ),
-                    "phase1_prune_risk_threshold": float(
-                        phase1_prune_risk_threshold
-                    ),
-                    "phase1_prune_snr_threshold": float(
-                        phase1_prune_snr_threshold
-                    ),
-                    "phase1_prune_tolerance_chem": float(
-                        phase1_prune_tolerance_chem
-                    ),
-                    "phase1_prune_tolerance_mode": str(
-                        phase1_prune_tolerance_mode_requested
-                    ),
-                    "phase1_prune_tolerance_rel_coeff": float(
-                        phase1_prune_tolerance_rel_coeff
-                    ),
-                    "phase1_prune_tolerance_screen_coeff": float(
-                        phase1_prune_tolerance_screen_coeff
-                    ),
-                    "phase1_prune_tolerance_shot_coeff": float(
-                        phase1_prune_tolerance_shot_coeff
-                    ),
-                    "phase1_prune_tolerance_target_energy": (
-                        None
-                        if phase1_prune_tolerance_target_energy is None
-                        else float(phase1_prune_tolerance_target_energy)
-                    ),
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                }
+                if pruning_extension is not None
                 else {}
             ),
             "adapt_beam_live_branches": int(
@@ -20746,7 +20536,6 @@ def _run_hardcoded_adapt_vqe(
     if phase1_enabled:
         phase1_stage.start_with_seed()
     phase1_score_cfg = SimpleScoreConfig(
-        lambda_F=float(phase1_lambda_F),
         lambda_compile=float(phase1_lambda_compile),
         lambda_measure=float(phase1_lambda_measure),
         lambda_leak=float(phase1_lambda_leak),
@@ -20888,7 +20677,6 @@ def _run_hardcoded_adapt_vqe(
         raise RuntimeError("No backend targets could be resolved for phase3 backend-aware scoring.")
     phase2_score_cfg = FullScoreConfig(
         z_alpha=float(phase2_score_z_alpha_val),
-        lambda_F=float(phase2_lambda_F_val),
         lambda_H=float(max(1e-12, phase2_lambda_H)),
         rho=float(phase2_rho_val),
         depth_ref=float(phase2_depth_ref_val),
@@ -20978,13 +20766,6 @@ def _run_hardcoded_adapt_vqe(
             else str(phase2_remaining_evaluations_proxy_mode).strip().lower()
         ),
     )
-    if (
-        phase3_enabled
-        and phase2_cheap_curvature_proxy_policy_key
-        != PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
-        and float(phase2_score_cfg.lambda_F) <= 0.0
-    ):
-        raise ValueError("phase3_v1 cheap ratio scoring requires phase2_lambda_F > 0.")
     batch_ordering_config = BatchOrderingConfig(
         mode=str(phase3_batch_order_selection_mode_key),
         max_permutations=int(phase3_batch_order_max_permutations_val),
@@ -21009,9 +20790,6 @@ def _run_hardcoded_adapt_vqe(
         "phase2_full_candidate_occurrences": 0,
         "validated_phase2_curvature_receipt_occurrences": 0,
         "candidate_cache_hit_validated_receipt_occurrences": 0,
-        "phase1_lambda_f_proxy_occurrences": 0,
-        "phase2_lambda_f_proxy_occurrences": 0,
-        "phase2_missing_curvature_fallback_occurrences": 0,
     }
 
     def _record_phase12_full_candidate_feature(
@@ -21034,24 +20812,6 @@ def _run_hardcoded_adapt_vqe(
             == PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
         ):
             validate_phase2_feature_curvature(feature, phase2_score_cfg)
-        phase1_proxy = bool(
-            getattr(feature, "phase1_lambda_f_proxy_applied", False)
-        )
-        phase2_proxy = bool(
-            getattr(feature, "phase2_lambda_f_proxy_applied", False)
-        )
-        phase2_fallback = bool(
-            getattr(feature, "phase2_missing_curvature_fallback_used", False)
-        )
-        if (
-            phase2_curvature_policy_key
-            == PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
-            and (phase1_proxy or phase2_proxy or phase2_fallback)
-        ):
-            raise RuntimeError(
-                "SR-SNAKE v4 candidate telemetry reports a forbidden lambda-F "
-                f"proxy or missing-curvature fallback at {source}."
-            )
         with phase12_energy_model_telemetry_lock:
             phase12_energy_model_telemetry[
                 "phase2_full_candidate_occurrences"
@@ -21078,27 +20838,6 @@ def _run_hardcoded_adapt_vqe(
                         "candidate_cache_hit_validated_receipt_occurrences"
                     ]
                 ) + 1
-            phase12_energy_model_telemetry[
-                "phase1_lambda_f_proxy_occurrences"
-            ] = int(
-                phase12_energy_model_telemetry[
-                    "phase1_lambda_f_proxy_occurrences"
-                ]
-            ) + int(phase1_proxy)
-            phase12_energy_model_telemetry[
-                "phase2_lambda_f_proxy_occurrences"
-            ] = int(
-                phase12_energy_model_telemetry[
-                    "phase2_lambda_f_proxy_occurrences"
-                ]
-            ) + int(phase2_proxy)
-            phase12_energy_model_telemetry[
-                "phase2_missing_curvature_fallback_occurrences"
-            ] = int(
-                phase12_energy_model_telemetry[
-                    "phase2_missing_curvature_fallback_occurrences"
-                ]
-            ) + int(phase2_fallback)
 
     candidate_record_cache_mode = _candidate_record_cache_mode()
     candidate_record_cache_dir = _candidate_record_cache_dir()
@@ -22421,260 +22160,96 @@ def _run_hardcoded_adapt_vqe(
     phase1_features_history: list[dict[str, Any]] = []
     phase1_stage_events: list[dict[str, Any]] = []
     phase1_scaffold_pre_prune: dict[str, Any] | None = None
-    phase1_prune_mode = str(phase1_prune_mode or "live").strip().lower()
-    if phase1_prune_mode not in {"live", "final", "both"}:
-        raise ValueError(f"Unsupported phase1_prune_mode: {phase1_prune_mode}")
-    phase1_prune_checkpoint_period = int(max(1, phase1_prune_checkpoint_period))
-    phase1_prune_live_min_depth = int(max(0, phase1_prune_live_min_depth))
-    phase1_prune_maturity_threshold = float(max(0.0, phase1_prune_maturity_threshold))
-    phase1_prune_snr_threshold = float(max(0.0, phase1_prune_snr_threshold))
-    phase1_prune_prefilter_policy_key = str(
-        phase1_prune_prefilter_policy or PRUNE_PREFILTER_OFF
-    ).strip().lower()
-    if phase1_prune_prefilter_policy_key not in {
-        PRUNE_PREFILTER_OFF,
-        PRUNE_PREFILTER_MOTIF_RISK_V1,
-    }:
-        raise ValueError(f"Unsupported phase1_prune_prefilter_policy: {phase1_prune_prefilter_policy}")
-    phase1_prune_tolerance_mode_requested = str(
-        phase1_prune_tolerance_mode or PRUNE_TOLERANCE_AUTO
-    ).strip().lower()
-    phase1_prune_tolerance_mode_effective = resolve_prune_tolerance_mode(
-        mode=phase1_prune_tolerance_mode_requested,
-        prune_policy=str(
-            phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1
-        ),
+    pruning_runtime = resolve_pruning_runtime(
+        pruning_extension,
+        repo_root=REPO_ROOT,
     )
-    phase1_prune_schur_nomination_route = str(
-        phase1_prune_schur_nomination_route or PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1
-    ).strip().lower()
-    if phase1_prune_schur_nomination_route not in {
-        PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1,
-        PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
-        PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1,
-    }:
-        raise ValueError(
-            "phase1_prune_schur_nomination_route must be "
-            f"{PRUNE_SCHUR_ROUTE_HESSIAN_COUPLING_V1!r} or "
-            f"{PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1!r}, or "
-            "'full_logical_fs_trust_delete_refit_v1'"
-        )
-    phase1_prune_metric_schur_solve_mode = str(
-        phase1_prune_metric_schur_solve_mode
-        or PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1
-    ).strip().lower()
-    if phase1_prune_metric_schur_solve_mode not in {
-        PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1,
-        PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1,
-        PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1,
-    }:
-        raise ValueError(
-            "phase1_prune_metric_schur_solve_mode must be "
-            f"{PRUNE_METRIC_SCHUR_SOLVE_STATIONARY_GW_ZERO_V1!r} or "
-            f"{PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1!r}, or "
-            "'affine_deletion_global_trust_v1'"
-        )
-    phase1_prune_metric_schur_cost_weighting = str(
-        phase1_prune_metric_schur_cost_weighting
-        or PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1
-    ).strip().lower()
-    if phase1_prune_metric_schur_cost_weighting not in {
-        PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1,
-        PRUNE_METRIC_COST_WEIGHT_OFF,
-    }:
-        raise ValueError(
-            "phase1_prune_metric_schur_cost_weighting must be "
-            f"{PRUNE_METRIC_COST_WEIGHT_ANSATZ_ENTRY_DENOMINATOR_V1!r} or "
-            f"{PRUNE_METRIC_COST_WEIGHT_OFF!r}"
-        )
-    phase1_prune_trust_update_policy_key = str(
-        phase1_prune_trust_update_policy or "off"
-    ).strip().lower()
-    if phase1_prune_trust_update_policy_key not in {
-        "off",
-        "modeled_local_fs_conservative_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_trust_update_policy must be one of "
-            "{'off','modeled_local_fs_conservative_v1'}."
-        )
-    phase1_prune_metric_mu_update_policy_key = str(
-        phase1_prune_metric_mu_update_policy or "off"
-    ).strip().lower()
-    if phase1_prune_metric_mu_update_policy_key not in {
-        "off",
-        "same_trial_underprediction_monotone_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_metric_mu_update_policy must be one of "
-            "{'off','same_trial_underprediction_monotone_v1'}."
-        )
-    phase1_prune_endpoint_overlap_policy_key = str(
-        phase1_prune_endpoint_overlap_policy or "off"
-    ).strip().lower()
-    if phase1_prune_endpoint_overlap_policy_key not in {
-        "off",
-        "energy_safe_trial_only_v1",
-    }:
-        raise ValueError(
-            "phase1_prune_endpoint_overlap_policy must be one of "
-            "{'off','energy_safe_trial_only_v1'}."
-        )
-    if (
-        phase1_prune_schur_nomination_route
-        == PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-    ):
-        if (
-            phase1_prune_metric_schur_solve_mode
-            != PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-        ):
-            raise ValueError(
-                "full-logical FS trust pruning requires "
-                "affine_deletion_global_trust_v1."
-            )
-        if phase1_prune_local_window_size != 0:
-            raise ValueError(
-                "full-logical FS trust pruning requires "
-                "phase1_prune_local_window_size=0."
-            )
-        if not math.isfinite(float(phase1_prune_recovery_trust_radius)) or float(
-            phase1_prune_recovery_trust_radius
-        ) <= 0.0:
-            raise ValueError(
-                "full-logical FS trust pruning requires a positive finite radius."
-            )
-        if phase1_prune_endpoint_overlap_policy_key != "off":
-            raise ValueError(
-                "The v4 zero-query prune route forbids endpoint-overlap probes."
-            )
-
-    def _nonnegative_finite_config(value: float | None, *, name: str) -> float:
-        if value is None:
-            return 0.0
-        out = float(value)
-        if not math.isfinite(out) or out < 0.0:
-            raise ValueError(f"{name} must be finite and non-negative")
-        return float(out)
-
-    phase1_prune_tolerance_shot_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_shot_coeff,
-        name="phase1_prune_tolerance_shot_coeff",
+    phase1_prune_cfg = (
+        None if pruning_runtime is None else pruning_runtime.config
     )
-    phase1_prune_tolerance_screen_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_screen_coeff,
-        name="phase1_prune_tolerance_screen_coeff",
+    phase1_prune_mode = (
+        None if pruning_runtime is None else pruning_runtime.mode
     )
-    phase1_prune_tolerance_chem = _nonnegative_finite_config(
-        phase1_prune_tolerance_chem,
-        name="phase1_prune_tolerance_chem",
+    phase1_prune_checkpoint_period = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.checkpoint_period
     )
-    phase1_prune_max_regression = _nonnegative_finite_config(
-        phase1_prune_max_regression,
-        name="phase1_prune_max_regression",
+    phase1_prune_live_min_depth = (
+        None if pruning_runtime is None else pruning_runtime.live_min_depth
     )
-    phase1_prune_tolerance_rel_coeff = _nonnegative_finite_config(
-        phase1_prune_tolerance_rel_coeff,
-        name="phase1_prune_tolerance_rel_coeff",
+    phase1_prune_maturity_threshold = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.maturity_threshold
     )
-    phase1_prune_risk_threshold = _nonnegative_finite_config(
-        phase1_prune_risk_threshold,
-        name="phase1_prune_risk_threshold",
+    phase1_prune_snr_threshold = (
+        None if pruning_runtime is None else pruning_runtime.snr_threshold
     )
-    phase1_prune_metric_schur_mu = _nonnegative_finite_config(
-        phase1_prune_metric_schur_mu,
-        name="phase1_prune_metric_schur_mu",
+    phase1_prune_prefilter_policy_key = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_policy
     )
-    phase1_prune_prefilter_max_candidates = int(max(0, phase1_prune_prefilter_max_candidates))
-    phase1_prune_prefilter_json_path: Path | None = None
-    phase1_prune_prefilter_profile: dict[str, Any] | None = None
-    if phase1_prune_prefilter_policy_key == PRUNE_PREFILTER_MOTIF_RISK_V1:
-        if phase1_prune_prefilter_json in {None, ""}:
-            raise ValueError("phase1_prune_prefilter_json is required for motif_risk_v1 pruning.")
-        phase1_prune_prefilter_json_path = Path(str(phase1_prune_prefilter_json))
-        if not phase1_prune_prefilter_json_path.is_absolute():
-            phase1_prune_prefilter_json_path = REPO_ROOT / phase1_prune_prefilter_json_path
-        phase1_prune_prefilter_profile = load_prune_prefilter_profile(
-            phase1_prune_prefilter_json_path
-        )
-    if phase1_prune_tolerance_target_energy is not None and not math.isfinite(
-        float(phase1_prune_tolerance_target_energy)
-    ):
-        raise ValueError("phase1_prune_tolerance_target_energy must be finite when provided")
-
-    def _build_phase1_prune_cfg() -> PruneConfig:
-        recoverability_prune_policy = bool(
-            str(phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1)
-            == PRUNE_POLICY_RECOVERABILITY_LADDER_V1
-        )
-        return PruneConfig(
-            policy=str(phase1_prune_policy or PRUNE_POLICY_RECOVERABILITY_LADDER_V1),
-            max_candidates=int(max(1, phase1_prune_max_candidates)),
-            min_candidates=int(max(1, phase1_prune_min_candidates)),
-            fraction_candidates=float(max(0.0, phase1_prune_fraction)),
-            max_regression=float(max(0.0, phase1_prune_max_regression)),
-            tolerance_mode_requested=str(phase1_prune_tolerance_mode_requested),
-            tolerance_mode=str(phase1_prune_tolerance_mode_effective),
-            tolerance_shot_coeff=float(phase1_prune_tolerance_shot_coeff),
-            tolerance_screen_coeff=float(phase1_prune_tolerance_screen_coeff),
-            tolerance_chem=float(phase1_prune_tolerance_chem),
-            tolerance_rel_coeff=float(phase1_prune_tolerance_rel_coeff),
-            tolerance_target_energy=(
-                None
-                if phase1_prune_tolerance_target_energy is None
-                else float(phase1_prune_tolerance_target_energy)
-            ),
-            retained_gain_ratio=float(max(0.0, phase1_prune_retained_gain_ratio)),
-            protect_steps=int(max(0, phase1_prune_protect_steps)),
-            cooldown_steps=int(max(0, phase1_prune_cooldown_steps)),
-            local_window_size=int(max(0, phase1_prune_local_window_size)),
-            surrogate_recovery_trust_radius=float(
-                max(0.0, phase1_prune_recovery_trust_radius)
-            ),
-            schur_nomination_route=str(phase1_prune_schur_nomination_route),
-            metric_schur_mu=float(max(0.0, phase1_prune_metric_schur_mu)),
-            metric_schur_solve_mode=str(phase1_prune_metric_schur_solve_mode),
-            metric_schur_cost_weighting=str(phase1_prune_metric_schur_cost_weighting),
-            old_fraction=float(min(1.0, max(0.0, phase1_prune_old_fraction))),
-            surrogate_enabled=bool(recoverability_prune_policy),
-            surrogate_nomination_gate_enabled=bool(recoverability_prune_policy),
-            surrogate_nomination_gate_factor=1.0,
-            surrogate_exact_trial_cap=1 if bool(recoverability_prune_policy) else int(max(1, phase1_prune_max_candidates)),
-        )
-
-    def _resolve_phase1_prune_modes() -> tuple[bool, bool]:
-        enabled_now = bool(phase1_enabled and phase1_prune_enabled)
-        return (
-            bool(enabled_now and phase1_prune_mode in {"live", "both"}),
-            bool(enabled_now and phase1_prune_mode in {"final", "both"}),
-        )
-
-    phase1_prune_cfg = _build_phase1_prune_cfg()
+    phase1_prune_prefilter_json_path = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_path
+    )
+    phase1_prune_prefilter_profile = (
+        None if pruning_runtime is None else pruning_runtime.prefilter_profile
+    )
+    phase1_prune_risk_threshold = (
+        None if pruning_runtime is None else pruning_runtime.risk_threshold
+    )
+    phase1_prune_prefilter_max_candidates = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.prefilter_max_candidates
+    )
+    phase1_prune_trust_update_policy_key = (
+        None if pruning_runtime is None else pruning_runtime.trust_update_policy
+    )
+    phase1_prune_metric_mu_update_policy_key = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.metric_mu_update_policy
+    )
+    phase1_prune_endpoint_overlap_policy_key = (
+        None
+        if pruning_runtime is None
+        else pruning_runtime.endpoint_overlap_policy
+    )
+    phase1_prune_live_mode, phase1_prune_final_mode = (
+        (False, False)
+        if pruning_runtime is None
+        else pruning_runtime.modes(phase1_enabled=phase1_enabled)
+    )
     phase1_prune_affine_trust_route_active = bool(
-        str(phase1_prune_cfg.schur_nomination_route)
+        phase1_prune_cfg is not None
+        and str(phase1_prune_cfg.schur_nomination_route)
         == PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
     )
     phase1_prune_material_window_source_reuse_active = bool(
-        sr_route_profile_contract_resolved is not None
+        pruning_runtime is not None
+        and sr_route_profile_contract_resolved is not None
         and str(
             sr_route_profile_contract_resolved.get("route_profile", "")
         )
         == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1
     )
     phase1_prune_query_neutral_full_geometry_active = bool(
-        sr_route_profile_contract_resolved is not None
+        pruning_runtime is not None
+        and sr_route_profile_contract_resolved is not None
         and str(
             sr_route_profile_contract_resolved.get("route_profile", "")
         )
         == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
     )
     phase1_prune_metric_route_active = bool(
-        str(phase1_prune_cfg.schur_nomination_route)
+        phase1_prune_cfg is not None
+        and str(phase1_prune_cfg.schur_nomination_route)
         in {
             PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1,
             PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1,
         }
     )
-    phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
     static_route_id_key = _normalize_retained_route_observation(
         static_route_id
     )
@@ -22711,8 +22286,14 @@ def _run_hardcoded_adapt_vqe(
         "phase3_nested_window_application": str(
             phase3_nested_window_application
         ),
-        "phase1_prune_policy": str(phase1_prune_cfg.policy),
-        "phase1_prune_mode": str(phase1_prune_mode),
+        **(
+            {}
+            if phase1_prune_cfg is None
+            else {
+                "phase1_prune_policy": str(phase1_prune_cfg.policy),
+                "phase1_prune_mode": str(phase1_prune_mode),
+            }
+        ),
         "valid": True,
         "canonical": False,
         "route_registry_active": False,
@@ -22877,6 +22458,8 @@ def _run_hardcoded_adapt_vqe(
         }
 
     def _populate_prune_policy_fields(summary: dict[str, Any]) -> dict[str, Any]:
+        if phase1_prune_cfg is None:
+            return summary
         summary.update(
             {
                 "prune_mode": str(phase1_prune_mode),
@@ -24002,6 +23585,12 @@ def _run_hardcoded_adapt_vqe(
             return {}, payload
 
     def _default_prune_summary(*, reason: str, energy: float) -> dict[str, Any]:
+        if phase1_prune_cfg is None:
+            return {
+                "enabled": False,
+                "executed": False,
+                "permission_reason": str(reason),
+            }
         return _populate_prune_policy_fields({
             "enabled": bool(phase1_enabled and phase1_prune_enabled),
             "executed": False,
@@ -24619,6 +24208,19 @@ def _run_hardcoded_adapt_vqe(
         source_geometry_unavailable_reason: str | None = None,
     ) -> tuple[list[AnsatzTerm], np.ndarray, float, dict[str, Any], list[ScaffoldCoordinateMetadata], dict[str, int], dict[str, Any]]:
         summary = _default_prune_summary(reason="live_after_admission", energy=float(energy_now))
+        if phase1_prune_cfg is None:
+            return (
+                list(ops_now),
+                np.asarray(theta_now, dtype=float),
+                float(energy_now),
+                dict(optimizer_memory_now),
+                [
+                    ScaffoldCoordinateMetadata(**dict(row.__dict__))
+                    for row in metadata_rows
+                ],
+                {str(key): int(value) for key, value in first_seen_steps.items()},
+                summary,
+            )
         history_source = (
             list(history_rows) if history_rows is not None else list(history)
         )
@@ -26808,7 +26410,8 @@ def _run_hardcoded_adapt_vqe(
         finite_angle_fallback = False
         if not phase3_oracle_inner_objective_enabled:
             phase1_prune_enabled = False
-            phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
+            phase1_prune_live_mode = False
+            phase1_prune_final_mode = False
 
     try:
         def _phase3_oracle_gradient_scout(
@@ -30359,7 +29962,7 @@ def _run_hardcoded_adapt_vqe(
                             ]
                         ],
                         gradient_signed=float(gradients_local[int(idx)]),
-                        metric_proxy=float(metric_raw),
+                        F=float(metric_raw),
                         sigma_hat=0.0,
                         refit_window_indices=[int(i) for i in phase2_window_guess],
                         phase2_geometry_window_indices=[int(i) for i in phase2_window_guess],
@@ -31135,7 +30738,7 @@ def _run_hardcoded_adapt_vqe(
                             sigma_candidate = float(feat_base.sigma_hat)
                         else:
                             grad_candidate = float(base_feature_override.g_signed)
-                            metric_candidate = float(base_feature_override.metric_proxy)
+                            metric_candidate = float(base_feature_override.F)
                             sigma_candidate = float(base_feature_override.sigma_hat)
                         proxy_compile_est_candidate = phase1_compile_oracle.estimate(
                             candidate_term_count=int(len(compiled_candidate.terms)),
@@ -31167,7 +30770,7 @@ def _run_hardcoded_adapt_vqe(
                             append_position=int(feat_base.append_position),
                             positions_considered=[int(x) for x in feat_base.positions_considered],
                             gradient_signed=float(grad_candidate),
-                            metric_proxy=float(metric_candidate),
+                            F=float(metric_candidate),
                             sigma_hat=float(sigma_candidate),
                             refit_window_indices=[int(i) for i in feat_base.refit_window_indices],
                             phase2_geometry_window_indices=[int(i) for i in selector_feature_metadata.phase2_geometry_indices(feat_base)],
@@ -37850,21 +37453,6 @@ def _run_hardcoded_adapt_vqe(
                     and isinstance(phase1_feature_selected_local, Mapping)
                     else None
                 ),
-                "phase1_lambda_f_proxy_applied": bool(
-                    phase1_feature_selected_local.get(
-                        "phase1_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_lambda_f_proxy_applied": bool(
-                    phase1_feature_selected_local.get(
-                        "phase2_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_missing_curvature_fallback_used": bool(
-                    phase1_feature_selected_local.get(
-                        "phase2_missing_curvature_fallback_used", False
-                    )
-                ),
                 "phase2_curvature_receipt": (
                     dict(phase1_feature_selected_local.get("phase2_curvature_receipt"))
                     if isinstance(
@@ -38130,10 +37718,10 @@ def _run_hardcoded_adapt_vqe(
                     and phase1_feature_selected_local.get("phase1_rho") is not None
                     else float(phase2_rho_val)
                 ),
-                "metric_proxy": (
-                    float(phase1_feature_selected_local.get("metric_proxy"))
+                "F": (
+                    float(phase1_feature_selected_local.get("F"))
                     if isinstance(phase1_feature_selected_local, dict)
-                    and phase1_feature_selected_local.get("metric_proxy") is not None
+                    and phase1_feature_selected_local.get("F") is not None
                     else None
                 ),
                 "curvature_mode": (
@@ -39615,12 +39203,8 @@ def _run_hardcoded_adapt_vqe(
                 *,
                 candidate_label: str,
                 candidate_term: AnsatzTerm,
-                gradient_signed: float,
                 precompiled_action: Any | None = None,
             ) -> float:
-                gradient_abs = float(abs(float(gradient_signed)))
-                if not phase3_enabled:
-                    return float(gradient_abs)
                 cache_key = str(candidate_label)
                 cached_value = phase3_base_metric_cache.get(cache_key)
                 if cached_value is not None:
@@ -39943,9 +39527,6 @@ def _run_hardcoded_adapt_vqe(
                                 pool[int(candidate_index)].label
                             ),
                             candidate_term=pool[int(candidate_index)],
-                            gradient_signed=float(
-                                gradients[int(candidate_index)]
-                            ),
                             precompiled_action=pool_compiled[
                                 int(candidate_index)
                             ],
@@ -40295,7 +39876,7 @@ def _run_hardcoded_adapt_vqe(
                                 "energy_gradient"
                             ]
                         )
-                        candidate_metric_proxy = float(
+                        candidate_F = float(
                             exact_first_order_geometry[
                                 "fubini_study_metric"
                             ]
@@ -40372,8 +39953,8 @@ def _run_hardcoded_adapt_vqe(
                         )
                     else:
                         grad_candidate = float(base_feature_override.g_signed)
-                        candidate_metric_proxy = float(
-                            base_feature_override.metric_proxy
+                        candidate_F = float(
+                            base_feature_override.F
                         )
                         candidate_sigma_hat = float(
                             base_feature_override.sigma_hat
@@ -40407,7 +39988,7 @@ def _run_hardcoded_adapt_vqe(
                         append_position=int(feat_base.append_position),
                         positions_considered=[int(x) for x in feat_base.positions_considered],
                         gradient_signed=float(grad_candidate),
-                        metric_proxy=float(candidate_metric_proxy),
+                        F=float(candidate_F),
                         sigma_hat=float(candidate_sigma_hat),
                         refit_window_indices=[int(i) for i in feat_base.refit_window_indices],
                         phase2_geometry_window_indices=[int(i) for i in selector_feature_metadata.phase2_geometry_indices(feat_base)],
@@ -42468,12 +42049,8 @@ def _run_hardcoded_adapt_vqe(
                         candidate_gradient_signed = float(
                             first_order_geometry["energy_gradient"]
                         )
-                        candidate_metric_proxy = float(
-                            first_order_geometry[
-                                "fubini_study_metric"
-                            ]
-                            if phase3_enabled
-                            else abs(candidate_gradient_signed)
+                        candidate_F = float(
+                            first_order_geometry["fubini_study_metric"]
                         )
                         candidate_sigma_hat = _phase3_sigma_hat_for_label(
                             candidate_label=str(candidate_label_local),
@@ -42578,7 +42155,7 @@ def _run_hardcoded_adapt_vqe(
                             gradient_signed=float(
                                 candidate_gradient_signed
                             ),
-                            metric_proxy=float(candidate_metric_proxy),
+                            F=float(candidate_F),
                             sigma_hat=float(candidate_sigma_hat),
                             refit_window_indices=[int(i) for i in phase2_window_guess],
                             phase2_geometry_window_indices=[int(i) for i in phase2_window_guess],
@@ -47595,18 +47172,7 @@ def _run_hardcoded_adapt_vqe(
                         ),
                         phase2_memory_adapter=phase2_memory_adapter,
                         phase2_score_cfg=phase2_score_cfg,
-                        recoverability_prune_config=(
-                            _DefaultRecoverabilityPruneConfig(
-                                enabled=False,
-                                max_candidates=1,
-                                max_regression=1.0e-8,
-                                retained_gain_ratio=0.5,
-                                protect_steps=2,
-                                initial_radius=0.125,
-                                radius_contraction_factor=0.5,
-                                radius_floor=1.0e-8,
-                            )
-                        ),
+                        recoverability_prune_config=None,
                         phase2_novelty_oracle=None,
                         reference_state=None,
                         pauli_action_cache=None,
@@ -48687,21 +48253,6 @@ def _run_hardcoded_adapt_vqe(
                 ),
                 "all_energy_models_infeasible_novelty_fallback_query_charge": int(
                     selected_fallback_receipt["query_charge"]
-                ),
-                "phase1_lambda_f_proxy_applied": bool(
-                    selected_feature_mapping.get(
-                        "phase1_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_lambda_f_proxy_applied": bool(
-                    selected_feature_mapping.get(
-                        "phase2_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_missing_curvature_fallback_used": bool(
-                    selected_feature_mapping.get(
-                        "phase2_missing_curvature_fallback_used", False
-                    )
                 ),
                 "phase2_curvature_receipt": (
                     dict(selected_feature_mapping.get("phase2_curvature_receipt"))
@@ -50719,21 +50270,6 @@ def _run_hardcoded_adapt_vqe(
                     )
                     or 0
                 ),
-                "phase1_lambda_f_proxy_applied": bool(
-                    selected_feature_mapping.get(
-                        "phase1_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_lambda_f_proxy_applied": bool(
-                    selected_feature_mapping.get(
-                        "phase2_lambda_f_proxy_applied", False
-                    )
-                ),
-                "phase2_missing_curvature_fallback_used": bool(
-                    selected_feature_mapping.get(
-                        "phase2_missing_curvature_fallback_used", False
-                    )
-                ),
                 "phase2_curvature_receipt": (
                     dict(selected_feature_mapping.get("phase2_curvature_receipt"))
                     if isinstance(
@@ -51055,12 +50591,6 @@ def _run_hardcoded_adapt_vqe(
                             and phase1_feature_selected.get("cheap_score_version") is not None
                             else None
                         ),
-                        "cheap_metric_proxy": (
-                            float(phase1_feature_selected.get("cheap_metric_proxy"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("cheap_metric_proxy") is not None
-                            else None
-                        ),
                         "cheap_benefit_proxy": (
                             float(phase1_feature_selected.get("cheap_benefit_proxy"))
                             if isinstance(phase1_feature_selected, dict)
@@ -51073,8 +50603,8 @@ def _run_hardcoded_adapt_vqe(
                             and phase1_feature_selected.get("cheap_burden_total") is not None
                             else None
                         ),
-                        "metric_proxy": (
-                            float(phase1_feature_selected.get("metric_proxy"))
+                        "F": (
+                            float(phase1_feature_selected.get("F"))
                             if isinstance(phase1_feature_selected, dict)
                             else None
                         ),
@@ -52538,7 +52068,7 @@ def _run_hardcoded_adapt_vqe(
                     if benefit is None:
                         benefit = row.get("cheap_score", row.get("simple_score", None))
                     if benefit is None:
-                        benefit = row.get("metric_proxy", row.get("selected_grad_abs", float("inf")))
+                        benefit = row.get("F", row.get("selected_grad_abs", float("inf")))
                     benefit_f = float(benefit) / float(1.0 + max(0.0, float(burden or 0.0)))
                     if not math.isfinite(benefit_f):
                         benefit_f = float("inf")
@@ -54463,17 +53993,6 @@ def _run_hardcoded_adapt_vqe(
                         "score_mode": str(phase1_score_mode_key),
                         "active_score_key": str(_phase1_shortlist_score_key()),
                         "rho": float(phase2_rho_val),
-                        "lambda_F": float(phase1_score_cfg.lambda_F),
-                        "lambda_F_active": bool(
-                            phase1_energy_model_key
-                            == PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
-                        ),
-                        "lambda_F_role": (
-                            "historical_energy_curvature_proxy"
-                            if phase1_energy_model_key
-                            == PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
-                            else "inactive_legacy_compatibility_field"
-                        ),
                         "lambda_compile": float(phase1_score_cfg.lambda_compile),
                         "lambda_measure": float(phase1_score_cfg.lambda_measure),
                         "lambda_leak": float(phase1_score_cfg.lambda_leak),
@@ -54492,17 +54011,6 @@ def _run_hardcoded_adapt_vqe(
                         "family_ref": float(phase1_score_cfg.family_ref),
                     },
                     "phase2": {
-                        "lambda_F": float(phase2_score_cfg.lambda_F),
-                        "lambda_F_active": bool(
-                            phase2_cheap_curvature_proxy_policy_key
-                            != PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
-                        ),
-                        "lambda_F_role": (
-                            "historical_cheap_curvature_proxy"
-                            if phase2_cheap_curvature_proxy_policy_key
-                            != PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
-                            else "inactive_legacy_compatibility_field"
-                        ),
                         "score_z_alpha": float(phase2_score_cfg.z_alpha),
                         "shortlist_fraction": float(phase2_score_cfg.shortlist_fraction),
                         "shortlist_size": int(phase2_score_cfg.shortlist_size),
@@ -55985,7 +55493,15 @@ def _default_no_prune_prune_summary_template(
     kwargs: Mapping[str, Any],
     parameterization_mode: str,
 ) -> dict[str, Any]:
-    """Build the exact inert-pruning receipt retained by signed checkpoints."""
+    """Build pruning telemetry only for an enabled extension."""
+
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    pruning = extensions.pruning
+    if pruning is None:
+        return {"enabled": False, "executed": False}
+    kwargs = {**dict(kwargs), **pruning.to_runtime_dict()}
 
     policy = str(kwargs["phase1_prune_policy"])
     recoverability = bool(
@@ -56294,10 +55810,13 @@ def _default_no_prune_prune_summary_template(
 
 def _default_recoverability_prune_config(
     kwargs: Mapping[str, Any],
-) -> _DefaultRecoverabilityPruneConfig:
-    """Resolve the exact optional prune child without legacy fallbacks."""
+) -> _DefaultRecoverabilityPruneConfig | None:
+    """Resolve the exact optional prune child from one extension value."""
 
-    enabled = bool(kwargs["phase1_prune_enabled"])
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    pruning = extensions.pruning
     ra_adapt_contract = _validated_ra_adapt_route_contract(kwargs)
     composed_contract = _validated_canonical_composed_route_contract(kwargs)
     typed_contract = (
@@ -56314,106 +55833,35 @@ def _default_recoverability_prune_config(
         typed_invariants.get("canonical_pruning_policy", "off")
     )
     profile_enables_pruning = bool(
-        str(kwargs.get("sr_route_profile_resolved", ""))
-        == (
-            SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
-            )
-            or (
-                typed_contract is not None
-                and typed_pruning_policy != "off"
-            )
+        typed_invariants.get(
+            "pruning_active",
+            typed_pruning_policy != "off",
+        )
+        if typed_contract is not None
+        else str(kwargs.get("sr_route_profile_resolved", ""))
+        == SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_FS_PRUNE_VERIFY_V1
     )
-    if enabled != profile_enables_pruning:
+    if (pruning is not None) != profile_enables_pruning:
         raise ValueError(
-            "The direct route identity and recoverability-prune enablement "
-            "disagree."
+            "The direct route identity and pruning extension disagree."
         )
-    if enabled:
-        nomination_policy = (
-            PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1
-            if (
-                typed_contract is not None
-                and typed_pruning_policy == "metric"
-            )
-            else PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-        )
-        metric_nomination = (
-            nomination_policy == PRUNE_SCHUR_ROUTE_METRIC_REGULARIZED_V1
-        )
-        expected = {
-            "phase1_prune_policy": PRUNE_POLICY_RECOVERABILITY_LADDER_V1,
-            "phase1_prune_mode": "live",
-            "phase1_prune_max_candidates": 1,
-            "phase1_prune_local_window_size": 0,
-            "phase1_prune_max_regression": 1.0e-8,
-            "phase1_prune_retained_gain_ratio": 0.5,
-            "phase1_prune_protect_steps": 2,
-            "phase1_prune_recovery_trust_radius": 0.125,
-            "phase1_prune_schur_nomination_route": nomination_policy,
-            "phase1_prune_metric_schur_mu": (
-                1.0e-6 if metric_nomination else 0.0
-            ),
-            "phase1_prune_metric_schur_solve_mode": (
-                PRUNE_METRIC_SCHUR_SOLVE_GRADIENT_CORRECTED_V1
-                if metric_nomination
-                else PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-            ),
-            "phase1_prune_metric_schur_cost_weighting": (
-                PRUNE_METRIC_COST_WEIGHT_OFF
-            ),
-            "phase1_prune_trust_update_policy": (
-                "modeled_local_fs_conservative_v1"
-            ),
-            "phase1_prune_metric_mu_update_policy": "off",
-            "phase1_prune_endpoint_overlap_policy": "off",
-        }
-        mismatches = {
-            key: (kwargs.get(key), value)
-            for key, value in expected.items()
-            if kwargs.get(key) != value
-        }
-        if mismatches:
-            raise ValueError(
-                "The direct recoverability child received settings outside "
-                f"its exact contract: {mismatches!r}."
-            )
-    else:
-        nomination_policy = (
-            PRUNE_SCHUR_ROUTE_FULL_LOGICAL_FS_TRUST_DELETE_REFIT_V1
-        )
-        metric_nomination = False
+    if pruning is None:
+        return None
+    runtime = resolve_pruning_runtime(pruning, repo_root=REPO_ROOT)
+    if runtime is None:
+        raise AssertionError("Enabled pruning failed to resolve its runtime.")
+    config = runtime.config
     return _DefaultRecoverabilityPruneConfig(
-        enabled=enabled,
-        max_candidates=(
-            int(kwargs["phase1_prune_max_candidates"])
-            if enabled
-            else 1
-        ),
-        max_regression=max(
-            0.0, float(kwargs["phase1_prune_max_regression"])
-        ),
-        retained_gain_ratio=max(
-            0.0, float(kwargs["phase1_prune_retained_gain_ratio"])
-        ),
-        protect_steps=max(0, int(kwargs["phase1_prune_protect_steps"])),
-        initial_radius=(
-            float(kwargs["phase1_prune_recovery_trust_radius"])
-            if enabled
-            else 0.125
-        ),
+        max_candidates=int(config.max_candidates),
+        max_regression=float(config.max_regression),
+        retained_gain_ratio=float(config.retained_gain_ratio),
+        protect_steps=int(config.protect_steps),
+        initial_radius=float(config.surrogate_recovery_trust_radius),
         radius_contraction_factor=0.5,
         radius_floor=1.0e-8,
-        nomination_policy_identity=nomination_policy,
-        metric_mu=(
-            float(kwargs["phase1_prune_metric_schur_mu"])
-            if metric_nomination
-            else 0.0
-        ),
-        metric_solve_mode=(
-            str(kwargs["phase1_prune_metric_schur_solve_mode"])
-            if metric_nomination
-            else PRUNE_METRIC_SCHUR_SOLVE_AFFINE_DELETION_GLOBAL_TRUST_V1
-        ),
+        nomination_policy_identity=str(config.schur_nomination_route),
+        metric_mu=float(config.metric_schur_mu),
+        metric_solve_mode=str(config.metric_schur_solve_mode),
     )
 
 
@@ -56424,6 +55872,8 @@ def _default_no_prune_round_prune_summary(
     active_depth: int,
 ) -> dict[str, Any]:
     summary = copy.deepcopy(dict(template))
+    if not bool(summary.get("enabled", False)):
+        return summary
     summary["energy_before"] = float(energy)
     summary["energy_after_prune"] = float(energy)
     summary["energy_after_post_refit"] = float(energy)
@@ -59577,18 +59027,7 @@ class _DefaultNoPruneKernelContext:
     checkpoint_history_tail: int
     estimator_service: _DefaultNoPruneEstimatorService
     oracle_cleanup: _Phase3OracleCleanupGuard | None = None
-    recoverability_prune_config: _DefaultRecoverabilityPruneConfig = (
-        _DefaultRecoverabilityPruneConfig(
-            enabled=False,
-            max_candidates=1,
-            max_regression=1.0e-8,
-            retained_gain_ratio=0.5,
-            protect_steps=2,
-            initial_radius=0.125,
-            radius_contraction_factor=0.5,
-            radius_floor=1.0e-8,
-        )
-    )
+    recoverability_prune_config: _DefaultRecoverabilityPruneConfig | None = None
 
 
 @dataclass(slots=True)
@@ -60136,7 +59575,6 @@ class _DefaultNoPruneNumericalSession:
         *,
         candidate_label: str,
         candidate_term: AnsatzTerm,
-        gradient_signed: float,
         precompiled_action: CompiledPolynomialAction | None = None,
     ) -> float:
         pending = self.cursor.pending_selection
@@ -60144,8 +59582,6 @@ class _DefaultNoPruneNumericalSession:
             raise RuntimeError(
                 "Candidate metric evaluation requires a pending round."
             )
-        if not self.context.phase3_enabled:
-            return float(abs(float(gradient_signed)))
         cache_key = str(candidate_label)
         cached = pending.phase3_base_metric_cache.get(cache_key)
         if cached is not None:
@@ -60211,34 +59647,6 @@ class _DefaultNoPruneNumericalSession:
             feature,
             pending.phase2_score_cfg_round,
         )
-        forbidden = (
-            bool(
-                getattr(
-                    feature,
-                    "phase1_lambda_f_proxy_applied",
-                    False,
-                )
-            )
-            or bool(
-                getattr(
-                    feature,
-                    "phase2_lambda_f_proxy_applied",
-                    False,
-                )
-            )
-            or bool(
-                getattr(
-                    feature,
-                    "phase2_missing_curvature_fallback_used",
-                    False,
-                )
-            )
-        )
-        if forbidden:
-            raise RuntimeError(
-                "Exact Phase-II telemetry reports a forbidden curvature "
-                f"fallback at {source}."
-            )
         with self.cursor.phase12_energy_model_telemetry_lock:
             telemetry = self.cursor.phase12_energy_model_telemetry
             telemetry["phase2_full_candidate_occurrences"] = int(
@@ -60528,10 +59936,9 @@ class _DefaultNoPruneNumericalSession:
                 )
             )
             candidate_label = str(candidate.label)
-            candidate_metric_proxy = self._base_metric_for_candidate(
+            candidate_F = self._base_metric_for_candidate(
                 candidate_label=candidate_label,
                 candidate_term=candidate,
-                gradient_signed=float(pending.gradients[index]),
                 precompiled_action=self.context.compiled_pool[index],
             )
             if index not in pending.candidate_metric_cache:
@@ -60609,7 +60016,7 @@ class _DefaultNoPruneNumericalSession:
                 append_position=append_position,
                 positions_considered=[append_position],
                 gradient_signed=float(pending.gradients[index]),
-                metric_proxy=float(candidate_metric_proxy),
+                F=float(candidate_F),
                 sigma_hat=float(
                     _phase3_sigma_hat_for_label(
                         candidate_label=candidate_label,
@@ -61209,7 +60616,7 @@ class _DefaultNoPruneNumericalSession:
                     append_position=append_position,
                     positions_considered=positions_considered,
                     gradient_signed=gradient,
-                    metric_proxy=metric,
+                    F=metric,
                     sigma_hat=sigma_hat,
                     refit_window_indices=phase2_indices,
                     phase2_geometry_window_indices=phase2_indices,
@@ -62719,7 +62126,7 @@ class _DefaultNoPruneNumericalSession:
                 history_rows=self.cursor.history,
                 base_winning_branch_ids=beam_winning_branch_ids,
             )
-            if self.context.recoverability_prune_config.enabled
+            if self.context.recoverability_prune_config is not None
             else None
         )
         winning_occurrence_summary = (
@@ -63675,7 +63082,7 @@ class _DefaultNoPruneNumericalSession:
                 history_rows=self.cursor.history,
                 base_winning_branch_ids=beam_winning_branch_ids,
             )
-            if self.context.recoverability_prune_config.enabled
+            if self.context.recoverability_prune_config is not None
             else None
         )
         winning_occurrence_summary = (
@@ -64660,7 +64067,7 @@ class _DefaultPhase2FullRecordEvaluator:
                     ),
                 )
             )
-            candidate_metric_proxy = float(exact_first_order_geometry["fubini_study_metric"])
+            candidate_F = float(exact_first_order_geometry["fubini_study_metric"])
             candidate_recompute_is_runtime_child = bool(str(runtime_split_mode_value) != 'off')
             candidate_gradient_receipt = self.session._record_estimator_primitive(state=np.asarray(self.pending.psi_current, dtype=complex), component='N_grad', consumer_scope='runtime_split_child_gradient' if candidate_recompute_is_runtime_child else 'full_candidate_gradient_recompute', primitive_kind='coordinate_gradient', observable_or_formula_identity='aer_density_matrix_full_noise_coordinate_gradient_v1' if noise_runtime is not None else 'coordinate_energy_gradient_v2', operand_identity=self.session._candidate_physical_tangent(list(self.cursor.selected_ops), self.pending.theta_logical_current, candidate_term, insertion_position=int(feat_base.position_id)))
             candidate_self_metric_primitive_id = self.session._record_candidate_self_metric_primitive(state=np.asarray(self.pending.psi_current, dtype=complex), selected_ops_now=list(self.cursor.selected_ops), logical_theta_now=self.pending.theta_logical_current, candidate_term=candidate_term, consumer_scope='runtime_split_child_self_metric' if candidate_recompute_is_runtime_child else 'full_candidate_self_metric_recompute', insertion_position=int(feat_base.position_id))
@@ -64672,7 +64079,7 @@ class _DefaultPhase2FullRecordEvaluator:
             candidate_sigma_hat = _phase3_sigma_hat_for_label(candidate_label=str(candidate_label), sigma_by_label=self.pending.phase3_sigma_by_label, phase3_enabled=self.context.phase3_enabled)
         else:
             grad_candidate = float(base_feature_override.g_signed)
-            candidate_metric_proxy = float(base_feature_override.metric_proxy)
+            candidate_F = float(base_feature_override.F)
             candidate_sigma_hat = float(base_feature_override.sigma_hat)
         proxy_compile_est_candidate = self.context.phase1_compile_oracle.estimate(candidate_term_count=int(len(compiled_candidate.terms)), position_id=int(feat_base.position_id), append_position=int(feat_base.append_position), refit_active_count=self.context.selector_feature_metadata.compile_proxy_refit_count(feat_base), candidate_term=candidate_term)
         staged_qiskit_compile_active = bool(
@@ -64792,7 +64199,7 @@ class _DefaultPhase2FullRecordEvaluator:
                     'FakeMarrakesh positive-clipped marginal-cost contract.'
                 )
         measurement_stats_candidate = self.cursor.phase1_measure_cache.estimate(measurement_group_specs_for_term(candidate_term))
-        feat_candidate_base = build_candidate_features(stage_name=str(feat_base.stage_name), candidate_label=str(candidate_label), candidate_family=str(feat_base.candidate_family), candidate_pool_index=int(feat_base.candidate_pool_index), position_id=int(feat_base.position_id), append_position=int(feat_base.append_position), positions_considered=[int(x) for x in feat_base.positions_considered], gradient_signed=float(grad_candidate), metric_proxy=float(candidate_metric_proxy), sigma_hat=float(candidate_sigma_hat), refit_window_indices=[int(i) for i in feat_base.refit_window_indices], phase2_geometry_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase2_geometry_indices(feat_base)], phase2_geometry_window_policy=str(feat_base.phase2_geometry_window_policy), phase3_geometry_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase3_schur_indices(feat_base)], phase3_geometry_active_post_indices=[int(i) for i in feat_base.phase3_geometry_active_post_indices], phase3_geometry_window_policy=str(feat_base.phase3_geometry_window_policy), phase3_geometry_window_size=int(feat_base.phase3_geometry_window_size), schur_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase3_schur_indices(feat_base)], schur_window_policy=str(feat_base.schur_window_policy), inherited_refit_window_indices=[int(i) for i in feat_base.inherited_refit_window_indices], active_post_refit_indices=[int(i) for i in feat_base.active_post_refit_indices], optimizer_active_refit_indices=[int(i) for i in feat_base.optimizer_active_refit_indices], compile_cost=compile_est_candidate, measurement_stats=measurement_stats_candidate, leakage_penalty=0.0, stage_gate_open=bool(feat_base.stage_gate_open), leakage_gate_open=True, trough_probe_triggered=bool(feat_base.trough_probe_triggered), trough_detected=bool(feat_base.trough_detected), cfg=self.pending.phase1_score_cfg_round, cheap_score_cfg=self.pending.phase2_score_cfg_round if self.context.phase3_enabled else None, generator_metadata=dict(generator_metadata) if isinstance(generator_metadata, Mapping) else None, symmetry_spec=dict(symmetry_spec_candidate) if isinstance(symmetry_spec_candidate, Mapping) else None, symmetry_mode=str(feat_base.symmetry_mode), symmetry_mitigation_mode=str(feat_base.symmetry_mitigation_mode), motif_metadata=dict(feat_base.motif_metadata) if isinstance(feat_base.motif_metadata, Mapping) else None, motif_bonus=float(feat_base.motif_bonus or 0.0), motif_source=str(feat_base.motif_source), current_depth=int(self.pending.depth), max_depth=int(self.context.max_depth), lifetime_cost_mode=str(feat_base.lifetime_cost_mode), remaining_evaluations_proxy_mode=str(feat_base.remaining_evaluations_proxy_mode), controller_snapshot=feat_base.controller_snapshot, family_repeat_cost=float(feat_base.family_repeat_cost))
+        feat_candidate_base = build_candidate_features(stage_name=str(feat_base.stage_name), candidate_label=str(candidate_label), candidate_family=str(feat_base.candidate_family), candidate_pool_index=int(feat_base.candidate_pool_index), position_id=int(feat_base.position_id), append_position=int(feat_base.append_position), positions_considered=[int(x) for x in feat_base.positions_considered], gradient_signed=float(grad_candidate), F=float(candidate_F), sigma_hat=float(candidate_sigma_hat), refit_window_indices=[int(i) for i in feat_base.refit_window_indices], phase2_geometry_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase2_geometry_indices(feat_base)], phase2_geometry_window_policy=str(feat_base.phase2_geometry_window_policy), phase3_geometry_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase3_schur_indices(feat_base)], phase3_geometry_active_post_indices=[int(i) for i in feat_base.phase3_geometry_active_post_indices], phase3_geometry_window_policy=str(feat_base.phase3_geometry_window_policy), phase3_geometry_window_size=int(feat_base.phase3_geometry_window_size), schur_window_indices=[int(i) for i in self.context.selector_feature_metadata.phase3_schur_indices(feat_base)], schur_window_policy=str(feat_base.schur_window_policy), inherited_refit_window_indices=[int(i) for i in feat_base.inherited_refit_window_indices], active_post_refit_indices=[int(i) for i in feat_base.active_post_refit_indices], optimizer_active_refit_indices=[int(i) for i in feat_base.optimizer_active_refit_indices], compile_cost=compile_est_candidate, measurement_stats=measurement_stats_candidate, leakage_penalty=0.0, stage_gate_open=bool(feat_base.stage_gate_open), leakage_gate_open=True, trough_probe_triggered=bool(feat_base.trough_probe_triggered), trough_detected=bool(feat_base.trough_detected), cfg=self.pending.phase1_score_cfg_round, cheap_score_cfg=self.pending.phase2_score_cfg_round if self.context.phase3_enabled else None, generator_metadata=dict(generator_metadata) if isinstance(generator_metadata, Mapping) else None, symmetry_spec=dict(symmetry_spec_candidate) if isinstance(symmetry_spec_candidate, Mapping) else None, symmetry_mode=str(feat_base.symmetry_mode), symmetry_mitigation_mode=str(feat_base.symmetry_mitigation_mode), motif_metadata=dict(feat_base.motif_metadata) if isinstance(feat_base.motif_metadata, Mapping) else None, motif_bonus=float(feat_base.motif_bonus or 0.0), motif_source=str(feat_base.motif_source), current_depth=int(self.pending.depth), max_depth=int(self.context.max_depth), lifetime_cost_mode=str(feat_base.lifetime_cost_mode), remaining_evaluations_proxy_mode=str(feat_base.remaining_evaluations_proxy_mode), controller_snapshot=feat_base.controller_snapshot, family_repeat_cost=float(feat_base.family_repeat_cost))
         feat_candidate_base = candidate_feature_with_updates(feat_candidate_base, self.context.selector_feature_metadata.inherited_selector_updates(feat_base))
         if str(runtime_split_mode_value) != 'off':
             feat_candidate_base = CandidateFeatures(**{**feat_candidate_base.__dict__, 'runtime_split_mode': str(runtime_split_mode_value), 'runtime_split_parent_label': str(runtime_split_parent_label_value) if runtime_split_parent_label_value is not None else None, 'runtime_split_child_index': int(runtime_split_child_index_value) if runtime_split_child_index_value is not None else None, 'runtime_split_child_count': int(runtime_split_child_count_value) if runtime_split_child_count_value is not None else None, 'runtime_split_chosen_representation': str(runtime_split_chosen_representation_value), 'runtime_split_child_indices': [int(x) for x in runtime_split_child_indices_value] if runtime_split_child_indices_value is not None else [], 'runtime_split_child_labels': [str(x) for x in runtime_split_child_labels_value] if runtime_split_child_labels_value is not None else [], 'runtime_split_child_generator_ids': [str(x) for x in runtime_split_child_generator_ids_value] if runtime_split_child_generator_ids_value is not None else []})
@@ -65069,8 +64476,7 @@ def _macro_gradient_phase0_parent_context_feature(
         g_abs=magnitude,
         g_lcb=magnitude,
         sigma_hat=0.0,
-        F_metric=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         novelty=1.0,
         curvature_mode="not_acquired_macro_phase0_context_v1",
         novelty_mode="not_acquired_macro_phase0_context_v1",
@@ -65086,13 +64492,11 @@ def _macro_gradient_phase0_parent_context_feature(
         score_version="standard_adapt_abs_gradient_macro_phase0_v1",
         cheap_score=magnitude,
         cheap_score_version="standard_adapt_abs_gradient_macro_phase0_v1",
-        cheap_metric_proxy=1.0,
         cheap_benefit_proxy=magnitude,
         cheap_burden_total=0.0,
         phase1_active_score=magnitude,
         phase1_legacy_simple_score=magnitude,
         phase1_energy_model="not_evaluated_macro_phase0_context_v1",
-        phase1_lambda_f_proxy_applied=False,
         generator_id=(
             None
             if metadata is None
@@ -69350,7 +68754,6 @@ def _default_no_prune_simple_score_config(
     """Normalize the exact active Phase-I score configuration."""
 
     return SimpleScoreConfig(
-        lambda_F=float(kwargs["phase1_lambda_F"]),
         lambda_compile=float(kwargs["phase1_lambda_compile"]),
         lambda_measure=float(kwargs["phase1_lambda_measure"]),
         lambda_leak=float(kwargs["phase1_lambda_leak"]),
@@ -69434,11 +68837,6 @@ def _default_no_prune_full_score_config(
         if kwargs.get("phase2_score_z_alpha") is None
         else kwargs["phase2_score_z_alpha"]
     )
-    lambda_f = (
-        kwargs["phase1_lambda_F"]
-        if kwargs.get("phase2_lambda_F") is None
-        else kwargs["phase2_lambda_F"]
-    )
     batch_cap = max(1, int(kwargs["phase2_batch_size_cap"]))
     batch_target = min(
         max(1, int(kwargs["phase2_batch_target_size"])),
@@ -69451,7 +68849,6 @@ def _default_no_prune_full_score_config(
         remaining_proxy = "remaining_depth"
     score_cfg = FullScoreConfig(
         z_alpha=float(z_alpha),
-        lambda_F=float(lambda_f),
         lambda_H=float(max(1.0e-12, kwargs["phase2_lambda_H"])),
         rho=float(kwargs["phase2_rho"]),
         depth_ref=float(kwargs["phase2_depth_ref"]),
@@ -70674,9 +70071,6 @@ def _finish_default_no_prune_numerical_session_initialization(
             "phase2_full_candidate_occurrences": 0,
             "validated_phase2_curvature_receipt_occurrences": 0,
             "candidate_cache_hit_validated_receipt_occurrences": 0,
-            "phase1_lambda_f_proxy_occurrences": 0,
-            "phase2_lambda_f_proxy_occurrences": 0,
-            "phase2_missing_curvature_fallback_occurrences": 0,
         },
         phase12_energy_model_telemetry_lock=Lock(),
         initial_outer_measurement_cache=(
@@ -70690,7 +70084,7 @@ def _finish_default_no_prune_numerical_session_initialization(
                     recoverability_prune_config.initial_radius
                 )
             )
-            if recoverability_prune_config.enabled
+            if recoverability_prune_config is not None
             else None
         ),
         operator_admission_rounds=[],
@@ -71087,7 +70481,7 @@ def _hydrate_default_no_prune_numerical_session(
         )
 
     prune_state = hydration.prune_trust_state
-    if session.context.recoverability_prune_config.enabled:
+    if session.context.recoverability_prune_config is not None:
         if prune_state is None:
             raise RuntimeError(
                 "Pruning-enabled resume lacks its authenticated prune state."
@@ -71332,7 +70726,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase1_group_ref": 1.0,
     "phase1_lambda_1q": 0.05,
     "phase1_lambda_2q": 0.2,
-    "phase1_lambda_F": 1.0,
     "phase1_lambda_compile": 0.05,
     "phase1_lambda_d": 0.2,
     "phase1_lambda_leak": 0.0,
@@ -71380,7 +70773,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase2_group_ref": 1.0,
     "phase2_lambda_1q": 0.05,
     "phase2_lambda_2q": 0.2,
-    "phase2_lambda_F": None,
     "phase2_lambda_H": 1.0e-6,
     "phase2_lambda_d": 0.2,
     "phase2_lambda_shot": 0.15,
@@ -71510,7 +70902,8 @@ def _build_canonical_sr_snake_runtime_kwargs(
     )
     if not isinstance(kwargs, dict):
         raise AssertionError("Canonical SR-SNAKE infrastructure must thaw to dict.")
-    kwargs.update(execution_settings)
+    resolved_extensions = extensions_from_route_contract(route_contract)
+    kwargs.update(without_extension_runtime_keys(execution_settings))
     kwargs.update(
         {
             "h_poly": resolved_problem_context.hamiltonian,
@@ -71598,6 +70991,7 @@ def _build_canonical_sr_snake_runtime_kwargs(
             "sr_route_profile_resolved": str(route_profile),
             "sr_route_profile_contract": dict(route_contract),
             "sr_route_profile_contract_sha256": str(route_contract_sha256),
+            "extensions": resolved_extensions,
         }
     )
     if gradient_tolerance is not None:
