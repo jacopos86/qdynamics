@@ -879,6 +879,181 @@ Verify from a completed-run receipt that `phase3_enabled` was true, or that
 `metric_proxy` never exceeded `F_metric`, before removing the branch. If it ever
 fired, this is a scientific change and stops being a cleanup.
 
+## 6n. The 26 geometry fields, classified by the author's Paper-I test
+
+Screen run 2026-08-24. **This is a screen, not a verdict** — "in Paper I" means
+the concept word appears in `Paper_I_author_revision.tex`. Ratify each against
+source before deleting, per the standing rule.
+
+Only **4 of 26 are actually values.** The rest are policy, index sets,
+telemetry, or proxies.
+
+| field | in Paper I | kind |
+|---|---|---|
+| `F_metric` | yes | **VALUE** |
+| `hardware_cost_lambdas` | yes | **VALUE** |
+| `phase2_raw_overlap_max` | yes | **VALUE** |
+| `phase2_span_projection_z` | yes | **VALUE** |
+| `phase0_cost_lambdas` | yes | VALUE — but deleted by Q14 |
+| `metric_proxy` | **NO** | proxy/fallback → Q20 |
+| `cheap_metric_proxy` | **NO** | proxy/fallback → Q20 |
+| `phase1_lambda_f_proxy_applied` | **NO** | proxy/fallback |
+| `phase2_lambda_f_proxy_applied` | **NO** | proxy/fallback |
+| `phase2_cheap_curvature_proxy_policy` | **NO** | proxy policy |
+| `phase2_missing_curvature_fallback_used` | **NO** | **fallback flag — rule 7** |
+| `selector_geometry_mode` | **NO** | policy |
+| `curvature_mode` | yes | policy → `request` |
+| `phase2_curvature_policy` | yes | policy → `request` |
+| `phase2_geometry_window_policy` | yes | policy → `request` |
+| `phase3_geometry_window_policy` | yes | policy → `request` |
+| `hardware_cost_lambda_source` | yes | policy → `request` |
+| `phase0_cost_lambda_source` | yes | policy → deleted by Q14 |
+| `phase2_geometry_window_indices` | yes | support (index set) |
+| `phase3_geometry_refit_window_indices` | yes | support |
+| `phase3_geometry_active_post_indices` | yes | support |
+| `phase3_geometry_nested_refit_window` | yes | support |
+| `phase3_geometry_window_size` | yes | support (derivable) |
+| `phase3_geometry_window_accounting` | yes | support/telemetry |
+| `phase2_joint_geometry_reuse` | yes | telemetry (an output) |
+| `phase2_curvature_receipt` | yes | telemetry (an output) |
+
+### What each class becomes
+
+| class | count | destination |
+|---|---|---|
+| VALUE | 4 | `ResponseBlocks` entries — indexing expressions, not fields |
+| policy | 7 | `request`, resolved once per run |
+| support (index set) | 6 | the `candidates` argument to `restrict()` |
+| telemetry | 2 | built outside `evaluate()` from the `Scored` list |
+| proxy/fallback | 7 | **delete** — 6 fail the Paper-I test outright |
+
+**Seven fields fail the Paper-I test.** Six are proxy or fallback machinery;
+`phase2_missing_curvature_fallback_used` is a flag recording that a fallback
+fired, which rule 7 says should not exist.
+
+That is the shape of the 26-scalar deletion: almost none of it is data the method
+needs. It is policy on the wrong object, index sets passed as fields, telemetry
+mixed into inputs, and undefined proxies.
+
+## 6o. The six remaining Paper-I test failures, ratified against source
+
+6n screened by keyword. These are ratified. `metric_proxy` is already covered by
+Q20 and 6m.
+
+| field | ratified finding |
+|---|---|
+| `phase2_missing_curvature_fallback_used` | **Never set `True` anywhere.** Three `False` literals (`hh_continuation_scoring.py:3268, 3890, 6617`) and ~7 `.get(..., False)` reads forwarded into payloads (`adapt_pipeline.py:21044, 37863, 48701, 50732, 60232`). The flag can only ever be `False`. Dead. |
+| `phase1_lambda_f_proxy_applied` | Pass-through telemetry. Read with `.get(..., False)` and forwarded into a payload at `adapt_pipeline.py:37853, 48691, 50722`. Carries no decision. |
+| `phase2_lambda_f_proxy_applied` | Same pattern, `:37858, 48696, 50727`. |
+| `cheap_metric_proxy` | Dataclass default `0.0` (`hh_continuation_types.py:112`), set to `1.0` once (`adapt_pipeline.py:65089`), otherwise forwarded (`:51058-51061`). Effectively a constant. |
+| `selector_geometry_mode` | 56 references, default `"reduced"`, living in `historical_route_identity.py:62,130` and `selector_debug.py`. Route-identity and debug policy, not a value. |
+| `phase2_cheap_curvature_proxy_policy` | **The important one — see below.** |
+
+### The curvature proxy: rule 7 is already canonical policy
+
+The proxy substitutes `lambda_F * F` for measured curvature — the Fubini--Study
+**metric** standing in for the energy **Hessian**, two objects Paper I defines
+separately (`hh_continuation_scoring.py:2656, 5518`).
+
+Two profiles set the policy, and they disagree:
+
+| profile | `phase2_curvature_policy` | `phase2_cheap_curvature_proxy_policy` |
+|---|---|---|
+| `CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS` (:659) | `MEASURED_REQUIRED_FAIL_CLOSED_V1` | **`OFF`** |
+| `HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS` (:614) | `LEGACY_OPTIONAL_V1` | `LEGACY_LAMBDA_F_RATIO_V1` |
+
+V4 carries an explicit comment: *"Keep it explicitly disabled so neither a
+generic parser default nor a source-locked command can silently activate the
+guard."*
+
+**So the canonical modern profile already implements rule 7 for curvature:
+measured required, fail closed, proxy off.** The substitution survives only on
+the historical phase-1/2 energy model, reached through the conventional v3.1
+compatibility route.
+
+That changes how the no-fallbacks rule should be argued in the refactor. It is
+not a new constraint being imposed — it is an existing canonical decision being
+generalized, with a precedent and a rationale already written in the source.
+
+### Deletion summary
+
+Six of the seven are dead flags, constants, pass-through telemetry, or
+compatibility-route policy. None carries a live decision in a canonical run. The
+seventh (`metric_proxy`) is Q20.
+
+## 6p. Deleting the `lambda_F * F` substitution (Q21) — scope and consequence
+
+The substitution uses the Fubini--Study **metric** as a surrogate for the energy
+**Hessian**, two objects Paper I defines separately. It appears in two places:
+
+| site | what it does |
+|---|---|
+| `hh_continuation_scoring.py:2653-2658` | Phase-I legacy model: `trust_region_drop(g, lambda_F * F_legacy, F_legacy, rho)` |
+| `hh_continuation_scoring.py:5518` | Phase-II cheap curvature proxy: `lambda_F * legacy_metric` |
+
+### It is in the NUMERATOR, not only the trust region
+
+Author's question, and the answer is yes. `trust_region_drop(g_lcb, h_eff, F, rho)`
+(`:2790`):
+
+```python
+alpha_max = rho / math.sqrt(F)                   # F sets the trust-region RADIUS
+if h_eff_pos > 0.0:
+    alpha_newton = g_lcb / h_eff_pos
+    if alpha_newton <= alpha_max:
+        return 0.5 * g_lcb**2 / h_eff_pos        # h_eff in the returned drop
+return g_lcb * alpha - 0.5 * h_eff_pos * alpha**2  # and here
+```
+
+`h_eff` enters the **returned energy drop** in both branches, and the legacy call
+passes `h_eff = lambda_F * F_legacy`. So the metric does double duty: once
+legitimately as the radius via `rho/sqrt(F)`, and again, scaled by `lambda_F`, as
+the curvature in the quadratic producing `DeltaE`.
+
+The surviving branch proves the contrast — `rho * g / sqrt(F)` is exactly the
+`h_eff -> 0` limit, with `F` used **only** for the radius. Deleting the
+substitution therefore removes a metric-for-Hessian surrogate from the score
+numerator while leaving the legitimate trust-region use of `F` untouched.
+
+### No canonical evidence used it
+
+| profile | `phase1_energy_model` |
+|---|---|
+| `HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS` (:614) | `LEGACY_LAMBDA_F_QUADRATIC_V1` — the substitution |
+| `CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS` (:659) | `FIRST_ORDER_FS_TRUST_V1` |
+| `CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS` (:721) | `FIRST_ORDER_FS_TRUST_V1` |
+
+The third is the **active family root with 20 descendants** (F3). Both canonical
+families compute the surviving branch instead:
+
+```python
+rho * g_hw_lcb / math.sqrt(F_measured)
+```
+
+A first-order Fubini--Study trust step. No `lambda_F`, no Hessian surrogate.
+Combined with V4 already setting `phase2_cheap_curvature_proxy_policy: OFF` and
+`phase2_curvature_policy: MEASURED_REQUIRED_FAIL_CLOSED_V1` (6o), **the canonical
+route has already abandoned this proxy on both phases.** Deleting it removes
+compatibility-route behaviour only.
+
+### Deletion scope
+
+- the `LEGACY_LAMBDA_F_QUADRATIC_V1` branch of `phase1_trust_region_gain`, and
+  with it `F_legacy`, `metric_floor`, and `cfg.lambda_F` where they exist only to
+  serve it
+- `PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1` and `:5518`
+- the two `*_lambda_f_proxy_applied` telemetry flags (6o — pass-through, no
+  decision)
+- `HISTORICAL_SR_SNAKE_PHASE12_ENERGY_MODEL_SETTINGS` loses 2 of its 4 keys
+
+### Consequence to settle first
+
+Those historical settings are spread into `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1`.
+Deleting the models they select **retires that compatibility route** — it would
+have no Phase-I energy model to resolve. Under `CONTEXT.md` a **Compatibility
+route** is "reachable only through an explicit versioned identity", so retiring
+one is a deliberate act, not a side effect. See Q22.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -937,6 +1112,9 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q16 | Is Bundle 9's legacy total-joint path inconsistent with the published Phase III? | **No — marginal vs non-marginal is an option. Test both.** Consistent with Q3. Bundle 9 is not disqualified; it exercised one option. | 2026-08-24 |
 | Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
 | Q20 | `metric_proxy` — delete? | **Yes, delete.** It is the Fubini--Study metric under a second name, not a distinct object: unify `metric_proxy` and `F_metric` into one `F` field, and delete the `not phase3_enabled` branch that substitutes `abs(gradient)` for the metric. | 2026-08-24 |
+| Q21 | The `lambda_F * F` substitution — metric standing in for the energy second order | **Delete it.** "Subbing in the gram part squared for the energy second order was an old proxy I want deleted." Covers both the Phase-I legacy energy model and the Phase-II cheap curvature proxy. | 2026-08-24 |
+| Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
+| Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
 
 ### Standing rules from the author
 
