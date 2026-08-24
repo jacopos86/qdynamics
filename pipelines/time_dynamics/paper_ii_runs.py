@@ -572,6 +572,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     show.add_argument("--drive", default="fastweak")
     show.add_argument("--horizon", default="t10")
     show.add_argument("--output-json", default="output/paper_ii/run.json")
+    params = sub.add_parser(
+        "params",
+        help="print every effective parameter for one run (registry + defaults)",
+    )
+    params.add_argument("--regime", default="hh_snake_nph1")
+    params.add_argument("--arm", default="exchange")
+    params.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
+    params.add_argument("--numerics", default=SHARED_NUMERICS.numerics_id)
+    params.add_argument("--step-control", default=STATE_MOTION_CONTROL.control_id)
+    params.add_argument("--drive", default="fastweak")
+    params.add_argument("--horizon", default="t10")
+    params.add_argument("--changed-only", action="store_true",
+                        help="show only values the registry overrides")
     matrix = sub.add_parser("matrix", help="print the whole drive x arm matrix")
     matrix.add_argument("--regimes", default="hh_snake_nph1",
                         help="comma-separated regime ids")
@@ -599,6 +612,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         missing = [k for k, r in REGIMES.items() if not r.available]
         if missing:
             print(f"\n{len(missing)} regime seed(s) not built: {', '.join(missing)}")
+        return 0
+    if args.command == "params":
+        from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
+            _build_parser as _runner_parser,
+        )
+
+        run = build_run(
+            regime=args.regime, arm=args.arm, gate=args.gate, drive=args.drive,
+            horizon=args.horizon, numerics=args.numerics,
+            step_control=args.step_control, output_json="<output>",
+        )
+        parser_ = _runner_parser()
+        effective = vars(parser_.parse_args(list(run.argv())))
+        defaults = vars(parser_.parse_args(["--artifact-json", "x", "--output-json", "y"]))
+        print(f"# run_id: {run.run_id}")
+        print(f"# seed:   {run.seed_path}")
+        print(f"# {'parameter':46s} {'value':>22s}   source")
+        for key in sorted(effective):
+            value, base = effective[key], defaults.get(key)
+            changed = value != base
+            if args.changed_only and not changed:
+                continue
+            print(f"  {key:46s} {str(value):>22s}   "
+                  f"{'registry' if changed else 'runner default'}")
         return 0
     if args.command == "show":
         print(build_run(
