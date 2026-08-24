@@ -1110,6 +1110,13 @@ score depends on numbers no profile records.
 
 ## 6r. Batch admission: two nested defaults (Q24)
 
+> **CORRECTED by 6u.** Q24 called the additivity-defect gate "canonical Paper-I
+> batch". Paper I's criterion is different: feasibility is *existence of the
+> supported joint Phase-III solve*, and admission is
+> `argmax_B dE_3(B)/K_3(B)`. `batch_additivity_tol` is a third criterion, not the
+> manuscript's. The nested-defaults structure of Q24 still stands.
+
+
 ```
 batch                     default OFF
   └─ if batch = true:
@@ -1200,6 +1207,57 @@ is what makes this a deletion under rule 6i rather than a relocation like the
 `prune` is the largest by far — 35 parameters, 36 flags, 2293 mentions — and the
 active family root already pins `phase1_prune_enabled: False`
 (`sr_snake_route_profile.py:760`), so canonical evidence does not exercise it.
+
+## 6u. What Paper I actually specifies for batching
+
+Settled from the manuscript, `Paper_I_author_revision.tex:1051-1086`.
+
+Let `W_k` be a score-ordered window of the Phase-II population, and
+`B_k(W_k)` its **bounded feasible batches**: the subsets of records carrying
+**distinct generators**, **through the batch-size cap**, for which the
+**supported joint Phase-III solve exists**.
+
+For `B = {r_1..r_s}` the coordinate and gradient vectors preserve the
+candidate--active ordering of the Phase-III model:
+
+    z_B      = (alpha_B, delta_theta)^T
+    g_joint  = (g_alpha_B, g_theta)^T
+
+The corresponding extensions of `H` and `G` give the joint predicted decrease
+`dE_3(B)`, and `K_3(B)` combines the member records' resource contributions.
+Admission is
+
+    B_k* in argmax_{B in B_k(W_k)}  dE_3(B) / K_3(B)        (eq:batch_argmax)
+
+"The bounded route enumerates every feasible subset, while a score-ordered greedy
+construction provides an optional approximation when enumeration is impractical."
+
+For the `L=3` controls, batch admission "enumerates subsets of at most three"
+(`:1499`), and the manuscript's own pseudocode contains
+"**if** batching is enabled **then**" (`:1654`).
+
+### Consequences
+
+1. **The batch-size cap is part of the method.** It bounds `B_k`. An earlier open
+   question asked whether `|B| > 1` should be an outcome rather than a
+   precondition — the manuscript settles it: the cap is a precondition, and
+   `batch_size_cap` corresponds to it directly.
+2. **`enable_batching` corresponds to the manuscript** — the pseudocode branches
+   on it.
+3. **Feasibility is not an additivity tolerance.** Paper I's test is whether the
+   supported joint Phase-III solve *exists*. The code's
+   `additivity_defect = 1 - dE_joint/sum(dE_i)` gated by `batch_additivity_tol`
+   (`hh_continuation_scoring.py:7302, 7309`) is a separate criterion with no
+   counterpart in the manuscript.
+4. **Admission is the same energy-per-cost ranking as singleton**, extended to
+   blocks: `dE_3(B)/K_3(B)`. This is the batch case of `evaluate`'s
+   `descent / cost`, not a different rule.
+5. Both the **bounded enumeration** and the **greedy approximation** are in the
+   method; greedy is explicitly optional.
+
+So under Q24's structure, canonical batch is `argmax dE_3(B)/K_3(B)` over
+cap-bounded subsets with an existing joint solve. The additivity tolerance and
+the five-weight compatibility penalty are both outside the manuscript.
 
 ## 7. No fallbacks
 
