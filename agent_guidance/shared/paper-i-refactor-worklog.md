@@ -1054,6 +1054,60 @@ have no Phase-I energy model to resolve. Under `CONTEXT.md` a **Compatibility
 route** is "reachable only through an explicit versioned identity", so retiring
 one is a deliberate act, not a side effect. See Q22.
 
+## 6q. The 348 executor parameters, screened
+
+Keyword screen over `_run_hardcoded_adapt_vqe`'s signature. **A screen, not a
+verdict** — ratify before deleting.
+
+| bucket | count |
+|---|---|
+| phase / score / method | 130 |
+| unclassified | 65 |
+| policy / mode / flag | 58 |
+| cost / resource | 36 |
+| plumbing / runtime | 33 |
+| dead / legacy / historical | 10 |
+| proxy / fallback | 9 |
+| telemetry / observation | 7 |
+
+Named legacy candidates: `historical_singleton_coordinate_solve_policy`,
+`historical_singleton_coordinate_solve_scope`,
+`historical_singleton_trust_region_update_policy`,
+`phase3_shadow_legacy_geometry_mode`, `phase3_shadow_legacy_max_depth`, and the
+five `phase2_compat_*_weight`.
+
+Named proxy/fallback candidates: `finite_angle_fallback`,
+`phase1_compile_cx_proxy_weight`, `phase1_compile_sq_proxy_weight`,
+`phase2_compile_cx_proxy_weight`, `phase2_compile_sq_proxy_weight`,
+`phase2_cheap_curvature_proxy_policy`, `deferred_gram_fallback_ridge`,
+`phase2_remaining_evaluations_proxy_mode`, `phase3_enable_rescue`.
+
+### Ratified: the five `phase2_compat_*_weight`
+
+Not dead, and not core either — they are **batch-extension parameters on the core
+signature**.
+
+- Defaults are **non-zero** (`0.4`, `0.2`) at `adapt_pipeline.py:15006` and
+  `cli_config.py:2333, 2345`.
+- **No profile sets any of them** — 0 occurrences in `sr_snake_route_profile.py`.
+  They depend entirely on parser defaults.
+- They are live in the scorer: `_compatibility_penalty_components:6935-7002`
+  computes a weighted sum of support overlap, non-commutation, cross curvature,
+  schedule and measurement mismatch.
+- The consumer is batch admission — the result lands in
+  `phase2_last_batch_penalty_total` (`adapt_pipeline.py:38279, 51309, 53995`).
+
+So they only affect a run when **batching is enabled**, and
+`phase3_enable_batching` is `False` canonically.
+
+**Two conclusions.** First, under the design target batch is an *optional
+extension defined after* the algorithm, so its five weights do not belong on the
+core executor signature at all — they move to `extensions.py` with the batch
+policy. Second, they are a live instance of the F3 drift mechanism in its purest
+form: non-zero scoring weights that no profile pins, so their values come from
+argparse and are invisible to profile review. If batching is ever enabled, the
+score depends on numbers no profile records.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
