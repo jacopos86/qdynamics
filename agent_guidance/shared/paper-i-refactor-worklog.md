@@ -1505,7 +1505,10 @@ So `lambda_F` is deleted entirely by Q21 rather than collapsed to run-level by
 Q35. **Codex: do not preserve it as a run-level parameter.**
 
 `phase3_cheap_ratio_v1` (`:3378-3430`) is a third site of the substitution,
-beyond the two named in 6p, and goes with them.
+beyond the two named in 6p, and goes with them. **Verified dead**: it has no
+callers anywhere in `pipelines/` — the only reference outside its own definition
+is the version string in its own return payload (`:3400`). It never ranked a
+Phase-III candidate.
 
 ## 7. No fallbacks
 
