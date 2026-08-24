@@ -1164,7 +1164,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
-| Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | in progress; target at least 60 net lines removed; Q22 explicitly authorizes retiring conventional-v3.1 compatibility behavior |
+| Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | _(add yours)_ | | | |
 
 ---
@@ -2307,3 +2307,94 @@ performed. Paper-I-scoped `detect-changes` was attempted, but this isolated
 worktree is not registered in the scoped index; it failed closed rather than
 using the repo-wide index. The 11-file draft remains uncommitted for author
 inspection.
+
+### 2026-08-24 — Q20–Q23 metric and curvature-proxy condensation — COMPLETE
+
+**Goal:** represent the measured Fubini--Study scalar once as `F`, delete the
+non-Phase-III `abs(gradient)` substitution, remove both `lambda_F * F`
+energy-curvature substitutions and their pass-through telemetry, and retire
+the conventional-v3.1 compatibility route authorized by Q22.
+
+**Coordination and baseline:** `paper-ii-exchange-selector` through
+`e658d42b` was merged before the Q21–Q23 claim expansion.  The clean measured
+baseline was `69d85e29cc0c85c29ffcf5e859565d647de3bff2`; the final claim-only
+coordination parent was `91a76bbc7f5097fa2c93899169334734cacdce83`.
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# before -> 5573 tests collected, 54 errors; peak RSS 467 MB
+# after  -> 5560 tests collected, 54 errors; peak RSS 422 MB
+
+diff -u errors-before.txt errors-after.txt
+# -> empty diff
+```
+
+The 13-test collection decrease is the intentional removal of tests for the
+deleted field aliases, proxy branches, telemetry, and conventional-v3.1
+route.  No collection error was added or removed.
+
+**Mandatory pre-deletion evidence:** the smallest available completed
+Bundle-9 archive,
+`b9mr__b_depth_append_ra__strong_weak_u8__nph3__9675590__2.tar.gz`, was
+examined and its temporary extraction was removed afterwards.  Across all 30
+checkpoint rows carrying both values, `metric_proxy > F_metric` occurred zero
+times.  Thus the `abs(gradient)` arm had not changed the completed-run value
+surface covered by the archive, and the Q20 stop condition did not trigger.
+
+**Implementation:** commit `05604a36d4a9f464d891fb92e54b6c1edb366980`
+changes 27 files, adding 214 lines and deleting 912: **698 net lines removed**.
+
+- `CandidateFeatures.F` is the sole measured scalar; `F_metric`,
+  `metric_proxy`, and `cheap_metric_proxy` are gone from construction,
+  scoring, debug, serialization, and tests.
+- Phase I now has only `rho * g_lcb / sqrt(F)`.  The legacy
+  `lambda_F * F` quadratic numerator, its numeric CLI/executor controls, and
+  its telemetry are deleted.
+- Phase II retains measured directional curvature.  Its lambda-F ratio proxy,
+  dead missing-curvature flag, and lambda-F telemetry are deleted.  The
+  historical optional-curvature path now contributes zero when no measured
+  `h_hat` exists instead of fabricating an energy Hessian from the metric.
+- `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` and its aliases, contract, digest, and
+  dispatch are deleted.  Unqualified `sr_snake`/`conventional`/`canonical`
+  now resolve to retained conventional-v3.  Frozen historical v1–v3 contract
+  payloads remain unchanged.
+- Removing the now-false lambda-F semantic invariant changes active route
+  digests by construction.  The current Phase-III Qiskit Page-7 parent source
+  lock is therefore updated from `69af64db...` to `3f4ebed3...`; preserved
+  historical artifact and reporting locks retain their historical digest.
+
+**Paper-I-local impact audit:** a disposable GitNexus graph contained only the
+118 `pipelines/static_adapt` files plus
+`hh_continuation_scoring.py` and `hh_continuation_types.py` (121 source files
+total).  It did not consult the repo-wide index.  Baseline impact analysis
+classified the central scoring and route-contract symbols as HIGH/CRITICAL,
+including 59 upstream symbols and 11 processes for the active no-prune
+contract.  The pre-commit `detect-changes --scope all` mapped exactly the ten
+intended production files, 52 changed symbols, and 38 Paper-I execution flows;
+no unrelated production module appeared.
+
+**Receipt-identity lock:** the same cache-disabled, completed two-round
+Hubbard--Holstein run was executed at the baseline and after the change.  Each
+ledger has 444 entries, 555 occurrences, and fingerprint
+`28c61d6849f78ce4a07d60e90454c566d5ecb9d9723eaa0aa76f1ac412a0dde6`.
+The complete canonical JSON is byte-identical:
+
+```bash
+shasum -a 256 ledger-before.json ledger-after.json
+# -> 9a1e912039ef28a2437097077ac47c4161faf31eb327f9ffefa6e8030d5b547f  (both)
+cmp -s ledger-before.json ledger-after.json
+# -> exit 0; 619705 bytes each
+```
+
+This locks primitive ids, ledger keys, entry order, occurrence/receipt order,
+consumer identities, and the ledger fingerprint.  No scientific accounting
+identity changed.
+
+**Regression evidence:** the cache-disabled changed unit surface passes
+`521 passed in 48.61s` at 300 MB peak RSS.  The entire changed integration
+file was then run on the baseline and after the change: baseline
+`30 failed, 291 passed`; after `30 failed, 290 passed`.  The exact `FAILED`
+node-id diff is empty; the one-pass decrease is the deliberately deleted
+proxy test.  All 30 failures therefore pre-exist this increment.
