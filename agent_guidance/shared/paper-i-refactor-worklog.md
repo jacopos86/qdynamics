@@ -1729,6 +1729,76 @@ source ratification first.
 
 The 3 legacy-named ones join the 10 already listed in 6q.
 
+## 6aj. Deferred-Gram audit (Q41) — three questions, answered from evidence
+
+The author's test for removing a method not in Paper I: **is it in the paper, was
+it on the route that produced the results, and did it fire?**
+
+### 1. In Paper I? No.
+
+Zero occurrences in `Paper_I_author_revision.tex` of *deferred*, *metric
+collapse*, *novelty*, *geometry expansion*, or *collapse*. (Also confirms the
+retired novelty multipliers were never manuscript material.)
+
+### 2. On the route? The rescue, no. The detector, yes.
+
+`deferred_gram_fallback_enabled` is **absent from every checkpoint** across all
+58 archives and defaults `False`. The geometry-expansion rescue never ran.
+
+The collapse branch is inside `phase3_canonical_score_components:3933` — the
+canonical Phase-III scorer — and returns early with
+`block_reason: "reduced_metric_collapse"` when
+`phase3_window_relaxation_mode` is not disabled. Profiles set `"reduced"`
+(`sr_snake_route_profile.py:558`) and the runs record `"reduced"`, so the branch
+was live.
+
+### 3. Did it fire? Yes — 25 distinct events.
+
+Audited all 58 local bundle archives (`b3` 18, `b6` 18, `b7` 3, `b8` 6, `b9` 13).
+Counts are `history` + `history_tail` double-records, so halve them:
+
+| bundle | archives | collapse records | distinct events | payloads emitted |
+|---|---|---|---|---|
+| b3 | 18 | 4 | 2 | 2250 |
+| b6 | 18 | 2 | 1 | 2250 |
+| b7 | 3 | 4 | 2 | 300 |
+| b8 | 6 | 4 | 2 | 370 |
+| b9 | 13 | 36 | 18 | 1114 |
+| **total** | **58** | **50** | **25** | **6284** |
+
+### Every occurrence is at machine-level error
+
+B3 `always_insertion__weak_weak`, round 42 of 50: `F_red = 2.17e-11`,
+`dE = -1.32e-10`, `max_grad = 1.85e-06`, rank 34 of 43. Candidate admitted.
+
+B9 `costexp_plateau_position__weak_weak` (`9679133__10`), rounds 34-49 of 50 —
+14 consecutive events. From round 39 the **same generator**
+`guarded_singleton::eeyzeeee` is admitted at the same position eleven times:
+
+```
+round 39  dE=-5.551e-16   max_grad=1.010e-07
+round 42  dE= 0.000e+00   max_grad=1.008e-07
+round 49  dE= 0.000e+00   max_grad=1.009e-07
+```
+
+**Author's judgement: this is machine-level error, so delete.** The branch only
+ever acted where `dE` is between `0.0` and `-6e-11`. Removing it may alter
+accepted trajectories at that magnitude, and that is accepted.
+
+### Unresolved, recorded rather than guessed
+
+The round-42 candidate carried `append_exact_metric_collapse_v1` and was still
+**selected**, and no `block_reason` string appears anywhere in the checkpoint.
+Whether the blocked payload still ranks through `**base`, or the mode is stamped
+after selection, was not traced. It does not change the decision.
+
+### Separate observation, not part of Q41
+
+Rounds 39-49 of that B9 cell re-admit an identical null generator eleven times
+with the gradient frozen. That is ~22% of the run's controller budget and its
+estimator work, inside the reported `k` range, and no mechanism stops it. The
+collapse detector was the only record of it.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1870,6 +1940,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q37 | The resume guard that raises on an unrecognised maturity snapshot | **Delete it with the controller.** Completed Bundle runs do not need restarting, and this is exactly the class of guard the author has said hurts rather than helps — it exists only to police a serialized section that is itself being removed. | 2026-08-24 |
 | Q38 | The snapshot version string `phase123_controller_maturity_v2` | **Rename it, and drop the old string** — no alias, no dual-read. The name no longer describes what the snapshot holds (6ae). **Consequence accepted: existing locked-bundle sidecars can no longer be continued** by the new code, since resume validates the version and will not recognise the old one. | 2026-08-24 |
 | Q39 | The PAOP pool family | **Delete.** Absent from Paper I, selected by no profile, and unused by Paper IV — verified from that lane's own run receipt, which records `adapt_pool = "full_meta"`. 812 references, 4 executor parameters. | 2026-08-24 |
+| Q41 | The deferred-Gram rescue and the metric-collapse branch | **Delete both.** The rescue never fired in 58 archives. The collapse branch fired 25 times, but **every occurrence is at machine-level error** — `F_red` ~ 2e-11 with `dE` between `0.0` and `-6e-11` and `max_grad` ~ 1e-7 — so it only ever acted on candidates contributing floating-point noise. Author accepts that removing it may alter accepted trajectories at that level. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
