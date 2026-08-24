@@ -333,7 +333,7 @@ not a proxy number.
 |---|---|---|---|
 | Increment 0 — golden data rescue | Claude | 2026-08-24 | done, `5e6fcb17` on `golden-rescue-20260824` |
 | Full-suite failure census | Claude | 2026-08-24 | in progress |
-| Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | in progress; source ratification and before/after collection diff required |
+| Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
 | _(add yours)_ | | | |
 
 ---
@@ -852,3 +852,42 @@ navigation. Ratify every reachability or deletion claim against source.
 
 Append one entry per increment: goal, commands run, measured result, and
 whether the stop condition triggered.
+
+### 2026-08-24 — orphaned `pipelines/hardcoded` tests — STOPPED
+
+**Goal:** delete only tests orphaned by deliberately retired
+`pipelines/hardcoded` modules, then prove the collection-error list changed by
+removals only.
+
+**Measured baseline:**
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# -> 5573 tests collected, 54 errors in 23.70s
+# -> peak RSS 432 MB
+```
+
+The error count matches the supplied baseline; the collected-test count is 25
+lower than the supplied 5598 and is reported rather than normalized away.
+
+**Source ratification and stop condition:**
+
+```bash
+rg -n 'pipelines\.hardcoded\.hh_staged_noise|hh_staged_cli_args' \
+  test/test_hh_staged_noise_workflow.py \
+  pipelines/hardcoded/hh_staged_noise.py
+test -f pipelines/hardcoded/hh_staged_noise.py
+```
+
+`test/test_hh_staged_noise_workflow.py:16-19` directly imports
+`pipelines.hardcoded.hh_staged_noise` and
+`pipelines.hardcoded.hh_staged_noise_workflow`. Both modules still exist on
+disk. Collection fails because the existing `hh_staged_noise.py:14` then
+imports the retired `pipelines.hardcoded.hh_staged_cli_args` module.
+
+The handoff explicitly requires stopping if an orphaned test imports a module
+that still exists. The stop condition therefore triggered before deletion.
+No test file was deleted, no after-collection run was made, and no ERROR-list
+diff exists. No implementation or scoring file was touched.
