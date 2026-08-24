@@ -1133,6 +1133,14 @@ Both live under batch in `extensions.py`; neither belongs on the core executor
 signature. Reaching the legacy path requires two explicit opt-ins, so no parser
 default can select it.
 
+**The legacy weights have no defaults (Q25).** Enabling `legacy_batch` asks for
+the five weights. This is the **conditional policy interview** already defined in
+`CONTEXT.md` — silent while the policy is disabled, revealing only that policy's
+required choices when enabled. Consequences: nothing can drift, because there is
+no default to drift from; the weights appear in every legacy-batch receipt by
+construction; and the five `phase2_compat_*_weight` parameters leave the 348-name
+signature entirely rather than moving to a new default.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1195,6 +1203,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
 | Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
 | Q24 | The five-term compatibility penalty vs the Schur additivity defect | **Two nested defaults, both off.** `batch` defaults **off**. If `batch = true`, the default is **canonical Paper-I batch** — block feasibility from the Schur-reduced quadratic, `defect = 1 - dE_joint / sum(dE_i)` against `batch_additivity_tol`. The five-weight heuristic becomes a separate legacy `batch_mode`, **also default off**. Reaching it requires opting in twice. | 2026-08-24 |
+| Q25 | Should legacy-batch weights be pinned in a profile? | **No — the if-then asks for them.** Enabling `legacy_batch` requires supplying the five weights; they have no defaults. This is `CONTEXT.md`'s **conditional policy interview**: silent while the policy is off, reveals its required choices when enabled. Nothing to drift from, and every legacy-batch run records them by construction. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
