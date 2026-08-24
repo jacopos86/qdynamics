@@ -798,6 +798,40 @@ indexing expression rather than a stored field. The work is packaging the
 existing arrays behind `ResponseBlocks`, not computing anything new — which keeps
 it inside the "no numerical change" envelope.
 
+## 6l. `metric_proxy` fails the Paper-I test, and is a rule-7 fallback
+
+Author's test applied 2026-08-24: *if it is not defined in Paper I, it is
+probably archaic.*
+
+**Result: there is no metric proxy in Paper I.** All 8 occurrences of "proxy" in
+`Paper_I_author_revision.tex` are **cost** proxies — `eq:pauli_2count_proxy`,
+`eq:pauli_2depth_proxy`, `eq:pauli_1q_proxy`, `eq:shot_cost_proxy`. The metric is
+the Fubini--Study pullback metric with no proxy variant.
+
+**It is also a silent substitution.** `phase1_trust_region_gain:2614`:
+
+```python
+F_measured = max(0.0, float(feat.metric_proxy), float(feat.F_metric))
+```
+
+Whichever is larger wins. When `metric_proxy > F_metric`, Phase I's
+trust-region gain is computed from a quantity the manuscript does not define,
+with no signal that it happened. That is rule 7 (no fallbacks) in the scoring
+path, not just in the cost oracle.
+
+The default energy model is `PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1` —
+"legacy" again.
+
+Surface: 6 sites set `metric_proxy` (`adapt_pipeline.py:30362, 31170, 40410,
+42581, 60612, 61212`); 35 references to `cheap_metric_proxy` /
+`phase1_lambda_f_proxy_applied` / `phase2_lambda_f_proxy_applied`.
+
+**Deletion is numerically safe only if the proxy never won.** `max()` means
+removing it changes results in exactly those rounds where
+`metric_proxy > F_metric`. Both values are carried on `CandidateFeatures`, so
+this is checkable from completed-run receipts. **Check before deleting** —
+otherwise this is a silent scientific change, not a cleanup.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
