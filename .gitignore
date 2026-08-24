@@ -28,7 +28,8 @@ artifacts/json/adapt_hh_L3_pareto_lean_phase3_heavy_powell_20260321T014005Z.json
 artifacts/json/adapt_hh_L3_pareto_lean_phase3_powell.json
 .deps/
 .venv/
-.claude/
+.claude/*
+!.claude/skills/
 .git_corrupt_packs_backup_*/
 /skills/
 
