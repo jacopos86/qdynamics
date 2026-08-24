@@ -1512,6 +1512,13 @@ Phase-III candidate.
 
 ## 6ad. The maturity controller (Q36) — delete
 
+> **SCOPE CORRECTION — read 6ae before deleting anything.** Verified against a
+> locked bundle's sidecar: the 12 `maturity_*` **parameters** are inert, but the
+> snapshot *named* `phase123_controller_maturity_v2` is the **phase controller**
+> and is live. Deleting "the maturity controller" by that name would take the
+> funnel caps with it.
+
+
 An adaptive per-candidate **shot-budget controller**: as a candidate accumulates
 measurements it "matures", and the caps bound its shots at each phase.
 
@@ -1557,6 +1564,42 @@ horizon. Deleting the controller must not take it.
 trajectory. Every cap defaults off (`None`/`0`), so an inert controller's snapshot
 should carry no trajectory-relevant information — but that is inference from
 defaults, not from a locked bundle's sidecar.
+
+## 6ae. What the "maturity" snapshot actually holds — verified from a bundle
+
+Read from a locked Bundle-9 sidecar,
+`run/checkpoints/current.verified_singleton_resume.*.json` (4,429 bytes). Its
+`controller_snapshot` carries **38 fields**. Exactly one is maturity:
+
+```
+phase_shots_maturity_floor = {phase1: 1, phase2: 1, phase3: 1}   # inert
+```
+
+matching the `phase_maturity_shot_min/max = 1` defaults. **The other 37 are the
+phase controller**, and several are load-bearing:
+
+| field | value in this bundle | what it is |
+|---|---|---|
+| `phase_caps` | `{phase1: 24, phase2: 12, phase3: 12}` | **the funnel shortlist caps** — the method (6ab) |
+| `phase_caps_scheduled` | same | the scheduled caps |
+| `H_t`, `gamma_t`, `m_t`, `s_t`, `rho_t` | non-trivial | controller scheduling state |
+| `useful_horizon`, `frontier_ratio`, `runway_ratio`, `n_rem_*` | non-trivial | horizon estimation |
+| `step_index`, `depth_local`, `depth_left` | `14`, `14`, `36` | round identity, needed for continuation |
+| `phase_shots*`, `phase_signal`, `phase_thresholds` | all `1` / `0` / floors | shot machinery, inert here |
+| `phase_null_reasons` | `phase_live_retired_non_authoritative` | ties to `phase_live_hysteresis_enabled` |
+
+**Conclusion.** "The maturity controller" is a misnomer taken from the snapshot
+version string. The 12 `maturity_*` parameters are dead and Q36 deletes them
+correctly. The **controller** is not dead — it schedules the funnel caps and the
+horizon, and a locked bundle's continuation depends on restoring its state.
+
+**Codex: delete the 12 `maturity_*` parameters and the inert
+`phase_shots_maturity_floor`. Do not delete the controller or its snapshot.** The
+version string may need renaming since "maturity" no longer describes it, but
+renaming it breaks reading existing sidecars — leave the string alone.
+
+This is why the author's rule applies: *always check things you do not know.*
+The name said inert knob; the bundle said phase controller.
 
 ## 7. No fallbacks
 
