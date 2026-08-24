@@ -1,0 +1,112 @@
+{
+ "artifact": "bundle3_final_results.pdf",
+ "artifact_sha256": "45ac60a10e2abea1dd994c3e511c47007b932ffe0bf7ec0b875637a82b1ed4c2",
+ "bundle": "Bundle 3 - Final RA paper I facing, no-warm-start, yes-position-cost",
+ "cluster": 9664325,
+ "generated": "2026-08-21 16:11 CDT",
+ "renderer": "results_tooling/build_variant_pages_v7.py (BUNDLE3_ONLY=1)",
+ "tooling_commit": "551a9fe0",
+ "inputs": {
+  "kstar_tables.json": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/kstar_tables.json",
+   "sha256": "629c8c13bdc6803d88b59bc167bbf45d570d312e553366e8946f3d535b2d255f"
+  },
+  "aavqe_full_hist_tolmatch_9665004.json": {
+   "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/local_runs/paper_i_aavqe_r50_to_r75_tolmatch_20260820_v2/aavqe_full_hist_tolmatch_9665004.json",
+   "sha256": "a05789300cd95f5d3d564bdd53e84f7e465d9bb9dc10570b36aa23594674e271"
+  },
+  "aavqe_r75_cost_tuples_9665004.json": {
+   "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/local_runs/paper_i_aavqe_r50_to_r75_tolmatch_20260820_v2/aavqe_r75_cost_tuples_9665004.json",
+   "sha256": "1dd4dfd17abb44415a1b7cad4693b8319a37961a77519187abe5f5d652c535d3"
+  },
+  "aavqe_salg_prefix_r75_9665004.json": {
+   "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/local_runs/paper_i_aavqe_r50_to_r75_tolmatch_20260820_v2/aavqe_salg_prefix_r75_9665004.json",
+   "sha256": "e651dd6ec252d4d793c1e6a6fed4a989a7bfc773f243f105737083b78c24006c"
+  },
+  "live_samples_fresh.jsonl": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/live_samples_fresh.jsonl",
+   "sha256": "4c584ad24133aa9d60d0d5479bfd7693305e7dc6eebb0f490fd5dee5c32302a7"
+  },
+  "queue_fresh.tsv (9664325)": {
+   "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/ra-refactor-stage2/chtc/paper_i_ra_adapt_repair_20260727/ra_adapt_costexp_depthfix_sixregime_20260820_v2_chtc/queue_fresh.tsv",
+   "sha256": "d443063f4ad42108072ccc6bf4fc286c7783211043c30b027be88bc7b53267bd"
+  },
+  "stream:9664325.0-sixregime__a_costexp_always_open__weak_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.0-sixregime__a_costexp_always_open__weak_weak__nph3.out",
+   "sha256": "1ee5de9addb82b26c9f7783d43c93a16812bb4d9206e983c2710b5cbeea117c7"
+  },
+  "stream:9664325.1-sixregime__a_costexp_always_open__intermediate_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.1-sixregime__a_costexp_always_open__intermediate_weak__nph3.out",
+   "sha256": "c9bbe4ef005e9911dc7b4402c63c3638d56468800db9c0cfde4d2d6848322522"
+  },
+  "stream:9664325.12-sixregime__b_depth_append_ra__weak_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.12-sixregime__b_depth_append_ra__weak_weak__nph3.out",
+   "sha256": "a9de4952f6626a0db4675c3386470b1e725983a42feff65202550be403a8304e"
+  },
+  "stream:9664325.13-sixregime__b_depth_append_ra__intermediate_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.13-sixregime__b_depth_append_ra__intermediate_weak__nph3.out",
+   "sha256": "255a92cbd8c8e6815dbb2259850eb773823c39fc490ffa8636968a6979872052"
+  },
+  "stream:9664325.14-sixregime__b_depth_append_ra__strong_weak_u8__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.14-sixregime__b_depth_append_ra__strong_weak_u8__nph3.out",
+   "sha256": "3682aeb48b7d2bf5b2f67361c7b5b56b924cc7a51d4b3fb8fe571a81a9e7cc4b"
+  },
+  "stream:9664325.15-sixregime__b_depth_append_ra__weak_strong__nph7.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.15-sixregime__b_depth_append_ra__weak_strong__nph7.out",
+   "sha256": "f0cf8b3f733f243221b0e57b787b70d18bb09f3bad5af55abce9f8a14967cc9f"
+  },
+  "stream:9664325.16-sixregime__b_depth_append_ra__intermediate_strong__nph7.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.16-sixregime__b_depth_append_ra__intermediate_strong__nph7.out",
+   "sha256": "3e67ff60bf24bc5b28790a9e8e2769f08f991c9bff91728c76fbe1284576b7f9"
+  },
+  "stream:9664325.17-sixregime__b_depth_append_ra__strong_strong_u8__nph7.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.17-sixregime__b_depth_append_ra__strong_strong_u8__nph7.out",
+   "sha256": "0565dc5961708534b89ae8a63f431cabf3b8e1617814732c6c0d92fe3b19e6b5"
+  },
+  "stream:9664325.18-sixregime__b_depth_costexp_always_open__weak_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.18-sixregime__b_depth_costexp_always_open__weak_weak__nph3.out",
+   "sha256": "8e61741f1dcbe1cdf755515710e4be6bc4dd63cf2e551866b437eb96bf93260c"
+  },
+  "stream:9664325.19-sixregime__b_depth_costexp_always_open__intermediate_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.19-sixregime__b_depth_costexp_always_open__intermediate_weak__nph3.out",
+   "sha256": "ba63b6db7c65fbdf8e0b5c3830cfc30af345ab9813a20205e171766ffb2e3e6c"
+  },
+  "stream:9664325.2-sixregime__a_costexp_always_open__strong_weak_u8__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.2-sixregime__a_costexp_always_open__strong_weak_u8__nph3.out",
+   "sha256": "1026bd62312528df170054b0a486795f3422a8b06e255782f16b846bab8a6c0b"
+  },
+  "stream:9664325.20-sixregime__b_depth_costexp_always_open__strong_weak_u8__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.20-sixregime__b_depth_costexp_always_open__strong_weak_u8__nph3.out",
+   "sha256": "d60b8a0ef17ed25e799bac10131fdfed0b240b40355e1d29b0cfbc30b0b5d5c0"
+  },
+  "stream:9664325.24-sixregime__b_depth_costexp_plateau_position__weak_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.24-sixregime__b_depth_costexp_plateau_position__weak_weak__nph3.out",
+   "sha256": "ac22593fc591d7c73d0a7c430b369ae5d539b01ce627f532bdf3cad41626a6de"
+  },
+  "stream:9664325.25-sixregime__b_depth_costexp_plateau_position__intermediate_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.25-sixregime__b_depth_costexp_plateau_position__intermediate_weak__nph3.out",
+   "sha256": "98db093507e8b898fb9fa5339cf455bc02e15aca08c90b0aab9d5c421bc410ee"
+  },
+  "stream:9664325.26-sixregime__b_depth_costexp_plateau_position__strong_weak_u8__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.26-sixregime__b_depth_costexp_plateau_position__strong_weak_u8__nph3.out",
+   "sha256": "8c43069fd31b7bf17706e03ee927b86322313f8114d45b98b2f5d8231860b3ee"
+  },
+  "stream:9664325.6-sixregime__a_costexp_plateau_position__weak_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.6-sixregime__a_costexp_plateau_position__weak_weak__nph3.out",
+   "sha256": "5fcd47e5715c91e9ba1472045ca49881c3c88e205e2e4ab406355831400968af"
+  },
+  "stream:9664325.7-sixregime__a_costexp_plateau_position__intermediate_weak__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.7-sixregime__a_costexp_plateau_position__intermediate_weak__nph3.out",
+   "sha256": "5559011c42d6af69688dc459ee2888919521ad252b3889c8c5f7f16b8881d98a"
+  },
+  "stream:9664325.8-sixregime__a_costexp_plateau_position__strong_weak_u8__nph3.out": {
+   "path": "/private/tmp/claude-501/-Users-jakestrobel-Documents-Holstein-implementation-Holstein-test-fullclone-3/91434114-4541-47ef-95e4-2b8bd90bd929/scratchpad/matrix_outs/9664325.8-sixregime__a_costexp_plateau_position__strong_weak_u8__nph3.out",
+   "sha256": "0475f561da4dffb3d36ad48d1cac8cb3ae6cbc3f23b9cee7a39b0dcc8f85c056"
+  }
+ },
+ "conventions": {
+  "cost_tuples": "routed FakeMarrakesh ol=1 seed_transpiler=7, incl. routing/SWAP",
+  "insertion_kstar_ordering": "insertion_position_replay_v1 (exact round-k* circuits)",
+  "salg": "accepted_prefix_work cumulative records (authenticated per-round ledger)"
+ }
+}
