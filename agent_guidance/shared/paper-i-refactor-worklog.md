@@ -991,6 +991,30 @@ The substitution uses the Fubini--Study **metric** as a surrogate for the energy
 | `hh_continuation_scoring.py:2653-2658` | Phase-I legacy model: `trust_region_drop(g, lambda_F * F_legacy, F_legacy, rho)` |
 | `hh_continuation_scoring.py:5518` | Phase-II cheap curvature proxy: `lambda_F * legacy_metric` |
 
+### It is in the NUMERATOR, not only the trust region
+
+Author's question, and the answer is yes. `trust_region_drop(g_lcb, h_eff, F, rho)`
+(`:2790`):
+
+```python
+alpha_max = rho / math.sqrt(F)                   # F sets the trust-region RADIUS
+if h_eff_pos > 0.0:
+    alpha_newton = g_lcb / h_eff_pos
+    if alpha_newton <= alpha_max:
+        return 0.5 * g_lcb**2 / h_eff_pos        # h_eff in the returned drop
+return g_lcb * alpha - 0.5 * h_eff_pos * alpha**2  # and here
+```
+
+`h_eff` enters the **returned energy drop** in both branches, and the legacy call
+passes `h_eff = lambda_F * F_legacy`. So the metric does double duty: once
+legitimately as the radius via `rho/sqrt(F)`, and again, scaled by `lambda_F`, as
+the curvature in the quadratic producing `DeltaE`.
+
+The surviving branch proves the contrast — `rho * g / sqrt(F)` is exactly the
+`h_eff -> 0` limit, with `F` used **only** for the radius. Deleting the
+substitution therefore removes a metric-for-Hessian surrogate from the score
+numerator while leaving the legitimate trust-region use of `F` untouched.
+
 ### No canonical evidence used it
 
 | profile | `phase1_energy_model` |
@@ -1089,6 +1113,8 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q19 | Does the marginal-vs-total gain campaign run before or after the refactor? | **After the refactor.** Running it first would compare two policies across an implementation about to change underneath them. | 2026-08-24 |
 | Q20 | `metric_proxy` — delete? | **Yes, delete.** It is the Fubini--Study metric under a second name, not a distinct object: unify `metric_proxy` and `F_metric` into one `F` field, and delete the `not phase3_enabled` branch that substitutes `abs(gradient)` for the metric. | 2026-08-24 |
 | Q21 | The `lambda_F * F` substitution — metric standing in for the energy second order | **Delete it.** "Subbing in the gram part squared for the energy second order was an old proxy I want deleted." Covers both the Phase-I legacy energy model and the Phase-II cheap curvature proxy. | 2026-08-24 |
+| Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
+| Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
 
 ### Standing rules from the author
 
