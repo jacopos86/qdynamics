@@ -1482,6 +1482,31 @@ duplication.
 phase, or one value for the run? The funnel caps differ by construction; the cost
 weights do not.
 
+## 6ac. `lambda_F` is not a cost weight — it is the substitution's coefficient
+
+Q35 makes the lambda weights run-level. **`lambda_F` is not among them.** All 7
+of its references in `hh_continuation_scoring.py` are the metric-as-curvature
+substitution Q21 deletes:
+
+| site | use |
+|---|---|
+| `:113`, `:175` | dataclass defaults, `1.0` |
+| `:2656` | Phase-I legacy: `trust_region_drop(g, lambda_F * F_legacy, ...)` |
+| `:5518` | Phase-II cheap curvature proxy: `lambda_F * legacy_metric` |
+| `:3416-3418` | `phase3_cheap_ratio_v1`: `g^2 / (2 * lambda_F_eff * cheap_metric_proxy)` — the same Newton step `0.5*g^2/h` with `h = lambda_F * metric_proxy`, and it uses `cheap_metric_proxy`, deleted by Q20 |
+| `:19026` | the label string `"lambda_F_metric_proxy_only"` |
+
+**There is no use of `lambda_F` that is not a substitution of the Fubini--Study
+metric for the energy Hessian.** Paper I's cost weights are
+`(w_2q, w_D2q, w_D) = (0.30, 0.30, 0.25)`, which map to `lambda_2q`, `lambda_d`
+and their siblings. `lambda_F` scales a *metric*, not a resource.
+
+So `lambda_F` is deleted entirely by Q21 rather than collapsed to run-level by
+Q35. **Codex: do not preserve it as a run-level parameter.**
+
+`phase3_cheap_ratio_v1` (`:3378-3430`) is a third site of the substitution,
+beyond the two named in 6p, and goes with them.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1554,6 +1579,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q32 | `BackendCompileConfig.mode` defaults to `"proxy"` | **Invert it.** Qiskit compiled cost is the default; the proxy is used only when explicitly requested. Paper I's headline axis is the compiled resource tuple, so the default must produce it. The proxy stays as a peer implementation behind the one `CostTerm` interface, never as a substitute (rule 7). | 2026-08-24 |
 | Q33 | Is cost source per-phase or run-level? | **Single run-level choice.** It used to be per-phase; simplify to one selection applying across Phases I-III. With Phase-0 cost deleted (Q14), there is no phase that differs. | 2026-08-24 |
 | Q34 | `phase3_backend_transpile_seed` — per-phase or run-level? | **Run-level.** The seed joins the compilation contract with the target and optimization level, as Paper I's COST block fixes `seed_transpiler = 7` for the run. No phase may compile against a different seed. | 2026-08-24 |
+| Q35 | The six lambda weights — per-phase or run-level? | **Run-level, not per-phase.** Applies to the cost weights `lambda_2q`, `lambda_d`, `lambda_1q`, `lambda_theta`, `lambda_shot`. **`lambda_F` is different — it does not survive Q21 at all**, see 6ac. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
