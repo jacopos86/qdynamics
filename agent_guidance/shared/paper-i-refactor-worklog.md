@@ -1054,6 +1054,278 @@ have no Phase-I energy model to resolve. Under `CONTEXT.md` a **Compatibility
 route** is "reachable only through an explicit versioned identity", so retiring
 one is a deliberate act, not a side effect. See Q22.
 
+## 6q. The 348 executor parameters, screened
+
+Keyword screen over `_run_hardcoded_adapt_vqe`'s signature. **A screen, not a
+verdict** — ratify before deleting.
+
+| bucket | count |
+|---|---|
+| phase / score / method | 130 |
+| unclassified | 65 |
+| policy / mode / flag | 58 |
+| cost / resource | 36 |
+| plumbing / runtime | 33 |
+| dead / legacy / historical | 10 |
+| proxy / fallback | 9 |
+| telemetry / observation | 7 |
+
+Named legacy candidates: `historical_singleton_coordinate_solve_policy`,
+`historical_singleton_coordinate_solve_scope`,
+`historical_singleton_trust_region_update_policy`,
+`phase3_shadow_legacy_geometry_mode`, `phase3_shadow_legacy_max_depth`, and the
+five `phase2_compat_*_weight`.
+
+Named proxy/fallback candidates: `finite_angle_fallback`,
+`phase1_compile_cx_proxy_weight`, `phase1_compile_sq_proxy_weight`,
+`phase2_compile_cx_proxy_weight`, `phase2_compile_sq_proxy_weight`,
+`phase2_cheap_curvature_proxy_policy`, `deferred_gram_fallback_ridge`,
+`phase2_remaining_evaluations_proxy_mode`, `phase3_enable_rescue`.
+
+### Ratified: the five `phase2_compat_*_weight`
+
+Not dead, and not core either — they are **batch-extension parameters on the core
+signature**.
+
+- Defaults are **non-zero** (`0.4`, `0.2`) at `adapt_pipeline.py:15006` and
+  `cli_config.py:2333, 2345`.
+- **No profile sets any of them** — 0 occurrences in `sr_snake_route_profile.py`.
+  They depend entirely on parser defaults.
+- They are live in the scorer: `_compatibility_penalty_components:6935-7002`
+  computes a weighted sum of support overlap, non-commutation, cross curvature,
+  schedule and measurement mismatch.
+- The consumer is batch admission — the result lands in
+  `phase2_last_batch_penalty_total` (`adapt_pipeline.py:38279, 51309, 53995`).
+
+So they only affect a run when **batching is enabled**, and
+`phase3_enable_batching` is `False` canonically.
+
+**Two conclusions.** First, under the design target batch is an *optional
+extension defined after* the algorithm, so its five weights do not belong on the
+core executor signature at all — they move to `extensions.py` with the batch
+policy. Second, they are a live instance of the F3 drift mechanism in its purest
+form: non-zero scoring weights that no profile pins, so their values come from
+argparse and are invisible to profile review. If batching is ever enabled, the
+score depends on numbers no profile records.
+
+## 6r. Batch admission: two nested defaults (Q24)
+
+> **REFINED by Q28.** The author's preference is deletion of the legacy path, or
+> a true extrication that makes it unreachable from the working code. A
+> `legacy_batch` mode that merely defaults off still leaves it reachable, so it
+> is the weaker option.
+
+
+> **CORRECTED by 6u.** Q24 called the additivity-defect gate "canonical Paper-I
+> batch". Paper I's criterion is different: feasibility is *existence of the
+> supported joint Phase-III solve*, and admission is
+> `argmax_B dE_3(B)/K_3(B)`. `batch_additivity_tol` is a third criterion, not the
+> manuscript's. The nested-defaults structure of Q24 still stands.
+
+
+```
+batch                     default OFF
+  └─ if batch = true:
+       paper_i_batch      DEFAULT     Schur additivity defect
+       legacy_batch       default OFF five-weight heuristic
+```
+
+**Canonical (Paper I).** A block **B** is feasible when the joint drop is nearly
+additive:
+
+    defect = 1 - dE_joint / sum_i dE_i          (hh_continuation_scoring.py:7302)
+    feasible iff defect <= batch_additivity_tol  (:7309)
+
+This follows from the Schur-reduced quadratic, as the manuscript states.
+
+**Legacy.** `_compatibility_penalty_components:6935-7002`, a weighted sum of
+support overlap, non-commutation, cross curvature, schedule and measurement
+mismatch, with the five `phase2_compat_*_weight` constants.
+
+Both live under batch in `extensions.py`; neither belongs on the core executor
+signature. Reaching the legacy path requires two explicit opt-ins, so no parser
+default can select it.
+
+**The legacy weights have no defaults (Q25).** Enabling `legacy_batch` asks for
+the five weights. This is the **conditional policy interview** already defined in
+`CONTEXT.md` — silent while the policy is disabled, revealing only that policy's
+required choices when enabled. Consequences: nothing can drift, because there is
+no default to drift from; the weights appear in every legacy-batch receipt by
+construction; and the five `phase2_compat_*_weight` parameters leave the 348-name
+signature entirely rather than moving to a new default.
+
+## 6s. Extension parameters on the core signature (Q26)
+
+**57 of the 348 executor parameters belong to the three optional extensions** —
+16% of the signature, for behaviour that is off by default.
+
+| extension | params | notable defaults |
+|---|---|---|
+| batch | 11 | `phase2_enable_batching=True`, `batch_target_size=2`, `batch_additivity_tol=0.25` |
+| prune | 35 | `phase1_prune_enabled=True`, `prune_fraction=0.25`, `retained_gain_ratio=0.5`, 6 tolerance coefficients |
+| beam | 11 | `tie_beam_max_branches=1`, `beam_live_branches=1`, `beam_lambda=0.0` |
+
+Under Q24/Q26 these move to `extensions.py`, and their constants come from the
+conditional policy interview rather than parameter defaults.
+
+**Correction — the `=True` signature defaults are not the operative values.**
+Verified rather than left as a flag:
+
+- argparse sets `phase2_enable_batching=None` and `phase3_enable_batching=None`
+  (`cli_config.py:2203`), so the signature default only applies when nothing
+  supplies a value.
+- Inside the executor the flag is **overwritten** at `adapt_pipeline.py:15565`,
+  `phase2_enable_batching = bool(selector_config.batch_size_cap > 1)`, whenever
+  the funnel mode is in `ROUTE_A_FUNNEL_CHILD_12_MODES`.
+- `phase1_prune_enabled: False` **is** pinned by the active family root
+  (`sr_snake_route_profile.py:760`, `CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1`).
+- `phase2/3_enable_batching: False` are pinned only in
+  `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS` (`:515-516`) — the 116-key root the
+  active family does **not** inherit (F3). `batch_size_cap` is pinned by no
+  profile at all.
+
+So batching is not silently on, but its effective value comes from a funnel
+cardinality (`batch_size_cap > 1`) rather than from any profile.
+
+## 6t. Extension surface to relocate (Q27)
+
+| surface | batch | prune | beam | total | of |
+|---|---|---|---|---|---|
+| executor parameters | 11 | 35 | 11 | **57** | 348 |
+| CLI flags | 20 | 36 | 11 | **67** | 409 |
+| lines mentioning, `adapt_pipeline.py` | 1105 | 2293 | 814 | **~4212** | 72063 |
+| lines mentioning, `hh_continuation_scoring.py` | 611 | 4 | 1 | ~616 | 19420 |
+
+Mentions are not all movable lines — extension logic is interleaved with the
+controller rather than blocked — so treat the line figures as the surface to
+work through, not the deletion target.
+
+**Destination.** `extensions.py`, per the design target: batch, prune and beam
+are optional extensions defined *after* the algorithm, absent from the default
+path. `maintain(state, extensions)` iterates an empty list unless one is enabled.
+
+**Consequences that make this more than a move.** Their choices come from the
+conditional policy interview (Q25/Q26), so the 57 parameters and 67 flags do not
+reappear as defaults elsewhere — they cease to exist as a default surface. That
+is what makes this a deletion under rule 6i rather than a relocation like the
+`ResponseAccounting` extraction.
+
+`prune` is the largest by far — 35 parameters, 36 flags, 2293 mentions — and the
+active family root already pins `phase1_prune_enabled: False`
+(`sr_snake_route_profile.py:760`), so canonical evidence does not exercise it.
+
+## 6u. What Paper I actually specifies for batching
+
+Settled from the manuscript, `Paper_I_author_revision.tex:1051-1086`.
+
+Let `W_k` be a score-ordered window of the Phase-II population, and
+`B_k(W_k)` its **bounded feasible batches**: the subsets of records carrying
+**distinct generators**, **through the batch-size cap**, for which the
+**supported joint Phase-III solve exists**.
+
+For `B = {r_1..r_s}` the coordinate and gradient vectors preserve the
+candidate--active ordering of the Phase-III model:
+
+    z_B      = (alpha_B, delta_theta)^T
+    g_joint  = (g_alpha_B, g_theta)^T
+
+The corresponding extensions of `H` and `G` give the joint predicted decrease
+`dE_3(B)`, and `K_3(B)` combines the member records' resource contributions.
+Admission is
+
+    B_k* in argmax_{B in B_k(W_k)}  dE_3(B) / K_3(B)        (eq:batch_argmax)
+
+"The bounded route enumerates every feasible subset, while a score-ordered greedy
+construction provides an optional approximation when enumeration is impractical."
+
+For the `L=3` controls, batch admission "enumerates subsets of at most three"
+(`:1499`), and the manuscript's own pseudocode contains
+"**if** batching is enabled **then**" (`:1654`).
+
+### Consequences
+
+1. **The batch-size cap is part of the method.** It bounds `B_k`. An earlier open
+   question asked whether `|B| > 1` should be an outcome rather than a
+   precondition — the manuscript settles it: the cap is a precondition, and
+   `batch_size_cap` corresponds to it directly.
+2. **`enable_batching` corresponds to the manuscript** — the pseudocode branches
+   on it.
+3. **Feasibility is not an additivity tolerance.** Paper I's test is whether the
+   supported joint Phase-III solve *exists*. The code's
+   `additivity_defect = 1 - dE_joint/sum(dE_i)` gated by `batch_additivity_tol`
+   (`hh_continuation_scoring.py:7302, 7309`) is a separate criterion with no
+   counterpart in the manuscript.
+4. **Admission is the same energy-per-cost ranking as singleton**, extended to
+   blocks: `dE_3(B)/K_3(B)`. This is the batch case of `evaluate`'s
+   `descent / cost`, not a different rule.
+5. Both the **bounded enumeration** and the **greedy approximation** are in the
+   method; greedy is explicitly optional.
+
+So under Q24's structure, canonical batch is `argmax dE_3(B)/K_3(B)` over
+cap-bounded subsets with an existing joint solve. The additivity tolerance and
+the five-weight compatibility penalty are both outside the manuscript.
+
+## 6v. The published batching route does not use the extra gates
+
+Question: were `batch_additivity_tol` and the five-weight compatibility penalty
+the route that produced Paper I's batching result? **No.**
+
+**The arm.** `Paper_I_author_revision.tex:1406` records the source label:
+
+```
+l3_batching_h15   CombinatorialBatchAdmission, maximum_size=3, search_window_size=6
+```
+
+matching the text at `:1499`, "batch admission enumerates subsets of at most
+three", and `maximum_size=3` = the batch-size cap bounding `B_k`,
+`search_window_size=6` = the score-ordered window `W_k`.
+
+**The route.**
+
+```
+CombinatorialBatchAdmission            sr_snake/contracts.py:175
+  -> run_combinatorial_batch_proposals adapt_pipeline.py:68311-68324
+       "Enumerate generator-distinct subsets of one fixed ranked prefix."
+  -> _run_batch_proposals              adapt_pipeline.py:68062-68294 (233 lines)
+```
+
+`_run_batch_proposals` contains **none** of `additivity_defect`,
+`batch_additivity_tol`, `compatibility_penalty`, or `compat_*`. Neither does any
+module under `sr_snake/`.
+
+Its docstring restates the manuscript's definition — generator-distinct subsets
+of a score-ordered prefix — which is exactly `B_k(W_k)`.
+
+**Conclusion.** The additivity tolerance
+(`hh_continuation_scoring.py:7302, 7309`) and the five-weight compatibility
+penalty (`:6935-7002`) sit on a different Phase-II batch path that the published
+`l3_batching_h15` result never crossed. They are not the manuscript's criterion
+and were not the route used for the published evidence.
+
+Under Q24 they belong to the legacy `batch_mode`, default off, reached only by
+opting in twice — and their five weights come from the conditional policy
+interview (Q25) rather than from defaults.
+
+## 6w. Standing preference: delete, do not demote (Q28)
+
+When a path is found to be superseded — not the manuscript's, and not the route
+that produced the evidence — the order of preference is:
+
+1. **Delete it.**
+2. Failing that, **extricate it completely** so it cannot be reached from the
+   working part of the tree.
+3. An off-by-default flag is **not** sufficient. It leaves the code present,
+   reachable, and one setting away from firing.
+
+Rationale: every defect catalogued in this file — the settings drift, the 1,878
+guards, the 1,622 fallbacks, the five unpinned compat weights — is something that
+was left reachable "just in case". Reachable dead paths are what the guards
+exist to defend against.
+
+Applies to the Phase-II batch path (`_compatibility_penalty_components`,
+`additivity_defect`/`batch_additivity_tol`) confirmed off the published route in
+6v, and to anything later found in the same position.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -1115,6 +1387,35 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q21 | The `lambda_F * F` substitution — metric standing in for the energy second order | **Delete it.** "Subbing in the gram part squared for the energy second order was an old proxy I want deleted." Covers both the Phase-I legacy energy model and the Phase-II cheap curvature proxy. | 2026-08-24 |
 | Q22 | Retiring `SR_ROUTE_PROFILE_CONVENTIONAL_V3_1` as a consequence of Q21 | **Accepted.** "It's legacy of course." |  2026-08-24 |
 | Q23 | Confirm from a run receipt that the legacy numerator never fired? | **No — not worth it.** Deletion proceeds on source evidence: `phase1_energy_model` is explicitly pinned to `FIRST_ORDER_FS_TRUST_V1` in both canonical families. Recorded so the basis is known. | 2026-08-24 |
+| Q24 | The five-term compatibility penalty vs the Schur additivity defect | **Two nested defaults, both off.** `batch` defaults **off**. If `batch = true`, the default is **canonical Paper-I batch** — block feasibility from the Schur-reduced quadratic, `defect = 1 - dE_joint / sum(dE_i)` against `batch_additivity_tol`. The five-weight heuristic becomes a separate legacy `batch_mode`, **also default off**. Reaching it requires opting in twice. | 2026-08-24 |
+| Q25 | Should legacy-batch weights be pinned in a profile? | **No — the if-then asks for them.** Enabling `legacy_batch` requires supplying the five weights; they have no defaults. This is `CONTEXT.md`'s **conditional policy interview**: silent while the policy is off, reveals its required choices when enabled. Nothing to drift from, and every legacy-batch run records them by construction. | 2026-08-24 |
+| Q26 | Do prune and beam follow the batch shape? | **Yes.** All optional extensions are off by default, and enabling one asks for its required choices through a conditional policy interview rather than supplying defaults. | 2026-08-24 |
+| Q27 | Move batch, prune and beam out of the main algorithm and the run commands? | **Yes.** They leave both `adapt_pipeline.py` and `cli_config.py` for `extensions.py`, with their choices supplied by the conditional policy interview (Q25/Q26) rather than by flags and parameter defaults. | 2026-08-24 |
+| Q28 | Keep superseded paths as off-by-default options, or remove them? | **Preference is deletion**, or failing that a **true extrication** so the path cannot be reached from the working part at all. An off-by-default flag is not sufficient — it leaves the code reachable and re-enableable. Refines Q24. | 2026-08-24 |
+
+### Handoff register — author's guidance, 2026-08-24
+
+*"I think your prompts are too aggressive; they should be like 'work into your
+refactor naturally if it comes up, or afterwards.'"*
+
+An executing agent is usually mid-task and holding context. A findings handoff
+that arrives as a blocking increment, with hard gates and stop conditions, fights
+that context and forces a switch that costs more than the fix.
+
+**Write findings as things to fold in, not as interrupts:**
+
+- Lead with "when you are next in this area" or "afterwards", not "TASK:".
+- Keep the evidence and the caveats — those are the value. Drop the imperative
+  mood and the mandatory sequencing.
+- A contradiction is "worth raising rather than working around", not
+  "STOP AND REPORT".
+- State the basis for a decision so the executor can judge it, rather than
+  ordering compliance with it.
+- Let the executor choose the moment. Only genuine blockers — evidence at risk,
+  a change that would invalidate work already done — justify an interrupt.
+
+This applies to handoffs of *findings*. A scoped increment the author has
+explicitly commissioned may still be written as a task.
 
 ### Standing rules from the author
 
