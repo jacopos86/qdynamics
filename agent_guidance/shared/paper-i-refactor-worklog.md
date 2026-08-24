@@ -1466,6 +1466,7 @@ explicitly commissioned may still be written as a task.
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
+| Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | in progress; separate prune → batch → beam increments; report measured net lines removed |
 | _(add yours)_ | | | |
 
 ---
