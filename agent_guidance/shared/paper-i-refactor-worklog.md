@@ -595,6 +595,46 @@ not a proxy number.
 
 ---
 
+## DECISIONS — author's answers, poll this section
+
+**Codex: re-read this section before each increment.** It is the running record
+of decisions the author has made. Every row is binding unless a later dated row
+supersedes it. Questions are appended by Claude; answers are the author's.
+
+An unanswered question is **not** permission to choose. Stop and report instead.
+
+| # | question | author's answer | date |
+|---|---|---|---|
+| Q1 | What makes two runs "the same run"? | **Not** exact sequence reproduction. Ideally the same results, but initial sensitivity exists, so what matters is that new results are **at least as good** as old. Bug fixes that alter trajectories are unavoidable and acceptable. | 2026-08-24 |
+| Q2 | Keep the route family vs route profile distinction? | **No.** Semantic differentiation that hurts more than helps. "Realization" settings can change trajectories too, which disproves the split. Drop the taxonomy. | 2026-08-24 |
+| Q3 | Candidate gain: total joint or marginal? | **Try both.** Full matrix, not one representative cell. | 2026-08-24 |
+| Q4 | Was `pipelines/hardcoded/` retirement deliberate? | **Yes, definitely deliberate.** | 2026-08-24 |
+| Q5 | Re-run Bundle 3 to prove Gate 1? | **No.** Reverting via git covers recovery. Withdrawn by Claude; only an archive readability check was warranted, and it passed. | 2026-08-24 |
+| Q6 | What does "at least as good" measure? | **DeltaE, the qiskit costs, and the estimator count** — the three Paper-I axes. | 2026-08-24 |
+| Q13 | Is `(G_AB, G_BB, b_B)` archaic? | **No — it is Paper I's own structure**, Eq. `hessian_block_def`. Test applied: if it is not defined in Paper I it is probably archaic. It is defined there. | 2026-08-24 |
+| Q14 | Delete the Phase-0 cost path? | **Yes, delete.** Verified a numerical no-op first: `phase0_K0` is 1.0 in all 30 recorded instances. | 2026-08-24 |
+| Q15 | Should Claude move to its own worktree? | Author: not a technical call. **Claude decided yes** — `claude/paper-i-20260824`. Measurements from the shared checkout were contaminated by another agent's uncommitted files. | 2026-08-24 |
+| Q17 | Drop `phase0_K0` and the two hardware-cost fields from the checkpoint payload, or keep as constants? | **Drop them outright.** Accept that resume/replay of old checkpoints may surface a real bug; find it rather than paper over it. | 2026-08-24 |
+
+### Standing rules from the author
+
+| rule | source |
+|---|---|
+| **No fallbacks.** A failing qiskit cost stops the run; it never degrades to proxy. | 2026-08-24, section 7 |
+| **A profile is a run plus a diff.** One base with complete effective settings; every other profile a named delta. | 2026-08-24, F3 |
+| **Separate the mathematical algorithm from the ansatz and generators**, so the algorithm calls those objects. | 2026-08-24, Codex session |
+| **No arbitrary constraints.** A check earns its place only if it catches something that cannot be made structurally impossible. | 2026-08-24 |
+| **One file for coordination.** Do not create new `.md` files for this effort. | 2026-08-24 |
+| **GitNexus stays scoped to Paper I.** No repo-wide re-index. | 2026-08-24, Codex session |
+
+### OPEN — awaiting the author
+
+| # | question | why it matters |
+|---|---|---|
+| Q16 | Paper I line 442 defines Phase III as isolating the candidate contribution "by subtracting the corresponding active-only response" — the marginal gain. All 13 Bundle-9 cells ran `full_joint_trust_gain_legacy_v1` with the active-only baseline never computed. **Is Bundle 9 therefore inconsistent with the published method, rather than one side of an open choice?** | If yes, "try both" (Q3) is not a policy comparison but a reproduction of the paper against a legacy path, and Bundle 9's numbers do not implement the published Phase III. Bears on the contract's pre-lock authority item. |
+
+---
+
 ## Coordination protocol — two writers, one file
 
 1. **Claim before you work.** Add a row to the Claims table below, with your
