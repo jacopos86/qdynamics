@@ -995,6 +995,58 @@ navigation. Ratify every reachability or deletion claim against source.
 
 ---
 
+### 2026-08-24 — Claude — measured estimator ledger: all three response kinds are charged
+
+Answers the open item in 6d, and **corrects it**. Curvature *does* have its own
+primitive kind. My earlier claim that it did not came from grepping string
+literals in source, which missed it — the fourth time in this effort an index or
+grep proposed something source contradicted.
+
+From a completed Bundle-9 cell
+(`run/checkpoints/current.estimator_call_ledger_checkpoint.*.json`,
+schema `paper_i_estimator_call_ledger_checkpoint_sidecar_v2`):
+
+| primitive_kind | count | key form | response object |
+|---|---|---|---|
+| `coordinate_gradient` | 14,325 | unary operand | **g** |
+| `hamiltonian_expectation` | 3,888 | observable identity only | energies |
+| `metric_element` | 1,436 | symmetric pair | **G** |
+| `hessian_element` | 1,300 | symmetric pair | **H** |
+
+Pair keys total 2,736 = 1,436 + 1,300 exactly; unary keys 14,325 = gradients
+exactly. **All three response objects already charge as distinct kinds with the
+right key shapes**, so `Response.charge(order, support)` in 6d maps directly onto
+existing machinery. No new accounting is required.
+
+### Correction: nesting reuse is real but small
+
+6b said the ledger's dedup "is the reuse policy" and implied it as a benefit.
+Measured:
+
+```
+raw_occurrence_count    = 21,605
+unique_primitive_count  = 20,949
+reuse factor            = 1.03x   (656 repeated consumptions charged once)
+```
+
+Only 3% of charges are dedup hits. The reason is structural: the key includes
+`projective_state_fingerprint`, and the accepted state changes every controller
+round, so keys cannot collide across rounds. Reuse is available only *within* a
+round — roughly 3-10 hits per round here.
+
+**So do not sell the one-Gram design as a measurement saving.** Its accounting
+value is correct *attribution* — one entry, one primitive, one kind — not fewer
+measurements. That value stands; the saving does not.
+
+### A fact worth carrying into the manuscript
+
+Gradients are **10x** every other primitive combined (14,325 vs 1,436 + 1,300).
+The estimator economy is dominated by `coordinate_gradient`, not by the
+expensive-looking high-order geometry. If screening cost is discussed as a
+motivation for staged phases, this is the number that supports or undercuts it.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
