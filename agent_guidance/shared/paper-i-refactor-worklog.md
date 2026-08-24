@@ -1155,10 +1155,24 @@ signature entirely rather than moving to a new default.
 Under Q24/Q26 these move to `extensions.py`, and their constants come from the
 conditional policy interview rather than parameter defaults.
 
-**Two defaults contradict the decision:** `phase2_enable_batching` and
-`phase1_prune_enabled` both default to `True` on the executor signature, while
-Q24/Q26 say extensions are off by default. The canonical profile sets
-`phase3_enable_batching: False`, but that is a different phase's flag. See Q27.
+**Correction — the `=True` signature defaults are not the operative values.**
+Verified rather than left as a flag:
+
+- argparse sets `phase2_enable_batching=None` and `phase3_enable_batching=None`
+  (`cli_config.py:2203`), so the signature default only applies when nothing
+  supplies a value.
+- Inside the executor the flag is **overwritten** at `adapt_pipeline.py:15565`,
+  `phase2_enable_batching = bool(selector_config.batch_size_cap > 1)`, whenever
+  the funnel mode is in `ROUTE_A_FUNNEL_CHILD_12_MODES`.
+- `phase1_prune_enabled: False` **is** pinned by the active family root
+  (`sr_snake_route_profile.py:760`, `CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1`).
+- `phase2/3_enable_batching: False` are pinned only in
+  `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS` (`:515-516`) — the 116-key root the
+  active family does **not** inherit (F3). `batch_size_cap` is pinned by no
+  profile at all.
+
+So batching is not silently on, but its effective value comes from a funnel
+cardinality (`batch_size_cap > 1`) rather than from any profile.
 
 ## 7. No fallbacks
 
