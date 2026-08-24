@@ -679,6 +679,64 @@ record keys absent from `_CANONICAL_SR_SNAKE_LEGACY_EXECUTOR_PARAMETER_NAMES`.
 
 ---
 
+### 2026-08-24 — Claude — the phase collapse is verified, and the Gram formulation holds
+
+The design target rests on phases 0-III being one function. Checked against
+`pipelines/scaffold/hh_continuation_scoring.py`. **It holds.** All three phases
+compute the same quantity — predicted descent over cost — at increasing fidelity
+of the descent estimate.
+
+| phase | what it computes | source |
+|---|---|---|
+| I | `trust_region_drop(g_hw_lcb, lambda_F*F, F, rho)` | `phase1_trust_region_gain:2614` |
+| II | same, with measured curvature `h_raw` | `phase2_raw_geometry_score:3168` |
+| III | `S3_primary = DeltaE_TR / (1 + K3)` | `phase3_canonical_score_components:3831` |
+
+Phase III's docstring states the canonical form outright: *"Canonical static
+Phase3 scoring is physics-first: S3_primary = DeltaE_TR / (1 + K3)"*. That is
+`evaluate(record, state, cost, order)` — descent estimate at `order`, divided by
+the cost term. The collapse is real.
+
+**The author's Gram formulation is also confirmed, negatively.** Geometry should
+be one Gram over generators and ansatz, with phases II, I and 0 as successive
+restrictions, coupled to the phase scoring. Today it is not:
+
+1. `phase2_raw_geometry_score` accepts the Gram blocks `q_window, Q_window` and
+   **immediately discards them**:
+
+   ```python
+   del q_window, Q_window
+   ```
+
+   Its own docstring: *"The Gram cross-block inputs remain in the call contract
+   because the same exact geometry is reused by insertion, supported response,
+   and the deferred all-models-infeasible fallback. They are not ranking
+   inputs."* The geometry is threaded through the scorer and dropped, to keep a
+   call contract alive.
+
+2. `CandidateFeatures` (`hh_continuation_types.py:79-334`) has **249 fields**, of
+   which **26 are separate summaries of that one geometric object**:
+   `F_metric`, `metric_proxy`, `cheap_metric_proxy`, `phase2_raw_overlap_max`,
+   `phase2_span_projection_z`, `phase2_geometry_window_indices`,
+   `phase3_geometry_window_size`, `phase3_geometry_refit_window_indices`,
+   `phase3_geometry_active_post_indices`, and more.
+
+   Under one Gram these are submatrix selections, not stored fields. This is the
+   same defect as F3 and F4 — one fact, many stored copies, each needing a guard.
+
+3. Several of the 26 are not data at all but **policy smuggled into the
+   per-candidate record**: `phase2_curvature_policy`,
+   `phase2_geometry_window_policy`, `phase3_geometry_window_policy`,
+   `selector_geometry_mode`. Policy belongs in `request`, resolved once, not
+   carried on every candidate.
+
+**Consequence for the target:** section 2 needs no revision. `score()` and the
+phase table are sound, and `evaluate` is `descent(order) / cost`. The work is to
+build the one Gram and express phases 0-II as restrictions of it, which deletes
+most of the 26 fields and the call-contract threading with them.
+
+---
+
 ## Execution log _(Codex-owned)_
 
 Append one entry per increment: goal, commands run, measured result, and
