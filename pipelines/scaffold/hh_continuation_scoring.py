@@ -39,8 +39,6 @@ from pipelines.static_adapt.phase3_material_window import (
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
@@ -110,13 +108,11 @@ _SR_MODELED_MINIMUM_EXECUTION_BLOCKERS = (
 
 @dataclass(frozen=True)
 class SimpleScoreConfig:
-    lambda_F: float = 1.0
     lambda_compile: float = 0.05
     lambda_measure: float = 0.02
     lambda_leak: float = 0.0
     z_alpha: float = 0.0
     rho: float = 0.25
-    metric_floor: float = 1e-12
     hardware_resolution_mode: str = "ideal"
     manual_b_g_hw: float = 0.0
     manual_b_g_drift: float = 0.0
@@ -149,7 +145,7 @@ class SimpleScoreConfig:
     lifetime_cost_mode: str = "off"
     burden_floor: float = 0.25
     phase1_score_mode: str = "trust_region_v1"
-    phase1_energy_model: str = PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
+    phase1_energy_model: str = PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1
     resource_weighting_scope: str = "all_phase_resource_weighting_v1"
     score_version: str = "simple_v1"
 
@@ -172,7 +168,6 @@ PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION = (
 @dataclass(frozen=True)
 class FullScoreConfig:
     z_alpha: float = 0.0
-    lambda_F: float = 1.0
     lambda_H: float = 1e-6
     rho: float = 0.25
     eta_L: float = 0.0
@@ -216,7 +211,7 @@ class FullScoreConfig:
     cheap_score_eps: float = 1e-12
     phase2_curvature_policy: str = PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1
     phase2_cheap_curvature_proxy_policy: str = (
-        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1
+        PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
     )
     shortlist_fraction: float = 0.2
     shortlist_size: int = 12
@@ -2621,42 +2616,14 @@ def phase1_trust_region_gain(
         return 0.0
     if not bool(feat.compile_gate_open):
         return 0.0
-    F_measured = float(
-        max(
-            0.0,
-            float(feat.metric_proxy),
-            float(feat.F_metric),
-        )
-    )
+    F_measured = float(max(0.0, float(feat.F)))
     g_hw_lcb = float(_selector_gradient_lcb(feat, cfg))
-    energy_model = normalize_phase1_energy_model(
-        getattr(
-            cfg,
-            "phase1_energy_model",
-            PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-        )
-    )
-    if energy_model == PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1:
-        if g_hw_lcb <= 0.0 or F_measured <= 0.0:
-            return 0.0
-        return float(
-            float(getattr(cfg, "rho", 0.25))
-            * float(g_hw_lcb)
-            / math.sqrt(float(F_measured))
-        )
-    F_legacy = float(
-        max(
-            float(max(0.0, getattr(cfg, "metric_floor", 0.0))),
-            float(F_measured),
-        )
-    )
+    if g_hw_lcb <= 0.0 or F_measured <= 0.0:
+        return 0.0
     return float(
-        trust_region_drop(
-            g_hw_lcb,
-            float(cfg.lambda_F) * float(F_legacy),
-            float(F_legacy),
-            float(getattr(cfg, "rho", 0.25)),
-        )
+        float(getattr(cfg, "rho", 0.25))
+        * float(g_hw_lcb)
+        / math.sqrt(float(F_measured))
     )
 
 
@@ -2669,7 +2636,7 @@ def phase1_score_payload(
         getattr(
             cfg,
             "phase1_energy_model",
-            PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
+            PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
         )
     )
     hardware_payload = _hardware_cost_denominator_payload(feat, cfg)
@@ -2710,10 +2677,6 @@ def phase1_score_payload(
     return {
         "mode": str(mode),
         "phase1_energy_model": str(energy_model),
-        "phase1_lambda_f_curvature_proxy_applied": bool(
-            energy_model
-            == PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1
-        ),
         "active_score": float(active_score),
         "legacy_simple_score": float(legacy_score),
         "trust_region_gain": float(trust_gain),
@@ -3194,7 +3157,7 @@ def phase2_raw_geometry_score(
             getattr(
                 cfg,
                 "phase2_cheap_curvature_proxy_policy",
-                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
             )
         )
     )
@@ -3264,8 +3227,6 @@ def phase2_raw_geometry_score(
         "phase2_cheap_curvature_proxy_policy": str(
             cheap_curvature_proxy_policy
         ),
-        "phase2_lambda_f_proxy_applied": False,
-        "phase2_missing_curvature_fallback_used": False,
         "confidence_factor": float(confidence),
         "phase2_raw_overlap_max": None,
         "phase2_raw_novelty": None,
@@ -3373,59 +3334,6 @@ def phase_shortlist_records(
             updated["feature"] = _replace_feature(feat, **replacement_kwargs)
         out.append(updated)
     return out
-
-
-def phase3_cheap_ratio_v1(
-    feat: CandidateFeatures,
-    cfg: FullScoreConfig,
-) -> dict[str, float | str | None]:
-    cheap_proxy_policy = normalize_phase2_cheap_curvature_proxy_policy(
-        getattr(
-            cfg,
-            "phase2_cheap_curvature_proxy_policy",
-            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
-        )
-    )
-    if cheap_proxy_policy == PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF:
-        raise Phase2CurvatureConstructionError(
-            "The Phase-II lambda-F cheap curvature proxy is disabled; "
-            "Phase-I survivors must use measured Phase-II curvature."
-        )
-    metric_source = float(feat.cheap_metric_proxy)
-    if metric_source <= 0.0:
-        metric_source = float(feat.metric_proxy)
-    cheap_metric_proxy = float(max(0.0, metric_source))
-    cheap_burden_total = float(_cheap_burden_total(feat, cfg))
-    base_payload = {
-        "cheap_score_version": "phase3_cheap_ratio_v1",
-        "cheap_metric_proxy": float(cheap_metric_proxy),
-        "cheap_benefit_proxy": 0.0,
-        "cheap_burden_total": float(cheap_burden_total),
-    }
-    if not bool(feat.stage_gate_open):
-        return {**base_payload, "cheap_score": float("-inf")}
-    if not bool(feat.leakage_gate_open):
-        return {**base_payload, "cheap_score": float("-inf")}
-    if not bool(feat.compile_gate_open):
-        return {**base_payload, "cheap_score": float("-inf")}
-
-    g_hw_lcb = float(_selector_gradient_lcb(feat, cfg))
-    if g_hw_lcb <= 0.0 or cheap_metric_proxy <= 0.0:
-        return {**base_payload, "cheap_score": 0.0}
-
-    lambda_F_eff = float(max(float(cfg.lambda_F), float(cfg.cheap_score_eps)))
-    cheap_benefit_proxy = float(
-        float(g_hw_lcb) * float(g_hw_lcb) / (2.0 * float(lambda_F_eff) * float(cheap_metric_proxy))
-    )
-    cheap_score = float(
-        float(cheap_benefit_proxy)
-        / float(float(cheap_burden_total) + float(cfg.cheap_score_eps))
-    )
-    return {
-        **base_payload,
-        "cheap_score": float(cheap_score),
-        "cheap_benefit_proxy": float(cheap_benefit_proxy),
-    }
 
 
 def _phase3_plateau_novelty_value(feat: CandidateFeatures, plateau_novelty: Any = None) -> float | None:
@@ -3855,7 +3763,7 @@ def phase3_canonical_score_components(
         getattr(
             cfg,
             "phase2_cheap_curvature_proxy_policy",
-            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
         )
     )
     validated_phase2_curvature: float | None = None
@@ -3886,8 +3794,6 @@ def phase3_canonical_score_components(
             if validated_phase2_curvature is None
             else float(validated_phase2_curvature)
         ),
-        "phase2_lambda_f_proxy_applied": False,
-        "phase2_missing_curvature_fallback_used": False,
         "canonical_score_formula": str(score_formula),
         "phase3_canonical_score_formula": str(score_formula),
         "auxiliary_score_mode": str(auxiliary_mode),
@@ -3993,36 +3899,28 @@ def phase3_canonical_score_components(
 
     window_relaxation_disabled = _phase3_window_relaxation_disabled(cfg)
     F_red_raw = (
-        (feat.F_raw if feat.F_raw is not None else feat.F_metric)
+        (feat.F_raw if feat.F_raw is not None else feat.F)
         if window_relaxation_disabled
         else (feat.F_red if feat.F_red is not None else feat.F_raw)
     )
     if F_red_raw is None:
-        if float(feat.F_metric) <= 0.0:
+        if float(feat.F) <= 0.0:
             return {
                 **base,
                 "fallback_mode": "nonpositive_metric",
                 "block_reason": "nonpositive_metric",
             }
-        F_red = float(max(float(feat.F_metric), float(cfg.metric_floor)))
+        F_red = float(max(float(feat.F), float(cfg.metric_floor)))
         h_eff = float(
             max(
                 0.0,
-                _feature_curvature_or_legacy_lambda_f_proxy(
-                    feat,
-                    cfg,
-                    legacy_metric=float(feat.F_metric),
-                ),
+                _feature_curvature(feat, cfg),
             )
         )
         fallback_mode = "legacy_metric_path"
     else:
         h_eff = float(
-            _feature_curvature_or_legacy_lambda_f_proxy(
-                feat,
-                cfg,
-                legacy_metric=float(F_red_raw),
-            )
+            _feature_curvature(feat, cfg)
             if window_relaxation_disabled
             else (
                 feat.h_eff
@@ -4218,11 +4116,7 @@ def rescore_candidate_feature(
                 )
             )
         )
-        h_raw_eff = _feature_curvature_or_legacy_lambda_f_proxy(
-            feat,
-            cfg,
-            legacy_metric=float(F_raw_eff),
-        )
+        h_raw_eff = _feature_curvature(feat, cfg)
         raw_trust_gain_for_cfg = float(
             trust_region_drop(
                 float(_selector_gradient_lcb(feat, cfg)),
@@ -4392,14 +4286,14 @@ def raw_f_metric_from_state(
     """Built-in math expression:
     F = ||(A - <A>) psi||^2
     """
-    _tangent, F_metric = _tangent_data(
+    _tangent, F = _tangent_data(
         psi_state=psi_state,
         label=str(candidate_label),
         polynomial=candidate_term.polynomial,
         compiled_cache=compiled_cache,
         pauli_action_cache=pauli_action_cache,
     )
-    return float(F_metric)
+    return float(F)
 
 
 def _tangent_overlap_matrix(tangents: Sequence[np.ndarray]) -> np.ndarray:
@@ -5433,7 +5327,7 @@ def _validated_phase2_directional_curvature(
         getattr(
             cfg,
             "phase2_cheap_curvature_proxy_policy",
-            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
         )
     )
     if policy != PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1:
@@ -5497,11 +5391,9 @@ def validate_phase2_feature_curvature(
     return float(value)
 
 
-def _feature_curvature_or_legacy_lambda_f_proxy(
+def _feature_curvature(
     feat: CandidateFeatures,
     cfg: FullScoreConfig,
-    *,
-    legacy_metric: float,
 ) -> float:
     policy = normalize_phase2_curvature_policy(
         getattr(
@@ -5512,11 +5404,7 @@ def _feature_curvature_or_legacy_lambda_f_proxy(
     )
     if policy == PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1:
         return validate_phase2_feature_curvature(feat, cfg)
-    return float(
-        feat.h_hat
-        if feat.h_hat is not None
-        else float(cfg.lambda_F) * float(legacy_metric)
-    )
+    return float(0.0 if feat.h_hat is None else feat.h_hat)
 
 
 class Phase2CurvatureOracle:
@@ -5533,7 +5421,7 @@ class Phase2CurvatureOracle:
         optimizer_memory: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         del optimizer_memory
-        F_raw = float(max(0.0, novelty_info.get("F_raw", base_feature.F_raw or base_feature.F_metric)))
+        F_raw = float(max(0.0, novelty_info.get("F_raw", base_feature.F_raw or base_feature.F)))
         q_window = np.asarray(novelty_info.get("q_window", []), dtype=float).reshape(-1)
         Q_window = np.asarray(novelty_info.get("Q_window", scaffold_context.Q_window), dtype=float)
         cand_dpsi = np.asarray(novelty_info.get("candidate_dpsi"), dtype=complex).reshape(-1)
@@ -6465,7 +6353,7 @@ def build_full_candidate_features(
     )
     raw_geometry = phase2_raw_geometry_score(
         base_feature,
-        F_raw=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F_metric))),
+        F_raw=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F))),
         h_raw=float(phase2_h_raw),
         q_window=novelty_info_phase2.get("q_window", []),
         Q_window=novelty_info_phase2.get("Q_window", phase2_context.Q_window),
@@ -6491,7 +6379,7 @@ def build_full_candidate_features(
         "G_BB": float(
             max(
                 0.0,
-                novelty_info_phase2.get("F_raw", base_feature.F_metric),
+                novelty_info_phase2.get("F_raw", base_feature.F),
             )
         ),
         "H_AA": np.asarray(
@@ -6583,9 +6471,8 @@ def build_full_candidate_features(
             )
         ),
         curvature_mode=str(curvature_info.get("curvature_mode", "append_exact_window_hessian_v1")),
-        F_metric=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F_metric))),
-        metric_proxy=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.metric_proxy))),
-        F_raw=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F_raw or base_feature.F_metric))),
+        F=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F))),
+        F_raw=float(max(0.0, novelty_info_phase2.get("F_raw", base_feature.F_raw or base_feature.F))),
         h_eff=float(curvature_info.get("h_eff", 0.0)),
         F_red=float(curvature_info.get("F_red", novelty_info_phase3.get("F_raw", 0.0))),
         ridge_used=float(curvature_info.get("ridge_used", max(cfg.lambda_H, 0.0))),
@@ -6604,7 +6491,7 @@ def build_full_candidate_features(
                 getattr(
                     cfg,
                     "phase2_cheap_curvature_proxy_policy",
-                    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+                    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
                 )
             )
         ),
@@ -6613,8 +6500,6 @@ def build_full_candidate_features(
             if phase2_curvature_receipt is None
             else dict(phase2_curvature_receipt)
         ),
-        phase2_lambda_f_proxy_applied=False,
-        phase2_missing_curvature_fallback_used=False,
         b_hat=[float(x) for x in curvature_info.get("b_mixed", [])],
         H_window=[[float(x) for x in row] for row in curvature_info.get("H_window_hessian", [])],
         phase2_joint_geometry_reuse=dict(phase2_joint_geometry_reuse),
@@ -18835,7 +18720,7 @@ def build_candidate_features(
     append_position: int,
     positions_considered: list[int],
     gradient_signed: float,
-    metric_proxy: float,
+    F: float,
     sigma_hat: float,
     refit_window_indices: list[int],
     phase2_geometry_window_indices: Sequence[int] | None = None,
@@ -19010,21 +18895,9 @@ def build_candidate_features(
         g_lcb_legacy_shot=float(resolution["g_lcb_legacy_shot"]),
         hardware_resolution_mode=str(resolution["hardware_resolution_mode"]),
         hardware_resolution_source=str(resolution["hardware_resolution_source"]),
-        F_metric=float(max(0.0, metric_proxy)),
-        metric_proxy=float(max(0.0, metric_proxy)),
+        F=float(max(0.0, F)),
         novelty=None,
-        curvature_mode=(
-            "phase1_first_order_no_energy_curvature_v1"
-            if normalize_phase1_energy_model(
-                getattr(
-                    cfg,
-                    "phase1_energy_model",
-                    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-                )
-            )
-            == PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1
-            else "lambda_F_metric_proxy_only"
-        ),
+        curvature_mode="phase1_first_order_no_energy_curvature_v1",
         novelty_mode="none",
         refit_window_indices=[int(i) for i in refit_window_indices_norm],
         refit_window_basis="old_pre_geometry_alias",
@@ -19082,7 +18955,6 @@ def build_candidate_features(
         score_version=str(cfg.score_version),
         cheap_score=None,
         cheap_score_version=str(cfg.score_version),
-        cheap_metric_proxy=float(max(0.0, metric_proxy)),
         cheap_benefit_proxy=None,
         cheap_burden_total=None,
         depth_cost=float(depth_cost_value),
@@ -19363,18 +19235,9 @@ def build_candidate_features(
         "hardware_cost_denominator": float(hardware_payload["hardware_cost_denominator"]),
         "burden_total": float(hardware_payload["hardware_cost_excess_sum"]),
     }
-    phase1_F_raw = float(
-        max(
-            float(max(0.0, getattr(cfg, "metric_floor", 0.0))),
-            float(max(0.0, float(metric_proxy))),
-        )
-    )
     phase1_delta_e_tr_hw = float(phase1_payload["trust_region_gain"])
     phase_score_components = {
         "phase1_energy_model": str(phase1_payload["phase1_energy_model"]),
-        "phase1_lambda_f_curvature_proxy_applied": bool(
-            phase1_payload["phase1_lambda_f_curvature_proxy_applied"]
-        ),
         "phase1_gradient_abs": float(g_abs),
         "epsilon_g_shot": float(resolution["epsilon_g_shot"]),
         "b_g_hw": float(resolution["b_g_hw"]),
@@ -19394,7 +19257,6 @@ def build_candidate_features(
         simple_score=float(score),
         cheap_score=float(score),
         cheap_score_version=str(cfg.score_version),
-        cheap_metric_proxy=float(max(0.0, metric_proxy)),
         cheap_benefit_proxy=float(phase1_delta_e_tr_hw),
         cheap_burden_total=float(hardware_payload["hardware_cost_denominator"]),
         phase1_score_mode=str(phase1_payload["mode"]),
@@ -19405,9 +19267,6 @@ def build_candidate_features(
         phase1_rho=float(phase1_payload["rho"]),
         phase1_burden_total=float(hardware_payload["hardware_cost_denominator"]),
         phase1_energy_model=str(phase1_payload["phase1_energy_model"]),
-        phase1_lambda_f_proxy_applied=bool(
-            phase1_payload["phase1_lambda_f_curvature_proxy_applied"]
-        ),
         hardware_cost_excess_sum=float(hardware_payload["hardware_cost_excess_sum"]),
         hardware_cost_denominator=float(hardware_payload["hardware_cost_denominator"]),
         hardware_cost_lambdas={str(k): float(v) for k, v in hardware_payload["lambdas"].items()},

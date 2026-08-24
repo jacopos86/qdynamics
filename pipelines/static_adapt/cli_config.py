@@ -81,9 +81,9 @@ from pipelines.static_adapt.sr_snake_route_profile import (
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_CHOICES,
-    PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
+    PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
     PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES,
-    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+    PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
     PHASE2_CURVATURE_POLICY_CHOICES,
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
 )
@@ -1414,12 +1414,10 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         choices=list(SR_ROUTE_PROFILE_REQUEST_CHOICES),
         default=SR_ROUTE_PROFILE_REQUEST_OFF,
         help=(
-            "Executable SR-SNAKE route profile. sr_snake (or sr_snake_v3_1) "
-            "materializes the full-active-plus-singleton Phase-III response "
-            "policy with every configured phase live and full-ansatz "
-            "supported-FS accepted refits in the expanded "
-            "runtime/projected-logical chart. sr_snake_v3 preserves its "
-            "frozen historical profile, sr_snake_v2 preserves "
+            "Executable SR-SNAKE route profile. sr_snake resolves to the "
+            "retained v3 conventional route with full-active-plus-singleton "
+            "Phase-III response and full-ansatz supported-FS accepted refits. "
+            "sr_snake_v2 preserves "
             "the 2026-07-15 window-coupled response policy and sr_snake_v1 "
             "preserves the older historical policy. "
             "sr_snake_no_novelty_metric_prune_beam_v1 preserves the v3 "
@@ -1724,16 +1722,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
             "Default 1 preserves serial beam behavior; pass 0 for CPU-aware auto sizing."
         ),
     )
-    p.add_argument("--phase1-lambda-F", type=float, default=1.0)
     p.add_argument(
         "--phase1-energy-model",
         choices=list(PHASE1_ENERGY_MODEL_CHOICES),
-        default=PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
-        help=(
-            "Phase-I energy model. SR-SNAKE v4 resolves to the genuinely "
-            "first-order FS-trust model; the lambda-F quadratic form is "
-            "historical replay only."
-        ),
+        default=PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
+        help="Phase-I first-order Fubini--Study trust model.",
     )
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
@@ -2024,12 +2017,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         help="Optional Phase-2/3 confidence multiplier z_alpha. Defaults to --phase1-score-z-alpha when omitted.",
     )
     p.add_argument(
-        "--phase2-lambda-F",
-        type=float,
-        default=None,
-        help="Optional Phase-2 cheap-ratio metric scale lambda_F. Defaults to --phase1-lambda-F when omitted.",
-    )
-    p.add_argument(
         "--phase2-curvature-policy",
         choices=list(PHASE2_CURVATURE_POLICY_CHOICES),
         default=PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
@@ -2042,11 +2029,8 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument(
         "--phase2-cheap-curvature-proxy-policy",
         choices=list(PHASE2_CHEAP_CURVATURE_PROXY_POLICY_CHOICES),
-        default=PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
-        help=(
-            "Whether the historical g^2/(2 lambda_F F) Phase-II cheap proxy "
-            "is available. SR-SNAKE v4 resolves this policy to off."
-        ),
+        default=PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
+        help="Phase-II cheap curvature proxies are disabled.",
     )
     p.add_argument("--phase2-depth-ref", type=float, default=1.0)
     p.add_argument("--phase2-group-ref", type=float, default=1.0)
@@ -4128,12 +4112,11 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "adapt_gradient_parity_check": bool(args.adapt_gradient_parity_check),
         "adapt_parallel_gradient_workers": int(args.adapt_parallel_gradient_workers),
         "exact_gs_override": float(exact_gs_override),
-        "phase1_lambda_F": float(args.phase1_lambda_F),
         "phase1_energy_model": str(
             getattr(
                 args,
                 "phase1_energy_model",
-                PHASE1_ENERGY_MODEL_LEGACY_LAMBDA_F_QUADRATIC_V1,
+                PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
             )
         ),
         "phase1_lambda_compile": float(args.phase1_lambda_compile),
@@ -4247,9 +4230,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase2_score_z_alpha": float(args.phase2_score_z_alpha)
                 if args.phase2_score_z_alpha is not None
                 else None,
-        "phase2_lambda_F": float(args.phase2_lambda_F)
-                if args.phase2_lambda_F is not None
-                else None,
         "phase2_curvature_policy": str(
             getattr(
                 args,
@@ -4261,7 +4241,7 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
             getattr(
                 args,
                 "phase2_cheap_curvature_proxy_policy",
-                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_LEGACY_LAMBDA_F_RATIO_V1,
+                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF,
             )
         ),
         "phase2_depth_ref": float(args.phase2_depth_ref),

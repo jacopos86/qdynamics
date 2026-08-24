@@ -1323,7 +1323,6 @@ def build_output_payload(
             "adapt_full_refit_every": int(args.adapt_full_refit_every),
             "adapt_final_full_refit": str(args.adapt_final_full_refit),
             "adapt_final_refit_maxiter": int(getattr(args, "adapt_final_refit_maxiter", 0)),
-            "phase1_lambda_F": float(args.phase1_lambda_F),
             "phase1_lambda_compile": float(args.phase1_lambda_compile),
             "phase1_lambda_measure": float(args.phase1_lambda_measure),
             "phase1_lambda_leak": float(args.phase1_lambda_leak),
@@ -1430,11 +1429,6 @@ def build_output_payload(
             "phase2_score_z_alpha": (
                 float(args.phase2_score_z_alpha)
                 if args.phase2_score_z_alpha is not None
-                else None
-            ),
-            "phase2_lambda_F": (
-                float(args.phase2_lambda_F)
-                if args.phase2_lambda_F is not None
                 else None
             ),
             "phase2_depth_ref": float(args.phase2_depth_ref),

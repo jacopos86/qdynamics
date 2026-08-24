@@ -4796,8 +4796,7 @@ class TestHHPhase1Continuation:
             g_abs=0.0,
             g_lcb=0.0,
             sigma_hat=0.0,
-            F_metric=1.0,
-            metric_proxy=1.0,
+            F=1.0,
             novelty=1.0,
             curvature_mode="test",
             novelty_mode="test",
@@ -5850,8 +5849,7 @@ class TestHHPhase3Continuation:
             assert "remaining_evaluations_proxy" in row
             assert "cheap_score" in row
             assert row["cheap_score_version"] == "simple_v1"
-            assert "cheap_metric_proxy" in row
-            assert "metric_proxy" in row
+            assert "F" in row
             assert "cheap_benefit_proxy" in row
             assert "cheap_burden_total" in row
             assert "sigma_hat" in row
@@ -5877,7 +5875,7 @@ class TestHHPhase3Continuation:
             assert set(prune["cooldown_blocked_indices"]).isdisjoint(set(prune["mature_eligible_indices"]))
             assert len(prune["gate_rows"]) == len(prune["metadata"])
             assert row["sigma_hat"] == pytest.approx(0.0)
-            assert row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+            assert math.isfinite(float(row["F"]))
         assert continuation["phase2_shortlist_rows"]
         assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
         assert all(
@@ -5889,7 +5887,7 @@ class TestHHPhase3Continuation:
             for row in continuation["phase2_shortlist_rows"]
         )
         assert all(
-            row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+            math.isfinite(float(row["F"]))
             for row in continuation["phase2_shortlist_rows"]
         )
 
@@ -5909,9 +5907,9 @@ class TestHHPhase3Continuation:
             if score_key == "simple_score":
                 for rec in records:
                     feat = rec.get("feature")
-                    if feat is not None and hasattr(feat, "cheap_metric_proxy") and hasattr(feat, "g_abs"):
+                    if feat is not None and hasattr(feat, "F") and hasattr(feat, "g_abs"):
                         captured_phase1_metrics.append(
-                            (float(feat.cheap_metric_proxy), float(feat.g_abs))
+                            (float(feat.F), float(feat.g_abs))
                         )
             return original_shortlist_records(
                 records,
@@ -7892,38 +7890,6 @@ class TestHHPhase3Continuation:
                 adapt_continuation_mode="phase3_v1",
                 phase3_backend_cost_mode=str(backend_cost_mode),
                 phase3_backend_w_depth=math.nan,
-            )
-
-    def test_phase3_requires_positive_lambda_f_for_ratio_cheap_score(self):
-        with pytest.raises(ValueError, match="phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0"):
-            _run_hardcoded_adapt_vqe(
-                h_poly=self._hh_h(),
-                num_sites=2,
-                ordering="blocked",
-                problem="hh",
-                adapt_pool="paop_lf_std",
-                t=1.0,
-                u=2.0,
-                dv=0.0,
-                boundary="periodic",
-                omega0=1.0,
-                g_ep=0.5,
-                n_ph_max=1,
-                boson_encoding="binary",
-                max_depth=2,
-                eps_grad=1e-3,
-                eps_energy=1e-8,
-                maxiter=20,
-                seed=7,
-                allow_repeats=True,
-                finite_angle_fallback=False,
-                finite_angle=0.1,
-                finite_angle_min_improvement=1e-12,
-                adapt_reopt_policy="windowed",
-                adapt_window_size=1,
-                adapt_window_topk=0,
-                adapt_continuation_mode="phase3_v1",
-                phase1_lambda_F=0.0,
             )
 
     def test_phase3_backend_cost_mode_emits_backend_compile_summary(self, monkeypatch: pytest.MonkeyPatch):

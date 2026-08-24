@@ -82,7 +82,6 @@ from pipelines.scaffold.hh_continuation_scoring import (
     _validated_phase2_directional_curvature,
     phase1_trust_region_gain,
     phase2_raw_geometry_score,
-    phase3_cheap_ratio_v1,
 )
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
 from src.quantum.compiled_polynomial import apply_compiled_polynomial, compile_polynomial_action
@@ -120,7 +119,7 @@ def test_canonical_score_configs_share_normalized_hardware_cost_weights() -> Non
 
 
 def test_simple_v1_prefers_higher_gradient_with_equal_costs() -> None:
-    cfg = SimpleScoreConfig(lambda_F=1.0, lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
     oracle = Phase1CompileCostOracle()
     meas = MeasurementCacheAudit()
     cost = oracle.estimate(candidate_term_count=1, position_id=2, append_position=2, refit_active_count=1)
@@ -134,7 +133,7 @@ def test_simple_v1_prefers_higher_gradient_with_equal_costs() -> None:
         append_position=2,
         positions_considered=[2],
         gradient_signed=0.4,
-        metric_proxy=0.4,
+        F=0.4,
         sigma_hat=0.0,
         refit_window_indices=[2],
         compile_cost=cost,
@@ -155,7 +154,7 @@ def test_simple_v1_prefers_higher_gradient_with_equal_costs() -> None:
         append_position=2,
         positions_considered=[2],
         gradient_signed=0.2,
-        metric_proxy=0.2,
+        F=0.2,
         sigma_hat=0.0,
         refit_window_indices=[2],
         compile_cost=cost,
@@ -219,7 +218,7 @@ def test_stage_gate_blocks_score() -> None:
         append_position=1,
         positions_considered=[0, 1],
         gradient_signed=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0, 1],
         compile_cost=cost,
@@ -235,7 +234,7 @@ def test_stage_gate_blocks_score() -> None:
 
 
 def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
-    cfg = SimpleScoreConfig(lambda_F=0.0, lambda_compile=1.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    cfg = SimpleScoreConfig(lambda_compile=1.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
     meas = MeasurementCacheAudit()
     compile_cache_identity = {
         "schema": "phase123_qiskit_candidate_position_compile_cache_v1",
@@ -294,7 +293,7 @@ def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
         append_position=1,
         positions_considered=[1],
         gradient_signed=0.0,
-        metric_proxy=0.0,
+        F=0.0,
         sigma_hat=0.0,
         refit_window_indices=[0, 1],
         compile_cost=cost,
@@ -347,7 +346,7 @@ def test_backend_compile_gate_closed_blocks_simple_and_full_scores() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -366,7 +365,7 @@ def test_backend_compile_gate_closed_blocks_simple_and_full_scores() -> None:
 
 
 def test_simple_v1_uses_g_hw_lcb_for_ranking() -> None:
-    cfg = SimpleScoreConfig(lambda_F=0.0, lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=10.0)
+    cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=10.0)
     oracle = Phase1CompileCostOracle()
     meas = MeasurementCacheAudit()
     cost = oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1)
@@ -380,7 +379,7 @@ def test_simple_v1_uses_g_hw_lcb_for_ranking() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.4,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.03,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -402,7 +401,7 @@ def test_simple_v1_uses_g_hw_lcb_for_ranking() -> None:
 
 
 def _zero_gain_plateau_feature():
-    cfg = SimpleScoreConfig(lambda_F=1.0, lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
     oracle = Phase1CompileCostOracle()
     meas = MeasurementCacheAudit()
     cost = oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1)
@@ -415,7 +414,7 @@ def _zero_gain_plateau_feature():
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.0,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -576,14 +575,12 @@ def test_plateau_score_blocks_real_gates_and_duplicates() -> None:
     )["block_reason"] == "exact_candidate_position_duplicate"
 
 
-def test_simple_v1_metric_floor_scores_zero_metric_records() -> None:
+def test_simple_v1_zero_metric_has_zero_trust_gain() -> None:
     cfg = SimpleScoreConfig(
-        lambda_F=1.0,
         lambda_compile=0.0,
         lambda_measure=0.0,
         lambda_leak=0.0,
         z_alpha=0.0,
-        metric_floor=1.0,
     )
     oracle = Phase1CompileCostOracle()
     meas = MeasurementCacheAudit()
@@ -597,7 +594,7 @@ def test_simple_v1_metric_floor_scores_zero_metric_records() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.4,
-        metric_proxy=0.0,
+        F=0.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -609,11 +606,9 @@ def test_simple_v1_metric_floor_scores_zero_metric_records() -> None:
         trough_detected=False,
         cfg=cfg,
     )
-    expected_delta = trust_region_drop(float(feat.g_hw_lcb), 1.0, 1.0, 0.25)
-    assert expected_delta > 0.0
-    assert float(feat.simple_score or 0.0) == pytest.approx(expected_delta)
-    assert float(feat.phase_score_components["phase1_DeltaE1_TR_hw"]) == pytest.approx(expected_delta)
-    assert float(feat.cheap_benefit_proxy or 0.0) == pytest.approx(expected_delta)
+    assert float(feat.simple_score or 0.0) == 0.0
+    assert float(feat.phase_score_components["phase1_DeltaE1_TR_hw"]) == 0.0
+    assert float(feat.cheap_benefit_proxy or 0.0) == 0.0
 
 
 def test_phase1_trust_region_score_responds_to_rho() -> None:
@@ -631,7 +626,7 @@ def test_phase1_trust_region_score_responds_to_rho() -> None:
             append_position=0,
             positions_considered=[0],
             gradient_signed=1.0,
-            metric_proxy=1.0,
+            F=1.0,
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=cost,
@@ -642,7 +637,6 @@ def test_phase1_trust_region_score_responds_to_rho() -> None:
             trough_probe_triggered=False,
             trough_detected=False,
             cfg=SimpleScoreConfig(
-                lambda_F=1.0,
                 lambda_compile=0.0,
                 lambda_measure=0.0,
                 lambda_leak=0.0,
@@ -655,8 +649,12 @@ def test_phase1_trust_region_score_responds_to_rho() -> None:
     high = _score(0.5)
     assert low.phase1_score_mode == "trust_region_v1"
     assert high.phase1_score_mode == "trust_region_v1"
-    assert float(low.phase1_active_score or 0.0) == pytest.approx(trust_region_drop(1.0, 1.0, 1.0, 0.1))
-    assert float(high.phase1_active_score or 0.0) == pytest.approx(trust_region_drop(1.0, 1.0, 1.0, 0.5))
+    assert float(low.phase1_active_score or 0.0) == pytest.approx(
+        trust_region_drop(1.0, 0.0, 1.0, 0.1)
+    )
+    assert float(high.phase1_active_score or 0.0) == pytest.approx(
+        trust_region_drop(1.0, 0.0, 1.0, 0.5)
+    )
     assert float(high.phase1_active_score or 0.0) > float(low.phase1_active_score or 0.0)
     assert float(low.phase1_legacy_simple_score or 0.0) == pytest.approx(1.0)
     assert float(high.phase1_legacy_simple_score or 0.0) == pytest.approx(1.0)
@@ -677,7 +675,7 @@ def test_phase1_legacy_simple_mode_ignores_rho() -> None:
             append_position=0,
             positions_considered=[0],
             gradient_signed=0.4,
-            metric_proxy=1.0,
+            F=1.0,
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=cost,
@@ -688,7 +686,6 @@ def test_phase1_legacy_simple_mode_ignores_rho() -> None:
             trough_probe_triggered=False,
             trough_detected=False,
             cfg=SimpleScoreConfig(
-                lambda_F=1.0,
                 lambda_compile=0.0,
                 lambda_measure=0.0,
                 lambda_leak=0.0,
@@ -712,7 +709,6 @@ def test_phase1_legacy_simple_mode_ignores_rho() -> None:
 
 def test_manual_gradient_floor_reduces_hw_lcb_but_preserves_legacy_shot_lcb() -> None:
     cfg = SimpleScoreConfig(
-        lambda_F=0.0,
         lambda_compile=0.0,
         lambda_measure=0.0,
         lambda_leak=0.0,
@@ -733,7 +729,7 @@ def test_manual_gradient_floor_reduces_hw_lcb_but_preserves_legacy_shot_lcb() ->
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.4,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.03,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -920,7 +916,7 @@ def _phase2_raw_base_feature(*, sigma_hat: float = 1.0):
         append_position=0,
         positions_considered=[0],
         gradient_signed=2.0,
-        metric_proxy=2.0,
+        F=2.0,
         sigma_hat=float(sigma_hat),
         refit_window_indices=[0],
         compile_cost=cost,
@@ -1047,8 +1043,7 @@ def test_full_scoring_manual_floors_apply_to_legacy_direct_features() -> None:
         g_lcb_legacy_shot=0.0,
         hardware_resolution_mode="ideal",
         hardware_resolution_source="legacy_unset",
-        F_metric=2.0,
-        metric_proxy=2.0,
+        F=2.0,
         F_raw=2.0,
         F_red=2.0,
         h_eff=0.0,
@@ -1177,8 +1172,7 @@ def test_rescore_candidate_feature_invalidates_stale_confidence_raw_score_when_h
         g_lcb_legacy_shot=0.0,
         hardware_resolution_mode="ideal",
         hardware_resolution_source="ideal_zero_floors",
-        F_metric=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         F_raw=1.0,
         F_red=1.0,
         h_eff=0.0,
@@ -1243,7 +1237,7 @@ def _v4_phase1_feature(*, gradient: float, metric: float):
         append_position=0,
         positions_considered=[0],
         gradient_signed=float(gradient),
-        metric_proxy=float(metric),
+        F=float(metric),
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -1260,11 +1254,10 @@ def _v4_phase1_feature(*, gradient: float, metric: float):
     )
 
 
-def _v4_phase1_cfg(*, lambda_F: float) -> SimpleScoreConfig:
+def _v4_phase1_cfg() -> SimpleScoreConfig:
     return SimpleScoreConfig(
         phase1_energy_model=PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
         rho=0.4,
-        lambda_F=float(lambda_F),
         z_alpha=0.0,
     )
 
@@ -1309,29 +1302,25 @@ def _phase2_curvature_receipt(value: float) -> dict[str, object]:
 
 def test_v4_phase1_is_exactly_first_order_fs_trust_gain() -> None:
     feat = _v4_phase1_feature(gradient=3.0, metric=4.0)
-    assert phase1_trust_region_gain(feat, _v4_phase1_cfg(lambda_F=1.0)) == (
+    assert phase1_trust_region_gain(feat, _v4_phase1_cfg()) == (
         pytest.approx(0.4 * 3.0 / np.sqrt(4.0))
     )
 
 
-def test_v4_phase1_is_lambda_f_invariant_and_coordinate_scale_invariant() -> None:
+def test_v4_phase1_is_coordinate_scale_invariant() -> None:
     feat = _v4_phase1_feature(gradient=3.0, metric=4.0)
     scaled = _v4_phase1_feature(gradient=15.0, metric=100.0)
-    gains = [
-        phase1_trust_region_gain(feat, _v4_phase1_cfg(lambda_F=value))
-        for value in (1.0e-15, 1.0, 1.0e15)
-    ]
-    assert gains == pytest.approx([0.6, 0.6, 0.6])
-    assert phase1_trust_region_gain(
-        scaled,
-        _v4_phase1_cfg(lambda_F=17.0),
-    ) == pytest.approx(gains[0])
+    gain = phase1_trust_region_gain(feat, _v4_phase1_cfg())
+    assert gain == pytest.approx(0.6)
+    assert phase1_trust_region_gain(scaled, _v4_phase1_cfg()) == pytest.approx(
+        gain
+    )
 
 
-def test_v4_phase1_coordinate_scale_invariance_crosses_legacy_metric_floor() -> None:
+def test_v4_phase1_coordinate_scale_invariance_at_small_metric() -> None:
     base = _v4_phase1_feature(gradient=3.0e-8, metric=4.0e-16)
     scaled = _v4_phase1_feature(gradient=3.0, metric=4.0)
-    cfg = _v4_phase1_cfg(lambda_F=1.0e15)
+    cfg = _v4_phase1_cfg()
     assert phase1_trust_region_gain(base, cfg) == pytest.approx(0.6)
     assert phase1_trust_region_gain(scaled, cfg) == pytest.approx(0.6)
 
@@ -1441,12 +1430,6 @@ def test_v4_phase2_finite_negative_curvature_is_valid_and_clipped_only_in_model(
         cfg=_v4_phase2_cfg(),
     )
     assert payload["phase2_trust_region_gain"] == pytest.approx(0.25)
-    assert payload["phase2_lambda_f_proxy_applied"] is False
-
-
-def test_v4_phase2_cheap_lambda_f_proxy_is_unreachable() -> None:
-    with pytest.raises(Phase2CurvatureConstructionError, match="proxy is disabled"):
-        phase3_cheap_ratio_v1(_v4_phase1_feature(gradient=1.0, metric=1.0), _v4_phase2_cfg())
 
 
 def test_v4_curvature_failure_aborts_before_any_novelty_rescue() -> None:
@@ -1482,7 +1465,6 @@ def test_v4_curvature_failure_aborts_before_any_novelty_rescue() -> None:
 def test_full_v2_score_falls_back_safely_without_window_curvature() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -1501,7 +1483,7 @@ def test_full_v2_score_falls_back_safely_without_window_curvature() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=0.5,
+        F=0.5,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -1533,7 +1515,7 @@ def test_build_full_candidate_features_clips_novelty_and_preserves_window() -> N
         append_position=1,
         positions_considered=[1],
         gradient_signed=0.3,
-        metric_proxy=0.3,
+        F=0.3,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
@@ -1633,7 +1615,7 @@ def test_live_cheap_score_remains_simple_alias_when_phase3_config_is_present() -
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.4,
-        metric_proxy=0.2,
+        F=0.2,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -1643,9 +1625,8 @@ def test_live_cheap_score_remains_simple_alias_when_phase3_config_is_present() -
         leakage_gate_open=True,
         trough_probe_triggered=False,
         trough_detected=False,
-        cfg=SimpleScoreConfig(lambda_F=1.0, lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0),
+        cfg=SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0),
         cheap_score_cfg=FullScoreConfig(
-            lambda_F=1.0,
             wD=0.0,
             wG=0.0,
             wC=0.0,
@@ -1654,11 +1635,11 @@ def test_live_cheap_score_remains_simple_alias_when_phase3_config_is_present() -
             lifetime_weight=0.0,
         ),
     )
-    expected_delta = trust_region_drop(float(feat.g_hw_lcb), 1.0 * 0.2, 0.2, 0.25)
+    expected_delta = trust_region_drop(float(feat.g_hw_lcb), 0.0, 0.2, 0.25)
     assert float(feat.simple_score or 0.0) == pytest.approx(expected_delta)
     assert float(feat.cheap_score or 0.0) == pytest.approx(expected_delta)
     assert feat.cheap_score_version == "simple_v1"
-    assert float(feat.cheap_metric_proxy) == pytest.approx(0.2)
+    assert float(feat.F) == pytest.approx(0.2)
     assert float(feat.cheap_benefit_proxy or 0.0) == pytest.approx(expected_delta)
     assert float(feat.cheap_burden_total or 0.0) == pytest.approx(1.0)
 
@@ -1684,7 +1665,7 @@ def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
         append_position=1,
         positions_considered=[1],
         gradient_signed=0.3,
-        metric_proxy=float(metric_exact),
+        F=float(metric_exact),
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
@@ -1717,11 +1698,9 @@ def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
     )
     assert feat.cheap_score == pytest.approx(base.cheap_score or 0.0)
     assert feat.cheap_score_version == "simple_v1"
-    assert feat.cheap_metric_proxy == pytest.approx(base.cheap_metric_proxy)
+    assert feat.F == pytest.approx(base.F)
     assert feat.cheap_benefit_proxy == pytest.approx(base.cheap_benefit_proxy or 0.0)
     assert feat.cheap_burden_total == pytest.approx(base.cheap_burden_total or 0.0)
-    assert feat.metric_proxy == pytest.approx(feat.cheap_metric_proxy)
-    assert feat.F_metric == pytest.approx(feat.cheap_metric_proxy)
 
 
 def test_build_full_candidate_features_selector_score_defaults_to_reduced_geometry() -> None:
@@ -1745,7 +1724,7 @@ def test_build_full_candidate_features_selector_score_defaults_to_reduced_geomet
         append_position=1,
         positions_considered=[1],
         gradient_signed=0.3,
-        metric_proxy=float(metric_exact),
+        F=float(metric_exact),
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
@@ -1804,7 +1783,7 @@ def test_build_full_candidate_features_selector_score_can_use_raw_exact_geometry
         append_position=1,
         positions_considered=[1],
         gradient_signed=0.3,
-        metric_proxy=float(metric_exact),
+        F=float(metric_exact),
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
@@ -1877,7 +1856,7 @@ def _full_record(
         append_position=int(position_id),
         positions_considered=[int(position_id)],
         gradient_signed=float(gradient_signed),
-        metric_proxy=float(metric_exact),
+        F=float(metric_exact),
         sigma_hat=0.0,
         refit_window_indices=list(refit_window_indices),
         compile_cost=oracle.estimate(
@@ -1932,7 +1911,7 @@ def _full_record(
 def _legacy_phase3_feature(
     *,
     gradient_signed: float,
-    metric_proxy: float,
+    F: float,
     sigma_hat: float = 0.0,
     h_hat: float | None = None,
     motif_bonus: float = 0.0,
@@ -1952,7 +1931,7 @@ def _legacy_phase3_feature(
         append_position=0,
         positions_considered=[0],
         gradient_signed=float(gradient_signed),
-        metric_proxy=float(metric_proxy),
+        F=float(F),
         sigma_hat=float(sigma_hat),
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -1969,7 +1948,7 @@ def _legacy_phase3_feature(
     return type(feat)(
         **{
             **feat.__dict__,
-            "h_hat": float(h_hat if h_hat is not None else max(metric_proxy, 1e-12)),
+            "h_hat": float(h_hat if h_hat is not None else max(F, 1e-12)),
             "curvature_mode": "self_only",
             "phase3_duplicate_penalty": float(duplicate_penalty),
         }
@@ -1981,7 +1960,6 @@ def test_full_v2_canonical_component_product_equals_score() -> None:
     psi_ref[0] = 1.0 + 0.0j
     full_cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2021,7 +1999,6 @@ def test_full_v2_canonical_component_product_equals_score() -> None:
 def test_full_v2_confidence_factor_is_telemetry_only() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.5,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2033,7 +2010,7 @@ def test_full_v2_confidence_factor_is_telemetry_only() -> None:
     )
     feat = _legacy_phase3_feature(
         gradient_signed=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.25,
         h_hat=0.5,
         full_cfg=cfg,
@@ -2054,7 +2031,6 @@ def test_full_v2_confidence_factor_is_telemetry_only() -> None:
 def test_historical_novelty_fields_are_passive_in_phase3_scoring() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2065,7 +2041,7 @@ def test_historical_novelty_fields_are_passive_in_phase3_scoring() -> None:
     )
     feat = _legacy_phase3_feature(
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         full_cfg=cfg,
     )
@@ -2087,7 +2063,6 @@ def test_historical_novelty_fields_are_passive_in_phase3_scoring() -> None:
 def test_full_v2_leakage_penalty_is_gate_telemetry_not_primary_multiplier() -> None:
     cfg_no_leak_weight = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         eta_L=0.0,
         wD=0.0,
@@ -2100,7 +2075,7 @@ def test_full_v2_leakage_penalty_is_gate_telemetry_not_primary_multiplier() -> N
     cfg_with_leak_weight = FullScoreConfig(**{**cfg_no_leak_weight.__dict__, "eta_L": 10.0})
     feat = _legacy_phase3_feature(
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         leakage_penalty=0.25,
         full_cfg=cfg_with_leak_weight,
@@ -2115,7 +2090,6 @@ def test_full_v2_leakage_penalty_is_gate_telemetry_not_primary_multiplier() -> N
 def test_full_v2_default_auxiliary_terms_cannot_rescue_weak_geometry() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2128,14 +2102,14 @@ def test_full_v2_default_auxiliary_terms_cannot_rescue_weak_geometry() -> None:
     )
     strong = _legacy_phase3_feature(
         gradient_signed=0.8,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         duplicate_penalty=1_000_000.0,
         full_cfg=cfg,
     )
     weak = _legacy_phase3_feature(
         gradient_signed=0.01,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         motif_bonus=1_000_000.0,
         full_cfg=cfg,
@@ -2151,7 +2125,6 @@ def test_full_v2_default_auxiliary_terms_cannot_rescue_weak_geometry() -> None:
 def test_full_v2_duplicate_penalty_is_tie_break_only_by_default() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2163,7 +2136,7 @@ def test_full_v2_duplicate_penalty_is_tie_break_only_by_default() -> None:
     )
     base = _legacy_phase3_feature(
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         duplicate_penalty=0.0,
         full_cfg=cfg,
@@ -2210,7 +2183,6 @@ def test_phase3_shortlist_primary_score_beats_huge_tie_break() -> None:
 def test_full_v2_ablation_additive_mode_is_explicit_opt_in() -> None:
     cfg_default = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2222,7 +2194,7 @@ def test_full_v2_ablation_additive_mode_is_explicit_opt_in() -> None:
     )
     feat = _legacy_phase3_feature(
         gradient_signed=0.2,
-        metric_proxy=1.0,
+        F=1.0,
         h_hat=0.5,
         motif_bonus=0.25,
         full_cfg=cfg_default,
@@ -2240,7 +2212,6 @@ def test_reduced_plane_batch_select_can_keep_two_orthogonal_records() -> None:
     psi_ref[0] = 1.0 + 0.0j
     full_cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2303,7 +2274,6 @@ def test_greedy_reduced_plane_batch_proposal_uses_cost_weighted_batch_score() ->
     psi_ref[0] = 1.0 + 0.0j
     full_cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2468,7 +2438,6 @@ def test_reduced_plane_batch_select_blocks_same_generator_at_different_positions
     psi_ref[0] = 1.0 + 0.0j
     full_cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -2614,7 +2583,6 @@ def test_reduced_plane_batch_select_rejects_rank_deficient_addon() -> None:
     psi_ref[0] = 1.0 + 0.0j
     full_cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -3139,7 +3107,6 @@ def _joint_geometry_fixture() -> tuple[
     psi = psi / np.linalg.norm(psi)
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -3236,7 +3203,6 @@ def test_phase2_joint_response_rejects_active_span_collapse() -> None:
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         batch_joint_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
     )
@@ -3401,7 +3367,7 @@ def test_typed_joint_response_evaluator_reuses_active_blocks() -> None:
     selected = [_term("xe")]
     theta = np.asarray([0.0], dtype=float)
     psi_state = np.asarray(psi_ref, dtype=complex)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="ex",
         candidate_label="independent-ex",
@@ -4748,7 +4714,7 @@ def test_phase2_joint_geometry_reuse_requires_matching_exact_chart_and_state() -
     selected = [_term("z")]
     theta = np.asarray([0.0], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     record, h_compiled = _full_record(
         label="x",
         candidate_label="candidate-x",
@@ -4882,7 +4848,7 @@ def test_full_ansatz_context_suppresses_candidate_redundant_with_ansatz() -> Non
     selected = [_term("x")]
     theta = np.asarray([0.0], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     simple = SimpleScoreConfig(z_alpha=0.0)
     candidate, h_compiled = _full_record(
         label="x",
@@ -4940,7 +4906,7 @@ def test_joint_ansatz_relaxation_matches_direct_combined_solve() -> None:
     selected = [_term("x")]
     theta = np.asarray([0.2], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="y",
         candidate_label="candidate-y",
@@ -5000,7 +4966,7 @@ def test_supported_whitened_joint_selector_emits_full_system_certificates() -> N
     selected = [_term("x")]
     theta = np.asarray([0.2], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="y",
         candidate_label="candidate-y",
@@ -5060,7 +5026,7 @@ def test_active_window_context_is_explicit_and_shared_by_gram_and_hessian() -> N
     selected = [_term("x"), _term("z")]
     theta = np.asarray([0.1, 0.2], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="y",
         candidate_label="candidate-y",
@@ -5106,7 +5072,7 @@ def test_active_tail_window_resolves_against_current_ansatz_depth() -> None:
     selected = [_term("x"), _term("z"), _term("y")]
     theta = np.asarray([0.1, 0.2, -0.1], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="x",
         candidate_label="candidate-x",
@@ -5157,7 +5123,7 @@ def test_joint_trust_solve_eliminates_schur_of_h_plus_lambda_g() -> None:
     selected = [_term("xe")]
     theta = np.asarray([0.37], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="ye",
         candidate_label="candidate-ye",
@@ -5320,7 +5286,7 @@ def test_joint_selector_preserves_position_alternatives_but_blocks_same_child_ba
     selected = [_term("x")]
     theta = np.asarray([0.3], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     position_zero, h_compiled = _full_record(
         label="z",
         candidate_label="same-z-child",
@@ -5465,7 +5431,7 @@ def test_full_context_never_silently_truncates_active_ansatz() -> None:
     selected = [_term("xe"), _term("ye"), _term("ze")]
     theta = np.asarray([0.1, -0.2, 0.3], dtype=float)
     psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
-    cfg = FullScoreConfig(z_alpha=0.0, lambda_F=1.0, rho=0.5)
+    cfg = FullScoreConfig(z_alpha=0.0, rho=0.5)
     candidate, h_compiled = _full_record(
         label="ex",
         candidate_label="candidate-ex",
@@ -6078,7 +6044,7 @@ def test_hardware_cost_family_normalization_uses_positive_excess_denominator() -
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1, candidate_term=_term("x")),
@@ -6121,7 +6087,7 @@ def _symmetric_cost_test_features(costs: list[float]):
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(
@@ -6366,7 +6332,7 @@ def test_rescore_hardware_cost_family_updates_phase2_denominator_and_record_alia
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1, candidate_term=_term("x")),
@@ -6432,7 +6398,7 @@ def test_rescore_hardware_cost_family_updates_simple_phase1_aliases() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1, candidate_term=_term("x")),
@@ -6515,7 +6481,7 @@ def test_compatibility_penalty_uses_measurement_mismatch_signal() -> None:
             append_position=0,
             positions_considered=[0],
             gradient_signed=0.5,
-            metric_proxy=0.5,
+            F=0.5,
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=oracle.estimate(
@@ -6569,7 +6535,7 @@ def test_compatibility_penalty_oracle_caches_tangents_and_pair_results(
             append_position=0,
             positions_considered=[0],
             gradient_signed=0.5,
-            metric_proxy=0.5,
+            F=0.5,
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=oracle.estimate(
@@ -6645,7 +6611,7 @@ def test_shortlist_only_expensive_scoring_calls_oracles_for_shortlist() -> None:
             append_position=0,
             positions_considered=[0],
             gradient_signed=float(grad),
-            metric_proxy=float(grad),
+            F=float(grad),
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -6745,7 +6711,7 @@ def test_lifetime_weight_components_are_zero_when_mode_off() -> None:
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=0.5,
+        F=0.5,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -6781,7 +6747,7 @@ def test_lifetime_weight_components_use_controller_useful_horizon_not_raw_remain
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=0.5,
+        F=0.5,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -6809,7 +6775,6 @@ def test_lifetime_weight_components_use_controller_useful_horizon_not_raw_remain
 def test_full_v2_motif_bonus_tie_break_and_lifetime_weighting_are_deterministic() -> None:
     cfg = FullScoreConfig(
         z_alpha=0.0,
-        lambda_F=1.0,
         rho=0.5,
         wD=0.0,
         wG=0.0,
@@ -6832,7 +6797,7 @@ def test_full_v2_motif_bonus_tie_break_and_lifetime_weighting_are_deterministic(
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.5,
-        metric_proxy=0.5,
+        F=0.5,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
@@ -6904,7 +6869,7 @@ def test_build_candidate_features_carries_generator_and_symmetry_metadata() -> N
         append_position=0,
         positions_considered=[0],
         gradient_signed=0.4,
-        metric_proxy=0.4,
+        F=0.4,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=oracle.estimate(candidate_term_count=2, position_id=0, append_position=0, refit_active_count=1),
@@ -6961,7 +6926,7 @@ def test_signed_backend_compile_cost_reward_is_telemetry_only_in_simple_score() 
         append_position=0,
         positions_considered=[0],
         gradient_signed=1.0,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[0],
         compile_cost=cost,
@@ -6975,7 +6940,7 @@ def test_signed_backend_compile_cost_reward_is_telemetry_only_in_simple_score() 
     )
     assert feat.compile_cost_total == pytest.approx(-0.5)
     assert feat.hardware_cost_denominator == pytest.approx(1.0)
-    expected_delta = trust_region_drop(float(feat.g_hw_lcb), 1.0, 1.0, 0.25)
+    expected_delta = trust_region_drop(float(feat.g_hw_lcb), 0.0, 1.0, 0.25)
     assert float(feat.simple_score or 0.0) == pytest.approx(expected_delta)
 
 
@@ -7004,7 +6969,7 @@ def test_signed_backend_compile_cost_is_telemetry_only_in_full_score() -> None:
             append_position=0,
             positions_considered=[0],
             gradient_signed=0.5,
-            metric_proxy=1.0,
+            F=1.0,
             sigma_hat=0.0,
             refit_window_indices=[0],
             compile_cost=cost,

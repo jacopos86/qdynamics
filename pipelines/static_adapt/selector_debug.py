@@ -177,9 +177,9 @@ def _selector_debug_row(
         ),
         "hardware_resolution_mode": str(_feat_get("hardware_resolution_mode", "ideal")),
         "hardware_resolution_source": str(_feat_get("hardware_resolution_source", "legacy_unset")),
-        "metric_proxy": (
-            float(_feat_get("metric_proxy"))
-            if _feat_get("metric_proxy") is not None
+        "F": (
+            float(_feat_get("F"))
+            if _feat_get("F") is not None
             else None
         ),
         "F_raw": (
@@ -389,7 +389,6 @@ def _selector_debug_payload(
             "w_optdim": float(getattr(phase2_score_cfg, "wP", 0.0)),
             "w_reuse": float(getattr(phase2_score_cfg, "wc", 0.0)),
             "w_lifetime": float(getattr(phase2_score_cfg, "lifetime_weight", 0.0)),
-            "lambda_F": float(getattr(phase2_score_cfg, "lambda_F", 0.0)),
             "score_z_alpha": float(getattr(phase2_score_cfg, "z_alpha", 0.0)),
             "eta_L": float(getattr(phase2_score_cfg, "eta_L", 0.0)),
             "depth_ref": float(getattr(phase2_score_cfg, "depth_ref", 1.0)),

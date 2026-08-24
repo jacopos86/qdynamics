@@ -283,7 +283,7 @@ PHASE3_QISKIT_PAGE7_PARENT_ROUTE_PROFILE = (
     "stationary_source_response_v1__all_phase_resource_weighting_v1"
 )
 PHASE3_QISKIT_PAGE7_PARENT_CONTRACT_SHA256 = (
-    "69af64db5bbaf5b811685b8353b82b748dc13d16306e4c08ddfe5ffde07f301b"
+    "3f4ebed3d48ca972abb2867e8300032f6816a57ba3c5845f28fe1cf37cbbdcdd"
 )
 EXECUTION_TARGET = "chtc"
 SUBMISSION_STATE = "not_submitted"

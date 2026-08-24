@@ -76,7 +76,7 @@ def _record(
         append_position=int(position_id),
         positions_considered=[int(position_id)],
         gradient_signed=0.5,
-        metric_proxy=1.0,
+        F=1.0,
         sigma_hat=0.0,
         refit_window_indices=[],
         compile_cost=Phase1CompileCostOracle().estimate(
