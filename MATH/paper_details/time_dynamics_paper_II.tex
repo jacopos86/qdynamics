@@ -591,6 +591,58 @@ stresses the structural rule hardest; the doublon fraction and the site
 occupations are followed to $t=10$ against the exact time-ordered trajectory of
 the same truncated Hamiltonian.
 
+\subsection{How comparisons are constructed}
+\label{sec:comparison_protocol}
+
+Every comparison reported below is taken \emph{at fixed accuracy}, not at a
+fixed activation threshold, and this choice is forced by measurement rather than
+preference.  Each adaptive method carries its own McLachlan-distance cut
+\(L^2_{\rm cut}\) below which it stops enlarging the ansatz, and the natural
+comparison is to set both to a common value.  On this problem that is not sound.
+Sweeping the cut over two decades on three drives, tightening it improves
+accuracy monotonically on one of three drives for the comparator and none of
+three for the route of this work, while a hundredfold change of the cut moves
+the support by roughly ten coordinates; on the weak slow drive the two methods
+return identical trajectories at the two loosest cuts because neither ever
+triggers.  The cut therefore has a dead zone, a live zone, and non-monotone
+behavior inside the live zone, and a method's quality cannot be read off one
+setting of its own dial.
+
+We instead fix an accuracy target \(\varepsilon\) and ask what each method costs
+to reach it.  For every cell we run a common ladder of cuts, record the mean
+absolute energy error against the exact time-ordered trajectory and the final
+support size at each rung, and report the smallest support among rungs meeting
+\(\varepsilon\); that support size is the comparable cost.  A cell that no rung
+reaches is reported as not converged rather than averaged over, and a target is
+only meaningful when both methods receive the same ladder and the same selection
+rule.  Because selecting the best rung is a minimum over a noisy ladder, we
+report the tightest-rung comparison --- which involves no selection --- beside
+the best-rung one, and do not quote best-rung ratios as headline figures.
+
+Three axes are held identical across any pair of arms being compared: the
+physics (seed, drive, reporting grid, candidate pool), the inner numerical
+method (integrator, Tikhonov regularization, damping, pseudo-inverse cutoff),
+and the step-size control law.  The last is a genuine axis rather than a
+property of a method: both methods bound their step and differ in the quantity
+bounded, this route bounding state displacement and subdividing while the
+comparator bounds \(\max_\mu|\delta\theta_\mu|\), and the integrator matters
+independently --- fourth-order integration outperforms first-order by roughly a
+factor of three and a half for \emph{both} methods, so arms differing in
+integrator are not comparable.  The full axis specification, the locked values,
+and the per-cell reporting contract are given in the lane protocol document
+\texttt{agent\_guidance/time-dynamics/paper-ii-comparison-protocol.md}, and the
+exact command and complete parameter set for every reported run are generated
+into \texttt{agent\_guidance/time-dynamics/paper-ii-run-parameters.md}.
+
+Under this protocol the growth-only ablation of this route reaches
+\(\varepsilon=10^{-4}\) on three of three drives against the comparator's two of
+three, at equal or smaller support (\tentative{47} against \tentative{50}, and
+\tentative{44} against \tentative{47}).  \tentative{The corresponding ladder for
+the full exchange route is in progress; whether pruning attains a lower
+converged error, or the same error at smaller support, is the measurement that
+decides the central claim of this work, and no fixed-accuracy statement about
+pruning is made here in its absence.}
+
 \subsection{Frozen adaptive-append baseline}
 \label{sec:competitor_baseline}
 
