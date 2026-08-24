@@ -475,6 +475,91 @@ This is the same defect as F3, F4 and the test pollution, in a fourth place: one
 fact — an entry of a response object — materialized in several places, each copy
 then needing a guard that it still agrees with the others.
 
+## 6f. HOOK INVENTORY — where each target piece already lives
+
+Division of labour (author, 2026-08-24): Claude plans and locates the hooks;
+Codex implements. This section exists so Codex never has to search. Every line
+number measured on `77aeeba8` or later — re-verify before editing, the tree moves.
+
+### HOOK A — `Response` already exists as a 303-line class
+
+**`_DefaultNoPruneEstimatorService`, `adapt_pipeline.py:56603-56905`** — 303
+lines, 13 methods. This is the response accessor from 6d/6e, already written:
+
+| line | method | target role |
+|---|---|---|
+| 56676 | `_record_estimator_primitive` (18) | the ledger charge |
+| 56695 | `_active_physical_tangent` (2) | ansatz index -> coordinate identity |
+| 56698 | `_candidate_physical_tangent` (3) | candidate -> coordinate identity |
+| 56720 | `_record_candidate_self_metric_primitive` (4) | `G[c,c]` — `symmetric_pair=(coord, coord)` |
+| 56725 | `_record_scaffold_geometry_primitives` (18) | **`G[S]` and `H[S]` over a support** |
+| 56744 | `_record_candidate_geometry_primitives` (36) | candidate-active cross block |
+
+`_record_scaffold_geometry_primitives` is `Response.charge(support)` in embryo:
+it takes `refit_window_indices` (the support), iterates the upper triangle of
+coordinate pairs, and records `('metric_element','fubini_study_metric_v2')` and
+`('hessian_element','energy_hessian_v2')` **for the same pair**, gated by
+`record_metric` / `record_hessian`. That is 6e's claim — one support, three
+responses — already implemented.
+
+`_DefaultNoPruneNumericalSession:60123-64580` (4,458 lines, 37 methods) wraps
+these with 8-line delegators at 60530-60598. Extract the service, not the session.
+
+**Codex: this is extraction, not invention.**
+
+### HOOK B — the support is already a named parameter
+
+`refit_window_indices` is the support throughout. Construction sites:
+`adapt_pipeline.py:8048, 8058, 8230, 20776, 23596, 23609, 30518`, and
+`_prune_refit_window_indices_live:24393`. Phase-II window:
+`phase2_geometry_window_indices`, built at `30519, 31327, 40567, 42738`.
+
+`_support(order)` replaces these; the values are already integer index lists.
+
+### HOOK C — the gradient
+
+`primitive_kind="coordinate_gradient"` issued at `adapt_pipeline.py:20141, 20326`.
+Unary key via `operand_identity` (schema v2). 14,325 of them in a real run — 10x
+all pair primitives combined.
+
+### HOOK D — the four phase scorers
+
+`hh_continuation_scoring.py`: `phase0_raw_gradient_pilot_components:3004`,
+`phase1_trust_region_gain:2614`, `phase2_raw_geometry_score:3168`,
+`phase3_canonical_score_components:3831`. These become `_descent(order, ...)`.
+
+Formulas already agree: `PHASE2_CANONICAL_RAW_SCORE_FORMULA:275` is
+`DeltaE_TR_raw / (1 + K2)`, `PHASE3_CANONICAL_SCORE_FORMULA:281` is
+`DeltaE_TR / (1 + K3)`.
+
+### HOOK E — `CandidateFeatures` construction
+
+13 sites. Principal: `adapt_pipeline.py:3625, 22066, 31376, 40620` and
+`selector_candidate_metadata.py:36` (which rebuilds by `__dict__` merge).
+Definition `hh_continuation_types.py:79-334`, 249 fields, 26 geometry summaries.
+
+### HOOK F — cost
+
+`hh_backend_compile_oracle.py`: `BackendCompileConfig:83` (note `mode="proxy"`
+default and `allow_preferred_fallback=True`, both against rule 7),
+`backend_compile_scope_uses_qiskit_for_stage:60`, bare
+`except Exception: pass` at `:350`.
+
+Shared normalization already exists:
+`hh_continuation_scoring.py:_hardware_cost_denominator_payload:550` returns the
+full `1 + K`, selected by `_hardware_cost_normalization_mode:862`, default
+`HARDWARE_COST_NORMALIZATION_FAMILY_ROBUST_V1`.
+
+### HOOK G — the legacy seam
+
+| site | role |
+|---|---|
+| `sr_snake/_context.py:885` | `adapt_pipeline._run_hardcoded_adapt_vqe(**executor_kwargs)` — the real invocation |
+| `sr_snake/_context.py:249` | `legacy_executor_kwargs()` builds the payload |
+| `adapt_pipeline.py:72076-72090` | the 348-name reflective filter |
+| `cli_config.py:3736` | the CLI adapter |
+| `exact_bench/hh_static_ground_state_benchmark.py:975` | second product caller |
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
