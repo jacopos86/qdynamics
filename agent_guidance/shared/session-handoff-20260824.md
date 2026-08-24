@@ -3,6 +3,36 @@
 **For:** a fresh Claude Code session in this checkout.
 **From:** Claude session that audited both routes on `paper-ii-exchange-selector` @ `7edf45e3`.
 
+---
+
+## Start here
+
+1. Read this file end to end, then
+   `agent_guidance/static-adapt/HANDOFF_ADAPT_PIPELINE_DECOMPOSITION_20260824.md`.
+2. Read the governing contract (path in the next section). It defines
+   correctness; this file only reports state.
+3. **Confirm the author has done the golden-data rescue** ("Do this first"
+   below). If not, offer to do it before anything else. Do not begin refactor
+   work on top of unprotected evidence.
+4. Verify the anchors still hold — `git rev-parse --short HEAD` should be at or
+   after `eb88c7c4`, and `wc -l pipelines/static_adapt/adapt_pipeline.py` should
+   read 72528. If either differs, the tree moved; re-measure before trusting any
+   number in these documents.
+
+The `mattpocock-skills` plugin is installed and should now be loadable. A
+sensible sequence for this work:
+
+| skill | use it for |
+|---|---|
+| `mattpocock-skills:grilling` | Pressure-test this handoff before acting. It rests on static analysis and one prior-art discovery; both deserve challenge. |
+| `mattpocock-skills:domain-modeling` | The core defect is that "profile" has no first-class model — 116 settings sprawl across a 7-deep inheritance chain. The contract's `run_profile(...)` seam is the modelling answer; work out its types. |
+| `mattpocock-skills:improve-codebase-architecture` | The decomposition itself. |
+| `mattpocock-skills:to-tickets` | Split the Codex handoff's seven increments into discrete tickets if the author wants them tracked separately. |
+
+Do not use the plugin's `handoff` skill for repo handoffs — use
+`holstein-agent-handoff`, which encodes this repo's
+`agent_guidance/shared/agent-handoff-contract.md` conventions that Codex reads.
+
 Start by reading this file, then
 `agent_guidance/static-adapt/HANDOFF_ADAPT_PIPELINE_DECOMPOSITION_20260824.md`
 (the executable Codex spec, committed at `64e42db0`). Everything below is either
