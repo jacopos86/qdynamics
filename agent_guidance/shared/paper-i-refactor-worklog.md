@@ -622,6 +622,7 @@ not a proxy number.
 | Algorithm/ansatz/generator boundary and cost-source audit | Codex | 2026-08-24 | done; author clarification and measured correction below |
 
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
+| Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | in progress on `codex/paper-i-worklog-audit-20260824` |
 | _(add yours)_ | | | |
 
 ---
