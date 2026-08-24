@@ -784,6 +784,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 
 | Delete orphaned `pipelines/hardcoded` tests | Codex | 2026-08-24 | stopped; an implicated test imports an existing module, as recorded below |
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
+| Delete the Phase-0 cost path | Codex | 2026-08-24 | in progress on `codex/paper-i-worklog-audit-20260824`; target: at least 80 net lines removed |
 | _(add yours)_ | | | |
 
 ---
