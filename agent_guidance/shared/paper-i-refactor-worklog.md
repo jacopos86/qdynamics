@@ -1834,6 +1834,41 @@ not a proxy number.
 
 ---
 
+## PROGRESS — measured, 2026-08-24
+
+Verified on the working branch after merging Codex's increments.
+
+| measure | start | now | change |
+|---|---|---|---|
+| `_run_hardcoded_adapt_vqe` parameters | 348 | **286** | −62 |
+| the mega function, lines | 41,210 | **39,742** | −1,468 |
+| `adapt_pipeline.py`, lines | 72,528 | **70,235** | −2,293 |
+| CLI flags in `cli_config.py` | 409 | **336** | −73 |
+| collection errors | 54 | **54** | unchanged |
+
+New: `extensions.py` (1,360 lines) and `response_accounting.py` (505).
+
+### Increments landed
+
+| what | commit | net lines |
+|---|---|---|
+| dead test-only modules (Claude) | `cf1ba3a0` | −5,827 |
+| `ResponseAccounting` extraction (Codex) | `05604a36` region | +40 |
+| Q20–Q23 (Codex) | `05604a36` | −698 |
+| prune extraction (Codex) | `54980606` | −295 |
+| batch (Codex) | `bb4541f6` | ⎫ |
+| beam + default surfaces (Codex) | `17fc2d56` | ⎭ −6,517 code lines across the Q24–Q28 pass |
+
+Codex's verification on its own branch: ledger byte-identical (289 entries, 527
+ordered occurrences, fingerprint `651c0dda…109ac`), 242 focused regressions
+passing, empty `ERROR test/...` diff, working tree clean.
+
+**The `+40` line is worth keeping visible.** The `ResponseAccounting` extraction
+moved code between files and added 40 lines — it condensed nothing, which is what
+prompted rule 6i. It was still worth doing: it demonstrated that the estimator
+ledger survives a structural change byte-identically, which every later deletion
+relies on.
+
 ## WORK PLAN — execute in this order
 
 Derived from decisions Q1-Q39. Each item names its decision, its sites, and what
