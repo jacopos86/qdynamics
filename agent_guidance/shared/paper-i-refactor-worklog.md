@@ -3153,6 +3153,50 @@ manuscript.
 
 ---
 
+## PRIOR AUTHOR DECISIONS — read before asking anything
+
+**`agent_guidance/static-adapt/history/ra-adapt-unification-refactor-decisions-20260727.md`**
+(468 lines, 2026-07-27) contains a locked table of **18 legacy-contraction
+decisions the author already made**. I did not read it until 2026-08-25 and
+re-derived several of them by measurement. Read it before opening a question.
+
+### Already decided there — do not re-ask
+
+| family | July decision | this session |
+|---|---|---|
+| **Ordinary novelty scoring** | Author-retired, **but "retain the deferred-Gram all-models-infeasible fallback as a robustness mechanism and rename it"** | Q41 proposed deleting it, then retracted. **The July decision is retain + rename.** Q41 is closed by it. |
+| **Phase-live hysteresis** | Author-retired; "preserve the distinct plateau detector used to trigger commutation-aware insertion" | `phase_live_hysteresis_enabled` seen among dropped keys (F2) but never dispositioned — already retired |
+| **Current optional RA policies** | "Retain typed greedy/combinatorial RA batching and metric/trust-region pruning as **non-default optional extensions**" | Q24/Q26/Q27 reached the same shape independently |
+| **Commutation-aware insertion** | "Canonical and preservation-critical" | — |
+| **Phase-I physical-family lane protection** | **Retain** | Q45 deletes the lane *restriction*; `phase1_lane_retention_enabled` is **not** in Codex's deletion set, so no conflict |
+| **Post-split lane-based decisions** | "Remove from the canonical engine after reachability confirmation" | Q45 is this |
+| **Legacy ADAPT executors / hardcoded aliases** | Retired **after caller migration**; "**do not move `pipelines/hardcoded/` wholesale**"; names 7 compatibility forwarders | Q4 said the retirement was deliberate; Codex correctly stopped rather than deleting wholesale |
+| **JR-SNAKE** | **Retain as an optional extension**, not an archival target | — |
+| **Historical amplitude pruning** | Retired; retain typed metric/trust-region measured delete-and-refit | — |
+| **TETRIS / disjoint batching** | Author-retired in full | — |
+| **Optuna calibration** | Author-retired | — |
+| **FM-SNAKE** | Author-retired | — |
+
+### The discipline it already states
+
+> *"Claude must therefore treat retirement as caller migration plus archival, not
+> as a blind directory move. Each family still requires its own reachability
+> proof, focused tests, and archive manifest entry before implementation removes
+> it from active source."*
+
+That is the rule this session arrived at independently after two retractions.
+
+### Route-C
+
+`adapt_pipeline_route_alignment.md:264-269` already classifies it: *"Any feature
+with `legacy`, Route B, Route C, shadow legacy geometry, legacy pairwise novelty,
+legacy pairwise score, or route-C plateau naming must be"* classified
+`route_c_legacy_or_diagnostic`. And
+`MATH/paper_facing/paper_I_static_scaffold/paper_i_jr_snake_canonical_runtime_settings_20260712.md:59`
+lists "Route B, Route C, parent-plus-child competition, legacy block
+pseudoinverse" together. The 6bd measurement — off in all 37 runs — confirms a
+classification that already existed.
+
 ## DECISIONS — author's answers, poll this section
 
 **Codex: re-read this section before each increment.** It is the running record
