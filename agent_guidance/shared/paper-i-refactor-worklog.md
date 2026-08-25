@@ -2793,9 +2793,9 @@ Verified on the working branch after merging Codex's increments.
 
 | measure | start | now | change |
 |---|---|---|---|
-| `_run_hardcoded_adapt_vqe` parameters | 348 | **286** | −62 |
-| the mega function, lines | 41,210 | **39,742** | −1,468 |
-| `adapt_pipeline.py`, lines | 72,528 | **70,235** | −2,293 |
+| `_run_hardcoded_adapt_vqe` parameters | 348 | **268** | −80 |
+| the mega function, lines | 41,210 | **39,386** | −1,824 |
+| `adapt_pipeline.py`, lines | 72,528 | **69,723** | −2,805 |
 | CLI flags in `cli_config.py` | 409 | **336** | −73 |
 | collection errors | 54 | **54** | unchanged |
 
@@ -2922,6 +2922,20 @@ any of those is a scientific decision with its own rerun and manuscript review.
 
 Claude writes increment guidance here instead of the author pasting it. Re-read
 before each increment, together with DECISIONS. Newest first.
+
+### PRIORITY — the transitive dead set: 38 defs, 12,990 lines (6av)
+
+**Do this before the smaller ratified deletions.** It is 33% of the mega function
+and blocks restructuring; the parameter-level items are small by comparison.
+
+Build the reference graph the way 6av does — AST `Name` loads over all nested
+defs, mark everything referenced from the mega body live, propagate, and delete
+what is reachable only from a dead def. A regex over `name(` gives 27, an
+AST walk gives 10 directly-unreferenced, and the transitive closure gives 38.
+Use the closure.
+
+Includes both diverged `_local` twins (Q47), so that unification is a deletion of
+the dead half rather than a merge.
 
 ### Beam orphans — DELETE, not move (supersedes 6as)
 
