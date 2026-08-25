@@ -2031,6 +2031,61 @@ Combined with the earlier check that `phase0_cost_lambdas` is `{}` with source
 `"unresolved"` in 5 of 5 sampled cells, item 1.4 is verified on a multi-artifact
 basis. **Cleared for Codex.**
 
+## 6ap. The 13 default-off policy/mode parameters — dispositions
+
+Screened all 13 against Paper I, then resolved which profiles set them. **Six are
+LIVE** — set non-`off` by a canonical profile. The "default off means inert"
+assumption was wrong for those.
+
+### KEEP — manuscript material
+
+| parameter | set to | by |
+|---|---|---|
+| `shared_pauli_pool_mode` | `guarded_singleton_children_only_v1` | `CANONICAL_SR_SNAKE_GUARDED_SINGLETON_POOL_V1` |
+| `shared_pauli_pool_symmetry_policy` | `hard_guard` | same |
+
+Paper I §Results (`:1163`): *"The six Hubbard--Holstein benchmarks use the
+half-filled, open-boundary two-site model **and a shared symmetry-retained
+single-Pauli-word pool**."* Appendix `app:hh_operator_pool` defines it. This is
+the pool behind every HH benchmark in the paper, and it is what produces the
+`guarded_singleton::*` operators visible in every run archive. Not deletable.
+
+### KEEP — enabled canonically, disposition open
+
+| parameter | set to | by |
+|---|---|---|
+| `phase2_gram_novelty_policy` | `fallback_only_v1` | V4 **and** the active family root |
+| `phase3_gram_novelty_policy` | `fallback_only_v1` | V4 **and** the active family root |
+
+These are what derive `deferred_gram_fallback_enabled` (6ak). Q41 is retracted;
+whether the rescue *fires* is still unmeasured.
+
+### Unresolved — live but absent from the manuscript
+
+| parameter | set to | by | in Paper I |
+|---|---|---|---|
+| `phase3_runtime_split_mode` | `shortlist_pauli_children_v1` | `CANONICAL_SR_SNAKE_V1` | "runtime split" 0 |
+| `phase3_shadow_damping_policy` | `mapped_seed_zero_query_v1` | `CANONICAL_SR_SNAKE_V4` | "shadow" 0, "damping" 0 |
+
+`phase3_runtime_split_mode` names Pauli-child shortlisting, so it may be the same
+mechanism as the shared pool under a different name — check before treating its
+absence as evidence.
+
+### Deletion candidates — off in every profile that names them
+
+`adapt_child_pool_expansion_mode`, `adapt_child_pool_expansion_symmetry_policy`,
+`adapt_selected_logical_mode`, `phase3_shadow_legacy_geometry_mode`,
+`phase3_symmetry_mitigation_mode` — all set to `off` by
+`CANONICAL_SR_SNAKE_V1` and never to anything else.
+
+### Named by no profile at all
+
+`adapt_noise_floor_stop_policy`, `adapt_schur_warm_start_mode` — parameter
+defaults only, no profile mentions them.
+
+**Method note.** Six of thirteen would have been deleted on the "default off"
+reading. The profile assignments, not the parameter defaults, decide.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
