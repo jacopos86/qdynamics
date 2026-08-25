@@ -212,3 +212,172 @@ because `audit_generator_sector_contract` and the candidate-record cache are
 pool-size driven, not regime driven — but a POWELL/ROTOSOLVE overlay with full
 re-optimization will shift more weight onto the optimizer's repeated state
 preparations, i.e. onto item (8). Worth re-profiling once (1)--(5) land.
+
+---
+
+# Appendix A — what the audit actually commutes, and what the masks are
+
+Added 2026-08-25 in response to two questions on the notation used above. Every
+claim here is read off the code, not asserted.
+
+## A.1 The commutator is against the JW fermion-number operators, per spin, on the fermion block only
+
+Yes — it is a number operator, but it is neither the total particle number nor
+anything phonon-facing. `_count_operator` (`sector_invariants.py:119`) builds
+
+$$\hat N_G \;=\; \sum_{q \in G} \hat n_q, \qquad \hat n_q = \frac{I - Z_q}{2}$$
+
+and drops the identity part, because $I$ commutes with everything. What the code
+literally emits is therefore
+
+$$\hat N_G \;\mapsto\; \sum_{q \in G} \left(-\tfrac{1}{2}\right) Z_q$$
+
+— one `PauliTerm` per qubit in $G$, coefficient `pc=-0.5`, word `e...eze...e`.
+
+**Which $G$?** Not a fixed choice; it is resolved from the problem registry's
+declared sector by `resolve_fixed_count_qubit_groups` (`sector_invariants.py:52`),
+which keeps only `FixedCountConstraint` entries and maps them to physical qubits:
+
+| declared quantity | group $G$ |
+|---|---|
+| `n_f` / `n_fermion` / `fermion_number` / `particle_number` | every qubit in the fermion block |
+| `n_up` / `n_alpha` | the spin-up modes only |
+| `n_dn` / `n_down` / `n_beta` | the spin-down modes only |
+
+For `family_key == "hh"` the registry declares
+(`builders/problem_registry.py:571`):
+
+```
+FixedCountConstraint(quantity="n_up", value=n_up, scope="fermion_register")
+FixedCountConstraint(quantity="n_dn", value=n_dn, scope="fermion_register")
+TruncationConstraint(quantity="phonon_occupancy", max_local_occupancy=n_ph_max,
+                     scope="boson_register")
+```
+
+So the Hubbard--Holstein audit runs **two** groups, and takes **two** commutators
+per candidate generator:
+
+$$[\hat N_\uparrow, \hat A_k] \quad\text{and}\quad [\hat N_\downarrow, \hat A_k]$$
+
+At $L=2$, `blocked` ordering, the resolved groups are
+$G_\uparrow = \{q_0, q_1\}$ and $G_\downarrow = \{q_2, q_3\}$, each with target
+occupancy $1$ (half filling).
+
+**The phonon register is deliberately not audited.** `phonon_occupancy` is a
+`TruncationConstraint`, and `resolve_fixed_count_qubit_groups` only consumes
+`FixedCountConstraint`. The module docstring states the reason: truncation
+"describe[s] the finite computational representation, not a conserved phonon-number
+law". That is physically correct — the Holstein coupling
+$g\,\hat n_i (\hat b_i + \hat b_i^\dagger)$ means $[\hat H, \hat N_{\rm ph}] \neq 0$,
+so there is no phonon-number sector to preserve. Only $\hat N_\uparrow$ and
+$\hat N_\downarrow$ are conserved, and only those are checked.
+
+## A.2 The norm is a Pauli-basis coefficient $\ell_1$ norm, not an operator norm
+
+`_commutator_l1_norm` (`sector_invariants.py:176`) expands
+$[\hat N_G, \hat A_k]$ symbolically in the Pauli basis, accumulates every
+contribution to each resulting word, sums each word's coefficient with
+`math.fsum` (real and imaginary parts separately, so exact cancellation survives
+floating point), and returns
+
+$$\big\| [\hat N_G, \hat A_k] \big\|_{1}^{\rm Pauli} \;=\; \sum_{P} \Big| \sum_{\text{contributions to } P} c \Big|$$
+
+A generator passes when this is $\le$ `tolerance` (default $10^{-10}$). This is
+the "cancellation-stable" wording in its docstring: the point is that a grouped
+generator's components can produce large individual terms that cancel exactly.
+
+## A.3 Grouped vs componentwise — why the audit is run twice per generator
+
+This is the distinction the module exists for. For each group $G$,
+`audit_generator_sector_contract` computes both:
+
+- **grouped**: $\big\|[\hat N_G, \hat A_k]\big\|_1$ for the whole generator
+  $\hat A_k = \sum_j c_j P_j$;
+- **componentwise**: $\max_j \big\|[\hat N_G, c_j P_j]\big\|_1$, each Pauli
+  component alone.
+
+A generator can pass grouped and fail componentwise. That is exactly the case the
+docstring flags: such a generator is sector-safe only as
+`execution_mode="grouped_exact"` and **must not** be given independent per-component
+angles — hence `requires_logical_shared_parameterization`. If it were executed
+`termwise_product` with free angles, the optimizer could leave the
+$(N_\uparrow, N_\downarrow) = (1,1)$ sector.
+
+That is also why this is $O(|\text{components}|)$ commutator expansions per
+generator per group, and why it costs 36% of wall clock at 687 calls.
+
+## A.4 The $(x, z)$ masks are the binary-symplectic form — and this repo already stores them
+
+An $n$-qubit Pauli word $P$, up to phase, is fully determined by two $n$-bit
+integers:
+
+$$x = \sum_q 2^q\,[\,P_q \in \{X, Y\}\,], \qquad z = \sum_q 2^q\,[\,P_q \in \{Z, Y\}\,]$$
+
+| symbol | $x$ bit | $z$ bit |
+|---|---:|---:|
+| `e` ($I$) | 0 | 0 |
+| `x` | 1 | 0 |
+| `y` | 1 | 1 |
+| `z` | 0 | 1 |
+
+**These are not new symbols to introduce — they are already
+`CompiledPauliAction.flip_mask` and `.phase_mask`**, produced by
+`compile_pauli_action_exyz` in `src/quantum/pauli_actions.py`. Verified directly:
+
+```
+e: flip_mask(x)=0 phase_mask(z)=0
+x: flip_mask(x)=1 phase_mask(z)=0
+y: flip_mask(x)=1 phase_mask(z)=1
+z: flip_mask(x)=0 phase_mask(z)=1
+```
+
+**What they are used for today.** They are the statevector kernel's entire
+representation of a Pauli word — the module docstring of `pauli_actions.py` states
+the action as
+
+$$P\,|i\rangle \;=\; i^{\,n_y}\,(-1)^{\,\mathrm{popcount}(i \wedge z)}\;|\,i \oplus x\,\rangle$$
+
+so $x$ is the basis-index XOR (the permutation, `flip_mask`) and $z$ is the sign
+parity mask (`phase_mask`). This is why `apply_compiled_pauli` never builds a
+matrix. The masks are constant-size — two integers per word regardless of $n$ —
+which is precisely why that file stores them instead of $2^n$-long tables.
+
+**What they are not used for today.** `sector_invariants` does not touch them. It
+re-derives commutation from the character string on every call:
+`_canonical_pauli_word` does `strip().lower().replace("i","e")` plus a
+`sorted(set(...))` validation, 11.2M times, and `_pauli_words_commute` then does a
+Python `zip` + generator `sum` over the characters, 5.4M times. Two representations
+of the same object, one fast and already present, one slow and used in the hot path.
+
+**The commutation predicate in that representation.** Two Pauli words commute iff
+
+$$\langle P_i, P_j \rangle \;=\; \mathrm{popcount}(x_i \wedge z_j) \;\oplus\; \mathrm{popcount}(x_j \wedge z_i) \;=\; 0$$
+
+where $\wedge$ is bitwise AND and $\oplus$ is XOR of the two parities (equivalently,
+the sum taken mod 2). Per-qubit truth table, which reproduces the current
+implementation's rule "both non-identity and different" exactly:
+
+| $P_i$ | $P_j$ | $x_i z_j + x_j z_i \bmod 2$ | current rule |
+|---|---|---:|---|
+| `e` | any | 0 | commute |
+| `x` | `x` | 0 | commute |
+| `x` | `y` | 1 | anticommute |
+| `x` | `z` | 1 | anticommute |
+| `y` | `y` | 0 | commute |
+| `y` | `z` | 1 | anticommute |
+| `z` | `z` | 0 | commute |
+
+Empirically checked over 1,600 word pairs at $n=10$: **0 disagreements**, at
+**12.3×** the speed (1.498 us $\to$ 0.121 us per call).
+
+## A.5 What this means for the two proposed changes
+
+- Item (1) memoizes the audit of A.1--A.3. It changes no norm and no verdict; it
+  stops recomputing $[\hat N_\uparrow, \hat A_k]$ and $[\hat N_\downarrow, \hat A_k]$
+  for a pool $\{\hat A_k\}$ that is invariant across ADAPT depths.
+- Item (3) replaces the string form of A.4 with the mask form the kernel already
+  holds. It is a representation change inside one predicate, not a change to the
+  sector contract.
+
+Neither alters the fixed-count contract, the tolerance, or which generators are
+admitted.
