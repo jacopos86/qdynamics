@@ -3345,6 +3345,79 @@ kwargs builder, the `legacy_executor` binding, the bench's nine legacy arms, and
 the phase-internals tests -> re-run parity plus
 `test/test_ra_adapt_physics_invariants.py`. Green on both is the proof.
 
+## 6bk. DONE — the legacy executor is deleted
+
+Commits `cf4fa289` (deletion) and `5c0db9b8` (orphaned guards), merged to
+`paper-ii-exchange-selector`.
+
+**`adapt_pipeline.py`: 69,723 -> 30,322 lines.**
+
+### The proof
+
+`test/test_ra_adapt_refactor_parity.py` green after the deletion, reproducing a
+bit-identical accepted trajectory against baselines recorded before it, plus the
+new `test/test_ra_adapt_physics_invariants.py`. That, not a call-graph argument,
+is what establishes the RA route is untouched.
+
+Across the six affected suites: **14 failures before, 13 after, zero new**, and
+`test_test2_runtime_emits_every_required_prune_source_lock_field` now passes
+because the orphaned guard beside it was removed.
+
+### What the hazard sweep caught that a naive cut would not
+
+Three separate import-time breaks, each fatal to the RA route:
+
+1. `adapt_pipeline.py:69271` —
+   `_CANONICAL_SR_SNAKE_LEGACY_EXECUTOR_PARAMETER_NAMES = frozenset(inspect.signature(_run_hardcoded_adapt_vqe).parameters)`
+   at module scope. A scratch cut of the span alone `NameError`s on import.
+2. `adapt_pipeline.py:493` — an unused re-import of
+   `cli_config._build_run_hardcoded_adapt_vqe_kwargs`.
+3. `hh_static_ground_state_benchmark.py:41-43` — a top-level import whose removal
+   was required to keep the **surviving nine** conventional rows importable.
+
+Plus: `_ResolvedNumericalDependencies.legacy_executor` is a required no-default
+field, so the `_context.py` edits had to be atomic.
+
+### Kept, against the original plan
+
+`cli_config._build_run_hardcoded_adapt_vqe_kwargs` (512 lines). I deleted it,
+then measured: it contains **no reference** to the deleted function, and roughly
+130 live tests across five modules assert route-profile semantics through it.
+Restoring it took collection errors from 61 back to 56 against a 55 baseline.
+It now has **no caller in `pipelines/`** — only tests. It is a large piece of the
+467-flag CLI settings problem and is the natural next target.
+
+### Telemetry delta
+
+`hardcoded_adapt_iter_done` and `hardcoded_adapt_phase1_backend_compile_prefetch`
+had their only emitters inside the span and are gone; neither has any consumer.
+`hardcoded_adapt_iter` survives at the out-of-span emitter
+(`adapt_pipeline.py`), so the ~7 reporting builders reading it are unaffected —
+verified by observing a live RA run emit it.
+
+### Author decisions applied
+
+- The nine bench comparator arms are retired; the L=2 paper table's
+  `candidate_ours` column goes with them (never generated, no artifacts).
+- The orphaned guards are dropped: *"tests are good during runs, but fallbacks
+  are not."* One of them,
+  `test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record`,
+  was pinning a fallback rather than an invariant.
+- `static_qeb_sq_lf_adapt` becomes an explicit skip rather than a runnable row
+  that would fail at execution.
+
+### Incident — `git stash` is unsafe in this checkout
+
+Using `git stash` to take a baseline, `git stash pop` picked up **Codex's**
+stash (`q31-q32 focused test baseline probe` on
+`codex/paper-i-worklog-audit-20260824`) and conflicted it into this worktree.
+Recovered by `git reset --hard HEAD`; all five Codex stashes intact, nothing of
+theirs lost, because everything of mine was already committed.
+
+**The stash stack is shared across worktrees.** `git stash` belongs on the same
+prohibited list as `git add -A` under the multi-agent isolation invariant. Use a
+throwaway `git worktree add --detach <rev>` for baselines instead.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
