@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Sequence
 
 import numpy as np
@@ -23,6 +24,7 @@ from pipelines.contracts.problem import (
     ResolvedProblemContext,
 )
 from src.quantum.hubbard_latex_python_pairs import SPIN_DN, SPIN_UP, mode_index
+from src.quantum.pauli_actions import compile_pauli_action_exyz
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
 
@@ -143,7 +145,23 @@ _PAULI_PRODUCT: dict[tuple[str, str], tuple[str, complex]] = {
 }
 
 
-def _canonical_pauli_word(word: str) -> str:
+#: Bound on retained canonical words / mask pairs.  A pool holds hundreds of
+#: distinct Pauli words at most, so these caches are small and long-lived.
+_PAULI_WORD_CACHE_MAX_ENTRIES = 8192
+
+
+@lru_cache(maxsize=_PAULI_WORD_CACHE_MAX_ENTRIES)
+def _canonical_pauli_word_text(text: str) -> str:
+    normalized = text.strip().lower().replace("i", "e")
+    unsupported = sorted(set(normalized) - {"e", "x", "y", "z"})
+    if unsupported:
+        raise ValueError(
+            f"Unsupported Pauli symbols {unsupported!r} in word {text!r}."
+        )
+    return normalized
+
+
+def _canonical_pauli_word_uncached(word: str) -> str:
     normalized = str(word).strip().lower().replace("i", "e")
     unsupported = sorted(set(normalized) - {"e", "x", "y", "z"})
     if unsupported:
@@ -151,6 +169,35 @@ def _canonical_pauli_word(word: str) -> str:
             f"Unsupported Pauli symbols {unsupported!r} in word {word!r}."
         )
     return normalized
+
+
+def _canonical_pauli_word(word: str) -> str:
+    """Normalize one Pauli word to the exyz convention.
+
+    The audit canonicalizes the same handful of words millions of times per
+    run, so the ``str`` path is memoized.  Anything else falls through to the
+    original body, so both the returned value and the raised message stay
+    exactly what they were for every input type.
+    """
+
+    if type(word) is str:
+        return _canonical_pauli_word_text(word)
+    return _canonical_pauli_word_uncached(word)
+
+
+@lru_cache(maxsize=_PAULI_WORD_CACHE_MAX_ENTRIES)
+def _pauli_word_symplectic_masks(word: str) -> tuple[int, int]:
+    """Return the ``(x, z)`` binary-symplectic masks of a canonical word.
+
+    These are exactly the two integers the statevector kernel already compiles
+    for its own use -- ``CompiledPauliAction.flip_mask`` is ``x`` (the basis
+    index XOR) and ``.phase_mask`` is ``z`` (the sign parity mask).  Sharing
+    that representation keeps one definition of a Pauli word in the repository
+    instead of two.
+    """
+
+    action = compile_pauli_action_exyz(word, len(word))
+    return int(action.flip_mask), int(action.phase_mask)
 
 
 def _multiply_pauli_words(left: str, right: str) -> tuple[str, complex]:
@@ -207,20 +254,87 @@ def _commutator_l1_norm(left: PauliPolynomial, right: PauliPolynomial) -> float:
 
 
 def _pauli_words_commute(left: str, right: str) -> bool:
+    """Return whether two Pauli words commute.
+
+    Two Pauli words commute iff their symplectic form vanishes,
+
+        <P_i, P_j> = popcount(x_i & z_j) XOR popcount(x_j & z_i) == 0,
+
+    which is the integer form of the per-character rule it replaces: a qubit
+    contributes an anticommuting position exactly when both symbols are
+    non-identity and differ.  Identical verdicts, without walking the string.
+    """
+
     lhs = _canonical_pauli_word(left)
     rhs = _canonical_pauli_word(right)
     if len(lhs) != len(rhs):
         raise ValueError(
             f"Cannot compare Pauli words with different lengths: {len(lhs)} != {len(rhs)}."
         )
-    anticommuting_positions = sum(
-        1
-        for left_symbol, right_symbol in zip(lhs, rhs)
-        if left_symbol != "e"
-        and right_symbol != "e"
-        and left_symbol != right_symbol
+    left_x, left_z = _pauli_word_symplectic_masks(lhs)
+    right_x, right_z = _pauli_word_symplectic_masks(rhs)
+    anticommuting_positions = (
+        (left_x & right_z).bit_count() + (right_x & left_z).bit_count()
     )
     return bool(anticommuting_positions % 2 == 0)
+
+
+#: Bound on retained generator audits.  The verdict for one generator is a pure
+#: function of its Pauli components, the resolved fixed-count groups, the
+#: register width, and the tolerance -- none of which change across ADAPT
+#: iterations -- so an invariant pool is audited once instead of once per
+#: (candidate, depth).
+_GENERATOR_AUDIT_CACHE_MAX_ENTRIES = 4096
+
+_generator_audit_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
+
+
+def _generator_audit_cache_key(
+    term: Any,
+    groups: Sequence[FixedCountQubitGroup],
+    total_qubits: int,
+    tolerance: float,
+) -> tuple[Any, ...] | None:
+    """Return a hashable key identifying one audit, or ``None`` if not keyable."""
+
+    try:
+        components = tuple(
+            (
+                str(component.pw2strng()),
+                int(component.nqubit()),
+                complex(component.p_coeff).real,
+                complex(component.p_coeff).imag,
+            )
+            for component in getattr(term, "polynomial").return_polynomial()
+        )
+        return (
+            str(getattr(term, "label", "")),
+            str(getattr(term, "execution_mode", "") or ""),
+            components,
+            tuple(groups),
+            int(total_qubits),
+            float(tolerance),
+        )
+    except (AttributeError, TypeError, ValueError):
+        # A term that cannot be described exactly is audited uncached rather
+        # than keyed approximately.
+        return None
+
+
+def _copy_generator_audit_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Copy an audit row so callers may annotate it without touching the cache.
+
+    ``audit_candidate_pool_sector_contract`` writes ``pool_index`` into the row
+    it receives, so a cached row must never be handed out by reference.
+    """
+
+    copied = dict(row)
+    copied["grouped_commutator_l1"] = dict(row["grouped_commutator_l1"])
+    copied["max_component_commutator_l1"] = dict(row["max_component_commutator_l1"])
+    copied["noncommuting_component_pairs_sample"] = [
+        list(pair) for pair in row["noncommuting_component_pairs_sample"]
+    ]
+    return copied
 
 
 def audit_generator_sector_contract(
@@ -230,7 +344,53 @@ def audit_generator_sector_contract(
     total_qubits: int,
     tolerance: float = 1e-10,
 ) -> dict[str, Any]:
-    """Audit one logical generator and its independently addressable factors."""
+    """Audit one logical generator and its independently addressable factors.
+
+    The verdict is memoized on the generator's exact Pauli components together
+    with the fixed-count groups, register width, and tolerance.  Recomputation
+    is skipped only when every one of those is identical, so the returned
+    verdict is the value the uncached audit would have produced.
+    """
+
+    cache_key = _generator_audit_cache_key(term, groups, total_qubits, tolerance)
+    if cache_key is not None:
+        cached = _generator_audit_cache.get(cache_key)
+        if cached is not None:
+            return _copy_generator_audit_row(cached)
+    row = _audit_generator_sector_contract_uncached(
+        term,
+        groups=groups,
+        total_qubits=total_qubits,
+        tolerance=tolerance,
+    )
+    if (
+        cache_key is not None
+        and len(_generator_audit_cache) < _GENERATOR_AUDIT_CACHE_MAX_ENTRIES
+    ):
+        _generator_audit_cache[cache_key] = _copy_generator_audit_row(row)
+    return row
+
+
+def clear_sector_invariant_caches() -> None:
+    """Drop every memoized sector-invariant result.
+
+    The caches are keyed on exact inputs, so this is only needed by tests that
+    want to measure or assert uncached behavior.
+    """
+
+    _generator_audit_cache.clear()
+    _canonical_pauli_word_text.cache_clear()
+    _pauli_word_symplectic_masks.cache_clear()
+
+
+def _audit_generator_sector_contract_uncached(
+    term: Any,
+    *,
+    groups: Sequence[FixedCountQubitGroup],
+    total_qubits: int,
+    tolerance: float = 1e-10,
+) -> dict[str, Any]:
+    """Compute one generator's sector verdict without consulting the cache."""
 
     polynomial = getattr(term, "polynomial")
     components = list(polynomial.return_polynomial())
@@ -636,5 +796,6 @@ __all__ = [
     "audit_candidate_pool_sector_contract",
     "audit_generator_sector_contract",
     "audit_strict_state_replay",
+    "clear_sector_invariant_caches",
     "resolve_fixed_count_qubit_groups",
 ]

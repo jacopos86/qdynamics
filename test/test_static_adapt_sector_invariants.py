@@ -19,6 +19,7 @@ from pipelines.static_adapt.adapt_pipeline import (
 )
 from pipelines.static_adapt.builders.primitive_pools import (
     _build_hh_fermionic_reusable_pool,
+    _build_hva_pool,
 )
 from pipelines.static_adapt.builders.problem_registry import resolve_problem_context
 from pipelines.static_adapt.sector_invariants import (
@@ -434,3 +435,178 @@ def test_unsupported_fixed_count_quantity_fails_closed_in_pool_and_state_audits(
     assert state_audit["fixed_count_support_complete"] is False
     with pytest.raises(RuntimeError, match="fixed-count quantities are unsupported"):
         auditor.assert_valid_fast(state, source="unsupported")
+
+
+class TestSectorInvariantMemoizationParity:
+    """The memoized/symplectic fast paths must not move a single verdict."""
+
+    @staticmethod
+    def _character_rule_commute(left: str, right: str) -> bool:
+        """The pre-memoization per-character rule, kept as the oracle."""
+
+        return bool(
+            sum(
+                1
+                for left_symbol, right_symbol in zip(left, right)
+                if left_symbol != "e"
+                and right_symbol != "e"
+                and left_symbol != right_symbol
+            )
+            % 2
+            == 0
+        )
+
+    def test_symplectic_commute_matches_character_rule_exhaustively(self):
+        import itertools
+
+        from pipelines.static_adapt.sector_invariants import _pauli_words_commute
+
+        words = ["".join(w) for w in itertools.product("exyz", repeat=3)]
+        for left, right in itertools.product(words, repeat=2):
+            assert _pauli_words_commute(left, right) == self._character_rule_commute(
+                left, right
+            ), f"symplectic verdict diverged for {left!r} vs {right!r}"
+
+    def test_symplectic_commute_still_rejects_mismatched_lengths(self):
+        from pipelines.static_adapt.sector_invariants import _pauli_words_commute
+
+        with pytest.raises(ValueError, match="different lengths"):
+            _pauli_words_commute("xy", "xyz")
+
+    def test_canonical_word_still_rejects_unsupported_symbols_when_cached(self):
+        from pipelines.static_adapt.sector_invariants import _canonical_pauli_word
+
+        assert _canonical_pauli_word("IXYZ") == "exyz"
+        for _ in range(2):
+            # The cache must not convert a raising input into a cached success.
+            with pytest.raises(ValueError, match="Unsupported Pauli symbols"):
+                _canonical_pauli_word("xqz")
+
+    def test_memoized_generator_audit_equals_uncached_audit(self):
+        from pipelines.static_adapt.sector_invariants import (
+            _audit_generator_sector_contract_uncached,
+            clear_sector_invariant_caches,
+            resolve_fixed_count_qubit_groups,
+        )
+
+        resolved = _hh_l4_nph1_context()
+        groups, _unsupported = resolve_fixed_count_qubit_groups(resolved)
+        assert groups, "HH must declare fixed-count groups for this parity test"
+        # The HVA pool is the one the profiled runs use, and at L=4 it spans
+        # both branches of every verdict this audit decides.
+        pool = _build_hva_pool(
+            num_sites=4,
+            t=1.0,
+            u=8.0,
+            omega0=1.0,
+            g_ep=0.3535533905932738,
+            dv=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+        )
+        assert pool
+
+        total_qubits = int(resolved.layout.total_qubits)
+        expected = [
+            _audit_generator_sector_contract_uncached(
+                term, groups=groups, total_qubits=total_qubits
+            )
+            for term in pool
+        ]
+
+        clear_sector_invariant_caches()
+        cold = [
+            audit_generator_sector_contract(
+                term, groups=groups, total_qubits=total_qubits
+            )
+            for term in pool
+        ]
+        warm = [
+            audit_generator_sector_contract(
+                term, groups=groups, total_qubits=total_qubits
+            )
+            for term in pool
+        ]
+        assert cold == expected
+        assert warm == expected
+
+        # The parity claim is only meaningful if this pool exercises both
+        # branches of both verdicts the audit decides.
+        assert {
+            bool(row["requires_logical_shared_parameterization"]) for row in expected
+        } == {True, False}
+        assert {
+            bool(row["execution_preserves_fixed_counts"]) for row in expected
+        } == {True, False}
+
+    def test_cached_audit_row_is_not_aliased_to_the_cache(self):
+        from pipelines.static_adapt.sector_invariants import (
+            clear_sector_invariant_caches,
+            resolve_fixed_count_qubit_groups,
+        )
+
+        resolved = _hh_l4_nph1_context()
+        groups, _unsupported = resolve_fixed_count_qubit_groups(resolved)
+        term = _build_hh_fermionic_reusable_pool(
+            num_sites=4,
+            t=1.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+        )[0]
+        total_qubits = int(resolved.layout.total_qubits)
+
+        clear_sector_invariant_caches()
+        first = audit_generator_sector_contract(
+            term, groups=groups, total_qubits=total_qubits
+        )
+        # audit_candidate_pool_sector_contract annotates the row it receives.
+        first["pool_index"] = 7
+        first["grouped_commutator_l1"]["injected"] = 123.0
+        first["noncommuting_component_pairs_sample"].append([9, 9])
+
+        second = audit_generator_sector_contract(
+            term, groups=groups, total_qubits=total_qubits
+        )
+        assert "pool_index" not in second
+        assert "injected" not in second["grouped_commutator_l1"]
+        assert [9, 9] not in second["noncommuting_component_pairs_sample"]
+
+    def test_pool_audit_is_identical_cold_and_warm_with_duplicate_generators(self):
+        from pipelines.static_adapt.sector_invariants import (
+            clear_sector_invariant_caches,
+        )
+
+        resolved = _hh_l4_nph1_context()
+        pool = _build_hh_fermionic_reusable_pool(
+            num_sites=4,
+            t=1.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+        )[:3]
+        # Repeat the pool so every generator is served from the cache the
+        # second time around within a single pool audit.
+        duplicated = list(pool) + list(pool)
+
+        clear_sector_invariant_caches()
+        cold = audit_candidate_pool_sector_contract(
+            duplicated, resolved_problem=resolved
+        )
+        warm = audit_candidate_pool_sector_contract(
+            duplicated, resolved_problem=resolved
+        )
+        assert cold == warm
+        assert int(cold["generator_count"]) == len(duplicated)
+        # The pool must actually exercise the memoized branch under audit.
+        assert int(cold["logical_shared_required_count"]) > 0
+        for row in cold["logical_shared_required_sample"]:
+            assert "pool_index" in row
+        indices = [
+            int(row["pool_index"]) for row in cold["logical_shared_required_sample"]
+        ]
+        assert len(indices) == len(set(indices))
