@@ -2697,6 +2697,44 @@ artifact was read as absence from the system. Receipts record what a path chose 
 emit, not what the code can do. For "is this reachable", read the dispatch, not
 the receipt.
 
+## 6bb. Queued ablation — v2 as the Phase-III response solve (Q50)
+
+**Not to be started by an agent.** A run campaign, so it needs the author's
+authorization and CHTC, and Q19's ordering applies: campaigns run *after* the
+refactor, or the comparison spans two implementations.
+
+### The hypothesis
+
+Phase III currently solves with `projected_generalized_trust_v1`, which stops
+after support projection and forms no inverse. `global_trust_eigh_v2` implements
+the **singular Moré--Sorensen hard case** rather than making the shifted Hessian
+artificially positive definite, as v1 does.
+
+The hard case arises when the gradient is orthogonal to the eigenvector of the
+most negative Hessian eigenvalue: no `lambda > -lambda_min` reaches the trust
+boundary, the correct step needs `lambda = -lambda_min` exactly with a
+null-space component, and a solver that forces positive definiteness instead
+returns a **shorter step that ignores the negative-curvature direction**.
+Symmetry can force exactly that orthogonality, and this ansatz is
+symmetry-constrained throughout — sector guards, symmetry-retained Pauli
+children.
+
+So the expectation is that v2 gives better predicted decrease where the hard case
+occurs, and identical results where it does not.
+
+### What the ablation would be
+
+A bundle differing from the current canonical only in the Phase-III solve policy:
+`global_trust_eigh_v2` instead of `projected_generalized_trust_v1`. Compared on
+the Q6 axes — DeltaE, qiskit costs, estimator count — at matched cost.
+
+### Cheaper first step, before any run
+
+The hard case is detectable from existing evidence. If Phase III never encountered
+an indefinite Hessian on the retained support in any archived run, v2 would return
+the same answer and the ablation buys nothing. That is a receipts question, not a
+campaign, and it should settle whether the campaign is worth its compute.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -3066,6 +3104,7 @@ single-artifact generalizations.
 | Q48 | The four joint-linear-solve policies | **Delete two, keep two.** `supported_metric_projected_generalized_trust_v1` is the Phase-III response solve (61/61 bundle archives, 13/13 L=3 runs, 6/6 sixregime). `supported_metric_whitened_eigh_v1` is the **accepted-refit chart** — `accepted_refit.py:500` takes it as the `JointLinearSolveConfig` default, and Paper I calls it the *"fixed pullback-whitened chart"*. `global_trust_eigh_v2` and `block_pinv_legacy_v1` appear in **zero** run receipts. | 2026-08-25 |
 | Q48 | **SUPERSEDED by Q49** | The delete list was wrong; `global_trust_eigh_v2` is live. | 2026-08-25 |
 | Q49 | The four joint-linear-solve policies, re-checked | **Keep three, delete one.** `projected_generalized_trust_v1` — Phase-III response solve, every run. `whitened_eigh_v1` — the `JointLinearSolveConfig` default, carried by the accepted refit. `global_trust_eigh_v2` — passed explicitly by the Schur-restricted solve in scoring and the prune inner solve. `block_pinv_legacy_v1` — no explicit site anywhere. | 2026-08-25 |
+| Q50 | `global_trust_eigh_v2` as the **Phase-III** solve | **Keep it and queue an extension bundle.** v2 handles the singular Moré--Sorensen hard case where v1 forces the shifted Hessian positive definite, so it can be expected to produce better steps. Note the premise correction: v2 **is** used in bundled runs, for the Schur-restricted and prune inner solves — what no bundle used is v2 as the *Phase-III response solve*. That is the ablation. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
