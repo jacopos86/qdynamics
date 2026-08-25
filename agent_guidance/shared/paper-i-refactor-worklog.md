@@ -2784,6 +2784,46 @@ roughly 17.5k lines of genuine control flow plus the phase-group defs. That is
 the population the `score()` collapse addresses, and it is not hiding further
 extension machinery.
 
+## 6bd. Route-C plateau acquisition is off in every arm — including the plateau arms
+
+The second-largest contiguous span of controller body — **2,622 lines,
+`47858-50479`** — heads into Route-C plateau optimizer dispatch (QNSPSA fidelity,
+stochastic run). Alongside it sits `route_c_plateau.py` (1,009 lines) and 16
+`phase3_plateau_*` executor parameters.
+
+`phase3_plateau_acquisition_mode` defaults to `PLATEAU_ACQUISITION_MODE_OFF`
+(`adapt_pipeline.py:14914`). Measured across bundle arms:
+
+| arm | `phase3_plateau_acquisition_mode` |
+|---|---|
+| `mr_always_insertion` ×6 | `"off"` |
+| `b_depth_append_ra` ×6 | `"off"` |
+| **`mr_plateau_insertion` ×6** | **`"off"`** |
+| **`b_depth_costexp_plateau_position` ×5** | **`"off"`** |
+
+**The plateau-named arms do not use plateau acquisition.** They differ by
+*insertion realization*, not by Route-C:
+
+| arm | `insertion_*` |
+|---|---|
+| `mr_plateau_insertion` | `termwise_cross_component_commutation_earliest_representative_v1` |
+| `b_depth_costexp_plateau_position` | `plateau_commutation_costexp` |
+
+So "plateau" in an arm name refers to the **plateau-triggered insertion policy**,
+which `CONTEXT.md` and the design target already treat as an insertion option —
+not to Route-C plateau *acquisition*, which is off everywhere measured.
+
+### Why this matters
+
+`route_c` appears **513 times** in `adapt_pipeline.py` and has **zero executor
+parameters** — it is gated entirely through `phase3_plateau_acquisition_mode` and
+internal state. A 2,622-line inline span plus a 1,009-line module for a path that
+no measured arm enables.
+
+**Not yet a deletion claim.** 23 arms sampled across b3 and b9 only, and Route-C
+may be reachable from the L=3 optional-control benchmarks, which are a separate
+Paper-I setting. Check those before proposing anything.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
