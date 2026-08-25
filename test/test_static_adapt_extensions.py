@@ -7,10 +7,17 @@ import pytest
 from pipelines.static_adapt.adapt_pipeline import _run_hardcoded_adapt_vqe
 from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.extensions import (
+    BATCH_RUNTIME_KEYS,
+    BatchExtension,
     NO_EXTENSIONS,
     PRUNING_RUNTIME_KEYS,
+    batch_extension_from_admission,
     extensions_from_route_contract,
     resolve_pruning_runtime,
+)
+from pipelines.static_adapt.sr_snake.contracts import (
+    CombinatorialBatchAdmission,
+    SingletonAdmission,
 )
 from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
@@ -68,3 +75,33 @@ def test_pruning_is_absent_from_executor_and_cli_default_surfaces() -> None:
     assert all(not hasattr(args, name) for name in PRUNING_RUNTIME_KEYS)
     with pytest.raises(SystemExit, match="2"):
         parser.parse_args(["--phase1-prune-enabled"])
+
+
+def test_enabled_batching_requires_a_complete_policy_interview() -> None:
+    with pytest.raises(TypeError):
+        BatchExtension()  # type: ignore[call-arg]
+
+    extension = batch_extension_from_admission(
+        CombinatorialBatchAdmission(
+            maximum_size=3,
+            search_window_size=6,
+        )
+    )
+
+    assert extension == BatchExtension(
+        strategy="combinatorial",
+        maximum_size=3,
+        search_window_size=6,
+    )
+    assert batch_extension_from_admission(SingletonAdmission()) is None
+
+
+def test_batching_is_absent_from_executor_and_cli_default_surfaces() -> None:
+    parameters = inspect.signature(_run_hardcoded_adapt_vqe).parameters
+    assert BATCH_RUNTIME_KEYS.isdisjoint(parameters)
+
+    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
+    args = parser.parse_args([])
+    assert all(not hasattr(args, name) for name in BATCH_RUNTIME_KEYS)
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args(["--phase2-enable-batching"])

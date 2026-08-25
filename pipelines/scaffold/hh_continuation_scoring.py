@@ -222,12 +222,9 @@ class FullScoreConfig:
     batch_near_degenerate_ratio: float = 0.9
     batch_rank_rel_tol: float = 1e-6
     batch_max_gram_condition_number: float = 1e12
-    batch_additivity_tol: float = 0.25
     batch_search_pool_size: int | None = None
     batch_search_population_mode: str = "near_degenerate_shell_legacy_v1"
     batch_search_feasibility_policy: str = "raw_ranked_legacy_v1"
-    batch_additivity_policy: str = "hard_gate_legacy_v1"
-    batch_additivity_lambda: float = 0.0
     batch_score_tie_tolerance: float = 1e-12
     batch_geometry_mode: str = "per_subset_diagonal_hessian_legacy_v1"
     batch_metric_regularization: float = 1e-9
@@ -240,11 +237,6 @@ class FullScoreConfig:
     batch_active_context_indices: tuple[int, ...] | None = None
     batch_selection_mode: str = "reduced_plane"
     duplicate_penalty_weight: float = 0.0
-    compat_overlap_weight: float = 0.4
-    compat_comm_weight: float = 0.2
-    compat_curv_weight: float = 0.2
-    compat_sched_weight: float = 0.2
-    compat_measure_weight: float = 0.2
     leakage_cap: float = 1e6
     lifetime_cost_mode: str = "off"
     remaining_evaluations_proxy_mode: str = "none"
@@ -1805,16 +1797,6 @@ BATCH_SEARCH_FEASIBILITY_POLICIES = frozenset(
         BATCH_SEARCH_FEASIBILITY_RAW_RANKED_LEGACY_V1,
     }
 )
-BATCH_ADDITIVITY_OFF = "off"
-BATCH_ADDITIVITY_SOFT_PENALTY_V1 = "soft_penalty_v1"
-BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1 = "hard_gate_legacy_v1"
-BATCH_ADDITIVITY_POLICIES = frozenset(
-    {
-        BATCH_ADDITIVITY_OFF,
-        BATCH_ADDITIVITY_SOFT_PENALTY_V1,
-        BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1,
-    }
-)
 BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1 = (
     "full_residual_gram_hessian_v1"
 )
@@ -1847,16 +1829,6 @@ ORDERED_BATCH_BEAM_SELECTION_MODES = frozenset(
         PHASE2_BATCH_COMBINATORIAL_REDUCED_PLANE,
     }
 )
-
-
-def normalize_batch_additivity_policy(raw_policy: Any) -> str:
-    policy = str(raw_policy or BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1).strip().lower()
-    if policy not in BATCH_ADDITIVITY_POLICIES:
-        raise ValueError(
-            "batch_additivity_policy must be one of "
-            f"{sorted(BATCH_ADDITIVITY_POLICIES)}; got {raw_policy!r}."
-        )
-    return policy
 
 
 def normalize_batch_geometry_mode(raw_mode: Any) -> str:
@@ -6817,168 +6789,10 @@ def build_full_candidate_features(
     )
 
 
-def _compatibility_penalty_components(
-    *,
-    record_a: Mapping[str, Any],
-    record_b: Mapping[str, Any],
-    cfg: FullScoreConfig,
-    tangent_for_record: Callable[[Mapping[str, Any]], tuple[np.ndarray, float]] | None = None,
-) -> dict[str, float]:
-    feat_a = record_a.get("feature")
-    feat_b = record_b.get("feature")
-    term_a = record_a.get("candidate_term")
-    term_b = record_b.get("candidate_term")
-    if not isinstance(feat_a, CandidateFeatures) or not isinstance(feat_b, CandidateFeatures):
-        return {
-            "support_overlap": 0.0,
-            "noncommutation": 0.0,
-            "cross_curvature": 0.0,
-            "schedule": 0.0,
-            "measurement_mismatch": 0.0,
-            "total": 0.0,
-        }
-
-    supp_a = _support_set(term_a)
-    supp_b = _support_set(term_b)
-    union = len(supp_a | supp_b)
-    support_overlap = 0.0 if union == 0 else float(len(supp_a & supp_b) / union)
-    noncomm = 0.0 if _polynomials_commute(term_a, term_b) else 1.0
-
-    cross_curv = 0.0
-    if tangent_for_record is not None and term_a is not None and term_b is not None:
-        try:
-            tang_a, F_a = tangent_for_record(record_a)
-            tang_b, F_b = tangent_for_record(record_b)
-            denom = math.sqrt(max(F_a, 0.0) * max(F_b, 0.0))
-            if denom > 0.0:
-                cross_curv = float(min(1.0, abs(float(np.real(np.vdot(tang_a, tang_b)))) / denom))
-        except Exception:
-            cross_curv = float(support_overlap)
-    elif feat_a.b_hat is not None and feat_b.b_hat is not None:
-        vec_a = np.asarray(feat_a.b_hat, dtype=float)
-        vec_b = np.asarray(feat_b.b_hat, dtype=float)
-        denom = float(np.linalg.norm(vec_a) * np.linalg.norm(vec_b))
-        if denom > 0.0:
-            cross_curv = float(min(1.0, abs(float(vec_a @ vec_b)) / denom))
-
-    win_a = set(int(i) for i in _feature_phase3_schur_window(feat_a))
-    win_b = set(int(i) for i in _feature_phase3_schur_window(feat_b))
-    union_w = len(win_a | win_b)
-    schedule = 0.0 if union_w == 0 else float(len(win_a & win_b) / union_w)
-    measurement_overlap = _measurement_group_overlap_score(
-        measurement_group_keys_for_term(term_a),
-        measurement_group_keys_for_term(term_b),
-    )
-    measurement_mismatch = float(1.0 - measurement_overlap)
-    total = (
-        float(cfg.compat_overlap_weight) * float(support_overlap)
-        + float(cfg.compat_comm_weight) * float(noncomm)
-        + float(cfg.compat_curv_weight) * float(cross_curv)
-        + float(cfg.compat_sched_weight) * float(schedule)
-        + float(cfg.compat_measure_weight) * float(measurement_mismatch)
-    )
-    return {
-        "support_overlap": float(support_overlap),
-        "noncommutation": float(noncomm),
-        "cross_curvature": float(cross_curv),
-        "schedule": float(schedule),
-        "measurement_mismatch": float(measurement_mismatch),
-        "total": float(total),
-    }
 
 
-def compatibility_penalty(
-    *,
-    record_a: Mapping[str, Any],
-    record_b: Mapping[str, Any],
-    cfg: FullScoreConfig,
-    psi_state: np.ndarray | None = None,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-) -> dict[str, float]:
-    tangent_for_record: Callable[[Mapping[str, Any]], tuple[np.ndarray, float]] | None = None
-    if psi_state is not None:
-
-        def _uncached_tangent_for_record(record: Mapping[str, Any]) -> tuple[np.ndarray, float]:
-            feat = record.get("feature")
-            term = record.get("candidate_term")
-            return _tangent_data(
-                psi_state=np.asarray(psi_state, dtype=complex),
-                label=str(feat.candidate_label),
-                polynomial=term.polynomial,
-                compiled_cache=compiled_cache,
-                pauli_action_cache=pauli_action_cache,
-            )
-
-        tangent_for_record = _uncached_tangent_for_record
-
-    return _compatibility_penalty_components(
-        record_a=record_a,
-        record_b=record_b,
-        cfg=cfg,
-        tangent_for_record=tangent_for_record,
-    )
 
 
-class CompatibilityPenaltyOracle:
-    def __init__(
-        self,
-        *,
-        cfg: FullScoreConfig,
-        psi_state: np.ndarray | None = None,
-        compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-        pauli_action_cache: dict[str, Any] | None = None,
-    ) -> None:
-        self.cfg = cfg
-        self.psi_state = None if psi_state is None else np.asarray(psi_state, dtype=complex)
-        self.compiled_cache = compiled_cache
-        self.pauli_action_cache = pauli_action_cache
-        self._tangent_cache: dict[str, tuple[np.ndarray, float]] = {}
-
-    @staticmethod
-    def _record_cache_key(record: Mapping[str, Any]) -> str:
-        feat = record.get("feature")
-        if isinstance(feat, CandidateFeatures):
-            try:
-                return f"feature:{str(feat.candidate_label)}"
-            except Exception:
-                pass
-        raw_label = record.get("candidate_label")
-        if raw_label is not None:
-            return f"record:{str(raw_label)}"
-        term = record.get("candidate_term")
-        label = getattr(term, "label", None)
-        if label is not None:
-            return f"term:{str(label)}"
-        return f"id:{id(record)}"
-
-    def _tangent_for_record(self, record: Mapping[str, Any]) -> tuple[np.ndarray, float]:
-        cache_key = self._record_cache_key(record)
-        cached = self._tangent_cache.get(cache_key)
-        if cached is not None:
-            return cached
-        feat = record.get("feature")
-        term = record.get("candidate_term")
-        if self.psi_state is None or not isinstance(feat, CandidateFeatures) or term is None:
-            raise ValueError("tangent cache requires psi_state, feature, and candidate_term.")
-        tangent = _tangent_data(
-            psi_state=np.asarray(self.psi_state, dtype=complex),
-            label=str(feat.candidate_label),
-            polynomial=term.polynomial,
-            compiled_cache=self.compiled_cache,
-            pauli_action_cache=self.pauli_action_cache,
-        )
-        self._tangent_cache[cache_key] = tangent
-        return tangent
-
-    def penalty(self, record_a: Mapping[str, Any], record_b: Mapping[str, Any]) -> dict[str, float]:
-        tangent_for_record = self._tangent_for_record if self.psi_state is not None else None
-        return _compatibility_penalty_components(
-            record_a=record_a,
-            record_b=record_b,
-            cfg=self.cfg,
-            tangent_for_record=tangent_for_record,
-        )
 
 
 def _batch_sort_key(record: Mapping[str, Any], tie_break_score_key: str) -> tuple[float, float, int, int]:
@@ -7179,29 +6993,6 @@ def _batch_geometry_summary(
             "rank_floor": float(rank_floor),
             "common_window_indices": [int(x) for x in common_window],
         }
-    contextual_single = [
-        float(trust_region_drop(float(g_vec[i]), float(H[i, i]), float(max(G[i, i], cfg.metric_floor)), float(cfg.rho)))
-        for i in range(n)
-    ]
-    single_total = float(sum(contextual_single))
-    additivity_defect = float(max(0.0, 1.0 - joint_gain / (single_total + float(cfg.cheap_score_eps))))
-    additivity_policy = normalize_batch_additivity_policy(
-        getattr(cfg, "batch_additivity_policy", BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1)
-    )
-    if (
-        n > 1
-        and additivity_policy == BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1
-        and additivity_defect > float(cfg.batch_additivity_tol)
-    ):
-        return {
-            "feasible": False,
-            "reason": "additivity_hard_gate_legacy",
-            "joint_gain": float(joint_gain),
-            "contextual_single_total": float(single_total),
-            "additivity_defect": float(additivity_defect),
-            "additivity_policy": str(additivity_policy),
-            "common_window_indices": [int(x) for x in common_window],
-        }
     mu_tan = 0.0
     for i in range(n):
         for j in range(i + 1, n):
@@ -7210,9 +7001,6 @@ def _batch_geometry_summary(
     return {
         "feasible": True,
         "joint_gain": float(joint_gain),
-        "contextual_single_total": float(single_total),
-        "additivity_defect": float(additivity_defect),
-        "additivity_policy": str(additivity_policy),
         "lambda_min": float(lambda_min),
         "rank_floor": float(rank_floor),
         "mu_tan": float(mu_tan),
@@ -10877,28 +10665,6 @@ class _BatchFullGeometryWorkspace:
             0.5 * applied_eta * applied_eta * directional_curvature
         )
         predicted_gain = float(max(0.0, first_order_reduction - hessian_correction))
-        if len(key) == 1:
-            singleton_total = float(predicted_gain)
-            additivity_defect = 0.0
-        else:
-            singleton_total = float(
-                sum(
-                    float(
-                        self._summary_for_indices((int(index),)).get(
-                            "joint_gain", 0.0
-                        )
-                    )
-                    for index in key
-                )
-            )
-            additivity_defect = float(
-                max(
-                    0.0,
-                    1.0
-                    - predicted_gain
-                    / (singleton_total + max(self.metric_regularization, 1e-15)),
-                )
-            )
         labels = [
             str(self.records[int(index)].get("candidate_label", ""))
             for index in key
@@ -10942,8 +10708,6 @@ class _BatchFullGeometryWorkspace:
             "first_order_geometric_reduction": float(first_order_reduction),
             "hessian_correction": float(hessian_correction),
             "joint_gain": float(predicted_gain),
-            "contextual_single_total": float(singleton_total),
-            "additivity_defect": float(additivity_defect),
             "matrix_elements_reused_from_workspace": int(
                 2 * len(key) * (len(key) + 1) // 2
                 + 2 * len(self.active_indices) * len(key)
@@ -11784,31 +11548,6 @@ class _BatchFullGeometryWorkspace:
             ),
             "classical_quantum_query_charge": 0,
         }
-        if batch_count == 1:
-            singleton_total = float(predicted_gain)
-            additivity_defect = 0.0
-        else:
-            singleton_total = float(
-                sum(
-                    float(
-                        self._supported_metric_summary_for_indices(
-                            (int(index),)
-                        ).get("joint_gain", 0.0)
-                    )
-                    for index in key
-                )
-            )
-            additivity_defect = float(
-                max(
-                    0.0,
-                    1.0
-                    - predicted_gain
-                    / (
-                        singleton_total
-                        + max(self.metric_regularization, 1e-15)
-                    ),
-                )
-            )
         coordinate_model_reason = candidate_gain_reason or (
             "supported_metric_projected_generalized_full_joint_model_v1"
             if str(self.joint_linear_solve_policy)
@@ -11885,8 +11624,6 @@ class _BatchFullGeometryWorkspace:
                 incremental_gain_raw
             ),
             "joint_gain": float(predicted_gain),
-            "contextual_single_total": float(singleton_total),
-            "additivity_defect": float(additivity_defect),
             "matrix_elements_reused_from_workspace": int(
                 2 * batch_count * (batch_count + 1) // 2
                 + 2 * active_count * batch_count
@@ -12211,28 +11948,6 @@ class _BatchFullGeometryWorkspace:
         predicted_gain = float(
             max(0.0, float(applied_solution["predicted_reduction"]))
         )
-        if batch_count == 1:
-            singleton_total = float(predicted_gain)
-            additivity_defect = 0.0
-        else:
-            singleton_total = float(
-                sum(
-                    float(
-                        self._summary_for_indices((int(index),)).get(
-                            "joint_gain", 0.0
-                        )
-                    )
-                    for index in key
-                )
-            )
-            additivity_defect = float(
-                max(
-                    0.0,
-                    1.0
-                    - predicted_gain
-                    / (singleton_total + max(self.metric_regularization, 1e-15)),
-                )
-            )
         summary = {
             "feasible": True,
             "reason": "shared_full_ansatz_batch_joint_model_v1",
@@ -12321,8 +12036,6 @@ class _BatchFullGeometryWorkspace:
                 applied_solution["direct_solve_residual"]
             ),
             "joint_gain": float(predicted_gain),
-            "contextual_single_total": float(singleton_total),
-            "additivity_defect": float(additivity_defect),
             "matrix_elements_reused_from_workspace": int(
                 2 * batch_count * (batch_count + 1) // 2
                 + 2 * active_count * batch_count
@@ -17012,29 +16725,12 @@ def _annotate_phase3_batch_records(
     mode: str,
 ) -> list[dict[str, Any]]:
     annotated: list[dict[str, Any]] = []
-    summary = dict(proposal.summary)
     for order, rec in enumerate(records):
         updated = dict(rec)
         feat = updated.get("feature")
-        compatibility_payload = {
-            "total": float(summary.get("additivity_defect", 0.0)),
-            "joint_gain": float(proposal.delta_e3),
-            "contextual_single_total": float(summary.get("contextual_single_total", 0.0)),
-            "lambda_min": float(summary.get("lambda_min", 0.0)),
-            "rank_floor": float(summary.get("rank_floor", 0.0)),
-            "mu_tan": float(summary.get("mu_tan", 0.0)),
-            "phase3_batch_score": float(proposal.score),
-            "phase3_batch_delta_e3": float(proposal.delta_e3),
-            "phase3_batch_K3": float(proposal.k3),
-            "phase3_batch_denominator_1_plus_K3": float(proposal.denominator_1_plus_k3),
-            "phase3_batch_order": int(order),
-            "phase3_batch_size": int(len(records)),
-            "phase3_batch_selection_mode": str(mode),
-        }
         if isinstance(feat, CandidateFeatures):
             updated_feature = _replace_feature(
                 feat,
-                compatibility_penalty_total=float(summary.get("additivity_defect", 0.0)),
                 phase_score_components={
                     **dict(feat.phase_score_components),
                     "phase3_batch_score": float(proposal.score),
@@ -17052,7 +16748,6 @@ def _annotate_phase3_batch_records(
                 },
             )
             updated["feature"] = updated_feature
-        updated["compatibility_penalty"] = compatibility_payload
         updated["phase3_batch_score"] = float(proposal.score)
         updated["phase3_batch_delta_e3"] = float(proposal.delta_e3)
         updated["phase3_batch_K3"] = float(proposal.k3)
@@ -17079,7 +16774,7 @@ def _evaluate_ordered_reduced_plane_batch_proposal(
     pauli_action_cache: dict[str, Any] | None = None,
     mode: str,
     rejection_counts: dict[str, int] | None = None,
-    additivity_diagnostics: list[dict[str, Any]] | None = None,
+    subset_diagnostics: list[dict[str, Any]] | None = None,
     geometry_workspace: _BatchFullGeometryWorkspace | None = None,
 ) -> BatchSelectionProposal | None:
     def _record_rejection(reason: str) -> None:
@@ -17114,17 +16809,13 @@ def _evaluate_ordered_reduced_plane_batch_proposal(
     )
     if not bool(summary.get("feasible", False)):
         _record_rejection(str(summary.get("reason", "infeasible")))
-        if additivity_diagnostics is not None:
-            additivity_diagnostics.append(
+        if subset_diagnostics is not None:
+            subset_diagnostics.append(
                 {
                     "cardinality": int(len(records)),
                     "eligible": False,
                     "reason": str(summary.get("reason", "infeasible")),
-                    "defect": float(summary.get("additivity_defect", 0.0)),
                     "joint_gain": float(summary.get("joint_gain", 0.0)),
-                    "singleton_gain_sum": float(
-                        summary.get("contextual_single_total", 0.0)
-                    ),
                     "subset_workspace_indices": [
                         int(value)
                         for value in summary.get("subset_workspace_indices", [])
@@ -17173,41 +16864,7 @@ def _evaluate_ordered_reduced_plane_batch_proposal(
     delta_e3 = float(max(0.0, float(summary.get("joint_gain", 0.0))))
     k3 = _batch_cost_excess(records, cfg=cfg)
     denominator = float(max(float(cfg.cheap_score_eps), 1.0 + float(k3)))
-    base_score = float(delta_e3 / denominator)
-    additivity_policy = normalize_batch_additivity_policy(
-        getattr(cfg, "batch_additivity_policy", BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1)
-    )
-    additivity_defect = (
-        0.0
-        if len(records) == 1
-        else float(max(0.0, summary.get("additivity_defect", 0.0)))
-    )
-    if (
-        additivity_policy == BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1
-        and additivity_defect > float(max(0.0, cfg.batch_additivity_tol))
-    ):
-        _record_rejection("additivity_hard_gate_legacy")
-        if additivity_diagnostics is not None:
-            additivity_diagnostics.append(
-                {
-                    "cardinality": int(len(records)),
-                    "eligible": False,
-                    "reason": "additivity_hard_gate_legacy",
-                    "defect": float(additivity_defect),
-                    "joint_gain": float(delta_e3),
-                    "singleton_gain_sum": float(
-                        summary.get("contextual_single_total", delta_e3)
-                    ),
-                }
-            )
-        return None
-    lambda_add = float(max(0.0, getattr(cfg, "batch_additivity_lambda", 0.0)))
-    additivity_penalty_denominator = (
-        float(1.0 + lambda_add * additivity_defect)
-        if additivity_policy == BATCH_ADDITIVITY_SOFT_PENALTY_V1
-        else 1.0
-    )
-    score = float(base_score / additivity_penalty_denominator)
+    score = float(delta_e3 / denominator)
     summary_out = {
         "selection_mode": str(mode),
         **dict(summary),
@@ -17218,27 +16875,17 @@ def _evaluate_ordered_reduced_plane_batch_proposal(
         "phase3_batch_delta_e3": float(delta_e3),
         "phase3_batch_K3": float(k3),
         "phase3_batch_denominator_1_plus_K3": float(denominator),
-        "base_score": float(base_score),
         "score": float(score),
-        "additivity_policy": str(additivity_policy),
-        "lambda_add": float(lambda_add),
-        "additivity_defect": float(additivity_defect),
-        "additivity_penalty_denominator": float(additivity_penalty_denominator),
         "effective_batch_size_cap": int(_ordered_reduced_plane_batch_limits(cfg)[1]),
         "effective_batch_target_size": int(_ordered_reduced_plane_batch_limits(cfg)[0]),
         "same_generator_batch_duplicate_policy": "block_generator_identity_v1",
     }
-    if additivity_diagnostics is not None:
-        additivity_diagnostics.append(
+    if subset_diagnostics is not None:
+        subset_diagnostics.append(
             {
                 "cardinality": int(len(records)),
                 "eligible": True,
-                "defect": float(additivity_defect),
                 "joint_gain": float(delta_e3),
-                "singleton_gain_sum": float(
-                    summary.get("contextual_single_total", delta_e3)
-                ),
-                "base_score": float(base_score),
                 "score": float(score),
             }
         )
@@ -17269,8 +16916,6 @@ def _fallback_singleton_batch_proposal(
         "reason": str(reason),
         "feasible": True,
         "joint_gain": float(delta_e3),
-        "contextual_single_total": float(delta_e3),
-        "additivity_defect": 0.0,
         "selected_count": 1,
         "selected_labels": [_batch_record_label(record)],
         "phase3_batch_score": float(score),
@@ -17390,7 +17035,7 @@ def greedy_reduced_plane_batch_proposals(
     subset_counts_evaluated: dict[int, int] = {}
     subset_counts_feasible: dict[int, int] = {}
     rejection_counts: dict[str, int] = {}
-    additivity_diagnostics: list[dict[str, Any]] = []
+    subset_diagnostics: list[dict[str, Any]] = []
     duplicate_generator_skip_count = 0
     duplicate_generator_identities: set[tuple[str, str]] = set()
     for seed in shell[:seed_count]:
@@ -17411,7 +17056,7 @@ def greedy_reduced_plane_batch_proposals(
             pauli_action_cache=pauli_action_cache,
             mode=mode,
             rejection_counts=rejection_counts,
-            additivity_diagnostics=additivity_diagnostics,
+            subset_diagnostics=subset_diagnostics,
             geometry_workspace=geometry_workspace,
         )
         candidate_batch_eval_count += 1
@@ -17456,7 +17101,7 @@ def greedy_reduced_plane_batch_proposals(
                     pauli_action_cache=pauli_action_cache,
                     mode=mode,
                     rejection_counts=rejection_counts,
-                    additivity_diagnostics=additivity_diagnostics,
+                    subset_diagnostics=subset_diagnostics,
                     geometry_workspace=geometry_workspace,
                 )
                 candidate_batch_eval_count += 1
@@ -17537,12 +17182,7 @@ def greedy_reduced_plane_batch_proposals(
         "conditioning_gate_rejection_count": int(
             rejection_counts.get("conditioning_gate", 0)
         ),
-        "additivity_diagnostics": [dict(row) for row in additivity_diagnostics],
-        "subset_diagnostics": [dict(row) for row in additivity_diagnostics],
-        "additivity_policy": normalize_batch_additivity_policy(
-            getattr(cfg, "batch_additivity_policy", None)
-        ),
-        "lambda_add": float(max(0.0, getattr(cfg, "batch_additivity_lambda", 0.0))),
+        "subset_diagnostics": [dict(row) for row in subset_diagnostics],
         "geometry_mode": str(geometry_mode),
         "geometry_workspace": (
             {}
@@ -17584,11 +17224,8 @@ def greedy_reduced_plane_batch_proposals(
         summary["conditioning_gate_rejection_count"] = int(
             rejection_counts.get("conditioning_gate", 0)
         )
-        summary["additivity_diagnostics"] = [
-            dict(row) for row in additivity_diagnostics
-        ]
         summary["subset_diagnostics"] = [
-            dict(row) for row in additivity_diagnostics
+            dict(row) for row in subset_diagnostics
         ]
         summary["geometry_mode"] = str(geometry_mode)
         summary["geometry_workspace"] = (
@@ -17710,7 +17347,7 @@ def combinatorial_reduced_plane_batch_proposals(
     subset_counts_evaluated: dict[int, int] = {}
     subset_counts_feasible: dict[int, int] = {}
     rejection_counts: dict[str, int] = {}
-    additivity_diagnostics: list[dict[str, Any]] = []
+    subset_diagnostics: list[dict[str, Any]] = []
     duplicate_generator_skip_count = 0
     duplicate_generator_identities: set[tuple[str, str]] = set()
     for size in range(1, int(enumeration_size_cap) + 1):
@@ -17745,7 +17382,7 @@ def combinatorial_reduced_plane_batch_proposals(
                 pauli_action_cache=pauli_action_cache,
                 mode=mode,
                 rejection_counts=rejection_counts,
-                additivity_diagnostics=additivity_diagnostics,
+                subset_diagnostics=subset_diagnostics,
                 geometry_workspace=geometry_workspace,
             )
             candidate_batch_eval_count += 1
@@ -17848,12 +17485,7 @@ def combinatorial_reduced_plane_batch_proposals(
         "conditioning_gate_rejection_count": int(
             rejection_counts.get("conditioning_gate", 0)
         ),
-        "additivity_diagnostics": [dict(row) for row in additivity_diagnostics],
-        "subset_diagnostics": [dict(row) for row in additivity_diagnostics],
-        "additivity_policy": normalize_batch_additivity_policy(
-            getattr(cfg, "batch_additivity_policy", None)
-        ),
-        "lambda_add": float(max(0.0, getattr(cfg, "batch_additivity_lambda", 0.0))),
+        "subset_diagnostics": [dict(row) for row in subset_diagnostics],
         "geometry_mode": str(geometry_mode),
         "geometry_workspace": (
             {}
@@ -17895,11 +17527,8 @@ def combinatorial_reduced_plane_batch_proposals(
         summary["conditioning_gate_rejection_count"] = int(
             rejection_counts.get("conditioning_gate", 0)
         )
-        summary["additivity_diagnostics"] = [
-            dict(row) for row in additivity_diagnostics
-        ]
         summary["subset_diagnostics"] = [
-            dict(row) for row in additivity_diagnostics
+            dict(row) for row in subset_diagnostics
         ]
         summary["geometry_mode"] = str(geometry_mode)
         summary["geometry_workspace"] = (
@@ -17920,258 +17549,12 @@ def combinatorial_reduced_plane_batch_proposals(
     return proposals_sorted, summary
 
 
-def select_phase2_batch_record_proposals(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    selected_ops: Sequence[Any],
-    theta: np.ndarray,
-    psi_ref: np.ndarray,
-    psi_state: np.ndarray,
-    h_compiled: CompiledPolynomialAction,
-    novelty_oracle: Any,
-    curvature_oracle: Any,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-    tie_break_score_key: str = "phase2_raw_score",
-    max_proposals: int = 1,
-) -> tuple[list[BatchSelectionProposal], dict[str, Any]]:
-    mode = normalize_phase2_batch_selection_mode(getattr(cfg, "batch_selection_mode", PHASE2_BATCH_REDUCED_PLANE))
-    if mode == PHASE2_BATCH_GREEDY_REDUCED_PLANE:
-        return greedy_reduced_plane_batch_proposals(
-            ranked_records,
-            cfg=cfg,
-            selected_ops=selected_ops,
-            theta=theta,
-            psi_ref=psi_ref,
-            psi_state=psi_state,
-            h_compiled=h_compiled,
-            novelty_oracle=novelty_oracle,
-            curvature_oracle=curvature_oracle,
-            compiled_cache=compiled_cache,
-            pauli_action_cache=pauli_action_cache,
-            tie_break_score_key=tie_break_score_key,
-            max_proposals=max_proposals,
-        )
-    if mode == PHASE2_BATCH_COMBINATORIAL_REDUCED_PLANE:
-        return combinatorial_reduced_plane_batch_proposals(
-            ranked_records,
-            cfg=cfg,
-            selected_ops=selected_ops,
-            theta=theta,
-            psi_ref=psi_ref,
-            psi_state=psi_state,
-            h_compiled=h_compiled,
-            novelty_oracle=novelty_oracle,
-            curvature_oracle=curvature_oracle,
-            compiled_cache=compiled_cache,
-            pauli_action_cache=pauli_action_cache,
-            tie_break_score_key=tie_break_score_key,
-            max_proposals=max_proposals,
-        )
-    selected, summary = select_phase2_batch_records(
-        ranked_records,
-        cfg=cfg,
-        selected_ops=selected_ops,
-        theta=theta,
-        psi_ref=psi_ref,
-        psi_state=psi_state,
-        h_compiled=h_compiled,
-        novelty_oracle=novelty_oracle,
-        curvature_oracle=curvature_oracle,
-        compiled_cache=compiled_cache,
-        pauli_action_cache=pauli_action_cache,
-        tie_break_score_key=tie_break_score_key,
-    )
-    if not selected:
-        return [], dict(summary)
-    delta_e3 = float(max(0.0, float(summary.get("joint_gain", sum(max(0.0, _batch_record_score(rec, "full_v2_score", 0.0)) for rec in selected)))))
-    k3 = _phase3_batch_k3(selected)
-    denominator = float(max(float(cfg.cheap_score_eps), 1.0 + float(k3)))
-    proposal = BatchSelectionProposal(
-        records=tuple(dict(rec) for rec in selected),
-        summary=dict(summary),
-        score=float(delta_e3 / denominator),
-        delta_e3=float(delta_e3),
-        k3=float(k3),
-        denominator_1_plus_k3=float(denominator),
-    )
-    return [proposal], dict(summary)
 
 
-def greedy_reduced_plane_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    selected_ops: Sequence[Any],
-    theta: np.ndarray,
-    psi_ref: np.ndarray,
-    psi_state: np.ndarray,
-    h_compiled: CompiledPolynomialAction,
-    novelty_oracle: Any,
-    curvature_oracle: Any,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-    tie_break_score_key: str = "phase2_raw_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    proposals, summary = greedy_reduced_plane_batch_proposals(
-        ranked_records,
-        cfg=cfg,
-        selected_ops=selected_ops,
-        theta=theta,
-        psi_ref=psi_ref,
-        psi_state=psi_state,
-        h_compiled=h_compiled,
-        novelty_oracle=novelty_oracle,
-        curvature_oracle=curvature_oracle,
-        compiled_cache=compiled_cache,
-        pauli_action_cache=pauli_action_cache,
-        tie_break_score_key=tie_break_score_key,
-        max_proposals=1,
-    )
-    return (list(proposals[0].records), dict(summary)) if proposals else ([], dict(summary))
 
 
-def combinatorial_reduced_plane_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    selected_ops: Sequence[Any],
-    theta: np.ndarray,
-    psi_ref: np.ndarray,
-    psi_state: np.ndarray,
-    h_compiled: CompiledPolynomialAction,
-    novelty_oracle: Any,
-    curvature_oracle: Any,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-    tie_break_score_key: str = "phase2_raw_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    proposals, summary = combinatorial_reduced_plane_batch_proposals(
-        ranked_records,
-        cfg=cfg,
-        selected_ops=selected_ops,
-        theta=theta,
-        psi_ref=psi_ref,
-        psi_state=psi_state,
-        h_compiled=h_compiled,
-        novelty_oracle=novelty_oracle,
-        curvature_oracle=curvature_oracle,
-        compiled_cache=compiled_cache,
-        pauli_action_cache=pauli_action_cache,
-        tie_break_score_key=tie_break_score_key,
-        max_proposals=1,
-    )
-    return (list(proposals[0].records), dict(summary)) if proposals else ([], dict(summary))
 
 
-def reduced_plane_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    selected_ops: Sequence[Any],
-    theta: np.ndarray,
-    psi_ref: np.ndarray,
-    psi_state: np.ndarray,
-    h_compiled: CompiledPolynomialAction,
-    novelty_oracle: Any,
-    curvature_oracle: Any,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-    tie_break_score_key: str = "simple_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    ranked = sorted([dict(rec) for rec in ranked_records], key=lambda rec: _batch_sort_key(rec, tie_break_score_key))
-    if not ranked:
-        return [], {"selected": False, "reason": "empty_shortlist"}
-    top_score = float(ranked[0].get("full_v2_score", float("-inf")))
-    shell = [
-        dict(rec)
-        for rec in ranked
-        if float(rec.get("full_v2_score", float("-inf"))) > 0.0
-        and float(rec.get("full_v2_score", float("-inf"))) >= float(cfg.batch_near_degenerate_ratio) * float(top_score)
-    ]
-    if not shell:
-        return [dict(ranked[0])], {"selected": False, "reason": "nonpositive_shell"}
-    batch = [dict(shell[0])]
-    batch_summary = _batch_geometry_summary(
-        batch,
-        cfg=cfg,
-        selected_ops=selected_ops,
-        theta=theta,
-        psi_ref=psi_ref,
-        psi_state=psi_state,
-        h_compiled=h_compiled,
-        novelty_oracle=novelty_oracle,
-        curvature_oracle=curvature_oracle,
-        compiled_cache=compiled_cache,
-        pauli_action_cache=pauli_action_cache,
-    )
-    current_gain = float(batch_summary.get("joint_gain", batch[0].get("full_v2_score", 0.0)))
-    duplicate_generator_skip_count = 0
-    duplicate_generator_identities: set[tuple[str, str]] = set()
-    while len(batch) < int(max(1, cfg.batch_size_cap)) and len(batch) < int(max(1, cfg.batch_target_size)):
-        best_candidate: dict[str, Any] | None = None
-        best_summary: dict[str, Any] | None = None
-        best_marginal = 0.0
-        batch_keys = {_batch_record_generator_identity(rec) for rec in batch}
-        for rec in shell[1:]:
-            rec_key = _batch_record_generator_identity(rec)
-            if rec_key in batch_keys:
-                duplicate_generator_skip_count += 1
-                duplicate_generator_identities.add(rec_key)
-                continue
-            trial_batch = [dict(x) for x in batch] + [dict(rec)]
-            trial_summary = _batch_geometry_summary(
-                trial_batch,
-                cfg=cfg,
-                selected_ops=selected_ops,
-                theta=theta,
-                psi_ref=psi_ref,
-                psi_state=psi_state,
-                h_compiled=h_compiled,
-                novelty_oracle=novelty_oracle,
-                curvature_oracle=curvature_oracle,
-                compiled_cache=compiled_cache,
-                pauli_action_cache=pauli_action_cache,
-            )
-            if not bool(trial_summary.get("feasible", False)):
-                continue
-            marginal = float(trial_summary.get("joint_gain", 0.0)) - float(current_gain)
-            if marginal > float(best_marginal):
-                best_candidate = dict(rec)
-                best_summary = dict(trial_summary)
-                best_marginal = float(marginal)
-        if best_candidate is None or float(best_marginal) <= 0.0:
-            break
-        batch.append(best_candidate)
-        batch_summary = dict(best_summary) if isinstance(best_summary, Mapping) else batch_summary
-        current_gain = float(batch_summary.get("joint_gain", current_gain))
-    annotated: list[dict[str, Any]] = []
-    for rec in batch:
-        updated = dict(rec)
-        feat = updated.get("feature")
-        if isinstance(feat, CandidateFeatures):
-            updated["feature"] = _replace_feature(
-                feat,
-                compatibility_penalty_total=float(batch_summary.get("additivity_defect", 0.0)),
-            )
-        updated["compatibility_penalty"] = {
-            "total": float(batch_summary.get("additivity_defect", 0.0)),
-            "joint_gain": float(batch_summary.get("joint_gain", 0.0)),
-            "contextual_single_total": float(batch_summary.get("contextual_single_total", 0.0)),
-            "lambda_min": float(batch_summary.get("lambda_min", 0.0)),
-            "rank_floor": float(batch_summary.get("rank_floor", 0.0)),
-            "mu_tan": float(batch_summary.get("mu_tan", 0.0)),
-        }
-        annotated.append(updated)
-    summary_out = dict(batch_summary)
-    summary_out["same_generator_batch_duplicate_policy"] = "block_generator_identity_v1"
-    summary_out["same_generator_duplicate_skip_count"] = int(duplicate_generator_skip_count)
-    summary_out["same_generator_duplicate_identities"] = [
-        {"kind": str(kind), "value": str(value)}
-        for kind, value in sorted(duplicate_generator_identities)
-    ]
-    return annotated, summary_out
 
 
 def _batch_record_label(record: Mapping[str, Any]) -> str:
@@ -18243,471 +17626,22 @@ def _batch_record_score(
         return float(default)
 
 
-def _annotate_zero_batch_compatibility(
-    records: Sequence[Mapping[str, Any]],
-    *,
-    joint_gain: float,
-) -> list[dict[str, Any]]:
-    annotated: list[dict[str, Any]] = []
-    for rec in records:
-        updated = dict(rec)
-        feat = updated.get("feature")
-        if isinstance(feat, CandidateFeatures):
-            updated["feature"] = _replace_feature(
-                feat,
-                compatibility_penalty_total=0.0,
-            )
-        updated["compatibility_penalty"] = {
-            "support_overlap": 0.0,
-            "noncommutation": 0.0,
-            "cross_curvature": 0.0,
-            "schedule": 0.0,
-            "measurement_mismatch": 0.0,
-            "total": 0.0,
-            "joint_gain": float(joint_gain),
-        }
-        annotated.append(updated)
-    return annotated
 
 
-def _overlap_sparse_row_norm(row: Mapping[str, float]) -> float:
-    return math.sqrt(float(sum(float(value) * float(value) for value in row.values())))
 
 
-def _operator_sparse_feature_row(term: Any) -> dict[str, float]:
-    """Return a sparse operator-row fallback without rebuilding candidate scores."""
-    if term is None or not hasattr(term, "polynomial"):
-        return {}
-    try:
-        poly_terms = list(term.polynomial.return_polynomial())
-    except Exception:
-        return {}
-    row: dict[str, float] = {}
-    for poly_term in poly_terms:
-        try:
-            label = str(poly_term.pw2strng())
-            coeff = complex(getattr(poly_term, "p_coeff", 1.0))
-        except Exception:
-            continue
-        if math.isfinite(float(coeff.real)) and float(coeff.real) != 0.0:
-            key = f"pauli_re:{label}"
-            row[key] = float(row.get(key, 0.0) + float(coeff.real))
-        if math.isfinite(float(coeff.imag)) and float(coeff.imag) != 0.0:
-            key = f"pauli_im:{label}"
-            row[key] = float(row.get(key, 0.0) + float(coeff.imag))
-    return {key: value for key, value in row.items() if float(value) != 0.0}
 
 
-def _overlap_feature_row(record: Mapping[str, Any]) -> dict[str, float] | None:
-    """Extract the existing candidate feature row used for benchmark overlap screening.
-
-    The preferred row is the persisted phase-2 curvature coupling vector
-    (``CandidateFeatures.b_hat`` / telemetry ``b_hat``).  At empty-window depths
-    that vector is legitimately absent, so the selector falls back to the
-    already-present candidate operator row rather than recomputing or rescoring
-    candidate features.
-    """
-    feat = record.get("feature")
-    raw_b_hat: Any = None
-    if isinstance(feat, CandidateFeatures):
-        raw_b_hat = feat.b_hat
-    elif isinstance(feat, Mapping):
-        raw_b_hat = feat.get("b_hat")
-    if isinstance(raw_b_hat, Sequence) and not isinstance(raw_b_hat, (str, bytes)):
-        row: dict[str, float] = {}
-        for idx, raw_value in enumerate(raw_b_hat):
-            try:
-                value = float(raw_value)
-            except (TypeError, ValueError):
-                continue
-            if math.isfinite(value) and value != 0.0:
-                row[f"b_hat:{int(idx)}"] = float(value)
-        if _overlap_sparse_row_norm(row) > 0.0:
-            return row
-    row = _operator_sparse_feature_row(record.get("candidate_term"))
-    if _overlap_sparse_row_norm(row) > 0.0:
-        return row
-    return None
 
 
-def _normalized_sparse_feature_overlap(lhs: Mapping[str, float], rhs: Mapping[str, float]) -> float:
-    lhs_norm = _overlap_sparse_row_norm(lhs)
-    rhs_norm = _overlap_sparse_row_norm(rhs)
-    if lhs_norm <= 0.0 or rhs_norm <= 0.0:
-        return float("inf")
-    if len(lhs) <= len(rhs):
-        dot = sum(float(value) * float(rhs.get(key, 0.0)) for key, value in lhs.items())
-    else:
-        dot = sum(float(lhs.get(key, 0.0)) * float(value) for key, value in rhs.items())
-    return float(abs(dot) / (lhs_norm * rhs_norm))
 
 
-def ceo_commuting_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    tie_break_score_key: str = "phase2_raw_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Benchmark-only CEO-ADAPT-style conservative commuting batch selector."""
-    ranked = sorted([dict(rec) for rec in ranked_records], key=lambda rec: _batch_sort_key(rec, tie_break_score_key))
-    mode = "ceo_commuting_benchmark"
-    if not ranked:
-        return [], {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "empty_shortlist",
-            "shell_size": 0,
-            "selected_count": 0,
-            "rejected_noncommuting_count": 0,
-            "rejected_invalid_pauli_count": 0,
-            "joint_gain": 0.0,
-            "additivity_defect": 0.0,
-            "selected_labels": [],
-        }
-    top_score = _batch_record_score(ranked[0], "full_v2_score")
-    shell = [
-        dict(rec)
-        for rec in ranked
-        if _batch_record_score(rec, "full_v2_score") > 0.0
-        and _batch_record_score(rec, "full_v2_score") >= float(cfg.batch_near_degenerate_ratio) * float(top_score)
-    ]
-    target_count = int(max(1, min(int(max(1, cfg.batch_target_size)), int(max(1, cfg.batch_size_cap)))))
-    if not shell:
-        selected = [dict(ranked[0])]
-        joint_gain = float(max(0.0, _batch_record_score(selected[0], "full_v2_score", 0.0)))
-        annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-        return annotated, {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "nonpositive_shell",
-            "shell_size": 0,
-            "selected_count": 1,
-            "rejected_noncommuting_count": 0,
-            "rejected_invalid_pauli_count": 0,
-            "joint_gain": float(joint_gain),
-            "additivity_defect": 0.0,
-            "selected_labels": [_batch_record_label(rec) for rec in annotated],
-        }
-
-    selected: list[dict[str, Any]] = [dict(shell[0])]
-    selected_words: list[tuple[str, ...]] = []
-    top_words = _record_pauli_words(shell[0])
-    if not top_words:
-        rejected_invalid_pauli_count = sum(1 for rec in shell[1:] if not _record_pauli_words(rec))
-        joint_gain = float(max(0.0, _batch_record_score(selected[0], "full_v2_score", 0.0)))
-        annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-        return annotated, {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "top_invalid_pauli_fallback",
-            "shell_size": int(len(shell)),
-            "selected_count": 1,
-            "rejected_noncommuting_count": 0,
-            "rejected_invalid_pauli_count": int(rejected_invalid_pauli_count),
-            "joint_gain": float(joint_gain),
-            "additivity_defect": 0.0,
-            "selected_labels": [_batch_record_label(rec) for rec in annotated],
-        }
-    selected_words.append(tuple(top_words))
-
-    rejected_noncommuting_count = 0
-    rejected_invalid_pauli_count = 0
-    for rec in shell[1:]:
-        if len(selected) >= target_count:
-            break
-        words = _record_pauli_words(rec)
-        if not words:
-            rejected_invalid_pauli_count += 1
-            continue
-        commutes_with_selected = all(
-            _single_pauli_word_commutes(candidate_word, selected_word)
-            for candidate_word in words
-            for selected_record_words in selected_words
-            for selected_word in selected_record_words
-        )
-        if commutes_with_selected:
-            selected.append(dict(rec))
-            selected_words.append(tuple(words))
-        else:
-            rejected_noncommuting_count += 1
-
-    joint_gain = float(sum(max(0.0, _batch_record_score(rec, "full_v2_score", 0.0)) for rec in selected))
-    annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-    return annotated, {
-        "selection_mode": mode,
-        "selected": bool(len(annotated) > 1),
-        "reason": "hard_commuting_batch" if len(annotated) > 1 else "singleton_shell",
-        "shell_size": int(len(shell)),
-        "selected_count": int(len(annotated)),
-        "rejected_noncommuting_count": int(rejected_noncommuting_count),
-        "rejected_invalid_pauli_count": int(rejected_invalid_pauli_count),
-        "joint_gain": float(joint_gain),
-        "additivity_defect": 0.0,
-        "selected_labels": [_batch_record_label(rec) for rec in annotated],
-    }
 
 
-def overlap_orthogonal_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    tie_break_score_key: str = "phase2_raw_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Benchmark-only Overlap-ADAPT-style hard low-overlap batch selector."""
-    ranked = sorted([dict(rec) for rec in ranked_records], key=lambda rec: _batch_sort_key(rec, tie_break_score_key))
-    mode = "overlap_orthogonal_benchmark"
-    threshold = float(OVERLAP_ORTHOGONAL_BENCHMARK_MAX)
-    if not ranked:
-        return [], {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "empty_shortlist",
-            "shell_size": 0,
-            "selected_count": 0,
-            "rejected_overlap_count": 0,
-            "rejected_invalid_feature_count": 0,
-            "overlap_threshold": float(threshold),
-            "max_pairwise_overlap": 0.0,
-            "joint_gain": 0.0,
-            "additivity_defect": 0.0,
-            "selected_labels": [],
-        }
-    top_score = _batch_record_score(ranked[0], "full_v2_score")
-    shell = [
-        dict(rec)
-        for rec in ranked
-        if _batch_record_score(rec, "full_v2_score") > 0.0
-        and _batch_record_score(rec, "full_v2_score") >= float(cfg.batch_near_degenerate_ratio) * float(top_score)
-    ]
-    target_count = int(max(1, min(int(max(1, cfg.batch_target_size)), int(max(1, cfg.batch_size_cap)))))
-    if not shell:
-        selected = [dict(ranked[0])]
-        joint_gain = float(max(0.0, _batch_record_score(selected[0], "full_v2_score", 0.0)))
-        annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-        return annotated, {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "nonpositive_shell",
-            "shell_size": 0,
-            "selected_count": 1,
-            "rejected_overlap_count": 0,
-            "rejected_invalid_feature_count": 0,
-            "overlap_threshold": float(threshold),
-            "max_pairwise_overlap": 0.0,
-            "joint_gain": float(joint_gain),
-            "additivity_defect": 0.0,
-            "selected_labels": [_batch_record_label(rec) for rec in annotated],
-        }
-
-    selected: list[dict[str, Any]] = [dict(shell[0])]
-    selected_rows: list[dict[str, float]] = []
-    top_row = _overlap_feature_row(shell[0])
-    if top_row is None:
-        joint_gain = float(max(0.0, _batch_record_score(selected[0], "full_v2_score", 0.0)))
-        annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-        return annotated, {
-            "selection_mode": mode,
-            "selected": False,
-            "reason": "top_invalid_feature_fallback",
-            "shell_size": int(len(shell)),
-            "selected_count": 1,
-            "rejected_overlap_count": 0,
-            "rejected_invalid_feature_count": int(max(0, len(shell) - 1)),
-            "overlap_threshold": float(threshold),
-            "max_pairwise_overlap": 0.0,
-            "joint_gain": float(joint_gain),
-            "additivity_defect": 0.0,
-            "selected_labels": [_batch_record_label(rec) for rec in annotated],
-        }
-    selected_rows.append(dict(top_row))
-
-    rejected_overlap_count = 0
-    rejected_invalid_feature_count = 0
-    max_pairwise_overlap = 0.0
-    for rec in shell[1:]:
-        if len(selected) >= target_count:
-            break
-        row = _overlap_feature_row(rec)
-        if row is None:
-            rejected_invalid_feature_count += 1
-            continue
-        overlaps = [_normalized_sparse_feature_overlap(row, selected_row) for selected_row in selected_rows]
-        candidate_overlap = float(max(overlaps) if overlaps else 0.0)
-        if math.isfinite(candidate_overlap):
-            max_pairwise_overlap = float(max(max_pairwise_overlap, candidate_overlap))
-        if candidate_overlap < threshold:
-            selected.append(dict(rec))
-            selected_rows.append(dict(row))
-        else:
-            rejected_overlap_count += 1
-
-    joint_gain = float(sum(max(0.0, _batch_record_score(rec, "full_v2_score", 0.0)) for rec in selected))
-    annotated = _annotate_zero_batch_compatibility(selected, joint_gain=joint_gain)
-    return annotated, {
-        "selection_mode": mode,
-        "selected": bool(len(annotated) > 1),
-        "reason": "hard_overlap_orthogonal_batch" if len(annotated) > 1 else "singleton_shell",
-        "shell_size": int(len(shell)),
-        "selected_count": int(len(annotated)),
-        "rejected_overlap_count": int(rejected_overlap_count),
-        "rejected_invalid_feature_count": int(rejected_invalid_feature_count),
-        "overlap_threshold": float(threshold),
-        "max_pairwise_overlap": float(max_pairwise_overlap),
-        "joint_gain": float(joint_gain),
-        "additivity_defect": 0.0,
-        "selected_labels": [_batch_record_label(rec) for rec in annotated],
-    }
 
 
-def select_phase2_batch_records(
-    ranked_records: Sequence[Mapping[str, Any]],
-    *,
-    cfg: FullScoreConfig,
-    selected_ops: Sequence[Any],
-    theta: np.ndarray,
-    psi_ref: np.ndarray,
-    psi_state: np.ndarray,
-    h_compiled: CompiledPolynomialAction,
-    novelty_oracle: Any,
-    curvature_oracle: Any,
-    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
-    pauli_action_cache: dict[str, Any] | None = None,
-    tie_break_score_key: str = "phase2_raw_score",
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Dispatch phase-2 batch admission without branching in the ADAPT loop."""
-    mode = normalize_phase2_batch_selection_mode(getattr(cfg, "batch_selection_mode", PHASE2_BATCH_REDUCED_PLANE))
-    if mode == PHASE2_BATCH_REDUCED_PLANE:
-        selected, summary = reduced_plane_batch_select(
-            ranked_records,
-            cfg=cfg,
-            selected_ops=selected_ops,
-            theta=theta,
-            psi_ref=psi_ref,
-            psi_state=psi_state,
-            h_compiled=h_compiled,
-            novelty_oracle=novelty_oracle,
-            curvature_oracle=curvature_oracle,
-            compiled_cache=compiled_cache,
-            pauli_action_cache=pauli_action_cache,
-            tie_break_score_key=tie_break_score_key,
-        )
-        return selected, {"selection_mode": mode, **dict(summary)}
-    if mode == PHASE2_BATCH_GREEDY_REDUCED_PLANE:
-        return greedy_reduced_plane_batch_select(
-            ranked_records,
-            cfg=cfg,
-            selected_ops=selected_ops,
-            theta=theta,
-            psi_ref=psi_ref,
-            psi_state=psi_state,
-            h_compiled=h_compiled,
-            novelty_oracle=novelty_oracle,
-            curvature_oracle=curvature_oracle,
-            compiled_cache=compiled_cache,
-            pauli_action_cache=pauli_action_cache,
-            tie_break_score_key=tie_break_score_key,
-        )
-    if mode == PHASE2_BATCH_COMBINATORIAL_REDUCED_PLANE:
-        return combinatorial_reduced_plane_batch_select(
-            ranked_records,
-            cfg=cfg,
-            selected_ops=selected_ops,
-            theta=theta,
-            psi_ref=psi_ref,
-            psi_state=psi_state,
-            h_compiled=h_compiled,
-            novelty_oracle=novelty_oracle,
-            curvature_oracle=curvature_oracle,
-            compiled_cache=compiled_cache,
-            pauli_action_cache=pauli_action_cache,
-            tie_break_score_key=tie_break_score_key,
-        )
-    if mode == "overlap_orthogonal_benchmark":
-        return overlap_orthogonal_batch_select(
-            ranked_records,
-            cfg=cfg,
-            tie_break_score_key=tie_break_score_key,
-        )
-    if mode == "ceo_commuting_benchmark":
-        return ceo_commuting_batch_select(
-            ranked_records,
-            cfg=cfg,
-            tie_break_score_key=tie_break_score_key,
-        )
-    raise ValueError(f"Unsupported phase2 batch selection mode: {mode!r}")
 
 
-def greedy_batch_select(
-    ranked_records: Sequence[Mapping[str, Any]],
-    compat_oracle: CompatibilityPenaltyOracle,
-    cfg: FullScoreConfig,
-    tie_break_score_key: str = "simple_score",
-) -> tuple[list[dict[str, Any]], float]:
-    def _record_score(rec: Mapping[str, Any], key: str, default: float = float("-inf")) -> float:
-        raw = rec.get(key, default)
-        if raw is None:
-            return float(default)
-        return float(raw)
-
-    ranked = sorted(
-        [dict(rec) for rec in ranked_records],
-        key=lambda rec: (
-            -_record_score(rec, "full_v2_score"),
-            -_record_score(rec, tie_break_score_key),
-            int(rec.get("candidate_pool_index", -1)),
-            int(rec.get("position_id", -1)),
-        ),
-    )
-    if not ranked:
-        return [], 0.0
-
-    batch: list[dict[str, Any]] = []
-    total_penalty = 0.0
-    top_score = float(ranked[0].get("full_v2_score", float("-inf")))
-    duplicate_generator_skip_count = 0
-    for rec in ranked:
-        if len(batch) >= int(max(1, cfg.batch_size_cap)):
-            break
-        rec_identity = _batch_record_generator_identity(rec)
-        if any(_batch_record_generator_identity(existing) == rec_identity for existing in batch):
-            duplicate_generator_skip_count += 1
-            continue
-        rec_score = float(rec.get("full_v2_score", float("-inf")))
-        if not math.isfinite(rec_score) or rec_score <= 0.0:
-            continue
-        if batch and rec_score < float(cfg.batch_near_degenerate_ratio) * float(top_score):
-            continue
-        penalty_total = 0.0
-        penalty_breakdown = {
-            "support_overlap": 0.0,
-            "noncommutation": 0.0,
-            "cross_curvature": 0.0,
-            "schedule": 0.0,
-            "measurement_mismatch": 0.0,
-        }
-        for existing in batch:
-            breakdown = compat_oracle.penalty(rec, existing)
-            penalty_total += float(breakdown.get("total", 0.0))
-            for key in penalty_breakdown:
-                penalty_breakdown[key] += float(breakdown.get(key, 0.0))
-        if float(rec_score) - float(penalty_total) <= 0.0 and batch:
-            continue
-        feat = rec.get("feature")
-        updated = dict(rec)
-        if isinstance(feat, CandidateFeatures):
-            updated["feature"] = _replace_feature(
-                feat,
-                compatibility_penalty_total=float(penalty_total),
-            )
-        updated["compatibility_penalty"] = {
-            **penalty_breakdown,
-            "total": float(penalty_total),
-        }
-        batch.append(updated)
-        total_penalty += float(penalty_total)
-        if len(batch) >= int(max(1, cfg.batch_target_size)):
-            break
-    return batch if batch else [dict(ranked[0])], float(total_penalty)
 
 
 def build_candidate_features(

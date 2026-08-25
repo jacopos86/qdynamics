@@ -125,8 +125,8 @@ class SingletonAdmission(SerializableContract):
 
 @dataclass(frozen=True)
 class GreedyBatchAdmission(SerializableContract):
-    maximum_size: int = 3
-    search_window_size: int | None = None
+    maximum_size: int
+    search_window_size: int | None
     kind: ClassVar[str] = "greedy_batch"
 
     def __post_init__(self) -> None:
@@ -173,8 +173,8 @@ class FullCombinatorialSearchWindow(SerializableContract):
 
 @dataclass(frozen=True)
 class CombinatorialBatchAdmission(SerializableContract):
-    maximum_size: int = 3
-    search_window_size: int | FullCombinatorialSearchWindow | None = None
+    maximum_size: int
+    search_window_size: int | FullCombinatorialSearchWindow
     kind: ClassVar[str] = "combinatorial_batch"
 
     def __post_init__(self) -> None:
@@ -188,13 +188,7 @@ class CombinatorialBatchAdmission(SerializableContract):
                 "kernel ceiling of 5."
             )
         object.__setattr__(self, "maximum_size", maximum_size)
-        if self.search_window_size is None:
-            object.__setattr__(
-                self,
-                "search_window_size",
-                min(2 * maximum_size, 10),
-            )
-        elif not isinstance(
+        if not isinstance(
             self.search_window_size,
             FullCombinatorialSearchWindow,
         ):

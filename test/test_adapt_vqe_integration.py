@@ -1970,49 +1970,6 @@ class TestAdaptCLIParsing:
         assert float(args.physical_phase1_lane_quota_pressure) == pytest.approx(0.55)
         assert float(args.physical_phase2_lane_quota_pressure) == pytest.approx(0.65)
 
-    def test_parse_accepts_overlap_orthogonal_benchmark_batch_selection_mode(self, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setattr(
-            sys,
-            "argv",
-            [
-                "adapt_pipeline.py",
-                "--phase2-batch-selection-mode",
-                "overlap_orthogonal_benchmark",
-            ],
-        )
-        args = _adapt_mod.parse_args()
-        assert str(args.phase2_batch_selection_mode) == "overlap_orthogonal_benchmark"
-
-    def test_parse_accepts_ceo_commuting_benchmark_batch_selection_mode(self, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setattr(
-            sys,
-            "argv",
-            [
-                "adapt_pipeline.py",
-                "--phase2-batch-selection-mode",
-                "ceo_commuting_benchmark",
-            ],
-        )
-        args = _adapt_mod.parse_args()
-        assert str(args.phase2_batch_selection_mode) == "ceo_commuting_benchmark"
-
-    @pytest.mark.parametrize("mode", ["greedy_reduced_plane", "combinatorial_reduced_plane"])
-    def test_parse_accepts_ordered_batch_beam_selection_modes(self, monkeypatch: pytest.MonkeyPatch, mode: str):
-        monkeypatch.setattr(
-            sys,
-            "argv",
-            [
-                "adapt_pipeline.py",
-                "--phase2-batch-selection-mode",
-                mode,
-                "--adapt-beam-lambda",
-                "0.125",
-            ],
-        )
-        args = _adapt_mod.parse_args()
-        assert str(args.phase2_batch_selection_mode) == mode
-        assert float(args.adapt_beam_lambda) == pytest.approx(0.125)
-
     def test_parse_defaults_omit_pruning_extension_surface(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -3502,87 +3459,7 @@ class TestAdaptVQEHolsteinPAOP:
         assert int(payload["pool_size"]) > 0
         assert np.isfinite(float(payload["energy"]))
 
-    def test_adapt_overlap_paop_lf_std_phase3_runs(self):
-        """Opt-in overlap-orthogonal batch selector should run through HH PAOP phase3 ADAPT."""
-        payload, _ = _run_hardcoded_adapt_vqe(
-            h_poly=self.h_poly,
-            num_sites=self.L,
-            ordering="blocked",
-            problem="hh",
-            adapt_pool="paop_lf_std",
-            t=self.t,
-            u=self.u,
-            dv=0.0,
-            boundary="periodic",
-            omega0=self.omega0,
-            g_ep=self.g_ep,
-            n_ph_max=self.n_ph_max,
-            boson_encoding="binary",
-            max_depth=2,
-            eps_grad=1e-3,
-            eps_energy=1e-8,
-            maxiter=80,
-            seed=7,
-            allow_repeats=True,
-            finite_angle_fallback=True,
-            finite_angle=0.1,
-            finite_angle_min_improvement=1e-12,
-            paop_r=1,
-            paop_split_paulis=False,
-            paop_prune_eps=0.0,
-            paop_normalization="none",
-            adapt_reopt_policy="full",
-            adapt_continuation_mode="phase3_v1",
-            phase2_batch_selection_mode="overlap_orthogonal_benchmark",
-            exact_gs_override=float(self.exact_gs),
-        )
-        assert payload["success"] is True
-        assert str(payload["pool_type"]) == "phase3_v1"
-        assert payload["continuation"]["mode"] == "phase3_v1"
-        assert payload["continuation"]["phase2"]["batch_selection_mode"] == "overlap_orthogonal_benchmark"
-        assert np.isfinite(float(payload["energy"]))
-        assert np.isfinite(float(payload["abs_delta_e"]))
 
-    def test_adapt_ceo_paop_lf_std_phase3_runs(self):
-        """Opt-in CEO-style commuting batch selector should run through HH PAOP phase3 ADAPT."""
-        payload, _ = _run_hardcoded_adapt_vqe(
-            h_poly=self.h_poly,
-            num_sites=self.L,
-            ordering="blocked",
-            problem="hh",
-            adapt_pool="paop_lf_std",
-            t=self.t,
-            u=self.u,
-            dv=0.0,
-            boundary="periodic",
-            omega0=self.omega0,
-            g_ep=self.g_ep,
-            n_ph_max=self.n_ph_max,
-            boson_encoding="binary",
-            max_depth=2,
-            eps_grad=1e-3,
-            eps_energy=1e-8,
-            maxiter=80,
-            seed=7,
-            allow_repeats=True,
-            finite_angle_fallback=True,
-            finite_angle=0.1,
-            finite_angle_min_improvement=1e-12,
-            paop_r=1,
-            paop_split_paulis=False,
-            paop_prune_eps=0.0,
-            paop_normalization="none",
-            adapt_reopt_policy="full",
-            adapt_continuation_mode="phase3_v1",
-            phase2_batch_selection_mode="ceo_commuting_benchmark",
-            exact_gs_override=float(self.exact_gs),
-        )
-        assert payload["success"] is True
-        assert str(payload["pool_type"]) == "phase3_v1"
-        assert payload["continuation"]["mode"] == "phase3_v1"
-        assert payload["continuation"]["phase2"]["batch_selection_mode"] == "ceo_commuting_benchmark"
-        assert np.isfinite(float(payload["energy"]))
-        assert np.isfinite(float(payload["abs_delta_e"]))
 
     def test_adapt_full_meta_runs(self):
         """Full HH meta-pool should run and report full_meta pool type."""
@@ -4418,7 +4295,6 @@ class TestHHPhase1Continuation:
             adapt_window_size=2,
             adapt_window_topk=0,
             adapt_continuation_mode="phase3_v1",
-            phase2_enable_batching=False,
             phase3_enable_rescue=False,
             phase3_lifetime_cost_mode="phase3_v1",
         )
@@ -4501,7 +4377,6 @@ class TestHHPhase1Continuation:
             adapt_continuation_mode="phase3_v1",
             phase1_score_z_alpha=0.0,
             phase2_score_z_alpha=0.0,
-            phase2_enable_batching=False,
             phase3_enable_rescue=False,
             phase3_lifetime_cost_mode="phase3_v1",
             phase3_backend_cost_mode="proxy",
@@ -5249,58 +5124,6 @@ class TestHHPhase3Continuation:
         monkeypatch.setattr(_adapt_mod, "_phase3_oracle_runtime_bindings", _fake_bindings)
         return oracle_instances
 
-    def test_phase3_nested_policy_accepts_composed_batching(self):
-        payload, _ = _run_hardcoded_adapt_vqe(
-            h_poly=self._hh_h(),
-            num_sites=2,
-            ordering="blocked",
-            problem="hh",
-            adapt_pool="paop_lf_std",
-            t=1.0,
-            u=2.0,
-            dv=0.0,
-            boundary="periodic",
-            omega0=1.0,
-            g_ep=0.5,
-            n_ph_max=1,
-            boson_encoding="binary",
-            max_depth=1,
-            eps_grad=1e-3,
-            eps_energy=1e-8,
-            maxiter=20,
-            seed=7,
-            allow_repeats=True,
-            finite_angle_fallback=False,
-            finite_angle=0.1,
-            finite_angle_min_improvement=1e-12,
-            adapt_reopt_policy="windowed",
-            adapt_window_size=2,
-            adapt_window_topk=0,
-            adapt_continuation_mode="phase3_v1",
-            phase3_selector_policy="algebraic_nested_v1",
-            phase3_backend_cost_mode="proxy",
-            phase2_enable_batching=True,
-            phase3_enable_rescue=False,
-            phase3_lifetime_cost_mode="phase3_v1",
-        )
-
-        assert "algebraic_lane_policy" not in payload["continuation"]
-        assert payload["continuation"]["phase3_selector_policy"] == (
-            "algebraic_nested_v1"
-        )
-        assert payload["continuation"]["physical_operator_lane_policy"][
-            "enabled"
-        ] is True
-        assert payload["continuation"]["phase2"]["batching_enabled"] is True
-        assert payload["continuation"]["phase2"]["phase3_batching_enabled"] is True
-        assert payload["continuation"]["phase2"]["phase3_batch_selection_mode"] == "reduced_plane"
-        row = payload["history"][0]
-        assert row["w3_wopt_decoupled"] is False
-        assert row["phase3_geometry_window_policy"] == "legacy_coupled"
-        assert row["phase3_geometry_window_size"] == 0
-        assert row["phase3_batching_enabled"] is True
-        assert row["phase3_batch_selection_mode"] == "reduced_plane"
-        assert row["phase3_batch_prefilter_mode"] == "off"
 
     def test_phase3_geometry_window_decouples_from_full_optimizer_refit(self):
         payload, _ = _run_hardcoded_adapt_vqe(
@@ -5333,7 +5156,6 @@ class TestHHPhase3Continuation:
             adapt_continuation_mode="phase3_v1",
             phase3_selector_policy="algebraic_nested_v1",
             phase3_backend_cost_mode="proxy",
-            phase2_enable_batching=False,
             phase3_enable_rescue=False,
             phase3_lifetime_cost_mode="phase3_v1",
         )
@@ -5388,7 +5210,6 @@ class TestHHPhase3Continuation:
             adapt_window_topk=0,
             adapt_continuation_mode="phase3_v1",
             phase3_selector_policy="algebraic_nested_v1",
-            phase2_enable_batching=False,
             phase3_enable_rescue=False,
             phase3_lifetime_cost_mode="phase3_v1",
         )
@@ -5478,7 +5299,6 @@ class TestHHPhase3Continuation:
             adapt_grad_floor=-1.0,
             adapt_continuation_mode="phase3_v1",
             phase3_selector_policy="algebraic_nested_v1",
-            phase2_enable_batching=False,
             phase3_enable_rescue=False,
             phase3_lifetime_cost_mode="phase3_v1",
             phase1_prune_enabled=True,
@@ -9082,7 +8902,6 @@ class TestWindowedReoptIntegration:
             # These tests isolate optimizer-window semantics.  Phase-III's
             # default benchmark batching can add multiple logical coordinates
             # in one controller round, so it must not be part of this fixture.
-            phase2_enable_batching=False,
         )
         defaults.update(overrides)
         payload, _psi = _run_hardcoded_adapt_vqe(**defaults)
@@ -9611,10 +9430,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_trough_margin_ratio=1.0,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=128,
-            phase2_enable_batching=True,
-            phase2_batch_target_size=8,
-            phase2_batch_size_cap=16,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_runtime_split_mode="shortlist_pauli_children_v1",
@@ -9859,10 +9674,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_shortlist_size=64,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=64,
-            phase2_enable_batching=False,
-            phase2_batch_target_size=8,
-            phase2_batch_size_cap=16,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_symmetry_mitigation_mode="verify_only",
@@ -9942,10 +9753,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_trough_margin_ratio=1.0,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=32,
-            phase2_enable_batching=True,
-            phase2_batch_target_size=4,
-            phase2_batch_size_cap=8,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_runtime_split_mode="off",
@@ -10026,10 +9833,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_trough_margin_ratio=1.0,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=16,
-            phase2_enable_batching=False,
-            phase2_batch_target_size=4,
-            phase2_batch_size_cap=8,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_runtime_split_mode="off",
@@ -10142,10 +9945,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_trough_margin_ratio=1.0,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=32,
-            phase2_enable_batching=True,
-            phase2_batch_target_size=4,
-            phase2_batch_size_cap=8,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_runtime_split_mode="off",
@@ -10250,10 +10049,6 @@ class TestHHBeamRuntimeFallbackRegression:
             phase1_trough_margin_ratio=1.0,
             phase2_shortlist_fraction=1.0,
             phase2_shortlist_size=128,
-            phase2_enable_batching=True,
-            phase2_batch_target_size=8,
-            phase2_batch_size_cap=16,
-            phase2_batch_near_degenerate_ratio=0.98,
             phase2_lambda_H=1e-6,
             phase2_rho=0.25,
             phase3_runtime_split_mode="shortlist_pauli_children_v1",

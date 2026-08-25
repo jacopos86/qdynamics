@@ -386,7 +386,7 @@ def test_optional_policy_and_resume_shapes_serialize_without_dormant_fields(
     )
     request = SRRunRequest(
         method=SRMethodPolicy(
-            admission=GreedyBatchAdmission(maximum_size=3),
+            admission=GreedyBatchAdmission(maximum_size=3, search_window_size=None),
             pruning=TrustRegionPruning(),
             beam=ForkLocalBeam(
                 live_parent_branches=3,
@@ -452,7 +452,12 @@ def test_optional_policy_and_resume_shapes_serialize_without_dormant_fields(
         "source_id": "fixture:hh-l2",
     }
 def test_greedy_batch_admission_exposes_only_ranked_window_controls() -> None:
-    full_window = GreedyBatchAdmission()
+    with pytest.raises(TypeError):
+        GreedyBatchAdmission()  # type: ignore[call-arg]
+    full_window = GreedyBatchAdmission(
+        maximum_size=3,
+        search_window_size=None,
+    )
     bounded_window = GreedyBatchAdmission(
         maximum_size=5,
         search_window_size=11,
@@ -474,24 +479,30 @@ def test_greedy_batch_admission_exposes_only_ranked_window_controls() -> None:
         ValueError,
         match="search_window_size must be a positive integer",
     ):
-        GreedyBatchAdmission(search_window_size=0)
+        GreedyBatchAdmission(maximum_size=3, search_window_size=0)
 
 
-def test_combinatorial_batch_admission_resolves_a_safe_default_and_typed_full_window() -> None:
-    default_window = CombinatorialBatchAdmission()
-    scaled_window = CombinatorialBatchAdmission(maximum_size=5)
+def test_combinatorial_batch_admission_requires_a_window_choice() -> None:
+    with pytest.raises(TypeError):
+        CombinatorialBatchAdmission()  # type: ignore[call-arg]
+    fixed_window = CombinatorialBatchAdmission(
+        maximum_size=3,
+        search_window_size=6,
+    )
+    scaled_window = CombinatorialBatchAdmission(maximum_size=5, search_window_size=10)
     explicit_window = CombinatorialBatchAdmission(
         maximum_size=4,
         search_window_size=7,
     )
     full_window = CombinatorialBatchAdmission(
+        maximum_size=3,
         search_window_size=FullCombinatorialSearchWindow(),
     )
 
-    assert default_window.maximum_size == 3
-    assert default_window.search_window_size == 6
-    assert default_window.resolved_search_window_size == 6
-    assert default_window.to_dict() == {
+    assert fixed_window.maximum_size == 3
+    assert fixed_window.search_window_size == 6
+    assert fixed_window.resolved_search_window_size == 6
+    assert fixed_window.to_dict() == {
         "kind": "combinatorial_batch",
         "maximum_size": 3,
         "search_window_size": 6,
@@ -520,9 +531,9 @@ def test_combinatorial_batch_admission_resolves_a_safe_default_and_typed_full_wi
         ValueError,
         match="search_window_size must be a positive integer",
     ):
-        CombinatorialBatchAdmission(search_window_size=0)
+        CombinatorialBatchAdmission(maximum_size=3, search_window_size=0)
     with pytest.raises(ValueError, match="ceiling of 5"):
-        CombinatorialBatchAdmission(maximum_size=6)
+        CombinatorialBatchAdmission(maximum_size=6, search_window_size=10)
 
 
 @pytest.mark.parametrize(
@@ -719,7 +730,7 @@ def test_estimator_work_requires_complete_reconciled_components(
         ),
         SRRunRequest(
             method=SRMethodPolicy(
-                admission=CombinatorialBatchAdmission(),
+                admission=CombinatorialBatchAdmission(maximum_size=3, search_window_size=6),
                 beam=ForkLocalBeam(),
             )
         ),

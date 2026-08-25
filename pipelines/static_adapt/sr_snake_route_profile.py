@@ -2002,7 +2002,6 @@ def canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_
             "combinatorial_batch_joint_score": (
                 "coupled_reduced_plane_gain_over_one_plus_symmetric_cost_v1"
             ),
-            "combinatorial_batch_additivity_policy": "off",
             "combinatorial_batch_near_degenerate_shell_active": False,
             "combinatorial_batch_singleton_fallback_preserves_route_identity": (
                 True

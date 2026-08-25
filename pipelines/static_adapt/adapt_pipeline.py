@@ -149,10 +149,13 @@ from pipelines.static_adapt.adapt_candidate_record_cache import (
     _outer_curvature_prior_cache_identity,
 )
 from pipelines.static_adapt.extensions import (
+    BatchExtension,
     Extensions,
     NO_EXTENSIONS,
+    batch_extension_from_admission,
     extensions_from_route_contract,
     resolve_pruning_runtime,
+    run_batch_proposals,
     without_extension_runtime_keys,
 )
 from pipelines.scaffold.hh_continuation_types import (
@@ -197,18 +200,14 @@ from pipelines.scaffold.hh_continuation_stage_control import (
     should_probe_positions,
 )
 from pipelines.scaffold.hh_continuation_scoring import (
-    CompatibilityPenaltyOracle,
     CANONICAL_HARDWARE_COST_LAMBDA_1Q,
     CANONICAL_HARDWARE_COST_LAMBDA_2Q,
     CANONICAL_HARDWARE_COST_LAMBDA_D,
     CANONICAL_HARDWARE_COST_LAMBDA_SHOT,
     CANONICAL_HARDWARE_COST_LAMBDA_THETA,
-    BATCH_ADDITIVITY_OFF,
     BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
     BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
     BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
-    BATCH_SEARCH_FEASIBILITY_JOINT_SUBSET_GATE_V1,
-    BATCH_SEARCH_POPULATION_RANKED_CHILD_PHASE2_V1,
     FullScoreConfig,
     GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
     HARDWARE_COST_NORMALIZATION_ZERO_CENTERED_SIGNED_ARCTAN_V1,
@@ -245,9 +244,6 @@ from pipelines.scaffold.hh_continuation_scoring import (
     phase0_raw_gradient_pilot_components,
     build_full_candidate_features,
     family_repeat_cost_from_history,
-    combinatorial_reduced_plane_batch_proposals,
-    greedy_reduced_plane_batch_proposals,
-    greedy_batch_select,
     measurement_group_keys_for_term,
     measurement_group_specs_for_term,
     hardware_cost_ansatz_entry_denominators,
@@ -260,8 +256,6 @@ from pipelines.scaffold.hh_continuation_scoring import (
     rescore_historical_phase3_records_with_coordinate_models,
     require_phase3_signed_factor_consumer_semantic_version,
     resolve_hardware_cost_lambdas,
-    select_phase2_batch_record_proposals,
-    select_phase2_batch_records,
     validate_phase2_feature_curvature,
 )
 from pipelines.scaffold.hh_continuation_pruning import (
@@ -14954,22 +14948,6 @@ def _run_hardcoded_adapt_vqe(
     phase3_tie_beam_max_branches: int = 1,
     phase3_tie_beam_max_late_coordinate: float = 1.0,
     phase3_tie_beam_min_depth_left: int = 0,
-    phase2_enable_batching: bool = True,
-    phase2_batch_selection_mode: str = "reduced_plane",
-    phase3_batch_selection_mode: str | None = None,
-    phase3_batch_prefilter_mode: str = "off",
-    phase3_batch_order_selection_mode: str = "finite_step_v1",
-    phase3_batch_order_max_permutations: int = 24,
-    phase2_batch_target_size: int = 2,
-    phase2_batch_size_cap: int = 3,
-    phase2_batch_near_degenerate_ratio: float = 0.9,
-    phase2_batch_rank_rel_tol: float = 1e-6,
-    phase2_batch_additivity_tol: float = 0.25,
-    phase2_compat_overlap_weight: float = 0.4,
-    phase2_compat_comm_weight: float = 0.2,
-    phase2_compat_curv_weight: float = 0.2,
-    phase2_compat_sched_weight: float = 0.2,
-    phase2_compat_measure_weight: float = 0.2,
     phase2_remaining_evaluations_proxy_mode: str = "auto",
     adapt_pool_class_filter_json: Path | None = None,
     adapt_pool_label_filter_json: Path | None = None,
@@ -15516,27 +15494,6 @@ def _run_hardcoded_adapt_vqe(
         phase2_shortlist_size = int(route_a_funnel_cfg.macro_phase2_cap)
         phase2_shortlist_fraction = 1.0
         phase3_shortlist_size = int(route_a_funnel_cfg.child_phase3_cap)
-        if str(route_a_funnel_cfg.mode) in ROUTE_A_FUNNEL_CHILD_12_MODES:
-            selector_config = route_a_funnel_cfg.schur_selector_config
-            phase2_enable_batching = bool(selector_config.batch_size_cap > 1)
-            phase2_batch_selection_mode = str(selector_config.mode)
-            phase3_batch_selection_mode = str(selector_config.mode)
-            phase2_batch_size_cap = int(selector_config.batch_size_cap)
-            phase2_batch_target_size = int(selector_config.batch_size_cap)
-        else:
-            phase2_enable_batching = bool(
-                str(route_a_funnel_cfg.batching_mode) != ROUTE_A_BATCHING_OFF
-            )
-            if phase2_enable_batching:
-                phase2_batch_selection_mode = str(route_a_funnel_cfg.batching_mode)
-                phase3_batch_selection_mode = str(route_a_funnel_cfg.batching_mode)
-            phase2_batch_size_cap = int(route_a_funnel_cfg.batch_size_cap)
-            phase2_batch_target_size = int(
-                min(
-                    int(phase2_batch_target_size),
-                    int(route_a_funnel_cfg.batch_size_cap),
-                )
-            )
     phase1_shortlist_size_val = int(phase1_shortlist_size)
     phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
     if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
@@ -15556,43 +15513,6 @@ def _run_hardcoded_adapt_vqe(
     phase3_tie_beam_min_depth_left_val = int(phase3_tie_beam_min_depth_left)
     if phase3_tie_beam_min_depth_left_val < 0:
         raise ValueError("phase3_tie_beam_min_depth_left must be >= 0.")
-    phase2_batch_selection_mode_legacy_key = normalize_phase2_batch_selection_mode(
-        phase2_batch_selection_mode
-    )
-    if phase3_batch_selection_mode is not None and str(phase3_batch_selection_mode).strip() != "":
-        phase3_batch_selection_mode_key = normalize_phase2_batch_selection_mode(
-            phase3_batch_selection_mode
-        )
-        if (
-            phase2_batch_selection_mode_legacy_key != "reduced_plane"
-            and phase2_batch_selection_mode_legacy_key != phase3_batch_selection_mode_key
-        ):
-            raise ValueError(
-                "phase2_batch_selection_mode and phase3_batch_selection_mode conflict: "
-                f"{phase2_batch_selection_mode_legacy_key!r} != {phase3_batch_selection_mode_key!r}."
-            )
-        phase2_batch_selection_mode_key = str(phase3_batch_selection_mode_key)
-    else:
-        phase2_batch_selection_mode_key = str(phase2_batch_selection_mode_legacy_key)
-    phase3_batch_order_selection_mode_key = str(phase3_batch_order_selection_mode).strip().lower()
-    if phase3_batch_order_selection_mode_key == "":
-        phase3_batch_order_selection_mode_key = "finite_step_v1"
-    if phase3_batch_order_selection_mode_key not in _VALID_BATCH_ORDER_SELECTION_MODES:
-        raise ValueError(
-            "phase3_batch_order_selection_mode must be one of "
-            f"{sorted(_VALID_BATCH_ORDER_SELECTION_MODES)}."
-        )
-    phase3_batch_order_max_permutations_val = int(phase3_batch_order_max_permutations)
-    if phase3_batch_order_max_permutations_val < 1:
-        raise ValueError("phase3_batch_order_max_permutations must be >= 1.")
-    phase2_batch_target_size_requested = int(phase2_batch_target_size)
-    phase2_batch_size_cap_requested = int(phase2_batch_size_cap)
-    phase2_batch_size_cap_effective = int(max(1, phase2_batch_size_cap_requested))
-    if phase2_batch_selection_mode_key in ORDERED_BATCH_BEAM_SELECTION_MODES:
-        phase2_batch_size_cap_effective = int(min(phase2_batch_size_cap_effective, 5))
-    phase2_batch_target_size_effective = int(
-        min(max(1, phase2_batch_target_size_requested), phase2_batch_size_cap_effective)
-    )
     adapt_beam_lambda_val = float(adapt_beam_lambda)
     if (not math.isfinite(adapt_beam_lambda_val)) or adapt_beam_lambda_val < 0.0:
         raise ValueError("adapt_beam_lambda must be finite and >= 0.")
@@ -15663,8 +15583,8 @@ def _run_hardcoded_adapt_vqe(
             route_a_funnel_active=bool(route_a_funnel_cfg is not None),
             adapt_pool=adapt_pool,
             adapt_continuation_mode=str(adapt_continuation_mode),
-            phase2_enable_batching=bool(phase2_enable_batching),
-            phase3_enable_batching=bool(phase2_enable_batching),
+            phase2_enable_batching=False,
+            phase3_enable_batching=False,
             phase3_runtime_split_mode=str(phase3_runtime_split_mode),
             phase3_runtime_split_selection_mode=str(
                 phase3_runtime_split_selection_mode
@@ -15723,8 +15643,8 @@ def _run_hardcoded_adapt_vqe(
             "adapt_continuation_mode": str(
                 adapt_continuation_mode
             ).strip().lower(),
-            "phase2_enable_batching": bool(phase2_enable_batching),
-            "phase3_enable_batching": bool(phase2_enable_batching),
+            "phase2_enable_batching": False,
+            "phase3_enable_batching": False,
             "phase3_runtime_split_mode": str(
                 phase3_runtime_split_mode
             ).strip().lower(),
@@ -16197,10 +16117,16 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError(
             "True ADAPT beam mode requires a staged continuation mode."
         )
-    ordered_batch_beam_mode = bool(
-        bool(beam_policy.beam_enabled)
-        and str(phase2_batch_selection_mode_key) in ORDERED_BATCH_BEAM_SELECTION_MODES
-    )
+    # Q28 retires the historical batch arms below.  They remain interleaved
+    # with the old controller until that controller is deleted, but no input
+    # can make them reachable; typed Paper-I batching runs through Extensions.
+    phase2_enable_batching = False
+    phase2_batch_selection_mode_key = "singleton"
+    phase3_batch_prefilter_mode = "off"
+    phase3_batch_order_selection_mode_key = "none"
+    phase2_batch_target_size_requested = 1
+    phase2_batch_size_cap_requested = 1
+    ordered_batch_beam_mode = False
     canonical_beam_survival_enabled = bool(
         bool(beam_policy.beam_enabled)
         and static_route_id_key_early == _HISTORICAL_ROUTE_A_ID
@@ -16442,8 +16368,6 @@ def _run_hardcoded_adapt_vqe(
             )
         if route_a_funnel_cfg is not None:
             historical_overlay_blockers.append("route_a_funnel_active")
-        if bool(phase2_enable_batching):
-            historical_overlay_blockers.append("batching_active")
         if bool(phase0_pilot_enabled_val):
             historical_overlay_blockers.append("phase0_pilot_active")
             if (
@@ -16672,8 +16596,6 @@ def _run_hardcoded_adapt_vqe(
         },
         "route_a_funnel_active": bool(route_a_funnel_cfg is not None),
         "phase0_pilot_enabled": bool(phase0_pilot_enabled_val),
-        "phase2_batching_enabled": bool(phase2_enable_batching),
-        "phase3_batching_enabled": bool(phase2_enable_batching),
         "phase2_novelty_multiplier_policy": str(
             phase2_novelty_multiplier_policy_key
         ),
@@ -16706,12 +16628,8 @@ def _run_hardcoded_adapt_vqe(
             macro_phase1_cap=int(phase1_shortlist_size_val),
             macro_phase2_cap=int(phase2_shortlist_size_val),
             child_phase3_cap=int(phase3_shortlist_size_val),
-            batching_mode=(
-                str(phase2_batch_selection_mode)
-                if bool(phase2_enable_batching)
-                else ROUTE_A_BATCHING_OFF
-            ),
-            batch_size_cap=int(phase2_batch_size_cap),
+            batching_mode=ROUTE_A_BATCHING_OFF,
+            batch_size_cap=1,
         )
     adapt_child_pool_expansion_mode_key = normalize_adapt_child_pool_expansion_mode(
         adapt_child_pool_expansion_mode
@@ -17042,8 +16960,6 @@ def _run_hardcoded_adapt_vqe(
             "phase2_shortlist_fraction": float(
                 phase2_shortlist_fraction_base_val
             ),
-            "phase2_enable_batching": bool(phase2_enable_batching),
-            "phase3_enable_batching": bool(phase2_enable_batching),
             "phase3_runtime_split_mode": str(phase3_runtime_split_mode_key),
             "phase3_runtime_split_selection_mode": str(
                 phase3_runtime_split_selection_mode_key
@@ -20739,17 +20655,6 @@ def _run_hardcoded_adapt_vqe(
         shortlist_size=int(max(1, phase2_shortlist_size_val)),
         phase2_frontier_ratio=float(max(0.0, min(1.0, phase2_frontier_ratio))),
         phase3_frontier_ratio=float(max(0.0, min(1.0, phase3_frontier_ratio))),
-        batch_target_size=int(phase2_batch_target_size_effective),
-        batch_size_cap=int(phase2_batch_size_cap_effective),
-        batch_near_degenerate_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
-        batch_rank_rel_tol=float(max(0.0, phase2_batch_rank_rel_tol)),
-        batch_additivity_tol=float(max(0.0, phase2_batch_additivity_tol)),
-        batch_selection_mode=str(phase2_batch_selection_mode_key),
-        compat_overlap_weight=float(max(0.0, phase2_compat_overlap_weight)),
-        compat_comm_weight=float(max(0.0, phase2_compat_comm_weight)),
-        compat_curv_weight=float(max(0.0, phase2_compat_curv_weight)),
-        compat_sched_weight=float(max(0.0, phase2_compat_sched_weight)),
-        compat_measure_weight=float(max(0.0, phase2_compat_measure_weight)),
         auxiliary_score_mode="tie_break_only",
         lifetime_cost_mode=(
             str(phase3_lifetime_cost_mode_key)
@@ -20765,14 +20670,6 @@ def _run_hardcoded_adapt_vqe(
             if str(phase2_remaining_evaluations_proxy_mode).strip().lower() == "auto"
             else str(phase2_remaining_evaluations_proxy_mode).strip().lower()
         ),
-    )
-    batch_ordering_config = BatchOrderingConfig(
-        mode=str(phase3_batch_order_selection_mode_key),
-        max_permutations=int(phase3_batch_order_max_permutations_val),
-        rho=float(phase2_score_cfg.rho),
-        batch_target_size=int(phase2_score_cfg.batch_target_size),
-        batch_size_cap=int(phase2_score_cfg.batch_size_cap),
-        batch_near_degenerate_ratio=float(phase2_score_cfg.batch_near_degenerate_ratio),
     )
     phase2_novelty_oracle = OrderedInsertionGeometryOracle()
     phase2_curvature_oracle = Phase2CurvatureOracle()
@@ -21596,7 +21493,7 @@ def _run_hardcoded_adapt_vqe(
 
     selector_debug_context = _SelectorDebugContext(
         phase2_score_cfg=phase2_score_cfg,
-        phase2_enable_batching=bool(phase2_enable_batching),
+        phase2_enable_batching=False,
         phase1_score_mode_key=str(phase1_score_mode_key),
         phase2_raw_score_formula=phase2_raw_score_formula,
         phase3_selector_debug_topk_val=int(phase3_selector_debug_topk_val),
@@ -21607,8 +21504,8 @@ def _run_hardcoded_adapt_vqe(
         phase3_shadow_legacy_geometry_mode_key=str(phase3_shadow_legacy_geometry_mode_key),
         phase3_shadow_legacy_max_depth_val=int(phase3_shadow_legacy_max_depth_val),
         phase3_parent_collapse_debug_max_depth_val=int(phase3_parent_collapse_debug_max_depth_val),
-        phase2_batch_target_size_requested=int(phase2_batch_target_size_requested),
-        phase2_batch_size_cap_requested=int(phase2_batch_size_cap_requested),
+        phase2_batch_target_size_requested=1,
+        phase2_batch_size_cap_requested=1,
         phase2_remaining_evaluations_proxy_mode=str(phase2_remaining_evaluations_proxy_mode),
         phase3_lifetime_cost_mode_key=str(phase3_lifetime_cost_mode_key),
         phase3_hardware_cost_normalization_mode_key=str(phase3_hardware_cost_normalization_mode_key),
@@ -33830,12 +33727,7 @@ def _run_hardcoded_adapt_vqe(
                 )
                 batch_proposals_local: list[BatchSelectionProposal] = []
                 batch_summary_local: dict[str, Any] = {}
-                canonical_joint_selector_local = bool(
-                    route_a_funnel_result_local is not None
-                    and route_a_funnel_cfg is not None
-                    and str(route_a_funnel_cfg.mode)
-                    in ROUTE_A_FUNNEL_CHILD_12_MODES
-                )
+                canonical_joint_selector_local = False
                 phase3_tie_selection_meta_local: dict[str, Any] = {
                     "active": False,
                     "band_count": 0,
@@ -45687,12 +45579,7 @@ def _run_hardcoded_adapt_vqe(
                         )
                         if full_records:
                             phase2_batch_scoring_attempted = False
-                            canonical_joint_selector = bool(
-                                route_a_funnel_result is not None
-                                and route_a_funnel_cfg is not None
-                                and str(route_a_funnel_cfg.mode)
-                                in ROUTE_A_FUNNEL_CHILD_12_MODES
-                            )
+                            canonical_joint_selector = False
                             if bool(route_c_plateau_trial_active):
                                 route_c_scoring_context = RouteCPlateauScoringContext(
                                     state=route_c_plateau_state,
@@ -54079,12 +53966,6 @@ def _run_hardcoded_adapt_vqe(
                         "batch_size_cap_effective": int(phase2_score_cfg.batch_size_cap),
                         "batch_near_degenerate_ratio": float(phase2_score_cfg.batch_near_degenerate_ratio),
                         "batch_rank_rel_tol": float(phase2_score_cfg.batch_rank_rel_tol),
-                        "batch_additivity_tol": float(phase2_score_cfg.batch_additivity_tol),
-                        "compat_overlap_weight": float(phase2_score_cfg.compat_overlap_weight),
-                        "compat_comm_weight": float(phase2_score_cfg.compat_comm_weight),
-                        "compat_curv_weight": float(phase2_score_cfg.compat_curv_weight),
-                        "compat_sched_weight": float(phase2_score_cfg.compat_sched_weight),
-                        "compat_measure_weight": float(phase2_score_cfg.compat_measure_weight),
                         "remaining_evaluations_proxy_mode": str(
                             phase2_score_cfg.remaining_evaluations_proxy_mode
                         ),
@@ -67473,140 +67354,19 @@ class _DefaultNoPruneSelectionTransaction:
     ) -> tuple[BatchSelectionProposal, Mapping[str, Any]]:
         """Adapt one fixed Phase-III prefix to an ordered batch strategy."""
 
-        if strategy == "greedy":
-            strategy_label = "Greedy"
-            proposal_builder = greedy_reduced_plane_batch_proposals
-            pair_consumer_scope = (
-                "greedy_batch_pair_geometry_all_evaluated"
-            )
-            accounting_schema = (
-                "greedy_batch_pair_estimator_accounting_v1"
-            )
-        elif strategy == "combinatorial":
-            strategy_label = "Combinatorial"
-            proposal_builder = combinatorial_reduced_plane_batch_proposals
-            pair_consumer_scope = (
-                "combinatorial_batch_pair_geometry_all_evaluated"
-            )
-            accounting_schema = (
-                "combinatorial_batch_pair_estimator_accounting_v1"
-            )
-        else:
-            raise ValueError(f"Unsupported batch strategy: {strategy!r}")
-
-        ranked = [dict(record) for record in ranked_records]
-        if search_window_size is None:
-            search_population = ranked
-        else:
-            search_population = ranked[: int(search_window_size)]
-        if not search_population:
-            raise RuntimeError(
-                f"{strategy_label} batch search received an empty ranked "
-                "window."
-            )
-        batch_cfg = replace(
-            self.pending.phase2_score_cfg_round,
-            batch_target_size=int(maximum_size),
-            batch_size_cap=int(maximum_size),
-            batch_near_degenerate_ratio=0.0,
-            batch_search_pool_size=(
-                0
-                if search_window_size is None
-                else int(search_window_size)
+        return run_batch_proposals(
+            BatchExtension(
+                strategy=strategy,
+                maximum_size=maximum_size,
+                search_window_size=search_window_size,
             ),
-            batch_search_population_mode=(
-                BATCH_SEARCH_POPULATION_RANKED_CHILD_PHASE2_V1
-            ),
-            batch_search_feasibility_policy=(
-                BATCH_SEARCH_FEASIBILITY_JOINT_SUBSET_GATE_V1
-            ),
-            batch_additivity_policy=BATCH_ADDITIVITY_OFF,
-            batch_additivity_lambda=0.0,
-            batch_geometry_mode=(
-                BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1
-            ),
-            batch_joint_linear_solve_policy=(
-                JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1
-            ),
-            batch_joint_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
-            batch_active_context_indices=tuple(
-                range(len(self.cursor.selected_ops))
-            ),
-        )
-        pair_accounting_rows: list[dict[str, Any]] = []
-
-        def _observe_joint_pair(payload: Mapping[str, Any]) -> None:
-            left_record = payload.get("left_record")
-            right_record = payload.get("right_record")
-            if not isinstance(left_record, Mapping) or not isinstance(
-                right_record,
-                Mapping,
-            ):
-                raise RuntimeError(
-                    f"{strategy_label} pair observer lost its measured "
-                    "records."
-                )
-            accounting = (
-                self.session.estimator_service
-                ._record_candidate_pair_geometry_primitives(
-                    state=np.asarray(
-                        self.pending.psi_current,
-                        dtype=complex,
-                    ),
-                    selected_ops_now=list(self.cursor.selected_ops),
-                    logical_theta_now=np.asarray(
-                        self.pending.theta_logical_current,
-                        dtype=float,
-                    ),
-                    left_record=left_record,
-                    right_record=right_record,
-                    consumer_scope=pair_consumer_scope,
-                    pair_cache_key=str(payload.get("cache_key", "")),
-                    winning_pair=False,
-                    batch_kind=strategy,
-                )
-            )
-            pair_accounting_rows.append(
-                {
-                    **dict(accounting),
-                    "left_record_key": list(
-                        _batch_admission_record_key(left_record)
-                    ),
-                    "right_record_key": list(
-                        _batch_admission_record_key(right_record)
-                    ),
-                    "cache_hit": bool(payload.get("cache_hit", False)),
-                    "physical_evaluation_performed": bool(
-                        payload.get(
-                            "physical_evaluation_performed",
-                            False,
-                        )
-                    ),
-                    "gram_entry": float(payload["gram_entry"]),
-                    "hessian_entry": float(payload["hessian_entry"]),
-                    "state_reconstruction_delta_norm": float(
-                        payload["state_reconstruction_delta_norm"]
-                    ),
-                }
-            )
-
-        proposals, raw_summary = proposal_builder(
-            search_population,
-            cfg=batch_cfg,
-            selected_ops=list(self.cursor.selected_ops),
-            theta=np.asarray(
-                self.pending.theta_logical_current,
-                dtype=float,
-            ),
-            psi_ref=np.asarray(
-                self.context.reference_state,
-                dtype=complex,
-            ),
-            psi_state=np.asarray(
-                self.pending.psi_current,
-                dtype=complex,
-            ),
-            h_compiled=self.context.compiled_hamiltonian,
+            ranked_records,
+            phase2_score_config=self.pending.phase2_score_cfg_round,
+            selected_ops=self.cursor.selected_ops,
+            theta=self.pending.theta_logical_current,
+            reference_state=self.context.reference_state,
+            current_state=self.pending.psi_current,
+            compiled_hamiltonian=self.context.compiled_hamiltonian,
             novelty_oracle=self.context.phase2_novelty_oracle,
             curvature_oracle=self.context.phase2_curvature_oracle,
             compiled_cache=self.context.phase2_compiled_term_cache,
@@ -67614,88 +67374,8 @@ class _DefaultNoPruneSelectionTransaction:
             tie_break_score_key=(
                 _default_no_prune_phase3_tie_break_score_key()
             ),
-            max_proposals=1,
-            joint_pair_observer=_observe_joint_pair,
+            estimator_service=self.session.estimator_service,
         )
-        if not proposals:
-            raise RuntimeError(
-                f"{strategy_label} reduced-plane search found no feasible "
-                "proposal."
-            )
-        winning_keys = {
-            _batch_admission_record_key(record)
-            for record in proposals[0].records
-        }
-        for row in pair_accounting_rows:
-            left_key = tuple(row["left_record_key"])
-            right_key = tuple(row["right_record_key"])
-            row["winning_pair"] = bool(
-                left_key in winning_keys and right_key in winning_keys
-            )
-        geometry_workspace = raw_summary.get("geometry_workspace", {})
-        geometry_workspace = (
-            geometry_workspace
-            if isinstance(geometry_workspace, Mapping)
-            else {}
-        )
-        expected_pair_receipts = [
-            dict(row)
-            for row in geometry_workspace.get("joint_pair_receipts", ())
-            if isinstance(row, Mapping)
-        ]
-        if len(pair_accounting_rows) != len(expected_pair_receipts):
-            raise RuntimeError(
-                f"{strategy_label} pair estimator accounting does not match "
-                "the scoring workspace."
-            )
-        physical_evaluation_count = sum(
-            int(bool(row["physical_evaluation_performed"]))
-            for row in pair_accounting_rows
-        )
-        if physical_evaluation_count != int(
-            geometry_workspace.get("joint_pair_cache_miss_count", 0)
-        ):
-            raise RuntimeError(
-                f"{strategy_label} pair physical-evaluation sentinel does "
-                "not match the scoring cache misses."
-            )
-        pair_estimator_accounting = {
-            "schema": accounting_schema,
-            "all_evaluated_pair_count": len(pair_accounting_rows),
-            "winning_pair_count": sum(
-                int(bool(row["winning_pair"]))
-                for row in pair_accounting_rows
-            ),
-            "physical_pair_evaluation_count": physical_evaluation_count,
-            "ledger_occurrence_count": sum(
-                len(row["primitive_rows"])
-                for row in pair_accounting_rows
-            ),
-            "occurrences_per_pair": 2,
-            "primitive_semantics": (
-                "one_metric_and_one_energy_hessian_occurrence_per_"
-                "required_candidate_pair_v1"
-            ),
-            "all_vs_winning_semantics": (
-                "all_required_search_pairs_are_ledgered_once_and_winning_"
-                "pairs_are_an_attribution_subset_v1"
-            ),
-            "pairs": pair_accounting_rows,
-        }
-        summary = {
-            **dict(raw_summary),
-            "public_search_window_size": search_window_size,
-            "ranked_population_count": len(ranked),
-            "ranked_window_count": len(search_population),
-            "ranked_window_truncated": bool(
-                len(search_population) < len(ranked)
-            ),
-            "near_degenerate_shell_active": False,
-            "pair_geometry_estimator_accounting": (
-                pair_estimator_accounting
-            ),
-        }
-        return proposals[0], summary
 
     def run_greedy_batch_proposals(
         self,
@@ -68431,6 +68111,7 @@ def _default_no_prune_lane_runtime(
     *,
     core: _DefaultNoPruneSetupCore,
     kwargs: Mapping[str, Any],
+    batch: BatchExtension | None,
 ) -> _DefaultNoPruneLaneRuntime:
     """Resolve the exact retained physical-family shortlist runtime."""
 
@@ -68474,8 +68155,10 @@ def _default_no_prune_lane_runtime(
         route_a_funnel_active=False,
         adapt_pool=kwargs.get("adapt_pool"),
         adapt_continuation_mode=str(kwargs["adapt_continuation_mode"]),
-        phase2_enable_batching=bool(kwargs["phase2_enable_batching"]),
-        phase3_enable_batching=bool(kwargs["phase2_enable_batching"]),
+        # Batching changes the admissible object (singleton versus bounded
+        # generator-distinct block), not the phase shortlist budgets.
+        phase2_enable_batching=False,
+        phase3_enable_batching=False,
         phase3_runtime_split_mode=str(
             kwargs["phase3_runtime_split_mode"]
         ),
@@ -68528,12 +68211,8 @@ def _default_no_prune_lane_runtime(
             "adapt_continuation_mode": str(
                 kwargs["adapt_continuation_mode"]
             ).strip().lower(),
-            "phase2_enable_batching": bool(
-                kwargs["phase2_enable_batching"]
-            ),
-            "phase3_enable_batching": bool(
-                kwargs["phase2_enable_batching"]
-            ),
+            "phase2_enable_batching": False,
+            "phase3_enable_batching": False,
             "phase3_runtime_split_mode": str(
                 kwargs["phase3_runtime_split_mode"]
             ).strip().lower(),
@@ -68655,6 +68334,7 @@ def _default_no_prune_lane_runtime(
         kwargs,
         phase2_shortlist_size=phase2_size,
         phase2_shortlist_fraction=phase2_fraction,
+        batch=batch,
     )
     route_execution = core.route_contract.get("execution_settings", {})
     if not isinstance(route_execution, Mapping):
@@ -68829,6 +68509,7 @@ def _default_no_prune_full_score_config(
     *,
     phase2_shortlist_size: int,
     phase2_shortlist_fraction: float,
+    batch: BatchExtension | None,
 ) -> FullScoreConfig:
     """Normalize the exact active Phase-II/III score configuration."""
 
@@ -68837,11 +68518,7 @@ def _default_no_prune_full_score_config(
         if kwargs.get("phase2_score_z_alpha") is None
         else kwargs["phase2_score_z_alpha"]
     )
-    batch_cap = max(1, int(kwargs["phase2_batch_size_cap"]))
-    batch_target = min(
-        max(1, int(kwargs["phase2_batch_target_size"])),
-        batch_cap,
-    )
+    batch_cap = 1 if batch is None else int(batch.maximum_size)
     remaining_proxy = str(
         kwargs["phase2_remaining_evaluations_proxy_mode"]
     ).strip().lower()
@@ -68968,40 +68645,9 @@ def _default_no_prune_full_score_config(
         phase3_frontier_ratio=float(
             max(0.0, min(1.0, kwargs["phase3_frontier_ratio"]))
         ),
-        batch_target_size=batch_target,
+        batch_target_size=batch_cap,
         batch_size_cap=batch_cap,
-        batch_near_degenerate_ratio=float(
-            max(
-                0.0,
-                min(1.0, kwargs["phase2_batch_near_degenerate_ratio"]),
-            )
-        ),
-        batch_rank_rel_tol=float(
-            max(0.0, kwargs["phase2_batch_rank_rel_tol"])
-        ),
-        batch_additivity_tol=float(
-            max(0.0, kwargs["phase2_batch_additivity_tol"])
-        ),
-        batch_selection_mode=str(
-            normalize_phase2_batch_selection_mode(
-                kwargs["phase2_batch_selection_mode"]
-            )
-        ),
-        compat_overlap_weight=float(
-            max(0.0, kwargs["phase2_compat_overlap_weight"])
-        ),
-        compat_comm_weight=float(
-            max(0.0, kwargs["phase2_compat_comm_weight"])
-        ),
-        compat_curv_weight=float(
-            max(0.0, kwargs["phase2_compat_curv_weight"])
-        ),
-        compat_sched_weight=float(
-            max(0.0, kwargs["phase2_compat_sched_weight"])
-        ),
-        compat_measure_weight=float(
-            max(0.0, kwargs["phase2_compat_measure_weight"])
-        ),
+        batch_near_degenerate_ratio=0.0,
         auxiliary_score_mode="tie_break_only",
         lifetime_cost_mode=str(kwargs["phase3_lifetime_cost_mode"]),
         remaining_evaluations_proxy_mode=remaining_proxy,
@@ -69528,8 +69174,24 @@ def _finish_default_no_prune_numerical_session_initialization(
     """Finish the exact fresh-start session through ordinary state construction."""
 
     kwargs = dict(validated_exact_kwargs)
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    batch = batch_extension_from_admission(admission_policy)
+    if extensions.batch is not None and extensions.batch != batch:
+        raise ValueError(
+            "Explicit batch extension disagrees with admission policy."
+        )
+    kwargs["extensions"] = Extensions(
+        batch=batch,
+        pruning=extensions.pruning,
+    )
     _default_no_prune_active_phase_flags(kwargs)
-    lanes = _default_no_prune_lane_runtime(core=core, kwargs=kwargs)
+    lanes = _default_no_prune_lane_runtime(
+        core=core,
+        kwargs=kwargs,
+        batch=batch,
+    )
     phase1_score = _default_no_prune_simple_score_config(kwargs)
     phase2_score = lanes.phase_shortlist_runtime.phase2_score_cfg
     stage = _default_no_prune_stage_controller(kwargs, lanes=lanes)
@@ -70747,18 +70409,7 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase1_score_z_alpha": 0.0,
     "phase1_shot_ref": 1.0,
     "phase1_trough_margin_ratio": 1.0,
-    "phase2_batch_additivity_tol": 0.25,
-    "phase2_batch_near_degenerate_ratio": 0.9,
-    "phase2_batch_rank_rel_tol": 1.0e-6,
-    "phase2_batch_selection_mode": "reduced_plane",
-    "phase2_batch_size_cap": 3,
-    "phase2_batch_target_size": 2,
     "phase2_cheap_score_eps": 1.0e-12,
-    "phase2_compat_comm_weight": 0.2,
-    "phase2_compat_curv_weight": 0.2,
-    "phase2_compat_measure_weight": 0.2,
-    "phase2_compat_overlap_weight": 0.4,
-    "phase2_compat_sched_weight": 0.2,
     "phase2_compile_cx_proxy_weight": 1.0,
     "phase2_compile_position_shift_weight": 1.0,
     "phase2_compile_refit_active_weight": 1.0,
@@ -70809,10 +70460,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_backend_w_2q": 1.0,
     "phase3_backend_w_depth": 0.1,
     "phase3_backend_w_size": 0.01,
-    "phase3_batch_order_max_permutations": 24,
-    "phase3_batch_prefilter_mode": "off",
-    "phase3_batch_order_selection_mode": "finite_step_v1",
-    "phase3_batch_selection_mode": "reduced_plane",
     "phase3_frontier_ratio": 0.9,
     "phase3_maturity_cap_max": None,
     "phase3_maturity_cap_min": None,
@@ -70972,12 +70619,6 @@ def _build_canonical_sr_snake_runtime_kwargs(
                 == "true"
             ),
             "adapt_formal_manifold_config": None,
-            "phase2_enable_batching": bool(
-                execution_settings["phase3_enable_batching"]
-            ),
-            "phase3_batch_selection_mode": str(
-                kwargs["phase2_batch_selection_mode"]
-            ),
             "route_a_child_padding_config": child_padding,
             "exact_gs_override": float(exact_energy),
             "psi_ref_override": None,

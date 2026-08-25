@@ -197,7 +197,7 @@ def test_peer_pruning_composes_with_canonical_insertion(pruning) -> None:
 def test_greedy_batch_composes_with_canonical_insertion() -> None:
     request = SRRunRequest(
         method=SRMethodPolicy(
-            admission=GreedyBatchAdmission(),
+            admission=GreedyBatchAdmission(maximum_size=3, search_window_size=None),
         )
     )
 
@@ -214,7 +214,7 @@ def test_greedy_batch_composes_with_canonical_insertion() -> None:
 def test_always_reduced_insertion_composes_with_batch_admission() -> None:
     request = SRRunRequest(
         method=SRMethodPolicy(
-            admission=GreedyBatchAdmission(),
+            admission=GreedyBatchAdmission(maximum_size=3, search_window_size=None),
             insertion=AlwaysCommutationReducedInsertion(),
         )
     )
@@ -238,7 +238,7 @@ def test_always_reduced_insertion_composes_with_batch_admission() -> None:
 @pytest.mark.parametrize(
     "admission",
     (
-        GreedyBatchAdmission(maximum_size=1),
+        GreedyBatchAdmission(maximum_size=1, search_window_size=None),
         CombinatorialBatchAdmission(
             maximum_size=1,
             search_window_size=2,
@@ -360,7 +360,7 @@ def test_batch_insertion_and_pruning_share_one_direct_controller(
         _small_hh_problem(),
         SRRunRequest(
             method=SRMethodPolicy(
-                admission=GreedyBatchAdmission(maximum_size=1),
+                admission=GreedyBatchAdmission(maximum_size=1, search_window_size=None),
                 pruning=TrustRegionPruning(),
             ),
             execution=SRExecutionPolicy(
@@ -426,7 +426,7 @@ def test_fork_local_beam_executes_children_and_counts_discarded_work(
 @pytest.mark.parametrize(
     "admission",
     (
-        GreedyBatchAdmission(maximum_size=1),
+        GreedyBatchAdmission(maximum_size=1, search_window_size=None),
         CombinatorialBatchAdmission(
             maximum_size=1,
             search_window_size=2,
@@ -560,7 +560,7 @@ def test_batch_checkpoint_records_its_actual_admission_cardinality(
         _small_hh_problem(),
         SRRunRequest(
             method=SRMethodPolicy(
-                admission=GreedyBatchAdmission(maximum_size=2)
+                admission=GreedyBatchAdmission(maximum_size=2, search_window_size=None)
             ),
             execution=SRExecutionPolicy(
                 stop=SRStopPolicy(maximum_controller_rounds=1)
@@ -806,7 +806,7 @@ def test_authenticated_beam_resume_extends_winner_lineage_and_diagnostics(
 @pytest.mark.parametrize(
     "admission",
     (
-        GreedyBatchAdmission(maximum_size=1),
+        GreedyBatchAdmission(maximum_size=1, search_window_size=None),
         CombinatorialBatchAdmission(
             maximum_size=1,
             search_window_size=2,

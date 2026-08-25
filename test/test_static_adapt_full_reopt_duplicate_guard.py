@@ -76,7 +76,6 @@ def _run_flat_two_rounds(*, beam_width: int) -> dict[str, object]:
         adapt_final_full_refit=False,
         adapt_beam_live_branches=int(beam_width),
         adapt_beam_children_per_parent=int(beam_width),
-        phase2_enable_batching=False,
     )
     return payload
 
