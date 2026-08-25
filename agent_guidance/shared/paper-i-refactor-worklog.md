@@ -2920,6 +2920,128 @@ the post-Phase-III preconditioning discussed in 6ay.
 because the July plan gates a large run matrix on this repair, and a future
 reader should not re-block on it.
 
+## 6bf. The mega function is already off the live path — this is a deletion, not a decomposition
+
+This supersedes the framing in every prior handoff, including
+`HANDOFF_ADAPT_PIPELINE_DECOMPOSITION_20260824.md`. **`_run_hardcoded_adapt_vqe`
+is not the Paper-I kernel and has not been for some time.** The typed route
+already has the shape §1-§7 asks for. What remains is removal, not extraction.
+
+### The live route, end to end
+
+```
+run_ra_adapt                        ra_adapt/engine.py:5623      (facade: locks to HH L=2/L=3)
+  build_resolved_ra_protocol        ra_adapt/engine.py:2440      (protocol + digest)
+  _execute_resolved_context         ra_adapt/runtime.py:1806
+     build_default_controller_runtime()
+        -> adapt_pipeline._build_default_sr_controller_numerical_runtime   (150 lines)
+             -> _initialize_default_no_prune_numerical_session
+                  -> _DefaultNoPruneNumericalSession       <-- the actual kernel
+     then EXACTLY ONE of:
+        _run_default_singleton_controller            sr_snake/_controller.py:756
+        _run_default_greedy_batch_controller         sr_snake/_controller.py:1022
+        _run_default_combinatorial_batch_controller  sr_snake/_controller.py:1053
+        _run_default_fork_local_beam_controller      extensions.py:924
+```
+
+That dispatch **is** the design target. One controller, admission as the single
+variation point, beam living outside in `extensions.py`. `sr_snake/_controller.py`
+is 1,088 lines and contains zero references to `adapt_pipeline`.
+
+### Where the mega function sits
+
+`sr_snake/_context.py:887` binds it:
+
+```python
+def _retained_optional_policy_executor(**executor_kwargs):
+    return adapt_pipeline._run_hardcoded_adapt_vqe(**executor_kwargs)
+...
+legacy_executor=_retained_optional_policy_executor,
+```
+
+The field is declared at `_context.py:142` and assigned at `:900`. **It is never
+read.** There is no `.legacy_executor(` anywhere in the repository. The name says
+it: *retained optional policy executor*.
+
+### Measured, not inferred
+
+Transitive closure over the top-level defs of `adapt_pipeline.py`, rooted at the
+live kernel entrypoints (`_build_default_sr_controller_numerical_runtime`,
+`_initialize_default_no_prune_numerical_session`,
+`_hydrate_default_no_prune_numerical_session`, `_DefaultNoPruneNumericalSession`,
+`_build_canonical_sr_snake_runtime_kwargs`, and the four symbols
+`ra_adapt/insertion_geometry.py` + `pools.py` import):
+
+| | defs | lines |
+|---|---:|---:|
+| live kernel closure | 168 | 25,492 |
+| `_run_hardcoded_adapt_vqe` | 1 | 39,386 |
+| all top-level defs | 229 | 67,870 |
+
+**`_run_hardcoded_adapt_vqe` is not in the live closure.** It is a 39,386-line
+island — 58% of the file.
+
+### Every remaining caller
+
+| site | status |
+|---|---|
+| `sr_snake/_context.py:887` | bound to `legacy_executor`, never read |
+| `exact_bench/hh_static_ground_state_benchmark.py:975` | the one real call |
+| `cli_config.py:3209` `_build_run_hardcoded_adapt_vqe_kwargs` | called only from `test/` (5 test modules) |
+
+And `hh_static_ground_state_benchmark` is reached only from
+`exact_bench/generic_static_benchmark.py` and
+`exact_bench/hh_static_paper_l2_benchmark.py` — the exact-ED comparison bench —
+plus `test/`. No pipeline, no reporting script, no CHTC payload.
+
+### It did not produce the published bundles
+
+Two independent checks:
+
+1. **The receipt string is not evidence it ran.** `method:
+   hardcoded_adapt_vqe_full_meta` in the b3/b9 receipts is emitted by
+   `builders/pool_resolution.py:1308` and `builders/hh_pool_presets.py:1504` — it
+   names the *pool/method identity*, and the typed route emits it too. It does not
+   record which executor ran.
+2. **The CHTC payloads called the typed route.** Across `chtc/`:
+   `run_ra_adapt` 4,241 hits vs `_run_hardcoded_adapt_vqe` 169. Every one of the
+   169 is either a shipped copy of `adapt_pipeline.py` itself, an `.md` migration
+   log, an overlay `.patch`, or a test — with a single exception:
+   `paper_iv_h2o_sr_source_locked_resume_d12_20260716/runtime_source/pipelines/static_adapt/paper_i_runner.py:937`.
+   That is a **Paper-IV** H2O run, source-locked in July, and the *current*
+   `paper_i_runner.py` no longer references the mega function at all.
+
+So no published Paper-I number traces to `_run_hardcoded_adapt_vqe`.
+
+### What this changes
+
+The Codex work queued against the mega function — the 38-def / 12,990-line
+transitive dead set, the 3,235-line prune move, the 1,775-line telemetry move —
+is carving up something already off the path. **Stop that work.** The whole
+39,386-line body goes at once, provided the exact-ED bench question below is
+settled. That also disarms the reflective-kwargs hazard at
+`adapt_pipeline.py:69272` (`inspect.signature(_run_hardcoded_adapt_vqe).parameters`),
+which was the largest named risk in the earlier handoff — it disappears with the
+function.
+
+Sequence, once authorized:
+
+1. Move `exact_bench/hh_static_ground_state_benchmark._run_one_adapt_algorithm`
+   onto `run_ra_adapt`, or retire its ADAPT arm (see the open question).
+2. Delete the `legacy_executor` field, `_retained_optional_policy_executor`,
+   `legacy_executor_kwargs`, and `_canonical_sr_snake_legacy_executor_kwargs`.
+3. Delete `_run_hardcoded_adapt_vqe` and `cli_config._build_run_hardcoded_adapt_vqe_kwargs`,
+   and the 5 test modules that exercise the kwargs builder in isolation.
+4. Re-run the closure measurement; whatever falls out of the live set goes too.
+
+### Open question for the author
+
+`hh_static_ground_state_benchmark` is the exact-ED comparison bench, and its ADAPT
+arm is the only live caller. Does that arm still need to exist — i.e. is the
+exact-diagonalization comparison still reported against an ADAPT trajectory — and
+if so, should it run the same controller the bundles ran (`run_ra_adapt`), which
+would make it a fairer comparison than it is today?
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
