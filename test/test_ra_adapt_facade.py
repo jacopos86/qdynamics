@@ -384,9 +384,6 @@ def test_macro_only_gradient_phase0_executes_one_bounded_macro_round(
         "marrakesh_graph_span_v1"
     )
     assert compile_accounting["phase_iii"] is None
-    assert compile_accounting["phase0_cost_source"] == (
-        "none_standard_adapt_absolute_gradient_v1"
-    )
     assert compile_accounting["qiskit_applied_phases"] == []
     assert compile_accounting[
         "phase_iii_reuses_phase_i_phase_ii_oracle"

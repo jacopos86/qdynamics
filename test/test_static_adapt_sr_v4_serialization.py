@@ -8,7 +8,6 @@ import pytest
 from pipelines.static_adapt import checkpoint_telemetry
 from pipelines.static_adapt.adapt_pipeline import (
     _apply_repeat_live_prune_guard,
-    _phase3_shadow_recommended_mu_from_history,
 )
 from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.output_artifacts import (
@@ -75,59 +74,6 @@ def test_legacy_repeat_prune_guard_remains_unchanged() -> None:
     ]
     assert telemetry["active"] is True
     assert telemetry["bypassed"] is False
-
-
-def test_phase3_shadow_mu_restores_latest_zero_query_history_state() -> None:
-    mu, source = _phase3_shadow_recommended_mu_from_history(
-        [
-            {
-                "phase3_shadow_damping_receipt": {
-                    "schema": "route_a_phase3_shadow_damping_receipt_v1",
-                    "recommended_mu": 0.25,
-                    "applied_mu": 0.0,
-                    "added_query_count": 0,
-                }
-            },
-            {
-                "phase3_shadow_damping_receipt": {
-                    "schema": "route_a_phase3_shadow_damping_receipt_v1",
-                    "recommended_mu": 0.75,
-                    "applied_mu": 0.0,
-                    "added_query_count": 0,
-                }
-            },
-        ]
-    )
-
-    assert mu == pytest.approx(0.75)
-    assert source == "previous_history_receipt"
-
-
-def test_phase3_shadow_mu_resume_fails_closed_on_applied_damping() -> None:
-    with pytest.raises(RuntimeError, match="zero-query diagnostic contract"):
-        _phase3_shadow_recommended_mu_from_history(
-            [
-                {
-                    "phase3_shadow_damping_receipt": {
-                        "schema": "route_a_phase3_shadow_damping_receipt_v1",
-                        "recommended_mu": 0.75,
-                        "applied_mu": 0.1,
-                        "added_query_count": 0,
-                    }
-                }
-            ]
-        )
-
-
-def _phase3_shadow_receipt() -> dict[str, object]:
-    return {
-        "schema": "route_a_phase3_shadow_damping_receipt_v1",
-        "policy": "zero_query_mapped_seed_shadow_v1",
-        "status": "resolved",
-        "recommended_mu": np.float64(0.25),
-        "applied_mu": 0.0,
-        "added_query_count": 0,
-    }
 
 
 def _prune_runtime_payload() -> dict[str, object]:
@@ -201,7 +147,6 @@ def _v4_adapt_payload() -> dict[str, object]:
     history_row = {
         "depth": 1,
         "selected_op": "x",
-        "phase3_shadow_damping_receipt": _phase3_shadow_receipt(),
         "post_admission_prune": _prune_runtime_payload(),
     }
     return {
@@ -312,19 +257,18 @@ def test_checkpoint_preserves_v4_no_feasible_prune_hold_receipt() -> None:
     assert compact["phase1_prune_no_feasible_model"] == receipt
 
 
-def test_checkpoint_history_preserves_phase3_shadow_damping_receipt() -> None:
+def test_checkpoint_history_drops_retired_phase3_shadow_damping_receipt() -> None:
     row = checkpoint_telemetry._compact_history_row_for_checkpoint(
         {
             "depth": 4,
-            "phase3_shadow_damping_receipt": _phase3_shadow_receipt(),
+            "phase3_shadow_damping_receipt": {
+                "schema": "route_a_phase3_shadow_damping_receipt_v1",
+            },
         },
         fallback_depth=4,
     )
 
-    receipt = row["phase3_shadow_damping_receipt"]
-    assert receipt["schema"] == "route_a_phase3_shadow_damping_receipt_v1"
-    assert receipt["recommended_mu"] == 0.25
-    assert receipt["added_query_count"] == 0
+    assert "phase3_shadow_damping_receipt" not in row
 
 
 def test_checkpoint_history_preserves_signed_active_prefix_for_v4_resume() -> None:
@@ -351,15 +295,7 @@ def test_checkpoint_history_preserves_signed_active_prefix_for_v4_resume() -> No
     assert row["active_prefix_checkpoint"] == active_prefix
 
 
-def test_checkpoint_history_fails_closed_on_invalid_shadow_receipt() -> None:
-    with pytest.raises(TypeError, match="phase3_shadow_damping_receipt"):
-        checkpoint_telemetry._compact_history_row_for_checkpoint(
-            {"phase3_shadow_damping_receipt": []},
-            fallback_depth=1,
-        )
-
-
-def test_v4_result_manifest_preserves_policy_identity_and_runtime_receipts() -> None:
+def test_v4_result_manifest_preserves_route_identity_and_prune_receipts() -> None:
     args = _v4_args()
     adapt_payload = _v4_adapt_payload()
     psi = np.asarray([1.0 + 0.0j, 0.0 + 0.0j])
@@ -400,9 +336,7 @@ def test_v4_result_manifest_preserves_policy_identity_and_runtime_receipts() -> 
     assert settings["phase3_hardware_cost_normalization_mode"] == (
         "family_robust_symmetric_arctan_v1"
     )
-    assert settings["phase3_shadow_damping_policy"] == (
-        "mapped_seed_zero_query_v1"
-    )
+    assert "phase3_shadow_damping_policy" not in settings
     assert payload["adapt_vqe"]["finite_angle_fallback"] is False
     assert payload["adapt_vqe"]["phase3_enable_rescue_requested"] is False
     assert payload["adapt_vqe"]["phase3_enable_rescue_effective"] is False
@@ -422,9 +356,6 @@ def test_v4_result_manifest_preserves_policy_identity_and_runtime_receipts() -> 
     assert settings["phase1_prune_metric_mu_update_policy"] == (
         "same_trial_underprediction_monotone_v1"
     )
-    assert payload["adapt_vqe"]["history"][0][
-        "phase3_shadow_damping_receipt"
-    ]["schema"] == "route_a_phase3_shadow_damping_receipt_v1"
     assert payload["adapt_vqe"]["history"][0]["post_admission_prune"][
         "phase1_prune_trial_receipt"
     ]["trial_id"] == "trial:7:2"
@@ -447,7 +378,6 @@ def test_output_manifest_defaults_new_v4_fields_for_legacy_args() -> None:
         "phase1_prune_metric_mu_update_policy",
         "phase1_prune_endpoint_overlap_policy",
         "phase1_prune_live_min_depth",
-        "phase3_shadow_damping_policy",
     )
     for field in fields:
         delattr(args, field)
@@ -487,7 +417,7 @@ def test_output_manifest_defaults_new_v4_fields_for_legacy_args() -> None:
     assert settings["phase1_prune_metric_mu_update_policy"] == "off"
     assert settings["phase1_prune_endpoint_overlap_policy"] == "off"
     assert settings["phase1_prune_live_min_depth"] == 0
-    assert settings["phase3_shadow_damping_policy"] == "off"
+    assert "phase3_shadow_damping_policy" not in settings
 
 
 def test_v4_output_fails_closed_without_runtime_response_scope() -> None:

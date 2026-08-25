@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> None:
             "transpile_single_v1",
             "--phase3-backend-name",
             str(args.backend_name),
-            "--phase3-backend-transpile-seed",
+            "--backend-transpile-seed",
             str(int(args.backend_transpile_seed)),
             "--phase3-backend-optimization-level",
             str(int(args.backend_optimization_level)),

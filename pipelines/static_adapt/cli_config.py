@@ -1589,11 +1589,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
     p.add_argument("--phase1-lambda-leak", type=float, default=0.0)
-    p.add_argument("--phase1-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
-    p.add_argument("--phase1-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
-    p.add_argument("--phase1-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
-    p.add_argument("--phase1-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
-    p.add_argument("--phase1-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
+    p.add_argument("--cost-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
+    p.add_argument("--cost-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
+    p.add_argument("--cost-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
+    p.add_argument("--cost-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
+    p.add_argument("--cost-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
     p.add_argument("--phase1-score-z-alpha", type=float, default=0.0)
     p.add_argument(
         "--phase1-score-mode",
@@ -1694,17 +1694,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         default=0.70,
         help="Quota pressure for physical Phase-II lane-health budgets; lower values favor global score rank.",
     )
-    p.add_argument("--phase1-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase1-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase2-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase2-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase3-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase3-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase-maturity-shot-min", type=int, default=1)
-    p.add_argument("--phase-maturity-shot-max", type=int, default=1)
-    p.add_argument("--phase1-maturity-shot-cap", type=int, default=0)
-    p.add_argument("--phase2-maturity-shot-cap", type=int, default=0)
-    p.add_argument("--phase3-maturity-shot-cap", type=int, default=0)
     p.add_argument(
         "--phase2-lambda-H",
         type=float,
@@ -1790,11 +1779,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument("--phase2-measure-reuse-weight", type=float, default=1.0)
     p.add_argument("--phase2-opt-dim-cost-scale", type=float, default=1.0)
     p.add_argument("--phase2-family-repeat-cost-scale", type=float, default=1.0)
-    p.add_argument("--phase2-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
-    p.add_argument("--phase2-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
-    p.add_argument("--phase2-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
-    p.add_argument("--phase2-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
-    p.add_argument("--phase2-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
     p.add_argument(
         "--phase2-w-depth",
         type=float,
@@ -1910,15 +1894,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         ],
         default="family_robust_v1",
         help="Hardware-cost denominator mode. raw_legacy_v1 is source-lock compatibility only.",
-    )
-    p.add_argument(
-        "--phase3-shadow-damping-policy",
-        choices=["off", "mapped_seed_zero_query_v1"],
-        default="off",
-        help=(
-            "Diagnostic-only damping recommendation from the existing mapped-seed "
-            "receipt. It never applies damping or triggers an extra objective call."
-        ),
     )
     p.add_argument(
         "--phase3-source-lock-preferred-sequence",
@@ -2274,11 +2249,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     )
     p.add_argument(
         "--phase3-backend-cost-mode",
-        choices=["auto", "proxy", "transpile_single_v1", "transpile_shortlist_v1", "incremental_prefix_suffix_v1", "marrakesh_graph_span_v1"],
+        choices=["auto", "proxy", "transpile_single_v1", "incremental_prefix_suffix_v1", "marrakesh_graph_span_v1"],
         default="auto",
         help=(
             "Compile-cost mode for HH Phase-3 controller scoring. "
-            "auto resolves to marrakesh_graph_span_v1 for HH phase3_v1 runs; "
+            "auto resolves to transpile_single_v1 for HH phase3_v1 runs; "
             "incremental_prefix_suffix_v1 uses strict prefix-aware tail transpilation; "
             "marrakesh_graph_span_v1 uses the analytic FakeMarrakesh Pauli-support graph-span estimator without transpilation; "
             "proxy remains available when explicitly requested."
@@ -2291,13 +2266,7 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         help="Target backend name for single-backend compile-cost modes; defaults to FakeMarrakesh for the QPU-facing HH controller route.",
     )
     p.add_argument(
-        "--phase3-backend-shortlist",
-        type=str,
-        default=None,
-        help="Comma-separated backend shortlist for --phase3-backend-cost-mode transpile_shortlist_v1.",
-    )
-    p.add_argument(
-        "--phase3-backend-transpile-seed",
+        "--backend-transpile-seed",
         type=int,
         default=7,
         help="Seed used by the backend-conditioned transpilation oracle.",
@@ -3541,11 +3510,11 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase1_lambda_compile": float(args.phase1_lambda_compile),
         "phase1_lambda_measure": float(args.phase1_lambda_measure),
         "phase1_lambda_leak": float(args.phase1_lambda_leak),
-        "phase1_lambda_2q": None if args.phase1_lambda_2q is None else float(args.phase1_lambda_2q),
-        "phase1_lambda_d": None if args.phase1_lambda_d is None else float(args.phase1_lambda_d),
-        "phase1_lambda_1q": None if args.phase1_lambda_1q is None else float(args.phase1_lambda_1q),
-        "phase1_lambda_theta": None if args.phase1_lambda_theta is None else float(args.phase1_lambda_theta),
-        "phase1_lambda_shot": None if args.phase1_lambda_shot is None else float(args.phase1_lambda_shot),
+        "cost_lambda_2q": None if args.cost_lambda_2q is None else float(args.cost_lambda_2q),
+        "cost_lambda_d": None if args.cost_lambda_d is None else float(args.cost_lambda_d),
+        "cost_lambda_1q": None if args.cost_lambda_1q is None else float(args.cost_lambda_1q),
+        "cost_lambda_theta": None if args.cost_lambda_theta is None else float(args.cost_lambda_theta),
+        "cost_lambda_shot": None if args.cost_lambda_shot is None else float(args.cost_lambda_shot),
         "phase1_score_z_alpha": float(args.phase1_score_z_alpha),
         "phase1_score_mode": str(args.phase1_score_mode),
         "phase1_depth_ref": float(args.phase1_depth_ref),
@@ -3581,17 +3550,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "physical_phase2_lane_rel_threshold": float(args.physical_phase2_lane_rel_threshold),
         "physical_phase1_lane_quota_pressure": float(args.physical_phase1_lane_quota_pressure),
         "physical_phase2_lane_quota_pressure": float(args.physical_phase2_lane_quota_pressure),
-        "phase1_maturity_cap_min": None if args.phase1_maturity_cap_min is None else int(args.phase1_maturity_cap_min),
-        "phase1_maturity_cap_max": None if args.phase1_maturity_cap_max is None else int(args.phase1_maturity_cap_max),
-        "phase2_maturity_cap_min": None if args.phase2_maturity_cap_min is None else int(args.phase2_maturity_cap_min),
-        "phase2_maturity_cap_max": None if args.phase2_maturity_cap_max is None else int(args.phase2_maturity_cap_max),
-        "phase3_maturity_cap_min": None if args.phase3_maturity_cap_min is None else int(args.phase3_maturity_cap_min),
-        "phase3_maturity_cap_max": None if args.phase3_maturity_cap_max is None else int(args.phase3_maturity_cap_max),
-        "phase_maturity_shot_min": int(args.phase_maturity_shot_min),
-        "phase_maturity_shot_max": int(args.phase_maturity_shot_max),
-        "phase1_maturity_shot_cap": int(args.phase1_maturity_shot_cap),
-        "phase2_maturity_shot_cap": int(args.phase2_maturity_shot_cap),
-        "phase3_maturity_shot_cap": int(args.phase3_maturity_shot_cap),
         "phase2_lambda_H": float(args.phase2_lambda_H),
         "phase2_rho": float(args.phase2_rho),
         "phase2_score_z_alpha": float(args.phase2_score_z_alpha)
@@ -3640,11 +3598,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase2_measure_reuse_weight": float(args.phase2_measure_reuse_weight),
         "phase2_opt_dim_cost_scale": float(args.phase2_opt_dim_cost_scale),
         "phase2_family_repeat_cost_scale": float(args.phase2_family_repeat_cost_scale),
-        "phase2_lambda_2q": None if args.phase2_lambda_2q is None else float(args.phase2_lambda_2q),
-        "phase2_lambda_d": None if args.phase2_lambda_d is None else float(args.phase2_lambda_d),
-        "phase2_lambda_1q": None if args.phase2_lambda_1q is None else float(args.phase2_lambda_1q),
-        "phase2_lambda_theta": None if args.phase2_lambda_theta is None else float(args.phase2_lambda_theta),
-        "phase2_lambda_shot": None if args.phase2_lambda_shot is None else float(args.phase2_lambda_shot),
         "phase2_w_depth": float(args.phase2_w_depth),
         "phase2_w_group": float(args.phase2_w_group),
         "phase2_w_shot": float(args.phase2_w_shot),
@@ -3675,7 +3628,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase3_enable_rescue": bool(args.phase3_enable_rescue),
         "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
         "phase3_hardware_cost_normalization_mode": str(args.phase3_hardware_cost_normalization_mode),
-        "phase3_shadow_damping_policy": str(args.phase3_shadow_damping_policy),
         "phase3_source_lock_preferred_sequence": str(args.phase3_source_lock_preferred_sequence),
         "phase3_runtime_split_mode": str(args.phase3_runtime_split_mode),
         "phase3_runtime_split_selection_mode": str(args.phase3_runtime_split_selection_mode),
@@ -3755,10 +3707,7 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase3_parent_collapse_debug_max_depth": int(args.phase3_parent_collapse_debug_max_depth),
         "phase3_backend_cost_mode": str(args.phase3_backend_cost_mode),
         "phase3_backend_name": None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name),
-        "phase3_backend_shortlist": []
-                if args.phase3_backend_shortlist in {None, ""}
-                else [str(tok).strip() for tok in str(args.phase3_backend_shortlist).split(",") if str(tok).strip() != ""],
-        "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
+        "backend_transpile_seed": int(args.backend_transpile_seed),
         "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
         "phase3_backend_w_2q": float(args.phase3_backend_w_2q),
         "phase3_backend_w_depth": float(args.phase3_backend_w_depth),

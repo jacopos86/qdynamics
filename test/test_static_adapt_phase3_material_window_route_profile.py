@@ -281,8 +281,7 @@ def test_material_window_profiles_cli_and_runtime_round_trip(
         )
         if key.startswith("phase1_prune_")
         and key not in RETIRED_PRUNE_RUNTIME_FIELDS
-    )
-    + ["phase3_shadow_damping_policy"],
+    ),
 )
 def test_test2_runtime_source_lock_requires_every_detailed_prune_field(
     required_field: str,
@@ -347,7 +346,7 @@ def test_test2_runtime_emits_every_required_prune_source_lock_field() -> None:
         for key in expected
         if key.startswith("phase1_prune_")
         and key not in RETIRED_PRUNE_RUNTIME_FIELDS
-    }.union({"phase3_shadow_damping_policy"})
+    }
     assert required.issubset(emitted_fields)
     assert RETIRED_PRUNE_RUNTIME_FIELDS.isdisjoint(emitted_fields)
 

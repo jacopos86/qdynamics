@@ -140,7 +140,7 @@ def test_prune_appendix_materializes_undamped_full_logical_fs_trust() -> None:
         "modeled_local_fs_conservative_v1"
     )
     assert args.phase1_prune_endpoint_overlap_policy == "off"
-    assert args.phase3_shadow_damping_policy == "off"
+    assert not hasattr(args, "phase3_shadow_damping_policy")
 
 
 def test_prune_appendix_contract_records_one_factor_lineage() -> None:
@@ -205,7 +205,7 @@ def test_prune_appendix_round_trips_runtime_and_resume_identity() -> None:
     assert kwargs["phase1_prune_enabled"] is True
     assert kwargs["phase1_prune_metric_schur_mu"] == 0.0
     assert kwargs["phase1_prune_metric_mu_update_policy"] == "off"
-    assert kwargs["phase3_shadow_damping_policy"] == "off"
+    assert "phase3_shadow_damping_policy" not in kwargs
 
     payload = {
         "settings": {

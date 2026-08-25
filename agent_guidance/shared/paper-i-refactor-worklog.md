@@ -3198,7 +3198,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | stopped before 1.1; live canonical `full_meta` contains 40 PAOP records, contradicting Q39/6ag; no implementation edit |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stages 1.2/1.4 done in `1e6db270`/`5680f959`; Q43 done in `af832630`; Q45 lane-wise scoring deletion in progress; Q30, Q33, and Q38 remain decision boundaries; phase controller preserved |
 | _(add yours)_ | | | |
 
 ---
@@ -4551,3 +4551,265 @@ post-edit ledger exists because implementation did not begin.
 `full_meta` retains its 40 PAOP records while only standalone PAOP choices are
 retired, or should PAOP be removed from canonical `full_meta` as an explicit
 scientific pool change?
+
+### 2026-08-24 — Work Plan 1.4 — Phase-0 cost path deleted
+
+**Implementation:** commit `5680f959` deletes the executable Phase-0 hardware
+cost denominator, normalization, lambdas, compile/measurement acquisition, and
+the corresponding candidate/checkpoint/accounting fields. Phase 0 now ranks the
+same recorded quantity directly as `DeltaE0_upper * N0`. The change adds 22
+lines and deletes 187: **165 net lines removed**.
+
+The two `phase0_cost = "gradient_only_no_metric_no_resource_v1"` entries in the
+locked Page-12 application-source contracts remain. Removing either invalidates
+an authenticated source-contract SHA; they are passive declarations that Phase
+0 performs no resource-cost computation, not the deleted executable cost path.
+
+**Reproducibility:** before and after both produced 256 ledger entries and 266
+ordered occurrences. The ledger fingerprint is byte-identical at
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`;
+the primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and the complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved `_canonical_route_contract_for_request` digest also remains
+byte-identical at
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection remains `5467 tests collected, 54 errors`;
+the before/after `ERROR test/...` diff is empty. Ten direct Phase-0/accounting
+tests and three locked application-source-contract cases pass. Two broader
+targeted assertions fail identically on the clean baseline: the position-route
+matrix omits three already-present variants, and a historical route-digest
+literal is stale. Neither was changed.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports four
+production files, six changed symbols, one affected execution flow, and MEDIUM
+risk. `CandidateFeatures` was the pre-edit HIGH-risk schema surface (23 direct
+importers, 80 transitive symbols); collection, direct tests, source-lock checks,
+route digest, and ledger identity close that risk.
+
+### 2026-08-24 — Work Plan 2.3 / 3.1 — compile-cost fallback chain deleted
+
+**Implementation:** from baseline `919488ff`, commit `c4400c36` implements Q31
+and Q32. `BackendCompileConfig` now defaults to Qiskit compilation against the
+single exact target `FakeMarrakesh`; proxy cost remains available only by
+explicit selection. The preferred-fakes chain, alternate-backend permission,
+shortlist mode/CLI/executor fields, shortlist reduction, and the receipt fields
+describing those impossible fallback events are deleted. Explicitly requested
+single alternate backend names remain valid experiments, but a failed target
+resolution stops construction. The graph-span implementation may load the
+static graph representation of the same `FakeMarrakesh` target; errors are no
+longer swallowed and it cannot change devices.
+
+The change adds 88 lines and deletes 261: **173 net lines removed**. The
+standalone `hh_adapt_backend_shortlist.py` experiment driver remains because it
+runs separately named, single-backend experiments rather than selecting or
+falling back among targets inside one run.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical:
+256 entries, 266 ordered occurrences, fingerprint
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest is also unchanged at
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5467 tests collected, 54
+errors` to `5466 tests collected, 54 errors`; the one-test decrease is the
+intentional deletion of the mutable-shortlist-default test, and the complete
+`ERROR test/...` diff is empty. The direct compile-oracle and Phase-I--III
+Qiskit-scope surface passes `32 passed`. Broader route-profile/digest failures
+encountered during focused runs reproduce at the untouched baseline and are
+stale assertions from earlier ratified route changes.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports six
+production files, thirteen changed symbols, one affected controller flow, and
+MEDIUM risk. The pre-edit HIGH-risk semantic-final-accounting validator lost
+only the fallback receipt assertion; the unchanged ledger and route digest,
+focused tests, and empty collection-error diff close that risk.
+
+### 2026-08-24 — Work Plan 3.4 — run-level cost weights
+
+**Implementation:** commit `2d23fb1b` implements Q35. The five surviving
+resource weights are now the one run-level tuple
+`cost_lambda_{2q,d,1q,theta,shot}`. Both Phase-I `SimpleScoreConfig` and
+Phase-II/III `FullScoreConfig` consume that tuple. Ten phase-prefixed executor
+parameters and CLI flags are replaced by five run-level parameters and flags;
+the old names have no alias. `lambda_F` is not preserved because Q21 deleted
+its metric-for-Hessian substitution separately.
+
+All live canonical Phase-I/II pairs were enumerated before the edit and were
+equal. The authenticated route contract carries none of these infrastructure
+defaults, so its schema and digest did not change. The change adds 50 lines and
+deletes 77: **27 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** before and after are both `5466 tests collected, 54
+errors`; the `ERROR test/...` diff is empty. The direct CLI/default and score
+configuration surface passes `50 passed`.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports two
+production files, seven changed symbols, one affected controller flow, and
+MEDIUM risk. All pre-edit symbol impacts were LOW.
+
+### 2026-08-24 — Work Plan 3.3 — run-level transpiler seed
+
+**Implementation:** commit `abdba188` implements Q34. The executable parameter,
+CLI flag, output field, backend experiment drivers, and compile-oracle builders
+now use the run-level name `backend_transpile_seed`. The authenticated route
+contracts retain `phase3_backend_transpile_seed` byte-for-byte as historical
+provenance; `normalize_sr_route_profile_namespace` translates that key once at
+the contract boundary and does not create a runtime alias. The implementation
+adds 20 lines and deletes 20: **0 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** before and after are both `5466 tests collected, 54
+errors`; the `ERROR test/...` diff is empty. Route-profile normalization and
+contract materialization pass `112 passed`. Three broader output tests fail
+identically at the untouched `e5d00dbc` baseline because they still expect
+prune/batch fields deleted by the completed Q24-Q28 extension increments.
+
+**Paper-I-local impact audit:** all pre-edit symbol impacts were LOW. Final
+GitNexus `detect-changes` reports six production files, fifteen changed symbols,
+seven serialization/contract flows, and HIGH aggregate risk. Exact route and
+ledger hashes, the complete route-profile test file, baseline failure
+reproduction, and the empty collection-error diff close that risk.
+
+### 2026-08-24 — Work Plan Stages 1-3 — remaining decision boundaries
+
+The independently executable ratified items are complete. The remaining three
+surfaces require author choices that DECISIONS does not yet supply:
+
+- **1.2 / 3.5:** Q36 and Q38 require the maturity parameters and
+  `phase_shots_maturity_floor` to be deleted in the same change that renames
+  `phase123_controller_maturity_v2`. Q38 does not name the replacement version
+  string. No string was invented and the phase controller was not touched.
+- **2.4:** Q30 ratifies deleting `allow_aer_fallback` for Paper I, but the field
+  and fallback mechanism are implemented in the shared
+  `exact_bench/noise_oracle_runtime.py` and are called by active time-dynamics
+  code. Paper-I call sites alone can be made strict, but deleting the shared
+  mechanism changes Paper-II semantics; that cross-lane scope is not ratified.
+- **3.2:** Q33 names two run-level sources, Qiskit and the logical-ladder proxy,
+  while the active Paper-I family explicitly selects the third implementation
+  `marrakesh_graph_span_v1`. DECISIONS does not say whether graph-span is
+  deleted, mapped to `proxy`, or retained as a third run-level source. No
+  scientific mapping was inferred.
+
+The Q20/Q21 fallback-reporting fields named in 6o
+(`metric_proxy`, `cheap_metric_proxy`, `phase1/2_lambda_f_proxy_applied`, and
+`phase2_missing_curvature_fallback_used`) are already absent from production
+code. The deferred-Gram path and all PAOP machinery remain intact under the Q41
+retraction and Q42. The 16 default-off policy/mode parameters, 30 `_mode`
+parameters, and three legacy-named settings excluded by the commission were not
+touched.
+
+### 2026-08-25 — Work Plan 1.2 — maturity overrides deleted
+
+**Implementation:** from baseline `a31b81cc20dd513ebd7dec7e7b73cb5b6ecf921a`,
+commit `1e6db270` deletes the eleven executor parameters and CLI flags that
+overrode phase-controller caps and shot budgets. Controller caps now come
+unconditionally from the Phase-I, Phase-II, and Phase-III funnel shortlist
+sizes, matching the `None` fallback taken by every Paper-I profile. The
+controller's existing fixed shot defaults (`1`, `1`, and zero explicit phase
+caps) now apply without a caller-facing override.
+
+Enumeration found a second live producer outside the profile system:
+`StaticScaffoldPolicy` generated six fractional cap overrides and five shot
+overrides for generic exact-benchmark commands. Those fields, their fractional
+cap helper, and their CLI emissions are deleted too. Historical reporting
+dictionaries that describe commands from completed runs remain byte-for-byte
+as evidence provenance.
+
+The phase controller implementation and `PhaseControllerSnapshot` are not
+changed. In particular, `phase_shots_maturity_floor` remains in the snapshot:
+its type has 80 upstream symbols and the author's corrected commission says not
+to touch the phase controller. This increment removes its override interface,
+not live controller state or its serialized shape.
+
+The change adds 59 lines and deletes 265: **206 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5466 tests collected, 54
+errors` to `5477 tests collected, 54 errors`; the eleven added cases each prove
+one retired flag is rejected, and the complete `ERROR test/...` diff is empty.
+The focused CLI, generic-policy, route-contract, controller, and runtime-kwargs
+surface passes `200 passed`. A broader generic-benchmark file retains its
+unrelated missing-module failures, and an untouched lane-route test retains its
+stale assertion that `global_single_population` is absent.
+
+**Paper-I-local impact audit:** every edited implementation symbol measured LOW
+before editing. The HIGH-risk `PhaseControllerSnapshot` surface was deliberately
+excluded. Final isolated GitNexus `detect-changes` reports three production
+files, three mapped symbols, one affected execution flow, and MEDIUM risk.
+
+### 2026-08-25 — Q43 — Phase-III shadow damping deleted
+
+**Implementation:** from baseline `9eff36373d47609fb60e9390e03df9e068cc8115`,
+commit `af832630` deletes the `phase3_shadow_damping_policy` executor parameter
+and CLI flag, its mapped-seed recommendation helper and receipt schema, both
+controller injection sites, resume-state reconstruction, checkpoint compaction,
+and output setting. Old history rows carrying the retired receipt are accepted
+as input but compacted without that field; there is no runtime alias or
+compatibility path.
+
+The authenticated V4 and active-family route-contract dictionaries retain the
+retired field and semantic-invariant bytes as historical provenance. Runtime
+profile normalization and validation explicitly exclude the field, so the
+contract digest remains stable while no executable namespace or runtime kwargs
+carry it. Q44/Q46's load-bearing runtime-split path is untouched.
+
+The change adds 18 lines and deletes 566: **548 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5477 tests collected, 54
+errors` to `5461 tests collected, 54 errors`; the sixteen-test decrease is the
+intentional deletion of the retired recommendation/receipt tests, and the
+complete `ERROR test/...` diff is empty. The direct retired-field,
+profile-normalization, runtime-kwargs, and source-lock surface passes `51
+passed`. Across all five touched test files, the same six unrelated failures
+reproduce at the untouched baseline: one trust-displacement expectation, three
+stale prune-extension surface assertions, one stale route digest, and one stale
+source-shape assertion. Q43 adds no failing test.
+
+**Paper-I-local impact audit:** every pre-edit symbol impact was LOW. Final
+isolated GitNexus `detect-changes` reports eight files, four mapped symbols,
+zero affected processes, and LOW risk.

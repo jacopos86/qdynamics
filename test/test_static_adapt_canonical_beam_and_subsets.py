@@ -279,11 +279,11 @@ def test_shared_canonical_cost_weights_and_cli_exact_subset_inputs() -> None:
     parser = cli_config._build_adapt_arg_parser(adapt_gradient_parity_rtol=1e-8)
     defaults = parser.parse_args([])
     assert (
-        defaults.phase2_lambda_2q,
-        defaults.phase2_lambda_d,
-        defaults.phase2_lambda_1q,
-        defaults.phase2_lambda_theta,
-        defaults.phase2_lambda_shot,
+        defaults.cost_lambda_2q,
+        defaults.cost_lambda_d,
+        defaults.cost_lambda_1q,
+        defaults.cost_lambda_theta,
+        defaults.cost_lambda_shot,
     ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))
     exact = parser.parse_args(
         [

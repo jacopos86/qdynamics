@@ -7,7 +7,7 @@ from collections import deque
 import hashlib
 import json
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from threading import Lock
 from typing import Any, Mapping, Sequence
 
@@ -21,7 +21,6 @@ from pipelines.qiskit_backend_tools import (
     compile_circuit_for_backend,
     compiled_gate_stats,
     load_static_fake_graph_backend,
-    rank_compile_rows,
     resolve_backend_targets,
     safe_circuit_depth,
     snapshot_backend_target,
@@ -31,8 +30,6 @@ from src.quantum.ansatz_parameterization import AnsatzParameterLayout
 from src.quantum.vqe_latex_python_pairs import AnsatzTerm
 
 
-_DEFAULT_PREFERRED_FAKES = ("FakeMarrakesh", "FakeNighthawk", "FakeFez")
-_TRANSPILE_SINGLE_MODES = ("transpile_single_v1", "incremental_prefix_suffix_v1")
 _INCREMENTAL_PREFIX_SUFFIX_MODE = "incremental_prefix_suffix_v1"
 _FULL_TRANSPILE_SOURCE = "backend_transpile_v1"
 _INCREMENTAL_SOURCE = "backend_incremental_prefix_suffix_v1"
@@ -81,17 +78,13 @@ def backend_compile_scope_uses_qiskit_for_stage(
 
 @dataclass(frozen=True)
 class BackendCompileConfig:
-    mode: str = "proxy"
-    requested_backend_name: str | None = None
-    requested_backend_shortlist: tuple[str, ...] = ()
+    mode: str = "transpile_single_v1"
+    requested_backend_name: str | None = "FakeMarrakesh"
     seed_transpiler: int = 7
     optimization_level: int = 1
     structure_theta_value: float = 1.0
-    preferred_fake_backends: tuple[str, ...] = _DEFAULT_PREFERRED_FAKES
-    shortlist_reduction_mode: str = "best_backend_in_shortlist_v1"
     penalty_version: str = "transpile_signed_burden_scalar_v2"
     reward_negative_deltas: bool = True
-    allow_preferred_fallback: bool = True
     one_qubit_coordinate_policy: str = (
         ONE_QUBIT_COORDINATE_PROXY_BASELINE_V1
     )
@@ -336,50 +329,45 @@ class MarrakeshGraphSpanCostOracle:
         requested_backend_name = "FakeMarrakesh" if config.requested_backend_name in {None, ""} else str(config.requested_backend_name)
         if requested_backend_name != "FakeMarrakesh":
             raise ValueError("marrakesh_graph_span_v1 requires phase3_backend_name='FakeMarrakesh'.")
-        if tuple(config.requested_backend_shortlist):
-            raise ValueError("marrakesh_graph_span_v1 does not accept --phase3-backend-shortlist.")
         self.embedding = marrakesh_logical_embedding_v1(int(self.num_qubits))
         self.targets, self.resolution_audit = resolve_backend_targets(
             requested_names=("FakeMarrakesh",),
-            preferred_fake_backends=("FakeMarrakesh",),
+            preferred_fake_backends=(),
             allow_preferred_fallback=False,
             fallback_mode="single",
             allow_runtime_lookup=False,
         )
         if len(self.targets) != 1:
-            try:
-                backend_obj, resolved_name, fallback_meta = load_static_fake_graph_backend("FakeMarrakesh")
-            except Exception:
-                pass
-            else:
-                snapshot = snapshot_backend_target(backend_obj)
-                snapshot["static_graph_backend"] = fallback_meta
-                self.targets = (
-                    ResolvedBackendTarget(
-                        requested_name="FakeMarrakesh",
-                        resolved_name=str(resolved_name),
-                        resolution_kind="fake_static_graph_conf",
-                        using_fake_backend=True,
-                        backend_obj=backend_obj,
-                        target_snapshot=dict(snapshot),
-                    ),
-                )
-                self.resolution_audit = [
-                    *list(self.resolution_audit),
-                    {
-                        "requested_name": "FakeMarrakesh",
-                        "resolved_name": str(resolved_name),
-                        "success": True,
-                        "resolution_kind": "fake_static_graph_conf",
-                        "using_fake_backend": True,
-                        "runtime_lookup_attempted": False,
-                        "runtime_error": None,
-                        "fake_exact_attempted": "FakeMarrakesh",
-                        "fallback_reason": "installed_fake_backend_class_unavailable_or_too_heavy_for_graph_span",
-                        "error": None,
-                        "target_snapshot": dict(snapshot),
-                    },
-                ]
+            backend_obj, resolved_name, load_metadata = (
+                load_static_fake_graph_backend("FakeMarrakesh")
+            )
+            snapshot = snapshot_backend_target(backend_obj)
+            snapshot["static_graph_backend"] = load_metadata
+            self.targets = (
+                ResolvedBackendTarget(
+                    requested_name="FakeMarrakesh",
+                    resolved_name=str(resolved_name),
+                    resolution_kind="fake_static_graph_conf",
+                    using_fake_backend=True,
+                    backend_obj=backend_obj,
+                    target_snapshot=dict(snapshot),
+                ),
+            )
+            self.resolution_audit = [
+                *list(self.resolution_audit),
+                {
+                    "requested_name": "FakeMarrakesh",
+                    "resolved_name": str(resolved_name),
+                    "success": True,
+                    "resolution_kind": "fake_static_graph_conf",
+                    "using_fake_backend": True,
+                    "runtime_lookup_attempted": False,
+                    "runtime_error": None,
+                    "fake_exact_attempted": "FakeMarrakesh",
+                    "error": None,
+                    "target_snapshot": dict(snapshot),
+                },
+            ]
         if len(self.targets) != 1:
             raise RuntimeError("marrakesh_graph_span_v1 could not resolve FakeMarrakesh.")
         target = self.targets[0]
@@ -598,14 +586,21 @@ class BackendCompileOracle:
         self.config = config
         self.num_qubits = int(num_qubits)
         self.ref_state = None if ref_state is None else np.asarray(ref_state, dtype=complex).reshape(-1)
-        requested_names = [str(config.requested_backend_name)] if str(config.mode) in _TRANSPILE_SINGLE_MODES else list(config.requested_backend_shortlist)
-        fallback_mode = "single" if str(config.mode) in _TRANSPILE_SINGLE_MODES else "shortlist"
-        self.targets, self.resolution_audit = resolve_backend_targets(
-            requested_names=requested_names,
-            preferred_fake_backends=tuple(str(x) for x in config.preferred_fake_backends),
-            allow_preferred_fallback=bool(config.allow_preferred_fallback),
-            fallback_mode=str(fallback_mode),
+        requested_backend_name = (
+            "FakeMarrakesh"
+            if config.requested_backend_name in {None, ""}
+            else str(config.requested_backend_name)
         )
+        self.targets, self.resolution_audit = resolve_backend_targets(
+            requested_names=(requested_backend_name,),
+            preferred_fake_backends=(),
+            allow_preferred_fallback=False,
+            fallback_mode="single",
+        )
+        if len(self.targets) != 1:
+            raise RuntimeError(
+                f"Could not resolve requested compile backend {requested_backend_name!r}."
+            )
         self.stats_cache: dict[tuple[str, ...], dict[str, Any]] = {}
         self._cache_lock = Lock()
         self._cache_key_locks: dict[tuple[str, ...], Lock] = {}
@@ -615,9 +610,7 @@ class BackendCompileOracle:
         self.estimate_count = 0
 
     def _aggregation_mode(self) -> str:
-        if str(self.config.mode) in _TRANSPILE_SINGLE_MODES:
-            return "single_backend"
-        return str(self.config.shortlist_reduction_mode)
+        return "single_backend"
 
     @staticmethod
     def _normalize_initial_layout(initial_layout: Sequence[int] | None) -> tuple[int, ...] | None:
@@ -845,6 +838,10 @@ class BackendCompileOracle:
         source_mode: str = _FULL_TRANSPILE_SOURCE,
         hardware_cost_source: str = _FULL_TRANSPILE_SOURCE,
     ) -> CompileCostEstimate:
+        if len(base_rows) != 1 or len(trial_rows) != 1:
+            raise RuntimeError(
+                "BackendCompileOracle requires exactly one requested backend."
+            )
         rows: list[dict[str, Any]] = []
         base_map = {str(row.get("transpile_backend", "")): dict(row) for row in base_rows}
         for trial in trial_rows:
@@ -984,17 +981,10 @@ class BackendCompileOracle:
                 }
             )
 
-        selected = rank_compile_rows(
-            rows,
-            status_key="transpile_status",
-            field_order=(
-                "delta_compiled_count_2q",
-                "delta_compiled_depth_2q",
-                "delta_compiled_depth",
-                "delta_compiled_size",
-                "signed_penalty_total",
-                "selected_backend_name",
-            ),
+        selected = (
+            rows[0]
+            if str(rows[0].get("transpile_status", "")) == "ok"
+            else None
         )
         proxy_dict = self._proxy_baseline_dict(proxy_baseline)
         if selected is None:
@@ -1290,6 +1280,10 @@ class BackendCompileOracle:
 
     def final_scaffold_summary(self, ops: Sequence[AnsatzTerm]) -> dict[str, Any]:
         snapshot = self.snapshot_base(ops)
+        if len(snapshot.base_backend_rows) != 1:
+            raise RuntimeError(
+                "BackendCompileOracle requires exactly one requested backend."
+            )
         rows: list[dict[str, Any]] = []
         for row in snapshot.base_backend_rows:
             row_dict = dict(row)
@@ -1302,7 +1296,7 @@ class BackendCompileOracle:
             else:
                 row_dict["absolute_burden_score_v1"] = float("inf")
             rows.append(row_dict)
-        best = rank_compile_rows(rows)
+        best = rows[0] if str(rows[0].get("transpile_status", "")) == "ok" else None
         return {
             "rows": rows,
             "selected_backend": (None if best is None else dict(best)),

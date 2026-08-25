@@ -4489,8 +4489,6 @@ def _accepted_round_scientific_receipts(
                 is not True
                 or qiskit_receipt.get("independent_base_trial_layouts")
                 is not True
-                or qiskit_receipt.get("preferred_backend_fallback_allowed")
-                is not False
                 or qiskit_receipt.get("negative_delta_reward_enabled")
                 is not False
                 or qiskit_receipt.get("one_qubit_coordinate_policy")
@@ -6075,8 +6073,6 @@ def run_ra_adapt(
             != BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
             or selector_compile_cost_accounting.get("excluded_from_s_alg")
             is not True
-            or selector_compile_cost_accounting.get("phase0_cost_source")
-            != "none_standard_adapt_absolute_gradient_v1"
             or selector_compile_cost_accounting.get("qiskit_applied_phases")
             != []
             or selector_compile_cost_accounting.get(
@@ -6117,16 +6113,12 @@ def run_ra_adapt(
             is not True
             or not isinstance(phase12_compile, Mapping)
             or phase12_compile.get("mode") != MARRAKESH_GRAPH_SPAN_MODE
-            or phase12_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or not isinstance(phase3_compile, Mapping)
             or phase3_compile.get("mode") != "transpile_single_v1"
             or phase3_compile.get("optimization_level") != 1
             or phase3_compile.get("seed_transpiler") != 7
             or phase3_compile.get("structure_theta_value") != 1.0
             or phase3_compile.get("negative_delta_reward_enabled") is not False
-            or phase3_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or phase3_compile.get("one_qubit_coordinate_policy")
             != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             or not isinstance(phase3_targets, list)
@@ -6140,12 +6132,6 @@ def run_ra_adapt(
                 "compile-oracle accounting."
             )
     elif protocol.algorithm_id in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS:
-        gradient_phase0_algorithm = protocol.algorithm_id in {
-            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
-            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
-            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
-            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
-        }
         phase12_compile = (
             selector_compile_cost_accounting.get("phase_i_phase_ii")
             if isinstance(selector_compile_cost_accounting, Mapping)
@@ -6172,12 +6158,6 @@ def run_ra_adapt(
             or phase12_compile is not None
             or selector_compile_cost_accounting.get("phase_i_cost_source")
             != "structural_proxy_v1"
-            or selector_compile_cost_accounting.get("phase0_cost_source")
-            != (
-                "none_standard_adapt_absolute_gradient_v1"
-                if gradient_phase0_algorithm
-                else None
-            )
             or selector_compile_cost_accounting.get("qiskit_applied_phases")
             != ["phase_ii", "phase_iii"]
             or not isinstance(phase23_compile, Mapping)
@@ -6187,8 +6167,6 @@ def run_ra_adapt(
             or phase23_compile.get("seed_transpiler") != 7
             or phase23_compile.get("structure_theta_value") != 1.0
             or phase23_compile.get("negative_delta_reward_enabled") is not True
-            or phase23_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or phase23_compile.get("one_qubit_coordinate_policy")
             != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             or not isinstance(phase23_targets, list)
