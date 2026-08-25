@@ -1070,7 +1070,8 @@ verdict** — ratify before deleting.
 | proxy / fallback | 9 |
 | telemetry / observation | 7 |
 
-Named legacy candidates: `historical_singleton_coordinate_solve_policy`,
+Named legacy candidates (**three of these are LIVE — see 6ax**):
+`historical_singleton_coordinate_solve_policy`,
 `historical_singleton_coordinate_solve_scope`,
 `historical_singleton_trust_region_update_policy`,
 `phase3_shadow_legacy_geometry_mode`, `phase3_shadow_legacy_max_depth`, and the
@@ -2475,6 +2476,40 @@ previous one.
 **Consequence for the refactor.** `Response.charge(order, support)` in 6g/6j
 inherits this for free — the key has no phase component, so no phase accounting
 needs writing. Do not add one.
+
+## 6ax. `historical_singleton_*` is live — correcting the 6q legacy list
+
+6q listed `historical_singleton_coordinate_solve_policy`,
+`historical_singleton_coordinate_solve_scope` and
+`historical_singleton_trust_region_update_policy` among 10 "dead/legacy/historical"
+parameters, on the strength of the name. **They are live canonical machinery.**
+
+`historical_singleton_coordinate_solve_policy` selects the **Phase-III singleton
+coordinate solve**. At `adapt_pipeline.py:15293`:
+
+```python
+historical_singleton_phase3_coordinate_scope = (
+    "historical_singleton_supported_projection"
+    if policy == JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1
+    else "historical_singleton_whitening"
+)
+```
+
+The B3 run records
+`historical_singleton_coordinate_solve_policy = "supported_metric_projected_generalized_trust_v1"`,
+so the projected-generalized-trust branch is the one that ran. It is set by three
+profiles including the V1 root (`sr_snake_route_profile.py:467, 749, 1135`).
+
+The ledger scope `historical_singleton_supported_projection_active_gradient`
+(105 occurrences, **all charged**) is therefore the **active-coordinate residual
+gradient** — Paper I's `g_theta` block of `g_joint` — measured on the retained
+metric support under that solve. Core Phase-III, not legacy.
+
+**Third instance of the naming trap**, after `maturity` (a phase controller) and
+PAOP (absent from the manuscript but inside canonical `full_meta`). A
+`historical_`, `legacy_` or `archival_` prefix in this codebase is not evidence
+of deadness — several name the *current* implementation. Check the profiles and
+a run receipt before treating a prefix as a verdict.
 
 ## 7. No fallbacks
 
