@@ -2473,6 +2473,22 @@ So the 3% figure is not a gap. It is the correct consequence of a staged funnel
 in which each phase acquires a *new* response object rather than re-asking for the
 previous one.
 
+### Paper I states this property in Appendix `app:estimator_queries`
+
+> *"Classical postprocessing is free, so ranking, pseudoinverse solves, and Schur
+> complements add nothing. Within the staged selector, **an acquired response
+> scalar passed to a later phase or formula is charged once**, and symmetric
+> entries are acquired once. Powell objective calls remain charged on every
+> invocation because each call represents a new QPU acquisition, even when Powell
+> revisits a parameter point. **Measurements are not carried across outer
+> iterations, since the accepted state changes.**"*
+
+Every clause matches the ledger measured above: charged-once across phases (the
+`*_recompute` scopes, 100% uncharged); symmetric entries once (`symmetric_pair`
+in the key); Powell charged every call (`energy:depth_opt`, 3,887 of 4,181
+charged); and no reuse across outer iterations (the state fingerprint is in the
+key). The implementation and the manuscript agree.
+
 **Consequence for the refactor.** `Response.charge(order, support)` in 6g/6j
 inherits this for free — the key has no phase component, so no phase accounting
 needs writing. Do not add one.
