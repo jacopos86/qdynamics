@@ -2478,6 +2478,38 @@ The four evidence profiles and their numbers; optimizer tolerances; estimator
 accounting semantics; forced-admission behaviour; cost normalization. Changing
 any of those is a scientific decision with its own rerun and manuscript review.
 
+## NEXT INCREMENTS — Codex reads this, no relay needed
+
+Claude writes increment guidance here instead of the author pasting it. Re-read
+before each increment, together with DECISIONS. Newest first.
+
+### Beam orphans — DELETE, not move (supersedes 6as)
+
+`_evaluate_beam_branch` (`:29190`, 5,469), `_materialize_beam_child` (`:35366`,
+2,722) and `_materialize_sr_active_only_correction` (`:34660`, 705) are
+**unreachable**. Your extension pass removed their call sites and left the
+definitions — each went from 2 occurrences to 1, the `def` line itself. Every
+other occurrence repo-wide is in `.md` files. The live beam is `beam_search.py`
+(imported at `adapt_pipeline.py:600`) plus `extensions.py`. Net target **−8,896**.
+
+**Ratify with the AST method before deleting.** A regex for `name(` flagged 27
+nested defs as uncalled; an AST Name-load walk cut it to 10, because 17 are
+passed as closures; the raw-file check narrowed it again. Use the last.
+
+### Prune — check the same way first
+
+3,227 lines across 24 defs, largest `_execute_live_mature_prune_pass` (1,374) and
+`_build_prune_schur_nomination_scores` (827). Its parameters are gone too, so
+these may also be orphaned rather than movable. Establish which before choosing a
+net-line target.
+
+### Then
+
+Checkpoint/telemetry builders, 10 defs, 1,775 lines — out of the loop entirely;
+telemetry is an output built from `Scored`. Leave the phase groups (phase0-3,
+5,317 lines, 38 defs) alone — they belong to the `score()` collapse in the goal
+work.
+
 ## WORK PLAN — execute in this order
 
 Derived from decisions Q1-Q39. Each item names its decision, its sites, and what
