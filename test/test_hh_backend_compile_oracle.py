@@ -62,12 +62,11 @@ def test_backend_compile_config_rejects_nonfinite_weights() -> None:
         BackendCompileConfig(weight_depth=float("nan"))
 
 
-def test_backend_compile_default_preserves_proxy_one_qubit_coordinate() -> None:
+def test_backend_compile_default_is_single_target_qiskit() -> None:
     oracle = object.__new__(BackendCompileOracle)
-    oracle.config = BackendCompileConfig(
-        mode="transpile_single_v1",
-        requested_backend_name="FakeMarrakesh",
-    )
+    oracle.config = BackendCompileConfig()
+    assert oracle.config.mode == "transpile_single_v1"
+    assert oracle.config.requested_backend_name == "FakeMarrakesh"
     oracle.targets = (SimpleNamespace(resolved_name="FakeMarrakesh"),)
     proxy = CompileCostEstimate(
         new_pauli_actions=1.0,
@@ -157,7 +156,7 @@ def test_marrakesh_graph_span_oracle_estimate_uses_support_span_and_proxy_baseli
 ) -> None:
     def _fake_resolve(**kwargs):
         assert kwargs["requested_names"] == ("FakeMarrakesh",)
-        assert kwargs["preferred_fake_backends"] == ("FakeMarrakesh",)
+        assert kwargs["preferred_fake_backends"] == ()
         assert kwargs["allow_preferred_fallback"] is False
         assert kwargs["fallback_mode"] == "single"
         return (
@@ -265,17 +264,6 @@ def test_marrakesh_graph_span_oracle_strict_backend_contract(monkeypatch: pytest
             num_qubits=4,
             ref_state=None,
         )
-    with pytest.raises(ValueError, match="does not accept --phase3-backend-shortlist"):
-        MarrakeshGraphSpanCostOracle(
-            config=BackendCompileConfig(
-                mode=MARRAKESH_GRAPH_SPAN_MODE,
-                requested_backend_name="FakeMarrakesh",
-                requested_backend_shortlist=("FakeMarrakesh",),
-            ),
-            num_qubits=4,
-            ref_state=None,
-        )
-
     def _wrong_resolve(**kwargs):
         return (
             (
@@ -302,7 +290,7 @@ def test_marrakesh_graph_span_oracle_strict_backend_contract(monkeypatch: pytest
         )
 
 
-def test_backend_compile_oracle_prefers_lower_penalty_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_backend_compile_oracle_uses_the_requested_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     def _fake_resolve(**kwargs):
         return (
             (
@@ -314,18 +302,9 @@ def test_backend_compile_oracle_prefers_lower_penalty_backend(monkeypatch: pytes
                     backend_obj=_BackendStub("FakeNighthawk"),
                     target_snapshot={"backend_name": "FakeNighthawk"},
                 ),
-                ResolvedBackendTarget(
-                    requested_name="ibm_miami",
-                    resolved_name="FakeFez",
-                    resolution_kind="fake_exact",
-                    using_fake_backend=True,
-                    backend_obj=_BackendStub("FakeFez"),
-                    target_snapshot={"backend_name": "FakeFez"},
-                ),
             ),
             [
                 {"requested_name": "ibm_boston", "resolved_name": "FakeNighthawk", "success": True},
-                {"requested_name": "ibm_miami", "resolved_name": "FakeFez", "success": True},
             ],
         )
 
@@ -372,8 +351,8 @@ def test_backend_compile_oracle_prefers_lower_penalty_backend(monkeypatch: pytes
 
     oracle = BackendCompileOracle(
         config=BackendCompileConfig(
-            mode="transpile_shortlist_v1",
-            requested_backend_shortlist=("ibm_boston", "ibm_miami"),
+            mode="transpile_single_v1",
+            requested_backend_name="ibm_boston",
         ),
         num_qubits=6,
         ref_state=np.array([1.0] + [0.0] * 63, dtype=complex),
@@ -413,18 +392,10 @@ def test_backend_compile_oracle_prefers_lower_penalty_backend(monkeypatch: pytes
     assert summary["selected_backend"]["absolute_burden_score_v1"] >= 0.0
 
 
-def test_backend_compile_oracle_uses_signed_penalty_only_after_clipped_burden_tie(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_backend_compile_oracle_preserves_signed_penalty_for_requested_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     def _fake_resolve(**kwargs):
         return (
             (
-                ResolvedBackendTarget(
-                    requested_name="fake_a",
-                    resolved_name="FakeA",
-                    resolution_kind="fake_exact",
-                    using_fake_backend=True,
-                    backend_obj=_BackendStub("FakeA"),
-                    target_snapshot={"backend_name": "FakeA"},
-                ),
                 ResolvedBackendTarget(
                     requested_name="fake_z",
                     resolved_name="FakeZ",
@@ -435,7 +406,6 @@ def test_backend_compile_oracle_uses_signed_penalty_only_after_clipped_burden_ti
                 ),
             ),
             [
-                {"requested_name": "fake_a", "resolved_name": "FakeA", "success": True},
                 {"requested_name": "fake_z", "resolved_name": "FakeZ", "success": True},
             ],
         )
@@ -483,8 +453,8 @@ def test_backend_compile_oracle_uses_signed_penalty_only_after_clipped_burden_ti
 
     oracle = BackendCompileOracle(
         config=BackendCompileConfig(
-            mode="transpile_shortlist_v1",
-            requested_backend_shortlist=("fake_a", "fake_z"),
+            mode="transpile_single_v1",
+            requested_backend_name="fake_z",
             reward_negative_deltas=True,
         ),
         num_qubits=6,
@@ -511,66 +481,19 @@ def test_backend_compile_oracle_uses_signed_penalty_only_after_clipped_burden_ti
     assert estimate.selected_backend_row["c_hat_d"] == pytest.approx(0.0)
 
 
-def test_backend_compile_oracle_ranks_nonnegative_burden_before_signed_reward() -> None:
+def test_backend_compile_oracle_rejects_multiple_backend_rows() -> None:
     oracle = object.__new__(BackendCompileOracle)
     oracle.config = BackendCompileConfig(reward_negative_deltas=True)
     oracle.targets = [
         SimpleNamespace(resolved_name="worse_signed"),
         SimpleNamespace(resolved_name="better_clipped"),
     ]
-    estimate = oracle._estimate_from_rows(
-        base_rows=[
-            {
-                "transpile_backend": "worse_signed",
-                "transpile_status": "ok",
-                "compiled_count_2q": 10,
-                "compiled_depth": 100,
-                "compiled_depth_2q": 100,
-                "compiled_size": 200,
-                "compiled_cx_count": 10,
-                "compiled_ecr_count": 0,
-            },
-            {
-                "transpile_backend": "better_clipped",
-                "transpile_status": "ok",
-                "compiled_count_2q": 10,
-                "compiled_depth": 10,
-                "compiled_depth_2q": 10,
-                "compiled_size": 20,
-                "compiled_cx_count": 10,
-                "compiled_ecr_count": 0,
-            },
-        ],
-        trial_rows=[
-            {
-                "transpile_backend": "worse_signed",
-                "transpile_status": "ok",
-                "compiled_count_2q": 11,
-                "compiled_depth": 0,
-                "compiled_depth_2q": 0,
-                "compiled_size": 0,
-                "compiled_cx_count": 11,
-                "compiled_ecr_count": 0,
-            },
-            {
-                "transpile_backend": "better_clipped",
-                "transpile_status": "ok",
-                "compiled_count_2q": 10,
-                "compiled_depth": 10,
-                "compiled_depth_2q": 10,
-                "compiled_size": 20,
-                "compiled_cx_count": 10,
-                "compiled_ecr_count": 0,
-            },
-        ],
-        proxy_baseline=None,
-    )
-
-    assert estimate.selected_backend_name == "better_clipped"
-    assert estimate.delta_compiled_count_2q == pytest.approx(0.0)
-    assert estimate.delta_compiled_depth_2q == pytest.approx(0.0)
-    assert estimate.selected_backend_row is not None
-    assert estimate.selected_backend_row["signed_penalty_total"] == pytest.approx(0.0)
+    with pytest.raises(RuntimeError, match="exactly one requested backend"):
+        oracle._estimate_from_rows(
+            base_rows=[{"transpile_backend": "worse_signed"}] * 2,
+            trial_rows=[{"transpile_backend": "better_clipped"}] * 2,
+            proxy_baseline=None,
+        )
 
 
 def test_backend_compile_oracle_closes_gate_when_all_targets_fail(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -993,7 +916,6 @@ def test_phase123_cache_reuses_only_exact_candidate_position_pair(
             mode="transpile_single_v1",
             requested_backend_name="FakeMarrakesh",
             reward_negative_deltas=True,
-            allow_preferred_fallback=False,
         ),
         num_qubits=6,
         ref_state=np.array([1.0] + [0.0] * 63, dtype=complex),

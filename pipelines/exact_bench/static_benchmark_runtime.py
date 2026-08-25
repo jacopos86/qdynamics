@@ -290,17 +290,6 @@ class StaticScaffoldPolicy:
     phase1_score_mode: str = "trust_region_v1"
     phase1_score_z_alpha: float | None = None
     phase2_score_z_alpha: float | None = None
-    phase1_maturity_cap_min_fraction: float = 0.35
-    phase1_maturity_cap_max_fraction: float = 1.0
-    phase2_maturity_cap_min_fraction: float = 0.35
-    phase2_maturity_cap_max_fraction: float = 1.0
-    phase3_maturity_cap_min_fraction: float = 0.25
-    phase3_maturity_cap_max_fraction: float = 0.75
-    phase_maturity_shot_min: int = 1
-    phase_maturity_shot_max: int = 1
-    phase1_maturity_shot_cap: int = 0
-    phase2_maturity_shot_cap: int = 0
-    phase3_maturity_shot_cap: int = 0
     adapt_max_depth: int = 96
     adapt_maxiter: int = 4000
     adapt_drop_floor: float = 1e-8
@@ -503,16 +492,6 @@ class BenchmarkResult:
     compile_json: str | None = None
     policy_json: str | None = None
 
-def _fractional_cap_pair(size: int, min_fraction: float, max_fraction: float) -> tuple[int, int]:
-    size_val = max(1, int(size))
-    lo = _clamp(float(min_fraction), 0.0, 1.0)
-    hi = _clamp(float(max_fraction), 0.0, 1.0)
-    if lo > hi:
-        lo, hi = hi, lo
-    min_cap = max(1, int(math.ceil(size_val * lo)))
-    max_cap = max(min_cap, int(math.ceil(size_val * hi)))
-    return int(min_cap), int(max_cap)
-
 def _static_hardware_resolution_mode(value: Any) -> str:
     return str("ideal" if value in {None, ""} else value).strip().lower() or "ideal"
 
@@ -660,24 +639,6 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
             pool_key = "full_meta"
     phase1_shortlist = pool.phase1_budget.resolve(features)
     phase2_shortlist = pool.phase2_budget.resolve(features)
-    phase1_cap_min, phase1_cap_max = _fractional_cap_pair(
-        phase1_shortlist,
-        static.phase1_maturity_cap_min_fraction,
-        static.phase1_maturity_cap_max_fraction,
-    )
-    phase2_cap_min, phase2_cap_max = _fractional_cap_pair(
-        phase2_shortlist,
-        static.phase2_maturity_cap_min_fraction,
-        static.phase2_maturity_cap_max_fraction,
-    )
-    phase3_cap_min, phase3_cap_max = _fractional_cap_pair(
-        phase2_shortlist,
-        static.phase3_maturity_cap_min_fraction,
-        static.phase3_maturity_cap_max_fraction,
-    )
-    shot_min = max(1, int(static.phase_maturity_shot_min))
-    shot_max = max(shot_min, int(static.phase_maturity_shot_max))
-
     args: list[str] = []
     args = _set_option(args, "--adapt-pool", pool_key)
     selected_transfer = str(getattr(spec, "selected_logical_transfer_mode", "exact_match_v1") or "exact_match_v1")
@@ -755,17 +716,6 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
     args = _set_option(args, "--phase1-opt-dim-cost-scale", static.opt_dim_cost_scale)
     args = _set_option(args, "--phase1-family-repeat-cost-scale", pool.family_repeat_penalty)
     args = _set_option(args, "--phase1-shortlist-size", phase1_shortlist)
-    args = _set_option(args, "--phase1-maturity-cap-min", phase1_cap_min)
-    args = _set_option(args, "--phase1-maturity-cap-max", phase1_cap_max)
-    args = _set_option(args, "--phase2-maturity-cap-min", phase2_cap_min)
-    args = _set_option(args, "--phase2-maturity-cap-max", phase2_cap_max)
-    args = _set_option(args, "--phase3-maturity-cap-min", phase3_cap_min)
-    args = _set_option(args, "--phase3-maturity-cap-max", phase3_cap_max)
-    args = _set_option(args, "--phase-maturity-shot-min", shot_min)
-    args = _set_option(args, "--phase-maturity-shot-max", shot_max)
-    args = _set_option(args, "--phase1-maturity-shot-cap", max(0, int(static.phase1_maturity_shot_cap)))
-    args = _set_option(args, "--phase2-maturity-shot-cap", max(0, int(static.phase2_maturity_shot_cap)))
-    args = _set_option(args, "--phase3-maturity-shot-cap", max(0, int(static.phase3_maturity_shot_cap)))
     args = _set_option(args, "--phase1-probe-max-positions", static.phase1_probe_max_positions)
     args = _set_option(args, "--phase2-shortlist-fraction", static.phase2_shortlist_fraction)
     args = _set_option(args, "--phase2-shortlist-size", phase2_shortlist)

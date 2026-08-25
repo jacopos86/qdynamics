@@ -322,7 +322,6 @@ from pipelines.static_adapt.commutation_metadata import (
 from pipelines.static_adapt.lane_routes import (
     STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION,
     STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
-    clamp_controller_cap_pair_for_lane_route,
     normalize_physical_lane_shortlist_aggressiveness,
     normalize_static_lane_route,
     physical_lane_route_variant_id_for_problem,
@@ -1016,7 +1015,6 @@ from pipelines.static_adapt.route_a_trust_region import (
     historical_singleton_scalar_selector_summary,
     initialize_trust_region_state,
     resolve_round_trust_region_snapshot,
-    phase3_shadow_damping_receipt,
     round_trust_region_stage_receipt,
     score_config_with_round_trust_radius,
     selector_config_with_round_trust_radius,
@@ -4059,7 +4057,6 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
             'structure_theta_value': 1.0,
             'accepted_base_and_trial_full_ansatz_transpiled': True,
             'independent_base_trial_layouts': True,
-            'preferred_backend_fallback_allowed': False,
             'negative_delta_reward_enabled': bool(
                 signed_qiskit_scope_active
             ),
@@ -14444,51 +14441,6 @@ def _sr_v4_no_eligible_material_window_prune_hold_receipt(
     }
 
 
-def _phase3_shadow_recommended_mu_from_history(
-    history_rows: Sequence[Mapping[str, Any]] | None,
-) -> tuple[float, str]:
-    """Restore the last serialized zero-query shadow recommendation."""
-
-    for row in reversed(list(history_rows or ())):
-        if not isinstance(row, Mapping):
-            continue
-        receipt = row.get("phase3_shadow_damping_receipt")
-        if receipt is None:
-            continue
-        if not isinstance(receipt, Mapping):
-            raise RuntimeError(
-                "Phase-III shadow damping history receipt is malformed."
-            )
-        if str(receipt.get("schema", "")) != (
-            "route_a_phase3_shadow_damping_receipt_v1"
-        ):
-            raise RuntimeError(
-                "Phase-III shadow damping history receipt schema is unsupported."
-            )
-        try:
-            recommended_mu = float(receipt["recommended_mu"])
-            applied_mu = float(receipt.get("applied_mu", 0.0))
-            added_query_count = int(receipt.get("added_query_count", 0))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RuntimeError(
-                "Phase-III shadow damping history state cannot be reconstructed."
-            ) from exc
-        if (
-            not math.isfinite(recommended_mu)
-            or recommended_mu < 0.0
-            or applied_mu != 0.0
-            or added_query_count != 0
-        ):
-            raise RuntimeError(
-                "Phase-III shadow damping history violates the zero-query "
-                "diagnostic contract."
-            )
-        return float(recommended_mu), "previous_history_receipt"
-    return 0.0, "initialized_zero"
-
-
-
-
 def _projective_state_overlap_estimator_call_key(
     state_before: Sequence[complex] | np.ndarray,
     state_after: Sequence[complex] | np.ndarray,
@@ -14844,11 +14796,11 @@ def _run_hardcoded_adapt_vqe(
     phase1_lambda_compile: float = 0.05,
     phase1_lambda_measure: float = 0.02,
     phase1_lambda_leak: float = 0.0,
-    phase1_lambda_2q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_2Q,
-    phase1_lambda_d: float | None = CANONICAL_HARDWARE_COST_LAMBDA_D,
-    phase1_lambda_1q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_1Q,
-    phase1_lambda_theta: float | None = CANONICAL_HARDWARE_COST_LAMBDA_THETA,
-    phase1_lambda_shot: float | None = CANONICAL_HARDWARE_COST_LAMBDA_SHOT,
+    cost_lambda_2q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_2Q,
+    cost_lambda_d: float | None = CANONICAL_HARDWARE_COST_LAMBDA_D,
+    cost_lambda_1q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_1Q,
+    cost_lambda_theta: float | None = CANONICAL_HARDWARE_COST_LAMBDA_THETA,
+    cost_lambda_shot: float | None = CANONICAL_HARDWARE_COST_LAMBDA_SHOT,
     phase1_score_z_alpha: float = 0.0,
     phase1_score_mode: str = PHASE1_SCORE_MODE_TRUST_REGION_V1,
     phase1_depth_ref: float = 1.0,
@@ -14881,17 +14833,6 @@ def _run_hardcoded_adapt_vqe(
     physical_phase2_lane_rel_threshold: float = 0.10,
     physical_phase1_lane_quota_pressure: float = 0.70,
     physical_phase2_lane_quota_pressure: float = 0.70,
-    phase1_maturity_cap_min: int | None = None,
-    phase1_maturity_cap_max: int | None = None,
-    phase2_maturity_cap_min: int | None = None,
-    phase2_maturity_cap_max: int | None = None,
-    phase3_maturity_cap_min: int | None = None,
-    phase3_maturity_cap_max: int | None = None,
-    phase_maturity_shot_min: int = 1,
-    phase_maturity_shot_max: int = 1,
-    phase1_maturity_shot_cap: int = 0,
-    phase2_maturity_shot_cap: int = 0,
-    phase3_maturity_shot_cap: int = 0,
     phase2_lambda_H: float = 1e-6,
     phase2_rho: float = 0.25,
     phase2_score_z_alpha: float | None = None,
@@ -14926,11 +14867,6 @@ def _run_hardcoded_adapt_vqe(
     phase2_measure_reuse_weight: float = 1.0,
     phase2_opt_dim_cost_scale: float = 1.0,
     phase2_family_repeat_cost_scale: float = 1.0,
-    phase2_lambda_2q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_2Q,
-    phase2_lambda_d: float | None = CANONICAL_HARDWARE_COST_LAMBDA_D,
-    phase2_lambda_1q: float | None = CANONICAL_HARDWARE_COST_LAMBDA_1Q,
-    phase2_lambda_theta: float | None = CANONICAL_HARDWARE_COST_LAMBDA_THETA,
-    phase2_lambda_shot: float | None = CANONICAL_HARDWARE_COST_LAMBDA_SHOT,
     phase2_w_depth: float = 0.2,
     phase2_w_group: float = 0.15,
     phase2_w_shot: float = 0.15,
@@ -14953,7 +14889,6 @@ def _run_hardcoded_adapt_vqe(
     phase3_enable_rescue: bool = False,
     phase3_lifetime_cost_mode: str = "phase3_v1",
     phase3_hardware_cost_normalization_mode: str = "family_robust_v1",
-    phase3_shadow_damping_policy: str = "off",
     phase3_source_lock_preferred_sequence: str | Sequence[str] | None = None,
     phase3_runtime_split_mode: str = "off",
     phase3_runtime_split_selection_mode: str = "proxy_child_set_preselection",
@@ -14999,8 +14934,7 @@ def _run_hardcoded_adapt_vqe(
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
     phase3_backend_name: str | None = "FakeMarrakesh",
-    phase3_backend_shortlist: Sequence[str] | None = None,
-    phase3_backend_transpile_seed: int = 7,
+    backend_transpile_seed: int = 7,
     phase3_backend_optimization_level: int = 1,
     phase3_backend_w_2q: float = 1.0,
     phase3_backend_w_depth: float = 0.1,
@@ -15700,85 +15634,14 @@ def _run_hardcoded_adapt_vqe(
         name="physical_phase2_lane_quota_pressure",
     )
 
-    def _resolve_maturity_cap_pair(
-        *,
-        name: str,
-        min_value: int | None,
-        max_value: int | None,
-        fallback: int,
-    ) -> tuple[int, int]:
-        fallback_val = int(max(1, int(fallback)))
-        min_resolved = fallback_val if min_value is None else int(min_value)
-        max_resolved = fallback_val if max_value is None else int(max_value)
-        if min_resolved < 1 or max_resolved < 1:
-            raise ValueError(f"{name} maturity caps must be >= 1.")
-        if min_resolved > max_resolved:
-            raise ValueError(f"{name} maturity cap min must be <= max.")
-        return int(min_resolved), int(max_resolved)
-
-    phase1_maturity_cap_min_val, phase1_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase1",
-        min_value=phase1_maturity_cap_min,
-        max_value=phase1_maturity_cap_max,
-        fallback=int(phase1_shortlist_size_val),
-    )
-    phase2_maturity_cap_min_val, phase2_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase2",
-        min_value=phase2_maturity_cap_min,
-        max_value=phase2_maturity_cap_max,
-        fallback=int(phase2_shortlist_size_val),
-    )
-    phase3_maturity_cap_min_val, phase3_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase3",
-        min_value=phase3_maturity_cap_min,
-        max_value=phase3_maturity_cap_max,
-        fallback=int(phase3_shortlist_size_val),
-    )
-    phase1_maturity_cap_min_resolved_val = int(phase1_maturity_cap_min_val)
-    phase1_maturity_cap_max_resolved_val = int(phase1_maturity_cap_max_val)
-    phase2_maturity_cap_min_resolved_val = int(phase2_maturity_cap_min_val)
-    phase2_maturity_cap_max_resolved_val = int(phase2_maturity_cap_max_val)
-    phase3_maturity_cap_min_resolved_val = int(phase3_maturity_cap_min_val)
-    phase3_maturity_cap_max_resolved_val = int(phase3_maturity_cap_max_val)
-    phase1_maturity_cap_min_val, phase1_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase1_maturity_cap_min_val,
-        cap_max=phase1_maturity_cap_max_val,
-        effective_cap=phase1_shortlist_size_val,
-    )
-    phase2_maturity_cap_min_val, phase2_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase2_maturity_cap_min_val,
-        cap_max=phase2_maturity_cap_max_val,
-        effective_cap=phase2_shortlist_size_val,
-    )
-    phase3_maturity_cap_min_val, phase3_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase3_maturity_cap_min_val,
-        cap_max=phase3_maturity_cap_max_val,
-        effective_cap=phase3_shortlist_size_val,
-    )
+    phase1_controller_cap_val = int(phase1_shortlist_size_val)
+    phase2_controller_cap_val = int(phase2_shortlist_size_val)
+    phase3_controller_cap_val = int(phase3_shortlist_size_val)
     phase_controller_cap_policy = (
         "physical_route_fixed_to_effective_shortlist_caps_v1"
         if static_lane_route_key == STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE
         else "unchanged_controller_caps"
     )
-    phase_maturity_shot_min_val = int(phase_maturity_shot_min)
-    phase_maturity_shot_max_val = int(phase_maturity_shot_max)
-    if phase_maturity_shot_min_val < 1 or phase_maturity_shot_max_val < 1:
-        raise ValueError("phase maturity shot min/max must be >= 1.")
-    if phase_maturity_shot_min_val > phase_maturity_shot_max_val:
-        raise ValueError("phase_maturity_shot_min must be <= phase_maturity_shot_max.")
-    phase1_maturity_shot_cap_val = int(phase1_maturity_shot_cap)
-    phase2_maturity_shot_cap_val = int(phase2_maturity_shot_cap)
-    phase3_maturity_shot_cap_val = int(phase3_maturity_shot_cap)
-    for shot_cap_name, shot_cap_val in (
-        ("phase1_maturity_shot_cap", phase1_maturity_shot_cap_val),
-        ("phase2_maturity_shot_cap", phase2_maturity_shot_cap_val),
-        ("phase3_maturity_shot_cap", phase3_maturity_shot_cap_val),
-    ):
-        if int(shot_cap_val) < 0:
-            raise ValueError(f"{shot_cap_name} must be >= 0.")
     phase1_depth_ref_val = float(phase1_depth_ref)
     phase1_group_ref_val = float(phase1_group_ref)
     phase1_shot_ref_val = float(phase1_shot_ref)
@@ -16147,17 +16010,6 @@ def _run_hardcoded_adapt_vqe(
             "phase3_hardware_cost_normalization_mode must be one of "
             "{'family_robust_v1','family_robust_symmetric_arctan_v1',"
             "'raw_legacy_v1'}."
-        )
-    phase3_shadow_damping_policy_key = str(
-        phase3_shadow_damping_policy or "off"
-    ).strip().lower()
-    if phase3_shadow_damping_policy_key not in {
-        "off",
-        "mapped_seed_zero_query_v1",
-    }:
-        raise ValueError(
-            "phase3_shadow_damping_policy must be one of "
-            "{'off','mapped_seed_zero_query_v1'}."
         )
     phase3_source_lock_preferred_sequence_events: list[dict[str, Any]] = []
     phase3_source_lock_admitted_candidate_labels: list[str] = []
@@ -16727,23 +16579,18 @@ def _run_hardcoded_adapt_vqe(
             "phase3_backend_cost_scope must be one of "
             f"{sorted(valid_phase3_backend_cost_scopes)}."
         )
-    valid_phase3_backend_cost_modes = {"auto", "proxy", "transpile_single_v1", "transpile_shortlist_v1", "incremental_prefix_suffix_v1", MARRAKESH_GRAPH_SPAN_MODE}
+    valid_phase3_backend_cost_modes = {"auto", "proxy", "transpile_single_v1", "incremental_prefix_suffix_v1", MARRAKESH_GRAPH_SPAN_MODE}
     if phase3_backend_cost_mode_requested_key not in valid_phase3_backend_cost_modes:
         raise ValueError(
-            "phase3_backend_cost_mode must be one of {'auto','proxy','transpile_single_v1','transpile_shortlist_v1','incremental_prefix_suffix_v1','marrakesh_graph_span_v1'}."
+            "phase3_backend_cost_mode must be one of {'auto','proxy','transpile_single_v1','incremental_prefix_suffix_v1','marrakesh_graph_span_v1'}."
         )
     phase3_backend_cost_mode_key = str(phase3_backend_cost_mode_requested_key)
     if phase3_backend_cost_mode_requested_key == "auto":
         phase3_backend_cost_mode_key = (
-            MARRAKESH_GRAPH_SPAN_MODE
+            "transpile_single_v1"
             if str(problem_key) == "hh" and str(continuation_mode) == "phase3_v1"
             else "proxy"
         )
-    phase3_backend_shortlist_tokens = tuple(
-        str(tok).strip()
-        for tok in (str(phase3_backend_shortlist).split(",") if isinstance(phase3_backend_shortlist, str) else list(phase3_backend_shortlist or []))
-        if str(tok).strip() != ""
-    )
     phase3_backend_weight_values = (
         float(phase3_backend_w_2q),
         float(phase3_backend_w_depth),
@@ -16761,20 +16608,11 @@ def _run_hardcoded_adapt_vqe(
         if phase3_backend_cost_mode_key in {"transpile_single_v1", "incremental_prefix_suffix_v1"}:
             if phase3_backend_name in {None, ""}:
                 phase3_backend_name = "FakeMarrakesh"
-            if phase3_backend_shortlist_tokens:
-                raise ValueError(f"{phase3_backend_cost_mode_key} does not accept --phase3-backend-shortlist.")
         if phase3_backend_cost_mode_key == MARRAKESH_GRAPH_SPAN_MODE:
             if phase3_backend_name in {None, ""}:
                 phase3_backend_name = "FakeMarrakesh"
             if str(phase3_backend_name) != "FakeMarrakesh":
                 raise ValueError("marrakesh_graph_span_v1 requires --phase3-backend-name FakeMarrakesh.")
-            if phase3_backend_shortlist_tokens:
-                raise ValueError("marrakesh_graph_span_v1 does not accept --phase3-backend-shortlist.")
-        if phase3_backend_cost_mode_key == "transpile_shortlist_v1":
-            if phase3_backend_name not in {None, ""}:
-                raise ValueError("transpile_shortlist_v1 does not accept --phase3-backend-name.")
-            if len(phase3_backend_shortlist_tokens) < 1:
-                raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
     if phase3_backend_cost_scope_key in {
         BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
         BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
@@ -16794,7 +16632,7 @@ def _run_hardcoded_adapt_vqe(
             raise ValueError(
                 "The staged Qiskit scope requires optimization level 1."
             )
-        if int(phase3_backend_transpile_seed) != 7:
+        if int(backend_transpile_seed) != 7:
             raise ValueError(
                 "The staged Qiskit scope requires transpiler seed 7."
             )
@@ -16917,43 +16755,12 @@ def _run_hardcoded_adapt_vqe(
             "phase3_backend_cost_mode": str(phase3_backend_cost_mode_key),
             "phase3_backend_cost_scope": str(phase3_backend_cost_scope_key),
             "phase3_backend_name": str(phase3_backend_name),
-            "phase3_backend_transpile_seed": int(
-                phase3_backend_transpile_seed
-            ),
+            "phase3_backend_transpile_seed": int(backend_transpile_seed),
             "phase3_backend_optimization_level": int(
                 phase3_backend_optimization_level
             ),
             "phase3_hardware_cost_normalization_mode": str(
                 phase3_hardware_cost_normalization_mode_key
-            ),
-            **(
-                {
-                    "phase3_shadow_damping_policy": str(
-                        phase3_shadow_damping_policy_key
-                    )
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-                }
-                else {}
             ),
             "phase3_lifetime_cost_mode": str(phase3_lifetime_cost_mode),
             "phase3_enable_rescue": bool(phase3_enable_rescue),
@@ -17143,13 +16950,7 @@ def _run_hardcoded_adapt_vqe(
             else str(phase3_backend_name)
         ),
         phase3_backend_name_requested=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        phase3_backend_shortlist=(
-            [str(x) for x in phase3_backend_shortlist_tokens]
-            if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
-            else []
-        ),
-        phase3_backend_shortlist_requested=[str(x) for x in phase3_backend_shortlist_tokens],
-        phase3_backend_transpile_seed=int(phase3_backend_transpile_seed),
+        backend_transpile_seed=int(backend_transpile_seed),
         phase3_backend_optimization_level=int(phase3_backend_optimization_level),
         phase3_backend_w_2q=float(phase3_backend_w_2q),
         phase3_backend_w_depth=float(phase3_backend_w_depth),
@@ -18175,18 +17976,18 @@ def _run_hardcoded_adapt_vqe(
             else ROUTE_A_SHORTLIST_UNIT_MACRO_OPERATOR
         ),
         "phase_controller_cap_policy": str(phase_controller_cap_policy),
-        "phase1_controller_cap_min_resolved": int(phase1_maturity_cap_min_resolved_val),
-        "phase1_controller_cap_max_resolved": int(phase1_maturity_cap_max_resolved_val),
-        "phase1_controller_cap_min_effective": int(phase1_maturity_cap_min_val),
-        "phase1_controller_cap_max_effective": int(phase1_maturity_cap_max_val),
-        "phase2_controller_cap_min_resolved": int(phase2_maturity_cap_min_resolved_val),
-        "phase2_controller_cap_max_resolved": int(phase2_maturity_cap_max_resolved_val),
-        "phase2_controller_cap_min_effective": int(phase2_maturity_cap_min_val),
-        "phase2_controller_cap_max_effective": int(phase2_maturity_cap_max_val),
-        "phase3_controller_cap_min_resolved": int(phase3_maturity_cap_min_resolved_val),
-        "phase3_controller_cap_max_resolved": int(phase3_maturity_cap_max_resolved_val),
-        "phase3_controller_cap_min_effective": int(phase3_maturity_cap_min_val),
-        "phase3_controller_cap_max_effective": int(phase3_maturity_cap_max_val),
+        "phase1_controller_cap_min_resolved": int(phase1_controller_cap_val),
+        "phase1_controller_cap_max_resolved": int(phase1_controller_cap_val),
+        "phase1_controller_cap_min_effective": int(phase1_controller_cap_val),
+        "phase1_controller_cap_max_effective": int(phase1_controller_cap_val),
+        "phase2_controller_cap_min_resolved": int(phase2_controller_cap_val),
+        "phase2_controller_cap_max_resolved": int(phase2_controller_cap_val),
+        "phase2_controller_cap_min_effective": int(phase2_controller_cap_val),
+        "phase2_controller_cap_max_effective": int(phase2_controller_cap_val),
+        "phase3_controller_cap_min_resolved": int(phase3_controller_cap_val),
+        "phase3_controller_cap_max_resolved": int(phase3_controller_cap_val),
+        "phase3_controller_cap_min_effective": int(phase3_controller_cap_val),
+        "phase3_controller_cap_max_effective": int(phase3_controller_cap_val),
         "route_variant_id": physical_operator_lane_route_variant_id_val,
     }
     physical_operator_lane_summary: dict[str, Any] = {
@@ -20313,17 +20114,12 @@ def _run_hardcoded_adapt_vqe(
         max_probe_positions=int(max(1, phase1_probe_max_positions)),
         append_admit_threshold=0.05,
         family_repeat_patience=int(max(1, phase1_plateau_patience)),
-        cap_phase1_min=int(phase1_maturity_cap_min_val),
-        cap_phase1_max=int(phase1_maturity_cap_max_val),
-        cap_phase2_min=int(phase2_maturity_cap_min_val),
-        cap_phase2_max=int(phase2_maturity_cap_max_val),
-        cap_phase3_min=int(phase3_maturity_cap_min_val),
-        cap_phase3_max=int(phase3_maturity_cap_max_val),
-        shot_min=int(phase_maturity_shot_min_val),
-        shot_max=int(phase_maturity_shot_max_val),
-        shot_cap_phase1=int(phase1_maturity_shot_cap_val),
-        shot_cap_phase2=int(phase2_maturity_shot_cap_val),
-        shot_cap_phase3=int(phase3_maturity_shot_cap_val),
+        cap_phase1_min=int(phase1_controller_cap_val),
+        cap_phase1_max=int(phase1_controller_cap_val),
+        cap_phase2_min=int(phase2_controller_cap_val),
+        cap_phase2_max=int(phase2_controller_cap_val),
+        cap_phase3_min=int(phase3_controller_cap_val),
+        cap_phase3_max=int(phase3_controller_cap_val),
     )
     phase1_stage = StageController(
         phase1_stage_cfg,
@@ -20337,11 +20133,11 @@ def _run_hardcoded_adapt_vqe(
         lambda_compile=float(phase1_lambda_compile),
         lambda_measure=float(phase1_lambda_measure),
         lambda_leak=float(phase1_lambda_leak),
-        lambda_2q=phase1_lambda_2q,
-        lambda_d=phase1_lambda_d,
-        lambda_1q=phase1_lambda_1q,
-        lambda_theta=phase1_lambda_theta,
-        lambda_shot=phase1_lambda_shot,
+        lambda_2q=cost_lambda_2q,
+        lambda_d=cost_lambda_d,
+        lambda_1q=cost_lambda_1q,
+        lambda_theta=cost_lambda_theta,
+        lambda_shot=cost_lambda_shot,
         z_alpha=float(phase1_score_z_alpha),
         rho=float(phase2_rho_val),
         phase1_score_mode=str(phase1_score_mode_key),
@@ -20376,11 +20172,8 @@ def _run_hardcoded_adapt_vqe(
             else "off"
         ),
     )
-    phase0_cost_lambdas_resolved, phase0_cost_lambda_source_resolved = (
-        resolve_hardware_cost_lambdas(phase1_score_cfg)
-    )
     phase0_pilot_summary: dict[str, Any] = {
-        "schema": "phase0_cost_normalized_pilot_v2",
+        "schema": "phase0_raw_gradient_pilot_v1",
         "enabled": bool(phase0_pilot_active),
         "required_route_component": False,
         "satisfies_strict_route_a": False,
@@ -20399,15 +20192,7 @@ def _run_hardcoded_adapt_vqe(
         ),
         "alpha0": float(phase0_pilot_alpha_val),
         "score_key": "phase0_score",
-        "score_formula": "DeltaE0_upper * N0 / K0",
-        "cost_enabled": bool(
-            any(float(value) > 0.0 for value in phase0_cost_lambdas_resolved.values())
-        ),
-        "cost_lambdas": {
-            str(key): float(value)
-            for key, value in phase0_cost_lambdas_resolved.items()
-        },
-        "cost_lambda_source": str(phase0_cost_lambda_source_resolved),
+        "score_formula": "DeltaE0_upper * N0",
         "last_runtime": {},
     }
     phase1_compile_oracle = Phase1CompileCostOracle()
@@ -20449,8 +20234,7 @@ def _run_hardcoded_adapt_vqe(
     backend_compile_cfg = BackendCompileConfig(
         mode=str(phase3_backend_cost_mode_key),
         requested_backend_name=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        requested_backend_shortlist=tuple(str(x) for x in phase3_backend_shortlist_tokens),
-        seed_transpiler=int(phase3_backend_transpile_seed),
+        seed_transpiler=int(backend_transpile_seed),
         optimization_level=int(phase3_backend_optimization_level),
         weight_2q=float(phase3_backend_w_2q),
         weight_depth=float(phase3_backend_w_depth),
@@ -20509,11 +20293,11 @@ def _run_hardcoded_adapt_vqe(
         ridge_max_steps=int(phase2_ridge_max_steps_val),
         phase3_selector_geometry_mode=str(phase3_selector_geometry_mode_key),
         phase3_window_relaxation_mode=str(phase3_window_relaxation_mode_key),
-        lambda_2q=phase2_lambda_2q,
-        lambda_d=phase2_lambda_d,
-        lambda_1q=phase2_lambda_1q,
-        lambda_theta=phase2_lambda_theta,
-        lambda_shot=phase2_lambda_shot,
+        lambda_2q=cost_lambda_2q,
+        lambda_d=cost_lambda_d,
+        lambda_1q=cost_lambda_1q,
+        lambda_theta=cost_lambda_theta,
+        lambda_shot=cost_lambda_shot,
         wD=float(max(0.0, phase2_w_depth)),
         wG=float(max(0.0, phase2_w_group)),
         wC=float(max(0.0, phase2_w_shot)),
@@ -21499,7 +21283,6 @@ def _run_hardcoded_adapt_vqe(
         gradients_now: Sequence[float] | np.ndarray,
         sigma_by_label: Mapping[str, float] | None,
         selected_ops_now: Sequence[AnsatzTerm],
-        measurement_cache_now: MeasurementCacheAudit,
         stage_name: str,
         scope_label: str,
     ) -> dict[str, Any]:
@@ -21538,7 +21321,7 @@ def _run_hardcoded_adapt_vqe(
         phase0_label_by_idx = {int(idx): str(pool[int(idx)].label) for idx in ordered_indices}
         phase0_cache_payload = {
             "static_key": str(candidate_record_cache_static_key),
-            "scope": "phase0_screen_cost_normalized_v2",
+            "scope": "phase0_raw_gradient_screen_v1",
             "scope_label": str(scope_label),
             "stage_name": str(stage_name),
             "ordered_indices": [int(idx) for idx in ordered_indices],
@@ -21561,9 +21344,6 @@ def _run_hardcoded_adapt_vqe(
             "phase0_pilot_max_records": int(phase0_pilot_max_records_val),
             "phase0_pilot_max_operators": int(phase0_pilot_max_operators_val),
             "phase1_z_alpha": float(phase1_score_cfg.z_alpha),
-            "phase0_cost_lambdas": dict(phase0_cost_lambdas_resolved),
-            "phase0_cost_lambda_source": str(phase0_cost_lambda_source_resolved),
-            "phase0_measurement_cache": measurement_cache_now.snapshot(),
             "hardware_resolution_mode": str(hardware_resolution_mode_key),
             "gradient_hw_floor": float(gradient_hw_floor_val),
             "gradient_drift_floor": float(gradient_drift_floor_val),
@@ -21616,7 +21396,6 @@ def _run_hardcoded_adapt_vqe(
                 "summary": dict(cached_summary),
             }
         raw_records: list[dict[str, Any]] = []
-        phase0_cost_entries: list[dict[str, Any]] = []
         sigma_lookup = dict(sigma_by_label or {})
         for idx in ordered_indices:
             candidate_label = str(phase0_label_by_idx.get(int(idx), pool[int(idx)].label))
@@ -21652,16 +21431,6 @@ def _run_hardcoded_adapt_vqe(
                 manual_b_g_drift=float(gradient_drift_floor_val),
             )
             for pos in positions_by_index.get(int(idx), []):
-                compile_cost = phase1_compile_oracle.estimate(
-                    candidate_term_count=int(max(1, len(pool_compiled[int(idx)].terms))),
-                    position_id=int(pos),
-                    append_position=int(len(selected_ops_now)),
-                    refit_active_count=int(len(selected_ops_now) + 1),
-                    candidate_term=pool[int(idx)],
-                )
-                measurement_stats = measurement_cache_now.estimate(
-                    _measurement_specs_for_pool_index(int(idx))
-                )
                 raw_records.append(
                     {
                         "candidate_pool_index": int(idx),
@@ -21675,55 +21444,13 @@ def _run_hardcoded_adapt_vqe(
                         **dict(components),
                     }
                 )
-                phase0_cost_entries.append(
-                    {
-                        "candidate_pool_index": int(idx),
-                        "position_id": int(pos),
-                        "label": str(candidate_label),
-                        "c_hat_2q": float(compile_cost.c_hat_2q),
-                        "c_hat_d": float(compile_cost.c_hat_d),
-                        "c_hat_1q": float(compile_cost.c_hat_1q),
-                        "c_hat_theta": float(compile_cost.c_hat_theta),
-                        "c_hat_shot": float(measurement_stats.shot_cost_proxy),
-                    }
-                )
-        phase0_cost_payload = hardware_cost_candidate_record_denominators(
-            phase0_cost_entries,
-            phase1_score_cfg,
-        )
-        phase0_cost_rows = [dict(row) for row in phase0_cost_payload.get("rows", [])]
-        if len(phase0_cost_rows) != len(raw_records):
-            raise RuntimeError("Phase-0 cost normalization did not preserve record count.")
-        phase0_cost_lambdas = {
-            str(key): float(value)
-            for key, value in dict(phase0_cost_payload.get("lambdas", {})).items()
-        }
-        phase0_cost_enabled = bool(
-            any(float(value) > 0.0 for value in phase0_cost_lambdas.values())
-        )
-        for raw, cost_row in zip(raw_records, phase0_cost_rows):
-            denominator = float(cost_row.get("hardware_cost_denominator", 1.0))
+        for raw in raw_records:
             numerator = float(raw.get("phase0_delta_e_upper_hw", 0.0))
             raw.update(
                 {
                     "phase0_novelty": 1.0,
-                    "phase0_score": float(numerator / denominator),
-                    "phase0_score_formula": "DeltaE0_upper * N0 / K0",
-                    "phase0_K0": float(denominator),
-                    "phase0_hardware_cost_denominator": float(denominator),
-                    "phase0_hardware_cost_excess_sum": float(
-                        cost_row.get("hardware_cost_excess_sum", 0.0)
-                    ),
-                    "phase0_cost_raw_components": dict(cost_row.get("raw", {})),
-                    "phase0_cost_bar_components": dict(cost_row.get("bars", {})),
-                    "phase0_cost_lambdas": dict(phase0_cost_lambdas),
-                    "phase0_cost_lambda_source": str(
-                        phase0_cost_payload.get("lambda_source", "unknown")
-                    ),
-                    "phase0_cost_normalization_schema": str(
-                        phase0_cost_payload.get("normalization_schema", "")
-                    ),
-                    "phase0_cost_enabled": bool(phase0_cost_enabled),
+                    "phase0_score": float(numerator),
+                    "phase0_score_formula": "DeltaE0_upper * N0",
                 }
             )
         def _phase0_global_shortlist(
@@ -21859,20 +21586,7 @@ def _run_hardcoded_adapt_vqe(
             ),
             "alpha0": float(phase0_pilot_alpha_val),
             "score_key": "phase0_score",
-            "score_formula": "DeltaE0_upper * N0 / K0",
-            "cost_enabled": bool(phase0_cost_enabled),
-            "cost_normalization": {
-                "schema": str(phase0_cost_payload.get("schema", "")),
-                "normalization_schema": str(
-                    phase0_cost_payload.get("normalization_schema", "")
-                ),
-                "medians": dict(phase0_cost_payload.get("medians", {})),
-                "scales": dict(phase0_cost_payload.get("scales", {})),
-                "lambdas": dict(phase0_cost_lambdas),
-                "lambda_source": str(
-                    phase0_cost_payload.get("lambda_source", "unknown")
-                ),
-            },
+            "score_formula": "DeltaE0_upper * N0",
             "sigma_source": str(phase3_gradient_uncertainty_source),
             "sigma_unavailable_count": int(
                 sum(1 for row in pilot_rows if not bool(row.get("phase0_sigma_hat_available", False)))
@@ -22183,58 +21897,6 @@ def _run_hardcoded_adapt_vqe(
                 "Route-C plateau acquisition first slice supports only single-branch execution; "
                 f"effective beam width is {int(route_c_effective_beam_width)}."
             )
-
-    def _phase3_shadow_damping_receipt_from_existing_evidence(
-        *,
-        guard_payload: Mapping[str, Any] | None,
-        feature_rows: Sequence[Mapping[str, Any]],
-        history_rows: Sequence[Mapping[str, Any]] | None,
-    ) -> dict[str, Any] | None:
-        if phase3_shadow_damping_policy_key == "off":
-            return None
-        if phase3_shadow_damping_policy_key != "mapped_seed_zero_query_v1":
-            raise RuntimeError(
-                "Unsupported Phase-III shadow damping runtime policy."
-            )
-        guard = dict(guard_payload) if isinstance(guard_payload, Mapping) else {}
-
-        predicted_gain = guard.get("mapped_seed_predicted_reduction")
-        exact_gain = guard.get("mapped_seed_exact_gain")
-        displacement_sq = guard.get("joint_fubini_study_displacement_sq")
-        if displacement_sq is None:
-            for raw_row in feature_rows:
-                if not isinstance(raw_row, Mapping):
-                    continue
-                displacement_sq = raw_row.get(
-                    "joint_fubini_study_displacement_sq"
-                )
-                if displacement_sq is None:
-                    nested = raw_row.get("joint_linear_solve")
-                    if isinstance(nested, Mapping):
-                        displacement_sq = nested.get(
-                            "joint_fubini_study_displacement_sq"
-                        )
-                if displacement_sq is not None:
-                    break
-        current_recommended_mu, recommendation_state_source = (
-            _phase3_shadow_recommended_mu_from_history(history_rows)
-        )
-        receipt = phase3_shadow_damping_receipt(
-            mapped_seed_predicted_gain=predicted_gain,
-            mapped_seed_exact_gain=exact_gain,
-            modeled_displacement_squared=displacement_sq,
-            current_recommended_mu=float(current_recommended_mu),
-        )
-        return {
-            **dict(receipt),
-            "requested_policy": str(phase3_shadow_damping_policy_key),
-            "guard_receipt_present": bool(guard),
-            "applied_to_phase3_model": False,
-            "recommendation_state_source": str(recommendation_state_source),
-            "resumed_from_history": bool(
-                recommendation_state_source == "previous_history_receipt"
-            ),
-        }
 
     def _populate_prune_policy_fields(summary: dict[str, Any]) -> dict[str, Any]:
         if phase1_prune_cfg is None:
@@ -29489,7 +29151,6 @@ def _run_hardcoded_adapt_vqe(
                         gradients_now=np.asarray(gradients_local, dtype=float),
                         sigma_by_label={},
                         selected_ops_now=list(branch.selected_ops),
-                        measurement_cache_now=branch.phase1_measure_cache,
                         stage_name=str(stage_name_local),
                         scope_label=f"beam_branch_{int(branch.branch_id)}",
                     )
@@ -37736,35 +37397,6 @@ def _run_hardcoded_adapt_vqe(
                 history_row_local["route_a_trust_region_update"] = dict(
                     route_a_trust_update_payload_local
                 )
-            phase3_shadow_receipt_local = (
-                _phase3_shadow_damping_receipt_from_existing_evidence(
-                    guard_payload=(
-                        schur_warm_start_payload_local
-                        if isinstance(schur_warm_start_payload_local, Mapping)
-                        else None
-                    ),
-                    feature_rows=[
-                        dict(row)
-                        for row in (
-                            plan_batch_records_local
-                            if plan_batch_records_local
-                            else (
-                                [phase1_feature_selected_local]
-                                if isinstance(
-                                    phase1_feature_selected_local, Mapping
-                                )
-                                else []
-                            )
-                        )
-                        if isinstance(row, Mapping)
-                    ],
-                    history_rows=child.history,
-                )
-            )
-            if isinstance(phase3_shadow_receipt_local, Mapping):
-                history_row_local["phase3_shadow_damping_receipt"] = dict(
-                    phase3_shadow_receipt_local
-                )
             if adapt_inner_optimizer_key == "SPSA":
                 history_row_local["spsa_params"] = dict(adapt_spsa_params)
             child.history.append(history_row_local)
@@ -40959,7 +40591,6 @@ def _run_hardcoded_adapt_vqe(
                             gradients_now=np.asarray(gradients, dtype=float),
                             sigma_by_label=phase3_sigma_by_label,
                             selected_ops_now=list(selected_ops),
-                            measurement_cache_now=phase1_measure_cache,
                             stage_name=str(stage_name),
                             scope_label="main",
                         )
@@ -50033,33 +49664,6 @@ def _run_hardcoded_adapt_vqe(
                 history_row["projected_phase3_population_receipt"] = dict(
                     projected_phase3_population_receipt
                 )
-            phase3_shadow_receipt = (
-                _phase3_shadow_damping_receipt_from_existing_evidence(
-                    guard_payload=(
-                        schur_warm_start_payload
-                        if isinstance(schur_warm_start_payload, Mapping)
-                        else None
-                    ),
-                    feature_rows=[
-                        dict(row)
-                        for row in (
-                            selected_batch_records_for_history
-                            if selected_batch_records_for_history
-                            else (
-                                [phase1_feature_selected]
-                                if isinstance(phase1_feature_selected, Mapping)
-                                else []
-                            )
-                        )
-                        if isinstance(row, Mapping)
-                    ],
-                    history_rows=history,
-                )
-            )
-            if isinstance(phase3_shadow_receipt, Mapping):
-                history_row["phase3_shadow_damping_receipt"] = dict(
-                    phase3_shadow_receipt
-                )
             if route_c_plateau_effective_trial_optimizer_key == "SPSA":
                 history_row["spsa_params"] = dict(adapt_spsa_params)
             history.append(history_row)
@@ -53005,9 +52609,8 @@ def _run_hardcoded_adapt_vqe(
                 "requested_backend_name": (
                     None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
                 ),
-                "requested_backend_shortlist": [str(x) for x in phase3_backend_shortlist_tokens],
                 "optimization_level": int(phase3_backend_optimization_level),
-                "seed_transpiler": int(phase3_backend_transpile_seed),
+                "seed_transpiler": int(backend_transpile_seed),
                 "target_backend_names": list(
                     dict.fromkeys(
                         str(getattr(target, "resolved_name", ""))
@@ -54414,17 +54017,10 @@ def _run_hardcoded_adapt_vqe(
                             else []
                         ),
                         backend_reduction_mode=(
-                            "single_backend"
-                            if str(phase3_backend_cost_mode_key) == "transpile_single_v1"
-                            else (
-                                "single_backend_graph_span"
-                                if str(phase3_backend_cost_mode_key) == MARRAKESH_GRAPH_SPAN_MODE
-                                else (
-                                    "best_backend_in_shortlist_v1"
-                                    if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
-                                    else "none"
-                                )
-                            )
+                            "single_backend_graph_span"
+                            if str(phase3_backend_cost_mode_key)
+                            == MARRAKESH_GRAPH_SPAN_MODE
+                            else "single_backend"
                         ),
                     ).__dict__,
                 }
@@ -62379,25 +61975,9 @@ class _DefaultNoPruneNumericalSession:
                 self.cursor.resume_source_rounds
             ),
         )
-        route_invariants = self.context.route_contract.get(
-            "semantic_invariants", {}
-        )
-        gradient_phase0_active = bool(
-            isinstance(route_invariants, Mapping)
-            and route_invariants.get("phase0_active") is True
-        )
-        phase0_cost_source = None
-        if gradient_phase0_active:
-            phase0_cost_source = (
-                "structural_proxy_v1"
-                if route_invariants.get("phase0_resource_cost_active") is True
-                else "none_standard_adapt_absolute_gradient_v1"
-            )
         selector_compile_cost_accounting = (
             _default_no_prune_selector_compile_cost_accounting(
                 context=self.context,
-                gradient_phase0_active=gradient_phase0_active,
-                phase0_cost_source=phase0_cost_source,
             )
         )
         payload = {
@@ -63565,9 +63145,6 @@ def _macro_gradient_phase0_parent_context_feature(
         phase0_raw_gradient_abs=magnitude,
         phase0_score=magnitude,
         phase0_score_formula="absolute_coordinate_energy_gradient_v1",
-        phase0_K0=0.0,
-        phase0_hardware_cost_denominator=1.0,
-        phase0_cost_enabled=False,
     )
 
 
@@ -67572,11 +67149,11 @@ def _default_no_prune_simple_score_config(
         lambda_compile=float(kwargs["phase1_lambda_compile"]),
         lambda_measure=float(kwargs["phase1_lambda_measure"]),
         lambda_leak=float(kwargs["phase1_lambda_leak"]),
-        lambda_2q=kwargs["phase1_lambda_2q"],
-        lambda_d=kwargs["phase1_lambda_d"],
-        lambda_1q=kwargs["phase1_lambda_1q"],
-        lambda_theta=kwargs["phase1_lambda_theta"],
-        lambda_shot=kwargs["phase1_lambda_shot"],
+        lambda_2q=kwargs["cost_lambda_2q"],
+        lambda_d=kwargs["cost_lambda_d"],
+        lambda_1q=kwargs["cost_lambda_1q"],
+        lambda_theta=kwargs["cost_lambda_theta"],
+        lambda_shot=kwargs["cost_lambda_shot"],
         z_alpha=float(kwargs["phase1_score_z_alpha"]),
         rho=float(kwargs["phase2_rho"]),
         phase1_score_mode=str(
@@ -67722,11 +67299,11 @@ def _default_no_prune_full_score_config(
         phase3_window_relaxation_mode=str(
             kwargs["phase3_window_relaxation_mode"]
         ).strip().lower(),
-        lambda_2q=kwargs["phase2_lambda_2q"],
-        lambda_d=kwargs["phase2_lambda_d"],
-        lambda_1q=kwargs["phase2_lambda_1q"],
-        lambda_theta=kwargs["phase2_lambda_theta"],
-        lambda_shot=kwargs["phase2_lambda_shot"],
+        lambda_2q=kwargs["cost_lambda_2q"],
+        lambda_d=kwargs["cost_lambda_d"],
+        lambda_1q=kwargs["cost_lambda_1q"],
+        lambda_theta=kwargs["cost_lambda_theta"],
+        lambda_shot=kwargs["cost_lambda_shot"],
         wD=float(max(0.0, kwargs["phase2_w_depth"])),
         wG=float(max(0.0, kwargs["phase2_w_group"])),
         wC=float(max(0.0, kwargs["phase2_w_shot"])),
@@ -67814,56 +67391,8 @@ def _default_no_prune_stage_controller(
     *,
     lanes: _DefaultNoPruneLaneRuntime,
 ) -> StageController:
-    """Build the exact fresh-start maturity controller."""
+    """Build the exact fresh-start phase controller."""
 
-    phase1_min = (
-        lanes.phase1_shortlist_size
-        if kwargs.get("phase1_maturity_cap_min") is None
-        else int(kwargs["phase1_maturity_cap_min"])
-    )
-    phase1_max = (
-        lanes.phase1_shortlist_size
-        if kwargs.get("phase1_maturity_cap_max") is None
-        else int(kwargs["phase1_maturity_cap_max"])
-    )
-    phase2_min = (
-        lanes.phase2_shortlist_size
-        if kwargs.get("phase2_maturity_cap_min") is None
-        else int(kwargs["phase2_maturity_cap_min"])
-    )
-    phase2_max = (
-        lanes.phase2_shortlist_size
-        if kwargs.get("phase2_maturity_cap_max") is None
-        else int(kwargs["phase2_maturity_cap_max"])
-    )
-    phase3_min = (
-        lanes.phase3_shortlist_size
-        if kwargs.get("phase3_maturity_cap_min") is None
-        else int(kwargs["phase3_maturity_cap_min"])
-    )
-    phase3_max = (
-        lanes.phase3_shortlist_size
-        if kwargs.get("phase3_maturity_cap_max") is None
-        else int(kwargs["phase3_maturity_cap_max"])
-    )
-    phase1_min, phase1_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase1_min,
-        cap_max=phase1_max,
-        effective_cap=lanes.phase1_shortlist_size,
-    )
-    phase2_min, phase2_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase2_min,
-        cap_max=phase2_max,
-        effective_cap=lanes.phase2_shortlist_size,
-    )
-    phase3_min, phase3_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase3_min,
-        cap_max=phase3_max,
-        effective_cap=lanes.phase3_shortlist_size,
-    )
     if kwargs.get("adapt_drop_floor") is not None:
         raise ValueError(
             "The characterized default route requires the ordinary epsilon "
@@ -67882,17 +67411,12 @@ def _default_no_prune_stage_controller(
         family_repeat_patience=int(
             max(1, kwargs["phase1_plateau_patience"])
         ),
-        cap_phase1_min=int(phase1_min),
-        cap_phase1_max=int(phase1_max),
-        cap_phase2_min=int(phase2_min),
-        cap_phase2_max=int(phase2_max),
-        cap_phase3_min=int(phase3_min),
-        cap_phase3_max=int(phase3_max),
-        shot_min=int(kwargs["phase_maturity_shot_min"]),
-        shot_max=int(kwargs["phase_maturity_shot_max"]),
-        shot_cap_phase1=int(kwargs["phase1_maturity_shot_cap"]),
-        shot_cap_phase2=int(kwargs["phase2_maturity_shot_cap"]),
-        shot_cap_phase3=int(kwargs["phase3_maturity_shot_cap"]),
+        cap_phase1_min=int(lanes.phase1_shortlist_size),
+        cap_phase1_max=int(lanes.phase1_shortlist_size),
+        cap_phase2_min=int(lanes.phase2_shortlist_size),
+        cap_phase2_max=int(lanes.phase2_shortlist_size),
+        cap_phase3_min=int(lanes.phase3_shortlist_size),
+        cap_phase3_max=int(lanes.phase3_shortlist_size),
     )
     stage = StageController(config)
     stage.start_with_seed()
@@ -67914,21 +67438,13 @@ def _default_no_prune_backend_compile_oracle(
             if kwargs.get("phase3_backend_name") in {None, ""}
             else str(kwargs["phase3_backend_name"])
         ),
-        requested_backend_shortlist=tuple(
-            str(value)
-            for value in kwargs["phase3_backend_shortlist"]
-        ),
-        seed_transpiler=int(kwargs["phase3_backend_transpile_seed"]),
+        seed_transpiler=int(kwargs["backend_transpile_seed"]),
         optimization_level=int(
             kwargs["phase3_backend_optimization_level"]
         ),
         weight_2q=float(kwargs["phase3_backend_w_2q"]),
         weight_depth=float(kwargs["phase3_backend_w_depth"]),
         weight_size=float(kwargs["phase3_backend_w_size"]),
-        allow_preferred_fallback=(
-            str(kwargs["phase3_backend_cost_mode"])
-            != MARRAKESH_GRAPH_SPAN_MODE
-        ),
     )
     num_qubits = int(round(np.log2(core.reference_state.size)))
     if str(config.mode) == "proxy":
@@ -67981,7 +67497,6 @@ def _default_no_prune_staged_qiskit_compile_config(
                 BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
             }
         ),
-        allow_preferred_fallback=False,
         one_qubit_coordinate_policy=(
             ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
         ),
@@ -68012,8 +67527,7 @@ def _default_no_prune_phase3_backend_compile_oracle(
         != MARRAKESH_GRAPH_SPAN_MODE
         or str(kwargs.get("phase3_backend_name")) != "FakeMarrakesh"
         or int(kwargs["phase3_backend_optimization_level"]) != 1
-        or int(kwargs["phase3_backend_transpile_seed"]) != 7
-        or tuple(kwargs["phase3_backend_shortlist"])
+        or int(kwargs["backend_transpile_seed"]) != 7
     ):
         raise ValueError(
             "The staged Qiskit selector route requires the Paper-I "
@@ -68078,9 +67592,6 @@ def _default_no_prune_backend_compile_oracle_summary(
         "one_qubit_coordinate_policy": str(
             getattr(config, "one_qubit_coordinate_policy", "unknown")
         ),
-        "preferred_backend_fallback_allowed": bool(
-            getattr(config, "allow_preferred_fallback", False)
-        ),
         "targets": [
             {
                 "requested_name": str(target.requested_name),
@@ -68105,8 +67616,6 @@ def _default_no_prune_backend_compile_oracle_summary(
 def _default_no_prune_selector_compile_cost_accounting(
     *,
     context: Any,
-    gradient_phase0_active: bool,
-    phase0_cost_source: str | None,
 ) -> dict[str, Any]:
     """Serialize compile work without adding it to estimator accounting."""
 
@@ -68152,11 +67661,6 @@ def _default_no_prune_selector_compile_cost_accounting(
             role=staged_role,
         ),
         "phase_i_cost_source": phase_i_cost_source,
-        "phase0_cost_source": (
-            str(phase0_cost_source)
-            if gradient_phase0_active and phase0_cost_source is not None
-            else None
-        ),
         "qiskit_applied_phases": qiskit_phases,
         "phase_iii_reuses_phase_i_phase_ii_oracle": bool(
             context.phase3_backend_compile_oracle is None
@@ -69522,17 +69026,14 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase1_family_ref": 1.0,
     "phase1_family_repeat_cost_scale": 1.0,
     "phase1_group_ref": 1.0,
-    "phase1_lambda_1q": 0.05,
-    "phase1_lambda_2q": 0.2,
+    "cost_lambda_1q": 0.05,
+    "cost_lambda_2q": 0.2,
     "phase1_lambda_compile": 0.05,
-    "phase1_lambda_d": 0.2,
+    "cost_lambda_d": 0.2,
     "phase1_lambda_leak": 0.0,
     "phase1_lambda_measure": 0.02,
-    "phase1_lambda_shot": 0.15,
-    "phase1_lambda_theta": 0.05,
-    "phase1_maturity_cap_max": None,
-    "phase1_maturity_cap_min": None,
-    "phase1_maturity_shot_cap": 0,
+    "cost_lambda_shot": 0.15,
+    "cost_lambda_theta": 0.05,
     "phase1_measure_groups_weight": 1.0,
     "phase1_measure_reuse_weight": 1.0,
     "phase1_measure_shots_weight": 1.0,
@@ -69558,16 +69059,8 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase2_family_repeat_cost_scale": 1.0,
     "phase2_frontier_ratio": 0.9,
     "phase2_group_ref": 1.0,
-    "phase2_lambda_1q": 0.05,
-    "phase2_lambda_2q": 0.2,
     "phase2_lambda_H": 1.0e-6,
-    "phase2_lambda_d": 0.2,
-    "phase2_lambda_shot": 0.15,
-    "phase2_lambda_theta": 0.05,
     "phase2_leakage_cap": 1.0e6,
-    "phase2_maturity_cap_max": None,
-    "phase2_maturity_cap_min": None,
-    "phase2_maturity_shot_cap": 0,
     "phase2_measure_groups_weight": 1.0,
     "phase2_measure_reuse_weight": 1.0,
     "phase2_measure_shots_weight": 1.0,
@@ -69589,17 +69082,14 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase2_w_optdim": 0.1,
     "phase2_w_reuse": 0.1,
     "phase2_w_shot": 0.15,
-    "phase3_backend_shortlist": [],
     "phase3_backend_cost_scope": (
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
+    "backend_transpile_seed": 7,
     "phase3_backend_w_2q": 1.0,
     "phase3_backend_w_depth": 0.1,
     "phase3_backend_w_size": 0.01,
     "phase3_frontier_ratio": 0.9,
-    "phase3_maturity_cap_max": None,
-    "phase3_maturity_cap_min": None,
-    "phase3_maturity_shot_cap": 0,
     "phase3_motif_source_json": None,
     "phase3_oracle_gradient_config": None,
     "phase3_oracle_inner_objective_mode": "exact",
@@ -69620,8 +69110,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_selector_debug_topk": 0,
     "phase3_shortlist_size": None,
     "phase3_source_lock_preferred_sequence": "",
-    "phase_maturity_shot_max": 1,
-    "phase_maturity_shot_min": 1,
     "shared_pauli_pool_max_subset_size": 3,
     "shared_pauli_pool_subset_sizes": None,
     })

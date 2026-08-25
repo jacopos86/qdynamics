@@ -1313,15 +1313,12 @@ _DEST_OPTION_STRINGS: dict[str, tuple[str, ...]] = {
     "phase3_window_relaxation_mode": ("--phase3-window-relaxation-mode",),
     "phase3_backend_cost_mode": ("--phase3-backend-cost-mode",),
     "phase3_backend_name": ("--phase3-backend-name",),
-    "phase3_backend_transpile_seed": ("--phase3-backend-transpile-seed",),
+    "phase3_backend_transpile_seed": ("--backend-transpile-seed",),
     "phase3_backend_optimization_level": (
         "--phase3-backend-optimization-level",
     ),
     "phase3_hardware_cost_normalization_mode": (
         "--phase3-hardware-cost-normalization-mode",
-    ),
-    "phase3_shadow_damping_policy": (
-        "--phase3-shadow-damping-policy",
     ),
     "phase3_lifetime_cost_mode": ("--phase3-lifetime-cost-mode",),
     "phase3_enable_rescue": ("--phase3-enable-rescue", "--phase3-no-rescue"),
@@ -4008,6 +4005,7 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "phase3_shadow_damping_policy",
         "adapt_beam_live_branches",
         "adapt_beam_children_per_parent",
         "adapt_beam_terminated_keep",
@@ -4074,7 +4072,8 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
                 }
             )
     for field, expected in execution_settings.items():
-        current = getattr(namespace, field, None)
+        namespace_field = "backend_transpile_seed" if field == "phase3_backend_transpile_seed" else field
+        current = getattr(namespace, namespace_field, None)
         option_strings = _DEST_OPTION_STRINGS.get(field, ())
         field_explicit = bool(
             explicit_options is not None
@@ -4100,7 +4099,7 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
                 }
             )
             continue
-        setattr(namespace, field, expected)
+        setattr(namespace, namespace_field, expected)
 
     if conflicts:
         raise ValueError(
@@ -4189,6 +4188,7 @@ def validate_sr_route_profile_runtime_settings(
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "phase3_shadow_damping_policy",
     )
     for field in retired_execution_fields:
         expected.pop(field, None)
@@ -4260,11 +4260,7 @@ def validate_sr_route_profile_runtime_settings(
     }:
         required_runtime_fields = {
             key for key in expected if str(key).startswith("phase1_prune_")
-        }.union(
-            {
-                "phase3_shadow_damping_policy",
-            }
-        )
+        }
         missing_required = sorted(
             required_runtime_fields.difference(runtime_settings_checked)
         )

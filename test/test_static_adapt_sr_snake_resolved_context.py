@@ -245,24 +245,6 @@ def test_canonical_runtime_closes_over_characterized_route_settings() -> None:
     )
 
 
-def test_canonical_runtime_infrastructure_rejects_nested_mutation() -> None:
-    """Frozen infrastructure cannot leak nested defaults across resolutions."""
-
-    infrastructure = adapt_pipeline._CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE
-    assert isinstance(infrastructure["phase3_backend_shortlist"], tuple)
-
-    problem = _small_hh_problem()
-    context = sr_context._resolve_execution_context(problem, _request(problem))
-    first_runtime = context.canonical_runtime_kwargs()
-    first_runtime["phase3_backend_shortlist"].append("sentinel-backend")
-    second_runtime = context.canonical_runtime_kwargs()
-
-    assert second_runtime["phase3_backend_shortlist"] == []
-    assert first_runtime["phase3_backend_shortlist"] is not second_runtime[
-        "phase3_backend_shortlist"
-    ]
-
-
 def test_public_default_run_dispatches_exact_issue10_selection_gate_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

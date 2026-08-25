@@ -1407,9 +1407,6 @@ def build_output_payload(
             "phase3_enable_rescue": bool(args.phase3_enable_rescue),
             "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
             "phase3_hardware_cost_normalization_mode": str(args.phase3_hardware_cost_normalization_mode),
-            "phase3_shadow_damping_policy": str(
-                getattr(args, "phase3_shadow_damping_policy", "off")
-            ),
             "phase3_source_lock_preferred_sequence": str(
                 getattr(args, "phase3_source_lock_preferred_sequence", "")
             ),
@@ -1441,12 +1438,7 @@ def build_output_payload(
             "phase3_backend_name": (
                 None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name)
             ),
-            "phase3_backend_shortlist": (
-                []
-                if args.phase3_backend_shortlist in {None, ""}
-                else [str(tok).strip() for tok in str(args.phase3_backend_shortlist).split(",") if str(tok).strip() != ""]
-            ),
-            "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
+            "backend_transpile_seed": int(args.backend_transpile_seed),
             "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
             "phase3_oracle_inner_objective_mode": str(
                 adapt_payload.get(

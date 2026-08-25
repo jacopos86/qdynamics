@@ -252,18 +252,11 @@ def test_cli_defaults_shared_cost_weights_and_accepts_exact_subset_sizes() -> No
     )
 
     assert (
-        defaults.phase1_lambda_2q,
-        defaults.phase1_lambda_d,
-        defaults.phase1_lambda_1q,
-        defaults.phase1_lambda_theta,
-        defaults.phase1_lambda_shot,
-    ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))
-    assert (
-        defaults.phase2_lambda_2q,
-        defaults.phase2_lambda_d,
-        defaults.phase2_lambda_1q,
-        defaults.phase2_lambda_theta,
-        defaults.phase2_lambda_shot,
+        defaults.cost_lambda_2q,
+        defaults.cost_lambda_d,
+        defaults.cost_lambda_1q,
+        defaults.cost_lambda_theta,
+        defaults.cost_lambda_shot,
     ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))
     assert defaults.phase3_runtime_split_subset_sizes is None
 
