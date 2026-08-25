@@ -1466,7 +1466,7 @@ explicitly commissioned may still be written as a task.
 | Extract default no-prune response accounting into `response_accounting.py` | Codex | 2026-08-24 | done in `4b33e682` on `codex/paper-i-worklog-audit-20260824` |
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
-| Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | in progress; separate prune → batch → beam increments; report measured net lines removed |
+| Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
 | _(add yours)_ | | | |
 
 ---
@@ -2700,3 +2700,84 @@ file was then run on the baseline and after the change: baseline
 `30 failed, 291 passed`; after `30 failed, 290 passed`.  The exact `FAILED`
 node-id diff is empty; the one-pass decrease is the deliberately deleted
 proxy test.  All 30 failures therefore pre-exist this increment.
+
+### 2026-08-24 — Q24–Q28 extension condensation — COMPLETE
+
+**Goal:** remove batch, pruning, and beam from the default executor/CLI
+surface, require their scientific choices only when the typed extension is
+enabled, and delete superseded batch and legacy beam paths rather than leave
+re-enableable flags.
+
+**Coordination and baseline:** `paper-ii-exchange-selector` through
+`770f7fc1` was merged before implementation.  The clean claim/baseline commit
+was `aea78d9abf01133d4cb3562d35441c98f132362e`:
+
+```bash
+python3 pipelines/shell/ram_guard.py --limit-mb 8000 -- \
+  python3 -m pytest test --collect-only -q \
+    --continue-on-collection-errors
+# before -> 5560 tests collected, 54 errors
+# after  -> 5467 tests collected, 54 errors; peak RSS 421 MB
+
+diff -u errors-before.txt errors-final.txt
+# -> empty diff
+```
+
+The 93-test collection decrease is the intentional deletion of tests for
+retired extension flags, compatibility scoring, additivity gates, tie-beam,
+and the unreachable legacy controller paths.  No collection error was added
+or removed.
+
+**Implementation:** three explicit-path commits add 1,942 lines and delete
+8,754: **6,812 net lines removed**.
+
+- `54980606` isolates pruning in `PruningExtension`/`PruningRuntime`, removes
+  its 35 executor choices and CLI defaults, and requires the complete
+  authenticated pruning contract only when pruning is enabled: **295 net
+  lines removed**.
+- `bb4541f6` isolates the Paper-I batch extension and retains the manuscript
+  choices `maximum_size` and `search_window_size`.  The five-weight
+  compatibility score, additivity-defect gate, their telemetry, and their
+  superseded tests are deleted: **2,547 net lines removed**.
+- `17fc2d56` moves fork-local beam execution and its four required choices to
+  `extensions.py`, deletes tie-beam and the legacy controller loop, and
+  removes extension fields from exact-benchmark/CHTC default policy surfaces:
+  **3,970 net lines removed**.
+
+`_run_hardcoded_adapt_vqe` now has no batch, pruning, or beam parameters, and
+`cli_config.py` exposes no corresponding flags.  Disabled extensions are
+absence (`None`), while enabled batch/beam/pruning values reject missing
+choices.  Frozen historical hashed route dictionaries retain old fields only
+as passive provenance.  Residual monolith beam receipt fields are guarded by
+an immutable, non-init disabled state; no input, route, CLI flag, or executor
+argument can re-enable the deleted legacy loop.  This is Q28's true
+extrication, not an off-by-default policy.
+
+**Receipt identity:** the cache-disabled completed one-round run at
+`bb4541f6` and after the beam extraction produced byte-identical ledger JSON:
+
+```bash
+shasum -a 256 ledger-before.json ledger-after.json
+# -> 654ecec994f3040bc37243e82e2e8511e2ac4bbe1878cc39254c4c01e43d5f0c  (both)
+cmp -s ledger-before.json ledger-after.json
+# -> exit 0
+```
+
+Both ledgers contain 289 entries and 527 ordered occurrences with fingerprint
+`651c0dda8554920a7f7df50b71da0869ee01450487a221329f6c8e232bc109ac`.
+Thus primitive ids, keys, occurrence/receipt ordering, and the fingerprint are
+unchanged by the beam extraction.
+
+**Regression evidence:** the final focused extension/controller surface has
+`242 passed`.  Two additional facade assertions fail identically at
+`bb4541f6`: its expected public-export set omits the already-exported
+`EndpointOverlapDisplacementTrust`, and its stale fixed ledger count expects
+709 where the baseline produces 585.  The final changed sources compile, and
+`git diff --check` is clean.
+
+**Paper-I-local impact audit:** an accurate disposable GitNexus repository was
+built from `bb4541f6` with `pipelines/static_adapt`, the two continuation
+scaffold modules, and only the touched Paper-I exact-benchmark/CHTC files.  The
+large monolith was explicitly included.  Final `detect-changes --scope all`
+reports 15 production files, 88 changed symbols, two affected controller
+flows, and MEDIUM risk; no repo-wide index was consulted.
