@@ -6075,8 +6075,6 @@ def run_ra_adapt(
             != BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
             or selector_compile_cost_accounting.get("excluded_from_s_alg")
             is not True
-            or selector_compile_cost_accounting.get("phase0_cost_source")
-            != "none_standard_adapt_absolute_gradient_v1"
             or selector_compile_cost_accounting.get("qiskit_applied_phases")
             != []
             or selector_compile_cost_accounting.get(
@@ -6140,12 +6138,6 @@ def run_ra_adapt(
                 "compile-oracle accounting."
             )
     elif protocol.algorithm_id in RA_ADAPT_PHASE23_QISKIT_ALGORITHM_IDS:
-        gradient_phase0_algorithm = protocol.algorithm_id in {
-            RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID,
-            RA_ADAPT_MACRO_GRADIENT_PHASE0_THEN_SINGLETON_PHASE23_QISKIT_ALGORITHM_ID,
-            RA_ADAPT_GLOBAL_SINGLETON_GRADIENT_PHASE0_PHASE23_QISKIT_ALGORITHM_ID,
-            PAPER_I_PURE_HUBBARD_NOISE_PAGE12_ALGORITHM_ID,
-        }
         phase12_compile = (
             selector_compile_cost_accounting.get("phase_i_phase_ii")
             if isinstance(selector_compile_cost_accounting, Mapping)
@@ -6172,12 +6164,6 @@ def run_ra_adapt(
             or phase12_compile is not None
             or selector_compile_cost_accounting.get("phase_i_cost_source")
             != "structural_proxy_v1"
-            or selector_compile_cost_accounting.get("phase0_cost_source")
-            != (
-                "none_standard_adapt_absolute_gradient_v1"
-                if gradient_phase0_algorithm
-                else None
-            )
             or selector_compile_cost_accounting.get("qiskit_applied_phases")
             != ["phase_ii", "phase_iii"]
             or not isinstance(phase23_compile, Mapping)

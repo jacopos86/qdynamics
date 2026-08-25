@@ -4321,16 +4321,24 @@ class TestHHPhase1Continuation:
         assert pilot_rows
         assert all(row["phase0_pilot_retained"] is True for row in pilot_rows)
         assert phase0["score_key"] == "phase0_score"
-        assert phase0["score_formula"] == "DeltaE0_upper * N0 / K0"
-        assert phase0["cost_enabled"] is True
-        assert all(float(row["phase0_K0"]) >= 1.0 for row in pilot_rows)
+        assert phase0["score_formula"] == "DeltaE0_upper * N0"
         assert all(
             float(row["phase0_score"])
-            == pytest.approx(
-                float(row["phase0_delta_e_upper_hw"]) / float(row["phase0_K0"])
-            )
+            == pytest.approx(float(row["phase0_delta_e_upper_hw"]))
             for row in pilot_rows
         )
+        removed_cost_keys = {
+            "phase0_K0",
+            "phase0_hardware_cost_denominator",
+            "phase0_hardware_cost_excess_sum",
+            "phase0_cost_raw_components",
+            "phase0_cost_bar_components",
+            "phase0_cost_lambdas",
+            "phase0_cost_lambda_source",
+            "phase0_cost_normalization_schema",
+            "phase0_cost_enabled",
+        }
+        assert all(removed_cost_keys.isdisjoint(row) for row in pilot_rows)
         assert all("phase0_algebraic_lane" not in row for row in pilot_rows)
         assert any(row["phase0_sigma_source"].endswith("zero_default") for row in pilot_rows)
         row = payload["history"][0]

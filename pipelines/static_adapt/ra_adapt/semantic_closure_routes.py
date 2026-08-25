@@ -3510,25 +3510,6 @@ def validate_semantic_final_selector_accounting(
         accounting = dict(selector_compile_cost_accounting)
         qiskit = accounting.get("phase_iii")
         targets = qiskit.get("targets") if isinstance(qiskit, Mapping) else None
-        gradient_variants = {
-            PAPER_I_RA_PHASE0_GRADIENT_FIXED24_V2,
-            PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
-            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
-            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
-            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
-            PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
-            PAPER_I_RA_PHASE0_POSITION_GRADIENT_FIXED24_V1,
-            PAPER_I_RA_PHASE0_POSITION_GRADIENT_ADAPTIVE_V1,
-            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
-            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
-            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_FORCED_K50_V1,
-            PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
-        }
-        expected_phase0_cost = (
-            "none_standard_adapt_absolute_gradient_v1"
-            if identity.route_variant in gradient_variants
-            else "structural_proxy_v1"
-        )
         if (
             accounting.get("schema")
             != "paper_i_selector_compile_cost_accounting_v1"
@@ -3536,7 +3517,6 @@ def validate_semantic_final_selector_accounting(
             != PAPER_I_RA_PHASE123_QISKIT_COMPILE_SCOPE
             or accounting.get("excluded_from_s_alg") is not True
             or "S_alg" in accounting
-            or accounting.get("phase0_cost_source") != expected_phase0_cost
             or accounting.get("phase_i_cost_source")
             != "backend_transpile_v1"
             or accounting.get("qiskit_applied_phases")

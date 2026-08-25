@@ -311,16 +311,7 @@ class CandidateFeatures:
     phase0_delta_e_upper_hw: float | None = None
     phase0_novelty: float = 1.0
     phase0_score: float | None = None
-    phase0_score_formula: str = "DeltaE0_upper * N0 / K0"
-    phase0_K0: float = 1.0
-    phase0_hardware_cost_denominator: float = 1.0
-    phase0_hardware_cost_excess_sum: float = 0.0
-    phase0_cost_raw_components: dict[str, float] = field(default_factory=dict)
-    phase0_cost_bar_components: dict[str, float] = field(default_factory=dict)
-    phase0_cost_lambdas: dict[str, float] = field(default_factory=dict)
-    phase0_cost_lambda_source: str = "unresolved"
-    phase0_cost_normalization_schema: str = "unresolved"
-    phase0_cost_enabled: bool = False
+    phase0_score_formula: str = "DeltaE0_upper * N0"
     phase0_alpha: float | None = None
     phase0_threshold: float | None = None
     phase0_hardware_resolution_mode: str = "ideal"

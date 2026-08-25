@@ -468,8 +468,6 @@ def test_phase123_accounting_lists_qiskit_phases_and_excludes_s_alg() -> None:
     )
     accounting = adapt_pipeline._default_no_prune_selector_compile_cost_accounting(
         context=context,
-        gradient_phase0_active=True,
-        phase0_cost_source="structural_proxy_v1",
     )
 
     assert accounting["qiskit_applied_phases"] == [
@@ -477,7 +475,6 @@ def test_phase123_accounting_lists_qiskit_phases_and_excludes_s_alg() -> None:
         "phase_ii",
         "phase_iii",
     ]
-    assert accounting["phase0_cost_source"] == "structural_proxy_v1"
     assert accounting["phase_i_phase_ii"] is None
     assert accounting["phase_iii"]["role"] == "phase_i_phase_ii_phase_iii"
     assert accounting["excluded_from_s_alg"] is True

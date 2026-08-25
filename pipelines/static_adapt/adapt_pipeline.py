@@ -20376,11 +20376,8 @@ def _run_hardcoded_adapt_vqe(
             else "off"
         ),
     )
-    phase0_cost_lambdas_resolved, phase0_cost_lambda_source_resolved = (
-        resolve_hardware_cost_lambdas(phase1_score_cfg)
-    )
     phase0_pilot_summary: dict[str, Any] = {
-        "schema": "phase0_cost_normalized_pilot_v2",
+        "schema": "phase0_raw_gradient_pilot_v1",
         "enabled": bool(phase0_pilot_active),
         "required_route_component": False,
         "satisfies_strict_route_a": False,
@@ -20399,15 +20396,7 @@ def _run_hardcoded_adapt_vqe(
         ),
         "alpha0": float(phase0_pilot_alpha_val),
         "score_key": "phase0_score",
-        "score_formula": "DeltaE0_upper * N0 / K0",
-        "cost_enabled": bool(
-            any(float(value) > 0.0 for value in phase0_cost_lambdas_resolved.values())
-        ),
-        "cost_lambdas": {
-            str(key): float(value)
-            for key, value in phase0_cost_lambdas_resolved.items()
-        },
-        "cost_lambda_source": str(phase0_cost_lambda_source_resolved),
+        "score_formula": "DeltaE0_upper * N0",
         "last_runtime": {},
     }
     phase1_compile_oracle = Phase1CompileCostOracle()
@@ -21499,7 +21488,6 @@ def _run_hardcoded_adapt_vqe(
         gradients_now: Sequence[float] | np.ndarray,
         sigma_by_label: Mapping[str, float] | None,
         selected_ops_now: Sequence[AnsatzTerm],
-        measurement_cache_now: MeasurementCacheAudit,
         stage_name: str,
         scope_label: str,
     ) -> dict[str, Any]:
@@ -21538,7 +21526,7 @@ def _run_hardcoded_adapt_vqe(
         phase0_label_by_idx = {int(idx): str(pool[int(idx)].label) for idx in ordered_indices}
         phase0_cache_payload = {
             "static_key": str(candidate_record_cache_static_key),
-            "scope": "phase0_screen_cost_normalized_v2",
+            "scope": "phase0_raw_gradient_screen_v1",
             "scope_label": str(scope_label),
             "stage_name": str(stage_name),
             "ordered_indices": [int(idx) for idx in ordered_indices],
@@ -21561,9 +21549,6 @@ def _run_hardcoded_adapt_vqe(
             "phase0_pilot_max_records": int(phase0_pilot_max_records_val),
             "phase0_pilot_max_operators": int(phase0_pilot_max_operators_val),
             "phase1_z_alpha": float(phase1_score_cfg.z_alpha),
-            "phase0_cost_lambdas": dict(phase0_cost_lambdas_resolved),
-            "phase0_cost_lambda_source": str(phase0_cost_lambda_source_resolved),
-            "phase0_measurement_cache": measurement_cache_now.snapshot(),
             "hardware_resolution_mode": str(hardware_resolution_mode_key),
             "gradient_hw_floor": float(gradient_hw_floor_val),
             "gradient_drift_floor": float(gradient_drift_floor_val),
@@ -21616,7 +21601,6 @@ def _run_hardcoded_adapt_vqe(
                 "summary": dict(cached_summary),
             }
         raw_records: list[dict[str, Any]] = []
-        phase0_cost_entries: list[dict[str, Any]] = []
         sigma_lookup = dict(sigma_by_label or {})
         for idx in ordered_indices:
             candidate_label = str(phase0_label_by_idx.get(int(idx), pool[int(idx)].label))
@@ -21652,16 +21636,6 @@ def _run_hardcoded_adapt_vqe(
                 manual_b_g_drift=float(gradient_drift_floor_val),
             )
             for pos in positions_by_index.get(int(idx), []):
-                compile_cost = phase1_compile_oracle.estimate(
-                    candidate_term_count=int(max(1, len(pool_compiled[int(idx)].terms))),
-                    position_id=int(pos),
-                    append_position=int(len(selected_ops_now)),
-                    refit_active_count=int(len(selected_ops_now) + 1),
-                    candidate_term=pool[int(idx)],
-                )
-                measurement_stats = measurement_cache_now.estimate(
-                    _measurement_specs_for_pool_index(int(idx))
-                )
                 raw_records.append(
                     {
                         "candidate_pool_index": int(idx),
@@ -21675,55 +21649,13 @@ def _run_hardcoded_adapt_vqe(
                         **dict(components),
                     }
                 )
-                phase0_cost_entries.append(
-                    {
-                        "candidate_pool_index": int(idx),
-                        "position_id": int(pos),
-                        "label": str(candidate_label),
-                        "c_hat_2q": float(compile_cost.c_hat_2q),
-                        "c_hat_d": float(compile_cost.c_hat_d),
-                        "c_hat_1q": float(compile_cost.c_hat_1q),
-                        "c_hat_theta": float(compile_cost.c_hat_theta),
-                        "c_hat_shot": float(measurement_stats.shot_cost_proxy),
-                    }
-                )
-        phase0_cost_payload = hardware_cost_candidate_record_denominators(
-            phase0_cost_entries,
-            phase1_score_cfg,
-        )
-        phase0_cost_rows = [dict(row) for row in phase0_cost_payload.get("rows", [])]
-        if len(phase0_cost_rows) != len(raw_records):
-            raise RuntimeError("Phase-0 cost normalization did not preserve record count.")
-        phase0_cost_lambdas = {
-            str(key): float(value)
-            for key, value in dict(phase0_cost_payload.get("lambdas", {})).items()
-        }
-        phase0_cost_enabled = bool(
-            any(float(value) > 0.0 for value in phase0_cost_lambdas.values())
-        )
-        for raw, cost_row in zip(raw_records, phase0_cost_rows):
-            denominator = float(cost_row.get("hardware_cost_denominator", 1.0))
+        for raw in raw_records:
             numerator = float(raw.get("phase0_delta_e_upper_hw", 0.0))
             raw.update(
                 {
                     "phase0_novelty": 1.0,
-                    "phase0_score": float(numerator / denominator),
-                    "phase0_score_formula": "DeltaE0_upper * N0 / K0",
-                    "phase0_K0": float(denominator),
-                    "phase0_hardware_cost_denominator": float(denominator),
-                    "phase0_hardware_cost_excess_sum": float(
-                        cost_row.get("hardware_cost_excess_sum", 0.0)
-                    ),
-                    "phase0_cost_raw_components": dict(cost_row.get("raw", {})),
-                    "phase0_cost_bar_components": dict(cost_row.get("bars", {})),
-                    "phase0_cost_lambdas": dict(phase0_cost_lambdas),
-                    "phase0_cost_lambda_source": str(
-                        phase0_cost_payload.get("lambda_source", "unknown")
-                    ),
-                    "phase0_cost_normalization_schema": str(
-                        phase0_cost_payload.get("normalization_schema", "")
-                    ),
-                    "phase0_cost_enabled": bool(phase0_cost_enabled),
+                    "phase0_score": float(numerator),
+                    "phase0_score_formula": "DeltaE0_upper * N0",
                 }
             )
         def _phase0_global_shortlist(
@@ -21859,20 +21791,7 @@ def _run_hardcoded_adapt_vqe(
             ),
             "alpha0": float(phase0_pilot_alpha_val),
             "score_key": "phase0_score",
-            "score_formula": "DeltaE0_upper * N0 / K0",
-            "cost_enabled": bool(phase0_cost_enabled),
-            "cost_normalization": {
-                "schema": str(phase0_cost_payload.get("schema", "")),
-                "normalization_schema": str(
-                    phase0_cost_payload.get("normalization_schema", "")
-                ),
-                "medians": dict(phase0_cost_payload.get("medians", {})),
-                "scales": dict(phase0_cost_payload.get("scales", {})),
-                "lambdas": dict(phase0_cost_lambdas),
-                "lambda_source": str(
-                    phase0_cost_payload.get("lambda_source", "unknown")
-                ),
-            },
+            "score_formula": "DeltaE0_upper * N0",
             "sigma_source": str(phase3_gradient_uncertainty_source),
             "sigma_unavailable_count": int(
                 sum(1 for row in pilot_rows if not bool(row.get("phase0_sigma_hat_available", False)))
@@ -29489,7 +29408,6 @@ def _run_hardcoded_adapt_vqe(
                         gradients_now=np.asarray(gradients_local, dtype=float),
                         sigma_by_label={},
                         selected_ops_now=list(branch.selected_ops),
-                        measurement_cache_now=branch.phase1_measure_cache,
                         stage_name=str(stage_name_local),
                         scope_label=f"beam_branch_{int(branch.branch_id)}",
                     )
@@ -40959,7 +40877,6 @@ def _run_hardcoded_adapt_vqe(
                             gradients_now=np.asarray(gradients, dtype=float),
                             sigma_by_label=phase3_sigma_by_label,
                             selected_ops_now=list(selected_ops),
-                            measurement_cache_now=phase1_measure_cache,
                             stage_name=str(stage_name),
                             scope_label="main",
                         )
@@ -62379,25 +62296,9 @@ class _DefaultNoPruneNumericalSession:
                 self.cursor.resume_source_rounds
             ),
         )
-        route_invariants = self.context.route_contract.get(
-            "semantic_invariants", {}
-        )
-        gradient_phase0_active = bool(
-            isinstance(route_invariants, Mapping)
-            and route_invariants.get("phase0_active") is True
-        )
-        phase0_cost_source = None
-        if gradient_phase0_active:
-            phase0_cost_source = (
-                "structural_proxy_v1"
-                if route_invariants.get("phase0_resource_cost_active") is True
-                else "none_standard_adapt_absolute_gradient_v1"
-            )
         selector_compile_cost_accounting = (
             _default_no_prune_selector_compile_cost_accounting(
                 context=self.context,
-                gradient_phase0_active=gradient_phase0_active,
-                phase0_cost_source=phase0_cost_source,
             )
         )
         payload = {
@@ -63565,9 +63466,6 @@ def _macro_gradient_phase0_parent_context_feature(
         phase0_raw_gradient_abs=magnitude,
         phase0_score=magnitude,
         phase0_score_formula="absolute_coordinate_energy_gradient_v1",
-        phase0_K0=0.0,
-        phase0_hardware_cost_denominator=1.0,
-        phase0_cost_enabled=False,
     )
 
 
@@ -68105,8 +68003,6 @@ def _default_no_prune_backend_compile_oracle_summary(
 def _default_no_prune_selector_compile_cost_accounting(
     *,
     context: Any,
-    gradient_phase0_active: bool,
-    phase0_cost_source: str | None,
 ) -> dict[str, Any]:
     """Serialize compile work without adding it to estimator accounting."""
 
@@ -68152,11 +68048,6 @@ def _default_no_prune_selector_compile_cost_accounting(
             role=staged_role,
         ),
         "phase_i_cost_source": phase_i_cost_source,
-        "phase0_cost_source": (
-            str(phase0_cost_source)
-            if gradient_phase0_active and phase0_cost_source is not None
-            else None
-        ),
         "qiskit_applied_phases": qiskit_phases,
         "phase_iii_reuses_phase_i_phase_ii_oracle": bool(
             context.phase3_backend_compile_oracle is None

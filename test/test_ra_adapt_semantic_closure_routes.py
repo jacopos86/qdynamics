@@ -3802,20 +3802,6 @@ def _semantic_final_accounting_fixture(
             ],
         },
         "phase_i_cost_source": "backend_transpile_v1",
-        "phase0_cost_source": (
-            "none_standard_adapt_absolute_gradient_v1"
-            if route_variant
-            in {
-                PAPER_I_RA_PHASE0_GRADIENT_FIXED24_V2,
-                PAPER_I_RA_PHASE0_GRADIENT_ADAPTIVE_V2,
-                PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
-                PAPER_I_RA_PHASE0_POSITION_GRADIENT_FIXED24_V1,
-                PAPER_I_RA_PHASE0_POSITION_GRADIENT_ADAPTIVE_V1,
-                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_V1,
-                PAPER_I_RA_ALL_PHASE_POSITION_ADAPTIVE_SHORTLIST_NATURAL_TERMINAL_V2,
-            }
-            else "structural_proxy_v1"
-        ),
         "qiskit_applied_phases": ["phase_i", "phase_ii", "phase_iii"],
         "phase_iii_reuses_phase_i_phase_ii_oracle": False,
         "excluded_from_s_alg": True,
