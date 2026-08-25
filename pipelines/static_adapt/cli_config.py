@@ -1589,11 +1589,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
     p.add_argument("--phase1-lambda-leak", type=float, default=0.0)
-    p.add_argument("--phase1-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
-    p.add_argument("--phase1-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
-    p.add_argument("--phase1-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
-    p.add_argument("--phase1-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
-    p.add_argument("--phase1-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
+    p.add_argument("--cost-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
+    p.add_argument("--cost-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
+    p.add_argument("--cost-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
+    p.add_argument("--cost-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
+    p.add_argument("--cost-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
     p.add_argument("--phase1-score-z-alpha", type=float, default=0.0)
     p.add_argument(
         "--phase1-score-mode",
@@ -1790,11 +1790,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     p.add_argument("--phase2-measure-reuse-weight", type=float, default=1.0)
     p.add_argument("--phase2-opt-dim-cost-scale", type=float, default=1.0)
     p.add_argument("--phase2-family-repeat-cost-scale", type=float, default=1.0)
-    p.add_argument("--phase2-lambda-2q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_2Q)
-    p.add_argument("--phase2-lambda-d", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_D)
-    p.add_argument("--phase2-lambda-1q", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_1Q)
-    p.add_argument("--phase2-lambda-theta", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_THETA)
-    p.add_argument("--phase2-lambda-shot", type=float, default=CANONICAL_HARDWARE_COST_LAMBDA_SHOT)
     p.add_argument(
         "--phase2-w-depth",
         type=float,
@@ -3535,11 +3530,11 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase1_lambda_compile": float(args.phase1_lambda_compile),
         "phase1_lambda_measure": float(args.phase1_lambda_measure),
         "phase1_lambda_leak": float(args.phase1_lambda_leak),
-        "phase1_lambda_2q": None if args.phase1_lambda_2q is None else float(args.phase1_lambda_2q),
-        "phase1_lambda_d": None if args.phase1_lambda_d is None else float(args.phase1_lambda_d),
-        "phase1_lambda_1q": None if args.phase1_lambda_1q is None else float(args.phase1_lambda_1q),
-        "phase1_lambda_theta": None if args.phase1_lambda_theta is None else float(args.phase1_lambda_theta),
-        "phase1_lambda_shot": None if args.phase1_lambda_shot is None else float(args.phase1_lambda_shot),
+        "cost_lambda_2q": None if args.cost_lambda_2q is None else float(args.cost_lambda_2q),
+        "cost_lambda_d": None if args.cost_lambda_d is None else float(args.cost_lambda_d),
+        "cost_lambda_1q": None if args.cost_lambda_1q is None else float(args.cost_lambda_1q),
+        "cost_lambda_theta": None if args.cost_lambda_theta is None else float(args.cost_lambda_theta),
+        "cost_lambda_shot": None if args.cost_lambda_shot is None else float(args.cost_lambda_shot),
         "phase1_score_z_alpha": float(args.phase1_score_z_alpha),
         "phase1_score_mode": str(args.phase1_score_mode),
         "phase1_depth_ref": float(args.phase1_depth_ref),
@@ -3634,11 +3629,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase2_measure_reuse_weight": float(args.phase2_measure_reuse_weight),
         "phase2_opt_dim_cost_scale": float(args.phase2_opt_dim_cost_scale),
         "phase2_family_repeat_cost_scale": float(args.phase2_family_repeat_cost_scale),
-        "phase2_lambda_2q": None if args.phase2_lambda_2q is None else float(args.phase2_lambda_2q),
-        "phase2_lambda_d": None if args.phase2_lambda_d is None else float(args.phase2_lambda_d),
-        "phase2_lambda_1q": None if args.phase2_lambda_1q is None else float(args.phase2_lambda_1q),
-        "phase2_lambda_theta": None if args.phase2_lambda_theta is None else float(args.phase2_lambda_theta),
-        "phase2_lambda_shot": None if args.phase2_lambda_shot is None else float(args.phase2_lambda_shot),
         "phase2_w_depth": float(args.phase2_w_depth),
         "phase2_w_group": float(args.phase2_w_group),
         "phase2_w_shot": float(args.phase2_w_shot),
