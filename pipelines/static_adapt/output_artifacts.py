@@ -1441,7 +1441,7 @@ def build_output_payload(
             "phase3_backend_name": (
                 None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name)
             ),
-            "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
+            "backend_transpile_seed": int(args.backend_transpile_seed),
             "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
             "phase3_oracle_inner_objective_mode": str(
                 adapt_payload.get(

@@ -2286,7 +2286,7 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         help="Target backend name for single-backend compile-cost modes; defaults to FakeMarrakesh for the QPU-facing HH controller route.",
     )
     p.add_argument(
-        "--phase3-backend-transpile-seed",
+        "--backend-transpile-seed",
         type=int,
         default=7,
         help="Seed used by the backend-conditioned transpilation oracle.",
@@ -3739,7 +3739,7 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase3_parent_collapse_debug_max_depth": int(args.phase3_parent_collapse_debug_max_depth),
         "phase3_backend_cost_mode": str(args.phase3_backend_cost_mode),
         "phase3_backend_name": None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name),
-        "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
+        "backend_transpile_seed": int(args.backend_transpile_seed),
         "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
         "phase3_backend_w_2q": float(args.phase3_backend_w_2q),
         "phase3_backend_w_depth": float(args.phase3_backend_w_depth),

@@ -108,7 +108,7 @@ def _active_profile_execution_settings(
     settings: dict[str, object],
 ) -> dict[str, object]:
     return {
-        field: expected
+        ("backend_transpile_seed" if field == "phase3_backend_transpile_seed" else field): expected
         for field, expected in settings.items()
         if field not in _RETIRED_PRUNE_RUNTIME_FIELDS
         and field not in BEAM_RUNTIME_KEYS

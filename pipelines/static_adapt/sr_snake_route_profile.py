@@ -1313,7 +1313,7 @@ _DEST_OPTION_STRINGS: dict[str, tuple[str, ...]] = {
     "phase3_window_relaxation_mode": ("--phase3-window-relaxation-mode",),
     "phase3_backend_cost_mode": ("--phase3-backend-cost-mode",),
     "phase3_backend_name": ("--phase3-backend-name",),
-    "phase3_backend_transpile_seed": ("--phase3-backend-transpile-seed",),
+    "phase3_backend_transpile_seed": ("--backend-transpile-seed",),
     "phase3_backend_optimization_level": (
         "--phase3-backend-optimization-level",
     ),
@@ -4074,7 +4074,8 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
                 }
             )
     for field, expected in execution_settings.items():
-        current = getattr(namespace, field, None)
+        namespace_field = "backend_transpile_seed" if field == "phase3_backend_transpile_seed" else field
+        current = getattr(namespace, namespace_field, None)
         option_strings = _DEST_OPTION_STRINGS.get(field, ())
         field_explicit = bool(
             explicit_options is not None
@@ -4100,7 +4101,7 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
                 }
             )
             continue
-        setattr(namespace, field, expected)
+        setattr(namespace, namespace_field, expected)
 
     if conflicts:
         raise ValueError(

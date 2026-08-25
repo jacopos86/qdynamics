@@ -145,7 +145,7 @@ def main(argv: list[str] | None = None) -> None:
         "--phase3-backend-cost-mode",
         "--phase3-backend-name",
         "--phase3-backend-shortlist",
-        "--phase3-backend-transpile-seed",
+        "--backend-transpile-seed",
         "--phase3-backend-optimization-level",
     }
     overlap = sorted(flag for flag in forbidden if flag in forwarded_args)
@@ -183,7 +183,7 @@ def main(argv: list[str] | None = None) -> None:
             run_args.extend(["--phase3-backend-name", str(backend_name)])
         run_args.extend(
             [
-                "--phase3-backend-transpile-seed",
+                "--backend-transpile-seed",
                 str(int(args.backend_transpile_seed)),
                 "--phase3-backend-optimization-level",
                 str(int(args.backend_optimization_level)),

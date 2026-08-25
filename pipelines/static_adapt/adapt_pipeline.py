@@ -14993,7 +14993,7 @@ def _run_hardcoded_adapt_vqe(
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
     phase3_backend_name: str | None = "FakeMarrakesh",
-    phase3_backend_transpile_seed: int = 7,
+    backend_transpile_seed: int = 7,
     phase3_backend_optimization_level: int = 1,
     phase3_backend_w_2q: float = 1.0,
     phase3_backend_w_depth: float = 0.1,
@@ -16773,7 +16773,7 @@ def _run_hardcoded_adapt_vqe(
             raise ValueError(
                 "The staged Qiskit scope requires optimization level 1."
             )
-        if int(phase3_backend_transpile_seed) != 7:
+        if int(backend_transpile_seed) != 7:
             raise ValueError(
                 "The staged Qiskit scope requires transpiler seed 7."
             )
@@ -16896,9 +16896,7 @@ def _run_hardcoded_adapt_vqe(
             "phase3_backend_cost_mode": str(phase3_backend_cost_mode_key),
             "phase3_backend_cost_scope": str(phase3_backend_cost_scope_key),
             "phase3_backend_name": str(phase3_backend_name),
-            "phase3_backend_transpile_seed": int(
-                phase3_backend_transpile_seed
-            ),
+            "phase3_backend_transpile_seed": int(backend_transpile_seed),
             "phase3_backend_optimization_level": int(
                 phase3_backend_optimization_level
             ),
@@ -17122,7 +17120,7 @@ def _run_hardcoded_adapt_vqe(
             else str(phase3_backend_name)
         ),
         phase3_backend_name_requested=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        phase3_backend_transpile_seed=int(phase3_backend_transpile_seed),
+        backend_transpile_seed=int(backend_transpile_seed),
         phase3_backend_optimization_level=int(phase3_backend_optimization_level),
         phase3_backend_w_2q=float(phase3_backend_w_2q),
         phase3_backend_w_depth=float(phase3_backend_w_depth),
@@ -20411,7 +20409,7 @@ def _run_hardcoded_adapt_vqe(
     backend_compile_cfg = BackendCompileConfig(
         mode=str(phase3_backend_cost_mode_key),
         requested_backend_name=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        seed_transpiler=int(phase3_backend_transpile_seed),
+        seed_transpiler=int(backend_transpile_seed),
         optimization_level=int(phase3_backend_optimization_level),
         weight_2q=float(phase3_backend_w_2q),
         weight_depth=float(phase3_backend_w_depth),
@@ -52895,7 +52893,7 @@ def _run_hardcoded_adapt_vqe(
                     None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
                 ),
                 "optimization_level": int(phase3_backend_optimization_level),
-                "seed_transpiler": int(phase3_backend_transpile_seed),
+                "seed_transpiler": int(backend_transpile_seed),
                 "target_backend_names": list(
                     dict.fromkeys(
                         str(getattr(target, "resolved_name", ""))
@@ -67776,7 +67774,7 @@ def _default_no_prune_backend_compile_oracle(
             if kwargs.get("phase3_backend_name") in {None, ""}
             else str(kwargs["phase3_backend_name"])
         ),
-        seed_transpiler=int(kwargs["phase3_backend_transpile_seed"]),
+        seed_transpiler=int(kwargs["backend_transpile_seed"]),
         optimization_level=int(
             kwargs["phase3_backend_optimization_level"]
         ),
@@ -67865,7 +67863,7 @@ def _default_no_prune_phase3_backend_compile_oracle(
         != MARRAKESH_GRAPH_SPAN_MODE
         or str(kwargs.get("phase3_backend_name")) != "FakeMarrakesh"
         or int(kwargs["phase3_backend_optimization_level"]) != 1
-        or int(kwargs["phase3_backend_transpile_seed"]) != 7
+        or int(kwargs["backend_transpile_seed"]) != 7
     ):
         raise ValueError(
             "The staged Qiskit selector route requires the Paper-I "
@@ -69429,6 +69427,7 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_backend_cost_scope": (
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
+    "backend_transpile_seed": 7,
     "phase3_backend_w_2q": 1.0,
     "phase3_backend_w_depth": 0.1,
     "phase3_backend_w_size": 0.01,
