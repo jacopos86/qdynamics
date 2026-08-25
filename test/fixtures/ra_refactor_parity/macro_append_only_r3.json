@@ -83,7 +83,7 @@
     }
   ],
   "completed_controller_rounds": 3,
-  "protocol_sha256": "861eee9a565a7929b35db025edd16771234e66dfccd633bc40ab856247f08b04",
+  "protocol_sha256": "93051165aac890cc3102fb218e49a0517435fb5cfb674a1a864cd66b6afc4033",
   "result_schema": "paper_i_ra_adapt_result_v1",
   "stop": {
     "accepted_energy": -0.7566324915,
