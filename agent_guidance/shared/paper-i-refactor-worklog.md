@@ -39,6 +39,34 @@ why no failure count existed. Measured with `--continue-on-collection-errors`:
 
 ---
 
+## DESTINATION — use the existing `ra_adapt/` package, do not create new files
+
+The design target below describes the shape in the author's words. **The modules
+already exist**, under the [LOCKED] layout of
+`history/ra-adapt-unification-implementation-spec-20260727.md` §2.1. Claude's
+call, 2026-08-25: build into those, do not create `algorithm.py`, `ansatz.py` or
+`generators.py`.
+
+| design-target name | existing module | lines |
+|---|---|---|
+| the loop / `algorithm.py` | `ra_adapt/engine.py` | 6,402 |
+| `generators.py` | `ra_adapt/pools.py` + `ra_adapt/adapters.py` | 1,573 + 656 |
+| `ansatz.py` (insertion, refit) | `ra_adapt/insertion_geometry.py` | 1,114 |
+| `Response` blocks / retained support | `ra_adapt/support.py` + `ra_adapt/trust.py` | 570 + 323 |
+| typed request / receipts | `ra_adapt/contracts.py` | 1,988 |
+| run bundles | `ra_adapt/bundles.py` | 10,259 |
+| comparator facade | `ra_adapt/append.py` | 1,691 |
+| **extensions** | `static_adapt/extensions.py` | 1,360 — created 2026-08-24, no July equivalent |
+
+Total already built: **~24,833 lines.** The July spec's §2.1 rules still bind —
+no flag union, no paper-number switch, no second defaults registry,
+representation selected by a typed adapter inside the resolved request.
+
+**So the refactor is a drain, not a construction.** `_run_hardcoded_adapt_vqe`
+(39,386 lines in `adapt_pipeline.py`) is the legacy body being emptied into a
+package that already exists. Every move in NEXT INCREMENTS has a destination
+module named above.
+
 # THE DESIGN TARGET
 
 Author's specification, 2026-08-24. This is what the code should look like.
