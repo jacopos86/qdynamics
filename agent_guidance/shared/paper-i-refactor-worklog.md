@@ -2120,6 +2120,149 @@ would silently differ from the published evidence.
 What this is *not*: a deletion candidate. It is load-bearing for current
 evidence regardless of where the code lives.
 
+## 6ar. "Lane" means two different things — do not conflate (Q45)
+
+`lane` appears **0 times in Paper I** and **1,144 times** in
+`static_adapt/` + `scaffold/`. Enumerating before concluding, it is two concepts:
+
+### 1. Physical operator lanes — a label on macro generators
+
+Recorded in runs as `physical_operator_lane`, with values
+`dressed_phonon_correlation`, `electronic_current`, `hva_hamiltonian_blocks`,
+`phonon_displacement`, `phonon_squeeze_relaxation`, `uccsd_double`. Also
+`static_lane_route = "physical_operator_type"`.
+
+**Keep the label.** It is provenance on a macro generator — which family it came
+from — and the author's decision keeps macro generators.
+
+**Delete the lane-wise scoring restriction**, which is the 5 executor
+parameters:
+
+| parameter | recorded in the B3 run |
+|---|---|
+| `physical_lane_shortlist_aggressiveness` | `3` |
+| `phase1_lane_retention_enabled` | **absent** |
+| `physical_phase1_lane_quota_pressure` | **absent** |
+| `physical_phase2_lane_quota_pressure` | **absent** |
+| `physical_phase2_lane_rel_threshold` | **absent** |
+
+Four of five are not written to the checkpoint at all, and no
+`lane_quota_applied`, `lane_dropped` or `lane_retained` marker appears anywhere
+in the run. Only the aggressiveness value is recorded.
+
+Also `CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS` — a
+profile family built around lane-only macro scoring — retires with it.
+
+### 2. Nomination lanes — pruning, unrelated
+
+`nomination_lanes` appears 302 times, but at
+`/adapt_vqe/active_prefix_checkpoints[*]/post_admission_prune`, holding
+`cached_tangent_fubini`, `recoverability_broad_rank`, `schur_surrogate`, each
+with `authority: "nomination_only"`. **These are pruning nomination sources**,
+already extracted to `extensions.py` by Codex.
+
+**Codex: a grep for `lane` hits both. The 302 nomination-lane records are not
+evidence that physical lanes restrict scoring.** Separate them before deleting.
+
+### Established: the aggressiveness factor was inert too
+
+`physical_lane_shortlist_aggressiveness = 3` is recorded, and the runs set
+`static_lane_route = "physical_operator_type"`, so the factor resolved to **3**
+rather than the neutral 1 (`adapt_pipeline.py:15525-15546`). That looked
+load-bearing.
+
+It is not. The factor is consumed by
+`_resolve_physical_lane_shortlist_budget_contract` (`:12180`), whose docstring
+is explicit:
+
+> *"The **historical** Paper-I physical-lane campaign divided both shortlist caps
+> and the Phase-II fraction by the requested aggressiveness factor. **Current
+> joint-response funnels own their explicit caps and must not inherit this
+> archival adjustment.**"*
+
+The division applies only under
+`_historical_paper_i_route_compatibility_active(...)`, which the joint-response
+funnel switches off.
+
+**Confirmed from the run**, not from the docstring:
+
+| recorded | value |
+|---|---|
+| `phase1_shortlist_size` | **24** |
+| `phase2_shortlist_size` | **12** |
+| `phase2_shortlist_fraction` | **0.25** |
+
+Those are the funnel caps undivided — 6ae observed the same `{24, 12, 12}` in the
+controller snapshot, and 6ab traced them to `macro_phase1_cap` /
+`macro_phase2_cap` / `child_phase3_cap`. Had the archival contract applied its
+division by 3, the recorded sizes would be 8 and 4.
+
+**So all five lane restriction parameters are inert in the bundles**, and Q45's
+deletion does not change a recorded shortlist. Four were never written to the
+checkpoint; the fifth was written but gated off by the funnel.
+
+## 6as. Inside the mega function — what moves, what deletes
+
+Structural inventory of `_run_hardcoded_adapt_vqe`
+(`adapt_pipeline.py:14714-54455`, **39,742 lines**) after Codex's extension pass.
+
+```
+196 nested defs
+27,406 lines inside nested defs   (69%)
+12,336 lines in no nested def     (31%) -- the controller body proper
+1,593 if statements
+```
+
+### Nested defs by group
+
+| group | defs | lines | disposition |
+|---|---|---|---|
+| **beam** | 13 | **8,340** | **move to `extensions.py`** |
+| **prune** | 24 | **3,227** | **move to `extensions.py`** |
+| phase2 | 6 | 2,863 | `score()` / phase table |
+| checkpoint/telemetry | 10 | 1,775 | **move out** — telemetry is an output, built from `Scored` |
+| phase1 | 15 | 1,734 | `score()` / phase table |
+| phase3 | 15 | 1,254 | `score()` / phase table |
+| phase0 | 2 | 466 | `score()` / phase table |
+| other | 111 | 7,747 | inspect individually |
+| batch | 0 | 0 | already moved |
+
+### The headline
+
+**Codex removed the extension *parameters and CLI flags*; the extension
+*implementations* are still inside the mega function.** 11,567 lines — 29% of it
+— are beam and prune. Batch is the exception: zero nested defs remain, so that
+one moved fully.
+
+The largest single blocks:
+
+| def | line | size |
+|---|---|---|
+| `_evaluate_beam_branch` | 29190 | **5,469** |
+| `_materialize_beam_child` | 35366 | **2,722** |
+| `_process_phase2_full_candidate_record_local` | 30208 | 1,730 |
+| `_execute_live_mature_prune_pass` | 23974 | 1,374 |
+| `_make_phase2_full_record_evaluator` | 38750 | 1,033 |
+| `_full_record_for_candidate` | 38763 | 1,018 |
+| `_build_prune_schur_nomination_scores` | 22538 | 827 |
+
+`_evaluate_beam_branch` alone is **14% of the whole function** and is beam-only.
+
+### Available now, without any design decision
+
+| move | lines |
+|---|---|
+| beam implementation → `extensions.py` | 8,340 |
+| prune implementation → `extensions.py` | 3,227 |
+| checkpoint/telemetry builders → outside the loop | 1,775 |
+| **total** | **13,342 (34% of the function)** |
+
+These are moves, not deletions, so rule 6i's net-line target is near zero for
+them — but they are the prerequisite named in 6i, because the function cannot be
+restructured while a third of it is extension machinery. After they land the
+controller body is ~26k lines, and the `other` bucket (111 defs, 7,747 lines) is
+the next thing to inspect individually.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2398,6 +2541,8 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q42 | Re-scope of the retracted Q39 | **Keep PAOP.** It was used for Paper I — 40 of the 89 records in the canonical HH parent pool — so it stays. No pool change, no rerun. The standalone `paop_*` pool keys and the 4 executor parameters are **not** to be deleted either while the pool depends on the same builder machinery; treat PAOP as live Paper-I material. | 2026-08-24 |
 | Q43 | `phase3_shadow_damping_policy` | **Delete.** Absent from Paper I. Verified `"off"` in **15 of 15** archives across all five bundles, despite V4 setting `mapped_seed_zero_query_v1` — the active family root sets it `off` and no bundle ran with it on. |  2026-08-25 |
 | Q44 | `phase3_runtime_split_mode` | Author: *"ideally out of the main pipeline but still runnable — a path that has produced useful results but I expect to not need it."* **Measurement contradicts the expectation: it is `shortlist_pauli_children_v1` in 15 of 15 archives across all five bundles.** It is the default path, not an occasional one. Disposition pending — see 6aq. | 2026-08-25 |
+| Q45 | Physical lanes | **Delete the lane-wise scoring restriction.** Author: *"We will use macro generators but not restrict them to lane-wise scoring."* Keep `physical_operator_lane` as a provenance label on macro generators. `lane` appears **0 times in Paper I**. | 2026-08-25 |
+| Q46 | `phase3_runtime_split_mode` placement | **Move out of the main pipeline** (author, twice). Because it is on in 15/15 bundle archives, constraint 3 forces it to remain the effective default for the Paper-I profiles — otherwise a reproduction that forgets to enable it differs silently. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
