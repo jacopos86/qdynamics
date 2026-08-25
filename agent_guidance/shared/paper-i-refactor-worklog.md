@@ -2027,41 +2027,69 @@ cost terms), `extensions.py` (batch, prune, beam — already exists).
    good* on DeltaE, qiskit costs and estimator count — not bit-identity — but a
    changed accepted sequence must be attributable to a licensed change, never a
    side effect.
-3. **The compilation contract is fixed**: `FakeMarrakesh`, optimization level 1,
+3. **Bundles 3 through 9 reproduce, across all six regimes.** The reference
+   artifact is
+   `output/pdf/paper_i_ra_allphase_adaptive_20260817/paper_i_bundle_pages_20260823.pdf`
+   — 7 pages, one per bundle, each plotting `|E_k - E_exact|` against accepted
+   controller round `k` for `weak_weak`, `intermediate_weak`, `strong_weak_u8`,
+   `weak_strong`, `intermediate_strong`, `strong_strong_u8`, with AAVQE
+   comparator curves. Those curves are the reproduction target, judged by Q1's
+   *at least as good* standard on DeltaE, qiskit cost and estimator count.
+
+   **Evidence availability is not uniform** — check before assuming a bundle can
+   be replayed locally:
+
+   | bundle | local run archives |
+   |---|---|
+   | b3 | 18 |
+   | b4 | **none** |
+   | b5 | **none** — the macro-then-singleton route, CHTC only |
+   | b6 | 18 |
+   | b7 | 3 |
+   | b8 | 6 |
+   | b9 | 13 |
+
+   b4 and b5 have no `output/local_runs` archives. B5 is the contract's HH-B5
+   hierarchical parent-to-singleton profile, so it is a *named* reproduction
+   target with no local evidence to replay against. Reproducing it needs the
+   CHTC material under
+   `chtc/paper_i_ra_adapt_repair_20260727/paper_i_ra_adapt_macro_then_singleton_*`.
+
+4. **The compilation contract is fixed**: `FakeMarrakesh`, optimization level 1,
    `seed_transpiler` 7 (Q31, Q34). `N_2q`, `D_2q`, `D_c` are properties of that
    contract.
-4. **`_canonical_route_contract_for_request` keeps its resolved contract
+5. **`_canonical_route_contract_for_request` keeps its resolved contract
    byte-identical.** It is CRITICAL — 23 upstream symbols, five processes
    including `run_ra_adapt` and campaign authorization. A contract-digest change
    stops the increment.
 
 ### Hard constraints — method
 
-5. **Paper I is the definition.** Where code and manuscript differ, the
+6. **Paper I is the definition.** Where code and manuscript differ, the
    manuscript decides what the method *is*. Where a construct is absent from the
    manuscript, that is a question, not a licence to delete — see the retractions
    in 6ak and 6al.
-6. **No fallbacks** (rule 7). A requested computation that cannot be performed
+7. **No fallbacks** (rule 7). A requested computation that cannot be performed
    stops the run. No silent substitution: not qiskit to proxy, not metric for
    Hessian, not one backend for another.
-7. **One representation of each fact.** Where two exist, a guard is needed to
+8. **One representation of each fact.** Where two exist, a guard is needed to
    keep them agreeing; that guard is the signal to collapse them, not to keep.
-8. **No setting that cannot take effect**, and no receipt field for an event that
+9. **No setting that cannot take effect**, and no receipt field for an event that
    cannot happen (Q29).
-9. **Optional extensions are absent by default**, with required choices supplied
+10. **Optional extensions are absent by default**, with required choices supplied
    by a conditional policy interview rather than defaults (Q25-Q27).
 
 ### Hard constraints — process
 
-10. **DECISIONS is binding and changes between increments.** Re-read it each
+11. **DECISIONS is binding and changes between increments.** Re-read it each
     time. An unanswered question is not permission to choose.
-11. **Report net lines removed** per increment (rule 6i). Extraction that moves
+12. **Report net lines removed** per increment (rule 6i). Extraction that moves
     without deleting is permitted only as a prerequisite to a named deletion.
-12. **Enumerate before concluding.** Both retractions came from checking one
+13. **Enumerate before concluding.** Both retractions came from checking one
     artifact: a checkpoint that never stores a derived flag, and one of two
     same-named builders. When a name resolves to more than one implementation,
     or a value is derived rather than stored, resolve every path before acting.
-13. **Stop and report** on: a ledger fingerprint change, a rise in collection
+14. **Stop and report** on: a ledger fingerprint change, a rise in collection
     errors, a route-contract digest change, or a canonical profile selecting
     something the worklog calls unused.
 
