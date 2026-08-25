@@ -496,10 +496,17 @@ _DEFAULT_ALGORITHMS: tuple[BenchmarkAlgorithm, ...] = (
         method_family="electron_phonon_adapt",
         supported_families=("hh",),
         required_pool_key="sq_lf_std",
-        implemented_families=("hh",),
+        implemented_families=(),
         runner_module=_STATIC_HH_RUNNER,
         hamiltonian_generic=False,
-        notes="HH/electron-phonon-specific pool; do not submit for pure Hubbard or boson chains.",
+        notes=(
+            "Retired 2026-08-25 with the legacy executor. Its only runner was "
+            "the hh_adapt_qeb_sq_lf_std_legacy bench arm, which called "
+            "adapt_pipeline::_run_hardcoded_adapt_vqe. Kept as an explicit "
+            "skip so already-built manifests report a clear retirement rather "
+            "than an unknown-algorithm error. The published Table-I QEB row is "
+            "static_qubit_qeb_adapt_vqe, which does not use this path."
+        ),
     ),
     BenchmarkAlgorithm(
         algorithm_id="static_lang_firsov_vqe",

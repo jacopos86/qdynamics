@@ -139,10 +139,6 @@ class _ResolvedNumericalDependencies:
         repr=False,
         compare=False,
     )
-    legacy_executor: Callable[..., tuple[dict[str, Any], Any]] = field(
-        repr=False,
-        compare=False,
-    )
     state_backend: str
     finite_angle: float
     response_coordinate_scope: str
@@ -246,15 +242,6 @@ class _ResolvedExecutionContext:
         if not isinstance(resolved, dict):
             raise AssertionError("Canonical runtime inputs must thaw to a dictionary.")
         return resolved
-
-    def legacy_executor_kwargs(self) -> dict[str, Any]:
-        """Project direct state onto the explicit compatibility boundary."""
-
-        from pipelines.static_adapt import adapt_pipeline
-
-        return adapt_pipeline._canonical_sr_snake_legacy_executor_kwargs(
-            self.canonical_runtime_kwargs()
-        )
 
     def build_default_controller_runtime(
         self,
@@ -881,11 +868,6 @@ def _resolve_execution_context(
     if not isinstance(frozen_kwargs, Mapping):
         raise AssertionError("Frozen legacy executor inputs must be a mapping.")
 
-    def _retained_optional_policy_executor(
-        **executor_kwargs: Any,
-    ) -> tuple[dict[str, Any], Any]:
-        return adapt_pipeline._run_hardcoded_adapt_vqe(**executor_kwargs)
-
     return _ResolvedExecutionContext(
         problem=problem,
         problem_receipt=problem_receipt,
@@ -897,7 +879,6 @@ def _resolve_execution_context(
                 adapt_pipeline
                 ._build_default_sr_controller_numerical_runtime
             ),
-            legacy_executor=_retained_optional_policy_executor,
             state_backend=str(kwargs["adapt_state_backend"]),
             finite_angle=float(kwargs["finite_angle"]),
             response_coordinate_scope=str(

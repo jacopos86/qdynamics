@@ -1214,30 +1214,14 @@ def test_ordinary_novelty_policy_tests_are_archived_and_passive_diagnostics_rema
         REPO_ROOT / "pipelines/static_adapt/adapt_pipeline.py"
     ).read_text(encoding="utf-8")
     adapt_tree = ast.parse(adapt_source)
-    hardcoded_executor = next(
-        node
-        for node in adapt_tree.body
-        if isinstance(node, ast.FunctionDef)
+    # The legacy executor is deleted, so the retired-parameter guarantee it
+    # used to carry is now structural: the parameters cannot exist because the
+    # function that declared them does not.
+    assert not any(
+        isinstance(node, ast.FunctionDef)
         and node.name == "_run_hardcoded_adapt_vqe"
+        for node in adapt_tree.body
     )
-    executor_parameters = {
-        argument.arg
-        for argument in (
-            *hardcoded_executor.args.posonlyargs,
-            *hardcoded_executor.args.args,
-            *hardcoded_executor.args.kwonlyargs,
-        )
-    }
-    retired_parameters = {
-        "phase2_gamma_N",
-        "phase2_gamma_N_schedule_mode",
-        "phase2_gamma_N_schedule_start",
-        "phase2_gamma_N_schedule_end",
-        "phase2_novelty_eps",
-        "phase2_novelty_mode",
-        "phase3_novelty_ablation_mode",
-    }
-    assert executor_parameters.isdisjoint(retired_parameters)
 
     novelty_symbols: set[str] = set()
     for node in ast.walk(adapt_tree):

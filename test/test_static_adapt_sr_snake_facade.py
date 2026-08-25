@@ -786,14 +786,8 @@ def test_default_facade_does_not_call_either_legacy_loop_entry(
     monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
     monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_args, **_kwargs: None)
 
-    def _legacy_forbidden(*_args: Any, **_kwargs: Any) -> Any:
-        raise AssertionError("the default facade entered a legacy loop")
-
-    monkeypatch.setattr(
-        adapt_pipeline,
-        "_run_hardcoded_adapt_vqe",
-        _legacy_forbidden,
-    )
+    # The facade can no longer enter a legacy loop: the executor is deleted.
+    assert not hasattr(adapt_pipeline, "_run_hardcoded_adapt_vqe")
     assert not hasattr(
         adapt_pipeline,
         "_run_hardcoded_adapt_vqe_program",
@@ -933,9 +927,7 @@ def test_default_numerical_session_has_explicit_non_coroutine_state() -> None:
     } <= cursor_fields
     assert "program" not in session_fields
     assert "generator" not in session_fields
-    assert not inspect.isgeneratorfunction(
-        adapt_pipeline._run_hardcoded_adapt_vqe
-    )
+    assert not hasattr(adapt_pipeline, "_run_hardcoded_adapt_vqe")
     for method_name in (
         "prepare_selection",
         "prepare_transition",
