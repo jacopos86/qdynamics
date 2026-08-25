@@ -2164,11 +2164,42 @@ already extracted to `extensions.py` by Codex.
 **Codex: a grep for `lane` hits both. The 302 nomination-lane records are not
 evidence that physical lanes restrict scoring.** Separate them before deleting.
 
-### Still to establish
+### Established: the aggressiveness factor was inert too
 
-Whether `physical_lane_shortlist_aggressiveness = 3` changed which candidates
-were shortlisted in the bundles. It is the one restriction parameter that *is*
-recorded, so unlike the other four its inertness is not yet demonstrated.
+`physical_lane_shortlist_aggressiveness = 3` is recorded, and the runs set
+`static_lane_route = "physical_operator_type"`, so the factor resolved to **3**
+rather than the neutral 1 (`adapt_pipeline.py:15525-15546`). That looked
+load-bearing.
+
+It is not. The factor is consumed by
+`_resolve_physical_lane_shortlist_budget_contract` (`:12180`), whose docstring
+is explicit:
+
+> *"The **historical** Paper-I physical-lane campaign divided both shortlist caps
+> and the Phase-II fraction by the requested aggressiveness factor. **Current
+> joint-response funnels own their explicit caps and must not inherit this
+> archival adjustment.**"*
+
+The division applies only under
+`_historical_paper_i_route_compatibility_active(...)`, which the joint-response
+funnel switches off.
+
+**Confirmed from the run**, not from the docstring:
+
+| recorded | value |
+|---|---|
+| `phase1_shortlist_size` | **24** |
+| `phase2_shortlist_size` | **12** |
+| `phase2_shortlist_fraction` | **0.25** |
+
+Those are the funnel caps undivided — 6ae observed the same `{24, 12, 12}` in the
+controller snapshot, and 6ab traced them to `macro_phase1_cap` /
+`macro_phase2_cap` / `child_phase3_cap`. Had the archival contract applied its
+division by 3, the recorded sizes would be 8 and 4.
+
+**So all five lane restriction parameters are inert in the bundles**, and Q45's
+deletion does not change a recorded shortlist. Four were never written to the
+checkpoint; the fifth was written but gated off by the funnel.
 
 ## 7. No fallbacks
 
