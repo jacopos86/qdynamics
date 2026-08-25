@@ -130,6 +130,7 @@ def test_retained_static_policy_has_no_admission_rollback_controls() -> None:
     field_names = {field.name for field in fields(StaticScaffoldPolicy)}
     assert "adapt_rollback_mode" not in field_names
     assert "adapt_rollback_tolerance" not in field_names
+    assert not any("maturity" in field_name for field_name in field_names)
     assert (
         BATCH_RUNTIME_KEYS | BEAM_RUNTIME_KEYS | PRUNING_RUNTIME_KEYS
     ).isdisjoint(field_names)

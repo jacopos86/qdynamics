@@ -67,6 +67,20 @@ from pipelines.static_adapt.hardware_resolution_profiles import (
 )
 from pipelines.static_adapt.extensions import PRUNING_RUNTIME_KEYS
 
+MATURITY_RUNTIME_KEYS = (
+    "phase1_maturity_cap_min",
+    "phase1_maturity_cap_max",
+    "phase2_maturity_cap_min",
+    "phase2_maturity_cap_max",
+    "phase3_maturity_cap_min",
+    "phase3_maturity_cap_max",
+    "phase_maturity_shot_min",
+    "phase_maturity_shot_max",
+    "phase1_maturity_shot_cap",
+    "phase2_maturity_shot_cap",
+    "phase3_maturity_shot_cap",
+)
+
 _run_hardcoded_adapt_vqe = _adapt_mod._run_hardcoded_adapt_vqe
 _build_uccsd_pool = _adapt_mod._build_uccsd_pool
 _build_cse_pool = _adapt_mod._build_cse_pool
@@ -1970,7 +1984,7 @@ class TestAdaptCLIParsing:
         assert float(args.physical_phase1_lane_quota_pressure) == pytest.approx(0.55)
         assert float(args.physical_phase2_lane_quota_pressure) == pytest.approx(0.65)
 
-    def test_parse_defaults_omit_pruning_extension_surface(
+    def test_parse_defaults_omit_pruning_and_maturity_override_surfaces(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ):
@@ -1979,17 +1993,7 @@ class TestAdaptCLIParsing:
         assert all(
             not hasattr(args, name) for name in PRUNING_RUNTIME_KEYS
         )
-        assert args.phase1_maturity_cap_min is None
-        assert args.phase1_maturity_cap_max is None
-        assert args.phase2_maturity_cap_min is None
-        assert args.phase2_maturity_cap_max is None
-        assert args.phase3_maturity_cap_min is None
-        assert args.phase3_maturity_cap_max is None
-        assert int(args.phase_maturity_shot_min) == 1
-        assert int(args.phase_maturity_shot_max) == 1
-        assert int(args.phase1_maturity_shot_cap) == 0
-        assert int(args.phase2_maturity_shot_cap) == 0
-        assert int(args.phase3_maturity_shot_cap) == 0
+        assert all(not hasattr(args, name) for name in MATURITY_RUNTIME_KEYS)
         assert not hasattr(args, "phase_live_hysteresis_enabled")
         assert not hasattr(args, "phase2_null_nrem_high_threshold")
         assert not hasattr(args, "phase2_live_nrem_low_threshold")
@@ -2000,6 +2004,19 @@ class TestAdaptCLIParsing:
         assert float(args.physical_phase2_lane_rel_threshold) == pytest.approx(0.10)
         assert float(args.physical_phase1_lane_quota_pressure) == pytest.approx(0.70)
         assert float(args.physical_phase2_lane_quota_pressure) == pytest.approx(0.70)
+
+    @pytest.mark.parametrize(
+        "retired_flag",
+        tuple("--" + name.replace("_", "-") for name in MATURITY_RUNTIME_KEYS),
+    )
+    def test_parse_rejects_retired_maturity_override_flags(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        retired_flag: str,
+    ):
+        monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py", retired_flag, "1"])
+        with pytest.raises(SystemExit, match="2"):
+            _adapt_mod.parse_args()
 
     def test_parse_rejects_retired_pruning_extension_flags(
         self,

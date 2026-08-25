@@ -1694,17 +1694,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         default=0.70,
         help="Quota pressure for physical Phase-II lane-health budgets; lower values favor global score rank.",
     )
-    p.add_argument("--phase1-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase1-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase2-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase2-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase3-maturity-cap-min", type=int, default=None)
-    p.add_argument("--phase3-maturity-cap-max", type=int, default=None)
-    p.add_argument("--phase-maturity-shot-min", type=int, default=1)
-    p.add_argument("--phase-maturity-shot-max", type=int, default=1)
-    p.add_argument("--phase1-maturity-shot-cap", type=int, default=0)
-    p.add_argument("--phase2-maturity-shot-cap", type=int, default=0)
-    p.add_argument("--phase3-maturity-shot-cap", type=int, default=0)
     p.add_argument(
         "--phase2-lambda-H",
         type=float,
@@ -3570,17 +3559,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "physical_phase2_lane_rel_threshold": float(args.physical_phase2_lane_rel_threshold),
         "physical_phase1_lane_quota_pressure": float(args.physical_phase1_lane_quota_pressure),
         "physical_phase2_lane_quota_pressure": float(args.physical_phase2_lane_quota_pressure),
-        "phase1_maturity_cap_min": None if args.phase1_maturity_cap_min is None else int(args.phase1_maturity_cap_min),
-        "phase1_maturity_cap_max": None if args.phase1_maturity_cap_max is None else int(args.phase1_maturity_cap_max),
-        "phase2_maturity_cap_min": None if args.phase2_maturity_cap_min is None else int(args.phase2_maturity_cap_min),
-        "phase2_maturity_cap_max": None if args.phase2_maturity_cap_max is None else int(args.phase2_maturity_cap_max),
-        "phase3_maturity_cap_min": None if args.phase3_maturity_cap_min is None else int(args.phase3_maturity_cap_min),
-        "phase3_maturity_cap_max": None if args.phase3_maturity_cap_max is None else int(args.phase3_maturity_cap_max),
-        "phase_maturity_shot_min": int(args.phase_maturity_shot_min),
-        "phase_maturity_shot_max": int(args.phase_maturity_shot_max),
-        "phase1_maturity_shot_cap": int(args.phase1_maturity_shot_cap),
-        "phase2_maturity_shot_cap": int(args.phase2_maturity_shot_cap),
-        "phase3_maturity_shot_cap": int(args.phase3_maturity_shot_cap),
         "phase2_lambda_H": float(args.phase2_lambda_H),
         "phase2_rho": float(args.phase2_rho),
         "phase2_score_z_alpha": float(args.phase2_score_z_alpha)

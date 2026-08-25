@@ -322,7 +322,6 @@ from pipelines.static_adapt.commutation_metadata import (
 from pipelines.static_adapt.lane_routes import (
     STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION,
     STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE,
-    clamp_controller_cap_pair_for_lane_route,
     normalize_physical_lane_shortlist_aggressiveness,
     normalize_static_lane_route,
     physical_lane_route_variant_id_for_problem,
@@ -14880,17 +14879,6 @@ def _run_hardcoded_adapt_vqe(
     physical_phase2_lane_rel_threshold: float = 0.10,
     physical_phase1_lane_quota_pressure: float = 0.70,
     physical_phase2_lane_quota_pressure: float = 0.70,
-    phase1_maturity_cap_min: int | None = None,
-    phase1_maturity_cap_max: int | None = None,
-    phase2_maturity_cap_min: int | None = None,
-    phase2_maturity_cap_max: int | None = None,
-    phase3_maturity_cap_min: int | None = None,
-    phase3_maturity_cap_max: int | None = None,
-    phase_maturity_shot_min: int = 1,
-    phase_maturity_shot_max: int = 1,
-    phase1_maturity_shot_cap: int = 0,
-    phase2_maturity_shot_cap: int = 0,
-    phase3_maturity_shot_cap: int = 0,
     phase2_lambda_H: float = 1e-6,
     phase2_rho: float = 0.25,
     phase2_score_z_alpha: float | None = None,
@@ -15693,85 +15681,14 @@ def _run_hardcoded_adapt_vqe(
         name="physical_phase2_lane_quota_pressure",
     )
 
-    def _resolve_maturity_cap_pair(
-        *,
-        name: str,
-        min_value: int | None,
-        max_value: int | None,
-        fallback: int,
-    ) -> tuple[int, int]:
-        fallback_val = int(max(1, int(fallback)))
-        min_resolved = fallback_val if min_value is None else int(min_value)
-        max_resolved = fallback_val if max_value is None else int(max_value)
-        if min_resolved < 1 or max_resolved < 1:
-            raise ValueError(f"{name} maturity caps must be >= 1.")
-        if min_resolved > max_resolved:
-            raise ValueError(f"{name} maturity cap min must be <= max.")
-        return int(min_resolved), int(max_resolved)
-
-    phase1_maturity_cap_min_val, phase1_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase1",
-        min_value=phase1_maturity_cap_min,
-        max_value=phase1_maturity_cap_max,
-        fallback=int(phase1_shortlist_size_val),
-    )
-    phase2_maturity_cap_min_val, phase2_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase2",
-        min_value=phase2_maturity_cap_min,
-        max_value=phase2_maturity_cap_max,
-        fallback=int(phase2_shortlist_size_val),
-    )
-    phase3_maturity_cap_min_val, phase3_maturity_cap_max_val = _resolve_maturity_cap_pair(
-        name="phase3",
-        min_value=phase3_maturity_cap_min,
-        max_value=phase3_maturity_cap_max,
-        fallback=int(phase3_shortlist_size_val),
-    )
-    phase1_maturity_cap_min_resolved_val = int(phase1_maturity_cap_min_val)
-    phase1_maturity_cap_max_resolved_val = int(phase1_maturity_cap_max_val)
-    phase2_maturity_cap_min_resolved_val = int(phase2_maturity_cap_min_val)
-    phase2_maturity_cap_max_resolved_val = int(phase2_maturity_cap_max_val)
-    phase3_maturity_cap_min_resolved_val = int(phase3_maturity_cap_min_val)
-    phase3_maturity_cap_max_resolved_val = int(phase3_maturity_cap_max_val)
-    phase1_maturity_cap_min_val, phase1_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase1_maturity_cap_min_val,
-        cap_max=phase1_maturity_cap_max_val,
-        effective_cap=phase1_shortlist_size_val,
-    )
-    phase2_maturity_cap_min_val, phase2_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase2_maturity_cap_min_val,
-        cap_max=phase2_maturity_cap_max_val,
-        effective_cap=phase2_shortlist_size_val,
-    )
-    phase3_maturity_cap_min_val, phase3_maturity_cap_max_val = clamp_controller_cap_pair_for_lane_route(
-        route=static_lane_route_key,
-        cap_min=phase3_maturity_cap_min_val,
-        cap_max=phase3_maturity_cap_max_val,
-        effective_cap=phase3_shortlist_size_val,
-    )
+    phase1_controller_cap_val = int(phase1_shortlist_size_val)
+    phase2_controller_cap_val = int(phase2_shortlist_size_val)
+    phase3_controller_cap_val = int(phase3_shortlist_size_val)
     phase_controller_cap_policy = (
         "physical_route_fixed_to_effective_shortlist_caps_v1"
         if static_lane_route_key == STATIC_LANE_ROUTE_PHYSICAL_OPERATOR_TYPE
         else "unchanged_controller_caps"
     )
-    phase_maturity_shot_min_val = int(phase_maturity_shot_min)
-    phase_maturity_shot_max_val = int(phase_maturity_shot_max)
-    if phase_maturity_shot_min_val < 1 or phase_maturity_shot_max_val < 1:
-        raise ValueError("phase maturity shot min/max must be >= 1.")
-    if phase_maturity_shot_min_val > phase_maturity_shot_max_val:
-        raise ValueError("phase_maturity_shot_min must be <= phase_maturity_shot_max.")
-    phase1_maturity_shot_cap_val = int(phase1_maturity_shot_cap)
-    phase2_maturity_shot_cap_val = int(phase2_maturity_shot_cap)
-    phase3_maturity_shot_cap_val = int(phase3_maturity_shot_cap)
-    for shot_cap_name, shot_cap_val in (
-        ("phase1_maturity_shot_cap", phase1_maturity_shot_cap_val),
-        ("phase2_maturity_shot_cap", phase2_maturity_shot_cap_val),
-        ("phase3_maturity_shot_cap", phase3_maturity_shot_cap_val),
-    ):
-        if int(shot_cap_val) < 0:
-            raise ValueError(f"{shot_cap_name} must be >= 0.")
     phase1_depth_ref_val = float(phase1_depth_ref)
     phase1_group_ref_val = float(phase1_group_ref)
     phase1_shot_ref_val = float(phase1_shot_ref)
@@ -18146,18 +18063,18 @@ def _run_hardcoded_adapt_vqe(
             else ROUTE_A_SHORTLIST_UNIT_MACRO_OPERATOR
         ),
         "phase_controller_cap_policy": str(phase_controller_cap_policy),
-        "phase1_controller_cap_min_resolved": int(phase1_maturity_cap_min_resolved_val),
-        "phase1_controller_cap_max_resolved": int(phase1_maturity_cap_max_resolved_val),
-        "phase1_controller_cap_min_effective": int(phase1_maturity_cap_min_val),
-        "phase1_controller_cap_max_effective": int(phase1_maturity_cap_max_val),
-        "phase2_controller_cap_min_resolved": int(phase2_maturity_cap_min_resolved_val),
-        "phase2_controller_cap_max_resolved": int(phase2_maturity_cap_max_resolved_val),
-        "phase2_controller_cap_min_effective": int(phase2_maturity_cap_min_val),
-        "phase2_controller_cap_max_effective": int(phase2_maturity_cap_max_val),
-        "phase3_controller_cap_min_resolved": int(phase3_maturity_cap_min_resolved_val),
-        "phase3_controller_cap_max_resolved": int(phase3_maturity_cap_max_resolved_val),
-        "phase3_controller_cap_min_effective": int(phase3_maturity_cap_min_val),
-        "phase3_controller_cap_max_effective": int(phase3_maturity_cap_max_val),
+        "phase1_controller_cap_min_resolved": int(phase1_controller_cap_val),
+        "phase1_controller_cap_max_resolved": int(phase1_controller_cap_val),
+        "phase1_controller_cap_min_effective": int(phase1_controller_cap_val),
+        "phase1_controller_cap_max_effective": int(phase1_controller_cap_val),
+        "phase2_controller_cap_min_resolved": int(phase2_controller_cap_val),
+        "phase2_controller_cap_max_resolved": int(phase2_controller_cap_val),
+        "phase2_controller_cap_min_effective": int(phase2_controller_cap_val),
+        "phase2_controller_cap_max_effective": int(phase2_controller_cap_val),
+        "phase3_controller_cap_min_resolved": int(phase3_controller_cap_val),
+        "phase3_controller_cap_max_resolved": int(phase3_controller_cap_val),
+        "phase3_controller_cap_min_effective": int(phase3_controller_cap_val),
+        "phase3_controller_cap_max_effective": int(phase3_controller_cap_val),
         "route_variant_id": physical_operator_lane_route_variant_id_val,
     }
     physical_operator_lane_summary: dict[str, Any] = {
@@ -20284,17 +20201,12 @@ def _run_hardcoded_adapt_vqe(
         max_probe_positions=int(max(1, phase1_probe_max_positions)),
         append_admit_threshold=0.05,
         family_repeat_patience=int(max(1, phase1_plateau_patience)),
-        cap_phase1_min=int(phase1_maturity_cap_min_val),
-        cap_phase1_max=int(phase1_maturity_cap_max_val),
-        cap_phase2_min=int(phase2_maturity_cap_min_val),
-        cap_phase2_max=int(phase2_maturity_cap_max_val),
-        cap_phase3_min=int(phase3_maturity_cap_min_val),
-        cap_phase3_max=int(phase3_maturity_cap_max_val),
-        shot_min=int(phase_maturity_shot_min_val),
-        shot_max=int(phase_maturity_shot_max_val),
-        shot_cap_phase1=int(phase1_maturity_shot_cap_val),
-        shot_cap_phase2=int(phase2_maturity_shot_cap_val),
-        shot_cap_phase3=int(phase3_maturity_shot_cap_val),
+        cap_phase1_min=int(phase1_controller_cap_val),
+        cap_phase1_max=int(phase1_controller_cap_val),
+        cap_phase2_min=int(phase2_controller_cap_val),
+        cap_phase2_max=int(phase2_controller_cap_val),
+        cap_phase3_min=int(phase3_controller_cap_val),
+        cap_phase3_max=int(phase3_controller_cap_val),
     )
     phase1_stage = StageController(
         phase1_stage_cfg,
@@ -67674,56 +67586,8 @@ def _default_no_prune_stage_controller(
     *,
     lanes: _DefaultNoPruneLaneRuntime,
 ) -> StageController:
-    """Build the exact fresh-start maturity controller."""
+    """Build the exact fresh-start phase controller."""
 
-    phase1_min = (
-        lanes.phase1_shortlist_size
-        if kwargs.get("phase1_maturity_cap_min") is None
-        else int(kwargs["phase1_maturity_cap_min"])
-    )
-    phase1_max = (
-        lanes.phase1_shortlist_size
-        if kwargs.get("phase1_maturity_cap_max") is None
-        else int(kwargs["phase1_maturity_cap_max"])
-    )
-    phase2_min = (
-        lanes.phase2_shortlist_size
-        if kwargs.get("phase2_maturity_cap_min") is None
-        else int(kwargs["phase2_maturity_cap_min"])
-    )
-    phase2_max = (
-        lanes.phase2_shortlist_size
-        if kwargs.get("phase2_maturity_cap_max") is None
-        else int(kwargs["phase2_maturity_cap_max"])
-    )
-    phase3_min = (
-        lanes.phase3_shortlist_size
-        if kwargs.get("phase3_maturity_cap_min") is None
-        else int(kwargs["phase3_maturity_cap_min"])
-    )
-    phase3_max = (
-        lanes.phase3_shortlist_size
-        if kwargs.get("phase3_maturity_cap_max") is None
-        else int(kwargs["phase3_maturity_cap_max"])
-    )
-    phase1_min, phase1_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase1_min,
-        cap_max=phase1_max,
-        effective_cap=lanes.phase1_shortlist_size,
-    )
-    phase2_min, phase2_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase2_min,
-        cap_max=phase2_max,
-        effective_cap=lanes.phase2_shortlist_size,
-    )
-    phase3_min, phase3_max = clamp_controller_cap_pair_for_lane_route(
-        route=str(kwargs["static_lane_route"]),
-        cap_min=phase3_min,
-        cap_max=phase3_max,
-        effective_cap=lanes.phase3_shortlist_size,
-    )
     if kwargs.get("adapt_drop_floor") is not None:
         raise ValueError(
             "The characterized default route requires the ordinary epsilon "
@@ -67742,17 +67606,12 @@ def _default_no_prune_stage_controller(
         family_repeat_patience=int(
             max(1, kwargs["phase1_plateau_patience"])
         ),
-        cap_phase1_min=int(phase1_min),
-        cap_phase1_max=int(phase1_max),
-        cap_phase2_min=int(phase2_min),
-        cap_phase2_max=int(phase2_max),
-        cap_phase3_min=int(phase3_min),
-        cap_phase3_max=int(phase3_max),
-        shot_min=int(kwargs["phase_maturity_shot_min"]),
-        shot_max=int(kwargs["phase_maturity_shot_max"]),
-        shot_cap_phase1=int(kwargs["phase1_maturity_shot_cap"]),
-        shot_cap_phase2=int(kwargs["phase2_maturity_shot_cap"]),
-        shot_cap_phase3=int(kwargs["phase3_maturity_shot_cap"]),
+        cap_phase1_min=int(lanes.phase1_shortlist_size),
+        cap_phase1_max=int(lanes.phase1_shortlist_size),
+        cap_phase2_min=int(lanes.phase2_shortlist_size),
+        cap_phase2_max=int(lanes.phase2_shortlist_size),
+        cap_phase3_min=int(lanes.phase3_shortlist_size),
+        cap_phase3_max=int(lanes.phase3_shortlist_size),
     )
     stage = StageController(config)
     stage.start_with_seed()
@@ -69370,9 +69229,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase1_lambda_measure": 0.02,
     "cost_lambda_shot": 0.15,
     "cost_lambda_theta": 0.05,
-    "phase1_maturity_cap_max": None,
-    "phase1_maturity_cap_min": None,
-    "phase1_maturity_shot_cap": 0,
     "phase1_measure_groups_weight": 1.0,
     "phase1_measure_reuse_weight": 1.0,
     "phase1_measure_shots_weight": 1.0,
@@ -69400,9 +69256,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase2_group_ref": 1.0,
     "phase2_lambda_H": 1.0e-6,
     "phase2_leakage_cap": 1.0e6,
-    "phase2_maturity_cap_max": None,
-    "phase2_maturity_cap_min": None,
-    "phase2_maturity_shot_cap": 0,
     "phase2_measure_groups_weight": 1.0,
     "phase2_measure_reuse_weight": 1.0,
     "phase2_measure_shots_weight": 1.0,
@@ -69432,9 +69285,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_backend_w_depth": 0.1,
     "phase3_backend_w_size": 0.01,
     "phase3_frontier_ratio": 0.9,
-    "phase3_maturity_cap_max": None,
-    "phase3_maturity_cap_min": None,
-    "phase3_maturity_shot_cap": 0,
     "phase3_motif_source_json": None,
     "phase3_oracle_gradient_config": None,
     "phase3_oracle_inner_objective_mode": "exact",
@@ -69455,8 +69305,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_selector_debug_topk": 0,
     "phase3_shortlist_size": None,
     "phase3_source_lock_preferred_sequence": "",
-    "phase_maturity_shot_max": 1,
-    "phase_maturity_shot_min": 1,
     "shared_pauli_pool_max_subset_size": 3,
     "shared_pauli_pool_subset_sizes": None,
     })
