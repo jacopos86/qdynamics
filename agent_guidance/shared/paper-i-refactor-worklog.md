@@ -2188,7 +2188,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | stopped before 1.1; live canonical `full_meta` contains 40 PAOP records, contradicting Q39/6ag; no implementation edit |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | resumed after Q42; PAOP and deferred-Gram excluded; remaining ratified items in progress |
 | _(add yours)_ | | | |
 
 ---
