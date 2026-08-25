@@ -381,3 +381,89 @@ Empirically checked over 1,600 word pairs at $n=10$: **0 disagreements**, at
 
 Neither alters the fixed-count contract, the tolerance, or which generators are
 admitted.
+
+---
+
+# Appendix B — measured outcome of items (1)--(3) (2026-08-25)
+
+Implemented on branch `perf/sector-audit-memoization`, commit `a1ab4085`, in
+`pipelines/static_adapt/sector_invariants.py`:
+
+1. `audit_generator_sector_contract` memoized on the generator's exact Pauli
+   components + fixed-count groups + register width + tolerance;
+2. `_pauli_words_commute` computed from the binary-symplectic masks
+   (`CompiledPauliAction.flip_mask` / `.phase_mask`) instead of walking the word;
+3. `_canonical_pauli_word` memoized on its `str` path.
+
+Rows are copied out of the cache so `audit_candidate_pool_sector_contract` can
+still write `pool_index` into them. Non-`str` inputs to `_canonical_pauli_word`
+keep the original body, so the raised message is unchanged for every input type.
+
+## B.1 Wall clock
+
+Same canonical run as Section 1 (HH `L=2`, `n_ph_max=7`, HVA pool, SPSA, depth
+30), both states measured back-to-back in the same worktree:
+
+| State | Cold cache | Warm cache |
+|---|---:|---:|
+| Baseline (`603d30c0`) | 160.44 s | 94.60 s |
+| With items (1)--(3) (`a1ab4085`) | **79.19 s** | **79.23 s** |
+| Speedup | **2.03x** | **1.19x** |
+
+The change makes the phase-0 disk cache nearly irrelevant: cold and warm now
+land within 0.04 s of each other, because the work that cache was hiding is the
+work that is no longer repeated.
+
+## B.2 The audit itself
+
+| Metric | Baseline | After |
+|---|---:|---:|
+| `audit_generator_sector_contract` calls | 687 | 687 |
+| audits actually computed | 687 | **166** (76% served from cache) |
+| audit cumulative time | 30.11 s | **14.78 s** |
+| `sector_invariants` bucket (`tottime`) | 18.0 s | **8.8 s** |
+
+166 distinct audits remain because the pool is not perfectly invariant across
+depths; those are genuinely different generators, and the symplectic predicate
+is what halves their cost.
+
+## B.3 Correctness evidence
+
+- **Verdict parity**: 132 audit rows over six problem/pool combinations
+  (`L=2/4`, `n_ph_max=1/7`, fermionic and HVA pools), captured before the edit
+  and recomputed after — **bit-identical**, including every
+  `grouped_commutator_l1` / `max_component_commutator_l1` value, both branches
+  of `requires_logical_shared_parameterization`, and both branches of
+  `execution_preserves_fixed_counts`. Plus a 40x40 commute-table digest, equal.
+- **Energy**: all four timing runs returned `E = 5.876936059036121`, identical
+  to the last digit.
+- **Test suites**: 134 files (`test_ra_adapt_*`, `test_adapt_*`,
+  `test_static_adapt_*`, `test_h2o_linear_fd_correctness_audit`) run at both
+  states. Baseline `140 failed, 2064 passed, 10 skipped, 4 errors`; after
+  `140 failed, 2070 passed, 10 skipped, 4 errors`. The FAILED/ERROR sets are
+  **byte-identical (144 lines each, zero new, zero fixed)**; the +6 passes are
+  exactly the six regression tests added with the change. All 140 failures are
+  pre-existing and spread across 40+ unrelated files (`test_adapt_vqe_integration`
+  29, `test_ra_adapt_bundles` 14, `test_static_adapt_sr_snake_*` 22, ...).
+- **Impact analysis**: GitNexus rated all three edited symbols HIGH upstream
+  risk (`audit_generator_sector_contract` 18 impacted / 4 direct;
+  `_pauli_words_commute` 12 / 1; `_canonical_pauli_word` 8 / 3; zero affected
+  processes in every case). The verdict-parity capture above is the mitigation
+  that HIGH rating calls for.
+
+## B.4 Where the time goes now (warm, 78.5 s)
+
+|  Time |  Share | Bucket | vs baseline |
+|------:|-------:|---|---|
+| 23.5 s | 29.9% | builtins/C | 29.4 s |
+| 18.7 s | 23.8% | other repo python | 19.1 s |
+| 10.6 s | 13.4% | `deepcopy` | 10.4 s |
+| 10.4 s | 13.2% | Qiskit | 10.3 s |
+| 8.8 s | 11.2% | `sector_invariants` | **18.0 s** |
+| 5.7 s | 7.2% | statevector numerics | 5.7 s |
+
+The next two levers are unchanged and are items (5) and (6) of Section 4 —
+the candidate-record-cache `deepcopy` (13.4%) and the Qiskit cost-metric
+transpile (13.2%), ~26% combined. The statevector numerics are still 7.2%, so
+the Section 3 conclusion stands: PennyLane, PyTorch, and CUDA remain the wrong
+lever at `dim = 1024`.
