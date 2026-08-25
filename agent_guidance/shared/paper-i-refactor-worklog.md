@@ -3122,6 +3122,7 @@ single-artifact generalizations.
 | Q48 | **SUPERSEDED by Q49** | The delete list was wrong; `global_trust_eigh_v2` is live. | 2026-08-25 |
 | Q49 | The four joint-linear-solve policies, re-checked | **Keep three, delete one.** `projected_generalized_trust_v1` — Phase-III response solve, every run. `whitened_eigh_v1` — the `JointLinearSolveConfig` default, carried by the accepted refit. `global_trust_eigh_v2` — passed explicitly by the Schur-restricted solve in scoring and the prune inner solve. `block_pinv_legacy_v1` — no explicit site anywhere. | 2026-08-25 |
 | Q50 | `global_trust_eigh_v2` as the **Phase-III** solve | **Keep it and queue an extension bundle.** v2 handles the singular Moré--Sorensen hard case where v1 forces the shifted Hessian positive definite, so it can be expected to produce better steps. Note the premise correction: v2 **is** used in bundled runs, for the Schur-restricted and prune inner solves — what no bundle used is v2 as the *Phase-III response solve*. That is the ablation. | 2026-08-25 |
+| Q51 | Instrument the projected solver to record the retained-support Hessian spectrum? | **No — not worth the receipt weight.** The hard-case question stays unanswerable from receipts, and the v2 ablation (Q50) remains the only way to test it. Do not add `H_s` eigenvalues to the Phase-III receipt during the refactor. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
