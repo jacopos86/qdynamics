@@ -2312,6 +2312,42 @@ Then the raw-file check narrowed it again to those whose only occurrence is thei
 own `def`. Three passes, three different answers; only the last is safe to act
 on.
 
+## 6au. The `other` bucket, classified — destinations under the design target
+
+111 defs, 7,747 lines, after beam/prune/batch/telemetry/phase groups are removed.
+
+| group | defs | lines | destination |
+|---|---|---|---|
+| record / candidate | 22 | 2,713 | `generators.py` — generator support, records, shortlisting |
+| **unclassified** | 49 | **2,787** | inspect individually |
+| estimator / ledger | 19 | 1,024 | `response_accounting.py` (already extracted) |
+| refit / optimizer | 11 | 949 | `ansatz.py` — accepted refit |
+| geometry / gram | 4 | 123 | `Response` |
+| route / identity | 5 | 109 | `request` resolution |
+| resume / branch | 1 | 42 | resume scaffold |
+
+So ~4,960 of the 7,747 have a named destination in the target shape, and the
+19-def estimator group belongs in a module that already exists.
+
+### Largest unclassified
+
+| lines | line | def | note |
+|---|---|---|---|
+| 705 | 34660 | `_materialize_sr_active_only_correction` | **orphaned — delete** |
+| 358 | 40523 | `_run_default_supported_response_active` | referenced once |
+| 233 | 39896 | `_run_default_singleton_phase_ii_active` | referenced once |
+| 212 | 26741 | `_evaluate_selected_energy_objective` | referenced 11× — core |
+| 183 | 28758 | `_build_parent_collapse_diagnostic` | diagnostic |
+| 81 / 77 | 31031 / 42468 | `_global_child_factory_local` / `_global_child_factory` | duplicate pair |
+| 58 | 41478 | `_run_default_singleton_phase_i_active` | referenced once |
+
+The `_local` / non-`_local` duplicate pairs recur across the function
+(`_full_record_for_candidate` 1,018 and `_full_record_for_candidate_local` 721;
+`_evaluate_phase1_positions` 434 and `_evaluate_phase1_positions_local` 480;
+`_global_child_factory` 77 and `_global_child_factory_local` 81). That is
+~2,300 lines in near-duplicate pairs, and is the same one-fact-two-places defect
+as F3/F4 — worth measuring the actual divergence before assuming either can go.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
