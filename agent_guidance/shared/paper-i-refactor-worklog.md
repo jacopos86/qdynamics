@@ -2003,6 +2003,74 @@ prompted rule 6i. It was still worth doing: it demonstrated that the estimator
 ledger survives a structural change byte-identically, which every later deletion
 relies on.
 
+## GOAL BRIEF — the mega function and the Paper-I route
+
+**Mode note (author, 2026-08-24).** Goal mode is overkill where the work plan
+already names items and sites — those are tasks. Goal mode is for work whose path
+cannot be enumerated in advance: the mega function and the Paper-I route. What is
+specifiable there is not the steps but the **constraints**.
+
+### The goal
+
+`_run_hardcoded_adapt_vqe` (39,742 lines, 286 parameters) and the Paper-I route
+become the shape in the design target: `algorithm.py` (the loop), `ansatz.py`
+(accepted ansatz, insertion, refit), `generators.py` (generator support, scoring,
+cost terms), `extensions.py` (batch, prune, beam — already exists).
+
+### Hard constraints — reproducibility
+
+1. **The estimator ledger is byte-identical.** Same primitive ids, same ordering,
+   same fingerprint, on a completed-run replay. This has held through every
+   increment so far and is the single strongest signal.
+2. **Accepted generator/position sequences do not change**, except where a
+   decision in DECISIONS explicitly licenses it. Q1: the standard is *at least as
+   good* on DeltaE, qiskit costs and estimator count — not bit-identity — but a
+   changed accepted sequence must be attributable to a licensed change, never a
+   side effect.
+3. **The compilation contract is fixed**: `FakeMarrakesh`, optimization level 1,
+   `seed_transpiler` 7 (Q31, Q34). `N_2q`, `D_2q`, `D_c` are properties of that
+   contract.
+4. **`_canonical_route_contract_for_request` keeps its resolved contract
+   byte-identical.** It is CRITICAL — 23 upstream symbols, five processes
+   including `run_ra_adapt` and campaign authorization. A contract-digest change
+   stops the increment.
+
+### Hard constraints — method
+
+5. **Paper I is the definition.** Where code and manuscript differ, the
+   manuscript decides what the method *is*. Where a construct is absent from the
+   manuscript, that is a question, not a licence to delete — see the retractions
+   in 6ak and 6al.
+6. **No fallbacks** (rule 7). A requested computation that cannot be performed
+   stops the run. No silent substitution: not qiskit to proxy, not metric for
+   Hessian, not one backend for another.
+7. **One representation of each fact.** Where two exist, a guard is needed to
+   keep them agreeing; that guard is the signal to collapse them, not to keep.
+8. **No setting that cannot take effect**, and no receipt field for an event that
+   cannot happen (Q29).
+9. **Optional extensions are absent by default**, with required choices supplied
+   by a conditional policy interview rather than defaults (Q25-Q27).
+
+### Hard constraints — process
+
+10. **DECISIONS is binding and changes between increments.** Re-read it each
+    time. An unanswered question is not permission to choose.
+11. **Report net lines removed** per increment (rule 6i). Extraction that moves
+    without deleting is permitted only as a prerequisite to a named deletion.
+12. **Enumerate before concluding.** Both retractions came from checking one
+    artifact: a checkpoint that never stores a derived flag, and one of two
+    same-named builders. When a name resolves to more than one implementation,
+    or a value is derived rather than stored, resolve every path before acting.
+13. **Stop and report** on: a ledger fingerprint change, a rise in collection
+    errors, a route-contract digest change, or a canonical profile selecting
+    something the worklog calls unused.
+
+### Not in scope
+
+The four evidence profiles and their numbers; optimizer tolerances; estimator
+accounting semantics; forced-admission behaviour; cost normalization. Changing
+any of those is a scientific decision with its own rerun and manuscript review.
+
 ## WORK PLAN — execute in this order
 
 Derived from decisions Q1-Q39. Each item names its decision, its sites, and what
