@@ -2031,6 +2031,95 @@ Combined with the earlier check that `phase0_cost_lambdas` is `{}` with source
 `"unresolved"` in 5 of 5 sampled cells, item 1.4 is verified on a multi-artifact
 basis. **Cleared for Codex.**
 
+## 6ap. The 13 default-off policy/mode parameters — dispositions
+
+Screened all 13 against Paper I, then resolved which profiles set them. **Six are
+LIVE** — set non-`off` by a canonical profile. The "default off means inert"
+assumption was wrong for those.
+
+### KEEP — manuscript material
+
+| parameter | set to | by |
+|---|---|---|
+| `shared_pauli_pool_mode` | `guarded_singleton_children_only_v1` | `CANONICAL_SR_SNAKE_GUARDED_SINGLETON_POOL_V1` |
+| `shared_pauli_pool_symmetry_policy` | `hard_guard` | same |
+
+Paper I §Results (`:1163`): *"The six Hubbard--Holstein benchmarks use the
+half-filled, open-boundary two-site model **and a shared symmetry-retained
+single-Pauli-word pool**."* Appendix `app:hh_operator_pool` defines it. This is
+the pool behind every HH benchmark in the paper, and it is what produces the
+`guarded_singleton::*` operators visible in every run archive. Not deletable.
+
+### KEEP — enabled canonically, disposition open
+
+| parameter | set to | by |
+|---|---|---|
+| `phase2_gram_novelty_policy` | `fallback_only_v1` | V4 **and** the active family root |
+| `phase3_gram_novelty_policy` | `fallback_only_v1` | V4 **and** the active family root |
+
+These are what derive `deferred_gram_fallback_enabled` (6ak). Q41 is retracted;
+whether the rescue *fires* is still unmeasured.
+
+### Unresolved — live but absent from the manuscript
+
+| parameter | set to | by | in Paper I |
+|---|---|---|---|
+| `phase3_runtime_split_mode` | `shortlist_pauli_children_v1` | `CANONICAL_SR_SNAKE_V1` | "runtime split" 0 |
+| `phase3_shadow_damping_policy` | `mapped_seed_zero_query_v1` | `CANONICAL_SR_SNAKE_V4` | "shadow" 0, "damping" 0 |
+
+`phase3_runtime_split_mode` names Pauli-child shortlisting, so it may be the same
+mechanism as the shared pool under a different name — check before treating its
+absence as evidence.
+
+### Deletion candidates — off in every profile that names them
+
+`adapt_child_pool_expansion_mode`, `adapt_child_pool_expansion_symmetry_policy`,
+`adapt_selected_logical_mode`, `phase3_shadow_legacy_geometry_mode`,
+`phase3_symmetry_mitigation_mode` — all set to `off` by
+`CANONICAL_SR_SNAKE_V1` and never to anything else.
+
+### Named by no profile at all
+
+`adapt_noise_floor_stop_policy`, `adapt_schur_warm_start_mode` — parameter
+defaults only, no profile mentions them.
+
+**Method note.** Six of thirteen would have been deleted on the "default off"
+reading. The profile assignments, not the parameter defaults, decide.
+
+## 6aq. `phase3_runtime_split_mode` is on in every bundle
+
+Sampled 3 archives from each of b3, b6, b7, b8, b9:
+
+```
+phase3_shadow_damping_policy  = "off"                          15/15   -> delete (Q43)
+phase3_runtime_split_mode     = "shortlist_pauli_children_v1"  15/15   -> live everywhere
+```
+
+The author expects not to need the runtime-split path, and it has "produced
+useful results". But **every bundle ran with it enabled**. Only
+`CANONICAL_SR_SNAKE_V1` sets it; `GUARDED_SINGLETON_POOL_V1` and
+`MACRO_ONLY_PHYSICAL_LANES_V1` set it `off`, yet the runs record it on — so the
+value reaching the executor comes from the V1 root or the parser, not from the
+profile the run names.
+
+**Consequence.** Moving it out of the main pipeline as an opt-in extension would
+change the default for every canonical configuration. Reproducing Bundles 3-9
+(constraint 3) would then require explicitly enabling it, and any run that forgot
+would silently differ from the published evidence.
+
+**Options, for the author:**
+
+1. **Extension, off by default** — matches the stated preference, but breaks
+   bundle reproduction unless every reproduction command enables it. The
+   difference would be invisible.
+2. **Extension, on by default for the Paper-I profiles** — out of the main
+   pipeline, still the default where the evidence needs it. Keeps reproduction
+   honest; slightly weakens "extensions are absent by default" (Q26).
+3. **Leave in the core until after the bundles are reproduced**, then revisit.
+
+What this is *not*: a deletion candidate. It is load-bearing for current
+evidence regardless of where the code lives.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2307,6 +2396,8 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q41 | **RETRACTED** — see 6ak | The delete decision rested on a false premise. `deferred_gram_fallback_enabled` is derived, not stored; the active family enables it via `fallback_only_v1`. Whether the rescue *fires* is still open. | 2026-08-24 |
 | Q39 | **RETRACTED** — see 6al | PAOP is inside canonical Hubbard--Holstein `full_meta`: 40 of 89 records in the materialized parent pool. Codex stopped before editing. Re-scoping question open. | 2026-08-24 |
 | Q42 | Re-scope of the retracted Q39 | **Keep PAOP.** It was used for Paper I — 40 of the 89 records in the canonical HH parent pool — so it stays. No pool change, no rerun. The standalone `paop_*` pool keys and the 4 executor parameters are **not** to be deleted either while the pool depends on the same builder machinery; treat PAOP as live Paper-I material. | 2026-08-24 |
+| Q43 | `phase3_shadow_damping_policy` | **Delete.** Absent from Paper I. Verified `"off"` in **15 of 15** archives across all five bundles, despite V4 setting `mapped_seed_zero_query_v1` — the active family root sets it `off` and no bundle ran with it on. |  2026-08-25 |
+| Q44 | `phase3_runtime_split_mode` | Author: *"ideally out of the main pipeline but still runnable — a path that has produced useful results but I expect to not need it."* **Measurement contradicts the expectation: it is `shortlist_pauli_children_v1` in 15 of 15 archives across all five bundles.** It is the default path, not an occasional one. Disposition pending — see 6aq. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
