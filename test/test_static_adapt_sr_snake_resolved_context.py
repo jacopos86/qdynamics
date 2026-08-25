@@ -1543,7 +1543,7 @@ def test_staged_runtime_rejects_legacy_terminal_authorities(
         problem,
         _request(problem),
     )
-    kwargs = context.legacy_executor_kwargs()
+    kwargs = context.canonical_runtime_kwargs()
     kwargs[key] = value
 
     with pytest.raises(ValueError, match=message):

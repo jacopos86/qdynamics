@@ -74,7 +74,6 @@ _HH_ALGORITHM_MAP: dict[str, tuple[str, ...]] = {
     "static_hva_vqe": ("hh_hva_termwise_vqe", "hh_hva_layerwise_vqe"),
     "static_uccsd_vqe": ("hh_uccsd_lifted_vqe",),
     "static_avqite_uccsd": ("hh_avqite_uccsd_lifted",),
-    "static_qeb_sq_lf_adapt": ("hh_adapt_qeb_sq_lf_std_legacy",),
     "static_lang_firsov_vqe": ("hh_lang_firsov_sq_lf_vqe",),
     "static_qsci_sqd_sq_lf": ("hh_qsci_sq_lf_std", "hh_sqd_sq_lf_std"),
 }

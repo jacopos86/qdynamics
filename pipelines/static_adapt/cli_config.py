@@ -3206,6 +3206,7 @@ def _resolve_main_cli_configs(
         final_noise_audit_config=final_noise_audit_config,
     )
 
+
 def _build_run_hardcoded_adapt_vqe_kwargs(
     args: argparse.Namespace,
     *,

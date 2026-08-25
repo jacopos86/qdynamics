@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import inspect
-
 import pytest
 
-from pipelines.static_adapt.adapt_pipeline import _run_hardcoded_adapt_vqe
 from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.extensions import (
     BATCH_RUNTIME_KEYS,
@@ -65,11 +62,9 @@ def test_enabled_pruning_requires_its_complete_policy_interview() -> None:
         extensions_from_route_contract(contract)
 
 
-def test_pruning_is_absent_from_executor_and_cli_default_surfaces() -> None:
-    parameters = inspect.signature(_run_hardcoded_adapt_vqe).parameters
-    assert PRUNING_RUNTIME_KEYS.isdisjoint(parameters)
-    assert "extensions" in parameters
-
+def test_pruning_is_absent_from_the_cli_default_surface() -> None:
+    # The executor-signature half of this guarantee is now structural: the
+    # legacy executor no longer exists, so no pruning key can appear on it.
     parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
     args = parser.parse_args([])
     assert all(not hasattr(args, name) for name in PRUNING_RUNTIME_KEYS)
@@ -96,10 +91,8 @@ def test_enabled_batching_requires_a_complete_policy_interview() -> None:
     assert batch_extension_from_admission(SingletonAdmission()) is None
 
 
-def test_batching_is_absent_from_executor_and_cli_default_surfaces() -> None:
-    parameters = inspect.signature(_run_hardcoded_adapt_vqe).parameters
-    assert BATCH_RUNTIME_KEYS.isdisjoint(parameters)
-
+def test_batching_is_absent_from_the_cli_default_surface() -> None:
+    # As above: structural now that the legacy executor is deleted.
     parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
     args = parser.parse_args([])
     assert all(not hasattr(args, name) for name in BATCH_RUNTIME_KEYS)

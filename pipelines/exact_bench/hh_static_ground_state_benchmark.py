@@ -38,9 +38,6 @@ from pipelines.exact_bench.hh_conventional_vqe import (
     run_compiled_operator_vqe_trial,
     run_hh_conventional_vqe_trial,
 )
-from pipelines.static_adapt.adapt_pipeline import (
-    _run_hardcoded_adapt_vqe,
-)
 from src.quantum.compiled_polynomial import compile_polynomial_action, energy_via_one_apply
 from pipelines.static_adapt.builders.pool_resolution import resolve_pool_plan
 from pipelines.static_adapt.builders.primitive_pools import (
@@ -105,13 +102,12 @@ class HHBenchmarkCase:
 class HHBenchmarkAlgorithmSpec:
     algorithm_id: str
     runner_kind: Literal[
-        "adapt_vqe",
         "conventional_vqe",
         "compiled_operator_vqe",
         "compiled_operator_avqite",
         "compiled_operator_qsci",
         "compiled_operator_sqd",
-    ] = "adapt_vqe"
+    ] = "conventional_vqe"
     display_name: str = ""
 
     # Conventional fixed-ansatz VQE fields. None means use the legacy HH
@@ -220,73 +216,6 @@ def default_hh_benchmark_algorithms() -> tuple[HHBenchmarkAlgorithmSpec, ...]:
         "paop_normalization": "none",
     }
     algorithms = [
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_full_hamiltonian_legacy",
-            adapt_pool="full_hamiltonian",
-            max_depth=8,
-            maxiter=300,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_hva_legacy",
-            adapt_pool="hva",
-            max_depth=12,
-            maxiter=400,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_paop_lf_std_legacy",
-            adapt_pool="paop_lf_std",
-            max_depth=10,
-            maxiter=300,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_qeb_sq_lf_std_legacy",
-            adapt_pool="sq_lf_std",
-            max_depth=10,
-            maxiter=300,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_overlap_paop_lf_std_phase3",
-            adapt_pool="paop_lf_std",
-            continuation_mode="phase3_v1",
-            max_depth=10,
-            maxiter=300,
-            phase2_batch_selection_mode="overlap_orthogonal_benchmark",
-            **{k: v for k, v in common.items() if k != "continuation_mode"},
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_ceo_paop_lf_std_phase3",
-            adapt_pool="paop_lf_std",
-            continuation_mode="phase3_v1",
-            max_depth=10,
-            maxiter=300,
-            phase2_batch_selection_mode="ceo_commuting_benchmark",
-            **{k: v for k, v in common.items() if k != "continuation_mode"},
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_uccsd_otimes_paop_lf_std_legacy",
-            adapt_pool="uccsd_otimes_paop_lf_std",
-            max_depth=12,
-            maxiter=400,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_full_meta_legacy",
-            adapt_pool="full_meta",
-            max_depth=6,
-            maxiter=240,
-            **common,
-        ),
-        HHBenchmarkAlgorithmSpec(
-            algorithm_id="hh_adapt_pareto_lean_legacy",
-            adapt_pool="pareto_lean",
-            max_depth=6,
-            maxiter=240,
-            **common,
-        ),
         HHBenchmarkAlgorithmSpec(
             algorithm_id="hh_hva_termwise_vqe",
             runner_kind="conventional_vqe",
@@ -490,52 +419,6 @@ def _case_reference_energy_audit(
         }
 
 
-def _build_adapt_kwargs(
-    *,
-    case: HHBenchmarkCase,
-    algorithm: HHBenchmarkAlgorithmSpec,
-    h_poly: Any,
-    resolved_problem: Any,
-    exact_gs: float,
-) -> dict[str, Any]:
-    kwargs = {
-        "h_poly": h_poly,
-        "resolved_problem_context": resolved_problem,
-        "num_sites": int(case.num_sites),
-        "ordering": str(case.ordering),
-        "problem": "hh",
-        "adapt_pool": str(algorithm.adapt_pool),
-        "t": float(case.t),
-        "u": float(case.u),
-        "dv": float(case.dv),
-        "boundary": str(case.boundary),
-        "omega0": float(case.omega0),
-        "g_ep": float(case.g_ep),
-        "n_ph_max": int(case.n_ph_max),
-        "boson_encoding": str(case.boson_encoding),
-        "include_zero_point": bool(case.include_zero_point),
-        "max_depth": int(algorithm.max_depth),
-        "eps_grad": float(algorithm.eps_grad),
-        "eps_energy": float(algorithm.eps_energy),
-        "maxiter": int(algorithm.maxiter),
-        "seed": int(algorithm.seed),
-        "adapt_inner_optimizer": "POWELL",
-        "allow_repeats": bool(algorithm.allow_repeats),
-        "finite_angle_fallback": bool(algorithm.finite_angle_fallback),
-        "finite_angle": float(algorithm.finite_angle),
-        "finite_angle_min_improvement": float(algorithm.finite_angle_min_improvement),
-        "adapt_reopt_policy": str(algorithm.adapt_reopt_policy),
-        "adapt_continuation_mode": str(algorithm.continuation_mode),
-        "paop_r": int(algorithm.paop_r),
-        "paop_split_paulis": bool(algorithm.paop_split_paulis),
-        "paop_prune_eps": float(algorithm.paop_prune_eps),
-        "paop_normalization": str(algorithm.paop_normalization),
-        "exact_gs_override": float(exact_gs),
-        "phase3_backend_cost_mode": str(algorithm.phase3_backend_cost_mode or "proxy"),
-    }
-    if str(algorithm.phase2_batch_selection_mode).strip():
-        kwargs["phase2_batch_selection_mode"] = str(algorithm.phase2_batch_selection_mode).strip()
-    return kwargs
 
 
 def _resolved_conventional_vqe_config(
@@ -965,24 +848,6 @@ def _build_compiled_operator_sqd_kwargs(
     return kwargs
 
 
-def _run_one_adapt_algorithm(
-    *,
-    case: HHBenchmarkCase,
-    algorithm: HHBenchmarkAlgorithmSpec,
-    resolved_problem: Any,
-    exact_gs: float,
-) -> dict[str, Any]:
-    run_result = _run_hardcoded_adapt_vqe(
-        **_build_adapt_kwargs(
-            case=case,
-            algorithm=algorithm,
-            h_poly=getattr(resolved_problem, "hamiltonian"),
-            resolved_problem=resolved_problem,
-            exact_gs=float(exact_gs),
-        )
-    )
-    payload_raw = run_result[0] if isinstance(run_result, tuple) else run_result
-    return dict(payload_raw) if isinstance(payload_raw, Mapping) else {"payload": payload_raw}
 
 
 def _run_one_conventional_algorithm(
@@ -1409,14 +1274,7 @@ def _run_one_algorithm(
     }
     stage = stage_by_kind.get(str(algorithm.runner_kind), "benchmark_run")
     try:
-        if algorithm.runner_kind == "adapt_vqe":
-            payload = _run_one_adapt_algorithm(
-                case=case,
-                algorithm=algorithm,
-                resolved_problem=resolved_problem,
-                exact_gs=float(exact_gs),
-            )
-        elif algorithm.runner_kind == "conventional_vqe":
+        if algorithm.runner_kind == "conventional_vqe":
             payload = _run_one_conventional_algorithm(
                 case=case,
                 algorithm=algorithm,
