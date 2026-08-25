@@ -1933,6 +1933,45 @@ evidence question: the pool it contributes to is the `full_meta` physical macro
 pool the paper does describe. Flagged only so a future reader applying the
 "is it in Paper I?" test does not repeat this deletion attempt.
 
+## 6an. B5 evidence is not local — retrieval task for Codex
+
+Constraint 3 names Bundles 3-9 as reproduction targets. **B5 has no local run
+archives**, and it is `HH-B5` in the behavioral contract — the hierarchical
+parent-to-singleton profile, one of the four named profiles. So it is a
+reproduction target that cannot currently be checked.
+
+**Where it is.**
+
+```
+chtc/paper_i_ra_adapt_repair_20260727/
+  paper_i_ra_adapt_macro_then_singleton_phase123_qiskit_phase23_no_lanes_tau1em4_r50_20260807_v1_chtc/
+    jobs/            6 staged jobs, one per regime
+    package_manifest.json    6 job entries
+    raw_outputs/     EMPTY — results were never fetched back
+```
+
+The six staged jobs match the six regimes in the bundle pages:
+`weak_weak`, `intermediate_weak`, `strong_weak_u8`, `weak_strong`,
+`intermediate_strong`, `strong_strong_u8` — each
+`ra_macro_then_singleton_phase123_qiskit_phase23_plateau`.
+
+**Task ownership.** Retrieval is a read, not a state change, but it needs CHTC
+access and Duo. Codex has repo access and can run it; the repo has a
+`chtc-direct` capability for exactly this. Claude cannot complete the
+authentication.
+
+**What is needed** to bring B5 to the same footing as b3/b6/b7/b8/b9: the run
+archives for those 6 jobs, specifically each run's
+`run/checkpoints/current.json` and `run/result/estimator_ledger.json`, landed
+under that package's `raw_outputs/`.
+
+**Do not** submit, resubmit or modify any job. This is a fetch of completed
+results only. If the results are not on the cluster, report that rather than
+re-running — a rerun is a scientific decision and is the author's.
+
+Until this lands, constraint 3 is verifiable for five of seven bundles and
+asserted for b4 and b5.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
