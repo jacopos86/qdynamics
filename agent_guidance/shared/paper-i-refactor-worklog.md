@@ -2618,7 +2618,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stage 1.2 done in `1e6db270`; Q43 shadow-damping deletion in progress; Q30, Q33, and Q38 remain decision boundaries; phase controller preserved |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stage 1.2 done in `1e6db270`; Q43 done in `af832630`; Stage 1.4 next; Q30, Q33, and Q38 remain decision boundaries; phase controller preserved |
 | _(add yours)_ | | | |
 
 ---
@@ -4191,3 +4191,45 @@ stale assertion that `global_single_population` is absent.
 before editing. The HIGH-risk `PhaseControllerSnapshot` surface was deliberately
 excluded. Final isolated GitNexus `detect-changes` reports three production
 files, three mapped symbols, one affected execution flow, and MEDIUM risk.
+
+### 2026-08-25 — Q43 — Phase-III shadow damping deleted
+
+**Implementation:** from baseline `9eff36373d47609fb60e9390e03df9e068cc8115`,
+commit `af832630` deletes the `phase3_shadow_damping_policy` executor parameter
+and CLI flag, its mapped-seed recommendation helper and receipt schema, both
+controller injection sites, resume-state reconstruction, checkpoint compaction,
+and output setting. Old history rows carrying the retired receipt are accepted
+as input but compacted without that field; there is no runtime alias or
+compatibility path.
+
+The authenticated V4 and active-family route-contract dictionaries retain the
+retired field and semantic-invariant bytes as historical provenance. Runtime
+profile normalization and validation explicitly exclude the field, so the
+contract digest remains stable while no executable namespace or runtime kwargs
+carry it. Q44/Q46's load-bearing runtime-split path is untouched.
+
+The change adds 18 lines and deletes 566: **548 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5477 tests collected, 54
+errors` to `5461 tests collected, 54 errors`; the sixteen-test decrease is the
+intentional deletion of the retired recommendation/receipt tests, and the
+complete `ERROR test/...` diff is empty. The direct retired-field,
+profile-normalization, runtime-kwargs, and source-lock surface passes `51
+passed`. Across all five touched test files, the same six unrelated failures
+reproduce at the untouched baseline: one trust-displacement expectation, three
+stale prune-extension surface assertions, one stale route digest, and one stale
+source-shape assertion. Q43 adds no failing test.
+
+**Paper-I-local impact audit:** every pre-edit symbol impact was LOW. Final
+isolated GitNexus `detect-changes` reports eight files, four mapped symbols,
+zero affected processes, and LOW risk.
