@@ -1731,6 +1731,14 @@ The 3 legacy-named ones join the 10 already listed in 6q.
 
 ## 6aj. Deferred-Gram audit (Q41) — three questions, answered from evidence
 
+> **Q41 IS WRONG — DO NOT ACT ON IT. See 6ak.** The claim "the rescue never ran"
+> came from grepping checkpoints for `deferred_gram_fallback_enabled`, which is a
+> **derived** value that is never written to a checkpoint. It is computed from the
+> gram-novelty policy keys, and **both canonical V4 and the active family root set
+> them to `fallback_only_v1`**, which enables it. The rescue was enabled in
+> canonical runs.
+
+
 The author's test for removing a method not in Paper I: **is it in the paper, was
 it on the route that produced the results, and did it fire?**
 
@@ -1798,6 +1806,52 @@ Rounds 39-49 of that B9 cell re-admit an identical null generator eleven times
 with the gradient frozen. That is ~22% of the run's controller budget and its
 estimator work, inside the reported `k` range, and no mechanism stops it. The
 collapse detector was the only record of it.
+
+## 6ak. RETRACTION of Q41 — the deferred-Gram rescue was enabled
+
+**My error.** 6aj concluded the rescue "never ran" because
+`deferred_gram_fallback_enabled` is absent from all 58 checkpoints. It is absent
+because it is **never written** — it is derived at runtime
+(`adapt_pipeline.py:20486`):
+
+```python
+deferred_gram_fallback_enabled = bool(
+    phase2_gram_novelty_policy_key == GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+    and phase3_gram_novelty_policy_key == GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1
+)
+```
+
+Both canonical profiles set both keys to `fallback_only_v1`:
+
+| profile | `phase2_gram_novelty_policy` | `phase3_gram_novelty_policy` |
+|---|---|---|
+| `CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS` (`:664-665`) | `fallback_only_v1` | `fallback_only_v1` |
+| `CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1` (`:721-722`) | `fallback_only_v1` | `fallback_only_v1` |
+| `CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS` | `ordinary_multiplier_v1` | `ordinary_multiplier_v1` |
+
+The second is the **active family root with 20 descendants**. Its own comment:
+*"Ordinary novelty multiplication is disabled. `fallback_only_v1` retains the
+bounded all-energy-models-infeasible safety path and its telemetry."*
+
+**So `deferred_gram_fallback_enabled` was `True` in canonical runs.** The rescue
+was authorized throughout.
+
+### What still stands from 6aj
+
+- Not in Paper I — still true, 0 occurrences.
+- The collapse branch fired 25 times, all at machine-level error — still true.
+- The B9 stall observation — still true, and the author has ruled it a non-issue
+  since the published trajectory shows it.
+
+### What is now open
+
+Whether the rescue **fires** — the branch runs only when all energy models are
+infeasible, which is narrower than being enabled. That was never measured,
+because I stopped at the enablement question and got that wrong too.
+
+**Method lesson.** A derived value's absence from a receipt proves nothing about
+whether it was set. Before concluding "never enabled", check whether the flag is
+recorded at all, and if not, resolve it from the profiles that feed it.
 
 ## 7. No fallbacks
 
@@ -1976,6 +2030,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q38 | The snapshot version string `phase123_controller_maturity_v2` | **Rename it, and drop the old string** — no alias, no dual-read. The name no longer describes what the snapshot holds (6ae). **Consequence accepted: existing locked-bundle sidecars can no longer be continued** by the new code, since resume validates the version and will not recognise the old one. | 2026-08-24 |
 | Q39 | The PAOP pool family | **Delete.** Absent from Paper I, selected by no profile, and unused by Paper IV — verified from that lane's own run receipt, which records `adapt_pool = "full_meta"`. 812 references, 4 executor parameters. | 2026-08-24 |
 | Q41 | The deferred-Gram rescue and the metric-collapse branch | **Delete both.** The rescue never fired in 58 archives. The collapse branch fired 25 times, but **every occurrence is at machine-level error** — `F_red` ~ 2e-11 with `dE` between `0.0` and `-6e-11` and `max_grad` ~ 1e-7 — so it only ever acted on candidates contributing floating-point noise. Author accepts that removing it may alter accepted trajectories at that level. | 2026-08-24 |
+| Q41 | **RETRACTED** — see 6ak | The delete decision rested on a false premise. `deferred_gram_fallback_enabled` is derived, not stored; the active family enables it via `fallback_only_v1`. Whether the rescue *fires* is still open. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
