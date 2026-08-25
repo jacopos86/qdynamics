@@ -2341,6 +2341,30 @@ So ~4,960 of the 7,747 have a named destination in the target shape, and the
 | 81 / 77 | 31031 / 42468 | `_global_child_factory_local` / `_global_child_factory` | duplicate pair |
 | 58 | 41478 | `_run_default_singleton_phase_i_active` | referenced once |
 
+### The `_local` duplicate pairs, measured
+
+Six pairs, **3,235 lines**, with text similarity:
+
+| base | lines | `_local` twin | lines | similarity |
+|---|---|---|---|---|
+| `_full_record_for_candidate` | 1,018 | `_full_record_for_candidate_local` | 721 | **47.3%** |
+| `_evaluate_phase1_positions` | 434 | `_evaluate_phase1_positions_local` | 480 | **54.1%** |
+| `_evaluate_route_a_child_full_record` | 104 | `..._local` | 108 | 83.7% |
+| `_evaluate_route_a_child_phase1_record` | 100 | `..._local` | 102 | 89.6% |
+| `_global_child_factory` | 77 | `..._local` | 81 | 91.7% |
+| `_bump_candidate_record_cache_stat` | 5 | `..._local` | 5 | 73.8% |
+
+The small pairs are near-identical — 84-92% — so those are genuine duplication.
+**The two large pairs are not**: 47% and 54% similarity over 1,739 and 914 lines
+means they have diverged substantially, so they are two implementations of the
+same-named thing that no longer agree. Which is worse than duplication, and is
+the F3/F4 defect at its largest scale in this function: one fact, two places,
+now saying different things.
+
+**Do not collapse the large pairs mechanically.** Establishing what diverged, and
+which behaviour the bundles exercised, is a prerequisite. The four small pairs
+are safe to unify.
+
 The `_local` / non-`_local` duplicate pairs recur across the function
 (`_full_record_for_candidate` 1,018 and `_full_record_for_candidate_local` 721;
 `_evaluate_phase1_positions` 434 and `_evaluate_phase1_positions_local` 480;
