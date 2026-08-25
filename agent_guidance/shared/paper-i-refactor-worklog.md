@@ -3713,3 +3713,45 @@ production files, six changed symbols, one affected execution flow, and MEDIUM
 risk. `CandidateFeatures` was the pre-edit HIGH-risk schema surface (23 direct
 importers, 80 transitive symbols); collection, direct tests, source-lock checks,
 route digest, and ledger identity close that risk.
+
+### 2026-08-24 — Work Plan 2.3 / 3.1 — compile-cost fallback chain deleted
+
+**Implementation:** from baseline `919488ff`, commit `c4400c36` implements Q31
+and Q32. `BackendCompileConfig` now defaults to Qiskit compilation against the
+single exact target `FakeMarrakesh`; proxy cost remains available only by
+explicit selection. The preferred-fakes chain, alternate-backend permission,
+shortlist mode/CLI/executor fields, shortlist reduction, and the receipt fields
+describing those impossible fallback events are deleted. Explicitly requested
+single alternate backend names remain valid experiments, but a failed target
+resolution stops construction. The graph-span implementation may load the
+static graph representation of the same `FakeMarrakesh` target; errors are no
+longer swallowed and it cannot change devices.
+
+The change adds 88 lines and deletes 261: **173 net lines removed**. The
+standalone `hh_adapt_backend_shortlist.py` experiment driver remains because it
+runs separately named, single-backend experiments rather than selecting or
+falling back among targets inside one run.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical:
+256 entries, 266 ordered occurrences, fingerprint
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest is also unchanged at
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5467 tests collected, 54
+errors` to `5466 tests collected, 54 errors`; the one-test decrease is the
+intentional deletion of the mutable-shortlist-default test, and the complete
+`ERROR test/...` diff is empty. The direct compile-oracle and Phase-I--III
+Qiskit-scope surface passes `32 passed`. Broader route-profile/digest failures
+encountered during focused runs reproduce at the untouched baseline and are
+stale assertions from earlier ratified route changes.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports six
+production files, thirteen changed symbols, one affected controller flow, and
+MEDIUM risk. The pre-edit HIGH-risk semantic-final-accounting validator lost
+only the fallback receipt assertion; the unchanged ledger and route digest,
+focused tests, and empty collection-error diff close that risk.
