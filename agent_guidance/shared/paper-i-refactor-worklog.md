@@ -3755,3 +3755,36 @@ production files, thirteen changed symbols, one affected controller flow, and
 MEDIUM risk. The pre-edit HIGH-risk semantic-final-accounting validator lost
 only the fallback receipt assertion; the unchanged ledger and route digest,
 focused tests, and empty collection-error diff close that risk.
+
+### 2026-08-24 — Work Plan 3.4 — run-level cost weights
+
+**Implementation:** commit `2d23fb1b` implements Q35. The five surviving
+resource weights are now the one run-level tuple
+`cost_lambda_{2q,d,1q,theta,shot}`. Both Phase-I `SimpleScoreConfig` and
+Phase-II/III `FullScoreConfig` consume that tuple. Ten phase-prefixed executor
+parameters and CLI flags are replaced by five run-level parameters and flags;
+the old names have no alias. `lambda_F` is not preserved because Q21 deleted
+its metric-for-Hessian substitution separately.
+
+All live canonical Phase-I/II pairs were enumerated before the edit and were
+equal. The authenticated route contract carries none of these infrastructure
+defaults, so its schema and digest did not change. The change adds 50 lines and
+deletes 77: **27 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** before and after are both `5466 tests collected, 54
+errors`; the `ERROR test/...` diff is empty. The direct CLI/default and score
+configuration surface passes `50 passed`.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports two
+production files, seven changed symbols, one affected controller flow, and
+MEDIUM risk. All pre-edit symbol impacts were LOW.
