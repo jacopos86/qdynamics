@@ -3118,6 +3118,62 @@ Nothing verifiable settles this: the code says the arms are live, the evidence
 says they have never been used. It turns on whether the author still intends to
 publish a plain-ADAPT-vs-RA-ADAPT comparison table.
 
+## 6bh. The short callable plain-ADAPT comparator already exists: `run_append_adapt`
+
+Author's specification (2026-08-25): keep plain ADAPT-VQE as a comparator, but as
+something *"callable in qiskit and something easy and short"*, reusing *"the same
+ra operator pool, hamiltonian, and inner optimizer powell scipy for it (though
+adapt vqe is not whitened)"*.
+
+That is `ra_adapt/append.py`, already written, 1,691 lines. Its module docstring
+is the specification almost verbatim:
+
+> *"Append-ADAPT shares the RA package's candidate inventories, compiled state
+> execution, accounting convention, and protocol serialization. Its selector and
+> accepted-refit convention are deliberately independent: every controller round
+> ranks the complete executable pool by the absolute commutator gradient, admits
+> exactly the largest entry at the append position, and refits the full ansatz
+> with Powell in its native logical-shared coordinates. Nothing in this module
+> calls the RA Phase-I/II/III funnel or constructs RA's supported-FS
+> accepted-refit chart."*
+
+| author's requirement | where it is satisfied |
+|---|---|
+| callable, short | `run_append_adapt(problem, request)` `:1483` — two arguments |
+| same RA operator pool | `_append_inventories:192` takes the same `MacroCandidateAdapter` / `SinglePauliWordCandidateAdapter` and calls `.global_executable_pool(problem)` |
+| same Hamiltonian | same `ResolvedProblemContext` |
+| Powell scipy inner optimizer | `"optimizer": "powell"`, `_native_accepted_refit_receipt:542` |
+| **not whitened** | `NATIVE_REFIT_CHART` (`contracts.py:150`, `"native_v1"`), fail-closed at `:426` |
+| qiskit | `table_i_qiskit_resource_compile` at `:712`, with `optimization_level` and `seed_transpiler` from the compile identity |
+| fair cost comparison | imports `EstimatorCallKey` from `estimator_call_ledger` `:84-86`; sets `"estimator_accounting_convention": RA_ADAPT_ESTIMATOR_ACCOUNTING` `:360` |
+| plain-ADAPT selector | `_select_largest_absolute_commutator_gradient:491` — rank by abs commutator gradient, admit the max, tie-break on label |
+
+**Pool flexibility.** Append is *not* pinned. The only `full_meta` string in the
+file is inside a selector id (`:110`). The pool arrives via `request.adapter`, so
+Append is pool-flexible by construction.
+
+**RA is pinned, though.** `pools.py::_parent_pool_spec` (`:452-490`) returns a
+hard-coded literal `"pool_key": "full_meta"` on every HH branch — no parameter,
+no override. The author uses only `full_meta` for RA, so this is not blocking,
+but "optional different pools" on the RA side is a one-function change, not a
+reason to retain any legacy engine.
+
+### Consequence for the mega function
+
+The bench's nine `adapt_vqe` arms (6bg) are a **second, redundant implementation**
+of this same comparison — legacy continuation mode, its own accounting, never run,
+no artifacts. `run_append_adapt` does the same comparison better: shared pool,
+shared ledger, shared compile identity, so the cost axis is genuinely comparable
+rather than two engines measuring themselves.
+
+So retaining `_run_hardcoded_adapt_vqe` to preserve the plain-ADAPT comparator is
+unnecessary — the comparator survives it. The July blocking defect that gated
+Append execution is repaired (6be), so nothing stands in the way.
+
+Remaining work is then: retire the bench's nine ADAPT arms (or repoint them at
+`run_append_adapt`), delete the mega function and its kwargs builder, and
+optionally parameterize `_parent_pool_spec`.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
