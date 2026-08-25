@@ -2013,11 +2013,23 @@ which continue to come from the shortlist sizes.
 Still true and unchanged: 0 occurrences in Paper I; the phase controller and its
 snapshot must not be deleted (6ae).
 
-### 1.4 — outstanding
+### 1.4 — widened and confirmed
 
-`phase0_K0 == 1.0` was established from **one archive**, 30 recorded instances.
-Under the enumerate rule that is a single-artifact check of the kind that has now
-failed twice. Widen to several bundles before Codex acts.
+`phase0_K0 == 1.0` originally rested on one archive. Widened to **19 archives
+across all five bundles** (b3, b6, b7, b8, b9), sampling every arm present:
+
+```
+2,100 recorded phase0_K0 values
+distinct values: {1.0}
+```
+
+Every archive, every arm, every regime: one distinct value, `1.0`. The Phase-0
+cost denominator was neutral in all available evidence, so removing the division
+cannot change a recorded ranking.
+
+Combined with the earlier check that `phase0_cost_lambdas` is `{}` with source
+`"unresolved"` in 5 of 5 sampled cells, item 1.4 is verified on a multi-artifact
+basis. **Cleared for Codex.**
 
 ## 7. No fallbacks
 
