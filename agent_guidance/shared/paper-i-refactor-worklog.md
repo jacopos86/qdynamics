@@ -2473,7 +2473,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stage 1.2 in progress under corrected 6ao basis; Q30 and Q33 remain decision boundaries; phase controller preserved |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | Stage 1.2 done in `1e6db270`; Q43 shadow-damping deletion in progress; Q30, Q33, and Q38 remain decision boundaries; phase controller preserved |
 | _(add yours)_ | | | |
 
 ---
@@ -3998,3 +3998,51 @@ code. The deferred-Gram path and all PAOP machinery remain intact under the Q41
 retraction and Q42. The 16 default-off policy/mode parameters, 30 `_mode`
 parameters, and three legacy-named settings excluded by the commission were not
 touched.
+
+### 2026-08-25 — Work Plan 1.2 — maturity overrides deleted
+
+**Implementation:** from baseline `a31b81cc20dd513ebd7dec7e7b73cb5b6ecf921a`,
+commit `1e6db270` deletes the eleven executor parameters and CLI flags that
+overrode phase-controller caps and shot budgets. Controller caps now come
+unconditionally from the Phase-I, Phase-II, and Phase-III funnel shortlist
+sizes, matching the `None` fallback taken by every Paper-I profile. The
+controller's existing fixed shot defaults (`1`, `1`, and zero explicit phase
+caps) now apply without a caller-facing override.
+
+Enumeration found a second live producer outside the profile system:
+`StaticScaffoldPolicy` generated six fractional cap overrides and five shot
+overrides for generic exact-benchmark commands. Those fields, their fractional
+cap helper, and their CLI emissions are deleted too. Historical reporting
+dictionaries that describe commands from completed runs remain byte-for-byte
+as evidence provenance.
+
+The phase controller implementation and `PhaseControllerSnapshot` are not
+changed. In particular, `phase_shots_maturity_floor` remains in the snapshot:
+its type has 80 upstream symbols and the author's corrected commission says not
+to touch the phase controller. This increment removes its override interface,
+not live controller state or its serialized shape.
+
+The change adds 59 lines and deletes 265: **206 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection changes from `5466 tests collected, 54
+errors` to `5477 tests collected, 54 errors`; the eleven added cases each prove
+one retired flag is rejected, and the complete `ERROR test/...` diff is empty.
+The focused CLI, generic-policy, route-contract, controller, and runtime-kwargs
+surface passes `200 passed`. A broader generic-benchmark file retains its
+unrelated missing-module failures, and an untouched lane-route test retains its
+stale assertion that `global_single_population` is absent.
+
+**Paper-I-local impact audit:** every edited implementation symbol measured LOW
+before editing. The HIGH-risk `PhaseControllerSnapshot` surface was deliberately
+excluded. Final isolated GitNexus `detect-changes` reports three production
+files, three mapped symbols, one affected execution flow, and MEDIUM risk.
