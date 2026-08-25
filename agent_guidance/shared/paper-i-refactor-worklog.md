@@ -2378,6 +2378,56 @@ The `_local` / non-`_local` duplicate pairs recur across the function
 ~2,300 lines in near-duplicate pairs, and is the same one-fact-two-places defect
 as F3/F4 — worth measuring the actual divergence before assuming either can go.
 
+## 6av. The transitive dead set — 38 defs, 12,990 lines (33% of the function)
+
+Built a reference graph over all 192 nested defs using AST `Name` loads (so
+closures count), marked every def referenced from the mega body as live, then
+propagated. Anything reachable only from a dead def is dead.
+
+```
+nested defs                    192
+reachable from the mega body   154
+TRANSITIVELY DEAD               38   ->  12,990 lines
+```
+
+Largest:
+
+| lines | line | def |
+|---|---|---|
+| 5,469 | 29190 | `_evaluate_beam_branch` |
+| 2,722 | 35366 | `_materialize_beam_child` |
+| 1,730 | 30208 | `_process_phase2_full_candidate_record_local` |
+| 721 | 30276 | `_full_record_for_candidate_local` |
+| 705 | 34660 | `_materialize_sr_active_only_correction` |
+| 480 | 29456 | `_evaluate_phase1_positions_local` |
+| 235 | 29632 | `_phase1_record_for_pair_inner` |
+| 208 | 28981 | `_record_route_a_funnel_controller_events` |
+| 108 | 32402 | `_evaluate_route_a_child_full_record_local` |
+| 102 | 32511 | `_evaluate_route_a_child_phase1_record_local` |
+| 81 | 31031 | `_global_child_factory_local` |
+
+### This resolves Q47 for the large pairs
+
+Both diverged `_local` twins are in the dead set:
+
+- `_full_record_for_candidate_local` (721) is called only from
+  `_process_phase2_full_candidate_record_local`,
+  `_score_runtime_split_child_set_local` and
+  `_score_runtime_split_child_atom_local` — **all three dead**.
+- `_evaluate_phase1_positions_local` (480) is called only from **two sites inside
+  `_evaluate_beam_branch`**, which is orphaned.
+
+So the 47%/54% divergence is not a live disagreement to adjudicate. **The
+`_local` side of both large pairs is dead**, and Q47's unification is a deletion
+of the dead half, not a merge. The four small pairs still need checking
+individually.
+
+### Note
+
+Six `_local` defs and the `_..._inner` helpers appear in the dead set, which is
+consistent: the `_local` family was the beam-branch-local implementation, and it
+died with beam.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2571,6 +2621,11 @@ still referenced, including `_execute_live_mature_prune_pass` (1,374, refs=2) an
 live inside the mega function; move it to `extensions.py`. Net target near zero.
 
 ### The complete orphan list — 8 defs, 8,956 lines
+
+> **UNDERCOUNT — see below.** Those 8 are the *directly* unreferenced defs. The
+> dead set is **transitive**: defs called only from an orphan are dead too. The
+> real figure is **38 defs, 12,990 lines**.
+
 
 AST Name-load walk plus sole-occurrence check over all 196 nested defs:
 
