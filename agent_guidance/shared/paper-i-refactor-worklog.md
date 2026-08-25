@@ -2512,7 +2512,7 @@ AST Name-load walk plus sole-occurrence check over all 196 nested defs:
 |---|---|---|
 | 5,469 | 29190 | `_evaluate_beam_branch` |
 | 2,722 | 35366 | `_materialize_beam_child` |
-| 705 | 34660 | `_materialize_sr_active_only_correction` |
+| 705 | 34660 | `_materialize_sr_active_only_correction` — safe: the marginal/active-only computation lives in `hh_continuation_scoring.py:_active_only_gain_baseline:9894`, and `active_only` is live in 8 other modules. This orphan is not that implementation, so deleting it does not affect the Q16 marginal side. |
 | 19 | 27925 | `_beam_prune_current` |
 | 17 | 27945 | `_beam_dedup_current` |
 | 9 | 42115 | `_scaffold_pairs_for_indices` |
