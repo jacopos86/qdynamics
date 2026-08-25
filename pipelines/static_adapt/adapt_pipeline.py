@@ -149,7 +149,9 @@ from pipelines.static_adapt.adapt_candidate_record_cache import (
     _outer_curvature_prior_cache_identity,
 )
 from pipelines.static_adapt.extensions import (
+    _DISABLED_LEGACY_BEAM_STATE,
     BatchExtension,
+    BeamExtension,
     Extensions,
     NO_EXTENSIONS,
     batch_extension_from_admission,
@@ -488,13 +490,11 @@ from pipelines.static_adapt.cli_config import (
     FinalNoiseAuditConfig,
     Phase3OracleGradientConfig,
     ResolvedAdaptStopPolicy,
-    ResolvedBeamCapacityPolicy,
     _build_adapt_arg_parser,
     _build_run_hardcoded_adapt_vqe_kwargs,
     _oracle_mitigation_payload_from_fields,
     _parse_oracle_zne_scales,
     _resolve_adapt_stop_policy,
-    _resolve_beam_capacity_policy,
     _resolve_final_noise_audit_config,
     _resolve_main_cli_configs,
     _resolve_phase3_oracle_gradient_config,
@@ -635,7 +635,6 @@ from pipelines.static_adapt.phase_shortlists import (
     _phase1_record_score_value,
     _phase1_shortlist_score_key,
     _phase2_lane_health_shortlist_with_legacy_hook,
-    _phase3_tie_beam_selection_pool,
     _phase_shortlist_with_legacy_hook,
 )
 from pipelines.static_adapt.adaptive_phase_contracts import (
@@ -14943,11 +14942,6 @@ def _run_hardcoded_adapt_vqe(
     phase2_duplicate_penalty_weight: float = 0.0,
     phase2_frontier_ratio: float = 0.9,
     phase3_frontier_ratio: float = 0.9,
-    phase3_tie_beam_score_ratio: float = 1.0,
-    phase3_tie_beam_abs_tol: float = 0.0,
-    phase3_tie_beam_max_branches: int = 1,
-    phase3_tie_beam_max_late_coordinate: float = 1.0,
-    phase3_tie_beam_min_depth_left: int = 0,
     phase2_remaining_evaluations_proxy_mode: str = "auto",
     adapt_pool_class_filter_json: Path | None = None,
     adapt_pool_label_filter_json: Path | None = None,
@@ -15016,12 +15010,6 @@ def _run_hardcoded_adapt_vqe(
     phase3_oracle_inner_objective_mode: str = "exact",
     phase3_selector_debug_topk: int = 0,
     phase3_selector_debug_max_depth: int = 0,
-    adapt_beam_live_branches: int = 1,
-    adapt_beam_children_per_parent: int | None = None,
-    adapt_beam_terminated_keep: int | None = None,
-    adapt_beam_terminal_archive_mode: str = "disabled",
-    adapt_beam_lambda: float = 0.0,
-    adapt_beam_parent_workers: int = 1,
     diagnostics_out: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], np.ndarray]:
     """Run standard ADAPT-VQE and return (payload, psi_ground)."""
@@ -15495,27 +15483,10 @@ def _run_hardcoded_adapt_vqe(
         phase2_shortlist_fraction = 1.0
         phase3_shortlist_size = int(route_a_funnel_cfg.child_phase3_cap)
     phase1_shortlist_size_val = int(phase1_shortlist_size)
-    phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
-    if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
-        raise ValueError("phase3_tie_beam_score_ratio must be finite and > 0.")
-    phase3_tie_beam_abs_tol_val = float(phase3_tie_beam_abs_tol)
-    if (not math.isfinite(phase3_tie_beam_abs_tol_val)) or phase3_tie_beam_abs_tol_val < 0.0:
-        raise ValueError("phase3_tie_beam_abs_tol must be finite and >= 0.")
-    phase3_tie_beam_max_branches_val = int(phase3_tie_beam_max_branches)
-    if phase3_tie_beam_max_branches_val < 1:
-        raise ValueError("phase3_tie_beam_max_branches must be >= 1.")
-    phase3_tie_beam_max_late_coordinate_val = float(phase3_tie_beam_max_late_coordinate)
-    if not math.isfinite(phase3_tie_beam_max_late_coordinate_val):
-        raise ValueError("phase3_tie_beam_max_late_coordinate must be finite.")
-    phase3_tie_beam_max_late_coordinate_val = float(
-        max(0.0, min(1.0, phase3_tie_beam_max_late_coordinate_val))
-    )
-    phase3_tie_beam_min_depth_left_val = int(phase3_tie_beam_min_depth_left)
-    if phase3_tie_beam_min_depth_left_val < 0:
-        raise ValueError("phase3_tie_beam_min_depth_left must be >= 0.")
-    adapt_beam_lambda_val = float(adapt_beam_lambda)
-    if (not math.isfinite(adapt_beam_lambda_val)) or adapt_beam_lambda_val < 0.0:
-        raise ValueError("adapt_beam_lambda must be finite and >= 0.")
+    # The historical beam implementation below is hard-extricated: no executor
+    # or CLI input can make these inactive branch values change.
+    adapt_beam_lambda_val = 0.0
+    adapt_beam_parent_workers = 1
     static_route_id_key_early = _normalize_retained_route_observation(
         static_route_id
     )
@@ -16075,34 +16046,7 @@ def _run_hardcoded_adapt_vqe(
         adapt_drop_min_depth=adapt_drop_min_depth,
         adapt_grad_floor=adapt_grad_floor,
     )
-    beam_policy = _resolve_beam_capacity_policy(
-        adapt_beam_live_branches=int(adapt_beam_live_branches),
-        adapt_beam_children_per_parent=adapt_beam_children_per_parent,
-        adapt_beam_terminated_keep=adapt_beam_terminated_keep,
-        adapt_beam_terminal_archive_mode=str(adapt_beam_terminal_archive_mode),
-    )
-    phase3_tie_beam_enabled = bool(
-        str(problem_key) == "hh"
-        and str(continuation_mode).strip().lower() == "phase3_v1"
-        and int(phase3_tie_beam_max_branches_val) > 1
-        and (
-            float(phase3_tie_beam_score_ratio_val) < 1.0
-            or float(phase3_tie_beam_abs_tol_val) > 0.0
-        )
-    )
-    if phase3_tie_beam_enabled and not bool(beam_policy.beam_enabled):
-        beam_policy = ResolvedBeamCapacityPolicy(
-            live_branches_requested=int(beam_policy.live_branches_requested),
-            children_per_parent_requested=beam_policy.children_per_parent_requested,
-            terminated_keep_requested=beam_policy.terminated_keep_requested,
-            live_branches_effective=1,
-            children_per_parent_effective=1,
-            terminated_keep_effective=0,
-            beam_enabled=True,
-            source_children_per_parent="conditional_phase3_tie_band_base1",
-            source_terminated_keep="terminal_archive_disabled.conditional_phase3_tie_band_base1",
-            terminal_archive_mode=str(beam_policy.terminal_archive_mode),
-        )
+    beam_policy = _DISABLED_LEGACY_BEAM_STATE
     default_singleton_selection_active = bool(
         phase1_lane_retention_enabled_val
         and _uses_default_singleton_selection(
@@ -16111,12 +16055,6 @@ def _run_hardcoded_adapt_vqe(
             beam_enabled=bool(beam_policy.beam_enabled),
         )
     )
-    if bool(beam_policy.beam_enabled) and not (
-        str(continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
-    ):
-        raise ValueError(
-            "True ADAPT beam mode requires a staged continuation mode."
-        )
     # Q28 retires the historical batch arms below.  They remain interleaved
     # with the old controller until that controller is deleted, but no input
     # can make them reachable; typed Paper-I batching runs through Extensions.
@@ -16774,24 +16712,6 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("phase3_shadow_legacy_max_depth must be >= 0.")
     if phase3_shadow_legacy_geometry_mode_key != "off" and problem_key != "hh":
         raise ValueError("phase3_shadow_legacy_geometry_mode is currently only valid for problem='hh'.")
-    phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
-    if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
-        raise ValueError("phase3_tie_beam_score_ratio must be finite and > 0.")
-    phase3_tie_beam_abs_tol_val = float(phase3_tie_beam_abs_tol)
-    if (not math.isfinite(phase3_tie_beam_abs_tol_val)) or phase3_tie_beam_abs_tol_val < 0.0:
-        raise ValueError("phase3_tie_beam_abs_tol must be finite and >= 0.")
-    phase3_tie_beam_max_branches_val = int(phase3_tie_beam_max_branches)
-    if phase3_tie_beam_max_branches_val < 1:
-        raise ValueError("phase3_tie_beam_max_branches must be >= 1.")
-    phase3_tie_beam_max_late_coordinate_val = float(phase3_tie_beam_max_late_coordinate)
-    if not math.isfinite(phase3_tie_beam_max_late_coordinate_val):
-        raise ValueError("phase3_tie_beam_max_late_coordinate must be finite.")
-    phase3_tie_beam_max_late_coordinate_val = float(
-        max(0.0, min(1.0, phase3_tie_beam_max_late_coordinate_val))
-    )
-    phase3_tie_beam_min_depth_left_val = int(phase3_tie_beam_min_depth_left)
-    if phase3_tie_beam_min_depth_left_val < 0:
-        raise ValueError("phase3_tie_beam_min_depth_left must be >= 0.")
     phase3_backend_cost_mode_requested_key = str(phase3_backend_cost_mode).strip().lower()
     phase3_backend_cost_scope_key = str(
         phase3_backend_cost_scope
@@ -16984,24 +16904,6 @@ def _run_hardcoded_adapt_vqe(
                 if pruning_extension is not None
                 else {}
             ),
-            "adapt_beam_live_branches": int(
-                beam_policy.live_branches_requested
-            ),
-            "adapt_beam_children_per_parent": (
-                None
-                if beam_policy.children_per_parent_requested is None
-                else int(beam_policy.children_per_parent_requested)
-            ),
-            "adapt_beam_terminated_keep": (
-                None
-                if beam_policy.terminated_keep_requested is None
-                else int(beam_policy.terminated_keep_requested)
-            ),
-            "adapt_beam_terminal_archive_mode": str(
-                beam_policy.terminal_archive_mode
-            ),
-            "adapt_beam_lambda": float(adapt_beam_lambda),
-            "adapt_beam_parent_workers": int(adapt_beam_parent_workers),
             "phase3_selector_policy": str(phase3_selector_policy_key),
             "phase3_selector_geometry_mode": str(
                 phase3_selector_geometry_mode_key
@@ -17253,22 +17155,6 @@ def _run_hardcoded_adapt_vqe(
         phase3_backend_w_depth=float(phase3_backend_w_depth),
         phase3_backend_w_size=float(phase3_backend_w_size),
         phase3_enable_rescue=bool(phase3_enable_rescue),
-        adapt_beam_live_branches_requested=int(beam_policy.live_branches_requested),
-        adapt_beam_children_per_parent_requested=(
-            int(beam_policy.children_per_parent_requested)
-            if beam_policy.children_per_parent_requested is not None
-            else None
-        ),
-        adapt_beam_terminated_keep_requested=(
-            int(beam_policy.terminated_keep_requested)
-            if beam_policy.terminated_keep_requested is not None
-            else None
-        ),
-        adapt_beam_live_branches=int(beam_policy.live_branches_effective),
-        adapt_beam_children_per_parent=int(beam_policy.children_per_parent_effective),
-        adapt_beam_terminated_keep=int(beam_policy.terminated_keep_effective),
-        adapt_beam_terminal_archive_mode=str(beam_policy.terminal_archive_mode),
-        adapt_beam_enabled=bool(beam_policy.beam_enabled),
         max_depth=int(max_depth),
         maxiter=int(maxiter),
         adapt_scipy_maxfev=(
@@ -17993,16 +17879,12 @@ def _run_hardcoded_adapt_vqe(
         adapt_parallel_gradient_workers_requested,
         name="adapt_parallel_gradient_workers",
     )
-    adapt_beam_parent_workers_requested = int(adapt_beam_parent_workers)
-    adapt_beam_parent_workers, adapt_beam_parent_worker_resolution = _resolve_adapt_worker_limit(
-        adapt_beam_parent_workers_requested,
-        name="adapt_beam_parent_workers",
-    )
+    adapt_beam_parent_workers_requested = 1
+    adapt_beam_parent_workers = 1
     _ai_log(
         "hardcoded_adapt_worker_resolution",
         pool_size=int(len(pool)),
         adapt_parallel_gradient_workers=dict(adapt_parallel_worker_resolution),
-        adapt_beam_parent_workers=dict(adapt_beam_parent_worker_resolution),
     )
 
     seq2p_logical_mode = bool(
@@ -33737,25 +33619,6 @@ def _run_hardcoded_adapt_vqe(
                     "late_coordinate": float(int(depth + 1) / max(1, int(max_depth))),
                     "reason": "disabled",
                 }
-                if (
-                    phase3_live_now_local
-                    and not canonical_joint_selector_local
-                ):
-                    retained_records_local, phase3_tie_selection_meta_local = _phase3_tie_beam_selection_pool(
-                        retained_records_local,
-                        default_cap=int(max(1, children_cap)),
-                        score_key=_phase3_selector_score_key(),
-                        score_ratio=float(phase3_tie_beam_score_ratio_val),
-                        abs_tol=float(phase3_tie_beam_abs_tol_val),
-                        max_branches=int(phase3_tie_beam_max_branches_val),
-                        max_late_coordinate=float(phase3_tie_beam_max_late_coordinate_val),
-                        min_depth_left=int(phase3_tie_beam_min_depth_left_val),
-                        depth_one_based=int(depth + 1),
-                        max_depth_local=int(max_depth),
-                        phase3_selector_score_key=str(_phase3_selector_score_key()),
-                        phase3_record_sort_key=_phase3_record_sort_key,
-                        phase2_record_sort_key=_phase2_record_sort_key,
-                    )
                 if canonical_joint_selector_local and retained_records_local:
                     if route_a_round_selector_cfg_local is None:
                         raise RuntimeError(
@@ -38223,709 +38086,8 @@ def _run_hardcoded_adapt_vqe(
             child.depth_local = int(depth_local)
             return child
 
-        if bool(beam_policy.beam_enabled):
-            root_branch = _BeamBranchState(
-                branch_id=int(imported_root_branch_id),
-                parent_branch_id=imported_root_parent_branch_id,
-                depth_local=int(resume_source_controller_round),
-                terminated=False,
-                stop_reason=None,
-                selected_ops=list(selected_ops),
-                theta=np.asarray(theta, dtype=float).copy(),
-                energy_current=float(energy_current),
-                available_indices=set(int(x) for x in available_indices),
-                selection_counts=np.asarray(selection_counts, dtype=np.int64).copy(),
-                history=[dict(x) for x in history],
-                phase1_stage=phase1_stage.clone(),
-                phase1_residual_opened=bool(phase1_residual_opened),
-                phase1_last_probe_reason=str(phase1_last_probe_reason),
-                phase1_last_positions_considered=[int(x) for x in phase1_last_positions_considered],
-                phase1_last_trough_detected=bool(phase1_last_trough_detected),
-                phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered),
-                phase1_last_selected_score=phase1_last_selected_score,
-                phase1_features_history=[dict(x) for x in phase1_features_history],
-                phase1_stage_events=[dict(x) for x in phase1_stage_events],
-                phase1_measure_cache=phase1_measure_cache.clone(),
-                controller_measurement_work=controller_measurement_work.clone(),
-                phase1_last_retained_records=[dict(x) for x in phase1_last_retained_records],
-                phase2_optimizer_memory=copy.deepcopy(phase2_optimizer_memory),
-                phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records],
-                phase2_last_geometric_shortlist_records=[
-                    dict(x) for x in phase2_last_geometric_shortlist_records
-                ],
-                phase2_last_retained_shortlist_records=[
-                    dict(x) for x in phase2_last_retained_shortlist_records
-                ],
-                phase2_last_admitted_records=[dict(x) for x in phase2_last_admitted_records],
-                phase2_last_batch_selected=bool(phase2_last_batch_selected),
-                phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total),
-                phase2_last_batch_schur_context={},
-                phase2_last_optimizer_memory_reused=bool(phase2_last_optimizer_memory_reused),
-                phase2_last_optimizer_memory_source=str(phase2_last_optimizer_memory_source),
-                phase2_last_shortlist_eval_records=[dict(x) for x in phase2_last_shortlist_eval_records],
-                drop_prev_delta_abs=float(drop_prev_delta_abs),
-                drop_plateau_hits=int(drop_plateau_hits),
-                eps_energy_low_streak=int(eps_energy_low_streak),
-                phase3_split_events=[dict(x) for x in phase3_split_events],
-                phase3_runtime_split_summary=copy.deepcopy(phase3_runtime_split_summary),
-                phase3_motif_usage=copy.deepcopy(phase3_motif_usage),
-                phase3_rescue_history=[dict(x) for x in phase3_rescue_history],
-                phase1_prune_metadata=[
-                    ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in phase1_prune_metadata_state
-                ],
-                phase1_prune_first_seen_steps={
-                    str(k): int(v) for k, v in phase1_prune_first_seen_steps.items()
-                },
-                phase1_last_prune_summary=copy.deepcopy(prune_summary),
-                last_transition_kind="root",
-                last_admission_record_count=0,
-                cumulative_selector_score=float(
-                    resume_best_frontier_checkpoint.frontier_prune_key[
-                        "cumulative_selector_score"
-                    ]
-                    if resume_best_frontier_checkpoint is not None
-                    else sum(_selector_score_value(row) for row in history)
-                ),
-                cumulative_selector_burden=float(
-                    resume_best_frontier_checkpoint.frontier_prune_key[
-                        "cumulative_selector_burden"
-                    ]
-                    if resume_best_frontier_checkpoint is not None
-                    else sum(_selector_burden_value(row) for row in history)
-                ),
-                route_a_trust_region_state=(
-                    None
-                    if route_a_trust_region_state is None
-                    else route_a_trust_region_state.clone()
-                ),
-                cumulative_beam_cost=(
-                    float(
-                        resume_best_frontier_checkpoint.frontier_prune_key[
-                            "cumulative_beam_cost"
-                        ]
-                    )
-                    if resume_best_frontier_checkpoint is not None
-                    else 0.0
-                    if bool(canonical_beam_survival_enabled)
-                    else float(
-                        sum(
-                            float(row.get("beam_cost_K", 0.0))
-                            for row in history
-                            if isinstance(row, Mapping)
-                        )
-                    )
-                ),
-                nfev_total_local=int(nfev_total),
-                source_lock_admitted_candidate_labels=[
-                    str(label) for label in phase3_source_lock_admitted_candidate_labels
-                ],
-            )
-            beam_segment_history_start_length = int(len(root_branch.history))
-            frontier: list[_BeamBranchState] = [root_branch]
-            terminals: list[_BeamBranchState] = []
-            for segment_round_index in range(int(max_depth_effective)):
-                depth = int(
-                    _adapt_segment_controller_round(
-                        adapt_segment_state,
-                        segment_round_index=int(segment_round_index),
-                    )
-                    - 1
-                )
-                
-                segment_stop_now = _segment_loop_stop_reason(
-                    current_controller_round=int(depth)
-                )
-                if segment_stop_now is not None:
-                    stop_reason = str(segment_stop_now)
-                    _ai_log(
-                        "hardcoded_adapt_segment_stop_before_beam_round",
-                        reason=str(segment_stop_now),
-                        depth=int(depth + 1),
-                        current_depth=int(len(selected_ops)),
-                        new_admissions=int(adapt_segment_state.new_admissions_count),
-                    )
-                    break
-                if not frontier:
-                    break
-                child_frontier: list[_BeamBranchState] = []
-                round_terminals: list[_BeamBranchState] = []
-                round_admission_children: list[_BeamBranchState] = []
-                parents_expanded_count = 0
-                proposals_selected_count = 0
-                proposal_family_count = 0
-                stop_children_count = 0
-                frontier_input_count = int(len(frontier))
-                round_frontier_diagnostic: dict[str, Any] = {
-                    "raw_candidate_record_count": 0,
-                    "phase2_raw_candidate_record_count": 0,
-                    "phase1_shortlist_size": 0,
-                    "phase2_shortlist_size": 0,
-                    "phase3_shortlist_size": 0,
-                    "best_available_gradient": None,
-                    "best_available_simple_score": None,
-                    "best_available_phase2_raw_score": None,
-                    "best_available_full_v2_score": None,
-                    "best_available_gain": None,
-                    "parent_stop_reason_counts": {},
-                }
 
-                round_live_cap = int(beam_policy.live_branches_effective)
-                beam_parent_round_policy = _resolve_beam_parent_round_policy(
-                    frontier_input_count=int(frontier_input_count),
-                    requested_parent_workers=int(adapt_beam_parent_workers),
-                    adapt_parallel_gradient_workers=int(adapt_parallel_gradient_workers),
-                    finite_angle_fallback=bool(finite_angle_fallback),
-                    cap_worker_limit_for_items=_cap_worker_limit_for_items,
-                )
-                beam_parent_workers_requested_round = int(
-                    beam_parent_round_policy.parent_workers_requested
-                )
-                beam_parent_workers_effective_round = int(
-                    beam_parent_round_policy.parent_workers_effective
-                )
-                beam_parent_parallel_enabled_round = bool(
-                    beam_parent_round_policy.parent_parallel_enabled
-                )
-                beam_parent_parallel_disabled_reason = (
-                    beam_parent_round_policy.parent_parallel_disabled_reason
-                )
-                beam_parent_branch_worker_budget_round = int(
-                    beam_parent_round_policy.branch_worker_budget
-                )
-
-                _ai_log(
-                    "hardcoded_adapt_beam_round_start",
-                    depth=int(depth + 1),
-                    frontier_input_count=int(frontier_input_count),
-                    live_branch_cap=int(beam_policy.live_branches_effective),
-                    children_per_parent_cap=int(beam_policy.children_per_parent_effective),
-                    terminated_keep_cap=int(beam_policy.terminated_keep_effective),
-                    beam_parent_workers_requested=int(beam_parent_workers_requested_round),
-                    beam_parent_workers_effective=int(beam_parent_workers_effective_round),
-                    beam_parent_parallel_enabled=bool(beam_parent_parallel_enabled_round),
-                    beam_parent_parallel_disabled_reason=beam_parent_parallel_disabled_reason,
-                    beam_parent_branch_worker_budget=int(beam_parent_branch_worker_budget_round),
-                    beam_parent_parallel_merge_order="frontier_order",
-                )
-
-                def _evaluate_parent_for_round(item: tuple[int, _BeamBranchState]) -> _BeamParentScratchResult:
-                    parent_ordinal, parent_state = item
-                    parent_t0 = time.perf_counter()
-                    scratch_result = _evaluate_beam_branch(
-                        parent_state,
-                        depth=int(depth),
-                        children_cap=int(beam_policy.children_per_parent_effective),
-                        parent_parallel_active=bool(beam_parent_parallel_enabled_round),
-                        worker_budget=int(beam_parent_branch_worker_budget_round),
-                    )
-                    return _BeamParentScratchResult(
-                        parent_ordinal=int(parent_ordinal),
-                        parent_branch_id=int(parent_state.branch_id),
-                        scratch=scratch_result,
-                        log_events=[],
-                        elapsed_s=float(time.perf_counter() - parent_t0),
-                    )
-
-                parent_items = list(enumerate(frontier))
-                if beam_parent_parallel_enabled_round:
-                    for _parent in frontier:
-                        _get_beam_executor(_parent.selected_ops)
-                    with ThreadPoolExecutor(max_workers=int(beam_parent_workers_effective_round)) as parent_executor:
-                        parent_results = list(parent_executor.map(_evaluate_parent_for_round, parent_items))
-                    parent_results = sorted(parent_results, key=lambda item: int(item.parent_ordinal))
-                else:
-                    parent_results = [_evaluate_parent_for_round(item) for item in parent_items]
-
-                benchmark_target_materialized = False
-                for parent_result in parent_results:
-                    parent = frontier[int(parent_result.parent_ordinal)]
-                    parents_expanded_count += 1
-                    scratch = parent_result.scratch
-                    beam_nfev_total += int(scratch.nfev_delta)
-                    _accumulate_beam_round_frontier_diagnostic(round_frontier_diagnostic, scratch)
-                    base_branch = _beam_base_branch_from_parent_scratch(
-                        parent,
-                        branch_id=int(parent.branch_id),
-                        parent_branch_id=parent.parent_branch_id,
-                        scratch=scratch,
-                    )
-                    
-                    beam_controller_measurement_work_steps.append(
-                        dict(scratch.controller_measurement_work_step_proxy)
-                    )
-                    if benchmark_target_materialized:
-                        # Parent scoring may already have executed (notably
-                        # under parallel parent evaluation), so retain its
-                        # all-branch accounting but do not materialize another
-                        # accepted child after the first completed target hit.
-                        continue
-                    proposal_family_count += int(len(scratch.proposals))
-                    if bool(beam_terminal_archive_enabled):
-                        # Exact pre-2026-07-04 historical semantics: every
-                        # expanded parent contributes a stopped child to the
-                        # cumulative terminated archive, even when singleton
-                        # admission proposals are also available.
-                        terminal_branch = _beam_terminal_child_from_scratch(
-                            base_branch, scratch
-                        )
-                        round_terminals.append(terminal_branch)
-                        stop_children_count += 1
-                    sr_active_only_plan = getattr(
-                        scratch, "sr_active_only_correction", None
-                    )
-                    if isinstance(sr_active_only_plan, Mapping):
-                        if scratch.stop_reason is not None or scratch.proposals:
-                            raise RuntimeError(
-                                "SR active-only correction cannot coexist with "
-                                "a stop or singleton proposal."
-                            )
-                        reason_counts = dict(
-                            round_frontier_diagnostic.get(
-                                "parent_stop_reason_counts", {}
-                            )
-                        )
-                        if int(reason_counts.get("empty", 0)) > 0:
-                            reason_counts["empty"] = int(
-                                reason_counts["empty"]
-                            ) - 1
-                            if int(reason_counts["empty"]) == 0:
-                                reason_counts.pop("empty", None)
-                        reason_counts["sr_active_only_correction"] = int(
-                            reason_counts.get(
-                                "sr_active_only_correction", 0
-                            )
-                        ) + 1
-                        round_frontier_diagnostic[
-                            "parent_stop_reason_counts"
-                        ] = reason_counts
-                        round_frontier_diagnostic[
-                            "sr_active_only_correction_count"
-                        ] = int(
-                            round_frontier_diagnostic.get(
-                                "sr_active_only_correction_count", 0
-                            )
-                        ) + 1
-                        correction_child = (
-                            _materialize_sr_active_only_correction(
-                                base_branch,
-                                scratch,
-                                sr_active_only_plan,
-                                depth=int(depth),
-                                branch_id=int(beam_branch_counter),
-                            )
-                        )
-                        beam_branch_counter += 1
-                        if correction_child.terminated:
-                            round_terminals.append(correction_child)
-                        else:
-                            child_frontier.append(correction_child)
-                        continue
-                    if scratch.stop_reason is not None or not scratch.proposals:
-                        if not bool(beam_terminal_archive_enabled):
-                            terminal_branch = _beam_terminal_child_from_scratch(
-                                base_branch, scratch
-                            )
-                            round_terminals.append(terminal_branch)
-                            stop_children_count += 1
-                        continue
-                    selected_plans = list(scratch.proposals)
-                    proposals_selected_count += int(len(selected_plans))
-                    round_live_cap = int(max(int(round_live_cap), int(len(selected_plans))))
-                    for plan in selected_plans:
-                        child = _materialize_beam_child(
-                            base_branch,
-                            scratch,
-                            plan,
-                            depth=int(depth),
-                            branch_id=int(beam_branch_counter),
-                        )
-                        beam_branch_counter += 1
-                        
-                        if str(child.last_transition_kind) != (
-                            "sr_saddle_radius_contract_refinement"
-                        ):
-                            round_admission_children.append(child)
-                        if child.terminated:
-                            round_terminals.append(child)
-                        else:
-                            child_frontier.append(child)
-                        if str(child.stop_reason) == "benchmark_abs_delta_e_target":
-                            benchmark_target_materialized = True
-                            break
-                frontier_unique = _beam_dedup_current(child_frontier, source="round_frontier_unique")
-                terminal_candidates = (
-                    [*terminals, *round_terminals]
-                    if bool(beam_terminal_archive_enabled)
-                    else list(round_terminals)
-                )
-                terminal_unique = _beam_dedup_current(terminal_candidates, source="round_terminal_unique")
-                frontier = _beam_prune_current(
-                    child_frontier,
-                    cap=int(max(1, int(round_live_cap))),
-                    source="round_frontier",
-                )
-                benchmark_target_hits: list[_BeamBranchState] = []
-                if benchmark_target_abs_delta_e_val is not None:
-                    benchmark_target_hits = [
-                        branch
-                        for branch in terminal_unique
-                        if str(branch.stop_reason) == "benchmark_abs_delta_e_target"
-                    ]
-                if benchmark_target_hits:
-                    terminals = _beam_prune_current(
-                        benchmark_target_hits,
-                        cap=(
-                            int(max(1, int(beam_policy.terminated_keep_effective)))
-                            if bool(beam_terminal_archive_enabled)
-                            else int(max(1, int(len(benchmark_target_hits))))
-                        ),
-                        source="benchmark_target_hits",
-                    )
-                    frontier = []
-                elif frontier:
-                    terminals = (
-                        _beam_prune_current(
-                            terminal_unique,
-                            cap=int(beam_policy.terminated_keep_effective),
-                            source="round_terminal_archive",
-                        )
-                        if bool(beam_terminal_archive_enabled)
-                        else []
-                    )
-                else:
-                    terminals = _beam_prune_current(
-                        terminal_unique,
-                        cap=(
-                            int(beam_policy.terminated_keep_effective)
-                            if bool(beam_terminal_archive_enabled)
-                            else 1
-                        ),
-                        source=(
-                            "round_terminal_archive_fallback"
-                            if bool(beam_terminal_archive_enabled)
-                            else "round_terminal_fallback"
-                        ),
-                    )
-                round_prune_audit_summary = _beam_round_prune_audit_summary(
-                    round_admission_children,
-                    compact_prune_audit=_compact_prune_audit,
-                )
-                parent_stop_reason_counts = dict(
-                    round_frontier_diagnostic.get("parent_stop_reason_counts", {})
-                )
-                round_stop_reason = _beam_round_stop_reason(
-                    frontier_input_count=int(frontier_input_count),
-                    frontier_kept_count=int(len(frontier)),
-                    proposal_family_count=int(proposal_family_count),
-                    parent_stop_reason_counts=parent_stop_reason_counts,
-                )
-                beam_search_diagnostics["rounds"].append(
-                    _beam_round_diagnostics_payload(
-                        depth=int(depth),
-                        frontier_input_count=int(frontier_input_count),
-                        parents_expanded_count=int(parents_expanded_count),
-                        proposals_selected_count=int(proposals_selected_count),
-                        proposal_family_count=int(proposal_family_count),
-                        stop_children_count=int(stop_children_count),
-                        child_frontier_count=int(len(child_frontier)),
-                        round_terminal_count=int(len(round_terminals)),
-                        active_children_unique_count=int(len(frontier_unique)),
-                        frontier_kept_count=int(len(frontier)),
-                        round_live_cap=int(round_live_cap),
-                        terminal_pool_candidate_count=int(len(terminal_candidates)),
-                        terminal_pool_unique_count=int(len(terminal_unique)),
-                        terminal_kept_count=int(len(terminals)),
-                        round_stop_reason=round_stop_reason,
-                        beam_parent_workers_requested=int(
-                            beam_parent_workers_requested_round
-                        ),
-                        beam_parent_workers_effective=int(
-                            beam_parent_workers_effective_round
-                        ),
-                        beam_parent_parallel_enabled=bool(
-                            beam_parent_parallel_enabled_round
-                        ),
-                        beam_parent_parallel_disabled_reason=(
-                            beam_parent_parallel_disabled_reason
-                        ),
-                        beam_parent_result_elapsed_s=[
-                            float(item.elapsed_s) for item in parent_results
-                        ],
-                        round_frontier_diagnostic=round_frontier_diagnostic,
-                        round_prune_audit_summary=round_prune_audit_summary,
-                    )
-                )
-                if bool(beam_parent_parallel_enabled_round):
-                    beam_search_diagnostics["beam_parent_parallel_enabled_final"] = True
-                beam_search_diagnostics["beam_parent_workers_effective_final"] = int(
-                    max(
-                        int(beam_search_diagnostics.get("beam_parent_workers_effective_final", 1)),
-                        int(beam_parent_workers_effective_round),
-                    )
-                )
-                _ai_log(
-                    "hardcoded_adapt_beam_round_done",
-                    **_beam_round_done_log_payload(
-                        depth=int(depth),
-                        frontier_input_count=int(frontier_input_count),
-                        parents_expanded_count=int(parents_expanded_count),
-                        proposals_selected_count=int(proposals_selected_count),
-                        proposal_family_count=int(proposal_family_count),
-                        stop_children_count=int(stop_children_count),
-                        frontier_kept_count=int(len(frontier)),
-                        round_live_cap=int(round_live_cap),
-                        terminal_kept_count=int(len(terminals)),
-                        round_stop_reason=round_stop_reason,
-                        beam_parent_workers_requested=int(
-                            beam_parent_workers_requested_round
-                        ),
-                        beam_parent_workers_effective=int(
-                            beam_parent_workers_effective_round
-                        ),
-                        beam_parent_parallel_enabled=bool(
-                            beam_parent_parallel_enabled_round
-                        ),
-                        beam_parent_parallel_disabled_reason=(
-                            beam_parent_parallel_disabled_reason
-                        ),
-                        round_frontier_diagnostic=round_frontier_diagnostic,
-                    ),
-                )
-                round_replay_payload = _beam_replay_round_payload(
-                    depth=int(depth + 1),
-                    frontier_input_count=int(frontier_input_count),
-                    parents_expanded_count=int(parents_expanded_count),
-                    proposals_selected_count=int(proposals_selected_count),
-                    proposal_family_count=int(proposal_family_count),
-                    stop_children_count=int(stop_children_count),
-                    round_live_cap=int(round_live_cap),
-                    round_stop_reason=round_stop_reason,
-                    round_frontier_diagnostic=round_frontier_diagnostic,
-                    frontier_branches=frontier,
-                    terminal_branches=terminals,
-                    round_terminal_branches=round_terminals,
-                    beam_sort_key=_beam_sort_key_current,
-                    beam_branch_replay_summary=_beam_branch_replay_summary,
-                    current_str_or_none=_current_str_or_none,
-                    current_float=_current_float,
-                )
-                beam_replay_rounds.append(
-                    _compact_beam_replay_round_payload(round_replay_payload)
-                )
-                replay_tail_count = max(1, int(current_checkpoint_history_tail or 1))
-                leading_candidates = sorted([*frontier, *terminals], key=_beam_sort_key_current)
-                leading_branch = leading_candidates[0] if leading_candidates else root_branch
-                checkpoint_candidates = sorted(list(frontier), key=_beam_sort_key_current)
-                checkpoint_branch = (
-                    checkpoint_candidates[0]
-                    if checkpoint_candidates
-                    else (leading_branch if leading_candidates else root_branch)
-                )
-                _sync_adapt_segment_new_admissions_from_depth(
-                    adapt_segment_state,
-                    final_depth=int(len(checkpoint_branch.selected_ops)),
-                    history_rows=checkpoint_branch.history,
-                    start_history_length=int(beam_segment_history_start_length),
-                )
-                _write_current_checkpoint(
-                    reason="beam_round_done",
-                    ops_now=list(checkpoint_branch.selected_ops),
-                    theta_now=np.asarray(checkpoint_branch.theta, dtype=float),
-                    energy_now=float(checkpoint_branch.energy_current),
-                    history_rows=[dict(row) for row in checkpoint_branch.history],
-                    stop_reason_snapshot=(
-                        str(round_stop_reason)
-                        if round_stop_reason is not None and not checkpoint_candidates
-                        else (
-                            None
-                            if checkpoint_branch.stop_reason is None
-                            else str(checkpoint_branch.stop_reason)
-                        )
-                    ),
-                    branch_id=int(checkpoint_branch.branch_id),
-                    parent_branch_id=(
-                        None
-                        if checkpoint_branch.parent_branch_id is None
-                        else int(checkpoint_branch.parent_branch_id)
-                    ),
-                    beam_replay_telemetry=_beam_replay_telemetry_payload(
-                        depth=int(depth),
-                        round_replay_payload=round_replay_payload,
-                        beam_replay_rounds=beam_replay_rounds,
-                        replay_tail_count=int(replay_tail_count),
-                        leading_branch=leading_branch,
-                        checkpoint_branch=checkpoint_branch,
-                        has_checkpoint_frontier_candidates=bool(
-                            checkpoint_candidates
-                        ),
-                        beam_branch_replay_summary=_beam_branch_replay_summary,
-                    ),
-                    route_a_trust_region_state_snapshot=(
-                        checkpoint_branch.route_a_trust_region_state
-                    ),
-                    controller_measurement_work_snapshot=(
-                        checkpoint_branch.controller_measurement_work
-                    ),
-                        nfev_total_snapshot=int(
-                            checkpoint_branch.nfev_total_local
-                        ),
-                )
-                if benchmark_target_hits:
-                    beam_search_diagnostics["benchmark_target_hit_depth"] = int(depth + 1)
-                    beam_search_diagnostics["benchmark_target_abs_delta_e"] = float(
-                        benchmark_target_abs_delta_e_val
-                    )
-                    _ai_log(
-                        "hardcoded_adapt_beam_converged_benchmark_abs_delta_e_target",
-                        depth=int(depth + 1),
-                        target_abs_delta_e=float(benchmark_target_abs_delta_e_val),
-                        hit_branch_count=int(len(benchmark_target_hits)),
-                    )
-                    break
-            finalists = _beam_dedup_current([*frontier, *terminals], source="finalists")
-            if not finalists:
-                finalists = [root_branch]
-            for branch in finalists:
-                if branch.stop_reason is None:
-                    branch.stop_reason = (
-                        _adapt_segment_loop_stop_reason(
-                            adapt_segment_state,
-                            current_depth=int(len(branch.selected_ops)),
-                            now_s=float(time.perf_counter()),
-                            current_controller_round=int(branch.depth_local),
-                        )
-                        or "max_depth"
-                    )
-            winner_branch = sorted(finalists, key=_beam_sort_key_current)[0]
-            winner_target_error = _benchmark_target_error_from_energy(
-                energy_value=winner_branch.energy_current,
-                reference_energy=benchmark_stop_reference_energy,
-            )
-            winner_target_classification = _benchmark_target_hit_classification_payload(
-                stop_reason_snapshot=(None if winner_branch.stop_reason is None else str(winner_branch.stop_reason)),
-                target_error=winner_target_error,
-                target_threshold=benchmark_target_abs_delta_e_val,
-                source="beam_final_winner",
-            )
-            beam_search_diagnostics.update(
-                _beam_final_diagnostics_payload(
-                    frontier=frontier,
-                    terminals=terminals,
-                    finalists=finalists,
-                    winner_branch=winner_branch,
-                    winner_target_classification=winner_target_classification,
-                    beam_sort_key=_beam_sort_key_current,
-                    branch_state_fingerprint=_branch_state_fingerprint,
-                    beam_prune_key_payload=_beam_prune_key_payload_current,
-                    beam_branch_replay_summary=_beam_branch_replay_summary,
-                    beam_branch_summary=_beam_branch_summary,
-                    beam_survival_audits=beam_survival_audits,
-                )
-            )
-            
-            selected_ops = list(winner_branch.selected_ops)
-            estimator_call_context.branch_id = str(winner_branch.branch_id)
-            theta = np.asarray(winner_branch.theta, dtype=float).copy()
-            selected_layout = _build_selected_layout(selected_ops)
-            selected_executor = None
-            history = [dict(x) for x in winner_branch.history]
-            
-            nfev_total = int(beam_nfev_total)
-            stop_reason = str(winner_branch.stop_reason or "max_depth")
-            available_indices = set(int(x) for x in winner_branch.available_indices)
-            selection_counts = np.asarray(winner_branch.selection_counts, dtype=np.int64).copy()
-            phase1_stage = winner_branch.phase1_stage.clone()
-            phase1_residual_opened = bool(winner_branch.phase1_residual_opened)
-            phase1_last_probe_reason = str(winner_branch.phase1_last_probe_reason)
-            phase1_last_positions_considered = [
-                int(x) for x in winner_branch.phase1_last_positions_considered
-            ]
-            phase1_last_trough_detected = bool(winner_branch.phase1_last_trough_detected)
-            phase1_last_trough_probe_triggered = bool(
-                winner_branch.phase1_last_trough_probe_triggered
-            )
-            phase1_last_selected_score = winner_branch.phase1_last_selected_score
-            phase1_features_history = [dict(x) for x in winner_branch.phase1_features_history]
-            phase1_stage_events = [dict(x) for x in winner_branch.phase1_stage_events]
-            phase1_measure_cache = winner_branch.phase1_measure_cache.clone()
-            controller_measurement_work = winner_branch.controller_measurement_work.clone()
-            phase1_last_retained_records = [dict(x) for x in winner_branch.phase1_last_retained_records]
-            winner_phase0_rows = phase0_branch_pilot_rows.get(int(winner_branch.branch_id))
-            if winner_phase0_rows is not None:
-                phase0_last_pilot_rows = [dict(row) for row in winner_phase0_rows]
-                winner_phase0_summary = phase0_branch_pilot_summaries.get(int(winner_branch.branch_id))
-                if winner_phase0_summary is not None:
-                    phase0_pilot_summary["last_runtime"] = dict(winner_phase0_summary)
-            elif bool(phase0_pilot_active):
-                phase0_last_pilot_rows = []
-                phase0_pilot_summary["last_runtime"] = {}
-            phase2_optimizer_memory = copy.deepcopy(winner_branch.phase2_optimizer_memory)
-            phase2_last_shortlist_records = [
-                dict(x) for x in winner_branch.phase2_last_shortlist_records
-            ]
-            phase2_last_geometric_shortlist_records = [
-                dict(x) for x in winner_branch.phase2_last_geometric_shortlist_records
-            ]
-            phase2_last_retained_shortlist_records = [
-                dict(x) for x in winner_branch.phase2_last_retained_shortlist_records
-            ]
-            phase2_last_admitted_records = [
-                dict(x) for x in winner_branch.phase2_last_admitted_records
-            ]
-            phase2_last_batch_selected = bool(winner_branch.phase2_last_batch_selected)
-            phase2_last_batch_penalty_total = float(
-                winner_branch.phase2_last_batch_penalty_total
-            )
-            phase2_last_batch_schur_context = copy.deepcopy(winner_branch.phase2_last_batch_schur_context)
-            phase2_last_optimizer_memory_reused = bool(
-                winner_branch.phase2_last_optimizer_memory_reused
-            )
-            phase2_last_optimizer_memory_source = str(
-                winner_branch.phase2_last_optimizer_memory_source
-            )
-            phase2_last_shortlist_eval_records = [
-                dict(x) for x in winner_branch.phase2_last_shortlist_eval_records
-            ]
-            route_a_trust_region_state = (
-                None
-                if winner_branch.route_a_trust_region_state is None
-                else winner_branch.route_a_trust_region_state.clone()
-            )
-            phase3_source_lock_admitted_candidate_labels = [
-                str(label)
-                for label in getattr(
-                    winner_branch,
-                    "source_lock_admitted_candidate_labels",
-                    [],
-                )
-            ]
-            energy_current = float(winner_branch.energy_current)
-            drop_prev_delta_abs = float(winner_branch.drop_prev_delta_abs)
-            drop_plateau_hits = int(winner_branch.drop_plateau_hits)
-            eps_energy_low_streak = int(winner_branch.eps_energy_low_streak)
-            phase3_split_events = [dict(x) for x in winner_branch.phase3_split_events]
-            phase3_runtime_split_summary = copy.deepcopy(
-                winner_branch.phase3_runtime_split_summary
-            )
-            phase3_motif_usage = copy.deepcopy(winner_branch.phase3_motif_usage)
-            phase3_rescue_history = [dict(x) for x in winner_branch.phase3_rescue_history]
-            phase1_prune_metadata_state = [
-                ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in winner_branch.phase1_prune_metadata
-            ]
-            phase1_prune_first_seen_steps = {
-                str(k): int(v) for k, v in winner_branch.phase1_prune_first_seen_steps.items()
-            }
-            prune_summary = copy.deepcopy(winner_branch.phase1_last_prune_summary)
-            _sync_adapt_segment_new_admissions_from_depth(
-                adapt_segment_state,
-                final_depth=int(len(selected_ops)),
-                history_rows=history,
-                start_history_length=int(beam_segment_history_start_length),
-            )
-
-        for segment_round_index in (
-            [] if bool(beam_policy.beam_enabled) else range(int(max_depth_effective))
-        ):
+        for segment_round_index in range(int(max_depth_effective)):
             depth = int(
                 _adapt_segment_controller_round(
                     adapt_segment_state,
@@ -55057,33 +54219,6 @@ def _run_hardcoded_adapt_vqe(
             "adapt_full_refit_every": int(adapt_full_refit_every_val),
             "adapt_final_full_refit": bool(adapt_final_full_refit_val),
             "adapt_insertion_mode": str(adapt_insertion_mode_key),
-            "adapt_beam_live_branches_requested": int(beam_policy.live_branches_requested),
-            "adapt_beam_children_per_parent_requested": (
-                int(beam_policy.children_per_parent_requested)
-                if beam_policy.children_per_parent_requested is not None
-                else None
-            ),
-            "adapt_beam_terminated_keep_requested": (
-                int(beam_policy.terminated_keep_requested)
-                if beam_policy.terminated_keep_requested is not None
-                else None
-            ),
-            "adapt_beam_live_branches": int(beam_policy.live_branches_effective),
-            "adapt_beam_children_per_parent": int(beam_policy.children_per_parent_effective),
-            "adapt_beam_terminated_keep": int(beam_policy.terminated_keep_effective),
-            "adapt_beam_terminal_archive_mode": str(beam_policy.terminal_archive_mode),
-            "adapt_beam_enabled": bool(beam_policy.beam_enabled),
-            "adapt_beam_parent_workers_requested": int(adapt_beam_parent_workers_requested),
-            "adapt_beam_parent_workers_resolved_limit": int(adapt_beam_parent_workers),
-            "adapt_beam_parent_worker_resolution": dict(adapt_beam_parent_worker_resolution),
-            "adapt_beam_parent_workers_effective_final": int(
-                beam_search_diagnostics.get("beam_parent_workers_effective_final", 1)
-                if bool(beam_policy.beam_enabled)
-                else 1
-            ),
-            "adapt_beam_parent_parallel_enabled_final": bool(
-                beam_search_diagnostics.get("beam_parent_parallel_enabled_final", False)
-            ) if bool(beam_policy.beam_enabled) else False,
             "allow_repeats": bool(allow_repeats),
             "finite_angle_fallback": bool(finite_angle_fallback),
             "finite_angle": float(finite_angle),
@@ -69185,6 +68320,7 @@ def _finish_default_no_prune_numerical_session_initialization(
     kwargs["extensions"] = Extensions(
         batch=batch,
         pruning=extensions.pruning,
+        beam=extensions.beam,
     )
     _default_no_prune_active_phase_flags(kwargs)
     lanes = _default_no_prune_lane_runtime(
@@ -70484,11 +69620,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase3_selector_debug_topk": 0,
     "phase3_shortlist_size": None,
     "phase3_source_lock_preferred_sequence": "",
-    "phase3_tie_beam_abs_tol": 0.0,
-    "phase3_tie_beam_max_branches": 1,
-    "phase3_tie_beam_max_late_coordinate": 1.0,
-    "phase3_tie_beam_min_depth_left": 0,
-    "phase3_tie_beam_score_ratio": 1.0,
     "phase_maturity_shot_max": 1,
     "phase_maturity_shot_min": 1,
     "shared_pauli_pool_max_subset_size": 3,
@@ -70511,6 +69642,7 @@ def _build_canonical_sr_snake_runtime_kwargs(
     route_profile: str,
     route_contract: Mapping[str, Any],
     route_contract_sha256: str,
+    beam_extension: BeamExtension | None,
     gradient_tolerance: float | None = None,
 ) -> dict[str, Any]:
     """Compose the exact controller inputs from typed facade dependencies.
@@ -70549,7 +69681,12 @@ def _build_canonical_sr_snake_runtime_kwargs(
     )
     if not isinstance(kwargs, dict):
         raise AssertionError("Canonical SR-SNAKE infrastructure must thaw to dict.")
-    resolved_extensions = extensions_from_route_contract(route_contract)
+    route_extensions = extensions_from_route_contract(route_contract)
+    resolved_extensions = Extensions(
+        batch=route_extensions.batch,
+        pruning=route_extensions.pruning,
+        beam=beam_extension,
+    )
     kwargs.update(without_extension_runtime_keys(execution_settings))
     kwargs.update(
         {
@@ -70716,10 +69853,10 @@ def _build_default_sr_controller_numerical_runtime(
             "The default controller runtime cannot mutate the accepted state "
             "with a legacy terminal full refit."
         )
-    beam_enabled = bool(
-        int(kwargs.get("adapt_beam_live_branches", 1) or 1) > 1
-        or int(kwargs.get("adapt_beam_children_per_parent", 1) or 1) > 1
-    )
+    extensions = kwargs.get("extensions", NO_EXTENSIONS)
+    if not isinstance(extensions, Extensions):
+        raise TypeError("runtime extensions must be an Extensions value.")
+    beam_enabled = extensions.beam is not None
     singleton_profile_digests = {
         (
             SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,

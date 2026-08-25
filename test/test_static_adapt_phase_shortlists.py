@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from functools import lru_cache
 import json
 from typing import Any, Mapping
@@ -608,75 +607,3 @@ def test_selection_pool_preserves_legacy_first_positive_fallback_without_duplica
     assert [row["candidate_label"] for row in selected] == ["a"]
     assert phase_shortlists._selection_record_key(selected[0]) == ("a", 0, 0)
     assert [row["candidate_label"] for row in phase_shortlists._positive_phase3_selector_records(full, selector_score_key="full_v2_score")] == ["a", "b"]
-
-
-def test_phase3_tie_beam_selection_pool_expands_score_band_and_skips_duplicates() -> None:
-    records = [
-        _record("a", 0, score=1.0, full=1.0, snapshot={"depth_left": 4, "late_coordinate": 0.2}),
-        _record("a", 0, score=0.99, full=0.99, snapshot={"depth_left": 4, "late_coordinate": 0.2}),
-        _record("b", 1, score=0.95, full=0.95, snapshot={"depth_left": 4, "late_coordinate": 0.2}),
-        _record("c", 2, score=0.4, full=0.4, snapshot={"depth_left": 4, "late_coordinate": 0.2}),
-    ]
-
-    selected, meta = phase_shortlists._phase3_tie_beam_selection_pool(
-        records,
-        default_cap=1,
-        score_key="full_v2_score",
-        score_ratio=0.9,
-        abs_tol=0.0,
-        max_branches=3,
-        max_late_coordinate=0.75,
-        min_depth_left=2,
-        depth_one_based=2,
-        max_depth_local=6,
-        phase3_selector_score_key="full_v2_score",
-        phase3_record_sort_key=_phase3_sort,
-        phase2_record_sort_key=_phase2_sort,
-    )
-
-    assert meta["active"] is True
-    assert meta["reason"] == "phase3_score_band"
-    assert [row["candidate_label"] for row in selected] == ["a", "b"]
-
-
-def test_phase3_tie_beam_selection_pool_reports_disabled_and_maturity_closed() -> None:
-    records = [
-        _record("a", 0, score=1.0, full=1.0, snapshot={"depth_left": 0, "late_coordinate": 0.95}),
-        _record("b", 1, score=0.95, full=0.95, snapshot={"depth_left": 0, "late_coordinate": 0.95}),
-    ]
-
-    disabled, disabled_meta = phase_shortlists._phase3_tie_beam_selection_pool(
-        records,
-        default_cap=2,
-        score_key="full_v2_score",
-        score_ratio=1.0,
-        abs_tol=0.0,
-        max_branches=2,
-        max_late_coordinate=0.75,
-        min_depth_left=2,
-        depth_one_based=4,
-        max_depth_local=6,
-        phase3_selector_score_key="full_v2_score",
-        phase3_record_sort_key=_phase3_sort,
-        phase2_record_sort_key=_phase2_sort,
-    )
-    closed, closed_meta = phase_shortlists._phase3_tie_beam_selection_pool(
-        records,
-        default_cap=1,
-        score_key="full_v2_score",
-        score_ratio=0.9,
-        abs_tol=0.0,
-        max_branches=3,
-        max_late_coordinate=0.75,
-        min_depth_left=2,
-        depth_one_based=4,
-        max_depth_local=6,
-        phase3_selector_score_key="full_v2_score",
-        phase3_record_sort_key=_phase3_sort,
-        phase2_record_sort_key=_phase2_sort,
-    )
-
-    assert [row["candidate_label"] for row in disabled] == ["a", "b"]
-    assert disabled_meta["reason"] == "disabled"
-    assert [row["candidate_label"] for row in closed] == ["a"]
-    assert closed_meta["reason"] == "maturity_closed"

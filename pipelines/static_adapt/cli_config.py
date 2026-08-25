@@ -1015,85 +1015,6 @@ class ResolvedAdaptStopPolicy:
     eps_grad_termination_enabled: bool
 
 
-@dataclass(frozen=True)
-class ResolvedBeamCapacityPolicy:
-    live_branches_requested: int
-    children_per_parent_requested: int | None
-    terminated_keep_requested: int | None
-    live_branches_effective: int
-    children_per_parent_effective: int
-    terminated_keep_effective: int
-    beam_enabled: bool
-    source_children_per_parent: str
-    source_terminated_keep: str
-    terminal_archive_mode: str
-
-def _resolve_beam_capacity_policy(
-    *,
-    adapt_beam_live_branches: int,
-    adapt_beam_children_per_parent: int | None,
-    adapt_beam_terminated_keep: int | None,
-    adapt_beam_terminal_archive_mode: str = "disabled",
-) -> ResolvedBeamCapacityPolicy:
-    archive_mode = str(adapt_beam_terminal_archive_mode or "disabled").strip().lower()
-    if archive_mode not in {"disabled", "legacy"}:
-        raise ValueError("adapt_beam_terminal_archive_mode must be one of {'disabled','legacy'}.")
-    live_requested = int(adapt_beam_live_branches)
-    children_requested = (
-        None if adapt_beam_children_per_parent is None else int(adapt_beam_children_per_parent)
-    )
-    terminated_requested = (
-        None if adapt_beam_terminated_keep is None else int(adapt_beam_terminated_keep)
-    )
-    if live_requested < 1:
-        raise ValueError("adapt_beam_live_branches must be >= 1.")
-    if children_requested is not None and children_requested < 1:
-        raise ValueError("adapt_beam_children_per_parent must be >= 1 when provided.")
-    if terminated_requested is not None and terminated_requested < 0:
-        raise ValueError("adapt_beam_terminated_keep must be >= 0 when provided.")
-    if live_requested == 1:
-        return ResolvedBeamCapacityPolicy(
-            live_branches_requested=live_requested,
-            children_per_parent_requested=children_requested,
-            terminated_keep_requested=terminated_requested,
-            live_branches_effective=1,
-            children_per_parent_effective=1,
-            terminated_keep_effective=0,
-            beam_enabled=False,
-            source_children_per_parent=(
-                "single_branch_clamp.explicit" if children_requested is not None else "single_branch_clamp.default"
-            ),
-            source_terminated_keep=(
-                "terminal_archive_disabled.explicit" if terminated_requested is not None else "terminal_archive_disabled.default"
-            ),
-            terminal_archive_mode=str(archive_mode),
-        )
-    children_resolved_raw = 2 if children_requested is None else int(children_requested)
-    children_effective = min(int(children_resolved_raw), int(live_requested))
-    terminated_effective = 0
-    source_terminated_keep = (
-        "terminal_archive_disabled.default" if terminated_requested is None else "terminal_archive_disabled.explicit"
-    )
-    if archive_mode == "legacy":
-        terminated_effective = 3 if terminated_requested is None else int(terminated_requested)
-        source_terminated_keep = (
-            "legacy_default_live_gt_1_cap3" if terminated_requested is None else "legacy_explicit"
-        )
-    return ResolvedBeamCapacityPolicy(
-        live_branches_requested=live_requested,
-        children_per_parent_requested=children_requested,
-        terminated_keep_requested=terminated_requested,
-        live_branches_effective=int(live_requested),
-        children_per_parent_effective=int(children_effective),
-        terminated_keep_effective=int(terminated_effective),
-        beam_enabled=True,
-        source_children_per_parent=(
-            "default_live_gt_1_cap2" if children_requested is None else "explicit"
-        ),
-        source_terminated_keep=str(source_terminated_keep),
-        terminal_archive_mode=str(archive_mode),
-    )
-
 def _resolve_adapt_stop_policy(
     *,
     problem: str,
@@ -1660,52 +1581,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         ),
     )
     p.add_argument(
-        "--adapt-beam-live-branches",
-        type=int,
-        default=1,
-        help="Requested live frontier size for ADAPT beam mode (1 keeps exact single-branch semantics).",
-    )
-    p.add_argument(
-        "--adapt-beam-children-per-parent",
-        type=int,
-        default=None,
-        help="Optional per-parent child cap for ADAPT beam mode; omitted resolves from live-branch policy.",
-    )
-    p.add_argument(
-        "--adapt-beam-terminated-keep",
-        type=int,
-        default=None,
-        help="Optional terminal-pool cap for ADAPT beam mode; omitted resolves from live-branch policy.",
-    )
-    p.add_argument(
-        "--adapt-beam-terminal-archive-mode",
-        choices=("disabled", "legacy"),
-        default="disabled",
-        help=(
-            "Terminal branch archive policy for ADAPT beam mode. The default keeps the "
-            "current disabled behavior; legacy restores requested terminal retention for "
-            "source-locked replay of older Paper-I runs."
-        ),
-    )
-    p.add_argument(
-        "--adapt-beam-lambda",
-        type=float,
-        default=0.0,
-        help=(
-            "Legacy E + lambda*K beam parameter retained for historical routes and payload reading. "
-            "Canonical Route-A gain-per-added-cost survival ignores it."
-        ),
-    )
-    p.add_argument(
-        "--adapt-beam-parent-workers",
-        type=int,
-        default=1,
-        help=(
-            "Worker count for exact/noiseless ADAPT beam parent expansion. "
-            "Default 1 preserves serial beam behavior; pass 0 for CPU-aware auto sizing."
-        ),
-    )
-    p.add_argument(
         "--phase1-energy-model",
         choices=list(PHASE1_ENERGY_MODEL_CHOICES),
         default=PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
@@ -1985,36 +1860,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         type=float,
         default=0.9,
         help="Phase-3 shortlist frontier ratio used on the full-score rerank before any batch decision.",
-    )
-    p.add_argument(
-        "--phase3-tie-beam-score-ratio",
-        type=float,
-        default=1.0,
-        help="When < 1, any Phase-3 candidate within this ratio of the best full_v2_score joins a temporary score-band beam.",
-    )
-    p.add_argument(
-        "--phase3-tie-beam-abs-tol",
-        type=float,
-        default=0.0,
-        help="Absolute full_v2 score tolerance for the temporary Phase-3 tie-beam band.",
-    )
-    p.add_argument(
-        "--phase3-tie-beam-max-branches",
-        type=int,
-        default=1,
-        help="Maximum temporary branch count admitted from a Phase-3 score band. Values >1 activate conditional tie-beam branching.",
-    )
-    p.add_argument(
-        "--phase3-tie-beam-max-late-coordinate",
-        type=float,
-        default=1.0,
-        help="Disable Phase-3 tie-beam branching once the controller late-coordinate exceeds this value.",
-    )
-    p.add_argument(
-        "--phase3-tie-beam-min-depth-left",
-        type=int,
-        default=0,
-        help="Disable Phase-3 tie-beam branching once fewer than this many depths remain.",
     )
     p.add_argument(
         "--phase2-remaining-evaluations-proxy-mode",
@@ -3624,16 +3469,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "adapt_final_refit_maxiter": int(args.adapt_final_refit_maxiter),
         "adapt_insertion_mode": str(args.adapt_insertion_mode),
         "adapt_continuation_mode": str(cli_adapt_continuation_mode),
-        "adapt_beam_live_branches": int(args.adapt_beam_live_branches),
-        "adapt_beam_children_per_parent": int(args.adapt_beam_children_per_parent)
-                if args.adapt_beam_children_per_parent is not None
-                else None,
-        "adapt_beam_terminated_keep": int(args.adapt_beam_terminated_keep)
-                if args.adapt_beam_terminated_keep is not None
-                else None,
-        "adapt_beam_terminal_archive_mode": str(args.adapt_beam_terminal_archive_mode),
-        "adapt_beam_lambda": float(args.adapt_beam_lambda),
-        "adapt_beam_parent_workers": int(args.adapt_beam_parent_workers),
         "allow_repeats": bool(args.adapt_allow_repeats),
         "finite_angle_fallback": bool(args.adapt_finite_angle_fallback),
         "finite_angle": float(args.adapt_finite_angle),
@@ -3821,11 +3656,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase2_duplicate_penalty_weight": float(args.phase2_duplicate_penalty_weight),
         "phase2_frontier_ratio": float(args.phase2_frontier_ratio),
         "phase3_frontier_ratio": float(args.phase3_frontier_ratio),
-        "phase3_tie_beam_score_ratio": float(args.phase3_tie_beam_score_ratio),
-        "phase3_tie_beam_abs_tol": float(args.phase3_tie_beam_abs_tol),
-        "phase3_tie_beam_max_branches": int(args.phase3_tie_beam_max_branches),
-        "phase3_tie_beam_max_late_coordinate": float(args.phase3_tie_beam_max_late_coordinate),
-        "phase3_tie_beam_min_depth_left": int(args.phase3_tie_beam_min_depth_left),
         "phase2_remaining_evaluations_proxy_mode": str(
                 args.phase2_remaining_evaluations_proxy_mode
             ),

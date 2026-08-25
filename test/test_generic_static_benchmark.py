@@ -675,7 +675,6 @@ def test_run_single_non_hh_append_only_uses_append_only_policy(monkeypatch, tmp_
     assert policy.static.static_route_id == "unspecified"
     assert policy.static.adapt_reopt_policy == "append_only"
     assert policy.static.adapt_insertion_mode == "append_only"
-    assert policy.static.phase1_prune_enabled is False
 
 
 @pytest.mark.parametrize(
@@ -2356,7 +2355,6 @@ def test_generic_static_table_h2_clean_snake_records_are_separate_and_seeded(tmp
         phase3_policy_profile="spsa_prior_best_v1",
         phase3_oracle_seed=7,
         phase3_adapt_parallel_gradient_workers=10,
-        phase3_adapt_beam_parent_workers=4,
     )
 
     assert summary["snake_only"] is True
@@ -2384,7 +2382,6 @@ def test_generic_static_table_h2_clean_snake_records_are_separate_and_seeded(tmp
     assert all(row["phase3_adapt_allow_repeats"] == "true" for row in rows)
     assert all(row["phase3_oracle_seed"] == "7" for row in rows)
     assert all(row["phase3_adapt_parallel_gradient_workers"] == "10" for row in rows)
-    assert all(row["phase3_adapt_beam_parent_workers"] == "4" for row in rows)
     assert all(row["static_route_id"] == "route_a" for row in rows)
     assert all(row["reference_energy_status"] == "ok" for row in rows)
 
@@ -2403,7 +2400,6 @@ def test_generic_static_table_h2_strong_nph3_ref6_full_suite_records(tmp_path: P
         phase3_policy_profile="spsa_prior_best_v1",
         phase3_oracle_seed=7,
         phase3_adapt_parallel_gradient_workers=10,
-        phase3_adapt_beam_parent_workers=4,
     )
 
     assert summary["suite_profile"] == TABLE_I_CLEAN_H2_NPH3_REF6_PROFILE
@@ -2928,7 +2924,6 @@ def test_generic_static_table_phase3_policy_profile_applies_prior_best_spsa_to_s
         suite_profile="nph2_ref3_v1",
         phase3_policy_profile="spsa_prior_best_v1",
         phase3_adapt_parallel_gradient_workers=2,
-        phase3_adapt_beam_parent_workers=2,
     )
 
     expected_policy = {
@@ -2961,7 +2956,6 @@ def test_generic_static_table_phase3_policy_profile_applies_prior_best_spsa_to_s
     assert all(row["algorithm_id"] == "static_family_native_adapt_phase3" for row in records_rows)
     assert all({field: row[field] for field in expected_policy} == expected_policy for row in records_rows)
     assert all(row["phase3_adapt_parallel_gradient_workers"] == "2" for row in records_rows)
-    assert all(row["phase3_adapt_beam_parent_workers"] == "2" for row in records_rows)
     assert all(row["static_route_id"] == "route_a" for row in records_rows)
     assert all(row["phase2_novelty_mode"] == "collective_span_v1" for row in records_rows)
 
@@ -4060,7 +4054,6 @@ def test_run_single_phase3_runtime_env_applies_parallel_gradient_worker_cli(
 
     monkeypatch.setattr(p3opt, "run_static_benchmark", fake_run_static_benchmark)
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_PARALLEL_GRADIENT_WORKERS", "2")
-    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_BEAM_PARENT_WORKERS", "3")
 
     payload = run_single(
         family="hh",
@@ -4070,17 +4063,36 @@ def test_run_single_phase3_runtime_env_applies_parallel_gradient_worker_cli(
     )
 
     args = tuple(captured["spec"].base_pipeline_args)
+    policy_args = tuple(
+        p3opt.policy_to_cli_args(captured["policy"], captured["spec"])
+    )
     assert payload["phase3_budget_env_overlay"] == {}
     assert payload["phase3_runtime_env_overlay"] == {
         "adapt_parallel_gradient_workers": 2,
-        "adapt_beam_parent_workers": 3,
     }
     assert "--adapt-parallel-gradient-workers" in args
     assert args[args.index("--adapt-parallel-gradient-workers") + 1] == "2"
-    assert "--adapt-beam-parent-workers" in args
-    assert args[args.index("--adapt-beam-parent-workers") + 1] == "3"
     assert captured["policy"].static.adapt_parallel_gradient_workers == 2
-    assert captured["policy"].static.adapt_beam_parent_workers == 3
+    assert not any(
+        flag.startswith(
+            (
+                "--adapt-beam-",
+                "--phase1-prune-",
+                "--phase2-batch-",
+                "--phase3-batch-",
+                "--phase3-tie-beam-",
+            )
+        )
+        or flag
+        in {
+            "--phase1-no-prune",
+            "--phase2-enable-batching",
+            "--phase2-no-batching",
+            "--phase3-enable-batching",
+            "--phase3-no-batching",
+        }
+        for flag in policy_args
+    )
 
 
 def test_run_single_phase3_runtime_env_reaches_nested_adapt_result(
@@ -4170,7 +4182,6 @@ def test_run_single_phase3_runtime_env_reaches_nested_adapt_result(
 
     monkeypatch.setattr(p3opt, "_run_subprocess_logged", fake_run_subprocess_logged)
     monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_PARALLEL_GRADIENT_WORKERS", "2")
-    monkeypatch.setenv("GENERIC_STATIC_TABLE_PHASE3_ADAPT_BEAM_PARENT_WORKERS", "3")
 
     payload = run_single(
         family="hubbard",
@@ -4181,10 +4192,8 @@ def test_run_single_phase3_runtime_env_reaches_nested_adapt_result(
 
     command = captured["adapt_command"]
     assert command[command.index("--adapt-parallel-gradient-workers") + 1] == "2"
-    assert command[command.index("--adapt-beam-parent-workers") + 1] == "3"
     assert payload["phase3_runtime_env_overlay"] == {
         "adapt_parallel_gradient_workers": 2,
-        "adapt_beam_parent_workers": 3,
     }
     assert payload["status"] == "completed"
 

@@ -16,9 +16,9 @@ import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
 from pipelines.static_adapt.cli_config import (
     _build_adapt_arg_parser,
     _build_run_hardcoded_adapt_vqe_kwargs,
-    _resolve_beam_capacity_policy,
 )
 from pipelines.static_adapt.extensions import (
+    BEAM_RUNTIME_KEYS,
     PRUNING_RUNTIME_KEYS,
     extensions_from_route_contract,
 )
@@ -111,6 +111,7 @@ def _active_profile_execution_settings(
         field: expected
         for field, expected in settings.items()
         if field not in _RETIRED_PRUNE_RUNTIME_FIELDS
+        and field not in BEAM_RUNTIME_KEYS
     }
 
 
@@ -457,9 +458,6 @@ def test_candidate_v4_materializes_exact_combined_contract(
         "phase3_hardware_cost_normalization_mode": (
             "family_robust_symmetric_arctan_v1"
         ),
-        "adapt_beam_live_branches": 1,
-        "adapt_beam_children_per_parent": 1,
-        "adapt_beam_terminated_keep": 0,
         "phase1_prune_enabled": True,
         "phase1_prune_mode": "live",
         "phase1_prune_local_window_size": 0,
@@ -578,8 +576,6 @@ def test_no_prune_symmetric_cost_profile_materializes_exact_contract(
     assert args.phase3_hardware_cost_normalization_mode == (
         "family_robust_symmetric_arctan_v1"
     )
-    assert args.adapt_beam_live_branches == 1
-    assert args.adapt_beam_children_per_parent == 1
     assert args.phase1_prune_enabled is False
     assert args.adapt_full_refit_every == 0
     assert args.adapt_final_full_refit == "false"
@@ -607,139 +603,6 @@ def test_no_prune_symmetric_cost_contract_keeps_only_telemetried_novelty_fallbac
     assert invariants["phase3_shadow_damping_active"] is False
     assert invariants["periodic_full_refit_active"] is False
     assert invariants["terminal_full_refit_active"] is False
-
-
-@pytest.mark.parametrize(
-    "profile_name",
-    [
-        "sr_snake_no_prune_symmetric_cost_beam_v1",
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-    ],
-)
-def test_no_prune_symmetric_cost_beam_profile_materializes_historical_3x2(
-    profile_name: str,
-) -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            profile_name,
-            "--adapt-max-depth",
-            "50",
-        ]
-    )
-
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256()
-    )
-    assert args.adapt_max_depth == 50
-    assert args.adapt_beam_live_branches == 3
-    assert args.adapt_beam_children_per_parent == 2
-    assert args.adapt_beam_terminated_keep == 3
-    assert args.adapt_beam_terminal_archive_mode == "legacy"
-    assert args.adapt_beam_lambda == pytest.approx(0.005)
-
-    beam = _resolve_beam_capacity_policy(
-        adapt_beam_live_branches=args.adapt_beam_live_branches,
-        adapt_beam_children_per_parent=args.adapt_beam_children_per_parent,
-        adapt_beam_terminated_keep=args.adapt_beam_terminated_keep,
-        adapt_beam_terminal_archive_mode=args.adapt_beam_terminal_archive_mode,
-    )
-    assert beam.beam_enabled is True
-    assert beam.live_branches_effective == 3
-    assert beam.children_per_parent_effective == 2
-    assert beam.terminated_keep_effective == 3
-    assert beam.source_terminated_keep == "legacy_explicit"
-
-
-def test_appendix_beam_profile_changes_only_historical_beam_fields() -> None:
-    main = CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS
-    appendix = (
-        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1_EXECUTION_SETTINGS
-    )
-    changed = {
-        field
-        for field in main
-        if main[field] != appendix[field]
-    }
-
-    assert changed == {
-        "adapt_beam_live_branches",
-        "adapt_beam_children_per_parent",
-        "adapt_beam_terminated_keep",
-        "adapt_beam_terminal_archive_mode",
-    }
-    assert main["adapt_beam_live_branches"] == 1
-    assert main["adapt_beam_children_per_parent"] == 1
-    assert main["adapt_beam_terminated_keep"] == 0
-    assert main["adapt_beam_terminal_archive_mode"] == "disabled"
-    assert main["adapt_beam_lambda"] == pytest.approx(0.005)
-    assert appendix["adapt_beam_lambda"] == pytest.approx(0.005)
-
-    contract = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-    assert canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256() == (
-        "ce283eeb38a7426bcc4c36f55d35265fa99a0029c571343c17803bd6d87df6f5"
-    )
-    assert contract["semantic_invariants"]["appendix_one_factor_ablation"] is True
-    assert contract["semantic_invariants"]["beam_expanded_child_cap_per_round"] == 6
-    assert (
-        contract["semantic_invariants"][
-            "beam_parent_stop_terminal_also_materialized"
-        ]
-        is True
-    )
-    assert contract["semantic_invariants"]["beam_structural_mode"] == (
-        "stop_or_single_admission"
-    )
-    assert contract["semantic_invariants"]["beam_terminal_archive_accumulation"] == (
-        "cumulative_across_rounds"
-    )
-    assert contract["semantic_invariants"]["beam_terminal_archive_cap"] == 3
-    assert contract["lineage_authority"]["parent_route_profile"] == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
-    )
-    assert contract["lineage_authority"]["parent_contract_sha256"] == (
-        canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
-    )
-    assert contract["lineage_authority"]["historical_semantics_source_commit"] == (
-        "1f1d93c1a0060f0db70da6736cae4ec5ffffc79b^"
-    )
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--adapt-beam-live-branches", "2"),
-        ("--adapt-beam-children-per-parent", "3"),
-        ("--adapt-beam-terminated-keep", "0"),
-        ("--adapt-beam-terminal-archive-mode", "disabled"),
-        ("--adapt-beam-lambda", "0"),
-        ("--phase1-prune-enabled",),
-    ],
-)
-def test_no_prune_symmetric_cost_beam_profile_rejects_drift(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _no_prune_symmetric_cost_beam_args(*override)
-
-
-def test_no_prune_symmetric_cost_beam_profile_requires_explicit_horizon() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_no_prune_symmetric_cost_beam_v1",
-            ]
-        )
 
 
 @pytest.mark.parametrize("depth", [30, 50])
@@ -784,7 +647,6 @@ def test_no_prune_symmetric_cost_profile_rejects_nonpositive_horizon(
 
 def test_no_prune_symmetric_cost_accepts_explicit_matching_safety_switches() -> None:
     args = _no_prune_symmetric_cost_args(
-        "--phase1-no-prune",
         "--adapt-no-finite-angle-fallback",
         "--phase3-no-rescue",
     )
@@ -915,46 +777,6 @@ def test_no_prune_symmetric_cost_powell_resolution_labels_outer_route() -> None:
     )
 
 
-def test_no_novelty_metric_prune_beam_profile_materializes_exact_contract() -> None:
-    args = _no_novelty_metric_prune_beam_args()
-
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract_sha256()
-    )
-    for field, expected in (
-        _active_profile_execution_settings(
-            CANONICAL_SR_SNAKE_NO_NOVELTY_METRIC_PRUNE_BEAM_V1_EXECUTION_SETTINGS
-        ).items()
-    ):
-        assert getattr(args, field) == expected, field
-
-    assert args.phase3_novelty_ablation_mode == "all"
-    assert args.phase2_enable_batching is False
-    assert args.phase3_enable_batching is False
-    assert args.phase3_runtime_split_subset_sizes == "1"
-    assert args.phase3_runtime_split_child_padding_policy == (
-        "full_binary_code_space_v1"
-    )
-    assert args.phase3_backend_cost_mode == "proxy"
-    assert args.adapt_beam_live_branches == 3
-    assert args.adapt_beam_children_per_parent == 2
-    assert args.phase1_prune_enabled is True
-    assert args.phase1_prune_schur_nomination_route == "metric_regularized_v1"
-    assert args.phase1_prune_metric_schur_mu == pytest.approx(0.01)
-    assert args.phase3_response_coordinate_scope == (
-        PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
-    )
-
-
 def test_h2o_derivative_resolved_profile_changes_only_pool_identity() -> None:
     args = _h2o_derivative_resolved_v2_args()
     contract = canonical_sr_snake_h2o_derivative_resolved_v2_contract()
@@ -1022,10 +844,6 @@ def test_h2o_paper_i_profile_is_no_prune_no_beam_source_locked_overlay() -> None
     assert args.problem == "molecular_vibronic_h2o_linear_fd"
     assert args.adapt_max_depth == 50
     assert args.adapt_pool == "full_meta_derivative_resolved_v2"
-    assert args.adapt_beam_live_branches == 1
-    assert args.adapt_beam_children_per_parent == 1
-    assert args.adapt_beam_terminated_keep == 0
-    assert args.adapt_beam_terminal_archive_mode == "disabled"
     assert args.phase1_prune_enabled is False
     assert contract["semantic_invariants"]["pruning_active"] is False
     assert contract["semantic_invariants"]["terminal_prune_active"] is False
@@ -1043,25 +861,6 @@ def test_h2o_paper_i_profile_is_no_prune_no_beam_source_locked_overlay() -> None
     assert args.adapt_accepted_refit_scope == "full_ansatz_v1"
     assert args.adapt_full_refit_every == 0
     assert args.adapt_final_full_refit == "false"
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--phase3-novelty-ablation-mode", "off"),
-        ("--adapt-beam-live-branches", "1"),
-        ("--adapt-beam-children-per-parent", "1"),
-        ("--phase1-no-prune",),
-        ("--phase1-prune-schur-nomination-route", "hessian_coupling_v1"),
-        ("--phase1-prune-metric-schur-mu", "1e-6"),
-        ("--phase3-runtime-split-subset-sizes", "1,2"),
-    ],
-)
-def test_no_novelty_metric_prune_beam_profile_rejects_scientific_drift(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _no_novelty_metric_prune_beam_args(*override)
 
 
 @pytest.mark.parametrize(
@@ -1413,9 +1212,6 @@ def test_conventional_v3_rejects_legacy_phase3_response_scope() -> None:
             "--phase3-hardware-cost-normalization-mode",
             "family_robust_v1",
         ),
-        ("--adapt-beam-live-branches", "2"),
-        ("--adapt-beam-children-per-parent", "2"),
-        ("--adapt-beam-terminated-keep", "1"),
         ("--phase1-no-prune",),
         ("--phase1-prune-mode", "both"),
         ("--phase1-prune-local-window-size", "4"),
@@ -1479,34 +1275,6 @@ def test_conventional_sr_route_profile_round_trips_into_runtime_kwargs() -> None
     )
 
 
-def test_appendix_beam_profile_round_trips_into_runtime_kwargs() -> None:
-    args = _no_prune_symmetric_cost_beam_args("--adapt-max-depth", "50")
-    kwargs = _runtime_kwargs(args)
-
-    assert kwargs["sr_route_profile_request"] == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-    )
-    assert kwargs["sr_route_profile_resolved"] == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-    )
-    assert kwargs["sr_route_profile_contract"] == (
-        canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-    )
-    assert kwargs["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256()
-    )
-    assert kwargs["adapt_beam_live_branches"] == 3
-    assert kwargs["adapt_beam_children_per_parent"] == 2
-    assert kwargs["adapt_beam_terminated_keep"] == 3
-    assert kwargs["adapt_beam_terminal_archive_mode"] == "legacy"
-    assert kwargs["adapt_beam_lambda"] == pytest.approx(0.005)
-    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
-    assert extensions_from_route_contract(
-        kwargs["sr_route_profile_contract"]
-    ).pruning is None
-    assert kwargs["phase2_enable_batching"] is False
-
-
 def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
     args = _candidate_v4_args()
     kwargs = _runtime_kwargs(args)
@@ -1526,9 +1294,6 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
         "phase3_hardware_cost_normalization_mode": (
             "family_robust_symmetric_arctan_v1"
         ),
-        "adapt_beam_live_branches": 1,
-        "adapt_beam_children_per_parent": 1,
-        "adapt_beam_terminated_keep": 0,
         "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
         "finite_angle_fallback": False,
         "phase3_enable_rescue": False,
@@ -1610,35 +1375,12 @@ def test_candidate_v4_identity_is_readable_but_not_execution_authority(
         adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
 
 
-@pytest.mark.parametrize("version", ["v1", "v2", "v3", "appendix_beam"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
 def test_registered_sr_route_profile_serializes_into_result_settings(
     version: str,
 ) -> None:
     phase12_policies: dict[str, str] = {}
-    if version == "appendix_beam":
-        args = _no_prune_symmetric_cost_beam_args(
-            "--adapt-max-depth",
-            "50",
-            "--adapt-resume-compile-smoke",
-            "off",
-        )
-        profile = SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-        contract = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-        digest = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256()
-        response_scope = (
-            PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
-        )
-        phase12_policies = {
-            "phase1_score_mode": "trust_region_v1",
-            "phase1_energy_model": PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
-            "phase2_curvature_policy": (
-                PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
-            ),
-            "phase2_cheap_curvature_proxy_policy": (
-                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
-            ),
-        }
-    elif version == "v3":
+    if version == "v3":
         args = _parser().parse_args(
             [
                 "--sr-route-profile",
@@ -1722,15 +1464,6 @@ def test_registered_sr_route_profile_serializes_into_result_settings(
     assert payload["settings"]["phase3_response_coordinate_scope"] == (
         response_scope
     )
-    if version == "appendix_beam":
-        serialized = payload["settings"]["sr_route_profile_contract"][
-            "execution_settings"
-        ]
-        assert serialized["adapt_beam_live_branches"] == 3
-        assert serialized["adapt_beam_children_per_parent"] == 2
-        assert serialized["adapt_beam_terminated_keep"] == 3
-        assert serialized["adapt_beam_terminal_archive_mode"] == "legacy"
-        assert serialized["adapt_beam_lambda"] == pytest.approx(0.005)
 
 
 def test_sr_route_profile_contract_validation_fails_on_tamper() -> None:
@@ -1911,28 +1644,6 @@ def test_resume_contract_accepts_v3_scope_and_contract_round_trip(
     assert validation["contract_sha256"] == (
         canonical_sr_snake_v3_contract_sha256()
     )
-
-
-@pytest.mark.parametrize("location", ["settings", "checkpoint"])
-def test_resume_contract_preserves_appendix_beam_identity(
-    location: str,
-) -> None:
-    contract = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-    digest = canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256()
-    validation = validate_resume_sr_route_profile_contract(
-        _no_prune_symmetric_cost_beam_contract_payload(location=location),
-        expected_profile_request=(
-            SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-        ),
-        expected_contract=contract,
-        expected_contract_sha256=digest,
-    )
-
-    assert validation["status"] == "pass"
-    assert validation["artifact_profile_request"] == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-    )
-    assert validation["contract_sha256"] == digest
 
 
 def test_resume_contract_rejects_v3_artifact_with_legacy_response_scope() -> None:

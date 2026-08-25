@@ -1395,11 +1395,6 @@ def build_output_payload(
             "phase2_duplicate_penalty_weight": float(args.phase2_duplicate_penalty_weight),
             "phase2_frontier_ratio": float(args.phase2_frontier_ratio),
             "phase3_frontier_ratio": float(args.phase3_frontier_ratio),
-            "phase3_tie_beam_score_ratio": float(args.phase3_tie_beam_score_ratio),
-            "phase3_tie_beam_abs_tol": float(args.phase3_tie_beam_abs_tol),
-            "phase3_tie_beam_max_branches": int(args.phase3_tie_beam_max_branches),
-            "phase3_tie_beam_max_late_coordinate": float(args.phase3_tie_beam_max_late_coordinate),
-            "phase3_tie_beam_min_depth_left": int(args.phase3_tie_beam_min_depth_left),
             "phase2_remaining_evaluations_proxy_mode": str(
                 args.phase2_remaining_evaluations_proxy_mode
             ),

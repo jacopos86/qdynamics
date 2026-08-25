@@ -175,26 +175,6 @@ def test_stationary_source_receipt_never_evaluates_active_gradient(
     )
 
 
-def test_beam_capacity_is_unchanged_for_canonical_and_disabled_for_ablation() -> None:
-    canonical = adapt_pipeline._resolve_beam_capacity_policy(
-        adapt_beam_live_branches=3,
-        adapt_beam_children_per_parent=2,
-        adapt_beam_terminated_keep=None,
-    )
-    assert canonical.beam_enabled is True
-    assert canonical.live_branches_effective == 3
-    assert canonical.children_per_parent_effective == 2
-
-    ablation = adapt_pipeline._resolve_beam_capacity_policy(
-        adapt_beam_live_branches=1,
-        adapt_beam_children_per_parent=1,
-        adapt_beam_terminated_keep=None,
-    )
-    assert ablation.beam_enabled is False
-    assert ablation.live_branches_effective == 1
-    assert ablation.children_per_parent_effective == 1
-
-
 def _feature(**overrides: object) -> CandidateFeatures:
     values: dict[str, object] = dict(
         stage_name="phase3",

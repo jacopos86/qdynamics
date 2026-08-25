@@ -121,7 +121,13 @@ def test_fork_local_beam_rejects_a_nonbranching_policy() -> None:
             live_parent_branches=1,
             admission_children_per_parent=1,
             maximum_admission_children_per_round=1,
+            s_alg_weight=0.01,
         )
+
+
+def test_fork_local_beam_requires_the_complete_conditional_interview() -> None:
+    with pytest.raises(TypeError):
+        ForkLocalBeam()  # type: ignore[call-arg]
 
 
 def test_append_only_is_an_explicit_ablation_with_the_frozen_parent_identity() -> None:
@@ -455,6 +461,7 @@ def test_batch_pruning_and_beam_compose_in_the_direct_controller(
                     live_parent_branches=2,
                     admission_children_per_parent=2,
                     maximum_admission_children_per_round=2,
+                    s_alg_weight=0.01,
                 ),
             ),
             execution=SRExecutionPolicy(
@@ -495,6 +502,7 @@ def test_beam_checkpoint_authenticates_the_terminal_winning_lineage(
                     live_parent_branches=2,
                     admission_children_per_parent=2,
                     maximum_admission_children_per_round=2,
+                    s_alg_weight=0.01,
                 ),
             ),
             execution=SRExecutionPolicy(
@@ -729,6 +737,7 @@ def test_authenticated_beam_resume_extends_winner_lineage_and_diagnostics(
         live_parent_branches=2,
         admission_children_per_parent=2,
         maximum_admission_children_per_round=2,
+        s_alg_weight=0.01,
     )
     first = run_sr_snake(
         problem,
@@ -831,6 +840,7 @@ def test_authenticated_resume_composes_batch_pruning_and_beam(
         live_parent_branches=2,
         admission_children_per_parent=2,
         maximum_admission_children_per_round=2,
+        s_alg_weight=0.01,
     )
     method = SRMethodPolicy(
         admission=admission,

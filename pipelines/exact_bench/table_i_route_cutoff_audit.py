@@ -919,18 +919,6 @@ def build_route_cutoff_audit_row(
         "auxiliary_terms_primary_mode": "tie_break_only",
         "phase3_novelty_ablation_mode": str(static.phase3_novelty_ablation_mode),
         "phase3_window_relaxation_mode": str(static.phase3_window_relaxation_mode),
-        "phase2_enable_batching": bool(static.phase2_enable_batching),
-        "phase3_enable_batching": bool(static.phase2_enable_batching),
-        "phase3_batch_selection_mode": "reduced_plane",
-        "phase3_batch_prefilter_mode": "off",
-        "phase3_nested_window_application": (
-            "composed_batch_window_v1"
-            if str(static.phase3_selector_policy) == "algebraic_nested_v1"
-            else "legacy_reopt_policy"
-        ),
-        "phase1_prune_enabled": bool(static.phase1_prune_enabled),
-        "phase1_prune_policy": str(static.phase1_prune_policy),
-        "phase1_prune_mode": str(static.phase1_prune_mode),
     }
     route_payload = read_historical_route_identity(
         route_observed,
@@ -1062,21 +1050,6 @@ def build_route_cutoff_audit_row(
         "pool_key_requested": str(pool.pool_key),
         "optimizer": str(optimizer),
         "novelty_mode": str(static.phase2_novelty_mode),
-        "phase2_enable_batching": bool(static.phase2_enable_batching),
-        "phase3_enable_batching": bool(static.phase2_enable_batching),
-        "phase3_batch_selection_mode": "reduced_plane",
-        "phase3_batch_prefilter_mode": "off",
-        "phase3_nested_window_application": (
-            "composed_batch_window_v1"
-            if str(static.phase3_selector_policy) == "algebraic_nested_v1"
-            else "legacy_reopt_policy"
-        ),
-        "phase1_prune_enabled": bool(static.phase1_prune_enabled),
-        "phase1_prune_policy": str(static.phase1_prune_policy),
-        "phase1_prune_mode": str(static.phase1_prune_mode),
-        "adapt_beam_live_branches": int(static.adapt_beam_live_branches),
-        "adapt_beam_children_per_parent": int(static.adapt_beam_children_per_parent),
-        "adapt_beam_terminated_keep": int(static.adapt_beam_terminated_keep),
         "adapt_max_depth": int(static.adapt_max_depth),
         "adapt_reopt_policy": str(static.adapt_reopt_policy),
         "adapt_window_size": int(static.adapt_window_size),

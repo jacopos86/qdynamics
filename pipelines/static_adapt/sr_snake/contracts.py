@@ -310,10 +310,10 @@ class BeamOff(SerializableContract):
 
 @dataclass(frozen=True)
 class ForkLocalBeam(SerializableContract):
-    live_parent_branches: int = 3
-    admission_children_per_parent: int = 2
-    maximum_admission_children_per_round: int = 6
-    s_alg_weight: float = 0.01
+    live_parent_branches: int
+    admission_children_per_parent: int
+    maximum_admission_children_per_round: int
+    s_alg_weight: float
     calibration_status: str = field(
         default="uncalibrated_default",
         init=False,

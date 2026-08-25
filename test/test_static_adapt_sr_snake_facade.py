@@ -726,12 +726,24 @@ def test_estimator_work_requires_complete_reconciled_components(
     "typed_request",
     [
         SRRunRequest(
-            method=SRMethodPolicy(beam=ForkLocalBeam())
+            method=SRMethodPolicy(
+                beam=ForkLocalBeam(
+                    live_parent_branches=3,
+                    admission_children_per_parent=2,
+                    maximum_admission_children_per_round=6,
+                    s_alg_weight=0.01,
+                )
+            )
         ),
         SRRunRequest(
             method=SRMethodPolicy(
                 admission=CombinatorialBatchAdmission(maximum_size=3, search_window_size=6),
-                beam=ForkLocalBeam(),
+                beam=ForkLocalBeam(
+                    live_parent_branches=3,
+                    admission_children_per_parent=2,
+                    maximum_admission_children_per_round=6,
+                    s_alg_weight=0.01,
+                ),
             )
         ),
     ],

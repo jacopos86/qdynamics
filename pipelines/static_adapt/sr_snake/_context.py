@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol
 
 from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.extensions import beam_extension_from_policy
 from pipelines.static_adapt.sr_snake._controller import (
     _DefaultControllerNumericalRuntime,
 )
@@ -821,6 +822,7 @@ def _resolve_execution_context(
         route_profile=route_profile,
         route_contract=route_contract,
         route_contract_sha256=route_contract_sha256,
+        beam_extension=beam_extension_from_policy(request.method.beam),
         gradient_tolerance=request.execution.stop.gradient_tolerance,
     )
 
