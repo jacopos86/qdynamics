@@ -3042,6 +3042,82 @@ exact-diagonalization comparison still reported against an ADAPT trajectory — 
 if so, should it run the same controller the bundles ran (`run_ra_adapt`), which
 would make it a fairer comparison than it is today?
 
+## 6bg. CORRECTION to 6bf — the mega function is the plain-ADAPT comparator engine
+
+**6bf claimed the mega function has one caller and is effectively deletable. That
+was wrong, and the error was mine.** I enumerated
+`default_hh_benchmark_algorithms()` by grepping for explicit `runner_kind=` and
+concluded the default matrix held nine conventional arms and no ADAPT. It does
+not. `HHBenchmarkAlgorithmSpec.runner_kind` **defaults to `"adapt_vqe"`**
+(`hh_static_ground_state_benchmark.py:113`), and the ADAPT arms never pass it.
+The function's own docstring says so: *"Return the mixed existing HH ADAPT +
+conventional algorithm inventory."*
+
+The real default matrix is **18 arms, 9 of them ADAPT**, every one routing
+through `_run_one_adapt_algorithm` -> `_run_hardcoded_adapt_vqe`:
+
+| algorithm_id | pool | max_depth |
+|---|---|---|
+| `hh_adapt_full_hamiltonian_legacy` | `full_hamiltonian` | 8 |
+| `hh_adapt_hva_legacy` | `hva` | 12 |
+| `hh_adapt_paop_lf_std_legacy` | `paop_lf_std` | 10 |
+| `hh_adapt_qeb_sq_lf_std_legacy` | `sq_lf_std` | 10 |
+| `hh_adapt_overlap_paop_lf_std_phase3` | `paop_lf_std` | 10 |
+| `hh_adapt_ceo_paop_lf_std_phase3` | `paop_lf_std` | 10 |
+| `hh_adapt_uccsd_otimes_paop_lf_std_legacy` | `uccsd_otimes_paop_lf_std` | 12 |
+| `hh_adapt_full_meta_legacy` | `full_meta` | 6 |
+| `hh_adapt_pareto_lean_legacy` | `pareto_lean` | 6 |
+
+plus 9 conventional/compiled arms (HVA termwise, HVA layerwise, UCCSD-lifted,
+AVQITE, QSCI, SQD, pUCCD, Lang-Firsov, HEA-Qiskit).
+
+The bench CLI takes only `--output-dir` and `--case-id` — there is **no
+`--algorithm` flag** — so `algorithms=None` always resolves to this full matrix
+(`:1594`). Running the bench today executes the mega function nine times.
+
+### What this means
+
+`_run_hardcoded_adapt_vqe` is the **plain-ADAPT comparator engine**: the
+`continuation_mode="legacy"` ADAPT-VQE baselines across nine pools, which is the
+family RA-ADAPT is measured against. It was never going to be replaced by
+`run_ra_adapt` — that facade *is* the RA route, and these arms are deliberately
+not RA. 6bf's proposed "port the arm onto run_ra_adapt" was a category error.
+
+**What 6bf got right and still stands:** the closure measurement. The mega
+function is not reachable from the live RA kernel (168 defs / 25,492 lines), it
+did not produce the published bundles, and the CHTC payloads called
+`run_ra_adapt`. RA and the comparator are two separate engines in one file.
+
+### The bench has never produced evidence
+
+Verified, all outside `history/` and `test/`:
+
+- **No output on disk.** No `hh_static_benchmark_result.json` anywhere.
+- **No algorithm_id anywhere.** None of the 18 ids appears in any `.json`,
+  `.tex`, or `.md`.
+- **The manuscript does not report the matrix.** In the current Paper-I
+  `.tex` (`ADAPT---Paper-I/Paper_I_overleaf_20260818/`): `UCCSD` 19 hits, `HVA`
+  1 hit, and **zero** for QSCI, SQD, AVQITE, pUCCD, HEA, Lang-Firsov.
+- `table_i_qiskit_resource_compile` — imported by eight reporting scripts — is a
+  **different module** (a Qiskit resource compiler). It is not this bench.
+
+So the harness is fully built and wired, and nothing has ever consumed it.
+
+### The actual decision
+
+Not architectural, and not mine. The mega function is 39,386 lines whose sole
+purpose is a comparator matrix that has never been run for evidence. Either:
+
+- **the comparator matrix is still intended** — then the mega function stays,
+  and the refactor's ceiling is separating the RA kernel from the comparator
+  engine inside `adapt_pipeline.py` rather than deleting anything; or
+- **it is abandoned** — then the bench's nine ADAPT arms and the mega function
+  go together, roughly 39,386 lines plus fallout.
+
+Nothing verifiable settles this: the code says the arms are live, the evidence
+says they have never been used. It turns on whether the author still intends to
+publish a plain-ADAPT-vs-RA-ADAPT comparison table.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
