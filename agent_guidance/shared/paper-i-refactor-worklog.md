@@ -2544,6 +2544,35 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q45 | Physical lanes | **Delete the lane-wise scoring restriction.** Author: *"We will use macro generators but not restrict them to lane-wise scoring."* Keep `physical_operator_lane` as a provenance label on macro generators. `lane` appears **0 times in Paper I**. | 2026-08-25 |
 | Q46 | `phase3_runtime_split_mode` placement | **Move out of the main pipeline** (author, twice). Because it is on in 15/15 bundle archives, constraint 3 forces it to remain the effective default for the Paper-I profiles — otherwise a reproduction that forgets to enable it differs silently. | 2026-08-25 |
 
+### Which questions go to the author — 2026-08-25
+
+The author's stated boundary: *"I do not have the architecture knowledge in terms
+of complexities — I just know the cleaner mathematical distinctions and the dead
+vs alive route/code bundles."*
+
+**Ask the author:**
+
+- Is this construct in Paper I, and what is it mathematically?
+- Was this route used to produce the results, and did it fire?
+- Is this distinction real or semantic?
+- Is this evidence live or dead?
+- Anything that changes numbers, evidence, or the manuscript.
+
+**Do not ask the author — decide it:**
+
+- Increment ordering, sequencing, and batching.
+- Where a seam goes, module boundaries, extraction mechanics.
+- Which of two safe implementations to prefer.
+- Anything whose answer is "whichever is less complex to do".
+
+**Track record supporting the split.** Every author answer that changed the
+outcome was scientific: PAOP is in `full_meta` (twice stated before it was
+believed); `lambda_F * F` reaches the numerator; the collapse events are
+machine-level error; lane-wise scoring is not needed; the published trajectory
+already shows the saturated tail. Every agent error was architectural: the wrong
+`full_meta` builder, a derived flag read as absent from a receipt, and two
+single-artifact generalizations.
+
 ### Handoff register — author's guidance, 2026-08-24
 
 *"I think your prompts are too aggressive; they should be like 'work into your
