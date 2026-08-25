@@ -3273,6 +3273,78 @@ per case and passes it as `exact_gs_override`, which suppresses the mega
 function's own ED fallback. **ED reference energies do not depend on the mega
 function at all.**
 
+## 6bj. How the author can know a deletion was safe — the parity gate
+
+Author's question (2026-08-25): *"i assume yes but how would i know?"* Fair, and
+it has a mechanical answer that does not require trusting an agent's reading.
+
+`test/test_ra_adapt_refactor_parity.py` exists for exactly this. It runs bounded
+real RA continuations and pins the **observable trajectory** — operators,
+insertion positions, logical/runtime parameters, energies, stop payload — to
+committed baselines under `test/fixtures/ra_refactor_parity/`. Its own docstring
+says the baselines pin behavior *"before any refactor code movement (retirement
+of legacy routes and archaic comparators, then module extraction)"*.
+
+So the deletion proof is: **baselines green before -> delete -> baselines green
+after.** A green run means the RA route produced a bit-identical trajectory, and
+no argument about reachability is needed.
+
+### Current state of the gate: RED, for a digest-only reason
+
+Measured on HEAD (peak 411MB under `ram_guard`):
+
+```
+2 failed  test_parity_macro_append_only_bounded
+          test_parity_singleton_plateau_bounded
+```
+
+Diffing the payloads directly, the **only** differing key in both cases is
+`protocol_sha256`:
+
+| key | macro_append_only_r3 | singleton_plateau_r3 |
+|---|---|---|
+| `protocol_sha256` | **differs** | **differs** |
+| `accepted_trajectory` | identical | identical |
+| `completed_controller_rounds` | identical | identical |
+| `result_schema` | identical | identical |
+| `stop` | identical | identical |
+
+Accepted energies, bit-identical to the 2026-08-18 baselines:
+
+- macro: `[0.2192235936, -0.75, -0.7566324915]`
+- singleton: `[0.2192235936, -0.75, -0.7533296378]`
+
+**RA's physics has not drifted.** Only the protocol contract surface changed,
+which moves the digest without touching the trajectory.
+
+### What moved the digest
+
+Two commits since the baselines touched the RA protocol contracts, both
+author-authorized refactor steps recorded earlier in this worklog:
+
+- `5680f959` refactor: delete phase-zero cost path
+- `c4400c36` refactor: make compiled cost single-target by default
+
+Both remove or narrow a settings key, so the serialized protocol — and therefore
+its sha256 — changes while the executed trajectory does not.
+
+### The blocking step
+
+`test_ra_adapt_refactor_parity.py`'s docstring is explicit:
+
+> *"If behavior changes intentionally, delete the affected baseline file and
+> re-run to re-record — that deletion is a deliberate scientific decision, not a
+> routine fix."*
+
+So the two baselines must be re-recorded before the gate can serve as the
+deletion check, and by the file's own rule that re-record is the author's call,
+not an agent's — even though the evidence is that only the digest moved.
+
+**Sequence once re-recorded:** green baselines -> delete the mega function, its
+kwargs builder, the `legacy_executor` binding, the bench's nine legacy arms, and
+the phase-internals tests -> re-run parity plus
+`test/test_ra_adapt_physics_invariants.py`. Green on both is the proof.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
