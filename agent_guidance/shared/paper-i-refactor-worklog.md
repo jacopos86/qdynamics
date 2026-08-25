@@ -1972,6 +1972,53 @@ re-running — a rerun is a scientific decision and is the author's.
 Until this lands, constraint 3 is verifiable for five of seven bundles and
 asserted for b4 and b5.
 
+## 6ao. Re-verification of Stage 1 under the enumerate rule
+
+Both retractions came from checking one artifact. Re-checked items 1.2-1.4
+against that failure mode.
+
+### 1.3 — already done
+
+`cheap_ratio` returns **nothing** repo-wide. Codex's Q20-Q23 pass removed
+`phase3_cheap_ratio_v1`. No dynamic dispatch on it either. Item closed.
+
+### 1.2 — same conclusion, wrong reasoning (corrected)
+
+Q36 said the maturity parameters are dead because there are "0 read sites in
+`hh_continuation_scoring.py`". **That was true and irrelevant** — the PAOP
+pattern exactly. Twelve files reference maturity, and the parameters *are*
+consumed, in `adapt_pipeline.py` itself:
+
+```
+:15719-15741   _resolve_maturity_cap_pair(name=..., min_value=..., max_value=...,
+                                          fallback=phaseN_shortlist_size_val)
+:18178-18187   -> phase{1,2,3}_controller_cap_{min,max}_resolved
+```
+
+So they are an **override on the controller caps**, not dead code. The resolver
+substitutes `fallback` when a value is `None`, and `fallback` is the funnel
+shortlist size.
+
+**Why deletion is still correct, now on a sound basis.** Every profile leaves the
+caps at `None`, so the resolver always took the fallback, so the controller caps
+always equalled the shortlist sizes — which is what 6ae observed in a locked
+bundle (`phase_caps = {phase1: 24, phase2: 12, phase3: 12}`). Deleting the
+parameters makes that unconditional rather than a default.
+
+**What deletion actually removes:** the ability to override controller caps
+independently of the funnel, plus `_resolve_maturity_cap_pair` and its two
+validations (`>= 1`, `min <= max`). It does **not** remove the controller caps,
+which continue to come from the shortlist sizes.
+
+Still true and unchanged: 0 occurrences in Paper I; the phase controller and its
+snapshot must not be deleted (6ae).
+
+### 1.4 — outstanding
+
+`phase0_K0 == 1.0` was established from **one archive**, 30 recorded instances.
+Under the enumerate rule that is a single-artifact check of the kind that has now
+failed twice. Widen to several bundles before Codex acts.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
