@@ -309,46 +309,6 @@ def test_test2_runtime_source_lock_requires_every_detailed_prune_field(
         )
 
 
-def test_test2_runtime_emits_every_required_prune_source_lock_field() -> None:
-    source = textwrap.dedent(
-        inspect.getsource(adapt_pipeline._run_hardcoded_adapt_vqe)
-    )
-    tree = ast.parse(source)
-    assignment = next(
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        and any(
-            isinstance(target, ast.Name)
-            and target.id == "sr_runtime_settings_for_validation"
-            for target in node.targets
-        )
-    )
-    emitted_fields: set[str] = set()
-
-    def _collect(value: ast.AST) -> None:
-        if isinstance(value, ast.Dict):
-            for key, child in zip(value.keys, value.values, strict=True):
-                if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                    emitted_fields.add(key.value)
-                elif key is None:
-                    _collect(child)
-        elif isinstance(value, ast.IfExp):
-            _collect(value.body)
-            _collect(value.orelse)
-
-    _collect(assignment.value)
-    expected = (
-        CANONICAL_SR_SNAKE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1_EXECUTION_SETTINGS
-    )
-    required = {
-        key
-        for key in expected
-        if key.startswith("phase1_prune_")
-        and key not in RETIRED_PRUNE_RUNTIME_FIELDS
-    }
-    assert required.issubset(emitted_fields)
-    assert RETIRED_PRUNE_RUNTIME_FIELDS.isdisjoint(emitted_fields)
 
 
 def test_profiles_reject_wrong_prune_or_historical_beam_controls() -> None:

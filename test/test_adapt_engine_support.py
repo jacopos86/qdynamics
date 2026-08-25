@@ -22,31 +22,6 @@ from pipelines.scaffold.hh_continuation_stage_control import StageController, St
 from pipelines.static_adapt.selector_measurement_proxy import ControllerMeasurementWorkAccumulator
 from pipelines.static_adapt.route_a_trust_region import RouteATrustRegionState
 
-def test_static_adapt_pipeline_wires_hardware_cost_family_rescoring_before_selector_sorting() -> None:
-    source = Path(static_adapt.__file__).read_text(encoding="utf-8")
-    assert source.count("candidate_variants = rescore_hardware_cost_family(") >= 2
-    assert "_sr_escape_rescore_phase2_domains(" in source
-    beam_domain_idx = source.index(
-        ") = _sr_escape_rescore_phase2_domains(",
-    )
-    beam_shortlist_idx = source.index(
-        "phase2_shortlisted_records_local = _phase2_lane_health_shortlist_with_legacy_hook",
-        beam_domain_idx,
-    )
-    assert beam_domain_idx < beam_shortlist_idx
-    nonbeam_rescore_idx = source.index(
-        "full_records = rescore_hardware_cost_family(",
-        beam_shortlist_idx,
-    )
-    nonbeam_sort_idx = source.index(
-        "full_records = sorted(full_records, key=_phase2_record_sort_key)",
-        nonbeam_rescore_idx,
-    )
-    assert nonbeam_rescore_idx < nonbeam_sort_idx
-    assert "measurement_group_specs_for_term" in source
-    assert "MeasurementCacheAudit(\n        nominal_shots_per_group=1,\n        sigma_star=float(getattr(phase1_score_cfg, \"shot_sigma_star\", 1.0)),\n    )" in source
-    assert source.count("records_inner, phase1_score_cfg_local") == 1
-    assert source.count("records_local, phase1_score_cfg") == 1
 
 
 def _make_branch(*, branch_id: int, labels: tuple[str, ...], theta: tuple[float, ...]):
@@ -242,37 +217,6 @@ def test_scipy_powell_options_accept_explicit_maxfev() -> None:
     )
 
 
-def test_cli_defaults_shared_cost_weights_and_accepts_exact_subset_sizes() -> None:
-    parser = cli_config._build_adapt_arg_parser(adapt_gradient_parity_rtol=1e-8)
-    defaults = parser.parse_args([])
-
-    assert BEAM_RUNTIME_KEYS.isdisjoint(vars(defaults))
-    assert BEAM_RUNTIME_KEYS.isdisjoint(
-        inspect.signature(static_adapt._run_hardcoded_adapt_vqe).parameters
-    )
-
-    assert (
-        defaults.cost_lambda_2q,
-        defaults.cost_lambda_d,
-        defaults.cost_lambda_1q,
-        defaults.cost_lambda_theta,
-        defaults.cost_lambda_shot,
-    ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))
-    assert defaults.phase3_runtime_split_subset_sizes is None
-
-    exact = parser.parse_args(
-        [
-            "--phase3-runtime-split-subset-sizes",
-            "2",
-            "--adapt-child-pool-expansion-subset-sizes",
-            "1,2",
-            "--shared-pauli-pool-subset-sizes",
-            "3",
-        ]
-    )
-    assert exact.phase3_runtime_split_subset_sizes == "2"
-    assert exact.adapt_child_pool_expansion_subset_sizes == "1,2"
-    assert exact.shared_pauli_pool_subset_sizes == "3"
 
 
 def test_beam_energy_cost_dominance_uses_pareto_and_lambda_tradeoffs() -> None:

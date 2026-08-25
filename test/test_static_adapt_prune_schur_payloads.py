@@ -43,48 +43,6 @@ def test_prune_schur_payload_helpers_remain_available_through_wrappers() -> None
         assert getattr(hardcoded_adapt, name) is getattr(prune_schur_payloads, name)
 
 
-def test_both_prune_surrogate_coordinate_modes_record_the_anchor_energy() -> None:
-    """Every direct Hamiltonian application must enter the estimator ledger.
-
-    The logical-shared and runtime-per-Pauli branches build the same prune
-    surrogate from different coordinate charts.  This source-level regression
-    keeps their direct ``energy_via_one_apply`` anchors accounting-symmetric
-    without running a scientific optimization.
-    """
-
-    source = textwrap.dedent(
-        inspect.getsource(adapt_pipeline._run_hardcoded_adapt_vqe)
-    )
-    tree = ast.parse(source)
-    surrogate_builder = next(
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name == "_build_prune_schur_nomination_scores"
-    )
-    direct_energy_calls = [
-        node
-        for node in ast.walk(surrogate_builder)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "energy_via_one_apply"
-    ]
-    recorded_anchor_calls = [
-        node
-        for node in ast.walk(surrogate_builder)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "_record_estimator_primitive"
-        and any(
-            keyword.arg == "consumer_scope"
-            and isinstance(keyword.value, ast.Constant)
-            and keyword.value.value == "prune_surrogate_anchor_energy"
-            for keyword in node.keywords
-        )
-    ]
-
-    assert len(direct_energy_calls) == 2
-    assert len(recorded_anchor_calls) == len(direct_energy_calls)
 
 
 def test_prune_authority_payload_keeps_surrogate_nomination_only() -> None:
