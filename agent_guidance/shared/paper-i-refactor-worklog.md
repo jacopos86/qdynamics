@@ -2820,9 +2820,38 @@ parameters** — it is gated entirely through `phase3_plateau_acquisition_mode` 
 internal state. A 2,622-line inline span plus a 1,009-line module for a path that
 no measured arm enables.
 
-**Not yet a deletion claim.** 23 arms sampled across b3 and b9 only, and Route-C
-may be reachable from the L=3 optional-control benchmarks, which are a separate
-Paper-I setting. Check those before proposing anything.
+### Checked further — inactive in every run on disk
+
+| corpus | runs | `phase3_plateau_acquisition_mode` |
+|---|---|---|
+| HH bundle arms (b3, b9) | 23 | `"off"` |
+| L=3 optional-control runs | 14 | `"off"` |
+| any run with a non-`off` value | **0** | — |
+
+The gate is unambiguous. `PlateauAcquisitionConfig.enabled`
+(`plateau_acquisition.py:78-80`) returns true only when
+`mode == PLATEAU_ACQUISITION_MODE_NOVELTY_COST_V1`. Route-C is entered at
+`adapt_pipeline.py:37848` behind
+`phase3_plateau_cfg.enabled and route_c_plateau_state.active_episode`. With mode
+`"off"` in all 37 runs, `enabled` was False throughout and the episode never
+began.
+
+### Surface
+
+| item | size |
+|---|---|
+| `route_c_plateau.py` | 1,009 lines |
+| `plateau_acquisition.py` | 718 lines |
+| `phase3_plateau_*` executor parameters | 16 |
+| `route_c` mentions in `adapt_pipeline.py` | 513 |
+| controller-body span headed by Route-C dispatch | up to 2,622 |
+
+### An author question, not a cleanup
+
+Plateau-triggered **insertion** is live and is a named insertion policy in the
+design target. Plateau **acquisition** — the `novelty_cost_v1` mode that starts a
+Route-C episode — is a different mechanism and has never run. Whether it is
+intended future method or abandoned is not answerable from the code.
 
 ## 7. No fallbacks
 
