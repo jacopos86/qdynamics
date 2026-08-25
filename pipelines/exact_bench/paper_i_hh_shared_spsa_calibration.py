@@ -50,7 +50,6 @@ PAPER_I_HH_SHARED_SPSA_ENGINE_LABEL_BY_KEY = {
 }
 PAPER_I_HH_SHARED_SPSA_SNAKE_RUNTIME_WORKER_FLAGS = (
     "--adapt-parallel-gradient-workers",
-    "--adapt-beam-parent-workers",
     "--adapt-spsa-parallel-evaluations",
 )
 

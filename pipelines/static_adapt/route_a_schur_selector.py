@@ -9,10 +9,6 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from pipelines.scaffold.hh_continuation_scoring import (
-    BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1,
-    BATCH_ADDITIVITY_OFF,
-    BATCH_ADDITIVITY_POLICIES,
-    BATCH_ADDITIVITY_SOFT_PENALTY_V1,
     BATCH_GEOMETRY_DIAGONAL_HESSIAN_DIAGNOSTIC_V1,
     BATCH_GEOMETRY_FULL_RESIDUAL_GRAM_HESSIAN_V1,
     BATCH_GEOMETRY_MODES,
@@ -28,8 +24,9 @@ from pipelines.scaffold.hh_continuation_scoring import (
     BatchSelectionProposal,
     FullScoreConfig,
     Phase2JointResponseEvaluation,
+    combinatorial_reduced_plane_batch_proposals,
     evaluate_phase2_joint_response_singletons,
-    select_phase2_batch_record_proposals,
+    greedy_reduced_plane_batch_proposals,
 )
 from pipelines.static_adapt.joint_linear_solve import (
     JOINT_LINEAR_SOLVE_POLICIES,
@@ -51,12 +48,6 @@ ROUTE_A_SCHUR_SELECTION_MODES = frozenset(
         ROUTE_A_SCHUR_COMBINATORIAL_REDUCED_PLANE,
     }
 )
-ROUTE_A_ADDITIVITY_OFF = BATCH_ADDITIVITY_OFF
-ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1 = BATCH_ADDITIVITY_SOFT_PENALTY_V1
-ROUTE_A_ADDITIVITY_HARD_GATE_LEGACY_V1 = (
-    BATCH_ADDITIVITY_HARD_GATE_LEGACY_V1
-)
-ROUTE_A_ADDITIVITY_POLICIES = BATCH_ADDITIVITY_POLICIES
 ROUTE_A_ACTIVE_CONTEXT_EXPLICIT_INDICES_V1 = "explicit_indices_v1"
 ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1 = "tail_window_v1"
 ROUTE_A_ACTIVE_CONTEXT_POLICIES = frozenset(
@@ -177,9 +168,6 @@ class RouteASchurSelectorConfig:
     batch_search_feasibility_policy: str = (
         BATCH_SEARCH_FEASIBILITY_JOINT_SUBSET_GATE_V1
     )
-    additivity_policy: str = ROUTE_A_ADDITIVITY_OFF
-    lambda_add: float = 0.0
-    legacy_additivity_max: float = 0.25
     score_tie_tolerance: float = 1e-12
     rank_relative_tolerance: float = 1e-6
     max_gram_condition_number: float = 1e12
@@ -216,11 +204,6 @@ class RouteASchurSelectorConfig:
             raise ValueError(
                 "batch_search_feasibility_policy must be one of "
                 f"{sorted(BATCH_SEARCH_FEASIBILITY_POLICIES)}."
-            )
-        if str(self.additivity_policy) not in ROUTE_A_ADDITIVITY_POLICIES:
-            raise ValueError(
-                "additivity_policy must be one of "
-                f"{sorted(ROUTE_A_ADDITIVITY_POLICIES)}."
             )
         if str(self.geometry_mode) not in BATCH_GEOMETRY_MODES:
             raise ValueError(
@@ -279,8 +262,6 @@ class RouteASchurSelectorConfig:
                 raise ValueError("active_context_indices must be nonnegative.")
             object.__setattr__(self, "active_context_indices", resolved_indices)
         for name in (
-            "lambda_add",
-            "legacy_additivity_max",
             "score_tie_tolerance",
             "rank_relative_tolerance",
             "max_gram_condition_number",
@@ -306,9 +287,6 @@ class RouteASchurSelectorConfig:
             "batch_search_feasibility_policy": str(
                 self.batch_search_feasibility_policy
             ),
-            "additivity_policy": str(self.additivity_policy),
-            "lambda_add": float(self.lambda_add),
-            "legacy_additivity_max": float(self.legacy_additivity_max),
             "score_tie_tolerance": float(self.score_tie_tolerance),
             "rank_relative_tolerance": float(self.rank_relative_tolerance),
             "max_gram_condition_number": float(
@@ -356,9 +334,6 @@ def route_a_schur_score_config(
         batch_search_feasibility_policy=str(
             config.batch_search_feasibility_policy
         ),
-        batch_additivity_policy=str(config.additivity_policy),
-        batch_additivity_lambda=float(config.lambda_add),
-        batch_additivity_tol=float(config.legacy_additivity_max),
         batch_score_tie_tolerance=float(config.score_tie_tolerance),
         batch_rank_rel_tol=float(config.rank_relative_tolerance),
         batch_max_gram_condition_number=float(
@@ -485,7 +460,12 @@ def select_route_a_schur_proposals(
         score_config,
         config=resolved_config,
     )
-    proposals, summary = select_phase2_batch_record_proposals(
+    proposal_builder = (
+        greedy_reduced_plane_batch_proposals
+        if str(resolved_config.mode) == ROUTE_A_SCHUR_GREEDY_REDUCED_PLANE
+        else combinatorial_reduced_plane_batch_proposals
+    )
+    proposals, summary = proposal_builder(
         canonical_records,
         cfg=resolved_score_config,
         selected_ops=selected_ops,
@@ -527,7 +507,7 @@ def select_route_a_schur_proposals(
             score_config,
             config=retry_resolved_config,
         )
-        proposals, retry_summary = select_phase2_batch_record_proposals(
+        proposals, retry_summary = proposal_builder(
             canonical_records,
             cfg=retry_score_config,
             selected_ops=selected_ops,
@@ -582,10 +562,6 @@ def select_route_a_schur_proposals(
 
 
 __all__ = [
-    "ROUTE_A_ADDITIVITY_HARD_GATE_LEGACY_V1",
-    "ROUTE_A_ADDITIVITY_OFF",
-    "ROUTE_A_ADDITIVITY_POLICIES",
-    "ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1",
     "ROUTE_A_ACTIVE_CONTEXT_EXPLICIT_INDICES_V1",
     "ROUTE_A_ACTIVE_CONTEXT_POLICIES",
     "ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1",

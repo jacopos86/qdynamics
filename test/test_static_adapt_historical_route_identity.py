@@ -107,7 +107,6 @@ def _route_a_components(**overrides: object) -> dict[str, object]:
             "route_a",
             _route_a_components(
                 static_meta_feature_profile="safe_core_v1",
-                phase3_enable_batching=False,
                 phase1_prune_enabled=False,
             ),
             "spsa",
@@ -118,8 +117,6 @@ def _route_a_components(**overrides: object) -> dict[str, object]:
             "route_a",
             _route_a_components(
                 static_meta_feature_profile="paper_i_production_v1",
-                phase3_enable_batching=False,
-                phase3_batch_selection_mode="greedy_disjoint",
             ),
             "spsa",
             None,

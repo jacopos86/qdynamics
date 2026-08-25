@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+import pipelines.static_adapt.extensions as static_extensions
 import pipelines.static_adapt.sr_snake._controller as sr_controller
 from pipelines.static_adapt.sr_snake._selection import (
     _PHASE0_STATIONARY_TERMINAL_OUTCOME,
@@ -19,7 +20,6 @@ from pipelines.static_adapt.sr_snake._transition import (
 from pipelines.static_adapt.sr_snake.contracts import (
     ExactEDSourceReceipt,
     ExactEDStop,
-    ForkLocalBeam,
     SingletonAdmission,
     SRStopPolicy,
 )
@@ -337,6 +337,8 @@ def _install_fake_kernels(
 
     monkeypatch.setattr(sr_controller, "_select_singleton", _select)
     monkeypatch.setattr(sr_controller, "_transition_singleton", _transition)
+    monkeypatch.setattr(static_extensions, "_select_singleton", _select)
+    monkeypatch.setattr(static_extensions, "_transition_singleton", _transition)
 
 
 def _exact_stop(
@@ -580,14 +582,15 @@ def test_beam_failure_after_child_transition_closes_every_owned_fork(
         RuntimeError,
         match="performed no estimator work",
     ):
-        sr_controller._run_default_fork_local_beam_controller(
+        static_extensions._run_default_fork_local_beam_controller(
             runtime,
             SRStopPolicy(maximum_controller_rounds=1),
             SingletonAdmission(),
-            ForkLocalBeam(
+            static_extensions.BeamExtension(
                 live_parent_branches=2,
                 admission_children_per_parent=2,
                 maximum_admission_children_per_round=2,
+                s_alg_weight=0.01,
             ),
         )
 

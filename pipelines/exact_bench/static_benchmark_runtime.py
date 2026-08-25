@@ -139,7 +139,6 @@ _PHASE3_BATCH_PREFILTER_MODE_CHOICES = (
     "exact_support_disjoint_and_commuting",
 )
 
-_DEFAULT_PHASE1_PRUNE_POLICY = "recoverability_ladder_v1"
 
 def _default_boson_cutoff_for_family(family: str) -> int:
     """Default local boson/phonon cutoff for benchmark-suite construction."""
@@ -275,15 +274,6 @@ class StaticScaffoldPolicy:
     phase2_leakage_cap: float = 1e6
     phase2_frontier_ratio: float = 1.0
     phase3_frontier_ratio: float = 1.0
-    phase3_tie_beam_score_ratio: float = 1.05
-    phase3_tie_beam_abs_tol: float = 1e-6
-    phase3_tie_beam_max_branches: int = 3
-    phase3_tie_beam_max_late_coordinate: float = 1.0
-    phase3_tie_beam_min_depth_left: int = 1
-    adapt_beam_live_branches: int = 5
-    adapt_beam_children_per_parent: int = 4
-    adapt_beam_terminated_keep: int = 3
-    adapt_beam_lambda: float = 0.0
     adapt_reopt_policy: str = "windowed"
     adapt_window_size: int = 128
     adapt_window_topk: int = 64
@@ -300,34 +290,6 @@ class StaticScaffoldPolicy:
     phase1_score_mode: str = "trust_region_v1"
     phase1_score_z_alpha: float | None = None
     phase2_score_z_alpha: float | None = None
-    phase2_enable_batching: bool = True
-    phase2_batch_target_size: int = 8
-    phase2_batch_size_cap: int = 16
-    phase2_batch_near_degenerate_ratio: float = 0.98
-    phase2_batch_rank_rel_tol: float = 1e-6
-    phase2_batch_additivity_tol: float = 0.25
-    phase1_prune_enabled: bool = True
-    phase1_prune_policy: str = _DEFAULT_PHASE1_PRUNE_POLICY
-    phase1_prune_mode: str = "both"
-    phase1_prune_fraction: float = 0.25
-    phase1_prune_min_candidates: int = 1
-    phase1_prune_max_candidates: int = 6
-    phase1_prune_max_regression: float = 1e-8
-    phase1_prune_tolerance_mode: str = "auto"
-    phase1_prune_tolerance_shot_coeff: float = 0.0
-    phase1_prune_tolerance_screen_coeff: float = 0.01
-    phase1_prune_tolerance_chem: float = 0.0
-    phase1_prune_tolerance_rel_coeff: float = 0.0
-    phase1_prune_retained_gain_ratio: float = 0.25
-    phase1_prune_protect_steps: int = 1
-    phase1_prune_cooldown_steps: int = 2
-    phase1_prune_local_window_size: int = 4
-    phase1_prune_recovery_trust_radius: float = 0.0
-    phase1_prune_old_fraction: float = 0.25
-    phase1_prune_checkpoint_period: int = 3
-    phase1_prune_live_min_depth: int = 0
-    phase1_prune_maturity_threshold: float = 0.5
-    phase1_prune_snr_threshold: float = 1.0
     phase1_maturity_cap_min_fraction: float = 0.35
     phase1_maturity_cap_max_fraction: float = 1.0
     phase2_maturity_cap_min_fraction: float = 0.35
@@ -347,7 +309,6 @@ class StaticScaffoldPolicy:
     adapt_eps_grad: float = 1e-9
     adapt_eps_energy: float = 1e-13
     adapt_parallel_gradient_workers: int = 1
-    adapt_beam_parent_workers: int = 1
     phase3_plateau_acquisition_mode: str = PLATEAU_ACQUISITION_MODE_OFF
     phase3_plateau_acquisition_score: str = PLATEAU_ACQUISITION_SCORE_LOG_VOLUME_V1
     phase3_plateau_unlock_margin: float = 1e-8
@@ -359,8 +320,6 @@ class StaticScaffoldPolicy:
     phase3_plateau_failed_family_patience: int = 0
     phase3_plateau_trial_optimizer: str = PLATEAU_TRIAL_OPTIMIZER_INHERIT
     phase3_plateau_trial_qngd_maxiter: int = 64
-    phase3_batch_selection_mode: str = "reduced_plane"
-    phase3_batch_prefilter_mode: str = "off"
     phase3_backend_cost_mode: str = "auto"
     phase3_hardware_cost_normalization_mode: str | None = None
     phase3_source_lock_preferred_sequence: str = ""
@@ -458,10 +417,6 @@ def _normalize_retained_policy(policy: AlgorithmPolicy) -> AlgorithmPolicy:
         ).strip().upper(),
     )
     static = policy.static
-    batch_cap = max(1, int(static.phase2_batch_size_cap))
-    batch_target = min(max(1, int(static.phase2_batch_target_size)), batch_cap)
-    prune_max = max(1, int(static.phase1_prune_max_candidates))
-    prune_min = min(max(1, int(static.phase1_prune_min_candidates)), prune_max)
     route_id = str(getattr(static, "static_route_id", "unspecified") or "unspecified").strip().lower()
     if route_id not in {"route_a", "unspecified"}:
         raise ValueError(
@@ -477,10 +432,6 @@ def _normalize_retained_policy(policy: AlgorithmPolicy) -> AlgorithmPolicy:
         static,
         static_route_id=route_id,
         static_meta_feature_profile=meta_profile,
-        phase2_batch_size_cap=batch_cap,
-        phase2_batch_target_size=batch_target,
-        phase1_prune_min_candidates=prune_min,
-        phase1_prune_max_candidates=prune_max,
     )
     if inner == policy.inner_optimizer and static == policy.static:
         return policy
@@ -769,7 +720,6 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
     args = _set_option(args, "--adapt-eps-grad", static.adapt_eps_grad)
     args = _set_option(args, "--adapt-eps-energy", static.adapt_eps_energy)
     args = _set_option(args, "--adapt-parallel-gradient-workers", max(0, int(static.adapt_parallel_gradient_workers)))
-    args = _set_option(args, "--adapt-beam-parent-workers", max(0, int(static.adapt_beam_parent_workers)))
     args = _set_option(args, "--adapt-reopt-policy", static.adapt_reopt_policy)
     args = _set_option(args, "--adapt-window-size", static.adapt_window_size)
     args = _set_option(args, "--adapt-window-topk", static.adapt_window_topk)
@@ -777,10 +727,6 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
     args = _set_option(args, "--adapt-final-full-refit", "true" if static.adapt_final_full_refit else "false")
     args = _set_option(args, "--adapt-final-refit-maxiter", static.adapt_final_refit_maxiter)
     args = _set_option(args, "--adapt-insertion-mode", static.adapt_insertion_mode)
-    args = _set_option(args, "--adapt-beam-live-branches", static.adapt_beam_live_branches)
-    args = _set_option(args, "--adapt-beam-children-per-parent", static.adapt_beam_children_per_parent)
-    args = _set_option(args, "--adapt-beam-terminated-keep", static.adapt_beam_terminated_keep)
-    args = _set_option(args, "--adapt-beam-lambda", max(0.0, float(static.adapt_beam_lambda)))
     args = _set_toggle_pair(args, "--adapt-allow-repeats", "--adapt-no-repeats", static.adapt_allow_repeats)
 
     args = _set_option(args, "--phase1-lambda-compile", static.lambda_compile)
@@ -821,29 +767,6 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
     args = _set_option(args, "--phase2-maturity-shot-cap", max(0, int(static.phase2_maturity_shot_cap)))
     args = _set_option(args, "--phase3-maturity-shot-cap", max(0, int(static.phase3_maturity_shot_cap)))
     args = _set_option(args, "--phase1-probe-max-positions", static.phase1_probe_max_positions)
-    args = _set_toggle_pair(args, "--phase1-prune-enabled", "--phase1-no-prune", static.phase1_prune_enabled)
-    args = _set_option(args, "--phase1-prune-policy", static.phase1_prune_policy)
-    if static.phase1_prune_enabled:
-        args = _set_option(args, "--phase1-prune-mode", static.phase1_prune_mode)
-        args = _set_option(args, "--phase1-prune-fraction", static.phase1_prune_fraction)
-        args = _set_option(args, "--phase1-prune-min-candidates", static.phase1_prune_min_candidates)
-        args = _set_option(args, "--phase1-prune-max-candidates", static.phase1_prune_max_candidates)
-        args = _set_option(args, "--phase1-prune-max-regression", static.phase1_prune_max_regression)
-        args = _set_option(args, "--phase1-prune-tolerance-mode", static.phase1_prune_tolerance_mode)
-        args = _set_option(args, "--phase1-prune-tolerance-shot-coeff", static.phase1_prune_tolerance_shot_coeff)
-        args = _set_option(args, "--phase1-prune-tolerance-screen-coeff", static.phase1_prune_tolerance_screen_coeff)
-        args = _set_option(args, "--phase1-prune-tolerance-chem", static.phase1_prune_tolerance_chem)
-        args = _set_option(args, "--phase1-prune-tolerance-rel-coeff", static.phase1_prune_tolerance_rel_coeff)
-        args = _set_option(args, "--phase1-prune-retained-gain-ratio", static.phase1_prune_retained_gain_ratio)
-        args = _set_option(args, "--phase1-prune-protect-steps", static.phase1_prune_protect_steps)
-        args = _set_option(args, "--phase1-prune-cooldown-steps", static.phase1_prune_cooldown_steps)
-        args = _set_option(args, "--phase1-prune-local-window-size", static.phase1_prune_local_window_size)
-        args = _set_option(args, "--phase1-prune-recovery-trust-radius", static.phase1_prune_recovery_trust_radius)
-        args = _set_option(args, "--phase1-prune-old-fraction", static.phase1_prune_old_fraction)
-        args = _set_option(args, "--phase1-prune-checkpoint-period", static.phase1_prune_checkpoint_period)
-        args = _set_option(args, "--phase1-prune-live-min-depth", static.phase1_prune_live_min_depth)
-        args = _set_option(args, "--phase1-prune-maturity-threshold", static.phase1_prune_maturity_threshold)
-        args = _set_option(args, "--phase1-prune-snr-threshold", static.phase1_prune_snr_threshold)
     args = _set_option(args, "--phase2-shortlist-fraction", static.phase2_shortlist_fraction)
     args = _set_option(args, "--phase2-shortlist-size", phase2_shortlist)
     args = _set_option(args, "--phase2-frontier-ratio", static.phase2_frontier_ratio)
@@ -876,22 +799,7 @@ def policy_to_cli_args(policy: AlgorithmPolicy, spec: HamiltonianBenchmarkSpec) 
         else float(static.phase2_motif_bonus_weight)
     )
     args = _set_option(args, "--phase2-motif-bonus-weight", motif_bonus_weight)
-    args = _set_toggle_pair(args, "--phase3-enable-batching", "--phase3-no-batching", static.phase2_enable_batching)
-    args = _set_toggle_pair(args, "--phase2-enable-batching", "--phase2-no-batching", static.phase2_enable_batching)
-    args = _set_option(args, "--phase2-batch-target-size", static.phase2_batch_target_size)
-    args = _set_option(args, "--phase2-batch-size-cap", static.phase2_batch_size_cap)
-    args = _set_option(args, "--phase2-batch-near-degenerate-ratio", static.phase2_batch_near_degenerate_ratio)
-    args = _set_option(args, "--phase2-batch-rank-rel-tol", static.phase2_batch_rank_rel_tol)
-    args = _set_option(args, "--phase2-batch-additivity-tol", static.phase2_batch_additivity_tol)
-    args = _set_option(args, "--phase3-batch-selection-mode", static.phase3_batch_selection_mode)
-    args = _set_option(args, "--phase3-batch-prefilter-mode", static.phase3_batch_prefilter_mode)
-
     args = _set_option(args, "--phase3-frontier-ratio", static.phase3_frontier_ratio)
-    args = _set_option(args, "--phase3-tie-beam-score-ratio", static.phase3_tie_beam_score_ratio)
-    args = _set_option(args, "--phase3-tie-beam-abs-tol", static.phase3_tie_beam_abs_tol)
-    args = _set_option(args, "--phase3-tie-beam-max-branches", static.phase3_tie_beam_max_branches)
-    args = _set_option(args, "--phase3-tie-beam-max-late-coordinate", static.phase3_tie_beam_max_late_coordinate)
-    args = _set_option(args, "--phase3-tie-beam-min-depth-left", static.phase3_tie_beam_min_depth_left)
     plateau_cfg = normalize_plateau_acquisition_config(
         mode=getattr(static, "phase3_plateau_acquisition_mode", PLATEAU_ACQUISITION_MODE_OFF),
         acquisition_score=getattr(
@@ -1009,12 +917,6 @@ def apply_policy_to_pipeline_args(
     idx = 0
     overrides = policy_to_cli_args(normalized_policy, spec)
     toggles = {
-        "--phase1-prune-enabled": ("--phase1-prune-enabled", "--phase1-no-prune", True),
-        "--phase1-no-prune": ("--phase1-prune-enabled", "--phase1-no-prune", False),
-        "--phase3-enable-batching": ("--phase3-enable-batching", "--phase3-no-batching", True),
-        "--phase3-no-batching": ("--phase3-enable-batching", "--phase3-no-batching", False),
-        "--phase2-enable-batching": ("--phase2-enable-batching", "--phase2-no-batching", True),
-        "--phase2-no-batching": ("--phase2-enable-batching", "--phase2-no-batching", False),
         "--adapt-allow-repeats": ("--adapt-allow-repeats", "--adapt-no-repeats", True),
         "--adapt-no-repeats": ("--adapt-allow-repeats", "--adapt-no-repeats", False),
         "--phase3-enable-rescue": ("--phase3-enable-rescue", "--phase3-no-rescue", True),

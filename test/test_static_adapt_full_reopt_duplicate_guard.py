@@ -13,6 +13,11 @@ import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
 from pipelines.exact_bench.static_benchmark_runtime import (
     StaticScaffoldPolicy,
 )
+from pipelines.static_adapt.extensions import (
+    BATCH_RUNTIME_KEYS,
+    BEAM_RUNTIME_KEYS,
+    PRUNING_RUNTIME_KEYS,
+)
 from src.quantum.hubbard_latex_python_pairs import build_hubbard_hamiltonian
 
 
@@ -48,7 +53,7 @@ def _hubbard_problem():
     )
 
 
-def _run_flat_two_rounds(*, beam_width: int) -> dict[str, object]:
+def _run_flat_two_rounds() -> dict[str, object]:
     payload, _psi = adapt_pipeline._run_hardcoded_adapt_vqe(
         h_poly=_hubbard_problem(),
         num_sites=2,
@@ -74,9 +79,6 @@ def _run_flat_two_rounds(*, beam_width: int) -> dict[str, object]:
         finite_angle_min_improvement=1e-12,
         adapt_reopt_policy="full",
         adapt_final_full_refit=False,
-        adapt_beam_live_branches=int(beam_width),
-        adapt_beam_children_per_parent=int(beam_width),
-        phase2_enable_batching=False,
     )
     return payload
 
@@ -128,15 +130,16 @@ def test_retained_static_policy_has_no_admission_rollback_controls() -> None:
     field_names = {field.name for field in fields(StaticScaffoldPolicy)}
     assert "adapt_rollback_mode" not in field_names
     assert "adapt_rollback_tolerance" not in field_names
+    assert (
+        BATCH_RUNTIME_KEYS | BEAM_RUNTIME_KEYS | PRUNING_RUNTIME_KEYS
+    ).isdisjoint(field_names)
 
 
-@pytest.mark.parametrize("beam_width", [1, 2])
 def test_flat_consecutive_repeat_is_committed_without_rollback(
     flat_optimizer: None,
-    beam_width: int,
 ) -> None:
     with contextlib.redirect_stdout(io.StringIO()):
-        payload = _run_flat_two_rounds(beam_width=beam_width)
+        payload = _run_flat_two_rounds()
 
     history = list(payload.get("history", []))
     assert len(history) == 2

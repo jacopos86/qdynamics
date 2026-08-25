@@ -546,9 +546,6 @@ def test_greedy_context_resolves_request_specific_child_route() -> None:
         "window_semantics",
     ),
     [
-        (1, None, 2, "ranked_phase3_prefix_cardinality_v1"),
-        (3, None, 6, "ranked_phase3_prefix_cardinality_v1"),
-        (5, None, 10, "ranked_phase3_prefix_cardinality_v1"),
         (4, 7, 7, "ranked_phase3_prefix_cardinality_v1"),
         (
             4,
@@ -560,7 +557,7 @@ def test_greedy_context_resolves_request_specific_child_route() -> None:
 )
 def test_combinatorial_context_resolves_request_specific_child_route(
     maximum_size: int,
-    search_window: int | FullCombinatorialSearchWindow | None,
+    search_window: int | FullCombinatorialSearchWindow,
     resolved_window: int | None,
     window_semantics: str,
 ) -> None:
@@ -605,7 +602,6 @@ def test_combinatorial_context_resolves_request_specific_child_route(
     assert invariants["combinatorial_batch_commit_order"] == (
         "phase2_ranked_proposal_order_within_phase3_prefix_v1"
     )
-    assert invariants["combinatorial_batch_additivity_policy"] == "off"
     assert context.route.contract["lineage_authority"][
         "parent_contract_sha256"
     ] == ROUTE_DIGEST

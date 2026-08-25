@@ -14,7 +14,6 @@ if str(REPO_ROOT) not in sys.path:
 
 import pipelines.scaffold.hh_continuation_scoring as scoring_mod
 from pipelines.scaffold.hh_continuation_scoring import (
-    CompatibilityPenaltyOracle,
     FullScoreConfig,
     GRAM_NOVELTY_POLICY_FALLBACK_ONLY_V1,
     MeasurementCacheAudit,
@@ -27,11 +26,8 @@ from pipelines.scaffold.hh_continuation_scoring import (
     SimpleScoreConfig,
     build_full_candidate_features,
     build_candidate_features,
-    ceo_commuting_batch_select,
-    compatibility_penalty,
     full_v2_score,
     lifetime_weight_components,
-    overlap_orthogonal_batch_select,
     phase0_raw_gradient_pilot_components,
     phase3_canonical_score_components,
     phase3_plateau_novelty_cost_score_components,
@@ -40,9 +36,6 @@ from pipelines.scaffold.hh_continuation_scoring import (
     greedy_reduced_plane_batch_proposals,
     hardware_cost_ansatz_entry_denominators,
     hardware_cost_candidate_record_denominators,
-    reduced_plane_batch_select,
-    select_phase2_batch_record_proposals,
-    select_phase2_batch_records,
     measurement_group_keys_for_term,
     raw_f_metric_from_state,
     remaining_evaluations_proxy,
@@ -58,8 +51,6 @@ from pipelines.static_adapt.route_a_schur_selector import (
     BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
     BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
     BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
-    ROUTE_A_ADDITIVITY_OFF,
-    ROUTE_A_ADDITIVITY_SOFT_PENALTY_V1,
     ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1,
     ROUTE_A_SCHUR_GREEDY_REDUCED_PLANE,
     RouteAJointResponseEvaluator,
@@ -2207,66 +2198,6 @@ def test_full_v2_ablation_additive_mode_is_explicit_opt_in() -> None:
     assert ablation == pytest.approx(baseline + 0.5)
 
 
-def test_reduced_plane_batch_select_can_keep_two_orthogonal_records() -> None:
-    psi_ref = np.zeros(2, dtype=complex)
-    psi_ref[0] = 1.0 + 0.0j
-    full_cfg = FullScoreConfig(
-        z_alpha=0.0,
-        rho=0.5,
-        wD=0.0,
-        wG=0.0,
-        wC=0.0,
-        wP=0.0,
-        wc=0.0,
-        lifetime_weight=0.0,
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.95,
-        batch_additivity_tol=1.0,
-    )
-    simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
-    rec_x, h_compiled = _full_record(
-        label="x",
-        candidate_label="x",
-        candidate_pool_index=0,
-        gradient_signed=0.8,
-        psi_state=psi_ref,
-        selected_ops=[],
-        theta=[],
-        refit_window_indices=[],
-        full_cfg=full_cfg,
-        simple_cfg=simple_cfg,
-    )
-    rec_y, _ = _full_record(
-        label="y",
-        candidate_label="y",
-        candidate_pool_index=1,
-        gradient_signed=0.8,
-        psi_state=psi_ref,
-        selected_ops=[],
-        theta=[],
-        refit_window_indices=[],
-        full_cfg=full_cfg,
-        simple_cfg=simple_cfg,
-    )
-    selected, summary = reduced_plane_batch_select(
-        [rec_x, rec_y],
-        cfg=full_cfg,
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=psi_ref,
-        psi_state=psi_ref,
-        h_compiled=h_compiled,
-        novelty_oracle=OrderedInsertionGeometryOracle(),
-        curvature_oracle=Phase2CurvatureOracle(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-    assert len(selected) == 2
-    assert {str(rec["candidate_term"].label) for rec in selected} == {"x", "y"}
-    assert float(summary.get("joint_gain", 0.0)) > 0.0
-    assert float(summary.get("additivity_defect", 1.0)) <= 1.0
 
 
 def test_greedy_reduced_plane_batch_proposal_uses_cost_weighted_batch_score() -> None:
@@ -2285,7 +2216,6 @@ def test_greedy_reduced_plane_batch_proposal_uses_cost_weighted_batch_score() ->
         batch_target_size=2,
         batch_size_cap=9,
         batch_near_degenerate_ratio=0.95,
-        batch_additivity_tol=1.0,
     )
     simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
     rec_x, h_compiled = _full_record(
@@ -2341,155 +2271,10 @@ def test_greedy_reduced_plane_batch_proposal_uses_cost_weighted_batch_score() ->
     )
 
 
-def test_select_phase2_batch_records_routes_ordered_batch_modes(monkeypatch: pytest.MonkeyPatch) -> None:
-    records = [
-        _tetris_record(
-            candidate_label="a_x0",
-            pauli_label="xe",
-            full_v2_score=1.0,
-            candidate_pool_index=0,
-        )
-    ]
-    calls: dict[str, object] = {}
-
-    def _fake_greedy_select(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["greedy"] = list(ranked_records)
-        return [dict(ranked_records[0])], {"selection_mode": "greedy_reduced_plane", "reason": "delegated"}
-
-    def _fake_combinatorial_select(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["combinatorial"] = list(ranked_records)
-        return [dict(ranked_records[0])], {"selection_mode": "combinatorial_reduced_plane", "reason": "delegated"}
-
-    monkeypatch.setattr(scoring_mod, "greedy_reduced_plane_batch_select", _fake_greedy_select)
-    monkeypatch.setattr(scoring_mod, "combinatorial_reduced_plane_batch_select", _fake_combinatorial_select)
-
-    for mode, call_key in (
-        ("greedy_reduced_plane", "greedy"),
-        ("combinatorial_reduced_plane", "combinatorial"),
-    ):
-        selected, summary = select_phase2_batch_records(
-            records,
-            cfg=FullScoreConfig(batch_selection_mode=mode),
-            selected_ops=[],
-            theta=np.zeros(0, dtype=float),
-            psi_ref=np.zeros(1, dtype=complex),
-            psi_state=np.zeros(1, dtype=complex),
-            h_compiled=object(),
-            novelty_oracle=object(),
-            curvature_oracle=object(),
-            compiled_cache={},
-            pauli_action_cache={},
-            tie_break_score_key="phase2_raw_score",
-        )
-        assert selected[0]["candidate_label"] == "a_x0"
-        assert summary["selection_mode"] == mode
-        assert summary["reason"] == "delegated"
-        assert calls[call_key] == records
 
 
-def test_select_phase2_batch_record_proposals_routes_ordered_batch_modes(monkeypatch: pytest.MonkeyPatch) -> None:
-    records = [
-        _tetris_record(
-            candidate_label="a_x0",
-            pauli_label="xe",
-            full_v2_score=1.0,
-            candidate_pool_index=0,
-        )
-    ]
-    calls: dict[str, object] = {}
-
-    def _fake_greedy_proposals(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["greedy"] = list(ranked_records)
-        return [], {"selection_mode": "greedy_reduced_plane", "reason": "delegated"}
-
-    def _fake_combinatorial_proposals(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["combinatorial"] = list(ranked_records)
-        return [], {"selection_mode": "combinatorial_reduced_plane", "reason": "delegated"}
-
-    monkeypatch.setattr(scoring_mod, "greedy_reduced_plane_batch_proposals", _fake_greedy_proposals)
-    monkeypatch.setattr(scoring_mod, "combinatorial_reduced_plane_batch_proposals", _fake_combinatorial_proposals)
-
-    for mode, call_key in (
-        ("greedy_reduced_plane", "greedy"),
-        ("combinatorial_reduced_plane", "combinatorial"),
-    ):
-        proposals, summary = select_phase2_batch_record_proposals(
-            records,
-            cfg=FullScoreConfig(batch_selection_mode=mode),
-            selected_ops=[],
-            theta=np.zeros(0, dtype=float),
-            psi_ref=np.zeros(1, dtype=complex),
-            psi_state=np.zeros(1, dtype=complex),
-            h_compiled=object(),
-            novelty_oracle=object(),
-            curvature_oracle=object(),
-            compiled_cache={},
-            pauli_action_cache={},
-            tie_break_score_key="phase2_raw_score",
-        )
-        assert proposals == []
-        assert summary["selection_mode"] == mode
-        assert summary["reason"] == "delegated"
-        assert calls[call_key] == records
 
 
-def test_reduced_plane_batch_select_blocks_same_generator_at_different_positions() -> None:
-    psi_ref = np.zeros(2, dtype=complex)
-    psi_ref[0] = 1.0 + 0.0j
-    full_cfg = FullScoreConfig(
-        z_alpha=0.0,
-        rho=0.5,
-        wD=0.0,
-        wG=0.0,
-        wC=0.0,
-        wP=0.0,
-        wc=0.0,
-        lifetime_weight=0.0,
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.95,
-        batch_additivity_tol=1.0,
-    )
-    simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
-    rec_a, h_compiled = _full_record(
-        label="x",
-        candidate_label="same_generator",
-        candidate_pool_index=0,
-        gradient_signed=0.8,
-        psi_state=psi_ref,
-        selected_ops=[],
-        theta=[],
-        refit_window_indices=[],
-        full_cfg=full_cfg,
-        simple_cfg=simple_cfg,
-    )
-    feat_a = rec_a["feature"]
-    rec_b = {
-        **rec_a,
-        "position_id": 1,
-        "feature": replace(feat_a, position_id=1, positions_considered=[1]),
-    }
-
-    selected, summary = reduced_plane_batch_select(
-        [rec_a, rec_b],
-        cfg=full_cfg,
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=psi_ref,
-        psi_state=psi_ref,
-        h_compiled=h_compiled,
-        novelty_oracle=OrderedInsertionGeometryOracle(),
-        curvature_oracle=Phase2CurvatureOracle(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert len(selected) == 1
-    assert selected[0]["candidate_pool_index"] == 0
-    assert summary["same_generator_batch_duplicate_policy"] == "block_generator_identity_v1"
-    assert int(summary["same_generator_duplicate_skip_count"]) >= 1
-    assert summary["same_generator_duplicate_identities"]
 
 
 @pytest.mark.parametrize(
@@ -2578,66 +2363,6 @@ def test_ordered_reduced_plane_batching_uses_global_pauli_child_identity(
     assert selected_identities == ["pauli:x", "pauli:y"]
 
 
-def test_reduced_plane_batch_select_rejects_rank_deficient_addon() -> None:
-    psi_ref = np.zeros(2, dtype=complex)
-    psi_ref[0] = 1.0 + 0.0j
-    full_cfg = FullScoreConfig(
-        z_alpha=0.0,
-        rho=0.5,
-        wD=0.0,
-        wG=0.0,
-        wC=0.0,
-        wP=0.0,
-        wc=0.0,
-        lifetime_weight=0.0,
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.95,
-        batch_rank_rel_tol=1e-6,
-        batch_additivity_tol=1.0,
-    )
-    simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
-    rec_a, h_compiled = _full_record(
-        label="x",
-        candidate_label="x_a",
-        candidate_pool_index=0,
-        gradient_signed=0.8,
-        psi_state=psi_ref,
-        selected_ops=[],
-        theta=[],
-        refit_window_indices=[],
-        full_cfg=full_cfg,
-        simple_cfg=simple_cfg,
-    )
-    rec_b, _ = _full_record(
-        label="x",
-        candidate_label="x_b",
-        candidate_pool_index=1,
-        gradient_signed=0.79,
-        psi_state=psi_ref,
-        selected_ops=[],
-        theta=[],
-        refit_window_indices=[],
-        full_cfg=full_cfg,
-        simple_cfg=simple_cfg,
-    )
-    selected, summary = reduced_plane_batch_select(
-        [rec_a, rec_b],
-        cfg=full_cfg,
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=psi_ref,
-        psi_state=psi_ref,
-        h_compiled=h_compiled,
-        novelty_oracle=OrderedInsertionGeometryOracle(),
-        curvature_oracle=Phase2CurvatureOracle(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-    assert len(selected) == 1
-    assert str(selected[0]["candidate_term"].label) == "x"
-    assert float(summary.get("joint_gain", 0.0)) > 0.0
 
 
 def test_combinatorial_search_pool_size_is_independent_of_batch_cap(
@@ -2667,7 +2392,6 @@ def test_combinatorial_search_pool_size_is_independent_of_batch_cap(
                 "feasible": True,
                 "joint_gain": float(score),
                 "contextual_single_total": float(score),
-                "additivity_defect": 0.0,
             },
             score=float(score),
             delta_e3=float(score),
@@ -2690,7 +2414,6 @@ def test_combinatorial_search_pool_size_is_independent_of_batch_cap(
                 batch_size_cap=2,
                 batch_search_pool_size=search_size,
                 batch_search_population_mode="ranked_child_phase2_v1",
-                batch_additivity_policy="off",
             ),
             selected_ops=[],
             theta=np.zeros(0, dtype=float),
@@ -2771,7 +2494,6 @@ def test_combinatorial_search_width_counts_rank_feasible_children(
                 "feasible": True,
                 "joint_gain": float(score),
                 "contextual_single_total": float(score),
-                "additivity_defect": 0.0,
             },
             score=float(score),
             delta_e3=float(score),
@@ -2793,7 +2515,6 @@ def test_combinatorial_search_width_counts_rank_feasible_children(
             batch_search_pool_size=1,
             batch_search_population_mode="ranked_child_phase2_v1",
             batch_search_feasibility_policy="rank_feasible_fill_v1",
-            batch_additivity_policy="off",
             batch_joint_context_mode="full_ansatz_v1",
         ),
         selected_ops=[object()],
@@ -2869,7 +2590,6 @@ def test_joint_subset_gate_preserves_exact_ranked_search_pool(
                 "feasible": True,
                 "joint_gain": float(score),
                 "contextual_single_total": float(score),
-                "additivity_defect": 0.0,
             },
             score=float(score),
             delta_e3=float(score),
@@ -2891,7 +2611,6 @@ def test_joint_subset_gate_preserves_exact_ranked_search_pool(
             batch_search_pool_size=2,
             batch_search_population_mode="ranked_child_phase2_v1",
             batch_search_feasibility_policy="joint_subset_gate_v1",
-            batch_additivity_policy="off",
             batch_geometry_mode="full_residual_gram_hessian_v1",
             batch_joint_context_mode="full_ansatz_v1",
         ),
@@ -2975,7 +2694,6 @@ def test_combinatorial_batch_forwards_joint_pair_observer_to_one_workspace(
                 "feasible": True,
                 "joint_gain": float(score),
                 "contextual_single_total": float(score),
-                "additivity_defect": 0.0,
             },
             score=float(score),
             delta_e3=float(score),
@@ -2997,7 +2715,6 @@ def test_combinatorial_batch_forwards_joint_pair_observer_to_one_workspace(
             batch_search_pool_size=2,
             batch_search_population_mode="ranked_child_phase2_v1",
             batch_search_feasibility_policy="joint_subset_gate_v1",
-            batch_additivity_policy="off",
             batch_geometry_mode="full_residual_gram_hessian_v1",
             batch_joint_context_mode="full_ansatz_v1",
         ),
@@ -3015,82 +2732,6 @@ def test_combinatorial_batch_forwards_joint_pair_observer_to_one_workspace(
     assert summary["geometry_workspace"] == {
         "required_candidate_pair_count": 1
     }
-
-
-def test_soft_additivity_penalizes_without_rejecting_and_legacy_gate_rejects(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    records = [
-        _tetris_record(
-            candidate_label=f"child-{index}",
-            pauli_label=("xe", "ye")[index],
-            full_v2_score=1.0,
-            candidate_pool_index=index,
-        )
-        for index in range(2)
-    ]
-
-    def fake_geometry(*_args, **kwargs):  # noqa: ANN002, ANN003
-        cfg = kwargs["cfg"]
-        if (
-            cfg.batch_additivity_policy == "hard_gate_legacy_v1"
-            and 0.5 > cfg.batch_additivity_tol
-        ):
-            return {
-                "feasible": False,
-                "reason": "additivity_hard_gate_legacy",
-                "joint_gain": 2.0,
-                "contextual_single_total": 4.0,
-                "additivity_defect": 0.5,
-            }
-        return {
-            "feasible": True,
-            "joint_gain": 2.0,
-            "contextual_single_total": 4.0,
-            "additivity_defect": 0.5,
-        }
-
-    monkeypatch.setattr(scoring_mod, "_batch_geometry_summary", fake_geometry)
-    base_kwargs = dict(
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=np.ones(1, dtype=complex),
-        psi_state=np.ones(1, dtype=complex),
-        h_compiled=object(),
-        novelty_oracle=object(),
-        curvature_oracle=object(),
-        mode="combinatorial_reduced_plane",
-    )
-    soft = scoring_mod._evaluate_ordered_reduced_plane_batch_proposal(
-        records,
-        cfg=FullScoreConfig(
-            batch_additivity_policy="soft_penalty_v1",
-            batch_additivity_lambda=2.0,
-        ),
-        **base_kwargs,
-    )
-    unpenalized = scoring_mod._evaluate_ordered_reduced_plane_batch_proposal(
-        records,
-        cfg=FullScoreConfig(
-            batch_additivity_policy="soft_penalty_v1",
-            batch_additivity_lambda=0.0,
-        ),
-        **base_kwargs,
-    )
-    hard = scoring_mod._evaluate_ordered_reduced_plane_batch_proposal(
-        records,
-        cfg=FullScoreConfig(
-            batch_additivity_policy="hard_gate_legacy_v1",
-            batch_additivity_tol=0.25,
-        ),
-        **base_kwargs,
-    )
-
-    assert soft is not None
-    assert unpenalized is not None
-    assert soft.score == pytest.approx(unpenalized.score / 2.0)
-    assert soft.summary["additivity_defect"] == pytest.approx(0.5)
-    assert hard is None
 
 
 def _joint_geometry_fixture() -> tuple[
@@ -3256,7 +2897,6 @@ def test_phase2_joint_response_and_bmax1_share_singleton_evaluator() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
         ),
         score_config=cfg,
@@ -3321,7 +2961,6 @@ def test_phase2_joint_response_then_bmax2_charges_only_pair_off_diagonals() -> N
         config=RouteASchurSelectorConfig(
             batch_size_cap=2,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
         ),
         score_config=cfg,
@@ -3386,7 +3025,6 @@ def test_typed_joint_response_evaluator_reuses_active_blocks() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
         ),
         score_config=cfg,
@@ -3638,7 +3276,6 @@ def test_full_joint_geometry_builds_once_and_offdiagonal_hessian_changes_gain() 
     common = dict(
         batch_size_cap=2,
         batch_search_pool_size=0,
-        additivity_policy=ROUTE_A_ADDITIVITY_OFF,
         joint_batch_context_mode=BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
     )
     full_proposals, full_summary = select_route_a_schur_proposals(
@@ -4363,7 +4000,6 @@ def test_joint_pair_parallel_evaluation_is_deterministic(
     selector_config = RouteASchurSelectorConfig(
         batch_size_cap=2,
         batch_search_pool_size=0,
-        additivity_policy=ROUTE_A_ADDITIVITY_OFF,
         joint_batch_context_mode=(
             BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
         ),
@@ -4441,7 +4077,6 @@ def test_joint_pair_cache_reuses_measurement_without_double_charge(
             config=RouteASchurSelectorConfig(
                 batch_size_cap=2,
                 batch_search_pool_size=0,
-                additivity_policy=ROUTE_A_ADDITIVITY_OFF,
                 joint_batch_context_mode=(
                     BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
                 ),
@@ -4500,7 +4135,6 @@ def test_joint_pair_parallel_cache_eviction_and_charging_are_deterministic(
     selector_config = RouteASchurSelectorConfig(
         batch_size_cap=2,
         batch_search_pool_size=0,
-        additivity_policy=ROUTE_A_ADDITIVITY_OFF,
         joint_batch_context_mode=(
             BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
         ),
@@ -4684,7 +4318,6 @@ def test_joint_selector_rejects_an_ill_conditioned_subset() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=2,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=(
                 BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
             ),
@@ -4740,7 +4373,6 @@ def test_phase2_joint_geometry_reuse_requires_matching_exact_chart_and_state() -
             config=RouteASchurSelectorConfig(
                 batch_size_cap=1,
                 batch_search_pool_size=0,
-                additivity_policy=ROUTE_A_ADDITIVITY_OFF,
                 joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
             ),
             score_config=cfg,
@@ -4879,7 +4511,6 @@ def test_full_ansatz_context_suppresses_candidate_redundant_with_ansatz() -> Non
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
         ),
         **common_kwargs,
@@ -4888,7 +4519,6 @@ def test_full_ansatz_context_suppresses_candidate_redundant_with_ansatz() -> Non
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=(
                 BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
             ),
@@ -4924,7 +4554,6 @@ def test_joint_ansatz_relaxation_matches_direct_combined_solve() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
             joint_linear_solve_policy=(
                 JOINT_LINEAR_SOLVE_BLOCK_PINV_LEGACY_V1
@@ -4985,7 +4614,6 @@ def test_supported_whitened_joint_selector_emits_full_system_certificates() -> N
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
             joint_linear_solve_policy=(
                 JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
@@ -5044,7 +4672,6 @@ def test_active_window_context_is_explicit_and_shared_by_gram_and_hessian() -> N
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
             active_context_indices=(1,),
         ),
@@ -5090,7 +4717,6 @@ def test_active_tail_window_resolves_against_current_ansatz_depth() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
             active_context_policy=ROUTE_A_ACTIVE_CONTEXT_TAIL_WINDOW_V1,
             active_window_size=2,
@@ -5142,7 +4768,6 @@ def test_joint_trust_solve_eliminates_schur_of_h_plus_lambda_g() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             max_fubini_study_step=1e-4,
             joint_linear_solve_policy=(
                 JOINT_LINEAR_SOLVE_BLOCK_PINV_LEGACY_V1
@@ -5206,7 +4831,6 @@ def test_joint_geometry_is_global_phase_and_parameter_scale_invariant() -> None:
     selector = RouteASchurSelectorConfig(
         batch_size_cap=2,
         batch_search_pool_size=0,
-        additivity_policy=ROUTE_A_ADDITIVITY_OFF,
         joint_batch_context_mode=BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
     )
 
@@ -5257,7 +4881,6 @@ def test_joint_geometry_is_global_phase_and_parameter_scale_invariant() -> None:
             config=RouteASchurSelectorConfig(
                 batch_size_cap=1,
                 batch_search_pool_size=0,
-                additivity_policy=ROUTE_A_ADDITIVITY_OFF,
                 joint_batch_context_mode=(
                     BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
                 ),
@@ -5320,7 +4943,6 @@ def test_joint_selector_preserves_position_alternatives_but_blocks_same_child_ba
         config=RouteASchurSelectorConfig(
             batch_size_cap=2,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
         ),
         score_config=cfg,
         selected_ops=selected,
@@ -5361,7 +4983,6 @@ def test_batch_cap_one_and_larger_share_singleton_evaluator_and_workspace_charge
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
         ),
         **common,
@@ -5371,7 +4992,6 @@ def test_batch_cap_one_and_larger_share_singleton_evaluator_and_workspace_charge
         config=RouteASchurSelectorConfig(
             batch_size_cap=2,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1,
         ),
         **common,
@@ -5450,7 +5070,6 @@ def test_full_context_never_silently_truncates_active_ansatz() -> None:
         config=RouteASchurSelectorConfig(
             batch_size_cap=1,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
         ),
         score_config=cfg,
@@ -5475,7 +5094,6 @@ def test_full_context_never_silently_truncates_active_ansatz() -> None:
             config=RouteASchurSelectorConfig(
                 batch_size_cap=1,
                 batch_search_pool_size=0,
-                additivity_policy=ROUTE_A_ADDITIVITY_OFF,
                 joint_batch_context_mode=BATCH_JOINT_CONTEXT_ACTIVE_WINDOW_V1,
                 active_context_indices=(3,),
             ),
@@ -5537,7 +5155,6 @@ def test_joint_workspace_fails_closed_on_state_reconstruction_mismatch() -> None
             config=RouteASchurSelectorConfig(
                 batch_size_cap=1,
                 batch_search_pool_size=0,
-                additivity_policy=ROUTE_A_ADDITIVITY_OFF,
                 joint_batch_context_mode=(
                     BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
                 ),
@@ -5583,7 +5200,6 @@ def test_canonical_greedy_batch_cap_one_evaluates_all_singletons(
                 "feasible": True,
                 "joint_gain": score,
                 "contextual_single_total": score,
-                "additivity_defect": 0.0,
             },
             score=score,
             delta_e3=score,
@@ -5604,7 +5220,6 @@ def test_canonical_greedy_batch_cap_one_evaluates_all_singletons(
             batch_size_cap=1,
             batch_search_pool_size=0,
             batch_search_population_mode="ranked_child_phase2_v1",
-            batch_additivity_policy="off",
             batch_geometry_mode="per_subset_diagonal_hessian_legacy_v1",
         ),
         selected_ops=[],
@@ -5621,53 +5236,6 @@ def test_canonical_greedy_batch_cap_one_evaluates_all_singletons(
     assert proposals[0].records[0]["candidate_label"] == "child-1"
 
 
-def test_full_geometry_legacy_hard_additivity_gate_remains_effective() -> None:
-    records = [
-        _tetris_record(
-            candidate_label=f"child-{index}",
-            pauli_label=("xe", "ye")[index],
-            full_v2_score=1.0,
-            candidate_pool_index=index,
-        )
-        for index in range(2)
-    ]
-
-    class _Workspace:
-        def __init__(self) -> None:
-            self.records = tuple(dict(record) for record in records)
-
-        def summary_for_records(self, _records):  # noqa: ANN001
-            return {
-                "feasible": True,
-                "subset_workspace_indices": [0, 1],
-                "joint_gain": 2.0,
-                "contextual_single_total": 4.0,
-                "additivity_defect": 0.5,
-            }
-
-    rejection_counts: dict[str, int] = {}
-    proposal = scoring_mod._evaluate_ordered_reduced_plane_batch_proposal(
-        records,
-        cfg=FullScoreConfig(
-            batch_additivity_policy="hard_gate_legacy_v1",
-            batch_additivity_tol=0.25,
-        ),
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=np.ones(1, dtype=complex),
-        psi_state=np.ones(1, dtype=complex),
-        h_compiled=object(),
-        novelty_oracle=object(),
-        curvature_oracle=object(),
-        mode="combinatorial_reduced_plane",
-        rejection_counts=rejection_counts,
-        geometry_workspace=_Workspace(),
-    )
-
-    assert proposal is None
-    assert rejection_counts == {"additivity_hard_gate_legacy": 1}
-
-
 def test_greedy_same_position_batch_uses_workspace_coordinate_order() -> None:
     psi, records, h_compiled, cfg = _joint_geometry_fixture()
     proposals, summary = select_route_a_schur_proposals(
@@ -5676,7 +5244,6 @@ def test_greedy_same_position_batch_uses_workspace_coordinate_order() -> None:
             mode=ROUTE_A_SCHUR_GREEDY_REDUCED_PLANE,
             batch_size_cap=2,
             batch_search_pool_size=0,
-            additivity_policy=ROUTE_A_ADDITIVITY_OFF,
             joint_batch_context_mode=(
                 BATCH_JOINT_CONTEXT_BATCH_ONLY_DIAGNOSTIC_V1
             ),
@@ -5736,264 +5303,18 @@ def _tetris_record(
     }
 
 
-def test_overlap_orthogonal_batch_select_keeps_low_overlap_shell_pair() -> None:
-    cfg = FullScoreConfig(
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.9,
-    )
-    rec_a = _tetris_record(
-        candidate_label="a_x0",
-        pauli_label="xe",
-        full_v2_score=1.0,
-        candidate_pool_index=0,
-    )
-    rec_b = _tetris_record(
-        candidate_label="b_y1",
-        pauli_label="ey",
-        full_v2_score=0.95,
-        candidate_pool_index=1,
-    )
-
-    selected, summary = overlap_orthogonal_batch_select(
-        [rec_b, rec_a],
-        cfg=cfg,
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert [rec["candidate_label"] for rec in selected] == ["a_x0", "b_y1"]
-    assert summary["selection_mode"] == "overlap_orthogonal_benchmark"
-    assert summary["selected"] is True
-    assert summary["selected_count"] == 2
-    assert summary["rejected_overlap_count"] == 0
-    assert summary["rejected_invalid_feature_count"] == 0
-    assert float(summary["overlap_threshold"]) == pytest.approx(0.15)
-    assert float(summary["max_pairwise_overlap"]) == pytest.approx(0.0)
-    assert float(summary["joint_gain"]) == pytest.approx(1.95)
-    assert all(float(rec["compatibility_penalty"]["total"]) == 0.0 for rec in selected)
 
 
-def test_overlap_orthogonal_batch_select_rejects_high_overlap_follow_on() -> None:
-    cfg = FullScoreConfig(
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.9,
-    )
-    rec_a = _tetris_record(
-        candidate_label="a_x0",
-        pauli_label="xe",
-        full_v2_score=1.0,
-        candidate_pool_index=0,
-    )
-    rec_b = _tetris_record(
-        candidate_label="b_x0_duplicate",
-        pauli_label="xe",
-        full_v2_score=0.99,
-        candidate_pool_index=1,
-    )
-
-    selected, summary = overlap_orthogonal_batch_select(
-        [rec_a, rec_b],
-        cfg=cfg,
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert [rec["candidate_label"] for rec in selected] == ["a_x0"]
-    assert summary["selected"] is False
-    assert summary["reason"] == "singleton_shell"
-    assert summary["selected_count"] == 1
-    assert summary["rejected_overlap_count"] == 1
-    assert summary["rejected_invalid_feature_count"] == 0
-    assert float(summary["additivity_defect"]) == 0.0
 
 
-def test_ceo_commuting_batch_select_keeps_pairwise_commuting_shell_pair() -> None:
-    cfg = FullScoreConfig(
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.9,
-    )
-    rec_a = _tetris_record(
-        candidate_label="a_xx",
-        pauli_label="xx",
-        full_v2_score=1.0,
-        candidate_pool_index=0,
-    )
-    rec_b = _tetris_record(
-        candidate_label="b_yy",
-        pauli_label="yy",
-        full_v2_score=0.95,
-        candidate_pool_index=1,
-    )
-
-    selected, summary = ceo_commuting_batch_select(
-        [rec_b, rec_a],
-        cfg=cfg,
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert [rec["candidate_label"] for rec in selected] == ["a_xx", "b_yy"]
-    assert summary["selection_mode"] == "ceo_commuting_benchmark"
-    assert summary["selected"] is True
-    assert summary["selected_count"] == 2
-    assert summary["rejected_noncommuting_count"] == 0
-    assert summary["rejected_invalid_pauli_count"] == 0
-    assert float(summary["joint_gain"]) == pytest.approx(1.95)
-    assert all(float(rec["compatibility_penalty"]["total"]) == 0.0 for rec in selected)
 
 
-def test_ceo_commuting_batch_select_rejects_noncommuting_follow_on() -> None:
-    cfg = FullScoreConfig(
-        batch_target_size=2,
-        batch_size_cap=2,
-        batch_near_degenerate_ratio=0.9,
-    )
-    rec_a = _tetris_record(
-        candidate_label="a_x0",
-        pauli_label="xe",
-        full_v2_score=1.0,
-        candidate_pool_index=0,
-    )
-    rec_b = _tetris_record(
-        candidate_label="b_z0",
-        pauli_label="ze",
-        full_v2_score=0.99,
-        candidate_pool_index=1,
-    )
-
-    selected, summary = ceo_commuting_batch_select(
-        [rec_a, rec_b],
-        cfg=cfg,
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert [rec["candidate_label"] for rec in selected] == ["a_x0"]
-    assert summary["selected"] is False
-    assert summary["reason"] == "singleton_shell"
-    assert summary["selected_count"] == 1
-    assert summary["rejected_noncommuting_count"] == 1
-    assert summary["rejected_invalid_pauli_count"] == 0
-    assert float(summary["additivity_defect"]) == 0.0
 
 
-def test_select_phase2_batch_records_routes_ceo_commuting_benchmark(monkeypatch: pytest.MonkeyPatch) -> None:
-    records = [
-        _tetris_record(
-            candidate_label="a_x0",
-            pauli_label="xe",
-            full_v2_score=1.0,
-            candidate_pool_index=0,
-        )
-    ]
-    calls: dict[str, object] = {}
-
-    def _fake_ceo_batch_select(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["records"] = list(ranked_records)
-        calls["kwargs"] = dict(kwargs)
-        return [dict(ranked_records[0])], {"selection_mode": "ceo_commuting_benchmark", "reason": "delegated"}
-
-    monkeypatch.setattr(scoring_mod, "ceo_commuting_batch_select", _fake_ceo_batch_select)
-
-    selected, summary = select_phase2_batch_records(
-        records,
-        cfg=FullScoreConfig(batch_selection_mode="ceo_commuting_benchmark"),
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=np.zeros(1, dtype=complex),
-        psi_state=np.zeros(1, dtype=complex),
-        h_compiled=object(),
-        novelty_oracle=object(),
-        curvature_oracle=object(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert selected[0]["candidate_label"] == "a_x0"
-    assert summary["selection_mode"] == "ceo_commuting_benchmark"
-    assert summary["reason"] == "delegated"
-    assert calls["records"] == records
-    assert calls["kwargs"]["tie_break_score_key"] == "phase2_raw_score"
 
 
-def test_select_phase2_batch_records_routes_overlap_orthogonal_benchmark(monkeypatch: pytest.MonkeyPatch) -> None:
-    records = [
-        _tetris_record(
-            candidate_label="a_x0",
-            pauli_label="xe",
-            full_v2_score=1.0,
-            candidate_pool_index=0,
-        )
-    ]
-    calls: dict[str, object] = {}
-
-    def _fake_overlap_batch_select(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["records"] = list(ranked_records)
-        calls["kwargs"] = dict(kwargs)
-        return [dict(ranked_records[0])], {"selection_mode": "overlap_orthogonal_benchmark", "reason": "delegated"}
-
-    monkeypatch.setattr(scoring_mod, "overlap_orthogonal_batch_select", _fake_overlap_batch_select)
-
-    selected, summary = select_phase2_batch_records(
-        records,
-        cfg=FullScoreConfig(batch_selection_mode="overlap_orthogonal_benchmark"),
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=np.zeros(1, dtype=complex),
-        psi_state=np.zeros(1, dtype=complex),
-        h_compiled=object(),
-        novelty_oracle=object(),
-        curvature_oracle=object(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert selected[0]["candidate_label"] == "a_x0"
-    assert summary["selection_mode"] == "overlap_orthogonal_benchmark"
-    assert summary["reason"] == "delegated"
-    assert calls["records"] == records
-    assert calls["kwargs"]["tie_break_score_key"] == "phase2_raw_score"
 
 
-def test_select_phase2_batch_records_default_delegates_to_reduced_plane(monkeypatch: pytest.MonkeyPatch) -> None:
-    records = [
-        _tetris_record(
-            candidate_label="a_x0",
-            pauli_label="xe",
-            full_v2_score=1.0,
-            candidate_pool_index=0,
-        )
-    ]
-    calls: dict[str, object] = {}
-
-    def _fake_reduced_plane_batch_select(ranked_records, **kwargs):  # noqa: ANN001, ANN003 - test shim
-        calls["records"] = list(ranked_records)
-        calls["kwargs"] = dict(kwargs)
-        return [dict(ranked_records[0])], {"reason": "delegated"}
-
-    monkeypatch.setattr(scoring_mod, "reduced_plane_batch_select", _fake_reduced_plane_batch_select)
-
-    selected, summary = select_phase2_batch_records(
-        records,
-        cfg=FullScoreConfig(),
-        selected_ops=[],
-        theta=np.zeros(0, dtype=float),
-        psi_ref=np.zeros(1, dtype=complex),
-        psi_state=np.zeros(1, dtype=complex),
-        h_compiled=object(),
-        novelty_oracle=object(),
-        curvature_oracle=object(),
-        compiled_cache={},
-        pauli_action_cache={},
-        tie_break_score_key="phase2_raw_score",
-    )
-
-    assert selected[0]["candidate_label"] == "a_x0"
-    assert summary["selection_mode"] == "reduced_plane"
-    assert summary["reason"] == "delegated"
-    assert calls["records"] == records
-    assert calls["kwargs"]["tie_break_score_key"] == "phase2_raw_score"
 
 
 def test_phase1_compile_cost_oracle_emits_manuscript_hatted_primitives_for_xyz() -> None:
@@ -6460,131 +5781,8 @@ def test_phase1_compile_cost_oracle_penalizes_heavier_pauli_structure() -> None:
     assert heavy.proxy_total > light.proxy_total
 
 
-def test_compatibility_penalty_uses_measurement_mismatch_signal() -> None:
-    cfg = FullScoreConfig(
-        compat_overlap_weight=0.0,
-        compat_comm_weight=0.0,
-        compat_curv_weight=0.0,
-        compat_sched_weight=0.0,
-        compat_measure_weight=1.0,
-    )
-    oracle = Phase1CompileCostOracle()
-    meas = MeasurementCacheAudit()
-
-    def _feat_and_record(label: str, term: object) -> dict[str, object]:
-        feat = build_candidate_features(
-            stage_name="core",
-            candidate_label=str(label),
-            candidate_family="core",
-            candidate_pool_index=0,
-            position_id=0,
-            append_position=0,
-            positions_considered=[0],
-            gradient_signed=0.5,
-            F=0.5,
-            sigma_hat=0.0,
-            refit_window_indices=[0],
-            compile_cost=oracle.estimate(
-                candidate_term_count=1,
-                position_id=0,
-                append_position=0,
-                refit_active_count=1,
-                candidate_term=term,
-            ),
-            measurement_stats=meas.estimate(measurement_group_keys_for_term(term)),
-            leakage_penalty=0.0,
-            stage_gate_open=True,
-            leakage_gate_open=True,
-            trough_probe_triggered=False,
-            trough_detected=False,
-            cfg=SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0),
-        )
-        return {"feature": feat, "candidate_term": term}
-
-    rec_xz = _feat_and_record("xz", _term("xz"))
-    rec_ez = _feat_and_record("ez", _term("ez"))
-    rec_yy = _feat_and_record("yy", _term("yy"))
-
-    close_penalty = compatibility_penalty(record_a=rec_xz, record_b=rec_ez, cfg=cfg)
-    far_penalty = compatibility_penalty(record_a=rec_xz, record_b=rec_yy, cfg=cfg)
-
-    assert close_penalty["measurement_mismatch"] < far_penalty["measurement_mismatch"]
-    assert close_penalty["total"] < far_penalty["total"]
 
 
-def test_compatibility_penalty_oracle_caches_tangents_and_pair_results(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    cfg = FullScoreConfig(
-        compat_overlap_weight=0.0,
-        compat_comm_weight=0.0,
-        compat_curv_weight=1.0,
-        compat_sched_weight=0.0,
-        compat_measure_weight=0.0,
-    )
-    oracle = Phase1CompileCostOracle()
-    meas = MeasurementCacheAudit()
-
-    def _feat_and_record(label: str, term: object) -> dict[str, object]:
-        feat = build_candidate_features(
-            stage_name="core",
-            candidate_label=str(label),
-            candidate_family="core",
-            candidate_pool_index=0,
-            position_id=0,
-            append_position=0,
-            positions_considered=[0],
-            gradient_signed=0.5,
-            F=0.5,
-            sigma_hat=0.0,
-            refit_window_indices=[0],
-            compile_cost=oracle.estimate(
-                candidate_term_count=1,
-                position_id=0,
-                append_position=0,
-                refit_active_count=1,
-                candidate_term=term,
-            ),
-            measurement_stats=meas.estimate(measurement_group_keys_for_term(term)),
-            leakage_penalty=0.0,
-            stage_gate_open=True,
-            leakage_gate_open=True,
-            trough_probe_triggered=False,
-            trough_detected=False,
-            cfg=SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0),
-        )
-        return {"feature": feat, "candidate_term": term}
-
-    call_labels: list[str] = []
-
-    def _fake_tangent_data(**kwargs):
-        label = str(kwargs.get("label"))
-        call_labels.append(label)
-        if label == "xz":
-            return np.asarray([1.0 + 0.0j, 0.0 + 0.0j]), 1.0
-        return np.asarray([0.5 + 0.0j, 0.0 + 0.0j]), 0.25
-
-    monkeypatch.setattr(
-        "pipelines.scaffold.hh_continuation_scoring._tangent_data",
-        _fake_tangent_data,
-    )
-
-    rec_xz = _feat_and_record("xz", _term("xz"))
-    rec_ez = _feat_and_record("ez", _term("ez"))
-    compat = CompatibilityPenaltyOracle(
-        cfg=cfg,
-        psi_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j]),
-        compiled_cache={},
-        pauli_action_cache={},
-    )
-
-    first = compat.penalty(rec_xz, rec_ez)
-    second = compat.penalty(rec_ez, rec_xz)
-    third = compat.penalty(rec_xz, rec_ez)
-
-    assert first == second == third
-    assert call_labels.count("xz") == 1
-    assert call_labels.count("ez") == 1
 
 
 def test_shortlist_only_expensive_scoring_calls_oracles_for_shortlist() -> None:

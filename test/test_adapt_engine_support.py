@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import math
 from pathlib import Path
@@ -15,128 +16,11 @@ import pipelines.static_adapt.adapt_pipeline as static_adapt
 import pipelines.static_adapt.beam_search as beam_search
 import pipelines.static_adapt.cli_config as cli_config
 import pipelines.static_adapt.engine_support as engine_support
+from pipelines.static_adapt.extensions import BEAM_RUNTIME_KEYS
 from pipelines.scaffold.hh_continuation_scoring import MeasurementCacheAudit
 from pipelines.scaffold.hh_continuation_stage_control import StageController, StageControllerConfig
 from pipelines.static_adapt.selector_measurement_proxy import ControllerMeasurementWorkAccumulator
 from pipelines.static_adapt.route_a_trust_region import RouteATrustRegionState
-
-_BEAM_HELPER_NAMES = [
-    "_beam_label_signature",
-    "_beam_round10_theta",
-    "_branch_state_fingerprint",
-    "_proposal_fingerprint",
-    "_branch_optimizer_seed",
-    "_resolve_beam_local_reopt_seed_inputs",
-    "_beam_prune_key_payload",
-    "_beam_prune_key",
-    "_beam_dedup",
-    "_beam_prune",
-    "_beam_energy_cost_prune_key_payload",
-    "_beam_energy_cost_sort_key",
-    "_beam_prune_energy_cost_pareto_with_audit",
-]
-_CLI_CONFIG_BEAM_POLICY_NAMES = [
-    "ResolvedBeamCapacityPolicy",
-    "_resolve_beam_capacity_policy",
-]
-
-
-def test_beam_capacity_policy_disables_terminal_archive_but_accepts_legacy_cap() -> None:
-    policy = cli_config._resolve_beam_capacity_policy(
-        adapt_beam_live_branches=3,
-        adapt_beam_children_per_parent=2,
-        adapt_beam_terminated_keep=3,
-    )
-
-    assert policy.beam_enabled is True
-    assert policy.live_branches_effective == 3
-    assert policy.children_per_parent_effective == 2
-    assert policy.terminated_keep_requested == 3
-    assert policy.terminated_keep_effective == 0
-    assert policy.source_terminated_keep == "terminal_archive_disabled.explicit"
-
-    disabled_requested = cli_config._resolve_beam_capacity_policy(
-        adapt_beam_live_branches=3,
-        adapt_beam_children_per_parent=2,
-        adapt_beam_terminated_keep=0,
-    )
-    assert disabled_requested.terminated_keep_requested == 0
-    assert disabled_requested.terminated_keep_effective == 0
-
-
-def test_adapt_pipeline_beam_runtime_honors_explicit_legacy_terminal_archive() -> None:
-    source = Path(static_adapt.__file__).read_text(encoding="utf-8")
-
-    assert 'str(beam_policy.terminal_archive_mode) == "legacy"' in source
-    assert '"terminal_archive_enabled": bool(beam_terminal_archive_enabled)' in source
-    assert '"legacy_parent_stop_archive_cap_v1"' in source
-    assert 'terminal_candidates = (' in source
-    assert '[*terminals, *round_terminals]' in source
-    assert "else list(round_terminals)" in source
-    assert 'source="round_terminal_archive"' in source
-    assert 'if bool(beam_terminal_archive_enabled)\n                        else []' in source
-    assert '"materialize_parent_stop_and_accumulate_capped_v1"' in source
-    assert '"stop_or_single_admission"' in source
-    assert '"beam_parent_stop_terminal_also_materialized": bool(' in source
-    assert '"disabled_parent_stop_archive_v1"' in source
-    assert '"round_terminal_fallback"' in source
-
-    archive_enabled_idx = source.index("beam_terminal_archive_enabled = bool(")
-    terminal_child_idx = source.index(
-        "if bool(beam_terminal_archive_enabled):\n"
-        "                        # Exact pre-2026-07-04 historical semantics",
-        archive_enabled_idx,
-    )
-    active_only_idx = source.index(
-        'sr_active_only_plan = getattr(', terminal_child_idx
-    )
-    stop_gate_idx = source.index(
-        "if scratch.stop_reason is not None or not scratch.proposals:",
-        active_only_idx,
-    )
-    disabled_terminal_idx = source.index(
-        "if not bool(beam_terminal_archive_enabled):", stop_gate_idx
-    )
-    selected_plan_idx = source.index(
-        "selected_plans = list(scratch.proposals)", disabled_terminal_idx
-    )
-    accumulation_idx = source.index("[*terminals, *round_terminals]", selected_plan_idx)
-    archive_cap_idx = source.index('source="round_terminal_archive"', accumulation_idx)
-    assert (
-        terminal_child_idx
-        < active_only_idx
-        < stop_gate_idx
-        < disabled_terminal_idx
-        < selected_plan_idx
-        < accumulation_idx
-        < archive_cap_idx
-    )
-
-
-def test_ordered_batch_telemetry_keeps_precedence_over_legacy_stop_archive() -> None:
-    source = Path(static_adapt.__file__).read_text(encoding="utf-8")
-    structural = source.index('"beam_structural_mode": (')
-    ordered = source.index('"ordered_batch_admission"', structural)
-    legacy = source.index('"stop_or_single_admission"', ordered)
-    singleton = source.index('"single_admission"', legacy)
-    parent_stop = source.index(
-        '"beam_parent_stop_terminal_also_materialized": bool(', singleton
-    )
-
-    assert structural < ordered < legacy < singleton < parent_stop
-
-
-def test_ordered_batch_beam_filters_nonpositive_batch_proposals_before_materialization() -> None:
-    source = Path(static_adapt.__file__).read_text(encoding="utf-8")
-    filter_idx = source.index("positive_batch_eps_local = float(")
-    plan_idx = source.index("if batch_proposals_local:", filter_idx)
-    assert filter_idx < plan_idx
-    assert "max(0.0, phase2_score_cfg_local.cheap_score_eps)" in source[
-        filter_idx:plan_idx
-    ]
-    assert "float(proposal.score) > float(positive_batch_eps_local)" in source[filter_idx:plan_idx]
-    assert "float(proposal.delta_e3) > float(positive_batch_eps_local)" in source[filter_idx:plan_idx]
-
 
 def test_static_adapt_pipeline_wires_hardware_cost_family_rescoring_before_selector_sorting() -> None:
     source = Path(static_adapt.__file__).read_text(encoding="utf-8")
@@ -358,21 +242,14 @@ def test_scipy_powell_options_accept_explicit_maxfev() -> None:
     )
 
 
-def test_adapt_pipeline_uses_engine_support_beam_helper_identities() -> None:
-    for name in _BEAM_HELPER_NAMES:
-        assert getattr(static_adapt, name) is getattr(engine_support, name)
-        assert getattr(hardcoded_adapt, name) is getattr(engine_support, name)
-
-
-def test_adapt_pipeline_uses_cli_config_beam_policy_identities() -> None:
-    for name in _CLI_CONFIG_BEAM_POLICY_NAMES:
-        assert getattr(static_adapt, name) is getattr(cli_config, name)
-        assert getattr(hardcoded_adapt, name) is getattr(cli_config, name)
-
-
 def test_cli_defaults_shared_cost_weights_and_accepts_exact_subset_sizes() -> None:
     parser = cli_config._build_adapt_arg_parser(adapt_gradient_parity_rtol=1e-8)
     defaults = parser.parse_args([])
+
+    assert BEAM_RUNTIME_KEYS.isdisjoint(vars(defaults))
+    assert BEAM_RUNTIME_KEYS.isdisjoint(
+        inspect.signature(static_adapt._run_hardcoded_adapt_vqe).parameters
+    )
 
     assert (
         defaults.phase1_lambda_2q,

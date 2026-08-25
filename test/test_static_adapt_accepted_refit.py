@@ -419,234 +419,10 @@ def _write_small_full_meta_filter(tmp_path: Path) -> Path:
         SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
     ],
 )
-def test_sr_pipeline_keeps_selector_window_but_refits_full_whitened_ansatz(
-    base_chart_policy: str,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
-    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
-    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
-    coordinate_evaluator_calls: list[int] = []
-    trust_update_calls: list[int] = []
-    coordinate_evaluator = (
-        adapt_pipeline.evaluate_historical_singleton_coordinate_models
-    )
-    trust_updater = adapt_pipeline.update_trust_region_state
-
-    def _coordinate_evaluator_spy(*args, **kwargs):
-        records = args[0] if args else kwargs["records"]
-        coordinate_evaluator_calls.append(len(records))
-        return coordinate_evaluator(*args, **kwargs)
-
-    def _trust_update_spy(*args, **kwargs):
-        trust_update_calls.append(1)
-        return trust_updater(*args, **kwargs)
-
-    monkeypatch.setattr(
-        adapt_pipeline,
-        "evaluate_historical_singleton_coordinate_models",
-        _coordinate_evaluator_spy,
-    )
-    monkeypatch.setattr(
-        adapt_pipeline,
-        "update_trust_region_state",
-        _trust_update_spy,
-    )
-    h_poly = build_hubbard_holstein_hamiltonian(
-        dims=2,
-        J=1.0,
-        U=0.5,
-        omega0=1.0,
-        g=0.2,
-        n_ph_max=2,
-        boson_encoding="binary",
-        repr_mode="JW",
-        indexing="blocked",
-        pbc=False,
-        include_zero_point=True,
-    )
-    current_json = tmp_path / "accepted_refit_current.json"
-    qpb = boson_qubits_per_site(2, "binary")
-
-    payload, _ = adapt_pipeline._run_hardcoded_adapt_vqe(
-        h_poly=h_poly,
-        num_sites=2,
-        ordering="blocked",
-        problem="hh",
-        adapt_pool="full_meta",
-        adapt_pool_class_filter_json=_write_small_full_meta_filter(tmp_path),
-        t=1.0,
-        u=0.5,
-        dv=0.0,
-        boundary="open",
-        omega0=1.0,
-        g_ep=0.2,
-        n_ph_max=2,
-        boson_encoding="binary",
-        max_depth=2,
-        eps_grad=0.0,
-        eps_energy=0.0,
-        maxiter=2,
-        seed=7,
-        adapt_inner_optimizer="POWELL",
-        allow_repeats=True,
-        finite_angle_fallback=False,
-        finite_angle=0.1,
-        finite_angle_min_improvement=1.0e-12,
-        adapt_reopt_policy="windowed",
-        adapt_window_size=1,
-        adapt_window_topk=0,
-        adapt_final_full_refit=False,
-        adapt_insertion_mode="append_only",
-        phase2_enable_batching=False,
-        phase0_pilot_enabled=False,
-        static_route_id="route_a",
-        static_meta_feature_profile="paper_i_production_v1",
-        static_lane_route="physical_operator_type",
-        physical_lane_shortlist_aggressiveness=3,
-        phase1_shortlist_size=24,
-        phase2_shortlist_size=12,
-        phase2_shortlist_fraction=0.25,
-        phase3_selector_policy="algebraic_nested_v1",
-        phase1_prune_policy="recoverability_ladder_v1",
-        phase1_prune_mode="both",
-        phase3_runtime_split_mode="shortlist_pauli_children_v1",
-        phase3_runtime_split_selection_mode="archival_child_set_forward_v1",
-        phase3_runtime_split_max_subset_size=1,
-        phase3_runtime_split_subset_sizes="1",
-        phase3_runtime_split_child_set_symmetry_policy="hard_guard",
-        phase3_response_coordinate_scope="full_active_plus_singleton_v1",
-        route_a_child_padding_config=RouteAChildPaddingConfig(
-            policy=ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
-            problem_key="hh",
-            num_sites=2,
-            n_ph_max=2,
-            boson_encoding="binary",
-            total_register_width=int(4 + 2 * qpb),
-        ),
-        historical_singleton_coordinate_solve_policy=(
-            "supported_metric_whitened_eigh_v1"
-        ),
-        historical_singleton_coordinate_solve_scope="phase3_only_v1",
-        historical_singleton_trust_region_update_policy=(
-            "displacement_calibrated_unbounded_v2"
-        ),
-        adapt_accepted_refit_scope="full_ansatz_v1",
-        adapt_accepted_refit_coordinate_chart=(
-            "supported_fs_whitened_fixed_v1"
-        ),
-        adapt_accepted_refit_base_chart_policy=(
-            base_chart_policy
-        ),
-        adapt_beam_live_branches=3,
-        adapt_beam_children_per_parent=2,
-        phase3_tie_beam_max_branches=2,
-        adapt_estimator_call_ledger_enabled=True,
-        adapt_current_json=current_json,
-        adapt_current_json_every_depth=1,
-    )
-
-    assert payload["success"] is True
-    assert payload["adapt_beam_enabled"] is True
-    assert payload["accepted_refit"]["full_ansatz"] is True
-    assert payload["accepted_refit"]["base_chart_policy"] == (
-        base_chart_policy
-    )
-    assert payload["adapt_reoptimization_route"] == "off"
-    assert payload["formal_manifold_warm_start"] is None
-    assert all(int(row["batch_size"]) == 1 for row in payload["history"])
-    assert len(payload["history"]) == 2
-    beam_rounds = payload["continuation"]["beam_search"]["rounds"]
-    selected_child_count = sum(
-        int(row["proposals_selected_count"]) for row in beam_rounds
-    )
-    assert selected_child_count >= 2
-    assert len(trust_update_calls) == selected_child_count
-    assert coordinate_evaluator_calls
-    assert len(coordinate_evaluator_calls) == sum(
-        int(row["parents_expanded_count"]) for row in beam_rounds
-    )
-    assert all(count > 0 for count in coordinate_evaluator_calls)
-    for expected_count, row in enumerate(payload["history"], start=1):
-        accepted = row["accepted_refit"]
-        assert row["reopt_active_count"] <= expected_count
-        assert row["accepted_refit_logical_count"] == expected_count
-        assert accepted["supported_rank"] <= expected_count
-        assert accepted["base_chart_policy"] == (
-            base_chart_policy
-        )
-        assert accepted["accepted_refit_invocation"][
-            "selector_inputs_mutated"
-        ] is False
-        metric_query_accounting = accepted["accepted_refit_invocation"][
-            "metric_query_accounting"
-        ]
-        assert metric_query_accounting[
-            "symmetric_metric_element_occurrences"
-        ] == (
-            expected_count * (expected_count + 1) // 2
-        )
-        assert metric_query_accounting[
-            "new_unique_metric_elements_charged"
-        ] == 0
-        assert 0 < int(row["phase3_response_supported_rank"]) <= expected_count
-        assert row["selected_feature_rows"][0][
-            "phase2_joint_geometry_reuse"
-        ]["schema"] == "historical_singleton_coordinate_model_v1"
-        trust_receipt = row["route_a_trust_region_update"]
-        assert trust_receipt["policy"] == "displacement_calibrated_unbounded_v2"
-        assert trust_receipt["context_mode"] == "full_ansatz_v1"
-        assert trust_receipt["full_coordinate_refit"] is True
-        assert trust_receipt["update_reason"] != "context_mode_not_supported"
-        assert np.isfinite(
-            float(trust_receipt["predicted_fs_displacement"])
-        )
-        assert np.isfinite(
-            float(trust_receipt["realized_fs_displacement_exact"])
-        )
-        assert trust_receipt["displacement_ratio_metric"] == (
-            "endpoint_fubini_study_distance_v1"
-        )
-        assert np.isfinite(float(trust_receipt["radius_before"]))
-        assert np.isfinite(float(trust_receipt["radius_after"]))
-        overlap_accounting = trust_receipt[
-            "endpoint_overlap_query_accounting"
-        ]
-        assert overlap_accounting["status"] == "complete"
-        assert overlap_accounting["formal_query_category"] == "N_cross"
-
-    accounting = payload["estimator_call_accounting"]
-    all_execution = accounting["executed_occurrence_accounting"][
-        "all_execution"
-    ]
-    scope_counts = all_execution["occurrence_count_by_consumer_scope"]
-    assert int(
-        scope_counts.get("adaptive_trust_endpoint_overlap", 0)
-    ) == selected_child_count
-    expected_active_gradient_occurrences = sum(
-        int(round_index) * int(row["parents_expanded_count"])
-        for round_index, row in enumerate(beam_rounds)
-    )
-    assert int(
-        scope_counts.get(
-            "historical_singleton_whitening_active_gradient", 0
-        )
-    ) == expected_active_gradient_occurrences
-
-    checkpoint = json.loads(current_json.read_text(encoding="utf-8"))
-    checkpoint_refit = checkpoint["adapt_vqe"]["accepted_refit"]
-    assert checkpoint_refit["supported_fs_whitened"] is True
-    checkpoint_step = checkpoint["adapt_vqe"]["history"][-1][
-        "accepted_refit"
-    ]
-    assert checkpoint_step["origin_kind"] == "inherited_zero_growth_state_v1"
-    assert len(checkpoint_step["supported_metric_whitening_provenance_id"]) == 64
-
-
 def test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    base_chart_policy: str,
 ) -> None:
     monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
     monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
@@ -727,7 +503,6 @@ def test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record(
         adapt_window_topk=0,
         adapt_final_full_refit=False,
         adapt_insertion_mode="append_only",
-        phase2_enable_batching=False,
         phase0_pilot_enabled=False,
         static_route_id="route_a",
         static_meta_feature_profile="paper_i_production_v1",
@@ -737,8 +512,6 @@ def test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record(
         phase2_shortlist_size=12,
         phase2_shortlist_fraction=0.25,
         phase3_selector_policy="algebraic_nested_v1",
-        phase1_prune_policy="recoverability_ladder_v1",
-        phase1_prune_mode="both",
         phase3_runtime_split_mode="shortlist_pauli_children_v1",
         phase3_runtime_split_selection_mode="archival_child_set_forward_v1",
         phase3_runtime_split_max_subset_size=1,
@@ -764,18 +537,12 @@ def test_nonbeam_sr_phase3_empty_shortlist_falls_back_to_full_response_record(
         adapt_accepted_refit_coordinate_chart=(
             "supported_fs_whitened_fixed_v1"
         ),
-        adapt_accepted_refit_base_chart_policy=(
-            SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
-        ),
-        adapt_beam_live_branches=1,
-        adapt_beam_children_per_parent=1,
-        phase3_tie_beam_max_branches=1,
+        adapt_accepted_refit_base_chart_policy=base_chart_policy,
         adapt_estimator_call_ledger_enabled=True,
     )
 
     assert payload["success"] is True
     assert len(payload["history"]) == 2
-    assert payload["adapt_beam_enabled"] is False
     assert all(int(row["batch_size"]) == 1 for row in payload["history"])
     assert len(coordinate_evaluator_calls) == len(payload["history"])
     assert all(count > 0 for count in coordinate_evaluator_calls)
