@@ -2728,12 +2728,29 @@ A bundle differing from the current canonical only in the Phase-III solve policy
 `global_trust_eigh_v2` instead of `projected_generalized_trust_v1`. Compared on
 the Q6 axes — DeltaE, qiskit costs, estimator count — at matched cost.
 
-### Cheaper first step, before any run
+### The cheap precursor does not exist — checked
 
-The hard case is detectable from existing evidence. If Phase III never encountered
-an indefinite Hessian on the retained support in any archived run, v2 would return
-the same answer and the ablation buys nothing. That is a receipts question, not a
-campaign, and it should settle whether the campaign is worth its compute.
+I proposed settling this from archived receipts before spending compute. **It is
+not answerable that way.**
+
+`_solve_supported_metric_projected_generalized_trust` (`joint_linear_solve.py:907-1241`),
+the policy every run used, contains no `hard_case`, no `solution_case`, no
+`lambda_min`. It solves the generalized KKT system directly and **never classifies
+whether it is in the hard case**. The `solution_case = "sphere_hard_case"`
+telemetry lives in `_maximize_quadratic_on_sphere` (`:1517-1632`), which serves the
+whitened and global-trust paths — neither of which ran as the Phase-III solve.
+
+Nor is the spectrum recoverable: the hard case depends on the **Hessian's**
+eigenvalues on the retained support, and `SupportedMetricWhitening.retained_eigenvalues`
+holds the **metric's**. `solution_case` appears in zero bundle checkpoints,
+consistent with this.
+
+**So the ablation cannot be pre-justified from evidence.** Either it runs, or the
+hypothesis stays untested. The alternative — instrumenting the projected solver to
+record the retained-support Hessian spectrum and replaying — is itself a run.
+
+That is worth knowing before authorizing: the campaign is the only way to find
+out, so its cost cannot be avoided by analysis first.
 
 ## 7. No fallbacks
 
