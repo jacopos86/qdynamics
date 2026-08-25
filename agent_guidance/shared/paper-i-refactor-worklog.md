@@ -2323,7 +2323,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | resumed after Q42; PAOP and deferred-Gram excluded; remaining ratified items in progress |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | awaiting author decisions: Q30 cross-lane scope, Q33 graph-span disposition, Q38 replacement snapshot name; all independent ratified increments complete |
 | _(add yours)_ | | | |
 
 ---
@@ -3788,3 +3788,63 @@ configuration surface passes `50 passed`.
 **Paper-I-local impact audit:** final GitNexus `detect-changes` reports two
 production files, seven changed symbols, one affected controller flow, and
 MEDIUM risk. All pre-edit symbol impacts were LOW.
+
+### 2026-08-24 — Work Plan 3.3 — run-level transpiler seed
+
+**Implementation:** commit `abdba188` implements Q34. The executable parameter,
+CLI flag, output field, backend experiment drivers, and compile-oracle builders
+now use the run-level name `backend_transpile_seed`. The authenticated route
+contracts retain `phase3_backend_transpile_seed` byte-for-byte as historical
+provenance; `normalize_sr_route_profile_namespace` translates that key once at
+the contract boundary and does not create a runtime alias. The implementation
+adds 20 lines and deletes 20: **0 net lines removed**.
+
+**Reproducibility:** the completed one-round ledger remains byte-identical at
+256 entries and 266 ordered occurrences. Its fingerprint is
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`,
+primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved route-contract digest remains
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** before and after are both `5466 tests collected, 54
+errors`; the `ERROR test/...` diff is empty. Route-profile normalization and
+contract materialization pass `112 passed`. Three broader output tests fail
+identically at the untouched `e5d00dbc` baseline because they still expect
+prune/batch fields deleted by the completed Q24-Q28 extension increments.
+
+**Paper-I-local impact audit:** all pre-edit symbol impacts were LOW. Final
+GitNexus `detect-changes` reports six production files, fifteen changed symbols,
+seven serialization/contract flows, and HIGH aggregate risk. Exact route and
+ledger hashes, the complete route-profile test file, baseline failure
+reproduction, and the empty collection-error diff close that risk.
+
+### 2026-08-24 — Work Plan Stages 1-3 — remaining decision boundaries
+
+The independently executable ratified items are complete. The remaining three
+surfaces require author choices that DECISIONS does not yet supply:
+
+- **1.2 / 3.5:** Q36 and Q38 require the maturity parameters and
+  `phase_shots_maturity_floor` to be deleted in the same change that renames
+  `phase123_controller_maturity_v2`. Q38 does not name the replacement version
+  string. No string was invented and the phase controller was not touched.
+- **2.4:** Q30 ratifies deleting `allow_aer_fallback` for Paper I, but the field
+  and fallback mechanism are implemented in the shared
+  `exact_bench/noise_oracle_runtime.py` and are called by active time-dynamics
+  code. Paper-I call sites alone can be made strict, but deleting the shared
+  mechanism changes Paper-II semantics; that cross-lane scope is not ratified.
+- **3.2:** Q33 names two run-level sources, Qiskit and the logical-ladder proxy,
+  while the active Paper-I family explicitly selects the third implementation
+  `marrakesh_graph_span_v1`. DECISIONS does not say whether graph-span is
+  deleted, mapped to `proxy`, or retained as a third run-level source. No
+  scientific mapping was inferred.
+
+The Q20/Q21 fallback-reporting fields named in 6o
+(`metric_proxy`, `cheap_metric_proxy`, `phase1/2_lambda_f_proxy_applied`, and
+`phase2_missing_curvature_fallback_used`) are already absent from production
+code. The deferred-Gram path and all PAOP machinery remain intact under the Q41
+retraction and Q42. The 16 default-off policy/mode parameters, 30 `_mode`
+parameters, and three legacy-named settings excluded by the commission were not
+touched.
