@@ -2604,6 +2604,55 @@ whether they form an inverse at all:
 Every bundle ran the first. It is also the only one that preserves the
 Phase-III / refit separation the manuscript's whitening language implies.
 
+## 6az. The solve policies, checked against every run (Q48)
+
+The author asked for a double check before deleting. It changed the answer.
+
+### What every run used
+
+| corpus | archives / runs | policy |
+|---|---|---|
+| HH bundles b3, b6, b7, b8, b9 | **61 of 61** readable | `projected_generalized_trust_v1` |
+| L=3 Hubbard runs | **13 of 13** readable | `projected_generalized_trust_v1` |
+| sixregime runs | 6 sampled | `projected_generalized_trust_v1` |
+
+Including the runs named `paper_i_l3_proxy_adaptive_whitened_*` — "whitened"
+there refers to the refit chart, not the Phase-III solve.
+
+### The catch: `whitened_eigh_v1` is the accepted-refit chart
+
+```python
+accepted_refit.py:500   supported_metric: JointLinearSolveConfig = JointLinearSolveConfig()
+accepted_refit.py:573   "supported_metric": self.supported_metric.as_dict()
+```
+
+`JointLinearSolveConfig.policy` defaults to
+`supported_metric_whitened_eigh_v1` (`joint_linear_solve.py:36`), so the accepted
+refit runs with it, and it appears in run receipts inside a `"supported_metric"`
+block next to `final_energy`.
+
+**This is the author's model, confirmed twice over.** Whitening is used *after*
+Phase III to precondition the inner optimization — Paper I:
+*"accepted refits use a fixed pullback-whitened chart"*. Phase III itself uses the
+policy that forms no inverse.
+
+**A grep would have deleted it.** The string appears in run receipts, but as the
+refit's config, not as a Phase-III policy — and the Phase-III fields in the same
+files read `projected_generalized_trust_v1`.
+
+### Disposition
+
+| policy | verdict |
+|---|---|
+| `supported_metric_projected_generalized_trust_v1` | **keep** — the Phase-III response solve |
+| `supported_metric_whitened_eigh_v1` | **keep** — the accepted-refit chart |
+| `supported_metric_global_trust_eigh_v2` | **delete** — 0 occurrences in any run receipt |
+| `block_pinv_legacy_v1` | **delete** — 0 occurrences in any run receipt |
+
+`global_trust_eigh_v2` is 810 lines implementing the singular Moré--Sorensen hard
+case; deleting it removes a correctness improvement over v1 that nothing ever
+ran. Recorded so it is a decision, not an oversight.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2970,6 +3019,7 @@ already shows the saturated tail. Every agent error was architectural: the wrong
 `full_meta` builder, a derived flag read as absent from a receipt, and two
 single-artifact generalizations.
 | Q47 | The `_local` / non-`_local` duplicate pairs | **Should be one.** There is no scientific reason a candidate record is built differently in a "local" context. Applies to all six pairs, 3,235 lines. The two large pairs have diverged to 47% and 54% similarity, so unifying them requires establishing what diverged and which behaviour the bundles exercised — it is not a mechanical merge. | 2026-08-25 |
+| Q48 | The four joint-linear-solve policies | **Delete two, keep two.** `supported_metric_projected_generalized_trust_v1` is the Phase-III response solve (61/61 bundle archives, 13/13 L=3 runs, 6/6 sixregime). `supported_metric_whitened_eigh_v1` is the **accepted-refit chart** — `accepted_refit.py:500` takes it as the `JointLinearSolveConfig` default, and Paper I calls it the *"fixed pullback-whitened chart"*. `global_trust_eigh_v2` and `block_pinv_legacy_v1` appear in **zero** run receipts. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
