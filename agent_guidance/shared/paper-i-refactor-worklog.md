@@ -1906,6 +1906,33 @@ artifact and generalizing: a checkpoint that never stores a derived flag (Q41),
 and one of two same-named builders (Q39). When a name resolves to more than one
 implementation, enumerate them before concluding.
 
+## 6am. PAOP is Paper-I material — keep (Q42)
+
+Author's decision, closing the retracted Q39: **if it was used for Paper I, keep
+it.** PAOP contributes 40 of the 89 candidate-position records in the canonical
+Hubbard--Holstein parent pool, so it is live Paper-I material.
+
+Consequences:
+
+- **No pool change, no rerun, no manuscript note.** The operator pool behind
+  every Bundle stays as it was.
+- Work-plan item **1.1 is withdrawn**. Codex stopped before editing, so nothing
+  needs reverting.
+- The 4 executor parameters (`paop_r`, `paop_split_paulis`, `paop_prune_eps`,
+  `paop_normalization`) **stay**. They configure a pool the canonical path
+  builds.
+- 6ah's reconciliation of `paop_prune_eps` still holds on its own terms — it is
+  pool-polynomial truncation and belongs in the generator/pool layer, not in
+  `extensions.py` — but it is no longer a deletion candidate.
+- `hh_vqe_from_adapt_family.py` (131 refs) and `hh_pool_presets.py` (223) are not
+  to be stripped.
+
+**Note on the manuscript.** PAOP does not appear in
+`Paper_I_author_revision.tex` under that name. That is a naming question, not an
+evidence question: the pool it contributes to is the `full_meta` physical macro
+pool the paper does describe. Flagged only so a future reader applying the
+"is it in Paper I?" test does not repeat this deletion attempt.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2085,6 +2112,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q41 | The deferred-Gram rescue and the metric-collapse branch | **Delete both.** The rescue never fired in 58 archives. The collapse branch fired 25 times, but **every occurrence is at machine-level error** — `F_red` ~ 2e-11 with `dE` between `0.0` and `-6e-11` and `max_grad` ~ 1e-7 — so it only ever acted on candidates contributing floating-point noise. Author accepts that removing it may alter accepted trajectories at that level. | 2026-08-24 |
 | Q41 | **RETRACTED** — see 6ak | The delete decision rested on a false premise. `deferred_gram_fallback_enabled` is derived, not stored; the active family enables it via `fallback_only_v1`. Whether the rescue *fires* is still open. | 2026-08-24 |
 | Q39 | **RETRACTED** — see 6al | PAOP is inside canonical Hubbard--Holstein `full_meta`: 40 of 89 records in the materialized parent pool. Codex stopped before editing. Re-scoping question open. | 2026-08-24 |
+| Q42 | Re-scope of the retracted Q39 | **Keep PAOP.** It was used for Paper I — 40 of the 89 records in the canonical HH parent pool — so it stays. No pool change, no rerun. The standalone `paop_*` pool keys and the 4 executor parameters are **not** to be deleted either while the pool depends on the same builder machinery; treat PAOP as live Paper-I material. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
