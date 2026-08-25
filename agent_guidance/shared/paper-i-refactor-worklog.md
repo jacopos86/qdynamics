@@ -2428,6 +2428,54 @@ Six `_local` defs and the `_..._inner` helpers appear in the dead set, which is
 consistent: the `_local` family was the beam-branch-local implementation, and it
 died with beam.
 
+## 6aw. Cross-phase measurement reuse — demonstrated, not inferred
+
+The author's requirement: *a new phase must not be charged for measurements an
+earlier phase already took, such as a candidate's gradient `g` across Phases
+I-III.* Reuse is within one accepted round, since the key carries the state
+fingerprint.
+
+**It is structural.** `EstimatorCallKey` is
+`(projective_state_fingerprint, hamiltonian_fingerprint, backend_fingerprint,
+precision_contract, primitive_kind, observable_or_formula_identity,
+symmetric_pair | operand_identity)`. **No phase, scope or consumer field.**
+`consumer_scope` rides on the occurrence, not the key, so the same quantity at
+the same state is one primitive regardless of which phase asks.
+
+**Measured** from a completed Bundle-9 ledger, 21,605 occurrences:
+
+| consumer_scope | occ | charged | reused |
+|---|---|---|---|
+| `full_candidate_gradient_recompute` | 174 | **0** | **174** |
+| `full_candidate_self_metric_recompute` | 174 | **0** | **174** |
+| `energy:depth_opt` | 4,181 | 3,887 | 294 |
+| `outer_state_refresh` | 14 | 0 | 14 |
+| `phase0_append_endpoint_generator_gradient_surface_v1` | 14,220 | 14,220 | 0 |
+| `phase1_candidate_self_metric` | 310 | 310 | 0 |
+| `phase2_candidate_self_hessian` | 174 | 174 | 0 |
+| `phase2_phase3_candidate_geometry` | 1,132 | 1,132 | 0 |
+| `phase3_scaffold_geometry` | 1,120 | 1,120 | 0 |
+| `historical_singleton_supported_projection_active_gradient` | 105 | 105 | 0 |
+| **total** | **21,605** | **20,949** | **656 (3.0%)** |
+
+609 primitives were requested more than once; the most re-requested was asked 8
+times.
+
+**Reading it.** The two `*_recompute` scopes are **100% uncharged** — that is the
+requirement, working. The phase scopes show no reuse because they request
+*different* quantities: self-metric at I, self-hessian at II, candidate geometry
+at II/III, scaffold geometry at III. Gradients are measured once at Phase 0
+(14,220, all charged), and any later re-request lands in `*_recompute` and is
+free.
+
+So the 3% figure is not a gap. It is the correct consequence of a staged funnel
+in which each phase acquires a *new* response object rather than re-asking for the
+previous one.
+
+**Consequence for the refactor.** `Response.charge(order, support)` in 6g/6j
+inherits this for free — the key has no phase component, so no phase accounting
+needs writing. Do not add one.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
