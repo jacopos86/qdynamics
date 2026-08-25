@@ -2752,6 +2752,38 @@ record the retained-support Hessian spectrum and replaying — is itself a run.
 That is worth knowing before authorizing: the campaign is the only way to find
 out, so its cost cannot be avoided by analysis first.
 
+## 6bc. The controller body — what is left once the nested defs are accounted for
+
+The mega function is 39,386 lines. Subtracting every nested def leaves **17,537
+lines in 152 spans** that are the controller body proper. Largest contiguous
+spans:
+
+| lines | range | content at the head of the span |
+|---|---|---|
+| 2,714 | 51338-54051 | recoverability prune policy — rung windows, trial rows |
+| 2,622 | 47858-50479 | Route-C plateau optimizer dispatch (QNSPSA fidelity, stochastic run) |
+| 1,438 | 44190-45627 | material-window accounting attachment |
+| 1,041 | 46705-47745 | |
+| 952 | 45721-46672 | |
+| 936 | 14667-15602 | argument resolution / setup |
+
+### A negative result worth recording
+
+I tried classifying the 152 spans by dominant keyword. **The method does not
+discriminate** — "phase scoring" absorbed 89% because *phase*, *score*,
+*candidate* and *admission* appear throughout any controller loop. That number is
+an artifact and should not be quoted.
+
+What it does establish, because the counts are small enough to trust in the other
+direction: **inline extension code in the controller body is minor** — prune ~260
+lines, beam ~124, batch none. Extension code lives in the nested defs, which 6as
+and 6av already cover.
+
+So after the dead set (12,990) and the prune move (3,235) land, what remains is
+roughly 17.5k lines of genuine control flow plus the phase-group defs. That is
+the population the `score()` collapse addresses, and it is not hiding further
+extension machinery.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
