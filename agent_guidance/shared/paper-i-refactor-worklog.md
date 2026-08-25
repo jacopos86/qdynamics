@@ -3676,3 +3676,40 @@ post-edit ledger exists because implementation did not begin.
 `full_meta` retains its 40 PAOP records while only standalone PAOP choices are
 retired, or should PAOP be removed from canonical `full_meta` as an explicit
 scientific pool change?
+
+### 2026-08-24 — Work Plan 1.4 — Phase-0 cost path deleted
+
+**Implementation:** commit `5680f959` deletes the executable Phase-0 hardware
+cost denominator, normalization, lambdas, compile/measurement acquisition, and
+the corresponding candidate/checkpoint/accounting fields. Phase 0 now ranks the
+same recorded quantity directly as `DeltaE0_upper * N0`. The change adds 22
+lines and deletes 187: **165 net lines removed**.
+
+The two `phase0_cost = "gradient_only_no_metric_no_resource_v1"` entries in the
+locked Page-12 application-source contracts remain. Removing either invalidates
+an authenticated source-contract SHA; they are passive declarations that Phase
+0 performs no resource-cost computation, not the deleted executable cost path.
+
+**Reproducibility:** before and after both produced 256 ledger entries and 266
+ordered occurrences. The ledger fingerprint is byte-identical at
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`;
+the primitive-id hash is
+`a02151a2f0af8120268b32ee074a7e41690de3b04cd0a8d496b749a63a3e7aaa`,
+and the complete ledger JSON hash is
+`b93079dbac9ef10d3bf6057ee4be7128c8ece6e1d4b1de7819a5bb395702d2e7`.
+The resolved `_canonical_route_contract_for_request` digest also remains
+byte-identical at
+`36a7d72c562738612fea509a795c7f7d5c4a7a93d495e0de7993a1934e8b747b`.
+
+**Collection and tests:** collection remains `5467 tests collected, 54 errors`;
+the before/after `ERROR test/...` diff is empty. Ten direct Phase-0/accounting
+tests and three locked application-source-contract cases pass. Two broader
+targeted assertions fail identically on the clean baseline: the position-route
+matrix omits three already-present variants, and a historical route-digest
+literal is stale. Neither was changed.
+
+**Paper-I-local impact audit:** final GitNexus `detect-changes` reports four
+production files, six changed symbols, one affected execution flow, and MEDIUM
+risk. `CandidateFeatures` was the pre-edit HIGH-risk schema surface (23 direct
+importers, 80 transitive symbols); collection, direct tests, source-lock checks,
+route digest, and ledger identity close that risk.
