@@ -62,11 +62,6 @@ SR_ACTIVE_STATIONARITY_BACKTRACKING_CONTEXT_V1 = (
 HISTORICAL_SINGLETON_SCALAR_SELECTOR_SUMMARY_SCHEMA = (
     "historical_singleton_scalar_selector_summary_v1"
 )
-PHASE3_SHADOW_DAMPING_RECEIPT_SCHEMA = (
-    "route_a_phase3_shadow_damping_receipt_v1"
-)
-
-
 def _finite_float(value: Any) -> float | None:
     try:
         resolved = float(value)
@@ -109,145 +104,6 @@ def state_fingerprint(state: np.ndarray) -> str:
         vector *= np.exp(-1j * np.angle(anchor))
     packed = np.column_stack((vector.real, vector.imag)).astype("<f8", copy=False)
     return hashlib.sha256(packed.tobytes(order="C")).hexdigest()
-
-
-def phase3_shadow_damping_receipt(
-    *,
-    mapped_seed_predicted_gain: float | None,
-    mapped_seed_exact_gain: float | None,
-    modeled_displacement_squared: float | None,
-    current_recommended_mu: float = 0.0,
-) -> dict[str, Any]:
-    """Recommend metric damping from existing mapped-seed evidence only.
-
-    This helper is deliberately observational.  It never evaluates an
-    objective, prepares a state, probes a Hamiltonian, applies damping, or
-    mutates a trust-radius state.  When all three mapped-seed quantities are
-    available, positive model overprediction recommends the smallest additive
-    metric damping that would account for that discrepancy through
-    ``0.5 * delta_mu * modeled_displacement_squared``.  Model
-    underprediction or agreement never decreases the accumulated shadow
-    recommendation.
-
-    Missing evidence produces an explicit unresolved receipt.  Present but
-    non-finite, negative, or geometrically contradictory evidence fails
-    closed instead of being converted into a recommendation.
-    """
-
-    current_mu = _finite_float(current_recommended_mu)
-    if current_mu is None or current_mu < 0.0:
-        raise ValueError(
-            "Phase-III shadow damping current_recommended_mu must be finite "
-            "and nonnegative."
-        )
-
-    named_inputs = {
-        "mapped_seed_predicted_gain": mapped_seed_predicted_gain,
-        "mapped_seed_exact_gain": mapped_seed_exact_gain,
-        "modeled_displacement_squared": modeled_displacement_squared,
-    }
-    resolved: dict[str, float | None] = {}
-    missing: list[str] = []
-    for name, raw in named_inputs.items():
-        if raw is None:
-            resolved[name] = None
-            missing.append(name)
-            continue
-        value = _finite_float(raw)
-        if value is None:
-            raise ValueError(
-                f"Phase-III shadow damping {name} must be finite when present."
-            )
-        resolved[name] = float(value)
-
-    displacement_squared = resolved["modeled_displacement_squared"]
-    if displacement_squared is not None and displacement_squared < 0.0:
-        raise ValueError(
-            "Phase-III shadow damping modeled_displacement_squared must be "
-            "nonnegative."
-        )
-
-    common = {
-        "schema": PHASE3_SHADOW_DAMPING_RECEIPT_SCHEMA,
-        "policy": "zero_query_mapped_seed_shadow_v1",
-        "mapped_seed_predicted_gain": resolved[
-            "mapped_seed_predicted_gain"
-        ],
-        "mapped_seed_exact_gain": resolved["mapped_seed_exact_gain"],
-        "modeled_displacement_squared": displacement_squared,
-        "current_recommended_mu": float(current_mu),
-        "applied_mu": 0.0,
-        "damping_applied": False,
-        "added_query_count": 0,
-        "objective_evaluation_performed": False,
-        "hamiltonian_probe_performed": False,
-        "trust_radius_mutated": False,
-        "uses_existing_mapped_seed_evidence_only": True,
-    }
-    if missing:
-        return {
-            **common,
-            "status": "unresolved",
-            "reason": "mapped_seed_evidence_incomplete",
-            "missing_fields": list(missing),
-            "positive_gain_overprediction": None,
-            "recommended_mu_increment": 0.0,
-            "recommended_mu": float(current_mu),
-        }
-
-    predicted_gain = resolved["mapped_seed_predicted_gain"]
-    exact_gain = resolved["mapped_seed_exact_gain"]
-    assert predicted_gain is not None
-    assert exact_gain is not None
-    assert displacement_squared is not None
-
-    if displacement_squared == 0.0:
-        zero_tolerance = float(64.0 * np.finfo(float).eps)
-        if (
-            abs(float(predicted_gain)) > zero_tolerance
-            or abs(float(exact_gain)) > zero_tolerance
-        ):
-            raise ValueError(
-                "Phase-III shadow damping received nonzero mapped-seed gain "
-                "at zero modeled displacement."
-            )
-        positive_overprediction = 0.0
-        increment = 0.0
-    else:
-        positive_overprediction = float(
-            max(float(predicted_gain) - float(exact_gain), 0.0)
-        )
-        increment = float(
-            2.0 * positive_overprediction / float(displacement_squared)
-        )
-        if not math.isfinite(increment) or increment < 0.0:
-            raise ValueError(
-                "Phase-III shadow damping recommendation is non-finite or "
-                "negative."
-            )
-
-    recommended_mu = float(current_mu + increment)
-    if (
-        not math.isfinite(recommended_mu)
-        or recommended_mu < float(current_mu)
-    ):
-        raise ValueError(
-            "Phase-III shadow damping recommended_mu must be finite and may "
-            "not decrease."
-        )
-    return {
-        **common,
-        "status": "complete",
-        "reason": (
-            "positive_model_gain_overprediction"
-            if positive_overprediction > 0.0
-            else "no_positive_model_gain_overprediction"
-        ),
-        "missing_fields": [],
-        "positive_gain_overprediction": float(positive_overprediction),
-        "recommended_mu_increment": float(increment),
-        "recommended_mu": float(recommended_mu),
-    }
 
 
 @dataclass
@@ -2724,7 +2580,6 @@ __all__ = [
     "HISTORICAL_SINGLETON_GEOMETRY_EXPANSION_CONTEXT_V1",
     "HISTORICAL_SINGLETON_SCALAR_SELECTOR_SUMMARY_SCHEMA",
     "HISTORICAL_SINGLETON_SCALAR_TRUST_CONTEXT_V1",
-    "PHASE3_SHADOW_DAMPING_RECEIPT_SCHEMA",
     "ROUND_TRUST_REGION_SNAPSHOT_SCHEMA",
     "ROUND_TRUST_REGION_STAGE_NAMES",
     "ROUND_TRUST_REGION_STAGE_RECEIPT_SCHEMA",
@@ -2735,7 +2590,6 @@ __all__ = [
     "exact_fubini_study_distance",
     "historical_singleton_scalar_selector_summary",
     "initialize_trust_region_state",
-    "phase3_shadow_damping_receipt",
     "resolve_round_trust_region_snapshot",
     "round_trust_region_stage_receipt",
     "score_config_with_round_trust_radius",

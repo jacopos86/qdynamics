@@ -1015,7 +1015,6 @@ from pipelines.static_adapt.route_a_trust_region import (
     historical_singleton_scalar_selector_summary,
     initialize_trust_region_state,
     resolve_round_trust_region_snapshot,
-    phase3_shadow_damping_receipt,
     round_trust_region_stage_receipt,
     score_config_with_round_trust_radius,
     selector_config_with_round_trust_radius,
@@ -14442,51 +14441,6 @@ def _sr_v4_no_eligible_material_window_prune_hold_receipt(
     }
 
 
-def _phase3_shadow_recommended_mu_from_history(
-    history_rows: Sequence[Mapping[str, Any]] | None,
-) -> tuple[float, str]:
-    """Restore the last serialized zero-query shadow recommendation."""
-
-    for row in reversed(list(history_rows or ())):
-        if not isinstance(row, Mapping):
-            continue
-        receipt = row.get("phase3_shadow_damping_receipt")
-        if receipt is None:
-            continue
-        if not isinstance(receipt, Mapping):
-            raise RuntimeError(
-                "Phase-III shadow damping history receipt is malformed."
-            )
-        if str(receipt.get("schema", "")) != (
-            "route_a_phase3_shadow_damping_receipt_v1"
-        ):
-            raise RuntimeError(
-                "Phase-III shadow damping history receipt schema is unsupported."
-            )
-        try:
-            recommended_mu = float(receipt["recommended_mu"])
-            applied_mu = float(receipt.get("applied_mu", 0.0))
-            added_query_count = int(receipt.get("added_query_count", 0))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise RuntimeError(
-                "Phase-III shadow damping history state cannot be reconstructed."
-            ) from exc
-        if (
-            not math.isfinite(recommended_mu)
-            or recommended_mu < 0.0
-            or applied_mu != 0.0
-            or added_query_count != 0
-        ):
-            raise RuntimeError(
-                "Phase-III shadow damping history violates the zero-query "
-                "diagnostic contract."
-            )
-        return float(recommended_mu), "previous_history_receipt"
-    return 0.0, "initialized_zero"
-
-
-
-
 def _projective_state_overlap_estimator_call_key(
     state_before: Sequence[complex] | np.ndarray,
     state_after: Sequence[complex] | np.ndarray,
@@ -14935,7 +14889,6 @@ def _run_hardcoded_adapt_vqe(
     phase3_enable_rescue: bool = False,
     phase3_lifetime_cost_mode: str = "phase3_v1",
     phase3_hardware_cost_normalization_mode: str = "family_robust_v1",
-    phase3_shadow_damping_policy: str = "off",
     phase3_source_lock_preferred_sequence: str | Sequence[str] | None = None,
     phase3_runtime_split_mode: str = "off",
     phase3_runtime_split_selection_mode: str = "proxy_child_set_preselection",
@@ -16058,17 +16011,6 @@ def _run_hardcoded_adapt_vqe(
             "{'family_robust_v1','family_robust_symmetric_arctan_v1',"
             "'raw_legacy_v1'}."
         )
-    phase3_shadow_damping_policy_key = str(
-        phase3_shadow_damping_policy or "off"
-    ).strip().lower()
-    if phase3_shadow_damping_policy_key not in {
-        "off",
-        "mapped_seed_zero_query_v1",
-    }:
-        raise ValueError(
-            "phase3_shadow_damping_policy must be one of "
-            "{'off','mapped_seed_zero_query_v1'}."
-        )
     phase3_source_lock_preferred_sequence_events: list[dict[str, Any]] = []
     phase3_source_lock_admitted_candidate_labels: list[str] = []
     phase3_runtime_split_mode_key = str(phase3_runtime_split_mode).strip().lower()
@@ -16819,35 +16761,6 @@ def _run_hardcoded_adapt_vqe(
             ),
             "phase3_hardware_cost_normalization_mode": str(
                 phase3_hardware_cost_normalization_mode_key
-            ),
-            **(
-                {
-                    "phase3_shadow_damping_policy": str(
-                        phase3_shadow_damping_policy_key
-                    )
-                }
-                if sr_route_profile_contract_resolved is not None
-                and str(
-                    sr_route_profile_contract_resolved.get("route_profile")
-                )
-                in {
-                    SR_ROUTE_PROFILE_CANDIDATE_V4,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1,
-                    SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_V1,
-                    SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_FS_PRUNE_BEAM_ONE_SIDED_COST_V1,
-                    SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
-                    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1,
-                }
-                else {}
             ),
             "phase3_lifetime_cost_mode": str(phase3_lifetime_cost_mode),
             "phase3_enable_rescue": bool(phase3_enable_rescue),
@@ -21984,58 +21897,6 @@ def _run_hardcoded_adapt_vqe(
                 "Route-C plateau acquisition first slice supports only single-branch execution; "
                 f"effective beam width is {int(route_c_effective_beam_width)}."
             )
-
-    def _phase3_shadow_damping_receipt_from_existing_evidence(
-        *,
-        guard_payload: Mapping[str, Any] | None,
-        feature_rows: Sequence[Mapping[str, Any]],
-        history_rows: Sequence[Mapping[str, Any]] | None,
-    ) -> dict[str, Any] | None:
-        if phase3_shadow_damping_policy_key == "off":
-            return None
-        if phase3_shadow_damping_policy_key != "mapped_seed_zero_query_v1":
-            raise RuntimeError(
-                "Unsupported Phase-III shadow damping runtime policy."
-            )
-        guard = dict(guard_payload) if isinstance(guard_payload, Mapping) else {}
-
-        predicted_gain = guard.get("mapped_seed_predicted_reduction")
-        exact_gain = guard.get("mapped_seed_exact_gain")
-        displacement_sq = guard.get("joint_fubini_study_displacement_sq")
-        if displacement_sq is None:
-            for raw_row in feature_rows:
-                if not isinstance(raw_row, Mapping):
-                    continue
-                displacement_sq = raw_row.get(
-                    "joint_fubini_study_displacement_sq"
-                )
-                if displacement_sq is None:
-                    nested = raw_row.get("joint_linear_solve")
-                    if isinstance(nested, Mapping):
-                        displacement_sq = nested.get(
-                            "joint_fubini_study_displacement_sq"
-                        )
-                if displacement_sq is not None:
-                    break
-        current_recommended_mu, recommendation_state_source = (
-            _phase3_shadow_recommended_mu_from_history(history_rows)
-        )
-        receipt = phase3_shadow_damping_receipt(
-            mapped_seed_predicted_gain=predicted_gain,
-            mapped_seed_exact_gain=exact_gain,
-            modeled_displacement_squared=displacement_sq,
-            current_recommended_mu=float(current_recommended_mu),
-        )
-        return {
-            **dict(receipt),
-            "requested_policy": str(phase3_shadow_damping_policy_key),
-            "guard_receipt_present": bool(guard),
-            "applied_to_phase3_model": False,
-            "recommendation_state_source": str(recommendation_state_source),
-            "resumed_from_history": bool(
-                recommendation_state_source == "previous_history_receipt"
-            ),
-        }
 
     def _populate_prune_policy_fields(summary: dict[str, Any]) -> dict[str, Any]:
         if phase1_prune_cfg is None:
@@ -37536,35 +37397,6 @@ def _run_hardcoded_adapt_vqe(
                 history_row_local["route_a_trust_region_update"] = dict(
                     route_a_trust_update_payload_local
                 )
-            phase3_shadow_receipt_local = (
-                _phase3_shadow_damping_receipt_from_existing_evidence(
-                    guard_payload=(
-                        schur_warm_start_payload_local
-                        if isinstance(schur_warm_start_payload_local, Mapping)
-                        else None
-                    ),
-                    feature_rows=[
-                        dict(row)
-                        for row in (
-                            plan_batch_records_local
-                            if plan_batch_records_local
-                            else (
-                                [phase1_feature_selected_local]
-                                if isinstance(
-                                    phase1_feature_selected_local, Mapping
-                                )
-                                else []
-                            )
-                        )
-                        if isinstance(row, Mapping)
-                    ],
-                    history_rows=child.history,
-                )
-            )
-            if isinstance(phase3_shadow_receipt_local, Mapping):
-                history_row_local["phase3_shadow_damping_receipt"] = dict(
-                    phase3_shadow_receipt_local
-                )
             if adapt_inner_optimizer_key == "SPSA":
                 history_row_local["spsa_params"] = dict(adapt_spsa_params)
             child.history.append(history_row_local)
@@ -49831,33 +49663,6 @@ def _run_hardcoded_adapt_vqe(
             if isinstance(projected_phase3_population_receipt, Mapping):
                 history_row["projected_phase3_population_receipt"] = dict(
                     projected_phase3_population_receipt
-                )
-            phase3_shadow_receipt = (
-                _phase3_shadow_damping_receipt_from_existing_evidence(
-                    guard_payload=(
-                        schur_warm_start_payload
-                        if isinstance(schur_warm_start_payload, Mapping)
-                        else None
-                    ),
-                    feature_rows=[
-                        dict(row)
-                        for row in (
-                            selected_batch_records_for_history
-                            if selected_batch_records_for_history
-                            else (
-                                [phase1_feature_selected]
-                                if isinstance(phase1_feature_selected, Mapping)
-                                else []
-                            )
-                        )
-                        if isinstance(row, Mapping)
-                    ],
-                    history_rows=history,
-                )
-            )
-            if isinstance(phase3_shadow_receipt, Mapping):
-                history_row["phase3_shadow_damping_receipt"] = dict(
-                    phase3_shadow_receipt
                 )
             if route_c_plateau_effective_trial_optimizer_key == "SPSA":
                 history_row["spsa_params"] = dict(adapt_spsa_params)

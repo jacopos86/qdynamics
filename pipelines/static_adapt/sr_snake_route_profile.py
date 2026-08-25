@@ -1320,9 +1320,6 @@ _DEST_OPTION_STRINGS: dict[str, tuple[str, ...]] = {
     "phase3_hardware_cost_normalization_mode": (
         "--phase3-hardware-cost-normalization-mode",
     ),
-    "phase3_shadow_damping_policy": (
-        "--phase3-shadow-damping-policy",
-    ),
     "phase3_lifetime_cost_mode": ("--phase3-lifetime-cost-mode",),
     "phase3_enable_rescue": ("--phase3-enable-rescue", "--phase3-no-rescue"),
     "phase3_symmetry_mitigation_mode": (
@@ -4008,6 +4005,7 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "phase3_shadow_damping_policy",
         "adapt_beam_live_branches",
         "adapt_beam_children_per_parent",
         "adapt_beam_terminated_keep",
@@ -4190,6 +4188,7 @@ def validate_sr_route_profile_runtime_settings(
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "phase3_shadow_damping_policy",
     )
     for field in retired_execution_fields:
         expected.pop(field, None)
@@ -4261,11 +4260,7 @@ def validate_sr_route_profile_runtime_settings(
     }:
         required_runtime_fields = {
             key for key in expected if str(key).startswith("phase1_prune_")
-        }.union(
-            {
-                "phase3_shadow_damping_policy",
-            }
-        )
+        }
         missing_required = sorted(
             required_runtime_fields.difference(runtime_settings_checked)
         )

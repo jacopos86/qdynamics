@@ -1896,15 +1896,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         help="Hardware-cost denominator mode. raw_legacy_v1 is source-lock compatibility only.",
     )
     p.add_argument(
-        "--phase3-shadow-damping-policy",
-        choices=["off", "mapped_seed_zero_query_v1"],
-        default="off",
-        help=(
-            "Diagnostic-only damping recommendation from the existing mapped-seed "
-            "receipt. It never applies damping or triggers an extra objective call."
-        ),
-    )
-    p.add_argument(
         "--phase3-source-lock-preferred-sequence",
         type=str,
         default="",
@@ -3637,7 +3628,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase3_enable_rescue": bool(args.phase3_enable_rescue),
         "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
         "phase3_hardware_cost_normalization_mode": str(args.phase3_hardware_cost_normalization_mode),
-        "phase3_shadow_damping_policy": str(args.phase3_shadow_damping_policy),
         "phase3_source_lock_preferred_sequence": str(args.phase3_source_lock_preferred_sequence),
         "phase3_runtime_split_mode": str(args.phase3_runtime_split_mode),
         "phase3_runtime_split_selection_mode": str(args.phase3_runtime_split_selection_mode),

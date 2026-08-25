@@ -29,7 +29,6 @@ from pipelines.static_adapt.route_a_trust_region import (
     contract_rejected_saddle_trust_region_state,
     exact_fubini_study_distance,
     initialize_trust_region_state,
-    phase3_shadow_damping_receipt,
     resolve_round_trust_region_snapshot,
     round_trust_region_stage_receipt,
     score_config_with_round_trust_radius,
@@ -280,118 +279,6 @@ def test_projected_no_overlap_geometry_expansion_holds_without_overlap(
         "geometry_expansion_no_coordinate_prediction_no_overlap_hold"
     )
     assert payload["endpoint_overlap_query_charge"] == 0
-
-
-def test_phase3_shadow_damping_recommends_only_positive_overprediction() -> None:
-    state = RouteATrustRegionState(radius=0.25, update_count=3)
-
-    receipt = phase3_shadow_damping_receipt(
-        mapped_seed_predicted_gain=0.2,
-        mapped_seed_exact_gain=0.1,
-        modeled_displacement_squared=0.04,
-        current_recommended_mu=0.3,
-    )
-
-    assert receipt["status"] == "complete"
-    assert receipt["positive_gain_overprediction"] == pytest.approx(0.1)
-    assert receipt["recommended_mu_increment"] == pytest.approx(5.0)
-    assert receipt["recommended_mu"] == pytest.approx(5.3)
-    assert receipt["applied_mu"] == pytest.approx(0.0)
-    assert receipt["damping_applied"] is False
-    assert receipt["added_query_count"] == 0
-    assert receipt["objective_evaluation_performed"] is False
-    assert receipt["hamiltonian_probe_performed"] is False
-    assert receipt["trust_radius_mutated"] is False
-    assert state.radius == pytest.approx(0.25)
-    assert state.update_count == 3
-
-
-@pytest.mark.parametrize(
-    ("predicted_gain", "exact_gain"),
-    [(0.1, 0.1), (0.1, 0.2), (-0.1, 0.0)],
-)
-def test_phase3_shadow_damping_never_decreases_mu_without_overprediction(
-    predicted_gain: float,
-    exact_gain: float,
-) -> None:
-    receipt = phase3_shadow_damping_receipt(
-        mapped_seed_predicted_gain=predicted_gain,
-        mapped_seed_exact_gain=exact_gain,
-        modeled_displacement_squared=0.25,
-        current_recommended_mu=0.7,
-    )
-
-    assert receipt["status"] == "complete"
-    assert receipt["positive_gain_overprediction"] == pytest.approx(0.0)
-    assert receipt["recommended_mu_increment"] == pytest.approx(0.0)
-    assert receipt["recommended_mu"] == pytest.approx(0.7)
-    assert receipt["applied_mu"] == pytest.approx(0.0)
-    assert receipt["added_query_count"] == 0
-
-
-def test_phase3_shadow_damping_missing_evidence_is_explicitly_unresolved() -> None:
-    receipt = phase3_shadow_damping_receipt(
-        mapped_seed_predicted_gain=0.2,
-        mapped_seed_exact_gain=None,
-        modeled_displacement_squared=None,
-        current_recommended_mu=0.4,
-    )
-
-    assert receipt["status"] == "unresolved"
-    assert receipt["reason"] == "mapped_seed_evidence_incomplete"
-    assert receipt["missing_fields"] == [
-        "mapped_seed_exact_gain",
-        "modeled_displacement_squared",
-    ]
-    assert receipt["positive_gain_overprediction"] is None
-    assert receipt["recommended_mu_increment"] == pytest.approx(0.0)
-    assert receipt["recommended_mu"] == pytest.approx(0.4)
-    assert receipt["applied_mu"] == pytest.approx(0.0)
-    assert receipt["added_query_count"] == 0
-
-
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {"mapped_seed_predicted_gain": float("nan")},
-        {"mapped_seed_exact_gain": float("inf")},
-        {"modeled_displacement_squared": float("nan")},
-        {"modeled_displacement_squared": -1.0e-6},
-        {"current_recommended_mu": float("inf")},
-        {"current_recommended_mu": -1.0e-6},
-    ],
-)
-def test_phase3_shadow_damping_fails_closed_on_invalid_inputs(
-    kwargs: dict[str, float],
-) -> None:
-    inputs = {
-        "mapped_seed_predicted_gain": 0.2,
-        "mapped_seed_exact_gain": 0.1,
-        "modeled_displacement_squared": 0.04,
-        "current_recommended_mu": 0.0,
-    }
-    inputs.update(kwargs)
-
-    with pytest.raises(ValueError, match="Phase-III shadow damping"):
-        phase3_shadow_damping_receipt(**inputs)
-
-
-def test_phase3_shadow_damping_rejects_gain_at_zero_modeled_displacement() -> None:
-    with pytest.raises(ValueError, match="nonzero mapped-seed gain"):
-        phase3_shadow_damping_receipt(
-            mapped_seed_predicted_gain=0.1,
-            mapped_seed_exact_gain=0.0,
-            modeled_displacement_squared=0.0,
-        )
-
-    receipt = phase3_shadow_damping_receipt(
-        mapped_seed_predicted_gain=0.0,
-        mapped_seed_exact_gain=0.0,
-        modeled_displacement_squared=0.0,
-    )
-    assert receipt["status"] == "complete"
-    assert receipt["recommended_mu"] == pytest.approx(0.0)
-    assert receipt["added_query_count"] == 0
 
 
 def test_round_snapshot_freezes_radius_and_update_count() -> None:

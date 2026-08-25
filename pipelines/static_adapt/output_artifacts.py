@@ -1407,9 +1407,6 @@ def build_output_payload(
             "phase3_enable_rescue": bool(args.phase3_enable_rescue),
             "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
             "phase3_hardware_cost_normalization_mode": str(args.phase3_hardware_cost_normalization_mode),
-            "phase3_shadow_damping_policy": str(
-                getattr(args, "phase3_shadow_damping_policy", "off")
-            ),
             "phase3_source_lock_preferred_sequence": str(
                 getattr(args, "phase3_source_lock_preferred_sequence", "")
             ),

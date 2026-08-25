@@ -100,6 +100,7 @@ _RETIRED_PRUNE_RUNTIME_FIELDS = frozenset(
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "phase3_shadow_damping_policy",
     }
 )
 
@@ -472,7 +473,6 @@ def test_candidate_v4_materializes_exact_combined_contract(
             "modeled_local_fs_conservative_v1"
         ),
         "phase1_prune_endpoint_overlap_policy": "off",
-        "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
         "adapt_finite_angle_fallback": False,
         "adapt_disable_hh_seed": True,
         "phase3_enable_rescue": False,
@@ -580,7 +580,7 @@ def test_no_prune_symmetric_cost_profile_materializes_exact_contract(
     assert args.adapt_full_refit_every == 0
     assert args.adapt_final_full_refit == "false"
     assert args.adapt_finite_angle_fallback is False
-    assert args.phase3_shadow_damping_policy == "off"
+    assert not hasattr(args, "phase3_shadow_damping_policy")
     assert args.sr_escape_mode == "disabled"
 
 
@@ -699,7 +699,6 @@ def test_no_prune_symmetric_cost_runtime_validator_is_exact() -> None:
             "phase1_prune_enabled",
             "adapt_full_refit_every",
             "adapt_final_full_refit",
-            "phase3_shadow_damping_policy",
         )
     }
     runtime_settings["adapt_max_depth"] = 8
@@ -1294,12 +1293,12 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
         "phase3_hardware_cost_normalization_mode": (
             "family_robust_symmetric_arctan_v1"
         ),
-        "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
         "finite_angle_fallback": False,
         "phase3_enable_rescue": False,
     }
     for field, expected in expected_runtime_fields.items():
         assert kwargs[field] == expected, field
+    assert "phase3_shadow_damping_policy" not in kwargs
     assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
     pruning = extensions_from_route_contract(
         kwargs["sr_route_profile_contract"]

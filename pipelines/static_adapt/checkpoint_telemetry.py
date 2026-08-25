@@ -730,10 +730,6 @@ def _compact_history_row_for_checkpoint(
             if isinstance(row.get("route_a_trust_region_update"), Mapping)
             else None
         ),
-        "phase3_shadow_damping_receipt": _optional_runtime_mapping(
-            row.get("phase3_shadow_damping_receipt"),
-            field_name="phase3_shadow_damping_receipt",
-        ),
         "accepted_refit": (
             _current_jsonable(row.get("accepted_refit"))
             if isinstance(row.get("accepted_refit"), Mapping)
