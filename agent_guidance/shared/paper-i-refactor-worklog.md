@@ -2511,6 +2511,51 @@ PAOP (absent from the manuscript but inside canonical `full_meta`). A
 of deadness — several name the *current* implementation. Check the profiles and
 a run receipt before treating a prefix as a verdict.
 
+## 6ay. The Phase-III response solve — what the four policies actually differ by
+
+`historical_singleton_coordinate_solve_policy` selects the **numerical method for
+the Phase-III response solve**, not the macro-to-singleton split. In Paper I
+terms: Phase III forms the joint system over `(alpha, delta-theta)` with the `H`
+blocks of Eq. `hessian_block_def` and the Fubini--Study metric `G`, then solves
+for the predicted displacement subject to `z^T G z <= rho^2`. The manuscript
+describes it as *"the response solve is restricted to the retained metric
+support"*. `JointLinearSolveConfig.max_fubini_study_step = 0.25` is `rho`, matching
+`rho_t = 0.25` in the controller snapshot.
+
+| policy | method |
+|---|---|
+| `supported_metric_whitened_eigh_v1` | whiten by `G`, symmetric eigendecomposition |
+| `supported_metric_projected_generalized_trust_v1` | project onto retained support, generalized trust subproblem — **what every bundle ran** |
+| `supported_metric_global_trust_eigh_v2` | global trust-region eigendecomposition |
+| `block_pinv_legacy_v1` | block pseudoinverse |
+
+### Author's reading, and it is right
+
+*"Whitening only matters after Phase III, where we precondition the inner
+optimization. Within Phase III it does not matter, since `alpha*` does not change
+nor does `rho`. Conversely the pseudoinverse and retained support do matter."*
+
+Mathematically: with `z = G^(-1/2) y`, the constraint `z^T G z <= rho^2` becomes
+`y^T y <= rho^2`, so whitening is a change of variables and the optimum maps back
+to the same `z*`. Retained support is a *projection onto a subspace* and does
+change the solution; the pseudoinverse decides the null-space behaviour.
+
+**The code already separates them.** `SupportedMetricWhitening`
+(`joint_linear_solve.py:124-259`) is one object holding both:
+
+| load-bearing | representation |
+|---|---|
+| `retained_mask`, `retained_eigenvalues`, `retained_vectors`, `support_threshold`, `metric_ridge`, `raw_metric_pseudoinverse` | `whitening`, `whitening_pseudoinverse`, `raw_orthonormalizer`, `regularized_to_raw_frame` |
+
+and its docstring states the ordering: *"The support decision is made from the
+**raw** metric before applying the ridge."* So support is decided first, and
+whitening is applied to the already-retained metric.
+
+**Consequence.** The four policies cannot differ by whitening in a way that moves
+`alpha*`. They can only differ in support determination, ridge, and null-space
+handling. Whether they in fact use the same support threshold is the open
+question that decides whether they collapse to one.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
