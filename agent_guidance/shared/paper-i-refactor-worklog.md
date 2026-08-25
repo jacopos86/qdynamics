@@ -2881,6 +2881,45 @@ design target. Plateau **acquisition** — the `novelty_cost_v1` mode that start
 Route-C episode — is a different mechanism and has never run. Whether it is
 intended future method or abandoned is not answerable from the code.
 
+## 6be. The July blocking defect is repaired and did not touch the bundles
+
+`history/paper-i-final-correctness-and-evidence-completion-plan-20260727.md` §1
+names one blocking correctness defect:
+
+> *"The executable `run_append_adapt` performs every accepted refit in RA's
+> supported-FS-whitened chart and charges the chart's gradient/metric
+> construction into Append's estimator ledger. This contradicts the settled
+> comparator convention (Append refits are ordinary unwhitened ansatz-coordinate
+> Powell)... **No Append cell may execute before this is repaired.**"*
+
+That is a comparator-fairness defect: the comparator would inherit RA's chart and
+be charged for building it.
+
+**Repaired in code.** `ra_adapt/append.py` sets
+`accepted_refit_coordinate_chart: NATIVE_REFIT_CHART` (`contracts.py:150`,
+`"native_v1"`) with `optimizer: "powell"`, behind a fail-closed guard at `:426`:
+
+```python
+if protocol.accepted_refit_coordinate_chart != NATIVE_REFIT_CHART:
+    raise ...("Resolved Append protocol requires the native accepted-refit chart.")
+```
+
+**And it never contaminated the bundle evidence.** The b3 receipt records
+`route_family: "ra_adapt"`, `static_route_id: "route_a"`,
+`method: "hardcoded_adapt_vqe_full_meta"`, with **zero** occurrences of
+`run_append_adapt`, `append_adapt`, `append_protocol` or `native_v1`. The
+`mr_append_ra` arm is RA with append *insertion*, not the Append-ADAPT
+comparator. The AAVQE curves on the bundle pages come from the separate
+`paper_i_aavqe_r50_to_r75_tolmatch_*` runs.
+
+Its `accepted_refit_coordinate_chart` is `supported_fs_whitened_fixed_v1`, which
+is correct for an RA run — RA legitimately refits in the whitened chart, which is
+the post-Phase-III preconditioning discussed in 6ay.
+
+**So the defect is closed**, and the bundle evidence is unaffected. Recorded
+because the July plan gates a large run matrix on this repair, and a future
+reader should not re-block on it.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
