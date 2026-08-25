@@ -2606,6 +2606,13 @@ Phase-III / refit separation the manuscript's whitening language implies.
 
 ## 6az. The solve policies, checked against every run (Q48)
 
+> **Q48's disposition was WRONG — see 6ba.** `global_trust_eigh_v2` is used: it is
+> passed explicitly at `hh_continuation_scoring.py:9367` and
+> `hh_continuation_pruning.py:392`. Absence from the
+> `joint_linear_solve_policy_effective` receipt field is not absence from the
+> code, because the restricted and prune inner solves do not emit that field.
+
+
 The author asked for a double check before deleting. It changed the answer.
 
 ### What every run used
@@ -2652,6 +2659,43 @@ files read `projected_generalized_trust_v1`.
 `global_trust_eigh_v2` is 810 lines implementing the singular Moré--Sorensen hard
 case; deleting it removes a correctness improvement over v1 that nothing ever
 ran. Recorded so it is a decision, not an oversight.
+
+## 6ba. Solve policies, re-checked by dispatch rather than by receipt (Q49)
+
+Q48 concluded from run receipts. Wrong method: the receipt field
+`joint_linear_solve_policy_effective` is emitted by some solve paths and not
+others, so its absence proves nothing. Checked by **explicit `policy=`
+assignment** instead.
+
+`solve_joint_linear_model` (`joint_linear_solve.py:3131-3226`) dispatches through
+a `solvers` dict keyed by policy. Callers:
+
+| caller | policy passed |
+|---|---|
+| `hh_continuation_scoring.py:9367` (Schur-restricted solve) | **`GLOBAL_TRUST_EIGH_V2`**, explicit |
+| `hh_continuation_pruning.py:392` (prune inner solve) | **`GLOBAL_TRUST_EIGH_V2`**, explicit |
+| `hh_continuation_scoring.py:9931, 10180, 10802, 10828` | config passed through |
+| `selector_query_closure.py:1594` | config passed through |
+
+Explicit `policy=` sites repo-wide: **2, both `GLOBAL_TRUST_EIGH_V2`.** The other
+three are reached through a passed-in or default config.
+
+### Corrected disposition
+
+| policy | verdict | why |
+|---|---|---|
+| `projected_generalized_trust_v1` | **keep** | the Phase-III response solve; 61/61 bundles, 13/13 L=3, 6/6 sixregime |
+| `whitened_eigh_v1` | **keep** | `JointLinearSolveConfig` default; carried by `accepted_refit.py:500` and emitted in receipts |
+| `global_trust_eigh_v2` | **keep** | explicitly selected for the Schur-restricted solve and the prune inner solve — the singular Moré--Sorensen hard case, deliberately chosen there |
+| `block_pinv_legacy_v1` | **delete** | no explicit site; reachable only if a caller passes it, and none does |
+
+### Method
+
+**Fourth wrong conclusion from a single artifact in this effort**, and the second
+in this thread. The pattern is identical each time: a value's absence from one
+artifact was read as absence from the system. Receipts record what a path chose to
+emit, not what the code can do. For "is this reachable", read the dispatch, not
+the receipt.
 
 ## 7. No fallbacks
 
@@ -3020,6 +3064,8 @@ already shows the saturated tail. Every agent error was architectural: the wrong
 single-artifact generalizations.
 | Q47 | The `_local` / non-`_local` duplicate pairs | **Should be one.** There is no scientific reason a candidate record is built differently in a "local" context. Applies to all six pairs, 3,235 lines. The two large pairs have diverged to 47% and 54% similarity, so unifying them requires establishing what diverged and which behaviour the bundles exercised — it is not a mechanical merge. | 2026-08-25 |
 | Q48 | The four joint-linear-solve policies | **Delete two, keep two.** `supported_metric_projected_generalized_trust_v1` is the Phase-III response solve (61/61 bundle archives, 13/13 L=3 runs, 6/6 sixregime). `supported_metric_whitened_eigh_v1` is the **accepted-refit chart** — `accepted_refit.py:500` takes it as the `JointLinearSolveConfig` default, and Paper I calls it the *"fixed pullback-whitened chart"*. `global_trust_eigh_v2` and `block_pinv_legacy_v1` appear in **zero** run receipts. | 2026-08-25 |
+| Q48 | **SUPERSEDED by Q49** | The delete list was wrong; `global_trust_eigh_v2` is live. | 2026-08-25 |
+| Q49 | The four joint-linear-solve policies, re-checked | **Keep three, delete one.** `projected_generalized_trust_v1` — Phase-III response solve, every run. `whitened_eigh_v1` — the `JointLinearSolveConfig` default, carried by the accepted refit. `global_trust_eigh_v2` — passed explicitly by the Schur-restricted solve in scoring and the prune inner solve. `block_pinv_legacy_v1` — no explicit site anywhere. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
