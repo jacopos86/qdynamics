@@ -1304,14 +1304,6 @@ _DEST_OPTION_STRINGS: dict[str, tuple[str, ...]] = {
     "phase1_prune_prefilter_max_candidates": (
         "--phase1-prune-prefilter-max-candidates",
     ),
-    "adapt_beam_live_branches": ("--adapt-beam-live-branches",),
-    "adapt_beam_children_per_parent": ("--adapt-beam-children-per-parent",),
-    "adapt_beam_terminated_keep": ("--adapt-beam-terminated-keep",),
-    "adapt_beam_terminal_archive_mode": (
-        "--adapt-beam-terminal-archive-mode",
-    ),
-    "adapt_beam_lambda": ("--adapt-beam-lambda",),
-    "adapt_beam_parent_workers": ("--adapt-beam-parent-workers",),
     "phase3_selector_policy": ("--phase3-selector-policy",),
     "phase3_selector_geometry_mode": ("--phase3-selector-geometry-mode",),
     "phase3_geometry_window_size": ("--phase3-geometry-window-size",),
@@ -2002,7 +1994,6 @@ def canonical_sr_snake_combinatorial_batch_projected_phase3_no_overlap_trust_v1_
             "combinatorial_batch_joint_score": (
                 "coupled_reduced_plane_gain_over_one_plus_symmetric_cost_v1"
             ),
-            "combinatorial_batch_additivity_policy": "off",
             "combinatorial_batch_near_degenerate_shell_active": False,
             "combinatorial_batch_singleton_fallback_preserves_route_identity": (
                 True
@@ -4017,6 +4008,17 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
+        "adapt_beam_live_branches",
+        "adapt_beam_children_per_parent",
+        "adapt_beam_terminated_keep",
+        "adapt_beam_terminal_archive_mode",
+        "adapt_beam_lambda",
+        "adapt_beam_parent_workers",
+        "phase3_tie_beam_score_ratio",
+        "phase3_tie_beam_abs_tol",
+        "phase3_tie_beam_max_branches",
+        "phase3_tie_beam_max_late_coordinate",
+        "phase3_tie_beam_min_depth_left",
     }
     execution_settings = {
         field: value

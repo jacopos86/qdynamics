@@ -1037,7 +1037,7 @@ def test_schur_selector_safety_dedup_precedes_workspace_builder(
 
     monkeypatch.setattr(
         schur_selector_mod,
-        "select_phase2_batch_record_proposals",
+        "combinatorial_reduced_plane_batch_proposals",
         _capture,
     )
     monkeypatch.setattr(
@@ -1092,7 +1092,7 @@ def test_schur_selector_exhaustion_retry_expands_l25_to_all_and_flags(
     )
     monkeypatch.setattr(
         schur_selector_mod,
-        "select_phase2_batch_record_proposals",
+        "combinatorial_reduced_plane_batch_proposals",
         _empty,
     )
     proposals, summary = schur_selector_mod.select_route_a_schur_proposals(
@@ -1119,13 +1119,6 @@ def test_schur_selector_exhaustion_retry_expands_l25_to_all_and_flags(
     assert retry["triggered"] is True
     assert retry["expanded_to_all_child_phase2_survivors"] is True
     assert retry["forced_singleton_required"] is True
-
-
-def test_schur_selector_canonical_default_disables_additivity_penalty() -> None:
-    config = schur_selector_mod.RouteASchurSelectorConfig()
-
-    assert config.additivity_policy == schur_selector_mod.ROUTE_A_ADDITIVITY_OFF
-    assert config.lambda_add == 0.0
 
 
 def test_hierarchical_phase3_pre_rescore_precedes_exact_record_evaluation() -> None:

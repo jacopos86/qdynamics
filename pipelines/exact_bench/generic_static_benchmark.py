@@ -220,7 +220,6 @@ _PHASE3_BUDGET_TSV_FIELDS = (
 )
 _PHASE3_RUNTIME_TSV_FIELDS = (
     "phase3_adapt_parallel_gradient_workers",
-    "phase3_adapt_beam_parent_workers",
 )
 _HARDWARE_RESOLUTION_PROFILE_TSV_FIELDS = (
     "hardware_resolution_mode",
@@ -266,11 +265,9 @@ _PHASE3_BUDGET_BASE_ARG_FLAGS = {
 }
 _PHASE3_RUNTIME_POLICY_FIELDS = {
     "phase3_adapt_parallel_gradient_workers": "adapt_parallel_gradient_workers",
-    "phase3_adapt_beam_parent_workers": "adapt_beam_parent_workers",
 }
 _PHASE3_RUNTIME_BASE_ARG_FLAGS = {
     "adapt_parallel_gradient_workers": "--adapt-parallel-gradient-workers",
-    "adapt_beam_parent_workers": "--adapt-beam-parent-workers",
 }
 _PHASE3_ORACLE_GRADIENT_MODE_CHOICES = {
     "off",
@@ -2470,11 +2467,6 @@ def _phase3_policy_for_algorithm(
         policy = AlgorithmPolicy(
             pool=pool,
             static=StaticScaffoldPolicy(
-                phase2_enable_batching=False,
-                phase1_prune_enabled=False,
-                adapt_beam_live_branches=1,
-                adapt_beam_children_per_parent=1,
-                adapt_beam_terminated_keep=1,
                 adapt_reopt_policy="append_only",
                 adapt_window_size=3,
                 adapt_window_topk=0,

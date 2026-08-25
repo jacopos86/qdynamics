@@ -125,8 +125,8 @@ class SingletonAdmission(SerializableContract):
 
 @dataclass(frozen=True)
 class GreedyBatchAdmission(SerializableContract):
-    maximum_size: int = 3
-    search_window_size: int | None = None
+    maximum_size: int
+    search_window_size: int | None
     kind: ClassVar[str] = "greedy_batch"
 
     def __post_init__(self) -> None:
@@ -173,8 +173,8 @@ class FullCombinatorialSearchWindow(SerializableContract):
 
 @dataclass(frozen=True)
 class CombinatorialBatchAdmission(SerializableContract):
-    maximum_size: int = 3
-    search_window_size: int | FullCombinatorialSearchWindow | None = None
+    maximum_size: int
+    search_window_size: int | FullCombinatorialSearchWindow
     kind: ClassVar[str] = "combinatorial_batch"
 
     def __post_init__(self) -> None:
@@ -188,13 +188,7 @@ class CombinatorialBatchAdmission(SerializableContract):
                 "kernel ceiling of 5."
             )
         object.__setattr__(self, "maximum_size", maximum_size)
-        if self.search_window_size is None:
-            object.__setattr__(
-                self,
-                "search_window_size",
-                min(2 * maximum_size, 10),
-            )
-        elif not isinstance(
+        if not isinstance(
             self.search_window_size,
             FullCombinatorialSearchWindow,
         ):
@@ -316,10 +310,10 @@ class BeamOff(SerializableContract):
 
 @dataclass(frozen=True)
 class ForkLocalBeam(SerializableContract):
-    live_parent_branches: int = 3
-    admission_children_per_parent: int = 2
-    maximum_admission_children_per_round: int = 6
-    s_alg_weight: float = 0.01
+    live_parent_branches: int
+    admission_children_per_parent: int
+    maximum_admission_children_per_round: int
+    s_alg_weight: float
     calibration_status: str = field(
         default="uncalibrated_default",
         init=False,

@@ -517,7 +517,7 @@ def test_gradient_phase0_routes_reject_batch_admission(
             algorithm_id=algorithm_id,
             active_gradient_policy=ACTIVE_GRADIENT_STATIONARY,
             resource_weighting_scope=RESOURCE_WEIGHTING_ALL_PHASE,
-            admission=GreedyBatchAdmission(maximum_size=2),
+            admission=GreedyBatchAdmission(maximum_size=2, search_window_size=None),
         )
 
 

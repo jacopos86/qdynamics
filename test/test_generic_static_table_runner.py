@@ -44,7 +44,6 @@ def test_env_overlay_from_record_exports_table_i_fields() -> None:
             "phase3_adapt_spsa_big_a": "50.0",
             "phase3_adapt_allow_repeats": "true",
             "phase3_adapt_parallel_gradient_workers": "2",
-            "phase3_adapt_beam_parent_workers": "3",
             "benchmark_value_noise_model": "",
         }
     )
@@ -75,7 +74,6 @@ def test_env_overlay_from_record_exports_table_i_fields() -> None:
     assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_SPSA_BIG_A"] == "50.0"
     assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_ALLOW_REPEATS"] == "true"
     assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_PARALLEL_GRADIENT_WORKERS"] == "2"
-    assert overlay["GENERIC_STATIC_TABLE_PHASE3_ADAPT_BEAM_PARENT_WORKERS"] == "3"
     assert "GENERIC_STATIC_TABLE_BENCHMARK_VALUE_NOISE_MODEL" not in overlay
 
 

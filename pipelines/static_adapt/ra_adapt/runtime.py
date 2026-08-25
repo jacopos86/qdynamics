@@ -15,6 +15,10 @@ from typing import Any
 import numpy as np
 
 from pipelines.contracts.problem import ResolvedProblemContext
+from pipelines.static_adapt.extensions import (
+    beam_extension_from_policy,
+    _run_default_fork_local_beam_controller,
+)
 from pipelines.static_adapt.adaptive_phase_contracts import (
     ADAPTIVE_PHASE3_NO_POSITIVE_TERMINAL_OUTCOME_V1,
 )
@@ -25,7 +29,6 @@ from pipelines.static_adapt.sr_snake._controller import (
     _ControllerOutcome,
     _DefaultControllerFinalization,
     _run_default_combinatorial_batch_controller,
-    _run_default_fork_local_beam_controller,
     _run_default_greedy_batch_controller,
     _run_default_singleton_controller,
 )
@@ -62,7 +65,6 @@ from pipelines.static_adapt.sr_snake.contracts import (
     EstimatorAccountingReceipt,
     EstimatorComponentsReceipt,
     EstimatorWorkReceipt,
-    ForkLocalBeam,
     GreedyBatchAdmission,
     GreedyBatchAcceptedTransitionReceipt,
     GreedyBatchMemberAdmissionReceipt,
@@ -1817,12 +1819,13 @@ def _execute_resolved_context(
     runtime = context.build_default_controller_runtime()
     admission = context.request.method.admission
     beam = context.request.method.beam
-    if isinstance(beam, ForkLocalBeam):
+    beam_extension = beam_extension_from_policy(beam)
+    if beam_extension is not None:
         outcome = _run_default_fork_local_beam_controller(
             runtime,
             context.stop,
             admission,
-            beam,
+            beam_extension,
         )
     elif isinstance(admission, GreedyBatchAdmission):
         outcome = _run_default_greedy_batch_controller(

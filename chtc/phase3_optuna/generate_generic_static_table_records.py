@@ -125,7 +125,6 @@ PHASE3_BUDGET_TSV_FIELDS = (
 )
 PHASE3_RUNTIME_TSV_FIELDS = (
     "phase3_adapt_parallel_gradient_workers",
-    "phase3_adapt_beam_parent_workers",
 )
 PHASE3_POLICY_JSON_TSV_FIELDS = ("phase3_policy_json",)
 PHASE3_POS_GEO_TSV_FIELDS = ("phase3_pos_geo_position_policy",)
@@ -963,16 +962,11 @@ def _filter_records_by_case_ids(
 def _normalize_phase3_runtime_overlay(
     *,
     phase3_adapt_parallel_gradient_workers: int | str | None = None,
-    phase3_adapt_beam_parent_workers: int | str | None = None,
 ) -> dict[str, str]:
     fields = _blank_phase3_runtime_fields()
     fields["phase3_adapt_parallel_gradient_workers"] = _positive_int_string(
         phase3_adapt_parallel_gradient_workers,
         field="phase3_adapt_parallel_gradient_workers",
-    )
-    fields["phase3_adapt_beam_parent_workers"] = _positive_int_string(
-        phase3_adapt_beam_parent_workers,
-        field="phase3_adapt_beam_parent_workers",
     )
     return fields
 
@@ -1524,7 +1518,6 @@ def generate_records(
     phase3_policy_json: str | None = None,
     phase2_novelty_mode: str | None = None,
     phase3_adapt_parallel_gradient_workers: int | str | None = None,
-    phase3_adapt_beam_parent_workers: int | str | None = None,
     generic_adapt_runtime_split_mode: str | None = "off",
     generic_adapt_runtime_split_symmetry_policy: str | None = "off",
     generic_adapt_runtime_split_max_subset_size: int | str | None = None,
@@ -1708,7 +1701,6 @@ def generate_records(
     phase2_mode = _normalize_phase2_novelty_mode(phase2_novelty_mode) or "collective_span_v1"
     phase3_runtime_overlay = _normalize_phase3_runtime_overlay(
         phase3_adapt_parallel_gradient_workers=phase3_adapt_parallel_gradient_workers,
-        phase3_adapt_beam_parent_workers=phase3_adapt_beam_parent_workers,
     )
     phase3_runtime_requested = _phase3_runtime_overlay_requested(phase3_runtime_overlay)
     generic_adapt_runtime_split_overlay = _normalize_generic_adapt_runtime_split_overlay(
@@ -2480,7 +2472,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--phase3-policy-json", default=None)
     parser.add_argument("--phase2-novelty-mode", choices=sorted(x for x in _PHASE2_NOVELTY_MODE_CHOICES if x), default=None)
     parser.add_argument("--phase3-adapt-parallel-gradient-workers", type=int, default=None)
-    parser.add_argument("--phase3-adapt-beam-parent-workers", type=int, default=None)
     parser.add_argument(
         "--generic-adapt-runtime-split-mode",
         choices=sorted(_GENERIC_ADAPT_RUNTIME_SPLIT_MODE_CHOICES),
@@ -2562,7 +2553,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         phase3_policy_json=args.phase3_policy_json,
         phase2_novelty_mode=args.phase2_novelty_mode,
         phase3_adapt_parallel_gradient_workers=args.phase3_adapt_parallel_gradient_workers,
-        phase3_adapt_beam_parent_workers=args.phase3_adapt_beam_parent_workers,
         generic_adapt_runtime_split_mode=args.generic_adapt_runtime_split_mode,
         generic_adapt_runtime_split_symmetry_policy=args.generic_adapt_runtime_split_symmetry_policy,
         generic_adapt_runtime_split_max_subset_size=args.generic_adapt_runtime_split_max_subset_size,

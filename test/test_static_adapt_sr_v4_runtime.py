@@ -97,7 +97,6 @@ def test_v4_disabled_finite_angle_switch_skips_flat_gradient_guard(
         adapt_continuation_mode="legacy",
         phase0_pilot_enabled=False,
         phase1_prune_enabled=False,
-        phase2_enable_batching=False,
         phase3_enable_rescue=False,
         adapt_estimator_call_ledger_enabled=True,
     )
@@ -453,7 +452,6 @@ def test_phase1_runtime_receives_resolved_hardware_cost_policy(
             adapt_continuation_mode="phase3_v1",
             phase0_pilot_enabled=False,
             phase1_prune_enabled=False,
-            phase2_enable_batching=False,
             phase3_hardware_cost_normalization_mode=normalization_mode,
         )
 
