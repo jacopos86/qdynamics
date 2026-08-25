@@ -2201,6 +2201,68 @@ division by 3, the recorded sizes would be 8 and 4.
 deletion does not change a recorded shortlist. Four were never written to the
 checkpoint; the fifth was written but gated off by the funnel.
 
+## 6as. Inside the mega function — what moves, what deletes
+
+Structural inventory of `_run_hardcoded_adapt_vqe`
+(`adapt_pipeline.py:14714-54455`, **39,742 lines**) after Codex's extension pass.
+
+```
+196 nested defs
+27,406 lines inside nested defs   (69%)
+12,336 lines in no nested def     (31%) -- the controller body proper
+1,593 if statements
+```
+
+### Nested defs by group
+
+| group | defs | lines | disposition |
+|---|---|---|---|
+| **beam** | 13 | **8,340** | **move to `extensions.py`** |
+| **prune** | 24 | **3,227** | **move to `extensions.py`** |
+| phase2 | 6 | 2,863 | `score()` / phase table |
+| checkpoint/telemetry | 10 | 1,775 | **move out** — telemetry is an output, built from `Scored` |
+| phase1 | 15 | 1,734 | `score()` / phase table |
+| phase3 | 15 | 1,254 | `score()` / phase table |
+| phase0 | 2 | 466 | `score()` / phase table |
+| other | 111 | 7,747 | inspect individually |
+| batch | 0 | 0 | already moved |
+
+### The headline
+
+**Codex removed the extension *parameters and CLI flags*; the extension
+*implementations* are still inside the mega function.** 11,567 lines — 29% of it
+— are beam and prune. Batch is the exception: zero nested defs remain, so that
+one moved fully.
+
+The largest single blocks:
+
+| def | line | size |
+|---|---|---|
+| `_evaluate_beam_branch` | 29190 | **5,469** |
+| `_materialize_beam_child` | 35366 | **2,722** |
+| `_process_phase2_full_candidate_record_local` | 30208 | 1,730 |
+| `_execute_live_mature_prune_pass` | 23974 | 1,374 |
+| `_make_phase2_full_record_evaluator` | 38750 | 1,033 |
+| `_full_record_for_candidate` | 38763 | 1,018 |
+| `_build_prune_schur_nomination_scores` | 22538 | 827 |
+
+`_evaluate_beam_branch` alone is **14% of the whole function** and is beam-only.
+
+### Available now, without any design decision
+
+| move | lines |
+|---|---|
+| beam implementation → `extensions.py` | 8,340 |
+| prune implementation → `extensions.py` | 3,227 |
+| checkpoint/telemetry builders → outside the loop | 1,775 |
+| **total** | **13,342 (34% of the function)** |
+
+These are moves, not deletions, so rule 6i's net-line target is near zero for
+them — but they are the prerequisite named in 6i, because the function cannot be
+restructured while a third of it is extension machinery. After they land the
+controller body is ~26k lines, and the `other` bucket (111 defs, 7,747 lines) is
+the next thing to inspect individually.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
