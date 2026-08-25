@@ -3174,6 +3174,105 @@ Remaining work is then: retire the bench's nine ADAPT arms (or repoint them at
 `run_append_adapt`), delete the mega function and its kwargs builder, and
 optionally parameterize `_parent_pool_spec`.
 
+## 6bi. Audit correction — the real hold on the mega function is a physics test suite
+
+A 43-agent adversarial audit of the bench (2026-08-25) corrected 6bf/6bh on the
+decisive point, and overreached on another. Both recorded here.
+
+### The error in 6bf/6bh — mine
+
+I treated "the bench arm is the only real caller, and its callers are tests" as
+if *test-only* meant *deletable*. It does not.
+
+**`test/test_adapt_vqe_integration.py` is 9,594 lines, binds the mega function at
+`:84` (`_run_hardcoded_adapt_vqe = _adapt_mod._run_hardcoded_adapt_vqe`), and
+references it 125 times.** It is not mock plumbing: it asserts real physics —
+ED agreement `abs(payload["exact_gs_energy"] - self.exact_gs) < 1e-10`
+(`:3246,:3273`), the variational bound (`:3249`), improvement over Hartree--Fock
+(`:3087`), and serial-vs-parallel agreement to `1e-12` (`:721`). No module skip.
+
+So retiring the bench's nine ADAPT arms **does not** unblock deletion. Three
+holds remain: `sr_snake/_context.py:887` (`legacy_executor`, stored, not invoked
+on the normal path), `test/test_ra_adapt_retired_reachability.py` (AST-asserts
+the function exists), and this suite. The suite is the real one — it is currently
+the mega function's only physics oracle.
+
+**The decisive open question is now:** does the SR/SNAKE controller path reproduce
+those assertions, i.e. is that suite retargetable onto `run_ra_adapt`, or is it
+genuinely coverage that exists nowhere else? Nothing else gates the deletion.
+
+### Where the audit overreached — checked directly
+
+The audit found `MATH/paper_details/static_adapt_paper_I.tex:1747` names
+`pipelines/exact_bench/summarize_table_i_static_results.py` as the reader-facing
+regeneration path for Table I's non-SNAKE rows, and concluded the mega function
+"is on a path the manuscript names." The harness chain is real. **The Table-I
+ADAPT rows do not travel it.**
+
+That `.tex` entry documents 108/108 completed rows (CHTC 6347766, 6349829) over
+six methods, four of them ADAPT variants, with an explicit paper-label mapping:
+`static_qiskit_adapt_vqe` -> append-only ADAPT, `static_qubit_qeb_adapt_vqe` ->
+Qubit/QEB-ADAPT-VQE, `static_tetris_qubit_adapt_vqe` -> TETRIS-ADAPT-VQE,
+`static_pos_geo_adapt_vqe` -> Pos-Geo-ADAPT-VQE.
+
+**None of those four is in `_HH_ALGORITHM_MAP`** (`generic_static_benchmark.py:73-80`),
+which is the only route from that harness into the bench's ADAPT arms. They are
+defined in `benchmark_algorithm_registry.py`, which contains **zero** references
+to `adapt_pipeline`. `static_qiskit_adapt_vqe`'s own notes say it outright
+(`:257-264`):
+
+> *"The operator pool is the problem-local full_meta pool converted into Qiskit
+> SparsePauliOps... This row does not call Phase3/SNAKE/static_adapt controller
+> code and must not be used as a CEO/TETRIS/QEB/Geo emulation."*
+
+The single id that *does* map to a mega-function arm — `static_qeb_sq_lf_adapt`
+-> `hh_adapt_qeb_sq_lf_std_legacy` (`generic_static_benchmark.py:77`) — is **not**
+in the manuscript's label mapping, and exists in only three places repo-wide
+(registry `:493`, that map, and `external_adapt/provenance.py:111`). The records
+TSV the `.tex` cites, `chtc/phase3_optuna/input/generic_static_table_records.tsv`,
+is **absent from this checkout**, so which ids were actually submitted is not
+verifiable here.
+
+So: **no published Table-I ADAPT row is established to come from the mega
+function**, and the four that are published explicitly do not. 6bf's evidence
+conclusion stands; 6bf's *deletability* conclusion does not.
+
+### Convergence worth noting
+
+Table I's published append-only ADAPT row already works the way the author
+specified for a comparator (6bh): Qiskit AdaptVQE over the **problem-local
+`full_meta` pool** converted to SparsePauliOps. Between that row and
+`run_append_adapt`, the plain-ADAPT comparator exists twice in typed form,
+neither going through the mega function.
+
+### New defects the audit surfaced
+
+1. **A live crash.** `_build_adapt_kwargs:536-537` conditionally passes
+   `phase2_batch_selection_mode`, which is **not a parameter of
+   `_run_hardcoded_adapt_vqe`** — that call raises `TypeError`. It fires from
+   default config via `hh_adapt_overlap_paop_lf_std_phase3` (`:257`) and
+   `hh_adapt_ceo_paop_lf_std_phase3` (`:266`). **Two of the nine ADAPT specs
+   cannot execute today.** Inside the mega function the feature is hardcoded off
+   anyway (`adapt_pipeline.py:15922-15925`, `phase2_enable_batching = False`).
+2. **Six bench tests are RED on committed HEAD** (`6 failed, 17 passed`), all
+   `AttributeError: ... has no attribute '_run_hardcoded_adapt_vqe_compatibility'`
+   — a name that exists nowhere in the repo. The bench arm has no live coverage.
+3. `_build_adapt_kwargs` passes a flat 33-key dict and hardcodes
+   `"adapt_inner_optimizer": "POWELL"` (`:522`) and `"problem": "hh"` (`:506`),
+   leaving the mega function's other ~235 keyword-only parameters at default. It
+   uses no route profile: the file contains zero occurrences of `route_profile`,
+   `snake`, `sr_`, `run_ra_adapt`, or `ra_adapt`.
+
+### Confirmed, not changed
+
+The exact-ED implementation is **not** duplicated. The bench consumes the same
+chain a normal run uses — `problem_registry._resolve_energy` ->
+`problem_setup._exact_gs_energy_for_problem` -> `ed_hubbard_holstein.py:317
+build_hh_sector_hamiltonian_ed` -> `eigsh(k=1, which="SA")`. It resolves ED once
+per case and passes it as `exact_gs_override`, which suppresses the mega
+function's own ED fallback. **ED reference energies do not depend on the mega
+function at all.**
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
