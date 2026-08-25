@@ -2051,7 +2051,7 @@ explicitly commissioned may still be written as a task.
 | Delete the Phase-0 cost path | Codex | 2026-08-24 | stopped; preserved Bundle-9 checkpoint fails in the untouched SR route-profile validator before replay; no compatibility shim or implementation commit |
 | Q20–Q23 — unify the metric field and delete gradient/curvature substitutions plus dead telemetry | Codex | 2026-08-24 | done in `05604a36`; 698 net lines removed; conventional-v3.1 retired under Q22 |
 | Q24–Q28 — condense batch, prune, and beam behind `extensions.py`; delete superseded batch gates | Codex | 2026-08-24 | done in `54980606` (prune), `bb4541f6` (batch), and `17fc2d56` (beam/default surfaces); 6,812 net lines removed |
-| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | in progress on `codex/paper-i-worklog-audit-20260824`; only ratified decisions; Stage 5 excluded |
+| Work Plan Stages 1–3 — verified-dead deletions, fallbacks, and unified cost contracts | Codex | 2026-08-24 | stopped before 1.1; live canonical `full_meta` contains 40 PAOP records, contradicting Q39/6ag; no implementation edit |
 | _(add yours)_ | | | |
 
 ---
@@ -3366,3 +3366,41 @@ scaffold modules, and only the touched Paper-I exact-benchmark/CHTC files.  The
 large monolith was explicitly included.  Final `detect-changes --scope all`
 reports 15 production files, 88 changed symbols, two affected controller
 flows, and MEDIUM risk; no repo-wide index was consulted.
+
+### 2026-08-24 — Work Plan Stages 1–3 — STOPPED BEFORE 1.1
+
+**Coordination and baseline:** `paper-ii-exchange-selector` through
+`c31f1563a38b` was merged first.  The clean claim/baseline commit is
+`e995fe6c51c8`.  Collection is `5467 tests collected, 54 errors`; the baseline
+ledger completed one round with 256 entries, 266 ordered occurrences, and
+fingerprint
+`196e8029ff0830f2abe6a6af09d0d0059225952b12abd12d2bc6494b90a71ef1`.
+
+**Stop condition:** Q39 and 6ag say PAOP is outside canonical `full_meta`, but
+the live Hubbard--Holstein resolver proves the opposite:
+
+- `ra_adapt/pools.py:_parent_pool_spec` selects `pool_key="full_meta"` for the
+  ordinary L=2 HH problem.
+- `_parent_records` passes it through `resolve_pool_plan` with no class or
+  label filter.
+- `pool_resolution.py` dispatches HH `full_meta` to
+  `build_hh_pool_by_key`.
+- `hh_pool_presets.py:_build_hh_full_meta_pool` lists `paop_full`,
+  `paop_lf_full`, and `_HH_FULL_META_EXTRA_PAOP_KEYS` as required components,
+  then builds and appends them.
+
+A direct materialization of the ordinary small HH parent pool measured 89
+candidate-position records, **40 with PAOP labels**.  This is exactly the
+commissioned stop condition: a canonical path selects something the worklog
+calls unused.  The Paper-I-scoped GitNexus graph independently classifies the
+PAOP builder blast radius HIGH/CRITICAL across pool resolution, replay
+scaffolds, the exact-benchmark audit, and the core executor.
+
+No PAOP source, test, default, parameter, or later Stage 1–3 item was edited.
+Measured increment net is **0 lines**, collection-error delta is **0**, and no
+post-edit ledger exists because implementation did not begin.
+
+**Question for ratification:** should Q39 be withdrawn/re-scoped so canonical
+`full_meta` retains its 40 PAOP records while only standalone PAOP choices are
+retired, or should PAOP be removed from canonical `full_meta` as an explicit
+scientific pool change?
