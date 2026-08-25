@@ -2263,6 +2263,55 @@ restructured while a third of it is extension machinery. After they land the
 controller body is ~26k lines, and the `other` bucket (111 defs, 7,747 lines) is
 the next thing to inspect individually.
 
+## 6at. 8,896 orphaned lines inside the mega function — delete, do not move
+
+6as proposed moving beam out of the mega function. **That was wrong: the beam
+implementation there is already unreachable.** Codex's extension pass removed the
+call sites and left the definitions.
+
+### Evidence
+
+Reference counts in `adapt_pipeline.py`, before the extension pass (`cf1ba3a0`)
+and now:
+
+| nested def | lines | before | now |
+|---|---|---|---|
+| `_evaluate_beam_branch` (`:29190`) | 5,469 | 2 | **1** |
+| `_materialize_beam_child` (`:35366`) | 2,722 | 2 | **1** |
+| `_materialize_sr_active_only_correction` (`:34660`) | 705 | 2 | **1** |
+
+"1" is the `def` line itself. Every other occurrence of these names in the
+repository is in `.md` files — `adapt_pipeline_inventory_20260817.md`,
+`adapt_pipeline_refactor_plan.md`, `beam_refactor_migration.md`,
+`adapt_pipeline_teaching_refactor_map.md`. **No `.py` file references them.**
+
+### The live beam is elsewhere
+
+| module | role |
+|---|---|
+| `beam_search.py` (1,085 lines, 23 defs) | imported at `adapt_pipeline.py:600` |
+| `extensions.py` | the choices and the interview; carries `paper_i_canonical_fork_local_beam_search_v1` |
+
+So beam was **superseded**, not relocated, and the nested implementation is a
+leftover. This matches Codex's own report that "legacy beam paths were deleted or
+made structurally unreachable" — unreachable, but still present.
+
+### Correction to 6as
+
+| 6as said | actually |
+|---|---|
+| beam: 8,340 lines to **move** | 8,191 of them are **orphaned** — delete |
+| net-line target near zero | net **−8,896** including `_materialize_sr_active_only_correction` |
+
+### Method note
+
+A regex for `name\s*\(` flagged 27 nested defs as uncalled, 2,066 lines. An AST
+Name-load check cut that to **10**, because 17 are referenced as closures passed
+as callables — the exact failure mode `agent-handoff-contract.md` §4 records.
+Then the raw-file check narrowed it again to those whose only occurrence is their
+own `def`. Three passes, three different answers; only the last is safe to act
+on.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
