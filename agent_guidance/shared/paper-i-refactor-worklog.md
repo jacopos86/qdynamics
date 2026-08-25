@@ -1625,6 +1625,14 @@ the snapshot actually holds.
 
 ## 6ag. PAOP (Q39) — verified unused by both producer lanes
 
+> **6ag IS WRONG — DO NOT DELETE PAOP. See 6al.** I checked
+> `primitive_pools._build_full_meta_pool` and found no PAOP. **The Hubbard--Holstein
+> path uses a different builder**, `hh_pool_presets._build_hh_full_meta_pool`,
+> which lists `paop_full`, `paop_lf_full` and `_HH_FULL_META_EXTRA_PAOP_KEYS` as
+> required components. Codex materialized the canonical L=2 HH parent pool: **89
+> records, 40 of them PAOP**.
+
+
 An alternative operator-pool family from `src.quantum.operator_pools.hh_paop`,
 reached through its own pool keys (`uccsd_otimes_paop_lf_std`,
 `uccsd_otimes_paop_lf2_std`, `paop_bond_disp_std`, and siblings —
@@ -1853,6 +1861,51 @@ because I stopped at the enablement question and got that wrong too.
 whether it was set. Before concluding "never enabled", check whether the flag is
 recorded at all, and if not, resolve it from the profiles that feed it.
 
+## 6al. RETRACTION of Q39 — PAOP is inside canonical HH `full_meta`
+
+**My error, caught by Codex's stop condition before any edit.**
+
+6ag concluded PAOP was outside `full_meta` because
+`primitive_pools._build_full_meta_pool` (`:895-1214`) contains no `paop`.
+**There are two `full_meta` builders**, and Hubbard--Holstein uses the other one:
+
+```
+ra_adapt/pools.py:_parent_pool_spec        -> pool_key="full_meta" for ordinary L=2 HH
+  _parent_records -> resolve_pool_plan     (no class or label filter)
+  pool_resolution.py                        -> build_hh_pool_by_key
+  hh_pool_presets.py:_build_hh_full_meta_pool (:208-548)
+        lists paop_full, paop_lf_full, _HH_FULL_META_EXTRA_PAOP_KEYS
+        as REQUIRED components, then builds and appends them
+```
+
+Verified independently: `_build_hh_full_meta_pool` contains `paop_full`,
+`paop_lf_full` and `_HH_FULL_META_EXTRA_PAOP_KEYS`.
+
+**Codex's direct measurement:** materializing the ordinary small HH parent pool
+gives **89 candidate-position records, 40 with PAOP labels** — 45% of the
+canonical pool. Its Paper-I-scoped GitNexus graph independently rates the PAOP
+builder blast radius HIGH/CRITICAL across pool resolution, replay scaffolds, the
+exact-benchmark audit and the executor.
+
+**What was wrong in 6ag, item by item:**
+
+| 6ag claim | status |
+|---|---|
+| 0 occurrences in Paper I | still true |
+| no canonical profile selects a `paop_*` pool **key** | still true — but irrelevant, since PAOP enters as a *component* of `full_meta`, not as a pool key |
+| "not inside `full_meta` construction" | **false** — I checked the non-HH builder |
+| Paper-IV receipt shows `adapt_pool = "full_meta"` | true, and now means the opposite of what I concluded: it means Paper IV got PAOP too |
+
+**Open for the author (Codex's question):** should Q39 be re-scoped so canonical
+`full_meta` keeps its 40 PAOP records while only the standalone PAOP pool keys and
+their 4 executor parameters are retired — or should PAOP be removed from
+canonical `full_meta` as an explicit scientific pool change?
+
+**Method lesson, second in a row.** Both retractions came from checking one
+artifact and generalizing: a checkpoint that never stores a derived flag (Q41),
+and one of two same-named builders (Q39). When a name resolves to more than one
+implementation, enumerate them before concluding.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2031,6 +2084,7 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q39 | The PAOP pool family | **Delete.** Absent from Paper I, selected by no profile, and unused by Paper IV — verified from that lane's own run receipt, which records `adapt_pool = "full_meta"`. 812 references, 4 executor parameters. | 2026-08-24 |
 | Q41 | The deferred-Gram rescue and the metric-collapse branch | **Delete both.** The rescue never fired in 58 archives. The collapse branch fired 25 times, but **every occurrence is at machine-level error** — `F_red` ~ 2e-11 with `dE` between `0.0` and `-6e-11` and `max_grad` ~ 1e-7 — so it only ever acted on candidates contributing floating-point noise. Author accepts that removing it may alter accepted trajectories at that level. | 2026-08-24 |
 | Q41 | **RETRACTED** — see 6ak | The delete decision rested on a false premise. `deferred_gram_fallback_enabled` is derived, not stored; the active family enables it via `fallback_only_v1`. Whether the rescue *fires* is still open. | 2026-08-24 |
+| Q39 | **RETRACTED** — see 6al | PAOP is inside canonical Hubbard--Holstein `full_meta`: 40 of 89 records in the materialized parent pool. Codex stopped before editing. Re-scoping question open. | 2026-08-24 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
