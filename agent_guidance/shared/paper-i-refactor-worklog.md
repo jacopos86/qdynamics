@@ -2553,8 +2553,40 @@ whitening is applied to the already-retained metric.
 
 **Consequence.** The four policies cannot differ by whitening in a way that moves
 `alpha*`. They can only differ in support determination, ridge, and null-space
-handling. Whether they in fact use the same support threshold is the open
-question that decides whether they collapse to one.
+handling.
+
+### The policy the bundles ran states the separation explicitly
+
+`joint_linear_solve.py:915-926`, the docstring of the
+projected-generalized-trust solver:
+
+> *"Solve directly in the supported raw-metric eigenspace. This policy
+> deliberately stops after support projection. **It never forms a Gram inverse,
+> pseudoinverse, or inverse square root.** The retained raw eigenvalues remain the
+> trust metric in the generalized KKT system*
+>
+> `(H_s + lambda Lambda_s) q = g_s`
+>
+> *and the lifted physical step is `V_s q`. **This keeps null-direction removal
+> separate from the supported-FS whitening used by the subsequent accepted-ansatz
+> Powell refit.**"*
+
+This is the author's model, stated in the source: whitening belongs to the
+accepted-ansatz refit that follows Phase III, not to the Phase-III solve, and
+support projection is what removes null directions.
+
+So the four policies are not four numerical routes to one object — they differ in
+whether they form an inverse at all:
+
+| policy | forms `G^-1` / pinv / `G^-1/2`? |
+|---|---|
+| `supported_metric_projected_generalized_trust_v1` | **no** — generalized KKT in the raw eigenspace |
+| `supported_metric_whitened_eigh_v1` | yes — inverse square root |
+| `supported_metric_global_trust_eigh_v2` | yes |
+| `block_pinv_legacy_v1` | yes — pseudoinverse |
+
+Every bundle ran the first. It is also the only one that preserves the
+Phase-III / refit separation the manuscript's whitening language implies.
 
 ## 7. No fallbacks
 
