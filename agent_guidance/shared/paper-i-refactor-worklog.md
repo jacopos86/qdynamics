@@ -2496,12 +2496,31 @@ other occurrence repo-wide is in `.md` files. The live beam is `beam_search.py`
 nested defs as uncalled; an AST Name-load walk cut it to 10, because 17 are
 passed as closures; the raw-file check narrowed it again. Use the last.
 
-### Prune — check the same way first
+### Prune — checked: it is a MOVE, not a delete
 
-3,227 lines across 24 defs, largest `_execute_live_mature_prune_pass` (1,374) and
-`_build_prune_schur_nomination_scores` (827). Its parameters are gone too, so
-these may also be orphaned rather than movable. Establish which before choosing a
-net-line target.
+26 nested defs, 3,254 lines. Only **one** is orphaned (`_beam_prune_current`,
+19 lines, already in the delete list below). The other 25 — 3,235 lines — are
+still referenced, including `_execute_live_mature_prune_pass` (1,374, refs=2) and
+`_build_prune_schur_nomination_scores` (827, refs=2). Prune implementation is
+live inside the mega function; move it to `extensions.py`. Net target near zero.
+
+### The complete orphan list — 8 defs, 8,956 lines
+
+AST Name-load walk plus sole-occurrence check over all 196 nested defs:
+
+| lines | line | def |
+|---|---|---|
+| 5,469 | 29190 | `_evaluate_beam_branch` |
+| 2,722 | 35366 | `_materialize_beam_child` |
+| 705 | 34660 | `_materialize_sr_active_only_correction` |
+| 19 | 27925 | `_beam_prune_current` |
+| 17 | 27945 | `_beam_dedup_current` |
+| 9 | 42115 | `_scaffold_pairs_for_indices` |
+| 8 | 27916 | `_beam_sort_key_current` |
+| 7 | 43514 | `_evaluate_route_a_child_phase2_record` |
+
+Six of the eight are beam. That is the whole orphan population in the mega
+function — everything else is referenced.
 
 ### Then
 
