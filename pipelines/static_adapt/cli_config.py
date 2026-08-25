@@ -2274,11 +2274,11 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
     )
     p.add_argument(
         "--phase3-backend-cost-mode",
-        choices=["auto", "proxy", "transpile_single_v1", "transpile_shortlist_v1", "incremental_prefix_suffix_v1", "marrakesh_graph_span_v1"],
+        choices=["auto", "proxy", "transpile_single_v1", "incremental_prefix_suffix_v1", "marrakesh_graph_span_v1"],
         default="auto",
         help=(
             "Compile-cost mode for HH Phase-3 controller scoring. "
-            "auto resolves to marrakesh_graph_span_v1 for HH phase3_v1 runs; "
+            "auto resolves to transpile_single_v1 for HH phase3_v1 runs; "
             "incremental_prefix_suffix_v1 uses strict prefix-aware tail transpilation; "
             "marrakesh_graph_span_v1 uses the analytic FakeMarrakesh Pauli-support graph-span estimator without transpilation; "
             "proxy remains available when explicitly requested."
@@ -2289,12 +2289,6 @@ def _build_adapt_arg_parser(*, adapt_gradient_parity_rtol: float) -> argparse.Ar
         type=str,
         default="FakeMarrakesh",
         help="Target backend name for single-backend compile-cost modes; defaults to FakeMarrakesh for the QPU-facing HH controller route.",
-    )
-    p.add_argument(
-        "--phase3-backend-shortlist",
-        type=str,
-        default=None,
-        help="Comma-separated backend shortlist for --phase3-backend-cost-mode transpile_shortlist_v1.",
     )
     p.add_argument(
         "--phase3-backend-transpile-seed",
@@ -3755,9 +3749,6 @@ def _build_run_hardcoded_adapt_vqe_kwargs(
         "phase3_parent_collapse_debug_max_depth": int(args.phase3_parent_collapse_debug_max_depth),
         "phase3_backend_cost_mode": str(args.phase3_backend_cost_mode),
         "phase3_backend_name": None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name),
-        "phase3_backend_shortlist": []
-                if args.phase3_backend_shortlist in {None, ""}
-                else [str(tok).strip() for tok in str(args.phase3_backend_shortlist).split(",") if str(tok).strip() != ""],
         "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
         "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
         "phase3_backend_w_2q": float(args.phase3_backend_w_2q),

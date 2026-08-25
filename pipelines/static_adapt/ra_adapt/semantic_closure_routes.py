@@ -3531,7 +3531,6 @@ def validate_semantic_final_selector_accounting(
             or qiskit.get("seed_transpiler") != 7
             or qiskit.get("structure_theta_value") != 1.0
             or qiskit.get("negative_delta_reward_enabled") is not True
-            or qiskit.get("preferred_backend_fallback_allowed") is not False
             or qiskit.get("one_qubit_coordinate_policy")
             != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             or not isinstance(targets, list)

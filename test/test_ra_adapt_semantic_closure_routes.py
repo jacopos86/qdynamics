@@ -3792,7 +3792,6 @@ def _semantic_final_accounting_fixture(
             "seed_transpiler": 7,
             "structure_theta_value": 1.0,
             "negative_delta_reward_enabled": True,
-            "preferred_backend_fallback_allowed": False,
             "one_qubit_coordinate_policy": "compiled_positive_delta_v1",
             "targets": [
                 {

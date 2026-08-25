@@ -199,7 +199,6 @@ def test_phase123_scope_builds_signed_full_trial_qiskit_config() -> None:
     assert config.optimization_level == 1
     assert config.seed_transpiler == 7
     assert config.reward_negative_deltas is True
-    assert config.allow_preferred_fallback is False
     assert config.one_qubit_coordinate_policy == "compiled_positive_delta_v1"
 
 
@@ -455,7 +454,6 @@ def test_phase123_accounting_lists_qiskit_phases_and_excludes_s_alg() -> None:
             structure_theta_value=1.0,
             reward_negative_deltas=True,
             one_qubit_coordinate_policy="compiled_positive_delta_v1",
-            allow_preferred_fallback=False,
         ),
         targets=(),
         resolution_audit=(),

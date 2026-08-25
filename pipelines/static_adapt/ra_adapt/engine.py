@@ -4489,8 +4489,6 @@ def _accepted_round_scientific_receipts(
                 is not True
                 or qiskit_receipt.get("independent_base_trial_layouts")
                 is not True
-                or qiskit_receipt.get("preferred_backend_fallback_allowed")
-                is not False
                 or qiskit_receipt.get("negative_delta_reward_enabled")
                 is not False
                 or qiskit_receipt.get("one_qubit_coordinate_policy")
@@ -6115,16 +6113,12 @@ def run_ra_adapt(
             is not True
             or not isinstance(phase12_compile, Mapping)
             or phase12_compile.get("mode") != MARRAKESH_GRAPH_SPAN_MODE
-            or phase12_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or not isinstance(phase3_compile, Mapping)
             or phase3_compile.get("mode") != "transpile_single_v1"
             or phase3_compile.get("optimization_level") != 1
             or phase3_compile.get("seed_transpiler") != 7
             or phase3_compile.get("structure_theta_value") != 1.0
             or phase3_compile.get("negative_delta_reward_enabled") is not False
-            or phase3_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or phase3_compile.get("one_qubit_coordinate_policy")
             != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             or not isinstance(phase3_targets, list)
@@ -6173,8 +6167,6 @@ def run_ra_adapt(
             or phase23_compile.get("seed_transpiler") != 7
             or phase23_compile.get("structure_theta_value") != 1.0
             or phase23_compile.get("negative_delta_reward_enabled") is not True
-            or phase23_compile.get("preferred_backend_fallback_allowed")
-            is not False
             or phase23_compile.get("one_qubit_coordinate_policy")
             != ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
             or not isinstance(phase23_targets, list)

@@ -4059,7 +4059,6 @@ def _default_no_prune_projected_phase3_population(*, phase2_shortlisted_records:
             'structure_theta_value': 1.0,
             'accepted_base_and_trial_full_ansatz_transpiled': True,
             'independent_base_trial_layouts': True,
-            'preferred_backend_fallback_allowed': False,
             'negative_delta_reward_enabled': bool(
                 signed_qiskit_scope_active
             ),
@@ -14999,7 +14998,6 @@ def _run_hardcoded_adapt_vqe(
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
     phase3_backend_name: str | None = "FakeMarrakesh",
-    phase3_backend_shortlist: Sequence[str] | None = None,
     phase3_backend_transpile_seed: int = 7,
     phase3_backend_optimization_level: int = 1,
     phase3_backend_w_2q: float = 1.0,
@@ -16727,23 +16725,18 @@ def _run_hardcoded_adapt_vqe(
             "phase3_backend_cost_scope must be one of "
             f"{sorted(valid_phase3_backend_cost_scopes)}."
         )
-    valid_phase3_backend_cost_modes = {"auto", "proxy", "transpile_single_v1", "transpile_shortlist_v1", "incremental_prefix_suffix_v1", MARRAKESH_GRAPH_SPAN_MODE}
+    valid_phase3_backend_cost_modes = {"auto", "proxy", "transpile_single_v1", "incremental_prefix_suffix_v1", MARRAKESH_GRAPH_SPAN_MODE}
     if phase3_backend_cost_mode_requested_key not in valid_phase3_backend_cost_modes:
         raise ValueError(
-            "phase3_backend_cost_mode must be one of {'auto','proxy','transpile_single_v1','transpile_shortlist_v1','incremental_prefix_suffix_v1','marrakesh_graph_span_v1'}."
+            "phase3_backend_cost_mode must be one of {'auto','proxy','transpile_single_v1','incremental_prefix_suffix_v1','marrakesh_graph_span_v1'}."
         )
     phase3_backend_cost_mode_key = str(phase3_backend_cost_mode_requested_key)
     if phase3_backend_cost_mode_requested_key == "auto":
         phase3_backend_cost_mode_key = (
-            MARRAKESH_GRAPH_SPAN_MODE
+            "transpile_single_v1"
             if str(problem_key) == "hh" and str(continuation_mode) == "phase3_v1"
             else "proxy"
         )
-    phase3_backend_shortlist_tokens = tuple(
-        str(tok).strip()
-        for tok in (str(phase3_backend_shortlist).split(",") if isinstance(phase3_backend_shortlist, str) else list(phase3_backend_shortlist or []))
-        if str(tok).strip() != ""
-    )
     phase3_backend_weight_values = (
         float(phase3_backend_w_2q),
         float(phase3_backend_w_depth),
@@ -16761,20 +16754,11 @@ def _run_hardcoded_adapt_vqe(
         if phase3_backend_cost_mode_key in {"transpile_single_v1", "incremental_prefix_suffix_v1"}:
             if phase3_backend_name in {None, ""}:
                 phase3_backend_name = "FakeMarrakesh"
-            if phase3_backend_shortlist_tokens:
-                raise ValueError(f"{phase3_backend_cost_mode_key} does not accept --phase3-backend-shortlist.")
         if phase3_backend_cost_mode_key == MARRAKESH_GRAPH_SPAN_MODE:
             if phase3_backend_name in {None, ""}:
                 phase3_backend_name = "FakeMarrakesh"
             if str(phase3_backend_name) != "FakeMarrakesh":
                 raise ValueError("marrakesh_graph_span_v1 requires --phase3-backend-name FakeMarrakesh.")
-            if phase3_backend_shortlist_tokens:
-                raise ValueError("marrakesh_graph_span_v1 does not accept --phase3-backend-shortlist.")
-        if phase3_backend_cost_mode_key == "transpile_shortlist_v1":
-            if phase3_backend_name not in {None, ""}:
-                raise ValueError("transpile_shortlist_v1 does not accept --phase3-backend-name.")
-            if len(phase3_backend_shortlist_tokens) < 1:
-                raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
     if phase3_backend_cost_scope_key in {
         BACKEND_COMPILE_SCOPE_PHASE123_QISKIT_V1,
         BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
@@ -17143,12 +17127,6 @@ def _run_hardcoded_adapt_vqe(
             else str(phase3_backend_name)
         ),
         phase3_backend_name_requested=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        phase3_backend_shortlist=(
-            [str(x) for x in phase3_backend_shortlist_tokens]
-            if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
-            else []
-        ),
-        phase3_backend_shortlist_requested=[str(x) for x in phase3_backend_shortlist_tokens],
         phase3_backend_transpile_seed=int(phase3_backend_transpile_seed),
         phase3_backend_optimization_level=int(phase3_backend_optimization_level),
         phase3_backend_w_2q=float(phase3_backend_w_2q),
@@ -20438,7 +20416,6 @@ def _run_hardcoded_adapt_vqe(
     backend_compile_cfg = BackendCompileConfig(
         mode=str(phase3_backend_cost_mode_key),
         requested_backend_name=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
-        requested_backend_shortlist=tuple(str(x) for x in phase3_backend_shortlist_tokens),
         seed_transpiler=int(phase3_backend_transpile_seed),
         optimization_level=int(phase3_backend_optimization_level),
         weight_2q=float(phase3_backend_w_2q),
@@ -52922,7 +52899,6 @@ def _run_hardcoded_adapt_vqe(
                 "requested_backend_name": (
                     None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
                 ),
-                "requested_backend_shortlist": [str(x) for x in phase3_backend_shortlist_tokens],
                 "optimization_level": int(phase3_backend_optimization_level),
                 "seed_transpiler": int(phase3_backend_transpile_seed),
                 "target_backend_names": list(
@@ -54331,17 +54307,10 @@ def _run_hardcoded_adapt_vqe(
                             else []
                         ),
                         backend_reduction_mode=(
-                            "single_backend"
-                            if str(phase3_backend_cost_mode_key) == "transpile_single_v1"
-                            else (
-                                "single_backend_graph_span"
-                                if str(phase3_backend_cost_mode_key) == MARRAKESH_GRAPH_SPAN_MODE
-                                else (
-                                    "best_backend_in_shortlist_v1"
-                                    if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
-                                    else "none"
-                                )
-                            )
+                            "single_backend_graph_span"
+                            if str(phase3_backend_cost_mode_key)
+                            == MARRAKESH_GRAPH_SPAN_MODE
+                            else "single_backend"
                         ),
                     ).__dict__,
                 }
@@ -67812,10 +67781,6 @@ def _default_no_prune_backend_compile_oracle(
             if kwargs.get("phase3_backend_name") in {None, ""}
             else str(kwargs["phase3_backend_name"])
         ),
-        requested_backend_shortlist=tuple(
-            str(value)
-            for value in kwargs["phase3_backend_shortlist"]
-        ),
         seed_transpiler=int(kwargs["phase3_backend_transpile_seed"]),
         optimization_level=int(
             kwargs["phase3_backend_optimization_level"]
@@ -67823,10 +67788,6 @@ def _default_no_prune_backend_compile_oracle(
         weight_2q=float(kwargs["phase3_backend_w_2q"]),
         weight_depth=float(kwargs["phase3_backend_w_depth"]),
         weight_size=float(kwargs["phase3_backend_w_size"]),
-        allow_preferred_fallback=(
-            str(kwargs["phase3_backend_cost_mode"])
-            != MARRAKESH_GRAPH_SPAN_MODE
-        ),
     )
     num_qubits = int(round(np.log2(core.reference_state.size)))
     if str(config.mode) == "proxy":
@@ -67879,7 +67840,6 @@ def _default_no_prune_staged_qiskit_compile_config(
                 BACKEND_COMPILE_SCOPE_PHASE2_PHASE3_QISKIT_ONLY_V1,
             }
         ),
-        allow_preferred_fallback=False,
         one_qubit_coordinate_policy=(
             ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1
         ),
@@ -67911,7 +67871,6 @@ def _default_no_prune_phase3_backend_compile_oracle(
         or str(kwargs.get("phase3_backend_name")) != "FakeMarrakesh"
         or int(kwargs["phase3_backend_optimization_level"]) != 1
         or int(kwargs["phase3_backend_transpile_seed"]) != 7
-        or tuple(kwargs["phase3_backend_shortlist"])
     ):
         raise ValueError(
             "The staged Qiskit selector route requires the Paper-I "
@@ -67975,9 +67934,6 @@ def _default_no_prune_backend_compile_oracle_summary(
         ),
         "one_qubit_coordinate_policy": str(
             getattr(config, "one_qubit_coordinate_policy", "unknown")
-        ),
-        "preferred_backend_fallback_allowed": bool(
-            getattr(config, "allow_preferred_fallback", False)
         ),
         "targets": [
             {
@@ -69480,7 +69436,6 @@ _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE: Mapping[str, Any] = (
     "phase2_w_optdim": 0.1,
     "phase2_w_reuse": 0.1,
     "phase2_w_shot": 0.15,
-    "phase3_backend_shortlist": [],
     "phase3_backend_cost_scope": (
         BACKEND_COMPILE_SCOPE_SHARED_ALL_PHASES_V1
     ),
