@@ -2361,9 +2361,15 @@ same-named thing that no longer agree. Which is worse than duplication, and is
 the F3/F4 defect at its largest scale in this function: one fact, two places,
 now saying different things.
 
-**Do not collapse the large pairs mechanically.** Establishing what diverged, and
-which behaviour the bundles exercised, is a prerequisite. The four small pairs
-are safe to unify.
+**Author's decision (Q47): they should be one.** There is no scientific reason a
+candidate record is built differently in a "local" context.
+
+**But not mechanically.** The four small pairs (74-92%) unify directly. For the
+two large pairs the divergence *is* the question: at 47% and 54% similarity the
+two sides do different things, so unifying means deciding which behaviour is
+correct, and the bundles were produced by whichever one their call path reached.
+Establish the divergence and the exercised path first; a merge that silently
+picks one side changes results.
 
 The `_local` / non-`_local` duplicate pairs recur across the function
 (`_full_record_for_candidate` 1,018 and `_full_record_for_candidate_local` 721;
@@ -2732,6 +2738,7 @@ machine-level error; lane-wise scoring is not needed; the published trajectory
 already shows the saturated tail. Every agent error was architectural: the wrong
 `full_meta` builder, a derived flag read as absent from a receipt, and two
 single-artifact generalizations.
+| Q47 | The `_local` / non-`_local` duplicate pairs | **Should be one.** There is no scientific reason a candidate record is built differently in a "local" context. Applies to all six pairs, 3,235 lines. The two large pairs have diverged to 47% and 54% similarity, so unifying them requires establishing what diverged and which behaviour the bundles exercised — it is not a mechanical merge. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
