@@ -2120,6 +2120,56 @@ would silently differ from the published evidence.
 What this is *not*: a deletion candidate. It is load-bearing for current
 evidence regardless of where the code lives.
 
+## 6ar. "Lane" means two different things — do not conflate (Q45)
+
+`lane` appears **0 times in Paper I** and **1,144 times** in
+`static_adapt/` + `scaffold/`. Enumerating before concluding, it is two concepts:
+
+### 1. Physical operator lanes — a label on macro generators
+
+Recorded in runs as `physical_operator_lane`, with values
+`dressed_phonon_correlation`, `electronic_current`, `hva_hamiltonian_blocks`,
+`phonon_displacement`, `phonon_squeeze_relaxation`, `uccsd_double`. Also
+`static_lane_route = "physical_operator_type"`.
+
+**Keep the label.** It is provenance on a macro generator — which family it came
+from — and the author's decision keeps macro generators.
+
+**Delete the lane-wise scoring restriction**, which is the 5 executor
+parameters:
+
+| parameter | recorded in the B3 run |
+|---|---|
+| `physical_lane_shortlist_aggressiveness` | `3` |
+| `phase1_lane_retention_enabled` | **absent** |
+| `physical_phase1_lane_quota_pressure` | **absent** |
+| `physical_phase2_lane_quota_pressure` | **absent** |
+| `physical_phase2_lane_rel_threshold` | **absent** |
+
+Four of five are not written to the checkpoint at all, and no
+`lane_quota_applied`, `lane_dropped` or `lane_retained` marker appears anywhere
+in the run. Only the aggressiveness value is recorded.
+
+Also `CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS` — a
+profile family built around lane-only macro scoring — retires with it.
+
+### 2. Nomination lanes — pruning, unrelated
+
+`nomination_lanes` appears 302 times, but at
+`/adapt_vqe/active_prefix_checkpoints[*]/post_admission_prune`, holding
+`cached_tangent_fubini`, `recoverability_broad_rank`, `schur_surrogate`, each
+with `authority: "nomination_only"`. **These are pruning nomination sources**,
+already extracted to `extensions.py` by Codex.
+
+**Codex: a grep for `lane` hits both. The 302 nomination-lane records are not
+evidence that physical lanes restrict scoring.** Separate them before deleting.
+
+### Still to establish
+
+Whether `physical_lane_shortlist_aggressiveness = 3` changed which candidates
+were shortlisted in the bundles. It is the one restriction parameter that *is*
+recorded, so unlike the other four its inertness is not yet demonstrated.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
@@ -2398,6 +2448,8 @@ An unanswered question is **not** permission to choose. Stop and report instead.
 | Q42 | Re-scope of the retracted Q39 | **Keep PAOP.** It was used for Paper I — 40 of the 89 records in the canonical HH parent pool — so it stays. No pool change, no rerun. The standalone `paop_*` pool keys and the 4 executor parameters are **not** to be deleted either while the pool depends on the same builder machinery; treat PAOP as live Paper-I material. | 2026-08-24 |
 | Q43 | `phase3_shadow_damping_policy` | **Delete.** Absent from Paper I. Verified `"off"` in **15 of 15** archives across all five bundles, despite V4 setting `mapped_seed_zero_query_v1` — the active family root sets it `off` and no bundle ran with it on. |  2026-08-25 |
 | Q44 | `phase3_runtime_split_mode` | Author: *"ideally out of the main pipeline but still runnable — a path that has produced useful results but I expect to not need it."* **Measurement contradicts the expectation: it is `shortlist_pauli_children_v1` in 15 of 15 archives across all five bundles.** It is the default path, not an occasional one. Disposition pending — see 6aq. | 2026-08-25 |
+| Q45 | Physical lanes | **Delete the lane-wise scoring restriction.** Author: *"We will use macro generators but not restrict them to lane-wise scoring."* Keep `physical_operator_lane` as a provenance label on macro generators. `lane` appears **0 times in Paper I**. | 2026-08-25 |
+| Q46 | `phase3_runtime_split_mode` placement | **Move out of the main pipeline** (author, twice). Because it is on in 15/15 bundle archives, constraint 3 forces it to remain the effective default for the Paper-I profiles — otherwise a reproduction that forgets to enable it differs silently. | 2026-08-25 |
 
 ### Handoff register — author's guidance, 2026-08-24
 
