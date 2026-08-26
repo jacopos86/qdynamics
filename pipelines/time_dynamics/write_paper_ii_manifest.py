@@ -64,7 +64,7 @@ def main() -> int:
     lines.append("\n### Insertion gates\n")
     lines.append(_table([(g, G.note.replace("\n", " ")) for g, G in R.GATES.items()],
                         ["gate", "meaning"]))
-    lines.append("\n### Inner numerics (shared by every arm in a comparison)\n")
+    lines.append("\n### Inner numerical profiles\n")
     lines.append(_table([(n, N.integrator, N.ridge_lambda, N.solve_damping, N.pinv_rcond)
                          for n, N in R.NUMERICS.items()],
                         ["id", "integrator", "ridge", "damping", "pinv rcond"]))
@@ -86,8 +86,7 @@ def main() -> int:
     lines.append("\n## Commands\n")
     for arm, meaning, control in CANONICAL:
         run = R.build_run(regime="hh_snake_nph1", arm=arm, drive="strongfast",
-                          horizon="t10", numerics=R.RK4_NUMERICS.numerics_id,
-                          step_control=control,
+                          horizon="t10", step_control=control,
                           output_json=f"output/<batch>/strongfast_{arm}/run.json")
         lines += [f"### `{arm}` — {meaning}\n", "```bash", run.shell(), "```", ""]
 
@@ -97,8 +96,8 @@ def main() -> int:
                  "the runner uses when nothing overrides it.\n")
     for arm, meaning, control in CANONICAL:
         run = R.build_run(regime="hh_snake_nph1", arm=arm, drive="strongfast",
-                          horizon="t10", numerics=R.RK4_NUMERICS.numerics_id,
-                          step_control=control, output_json="<output>")
+                          horizon="t10", step_control=control,
+                          output_json="<output>")
         eff = vars(parser.parse_args(list(run.argv())))
         rows = [(k, eff[k], "registry" if eff[k] != defaults.get(k) else "default")
                 for k in sorted(eff) if k not in ("artifact_json", "output_json")]

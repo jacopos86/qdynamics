@@ -34,6 +34,9 @@ from pipelines.time_dynamics.ap_mclachlan.deletion_family import (
     JointWorkGuard,
     iter_deletion_rungs,
 )
+from pipelines.time_dynamics.ap_mclachlan.deletion_permission import (
+    DeletionPermissionDecision,
+)
 from pipelines.time_dynamics.ap_mclachlan.insertion_words import (
     InsertionPlan,
     WordToken,
@@ -50,7 +53,7 @@ from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
 )
 
 
-STRUCTURAL_SELECTION_POLICY_V1 = "paper_ii_deletion_conditioned_exchange_structural_v1"
+GENERALIZED_EXCHANGE_STRUCTURAL_POLICY_V2 = "paper_ii_generalized_exchange_structural_v2"
 
 
 @dataclass(frozen=True)
@@ -220,6 +223,9 @@ def iter_structural_families(
     candidate_pool_for_deletion: Callable[[tuple[int, ...]], tuple[str, ...]],
     insertion_cost: Callable[[tuple[str, ...]], float],
     deletion_cost: Callable[[tuple[int, ...]], float],
+    deletion_permission: (
+        Callable[[tuple[int, ...]], DeletionPermissionDecision] | None
+    ) = None,
     deletion_conditioning: Callable[[tuple[int, ...]], float] | None = None,
     deletion_history_loss: Callable[[tuple[int, ...]], float] | None = None,
     tokens_commute: Callable[[WordToken, WordToken], bool] | None = None,
@@ -236,6 +242,9 @@ def iter_structural_families(
     carrying priorities, universe, schedule, and ``q_base`` so consumers can
     stop early without losing reproduction data.
 
+    ``deletion_permission`` is the measurement-free eligibility seam for a
+    complete deletion set.  A refused set is removed before its pure-deletion
+    and exchange variants are scored or counted against the work guard.
     ``candidate_pool_for_deletion`` returns the branch pool ``C_{k,D}`` in
     frozen child order (occurrence policy applied by the caller; a deleted
     child may re-enter).  ``cuts_by_atom`` holds each child's retained
@@ -394,10 +403,17 @@ def iter_structural_families(
             pool = candidate_pool_for_deletion(removed)
             members.append((removed, pool))
             size += 1 + sum(len(tuple(cuts_by_atom.get(a, ()))) for a in pool)
+        # Admit the raw family before permission. Otherwise refused sets evade
+        # the work accounting and the search can walk unbounded combinatorial
+        # rungs while scoring nothing.
         if not guard.admit(family, size):
             break
         family_out = []
         for removed, pool in members:
+            if deletion_permission is not None:
+                permission = deletion_permission(removed)
+                if not bool(permission.permitted):
+                    continue
             family_out.append(scored(removed, (), None, family))
             for atom_id in pool:
                 for cut in sorted(int(c) for c in cuts_by_atom.get(atom_id, ())):
@@ -547,7 +563,7 @@ def _plan_selection(
 
 
 __all__ = [
-    "STRUCTURAL_SELECTION_POLICY_V1",
+    "GENERALIZED_EXCHANGE_STRUCTURAL_POLICY_V2",
     "iter_structural_families",
     "StructuralCandidate",
     "StructuralEnumeration",

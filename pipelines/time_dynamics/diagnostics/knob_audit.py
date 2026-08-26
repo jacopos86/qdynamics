@@ -20,8 +20,7 @@ for path in runs:
         itg = p.get("integration_to_next") or {}
         rs = itg.get("repair_summary") or {}
         if itg.get("local_subdivision_applied"): subdiv["subdivision_applied"] += 1
-        for k in ("prospective_state_motion_triggered", "kink_triggered",
-                  "condition_triggered", "rho_num_triggered"):
+        for k in ("kink_triggered", "condition_triggered", "rho_num_triggered"):
             if rs.get(k): repair[k] += 1
         if itg.get("repair_applied"): repair["repair_applied"] += 1
         cfg_used = rs.get("selected_candidate_id") or rs.get("selected_policy")

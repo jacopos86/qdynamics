@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,7 +40,21 @@ from pipelines.time_dynamics.normalized_pauli_pool import (
 from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
     _load_runtime_input_or_raise,
 )
+from pipelines.time_dynamics.run_lock import file_sha256
 from src.quantum.ansatz_parameterization import build_parameter_layout
+
+
+_STRUCTURAL_OCCURRENCE_CHILD_RE = re.compile(
+    r"^(?P<base>.+)::(?:insr|avqds)[0-9]+c[0-9]+o[0-9]+"
+    r"::r[0-9]+::.+$"
+)
+
+
+def _structural_occurrence_base_label(label: str) -> str:
+    """Recover the candidate-pool child label from a structural occurrence."""
+
+    match = _STRUCTURAL_OCCURRENCE_CHILD_RE.fullmatch(str(label))
+    return str(label) if match is None else str(match.group("base"))
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -152,7 +167,9 @@ def reconstruct_terminal_ap_compile_input(
     for label in selected_labels:
         if label in term_lookup:
             continue
-        base_label = append_occurrence_base_label(label)
+        base_label = append_occurrence_base_label(
+            _structural_occurrence_base_label(label)
+        )
         base_term = term_lookup.get(base_label)
         if base_term is not None:
             term_lookup[label] = replace(base_term, label=label)
@@ -238,6 +255,7 @@ def build_ap_terminal_cost_table(
     row = {
         "label": str(label),
         "trajectory_json": str(trajectory_path),
+        "trajectory_json_sha256": file_sha256(trajectory_path),
         "logical_parameter_count": int(summary["logical_parameter_count_final"]),
         "runtime_parameter_count": int(summary["runtime_parameter_count_final"]),
         "accepted_append_count": int(summary.get("accepted_append_count", 0)),
@@ -248,8 +266,16 @@ def build_ap_terminal_cost_table(
         "accepted_deleted_coordinate_count": int(
             summary.get("accepted_deleted_coordinate_count", 0)
         ),
-        "final_abs_energy_error": float(summary["final_abs_energy_error"]),
-        "final_abs_doublon_error": float(summary["final_abs_doublon_error"]),
+        "final_abs_energy_error": (
+            None
+            if summary.get("final_abs_energy_error") is None
+            else float(summary["final_abs_energy_error"])
+        ),
+        "final_abs_doublon_error": (
+            None
+            if summary.get("final_abs_doublon_error") is None
+            else float(summary["final_abs_doublon_error"])
+        ),
         "N2q": int(result["N2q"]),
         "D2q": int(result["D2q"]),
         "Dc": int(result["Dc"]),
@@ -279,7 +305,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--label", required=True)
     parser.add_argument("--backend-name", default=DEFAULT_BACKEND)
     parser.add_argument("--seed-transpiler", type=int, default=7)
-    parser.add_argument("--optimization-level", type=int, default=2)
+    # Paper-I resource convention: FakeMarrakesh, optimization level 1, seed 7.
+    parser.add_argument("--optimization-level", type=int, default=1)
     args = parser.parse_args(argv)
     payload = build_ap_terminal_cost_table(
         trajectory_path=args.trajectory_json,

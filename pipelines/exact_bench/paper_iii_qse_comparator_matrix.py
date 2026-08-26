@@ -299,9 +299,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             },
             "krylov": _krylov_arm(dense, ground, references, step_2q=step_2q),
-            # Closest adaptive prior art: residual-guided subspace growth with a
-            # linear-independence (metric-novelty) admission check and no
-            # hardware-cost weighting, in the spirit of quantum Davidson.
+            # Cost-agnostic ABLATION of our own acquisition rule: identical
+            # pool, identical novelty/residual scoring, hardware-cost discount
+            # switched off. This is an internal control that isolates the cost
+            # term -- it is NOT an implementation of any published method, and
+            # in particular not of quantum Davidson, which synthesizes a
+            # preconditioned residual vector rather than choosing an operator
+            # from a fixed alphabet.
             "residual_guided_adaptive": _selection_arm(
                 basis,
                 hamiltonian,

@@ -1,4 +1,4 @@
-"""Run append-first AP-McLachlan from a static scaffold artifact."""
+"""Run generalized-exchange AP-McLachlan from a static scaffold artifact."""
 
 from __future__ import annotations
 
@@ -16,16 +16,15 @@ from pipelines.scaffold.runtime_loader import (
     load_scaffold_runtime_input_from_payload,
 )
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
-    APPEND_LADDER_PREFILTER_POLICY_V1,
-    APPEND_LADDER_SELECTION_POLICY_V1,
     DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD,
-    PRUNE_PERSISTENCE_ATOM_HISTORY,
-    PRUNE_PERSISTENCE_EXACT_BATCH,
     PRUNE_TARGET_POLICIES,
     AppendControllerConfig,
     SolveRepairConfig,
     SupportPatchControllerConfig,
     run_append_mclachlan_trajectory,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
+    GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
 )
 from pipelines.time_dynamics.ap_mclachlan.drive_aligned import (
     augment_state_with_drive_aligned_generator,
@@ -144,7 +143,7 @@ def run_append_ap_mclachlan_from_runtime_input(
     normalized_candidate_pool_profile: str | None = None,
     runner_metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Run append-first AP-McLachlan from an already-loaded scaffold contract."""
+    """Run generalized-exchange AP-McLachlan from a loaded scaffold contract."""
 
     if bool(enable_drive) and drive_config is None:
         raise ValueError("enable_drive=True requires a drive_config.")
@@ -554,10 +553,14 @@ def _plot_rows(
         selected_prune_conditioning = dict(
             selected_prune_cost.get("conditioning_components", {}) or {}
         )
-        integration = point.integration_to_next
-        integration_repair_summary = (
-            {} if integration is None else dict(integration.repair_summary or {})
+        deletion_permission = dict(
+            patch_metadata.get("deletion_permission", {}) or {}
         )
+        deletion_permission_reasons = dict(
+            deletion_permission.get("rejection_reason_counts", {}) or {}
+        )
+        integration = point.integration_to_next
+        parameter_stepping = dict(point.parameter_stepping_to_next or {})
         repair_schedule = point.fixed_step.solve_repair_response_schedule
         row = {
                 "index": int(point.index),
@@ -650,27 +653,54 @@ def _plot_rows(
                 "integration_rhs_evaluation_count": (
                     None if integration is None else int(integration.rhs_evaluation_count)
                 ),
-                "integration_prospective_state_motion_l2_step_initial": _finite_or_none(
-                    integration_repair_summary.get(
-                        "prospective_state_motion_l2_step_initial"
+                "integration_accepted_rhs_evaluation_count": (
+                    None
+                    if integration is None
+                    else int(
+                        integration.rhs_evaluation_count
+                        if integration.accepted_rhs_evaluation_count is None
+                        else integration.accepted_rhs_evaluation_count
                     )
                 ),
-                "integration_max_prospective_state_motion_l2_step": _finite_or_none(
-                    integration_repair_summary.get(
-                        "max_prospective_state_motion_l2_step"
-                    )
+                "integration_attempted_substep_count": (
+                    None
+                    if integration is None
+                    else int(integration.attempted_substep_count)
                 ),
-                "integration_prospective_state_motion_above_max": bool(
-                    integration_repair_summary.get(
-                        "prospective_state_motion_above_max",
-                        False,
-                    )
+                "integration_rejected_substep_count": (
+                    None
+                    if integration is None
+                    else int(integration.rejected_substep_count)
                 ),
-                "integration_prospective_state_motion_triggered": bool(
-                    integration_repair_summary.get(
-                        "prospective_state_motion_triggered",
-                        False,
-                    )
+                "parameter_control_policy": parameter_stepping.get("policy"),
+                "parameter_control_substep_count": (
+                    None
+                    if not parameter_stepping
+                    else int(parameter_stepping["substep_count"])
+                ),
+                "parameter_control_rhs_evaluation_count": (
+                    None
+                    if not parameter_stepping
+                    else int(parameter_stepping["substep_count"])
+                ),
+                "parameter_control_attempted_substep_count": (
+                    None
+                    if not parameter_stepping
+                    else int(parameter_stepping["substep_count"])
+                ),
+                "parameter_control_rejected_substep_count": (
+                    None if not parameter_stepping else 0
+                ),
+                "parameter_control_min_dt": (
+                    None if not parameter_stepping else float(parameter_stepping["min_dt"])
+                ),
+                "parameter_control_max_dt": (
+                    None if not parameter_stepping else float(parameter_stepping["max_dt"])
+                ),
+                "parameter_control_max_theta_dot": (
+                    None
+                    if not parameter_stepping
+                    else float(parameter_stepping["max_theta_dot"])
                 ),
                 "runtime_parameter_count": int(point.runtime_parameter_count),
                 "logical_parameter_count": int(point.logical_parameter_count),
@@ -680,6 +710,50 @@ def _plot_rows(
                 "patch_reason": str(decision.reason),
                 "patch_candidate_count": int(decision.candidate_count),
                 "patch_scored_count": int(decision.scored_count),
+                "deletion_permission_evaluated_set_count": int(
+                    deletion_permission.get("evaluated_deletion_set_count", 0) or 0
+                ),
+                "deletion_permission_permitted_set_count": int(
+                    deletion_permission.get("permitted_deletion_set_count", 0) or 0
+                ),
+                "deletion_permission_rejected_set_count": int(
+                    deletion_permission.get("rejected_deletion_set_count", 0) or 0
+                ),
+                "deletion_permission_schur_evaluated_set_count": int(
+                    deletion_permission.get(
+                        "schur_evaluated_deletion_set_count", 0
+                    )
+                    or 0
+                ),
+                "deletion_permission_schur_skipped_by_angle_count": int(
+                    deletion_permission.get("schur_skipped_by_angle_count", 0) or 0
+                ),
+                "deletion_permission_angle_rejected_set_count": int(
+                    deletion_permission_reasons.get(
+                        "angle_ray_upper_bound_above_max", 0
+                    )
+                    or 0
+                ),
+                "deletion_permission_schur_rejected_set_count": int(
+                    deletion_permission_reasons.get(
+                        "normalized_schur_loss_above_max", 0
+                    )
+                    or 0
+                ),
+                "deletion_permission_max_permitted_ray_upper_bound": (
+                    _finite_or_none(
+                        deletion_permission.get(
+                            "max_permitted_ray_distance_upper_bound"
+                        )
+                    )
+                ),
+                "deletion_permission_max_permitted_normalized_schur_loss": (
+                    _finite_or_none(
+                        deletion_permission.get(
+                            "max_permitted_normalized_schur_loss"
+                        )
+                    )
+                ),
                 "patch_batch_reason": None if batch is None else str(batch.reason),
                 "patch_batch_selected_index": (
                     None if batch is None or batch.selected_index is None else int(batch.selected_index)
@@ -723,11 +797,6 @@ def _plot_rows(
                     None
                     if selected_candidate is None
                     else selected_candidate.metadata.get("rung_size")
-                ),
-                "patch_append_ladder_mode": (
-                    None
-                    if batch is None
-                    else batch.metadata.get("append_ladder_mode")
                 ),
                 "patch_insertion_gain": (
                     None
@@ -852,68 +921,8 @@ def _plot_rows(
                 "patch_prune_cost_bar_2q": _finite_or_none(selected_prune_bar.get("2q")),
                 "patch_prune_cost_bar_d": _finite_or_none(selected_prune_bar.get("d")),
                 "patch_prune_cost_bar_1q": _finite_or_none(selected_prune_bar.get("1q")),
-                "patch_prune_persistence_count": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_persistence_count")
-                ),
-                "patch_prune_persistence_required": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_persistence_required")
-                ),
-                "patch_prune_persistence_mode": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_persistence_mode")
-                ),
-                "patch_prune_atom_history_pass_count": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_atom_history_pass_count")
-                ),
-                "patch_prune_atom_history_total_count": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_atom_history_total_count")
-                ),
-                "patch_prune_atom_history_fraction": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_atom_history_fraction")
-                ),
-                "patch_prune_atom_history_fraction_required": (
-                    None
-                    if selected_candidate is None
-                    else (
-                        selected_candidate.metadata or {}
-                    ).get("prune_atom_history_fraction_required")
-                ),
                 "patch_prune_history_transition": patch_metadata.get(
                     "prune_history_transition"
-                ),
-                "patch_prune_atom_history_preserved_count": (
-                    None
-                    if patch_metadata.get("prune_atom_history_preserved_count")
-                    is None
-                    else int(patch_metadata.get("prune_atom_history_preserved_count"))
-                ),
-                "patch_prune_atom_history_dropped_count": (
-                    None
-                    if patch_metadata.get("prune_atom_history_dropped_count") is None
-                    else int(patch_metadata.get("prune_atom_history_dropped_count"))
                 ),
                 "patch_prune_geometry_history_cleared_due_to_support_change": (
                     None
@@ -1030,15 +1039,6 @@ def _summary_from_rows(
     solve_repair_config: SolveRepairConfig,
 ) -> dict[str, Any]:
     accepted = [row for row in rows if bool(row.get("patch_accepted", False))]
-    append_ladder_enabled = bool(
-        support_patch_config is not None
-        and str(support_patch_config.append_ladder_mode).strip().lower() == "combinatorial"
-    )
-    append_ladder_mode = (
-        "legacy_singleton"
-        if support_patch_config is None
-        else str(support_patch_config.append_ladder_mode)
-    )
     residuals = [
         float(row["mclachlan_residual_ratio"])
         for row in rows
@@ -1048,10 +1048,6 @@ def _summary_from_rows(
     rho_reals = _finite_row_values(rows, "mclachlan_rho_real")
     rho_exprs = _finite_row_values(rows, "mclachlan_rho_expr")
     state_motions = _finite_row_values(rows, "state_motion_l2_step")
-    prospective_state_motions = _finite_row_values(
-        rows,
-        "integration_max_prospective_state_motion_l2_step",
-    )
     kink_etas = _finite_row_values(rows, "state_space_kink_eta")
     prune_patch_smoothness_etas = _finite_row_values(
         rows, "patch_prune_smoothness_eta"
@@ -1080,29 +1076,17 @@ def _summary_from_rows(
             ),
             "solve_repair_config": solve_repair_config.to_json_dict(),
             "solve_repair_enabled": bool(solve_repair_config.enabled),
-            "append_ladder_enabled": append_ladder_enabled,
-            "append_ladder_mode": append_ladder_mode,
-            "active_prune_enabled": bool(
-                support_patch_config is not None and support_patch_config.prune_enabled
-            ),
-            "active_prune_commit_enabled": bool(
-                support_patch_config is not None
-                and support_patch_config.prune_commit_enabled
-            ),
-            "prune_ladder_enabled": bool(
-                support_patch_config is not None
-                and support_patch_config.prune_enabled
-                and int(support_patch_config.max_prune_batch_size) > 0
-            ),
-            "prune_patch_smoothness_enabled": bool(
-                support_patch_config is not None
-                and support_patch_config.prune_patch_smoothness_enabled
-            ),
             "prune_patch_smoothness_deferred_count": 0,
             "prune_patch_smoothness_unavailable_count": 0,
             "prune_patch_smoothness_passed_count": 0,
             "prune_patch_smoothness_retry_count": 0,
             "prune_patch_smoothness_accepted_after_retry_count": 0,
+            "accepted_internal_substep_count": 0,
+            "attempted_internal_step_count": 0,
+            "rejected_internal_step_count": 0,
+            "rhs_evaluation_count": 0,
+            "parameter_controlled_interval_count": 0,
+            "parameter_control_substep_count": 0,
         }
         summary.update(reference_energy_summary(rows))
         summary.update(reference_energy_summary(rows, field_prefix="seed_", summary_prefix="seed_"))
@@ -1160,27 +1144,108 @@ def _summary_from_rows(
                 if bool(row.get("integration_local_subdivision_applied", False))
             )
         ),
+        "accepted_internal_substep_count": int(
+            sum(
+                int(row.get("parameter_control_substep_count"))
+                if row.get("parameter_control_substep_count") is not None
+                else int(row.get("integration_local_substep_count") or 0)
+                for row in rows
+            )
+        ),
+        "rhs_evaluation_count": int(
+            sum(
+                int(row.get("parameter_control_rhs_evaluation_count"))
+                if row.get("parameter_control_rhs_evaluation_count") is not None
+                else int(row.get("integration_rhs_evaluation_count") or 0)
+                for row in rows
+            )
+        ),
+        "attempted_internal_step_count": int(
+            sum(
+                int(row.get("parameter_control_attempted_substep_count"))
+                if row.get("parameter_control_attempted_substep_count") is not None
+                else int(row.get("integration_attempted_substep_count") or 0)
+                for row in rows
+            )
+        ),
+        "rejected_internal_step_count": int(
+            sum(
+                int(row.get("parameter_control_rejected_substep_count"))
+                if row.get("parameter_control_rejected_substep_count") is not None
+                else int(row.get("integration_rejected_substep_count") or 0)
+                for row in rows
+            )
+        ),
+        "parameter_controlled_interval_count": int(
+            sum(
+                1
+                for row in rows
+                if row.get("parameter_control_substep_count") is not None
+            )
+        ),
+        "parameter_control_substep_count": int(
+            sum(int(row.get("parameter_control_substep_count") or 0) for row in rows)
+        ),
         "max_mclachlan_rho_num": None if not rho_nums else float(max(rho_nums)),
         "max_mclachlan_rho_real": None if not rho_reals else float(max(rho_reals)),
         "max_mclachlan_rho_expr": None if not rho_exprs else float(max(rho_exprs)),
         "max_state_motion_l2_step": (
             None if not state_motions else float(max(state_motions))
         ),
-        "max_prospective_state_motion_l2_step": (
-            None
-            if not prospective_state_motions
-            else float(max(prospective_state_motions))
-        ),
-        "prospective_state_motion_trigger_count": int(
+        "max_state_space_kink_eta": None if not kink_etas else float(max(kink_etas)),
+        "deletion_permission_checkpoint_count": int(
             sum(
                 1
                 for row in rows
-                if bool(
-                    row.get("integration_prospective_state_motion_triggered", False)
-                )
+                if int(row.get("deletion_permission_evaluated_set_count") or 0) > 0
             )
         ),
-        "max_state_space_kink_eta": None if not kink_etas else float(max(kink_etas)),
+        "deletion_permission_evaluated_set_count": int(
+            sum(
+                int(row.get("deletion_permission_evaluated_set_count") or 0)
+                for row in rows
+            )
+        ),
+        "deletion_permission_permitted_set_count": int(
+            sum(
+                int(row.get("deletion_permission_permitted_set_count") or 0)
+                for row in rows
+            )
+        ),
+        "deletion_permission_rejected_set_count": int(
+            sum(
+                int(row.get("deletion_permission_rejected_set_count") or 0)
+                for row in rows
+            )
+        ),
+        "deletion_permission_schur_evaluated_set_count": int(
+            sum(
+                int(
+                    row.get("deletion_permission_schur_evaluated_set_count") or 0
+                )
+                for row in rows
+            )
+        ),
+        "deletion_permission_schur_skipped_by_angle_count": int(
+            sum(
+                int(
+                    row.get("deletion_permission_schur_skipped_by_angle_count") or 0
+                )
+                for row in rows
+            )
+        ),
+        "deletion_permission_angle_rejected_set_count": int(
+            sum(
+                int(row.get("deletion_permission_angle_rejected_set_count") or 0)
+                for row in rows
+            )
+        ),
+        "deletion_permission_schur_rejected_set_count": int(
+            sum(
+                int(row.get("deletion_permission_schur_rejected_set_count") or 0)
+                for row in rows
+            )
+        ),
         "accepted_patch_count": int(len(accepted)),
         "accepted_append_count": int(
             sum(1 for row in accepted if _is_append_patch_kind(row.get("patch_kind")))
@@ -1228,21 +1293,6 @@ def _summary_from_rows(
                 for row in accepted
                 if str(row.get("patch_kind")) == "exchange"
             )
-        ),
-        "active_prune_enabled": bool(
-            support_patch_config is not None and support_patch_config.prune_enabled
-        ),
-        "active_prune_commit_enabled": bool(
-            support_patch_config is not None and support_patch_config.prune_commit_enabled
-        ),
-        "prune_ladder_enabled": bool(
-            support_patch_config is not None
-            and support_patch_config.prune_enabled
-            and int(support_patch_config.max_prune_batch_size) > 0
-        ),
-        "prune_patch_smoothness_enabled": bool(
-            support_patch_config is not None
-            and support_patch_config.prune_patch_smoothness_enabled
         ),
         "prune_patch_smoothness_deferred_count": int(
             sum(
@@ -1368,22 +1418,8 @@ def _summary_from_rows(
             if support_patch_config is None
             else support_patch_config.to_json_dict()
         ),
-        "append_ladder_enabled": append_ladder_enabled,
-        "append_ladder_mode": append_ladder_mode,
-        "append_selection_policy": (
-            None
-            if not append_ladder_enabled
-            else APPEND_LADDER_SELECTION_POLICY_V1
-        ),
-        "support_patch_config_scope": (
-            None
-            if not append_ladder_enabled
-            else (
-                "append_prune_ladder_fields"
-                if support_patch_config is not None and support_patch_config.prune_enabled
-                else "append_ladder_fields_only"
-            )
-        ),
+        "structural_selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
+        "support_patch_config_scope": "generalized_exchange",
     }
     summary.update(reference_energy_summary(rows))
     summary.update(reference_energy_summary(rows, field_prefix="seed_", summary_prefix="seed_"))
@@ -1428,7 +1464,7 @@ def _load_runtime_input_or_raise(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run append-first AP-McLachlan from a static scaffold artifact."
+        description="Run generalized-exchange AP-McLachlan from a scaffold artifact."
     )
     parser.add_argument(
         "--resume-from-run-json",
@@ -1520,7 +1556,15 @@ def _build_parser() -> argparse.ArgumentParser:
             "the one-use compatibility policy."
         ),
     )
-    parser.add_argument("--max-append-batch-size", type=int, default=10)
+    parser.add_argument(
+        "--exchange-deletions",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Keep the deletion component D of generalized exchange available. "
+            "Use --no-exchange-deletions only for the insert-face ablation."
+        ),
+    )
     parser.add_argument("--append-schur-max-condition-number", type=float, default=1.0e12)
     parser.add_argument(
         "--escalation-accumulated-drift-threshold",
@@ -1571,7 +1615,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eps-loss", type=float, default=1.0e-14)
     parser.add_argument("--prune-ray-distance-tol", type=float, default=2.0e-3)
     parser.add_argument("--prune-history-window", type=int, default=3)
-    parser.add_argument("--prune-history-lambda", type=float, default=1.0)
+    parser.add_argument("--prune-history-lambda", type=float, default=0.0)
     parser.add_argument(
         "--prune-condition-lambda-kappa-rel", type=float, default=0.0
     )
@@ -1599,7 +1643,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default="exchange",
         help=(
             "Structural decision rule: 'exchange' is this paper's "
-            "deletion-conditioned route; 'avqds' is the adaptive-append "
+            "generalized-exchange route; 'avqds' is the adaptive-append "
             "comparator (McLachlan-distance threshold, greedy max-reduction "
             "appends at the circuit end, no deletion) on identical geometry, "
             "inverse policy, repair, and integrator."
@@ -1642,11 +1686,13 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--debt-policy",
         choices=["insertion_only", "any_improving", "drift_ranked"],
-        default="insertion_only",
+        default="drift_ranked",
         help=(
-            "What may fire while L^2 exceeds the cut. 'insertion_only' "
-            "withdraws removal until the debt is paid; 'any_improving' keeps "
-            "removal eligible and admits any patch that reduces L^2."
+            "Ranking while L^2 exceeds the cut. 'drift_ranked' is the "
+            "Paper-II rule: the full generalized-exchange family remains "
+            "open and signed realized drift is primary. 'insertion_only' "
+            "restricts the search to its insert face for an explicit ablation; "
+            "'any_improving' reproduces the historical composite ranking."
         ),
     )
     parser.add_argument(
@@ -1709,8 +1755,8 @@ def _build_parser() -> argparse.ArgumentParser:
         default=1,
         help=(
             "Upper bound on inserted child occurrences in one structural "
-            "patch. None falls back to --max-append-batch-size. Zero leaves "
-            "stay plus pure deletion."
+            "patch. Zero restricts generalized exchange to stay plus pure "
+            "deletion."
         ),
     )
     parser.add_argument(
@@ -1879,6 +1925,108 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _support_patch_config_from_args(args: argparse.Namespace) -> SupportPatchControllerConfig:
+    """Translate runner transport arguments into the live exchange config."""
+
+    return SupportPatchControllerConfig(
+        deletion_enabled=bool(args.exchange_deletions),
+        append_occurrence_policy=str(args.append_occurrence_policy),
+        max_insertion_batch_size=int(args.max_insertion_batch_size),
+        interaction_frontier_widths=(
+            None
+            if args.interaction_frontier_widths in (None, "")
+            else tuple(
+                int(token)
+                for token in str(args.interaction_frontier_widths).split(",")
+                if token.strip()
+            )
+        ),
+        structural_score_floor=float(args.structural_score_floor),
+        max_joint_patch_evaluations=(
+            None
+            if args.max_joint_patch_evaluations is None
+            else int(args.max_joint_patch_evaluations)
+        ),
+        append_schur_max_condition_number=(
+            float(args.append_schur_max_condition_number)
+            if args.append_schur_condition_gate
+            else None
+        ),
+        support_patch_scoring_workers=int(args.support_patch_scoring_workers),
+        cost_normalization_mode=str(args.append_cost_normalization_mode),
+        append_cost_alpha=float(args.append_cost_alpha),
+        append_cost_lambda_2q=float(args.append_cost_lambda_2q),
+        append_cost_lambda_d=float(args.append_cost_lambda_d),
+        append_cost_lambda_1q=float(args.append_cost_lambda_1q),
+        append_cost_lambda_theta=float(args.append_cost_lambda_theta),
+        append_cost_lambda_shot=float(args.append_cost_lambda_shot),
+        append_cost_scale_floor=float(args.append_cost_scale_floor),
+        residual_ratio_threshold=float(args.residual_ratio_threshold),
+        escalation_accumulated_drift_threshold=(
+            None
+            if args.escalation_accumulated_drift_threshold is None
+            else float(args.escalation_accumulated_drift_threshold)
+        ),
+        avqds_delta_theta_max=(
+            None
+            if args.avqds_delta_theta_max is None
+            else float(args.avqds_delta_theta_max)
+        ),
+        debt_policy=str(args.debt_policy),
+        insertion_gate_mode=str(args.insertion_gate_mode),
+        insertion_l2_cut=float(args.insertion_l2_cut),
+        max_insertion_rounds_per_checkpoint=int(
+            args.max_insertion_rounds_per_checkpoint
+        ),
+        prune_cooldown_steps=int(args.prune_cooldown_steps),
+        min_runtime_parameter_count=int(args.min_runtime_parameter_count),
+        prune_ray_distance_tol=float(args.prune_ray_distance_tol),
+        prune_patch_smoothness_eta_max=float(args.prune_patch_smoothness_eta_max),
+        patch_utility_delta_weight=float(args.patch_utility_delta_weight),
+        prune_cost_alpha=float(args.prune_cost_alpha),
+        prune_history_window=int(args.prune_history_window),
+        prune_history_lambda=float(args.prune_history_lambda),
+        prune_condition_lambda_kappa_rel=float(
+            args.prune_condition_lambda_kappa_rel
+        ),
+        prune_condition_lambda_kappa_dam=float(
+            args.prune_condition_lambda_kappa_dam
+        ),
+        certification_refit_enabled=bool(args.certification_refit),
+        certification_refit_trust_radius=float(
+            args.certification_refit_trust_radius
+        ),
+        certification_refit_max_iterations=int(
+            args.certification_refit_max_iterations
+        ),
+        max_certification_attempts_per_level=(
+            None
+            if args.max_certification_attempts_per_level is None
+            else int(args.max_certification_attempts_per_level)
+        ),
+        max_structural_pool_size=(
+            None
+            if args.max_structural_pool_size is None
+            else int(args.max_structural_pool_size)
+        ),
+        prune_appended_origin_target_policy=str(args.prune_target_policy),
+        dynamics_policy=str(args.dynamics_policy),
+        avqds_l2_cut=float(args.avqds_l2_cut),
+        avqds_max_appends_per_checkpoint=(
+            None
+            if args.avqds_max_appends_per_checkpoint is None
+            else int(args.avqds_max_appends_per_checkpoint)
+        ),
+        max_certification_attempts_per_deletion_branch=(
+            None
+            if args.max_certification_attempts_per_deletion_branch is None
+            else int(args.max_certification_attempts_per_deletion_branch)
+        ),
+        eps_loss=float(args.eps_loss),
+        allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     reject_removed_online_redundancy_flags(raw_argv)
@@ -1932,112 +2080,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             min_logical_parameter_count=int(args.min_logical_parameter_count),
             allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
         )
-        support_patch_config = SupportPatchControllerConfig(
-            append_ladder_mode="combinatorial",
-            append_occurrence_policy=str(args.append_occurrence_policy),
-            max_append_batch_size=int(args.max_append_batch_size),
-            max_insertion_batch_size=(
-                None
-                if args.max_insertion_batch_size is None
-                else int(args.max_insertion_batch_size)
-            ),
-            interaction_frontier_widths=(
-                None
-                if args.interaction_frontier_widths in (None, "")
-                else tuple(
-                    int(token)
-                    for token in str(args.interaction_frontier_widths).split(",")
-                    if token.strip()
-                )
-            ),
-            structural_score_floor=float(args.structural_score_floor),
-            max_joint_patch_evaluations=(
-                None
-                if args.max_joint_patch_evaluations is None
-                else int(args.max_joint_patch_evaluations)
-            ),
-            append_schur_max_condition_number=(
-                float(args.append_schur_max_condition_number)
-                if args.append_schur_condition_gate
-                else None
-            ),
-            support_patch_scoring_workers=int(args.support_patch_scoring_workers),
-            cost_normalization_mode=str(args.append_cost_normalization_mode),
-            append_cost_alpha=float(args.append_cost_alpha),
-            append_cost_lambda_2q=float(args.append_cost_lambda_2q),
-            append_cost_lambda_d=float(args.append_cost_lambda_d),
-            append_cost_lambda_1q=float(args.append_cost_lambda_1q),
-            append_cost_lambda_theta=float(args.append_cost_lambda_theta),
-            append_cost_lambda_shot=float(args.append_cost_lambda_shot),
-            append_cost_scale_floor=float(args.append_cost_scale_floor),
-            append_min_time=float(args.append_min_time),
-            residual_ratio_threshold=float(args.residual_ratio_threshold),
-            escalation_accumulated_drift_threshold=(
-                None
-                if args.escalation_accumulated_drift_threshold is None
-                else float(args.escalation_accumulated_drift_threshold)
-            ),
-            avqds_delta_theta_max=(
-                None
-                if args.avqds_delta_theta_max is None
-                else float(args.avqds_delta_theta_max)
-            ),
-            debt_policy=str(args.debt_policy),
-            insertion_gate_mode=str(args.insertion_gate_mode),
-            insertion_l2_cut=float(args.insertion_l2_cut),
-            max_insertion_rounds_per_checkpoint=int(
-                args.max_insertion_rounds_per_checkpoint
-            ),
-            prune_cooldown_steps=int(args.prune_cooldown_steps),
-            min_runtime_parameter_count=int(args.min_runtime_parameter_count),
-            prune_ray_distance_tol=float(args.prune_ray_distance_tol),
-            prune_patch_smoothness_eta_max=float(
-                args.prune_patch_smoothness_eta_max
-            ),
-            patch_utility_delta_weight=float(args.patch_utility_delta_weight),
-            prune_cost_alpha=float(args.prune_cost_alpha),
-            prune_history_window=int(args.prune_history_window),
-            prune_history_lambda=float(args.prune_history_lambda),
-            prune_condition_lambda_kappa_rel=float(
-                args.prune_condition_lambda_kappa_rel
-            ),
-            prune_condition_lambda_kappa_dam=float(
-                args.prune_condition_lambda_kappa_dam
-            ),
-            certification_refit_enabled=bool(args.certification_refit),
-            certification_refit_trust_radius=float(
-                args.certification_refit_trust_radius
-            ),
-            certification_refit_max_iterations=int(
-                args.certification_refit_max_iterations
-            ),
-            max_certification_attempts_per_level=(
-                None
-                if args.max_certification_attempts_per_level is None
-                else int(args.max_certification_attempts_per_level)
-            ),
-            max_structural_pool_size=(
-                None
-                if args.max_structural_pool_size is None
-                else int(args.max_structural_pool_size)
-            ),
-            prune_appended_origin_target_policy=str(args.prune_target_policy),
-            dynamics_policy=str(args.dynamics_policy),
-            avqds_l2_cut=float(args.avqds_l2_cut),
-            avqds_max_appends_per_checkpoint=(
-                None
-                if args.avqds_max_appends_per_checkpoint is None
-                else int(args.avqds_max_appends_per_checkpoint)
-            ),
-            max_certification_attempts_per_deletion_branch=(
-                None
-                if args.max_certification_attempts_per_deletion_branch is None
-                else int(args.max_certification_attempts_per_deletion_branch)
-            ),
-            eps_loss=float(args.eps_loss),
-            cost_required_for_decisions=False,
-            allow_incomplete_candidate_pool=not bool(args.require_complete_candidate_pool),
-        )
+        support_patch_config = _support_patch_config_from_args(args)
         _repair_kwargs = dict(
             enabled=bool(args.solve_repair),
             parameter_step_max=(

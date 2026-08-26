@@ -364,8 +364,15 @@ regimes. Evidence: `minimality.json`, `score_ablation.json`.
 
 **FOUR-WAY COMPARATOR** (`comparator_matrix.json`, nine Hamiltonians,
 identical sectors/references): fixed class, real-time Krylov,
-residual-guided adaptive (NEW - closest prior art: same pool, same
-linear-independence check, no cost weighting), selected+exchange.
+cost-agnostic control, selected+exchange.
+**CORRECTION 2026-08-19: the `residual_guided_adaptive` arm is NOT prior
+art and NOT quantum Davidson.** It is our own rule with the cost
+discount off — an internal ablation isolating the cost term. Never
+describe it as a competing method or as QDavidson (which synthesizes a
+preconditioned residual vector rather than selecting from a fixed
+operator alphabet). Paper III therefore has NO independent adaptive
+comparator; the only external comparators are the fixed linear-response
+class and real-time Krylov.
 - fixed class and Krylov fail every case (1e-1..1e0);
 - residual-guided is 3-5 orders better than those (adaptive growth IS
   the right family - say so);

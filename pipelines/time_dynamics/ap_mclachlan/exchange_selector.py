@@ -1,4 +1,4 @@
-"""Deterministic selection loop of the deletion-conditioned exchange selector.
+"""Deterministic selection loop for generalized exchange.
 
 Consumes structural families in acquisition order (singleton level, deletion
 rungs, insertion frontiers), keeps every previously scored candidate, and at
@@ -35,7 +35,7 @@ from pipelines.time_dynamics.ap_mclachlan.performance import phase
 from pipelines.time_dynamics.ap_mclachlan.state import APMcLachlanState
 
 
-EXCHANGE_SELECTION_POLICY_V1 = "paper_ii_deletion_conditioned_exchange_v1"
+GENERALIZED_EXCHANGE_SELECTION_POLICY_V2 = "paper_ii_generalized_exchange_v2"
 
 
 @dataclass(frozen=True)
@@ -77,6 +77,7 @@ class ExchangeSelection:
     attempts: tuple[AttemptRecord, ...]
     telemetry: StructuralEnumeration | None
     stop_reason: str
+    structural_scored_count: int
 
     @property
     def kind(self) -> str:
@@ -319,6 +320,7 @@ def select_exchange_patch(
                     attempts=tuple(attempts),
                     telemetry=telemetry,
                     stop_reason="committed",
+                    structural_scored_count=int(len(scored)),
                 )
         stop_reason = "attempt_budget_exhausted" if budget_hit else "level_exhausted"
         if not should_escalate():
@@ -332,11 +334,12 @@ def select_exchange_patch(
         attempts=tuple(attempts),
         telemetry=telemetry,
         stop_reason=stop_reason,
+        structural_scored_count=int(len(scored)),
     )
 
 
 __all__ = [
-    "EXCHANGE_SELECTION_POLICY_V1",
+    "GENERALIZED_EXCHANGE_SELECTION_POLICY_V2",
     "AttemptRecord",
     "ExchangeSelection",
     "candidate_insertions",

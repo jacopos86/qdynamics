@@ -81,6 +81,22 @@ Every trap the author hit, the executor will hit blind:
   gives 1.6e-2 energy error where rk4 with tight caps gives 1.3e-3.
 - `output/` and `prompt-exports/` are gitignored — work saved there will not
   appear in a commit. Put durable artifacts in tracked paths and say where.
+- Audit the applied decision receipt, not only summary trigger flags. AP run
+  receipts can record a kink-triggered subdivision in
+  `integration_to_next.local_subdivision_reason` while omitting
+  `repair_summary.kink_triggered`; counting only the summary flags falsely
+  attributes every applied intervention to state motion.
+- A safety cap must not silently redefine a threshold algorithm. If a worker
+  exhausts its work budget before satisfying the method's stopping condition,
+  it must fail closed or mark the result unsupported; a completed trajectory
+  otherwise turns the threshold method into an unlabelled budget method.
+- A path, output label, or truthy sentinel such as `sha256: "missing"` is not a
+  source lock. Comparator workers and aggregators need immutable expected and
+  actual source/config hashes plus an intended arm receipt, and must fail
+  before execution or aggregation when any receipt is absent or mismatched.
+- Equal pool caps do not prove equal candidate pools. Different deduplication
+  or ordering rules can select different capped frontiers; a shared-pool claim
+  requires the ordered evaluated-frontier digest in every arm receipt.
 - Another agent's broad `git add` can sweep uncommitted work into their commit.
   Commit at increment boundaries rather than accumulating.
 

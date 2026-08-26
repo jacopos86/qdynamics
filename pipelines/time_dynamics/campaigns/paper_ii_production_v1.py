@@ -23,13 +23,10 @@ from __future__ import annotations
 
 from pipelines.time_dynamics.campaign import (
     CampaignSpec,
-    DriveSpec,
-    HorizonSpec,
     SeedSpec,
-    append_only_arm,
-    avqds_arm,
-    exchange_arm,
+    uniform_threshold_plan,
 )
+from pipelines.time_dynamics import paper_ii_runs as runs
 
 SEED_ROOT = "chtc/generic_time_dynamics_table/input/seed_artifacts_paper_ii_seed_tracks_v2"
 
@@ -58,25 +55,29 @@ SEEDS = (
 
 # Driven: a static Hamiltonian on a ground-state seed produces no dynamics, so
 # the drive is what makes support maintenance meaningful at all.
-DRIVES = (DriveSpec(drive_id="driven", enabled=True, amplitude=0.6, omega=3.0),)
+DRIVE_IDS = ("fastweak",)
 
 # Production horizon: t<=1 barely exposes accumulated error or staleness.
-HORIZONS = (HorizonSpec(horizon_id="t5", t_final=5.0, num_times=126),)
+HORIZON_IDS = ("t5",)
 
-ARMS = (
-    append_only_arm(),
-    exchange_arm(2.0e-3),
-    # Published convention (L^2 = 2(||b||^2 - Q)); the cut is absolute, and the
-    # append rule runs uncapped as the source specifies.
-    avqds_arm(1.0e-3),
+METHOD_IDS = ("append_only", "exchange", "avqds")
+CONTROLLER_IDS = ("state_motion_1e-2",)
+THRESHOLD_PLAN = uniform_threshold_plan(
+    method_ids=METHOD_IDS,
+    controller_ids=CONTROLLER_IDS,
+    drive_ids=DRIVE_IDS,
+    thresholds=(1.0e-3,),
 )
 
 SPEC = CampaignSpec(
     campaign_id="paper_ii_production_v1",
     seeds=SEEDS,
-    drives=DRIVES,
-    horizons=HORIZONS,
-    arms=ARMS,
+    method_ids=METHOD_IDS,
+    controller_ids=CONTROLLER_IDS,
+    drive_ids=DRIVE_IDS,
+    horizon_ids=HORIZON_IDS,
+    threshold_plan=THRESHOLD_PLAN,
+    numerics_id=runs.SHARED_NUMERICS.numerics_id,
     output_root="raw_outputs",
 )
 
@@ -88,5 +89,5 @@ if __name__ == "__main__":
         SPEC, "chtc/paper_ii_production_v1", max_runtime_seconds=86400
     )
     print(f"cells: {SPEC.cell_count()}")
-    for name, path in written.items():
+    for name, path in written.to_json_dict().items():
         print(f"  {name:10s} {path}")

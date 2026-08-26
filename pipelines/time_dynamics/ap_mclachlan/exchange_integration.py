@@ -1,17 +1,29 @@
-"""Route integration of the deletion-conditioned exchange selector.
+"""The Paper-II generalized-exchange deep module.
 
-Adapts the trajectory loop's objects — state, controller config, prune runtime
-state, cost settings — into the pure selector stack (structural cache,
-enumeration, certification) and maps the outcome back onto ``PatchDecision``.
-This is the single entry point the trajectory loop calls; the retired
-append-ladder/prune-ladder/exchange-pairing selectors have no successor other
-than this.
+One checkpoint search chooses a pair ``(D, I)``: active runtime coordinates
+``D`` to delete and positioned candidate occurrences ``I`` to insert.  Pure
+insertion is the boundary ``D = empty``; pure deletion is ``I = empty``; true
+exchange has both components nonempty.  They are restrictions of one proposal
+space, not three algorithms.
+
+``select_generalized_exchange_patch`` is the trajectory route's only public
+selection operation.  It owns which faces are admissible, which ranking is in
+force, and the realized-L2 commit rule.  In particular, the trajectory caller
+does not reconstruct an "append route" or a "prune route":
+
+* above the McLachlan-distance cut, insertions open and deletions remain open
+  whenever the support floor permits them, so the complete family is searched;
+* below the cut, insertions close and the measurement-free deletion face stays
+  available;
+* insertion-only debt is retained only as an explicit ablation; and
+* ``drift_ranked`` is the canonical debt ranking, not a separate selector.
 
 Wiring choices, recorded for reproduction:
 
-* deletion feasibility comes from the existing atom gates (target policy,
+* deletion feasibility first applies the existing atom gates (target policy,
   drive-aligned protection, cooldown, occurrence identity, minimum surviving
-  support) via ``_active_prune_atoms``;
+  support), then a measurement-free set permission combining an accumulated
+  rotation-angle ray bound with normalized reverse-Schur loss;
 * insertion candidates come from ``candidate_append_atoms`` under the
   configured occurrence policy; the branch pool is deletion-independent under
   ``layer_reuse`` and re-admits deleted bases under ``unique_support``;
@@ -25,7 +37,6 @@ Wiring choices, recorded for reproduction:
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any, Mapping
 
 import numpy as np
@@ -35,13 +46,23 @@ from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     append_cost_telemetry_for_family,
     estimate_append_atom_set_cost,
 )
+from pipelines.time_dynamics.ap_mclachlan.avqds import (
+    mclachlan_distance_squared,
+)
 from pipelines.time_dynamics.ap_mclachlan.commutation import singleton_insertion_cuts
+from pipelines.time_dynamics.ap_mclachlan.deletion_permission import (
+    DeletionPermissionEvaluator,
+)
 from pipelines.time_dynamics.ap_mclachlan.exchange_certification import (
     CertificationGates,
     build_local_ray_refit,
 )
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    APGeneralizedExchangeConfig,
+    ExchangeEligibilityConfig,
+)
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
-    EXCHANGE_SELECTION_POLICY_V1,
+    GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
     ExchangeSelection,
     select_exchange_patch,
 )
@@ -67,8 +88,18 @@ from pipelines.time_dynamics.ap_mclachlan.structural_cache import (
 )
 from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
 from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
+    ActiveSupportAtom,
     active_support_atoms,
+    appended_origin_atom_labels,
     candidate_append_atoms,
+)
+from pipelines.time_dynamics.generalized_exchange import (
+    EXCHANGE_RANKING_SIGNED_DRIFT,
+    GeneralizedExchange,
+    GeneralizedExchangeDomain,
+    GeneralizedPatch,
+    REALIZED_REFUSE,
+    REALIZED_RETRY_INSERT_FACE,
 )
 
 
@@ -85,6 +116,54 @@ def _paper_i_proxy_denominator(
         settings=settings,
     )[0]
     return max(1.0, float(telemetry.hardware_cost_denominator))
+
+
+def _runtime_rotation_coefficient_l1(state: APMcLachlanState) -> np.ndarray:
+    """Per runtime coordinate, the L1 coefficient of its Pauli rotations.
+
+    A per-Pauli coordinate has one coefficient.  A shared parent coordinate
+    may drive an ordered product of rotations; summing absolute coefficients
+    keeps the deletion ray bound conservative by the Fubini--Study triangle
+    inequality.
+    """
+
+    values: list[float] = []
+    for term in _per_coordinate_terms(state):
+        specs = iter_runtime_rotation_terms(
+            getattr(term, "polynomial"),
+            ignore_identity=bool(state.executor.ignore_identity),
+            coefficient_tolerance=float(state.executor.coefficient_tolerance),
+            sort_terms=bool(state.executor.sort_terms),
+        )
+        values.append(float(sum(abs(float(spec.coeff_real)) for spec in specs)))
+    out = np.asarray(values, dtype=float)
+    if out.size != int(state.runtime_parameter_count):
+        raise ValueError(
+            "runtime rotation coefficients do not match the active support."
+        )
+    return out
+
+
+def _build_deletion_permission_evaluator(
+    *,
+    state: APMcLachlanState,
+    evaluation: GeometryEvaluation,
+    theta_runtime: np.ndarray,
+    support_config: Any,
+) -> DeletionPermissionEvaluator:
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(support_config)
+    return DeletionPermissionEvaluator(
+        gram=np.asarray(evaluation.geometry.K, dtype=float),
+        force=np.asarray(evaluation.geometry.f, dtype=float),
+        norm_b_sq=float(evaluation.geometry.norm_b_sq),
+        theta_runtime=np.asarray(theta_runtime, dtype=float),
+        rotation_coefficients=_runtime_rotation_coefficient_l1(state),
+        ray_distance_max=float(exchange_config.certification.ray_distance_max),
+        normalized_schur_loss_max=float(
+            exchange_config.certification.velocity_change_max
+        ),
+        epsilon_norm=float(StructuralScoreWeights().epsilon_norm),
+    )
 
 
 def build_candidate_pool(
@@ -108,13 +187,15 @@ def build_candidate_pool(
     Returns the ordered atoms, their Pauli words, and pool telemetry.
     """
 
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(support_config)
+
     if insertions_enabled:
         raw_atoms = candidate_append_atoms(
             state,
             allow_incomplete_candidate_pool=bool(
-                support_config.allow_incomplete_candidate_pool
+                exchange_config.eligibility.allow_incomplete_candidate_pool
             ),
-            occurrence_policy=str(support_config.append_occurrence_policy),
+            occurrence_policy=str(exchange_config.eligibility.occurrence_policy),
         )
     else:
         # Prune-only mode: insertions need new measurements and the
@@ -139,7 +220,7 @@ def build_candidate_pool(
             pauli_by_atom[str(atom.atom_id)] = word
         atoms.append(atom)
 
-    pool_cap = getattr(support_config, "max_structural_pool_size", None)
+    pool_cap = exchange_config.search.pool_size
     if pool_cap is not None:
         atoms = atoms[: max(0, int(pool_cap))]
         kept = {str(a.atom_id) for a in atoms}
@@ -154,6 +235,129 @@ def build_candidate_pool(
     return tuple(atoms), pauli_by_atom, telemetry
 
 
+def eligible_deletion_atoms(
+    state: APMcLachlanState,
+    *,
+    theta_runtime: np.ndarray,
+    eligibility_config: ExchangeEligibilityConfig,
+    runtime_state: Any,
+    time_index: int,
+) -> tuple[ActiveSupportAtom, ...]:
+    """Return the deletion face allowed by support and protection limits.
+
+    This is structural feasibility only.  It nominates coordinates that may
+    appear in ``D``; it does not decide whether deletion is accurate or useful.
+    The realized generalized-exchange solve remains the arbiter.
+    """
+
+    if not eligibility_config.deletion_enabled:
+        return ()
+
+    target_policy = str(eligibility_config.target_policy).strip().lower()
+    appended_labels = appended_origin_atom_labels(state)
+    active_atoms = tuple(active_support_atoms(state, theta_runtime))
+    appended_base_counts: dict[str, int] = {}
+    for atom in active_atoms:
+        if str(atom.atom_label) not in appended_labels:
+            continue
+        base_atom_id = str(
+            dict(atom.metadata or {}).get("base_atom_id", atom.atom_id)
+        )
+        appended_base_counts[base_atom_id] = int(
+            appended_base_counts.get(base_atom_id, 0) + 1
+        )
+
+    out: list[ActiveSupportAtom] = []
+    for atom in active_atoms:
+        if (
+            target_policy in {"appended_only", "redundant_appended_only"}
+            and str(atom.atom_label) not in appended_labels
+        ):
+            continue
+        if target_policy == "redundant_appended_only":
+            base_atom_id = str(
+                dict(atom.metadata or {}).get("base_atom_id", atom.atom_id)
+            )
+            if int(appended_base_counts.get(base_atom_id, 0)) <= 1:
+                continue
+        if bool(eligibility_config.protect_drive_aligned):
+            identity = " ".join(
+                (str(atom.atom_id), str(atom.atom_label), str(atom.parent_label))
+            ).lower()
+            if "drive_aligned" in identity:
+                continue
+        if int(state.runtime_parameter_count) - int(atom.runtime_count) < int(
+            eligibility_config.minimum_surviving_support
+        ):
+            continue
+        cooldown_until = runtime_state.cooldown_until_index.get(str(atom.atom_id))
+        if cooldown_until is not None and int(time_index) < int(cooldown_until):
+            continue
+        out.append(atom)
+    return tuple(out)
+
+
+def generalized_exchange_domain(
+    *,
+    state: APMcLachlanState,
+    theta_runtime: np.ndarray,
+    base_evaluation: GeometryEvaluation,
+    base_step: FixedMcLachlanStep,
+    inverse_policy: McLachlanInversePolicy,
+    support_config: Any,
+    runtime_state: Any,
+    time_index: int,
+) -> tuple[GeneralizedExchangeDomain, tuple[ActiveSupportAtom, ...]]:
+    """Derive the searched face from L2 and the existing support limits."""
+
+    checkpoint_l2 = mclachlan_distance_squared(
+        base_evaluation, inverse_policy=inverse_policy
+    )
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(support_config)
+    l2_cut = float(exchange_config.score.l2_cut)
+    gate_mode = str(exchange_config.eligibility.insertion_gate_mode).strip().lower()
+    drift_threshold = getattr(
+        exchange_config.eligibility, "accumulated_drift_threshold", None
+    )
+    accumulated_drift = float(getattr(runtime_state, "accumulated_drift", 0.0))
+    if gate_mode == "mclachlan_l2":
+        insertion_gate_open = bool(checkpoint_l2 > l2_cut)
+    else:
+        insertion_gate_open = bool(
+            float(base_step.residual_ratio)
+            >= float(exchange_config.eligibility.residual_ratio_threshold)
+            or (
+                drift_threshold is not None
+                and accumulated_drift >= float(drift_threshold)
+            )
+        )
+
+    insertion_cap = int(exchange_config.search.insertion_cardinality)
+    deletable_atoms = eligible_deletion_atoms(
+        state,
+        theta_runtime=theta_runtime,
+        eligibility_config=exchange_config.eligibility,
+        runtime_state=runtime_state,
+        time_index=int(time_index),
+    )
+    debt_policy = str(exchange_config.score.debt_policy)
+    exchange = GeneralizedExchange(
+        l2_cut=float(l2_cut),
+        debt_policy=debt_policy,
+        support_floor=int(exchange_config.eligibility.minimum_surviving_support),
+        insertion_cardinality_cap=int(insertion_cap),
+        l2_debt_enabled=bool(gate_mode == "mclachlan_l2"),
+    )
+    domain = exchange.domain(
+        checkpoint_l2=float(checkpoint_l2),
+        insertion_gate_open=bool(insertion_gate_open),
+        deletion_candidate_count=len(deletable_atoms),
+    )
+    if not domain.deletion_face_open:
+        deletable_atoms = ()
+    return domain, tuple(deletable_atoms)
+
+
 def build_selector_inputs(
     *,
     state: APMcLachlanState,
@@ -162,15 +366,26 @@ def build_selector_inputs(
     runtime_state: Any,
     theta_runtime: np.ndarray,
     time_index: int,
-    active_prune_atoms: Any,
+    deletable_atoms: tuple[ActiveSupportAtom, ...],
     insertions_enabled: bool = True,
+    debt_ranking: bool = False,
+    deletion_permission_evaluator: DeletionPermissionEvaluator | None = None,
 ) -> dict[str, Any]:
     """Assemble every selector input from route objects.
 
-    ``active_prune_atoms`` is the route's feasibility function (injected to
-    avoid a circular import with the trajectory module); it must apply target
-    policy, drive-aligned protection, cooldown, and surviving-support gates.
+    ``deletable_atoms`` has already passed target, protection, cooldown, and
+    surviving-support gates in :func:`eligible_deletion_atoms`.
     """
+
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(support_config)
+    permission_evaluator = deletion_permission_evaluator or (
+        _build_deletion_permission_evaluator(
+            state=state,
+            evaluation=evaluation,
+            theta_runtime=theta_runtime,
+            support_config=support_config,
+        )
+    )
 
     atoms, pauli_by_atom, pool_dedup_telemetry = build_candidate_pool(
         state,
@@ -201,13 +416,6 @@ def build_selector_inputs(
         checkpoint_key=(int(time_index), state.runtime_coordinate_labels),
     )
 
-    deletable_atoms = active_prune_atoms(
-        state,
-        theta_runtime=theta_runtime,
-        support_config=support_config,
-        runtime_state=runtime_state,
-        time_index=int(time_index),
-    )
     deletable_indices = tuple(
         sorted(
             index
@@ -226,7 +434,7 @@ def build_selector_inputs(
     }
 
     occurrence_reuse = (
-        str(support_config.append_occurrence_policy).strip().lower()
+        str(exchange_config.eligibility.occurrence_policy).strip().lower()
         != "unique_support"
     )
 
@@ -278,24 +486,17 @@ def build_selector_inputs(
         )
 
     weights = StructuralScoreWeights(
-        alpha_ins=float(support_config.append_cost_alpha),
-        alpha_del=float(support_config.prune_cost_alpha),
-        w_delta=float(support_config.patch_utility_delta_weight),
-        lambda_hist=float(getattr(support_config, "prune_history_lambda", 0.0)),
-        lambda_cond_relief=float(
-            getattr(support_config, "prune_condition_lambda_kappa_rel", 0.0)
-        ),
-        lambda_cond_damage=float(
-            getattr(support_config, "prune_condition_lambda_kappa_dam", 0.0)
-        ),
-        epsilon_L=float(support_config.eps_loss),
-        debt_ranking=bool(getattr(support_config, "debt_ranking", False)),
+        alpha_ins=float(exchange_config.score.append_cost_alpha),
+        alpha_del=float(exchange_config.score.prune_cost_alpha),
+        w_delta=float(exchange_config.score.delta_weight),
+        lambda_hist=float(exchange_config.score.history_weight),
+        lambda_cond_relief=float(exchange_config.score.condition_relief_weight),
+        lambda_cond_damage=float(exchange_config.score.condition_damage_weight),
+        epsilon_L=float(exchange_config.score.epsilon_loss),
+        debt_ranking=bool(debt_ranking),
     )
 
-    max_batch = int(
-        getattr(support_config, "max_insertion_batch_size", None)
-        or support_config.max_append_batch_size
-    )
+    max_batch = int(exchange_config.search.insertion_cardinality)
 
     # Hook #2: historical deletion-loss prior.  ``runtime_state.loss_history``
     # maps stable runtime coordinate labels to ``(time_index, loss)`` records;
@@ -303,7 +504,7 @@ def build_selector_inputs(
     # coordinate's windowed mean loss (coordinates without history contribute
     # zero, so the term vanishes until evidence accumulates).
     runtime_labels = tuple(state.runtime_coordinate_labels)
-    history_window = max(1, int(getattr(support_config, "prune_history_window", 3)))
+    history_window = max(1, int(exchange_config.score.history_window))
     loss_history: dict[str, list[tuple[int, float]]] = (
         getattr(runtime_state, "loss_history", None) or {}
     )
@@ -326,30 +527,30 @@ def build_selector_inputs(
         norm_b_sq=float(evaluation.geometry.norm_b_sq),
         weights=weights,
         deletable_indices=deletable_indices,
-        min_surviving_support=int(support_config.min_runtime_parameter_count),
+        min_surviving_support=int(
+            exchange_config.eligibility.minimum_surviving_support
+        ),
         cuts_by_atom=cuts_by_atom,
         candidate_pool_for_deletion=candidate_pool_for_deletion,
         insertion_cost=insertion_cost,
         deletion_cost=deletion_cost,
+        deletion_permission=permission_evaluator.assess,
         tokens_commute=tokens_commute_from_terms(terms_by_key),
         deletion_history_loss=deletion_history_loss,
         max_insertion_batch_size=max_batch,
-        interaction_frontier_widths=getattr(
-            support_config, "interaction_frontier_widths", None
-        ),
-        max_joint_patch_evaluations=getattr(
-            support_config, "max_joint_patch_evaluations", None
-        ),
+        interaction_frontier_widths=exchange_config.search.interaction_frontier_widths,
+        max_joint_patch_evaluations=exchange_config.search.joint_patch_evaluations,
     )
     return {
         "atoms_by_id": atoms_by_id,
         "occurrence_label": occurrence_label,
         "structural_kwargs": structural_kwargs,
         "pool_dedup_telemetry": pool_dedup_telemetry,
+        "deletion_permission_evaluator": permission_evaluator,
     }
 
 
-def select_deletion_conditioned_patch(
+def select_generalized_exchange_patch(
     *,
     state: APMcLachlanState,
     hamiltonian: TimeDependentHamiltonian,
@@ -361,59 +562,55 @@ def select_deletion_conditioned_patch(
     support_config: Any,
     runtime_state: Any,
     time_index: int,
-    active_prune_atoms: Any,
     solve_repair_config: Any | None = None,
-    insertions_enabled: bool = True,
-    escalation_override: bool = False,
 ) -> tuple[ExchangeSelection, dict[str, Any]]:
-    """Run the exchange selector at one checkpoint with route wiring.
+    """Select one generalized patch from the admissible ``(D, I)`` domain.
 
-    Returns the selection and a JSON-safe decision payload.  Escalation past
-    each level follows the structural-repair predicate: the base residual
-    ratio must exceed the configured threshold for the search to keep
-    acquiring families after a level certifies nothing.
+    L2, the support floor, the insertion-cardinality cap, target/protection
+    gates, and the explicit debt ablation determine the searched face here.
+    A materialized candidate under accuracy debt must strictly reduce L2.  If
+    a deletion-containing finalist does not, this operation retries its own
+    insert-only boundary instead of making the trajectory caller do so.
     """
 
-    inputs = build_selector_inputs(
+    domain, deletable_atoms = generalized_exchange_domain(
         state=state,
-        evaluation=base_evaluation,
+        theta_runtime=theta_runtime,
+        base_evaluation=base_evaluation,
+        base_step=base_step,
+        inverse_policy=inverse_policy,
         support_config=support_config,
         runtime_state=runtime_state,
-        theta_runtime=theta_runtime,
         time_index=int(time_index),
-        active_prune_atoms=active_prune_atoms,
-        insertions_enabled=bool(insertions_enabled),
     )
-    inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
+    exchange_config = APGeneralizedExchangeConfig.from_route_config(support_config)
+    permission_evaluator = _build_deletion_permission_evaluator(
+        state=state,
+        evaluation=base_evaluation,
+        theta_runtime=theta_runtime,
+        support_config=support_config,
+    )
     gates = CertificationGates(
-        ray_distance_max=float(support_config.prune_ray_distance_tol),
-        smoothness_eta_max=float(support_config.prune_patch_smoothness_eta_max),
-        condition_number_max=(
-            None
-            if support_config.append_schur_max_condition_number is None
-            else float(support_config.append_schur_max_condition_number)
+        ray_distance_max=float(exchange_config.certification.ray_distance_max),
+        smoothness_eta_max=float(
+            exchange_config.certification.velocity_change_max
         ),
+        condition_number_max=exchange_config.certification.condition_number_max,
     )
 
-    drift_threshold = getattr(
-        support_config, "escalation_accumulated_drift_threshold", None
-    )
+    drift_threshold = exchange_config.eligibility.accumulated_drift_threshold
     accumulated_drift = float(getattr(runtime_state, "accumulated_drift", 0.0))
 
     def escalate() -> bool:
-        # `escalation_override` carries the caller's own gate decision, which
-        # under the McLachlan-L2 condition is the authority.  Without it the
-        # selector kept escalating on the normalized residual ratio at its
-        # default 2e-2 while the caller was gating on L^2, so a checkpoint in
-        # accuracy debt could acquire no families at all and return no patch --
-        # measured as stalled checkpoints with L^2 above the cut and zero
-        # rounds attempted.
-        if bool(escalation_override):
+        # L2 debt is the authority for the insertion-bearing family.  Without
+        # this, a checkpoint in debt can acquire no families merely because a
+        # different normalized residual happens to be below its threshold.
+        if bool(domain.accuracy_debt):
             return True
         # Otherwise: locally hard checkpoint (residual ratio) OR a trajectory
         # that has banked error while every checkpoint looked locally easy.
         if float(base_step.residual_ratio) >= float(
-            support_config.residual_ratio_threshold
+            exchange_config.eligibility.residual_ratio_threshold
         ):
             return True
         return drift_threshold is not None and accumulated_drift >= float(
@@ -424,49 +621,117 @@ def select_deletion_conditioned_patch(
     # applied to materialized finalists before the hard gates.  Pure
     # insertions start on the ray and are skipped inside the hook.
     refit = None
-    if bool(getattr(support_config, "certification_refit_enabled", False)):
+    if bool(exchange_config.certification.refit_enabled):
         refit = build_local_ray_refit(
             target_psi=base_evaluation.psi,
-            trust_radius=float(
-                getattr(support_config, "certification_refit_trust_radius", 0.1)
-            ),
-            max_iterations=int(
-                getattr(support_config, "certification_refit_max_iterations", 15)
-            ),
+            trust_radius=float(exchange_config.certification.refit_trust_radius),
+            max_iterations=int(exchange_config.certification.refit_max_iterations),
         )
 
-    selection = select_exchange_patch(
-        state=state,
-        hamiltonian=hamiltonian,
-        theta_runtime=theta_runtime,
-        time=float(time),
-        base_evaluation=base_evaluation,
-        base_step=base_step,
-        inverse_policy=inverse_policy,
-        gates=gates,
-        atoms_by_id=inputs["atoms_by_id"],
-        occurrence_label=inputs["occurrence_label"],
-        structural_kwargs=inputs["structural_kwargs"],
-        score_floor=float(
-            getattr(support_config, "structural_score_floor", 0.0) or 0.0
-        ),
-        escalate=escalate,
-        refit=refit,
-        solve_repair_config=solve_repair_config,
-        max_certification_attempts_per_level=getattr(
-            support_config, "max_certification_attempts_per_level", None
-        ),
-        max_certification_attempts_per_deletion_branch=getattr(
-            support_config, "max_certification_attempts_per_deletion_branch", None
-        ),
+    def select_once(
+        allowed_deletions: tuple[ActiveSupportAtom, ...],
+        *,
+        insertions_enabled: bool,
+    ) -> tuple[ExchangeSelection, dict[str, Any]]:
+        inputs = build_selector_inputs(
+            state=state,
+            evaluation=base_evaluation,
+            support_config=support_config,
+            runtime_state=runtime_state,
+            theta_runtime=theta_runtime,
+            time_index=int(time_index),
+            deletable_atoms=allowed_deletions,
+            insertions_enabled=bool(insertions_enabled),
+            debt_ranking=bool(domain.ranking == EXCHANGE_RANKING_SIGNED_DRIFT),
+            deletion_permission_evaluator=permission_evaluator,
+        )
+        inputs["structural_kwargs"]["inverse_policy"] = inverse_policy
+        selection = select_exchange_patch(
+            state=state,
+            hamiltonian=hamiltonian,
+            theta_runtime=theta_runtime,
+            time=float(time),
+            base_evaluation=base_evaluation,
+            base_step=base_step,
+            inverse_policy=inverse_policy,
+            gates=gates,
+            atoms_by_id=inputs["atoms_by_id"],
+            occurrence_label=inputs["occurrence_label"],
+            structural_kwargs=inputs["structural_kwargs"],
+            score_floor=float(exchange_config.search.structural_score_floor),
+            escalate=escalate,
+            refit=refit,
+            solve_repair_config=solve_repair_config,
+            max_certification_attempts_per_level=(
+                exchange_config.search.certification_attempts_per_level
+            ),
+            max_certification_attempts_per_deletion_branch=(
+                exchange_config.search.certification_attempts_per_deletion_branch
+            ),
+        )
+        return selection, inputs
+
+    selection, inputs = select_once(
+        deletable_atoms if domain.deletion_face_open else (),
+        insertions_enabled=domain.insertion_face_open,
     )
+    deletion_fallback_used = False
+
+    def realized_l2(result: ExchangeSelection) -> float | None:
+        if result.certification is None or result.certification.evaluation is None:
+            return None
+        return mclachlan_distance_squared(
+            result.certification.evaluation, inverse_policy=inverse_policy
+        )
+
+    def realized_disposition(result: ExchangeSelection, value: float | None) -> str:
+        if result.committed is None or value is None:
+            return REALIZED_REFUSE
+        return GeneralizedExchange.assess_realized_candidate(
+            domain=domain,
+            patch=GeneralizedPatch(
+                deletions=tuple(result.committed.removed_runtime_indices),
+                insertions=tuple(result.committed.inserted_selection),
+            ),
+            candidate_l2=float(value),
+        )
+
+    candidate_l2 = realized_l2(selection)
+    disposition = realized_disposition(selection, candidate_l2)
+    if disposition == REALIZED_RETRY_INSERT_FACE:
+        deletion_fallback_used = True
+        first_attempts = selection.attempts
+        first_structural_scored_count = int(selection.structural_scored_count)
+        selection, inputs = select_once((), insertions_enabled=True)
+        selection = ExchangeSelection(
+            committed=selection.committed,
+            certification=selection.certification,
+            attempts=tuple(first_attempts) + tuple(selection.attempts),
+            telemetry=selection.telemetry,
+            stop_reason=selection.stop_reason,
+            structural_scored_count=int(
+                first_structural_scored_count + selection.structural_scored_count
+            ),
+        )
+        candidate_l2 = realized_l2(selection)
+        disposition = realized_disposition(selection, candidate_l2)
+
+    if selection.committed is not None and disposition == REALIZED_REFUSE:
+        selection = ExchangeSelection(
+            committed=None,
+            certification=None,
+            attempts=selection.attempts,
+            telemetry=selection.telemetry,
+            stop_reason="refused_non_improving_patch_under_l2_debt",
+            structural_scored_count=int(selection.structural_scored_count),
+        )
 
     # Record realized deletion losses so hook #2's prior sees this attempt at
     # future checkpoints.  Loss is attributed equally across the deleted
     # coordinates; keys are stable runtime coordinate labels, so survivors
     # keep their record across later structural edits.
     if runtime_state is not None and getattr(runtime_state, "loss_history", None) is not None:
-        window = max(1, int(getattr(support_config, "prune_history_window", 3)))
+        window = max(1, int(exchange_config.score.history_window))
         labels = tuple(state.runtime_coordinate_labels)
         for attempt in selection.attempts:
             if not attempt.removed_runtime_indices or attempt.deletion_loss is None:
@@ -478,13 +743,20 @@ def select_deletion_conditioned_patch(
                 del records[:-window]
 
     payload: dict[str, Any] = {
-        "selection_policy": EXCHANGE_SELECTION_POLICY_V1,
+        "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
+        "generalized_exchange_domain": domain.to_json_dict(),
+        "deletion_fallback_used": bool(deletion_fallback_used),
+        "realized_candidate_l2": (
+            None if candidate_l2 is None else float(candidate_l2)
+        ),
         **inputs.get("pool_dedup_telemetry", {}),
         "kind": selection.kind,
         "stop_reason": selection.stop_reason,
         "attempt_count": len(selection.attempts),
+        "structural_scored_count": int(selection.structural_scored_count),
         "attempts": [a.to_json_dict() for a in selection.attempts[-16:]],
         "cost_normalization": "per_candidate_raw_v1",
+        "deletion_permission": permission_evaluator.summary(),
     }
     if selection.telemetry is not None:
         payload["work_guard"] = selection.telemetry.guard.to_json_dict()
@@ -531,5 +803,7 @@ def select_deletion_conditioned_patch(
 __all__ = [
     "build_candidate_pool",
     "build_selector_inputs",
-    "select_deletion_conditioned_patch",
+    "eligible_deletion_atoms",
+    "generalized_exchange_domain",
+    "select_generalized_exchange_patch",
 ]

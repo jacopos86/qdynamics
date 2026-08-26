@@ -795,7 +795,8 @@ def main() -> int:
     parser.add_argument("--comparison-runs", default="")
     parser.add_argument("--backend-name", default=DEFAULT_BACKEND)
     parser.add_argument("--seed-transpiler", type=int, default=7)
-    parser.add_argument("--optimization-level", type=int, default=2)
+    # Paper-I resource convention: FakeMarrakesh, optimization level 1, seed 7.
+    parser.add_argument("--optimization-level", type=int, default=1)
     args = parser.parse_args()
 
     raw_path = Path(args.raw_payload).resolve()
