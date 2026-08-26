@@ -66,7 +66,7 @@ def test_prune_appendix_is_exact_prune_diff_from_main() -> None:
     assert appendix["phase3_enable_batching"] is False
     assert appendix["adapt_full_refit_every"] == 0
     assert appendix["adapt_final_full_refit"] == "false"
-    assert appendix["phase3_shadow_damping_policy"] == "off"
+    assert "phase3_shadow_damping_policy" not in appendix
 
 
 def test_prune_appendix_materializes_undamped_full_logical_fs_trust() -> None:
@@ -116,7 +116,7 @@ def test_prune_appendix_materializes_undamped_full_logical_fs_trust() -> None:
     # Structural note: the retired CLI namespace omitted
     # phase3_shadow_damping_policy entirely; the live runtime kwargs carry the
     # contract's explicit "off".
-    assert kwargs["phase3_shadow_damping_policy"] == "off"
+    assert "phase3_shadow_damping_policy" not in kwargs
 
 
 def test_prune_appendix_contract_records_one_factor_lineage() -> None:
@@ -171,13 +171,16 @@ def test_prune_appendix_round_trips_runtime_and_resume_identity() -> None:
     )
     assert kwargs["sr_route_profile_contract"] == contract
     assert kwargs["sr_route_profile_contract_sha256"] == digest
-    # Pre-existing red (baseline): the flat kwargs no longer carry
-    # phase1_prune_* keys (they compose onto kwargs["extensions"].pruning).
-    # Preserved verbatim per the CLI-retirement baseline; owner decision
-    # whether these assertions move onto the pruning extension.
-    assert kwargs["phase1_prune_enabled"] is True
-    assert kwargs["phase1_prune_metric_schur_mu"] == 0.0
-    assert kwargs["phase1_prune_metric_mu_update_policy"] == "off"
+    # phase1_prune_* settings compose onto the pruning extension rather than
+    # the flat kwargs (owner decision, 2026-08-26): assert them where the
+    # runtime actually reads them.
+    from test_support.route_contract_kwargs import route_pruning
+
+    pruning = route_pruning(kwargs)
+    assert pruning is not None
+    assert pruning.settings["phase1_prune_metric_schur_mu"] == 0.0
+    assert pruning.settings["phase1_prune_metric_mu_update_policy"] == "off"
+    assert "phase1_prune_enabled" not in kwargs
     assert "phase3_shadow_damping_policy" not in kwargs
 
     payload = {

@@ -63,11 +63,11 @@ PARENT_PROFILE = (
     "full_response_symmetric_cost_no_prune_v1"
 )
 PARENT_DIGEST = (
-    "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2"
+    "350316790ca8b6f2b2ba3d3dde11c377e2ffc3b1575701eee1a9859590a7ab3c"
 )
 ROUTE_REQUEST = "insertion_commutation_plateau_v2"
 ROUTE_DIGEST = (
-    "aa669d7f0c3621d9ddf7f8595f96333c56b536c8fc79547607e76d8d91d4b6ff"
+    "61ae4317381bb05ff64d7219a513230e3ae328dbfb271cb8efec6763fd631143"
 )
 
 

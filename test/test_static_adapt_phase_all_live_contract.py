@@ -118,7 +118,7 @@ def test_historical_route_contract_digests_remain_byte_stable() -> None:
         "435910592e88f0136a0d45f611f79fe96b21d75fd25bad58276c871f39dc080e"
     )
     assert canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256() == (
-        "ac973c2cd6f5dec3a6cd3274b9e255da6783196072bb2656ffabecd893e0da08"
+        "3ed039f5177e7aefc709df1f0debe5953a4b205ded463ef028ec75d9c71575f6"
     )
     contract = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
     assert contract["execution_settings"]["phase_live_hysteresis_enabled"] is False

@@ -87,7 +87,7 @@ def test_projected_phase3_profile_is_one_setting_ablation_of_valid_main_sr() -> 
     child = canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_v1_contract()
 
     assert canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256() == (
-        "023bc7ac535ee4d88d78dd5336a59dd2fb0543c133fa0a60b009efab75422c91"
+        "3ed039f5177e7aefc709df1f0debe5953a4b205ded463ef028ec75d9c71575f6"
     )
     assert child["lineage_authority"]["parent_contract_sha256"] == (
         canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()

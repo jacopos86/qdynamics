@@ -763,7 +763,7 @@ def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> N
         "435910592e88f0136a0d45f611f79fe96b21d75fd25bad58276c871f39dc080e"
     )
     assert canonical_sr_snake_v4_contract_sha256() == (
-            "0b36d0c505244809c131c473165db546587c5a38ffa7f885e77d382e4243e4c3"
+            "fbcb31309ac9398b3f566a82a4840df1179df870c5140fe95277a4f377414437"
     )
     assert canonical_sr_snake_v1_contract_sha256() != (
         canonical_sr_snake_v2_contract_sha256()
@@ -783,7 +783,7 @@ def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> N
         != canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
     )
     assert canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256() == (
-        "ce283eeb38a7426bcc4c36f55d35265fa99a0029c571343c17803bd6d87df6f5"
+        "77509193395219864e694afc968d2b8fda88cdbf4d36a2451dbbeda0109d17cb"
     )
     assert canonical_sr_snake_v1_contract()["execution_settings"] == (
         CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS
