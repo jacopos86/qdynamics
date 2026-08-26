@@ -292,3 +292,83 @@ def test_adapt_pipeline_preserves_candidate_record_cache_import_compatibility() 
         "_candidate_record_cache_put",
     ):
         assert getattr(adapt_pipeline, name) is getattr(cache, name)
+
+
+def test_disk_hit_return_value_is_independent_of_memory_entry_and_disk_file(
+    tmp_path: Path,
+) -> None:
+    """A disk hit hands back a record the caller may freely mutate.
+
+    The disk path takes one deep copy rather than two, so this pins the
+    property that copy count was reduced against: nothing the caller does to
+    the returned record may reach the memory entry, the stored file, or a
+    later read.
+    """
+
+    _clear_cache()
+    cache_key = "beef0123abcd"
+    record = {"outer": {"inner": [1, 2, 3]}, "scalar": 7}
+    assert cache._candidate_record_cache_put(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk", record=record
+    ) == "disk"
+
+    _clear_cache()
+    first, source = cache._candidate_record_cache_get(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk"
+    )
+    assert source == "disk"
+    assert first == record
+
+    # Mutate every level of the returned structure.
+    first["outer"]["inner"].append(99)
+    first["outer"]["added"] = True
+    first["scalar"] = -1
+
+    # The memory entry populated by that same disk read must be untouched.
+    from_memory, memory_source = cache._candidate_record_cache_get(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk"
+    )
+    assert memory_source == "memory"
+    assert from_memory == record
+
+    # And the file on disk must still hold the original.
+    _clear_cache()
+    from_disk, disk_source = cache._candidate_record_cache_get(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk"
+    )
+    assert disk_source == "disk"
+    assert from_disk == record
+
+
+def test_put_memory_entry_is_independent_of_caller_record_after_write(
+    tmp_path: Path,
+) -> None:
+    """The single deep copy taken on put must still isolate the caller.
+
+    ``put`` now reuses one copy for both the memory entry and the pickled
+    payload, so the caller mutating its own record afterwards must not be
+    visible through either.
+    """
+
+    _clear_cache()
+    cache_key = "cafe4567beef"
+    record = {"nested": {"values": [1, 2]}}
+    assert cache._candidate_record_cache_put(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk", record=record
+    ) == "disk"
+
+    record["nested"]["values"].append(3)
+    record["nested"]["injected"] = "no"
+
+    from_memory, memory_source = cache._candidate_record_cache_get(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk"
+    )
+    assert memory_source == "memory"
+    assert from_memory == {"nested": {"values": [1, 2]}}
+
+    _clear_cache()
+    from_disk, disk_source = cache._candidate_record_cache_get(
+        cache_key=cache_key, cache_dir=tmp_path, mode="disk"
+    )
+    assert disk_source == "disk"
+    assert from_disk == {"nested": {"values": [1, 2]}}

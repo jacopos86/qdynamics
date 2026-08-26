@@ -244,10 +244,11 @@ def _candidate_record_cache_get(
     record = payload.get("record")
     if not isinstance(record, Mapping):
         return None, "record_missing"
-    try:
-        record_copy = copy.deepcopy(dict(record))
-    except Exception as exc:
-        return None, f"disk_copy_error:{exc.__class__.__name__}"
+    # ``payload`` was just unpickled and is reachable from nowhere else, so the
+    # record handed to the caller is already private to them; only the
+    # long-lived memory-cache entry needs a copy of its own.  This is one deep
+    # copy per disk hit instead of two, with the same independence guarantee.
+    record_copy = dict(record)
     try:
         record_copy_for_memory = copy.deepcopy(record_copy)
     except Exception as exc:
@@ -270,11 +271,11 @@ def _candidate_record_cache_put(
         record_copy = copy.deepcopy(dict(record))
     except Exception as exc:
         return f"copy_error:{exc.__class__.__name__}"
-    try:
-        record_copy_for_memory = copy.deepcopy(record_copy)
-    except Exception as exc:
-        return f"memory_copy_error:{exc.__class__.__name__}"
-    _candidate_record_memory_cache_store(str(cache_key), record_copy_for_memory)
+    # ``record_copy`` is already independent of the caller's ``record``, and the
+    # only other use below is ``pickle.dump``, which does not mutate what it
+    # serializes.  One deep copy therefore serves both the memory entry and the
+    # on-disk payload.
+    _candidate_record_memory_cache_store(str(cache_key), record_copy)
     if mode_key != "disk":
         return "memory"
     path = _candidate_record_cache_path(Path(cache_dir), str(cache_key))
