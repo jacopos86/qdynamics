@@ -14,7 +14,7 @@ Comparison protocol (binding on any evidence produced):
 | field | value |
 |---|---|
 | Checkout | `/Users/jakestrobel/local_repos/Holstein_test_fullclone_3` — NOT the `~/Documents/Holstein_implementation` iCloud mirror |
-| Branch / SHA | `paper-ii-exchange-selector` @ `91fbbeaa`. Several agents commit here daily; re-check the SHA before starting and commit at increment boundaries. |
+| Branch | **Work directly on `paper-ii-exchange-selector`. Do NOT create a new branch or worktree** (this overrides the contract's default). Run `git pull --rebase` before every commit, and commit only at increment boundaries. Several agents commit here daily. |
 | Test baseline | `python3 -m pytest test/test_qse_record_selection.py test/test_qse_compiled_cost_selection.py test/test_qse_spectra_core.py test/test_qse_spectra_imports.py test/test_qse_spectra_io_cli.py test/test_qse_compiled_costs.py test/test_qse_exchange_maintenance.py test/test_paper_iii_problem_provider.py test/test_paper_iii_matched_accuracy_campaign.py test/test_adaptive_qse_benchmark.py -q` → **76 passed**. Repo-wide collection has ~55 pre-existing `docs.*` import errors unrelated to this lane; ignore them. |
 | Behaviour lock | `python3 pipelines/exact_bench/paper_iii_growth_trace_campaign.py --regime-set nph1 --k-max 60 --stride 3 --krylov-k-max 40 --exchange-policy every_k` must produce **bit-identical** selected supports before and after every increment. This is the acceptance test for the whole task. |
 
@@ -37,6 +37,26 @@ probe-transition visibility, and the explicit conditioning penalty were each
 implemented, ablated, and removed as not improving selection; their defaults
 are already zero or deleted. Do not reintroduce them, and do not re-derive the
 weights.
+
+## File ownership (concurrent agents, binding)
+
+The author and this executor are on one branch, so ownership is by path, not by
+branch. Two agents independently wrote the same exchange-activation paragraph
+from the same evidence on 2026-08-26; one copy had to be deleted. Do not repeat
+that.
+
+| path | owner |
+|---|---|
+| `pipelines/qse_spectra/record_selection.py`, `pipelines/qse_spectra/__main__.py`, and their tests | **you** |
+| `MATH/paper_details/**` (manuscript, figures, generated fragments) | **the author** |
+| `pipelines/reporting/**` | the author |
+| `pipelines/exact_bench/**` | the author |
+| `pipelines/qse_spectra/exchange_maintenance.py`, `paper_iii_problem.py` | nobody this task; out of scope |
+
+If an increment forces a change outside your column, **stop and report the
+required change** rather than making it. Do not edit the manuscript: if the
+refactor changes behaviour the manuscript describes, say so in the report-back
+and the author will edit the text.
 
 ## Scope
 
