@@ -34,7 +34,6 @@ Statevector diagnostics; never feeds controller decisions.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -49,20 +48,10 @@ if str(REPO_ROOT) not in sys.path:
 from pipelines.exact_bench.paper_iii_qse_paper_i_convention_sweep import (
     PAPER_I_REGIMES,
     _LINEAR_RESPONSE_FAMILIES,
-    _build_regime_pool,
     _element_family,
-    _num_qubits,
-)
-from pipelines.exact_bench.paper_iii_qse_regime_frontier_sweep import (
-    _dense_hamiltonian,
-    _sector_spectrum,
-)
-from pipelines.qse_spectra.compiled_costs import (
-    ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
-    annotate_basis_with_compiled_costs,
-    resolve_cost_weights_preset,
 )
 from pipelines.qse_spectra.core import QSEBasisVectorPolicy, compute_qse_spectra
+from pipelines.qse_spectra.paper_iii_problem import load_problem
 from pipelines.qse_spectra.exchange_maintenance import (
     QSEExchangeConfig,
     run_qse_exchange_maintenance,
@@ -76,7 +65,6 @@ DEFAULT_OUTPUT = (
     REPO_ROOT
     / "output/diagnostics/paper_iii_matched_accuracy_20260826_v1/matched_accuracy_campaign.json"
 )
-REFERENCE_STORE = REPO_ROOT / "output/reference_store/paper_iii_exact_sector"
 _Q0_POLICY = QSEBasisVectorPolicy(
     reference_projection="q0", basis_vector_normalization="raw_projected"
 )
@@ -106,57 +94,6 @@ REGIME_SETS = {
 STATUS_REACHED = "REACHED"
 STATUS_UNATTAINABLE = "UNATTAINABLE_WITH_MANIFOLD"
 STATUS_NOT_IN_POOL = "NOT_REACHED_WITHIN_POOL"
-
-
-# --- content-addressed exact-reference store (protocol section 6) -----------
-
-def _reference_key(identity: Mapping[str, Any]) -> str:
-    blob = json.dumps(dict(identity), sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:24]
-
-
-def load_exact_reference(
-    *, regime: str, u: float, g_ep: float, n_ph_max: int, count: int
-) -> tuple[np.ndarray, list[float]]:
-    """Ground vector + lowest ``count`` sector energies, computed once."""
-
-    identity = {
-        "family": "hh_l2_half_filled_11_sector",
-        "regime": str(regime),
-        "u": float(u),
-        "g_ep": float(g_ep),
-        "n_ph_max": int(n_ph_max),
-        "count": int(count),
-        "schema": "paper_iii_exact_sector_reference_v1",
-    }
-    key = _reference_key(identity)
-    path = REFERENCE_STORE / f"{key}.npz"
-    if path.is_file():
-        payload = np.load(path, allow_pickle=False)
-        stored = json.loads(str(payload["identity_json"]))
-        if stored != identity:
-            raise RuntimeError(
-                f"reference-store key collision or corruption at {path}: "
-                f"stored identity {stored} != requested {identity}"
-            )
-        return np.asarray(payload["ground"], dtype=complex), [
-            float(x) for x in payload["energies"]
-        ]
-    nq = _num_qubits(n_ph_max)
-    hamiltonian, _basis, _meta = _build_regime_pool(u=u, g_ep=g_ep, n_ph_max=n_ph_max)
-    dense = _dense_hamiltonian(hamiltonian, 1 << nq)
-    ground, energies = _sector_spectrum(dense, count=count)
-    del dense
-    REFERENCE_STORE.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp.npz")
-    np.savez(
-        tmp,
-        ground=np.asarray(ground, dtype=complex),
-        energies=np.asarray(energies, dtype=float),
-        identity_json=np.asarray(json.dumps(identity, sort_keys=True)),
-    )
-    tmp.rename(path)
-    return np.asarray(ground, dtype=complex), [float(x) for x in energies]
 
 
 # --- pure cell-resolution logic (unit-tested) -------------------------------
@@ -243,31 +180,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     for regime, u, g_ep, n_ph_max in REGIME_SETS[str(args.regime_set)]:
         if wanted is not None and regime not in wanted:
             continue
-        nq = _num_qubits(n_ph_max)
-        hamiltonian, basis, _meta = _build_regime_pool(u=u, g_ep=g_ep, n_ph_max=n_ph_max)
-        ground, spectrum = load_exact_reference(
-            regime=regime, u=u, g_ep=g_ep, n_ph_max=n_ph_max, count=_TARGET_ROOTS + 1
+        problem = load_problem(
+            regime=regime, u=u, g_ep=g_ep, n_ph_max=n_ph_max, target_roots=_TARGET_ROOTS
         )
-        references = spectrum[1 : _TARGET_ROOTS + 1]
-        cost_rows = annotate_basis_with_compiled_costs(
-            basis,
-            num_qubits=nq,
-            oracle_kind=ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
-            cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
-        )
-        costs = tuple(row.scalarized_canonical_cost for row in cost_rows)
-        # Deterministic proxy resource triple per record (Paper-II analog,
-        # routing-randomness-free): N2q = c_hat_2q (CX-ladder count),
-        # D2q = c_hat_d (routed-chain two-qubit depth), Dc = D2q + c_hat_1q.
-        c2q = tuple(float(r.estimate.c_hat_2q) for r in cost_rows)
-        cd = tuple(float(r.estimate.c_hat_d) for r in cost_rows)
-        c1q = tuple(float(r.estimate.c_hat_1q) for r in cost_rows)
+        hamiltonian = problem.hamiltonian
+        basis = problem.basis
+        costs = problem.costs
+        ground = problem.ground
+        spectrum = list(problem.spectrum)
+        references = list(problem.references)
+        nq = problem.num_qubits
 
         def _resources(indices: Sequence[int]) -> dict[str, float]:
-            n2q = float(sum(c2q[int(i)] for i in indices))
-            d2q = float(sum(cd[int(i)] for i in indices))
-            return {"n2q": n2q, "d2q": d2q,
-                    "dc": d2q + float(sum(c1q[int(i)] for i in indices))}
+            return problem.resource_triple(indices)
 
         print(f"\n== {regime} (pool={len(basis)})", flush=True)
 
@@ -386,6 +311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "g_ep": float(g_ep),
             "n_ph_max": int(n_ph_max),
             "pool_size": len(basis),
+            "shared_problem_receipt": problem.arm_receipt(),
             "fixed_class_size": len(fixed_indices),
             "reference_ground_energy": float(spectrum[0]),
             "reference_excitations": references,

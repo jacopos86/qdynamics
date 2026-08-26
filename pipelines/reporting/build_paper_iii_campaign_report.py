@@ -2,10 +2,11 @@
 """Render one matched-accuracy campaign JSON as gaps-then-cost-tables.
 
 Reporting convention (user, 2026-08-26): the principal display is the
-excitation-gap ladder per method ("show the gaps"), followed by tables
-reporting costs. Output is LaTeX compiled to PDF (no ad-hoc PDF backends)
-plus the gap figure as PDF/PNG. Method identity is always labeled: "ours"
-versus "benchmark".
+excitation-gap ladder per method, followed by tables reporting costs.
+Costs are the deterministic graph-span proxy triple (Paper-II analog):
+N2q (CX-ladder count), D2q (routed-chain two-qubit depth), and Dc, so no
+transpiler routing randomness enters. Method identity is always labeled:
+"ours" versus "benchmark". Output is LaTeX compiled with pdflatex.
 """
 
 from __future__ import annotations
@@ -25,8 +26,23 @@ if str(REPO_ROOT) not in sys.path:
 def _sci(value: Any) -> str:
     if value is None:
         return "--"
-    mantissa, exponent = f"{float(value):.1e}".split("e")
-    return rf"${mantissa}\times10^{{{int(exponent)}}}$"
+    mantissa, exponent = f"{float(value):.0e}".split("e")
+    return rf"$10^{{{int(exponent)}}}$" if mantissa in ("1", "1.0") else \
+        rf"${mantissa}\times10^{{{int(exponent)}}}$"
+
+
+def _escape(text: Any) -> str:
+    return str(text).replace("_", r"\_")
+
+
+def _ours_rung(rec: dict[str, Any]) -> dict[str, Any] | None:
+    candidates = [r for r in rec["rungs"]["ours"] if r.get("root_energies")]
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda r: (r["max_root_abs_error"] is None, r["max_root_abs_error"] or 0.0),
+    )
 
 
 def _gap_figure(payload: dict[str, Any], out_pdf: Path) -> None:
@@ -34,81 +50,125 @@ def _gap_figure(payload: dict[str, Any], out_pdf: Path) -> None:
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
 
     regimes = list(payload["regimes"])
-    fig, ax = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)
-    width = 1.0
-    xticks, xlabels = [], []
-    ours_label_done = fixed_label_done = False
+    exact_max = max(
+        float(r) - float(payload["regimes"][g]["reference_ground_energy"])
+        for g in regimes
+        for r in payload["regimes"][g]["reference_excitations"]
+    )
+    ylim = exact_max * 1.32
+
+    fig, ax = plt.subplots(figsize=(7.2, 3.4), constrained_layout=True)
+    width, gap = 1.0, 0.6
+    xticks: list[float] = []
+    xlabels: list[str] = []
+    offscale: list[tuple[float, float, str]] = []
+
     for slot, regime in enumerate(regimes):
         rec = payload["regimes"][regime]
         e0 = float(rec["reference_ground_energy"])
         refs = [float(x) for x in rec["reference_excitations"]]
-        base = slot * (width + 0.45)
-        offsets = [base + width * (i / max(len(refs) - 1, 1)) for i in range(len(refs))]
+        base = slot * (width + gap)
+        offs = [base + width * (i / max(len(refs) - 1, 1)) for i in range(len(refs))]
         xticks.append(base + width / 2.0)
         xlabels.append(regime.replace("_", "-"))
-        ax.plot(offsets, [r - e0 for r in refs], "_", color="#222222",
-                markersize=15, markeredgewidth=2.0,
+        ax.plot(offs, [r - e0 for r in refs], "_", color="#222222", markersize=13,
+                markeredgewidth=2.0,
                 label="exact (reference)" if slot == 0 else None, zorder=1)
-        our_rung = min(
-            (r for r in rec["rungs"]["ours"] if r.get("root_energies")),
-            key=lambda r: (r["max_root_abs_error"] is None, r["max_root_abs_error"] or 0),
-            default=None,
-        )
-        if our_rung and our_rung.get("root_energies"):
-            gaps = [float(e) - e0 for e in our_rung["root_energies"]]
-            ax.plot(offsets[: len(gaps)], gaps, "o", color="#2673b8", markersize=5,
-                    markerfacecolor="none", markeredgewidth=1.3,
-                    label="ours: selected + exchange" if not ours_label_done else None, zorder=2)
-            ours_label_done = True
-        f = rec["rungs"]["fixed_class"][0]
-        if f.get("root_energies"):
-            gaps = [float(e) - e0 for e in f["root_energies"]]
-            ax.plot(offsets[: len(gaps)], gaps, "s", color="#c05020", markersize=5,
-                    markerfacecolor="none", markeredgewidth=1.3,
-                    label="benchmark: fixed class" if not fixed_label_done else None, zorder=2)
-            fixed_label_done = True
+
+        our = _ours_rung(rec)
+        series = [
+            ("ours: selected + exchange", "#2673b8", "o",
+             our.get("root_energies") if our else None),
+            ("benchmark: fixed class", "#c05020", "s",
+             rec["rungs"]["fixed_class"][0].get("root_energies")),
+        ]
+        for label, color, marker, values in series:
+            if not values:
+                continue
+            xs: list[float] = []
+            ys: list[float] = []
+            for x, energy in zip(offs, values):
+                g = float(energy) - e0
+                if g > ylim:
+                    offscale.append((x, g, color))
+                else:
+                    xs.append(x)
+                    ys.append(g)
+            ax.plot(xs, ys, marker, color=color, markersize=5, markerfacecolor="none",
+                    markeredgewidth=1.3, label=label if slot == 0 else None, zorder=2)
+
+    for x, value, color in offscale:
+        ax.plot([x], [ylim * 0.97], marker="^", color=color, markersize=6, zorder=3)
+        ax.annotate(f"{value:.1f}", (x, ylim * 0.97), textcoords="offset points",
+                    xytext=(0, -10), ha="center", fontsize=6, color=color)
+
+    ax.set_ylim(0.0, ylim)
     ax.set_xticks(xticks)
-    ax.set_xticklabels(xlabels, fontsize=8)
-    ax.set_ylabel(r"excitation gap $\omega_\nu = E_\nu - E_0$")
+    ax.set_xticklabels(xlabels, fontsize=7, rotation=18, ha="right")
+    ax.set_ylabel(r"excitation gap $\omega_\nu = E_\nu - E_0$", fontsize=9)
+    ax.tick_params(axis="y", labelsize=8)
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
-    ax.legend(fontsize=8, loc="best")
+    handles, labels = ax.get_legend_handles_labels()
+    if offscale:
+        handles.append(Line2D([], [], marker="^", color="#c05020", linestyle="none",
+                              markersize=6))
+        labels.append("off scale (value shown)")
+    ax.legend(handles, labels, fontsize=7, loc="upper left", framealpha=0.95, ncol=2)
+
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_pdf)
     fig.savefig(out_pdf.with_suffix(".png"), dpi=200)
     plt.close(fig)
 
 
-def _cost_table(payload: dict[str, Any]) -> str:
-    arms = ("ours", "fixed_class", "cheapest_first", "input_order")
-    lines = [r"\begin{tabular}{ll" + "c" * len(arms) + "}", r"\hline"]
-    lines.append("regime & $\\varepsilon_E$ & ours & benchmark: fixed class & "
-                 r"benchmark: cheapest-first & benchmark: input-order \\ \hline")
-    for regime, rec in payload["regimes"].items():
-        for eps, row in sorted(rec["cells"].items(), key=lambda kv: -float(kv[0])):
-            cells = []
-            for arm in arms:
-                c = row[arm]
-                if c["status"] == "REACHED":
-                    res = (c.get("selected_rung") or {}).get("resources") or {}
-                    if res:
-                        cells.append(
-                            f"{res['n2q']:.0f} / {res['d2q']:.0f} / {res['dc']:.0f}"
-                        )
-                    else:
-                        cells.append(f"{c['cost_at_target']:.0f}")
-                else:
-                    t = c.get("terminal") or {}
-                    err = t.get("max_root_abs_error")
-                    tag = "unatt." if c["status"].startswith("UNATT") else "n.r."
-                    cells.append(rf"{tag} ({_sci(err)})" if err is not None else tag)
-            lines.append(
-                regime.replace("_", r"\_") + f" & {_sci(float(eps))} & " + " & ".join(cells) + r" \\"
-            )
-        lines.append(r"\hline")
-    lines.append(r"\end{tabular}")
-    return "\n".join(lines)
+_ARMS = (
+    ("ours", "ours"),
+    ("fixed_class", "fixed class"),
+    ("cheapest_first", "cheapest-first"),
+    ("input_order", "input-order"),
+)
+
+
+def _cell(entry: dict[str, Any]) -> str:
+    if entry["status"] == "REACHED":
+        res = (entry.get("selected_rung") or {}).get("resources") or {}
+        if res:
+            return f"{res['n2q']:.0f}/{res['d2q']:.0f}/{res['dc']:.0f}"
+        return f"{entry['cost_at_target']:.0f}"
+    terminal = entry.get("terminal") or {}
+    err = terminal.get("max_root_abs_error")
+    tag = "unatt." if entry["status"].startswith("UNATT") else "n.r."
+    suffix = rf"\,{_sci(err)}" if err is not None else ""
+    return rf"\textit{{{tag}}}{suffix}"
+
+
+def _cost_tables(payload: dict[str, Any]) -> str:
+    targets = sorted(
+        {e for rec in payload["regimes"].values() for e in rec["cells"]},
+        key=lambda x: -float(x),
+    )
+    out: list[str] = []
+    for eps in targets:
+        out.append(r"\begin{center}")
+        out.append(rf"\textbf{{Accuracy target $\varepsilon_E = $ {_sci(float(eps))}}}")
+        out.append(r"\\[3pt]")
+        out.append(r"\begin{tabular}{l" + "r" * len(_ARMS) + "}")
+        out.append(r"\toprule")
+        out.append("regime & " + " & ".join(label for _key, label in _ARMS) + r" \\")
+        out.append(r"\midrule")
+        for regime, rec in payload["regimes"].items():
+            row = rec["cells"].get(eps)
+            if row is None:
+                continue
+            cells = [_cell(row[key]) for key, _label in _ARMS]
+            out.append(_escape(regime) + " & " + " & ".join(cells) + r" \\")
+        out.append(r"\bottomrule")
+        out.append(r"\end{tabular}")
+        out.append(r"\end{center}")
+    return "\n".join(out)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -124,18 +184,23 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     tex = "\n".join([
         r"\documentclass[10pt]{article}",
-        r"\usepackage[margin=2cm]{geometry}\usepackage{graphicx}\usepackage{booktabs}",
+        r"\usepackage[margin=1.6cm]{geometry}",
+        r"\usepackage{graphicx}",
+        r"\usepackage{booktabs}",
+        r"\usepackage{amsmath}",
+        r"\pagestyle{empty}",
+        r"\setlength{\parindent}{0pt}",
         r"\begin{document}",
-        rf"\section*{{Matched-accuracy campaign: {str(payload.get('regime_set', '?')).replace(chr(95), chr(92)+chr(95))}}}",
-        r"Protocol: \texttt{agent\_guidance/qse/paper-iii-comparison-protocol.md}. "
-        r"Gaps first, then costs. `unatt.' = unattainable with that manifold; "
-        r"`n.r.' = not reached within the shared pool (terminal error shown).",
-        r"\subsection*{Excitation gaps}",
-        r"\includegraphics[width=\textwidth]{campaign_gaps.pdf}",
-        r"\subsection*{Proxy resources to reach each accuracy target: $N_{2q}$ / $D_{2q}$ / $D_c$}",
-        r"Deterministic graph-span proxy (no routing randomness): $N_{2q}=\sum \hat c_{2q}$ (CX-ladder count), $D_{2q}=\sum \hat c_{d}$ (routed-chain two-qubit depth), $D_c=D_{2q}+\sum \hat c_{1q}$. Target reached = minimum-$N_{2q}$ certified rung.",
-        r"{\small",
-        _cost_table(payload),
+        rf"\section*{{Matched-accuracy campaign: {_escape(payload.get('regime_set', '?'))}}}",
+        r"{\footnotesize Protocol: \texttt{agent\_guidance/qse/paper-iii-comparison-protocol.md}.",
+        r"Identical record alphabet for every arm. Table cells give the deterministic",
+        r"graph-span proxy $N_{2q}/D_{2q}/D_c$ at that arm's cheapest certified rung",
+        r"(no transpiler routing randomness). \textit{unatt.} = unattainable with that",
+        r"manifold; \textit{n.r.} = not reached within the shared pool, terminal error shown.\par}",
+        r"\vspace{6pt}",
+        r"\begin{center}\includegraphics[width=0.95\textwidth]{campaign_gaps.pdf}\end{center}",
+        r"{\footnotesize",
+        _cost_tables(payload),
         r"}",
         r"\end{document}",
     ])
@@ -146,7 +211,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     errors = [line for line in proc.stdout.splitlines() if line.startswith("!")]
     if errors:
-        raise SystemExit(f"LaTeX errors: {errors[:3]}")
+        raise SystemExit("LaTeX errors: " + "; ".join(errors[:3]))
     print(f"wrote {out / 'campaign_report.pdf'}")
     return 0
 

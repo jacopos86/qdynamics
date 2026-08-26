@@ -3,16 +3,12 @@ reference store (no heavy compute)."""
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
-
 from pipelines.exact_bench.paper_iii_matched_accuracy_campaign import (
     ERROR_TARGET_LADDER,
     RESIDUAL_RUNG_LADDER,
     STATUS_NOT_IN_POOL,
     STATUS_REACHED,
     STATUS_UNATTAINABLE,
-    _reference_key,
     resolve_cell,
 )
 
@@ -53,11 +49,3 @@ def test_resolve_cell_ignores_unresolved_windows() -> None:
 def test_ladders_are_declared_and_ordered() -> None:
     assert list(ERROR_TARGET_LADDER) == sorted(ERROR_TARGET_LADDER, reverse=True)
     assert list(RESIDUAL_RUNG_LADDER) == sorted(RESIDUAL_RUNG_LADDER, reverse=True)
-
-
-def test_reference_key_is_identity_sensitive() -> None:
-    base = {"regime": "weak_weak", "u": 0.25, "g_ep": 0.35, "n_ph_max": 3, "count": 7}
-    assert _reference_key(base) == _reference_key(dict(base))
-    changed = dict(base)
-    changed["n_ph_max"] = 7
-    assert _reference_key(base) != _reference_key(changed)

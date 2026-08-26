@@ -102,6 +102,29 @@ exact-reference-tuned per-cell diagnostic, not an operating rule. Report every
 evaluated rung; label the selected point; never quote a best-rung ratio as a
 headline figure.
 
+## 5b. Shared problem provider (architecture, user-directed 2026-08-26)
+
+Every route obtains its Hamiltonian, operator alphabet, compiled costs, and
+exact reference from ONE provider:
+`pipelines/qse_spectra/paper_iii_problem.py::load_problem`. Building physics
+inside a driver is a protocol violation -- it was how the campaign came to
+build the same pool twice per regime with nothing proving the two matched.
+
+The provider guarantees, and every artifact records via
+`problem.arm_receipt()`:
+
+- **one alphabet per regime**, handed out by reference (in-process cached);
+- **`pool_digest`** -- ordered digest of record names. Equal pool SIZES do not
+  prove equal pools; a shared-alphabet claim requires this digest present and
+  equal in every arm receipt of a comparison;
+- **`reference_key`** -- the content-addressed exact-reference identity;
+- **uniform granularity** -- `assert_uniform_granularity` fails closed if a
+  pool mixes macro records with pre-split Pauli children. The selection route
+  never decomposes a record between phases (Phase I/II/III and exchange all
+  treat records as opaque), so a mixed pool would make "one record" mean two
+  different resource quantities. Macro-to-singleton decomposition anywhere
+  inside a route is forbidden.
+
 ## 6. Cached exact references (Paper-II lesson, user-directed)
 
 The exact sector-restricted reference (ground vector + lowest R+1 energies)
