@@ -3,6 +3,11 @@ import logging
 import numpy as np
 from pyscf.eph import eph_fd
 
+from src.chemistry.pyscf.electron_phonon_solver import (
+    pyscf_eph_cutoff,
+    standardize_pyscf_eph,
+)
+
 log = logging.getLogger(__name__)
 
 
@@ -47,7 +52,9 @@ class FiniteDifferenceElectronPhononSolver:
             mf,
             disp=self.fd_step,
             mo_rep=mo_rep,
-            cutoff_frequency=self.cutoff_frequency,
+            cutoff_frequency=pyscf_eph_cutoff(self.cutoff_frequency),
             keep_imag_frequency=self.keep_imag_frequency,
         )
+        self.eph_mat, self.omega = standardize_pyscf_eph(
+            self.eph_mat, self.omega)
         return self.eph_mat, self.omega

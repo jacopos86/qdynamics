@@ -10,6 +10,10 @@ from pyscf.eph import eph_fd
 
 from src.chemistry.psi4.electron_phonon_fd_solver import (
     FiniteDifferenceElectronPhononSolver,
+    HARTREE_TO_WAVENUMBER,
+)
+from src.chemistry.pyscf.electron_phonon_solver import (
+    standardize_pyscf_eph,
 )
 
 
@@ -55,7 +59,7 @@ def test_h2_psi4_fd_matches_pyscf_pulay_fd(tmp_path):
         "norm_mode": mode,
     }
 
-    native, _ = FiniteDifferenceElectronPhononSolver(
+    native, native_omega = FiniteDifferenceElectronPhononSolver(
         wrapped, "scf", fd_step=0.002, basis="sto-3g",
         engine="psi4_fd").run(vibration)
     pyscf_mol = gto.M(
@@ -67,16 +71,20 @@ def test_h2_psi4_fd_matches_pyscf_pulay_fd(tmp_path):
     pyscf_mf.conv_tol = 1.0e-12
     pyscf_mf.conv_tol_grad = 1.0e-8
     pyscf_mf.kernel()
-    reference, _ = eph_fd.kernel(
+    reference, reference_omega = eph_fd.kernel(
         pyscf_mf, disp=0.002, mo_rep=True, cutoff_frequency=80.0,
         keep_imag_frequency=False)
+    reference, reference_omega = standardize_pyscf_eph(
+        reference, reference_omega)
 
+    expected_omega = 5028.0 / HARTREE_TO_WAVENUMBER
+    assert native_omega == pytest.approx([expected_omega], rel=1.0e-12)
     assert np.linalg.norm(native) == pytest.approx(
-        np.linalg.norm(reference), rel=2.5e-3)
+        np.linalg.norm(reference), rel=1.0e-4)
     reference_mode = reference[
         np.argmax(np.linalg.norm(reference, axis=(1, 2)))]
     error = min(
         np.linalg.norm(native[0] - reference_mode),
         np.linalg.norm(native[0] + reference_mode),
     )
-    assert error / np.linalg.norm(reference_mode) < 2.5e-3
+    assert error / np.linalg.norm(reference_mode) < 1.0e-4
