@@ -1183,6 +1183,8 @@ def _scipy_adapt_optimizer_options(
     method_key: str,
     maxiter: int,
     maxfev: int | None = None,
+    powell_xtol: float = 1.0e-4,
+    powell_ftol: float = 1.0e-8,
 ) -> dict[str, Any]:
     method = str(method_key).strip().upper()
     options: dict[str, Any] = {"maxiter": int(maxiter)}
@@ -1191,8 +1193,8 @@ def _scipy_adapt_optimizer_options(
     if method == "COBYLA":
         options["rhobeg"] = 0.3
     if method == "POWELL":
-        options["xtol"] = 1e-4
-        options["ftol"] = 1e-8
+        options["xtol"] = float(powell_xtol)
+        options["ftol"] = float(powell_ftol)
         if maxfev is not None and int(maxfev) > 0:
             options["maxfev"] = int(maxfev)
     return options
@@ -1205,6 +1207,8 @@ def _run_scipy_adapt_optimizer(
     x0: np.ndarray,
     maxiter: int,
     maxfev: int | None = None,
+    powell_xtol: float = 1.0e-4,
+    powell_ftol: float = 1.0e-8,
     context_label: str,
     scipy_minimize_fn: Any,
 ) -> Any:
@@ -1218,6 +1222,8 @@ def _run_scipy_adapt_optimizer(
             method_key=str(method_key),
             maxiter=int(maxiter),
             maxfev=maxfev,
+            powell_xtol=float(powell_xtol),
+            powell_ftol=float(powell_ftol),
         ),
     )
 

@@ -64,6 +64,9 @@ EXPECTED_H2O_DERIVATIVE_RESOLVED_PARENT_COUNT = 448
 PAPER_I_L3_PAGE12_APPLICATION_ID = (
     "paper_i_l3_page12_global_singleton_gradient_phase0_v1"
 )
+PAPER_I_HUBBARD_L4_APPLICATION_ID = (
+    "paper_i_hubbard_l4_macro_gradient_phase0_five_arm_v1"
+)
 PAPER_I_L3_PAGE12_PROBLEM_REQUEST_SHA256 = (
     "c67ea0c6489b6e35d1fdebdffd6f9ed700d0712c4f2745569dca37ad3fdaca2e"
 )
@@ -450,17 +453,62 @@ def require_paper_i_pure_hubbard_noise_page12_problem(
         )
 
 
+def require_paper_i_hubbard_l4_problem(
+    problem: ResolvedProblemContext,
+) -> None:
+    """Admit only the named half-filled open ``L=4`` Hubbard point."""
+
+    if not isinstance(problem, ResolvedProblemContext):
+        raise TypeError("problem must be a ResolvedProblemContext.")
+    request = problem.request
+    particles = tuple(int(value) for value in problem.sector.num_particles)
+    if (
+        str(problem.family_key).strip().lower() != "hubbard"
+        or str(request.problem_key).strip().lower() != "hubbard"
+        or int(request.num_sites) != 4
+        or float(request.t) != 1.0
+        or float(request.u) != 1.25
+        or float(request.dv) != 0.0
+        or float(request.v_nn) != 0.0
+        or float(request.t_prime) != 0.0
+        or float(request.g_ep) != 0.0
+        or float(request.omega0) != 0.0
+        or int(request.n_ph_max) != 0
+        or str(request.ordering).strip().lower() != "blocked"
+        or str(request.boundary).strip().lower() != "open"
+        or particles != (2, 2)
+        or int(problem.layout.fermion_qubits) != 8
+        or int(problem.layout.boson_qubits) != 0
+        or int(problem.layout.total_qubits) != 8
+        or "full_meta" not in set(problem.admissible_pool_keys)
+    ):
+        raise ValueError(
+            "The named Paper-I Hubbard L=4 application requires L=4, "
+            "t=1, U/t=1.25, (N_up,N_down)=(2,2), open/blocked, zero "
+            "boson coupling/cutoff, and the full_meta pool."
+        )
+
+
 def _parent_pool_spec(
     problem: ResolvedProblemContext,
     *,
     pool_key: str | None = None,
     paper_i_l3_page12_application: bool = False,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
+    paper_i_hubbard_l4_application: bool = False,
 ) -> dict[str, Any]:
-    if paper_i_l3_page12_application and paper_i_pure_hubbard_noise_page12_application:
+    named_applications = sum(
+        bool(value)
+        for value in (
+            paper_i_l3_page12_application,
+            paper_i_pure_hubbard_noise_page12_application,
+            paper_i_hubbard_l4_application,
+        )
+    )
+    if named_applications > 1:
         raise ValueError("Only one named RA pool application may be active.")
     if pool_key is not None:
-        if paper_i_l3_page12_application or paper_i_pure_hubbard_noise_page12_application:
+        if named_applications:
             raise ValueError(
                 "Named RA pool applications are source-locked to their pool; "
                 "an explicit pool_key override is not admissible."
@@ -472,6 +520,14 @@ def _parent_pool_spec(
                 f"{requested!r} is not admissible for this problem; "
                 f"admissible pools: {sorted(problem.admissible_pool_keys)}."
             )
+    if paper_i_hubbard_l4_application:
+        require_paper_i_hubbard_l4_problem(problem)
+        return {
+            "problem_key": "hubbard",
+            "num_sites": 4,
+            "pool_key": "full_meta",
+            "boson_mode_count": 1,
+        }
     if paper_i_pure_hubbard_noise_page12_application:
         require_paper_i_pure_hubbard_noise_page12_problem(problem)
         return {
@@ -532,6 +588,7 @@ def _parent_records(
     pool_key: str | None = None,
     paper_i_l3_page12_application: bool = False,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
+    paper_i_hubbard_l4_application: bool = False,
 ) -> tuple[tuple[CandidateRecord, ...], Any]:
     spec = _parent_pool_spec(
         problem,
@@ -540,6 +597,7 @@ def _parent_records(
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
         ),
+        paper_i_hubbard_l4_application=paper_i_hubbard_l4_application,
     )
     problem_key = str(spec["problem_key"])
     num_sites = int(spec["num_sites"])
@@ -647,6 +705,7 @@ def _build_parent_template_inventory(
     pool_key: str | None = None,
     paper_i_l3_page12_application: bool,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
+    paper_i_hubbard_l4_application: bool = False,
 ) -> CandidateInventory:
     if representation_id not in {
         CANDIDATE_REPRESENTATION_MACRO,
@@ -665,6 +724,7 @@ def _build_parent_template_inventory(
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
         ),
+        paper_i_hubbard_l4_application=paper_i_hubbard_l4_application,
     )
     if representation_id == CANDIDATE_REPRESENTATION_SINGLE_PAULI:
         records = tuple(
@@ -787,6 +847,21 @@ def build_paper_i_pure_hubbard_noise_page12_parent_template_inventory(
     )
 
 
+def build_paper_i_hubbard_l4_parent_template_inventory(
+    problem: ResolvedProblemContext,
+    *,
+    representation_id: str,
+) -> CandidateInventory:
+    """Build the source-locked parent inventory for the named L=4 route."""
+
+    return _build_parent_template_inventory(
+        problem,
+        representation_id=representation_id,
+        paper_i_l3_page12_application=False,
+        paper_i_hubbard_l4_application=True,
+    )
+
+
 def build_executable_macro_pool(
     problem: ResolvedProblemContext,
     *,
@@ -861,6 +936,71 @@ def build_executable_macro_pool(
             "parent_inventory": parent.receipt.to_dict(),
             "prefilter_sector_audit": dict(audit),
             "parent_sector_filter_policy": dict(policy),
+        },
+    )
+
+
+def build_paper_i_hubbard_l4_executable_macro_pool(
+    problem: ResolvedProblemContext,
+) -> CandidateInventory:
+    """Return the sector-safe macro pool for the exact named L=4 point."""
+
+    require_paper_i_hubbard_l4_problem(problem)
+    parent = build_paper_i_hubbard_l4_parent_template_inventory(
+        problem,
+        representation_id=CANDIDATE_REPRESENTATION_MACRO,
+    )
+    audit = audit_candidate_pool_sector_contract(
+        [candidate.term for candidate in parent.candidates],
+        resolved_problem=problem,
+    )
+    from pipelines.static_adapt.adapt_pipeline import (
+        _resolve_parent_sector_filter_policy,
+    )
+
+    policy = _resolve_parent_sector_filter_policy(
+        grouped_violation_indices=set(
+            int(value)
+            for value in audit.get("grouped_violation_indices", ())
+        ),
+        execution_violation_indices=set(
+            int(value)
+            for value in audit.get("execution_violation_indices", ())
+        ),
+        problem_key="hubbard",
+        runtime_split_mode="off",
+        runtime_split_selection_mode="off",
+        runtime_split_symmetry_policy="hard_guard",
+    )
+    removed_indices = {
+        int(value) for value in policy.get("removed_indices", ())
+    }
+    retained = tuple(
+        candidate
+        for index, candidate in enumerate(parent.candidates)
+        if index not in removed_indices
+    )
+    if not retained:
+        raise RuntimeError("The named L=4 executable macro pool is empty.")
+    removed_labels = tuple(
+        candidate.label
+        for index, candidate in enumerate(parent.candidates)
+        if index in removed_indices
+    )
+    return CandidateInventory(
+        candidates=retained,
+        receipt=_receipt(
+            schema=EXECUTABLE_MACRO_POOL_SCHEMA,
+            representation_id=CANDIDATE_REPRESENTATION_MACRO,
+            candidates=retained,
+            removed_labels=removed_labels,
+            source_parent_labels_sha256=parent.receipt.ordered_labels_sha256,
+        ),
+        metadata={
+            "parent_inventory": parent.receipt.to_dict(),
+            "prefilter_sector_audit": dict(audit),
+            "parent_sector_filter_policy": dict(policy),
+            "named_application_id": PAPER_I_HUBBARD_L4_APPLICATION_ID,
         },
     )
 
@@ -1594,6 +1734,7 @@ __all__ = [
     "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_LABELS_SHA256",
     "PAPER_I_L3_PAGE12_WEAK_SECTOR_NPH3_SINGLETON_POOL_SHA256",
     "PAPER_I_PURE_HUBBARD_NOISE_PAGE12_APPLICATION_ID",
+    "PAPER_I_HUBBARD_L4_APPLICATION_ID",
     "build_candidate_inventory_lineage_receipt",
     "build_executable_macro_pool",
     "build_guarded_single_pauli_pool",
@@ -1603,9 +1744,12 @@ __all__ = [
     "build_paper_i_l3_page12_parent_template_inventory",
     "build_paper_i_pure_hubbard_noise_page12_guarded_single_pauli_pool",
     "build_paper_i_pure_hubbard_noise_page12_parent_template_inventory",
+    "build_paper_i_hubbard_l4_executable_macro_pool",
+    "build_paper_i_hubbard_l4_parent_template_inventory",
     "build_staged_single_pauli_pool",
     "build_parent_template_inventory",
     "guarded_singleton_generator_identity",
     "require_paper_i_l3_page12_problem",
     "require_paper_i_pure_hubbard_noise_page12_problem",
+    "require_paper_i_hubbard_l4_problem",
 ]

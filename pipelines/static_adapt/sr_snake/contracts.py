@@ -279,6 +279,16 @@ class MetricPruning(SerializableContract):
     """Regularized local metric/response deletion nomination."""
 
     kind: ClassVar[str] = "metric"
+    small_theta_abs: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.small_theta_abs is not None:
+            value = float(self.small_theta_abs)
+            if not math.isfinite(value) or value <= 0.0:
+                raise ValueError(
+                    "MetricPruning small_theta_abs must be None or a "
+                    "positive finite magnitude."
+                )
 
 
 @dataclass(frozen=True)

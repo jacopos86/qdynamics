@@ -117,6 +117,11 @@ from pipelines.static_adapt.ra_adapt.pure_hubbard_noise_page12 import (
     pure_hubbard_noise_level_contract,
     require_paper_i_pure_hubbard_noise_page12_materialization,
 )
+from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+    PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
+    is_paper_i_hubbard_l4_ra_application,
+    require_paper_i_hubbard_l4_materialization,
+)
 from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_V1,
     PAPER_I_RA_ALL_PHASE_ADAPTIVE_SHORTLIST_MIN_FLOORS_V1,
@@ -154,6 +159,9 @@ from pipelines.static_adapt.hh_backend_compile_oracle import (
     MARRAKESH_GRAPH_SPAN_MODE,
     ONE_QUBIT_COORDINATE_COMPILED_POSITIVE_DELTA_V1,
 )
+from pipelines.scaffold.hh_continuation_scoring import (
+    PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION,
+)
 from pipelines.static_adapt.numerical_physical_integrity import (
     build_ra_numerical_physical_integrity,
 )
@@ -182,6 +190,7 @@ from pipelines.static_adapt.sr_snake._context import (
     _resolve_execution_context,
 )
 from pipelines.static_adapt.sr_snake.contracts import (
+    CombinatorialBatchAdmission,
     ForkLocalBeam,
     MetricPruning,
     RecoverabilityPruning,
@@ -719,7 +728,7 @@ def _validate_executed_insertion_contract(
         == RA_ADAPT_MACRO_GRADIENT_PHASE0_PROXY_NO_LANES_ALGORITHM_ID
     ):
         if (
-            type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+            not isinstance(request.adapter, MacroGradientPhase0CandidateAdapter)
             or execution.get("ra_phase0_gradient_shortlist_policy")
             != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
             or execution.get("ra_phase0_gradient_shortlist_size")
@@ -756,7 +765,7 @@ def _validate_executed_insertion_contract(
         == RA_ADAPT_MACRO_GRADIENT_PHASE0_MACRO_PHASE23_QISKIT_ALGORITHM_ID
     ):
         if (
-            type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+            not isinstance(request.adapter, MacroGradientPhase0CandidateAdapter)
             or execution.get("ra_phase0_gradient_shortlist_policy")
             != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
             or execution.get("ra_phase0_gradient_shortlist_size")
@@ -954,8 +963,10 @@ def _compose_macro_plateau_pruning_and_beam(
 ) -> tuple[dict[str, Any], str]:
     """Overlay typed pruning/beam semantics on the macro plateau parent."""
 
-    if isinstance(request.method.pruning, PruningOff) and isinstance(
-        request.method.beam, BeamOff
+    if (
+        isinstance(request.method.admission, SingletonAdmission)
+        and isinstance(request.method.pruning, PruningOff)
+        and isinstance(request.method.beam, BeamOff)
     ):
         return dict(parent_contract), str(parent_digest)
 
@@ -993,7 +1004,15 @@ def _compose_macro_plateau_pruning_and_beam(
     }
     for key in tuple(invariants):
         if (
-            str(key).startswith(("prune_", "beam_"))
+            str(key).startswith(
+                (
+                    "admission_",
+                    "combinatorial_batch_",
+                    "greedy_batch_",
+                    "prune_",
+                    "beam_",
+                )
+            )
             or key in policy_exact_keys
         ):
             invariants.pop(key)
@@ -1002,7 +1021,15 @@ def _compose_macro_plateau_pruning_and_beam(
             str(key): value
             for key, value in policy_contract["semantic_invariants"].items()
             if (
-                str(key).startswith(("prune_", "beam_"))
+                str(key).startswith(
+                    (
+                        "admission_",
+                        "combinatorial_batch_",
+                        "greedy_batch_",
+                        "prune_",
+                        "beam_",
+                    )
+                )
                 or key in policy_exact_keys
             )
         }
@@ -1010,6 +1037,7 @@ def _compose_macro_plateau_pruning_and_beam(
     normalized["semantic_invariants"] = invariants
     normalized["route_profile"] = (
         f"{parent_contract['route_profile']}"
+        f"__admission-{request.method.admission.kind}"
         f"__pruning-{request.method.pruning.kind}"
         f"__beam-{request.method.beam.kind}"
     )
@@ -1248,7 +1276,7 @@ def _repaired_route_contract(
             "be selected together."
         )
     if bool(
-        type(request.adapter) is MacroGradientPhase0CandidateAdapter
+        isinstance(request.adapter, MacroGradientPhase0CandidateAdapter)
     ) != macro_only_gradient_phase0_active:
         raise ValueError(
             "The macro-only gradient-Phase-0 adapter and algorithm identity "
@@ -1327,11 +1355,14 @@ def _repaired_route_contract(
             "weighting."
         )
     if macro_only_gradient_phase0_active and (
-        type(request.adapter) is not MacroGradientPhase0CandidateAdapter
+        not isinstance(request.adapter, MacroGradientPhase0CandidateAdapter)
         or str(request.adapter.macro_phase0_policy_id)
         != MACRO_PHASE0_STANDARD_ADAPT_ABS_GRADIENT_POLICY
         or representation != CANDIDATE_REPRESENTATION_MACRO
-        or not isinstance(request.method.admission, SingletonAdmission)
+        or not isinstance(
+            request.method.admission,
+            (SingletonAdmission, CombinatorialBatchAdmission),
+        )
         or not isinstance(
             request.method.insertion,
             PlateauCommutationInsertion,
@@ -2419,6 +2450,35 @@ def _repaired_route_contract(
             parent_contract=contract,
             parent_contract_sha256=_route_sha256(contract),
         )
+    if problem is not None and is_paper_i_hubbard_l4_ra_application(
+        problem,
+        request,
+    ):
+        semantic_version = (
+            PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION
+        )
+        contract["semantic_implementation_version"] = semantic_version
+        execution = dict(contract.get("execution_settings", {}))
+        execution["ra_semantic_implementation_version"] = semantic_version
+        contract["execution_settings"] = execution
+        invariants = dict(contract.get("semantic_invariants", {}))
+        invariants["semantic_implementation_version"] = semantic_version
+        invariants[
+            "phase3_signed_factor_consumer_semantic_version"
+        ] = semantic_version
+        contract["semantic_invariants"] = invariants
+        lineage = dict(contract.get("lineage_authority", {}))
+        intended = list(lineage.get("only_intended_scientific_changes", []))
+        intended.append("corrected_zero_centered_signed_factor_consumption")
+        lineage.update(
+            {
+                "supersession_reason": (
+                    "paper_i_hubbard_l4_signed_factor_consumer_v1_20260826"
+                ),
+                "only_intended_scientific_changes": intended,
+            }
+        )
+        contract["lineage_authority"] = lineage
     normalized = json.loads(json.dumps(contract, sort_keys=True))
     return profile, profile, normalized, _route_sha256(normalized)
 
@@ -2568,6 +2628,10 @@ def build_resolved_ra_protocol(
             request,
         )
     )
+    hubbard_l4_application = is_paper_i_hubbard_l4_ra_application(
+        problem,
+        request,
+    )
     if l3_page12_application:
         require_paper_i_l3_page12_materialization(
             problem=problem,
@@ -2579,6 +2643,15 @@ def build_resolved_ra_protocol(
         )
     if pure_hubbard_noise_application:
         require_paper_i_pure_hubbard_noise_page12_materialization(
+            problem=problem,
+            request=request,
+            algorithm_id=str(algorithm_id),
+            active_gradient_policy=str(active_gradient_policy),
+            resource_weighting_scope=str(resource_weighting_scope),
+            source_locks=source_locks,
+        )
+    if hubbard_l4_application:
+        require_paper_i_hubbard_l4_materialization(
             problem=problem,
             request=request,
             algorithm_id=str(algorithm_id),
@@ -5652,7 +5725,10 @@ def run_ra_adapt(
     if not (
         (family_key == "hh" and int(problem.request.num_sites) == 2)
         or (family_key == "hh" and int(problem.request.num_sites) == 3)
-        or (family_key == "hubbard" and int(problem.request.num_sites) == 2)
+        or (
+            family_key == "hubbard"
+            and int(problem.request.num_sites) in {2, 4}
+        )
         or family_key == H2O_LINEAR_FD_FAMILY
     ):
         raise ValueError(
@@ -5668,9 +5744,15 @@ def run_ra_adapt(
         )
         if not (
             isinstance(named_request, RAAdaptRequest)
-            and is_paper_i_pure_hubbard_noise_page12_application(
-                problem,
-                named_request,
+            and (
+                is_paper_i_pure_hubbard_noise_page12_application(
+                    problem,
+                    named_request,
+                )
+                or is_paper_i_hubbard_l4_ra_application(
+                    problem,
+                    named_request,
+                )
             )
         ):
             raise ValueError(
@@ -5709,6 +5791,10 @@ def run_ra_adapt(
             public_request,
         )
     )
+    hubbard_l4_application = is_paper_i_hubbard_l4_ra_application(
+        problem,
+        public_request,
+    )
     if (
         family_key == "hh"
         and int(problem.request.num_sites) == 3
@@ -5718,7 +5804,11 @@ def run_ra_adapt(
             "Hubbard--Holstein L=3 is executable only through the exact "
             "named Page-12 L=3 application adapter."
         )
-    if family_key == "hubbard" and not pure_hubbard_noise_application:
+    if (
+        family_key == "hubbard"
+        and not pure_hubbard_noise_application
+        and not hubbard_l4_application
+    ):
         raise ValueError(
             "The ordinary Paper-I RA-ADAPT facade is locked to the canonical "
             "Hubbard--Holstein L=2 problem. Pure Hubbard is executable only "

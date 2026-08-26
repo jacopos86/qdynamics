@@ -563,6 +563,15 @@ def _canonical_route_contract_for_request(
             execution_settings["phase1_prune_metric_schur_solve_mode"] = (
                 "gradient_corrected_v1"
             )
+            if pruning.small_theta_abs is not None:
+                small_theta_abs = float(pruning.small_theta_abs)
+                execution_settings["phase1_prune_small_theta_abs"] = (
+                    small_theta_abs
+                )
+                semantic_invariants[
+                    "prune_small_theta_nomination_screen"
+                ] = small_theta_abs
+                pruning_tag = f"{pruning_tag}_theta{small_theta_abs:g}"
         elif isinstance(pruning, TrustRegionPruning):
             pruning_tag = "trust_region"
             nomination_route = "full_logical_fs_trust_delete_refit_v1"

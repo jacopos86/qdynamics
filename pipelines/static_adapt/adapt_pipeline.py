@@ -3046,7 +3046,29 @@ class _DefaultGreedyBatchSelectionKernel:
                 "reduced-plane adapter."
             )
         occurrence_start = len(self.receipts.ledger_occurrences())
-        self.phases.gradient_surface()
+        phase0_receipt = (
+            None
+            if self.phases.phase0 is None
+            else self.phases.phase0(admissible_domain)
+        )
+        if phase0_receipt is None:
+            self.phases.gradient_surface()
+        occurrence_after_phase0 = len(
+            self.receipts.ledger_occurrences()
+        )
+        if (
+            phase0_receipt is not None
+            and phase0_receipt.terminal_outcome is not None
+        ):
+            self.runtime.sidecar.update(
+                {
+                    "phase0": phase0_receipt,
+                    "terminal_outcome": phase0_receipt.terminal_outcome,
+                    "occurrence_start": occurrence_start,
+                    "occurrence_after_phase0": occurrence_after_phase0,
+                }
+            )
+            raise _StationaryPhase0Selection(phase0_receipt)
         phase1_runtime = self.phases.phase_i()
         occurrence_after_phase1 = len(
             self.receipts.ledger_occurrences()
@@ -3165,10 +3187,20 @@ class _DefaultGreedyBatchSelectionKernel:
         event_ids = tuple(
             event.occurrence_id for event in estimator_events
         )
-        phase1_event_count = occurrence_after_phase1 - occurrence_start
+        phase0_event_count = occurrence_after_phase0 - occurrence_start
+        phase1_event_count = occurrence_after_phase1 - occurrence_after_phase0
         phase2_event_count = (
             occurrence_after_phase2 - occurrence_after_phase1
         )
+        if phase0_receipt is not None and (
+            phase0_receipt.phase != "phase0"
+            or phase0_receipt.estimator_event_ids
+            != event_ids[:phase0_event_count]
+        ):
+            raise RuntimeError(
+                f"{self.strategy_label} Phase0 receipt does not close its "
+                "estimator delta."
+            )
         phase1_population = tuple(
             self.receipts.record_from_live(record)
             for record in phase1_runtime["phase1_records"]
@@ -3334,7 +3366,10 @@ class _DefaultGreedyBatchSelectionKernel:
                 tie_break_score_key="simple_score",
                 route_identity_order=True,
             ),
-            estimator_event_ids=event_ids[:phase1_event_count],
+            estimator_event_ids=event_ids[
+                phase0_event_count:
+                phase0_event_count + phase1_event_count
+            ],
         )
         phase_ii_receipt = _PhaseSelectionReceipt(
             phase="phase_ii",
@@ -3347,8 +3382,8 @@ class _DefaultGreedyBatchSelectionKernel:
                 route_identity_order=True,
             ),
             estimator_event_ids=event_ids[
-                phase1_event_count:
-                phase1_event_count + phase2_event_count
+                phase0_event_count + phase1_event_count:
+                phase0_event_count + phase1_event_count + phase2_event_count
             ],
         )
         phase_iii_receipt = _PhaseSelectionReceipt(
@@ -3373,7 +3408,7 @@ class _DefaultGreedyBatchSelectionKernel:
                 )
             ),
             estimator_event_ids=event_ids[
-                phase1_event_count + phase2_event_count:
+                phase0_event_count + phase1_event_count + phase2_event_count:
             ],
         )
         common_sidecar = {
@@ -3462,6 +3497,7 @@ class _DefaultGreedyBatchSelectionKernel:
                 ),
             ),
             estimator_events=estimator_events,
+            phase0=phase0_receipt,
         )
 
 
@@ -3605,6 +3641,7 @@ class _DefaultCombinatorialBatchSelectionKernel:
             predictive_cost=common.predictive_cost,
             proposal=proposal,
             estimator_events=common.estimator_events,
+            phase0=common.phase0,
         )
 
 
@@ -5021,8 +5058,16 @@ class _DefaultRecoverabilityPruneConfig:
     nomination_policy_identity: str
     metric_mu: float
     metric_solve_mode: str
+    small_theta_abs: float | None = None
 
     def __post_init__(self) -> None:
+        if self.small_theta_abs is not None and (
+            not math.isfinite(float(self.small_theta_abs))
+            or float(self.small_theta_abs) <= 0.0
+        ):
+            raise ValueError(
+                "The prune small-theta screen must be positive and finite."
+            )
         if self.max_candidates != 1:
             raise ValueError(
                 "The direct recoverability route permits one nominee."
@@ -8006,6 +8051,20 @@ def _run_default_recoverability_prune_transaction(
 
     if not eligible_indices:
         return _no_nominee("no_mature_old_coordinate")
+
+    if config.small_theta_abs is not None:
+        threshold = float(config.small_theta_abs)
+        eligible_indices = [
+            index
+            for index in eligible_indices
+            if abs(float(logical_theta[index])) < threshold
+        ]
+    if not eligible_indices:
+        return _no_nominee(
+            "no_small_theta_coordinate"
+            if config.small_theta_abs is not None
+            else "no_mature_old_coordinate"
+        )
 
     keep_energy = float(numerical_runtime.accepted_energy)
     measured_energy, hpsi_state = energy_via_one_apply(
@@ -15083,6 +15142,14 @@ def _default_recoverability_prune_config(
         nomination_policy_identity=str(config.schur_nomination_route),
         metric_mu=float(config.metric_schur_mu),
         metric_solve_mode=str(config.metric_schur_solve_mode),
+        small_theta_abs=(
+            None
+            if typed_invariants.get("prune_small_theta_nomination_screen")
+            is None
+            else float(
+                typed_invariants["prune_small_theta_nomination_screen"]
+            )
+        ),
     )
 
 
@@ -17704,6 +17771,18 @@ def _build_default_no_prune_setup_core(
             stable_metadata["generator_identity"] = candidate_generator_id
             pool_generator_registry[candidate_label] = stable_metadata
         adapter_candidate_records = candidate_rows
+        if (
+            str(
+                getattr(
+                    candidate_adapter,
+                    "phase_i_candidate_visibility_id",
+                    "",
+                )
+            )
+            == PHASE_I_VISIBILITY_ALL_EXECUTABLE
+        ):
+            phase1_core_limit = len(pool)
+            phase1_residual_indices = set()
 
     generator_sector_contract = audit_candidate_pool_sector_contract(
         pool,
@@ -18121,7 +18200,12 @@ def _scored_insertion_position_population_receipt(
         decision.phase0
         if isinstance(
             decision,
-            (_SingletonAdmissionDecision, _NoPositivePhaseIIISelection),
+            (
+                _SingletonAdmissionDecision,
+                _GreedyBatchAdmissionDecision,
+                _CombinatorialBatchAdmissionDecision,
+                _NoPositivePhaseIIISelection,
+            ),
         )
         else None
     )
@@ -27009,6 +27093,10 @@ def _run_macro_gradient_phase0(
         MACRO_GRADIENT_PHASE0_CONSUMER_SCOPE,
         MACRO_GRADIENT_PHASE0_RECEIPT_SCHEMA,
     )
+    from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+        PAPER_I_HUBBARD_L4_ADAPTER_ID,
+        PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
+    )
 
     adapter = session.context.candidate_adapter
     if not isinstance(
@@ -27022,6 +27110,9 @@ def _run_macro_gradient_phase0(
     expected_adapter_id = (
         MACRO_GRADIENT_PHASE0_ADAPTER_ID
         if type(adapter) is MacroGradientPhase0CandidateAdapter
+        else PAPER_I_HUBBARD_L4_ADAPTER_ID
+        if type(adapter)
+        is PaperIHubbardL4MacroGradientPhase0CandidateAdapter
         else MACRO_GRADIENT_PHASE0_THEN_SINGLETON_ADAPTER_ID
         if type(adapter) is MacroGradientPhase0ThenSingletonCandidateAdapter
         else None
@@ -27095,6 +27186,9 @@ def _build_default_no_prune_selection_workspace(
     from pipelines.static_adapt.ra_adapt.semantic_closure_routes import (
         is_semantic_closure_adapter,
     )
+    from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+        PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
+    )
 
     gradient_phase0_adapter = bool(
         isinstance(
@@ -27109,9 +27203,21 @@ def _build_default_no_prune_selection_workspace(
             session.context.candidate_adapter
         )
     )
-    if gradient_phase0_adapter and not isinstance(
-        session.context.admission_policy,
-        SingletonAdmission,
+    named_l4_combinatorial_batch = bool(
+        type(session.context.candidate_adapter)
+        is PaperIHubbardL4MacroGradientPhase0CandidateAdapter
+        and isinstance(
+            session.context.admission_policy,
+            CombinatorialBatchAdmission,
+        )
+    )
+    if (
+        gradient_phase0_adapter
+        and not isinstance(
+            session.context.admission_policy,
+            SingletonAdmission,
+        )
+        and not named_l4_combinatorial_batch
     ):
         raise RuntimeError(
             "Gradient Phase0 adapters require singleton admission."
@@ -28346,8 +28452,10 @@ def _default_no_prune_initial_snapshot(
 
     available_ids: list[str] = []
     selection_counts: list[tuple[str, int]] = []
-    for pool_index in sorted(core.available_indices):
-        term = core.pool[int(pool_index)]
+    available_pool_indices = {
+        int(pool_index) for pool_index in core.available_indices
+    }
+    for pool_index, term in enumerate(core.pool):
         metadata = core.pool_generator_registry.get(str(term.label), {})
         generator_id = (
             str(metadata.get("generator_id"))
@@ -28365,7 +28473,8 @@ def _default_no_prune_initial_snapshot(
             generator_id,
             pool_index=int(pool_index),
         )
-        available_ids.append(controller_generator_id)
+        if int(pool_index) in available_pool_indices:
+            available_ids.append(controller_generator_id)
         selection_counts.append(
             (
                 controller_generator_id,
@@ -28569,9 +28678,23 @@ def _finish_default_no_prune_numerical_session_initialization(
             core.resolved_problem
         ),
     )
+    from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
+        PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
+    )
+
+    named_l4_optimizer_contract = (
+        type(core.candidate_adapter)
+        is PaperIHubbardL4MacroGradientPhase0CandidateAdapter
+    )
     optimizer_config = resolve_adapt_inner_optimizer_config(
         adapt_inner_optimizer=str(kwargs["adapt_inner_optimizer"]),
         adapt_scipy_maxfev=int(kwargs["adapt_scipy_maxfev"]),
+        adapt_powell_xtol=(
+            1.0e-5 if named_l4_optimizer_contract else 1.0e-4
+        ),
+        adapt_powell_ftol=(
+            1.0e-12 if named_l4_optimizer_contract else 1.0e-8
+        ),
         adapt_spsa_a=float(kwargs["adapt_spsa_a"]),
         adapt_spsa_c=float(kwargs["adapt_spsa_c"]),
         adapt_spsa_alpha=float(kwargs["adapt_spsa_alpha"]),
