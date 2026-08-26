@@ -177,14 +177,16 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     )
     est = step_rows[0].estimate
     per_direction = {
-        "c_hat_2q": float(est.c_hat_2q),
-        "c_hat_d": float(est.c_hat_d),
-        "c_hat_1q": float(est.c_hat_1q),
+        "n2q": float(est.c_hat_2q),
+        "d2q": float(est.c_hat_d),
+        "dc": float(est.c_hat_d) + float(est.c_hat_1q),
     }
     audit = run_adaptive_qse_benchmark(
         problem.hamiltonian,
         problem.ground,
-        target_roots=_TARGET_ROOTS,
+        # The benchmark returns the lowest N Ritz values INCLUDING the ground
+        # root, so request R+1 and compare the excitations root_energies[1:].
+        target_roots=_TARGET_ROOTS + 1,
         eps_residual=1.0e-14,      # effectively run to the cap; the trace supplies C*
         max_dimension=int(k_max),
         seed_elements=seed,
@@ -212,7 +214,8 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     refs = problem.references
     rows: list[dict[str, Any]] = []
     for it in audit["iterations"]:
-        roots = it.get("root_energies") or []
+        all_roots = it.get("root_energies") or []
+        roots = list(all_roots[1:])          # drop the ground root
         err = (
             max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
             if len(roots) >= len(refs) else None
@@ -225,9 +228,9 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
                 "exchanged": False,
                 "retained_rank": int(it["retained_rank"]),
                 "max_root_abs_error": err,
-                "n2q": float(res.get("c_hat_2q", 0.0)),
-                "d2q": float(res.get("c_hat_d", 0.0)),
-                "dc": float(res.get("c_hat_d", 0.0)) + float(res.get("c_hat_1q", 0.0)),
+                "n2q": float(res.get("n2q", 0.0)),
+                "d2q": float(res.get("d2q", 0.0)),
+                "dc": float(res.get("dc", 0.0)),
                 "root_energies": roots,
                 "estimator": _adaptive_estimator(int(it["dimension"])),
             }

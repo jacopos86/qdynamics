@@ -1,5 +1,16 @@
 # Bug report — adaptive QSE benchmark: root indexing and terminal state
 
+> **STATUS 2026-08-26: items 1-3 RESOLVED by the author; both were caller-side
+> defects in the growth-trace port, not in your module.** Fixed at
+> `paper_iii_growth_trace_campaign.py::trace_adaptive_qse`:
+> (a) `root_energies` is the lowest N Ritz values INCLUDING the ground root —
+> the caller now requests `R+1` and compares `root_energies[1:]`;
+> (b) `direction_resources` expects keys `n2q/d2q/dc`, the caller was passing
+> `c_hat_*`, which validated as absent and charged every direction zero.
+> After the fix the benchmark reaches 2.2e-15 (weak_weak) and 7.8e-15
+> (strong_weak_u8) at dimension 16, N2q=300/D2q=540/Dc=1260, 2448 estimator
+> queries. **Only the "second issue" below is still open.**
+
 For Codex, follow-up to `HANDOFF_standard_adaptive_qse_benchmark_20260826.md`.
 Contract: `agent_guidance/shared/agent-handoff-contract.md`.
 
