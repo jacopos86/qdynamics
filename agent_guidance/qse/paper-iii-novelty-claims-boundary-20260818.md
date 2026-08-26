@@ -384,3 +384,22 @@ class and real-time Krylov.
 CLAIM FRAME: cost discounting changes WHICH directions are acquired,
 not merely how many - a different and here better search, not a
 resource concession.
+
+## Comparator design rules (user, 2026-08-19) — BINDING
+
+1. **No self-comparison.** A variant of our own rule is an ABLATION and
+   belongs only in `tab:qse_ablation_matrix`. It must never appear as a
+   column in the comparator matrix. The `residual_guided_adaptive` arm
+   was exactly this (byte-identical overrides to the ablation's
+   `no_cost_discount`) and has been REMOVED. Do not reintroduce it.
+2. **Equal alphabet sizes.** Comparator arms must draw candidates from
+   the identical record pool. The fixed linear-response class (18
+   records from 3 families) vs our selection (128-176 records) is an
+   ALPHABET comparison, not an algorithm comparison, and must be
+   labeled as such or equalized.
+3. **External comparators must come from the literature**, implemented
+   faithfully to their published construction — not configured out of
+   our own selector.
+
+Current external comparators: fixed linear-response class, real-time
+Krylov. There is NO independent adaptive comparator in the paper.
