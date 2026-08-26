@@ -77,13 +77,22 @@ mis-benchmark; do not repeat it).
 | Cost model | two_qubit_only_v1, graph-span oracle (transpile cross-check reported separately) |
 | Selection knobs | production two-term score; arms may differ ONLY in their declared acquisition rule |
 
-Resource axes are reported separately and never conflated (a compiled-gate
-result is not a shot result):
+**MANDATORY REPORTING (user 2026-08-26): every reported cell carries all four
+axes. Reporting one of them alone is a protocol violation** -- a compiled-gate
+result is not a depth result and neither is a shot result.
 
-1. compiled two-qubit gates of the record measurement circuits (`total_2q`);
-2. measurement settings: QWC basis-cover groups over the full (S,H) pencil
-   (`qwc_groups_total`), with distinct-word and naive-term counts;
-3. support size k and retained rank.
+1. `n2q` -- compiled two-qubit gate count (deterministic graph-span proxy);
+2. `d2q` -- two-qubit depth (routed-chain proxy);
+3. `dc`  -- total circuit depth (`d2q` plus the one-qubit layer channel);
+4. `estimator` -- matrix-measurement work over the full (S,H) pencil:
+   `qwc_groups` (measurement settings under qubit-wise-commuting basis cover),
+   `distinct_words`, and `naive_terms`.
+
+Axes 1-3 come from `PaperIIIProblem.resource_triple`; axis 4 from
+`estimator_cost`. Tables may abbreviate as `n2q/d2q/dc` plus a separate
+estimator column, but a cell that omits an axis is not evidence. Estimator
+work is evaluated at crossing points (where C* is read off), not at every
+trace step, for cost reasons; the artifact records which.
 
 ## 4. Comparator admissibility
 

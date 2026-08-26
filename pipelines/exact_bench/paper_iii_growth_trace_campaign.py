@@ -171,7 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--k-max", type=int, default=60)
     parser.add_argument(
-        "--exchange-policy", choices=("crossing", "every_k", "both"), default="both"
+        "--exchange-policy", choices=("crossing", "every_k", "both"), default="every_k"
     )
     args = parser.parse_args(argv)
 
@@ -278,6 +278,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                 k = int(cell["crossing"]["k"])
                 compressed = _exchange(problem, our_order[:k])
                 cell["crossing_exchanged"] = _row(problem, compressed, k, exchanged=True)
+
+        # Estimator work (axis 4) at every crossing point -- protocol section 3
+        # mandates all four axes in a reported cell.
+        supports = {
+            "ours__crossing": our_order,
+            "ours__every_k": our_order,
+            "cheapest_first": cheapest,
+            "input_order": list(range(len(problem.basis))),
+            "fixed_class": fixed_indices,
+        }
+        for eps_e in ERROR_TARGET_LADDER:
+            key = f"{eps_e:.0e}"
+            for arm_key, cell in cells[key].items():
+                if cell.get("status") != STATUS_REACHED:
+                    continue
+                order_src = supports.get(arm_key)
+                if order_src is None:
+                    continue
+                k = int(cell["crossing"]["k"])
+                idx = (
+                    list(order_src) if arm_key == "fixed_class"
+                    else list(order_src[:k])
+                )
+                if arm_key == "ours__every_k":
+                    idx = _exchange(problem, idx)
+                cell["crossing"]["estimator"] = problem.estimator_cost(idx)
 
         regimes_payload[regime] = {
             "u": float(u), "g_ep": float(g_ep), "n_ph_max": int(n_ph_max),

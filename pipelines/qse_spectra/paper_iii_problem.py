@@ -75,6 +75,45 @@ class PaperIIIProblem:
         one = float(sum(self.resources[int(i)]["c_hat_1q"] for i in indices))
         return {"n2q": n2q, "d2q": d2q, "dc": d2q + one}
 
+    def estimator_cost(self, indices: Sequence[int]) -> dict[str, int]:
+        """Matrix-measurement work for a support: the (S,H) pencil's Pauli work.
+
+        Building the pencil needs the k(k+1)/2 independent elements of both S
+        and H; each expands into Pauli expectation values on the shared
+        reference. Reported as naive terms (no reuse), distinct words (global
+        reuse), and QWC basis-cover groups (measurement settings).
+        """
+
+        from pipelines.exact_bench.paper_iii_qse_measurement_cost import (
+            _element_words,
+            _polynomial_words,
+            _qwc_cover,
+            _word_product,
+        )
+
+        nq = int(self.num_qubits)
+        ham_words = _polynomial_words(self.hamiltonian)
+        words = {int(i): _element_words(self.basis[int(i)], nq=nq) for i in indices}
+        ordered = [int(i) for i in indices]
+        overlap: set[str] = set()
+        hamiltonian_words: set[str] = set()
+        naive = 0
+        for pos, a in enumerate(ordered):
+            for b in ordered[pos:]:
+                products = {_word_product(x, y) for x in words[a] for y in words[b]}
+                overlap |= products
+                naive += len(products)
+                ham_products = {_word_product(p, h) for p in products for h in ham_words}
+                hamiltonian_words |= ham_products
+                naive += len(ham_products)
+        allw = overlap | hamiltonian_words
+        return {
+            "pair_count": len(ordered) * (len(ordered) + 1) // 2,
+            "naive_terms": int(naive),
+            "distinct_words": len(allw),
+            "qwc_groups": _qwc_cover(sorted(allw), nq=nq),
+        }
+
     def arm_receipt(self) -> dict[str, Any]:
         """Provenance every arm must record, so alphabet identity is checkable."""
 
