@@ -569,3 +569,23 @@ conclusion is unchanged and is now the sharper one: at `dim = 1024` the
 statevector numerics are a single-digit percentage, so PennyLane, PyTorch, and
 CUDA remain the wrong lever -- and the bookkeeping that dominated has now largely
 been removed rather than accelerated.
+
+## C.5 Final regression state
+
+The 134-file suite (`test_ra_adapt_*`, `test_adapt_*`, `test_static_adapt_*`,
+`test_h2o_linear_fd_correctness_audit`) at all three states:
+
+| State | Result |
+|---|---|
+| Baseline `603d30c0` | 140 failed, 2064 passed, 10 skipped, 4 errors |
+| `a1ab4085` (items 1--3) | 140 failed, **2070** passed, 10 skipped, 4 errors |
+| `65c71785` (+ item 5) | 140 failed, **2072** passed, 10 skipped, 4 errors |
+
+The FAILED/ERROR sets are byte-identical at all three states (144 lines each;
+zero introduced, zero fixed). The +8 passes are exactly the eight regression
+tests added by this work: six for the sector-audit memoization and symplectic
+predicate, two for the candidate-cache independence guarantee.
+
+Net effect of the branch on the canonical HH `L=2`, `n_ph_max=7` run:
+**160.4 s cold / 94.6 s warm -> ~78 s**, energy unchanged at
+`5.876936059036121`.
