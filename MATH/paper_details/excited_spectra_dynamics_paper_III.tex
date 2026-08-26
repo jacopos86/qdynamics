@@ -454,6 +454,8 @@ In the present implementation $B^-$ and $B^+$ are single records, so the move is
 
 Three properties distinguish this from pruning followed by regrowth.  The deletion and insertion sets are evaluated \emph{jointly}, so a patch may be accepted whose benefit does not decompose into individually favorable single moves --- a survivor record can absorb the deleted direction only once the replacement is present.  Acceptance is decided by a full re-solve of the projected pencil on $\Acal'$, so the objective, the conditioning, and the compiled cost are all evaluated on the object that will actually be measured.  And the commit is atomic: a patch failing any gate leaves $\Acal$ untouched, so the maintained support is at every step a certified improvement on its predecessor.  In practice exchange acts both as a repair for supports where greedy acquisition stalls and as a cost compressor after convergence, and it reduces matrix-measurement work as well as circuit cost.
 
+The transaction shares the simultaneous delete--add structure used for checkpoint-maintained variational manifolds \cite{PaperII}, while its acceptance objective and guards are specific to the nonorthogonal QSE pencil.  The implementation evaluated here restricts $|B^-|\le 1$ and $|B^+|\le 1$, so every nondegenerate patch is a one-record-for-one-record exchange.  Pure deletion is enabled as a degenerate patch; pure insertion is implemented but disabled in the reported growth trace.  Multi-record exchanges are not evaluated here.
+
 \subsection{Batching, root-beaming, and root tracking}
 
 The Phase III results produce a ranked record set
@@ -1013,6 +1015,27 @@ so no method's own stopping rule enters the comparison; our residual stop is rep
 
 \structlabel{Methods compared}
 Three methods and one baseline are evaluated on identical Hamiltonians, sectors, and references.  \emph{Ours} is the cost-weighted geometric acquisition of Sec.~\ref{sec:acquisition_objective} with certified exchange maintenance.  \emph{Adaptive QSE} is standard quantum-Davidson subspace growth: each new direction is synthesized from the preconditioned residual of a target root rather than selected from the alphabet, and it carries no hardware-cost term.  \emph{Real-time Krylov} builds its subspace from time-evolved states of a seeded sector kick---a different construction family that likewise does not consume the alphabet---under conventions chosen to favor it, including best-matching-root scoring.  The \emph{standard QSE} baseline is the complete linear-response class: the physically obvious operator set, used whole and without adaptation.
+
+\structlabel{Exchange activation}
+The certified transaction is active in the completed $n_{\rm ph}^{\max}=1$ diagnostic rather than a dormant method option.  At the terminal prefix of each regime's exchange-maintained growth trace, 11 patches are committed across the six regimes: 10 are genuine one-record-for-one-record exchanges and one is a pure deletion.  Five regimes accept at least one patch; the intermediate--strong regime evaluates one maintenance round and leaves its support unchanged.
+
+\begin{table}[t]
+\caption{Activation of certified exchange at the terminal prefixes of the completed $n_{\rm ph}^{\max}=1$ growth trace.  Exchange is applied at each recorded support.  ``Rounds'' includes the final round that finds no admissible patch.  A joint commit has $|B^-|=|B^+|=1$; pure insertion is disabled in this diagnostic.}
+\label{tab:qse_exchange_activation}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular}{lrrrrr}
+Regime & $k$ & rounds & commits & $1\leftrightarrow 1$ & delete only \\
+\colrule
+weak--weak & 15 & 2 & 1 & 1 & 0 \\
+intermediate--weak & 16 & 4 & 3 & 3 & 0 \\
+strong--weak ($U/t=8$) & 16 & 4 & 3 & 2 & 1 \\
+weak--strong & 15 & 3 & 2 & 2 & 0 \\
+intermediate--strong & 16 & 1 & 0 & 0 & 0 \\
+strong--strong ($U/t=8$) & 15 & 3 & 2 & 2 & 0 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
 
 \structlabel{Excitation gaps}
 Figure~\ref{fig:qse_growth_gaps} shows the resolved gaps $\omega_\nu=E_\nu-E_0$ against the exact ladder in every regime.  It is the primary display because it separates the two ways a method fails: losing accuracy on a represented state, and omitting a state altogether.  The standard-QSE baseline does the latter---its class does not span the window, so it misplaces specific excitations and inserts spurious ones at any budget, a deficiency no additional measurement repairs.  The adaptive and Krylov constructions resolve the ladder, so the question they pose is one of cost rather than of reachability.
