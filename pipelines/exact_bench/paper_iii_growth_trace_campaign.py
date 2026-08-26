@@ -363,6 +363,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--k-max", type=int, default=60)
     parser.add_argument(
+        "--krylov-k-max", type=int, default=40,
+        help="Krylov dimension cap. Krylov needs larger dimension than a record "
+             "basis to resolve an interior window; capping it low cripples the "
+             "benchmark rather than measuring it.",
+    )
+    parser.add_argument(
         "--exchange-policy", choices=("crossing", "every_k", "both"), default="every_k"
     )
     args = parser.parse_args(argv)
@@ -455,7 +461,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                   f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
 
         arms["krylov"] = {
-            "trace": trace_krylov(problem, k_max=min(int(args.k_max), 14)),
+            "trace": trace_krylov(problem, k_max=int(args.krylov_k_max)),
             "note": "external benchmark; different construction family, does not consume the alphabet",
         }
         best_kr = min(
