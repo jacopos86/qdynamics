@@ -15,7 +15,6 @@ No dependency on Qiskit in the core path.
 
 from __future__ import annotations
 
-import argparse
 import copy
 import errno
 import functools
@@ -357,7 +356,6 @@ from pipelines.static_adapt.resume_scaffold import (
     ResumeBestFrontierCheckpoint,
     ResumeScaffoldSource,
     ResumeVerifiedSingletonCheckpoint,
-    assert_no_secret_cli_values,
     build_credential_audit,
     build_resume_import_summary,
     digest_jsonable,
@@ -487,7 +485,6 @@ from pipelines.static_adapt.joint_step_warm_start import (
 from pipelines.static_adapt.cli_config import (
     FinalNoiseAuditConfig,
     Phase3OracleGradientConfig,
-    _build_adapt_arg_parser,
     _oracle_mitigation_payload_from_fields,
     _parse_oracle_zne_scales,
     _resolve_final_noise_audit_config,
@@ -30165,81 +30162,10 @@ def _simulate_trajectory(
 
 
 # ---------------------------------------------------------------------------
-# CLI + main
+# Retired CLI entrypoint
 # ---------------------------------------------------------------------------
 
 
-def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = _build_adapt_arg_parser(
-        adapt_gradient_parity_rtol=_ADAPT_GRADIENT_PARITY_RTOL,
-    )
-    args = parser.parse_args(argv)
-    if args.adapt_ref_json is not None and args.adapt_resume_scaffold_json is not None:
-        parser.error("--adapt-ref-json and --adapt-resume-scaffold-json are mutually exclusive.")
-    try:
-        assert_no_secret_cli_values(vars(args))
-    except ValueError as exc:
-        parser.error(str(exc))
-    if args.adapt_segment_target_depth is not None and int(args.adapt_segment_target_depth) < 0:
-        parser.error("--adapt-segment-target-depth must be >= 0.")
-    if (
-        args.adapt_segment_max_new_admissions is not None
-        and int(args.adapt_segment_max_new_admissions) < 0
-    ):
-        parser.error("--adapt-segment-max-new-admissions must be >= 0.")
-    if (
-        args.adapt_segment_wallclock_cap_s is not None
-        and float(args.adapt_segment_wallclock_cap_s) < 0.0
-    ):
-        parser.error("--adapt-segment-wallclock-cap-s must be >= 0.")
-    if args.adapt_exact_gs_override is not None and not math.isfinite(float(args.adapt_exact_gs_override)):
-        parser.error("--adapt-exact-gs-override must be finite when provided.")
-    if args.adapt_exact_gs_reference_json is not None and not Path(args.adapt_exact_gs_reference_json).exists():
-        parser.error("--adapt-exact-gs-reference-json must point to an existing JSON file.")
-    resume_runtime_requested = bool(
-        args.adapt_resume_scaffold_json is not None
-        and (
-            str(getattr(args, "phase3_oracle_gradient_mode", "off")).strip().lower() == "runtime"
-            or str(getattr(args, "final_noise_audit_mode", "off")).strip().lower() == "runtime"
-        )
-    )
-    if resume_runtime_requested and str(args.adapt_resume_compile_smoke).strip().lower() == "off":
-        parser.error(
-            "--adapt-resume-compile-smoke=off is not allowed for structural resume with Runtime/QPU modes."
-        )
-    if (
-        str(args.phase3_runtime_split_mode).strip().lower() != "off"
-        and str(args.phase3_runtime_split_selection_mode).strip().lower()
-        != "global_child_only_v1"
-        and not bool(getattr(args, "allow_archival_phase3_runtime_split", False))
-    ):
-        parser.error(
-            "phase3_runtime_split_mode stays fixed to 'off' on the canonical public CLI unless "
-            "--allow-archival-phase3-runtime-split is provided; archival shortlist_pauli_children_v1 "
-            "remains diagnostic-only."
-        )
-    if (
-        str(getattr(args, "adapt_child_pool_expansion_mode", "off")).strip().lower()
-        not in {"", "off", "none", "false", "0", "disabled"}
-        and str(args.phase3_runtime_split_mode).strip().lower() != "off"
-    ):
-        parser.error(
-            "--adapt-child-pool-expansion-mode is a global pre-Phase-1 pool expansion and "
-            "cannot be combined with --phase3-runtime-split-mode."
-        )
-    shared_pool_requested = (
-        str(getattr(args, "shared_pauli_pool_mode", "off")).strip().lower().replace("-", "_")
-        not in {"", "off", "none", "false", "0", "disabled"}
-    )
-    if shared_pool_requested and str(args.phase3_runtime_split_mode).strip().lower() != "off":
-        parser.error("--shared-pauli-pool-mode cannot be combined with --phase3-runtime-split-mode.")
-    if (
-        shared_pool_requested
-        and str(getattr(args, "adapt_child_pool_expansion_mode", "off")).strip().lower()
-        not in {"", "off", "none", "false", "0", "disabled"}
-    ):
-        parser.error("--shared-pauli-pool-mode cannot be combined with --adapt-child-pool-expansion-mode.")
-    return args
 
 
 def _resolve_required_exact_initial_state(

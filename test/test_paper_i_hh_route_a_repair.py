@@ -12,16 +12,21 @@ import pytest
 import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
 import pipelines.static_adapt.runtime_split as runtime_split_module
 from pipelines.contracts.static_provenance import HH_FULL_META_CLASSIFIER_VERSION
-from pipelines.static_adapt.cli_config import (
-    _build_run_hardcoded_adapt_vqe_kwargs,
-)
 from pipelines.static_adapt.route_a_child_padding import (
     ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1,
     ROUTE_A_CHILD_PADDING_UNCHECKED_DIAGNOSTIC_V1,
     RouteAChildPaddingConfig,
 )
+from pipelines.static_adapt.sr_snake_route_profile import (
+    SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1,
+)
 from src.quantum.hubbard_latex_python_pairs import (
     build_hubbard_holstein_hamiltonian,
+)
+from test_support.route_contract_kwargs import (
+    hh_problem_context,
+    route_identity,
+    route_runtime_kwargs,
 )
 
 
@@ -523,49 +528,22 @@ def test_historical_beam_phase1_record_omits_phase2_cheap_score_config() -> None
     )
 
 
-def test_cli_propagates_exact_projected_child_padding_and_ledger_enablement(
-    tmp_path: Path,
-) -> None:
-    ledger_json = tmp_path / "estimator_ledger.json"
-    args = adapt_pipeline.parse_args(
-        [
-            "--problem",
-            "hh",
-            "--L",
-            "2",
-            "--n-ph-max",
-            "2",
-            "--boson-encoding",
-            "binary",
-            "--allow-archival-phase3-runtime-split",
-            "--phase3-runtime-split-mode",
-            "shortlist_pauli_children_v1",
-            "--phase3-runtime-split-selection-mode",
-            "archival_child_set_forward_v1",
-            "--phase3-runtime-split-subset-sizes",
-            "1",
-            "--phase3-runtime-split-child-set-symmetry-policy",
-            "hard_guard",
-            "--phase3-runtime-split-child-padding-policy",
-            "exact_projected_grouped_v1",
-            "--adapt-estimator-call-ledger-json",
-            str(ledger_json),
-        ]
+def test_route_propagates_exact_projected_child_padding_and_ledger_enablement() -> None:
+    resolved_profile, contract, contract_sha256 = route_identity(
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
     )
-    context = SimpleNamespace(layout=SimpleNamespace(total_qubits=8))
+    assert (
+        contract["execution_settings"][
+            "phase3_runtime_split_child_padding_policy"
+        ]
+        == ROUTE_A_CHILD_PADDING_PROJECTED_GROUPED_V1
+    )
 
-    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
-        args,
-        h_poly=None,
-        resolved_problem_context=context,
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_ref_base_depth=0,
-        psi_ref_override=None,
-        psi_ref_source=None,
-        psi_ref_handoff_state_kind=None,
-        exact_gs_override=0.0,
-        phase3_oracle_gradient_config=None,
-        final_noise_audit_config=None,
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=contract_sha256,
+        route_profile=resolved_profile,
+        problem_context=hh_problem_context(n_ph_max=2),
     )
 
     padding = kwargs["route_a_child_padding_config"]
@@ -581,190 +559,21 @@ def test_cli_propagates_exact_projected_child_padding_and_ledger_enablement(
     assert kwargs["adapt_estimator_call_ledger_enabled"] is True
 
 
-@pytest.mark.parametrize(
-    ("coordinate_policy", "trust_policy", "whitening", "adaptive"),
-    [
-        ("archival_reduced_scalar_v1", "fixed", False, False),
-        (
-            "supported_metric_whitened_eigh_v1",
-            "fixed",
-            True,
-            False,
-        ),
-        (
-            "archival_reduced_scalar_v1",
-            "displacement_calibrated_unbounded_v2",
-            False,
-            True,
-        ),
-        (
-            "supported_metric_whitened_eigh_v1",
-            "displacement_calibrated_unbounded_v2",
-            True,
-            True,
-        ),
-    ],
-)
-def test_cli_exposes_historical_singleton_controls_as_orthogonal_fields(
-    coordinate_policy: str,
-    trust_policy: str,
-    whitening: bool,
-    adaptive: bool,
-) -> None:
-    args = adapt_pipeline.parse_args(
-        [
-            "--historical-singleton-coordinate-solve-policy",
-            coordinate_policy,
-            "--historical-singleton-trust-region-update-policy",
-            trust_policy,
-        ]
-    )
-    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
-        args,
-        h_poly=None,
-        resolved_problem_context=None,
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_ref_base_depth=0,
-        psi_ref_override=None,
-        psi_ref_source=None,
-        psi_ref_handoff_state_kind=None,
-        exact_gs_override=0.0,
-        phase3_oracle_gradient_config=None,
-        final_noise_audit_config=None,
+def test_route_active_child_padding_fails_without_resolved_problem_context() -> None:
+    # Structural note: the CLI's policy-conditional ValueError is gone; the live
+    # kwargs builder rejects any non-ResolvedProblemContext unconditionally.
+    resolved_profile, contract, contract_sha256 = route_identity(
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
     )
 
-    assert kwargs["historical_singleton_coordinate_solve_policy"] == (
-        coordinate_policy
-    )
-    assert kwargs["historical_singleton_trust_region_update_policy"] == (
-        trust_policy
-    )
-    assert (
-        kwargs["historical_singleton_coordinate_solve_policy"]
-        == "supported_metric_whitened_eigh_v1"
-    ) is whitening
-    assert (
-        kwargs["historical_singleton_trust_region_update_policy"]
-        == "displacement_calibrated_unbounded_v2"
-    ) is adaptive
-    assert kwargs["historical_singleton_coordinate_solve_scope"] == (
-        "phase3_only_v1"
-    )
-
-
-def test_cli_exposes_opt_in_phase2_and_phase3_whitening_scope() -> None:
-    args = adapt_pipeline.parse_args(
-        [
-            "--historical-singleton-coordinate-solve-policy",
-            "supported_metric_whitened_eigh_v1",
-            "--historical-singleton-coordinate-solve-scope",
-            "phase2_and_phase3_v1",
-            "--historical-singleton-trust-region-update-policy",
-            "displacement_calibrated_unbounded_v2",
-        ]
-    )
-    kwargs = _build_run_hardcoded_adapt_vqe_kwargs(
-        args,
-        h_poly=None,
-        resolved_problem_context=None,
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_ref_base_depth=0,
-        psi_ref_override=None,
-        psi_ref_source=None,
-        psi_ref_handoff_state_kind=None,
-        exact_gs_override=0.0,
-        phase3_oracle_gradient_config=None,
-        final_noise_audit_config=None,
-    )
-
-    assert kwargs["historical_singleton_coordinate_solve_policy"] == (
-        "supported_metric_whitened_eigh_v1"
-    )
-    assert kwargs["historical_singleton_coordinate_solve_scope"] == (
-        "phase2_and_phase3_v1"
-    )
-    assert kwargs["historical_singleton_trust_region_update_policy"] == (
-        "displacement_calibrated_unbounded_v2"
-    )
-
-
-def test_phase2_whitening_manifest_delta_is_only_coordinate_scope() -> None:
-    common_argv = [
-        "--historical-singleton-coordinate-solve-policy",
-        "supported_metric_whitened_eigh_v1",
-        "--historical-singleton-trust-region-update-policy",
-        "displacement_calibrated_unbounded_v2",
-    ]
-
-    def _kwargs(argv: list[str]) -> dict[str, Any]:
-        return _build_run_hardcoded_adapt_vqe_kwargs(
-            adapt_pipeline.parse_args(argv),
-            h_poly=None,
-            resolved_problem_context=None,
-            cli_adapt_continuation_mode="phase3_v1",
-            adapt_ref_base_depth=0,
-            psi_ref_override=None,
-            psi_ref_source=None,
-            psi_ref_handoff_state_kind=None,
-            exact_gs_override=0.0,
-            phase3_oracle_gradient_config=None,
-            final_noise_audit_config=None,
-        )
-
-    current = _kwargs(common_argv)
-    phase2_whitened = _kwargs(
-        [
-            *common_argv,
-            "--historical-singleton-coordinate-solve-scope",
-            "phase2_and_phase3_v1",
-        ]
-    )
-    differing_keys = {
-        key
-        for key in set(current) | set(phase2_whitened)
-        if current.get(key) != phase2_whitened.get(key)
-    }
-    assert differing_keys == {
-        "historical_singleton_coordinate_solve_scope"
-    }
-
-
-def test_cli_active_child_padding_fails_without_resolved_layout() -> None:
-    args = adapt_pipeline.parse_args(
-        [
-            "--problem",
-            "hh",
-            "--L",
-            "2",
-            "--n-ph-max",
-            "2",
-            "--allow-archival-phase3-runtime-split",
-            "--phase3-runtime-split-mode",
-            "shortlist_pauli_children_v1",
-            "--phase3-runtime-split-selection-mode",
-            "archival_child_set_forward_v1",
-            "--phase3-runtime-split-subset-sizes",
-            "1",
-            "--phase3-runtime-split-child-set-symmetry-policy",
-            "hard_guard",
-            "--phase3-runtime-split-child-padding-policy",
-            "exact_projected_grouped_v1",
-        ]
-    )
-
-    with pytest.raises(ValueError, match="requires a resolved problem context"):
-        _build_run_hardcoded_adapt_vqe_kwargs(
-            args,
-            h_poly=None,
-            resolved_problem_context=None,
-            cli_adapt_continuation_mode="phase3_v1",
-            adapt_ref_base_depth=0,
-            psi_ref_override=None,
-            psi_ref_source=None,
-            psi_ref_handoff_state_kind=None,
-            exact_gs_override=0.0,
-            phase3_oracle_gradient_config=None,
-            final_noise_audit_config=None,
+    with pytest.raises(TypeError, match="must be ResolvedProblemContext"):
+        route_runtime_kwargs(
+            route_contract=contract,
+            route_contract_sha256=contract_sha256,
+            route_profile=resolved_profile,
+            problem_context=SimpleNamespace(
+                layout=SimpleNamespace(total_qubits=8)
+            ),
         )
 
 

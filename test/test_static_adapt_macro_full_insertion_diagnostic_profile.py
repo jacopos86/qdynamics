@@ -4,32 +4,25 @@ import pytest
 
 from pipelines.scaffold.hh_continuation_stage_control import StageControllerConfig
 from pipelines.static_adapt.adapt_pipeline import _phase1_position_probe_plan
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2,
 )
+from test_support.route_contract_kwargs import route_identity
 
 
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-def test_raw_full_insertion_diagnostic_route_is_retired() -> None:
-    with pytest.raises(SystemExit):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_macro_only_physical_lanes_full_insertion_diagnostic_v1",
-                "--adapt-max-depth",
-                "15",
-            ]
-        )
-
-
-def test_raw_full_insertion_mode_fails_closed() -> None:
-    with pytest.raises(ValueError, match="raw full insertion mode is retired"):
+@pytest.mark.parametrize(
+    ("insertion_mode", "match"),
+    [
+        ("full", "raw full insertion mode is retired"),
+        ("always", "ambiguous capped-domain 'always' insertion mode is retired"),
+    ],
+)
+def test_raw_full_insertion_mode_fails_closed(
+    insertion_mode: str, match: str
+) -> None:
+    with pytest.raises(ValueError, match=match):
         _phase1_position_probe_plan(
-            insertion_mode="full",
+            insertion_mode=insertion_mode,
             append_eval={},
             append_position=15,
             n_params=15,
@@ -45,42 +38,22 @@ def test_raw_full_insertion_mode_fails_closed() -> None:
 
 
 def test_commutation_reduced_profile_preserves_v1_and_changes_only_insertion_policy() -> None:
-    baseline = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_macro_only_physical_lanes_v1",
-            "--adapt-max-depth",
-            "15",
-        ]
+    _, baseline_contract, _ = route_identity(
+        "sr_snake_macro_only_physical_lanes_v1"
     )
-    diagnostic = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            (
-                "sr_snake_macro_only_physical_lanes_"
-                "commutation_reduced_insertion_diagnostic_v2"
-            ),
-            "--adapt-max-depth",
-            "15",
-        ]
+    diagnostic_resolved, diagnostic_contract, _ = route_identity(
+        "sr_snake_macro_only_physical_lanes_"
+        "commutation_reduced_insertion_diagnostic_v2"
     )
 
-    baseline_settings = dict(
-        baseline.sr_route_profile_contract["execution_settings"]
-    )
-    diagnostic_settings = dict(
-        diagnostic.sr_route_profile_contract["execution_settings"]
-    )
+    baseline_settings = dict(baseline_contract["execution_settings"])
+    diagnostic_settings = dict(diagnostic_contract["execution_settings"])
     assert baseline_settings.pop("adapt_insertion_mode") == "append_only"
     assert (
         diagnostic_settings.pop("adapt_insertion_mode")
         == "full_commutation_reduced"
     )
     assert diagnostic_settings == baseline_settings
-    assert diagnostic.sr_route_profile_resolved == (
+    assert diagnostic_resolved == (
         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_COMMUTATION_REDUCED_INSERTION_DIAGNOSTIC_V2
     )
-    assert diagnostic.adapt_accepted_refit_coordinate_chart == (
-        baseline.adapt_accepted_refit_coordinate_chart
-    )
-    assert diagnostic.adapt_allow_repeats is baseline.adapt_allow_repeats

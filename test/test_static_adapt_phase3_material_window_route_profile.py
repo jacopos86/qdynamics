@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import ast
-import inspect
 from pathlib import Path
 import sys
-import textwrap
 
 import pytest
 
@@ -13,8 +10,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
-from pipelines.static_adapt import adapt_pipeline
+from test_support.route_contract_kwargs import (
+    route_identity,
+    route_runtime_kwargs,
+)
 from pipelines.static_adapt.phase3_material_window import (
     DEFAULT_PHASE3_MATERIAL_WINDOW_POLICY,
 )
@@ -73,10 +72,6 @@ RETIRED_PRUNE_RUNTIME_FIELDS = {
     "phase1_prune_collapse_min_abs_drop",
     "phase1_prune_collapse_min_observations",
 }
-
-
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
 
 
 def _policy_payload() -> dict[str, object]:
@@ -242,23 +237,32 @@ def test_test2_contract_requires_immutable_keep_prune_accounting() -> None:
         ),
     ],
 )
-def test_material_window_profiles_cli_and_runtime_round_trip(
+def test_material_window_profiles_identity_and_runtime_round_trip(
     alias: str,
     resolved: str,
     settings: dict[str, object],
     contract_factory,
     digest_factory,
 ) -> None:
-    args = _parser().parse_args(
-        ["--sr-route-profile", alias, "--adapt-max-depth", "50"]
-    )
     contract = contract_factory()
     digest = digest_factory()
 
-    assert args.sr_route_profile_resolved == resolved
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == digest
-    assert args.phase3_response_coordinate_scope == (
+    resolved_profile, resolved_contract, resolved_digest = route_identity(alias)
+    assert resolved_profile == resolved
+    assert resolved_contract == contract
+    assert resolved_digest == digest
+
+    # Settings materialization only: the material-window profiles are not
+    # reachable through run_ra_adapt (_canonical_route_contract_for_request
+    # has no material-window branch), so this proves the kwargs builder
+    # projects the contract scope, not facade reachability.
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=alias,
+    )
+    assert kwargs["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_CANDIDATE_MATERIAL_COUPLING_WINDOW_V1
     )
     runtime = dict(settings)
@@ -312,26 +316,45 @@ def test_test2_runtime_source_lock_requires_every_detailed_prune_field(
 
 
 def test_profiles_reject_wrong_prune_or_historical_beam_controls() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                TEST1_ALIAS,
-                "--adapt-max-depth",
-                "50",
-                "--phase1-prune-enabled",
-            ]
+    test1_runtime = dict(
+        CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1_EXECUTION_SETTINGS
+    )
+    test1_runtime.pop("phase_live_hysteresis_enabled", None)
+    test1_runtime["adapt_max_depth"] = 50
+    test1_runtime["phase1_prune_enabled"] = True
+
+    with pytest.raises(ValueError, match="effective runtime settings drifted"):
+        validate_sr_route_profile_runtime_settings(
+            profile_request=(
+                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_V1
+            ),
+            contract=(
+                canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_material_window_v1_contract()
+            ),
+            contract_sha256=(
+                canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_material_window_v1_contract_sha256()
+            ),
+            runtime_settings=test1_runtime,
         )
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                TEST2_ALIAS,
-                "--adapt-max-depth",
-                "50",
-                "--adapt-beam-live-branches",
-                "3",
-                "--adapt-beam-children-per-parent",
-                "2",
-            ]
+
+    test2_runtime = dict(
+        CANONICAL_SR_SNAKE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1_EXECUTION_SETTINGS
+    )
+    test2_runtime.pop("phase_live_hysteresis_enabled", None)
+    test2_runtime["adapt_max_depth"] = 50
+    test2_runtime["adapt_beam_live_branches"] = 3
+    test2_runtime["adapt_beam_children_per_parent"] = 2
+
+    with pytest.raises(ValueError, match="effective runtime settings drifted"):
+        validate_sr_route_profile_runtime_settings(
+            profile_request=(
+                SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_MATERIAL_WINDOW_FS_PRUNE_VERIFY_V1
+            ),
+            contract=(
+                canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_material_window_fs_prune_verify_v1_contract()
+            ),
+            contract_sha256=(
+                canonical_sr_snake_symmetric_cost_projected_phase3_no_overlap_trust_material_window_fs_prune_verify_v1_contract_sha256()
+            ),
+            runtime_settings=test2_runtime,
         )

@@ -15,7 +15,7 @@ from pipelines.scaffold.hh_continuation_scoring import (
     SimpleScoreConfig,
     resolve_hardware_cost_lambdas,
 )
-from pipelines.static_adapt import beam_search, cli_config, engine_support
+from pipelines.static_adapt import beam_search, engine_support
 from pipelines.static_adapt.builders.shared_pauli_pool_contract import (
     SHARED_PAULI_POOL_MODE_CHILD_SETS_V1,
     SharedPauliPoolParent,
@@ -27,6 +27,7 @@ from src.quantum.pauli_polynomial_class import (
     fermion_plus_operator,
 )
 from src.quantum.pauli_words import PauliTerm
+from test_support.route_contract_kwargs import route_identity, route_runtime_kwargs
 
 
 def _branch(*, branch_id: int, energy: float, cost: float, label: str) -> SimpleNamespace:
@@ -271,30 +272,24 @@ def test_shared_pauli_pool_preserves_exact_pair_only_request() -> None:
     assert all(len(candidate.child_indices) == 2 for candidate in children)
 
 
-def test_shared_canonical_cost_weights_and_cli_exact_subset_inputs() -> None:
+def test_shared_canonical_cost_weights_agree_with_runtime_controller_kwargs() -> None:
     expected = {"2q": 0.20, "d": 0.20, "1q": 0.05, "theta": 0.05, "shot": 0.15}
     assert resolve_hardware_cost_lambdas(SimpleScoreConfig())[0] == pytest.approx(expected)
     assert resolve_hardware_cost_lambdas(FullScoreConfig())[0] == pytest.approx(expected)
 
-    parser = cli_config._build_adapt_arg_parser(adapt_gradient_parity_rtol=1e-8)
-    defaults = parser.parse_args([])
-    assert (
-        defaults.cost_lambda_2q,
-        defaults.cost_lambda_d,
-        defaults.cost_lambda_1q,
-        defaults.cost_lambda_theta,
-        defaults.cost_lambda_shot,
-    ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))
-    exact = parser.parse_args(
-        [
-            "--phase3-runtime-split-subset-sizes",
-            "2",
-            "--adapt-child-pool-expansion-subset-sizes",
-            "1,2",
-            "--shared-pauli-pool-subset-sizes",
-            "3",
-        ]
+    # No route contract carries cost_lambda_* overrides, so the flat runtime
+    # kwargs expose the shared canonical controller weights for any live route.
+    resolved, contract, contract_sha256 = route_identity("sr_snake_v4")
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=contract_sha256,
+        route_profile=resolved,
+        route_profile_request="sr_snake_v4",
     )
-    assert exact.phase3_runtime_split_subset_sizes == "2"
-    assert exact.adapt_child_pool_expansion_subset_sizes == "1,2"
-    assert exact.shared_pauli_pool_subset_sizes == "3"
+    assert (
+        kwargs["cost_lambda_2q"],
+        kwargs["cost_lambda_d"],
+        kwargs["cost_lambda_1q"],
+        kwargs["cost_lambda_theta"],
+        kwargs["cost_lambda_shot"],
+    ) == pytest.approx((0.20, 0.20, 0.05, 0.05, 0.15))

@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
+from pipelines.scaffold.hh_continuation_stage_control import StageControllerConfig
 from pipelines.static_adapt import sr_snake_route_profile as route_profiles
+from pipelines.static_adapt.adapt_pipeline import _phase1_position_probe_plan
 
 
 _RAW_ROUTE_REQUESTS = (
@@ -26,21 +27,32 @@ _ACTIVE_PAPER_I_ALWAYS_PRODUCERS = (
 )
 
 
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-@pytest.mark.parametrize("retired_mode", ("full", "always"))
-def test_cli_rejects_retired_ambiguous_insertion_modes(
+@pytest.mark.parametrize(
+    ("retired_mode", "match"),
+    (
+        ("full", "raw full insertion mode is retired"),
+        ("always", "'always' insertion mode is retired"),
+    ),
+)
+def test_runtime_rejects_retired_ambiguous_insertion_modes(
     retired_mode: str,
+    match: str,
 ) -> None:
-    with pytest.raises(SystemExit):
-        _parser().parse_args(["--adapt-insertion-mode", retired_mode])
-
-    args = _parser().parse_args(
-        ["--adapt-insertion-mode", "full_commutation_reduced"]
-    )
-    assert args.adapt_insertion_mode == "full_commutation_reduced"
+    with pytest.raises(ValueError, match=match):
+        _phase1_position_probe_plan(
+            insertion_mode=retired_mode,
+            append_eval={},
+            append_position=3,
+            n_params=3,
+            active_window_indices=[2],
+            stage_name="core",
+            drop_plateau_hits=0,
+            max_grad=1.0,
+            eps_grad=1.0e-8,
+            finite_angle_fallback=False,
+            repeated_family_flat=False,
+            cfg=StageControllerConfig(max_probe_positions=4),
+        )
 
 
 @pytest.mark.parametrize(

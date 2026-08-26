@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.extensions import (
     BATCH_RUNTIME_KEYS,
     BatchExtension,
@@ -18,7 +17,26 @@ from pipelines.static_adapt.sr_snake.contracts import (
 )
 from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
+    canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
     canonical_sr_snake_v4_contract,
+    canonical_sr_snake_v4_contract_sha256,
+)
+from test_support.route_contract_kwargs import (
+    expected_flat_settings,
+    route_pruning,
+    route_runtime_kwargs,
+)
+
+# Three inert infrastructure policies (all pinned "off") live in
+# _CANONICAL_SR_SNAKE_RUNTIME_INFRASTRUCTURE rather than in any contract's
+# execution settings, so they legitimately appear in flat kwargs even though
+# their names are members of PRUNING_RUNTIME_KEYS.
+_INERT_INFRASTRUCTURE_PRUNE_POLICIES = frozenset(
+    {
+        "phase1_prune_endpoint_overlap_policy",
+        "phase1_prune_metric_mu_update_policy",
+        "phase1_prune_trust_update_policy",
+    }
 )
 
 
@@ -62,14 +80,34 @@ def test_enabled_pruning_requires_its_complete_policy_interview() -> None:
         extensions_from_route_contract(contract)
 
 
-def test_pruning_is_absent_from_the_cli_default_surface() -> None:
-    # The executor-signature half of this guarantee is now structural: the
-    # legacy executor no longer exists, so no pruning key can appear on it.
-    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-    args = parser.parse_args([])
-    assert all(not hasattr(args, name) for name in PRUNING_RUNTIME_KEYS)
-    with pytest.raises(SystemExit, match="2"):
-        parser.parse_args(["--phase1-prune-enabled"])
+def test_pruning_never_appears_as_loose_runtime_settings() -> None:
+    # The executor-signature and CLI-parser halves of this guarantee are now
+    # structural: neither surface exists, so no pruning flag can reappear on
+    # them. The live guarantee is that the runtime kwargs builder routes
+    # pruning exclusively through the typed extensions value.
+    no_prune_kwargs = route_runtime_kwargs(
+        route_contract=canonical_sr_snake_no_prune_symmetric_cost_v1_contract(),
+        route_contract_sha256=(
+            canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
+        ),
+    )
+    assert "phase1_prune_enabled" not in no_prune_kwargs
+    assert (
+        set(no_prune_kwargs) & set(PRUNING_RUNTIME_KEYS)
+        == _INERT_INFRASTRUCTURE_PRUNE_POLICIES
+    )
+    assert route_pruning(no_prune_kwargs) is None
+
+    prune_kwargs = route_runtime_kwargs(
+        route_contract=canonical_sr_snake_v4_contract(),
+        route_contract_sha256=canonical_sr_snake_v4_contract_sha256(),
+    )
+    assert "phase1_prune_enabled" not in prune_kwargs
+    assert (
+        set(prune_kwargs) & set(PRUNING_RUNTIME_KEYS)
+        == _INERT_INFRASTRUCTURE_PRUNE_POLICIES
+    )
+    assert route_pruning(prune_kwargs) is not None
 
 
 def test_enabled_batching_requires_a_complete_policy_interview() -> None:
@@ -91,10 +129,45 @@ def test_enabled_batching_requires_a_complete_policy_interview() -> None:
     assert batch_extension_from_admission(SingletonAdmission()) is None
 
 
-def test_batching_is_absent_from_the_cli_default_surface() -> None:
-    # As above: structural now that the legacy executor is deleted.
-    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-    args = parser.parse_args([])
-    assert all(not hasattr(args, name) for name in BATCH_RUNTIME_KEYS)
-    with pytest.raises(SystemExit, match="2"):
-        parser.parse_args(["--phase2-enable-batching"])
+def test_batching_never_appears_as_loose_runtime_settings() -> None:
+    # As above: the executor and parser halves are structural now that both
+    # legacy surfaces are deleted. Batching has no inert infrastructure keys,
+    # so the live disjointness is exact.
+    kwargs = route_runtime_kwargs(
+        route_contract=canonical_sr_snake_no_prune_symmetric_cost_v1_contract(),
+        route_contract_sha256=(
+            canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
+        ),
+    )
+    assert BATCH_RUNTIME_KEYS.isdisjoint(kwargs)
+
+
+def test_extension_owned_keys_are_projected_out_of_flat_kwargs() -> None:
+    contract = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+    flat = expected_flat_settings(contract)
+    extension_owned = set(PRUNING_RUNTIME_KEYS) | set(BATCH_RUNTIME_KEYS)
+
+    # The projection strips every extension-owned execution setting.
+    assert extension_owned.isdisjoint(flat)
+
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=(
+            canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
+        ),
+    )
+    # The projected settings appear verbatim in the flat runtime kwargs.
+    assert all(kwargs[key] == value for key, value in flat.items())
+
+    # No extension-owned execution setting leaks into flat kwargs: batching is
+    # exactly disjoint, and the only pruning-named keys present are the inert
+    # infrastructure policies, which no contract owns.
+    assert BATCH_RUNTIME_KEYS.isdisjoint(kwargs)
+    assert (
+        set(kwargs) & set(PRUNING_RUNTIME_KEYS)
+        == _INERT_INFRASTRUCTURE_PRUNE_POLICIES
+    )
+
+    # Present extension state lives on kwargs["extensions"], nowhere else.
+    assert kwargs["extensions"] == extensions_from_route_contract(contract)
+    assert kwargs["extensions"].pruning is None

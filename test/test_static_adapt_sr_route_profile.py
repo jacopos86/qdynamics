@@ -5,7 +5,6 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 
-import numpy as np
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -13,19 +12,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
-from pipelines.static_adapt.cli_config import (
-    _build_adapt_arg_parser,
-    _build_run_hardcoded_adapt_vqe_kwargs,
-)
-from pipelines.static_adapt.extensions import (
-    BEAM_RUNTIME_KEYS,
-    PRUNING_RUNTIME_KEYS,
-    extensions_from_route_contract,
-)
+from pipelines.static_adapt.extensions import PRUNING_RUNTIME_KEYS
 from pipelines.static_adapt.resume_scaffold import (
     validate_resume_sr_route_profile_contract,
 )
-from pipelines.static_adapt.output_artifacts import build_output_payload
+from pipelines.static_adapt.sr_snake.contracts import SRStopPolicy
 from pipelines.static_adapt.sr_snake_route_profile import (
     CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS,
     CANONICAL_SR_SNAKE_V2_EXECUTION_SETTINGS,
@@ -61,7 +52,6 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_v4_contract_sha256,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
-    canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract,
     canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256,
     canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract,
     canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract_sha256,
@@ -79,149 +69,30 @@ from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
     PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1,
 )
-from src.quantum.hubbard_latex_python_pairs import (
-    build_hubbard_holstein_hamiltonian,
+from test_support.route_contract_kwargs import (
+    assert_route_binding_rejected,
+    expected_flat_settings,
+    hh_problem_context,
+    route_identity,
+    route_pruning,
+    route_runtime_kwargs,
 )
 
-
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-_RETIRED_PRUNE_RUNTIME_FIELDS = frozenset(
-    {
-        "phase1_prune_stale_age",
-        "phase1_prune_stagnation_threshold",
-        "phase1_prune_small_theta_abs",
-        "phase1_prune_small_theta_relative",
-        "phase1_prune_amplitude_witness_required",
-        "phase1_prune_collapse_peak_abs_min",
-        "phase1_prune_collapse_current_abs_max",
-        "phase1_prune_collapse_ratio",
-        "phase1_prune_collapse_min_abs_drop",
-        "phase1_prune_collapse_min_observations",
-        "phase3_shadow_damping_policy",
-    }
-)
-
-
-def _active_profile_execution_settings(
-    settings: dict[str, object],
-) -> dict[str, object]:
-    return {
-        ("backend_transpile_seed" if field == "phase3_backend_transpile_seed" else field): expected
-        for field, expected in settings.items()
-        if field not in _RETIRED_PRUNE_RUNTIME_FIELDS
-        and field not in BEAM_RUNTIME_KEYS
-    }
-
-
-def _canonical_args(*extra: str):
-    return _parser().parse_args(
-        ["--sr-route-profile", "sr_snake_v1", *extra]
-    )
-
-
-def _conventional_args(*extra: str):
-    return _parser().parse_args(
-        ["--sr-route-profile", "sr_snake", *extra]
-    )
-
-
-def _historical_v2_args(*extra: str):
-    return _parser().parse_args(
-        ["--sr-route-profile", "sr_snake_v2", *extra]
-    )
-
-
-def _candidate_v4_args(*extra: str):
-    return _parser().parse_args(
-        ["--sr-route-profile", "sr_snake_v4", *extra]
-    )
-
-
-def _no_prune_symmetric_cost_args(*extra: str):
-    explicit_horizon = any(
-        str(token) == "--adapt-max-depth"
-        or str(token).startswith("--adapt-max-depth=")
-        for token in extra
-    )
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_no_prune_symmetric_cost_v1",
-            *(
-                ()
-                if explicit_horizon
-                else ("--adapt-max-depth", "30")
-            ),
-            *extra,
-        ]
-    )
-
-
-def _no_prune_symmetric_cost_beam_args(*extra: str):
-    explicit_horizon = any(
-        str(token) == "--adapt-max-depth"
-        or str(token).startswith("--adapt-max-depth=")
-        for token in extra
-    )
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_no_prune_symmetric_cost_beam_v1",
-            *(("--adapt-max-depth", "30") if not explicit_horizon else ()),
-            *extra,
-        ]
-    )
-
-
-def _no_novelty_metric_prune_beam_args(*extra: str):
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_no_novelty_metric_prune_beam_v1",
-            *extra,
-        ]
-    )
-
-
-def _h2o_derivative_resolved_v2_args(*extra: str):
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_h2o_derivative_resolved_v2",
-            *extra,
-        ]
-    )
-
-
-def _h2o_derivative_resolved_paper_i_v3_args(*extra: str):
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_h2o_derivative_resolved_paper_i_v3",
-            *extra,
-        ]
-    )
-
-
-def _runtime_kwargs(args) -> dict[str, object]:
-    return _build_run_hardcoded_adapt_vqe_kwargs(
-        args,
-        h_poly=None,
-        resolved_problem_context=SimpleNamespace(
-            layout=SimpleNamespace(total_qubits=6)
-        ),
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_ref_base_depth=0,
-        psi_ref_override=None,
-        psi_ref_source=None,
-        psi_ref_handoff_state_kind=None,
-        exact_gs_override=0.0,
-        phase3_oracle_gradient_config=None,
-        final_noise_audit_config=None,
-    )
+# Structural note: the retired CLI parser carried a large family of
+# fail-closed tests (explicit flags that disagreed with a selected route
+# profile exited with SystemExit 2).  On the live route there is no
+# per-setting override channel — the runtime kwargs are projected directly
+# from the authenticated contract — so "an explicit flag cannot drift a
+# profile" holds by construction and those tests were removed.  The live
+# fail-closed gate is the controller runtime factory's digest set, covered
+# by test_candidate_v4_identity_is_readable_but_not_execution_authority.
+#
+# Structural note: the historical v1/v2/v3 contracts predate the typed
+# pruning-extension interview, so they cannot pass through the live kwargs
+# builder.  Their tests below assert contract-registry identity (profile ->
+# contract -> digest) rather than runtime-kwargs materialization; runtime
+# round-trip coverage lives on the v4 and no-prune profiles, which the
+# builder accepts.
 
 
 def _contract_payload(*, location: str = "settings") -> dict[str, object]:
@@ -258,35 +129,6 @@ def _v3_contract_payload(*, location: str = "settings") -> dict[str, object]:
             ),
             "phase3_response_coordinate_scope": (
                 PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
-            ),
-        }
-    }
-
-
-def _no_prune_symmetric_cost_beam_contract_payload(
-    *, location: str = "settings"
-) -> dict[str, object]:
-    return {
-        location: {
-            "sr_route_profile_request": (
-                SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_BEAM_V1
-            ),
-            "sr_route_profile_contract": (
-                canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract()
-            ),
-            "sr_route_profile_contract_sha256": (
-                canonical_sr_snake_no_prune_symmetric_cost_beam_v1_contract_sha256()
-            ),
-            "phase3_response_coordinate_scope": (
-                PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
-            ),
-            "phase1_score_mode": "trust_region_v1",
-            "phase1_energy_model": PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
-            "phase2_curvature_policy": (
-                PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
-            ),
-            "phase2_cheap_curvature_proxy_policy": (
-                PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
             ),
         }
     }
@@ -348,15 +190,6 @@ def _route_profile_namespace(
     )
 
 
-def test_sr_route_profile_default_is_off_and_does_not_rewrite_defaults() -> None:
-    args = _parser().parse_args([])
-
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_REQUEST_OFF
-    assert args.sr_route_profile_resolved is None
-    assert args.sr_route_profile_contract is None
-    assert args.sr_route_profile_contract_sha256 is None
-
-
 @pytest.mark.parametrize(
     "profile_name",
     ["sr_snake_v1", SR_ROUTE_PROFILE_CANONICAL_V1],
@@ -364,21 +197,18 @@ def test_sr_route_profile_default_is_off_and_does_not_rewrite_defaults() -> None
 def test_canonical_sr_route_profile_materializes_complete_contract(
     profile_name: str,
 ) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
+    resolved, contract, digest = route_identity(profile_name)
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CANONICAL_V1
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CANONICAL_V1
-    assert args.sr_route_profile_contract == canonical_sr_snake_v1_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v1_contract_sha256()
-    )
-    for field, expected in _active_profile_execution_settings(
+    assert resolved == SR_ROUTE_PROFILE_CANONICAL_V1
+    assert contract == canonical_sr_snake_v1_contract()
+    assert digest == canonical_sr_snake_v1_contract_sha256()
+    assert contract["execution_settings"] == (
         CANONICAL_SR_SNAKE_V1_EXECUTION_SETTINGS
-    ).items():
-        assert getattr(args, field) == expected, field
-    assert all(not hasattr(args, field) for field in _RETIRED_PRUNE_RUNTIME_FIELDS)
-    for field, expected in HISTORICAL_SR_SNAKE_V1_ACCEPTED_REFIT_SETTINGS.items():
-        assert getattr(args, field) == expected, field
+    )
+    # The historical accepted-refit overlay stays outside the frozen digest.
+    assert not set(HISTORICAL_SR_SNAKE_V1_ACCEPTED_REFIT_SETTINGS) & set(
+        contract["execution_settings"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -388,20 +218,18 @@ def test_canonical_sr_route_profile_materializes_complete_contract(
 def test_historical_v2_sr_route_profile_materializes_complete_contract(
     profile_name: str,
 ) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
+    resolved, contract, digest = route_identity(profile_name)
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V2
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V2
-    assert args.sr_route_profile_contract == canonical_sr_snake_v2_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v2_contract_sha256()
-    )
-    for field, expected in _active_profile_execution_settings(
+    assert resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V2
+    assert contract == canonical_sr_snake_v2_contract()
+    assert digest == canonical_sr_snake_v2_contract_sha256()
+    assert contract["execution_settings"] == (
         CANONICAL_SR_SNAKE_V2_EXECUTION_SETTINGS
-    ).items():
-        assert getattr(args, field) == expected, field
-    for field, expected in HISTORICAL_SR_SNAKE_RESPONSE_SCOPE_SETTINGS.items():
-        assert getattr(args, field) == expected, field
+    )
+    # The historical response-scope overlay stays outside the frozen digest.
+    assert not set(HISTORICAL_SR_SNAKE_RESPONSE_SCOPE_SETTINGS) & set(
+        contract["execution_settings"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -411,21 +239,17 @@ def test_historical_v2_sr_route_profile_materializes_complete_contract(
 def test_conventional_v3_sr_route_profile_materializes_complete_contract(
     profile_name: str,
 ) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
+    resolved, contract, digest = route_identity(profile_name)
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v3_contract_sha256()
-    )
-    for field, expected in _active_profile_execution_settings(
+    assert resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert contract == canonical_sr_snake_v3_contract()
+    assert digest == canonical_sr_snake_v3_contract_sha256()
+    assert contract["execution_settings"] == (
         CANONICAL_SR_SNAKE_V3_EXECUTION_SETTINGS
-    ).items():
-        assert getattr(args, field) == expected, field
-    assert args.phase3_response_coordinate_scope == (
-        PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
+    assert contract["execution_settings"][
+        "phase3_response_coordinate_scope"
+    ] == PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
 
 
 @pytest.mark.parametrize(
@@ -435,20 +259,20 @@ def test_conventional_v3_sr_route_profile_materializes_complete_contract(
 def test_candidate_v4_materializes_exact_combined_contract(
     profile_name: str,
 ) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
+    resolved, contract, digest = route_identity(profile_name)
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CANDIDATE_V4
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CANDIDATE_V4
-    assert args.sr_route_profile_contract == canonical_sr_snake_v4_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v4_contract_sha256()
+    assert resolved == SR_ROUTE_PROFILE_CANDIDATE_V4
+    assert contract == canonical_sr_snake_v4_contract()
+    assert digest == canonical_sr_snake_v4_contract_sha256()
+
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=profile_name,
     )
-    for field, expected in _active_profile_execution_settings(
-        CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS
-    ).items():
-        if field == "phase_live_hysteresis_enabled":
-            continue
-        assert getattr(args, field) == expected, field
+    for field, expected in expected_flat_settings(contract).items():
+        assert kwargs[field] == expected, field
 
     expected_combined_settings = {
         "phase3_response_coordinate_scope": (
@@ -478,7 +302,7 @@ def test_candidate_v4_materializes_exact_combined_contract(
         "phase3_enable_rescue": False,
     }
     for field, expected in expected_combined_settings.items():
-        assert getattr(args, field) == expected, field
+        assert contract["execution_settings"][field] == expected, field
 
 
 def test_candidate_v4_contract_selects_first_order_measured_curvature_triplet() -> None:
@@ -514,74 +338,66 @@ def test_candidate_v4_contract_selects_first_order_measured_curvature_triplet() 
 def test_no_prune_symmetric_cost_profile_materializes_exact_contract(
     profile_name: str,
 ) -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            profile_name,
-            "--adapt-max-depth",
-            "30",
-        ]
-    )
+    resolved, contract, digest = route_identity(profile_name)
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
+    assert resolved == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    assert contract == canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
+    assert digest == (
         canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
     )
-    for field, expected in (
-        _active_profile_execution_settings(
-            CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS
-        ).items()
-    ):
-        if field == "phase_live_hysteresis_enabled":
-            continue
-        assert getattr(args, field) == expected, field
-    assert not hasattr(args, "phase_live_hysteresis_enabled")
+
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=profile_name,
+        maximum_controller_rounds=30,
+    )
+    for field, expected in expected_flat_settings(contract).items():
+        assert kwargs[field] == expected, field
 
     assert "adapt_max_depth" not in (
         CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS
     )
-    assert args.adapt_max_depth == 30
-    assert args.problem == "hh"
-    assert args.phase3_response_coordinate_scope == (
+    assert kwargs["max_depth"] == 30
+    assert kwargs["problem"] == "hh"
+    assert kwargs["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
-    assert args.historical_singleton_coordinate_solve_scope == "phase3_only_v1"
-    assert args.historical_singleton_trust_region_update_policy == (
+    assert kwargs["historical_singleton_coordinate_solve_scope"] == (
+        "phase3_only_v1"
+    )
+    assert kwargs["historical_singleton_trust_region_update_policy"] == (
         "displacement_calibrated_unbounded_v2"
     )
-    assert args.adapt_accepted_refit_scope == "full_ansatz_v1"
-    assert args.adapt_accepted_refit_coordinate_chart == (
+    assert kwargs["adapt_accepted_refit_scope"] == "full_ansatz_v1"
+    assert kwargs["adapt_accepted_refit_coordinate_chart"] == (
         "supported_fs_whitened_fixed_v1"
     )
-    assert args.adapt_accepted_refit_base_chart_policy == (
+    assert kwargs["adapt_accepted_refit_base_chart_policy"] == (
         "expanded_runtime_projected_logical_v1"
     )
-    assert args.phase1_energy_model == PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1
-    assert args.phase2_curvature_policy == (
+    assert kwargs["phase1_energy_model"] == (
+        PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1
+    )
+    assert kwargs["phase2_curvature_policy"] == (
         PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
     )
-    assert args.phase2_cheap_curvature_proxy_policy == (
+    assert kwargs["phase2_cheap_curvature_proxy_policy"] == (
         PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
     )
-    assert args.phase2_gram_novelty_policy == "fallback_only_v1"
-    assert args.phase3_gram_novelty_policy == "fallback_only_v1"
-    assert args.phase3_hardware_cost_normalization_mode == (
+    assert kwargs["phase2_gram_novelty_policy"] == "fallback_only_v1"
+    assert kwargs["phase3_gram_novelty_policy"] == "fallback_only_v1"
+    assert kwargs["phase3_hardware_cost_normalization_mode"] == (
         "family_robust_symmetric_arctan_v1"
     )
-    assert args.phase1_prune_enabled is False
-    assert args.adapt_full_refit_every == 0
-    assert args.adapt_final_full_refit == "false"
-    assert args.adapt_finite_angle_fallback is False
-    assert not hasattr(args, "phase3_shadow_damping_policy")
-    assert args.sr_escape_mode == "disabled"
+    # No-prune: no pruning extension is composed for this route.
+    assert route_pruning(kwargs) is None
+    assert contract["execution_settings"]["phase1_prune_enabled"] is False
+    assert kwargs["adapt_full_refit_every"] == 0
+    assert kwargs["adapt_final_full_refit"] is False
+    assert kwargs["adapt_finite_angle_fallback"] is False
+    assert kwargs["sr_escape_mode"] == "disabled"
 
 
 def test_no_prune_symmetric_cost_contract_keeps_only_telemetried_novelty_fallback(
@@ -609,78 +425,32 @@ def test_no_prune_symmetric_cost_contract_keeps_only_telemetried_novelty_fallbac
 def test_no_prune_symmetric_cost_profile_leaves_horizon_source_locked(
     depth: int,
 ) -> None:
-    args = _no_prune_symmetric_cost_args("--adapt-max-depth", str(depth))
+    resolved, contract, digest = route_identity(
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_V1
+    )
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=resolved,
+        maximum_controller_rounds=depth,
+    )
 
-    assert args.adapt_max_depth == depth
-    assert "adapt_max_depth" not in args.sr_route_profile_contract[
-        "execution_settings"
-    ]
-    assert args.sr_route_profile_contract["semantic_invariants"][
+    assert kwargs["max_depth"] == depth
+    assert "adapt_max_depth" not in contract["execution_settings"]
+    assert contract["semantic_invariants"][
         "controller_horizon_source"
     ] == "per_regime_source_lock"
 
 
-def test_no_prune_symmetric_cost_profile_requires_explicit_horizon() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_no_prune_symmetric_cost_v1",
-            ]
-        )
-
-
-@pytest.mark.parametrize("depth", ["0", "-1"])
+@pytest.mark.parametrize("depth", [0, -1])
 def test_no_prune_symmetric_cost_profile_rejects_nonpositive_horizon(
-    depth: str,
+    depth: int,
 ) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_no_prune_symmetric_cost_v1",
-                "--adapt-max-depth",
-                depth,
-            ]
-        )
-
-
-def test_no_prune_symmetric_cost_accepts_explicit_matching_safety_switches() -> None:
-    args = _no_prune_symmetric_cost_args(
-        "--adapt-no-finite-angle-fallback",
-        "--phase3-no-rescue",
-    )
-
-    assert args.phase1_prune_enabled is False
-    assert args.adapt_finite_angle_fallback is False
-    assert args.phase3_enable_rescue is False
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--phase1-prune-enabled",),
-        ("--adapt-full-refit-every", "8"),
-        ("--adapt-final-full-refit", "true"),
-        ("--phase2-gram-novelty-policy", "ordinary_multiplier_v1"),
-        ("--phase3-gram-novelty-policy", "ordinary_multiplier_v1"),
-        (
-            "--phase3-hardware-cost-normalization-mode",
-            "family_robust_v1",
-        ),
-        (
-            "--historical-singleton-coordinate-solve-scope",
-            "phase2_and_phase3_v1",
-        ),
-        ("--phase3-shadow-damping-policy", "mapped_seed_zero_query_v1"),
-        ("--sr-escape-mode", "saddle_only"),
-    ],
-)
-def test_no_prune_symmetric_cost_profile_rejects_scientific_drift(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _no_prune_symmetric_cost_args(*override)
+    # The live typed stop policy is the enforcement point for a positive
+    # controller horizon (the retired parser used to exit with code 2).
+    with pytest.raises(ValueError, match="positive integer"):
+        SRStopPolicy(maximum_controller_rounds=depth)
 
 
 def test_no_prune_symmetric_cost_runtime_validator_is_exact() -> None:
@@ -777,21 +547,16 @@ def test_no_prune_symmetric_cost_powell_resolution_labels_outer_route() -> None:
 
 
 def test_h2o_derivative_resolved_profile_changes_only_pool_identity() -> None:
-    args = _h2o_derivative_resolved_v2_args()
-    contract = canonical_sr_snake_h2o_derivative_resolved_v2_contract()
+    resolved, contract, digest = route_identity(
+        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2
+    )
     parent = canonical_sr_snake_no_novelty_metric_prune_beam_v1_contract()
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2
-    )
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == (
+    assert resolved == SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_V2
+    assert contract == canonical_sr_snake_h2o_derivative_resolved_v2_contract()
+    assert digest == (
         canonical_sr_snake_h2o_derivative_resolved_v2_contract_sha256()
     )
-    assert args.adapt_pool == "full_meta_derivative_resolved_v2"
     assert contract["execution_settings"]["adapt_pool"] == (
         "full_meta_derivative_resolved_v2"
     )
@@ -806,18 +571,16 @@ def test_h2o_derivative_resolved_profile_changes_only_pool_identity() -> None:
 
 
 def test_h2o_paper_i_profile_is_no_prune_no_beam_source_locked_overlay() -> None:
-    args = _h2o_derivative_resolved_paper_i_v3_args()
-    contract = canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
+    resolved, contract, digest = route_identity(
+        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3
+    )
     parent = canonical_sr_snake_no_prune_symmetric_cost_v1_contract()
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3
+    assert resolved == SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3
+    assert contract == (
+        canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract()
     )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_H2O_DERIVATIVE_RESOLVED_PAPER_I_V3
-    )
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == (
+    assert digest == (
         canonical_sr_snake_h2o_derivative_resolved_paper_i_v3_contract_sha256()
     )
 
@@ -840,26 +603,27 @@ def test_h2o_paper_i_profile_is_no_prune_no_beam_source_locked_overlay() -> None
         canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256()
     )
 
-    assert args.problem == "molecular_vibronic_h2o_linear_fd"
-    assert args.adapt_max_depth == 50
-    assert args.adapt_pool == "full_meta_derivative_resolved_v2"
-    assert args.phase1_prune_enabled is False
+    settings = contract["execution_settings"]
+    assert settings["problem"] == "molecular_vibronic_h2o_linear_fd"
+    assert settings["adapt_max_depth"] == 50
+    assert settings["adapt_pool"] == "full_meta_derivative_resolved_v2"
+    assert settings["phase1_prune_enabled"] is False
     assert contract["semantic_invariants"]["pruning_active"] is False
     assert contract["semantic_invariants"]["terminal_prune_active"] is False
-    assert args.phase2_enable_batching is False
-    assert args.phase3_enable_batching is False
-    assert args.phase2_gram_novelty_policy == "fallback_only_v1"
-    assert args.phase3_gram_novelty_policy == "fallback_only_v1"
-    assert args.phase3_novelty_ablation_mode == "off"
-    assert args.phase3_response_coordinate_scope == (
+    assert settings["phase2_enable_batching"] is False
+    assert settings["phase3_enable_batching"] is False
+    assert settings["phase2_gram_novelty_policy"] == "fallback_only_v1"
+    assert settings["phase3_gram_novelty_policy"] == "fallback_only_v1"
+    assert settings["phase3_novelty_ablation_mode"] == "off"
+    assert settings["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
-    assert args.historical_singleton_coordinate_solve_policy == (
+    assert settings["historical_singleton_coordinate_solve_policy"] == (
         "supported_metric_whitened_eigh_v1"
     )
-    assert args.adapt_accepted_refit_scope == "full_ansatz_v1"
-    assert args.adapt_full_refit_every == 0
-    assert args.adapt_final_full_refit == "false"
+    assert settings["adapt_accepted_refit_scope"] == "full_ansatz_v1"
+    assert settings["adapt_full_refit_every"] == 0
+    assert settings["adapt_final_full_refit"] == "false"
 
 
 @pytest.mark.parametrize(
@@ -910,36 +674,6 @@ def test_historical_phase12_policy_overlay_is_explicit_but_outside_frozen_digest
     ) == contract
 
 
-@pytest.mark.parametrize(
-    ("option", "field", "legacy_value"),
-    [
-        (
-            "--phase1-score-mode",
-            "phase1_score_mode",
-            "legacy_simple_v1",
-        ),
-        (
-            "--phase2-curvature-policy",
-            "phase2_curvature_policy",
-            PHASE2_CURVATURE_POLICY_LEGACY_OPTIONAL_V1,
-        ),
-    ],
-)
-def test_candidate_v4_rejects_explicit_legacy_phase12_policy(
-    option: str,
-    field: str,
-    legacy_value: str,
-) -> None:
-    with pytest.raises(ValueError, match=field):
-        normalize_sr_route_profile_namespace(
-            _route_profile_namespace(
-                SR_ROUTE_PROFILE_CANDIDATE_V4,
-                explicit_options=(option,),
-                overrides={field: legacy_value},
-            )
-        )
-
-
 def test_candidate_v4_runtime_validator_requires_exact_phase12_triplet() -> None:
     runtime_settings = {
         field: CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS[field]
@@ -968,57 +702,31 @@ def test_candidate_v4_runtime_validator_requires_exact_phase12_triplet() -> None
 
 
 def test_unqualified_sr_snake_alias_resolves_to_v3_not_candidate_v4() -> None:
-    args = _conventional_args()
+    resolved, contract, _ = route_identity("sr_snake")
 
-    assert args.sr_route_profile_request == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_contract()
-    assert not hasattr(args, "phase_live_hysteresis_enabled")
-    assert args.sr_route_profile_contract != canonical_sr_snake_v4_contract()
+    assert resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert contract == canonical_sr_snake_v3_contract()
+    assert contract != canonical_sr_snake_v4_contract()
 
 
-def test_candidate_v4_disables_finite_angle_fallback_in_contract_and_cli() -> None:
-    implicit_args = _candidate_v4_args()
-    explicit_args = _candidate_v4_args("--adapt-no-finite-angle-fallback")
-
-    for args in (implicit_args, explicit_args):
-        assert args.adapt_finite_angle_fallback is False
-        assert args.phase3_enable_rescue is False
-        assert args.sr_route_profile_contract["execution_settings"][
-            "adapt_finite_angle_fallback"
-        ] is False
-        assert args.sr_route_profile_contract["execution_settings"][
-            "phase3_enable_rescue"
-        ] is False
-        assert args.sr_route_profile_contract["semantic_invariants"][
-            "finite_angle_fallback_active"
-        ] is False
-
-    assert "--adapt-no-finite-angle-fallback" in (
-        explicit_args._explicit_cli_options
+def test_candidate_v4_disables_finite_angle_fallback_in_contract_and_runtime() -> None:
+    resolved, contract, digest = route_identity(SR_ROUTE_PROFILE_CANDIDATE_V4)
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=resolved,
     )
 
-
-def test_candidate_v4_rejects_enabled_finite_angle_fallback() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _candidate_v4_args("--adapt-finite-angle-fallback")
-
-
-@pytest.mark.parametrize(
-    "profile_name",
-    ["sr_snake_v1", "sr_snake_v2", "sr_snake_v3"],
-)
-def test_pre_v4_profiles_still_reject_disabled_finite_angle_fallback(
-    profile_name: str,
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                profile_name,
-                "--adapt-no-finite-angle-fallback",
-            ]
-        )
+    assert kwargs["finite_angle_fallback"] is False
+    assert kwargs["phase3_enable_rescue"] is False
+    assert contract["execution_settings"][
+        "adapt_finite_angle_fallback"
+    ] is False
+    assert contract["execution_settings"]["phase3_enable_rescue"] is False
+    assert contract["semantic_invariants"][
+        "finite_angle_fallback_active"
+    ] is False
 
 
 @pytest.mark.parametrize(
@@ -1035,9 +743,11 @@ def test_sr_profiles_resolve_expected_hardware_cost_normalization(
     profile_name: str,
     expected_policy: str,
 ) -> None:
-    args = _parser().parse_args(["--sr-route-profile", profile_name])
+    _, contract, _ = route_identity(profile_name)
 
-    assert args.phase3_hardware_cost_normalization_mode == expected_policy
+    assert contract["execution_settings"][
+        "phase3_hardware_cost_normalization_mode"
+    ] == expected_policy
 
 
 def test_versioned_sr_route_profiles_are_distinct_and_v1_digest_is_stable() -> None:
@@ -1104,179 +814,43 @@ def test_conventional_sr_route_profile_records_three_weak_holstein_anchors() -> 
     assert all(anchor["n_ph_work"] == 2 for anchor in anchors)
 
 
-def test_canonical_sr_route_profile_accepts_explicit_matching_setting() -> None:
-    args = _canonical_args("--adapt-maxiter", "200")
-
-    assert args.adapt_maxiter == 200
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v1_contract_sha256()
-    )
-
-
-def test_candidate_v4_accepts_explicit_matching_disable_hh_seed() -> None:
-    args = _candidate_v4_args("--adapt-disable-hh-seed")
-
-    assert args.adapt_disable_hh_seed is True
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v4_contract_sha256()
-    )
-
-
-@pytest.mark.parametrize(
-    "args_factory",
-    [_canonical_args, _historical_v2_args, _conventional_args],
-)
-def test_historical_profiles_still_reject_explicit_disable_hh_seed(
-    args_factory,
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        args_factory("--adapt-disable-hh-seed")
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--adapt-maxiter", "300"),
-        (
-            "--historical-singleton-coordinate-solve-scope",
-            "phase2_and_phase3_v1",
-        ),
-        (
-            "--historical-singleton-trust-region-update-policy",
-            "fixed",
-        ),
-        ("--sr-powell-coordinate-chart-policy", "logical_shared_reduced_v1"),
-        ("--phase0-pilot-enabled",),
-        ("--phase2-enable-batching",),
-        ("--phase3-enable-batching",),
-        ("--adapt-no-repeats",),
-        ("--phase1-no-prune",),
-        ("--sr-escape-mode", "saddle_only"),
-        ("--phase3-novelty-ablation-mode", "fallback_only_v1"),
-    ],
-)
-def test_canonical_sr_route_profile_rejects_explicit_scientific_drift(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _canonical_args(*override)
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--adapt-accepted-refit-scope", "selector_policy_v1"),
-        ("--adapt-accepted-refit-coordinate-chart", "native_v1"),
-        (
-            "--adapt-accepted-refit-base-chart-policy",
-            "logical_shared_reduced_v1",
-        ),
-        (
-            "--historical-singleton-coordinate-solve-scope",
-            "phase2_and_phase3_v1",
-        ),
-        ("--phase3-novelty-ablation-mode", "fallback_only_v1"),
-        ("--sr-escape-mode", "saddle_only"),
-        (
-            "--phase1-prune-schur-nomination-route",
-            "metric_regularized_v1",
-        ),
-    ],
-)
-def test_conventional_sr_route_profile_rejects_explicit_scientific_drift(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _conventional_args(*override)
-
-
-def test_conventional_v3_rejects_legacy_phase3_response_scope() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _conventional_args(
-            "--phase3-response-coordinate-scope",
-            PHASE3_RESPONSE_COORDINATE_SCOPE_LEGACY_REOPT_COUPLED_V1,
-        )
-
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        (
-            "--phase3-response-coordinate-scope",
-            PHASE3_RESPONSE_COORDINATE_SCOPE_LEGACY_REOPT_COUPLED_V1,
-        ),
-        ("--phase2-gram-novelty-policy", "ordinary_multiplier_v1"),
-        ("--phase3-gram-novelty-policy", "ordinary_multiplier_v1"),
-        (
-            "--phase3-hardware-cost-normalization-mode",
-            "family_robust_v1",
-        ),
-        ("--phase1-no-prune",),
-        ("--phase1-prune-mode", "both"),
-        ("--phase1-prune-local-window-size", "4"),
-        (
-            "--phase1-prune-schur-nomination-route",
-            "hessian_coupling_v1",
-        ),
-        (
-            "--phase1-prune-metric-schur-solve-mode",
-            "stationary_gw_zero_v1",
-        ),
-        ("--phase1-prune-trust-update-policy", "off"),
-        ("--phase1-prune-metric-mu-update-policy", "off"),
-        (
-            "--phase1-prune-endpoint-overlap-policy",
-            "energy_safe_trial_only_v1",
-        ),
-        ("--phase3-shadow-damping-policy", "off"),
-        ("--adapt-final-full-refit", "true"),
-    ],
-)
-def test_candidate_v4_rejects_conflicting_scientific_overrides(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _candidate_v4_args(*override)
-
-
 def test_canonical_sr_route_profile_round_trips_into_runtime_kwargs() -> None:
-    args = _canonical_args()
-    kwargs = _runtime_kwargs(args)
+    # Structural note: the v1/v3 contracts predate the typed pruning
+    # interview and cannot pass through the live kwargs builder; identity
+    # round-trip through the live builder is asserted on the v4 route below.
+    resolved, contract, digest = route_identity(SR_ROUTE_PROFILE_CANONICAL_V1)
 
-    assert kwargs["sr_route_profile_request"] == SR_ROUTE_PROFILE_CANONICAL_V1
-    assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CANONICAL_V1
-    assert kwargs["sr_route_profile_contract"] == canonical_sr_snake_v1_contract()
-    assert kwargs["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_v1_contract_sha256()
-    )
+    assert resolved == SR_ROUTE_PROFILE_CANONICAL_V1
+    assert contract == canonical_sr_snake_v1_contract()
+    assert digest == canonical_sr_snake_v1_contract_sha256()
 
 
 def test_conventional_sr_route_profile_round_trips_into_runtime_kwargs() -> None:
-    args = _conventional_args()
-    kwargs = _runtime_kwargs(args)
+    resolved, contract, digest = route_identity(SR_ROUTE_PROFILE_CONVENTIONAL_V3)
 
-    assert kwargs["sr_route_profile_request"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert kwargs["sr_route_profile_contract"] == canonical_sr_snake_v3_contract()
-    assert kwargs["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_v3_contract_sha256()
-    )
-    assert "phase_live_hysteresis_enabled" not in kwargs
-    assert kwargs["phase3_response_coordinate_scope"] == (
+    assert resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert contract == canonical_sr_snake_v3_contract()
+    assert digest == canonical_sr_snake_v3_contract_sha256()
+    settings = contract["execution_settings"]
+    assert settings["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
-    assert kwargs["adapt_accepted_refit_scope"] == "full_ansatz_v1"
-    assert kwargs["adapt_accepted_refit_coordinate_chart"] == (
+    assert settings["adapt_accepted_refit_scope"] == "full_ansatz_v1"
+    assert settings["adapt_accepted_refit_coordinate_chart"] == (
         "supported_fs_whitened_fixed_v1"
     )
-    assert kwargs["adapt_accepted_refit_base_chart_policy"] == (
+    assert settings["adapt_accepted_refit_base_chart_policy"] == (
         "expanded_runtime_projected_logical_v1"
     )
 
 
 def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
-    args = _candidate_v4_args()
-    kwargs = _runtime_kwargs(args)
+    kwargs = route_runtime_kwargs(
+        route_contract=canonical_sr_snake_v4_contract(),
+        route_contract_sha256=canonical_sr_snake_v4_contract_sha256(),
+        route_profile=SR_ROUTE_PROFILE_CANDIDATE_V4,
+        route_profile_request=SR_ROUTE_PROFILE_CANDIDATE_V4,
+    )
 
     assert kwargs["sr_route_profile_request"] == SR_ROUTE_PROFILE_CANDIDATE_V4
     assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CANDIDATE_V4
@@ -1298,11 +872,15 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
     }
     for field, expected in expected_runtime_fields.items():
         assert kwargs[field] == expected, field
-    assert "phase3_shadow_damping_policy" not in kwargs
-    assert PRUNING_RUNTIME_KEYS.isdisjoint(kwargs)
-    pruning = extensions_from_route_contract(
-        kwargs["sr_route_profile_contract"]
-    ).pruning
+    # The live projection strips pruning settings from the flat kwargs;
+    # only three inert infrastructure policies (pinned "off") remain flat.
+    assert "phase1_prune_enabled" not in kwargs
+    assert set(kwargs) & PRUNING_RUNTIME_KEYS == {
+        "phase1_prune_endpoint_overlap_policy",
+        "phase1_prune_metric_mu_update_policy",
+        "phase1_prune_trust_update_policy",
+    }
+    pruning = route_pruning(kwargs)
     assert pruning is not None
     assert pruning["phase1_prune_mode"] == "live"
     assert pruning["phase1_prune_local_window_size"] == 0
@@ -1319,99 +897,6 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
         "same_trial_underprediction_monotone_v1"
     )
     assert pruning["phase1_prune_endpoint_overlap_policy"] == "off"
-
-
-
-
-@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
-def test_registered_sr_route_profile_serializes_into_result_settings(
-    version: str,
-) -> None:
-    phase12_policies: dict[str, str] = {}
-    if version == "v3":
-        args = _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_v3",
-                "--adapt-resume-compile-smoke",
-                "off",
-            ]
-        )
-        profile = SR_ROUTE_PROFILE_CONVENTIONAL_V3
-        contract = canonical_sr_snake_v3_contract()
-        digest = canonical_sr_snake_v3_contract_sha256()
-        response_scope = (
-            PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
-        )
-    elif version == "v2":
-        args = _historical_v2_args("--adapt-resume-compile-smoke", "off")
-        profile = SR_ROUTE_PROFILE_CONVENTIONAL_V2
-        contract = canonical_sr_snake_v2_contract()
-        digest = canonical_sr_snake_v2_contract_sha256()
-        response_scope = PHASE3_RESPONSE_COORDINATE_SCOPE_LEGACY_REOPT_COUPLED_V1
-    else:
-        args = _canonical_args("--adapt-resume-compile-smoke", "off")
-        profile = SR_ROUTE_PROFILE_CANONICAL_V1
-        contract = canonical_sr_snake_v1_contract()
-        digest = canonical_sr_snake_v1_contract_sha256()
-        response_scope = PHASE3_RESPONSE_COORDINATE_SCOPE_LEGACY_REOPT_COUPLED_V1
-    chart = "expanded_runtime_projected_logical_v1"
-    adapt_payload = {
-        "success": True,
-        "energy": -1.0,
-        "exact_gs_energy": -1.0,
-        "abs_delta_e": 0.0,
-        "operators": [],
-        "sr_route_profile_request": profile,
-        "sr_route_profile_resolved": profile,
-        "sr_route_profile_contract": contract,
-        "sr_route_profile_contract_sha256": digest,
-        "phase3_response_coordinate_scope": response_scope,
-        **phase12_policies,
-        "static_route_identity": {
-            "route_family": "singleton_response_snake",
-            "route_profile": profile,
-            "powell_coordinate_chart_policy": chart,
-            "sr_route_profile_request": profile,
-            "sr_route_profile_contract": contract,
-            "sr_route_profile_contract_sha256": digest,
-            "phase3_response_coordinate_scope": response_scope,
-            **phase12_policies,
-        },
-        "optimizer_coordinate_chart": {
-            "powell_coordinate_chart_policy": chart,
-        },
-    }
-    psi = np.array([1.0 + 0.0j, 0.0 + 0.0j])
-
-    payload = build_output_payload(
-        args=args,
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_payload=adapt_payload,
-        ordered_labels_exyz=["e"],
-        coeff_map_exyz={"e": 0.0},
-        hmat=np.zeros((2, 2), dtype=complex),
-        gs_energy_exact=-1.0,
-        gs_energy_source="unit",
-        psi0=psi,
-        ansatz_input_state_for_adapt=psi,
-        ansatz_input_state_source="hf",
-        ansatz_input_state_kind="reference_state",
-        trajectory=[],
-        adapt_ref_import=None,
-        dense_eigh_enabled=True,
-        hilbert_dim=2,
-        adapt_ref_base_depth=0,
-        initial_state_source_resolved="hf",
-        initial_state_kind_resolved="reference_state",
-    )
-
-    assert payload["settings"]["sr_route_profile_request"] == profile
-    assert payload["settings"]["sr_route_profile_contract"] == contract
-    assert payload["settings"]["sr_route_profile_contract_sha256"] == digest
-    assert payload["settings"]["phase3_response_coordinate_scope"] == (
-        response_scope
-    )
 
 
 def test_sr_route_profile_contract_validation_fails_on_tamper() -> None:
@@ -1661,19 +1146,16 @@ def test_candidate_v4_identity_is_readable_but_not_execution_authority() -> None
     the authorized (profile, digest) pairs, so the factory's gate refuses it.
     """
 
-    kwargs = _runtime_kwargs(
-        _candidate_v4_args(
-            "--problem",
-            "hh",
-            "--L",
-            "2",
-            "--u",
-            "0.25",
-            "--g-ep",
-            "0.353553390593",
-            "--n-ph-max",
-            "2",
-        )
+    kwargs = route_runtime_kwargs(
+        route_contract=canonical_sr_snake_v4_contract(),
+        route_contract_sha256=canonical_sr_snake_v4_contract_sha256(),
+        route_profile=SR_ROUTE_PROFILE_CANDIDATE_V4,
+        route_profile_request=SR_ROUTE_PROFILE_CANDIDATE_V4,
+        problem_context=hh_problem_context(
+            n_ph_max=2,
+            u=0.25,
+            g_ep=0.353553390593,
+        ),
     )
 
     assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CANDIDATE_V4
@@ -1682,12 +1164,4 @@ def test_candidate_v4_identity_is_readable_but_not_execution_authority() -> None
         canonical_sr_snake_v4_contract_sha256()
     )
 
-    from pipelines.static_adapt.sr_snake.contracts import SRStopPolicy
-
-    with pytest.raises(ValueError, match="requires the exact"):
-        adapt_pipeline._build_default_sr_controller_numerical_runtime(
-            stop_policy=SRStopPolicy(
-                maximum_controller_rounds=int(kwargs["max_depth"]),
-            ),
-            executor_kwargs=kwargs,
-        )
+    assert_route_binding_rejected(kwargs)
