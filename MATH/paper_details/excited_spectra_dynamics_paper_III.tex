@@ -42,7 +42,6 @@
 \newcommand{\Dcal}{\mathcal{D}}
 \newcommand{\Pcal}{\mathcal{P}}
 \newcommand{\Tcal}{\mathcal{T}}
-\newcommand{\Ucal}{\mathcal{U}}
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\ii}{\mathrm{i}}
 \newcommand{\ee}{\mathrm{e}}
@@ -258,27 +257,23 @@ F_r
 \structlabel{Selection score}
 Before the staged approximation, we state the acquisition rule top down.  A candidate excitation record $r$ is ranked by a single scalar built from three geometric factors, each answering one question about what the record contributes to the \emph{currently retained} manifold:
 \begin{equation}
-\Ucal(r;\ell)
+\Scal(r;\ell)
 =
-w_{\Ncal}\,\Ncal_2^{\qse}(r;\ell)
+\frac{
+w_{\Ncal}\,\Ncal^{\qse}(r;\ell)
 +w_{R}\,C^{\rm res}(r;\ell)
-+w_{T}\,T(r;\ell),
+}{
+\left[\max\!\left(\widehat C(r;\ell),C_{\rm floor}\right)\right]^{\alpha}
+},
 \label{eq:qse_score_topdown}
 \end{equation}
-whose four ingredients are
+whose two geometric ingredients are
 \begin{itemize}
-\item $\Ncal_2^{\qse}$, \emph{metric novelty}: the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero;
+\item $\Ncal^{\qse}$, \emph{metric novelty}: the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero;
 \item $C^{\rm res}$, \emph{residual capture}: the fraction of the targeted roots' eigen-equation residual that the record's direction absorbs ;
 \item $T$, \emph{probe-transition visibility}: the largest overlap of the record's direction with the normalized images of the target observables .
 \end{itemize}
-The ranked quantity is this utility discounted by the record's incremental compiled hardware cost,
-\begin{equation}
-\Scal(r;\ell)
-=
-\frac{\Ucal(r;\ell)}{\left[\max\!\left(\widehat C(r;\ell),C_{\rm floor}\right)\right]^{\alpha}},
-\label{eq:qse_score_ranked}
-\end{equation}
-with the cost model deferred to Sec.~\ref{sec:cost_weighting}.  The ingredients enter additively rather than as a product, so a record strong in one coordinate can still be admitted when another is weak; the veto behavior that a product would impose is instead supplied by the metric-novelty floor, below which a candidate is rejected outright as unrepresentable.  Each term is load bearing: Sec.~\ref{sec:ablations} shows that removing any one of metric novelty, residual capture, or the cost discount prevents convergence in most regimes.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
+The numerator is the geometric part of the score and the denominator the hardware discount, whose cost model is deferred to Sec.~\ref{sec:cost_weighting}.  The ingredients enter additively rather than as a product, so a record strong in one coordinate can still be admitted when another is weak; the veto behavior that a product would impose is instead supplied by the metric-novelty floor, below which a candidate is rejected outright as unrepresentable.  Each term is load bearing: Sec.~\ref{sec:ablations} shows that removing any one of metric novelty, residual capture, or the cost discount prevents convergence in most regimes.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
 
 The remainder of this section makes each factor precise.  Section~\ref{sec:acquisition_objective} states the spectral-window utility that Eq.~(\ref{eq:qse_score_topdown}) approximates and defines both quantities; Sec.~\ref{sec:acquisition_objective} gives the two geometric quantities as implemented; Sec.~\ref{sec:cost_weighting} attaches the hardware discount; Sec.~\ref{sec:stopping_rule} gives the stopping rule that makes support size an output rather than a budget; and Sec.~\ref{sec:exchange_maintenance} gives the certified exchange move that maintains an already-selected support.
 
@@ -327,10 +322,10 @@ F_r^\perp=\braket{\bar\phi_r}{\bar\phi_r},
 \end{equation}
 and the metric novelty is the Schur-complement residual fraction
 \begin{equation}
-\Ncal_2^{\qse}(r;\ell)=\frac{F_r^\perp}{\braket{\phi_r}{\phi_r}+\eps_F}\in[0,1].
+\Ncal^{\qse}(r;\ell)=\frac{F_r^\perp}{\braket{\phi_r}{\phi_r}+\eps_F}\in[0,1].
 \label{eq:qse_phase2_novelty}
 \end{equation}
-The projection in Eq.~(\ref{eq:qse_reduced_candidate_direction}) is applied twice (reorthogonalized Gram--Schmidt): a single pass lets numerical noise from near-dependent accepted directions masquerade as zero novelty and permanently exclude records that still carry rank.  Candidates with $\Ncal_2^{\qse}$ below a hard floor are rejected outright as unrepresentable rather than merely ranked low.
+The projection in Eq.~(\ref{eq:qse_reduced_candidate_direction}) is applied twice (reorthogonalized Gram--Schmidt): a single pass lets numerical noise from near-dependent accepted directions masquerade as zero novelty and permanently exclude records that still carry rank.  Candidates with $\Ncal^{\qse}$ below a hard floor are rejected outright as unrepresentable rather than merely ranked low.
 
 \structlabel{Residual capture}
 Let $M_{\Acal_\ell}=(\bra{\phi_a}H_0\ket{\phi_b})_{a,b\in\Acal_\ell}$ and let $c^{(\nu)}$ solve the projected problem
