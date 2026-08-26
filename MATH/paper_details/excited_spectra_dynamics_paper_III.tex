@@ -450,7 +450,7 @@ with at least one inequality strict by a declared margin, and only if the recomp
 \operatorname{rank}_\tau S_{\Acal'}\ \ge\ \operatorname{rank}_\tau S_{\Acal} .
 \label{eq:qse_exchange_guards}
 \end{equation}
-An optional budgeted variant replaces the cost inequality in Eq.~(\ref{eq:qse_exchange_dominance}) by a declared envelope $C(\Acal')\le C_{\rm budget}$, which lets the move trade cost for accuracy up to a stated ceiling; budgeted numbers are always labeled with their envelope.
+In the present implementation $B^-$ and $B^+$ are single records, so the move is a one-for-one exchange together with its pure-deletion and pure-insertion degenerate cases; higher-cardinality patches are admitted by the same certification but are not enumerated.  Across the $n_{\rm ph}=1$ regimes the mechanism is exercised rather than dormant: ten of the eleven committed patches are genuine delete--insert pairs, one is a pure deletion, and none is a pure insertion.  An optional budgeted variant replaces the cost inequality in Eq.~(\ref{eq:qse_exchange_dominance}) by a declared envelope $C(\Acal')\le C_{\rm budget}$, which lets the move trade cost for accuracy up to a stated ceiling; budgeted numbers are always labeled with their envelope.
 
 Three properties distinguish this from pruning followed by regrowth.  The deletion and insertion sets are evaluated \emph{jointly}, so a patch may be accepted whose benefit does not decompose into individually favorable single moves --- a survivor record can absorb the deleted direction only once the replacement is present.  Acceptance is decided by a full re-solve of the projected pencil on $\Acal'$, so the objective, the conditioning, and the compiled cost are all evaluated on the object that will actually be measured.  And the commit is atomic: a patch failing any gate leaves $\Acal$ untouched, so the maintained support is at every step a certified improvement on its predecessor.  In practice exchange acts both as a repair for supports where greedy acquisition stalls and as a cost compressor after convergence, and it reduces matrix-measurement work as well as circuit cost.
 
@@ -1018,15 +1018,23 @@ Three methods and one baseline are evaluated on identical Hamiltonians, sectors,
 Figure~\ref{fig:qse_growth_gaps} shows the resolved gaps $\omega_\nu=E_\nu-E_0$ against the exact ladder in every regime.  It is the primary display because it separates the two ways a method fails: losing accuracy on a represented state, and omitting a state altogether.  The standard-QSE baseline does the latter---its class does not span the window, so it misplaces specific excitations and inserts spurious ones at any budget, a deficiency no additional measurement repairs.  The adaptive and Krylov constructions resolve the ladder, so the question they pose is one of cost rather than of reachability.
 
 \begin{figure}[t]
-\includegraphics[width=\columnwidth]{generated/paper_iii_growth_gaps.pdf}
-\caption{Excitation gaps $\omega_\nu=E_\nu-E_0$ for the six lowest excitations of each regime: exact sector-restricted spectrum (bars) against the three compared methods and the standard-QSE baseline, each at its most accurate recorded subspace.  Values above the plotted window are drawn as carets with their value printed, so none are omitted.}
+\includegraphics[width=\columnwidth]{generated/paper_iii_growth_gaps_nph1.pdf}
+\caption{Excitation gaps $\omega_\nu=E_\nu-E_0$ for the six lowest excitations of each regime at $n_{\rm ph}=1$: exact sector-restricted spectrum (bars) against the three compared methods and the standard-QSE baseline, each at its most accurate recorded subspace.  Values above the plotted window are drawn as carets with their value printed, so none are omitted.}
 \label{fig:qse_growth_gaps}
 \end{figure}
 
-\structlabel{Resources at fixed accuracy}
-The tables below give $C^\star(\eps_E)$ for each method at three accuracy targets in the four reported axes.  Two readings matter.  First, the non-adaptive baseline reaches no target in any regime: its failure is one of representation, not of budget, so no resource ratio against it is meaningful.  Second, among the methods that do resolve the window, cost-weighted selection reaches each target with roughly an order of magnitude fewer compiled two-qubit gates than quantum-Davidson growth and one to two orders fewer than the Krylov construction, with a comparable reduction in estimator queries.  That reduction follows from support size: the projected pencil requires $k(k+1)/2$ elements of both the overlap and the Hamiltonian, so a method certifying the same window from fewer records pays proportionately less to build it.  We claim no reduction in selection-time measurement, because the acquisition rule of Sec.~\ref{sec:acquisition_objective} scores every admissible candidate each round rather than screening a shortlist.
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{generated/paper_iii_growth_gaps_nph3.pdf}
+\caption{As Fig.~\ref{fig:qse_growth_gaps}, at the larger phonon cutoff $n_{\rm ph}=3$.}
+\label{fig:qse_growth_gaps_nph3}
+\end{figure}
 
-\input{generated/paper_iii_growth_cost_tables}
+\structlabel{Resources at fixed accuracy}
+The tables below give $C^\star(\eps_E)$ for each method at three accuracy targets in the four reported axes, at both phonon cutoffs.  Three readings matter.  First, the non-adaptive baseline reaches no target in any regime: its failure is one of representation, not of budget, so no resource ratio against it is meaningful.  Second, among the methods that do resolve the window, cost-weighted selection reaches each target with roughly an order of magnitude fewer compiled two-qubit gates than quantum-Davidson growth and one to two orders fewer than the Krylov construction, with a comparable reduction in estimator queries.  That reduction follows from support size: the projected pencil requires $k(k+1)/2$ elements of both the overlap and the Hamiltonian, so a method certifying the same window from fewer records pays proportionately less to build it.  We claim no reduction in selection-time measurement, because the acquisition rule of Sec.~\ref{sec:acquisition_objective} scores every admissible candidate each round rather than screening a shortlist.  Third, the advantage is bounded by the record alphabet.  At $n_{\rm ph}=3$ the selected manifold does not reach the tightest target in the weak--strong and intermediate--strong regimes, stalling near $10^{-2}$, while quantum-Davidson growth reaches it there.  The reason is structural rather than a matter of budget: our candidates are images of a fixed record alphabet under one reference, whereas the Davidson construction synthesizes each new direction from the residual itself and is therefore not confined to that alphabet.  Where the alphabet spans the window we are an order of magnitude cheaper; where it does not, no acquisition rule over that alphabet can close the gap, and enriching the pool---not reweighting the score---is the remedy.
+
+\input{generated/paper_iii_growth_cost_tables_nph1}
+
+\input{generated/paper_iii_growth_cost_tables_nph3}
 
 \label{sec:ablations}
 \structlabel{Score-term ablations}

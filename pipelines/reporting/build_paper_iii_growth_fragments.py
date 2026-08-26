@@ -166,7 +166,8 @@ def _cost_cell(entry: dict[str, Any] | None) -> str:
     )
 
 
-def build_cost_tables(payload: dict[str, Any], source: Path) -> str:
+def build_cost_tables(payload: dict[str, Any], source: Path, *, suffix: str = "") -> str:
+    tier = {'nph1': 'Cutoff $n_{\\rm ph}=1$.', 'nph3': 'Cutoff $n_{\\rm ph}=3$.'}.get(str(payload.get('regime_set', '')), '')
     targets = sorted(
         {e for rec in payload["regimes"].values() for e in rec["cells"]},
         key=lambda x: -float(x),
@@ -188,8 +189,8 @@ def build_cost_tables(payload: dict[str, Any], source: Path) -> str:
         eps = group[0]
         lines.append(r"\begin{widetext}")
         lines.append(
-            rf"\inlinetablecaption{{tab:qse_growth_{eps.replace('-', 'm').replace('.', '')}}}"
-            rf"{{Resources required to resolve the lowest six excitations to "
+            rf"\inlinetablecaption{{tab:qse_growth{suffix}_{eps.replace('-', 'm').replace('.', '')}}}"
+            rf"{{{tier} Resources required to resolve the lowest six excitations to "
             rf"{'$\\varepsilon_E=' + _sci(float(eps))[1:-1] + '$' if len(group) == 1 else 'each of $\\varepsilon_E \\in \\{' + ', '.join(_sci(float(e))[1:-1] for e in group) + '\\}$ (the certified subspace is the same for all of them)'}, on an identical record alphabet with "
             r"every method grown one record at a time (no method's stopping rule enters the "
             r"comparison). Cells give the deterministic graph-span proxy $N_{2q}/D_{2q}/D_c$ "
@@ -218,18 +219,21 @@ def build_cost_tables(payload: dict[str, Any], source: Path) -> str:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign-json", type=Path, default=DEFAULT_CAMPAIGN)
+    parser.add_argument("--suffix", default="", help="Tag appended to fragment filenames, e.g. _nph3.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args(argv)
 
-    payload = json.loads(Path(args.campaign_json).read_text(encoding="utf-8"))
+    campaign = Path(args.campaign_json).resolve()
+    payload = json.loads(campaign.read_text(encoding="utf-8"))
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    _gap_figure(payload, out / "paper_iii_growth_gaps.pdf")
-    (out / "paper_iii_growth_cost_tables.tex").write_text(
-        build_cost_tables(payload, Path(args.campaign_json)), encoding="utf-8"
+    sfx = str(args.suffix)
+    _gap_figure(payload, out / f"paper_iii_growth_gaps{sfx}.pdf")
+    (out / f"paper_iii_growth_cost_tables{sfx}.tex").write_text(
+        build_cost_tables(payload, campaign, suffix=sfx), encoding="utf-8"
     )
-    print(f"wrote {out / 'paper_iii_growth_gaps.pdf'}")
-    print(f"wrote {out / 'paper_iii_growth_cost_tables.tex'}")
+    print(f"wrote {out / f'paper_iii_growth_gaps{sfx}.pdf'}")
+    print(f"wrote {out / f'paper_iii_growth_cost_tables{sfx}.tex'}")
     return 0
 
 
