@@ -155,6 +155,24 @@ storage operations.
 
 Follow root `AGENTS.md` adaptive monitoring.
 
+### Paper-I status-completeness gate
+
+When the active Paper-I objective has launched or submitted work, interpret a
+bare `status` or `status?` as a request to reconcile every backend used by that
+objective. Check local processes, the private remote runner, and CHTC before
+answering. For CHTC, query the exact cluster IDs recorded at submission and use
+`JobBatchName` only as supporting metadata because it can be undefined. An
+existing authenticated CHTC session must be used automatically for a one-shot
+read-only `condor_q`/`condor_history` check; do not stop at VPN reachability or
+local process state. If no authenticated session exists, report `CHTC status
+not queried` as a limitation and never collapse that partial observation into
+`no Paper-I jobs are active`.
+
+The response must name each applicable backend and its state. In particular,
+`no local Paper-I process` and `remote runner idle` do not imply `Paper-I idle`
+when CHTC work was submitted. Read-only status inspection is always permitted
+by a status request; mutations remain separately gated.
+
 For a local run:
 
 - verify the command, settings, route, and output destination;
