@@ -1030,11 +1030,6 @@ from pipelines.static_adapt.response_accounting import (
     _physical_generator_block_payload,
     _physical_tangent_operand_identity,
 )
-from pipelines.static_adapt.output_artifacts import (
-    _write_pipeline_pdf,
-    build_output_payload,
-    persist_output_artifacts,
-)
 from pipelines.static_adapt.plateau_acquisition import (
     PLATEAU_ACQUISITION_SCORE_LOG_VOLUME_V1,
     PLATEAU_ACQUISITION_MODE_OFF,
