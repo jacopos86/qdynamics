@@ -12,7 +12,37 @@ failure states named rather than hidden.
 
 ---
 
-## 1. The native protocol: fixed accuracy, compare resources
+## 1. Growth traces, not stopping rules (LOCKED, user 2026-08-26)
+
+Every method grows the subspace one record at a time to a fixed cap and
+records, at each step k, the tuple
+
+    (k, N2q, D2q, Dc, max_{nu<=R} |Delta E_nu|).
+
+The comparison is then read off the trace:
+
+    C*(eps_E) = min{ cost over the trace : max_{nu<=R} |Delta E_nu| <= eps_E }.
+
+**No method's own stopping rule enters the comparison.** This is the Paper-I
+convention (run all arms to a fixed iteration count rather than letting each
+halt on its own epsilon/gradient plateau), imported here because a stopping
+rule that overshoots the target silently inflates that method's reported cost:
+our residual stop is conservative by ~1e4-1e5 in energy, so it can only emit
+subspaces far more accurate than a loose target asks for, making C*(eps_E)
+flat while trace-based competitors scale.
+
+The residual stop is still reported, as a MARKER on the trace ("where this
+method would have halted"), never as the comparison mechanism.
+
+## 1b. Where exchange enters (policy, under evaluation)
+
+Certified exchange is post-hoc compression of a finished basis, so it can be
+applied either at the crossing point only (policy A) or at every recorded k
+(policy B). Both are implemented; the cheap Hubbard tier decides which becomes
+canonical. Until that decision, every artifact records which policy produced
+each cell.
+
+## 2. The native protocol: fixed accuracy, compare resources
 
 The production method takes an accuracy specification as INPUT (the residual
 stop) and returns a support and its resource bill as OUTPUT. Its native
@@ -37,7 +67,7 @@ for presentation, but the primary claim axis is C*(eps_E). Prefix-path
 emits certified endpoints, not orderings (established 2026-08-19 after a
 mis-benchmark; do not repeat it).
 
-## 2. Locked axes (fairness)
+## 3. Locked axes (fairness)
 
 | axis | what is locked |
 |---|---|
@@ -55,7 +85,7 @@ result is not a shot result):
    (`qwc_groups_total`), with distinct-word and naive-term counts;
 3. support size k and retained rank.
 
-## 3. Comparator admissibility
+## 4. Comparator admissibility
 
 - External comparators must be faithful implementations of a published
   construction, cited to it. Configurations of our own selector are
@@ -67,7 +97,7 @@ result is not a shot result):
   benchmarked on the same physics and costed by the same oracle, and labeled
   as a different construction family.
 
-## 4. Ingredient necessity (what is necessary vs unnecessary)
+## 5. Ingredient necessity (what is necessary vs unnecessary)
 
 Run `paper_iii_qse_score_ablation.py` at the production residual stop, one
 ingredient disabled per arm, support size as an output. Verdicts, per
