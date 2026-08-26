@@ -1784,6 +1784,18 @@ def _repaired_route_contract(
             STATIC_LANE_ROUTE_GLOBAL_SINGLE_POPULATION
         )
         execution.pop("physical_lane_shortlist_aggressiveness", None)
+    adapter_pool_key = getattr(request.adapter, "pool_key", None)
+    if adapter_pool_key is not None:
+        if h2o_application or pure_hubbard_noise_application:
+            raise ValueError(
+                "Named RA applications are source-locked to their pool; "
+                "an adapter pool_key override is not admissible."
+            )
+        # The adapter's requested parent pool becomes the executed pool.
+        # Admissibility is validated fail-closed in pools._parent_pool_spec,
+        # and the changed execution settings flow into the contract sha256,
+        # so a different pool is a different protocol identity.
+        execution["adapt_pool"] = str(adapter_pool_key)
     contract["execution_settings"] = execution
     invariants = dict(contract.get("semantic_invariants", {}))
     for retired_key in (

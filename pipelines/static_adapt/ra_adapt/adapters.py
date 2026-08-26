@@ -124,18 +124,24 @@ class MacroCandidateAdapter:
     )
     candidate_representation_id: str = CANDIDATE_REPRESENTATION_MACRO
     adapter_id: str = MACRO_ADAPTER_ID
+    # None keeps the canonical full_meta parent supply; an explicit key is
+    # validated fail-closed against problem.admissible_pool_keys and flows
+    # into the pool receipts, the route contract, and the protocol digest.
+    pool_key: str | None = None
 
     def parent_inventory(
         self, problem: ResolvedProblemContext
     ) -> CandidateInventory:
         return build_parent_template_inventory(
-            problem, representation_id=self.candidate_representation_id
+            problem,
+            representation_id=self.candidate_representation_id,
+            pool_key=self.pool_key,
         )
 
     def executable_pool(
         self, problem: ResolvedProblemContext
     ) -> CandidateInventory:
-        return build_executable_macro_pool(problem)
+        return build_executable_macro_pool(problem, pool_key=self.pool_key)
 
     def expose_children(
         self,
@@ -218,12 +224,16 @@ class SinglePauliWordCandidateAdapter:
     )
     candidate_representation_id: str = CANDIDATE_REPRESENTATION_SINGLE_PAULI
     adapter_id: str = SINGLE_PAULI_ADAPTER_ID
+    # See MacroCandidateAdapter.pool_key.
+    pool_key: str | None = None
 
     def parent_inventory(
         self, problem: ResolvedProblemContext
     ) -> CandidateInventory:
         return build_parent_template_inventory(
-            problem, representation_id=self.candidate_representation_id
+            problem,
+            representation_id=self.candidate_representation_id,
+            pool_key=self.pool_key,
         )
 
     def executable_pool(
@@ -258,6 +268,7 @@ class SinglePauliWordCandidateAdapter:
         return build_staged_single_pauli_pool(
             problem,
             retained_parents=tuple(retained_parents),
+            pool_key=self.pool_key,
         )
 
     def global_executable_pool(
@@ -265,7 +276,7 @@ class SinglePauliWordCandidateAdapter:
     ) -> CandidateInventory:
         """Build the global guarded child pool used only by Append-ADAPT."""
 
-        return build_guarded_single_pauli_pool(problem)
+        return build_guarded_single_pauli_pool(problem, pool_key=self.pool_key)
 
     def candidate_geometry(
         self, record: CandidateRecord, position: int
@@ -456,6 +467,8 @@ class GlobalSinglePauliWordCandidateAdapter:
     )
     candidate_representation_id: str = CANDIDATE_REPRESENTATION_SINGLE_PAULI
     adapter_id: str = GLOBAL_SINGLE_PAULI_ADAPTER_ID
+    # See MacroCandidateAdapter.pool_key.
+    pool_key: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -473,7 +486,9 @@ class GlobalSinglePauliWordCandidateAdapter:
         """Retain the complete parent-template ancestry as provenance."""
 
         return build_parent_template_inventory(
-            problem, representation_id=self.candidate_representation_id
+            problem,
+            representation_id=self.candidate_representation_id,
+            pool_key=self.pool_key,
         )
 
     def executable_pool(
@@ -481,7 +496,7 @@ class GlobalSinglePauliWordCandidateAdapter:
     ) -> CandidateInventory:
         """Return the exact global pool used by conventional Append-ADAPT."""
 
-        return build_guarded_single_pauli_pool(problem)
+        return build_guarded_single_pauli_pool(problem, pool_key=self.pool_key)
 
     def expose_children(
         self,

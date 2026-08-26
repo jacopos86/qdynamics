@@ -453,11 +453,25 @@ def require_paper_i_pure_hubbard_noise_page12_problem(
 def _parent_pool_spec(
     problem: ResolvedProblemContext,
     *,
+    pool_key: str | None = None,
     paper_i_l3_page12_application: bool = False,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> dict[str, Any]:
     if paper_i_l3_page12_application and paper_i_pure_hubbard_noise_page12_application:
         raise ValueError("Only one named RA pool application may be active.")
+    if pool_key is not None:
+        if paper_i_l3_page12_application or paper_i_pure_hubbard_noise_page12_application:
+            raise ValueError(
+                "Named RA pool applications are source-locked to their pool; "
+                "an explicit pool_key override is not admissible."
+            )
+        requested = str(pool_key)
+        if requested not in set(problem.admissible_pool_keys):
+            raise ValueError(
+                "Requested RA pool "
+                f"{requested!r} is not admissible for this problem; "
+                f"admissible pools: {sorted(problem.admissible_pool_keys)}."
+            )
     if paper_i_pure_hubbard_noise_page12_application:
         require_paper_i_pure_hubbard_noise_page12_problem(problem)
         return {
@@ -482,9 +496,15 @@ def _parent_pool_spec(
         return {
             "problem_key": "hh",
             "num_sites": 2,
-            "pool_key": "full_meta",
+            "pool_key": "full_meta" if pool_key is None else str(pool_key),
             "boson_mode_count": 2,
         }
+    if pool_key is not None:
+        raise ValueError(
+            "The named H2O application is source-locked to its "
+            "derivative-resolved pool; an explicit pool_key override is "
+            "not admissible."
+        )
     return {
         "problem_key": H2O_LINEAR_FD_FAMILY,
         "num_sites": 6,
@@ -509,11 +529,13 @@ def _generator_metadata(term: AnsatzTerm) -> dict[str, Any]:
 def _parent_records(
     problem: ResolvedProblemContext,
     *,
+    pool_key: str | None = None,
     paper_i_l3_page12_application: bool = False,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> tuple[tuple[CandidateRecord, ...], Any]:
     spec = _parent_pool_spec(
         problem,
+        pool_key=pool_key,
         paper_i_l3_page12_application=paper_i_l3_page12_application,
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
@@ -622,6 +644,7 @@ def _build_parent_template_inventory(
     problem: ResolvedProblemContext,
     *,
     representation_id: str,
+    pool_key: str | None = None,
     paper_i_l3_page12_application: bool,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> CandidateInventory:
@@ -637,6 +660,7 @@ def _build_parent_template_inventory(
     )
     records, plan = _parent_records(
         problem,
+        pool_key=pool_key,
         paper_i_l3_page12_application=paper_i_l3_page12_application,
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
@@ -666,7 +690,8 @@ def _build_parent_template_inventory(
         if family == H2O_LINEAR_FD_FAMILY
         else EXPECTED_PARENT_COUNTS.get(nph)
     )
-    if expected is not None and len(records) != expected:
+    ordinary_full_meta = pool_key is None or str(pool_key) == "full_meta"
+    if ordinary_full_meta and expected is not None and len(records) != expected:
         raise RuntimeError(
             f"Parent full_meta inventory drifted at nph={nph}: "
             f"{len(records)} != {expected}."
@@ -721,12 +746,14 @@ def build_parent_template_inventory(
     problem: ResolvedProblemContext,
     *,
     representation_id: str,
+    pool_key: str | None = None,
 ) -> CandidateInventory:
     """Build the ordinary L=2 or named H2O parent inventory."""
 
     return _build_parent_template_inventory(
         problem,
         representation_id=representation_id,
+        pool_key=pool_key,
         paper_i_l3_page12_application=False,
     )
 
@@ -762,12 +789,16 @@ def build_paper_i_pure_hubbard_noise_page12_parent_template_inventory(
 
 def build_executable_macro_pool(
     problem: ResolvedProblemContext,
+    *,
+    pool_key: str | None = None,
 ) -> CandidateInventory:
     """Return the sector-safe 102/148 macro pool shared by RA and Append."""
 
     _require_paper_i_problem(problem)
     parent = build_parent_template_inventory(
-        problem, representation_id=CANDIDATE_REPRESENTATION_MACRO
+        problem,
+        representation_id=CANDIDATE_REPRESENTATION_MACRO,
+        pool_key=pool_key,
     )
     terms = [candidate.term for candidate in parent.candidates]
     audit = audit_candidate_pool_sector_contract(
@@ -1239,6 +1270,7 @@ def _build_guarded_single_pauli_pool(
     problem: ResolvedProblemContext,
     *,
     retained_parents: Sequence[CandidateRecord] | None = None,
+    pool_key: str | None = None,
     paper_i_l3_page12_application: bool,
     paper_i_pure_hubbard_noise_page12_application: bool = False,
 ) -> CandidateInventory:
@@ -1249,6 +1281,7 @@ def _build_guarded_single_pauli_pool(
     )
     spec = _parent_pool_spec(
         problem,
+        pool_key=pool_key,
         paper_i_l3_page12_application=paper_i_l3_page12_application,
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
@@ -1257,6 +1290,7 @@ def _build_guarded_single_pauli_pool(
     parent = _build_parent_template_inventory(
         problem,
         representation_id=CANDIDATE_REPRESENTATION_SINGLE_PAULI,
+        pool_key=pool_key,
         paper_i_l3_page12_application=paper_i_l3_page12_application,
         paper_i_pure_hubbard_noise_page12_application=(
             paper_i_pure_hubbard_noise_page12_application
@@ -1427,12 +1461,14 @@ def build_guarded_single_pauli_pool(
     problem: ResolvedProblemContext,
     *,
     retained_parents: Sequence[CandidateRecord] | None = None,
+    pool_key: str | None = None,
 ) -> CandidateInventory:
     """Build ordinary L=2 or named H2O guarded single-Pauli children."""
 
     return _build_guarded_single_pauli_pool(
         problem,
         retained_parents=retained_parents,
+        pool_key=pool_key,
         paper_i_l3_page12_application=False,
     )
 
@@ -1470,6 +1506,7 @@ def build_staged_single_pauli_pool(
     problem: ResolvedProblemContext,
     *,
     retained_parents: Sequence[CandidateRecord],
+    pool_key: str | None = None,
 ) -> CandidateInventory:
     """Expose canonical unit-Pauli children after the RA parent shortlist.
 
@@ -1494,6 +1531,7 @@ def build_staged_single_pauli_pool(
     guarded = build_guarded_single_pauli_pool(
         problem,
         retained_parents=source,
+        pool_key=pool_key,
     )
     records = guarded.candidates
     return CandidateInventory(
