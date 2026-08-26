@@ -84,6 +84,25 @@ _TARGET_ROOTS = 6
 ERROR_TARGET_LADDER = (1.0e-2, 1.0e-4, 1.0e-6)
 RESIDUAL_RUNG_LADDER = (3.0e-2, 1.0e-2, 3.0e-3, 1.0e-3)
 
+# Cheap-tier regime sets for method streamlining (user directive 2026-08-26):
+# establish the method on cheap physics before any paper-facing matrix.
+# hubbard_l2: g_ep=0 at n_ph_max=1 -- electronically a pure Hubbard dimer with
+# a decoupled single-phonon register (window then contains E_el + n*omega0
+# rows, which is fine for a testbed). nph1: the Paper-I (u, g) points at
+# n_ph_max=1. paper_i: the production conventions (nph3/nph7).
+REGIME_SETS = {
+    "hubbard_l2": tuple(
+        (f"hubbard_u{u:g}", u, 0.0, 1) for u in (0.25, 1.25, 8.0)
+    ),
+    "nph1": tuple(
+        (regime, u, g_ep, 1) for regime, u, g_ep, _n in PAPER_I_REGIMES
+    ),
+    "nph3": tuple(
+        (regime, u, g_ep, 3) for regime, u, g_ep, _n in PAPER_I_REGIMES
+    ),
+    "paper_i": tuple(PAPER_I_REGIMES),
+}
+
 STATUS_REACHED = "REACHED"
 STATUS_UNATTAINABLE = "UNATTAINABLE_WITH_MANIFOLD"
 STATUS_NOT_IN_POOL = "NOT_REACHED_WITHIN_POOL"
@@ -186,19 +205,27 @@ def _pencil_errors(
     *,
     hamiltonian: Any,
     ground: np.ndarray,
-) -> tuple[float | None, int]:
-    result = compute_qse_spectra(
-        hamiltonian,
-        ground,
-        tuple(basis[int(i)] for i in indices),
-        basis_vector_policy=_Q0_POLICY,
-    )
+) -> tuple[float | None, int, list[float] | None]:
+    try:
+        result = compute_qse_spectra(
+            hamiltonian,
+            ground,
+            tuple(basis[int(i)] for i in indices),
+            basis_vector_policy=_Q0_POLICY,
+        )
+    except ValueError:
+        # e.g. every image in the prefix is numerically zero after the q0
+        # projection (decoupled records at g=0): rank-0 pencil, window
+        # unresolved.
+        return None, 0, None
     energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
+    roots = [float(x) for x in energies[: len(references)]]
     if energies.size < len(references):
-        return None, int(result.retained_rank)
+        return None, int(result.retained_rank), roots
     return (
         max(abs(float(energies[r]) - float(ref)) for r, ref in enumerate(references)),
         int(result.retained_rank),
+        roots,
     )
 
 
@@ -206,13 +233,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regimes", default=None)
+    parser.add_argument("--regime-set", choices=sorted(REGIME_SETS), default="paper_i")
     parser.add_argument("--prefix-stride", type=int, default=4)
     args = parser.parse_args(argv)
 
     wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
     regimes_payload: dict[str, Any] = {}
 
-    for regime, u, g_ep, n_ph_max in PAPER_I_REGIMES:
+    for regime, u, g_ep, n_ph_max in REGIME_SETS[str(args.regime_set)]:
         if wanted is not None and regime not in wanted:
             continue
         nq = _num_qubits(n_ph_max)
@@ -228,6 +256,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
         )
         costs = tuple(row.scalarized_canonical_cost for row in cost_rows)
+        # Deterministic proxy resource triple per record (Paper-II analog,
+        # routing-randomness-free): N2q = c_hat_2q (CX-ladder count),
+        # D2q = c_hat_d (routed-chain two-qubit depth), Dc = D2q + c_hat_1q.
+        c2q = tuple(float(r.estimate.c_hat_2q) for r in cost_rows)
+        cd = tuple(float(r.estimate.c_hat_d) for r in cost_rows)
+        c1q = tuple(float(r.estimate.c_hat_1q) for r in cost_rows)
+
+        def _resources(indices: Sequence[int]) -> dict[str, float]:
+            n2q = float(sum(c2q[int(i)] for i in indices))
+            d2q = float(sum(cd[int(i)] for i in indices))
+            return {"n2q": n2q, "d2q": d2q,
+                    "dc": d2q + float(sum(c1q[int(i)] for i in indices))}
+
         print(f"\n== {regime} (pool={len(basis)})", flush=True)
 
         # ours: residual-rung ladder, exchange at each rung
@@ -261,7 +302,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             )
             indices = list(exchange.final_indices)
-            err, rank = _pencil_errors(
+            err, rank, roots = _pencil_errors(
                 basis, indices, references, hamiltonian=hamiltonian, ground=ground
             )
             stop = selection.geometry_stop or {}
@@ -269,8 +310,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {
                     "residual_rung": float(rung),
                     "k": len(indices),
+                    "root_energies": roots,
                     "retained_rank": rank,
                     "total_2q": float(sum(costs[int(i)] for i in indices)),
+                    "resources": _resources(indices),
                     "stop_reason": stop.get("stop_reason"),
                     "max_root_abs_error": err,
                 }
@@ -286,14 +329,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             i for i, e in enumerate(basis)
             if _element_family(e.name) in _LINEAR_RESPONSE_FAMILIES
         ]
-        f_err, f_rank = _pencil_errors(
+        f_err, f_rank, f_roots = _pencil_errors(
             basis, fixed_indices, references, hamiltonian=hamiltonian, ground=ground
         )
         fixed_rungs = [
             {
                 "k": len(fixed_indices),
+                "root_energies": f_roots,
                 "retained_rank": f_rank,
                 "total_2q": float(sum(costs[int(i)] for i in fixed_indices)),
+                "resources": _resources(fixed_indices),
                 "max_root_abs_error": f_err,
             }
         ]
@@ -313,7 +358,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             rows: list[dict[str, Any]] = []
             for position in range(int(args.prefix_stride), len(order) + 1, int(args.prefix_stride)):
                 prefix = order[:position]
-                err, rank = _pencil_errors(
+                err, rank, _roots = _pencil_errors(
                     basis, prefix, references, hamiltonian=hamiltonian, ground=ground
                 )
                 rows.append(
@@ -321,6 +366,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "k": position,
                         "retained_rank": rank,
                         "total_2q": float(sum(costs[int(i)] for i in prefix)),
+                        "resources": _resources(prefix),
                         "max_root_abs_error": err,
                     }
                 )
@@ -341,6 +387,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "n_ph_max": int(n_ph_max),
             "pool_size": len(basis),
             "fixed_class_size": len(fixed_indices),
+            "reference_ground_energy": float(spectrum[0]),
             "reference_excitations": references,
             "rungs": {
                 "ours": our_rungs,
@@ -372,6 +419,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "all rungs reported"
         ),
         "target_roots": _TARGET_ROOTS,
+        "regime_set": str(args.regime_set),
         "regimes": regimes_payload,
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
