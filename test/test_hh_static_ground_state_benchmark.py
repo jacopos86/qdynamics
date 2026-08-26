@@ -213,17 +213,8 @@ def test_algorithm_manifest_without_qiskit_keeps_native_inventory(monkeypatch: p
     monkeypatch.setattr(bench, "has_qiskit_hea_support", lambda: False)
 
     algorithms = bench.default_hh_benchmark_algorithms()
-    assert len(algorithms) == 17
+    assert len(algorithms) == 8
     assert [algorithm.algorithm_id for algorithm in algorithms] == [
-        "hh_adapt_full_hamiltonian_legacy",
-        "hh_adapt_hva_legacy",
-        "hh_adapt_paop_lf_std_legacy",
-        "hh_adapt_qeb_sq_lf_std_legacy",
-        "hh_adapt_overlap_paop_lf_std_phase3",
-        "hh_adapt_ceo_paop_lf_std_phase3",
-        "hh_adapt_uccsd_otimes_paop_lf_std_legacy",
-        "hh_adapt_full_meta_legacy",
-        "hh_adapt_pareto_lean_legacy",
         "hh_hva_termwise_vqe",
         "hh_hva_layerwise_vqe",
         "hh_uccsd_lifted_vqe",
@@ -234,15 +225,6 @@ def test_algorithm_manifest_without_qiskit_keeps_native_inventory(monkeypatch: p
         "hh_lang_firsov_sq_lf_vqe",
     ]
     assert [algorithm.runner_kind for algorithm in algorithms] == [
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
-        "adapt_vqe",
         "conventional_vqe",
         "conventional_vqe",
         "compiled_operator_vqe",
@@ -252,17 +234,8 @@ def test_algorithm_manifest_without_qiskit_keeps_native_inventory(monkeypatch: p
         "compiled_operator_vqe",
         "compiled_operator_vqe",
     ]
-    assert [algorithm.adapt_pool for algorithm in algorithms[:9]] == [
-        "full_hamiltonian",
-        "hva",
-        "paop_lf_std",
-        "sq_lf_std",
-        "paop_lf_std",
-        "paop_lf_std",
-        "uccsd_otimes_paop_lf_std",
-        "full_meta",
-        "pareto_lean",
-    ]
+    # adapt_pool was only ever set by the retired adapt_vqe rows.
+    assert all(algorithm.adapt_pool == "" for algorithm in algorithms)
     assert [algorithm.ansatz_name for algorithm in algorithms[-8:]] == [
         "hh_hva_termwise",
         "hh_hva_layerwise",
@@ -314,36 +287,15 @@ def test_algorithm_manifest_without_qiskit_keeps_native_inventory(monkeypatch: p
     assert lang_firsov_row.ansatz_name == "hh_lang_firsov_sq_lf"
     assert lang_firsov_row.operator_source == "hh_sq_lf_std_lf_only"
     assert lang_firsov_row.parameterization_mode == "logical_shared"
-    qeb_row = algorithms[3]
-    assert qeb_row.runner_kind == "adapt_vqe"
-    assert qeb_row.adapt_pool == "sq_lf_std"
-    assert qeb_row.continuation_mode == "legacy"
-    assert qeb_row.phase2_batch_selection_mode == ""
-    assert qeb_row.adapt_reopt_policy == "full"
-    overlap_row = algorithms[4]
-    assert overlap_row.runner_kind == "adapt_vqe"
-    assert overlap_row.adapt_pool == "paop_lf_std"
-    assert overlap_row.continuation_mode == "phase3_v1"
-    assert overlap_row.phase2_batch_selection_mode == "overlap_orthogonal_benchmark"
-    ceo_row = algorithms[5]
-    assert ceo_row.runner_kind == "adapt_vqe"
-    assert ceo_row.adapt_pool == "paop_lf_std"
-    assert ceo_row.continuation_mode == "phase3_v1"
-    assert ceo_row.phase2_batch_selection_mode == "ceo_commuting_benchmark"
-    uccsd_row = algorithms[6]
-    assert uccsd_row.runner_kind == "adapt_vqe"
-    assert uccsd_row.adapt_pool == "uccsd_otimes_paop_lf_std"
-    assert uccsd_row.continuation_mode == "legacy"
-    legacy_adapt_rows = [*algorithms[:4], *algorithms[6:9]]
-    assert all(algorithm.continuation_mode == "legacy" for algorithm in legacy_adapt_rows)
-    assert all(algorithm.adapt_reopt_policy == "full" for algorithm in algorithms[:9])
+    # The nine legacy adapt_vqe rows were retired with the legacy executor.
+    assert all(algorithm.runner_kind != "adapt_vqe" for algorithm in algorithms)
 
 
 def test_algorithm_manifest_with_qiskit_appends_hea_row(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bench, "has_qiskit_hea_support", lambda: True)
 
     algorithms = bench.default_hh_benchmark_algorithms()
-    assert len(algorithms) == 18
+    assert len(algorithms) == 9
     assert [algorithm.algorithm_id for algorithm in algorithms[-9:]] == [
         "hh_hva_termwise_vqe",
         "hh_hva_layerwise_vqe",

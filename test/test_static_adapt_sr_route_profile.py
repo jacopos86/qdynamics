@@ -1321,57 +1321,6 @@ def test_candidate_v4_round_trips_new_cli_fields_into_runtime_kwargs() -> None:
     assert pruning["phase1_prune_endpoint_overlap_policy"] == "off"
 
 
-def test_candidate_v4_identity_is_readable_but_not_execution_authority(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The historical v4 identity remains readable but grants no execution."""
-
-    kwargs = _runtime_kwargs(
-        _candidate_v4_args(
-            "--problem",
-            "hh",
-            "--L",
-            "2",
-            "--u",
-            "0.25",
-            "--g-ep",
-            "0.353553390593",
-            "--n-ph-max",
-            "2",
-        )
-    )
-    kwargs["resolved_problem_context"] = None
-    kwargs["h_poly"] = build_hubbard_holstein_hamiltonian(
-        dims=2,
-        J=1.0,
-        U=0.25,
-        omega0=1.0,
-        g=0.353553390593,
-        n_ph_max=2,
-        boson_encoding="binary",
-        repr_mode="JW",
-        indexing="blocked",
-        pbc=False,
-        include_zero_point=True,
-    )
-    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
-    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
-    monkeypatch.setattr(adapt_pipeline, "_ai_log", lambda *_a, **_k: None)
-
-    assert kwargs["sr_route_profile_resolved"] == (
-        SR_ROUTE_PROFILE_CANDIDATE_V4
-    )
-    assert kwargs["sr_route_profile_contract"] == (
-        canonical_sr_snake_v4_contract()
-    )
-    assert kwargs["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_v4_contract_sha256()
-    )
-    with pytest.raises(
-        ValueError,
-        match="historical_paper_i_route_compatibility_inactive",
-    ):
-        adapt_pipeline._run_hardcoded_adapt_vqe(**kwargs)
 
 
 @pytest.mark.parametrize("version", ["v1", "v2", "v3"])
