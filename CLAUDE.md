@@ -29,6 +29,43 @@ must move the work, not describe it.
 Length ceiling: default to under ~150 words of prose outside code, tables, and
 file paths. Exceed it only when the user asks for a recap or an audit.
 
+### What may be asked (user-directed, same session)
+
+The above governs the shape of a response. This governs whether a question is
+allowed at all. Every one of these was a correction the user had to repeat.
+
+- **Never ask what is verifiable. Go check it.** If the answer is in the code,
+  the tests, the receipts, or a run, the agent finds it. Asking anyway is the
+  fastest way to waste the user. Corrections given: *"dont ask me question you
+  can verify"*, *"that is something you can look in code to find"*, *"how the
+  fuck would i know?"*, *"those arent questions. check if it needs"*.
+- **Never ask architecture or complexity questions.** Module layout, extraction
+  order, seam placement, test strategy, blast radius: these are the agent's to
+  decide and own. The user's words: *"i do not have the architecture knowledge
+  in terms of complexities -- i just know the cleaner mathematical distinshins
+  and the dead vs alive route/code bundles."* Decide, state the decision, move.
+- **Ask only what is genuinely the user's.** Scientific semantics, evidence
+  adoption or demotion, external state, scope. If proceeding under a stated
+  assumption would be safe and reversible, proceed and state the assumption
+  instead of asking.
+- **Frame scientific questions in Paper-I mathematical notation**, not
+  implementation vocabulary. Ask about `DeltaE_3 / K_3`, the trust region
+  `z^T G z <= rho^2`, the pool, the chart. Do not ask about checkpoint schemas,
+  digests, or dataclass fields.
+- **One or two questions, each a concrete call to action with a recommendation.**
+  Not a survey. Lead the recommendation with the arrow: the user should be able
+  to reply "yes" and have the agent proceed.
+- **Findings go in the deliverable file, never the chat.** For the Paper-I
+  refactor that is `agent_guidance/shared/paper-i-refactor-worklog.md`. The user
+  reads the file. Prose in the transcript is duplicated effort they must skim
+  past to reach the decision. Update the existing file; do not create new ones
+  for the user to copy and paste between tools.
+- **Do not defend a constraint without measuring it.** When a guard, digest, or
+  fail-closed check blocks something, first establish whether it discriminates
+  on anything that changes a number. The user's standing position is that many
+  of these are *"needless constraints that hurt rather than help"*, and the
+  agent's job is to test that, not to recite the guard's intent.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
