@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pipelines.static_adapt.ra_adapt.append import AppendAdaptRequest
+from pipelines.static_adapt.ra_adapt.engine import run_ra_adapt
 from pipelines.static_adapt.ra_adapt.paper_i_hubbard_l4 import (
     PAPER_I_HUBBARD_L4_EXACT_ENERGY,
     PaperIHubbardL4MacroGradientPhase0CandidateAdapter,
@@ -113,3 +114,25 @@ def test_l4_source_contract_binds_matched_tight_powell_settings() -> None:
     assert settings["optimizer_maxiter"] == 200
     assert settings["optimizer_xtol"] == 1.0e-5
     assert settings["optimizer_ftol"] == 1.0e-12
+
+
+def test_l4_stationary_batch_reuses_the_stationary_active_gradient(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("STATIC_ADAPT_CANDIDATE_RECORD_CACHE", "off")
+    monkeypatch.setenv("STATIC_ADAPT_HH_POOL_CACHE", "off")
+    problem = build_paper_i_hubbard_l4_problem()
+    request = build_paper_i_hubbard_l4_request(
+        "batch",
+        maximum_controller_rounds=2,
+        output_dir=tmp_path,
+    )
+    protocol = materialize_paper_i_hubbard_l4_ra_protocol(
+        problem,
+        request,
+    )
+
+    result = run_ra_adapt(problem, protocol)
+
+    assert len(result.run.accepted_trajectory) == 2

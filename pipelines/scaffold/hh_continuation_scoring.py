@@ -16178,6 +16178,25 @@ def _build_batch_full_geometry_workspace(
     context_mode = normalize_batch_joint_context_mode(
         getattr(cfg, "batch_joint_context_mode", None)
     )
+    active_gradient_policy = str(
+        getattr(
+            cfg,
+            "active_gradient_policy",
+            "measured_residual_response_v1",
+        )
+    ).strip()
+    if active_gradient_policy not in {
+        "stationary_source_response_v1",
+        "measured_residual_response_v1",
+    }:
+        raise ValueError(
+            "active_gradient_policy must be one of "
+            "{'stationary_source_response_v1',"
+            "'measured_residual_response_v1'}."
+        )
+    stationary_source = bool(
+        active_gradient_policy == "stationary_source_response_v1"
+    )
     active_indices = list(
         _batch_joint_active_indices(cfg, selected_ops=selected)
     )
@@ -16262,6 +16281,8 @@ def _build_batch_full_geometry_workspace(
     G_AA = np.asarray(phase2_cache.G_AA, dtype=float).copy()
     H_AA = np.asarray(phase2_cache.H_AA, dtype=float).copy()
     g_A = np.asarray(phase2_cache.g_A, dtype=float).copy()
+    if stationary_source:
+        g_A = np.zeros_like(g_A)
     G_AB = np.zeros((active_count, candidate_count), dtype=float)
     H_AB = np.zeros((active_count, candidate_count), dtype=float)
     G_BB = np.zeros((candidate_count, candidate_count), dtype=float)
@@ -16333,6 +16354,8 @@ def _build_batch_full_geometry_workspace(
             repaired_g_A = np.asarray(
                 repair_payload.get("g_A", []), dtype=float
             ).reshape(active_count)
+            if stationary_source:
+                repaired_g_A = np.zeros_like(repaired_g_A)
             if not active_block_initialized:
                 G_AA = repaired_G_AA
                 H_AA = repaired_H_AA
@@ -16623,6 +16646,13 @@ def _build_batch_full_geometry_workspace(
     )
     phase2_reuse_validation.update(
         {
+            "active_gradient_policy": str(active_gradient_policy),
+            "active_gradient_indices_acquired": (
+                []
+                if stationary_source
+                else [int(index) for index in active_indices]
+            ),
+            "active_source_gradient_fixed_zero": bool(stationary_source),
             "joint_pair_cache_scope": (
                 "state_scaffold_hamiltonian_fingerprinted_lru_v1"
                 if pair_geometry_cache.max_entries > 0
