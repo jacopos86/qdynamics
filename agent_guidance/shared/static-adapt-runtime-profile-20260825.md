@@ -589,3 +589,69 @@ predicate, two for the candidate-cache independence guarantee.
 Net effect of the branch on the canonical HH `L=2`, `n_ph_max=7` run:
 **160.4 s cold / 94.6 s warm -> ~78 s**, energy unchanged at
 `5.876936059036121`.
+
+---
+
+# Appendix D — measurement-validity retraction (2026-08-25)
+
+**The wall-clock speedups quoted in Appendix B (2.03x cold / 1.19x warm) are not
+defensible and are retracted.** The correctness evidence is unaffected.
+
+## D.1 What went wrong
+
+Two independent problems, both mine:
+
+1. **Every timing in Appendices B and C was taken with `cProfile` attached.**
+   The same run measured without the profiler takes **40.8 s**, against the
+   "79 s" reported there. `cProfile` roughly doubles this workload, because it
+   instruments millions of small calls. The profiled numbers are therefore
+   measurements of a different, instrumented workload -- internally comparable
+   to each other, but not the runtime anyone cares about.
+
+2. **The machine was heavily oversubscribed throughout.** At the end of this
+   work `uptime` reported a load average of **25.00 on 8 cores**, with three
+   other agent sessions running Paper-I L4 production arms
+   (`paper_i_l4_prune_threshold_resume_to_k50_20260825`, tau = 1e-10, 1e-12,
+   1e-14) plus a fourth session running pytest. Unprofiled repeat timings under
+   that load were incoherent:
+
+   | State | pass 1 | pass 2 |
+   |---|---:|---:|
+   | Baseline | 95.09 s | 62.12 s |
+   | With the change | 56.19 s | 64.35 s |
+
+   The two `pass 2` values overlap, so this data cannot separate the states at
+   all. Run-to-run spread exceeds the effect being measured.
+
+I also violated the memory-budget contract's rule 5 ("One heavy job at a time,
+per machine -- not per session") by running three 27-minute pytest suites and
+several profiling runs while those production arms were in flight. That is a
+process failure independent of the numbers, and it may have perturbed the other
+sessions' runs as well as mine.
+
+## D.2 What still holds, and why
+
+The correctness and work-reduction evidence is **load-independent**, because it
+is counted or compared, not timed:
+
+- **Audits actually computed: 687 -> 166.** A count. The change provably performs
+  strictly less work; only how much wall clock that saves is unmeasured.
+- **Verdict parity**: 132 audit rows bit-identical, plus a 40x40 commute-table
+  digest.
+- **Energy**: `5.876936059036121` in every run at both states, profiled and not.
+- **Regression**: FAILED/ERROR set byte-identical across baseline, `a1ab4085`,
+  and `65c71785` (144 lines); +8 passes are exactly the 8 tests added.
+- The 7.5x and 12.3x micro-benchmarks were back-to-back A/B in one process, so
+  they are ratios under shared conditions -- the most robust timing here, though
+  still taken on a loaded machine.
+
+## D.3 What a defensible number would require
+
+Re-measure on a quiet machine or on CHTC: no profiler, no other agent workload,
+at least 5 interleaved repetitions per state, reporting medians and spread. Until
+that exists, the honest claim is **"provably less work, speedup unquantified"**,
+not a specific factor.
+
+The Section 3 conclusion does *not* depend on any of this. It rests on the
+`dim = 1024` register size and the per-call kernel benchmarks, and it is a
+statement about which lever to pull, not about how fast the run is.
