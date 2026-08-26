@@ -115,36 +115,38 @@ def test_campaign_cells_agree_with_the_registry() -> None:
 
     from pipelines.time_dynamics.campaign import (
         CampaignSpec,
-        DriveSpec,
-        HorizonSpec,
         SeedSpec,
-        append_only_arm,
-        avqds_arm,
-        exchange_arm,
+        uniform_threshold_plan,
     )
 
+    methods = ("exchange", "append_only", "avqds")
+    controls = ("state_motion_1e-2",)
     spec = CampaignSpec(
         campaign_id="parity",
         seeds=(SeedSpec("s", "seed.json", "hh", 1, "weak"),),
-        drives=(DriveSpec("fastweak", True, 0.6, 3.0),),
-        horizons=(HorizonSpec("t2", 2.0, 51),),
-        arms=(exchange_arm(2.0e-3), append_only_arm(), avqds_arm(1.0e-3)),
+        method_ids=methods,
+        controller_ids=controls,
+        drive_ids=("fastweak",),
+        horizon_ids=("t2",),
+        threshold_plan=uniform_threshold_plan(
+            method_ids=methods,
+            controller_ids=controls,
+            drive_ids=("fastweak",),
+            thresholds=(1.0e-3,),
+        ),
+        numerics_id="rk4_ridge1e-7",
     )
     parser = _parser()
     by_arm = {}
     for cell in spec.cells():
         parsed = parser.parse_args(list(cell.runner_argv()))
-        by_arm[cell.arm.arm_id] = parsed
+        by_arm[cell.method_id] = parsed
 
-    for arm_id, registry_arm in (
-        ("exchange_tau0.002", "exchange"),
-        ("append_only", "append_only"),
-        ("avqds_cut0.001", "avqds"),
-    ):
+    for arm_id in methods:
         run = build_run(
-            seed_path="seed.json", arm=registry_arm,
+            seed_path="seed.json", arm=arm_id,
             gate=MCLACHLAN_L2_GATE.gate_id, drive="fastweak", horizon="t2",
-            output_json="out/run.json",
+            output_json="out/run.json", activation_cut=1.0e-3,
         )
         registry = _parser().parse_args(list(run.argv()))
         campaign = by_arm[arm_id]
@@ -170,7 +172,7 @@ def test_campaign_cells_agree_with_the_registry() -> None:
 
 
 def test_no_campaign_arm_reintroduces_the_pool_cap_of_eight() -> None:
-    from pipelines.time_dynamics.campaign import PRODUCTION_STRUCTURE
+    from pipelines.time_dynamics.paper_ii_runs import PRODUCTION_STRUCTURE
 
     flags = list(PRODUCTION_STRUCTURE)
     assert int(flags[flags.index("--max-structural-pool-size") + 1]) >= 125
@@ -265,17 +267,43 @@ def test_published_avqds_is_arm_plus_its_own_step_control() -> None:
     assert parsed.integrator == "euler"
     assert parsed.solve_repair is False
     assert parsed.certification_refit is False
-    assert parsed.ridge_lambda == pytest.approx(1.0e-7)
+    assert parsed.ridge_lambda == pytest.approx(1.0e-6)
     assert parsed.avqds_delta_theta_max == pytest.approx(5.0e-3)
     assert parsed.dynamics_policy == "avqds"
 
 
-def test_step_control_is_separable_from_the_structural_rule() -> None:
-    """The 2x2 that isolates step control from structure must be expressible."""
+def test_published_avqds_rejects_nonpublished_numerics_or_control() -> None:
+    base = dict(
+        regime="hh_snake_nph1", arm="avqds_published",
+        gate=MCLACHLAN_L2_GATE.gate_id, drive="strongfast", horizon="t10",
+        output_json="out/run.json",
+    )
+    with pytest.raises(ValueError, match="fixes numerics"):
+        build_run(**base, numerics="rk4_ridge1e-7")
+    with pytest.raises(ValueError, match="fixes step_control"):
+        build_run(**base, step_control="state_motion_1e-2")
+
+
+def test_shared_stack_defaults_to_rk4() -> None:
+    for arm in ("exchange", "append_only", "avqds"):
+        run = build_run(
+            regime="hh_snake_nph1", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
+            drive="strongfast", horizon="t10", output_json="out/run.json",
+        )
+        parsed = _parser().parse_args(list(run.argv()))
+        assert parsed.integrator == "rk4"
+        assert parsed.ridge_lambda == pytest.approx(1.0e-7)
+
+
+def test_parameter_guard_composes_with_state_guard_under_rk4() -> None:
+    """The controller ablation adds the parameter cap without changing RK4."""
 
     seen = {}
     for arm in ("exchange", "avqds"):
-        for control in ("state_motion_1e-2", "delta_theta_5e-3"):
+        for control in (
+            "state_motion_1e-2",
+            "state_motion_1e-2_plus_parameter_5e-3",
+        ):
             run = build_run(
                 regime="hh_snake_nph1", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
                 drive="strongfast", horizon="t10", step_control=control,
@@ -283,21 +311,21 @@ def test_step_control_is_separable_from_the_structural_rule() -> None:
             )
             parsed = _parser().parse_args(list(run.argv()))
             seen[(arm, control)] = (
-                parsed.solve_repair, parsed.avqds_delta_theta_max
+                parsed.solve_repair, parsed.solve_repair_parameter_step_max
             )
             # The inner numerical method is identical across all four cells.
-            assert parsed.integrator == "euler"
+            assert parsed.integrator == "rk4"
             assert parsed.ridge_lambda == pytest.approx(1.0e-7)
-    assert seen[("exchange", "delta_theta_5e-3")][1] == pytest.approx(5.0e-3)
+    assert seen[("exchange", "state_motion_1e-2_plus_parameter_5e-3")][1] == pytest.approx(5.0e-3)
     assert seen[("avqds", "state_motion_1e-2")][0] is True
     assert len({v for v in seen.values()}) == 2
 
 
-def test_every_arm_shares_the_same_inner_numerics() -> None:
-    """Damping, regularization, and integrator may never vary by arm."""
+def test_structural_rule_arms_share_the_same_inner_numerics() -> None:
+    """The causal structural comparison excludes the published-method bundle."""
 
     values = set()
-    for arm in ARMS:
+    for arm in ("exchange", "append_only", "avqds"):
         run = build_run(
             regime="hh_snake_nph1", arm=arm, gate=MCLACHLAN_L2_GATE.gate_id,
             drive="strongfast", horizon="t10", output_json="out/run.json",
@@ -306,3 +334,21 @@ def test_every_arm_shares_the_same_inner_numerics() -> None:
         values.add((parsed.integrator, parsed.ridge_lambda,
                     parsed.solve_damping, parsed.pinv_rcond))
     assert len(values) == 1, values
+
+
+def test_runner_transport_builds_the_live_exchange_config() -> None:
+    """Parsing is insufficient: the CLI namespace must construct the config."""
+
+    from pipelines.time_dynamics.runners.ap_append_from_adapt_artifact import (
+        _build_parser,
+        _support_patch_config_from_args,
+    )
+
+    args = _build_parser().parse_args(
+        ["--artifact-json", "seed.json", "--output-json", "run.json"]
+    )
+    config = _support_patch_config_from_args(args)
+    assert config.debt_policy == "drift_ranked"
+    assert config.deletion_enabled is True
+    assert config.prune_history_lambda == 0.0
+    assert not hasattr(config, "append_min_time")

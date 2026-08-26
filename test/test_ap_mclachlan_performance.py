@@ -26,7 +26,6 @@ from pipelines.time_dynamics.ap_mclachlan.performance import (
 
 def _support_config(workers: int) -> SupportPatchControllerConfig:
     return SupportPatchControllerConfig(
-        append_ladder_mode="combinatorial",
         support_patch_scoring_workers=int(workers),
     )
 
@@ -100,7 +99,6 @@ def test_worker_count_is_bounded_by_task_count_and_positive() -> None:
     with pytest.raises(ValueError, match="must be positive"):
         _support_patch_scoring_worker_count(
             SupportPatchControllerConfig(
-                append_ladder_mode="combinatorial",
                 support_patch_scoring_workers=0,
             ),
             task_count=4,

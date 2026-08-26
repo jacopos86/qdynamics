@@ -581,7 +581,7 @@ def test_candidate_append_atoms_rejects_incomplete_pool_by_default() -> None:
     assert candidate_append_atoms(state, allow_incomplete_candidate_pool=True)
 
 
-def test_append_controller_config_maps_to_legacy_support_patch_profile() -> None:
+def test_append_controller_config_maps_to_generalized_exchange_restrictions() -> None:
     config = AppendControllerConfig(
         max_append_candidates=5,
         max_prune_candidates=2,
@@ -594,39 +594,41 @@ def test_append_controller_config_maps_to_legacy_support_patch_profile() -> None
 
     assert isinstance(support_config, SupportPatchControllerConfig)
     assert support_config.controller_profile == LEGACY_APPEND_CONTROLLER_PROFILE_V1
-    assert support_config.exchange_enabled is False
-    assert support_config.branch_scoring_enabled is False
-    assert support_config.append_ladder_mode == "legacy_singleton"
+    assert support_config.deletion_enabled is True
     assert support_config.append_occurrence_policy == (
         APPEND_OCCURRENCE_POLICY_UNIQUE_SUPPORT
     )
-    assert support_config.max_append_batch_size == 1
-    assert support_config.cost_required_for_decisions is False
+    assert support_config.max_insertion_batch_size == 1
+    assert support_config.max_structural_pool_size == 5
     assert support_config.allow_incomplete_candidate_pool is True
 
 
-def test_support_patch_controller_defaults_are_exchange_family_combinatorial() -> None:
+def test_support_patch_controller_defaults_are_generalized_exchange() -> None:
     config = SupportPatchControllerConfig()
 
     assert config.controller_profile == "support_patch_exchange_family_v1"
     assert config.parameterization_mode_default == AP_PARAMETERIZATION_PER_PAULI_TERM
-    assert config.append_ladder_mode == "combinatorial"
     assert config.append_occurrence_policy == APPEND_OCCURRENCE_POLICY_LAYER_REUSE
-    assert config.max_append_batch_size == 10
+    assert config.max_insertion_batch_size == 1
     # The Schur guard, rank fraction, and novelty ridge belonged to the
     # retired append route and were removed; the surviving cap is the
     # certification conditioning bound.
     assert config.append_schur_max_condition_number == 1.0e12
     # failed-append-reuse was removed 2026-08-15; the attribute must be gone.
     assert not hasattr(config, "failed_append_reuse_enabled")
-    assert config.exchange_enabled is True
-    assert config.branch_scoring_enabled is True
+    assert config.deletion_enabled is True
+    assert config.debt_policy == "drift_ranked"
     assert config.support_patch_scoring_workers == 1
-    assert config.max_exchange_append_branches == 3
-    assert config.max_exchange_prune_branches == 3
-    assert config.prune_enabled is False
-    assert config.prune_commit_enabled is False
-    assert config.max_prune_batch_size == 0
+    for retired in (
+        "append_ladder_mode",
+        "max_append_batch_size",
+        "max_exchange_append_branches",
+        "max_exchange_prune_branches",
+        "prune_enabled",
+        "prune_commit_enabled",
+        "max_prune_batch_size",
+    ):
+        assert not hasattr(config, retired)
 
 
 def test_support_patch_controller_rejects_retired_macro_scout_settings() -> None:
@@ -641,5 +643,3 @@ def test_support_patch_controller_rejects_retired_macro_scout_settings() -> None
     ):
         with pytest.raises(TypeError):
             SupportPatchControllerConfig(**{field: 1})
-
-

@@ -12,7 +12,7 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     _PruneControllerRuntimeState,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
-    select_deletion_conditioned_patch,
+    select_generalized_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import solve_fixed_mclachlan_step
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
@@ -88,7 +88,7 @@ def _run(config: SupportPatchControllerConfig, theta=(0.05, -0.04)):
         include_tangent_matrix=True,
     )
     step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
-    return select_deletion_conditioned_patch(
+    return select_generalized_exchange_patch(
         state=state,
         hamiltonian=HAM,
         theta_runtime=state.theta_runtime,
@@ -99,18 +99,16 @@ def _run(config: SupportPatchControllerConfig, theta=(0.05, -0.04)):
         support_config=config,
         runtime_state=_PruneControllerRuntimeState(),
         time_index=3,
-        active_prune_atoms=_active_prune_atoms,
     )
 
 
 def _config(**overrides):
     base = dict(
-        append_ladder_mode="combinatorial",
         residual_ratio_threshold=0.0,
         prune_ray_distance_tol=1.0,
         prune_patch_smoothness_eta_max=1.0e6,
         min_runtime_parameter_count=1,
-        max_append_batch_size=1,
+        max_insertion_batch_size=1,
     )
     base.update(overrides)
     return SupportPatchControllerConfig(**base)
@@ -119,7 +117,7 @@ def _config(**overrides):
 def test_selector_commits_from_real_route_objects_and_reports_payload() -> None:
     selection, payload = _run(_config())
     assert selection.kind in {"insert", "delete", "exchange"}
-    assert payload["selection_policy"].startswith("paper_ii_deletion_conditioned")
+    assert payload["selection_policy"] == "paper_ii_generalized_exchange_v2"
     assert payload["kind"] == selection.kind
     assert payload["attempt_count"] == len(selection.attempts)
     assert payload["cost_normalization"] == "per_candidate_raw_v1"
@@ -205,7 +203,17 @@ def test_config_lambdas_map_onto_structural_weights() -> None:
         runtime_state=_PruneControllerRuntimeState(),
         theta_runtime=state.theta_runtime,
         time_index=0,
-        active_prune_atoms=_active_prune_atoms,
+        deletable_atoms=_active_prune_atoms(
+            state,
+            theta_runtime=state.theta_runtime,
+            support_config=_config(
+                prune_condition_lambda_kappa_rel=2.5,
+                prune_condition_lambda_kappa_dam=1.5,
+                prune_history_lambda=0.75,
+            ),
+            runtime_state=_PruneControllerRuntimeState(),
+            time_index=0,
+        ),
     )
     weights = inputs["structural_kwargs"]["weights"]
     assert weights.lambda_cond_relief == 2.5
@@ -237,7 +245,13 @@ def test_history_prior_reads_windowed_mean_from_runtime_state() -> None:
         runtime_state=runtime_state,
         theta_runtime=state.theta_runtime,
         time_index=3,
-        active_prune_atoms=_active_prune_atoms,
+        deletable_atoms=_active_prune_atoms(
+            state,
+            theta_runtime=state.theta_runtime,
+            support_config=_config(prune_history_window=2),
+            runtime_state=runtime_state,
+            time_index=3,
+        ),
     )
     prior = inputs["structural_kwargs"]["deletion_history_loss"]
     assert prior(()) == 0.0
@@ -247,7 +261,9 @@ def test_history_prior_reads_windowed_mean_from_runtime_state() -> None:
 
 
 def test_recorder_persists_attempted_deletion_losses_with_window() -> None:
-    state = _state()
+    # Zero angles and permissive measurement-free permission make deletion
+    # branches reach the deliberately impossible conditioning gate below.
+    state = _state(theta=(0.0, 0.0))
     evaluation = evaluate_mclachlan_geometry(
         state=state,
         hamiltonian=HAM,
@@ -262,13 +278,13 @@ def test_recorder_persists_attempted_deletion_losses_with_window() -> None:
         # Impossible gates (conditioning included, so the insert-only d0
         # level cannot commit): every ranked candidate at every level is
         # attempted, fails, and the deletion-bearing ones get recorded.
-        prune_ray_distance_tol=1.0e-15,
-        prune_patch_smoothness_eta_max=1.0e-15,
+        prune_ray_distance_tol=1.0,
+        prune_patch_smoothness_eta_max=1.0e6,
         append_schur_max_condition_number=1.0e-30,
     )
 
     def run_once(time_index):
-        return select_deletion_conditioned_patch(
+        return select_generalized_exchange_patch(
             state=state,
             hamiltonian=HAM,
             theta_runtime=state.theta_runtime,
@@ -279,7 +295,6 @@ def test_recorder_persists_attempted_deletion_losses_with_window() -> None:
             support_config=config,
             runtime_state=runtime_state,
             time_index=time_index,
-            active_prune_atoms=_active_prune_atoms,
         )
 
     selection, _payload = run_once(3)
@@ -322,21 +337,23 @@ def test_attempt_budget_bounds_certifications_per_level() -> None:
     # without a budget the selector would attempt every ranked candidate.
     unbounded, _ = _run(
         _config(
-            prune_ray_distance_tol=1.0e-15,
-            prune_patch_smoothness_eta_max=1.0e-15,
+            prune_ray_distance_tol=1.0,
+            prune_patch_smoothness_eta_max=1.0e6,
             append_schur_max_condition_number=1.0e-30,
-        )
+        ),
+        theta=(0.0, 0.0),
     )
     assert unbounded.kind == "stay"
     assert len(unbounded.attempts) > 2
 
     bounded, payload = _run(
         _config(
-            prune_ray_distance_tol=1.0e-15,
-            prune_patch_smoothness_eta_max=1.0e-15,
+            prune_ray_distance_tol=1.0,
+            prune_patch_smoothness_eta_max=1.0e6,
             append_schur_max_condition_number=1.0e-30,
             max_certification_attempts_per_level=1,
-        )
+        ),
+        theta=(0.0, 0.0),
     )
     assert bounded.kind == "stay"
     assert bounded.stop_reason == "attempt_budget_exhausted"
@@ -346,7 +363,7 @@ def test_attempt_budget_bounds_certifications_per_level() -> None:
 
 
 def test_prune_only_mode_empties_insertion_pool_but_keeps_deletions() -> None:
-    state = _state()
+    state = _state(theta=(0.0, 0.0))
     evaluation = evaluate_mclachlan_geometry(
         state=state,
         hamiltonian=HAM,
@@ -355,7 +372,7 @@ def test_prune_only_mode_empties_insertion_pool_but_keeps_deletions() -> None:
         include_tangent_matrix=True,
     )
     step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
-    selection, payload = select_deletion_conditioned_patch(
+    selection, payload = select_generalized_exchange_patch(
         state=state,
         hamiltonian=HAM,
         theta_runtime=state.theta_runtime,
@@ -364,16 +381,38 @@ def test_prune_only_mode_empties_insertion_pool_but_keeps_deletions() -> None:
         base_step=step,
         inverse_policy=POLICY,
         support_config=_config(
-            prune_ray_distance_tol=1.0e-15,
-            prune_patch_smoothness_eta_max=1.0e-15,
+            prune_ray_distance_tol=1.0,
+            prune_patch_smoothness_eta_max=1.0e6,
+            insertion_gate_mode="mclachlan_l2",
+            insertion_l2_cut=1.0e9,
         ),
         runtime_state=_PruneControllerRuntimeState(),
         time_index=3,
-        active_prune_atoms=_active_prune_atoms,
-        insertions_enabled=False,
     )
     assert payload["insertions_enabled"] is False
     assert payload["candidate_pool_deduplicated"] == 0
     # Measurement-free pure deletions are still enumerated and attempted.
     kinds = {a.kind for a in selection.attempts}
     assert kinds <= {"delete"} and "delete" in kinds
+
+
+def test_measurement_free_permission_blocks_deletion_before_certification() -> None:
+    selection, payload = _run(
+        _config(
+            insertion_gate_mode="mclachlan_l2",
+            insertion_l2_cut=1.0e9,
+            prune_ray_distance_tol=1.0e-3,
+            prune_patch_smoothness_eta_max=1.0e6,
+        ),
+        theta=(0.05, -0.04),
+    )
+
+    assert selection.attempts == ()
+    permission = payload["deletion_permission"]
+    assert permission["evaluated_deletion_set_count"] > 0
+    assert permission["permitted_deletion_set_count"] == 0
+    assert permission["rejection_reason_counts"] == {
+        "angle_ray_upper_bound_above_max": permission[
+            "evaluated_deletion_set_count"
+        ]
+    }
