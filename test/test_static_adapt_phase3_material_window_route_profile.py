@@ -104,7 +104,7 @@ def test_test1_changes_only_phase3_geometry_scope_from_no_overlap_parent() -> No
     )
 
     assert canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256() == (
-        "fd5ec3fa2c98b2a9d1cbcc304241d723f57dbd6210f4ea2daf30753603a146c2"
+        "350316790ca8b6f2b2ba3d3dde11c377e2ffc3b1575701eee1a9859590a7ab3c"
     )
     changed = {
         key

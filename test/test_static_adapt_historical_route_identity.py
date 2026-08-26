@@ -110,7 +110,7 @@ def _route_a_components(**overrides: object) -> dict[str, object]:
             ),
             "spsa",
             None,
-            "1c11130141b642cecc6af6604404e4bd55c21a01412c01915e4b935f75084441",
+            "bf15e63db8a1f81aeceedee237971852ddb7ecb0b90a9c5cebc5959158391bef",
         ),
         (
             "route_a",
@@ -119,7 +119,7 @@ def _route_a_components(**overrides: object) -> dict[str, object]:
             ),
             "spsa",
             None,
-            "16f0013c5854e287cc211484032ea1219f28c96beab1d68fcaee50a62a74c427",
+            "5c9a3cc042b2008c2b6bccc836b5a8cd74988795a7c0c095694438792f5d008f",
         ),
         (
             "route_a",

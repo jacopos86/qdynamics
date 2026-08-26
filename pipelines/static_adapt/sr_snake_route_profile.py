@@ -691,7 +691,6 @@ CANONICAL_SR_SNAKE_V4_EXECUTION_SETTINGS: dict[str, Any] = {
         "same_trial_underprediction_monotone_v1"
     ),
     "phase1_prune_endpoint_overlap_policy": "off",
-    "phase3_shadow_damping_policy": "mapped_seed_zero_query_v1",
 }
 
 
@@ -735,7 +734,6 @@ CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_V1_EXECUTION_SETTINGS: dict[
     "adapt_full_refit_every": 0,
     "adapt_final_full_refit": "false",
     "phase1_prune_enabled": False,
-    "phase3_shadow_damping_policy": "off",
 }
 
 
@@ -4005,7 +4003,6 @@ def normalize_sr_route_profile_namespace(namespace: Any) -> Any:
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
-        "phase3_shadow_damping_policy",
         "adapt_beam_live_branches",
         "adapt_beam_children_per_parent",
         "adapt_beam_terminated_keep",
@@ -4188,7 +4185,6 @@ def validate_sr_route_profile_runtime_settings(
         "phase1_prune_collapse_ratio",
         "phase1_prune_collapse_min_abs_drop",
         "phase1_prune_collapse_min_observations",
-        "phase3_shadow_damping_policy",
     )
     for field in retired_execution_fields:
         expected.pop(field, None)
