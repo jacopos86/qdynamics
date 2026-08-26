@@ -80,7 +80,7 @@ def _run(runtime_input, times):
             residual_ratio_threshold=0.02,
             max_structural_pool_size=1,
             min_runtime_parameter_count=1,
-            max_append_batch_size=1,
+            max_insertion_batch_size=1,
         ),
         solve_repair_config=SolveRepairConfig.minimal_profile(),
     )

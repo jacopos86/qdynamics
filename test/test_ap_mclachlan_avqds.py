@@ -12,7 +12,7 @@ from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
     _PruneControllerRuntimeState,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
-    select_deletion_conditioned_patch,
+    select_generalized_exchange_patch,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import solve_fixed_mclachlan_step
 from pipelines.time_dynamics.ap_mclachlan.geometry_eval import (
@@ -88,7 +88,7 @@ def _run(config: SupportPatchControllerConfig, theta=(0.05, -0.04)):
         include_tangent_matrix=True,
     )
     step = solve_fixed_mclachlan_step(evaluation.geometry, inverse_policy=POLICY)
-    return select_deletion_conditioned_patch(
+    return select_generalized_exchange_patch(
         state=state,
         hamiltonian=HAM,
         theta_runtime=state.theta_runtime,
@@ -99,18 +99,16 @@ def _run(config: SupportPatchControllerConfig, theta=(0.05, -0.04)):
         support_config=config,
         runtime_state=_PruneControllerRuntimeState(),
         time_index=3,
-        active_prune_atoms=_active_prune_atoms,
     )
 
 
 def _config(**overrides):
     base = dict(
-        append_ladder_mode="combinatorial",
         residual_ratio_threshold=0.0,
         prune_ray_distance_tol=1.0,
         prune_patch_smoothness_eta_max=1.0e6,
         min_runtime_parameter_count=1,
-        max_append_batch_size=1,
+        max_insertion_batch_size=1,
     )
     base.update(overrides)
     return SupportPatchControllerConfig(**base)
@@ -241,7 +239,13 @@ def test_comparator_and_exchange_share_one_capped_pool() -> None:
         state=state, evaluation=evaluation, support_config=config,
         runtime_state=_PruneControllerRuntimeState(),
         theta_runtime=state.theta_runtime, time_index=0,
-        active_prune_atoms=_active_prune_atoms,
+        deletable_atoms=_active_prune_atoms(
+            state,
+            theta_runtime=state.theta_runtime,
+            support_config=config,
+            runtime_state=_PruneControllerRuntimeState(),
+            time_index=0,
+        ),
     )
 
     shared_ids = [str(a.atom_id) for a in pool_atoms]

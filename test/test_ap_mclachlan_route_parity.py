@@ -90,7 +90,6 @@ def _run(**support_overrides):
         prune_ray_distance_tol=2.0e-3,
         prune_history_lambda=0.0,
         min_runtime_parameter_count=1,
-        max_append_batch_size=1,
     )
     support.update(support_overrides)
     return run_append_ap_mclachlan_from_runtime_input(
@@ -120,9 +119,15 @@ def test_exchange_route_golden_trajectory() -> None:
     energies = [row["energy_expectation"] for row in payload["plot_rows"]]
 
     # Decision sequence and support evolution are the scientific content.
-    assert _decisions(payload) == ["insert", "stay", "stay", "stay"]
+    assert _decisions(payload) == ["insert", "insert", "delete", "insert"]
     assert summary["runtime_parameter_count_initial"] == 2
-    assert summary["runtime_parameter_count_final"] == 3
+    assert summary["runtime_parameter_count_final"] == 4
+    # The new measurement-free permission changes the scientific sequence
+    # deliberately: only one of 28 proposed deletion sets enters finalist
+    # certification on this fixture.
+    assert summary["deletion_permission_evaluated_set_count"] == 28
+    assert summary["deletion_permission_permitted_set_count"] == 1
+    assert summary["deletion_permission_rejected_set_count"] == 27
     # Energy trajectory pinned; a refactor that changes physics fails here.
     assert energies[0] == pytest.approx(1.5296843746, abs=1e-9)
     assert energies[-1] == pytest.approx(1.5296843746, abs=1e-7)

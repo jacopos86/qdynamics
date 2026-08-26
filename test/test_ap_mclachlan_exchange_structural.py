@@ -151,6 +151,31 @@ def test_complete_singleton_level_and_rungs() -> None:
     ]
 
 
+def test_deletion_permission_filters_whole_branches_before_scoring() -> None:
+    _state_, _eval, _cache, cuts, kwargs = _setup()
+    seen: list[tuple[int, ...]] = []
+
+    def permission(removed):
+        removed = tuple(removed)
+        seen.append(removed)
+        return SimpleNamespace(permitted=removed == (1,))
+
+    result = enumerate_structural_candidates(
+        **kwargs, deletion_permission=permission
+    )
+    deletion_sets = {
+        candidate.removed_runtime_indices
+        for candidate in result.candidates
+        if candidate.removed_runtime_indices
+    }
+    assert deletion_sets == {(1,)}
+    assert set(seen) == {(0,), (1,), (0, 1)}
+    per_pool = len(cuts["ca"]) + len(cuts["cb"])
+    kinds = Counter(candidate.kind for candidate in result.candidates)
+    assert kinds["delete"] == 1
+    assert kinds["exchange"] == per_pool
+
+
 def test_work_guard_rejects_complete_family_and_freezes() -> None:
     _s, _e, _c, cuts, kwargs = _setup()
     kwargs["max_joint_patch_evaluations"] = 1 + len(cuts["ca"]) + len(cuts["cb"])

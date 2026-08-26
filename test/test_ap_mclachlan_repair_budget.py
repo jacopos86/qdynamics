@@ -195,14 +195,16 @@ def test_debt_policy_choices_are_validated() -> None:
         SupportPatchControllerConfig(debt_policy="nope")
 
 
-def test_debt_ranking_is_not_a_user_flag_default() -> None:
-    """`debt_ranking` is set per checkpoint by the loop, never left on."""
+def test_debt_ranking_is_internal_to_generalized_exchange() -> None:
+    """The route config exposes the debt rule, not an internal score toggle."""
 
     from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
         SupportPatchControllerConfig,
     )
 
-    assert SupportPatchControllerConfig().debt_ranking is False
+    config = SupportPatchControllerConfig()
+    assert config.debt_policy == "drift_ranked"
+    assert not hasattr(config, "debt_ranking")
 
 
 def test_state_and_parameter_guards_compose() -> None:

@@ -15,11 +15,6 @@ from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     estimate_append_atom_set_cost,
 )
 from pipelines.time_dynamics.ap_mclachlan.adaptive_trajectory import (
-    APPEND_LADDER_PREFILTER_POLICY_V1,
-    APPEND_LADDER_SELECTION_POLICY_V1,
-    PRUNE_PERSISTENCE_ATOM_HISTORY,
-    PRUNE_PERSISTENCE_EXACT_BATCH,
-    SUPPORT_PATCH_EXCHANGE_SELECTION_POLICY_V1,
     AppendControllerConfig,
     PatchCandidateScore,
     SolveRepairConfig,
@@ -146,7 +141,6 @@ def test_append_trajectory_inserts_candidate_without_exact_reference() -> None:
             append_gain_threshold=0.0,
         ),
         support_patch_config=SupportPatchControllerConfig(
-            append_ladder_mode="combinatorial",
             residual_ratio_threshold=0.0,
         ),
     )
@@ -159,15 +153,15 @@ def test_append_trajectory_inserts_candidate_without_exact_reference() -> None:
     assert payload["plot_rows"][0]["patch_kind"] == "append"
     decision = payload["trajectory"]["points"][0]["patch_decision"]
     metadata = decision["metadata"]
-    assert metadata["selection_policy"].startswith("paper_ii_deletion_conditioned")
+    assert metadata["selection_policy"] == "paper_ii_generalized_exchange_v2"
     assert metadata["kind"] == "insert"
     assert metadata["committed"]["inserted_selection"]
-    assert decision["reason"] == "accepted_deletion_conditioned_insert"
+    assert decision["reason"] == "accepted_generalized_exchange_insert"
     assert payload["plot_rows"][0]["theta_dot_l2"] > 0.0
     assert payload["decision_data_flow"]["uses_exact_reference_for_decision"] is False
 
 
-def test_prune_atom_history_drops_deleted_atoms_after_support_change() -> None:
+def test_support_change_drops_deleted_cooldowns_and_clears_geometry_history() -> None:
     old_state = state_from_scaffold_runtime_input(
         _runtime_input_with_selected(
             AnsatzTerm(label="seed_x", polynomial=_poly("x")),
@@ -184,7 +178,6 @@ def test_prune_atom_history_drops_deleted_atoms_after_support_change() -> None:
 
     runtime_state = _PruneControllerRuntimeState()
     for atom_id in old_atom_ids:
-        runtime_state.atom_seen_history[atom_id] = [0, 1]
         runtime_state.cooldown_until_index[atom_id] = 7
     runtime_state.loss_history["old_batch"] = [(1, 0.01)]
 
@@ -194,10 +187,8 @@ def test_prune_atom_history_drops_deleted_atoms_after_support_change() -> None:
         patch_kind=PATCH_DELETE,
     )
 
-    assert metadata["prune_history_transition"] == "delete_preserved_surviving_atom_history"
-    assert deleted_atom_ids[0] not in runtime_state.atom_seen_history
+    assert metadata["prune_history_transition"] == "delete_cleared_geometry_history"
     assert deleted_atom_ids[0] not in runtime_state.cooldown_until_index
-    assert set(runtime_state.atom_seen_history) == kept_atom_ids
     assert set(runtime_state.cooldown_until_index) == kept_atom_ids
     assert runtime_state.loss_history == {}
 
@@ -217,9 +208,7 @@ def test_append_min_time_skips_initial_grid_point_then_allows_append() -> None:
             append_min_time=0.1,
         ),
         support_patch_config=SupportPatchControllerConfig(
-            append_ladder_mode="combinatorial",
             residual_ratio_threshold=0.0,
-            append_min_time=0.1,
         ),
     )
 
@@ -289,8 +278,16 @@ def test_solve_repair_subdivides_interval_for_state_motion_guard() -> None:
     assert row["integration_local_subdivision_applied"] is True
     assert row["integration_local_subdivision_depth"] == 1
     assert row["integration_local_substep_count"] == 2
+    assert row["integration_attempted_substep_count"] == 3
+    assert row["integration_rejected_substep_count"] == 1
+    assert row["integration_rhs_evaluation_count"] == 3
+    assert row["integration_accepted_rhs_evaluation_count"] == 2
     assert integration["repair_summary"]["max_state_motion_l2_step"] < 7.5e-2
     assert payload["summary"]["local_subdivision_applied_count"] == 1
+    assert payload["summary"]["accepted_internal_substep_count"] == 2
+    assert payload["summary"]["attempted_internal_step_count"] == 3
+    assert payload["summary"]["rejected_internal_step_count"] == 1
+    assert payload["summary"]["rhs_evaluation_count"] == 3
 
 
 def test_solve_repair_subdivision_depth_scales_with_motion_severity() -> None:
@@ -325,7 +322,7 @@ def test_solve_repair_subdivision_depth_scales_with_motion_severity() -> None:
     assert integration["repair_summary"]["local_subdivision_severity"] > 1.0
 
 
-def test_solve_repair_subdivides_for_nonlinear_trial_state_motion() -> None:
+def test_nonlinear_trial_overlap_is_not_an_integration_guard() -> None:
     selected = tuple(
         AnsatzTerm(label=f"active_{index}_{pauli}", polynomial=_poly(pauli))
         for index, pauli in enumerate(("x", "y", "x", "z"))
@@ -388,13 +385,13 @@ def test_solve_repair_subdivides_for_nonlinear_trial_state_motion() -> None:
     row = payload["plot_rows"][0]
     integration = payload["trajectory"]["points"][0]["integration_to_next"]
     assert integration["repair_summary"]["max_state_motion_l2_step"] < 6.0e-2
-    assert integration["local_subdivision_applied"] is True
-    assert integration["repair_summary"]["prospective_state_motion_triggered"] is True
-    assert row["integration_prospective_state_motion_triggered"] is True
-    assert (
-        integration["repair_summary"]["max_prospective_state_motion_l2_step"]
-        <= 6.0e-2
+    assert integration["local_subdivision_applied"] is False
+    assert not any(
+        "prospective_state_motion" in key
+        for key in integration["repair_summary"]
     )
+    assert not any("prospective_state_motion" in key for key in row)
+    assert not any("prospective_state_motion" in key for key in payload["summary"])
 
 
 def test_subdivision_severity_ignores_numerical_miss() -> None:
@@ -444,7 +441,6 @@ def test_append_prune_trajectory_deletes_candidate_without_exact_reference() -> 
         times=(0.0, 0.1),
         controller_config=AppendControllerConfig(max_append_candidates=0),
         support_patch_config=SupportPatchControllerConfig(
-            append_ladder_mode="combinatorial",
             residual_ratio_threshold=0.0,
             # Huge saved-cost pressure makes deletion-bearing candidates the
             # top structural scores; loose gates let the best one certify.
@@ -458,7 +454,8 @@ def test_append_prune_trajectory_deletes_candidate_without_exact_reference() -> 
     kinds = {row["patch_kind"] for row in payload["plot_rows"] if row["patch_accepted"]}
     assert kinds <= {"delete", "exchange", "append"}
     decision = payload["trajectory"]["points"][0]["patch_decision"]
-    assert decision["metadata"]["selection_policy"].startswith(
-        "paper_ii_deletion_conditioned"
+    assert (
+        decision["metadata"]["selection_policy"]
+        == "paper_ii_generalized_exchange_v2"
     )
     assert payload["decision_data_flow"]["uses_exact_reference_for_decision"] is False

@@ -58,6 +58,7 @@ from pipelines.qse_spectra.exchange_maintenance import (
     QSEExchangeConfig,
     run_qse_exchange_maintenance,
 )
+from pipelines.qse_spectra.adaptive_qse_benchmark import run_adaptive_qse_benchmark
 from pipelines.qse_spectra.paper_iii_problem import load_problem
 from pipelines.qse_spectra.record_selection import (
     StaticRecordSelectionConfig,
@@ -142,6 +143,75 @@ def trace_arm(
             rows.append(_row(problem, prefix, k, exchanged=True))
         else:
             rows.append(_row(problem, prefix, k, exchanged=False))
+    return rows
+
+
+def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
+    """Growth trace for the external adaptive-QSE (quantum Davidson) arm.
+
+    Grown to the same dimension cap as every other arm and scored on the same
+    exact references. It synthesizes directions rather than consuming the
+    record alphabet, so its resources come from the arm's own costing
+    convention, not from `problem.resource_triple`.
+    """
+
+    seed = [
+        problem.basis[i] for i, e in enumerate(problem.basis)
+        if _element_family(e.name) in _LINEAR_RESPONSE_FAMILIES
+    ]
+    # Charge each synthesized direction as one first-order Trotter step of H,
+    # the same convention the Krylov arm uses (handoff spec). Charging a pool
+    # record instead is wrong: record 0 is the identity and costs nothing.
+    from pipelines.qse_spectra.compiled_costs import (
+        ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        annotate_basis_with_compiled_costs,
+        resolve_cost_weights_preset,
+    )
+    from pipelines.qse_spectra.core import polynomial_basis_element
+
+    step_rows = annotate_basis_with_compiled_costs(
+        [polynomial_basis_element(problem.hamiltonian, name="first_order_trotter_step")],
+        num_qubits=problem.num_qubits,
+        oracle_kind=ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
+    )
+    est = step_rows[0].estimate
+    per_direction = {
+        "c_hat_2q": float(est.c_hat_2q),
+        "c_hat_d": float(est.c_hat_d),
+        "c_hat_1q": float(est.c_hat_1q),
+    }
+    audit = run_adaptive_qse_benchmark(
+        problem.hamiltonian,
+        problem.ground,
+        target_roots=_TARGET_ROOTS,
+        eps_residual=1.0e-14,      # effectively run to the cap; the trace supplies C*
+        max_dimension=int(k_max),
+        seed_elements=seed,
+        direction_resources=per_direction,
+    )
+    refs = problem.references
+    rows: list[dict[str, Any]] = []
+    for it in audit["iterations"]:
+        roots = it.get("root_energies") or []
+        err = (
+            max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
+            if len(roots) >= len(refs) else None
+        )
+        res = it.get("resources") or {}
+        rows.append(
+            {
+                "k": int(it["dimension"]),
+                "support_size": int(it["dimension"]),
+                "exchanged": False,
+                "retained_rank": int(it["retained_rank"]),
+                "max_root_abs_error": err,
+                "n2q": float(res.get("c_hat_2q", 0.0)),
+                "d2q": float(res.get("c_hat_d", 0.0)),
+                "dc": float(res.get("c_hat_d", 0.0)) + float(res.get("c_hat_1q", 0.0)),
+                "root_energies": roots,
+            }
+        )
     return rows
 
 
@@ -250,6 +320,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"@k={best['k']} N2q={best['n2q']:.0f}", flush=True
                     )
 
+        arms["adaptive_qse"] = {
+            "trace": trace_adaptive_qse(problem, k_max=int(args.k_max)),
+            "note": "external benchmark; synthesizes directions, does not consume the alphabet",
+        }
+        best_ad = min(
+            (r for r in arms["adaptive_qse"]["trace"] if r["max_root_abs_error"] is not None),
+            key=lambda r: r["max_root_abs_error"], default=None,
+        )
+        if best_ad:
+            print(f"   {'adaptive_qse':<22} terminal {best_ad['max_root_abs_error']:.1e} "
+                  f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
+
         f_err, f_rank = _window_error(problem, fixed_indices)
         arms["fixed_class"] = {
             "trace": [
@@ -287,7 +369,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "cheapest_first": cheapest,
             "input_order": list(range(len(problem.basis))),
             "fixed_class": fixed_indices,
-        }
+        }  # adaptive_qse intentionally absent: it does not consume the alphabet
         for eps_e in ERROR_TARGET_LADDER:
             key = f"{eps_e:.0e}"
             for arm_key, cell in cells[key].items():
