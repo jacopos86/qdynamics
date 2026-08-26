@@ -34,7 +34,6 @@
 \newcommand{\Scal}{\mathcal{S}}
 \newcommand{\Ncal}{\mathcal{N}}
 \newcommand{\Fcal}{\mathcal{F}}
-\newcommand{\Ucal}{\mathcal{U}}
 \newcommand{\Ccal}{\mathcal{C}}
 \newcommand{\Qcal}{\mathcal{Q}}
 \newcommand{\Vcal}{\mathcal{V}}
@@ -330,15 +329,14 @@ Phase I scores the visibility factor of Eq.~(\ref{eq:qse_score_topdown}),
 S_1(r;\ell)=\Delta_{\qse,1}(r;\ell),
 \label{eq:qse_phase1_score}
 \end{equation}
-before the hardware discount of Sec.~\ref{sec:cost_weighting} is applied.  Here $\Delta_{\qse,1}$ is a lower-confidence probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
+before the hardware discount of Sec.~\ref{sec:cost_weighting} is applied.  Here $\Delta_{\qse,1}$ is a probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
 \begin{equation}
 \ket{\psi_0}\ \mapsto\ \ket{\psi_0}+\alpha\ket{\phi_r},
 \label{eq:qse_phase1_trial_displacement}
 \end{equation}
-used only to compare candidate records on a common state-space scale before full matrix completion.  Let $\rho_{\qse,1}(\ell)>0$ denote the Phase-I QSE trial radius, let $a=|\alpha|$ be the real trial amplitude, and define the raw metric norm $F_r=\braket{\phi_r}{\phi_r}$.  The one-record displacement is constrained by $a^2F_r\le \rho_{\qse,1}(\ell)^2$.  For probe observables $\Ocal_{\rm probe}$ and weights $w_O$, define the nonnegative lower-confidence probe visibility
+used only to compare candidate records on a common state-space scale before full matrix completion.  Let $\rho_{\qse,1}(\ell)>0$ denote the Phase-I QSE trial radius, let $a=|\alpha|$ be the real trial amplitude, and define the raw metric norm $F_r=\braket{\phi_r}{\phi_r}$.  The one-record displacement is constrained by $a^2F_r\le \rho_{\qse,1}(\ell)^2$.  For probe observables $\Ocal_{\rm probe}$ and weights $w_O$, define the probe visibility
 \begin{equation}
 g_r=
-\left[
 \left[
 \sum_{O\in\Ocal_{\rm probe}}w_O
 \left|
@@ -752,8 +750,8 @@ When record growth is nested, $\Acal_\ell\subseteq\Acal_{\ell+1}$ implies $\Vcal
 d=\dim\Vcal_{\Acal_{\ell+1},\mathfrak s}-\dim\Vcal_{\Acal_\ell,\mathfrak s}.
 \label{eq:qse_ritz_interlacing}
 \end{equation}
-Thus spectral regressions in measured runs are attributed to support truncation, shot perturbations, root rematching, or sector changes rather than to exact Galerkin enlargement.
-Finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a statistically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
+Thus spectral regressions are attributed to support truncation, root rematching, or sector changes rather than to exact Galerkin enlargement.
+Finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a numerically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
 $S=V\diag(s_i)V^\dagger$, define retained support
 $\mathcal I_S=\{i:s_i\ge\tau_Ss_{\max}\}$ and the exact supported whitening map
 \begin{equation}
