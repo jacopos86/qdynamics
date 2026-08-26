@@ -32,8 +32,8 @@ MULTIROOT_JSON = (
 DEFAULT_OUTPUT = REPO_ROOT / "MATH/paper_details/generated/paper_iii_gap_figure.pdf"
 
 _ARMS = (
-    ("fixed_linear_response_complete", "fixed linear-response class", "#c05020", "s"),
-    ("exchange_dominance_R6", "selected + certified exchange", "#2673b8", "o"),
+    ("fixed_linear_response_complete", "benchmark: fixed linear-response class", "#c05020", "s"),
+    ("exchange_dominance_R6", "ours: selected + certified exchange", "#2673b8", "o"),
 )
 _REGIME_LABEL = {
     "weak_weak": r"weak--weak",
@@ -100,7 +100,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             color="#222222",
             markersize=16,
             markeredgewidth=2.0,
-            label="exact sector" if slot == 0 else None,
+            label="exact (reference)" if slot == 0 else None,
             zorder=1,
         )
         for arm_key, arm_label, color, marker in _ARMS:
@@ -157,7 +157,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         handles.append(
             Line2D([], [], marker="^", color="#c05020", linestyle="none", markersize=7)
         )
-        labels.append("fixed class, off scale (value shown)")
+        labels.append("benchmark off scale (value shown)")
         ax.legend(handles, labels, fontsize=8, loc="lower left", framealpha=0.95)
     else:
         ax.legend(fontsize=8, loc="lower left", framealpha=0.95)
