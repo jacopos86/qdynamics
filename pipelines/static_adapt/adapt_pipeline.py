@@ -28510,12 +28510,10 @@ def _finish_default_no_prune_numerical_session_initialization(
         initial_radius=float(kwargs["phase2_rho"]),
         checkpoint_payload=None,
     )
-    parameterization_mode = _resolve_selected_parameterization_mode(
-        problem_key_value=str(core.resolved_problem.family_key),
-        pool_key_value=str(kwargs["adapt_pool"]),
-        candidate_terms=core.pool,
-        sector_contract_requires_logical_shared=False,
-    )
+    # The setup core already resolved the mode with the pool-level sector
+    # audit flag; re-deriving it here without that flag silently diverged for
+    # pools whose grouped generators require logical-shared execution.
+    parameterization_mode = str(core.parameterization_mode)
     if (
         str(core.resolved_problem.family_key) == "hh"
         and str(kwargs["phase3_runtime_split_mode"]) != "off"

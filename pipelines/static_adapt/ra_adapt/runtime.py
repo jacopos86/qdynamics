@@ -1939,18 +1939,30 @@ def _execute_resolved_context(
     )
 
     insertion = normalized.method.insertion
-    if accepted_trajectory and isinstance(
-        insertion,
-        (
-            AlwaysCommutationReducedInsertion,
-            AppendCommutationReducedInsertion,
-            PlateauCommutationInsertion,
-        ),
-    ) or (
-        bool(accepted_trajectory)
-        and
-        isinstance(insertion, AppendOnlyInsertion)
-        and result.route.family == "ra_adapt"
+    # The canonical Paper-I summary is a canonical-evidence artifact.  A
+    # validated protocol that executes a non-canonical parent pool is a
+    # deliberate ablation identity: it completes without the canonical
+    # summary rather than being stamped with one it cannot satisfy.
+    executed_pool = str(result.route.execution.pool)
+    canonical_pool_identity = executed_pool in {
+        "full_meta",
+        "full_meta_derivative_resolved_v2",
+    }
+    if canonical_pool_identity and (
+        accepted_trajectory
+        and isinstance(
+            insertion,
+            (
+                AlwaysCommutationReducedInsertion,
+                AppendCommutationReducedInsertion,
+                PlateauCommutationInsertion,
+            ),
+        )
+        or (
+            bool(accepted_trajectory)
+            and isinstance(insertion, AppendOnlyInsertion)
+            and result.route.family == "ra_adapt"
+        )
     ):
         result = replace(
             result,
