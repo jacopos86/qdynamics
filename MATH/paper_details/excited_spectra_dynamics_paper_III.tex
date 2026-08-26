@@ -545,108 +545,38 @@ c_\mu^{(\ell+1)}
 The matching $\mu^\star(\nu)$ is the Hungarian assignment maximizing
 $\sum_\nu \mathcal O_{\nu,\mu^\star(\nu)}^{(\ell,\ell+1)}$ \cite{Kuhn1955Hungarian}; near degeneracies are tracked as subspaces by principal angles rather than as independent labeled eigenvectors \cite{DavisKahan1970}.
 
-\subsection{Implemented QSE diagonalization}
+\subsection{Supported-pencil solve}
 
-After record selection, the admitted basis is
-\begin{equation}
-\Vcal_{\Acal,\mathfrak s}
-=
-\spanop\{\ket{\phi_a}:a\in\Acal\}.
-\label{eq:qse_subspace}
-\end{equation}
-The overlap, projected Hamiltonian, and observable matrices are
-\begin{align}
-S_{ab}
-&=
-\braket{\phi_a}{\phi_b}
-=
-\bra{\psi_0}\Omega_a^\dagger Q_{\mathfrak s,0}\Omega_b\ket{\psi_0},
-\nonumber\\
-M_{ab}
-&=
-\bra{\phi_a}H_0\ket{\phi_b}
-=
-\bra{\psi_0}\Omega_a^\dagger Q_{\mathfrak s,0}H_0Q_{\mathfrak s,0}\Omega_b\ket{\psi_0},
-\nonumber\\
-O_{ab}
-&=
-\bra{\phi_a}O\ket{\phi_b}.
-\label{eq:qse_matrices}
-\end{align}
-The QSE roots solve
-\begin{equation}
-M c^{(\nu)}=\varepsilon_\nu S c^{(\nu)},
-\qquad
-(c^{(\mu)})^\dagger S c^{(\nu)}=\delta_{\mu\nu},
-\label{eq:qse_gep}
-\end{equation}
-with approximate state
-\begin{equation}
-\ket{\Psi_\nu^{\qse}}
-=
-\sum_{a\in\Acal}c_a^{(\nu)}\ket{\phi_a}.
-\label{eq:qse_state}
-\end{equation}
-When record growth is nested, $\Acal_\ell\subseteq\Acal_{\ell+1}$ implies $\Vcal_{\Acal_\ell,\mathfrak s}\subseteq\Vcal_{\Acal_{\ell+1},\mathfrak s}$ before support truncation.  With exact matrix elements and fixed retained overlap support, the Ritz values obey the usual Rayleigh--Ritz interlacing relation \cite{GolubVanLoan2013MatrixComputations}
-\begin{equation}
-\varepsilon_j^{(\ell+1)}
-\le
-\varepsilon_j^{(\ell)}
-\le
-\varepsilon_{j+d}^{(\ell+1)},
-\qquad
-d=\dim\Vcal_{\Acal_{\ell+1},\mathfrak s}-\dim\Vcal_{\Acal_\ell,\mathfrak s}.
-\label{eq:qse_ritz_interlacing}
-\end{equation}
-Thus spectral regressions are attributed to support truncation, root rematching, or sector changes rather than to exact Galerkin enlargement.
-Finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a numerically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
-$S=V\diag(s_i)V^\dagger$, define retained support
-$\mathcal I_S=\{i:s_i\ge\tau_Ss_{\max}\}$ and the exact supported whitening map
+The selected records define the standard QSE pencil of Eqs.~(\ref{eq:intro_qse_basis}) and~(\ref{eq:intro_qse_gep}).  The method-specific diagonalization convention is the overlap support on which that pencil is solved.  Selection, exchange certification, and diagonalization use the same relative cutoff $\tau$: if $S=V\diag(s_i)V^\dagger$, define
+$\mathcal I_S(\tau)=\{i:s_i\ge\tau s_{\max}\}$ and the supported whitening map
 \begin{equation}
 B
 =
-V_{\mathcal I_S}
+V_{\mathcal I_S(\tau)}
 \diag(s_i^{-1/2}) .
 \label{eq:qse_metric_whitening}
 \end{equation}
-The committed diagonalization is
+The retained pencil is solved as
 \begin{equation}
+\begin{aligned}
 \widehat M
-=
-B^\dagger MB,
-\qquad
-\widehat M y_\nu=\varepsilon_\nu y_\nu,
-\qquad
-c_\nu=By_\nu,
+&=B^\dagger MB,
+&
+\widehat M y_\nu&=\varepsilon_\nu y_\nu,\\
+c_\nu&=By_\nu,
+&
+\ket{\Psi_\nu^{\qse}}&=\Phi_\Acal c_\nu.
+\end{aligned}
 \label{eq:qse_whitened_gep}
 \end{equation}
-so that \(c_\nu^\dagger S c_\nu=1\) on the retained support.  If a ridge map
-\(B_\lambda=V_{\mathcal I_S}\diag((s_i+\lambda_S)^{-1/2})\) is used for damping instead, the resulting Ritz vector is renormalized by
+so that \(c_\nu^\dagger S c_\nu=1\).  If a ridge map
+\(B_\lambda=V_{\mathcal I_S(\tau)}\diag((s_i+\lambda_S)^{-1/2})\) is used for damping, the resulting Ritz vector is renormalized by
 \(c_\nu=B_\lambda y_\nu/\sqrt{y_\nu^\dagger B_\lambda^\dagger S B_\lambda y_\nu}\).
-The retained-support Ritz spectrum is invariant under nonsingular coordinate changes within the selected span.  If \(T\) is nonsingular and \(\Phi\mapsto\Phi T\), then
-\begin{equation}
-S\mapsto T^\dagger S T,
-\qquad
-M\mapsto T^\dagger M T,
-\label{eq:qse_basis_change_invariance}
-\end{equation}
-and the generalized eigenvalues are unchanged after applying the same support convention.  The implementation uses this invariance as a basis-change sanity check.
-For an isolated whitened root, the corresponding first-order eigenvector sensitivity follows the usual eigengap dependence of Hermitian subspace perturbation bounds \cite{DavisKahan1970} and obeys
-\begin{equation}
-\|\delta y_\nu\|_2
-\lesssim
-\frac{
-\|B^\dagger(\delta M-\varepsilon_\nu\delta S)B\|_2
-}{
-\operatorname{gap}_\nu(\widehat M)
-},
-\label{eq:qse_root_gap_sensitivity}
-\end{equation}
-where \(\operatorname{gap}_\nu(\widehat M)\) is the nearest retained-root separation.  Small retained overlap eigenvalues and small whitened spectral gaps therefore identify the runs most likely to show root flips or unstable transition amplitudes.
+This shared support defines the retained dimension $M_{\rm eff}=|\mathcal I_S(\tau)|$ and the supported condition estimate reported in the results and enforced by the exchange guards.  It is therefore part of the acquisition method rather than a result diagnostic.  Matrix construction, Rayleigh--Ritz interlacing, coordinate-invariance checks, and eigengap sensitivity are standard numerical details collected in Appendix~\ref{app:qse_measurement_details}.
 
 \subsection{Transition observables and spectral functions}
 
-QSE and related response-function methods have been used to extract Green functions, Lehmann representations, bosonic and fermionic correlation functions, and dynamical response observables from quantum-generated subspaces \cite{Jamet2022GreenQSE,Dhawan2024ImagTimeGreen,Gauthier2024OccupationQSE,Kokcu2024LinearResponse,Umeano2025KitaevQSE}.  For an observable $O$, the excited-only QSE basis uses $Q_{\mathfrak s,0}$ and therefore does not contain the ground state as a Ritz vector when the target sector contains the seed.  The transition vector from the prepared reference is
+QSE and related response-function methods have been used to extract Green functions, Lehmann representations, bosonic and fermionic correlation functions, and dynamical response observables from quantum-generated subspaces \cite{Jamet2022GreenQSE,Dhawan2024ImagTimeGreen,Gauthier2024OccupationQSE,Kokcu2024LinearResponse,Umeano2025KitaevQSE}.  For an observable $O$, write $O^\Acal_{ab}=\bra{\phi_a}O\ket{\phi_b}$.  The excited-only QSE basis uses $Q_{\mathfrak s,0}$ and therefore does not contain the ground state as a Ritz vector when the target sector contains the seed.  The transition vector from the prepared reference is
 \begin{equation}
 d_a^O
 =
@@ -1274,7 +1204,7 @@ S\leftarrow\frac12(S+S^\dagger),\qquad
 M\leftarrow\frac12(M+M^\dagger),
 \label{eq:app_qse_symmetrization}
 \end{equation}
-followed by metric support truncation and ridge whitening as in Eq.~(\ref{eq:qse_metric_whitening}).  This regularization is part of the scientific protocol, not a numerical afterthought, because excited-state QSE matrix elements are both measurement intensive and sensitive to the retained overlap support \cite{ChoiIzmaylov2023MeasurementQSE,Nakamura2024AdaptiveMeasurementQSE,Kwao2026GEPQSE}.
+followed by metric support truncation and supported whitening as in Eq.~(\ref{eq:qse_metric_whitening}).  This regularization is part of the scientific protocol, not a numerical afterthought, because excited-state QSE matrix elements are both measurement intensive and sensitive to the retained overlap support \cite{ChoiIzmaylov2023MeasurementQSE,Nakamura2024AdaptiveMeasurementQSE,Kwao2026GEPQSE}.
 
 The generalized eigenvalue equation follows from the Rayleigh quotient in the nonorthogonal QSE basis.  For a retained basis $\{\ket{\phi_a}:a\in\Acal\}$, write a trial state as
 \begin{equation}
@@ -1328,6 +1258,44 @@ M c=\varepsilon S c.
 \label{eq:app_qse_gep_derivation}
 \end{equation}
 Therefore $M$ is not a regularized version of $S$: $S$ is the metric of the nonorthogonal basis, while $M$ is the Hamiltonian restricted to that basis.  If the basis were orthonormal, then $S=I$ and Eq.~(\ref{eq:app_qse_gep_derivation}) would reduce to ordinary Hamiltonian diagonalization.
+
+\subsection{Galerkin and stability checks}
+
+The following relations validate the supported-pencil implementation; they are not acquisition, exchange, or stopping signals.  Write
+$\Vcal_{\Acal,\mathfrak s}=\spanop\{\ket{\phi_a}:a\in\Acal\}$.  Before support truncation, nested record growth $\Acal_\ell\subseteq\Acal_{\ell+1}$ gives nested trial spaces.  With exact matrix elements and a fixed retained physical support, the Ritz values obey the Rayleigh--Ritz interlacing relation \cite{GolubVanLoan2013MatrixComputations}
+\begin{equation}
+\varepsilon_j^{(\ell+1)}
+\le
+\varepsilon_j^{(\ell)}
+\le
+\varepsilon_{j+d}^{(\ell+1)},
+\qquad
+d=\dim\Vcal_{\Acal_{\ell+1},\mathfrak s}-\dim\Vcal_{\Acal_\ell,\mathfrak s}.
+\label{eq:qse_ritz_interlacing}
+\end{equation}
+Consequently, a spectral regression under nested acquisition identifies a change in retained support, root assignment, or sector rather than exact Galerkin enlargement.
+
+For the untruncated pencil, a nonsingular coordinate change $\Phi\mapsto\Phi T$ gives
+\begin{equation}
+S\mapsto T^\dagger S T,
+\qquad
+M\mapsto T^\dagger M T,
+\label{eq:qse_basis_change_invariance}
+\end{equation}
+without changing the generalized eigenvalues.  After numerical support truncation, the corresponding check is restricted to transformations that preserve the retained physical support, including unitary rotations within it.  An arbitrary nonunitary rescaling can change threshold membership and is not covered by the invariance claim.
+
+For an isolated whitened root, first-order eigenvector sensitivity follows the usual eigengap dependence of Hermitian subspace perturbation bounds \cite{DavisKahan1970}:
+\begin{equation}
+\|\delta y_\nu\|_2
+\lesssim
+\frac{
+\|B^\dagger(\delta M-\varepsilon_\nu\delta S)B\|_2
+}{
+\operatorname{gap}_\nu(\widehat M)
+}.
+\label{eq:qse_root_gap_sensitivity}
+\end{equation}
+Here $\operatorname{gap}_\nu(\widehat M)$ is the nearest retained-root separation.  Small retained overlap eigenvalues and small whitened spectral gaps therefore identify cases most susceptible to root flips or unstable transition amplitudes.
 
 \section{Spectral metrics}
 \label{app:spectral_metrics}
