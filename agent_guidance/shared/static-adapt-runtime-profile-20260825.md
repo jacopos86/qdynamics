@@ -467,3 +467,105 @@ the candidate-record-cache `deepcopy` (13.4%) and the Qiskit cost-metric
 transpile (13.2%), ~26% combined. The statevector numerics are still 7.2%, so
 the Section 3 conclusion stands: PennyLane, PyTorch, and CUDA remain the wrong
 lever at `dim = 1024`.
+
+---
+
+# Appendix C — items (5) and (6) measured, and a correction to Section 4 (2026-08-25)
+
+Section 4 sized items (5) and (6) at ~14% and ~10% from the cProfile buckets.
+Both numbers were wrong, and the reason matters for how this document should be
+read.
+
+## C.1 cProfile inflates high-call-count functions
+
+`cProfile` adds per-call instrumentation overhead. Functions called millions of
+times are therefore reported far larger than their true wall-clock share. The
+baseline run made ~12.2M `deepcopy` calls, 11.2M `_canonical_pauli_word` calls,
+and 5.4M `_pauli_words_commute` calls, so every one of those was overstated.
+
+Measured directly, with wall-clock timers and no profiler attached:
+
+| Path | cProfile said | Wall clock |
+|---|---:|---:|
+| `_candidate_record_cache_get` (all 650 calls) | 14.05 s cum | **4.33 s** |
+
+A 3.2x overstatement. The Section 2 bucket table should be read as a **ranking**,
+not as a budget — its ordering held up (the sector audit really was the largest
+cost, and items (1)--(3) really did deliver 2.03x on wall clock), but its
+magnitudes for the high-call-count buckets are inflated.
+
+## C.2 Item (6), Qiskit transpile caching: not achievable
+
+Section 4 assumed "circuits repeat across candidates and depths". They do not.
+Instrumenting `compile_circuit_for_backend` over a full canonical run:
+
+| Metric | Value |
+|---|---:|
+| compile calls | 871 |
+| distinct circuits (full digest, angles included) | **871** |
+| distinct circuits (structure-only digest, angles ignored) | **871** |
+| achievable cache hit rate | **0.0%** |
+
+Every transpiled circuit is genuinely distinct, and not merely because the
+rotation angles differ: keying on structure alone and discarding all continuous
+parameter values still yields 871 distinct keys. This is inherent to ADAPT --
+the ansatz gains a generator every depth, and each screened candidate appends a
+different one, so no two circuits in a run share a structure.
+
+Two things follow. Memoization cannot help. And the only remaining ways to cut
+this ~13 s are to transpile *fewer* circuits (which candidates need Qiskit cost
+metrics at all) or to lower `optimization_level` (which changes the reported
+`N_2q` and depth). Both are scientific/reporting scope decisions about the cost
+model, not optimizations, and neither is taken here.
+
+For the record, the same instrumentation confirmed the metrics are angle-stable:
+across all 871 compiles, zero groups showed `(depth, N_2q, layout)` disagreeing
+for a fixed structure. That makes a structure-keyed cache *tempting*, but with 871
+distinct structures there is nothing for it to hit, so the question is moot.
+
+## C.3 Item (5), candidate-record `deepcopy`: partially recovered
+
+True cost 4.33 s (5.5% of the run), across 650 calls that were **all disk hits** --
+the memory cache was never read back within a run, because each key is fetched
+at most once.
+
+Both cache paths took two deep copies where one suffices, and that part is now
+fixed (`65c71785`):
+
+- **disk get**: the unpickled payload is reachable from nowhere else, so the
+  record handed to the caller is already private to them; only the long-lived
+  memory entry needs a copy of its own.
+- **put**: the copy taken to isolate the caller's record also serves the pickled
+  payload, because `pickle.dump` does not mutate what it serializes.
+
+Measured: 79.19 s / 79.23 s -> **78.67 s / 77.78 s**, energy identical at
+`5.876936059036121`. About 1.5%.
+
+**The remaining ~3 s is not safely recoverable.** Two routes were evaluated and
+rejected on evidence:
+
+1. *A specialized structural copier.* The records are ~58k immutable scalars,
+   ~4.7k containers, 399 `AnsatzTerm`, and no numpy arrays, nested at most 6
+   deep. A hand-written copier that returns immutables by reference and rebuilds
+   containers measured only **1.15x** over `copy.deepcopy` -- not worth the code.
+2. *Sharing `AnsatzTerm` by reference.* 46% of the remaining copy cost is the 399
+   `AnsatzTerm` deep copies, so this is where the prize is. `AnsatzTerm` is
+   `@dataclass(frozen=True)`, which looks safe -- but its `polynomial` field is a
+   `PauliPolynomial`, which is mutable (`add_term` appends), and
+   `return_polynomial()` hands out its **internal list by reference**. A consumer
+   mutating a shared cached generator would silently corrupt every later reader
+   of that cache key. Rejected: the ~9% is not worth a defect class that would
+   surface as wrong physics rather than as a crash.
+
+## C.4 Corrected outlook
+
+After `a1ab4085` + `65c71785` the canonical run is ~78 s, from 160 s cold /
+95 s warm. The remaining large buckets are Qiskit transpilation (~13 s,
+irreducible without a cost-model decision) and the candidate-record copy (~3 s,
+unsafe to remove further).
+
+There is no remaining large, safe, purely-mechanical win in this run. Section 3's
+conclusion is unchanged and is now the sharper one: at `dim = 1024` the
+statevector numerics are a single-digit percentage, so PennyLane, PyTorch, and
+CUDA remain the wrong lever -- and the bookkeeping that dominated has now largely
+been removed rather than accelerated.
