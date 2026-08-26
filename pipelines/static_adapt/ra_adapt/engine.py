@@ -3082,7 +3082,7 @@ def _required_phase3_stabilization(
 
     matches: list[PhaseIIIStabilizationReceipt] = []
     missing_receipt_geometries: list[Mapping[str, Any]] = []
-    seen: set[tuple[float, float, float, bool]] = set()
+    seen: list[tuple[float, float, float, bool]] = []
     quartet = (
         "kappa_stabilization_shift",
         "trust_boundary_multiplier_lambda",
@@ -3133,9 +3133,21 @@ def _required_phase3_stabilization(
             raise RuntimeError(
                 "Accepted RA Phase-III stabilization receipt is incomplete."
             ) from exc
-        if key in seen:
+        if any(
+            bool(previous[3]) == bool(key[3])
+            and all(
+                math.isclose(
+                    float(previous[index]),
+                    float(key[index]),
+                    rel_tol=1.0e-12,
+                    abs_tol=1.0e-12,
+                )
+                for index in range(3)
+            )
+            for previous in seen
+        ):
             continue
-        seen.add(key)
+        seen.append(key)
         matches.append(
             PhaseIIIStabilizationReceipt(
                 solver_policy=PROJECTED_GENERALIZED_SOLVER,

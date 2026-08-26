@@ -5089,17 +5089,90 @@ class OrderedInsertionGeometryOracle:
         scaffold_context: _ScaffoldDerivativeContext,
         candidate_label: str,
         candidate_term: Any,
+        position_id: int | None = None,
         compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
         pauli_action_cache: dict[str, Any] | None = None,
         novelty_eps: float = 1e-6,
     ) -> Mapping[str, Any]:
-        del compiled_cache, novelty_eps
-        cand_dpsi, cand_d2psi, cand_window_d2 = _propagate_append_candidate(
-            candidate_term=candidate_term,
-            psi_state=scaffold_context.psi_state,
-            window_dpsi=list(scaffold_context.dpsi_window),
-            pauli_action_cache=pauli_action_cache,
-        )
+        del compiled_cache, novelty_eps, candidate_label
+        selected = list(scaffold_context.selected_ops)
+        position = int(len(selected) if position_id is None else position_id)
+        if position < 0 or position > len(selected):
+            raise ValueError(
+                "Ordered insertion geometry received a position outside the "
+                "current ansatz boundary."
+            )
+        if position == len(selected):
+            cand_dpsi, cand_d2psi, cand_window_d2 = (
+                _propagate_append_candidate(
+                    candidate_term=candidate_term,
+                    psi_state=scaffold_context.psi_state,
+                    window_dpsi=list(scaffold_context.dpsi_window),
+                    pauli_action_cache=pauli_action_cache,
+                )
+            )
+        else:
+            theta_vec = np.asarray(scaffold_context.theta, dtype=float).reshape(-1)
+            combined_terms = [
+                *selected[:position],
+                candidate_term,
+                *selected[position:],
+            ]
+            combined_theta = np.insert(theta_vec, position, 0.0)
+            source_active = tuple(
+                int(index) for index in scaffold_context.refit_window_indices
+            )
+            active_combined = [
+                int(index if index < position else index + 1)
+                for index in source_active
+            ]
+            candidate_local = int(len(source_active))
+            derivative_indices = [*active_combined, int(position)]
+            sparse_pairs = [
+                *((index, candidate_local) for index in range(candidate_local)),
+                (candidate_local, candidate_local),
+            ]
+            executor = _executor_for_terms(
+                combined_terms,
+                pauli_action_cache=pauli_action_cache,
+            )
+            reconstructed, derivatives, second_derivatives = (
+                _propagate_executor_sparse_second_derivatives(
+                    executor=executor,
+                    theta=combined_theta,
+                    psi_ref=np.asarray(scaffold_context.psi_ref, dtype=complex),
+                    active_indices=derivative_indices,
+                    second_derivative_pairs=sparse_pairs,
+                )
+            )
+            reconstructed_state = np.asarray(reconstructed, dtype=complex).reshape(-1)
+            supplied_state = np.asarray(
+                scaffold_context.psi_state, dtype=complex
+            ).reshape(-1)
+            overlap = complex(np.vdot(supplied_state, reconstructed_state))
+            phase = overlap / abs(overlap) if abs(overlap) > 0.0 else 1.0 + 0.0j
+            state_delta = float(
+                np.linalg.norm(reconstructed_state / phase - supplied_state)
+            )
+            if state_delta > 1.0e-8:
+                raise ValueError(
+                    "Ordered insertion geometry reconstructed a state "
+                    f"inconsistent with the supplied state: delta={state_delta:.6g}."
+                )
+            aligned_derivatives = [
+                np.asarray(value / phase, dtype=complex)
+                for value in derivatives
+            ]
+            aligned_second = {
+                pair: np.asarray(value / phase, dtype=complex)
+                for pair, value in second_derivatives.items()
+            }
+            cand_dpsi = aligned_derivatives[candidate_local]
+            cand_d2psi = aligned_second[(candidate_local, candidate_local)]
+            cand_window_d2 = [
+                aligned_second[(index, candidate_local)]
+                for index in range(candidate_local)
+            ]
         cand_tangent = _horizontal_tangent(scaffold_context.psi_state, cand_dpsi)
         q_window = np.asarray(
             [
@@ -5110,7 +5183,8 @@ class OrderedInsertionGeometryOracle:
         )
         F_raw = float(max(0.0, np.real(np.vdot(cand_tangent, cand_tangent))))
         return {
-            "novelty_mode": "append_exact_tangent_context_v1",
+            "novelty_mode": "exact_ordered_insertion_tangent_context_v1",
+            "candidate_position_id": int(position),
             "candidate_dpsi": np.asarray(cand_dpsi, dtype=complex),
             "candidate_d2psi": np.asarray(cand_d2psi, dtype=complex),
             "candidate_window_d2": [np.asarray(x, dtype=complex) for x in cand_window_d2],
@@ -6266,6 +6340,7 @@ def build_full_candidate_features(
         scaffold_context=phase2_context,
         candidate_label=str(base_feature.candidate_label),
         candidate_term=candidate_term,
+        position_id=int(base_feature.position_id),
         compiled_cache=compiled_cache,
         pauli_action_cache=pauli_action_cache,
     )
@@ -6278,6 +6353,7 @@ def build_full_candidate_features(
             scaffold_context=phase3_context,
             candidate_label=str(base_feature.candidate_label),
             candidate_term=candidate_term,
+            position_id=int(base_feature.position_id),
             compiled_cache=compiled_cache,
             pauli_action_cache=pauli_action_cache,
         )
