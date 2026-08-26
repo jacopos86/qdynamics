@@ -344,12 +344,9 @@ g_r=
 \left|
 \bra{\psi_0}O^\dagger\ket{\phi_r}
 \right|^2
-\right]^{1/2}
--z_\alpha\widehat\sigma_r
-\right]_+ .
+\right]^{1/2} .
 \label{eq:qse_probe_gain}
-\end{equation}
-Here $z_\alpha$ is the chosen one-sided confidence multiplier, $\widehat\sigma_r$ is the estimated shot-noise standard deviation of the weighted probe visibility, and $[x]_+=\max(x,0)$.  The closed-form trial amplitude and Phase-I gain are
+\end{equation}  The closed-form trial amplitude and Phase-I gain are
 \begin{equation}
 \begin{aligned}
 a_r
@@ -548,17 +545,6 @@ S_3(r;\ell)\ge\tau_3(\ell)
 \end{aligned}
 \label{eq:qse_admit}
 \end{equation}
-Finite-shot runs replace the deterministic gain and rank tests by confidence-margin guards,
-\begin{align}
-S_3(r;\ell)-z_\alpha\widehat\sigma_{S_3,r}
-&\ge \tau_3(\ell),
-\nonumber\\
-\lambda_{\rm new}^{\min}(S_{\Acal_\ell\cup\{r\}})
-&\ge
-\tau_S s_{\max}+z_\alpha\widehat\sigma_{\lambda,r},
-\label{eq:qse_finite_shot_admission}
-\end{align}
-where \(\lambda_{\rm new}^{\min}\) is the smallest overlap eigenvalue associated with the newly supported direction after adding \(r\), and the hatted standard deviations are estimated from the same matrix-element uncertainty model used for reported error bars.
 
 
 \subsection{Hardware-cost weighting}
@@ -695,8 +681,7 @@ J_{\rm beam}
 =
 \epsilon_{\rm spec}
 +\lambda_\kappa\log\kappa(S)
-+\lambda_M M_{\rm eff}
-+\lambda_{\rm shot}S_{\rm mat}^{\rm proxy}.
++\lambda_M M_{\rm eff}.
 \label{eq:qse_beam_objective}
 \end{equation}
 
@@ -768,7 +753,7 @@ d=\dim\Vcal_{\Acal_{\ell+1},\mathfrak s}-\dim\Vcal_{\Acal_\ell,\mathfrak s}.
 \label{eq:qse_ritz_interlacing}
 \end{equation}
 Thus spectral regressions in measured runs are attributed to support truncation, shot perturbations, root rematching, or sector changes rather than to exact Galerkin enlargement.
-Finite-shot and finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a statistically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
+Finite-rank stability is enforced by supported metric whitening, following the quantum-subspace lesson that measured matrix pencils must be solved only on a statistically reliable overlap support \cite{Epperly2022QSD,Lee2024SamplingQKSD,Kwao2026GEPQSE}.  If
 $S=V\diag(s_i)V^\dagger$, define retained support
 $\mathcal I_S=\{i:s_i\ge\tau_Ss_{\max}\}$ and the exact supported whitening map
 \begin{equation}
@@ -800,14 +785,7 @@ M\mapsto T^\dagger M T,
 \label{eq:qse_basis_change_invariance}
 \end{equation}
 and the generalized eigenvalues are unchanged after applying the same support convention.  The implementation uses this invariance as a basis-change sanity check.
-At first order, shot perturbations in the measured matrices shift an \(S\)-normalized Ritz value by
-\begin{equation}
-\delta\varepsilon_\nu
-=
-c_\nu^\dagger(\delta M-\varepsilon_\nu\delta S)c_\nu ,
-\label{eq:qse_first_order_shot_shift}
-\end{equation}
-which is the quantity propagated into finite-shot error bars and conditioning penalties.  For an isolated whitened root, the corresponding first-order eigenvector sensitivity follows the usual eigengap dependence of Hermitian subspace perturbation bounds \cite{DavisKahan1970} and obeys
+For an isolated whitened root, the corresponding first-order eigenvector sensitivity follows the usual eigengap dependence of Hermitian subspace perturbation bounds \cite{DavisKahan1970} and obeys
 \begin{equation}
 \|\delta y_\nu\|_2
 \lesssim
@@ -1357,7 +1335,7 @@ The recommended panels are: excitation energy error versus root index; transitio
 The selection mechanism is acquisition of operator-generated spectral directions under finite matrix-measurement and circuit budgets.  Probe-transition gain identifies candidate excitations visible to the observables of interest, metric novelty prevents addition of directions already expressible by the current nonorthogonal basis, residual capture measures projected eigen-equation miss, Ritz gain estimates lower-branch spectral improvement, and cost penalties keep the construction from degenerating into a largest-alphabet measurement program.  In dynamics, frozen QSE is efficient when the drive remains inside the selected spectral manifold, adaptive QSE extends the nonorthogonal basis when a small number of extra records closes the residual, and live McLachlan refinement is reserved for roots whose escape diagnostic indicates circuit-level propagation is needed.
 
 \structlabel{Scope, limitations, and future work}
-The intended evidence package is a compiled, finite-shot-accounted small-system study with ED used as a diagnostic reference.  Exact spectra and trajectories are reserved for reported root errors, transition strengths, and time-domain observable benchmarks; QSE admission and handoff decisions use measurement-compatible quantities of the prepared seed state and selected excitation basis.  The main unresolved numerical issues are sweep scale, root matching under near-degeneracy, finite-shot generalized-eigenproblem stability, and cutoff stress for phonon-bearing systems.  Hardware validation is useful as a final anchor but should not replace the method's class-wise transfer tests.
+The intended evidence package is a compiled-cost-accounted small-system study of exact statevector simulations, with ED used as a diagnostic reference.  Exact spectra and trajectories are reserved for reported root errors, transition strengths, and time-domain observable benchmarks; QSE admission and handoff decisions use measurement-compatible quantities of the prepared seed state and selected excitation basis.  The main unresolved numerical issues are sweep scale, root matching under near-degeneracy, finite-shot generalized-eigenproblem stability, and cutoff stress for phonon-bearing systems.  Hardware validation is useful as a final anchor but should not replace the method's class-wise transfer tests.
 
 \structlabel{Summary}
 We presented a geometry-aware QSE acquisition rule and excited-state dynamics route for mixed fermion--boson Hamiltonians.  The method uses an optimized compact ADAPT ansatz as a ground-state seed, ranks excitation records by probe gain, metric novelty, residual capture, Ritz spectral gain, conditioning, and cost, then diagonalizes the selected nonorthogonal manifold to obtain spectra and transition observables.  The primary result is spectral: across six Hubbard--Holstein regimes at two phonon cutoffs, a bond-coupled Peierls--Hubbard family, and a three-site extension, selection with certified exchange resolves the lowest six excitations wherever the record pool spans them, while a complete fixed linear-response class and a real-time Krylov construction fail the same window at comparable or higher compiled two-qubit cost, and at three sites the selected support also outperforms the full pool by avoiding its overlap-conditioning collapse.  The dynamics route is a secondary contribution built on that manifold: it propagates frozen QSE coefficients, monitors an escape diagnostic, and hands selected roots to a live checkpoint McLachlan route through the QSE-root interface, with the escalation criteria computable from premeasured data.  The completed production sweep will give a single accuracy--resource comparison across excitation energies, root fidelities, transition strengths, spectra, driven observables, matrix-measurement cost, overlap conditioning, and compiled quantum resources.
@@ -1429,7 +1407,7 @@ The overlap and Hamiltonian matrices are estimated from grouped Pauli decomposit
 \Omega_a^\dagger Q_{\mathfrak s,0}OQ_{\mathfrak s,0}\Omega_b.
 \label{eq:app_qse_measurement_operators}
 \end{equation}
-Finite-shot symmetrization is
+Hermitian symmetrization is
 \begin{equation}
 S\leftarrow\frac12(S+S^\dagger),\qquad
 M\leftarrow\frac12(M+M^\dagger),
