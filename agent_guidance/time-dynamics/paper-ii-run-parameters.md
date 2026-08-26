@@ -6,7 +6,7 @@
 PYTHONPATH=. python3 -m pipelines.time_dynamics.write_paper_ii_manifest
 ```
 
-Source commit at generation: `6b352345aca4985de1b6895276d232d9a8ecc42c`
+Source commit at generation: `77aeeba84f47ed2f5372abdb3907f3361d55c1ac`
 
 Every Paper-II run is composed from the registry in
 `pipelines/time_dynamics/paper_ii_runs.py`. A run is one choice from each
@@ -20,7 +20,7 @@ that every registered command parses against the runner's live CLI.
 | arm | meaning |
 |---|---|
 | exchange | The paper's route: deletions and positioned insertions compete as one atomic patch. Ray tolerance 2e-3 rather than the 5e-2 default, which admits cumulative structural damage over a long horizon. |
-| append_only | Growth-only ablation of the same route; isolates what pruning buys. |
+| append_only | Insert-face restriction of generalized exchange; isolates what the deletion component buys without invoking another selector. |
 | avqds | AVQDS decision RULE on this route's numerical stack (shared geometry, inverse, solve repair, integrator, pool). Isolates structure from numerics; it is NOT the published method -- use avqds_published for that. Uncapped: the rule appends until L^2 < cut. |
 | avqds_published | Yao et al. with the paper's own numerics: Euler, Tikhonov xi=1e-6, and the published parameter-controlled step (delta_theta_max=5e-3). AVQDS is NOT a fixed-step method -- it adapts dt so no parameter moves more than that budget, which the source calls its stabilization mechanism. |
 
@@ -31,19 +31,21 @@ that every registered command parses against the runner's live CLI.
 | residual_1e-4 | This route's historical normalized gate. 1e-4 measured best at t=2 (7.8e-4 vs 3.8e-3 at 2e-3); 1e-5 buys nothing and costs parameters. |
 | mclachlan_l2_1e-3 | The published AVQDS append condition: absolute McLachlan distance with greedy repeat inside one checkpoint. Adopted because the normalized ratio is small precisely while the state is still accurate and so defers growth past the cheap early window. |
 
-### Inner numerics (shared by every arm in a comparison)
+### Inner numerical profiles
 
 | id | integrator | ridge | damping | pinv rcond |
 |---|---|---|---|---|
 | euler_ridge1e-7 | euler | 1e-07 | 0.0 | 1e-10 |
+| euler_ridge1e-6 | euler | 1e-06 | 0.0 | 1e-10 |
 | rk4_ridge1e-7 | rk4 | 1e-07 | 0.0 | 1e-10 |
 
 ### Step control
 
 | id | meaning |
 |---|---|
-| delta_theta_5e-3 | AVQDS control law, at the source's own value. |
+| delta_theta_5e-3 | Published AVQDS Euler control law, at the source's own value. |
 | state_motion_1e-2 | This route's control law. The subdivision budget is 10 because at 4 a step could exhaust it, fail to cure a violation, and advance anyway, taking a measured error from 3.8e-3 to 2.1e-1. |
+| state_motion_1e-2_plus_parameter_5e-3 | Composed controller with both the tangent-state and maximum single-parameter step bounds active. |
 
 ### Drives
 
@@ -55,6 +57,13 @@ that every registered command parses against the runner's live CLI.
 | strongfast | 2.4 | 3.0 |
 | midres | 1.2 | 2.0 |
 | fastfast | 0.6 | 6.0 |
+| res_w2p5 | 0.6 | 2.5 |
+| res_w2p75 | 0.6 | 2.75 |
+| res_w3p25 | 0.6 | 3.25 |
+| res_w3p5 | 0.6 | 3.5 |
+| res_w4 | 0.6 | 4.0 |
+| res_a0p3 | 0.3 | 3.0 |
+| res_a1p2 | 1.2 | 3.0 |
 
 ### Horizons
 
@@ -62,6 +71,7 @@ that every registered command parses against the runner's live CLI.
 |---|---|---|
 | smoke | 0.5 | 13 |
 | t2 | 2.0 | 51 |
+| t5 | 5.0 | 126 |
 | t10 | 10.0 | 251 |
 | t20 | 20.0 | 501 |
 
@@ -130,6 +140,10 @@ PYTHONPATH=. \
   mclachlan_l2 \
   --insertion-l2-cut \
   1.0e-3 \
+  --debt-policy \
+  drift_ranked \
+  --prune-history-lambda \
+  0.0 \
   --prune-target-policy \
   all_active \
   --prune-ray-distance-tol \
@@ -190,10 +204,9 @@ PYTHONPATH=. \
   mclachlan_l2 \
   --insertion-l2-cut \
   1.0e-3 \
-  --prune-target-policy \
-  appended_only \
-  --prune-cooldown-steps \
-  1000000 \
+  --no-exchange-deletions \
+  --debt-policy \
+  insertion_only \
   --progress-log-every \
   1 \
   --output-json \
@@ -275,9 +288,9 @@ PYTHONPATH=. \
   --drive-omega \
   3.0 \
   --integrator \
-  rk4 \
+  euler \
   --ridge-lambda \
-  1e-07 \
+  1e-06 \
   --solve-damping \
   0.0 \
   --pinv-rcond \
@@ -312,7 +325,7 @@ PYTHONPATH=. \
 Registry-set values, then the runner defaults they sit on. A value marked *default* is not stated anywhere in the registry; it is what the runner uses when nothing overrides it.
 
 
-<details><summary><b>exchange</b> — 106 parameters (11 set by registry)</summary>
+<details><summary><b>exchange</b> — 108 parameters (11 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -334,7 +347,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
-| debt_policy | insertion_only | default |
+| debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
 | drive_aligned_ansatz | True | default |
@@ -352,6 +365,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | enable_drive | True | registry |
 | eps_loss | 1e-14 | default |
 | escalation_accumulated_drift_threshold | None | default |
+| exchange_deletions | True | default |
 | fail_on_unsupported_steps | False | default |
 | fallback_family | full_meta | default |
 | generator_family | match_adapt | default |
@@ -360,7 +374,6 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | integrator | rk4 | default |
 | interaction_frontier_widths | None | default |
 | loader_mode | None | default |
-| max_append_batch_size | 10 | default |
 | max_append_candidates | 8 | default |
 | max_certification_attempts_per_deletion_branch | 2 | default |
 | max_certification_attempts_per_level | 12 | default |
@@ -381,11 +394,12 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | prune_condition_lambda_kappa_rel | 0.0 | default |
 | prune_cooldown_steps | 2 | default |
 | prune_cost_alpha | 1.0 | default |
-| prune_history_lambda | 1.0 | default |
+| prune_history_lambda | 0.0 | default |
 | prune_history_window | 3 | default |
 | prune_patch_smoothness_eta_max | 0.001 | default |
 | prune_ray_distance_tol | 0.002 | default |
 | prune_target_policy | all_active | default |
+| record_statevector | False | default |
 | reference_energy_atol | 1e-12 | default |
 | reference_energy_json | None | default |
 | replay_candidate_pool_mode | None | default |
@@ -405,6 +419,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | solve_repair_local_subdivision_factor | 2 | default |
 | solve_repair_max_local_subdivisions | 10 | default |
 | solve_repair_min_local_dt | 1e-06 | default |
+| solve_repair_parameter_step_max | None | default |
 | solve_repair_pinv_rcond_ladder | 1e-10,1e-11,1e-12,1e-9,1e-8,1e-7 | default |
 | solve_repair_profile | minimal | default |
 | solve_repair_release_kink_severity_scale | 4.0 | default |
@@ -425,7 +440,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>append_only</b> — 106 parameters (13 set by registry)</summary>
+<details><summary><b>append_only</b> — 108 parameters (13 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -447,7 +462,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
-| debt_policy | insertion_only | default |
+| debt_policy | insertion_only | registry |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
 | drive_aligned_ansatz | True | default |
@@ -465,6 +480,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | enable_drive | True | registry |
 | eps_loss | 1e-14 | default |
 | escalation_accumulated_drift_threshold | None | default |
+| exchange_deletions | False | registry |
 | fail_on_unsupported_steps | False | default |
 | fallback_family | full_meta | default |
 | generator_family | match_adapt | default |
@@ -473,7 +489,6 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | integrator | rk4 | default |
 | interaction_frontier_widths | None | default |
 | loader_mode | None | default |
-| max_append_batch_size | 10 | default |
 | max_append_candidates | 8 | default |
 | max_certification_attempts_per_deletion_branch | 2 | default |
 | max_certification_attempts_per_level | 12 | default |
@@ -492,13 +507,14 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | progress_log_every | 1 | registry |
 | prune_condition_lambda_kappa_dam | 0.0 | default |
 | prune_condition_lambda_kappa_rel | 0.0 | default |
-| prune_cooldown_steps | 1000000 | registry |
+| prune_cooldown_steps | 2 | default |
 | prune_cost_alpha | 1.0 | default |
-| prune_history_lambda | 1.0 | default |
+| prune_history_lambda | 0.0 | default |
 | prune_history_window | 3 | default |
 | prune_patch_smoothness_eta_max | 0.001 | default |
 | prune_ray_distance_tol | 0.002 | default |
-| prune_target_policy | appended_only | registry |
+| prune_target_policy | all_active | default |
+| record_statevector | False | default |
 | reference_energy_atol | 1e-12 | default |
 | reference_energy_json | None | default |
 | replay_candidate_pool_mode | None | default |
@@ -518,6 +534,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | solve_repair_local_subdivision_factor | 2 | default |
 | solve_repair_max_local_subdivisions | 10 | default |
 | solve_repair_min_local_dt | 1e-06 | default |
+| solve_repair_parameter_step_max | None | default |
 | solve_repair_pinv_rcond_ladder | 1e-10,1e-11,1e-12,1e-9,1e-8,1e-7 | default |
 | solve_repair_profile | minimal | default |
 | solve_repair_release_kink_severity_scale | 4.0 | default |
@@ -538,7 +555,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>avqds</b> — 106 parameters (11 set by registry)</summary>
+<details><summary><b>avqds</b> — 108 parameters (11 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -560,7 +577,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | True | default |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
-| debt_policy | insertion_only | default |
+| debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
 | drive_aligned_ansatz | True | default |
@@ -578,6 +595,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | enable_drive | True | registry |
 | eps_loss | 1e-14 | default |
 | escalation_accumulated_drift_threshold | None | default |
+| exchange_deletions | True | default |
 | fail_on_unsupported_steps | False | default |
 | fallback_family | full_meta | default |
 | generator_family | match_adapt | default |
@@ -586,7 +604,6 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | integrator | rk4 | default |
 | interaction_frontier_widths | None | default |
 | loader_mode | None | default |
-| max_append_batch_size | 10 | default |
 | max_append_candidates | 8 | default |
 | max_certification_attempts_per_deletion_branch | 2 | default |
 | max_certification_attempts_per_level | 12 | default |
@@ -607,11 +624,12 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | prune_condition_lambda_kappa_rel | 0.0 | default |
 | prune_cooldown_steps | 2 | default |
 | prune_cost_alpha | 1.0 | default |
-| prune_history_lambda | 1.0 | default |
+| prune_history_lambda | 0.0 | default |
 | prune_history_window | 3 | default |
 | prune_patch_smoothness_eta_max | 0.001 | default |
 | prune_ray_distance_tol | 0.002 | default |
 | prune_target_policy | all_active | default |
+| record_statevector | False | default |
 | reference_energy_atol | 1e-12 | default |
 | reference_energy_json | None | default |
 | replay_candidate_pool_mode | None | default |
@@ -631,6 +649,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | solve_repair_local_subdivision_factor | 2 | default |
 | solve_repair_max_local_subdivisions | 10 | default |
 | solve_repair_min_local_dt | 1e-06 | default |
+| solve_repair_parameter_step_max | None | default |
 | solve_repair_pinv_rcond_ladder | 1e-10,1e-11,1e-12,1e-9,1e-8,1e-7 | default |
 | solve_repair_profile | minimal | default |
 | solve_repair_release_kink_severity_scale | 4.0 | default |
@@ -651,7 +670,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 
 </details>
 
-<details><summary><b>avqds_published</b> — 106 parameters (12 set by registry)</summary>
+<details><summary><b>avqds_published</b> — 108 parameters (14 set by registry)</summary>
 
 | parameter | value | source |
 |---|---|---|
@@ -673,7 +692,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | certification_refit | False | registry |
 | certification_refit_max_iterations | 15 | default |
 | certification_refit_trust_radius | 0.6 | default |
-| debt_policy | insertion_only | default |
+| debt_policy | drift_ranked | default |
 | diagnostic_append_pool_mode | none | default |
 | drive_A | 2.4 | registry |
 | drive_aligned_ansatz | True | default |
@@ -691,15 +710,15 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | enable_drive | True | registry |
 | eps_loss | 1e-14 | default |
 | escalation_accumulated_drift_threshold | None | default |
+| exchange_deletions | True | default |
 | fail_on_unsupported_steps | False | default |
 | fallback_family | full_meta | default |
 | generator_family | match_adapt | default |
 | insertion_gate_mode | residual_ratio | default |
 | insertion_l2_cut | 0.001 | default |
-| integrator | rk4 | default |
+| integrator | euler | registry |
 | interaction_frontier_widths | None | default |
 | loader_mode | None | default |
-| max_append_batch_size | 10 | default |
 | max_append_candidates | 8 | default |
 | max_certification_attempts_per_deletion_branch | 2 | default |
 | max_certification_attempts_per_level | 12 | default |
@@ -720,18 +739,19 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | prune_condition_lambda_kappa_rel | 0.0 | default |
 | prune_cooldown_steps | 2 | default |
 | prune_cost_alpha | 1.0 | default |
-| prune_history_lambda | 1.0 | default |
+| prune_history_lambda | 0.0 | default |
 | prune_history_window | 3 | default |
 | prune_patch_smoothness_eta_max | 0.001 | default |
 | prune_ray_distance_tol | 0.002 | default |
 | prune_target_policy | all_active | default |
+| record_statevector | False | default |
 | reference_energy_atol | 1e-12 | default |
 | reference_energy_json | None | default |
 | replay_candidate_pool_mode | None | default |
 | require_complete_candidate_pool | False | default |
 | residual_ratio_threshold | 0.02 | default |
 | resume_from_run_json | None | default |
-| ridge_lambda | 1e-07 | default |
+| ridge_lambda | 1e-06 | registry |
 | seed_reference_energy_atol | 1e-12 | default |
 | seed_reference_energy_json | None | default |
 | solve_damping | 0.0 | default |
@@ -744,6 +764,7 @@ Registry-set values, then the runner defaults they sit on. A value marked *defau
 | solve_repair_local_subdivision_factor | 2 | default |
 | solve_repair_max_local_subdivisions | 10 | default |
 | solve_repair_min_local_dt | 1e-06 | default |
+| solve_repair_parameter_step_max | None | default |
 | solve_repair_pinv_rcond_ladder | 1e-10,1e-11,1e-12,1e-9,1e-8,1e-7 | default |
 | solve_repair_profile | minimal | default |
 | solve_repair_release_kink_severity_scale | 4.0 | default |

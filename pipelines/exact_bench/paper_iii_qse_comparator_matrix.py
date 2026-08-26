@@ -299,20 +299,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             },
             "krylov": _krylov_arm(dense, ground, references, step_2q=step_2q),
-            # Closest adaptive prior art: residual-guided subspace growth with a
-            # linear-independence (metric-novelty) admission check and no
-            # hardware-cost weighting, in the spirit of quantum Davidson.
-            "residual_guided_adaptive": _selection_arm(
-                basis,
-                hamiltonian,
-                ground,
-                costs,
-                references,
-                overrides={
-                    "geometry_cost_discount_alpha": None,
-                },
-                with_exchange=False,
-            ),
             "selected_plus_exchange": _selection_arm(
                 basis, hamiltonian, ground, costs, references,
                 overrides={}, with_exchange=True,
@@ -323,16 +309,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             record["krylov"]["best_per_cost_envelope"][-1]
             if record["krylov"].get("best_per_cost_envelope")
             else None
-        )
-        print(
-            f"   residual-guided: {record['residual_guided_adaptive']['max_root_abs_error']:.1e}"
-            f"@{record['residual_guided_adaptive']['total_2q']:.0f}2Q "
-            f"(k={record['residual_guided_adaptive']['support_size']}, "
-            f"{record['residual_guided_adaptive']['stop_reason']})   "
-            f"ours: {record['selected_plus_exchange']['max_root_abs_error']:.1e}"
-            f"@{record['selected_plus_exchange']['total_2q']:.0f}2Q "
-            f"(k={record['selected_plus_exchange']['support_size']})",
-            flush=True,
         )
         print(
             f"{case_name:<22} fixed: {record['fixed_linear_response']['max_root_abs_error']:.1e}"

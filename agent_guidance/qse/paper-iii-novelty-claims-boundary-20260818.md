@@ -364,8 +364,15 @@ regimes. Evidence: `minimality.json`, `score_ablation.json`.
 
 **FOUR-WAY COMPARATOR** (`comparator_matrix.json`, nine Hamiltonians,
 identical sectors/references): fixed class, real-time Krylov,
-residual-guided adaptive (NEW - closest prior art: same pool, same
-linear-independence check, no cost weighting), selected+exchange.
+cost-agnostic control, selected+exchange.
+**CORRECTION 2026-08-19: the `residual_guided_adaptive` arm is NOT prior
+art and NOT quantum Davidson.** It is our own rule with the cost
+discount off — an internal ablation isolating the cost term. Never
+describe it as a competing method or as QDavidson (which synthesizes a
+preconditioned residual vector rather than selecting from a fixed
+operator alphabet). Paper III therefore has NO independent adaptive
+comparator; the only external comparators are the fixed linear-response
+class and real-time Krylov.
 - fixed class and Krylov fail every case (1e-1..1e0);
 - residual-guided is 3-5 orders better than those (adaptive growth IS
   the right family - say so);
@@ -377,3 +384,22 @@ linear-independence check, no cost weighting), selected+exchange.
 CLAIM FRAME: cost discounting changes WHICH directions are acquired,
 not merely how many - a different and here better search, not a
 resource concession.
+
+## Comparator design rules (user, 2026-08-19) — BINDING
+
+1. **No self-comparison.** A variant of our own rule is an ABLATION and
+   belongs only in `tab:qse_ablation_matrix`. It must never appear as a
+   column in the comparator matrix. The `residual_guided_adaptive` arm
+   was exactly this (byte-identical overrides to the ablation's
+   `no_cost_discount`) and has been REMOVED. Do not reintroduce it.
+2. **Equal alphabet sizes.** Comparator arms must draw candidates from
+   the identical record pool. The fixed linear-response class (18
+   records from 3 families) vs our selection (128-176 records) is an
+   ALPHABET comparison, not an algorithm comparison, and must be
+   labeled as such or equalized.
+3. **External comparators must come from the literature**, implemented
+   faithfully to their published construction — not configured out of
+   our own selector.
+
+Current external comparators: fixed linear-response class, real-time
+Krylov. There is NO independent adaptive comparator in the paper.

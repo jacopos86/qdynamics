@@ -206,19 +206,15 @@ def build_comparator_matrix_fragment() -> str:
         r"Krylov arm uses a seeded random sector kick overlapping every "
         r"target state, exact propagation, best-matching-root scoring, and "
         r"first-order-Trotter state-preparation costing --- every convention "
-        r"favoring Krylov. The residual-guided arm is adaptive subspace growth "
-        r"on the same record pool with a linear-independence admission check "
-        r"and no hardware-cost weighting, isolating what cost-weighted "
-        r"acquisition contributes. Daggers mark arms that exhausted the pool "
-        r"without meeting the residual stop.}"
+        r"favoring Krylov. Daggers mark arms that exhausted the pool without "
+        r"meeting the residual stop.}"
     )
     lines.append(r"\begin{center}")
     lines.append(r"\scriptsize")
     lines.append(r"\begin{ruledtabular}")
-    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}")
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccc@{}}")
     lines.append(
-        r"Case & fixed class & real-time Krylov & residual-guided & "
-        r"selected $+$ exchange \\"
+        r"Case & fixed class & real-time Krylov & selected $+$ exchange \\"
     )
     lines.append(r"\colrule")
     for case, record in matrix["cases"].items():
@@ -232,7 +228,7 @@ def build_comparator_matrix_fragment() -> str:
                 else "--"
             ),
         ]
-        for key in ("residual_guided_adaptive", "selected_plus_exchange"):
+        for key in ("selected_plus_exchange",):
             arm = record.get(key)
             if arm is None:
                 cells.append("--")

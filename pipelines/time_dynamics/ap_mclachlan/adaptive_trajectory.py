@@ -1,4 +1,4 @@
-"""Append-first AP-McLachlan trajectory propagation."""
+"""AP-McLachlan trajectory propagation with generalized exchange."""
 
 from __future__ import annotations
 
@@ -17,9 +17,6 @@ import numpy as np
 from pipelines.time_dynamics.ap_mclachlan.append_cost import (
     AP_APPEND_COST_MODEL_PAPER_I_PROXY_V1,
     AppendCostSettings,
-)
-from pipelines.time_dynamics.ap_mclachlan.prune_cost import (
-    PruneCostSettings,
 )
 from pipelines.time_dynamics.ap_mclachlan.fixed_step import (
     FixedMcLachlanStep,
@@ -54,10 +51,14 @@ from pipelines.time_dynamics.ap_mclachlan.avqds_stepping import (
     advance_interval_delta_theta_controlled,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_integration import (
-    select_deletion_conditioned_patch,
+    eligible_deletion_atoms,
+    select_generalized_exchange_patch,
+)
+from pipelines.time_dynamics.ap_mclachlan.exchange_config import (
+    APGeneralizedExchangeConfig,
 )
 from pipelines.time_dynamics.ap_mclachlan.exchange_selector import (
-    EXCHANGE_SELECTION_POLICY_V1,
+    GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
     ExchangeSelection,
 )
 from pipelines.time_dynamics.ap_mclachlan.performance import (
@@ -80,7 +81,6 @@ from pipelines.time_dynamics.ap_mclachlan.support_atoms import (
     ActiveSupportAtom,
     SupportAtom,
     active_support_atoms,
-    appended_origin_atom_labels,
     normalize_append_occurrence_policy,
 )
 from pipelines.time_dynamics.ap_mclachlan.support_decision import RungDiagnostics
@@ -97,23 +97,13 @@ from pipelines.time_dynamics.ap_mclachlan.support_patch import (
 
 ADAPTIVE_TRAJECTORY_SCHEMA_V1 = "ap_mclachlan_append_trajectory_v1"
 APPEND_BATCH_SELECTION_POLICY_V1 = "max_rank_score_pool_order_tiebreak_v1"
-APPEND_LADDER_SELECTION_POLICY_V1 = "cost_weighted_combinatorial_append_ladder_v1"
-APPEND_LADDER_PREFILTER_POLICY_V1 = "cost_weighted_singleton_rank_score_prefilter_v1"
-PRUNE_LADDER_SELECTION_POLICY_V1 = "cost_pressure_combinatorial_prune_ladder_v1"
-PRUNE_LADDER_PREFILTER_POLICY_V1 = "cost_pressure_singleton_prune_prefilter_v1"
 SUPPORT_PATCH_CONTROLLER_PROFILE_V1 = "support_patch_exchange_family_v1"
 LEGACY_APPEND_CONTROLLER_PROFILE_V1 = "legacy_append_compat_v1"
-SUPPORT_PATCH_EXCHANGE_SELECTION_POLICY_V1 = "paper_ii_unified_support_patch_exchange_v1"
 LEGACY_APPEND_PATCH_KINDS = frozenset({PATCH_APPEND, PATCH_INSERT})
 # Canonical insertion gate (2026-08-20): below this normalized structural
 # residual the manifold already represents the drift, so new tangent
 # measurements are not bought; deletions stay eligible at every checkpoint.
 DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD = 2.0e-2
-PRUNE_PERSISTENCE_EXACT_BATCH = "exact_batch"
-PRUNE_PERSISTENCE_ATOM_HISTORY = "atom_history"
-PRUNE_PERSISTENCE_MODES = frozenset(
-    {PRUNE_PERSISTENCE_EXACT_BATCH, PRUNE_PERSISTENCE_ATOM_HISTORY}
-)
 PRUNE_TARGET_ALL_ACTIVE = "all_active"
 PRUNE_TARGET_APPENDED_ONLY = "appended_only"
 PRUNE_TARGET_REDUNDANT_APPENDED_ONLY = "redundant_appended_only"
@@ -132,25 +122,14 @@ class SupportPatchControllerConfig:
 
     controller_profile: str = SUPPORT_PATCH_CONTROLLER_PROFILE_V1
     parameterization_mode_default: str = "per_pauli_term"
-    exchange_enabled: bool = True
-    branch_scoring_enabled: bool = True
     support_patch_scoring_workers: int = 1
-    prune_enabled: bool = False
-    prune_commit_enabled: bool = False
-    append_ladder_mode: str = "combinatorial"
+    deletion_enabled: bool = True
     append_occurrence_policy: str = APPEND_OCCURRENCE_POLICY_LAYER_REUSE
-    max_append_batch_size: int = 10
-    append_rung_set_cap: int = 64
-    append_prefilter_size: int = 12
-    append_prefilter_policy: str = APPEND_LADDER_PREFILTER_POLICY_V1
-    append_gain_threshold: float = 1.0e-10
-    append_batch_score_threshold: float = 1.0e-10
     # Certification conditioning cap on the patched retained solve. Retains
     # its historical flag name for run-provenance compatibility; it is not a
     # Schur-block criterion (that guard belonged to the retired append route).
     # `None` disables the certification conditioning gate entirely.
     append_schur_max_condition_number: float | None = 1.0e12
-    append_min_time: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     # Accumulated-drift escalation. The residual-ratio predicate above is
     # instantaneous and therefore blind to error already banked into the
@@ -180,8 +159,8 @@ class SupportPatchControllerConfig:
     # which is NOT the published method.
     avqds_delta_theta_max: float | None = None
     # What may fire while L^2 is above the cut ("accuracy debt").
-    #   "insertion_only" -- removal withdrawn until the debt is paid. Measured
-    #       best today: peak L^2 5.7e-3, final 4.6e-4, 32 coordinates.
+    #   "insertion_only" -- explicit insert-face ablation: removal is
+    #       withdrawn until the debt is paid.
     #   "drift_ranked"   -- removal stays eligible and candidates are ranked
     #       cost-blind while in debt.  This is ranking by L^2 reduction:
     #       ||b||^2 is built from the state and is independent of the support,
@@ -192,61 +171,30 @@ class SupportPatchControllerConfig:
     #       automatically -- conditioning-awareness falls out of the quantity
     #       instead of needing a kappa heuristic.  Cost returns as the
     #       objective once the debt is paid.
-    debt_policy: str = "insertion_only"
-    # Set per-checkpoint by the trajectory loop, never by a user flag.
-    debt_ranking: bool = False
+    debt_policy: str = "drift_ranked"
     insertion_gate_mode: str = "residual_ratio"
     insertion_l2_cut: float = 1.0e-3
     # Safety valve on the greedy within-checkpoint repeat, not part of the
     # rule: the rule stops on its threshold or on the absence of an improving
     # candidate.
     max_insertion_rounds_per_checkpoint: int = 12
-    # Deletion-conditioned exchange selector (paper_ii_deletion_conditioned_exchange_v1)
+    # Generalized exchange selector (paper_ii_generalized_exchange_v2).
     interaction_frontier_widths: tuple[int, ...] | None = None
-    max_insertion_batch_size: int | None = 1
+    max_insertion_batch_size: int = 1
     structural_score_floor: float = 0.0
     # Canonical operating values (2026-08-20): defaults reproduce the
     # reported configuration, so a flagless call is the paper's route
     # rather than a diagnostic one.
     max_joint_patch_evaluations: int | None = 50000
-    max_prune_batch_size: int = 0
-    prune_rung_set_cap: int = 0
-    prune_prefilter_size: int = 0
     prune_history_window: int = 3
-    prune_history_lambda: float = 1.0
-    prune_persistence_required: int = 1
-    prune_persistence_mode: str = PRUNE_PERSISTENCE_ATOM_HISTORY
-    prune_atom_history_fraction: float = 1.0
+    prune_history_lambda: float = 0.0
     prune_appended_origin_target_policy: str = PRUNE_TARGET_ALL_ACTIVE
     prune_cooldown_steps: int = 2
     min_runtime_parameter_count: int = 1
-    prune_projection_enabled: bool = True
-    prune_projection_rounds: int = 2
-    prune_projection_trust_radius: float = 5.0e-2
-    prune_projection_regularization: float = 1.0e-8
     prune_ray_distance_tol: float = 2.0e-3
-    prune_differential_miss_tol: float = 1.0e-2
-    prune_shadow_enabled: bool = True
-    prune_shadow_horizon_steps: int = 2
-    prune_shadow_score_tol: float = 1.0e-2
-    prune_patch_smoothness_enabled: bool = True
     prune_patch_smoothness_eta_max: float = 1.0e-3
-    prune_patch_smoothness_cooldown_max_steps: int = 8
-    prune_patch_smoothness_severity_scale: float = 1.0
-    max_prune_commits: int = 0
-    max_exchange_append_branches: int = 3
-    max_exchange_prune_branches: int = 3
-    max_exchange_pair_count: int = 0
-    exchange_append_score_min: float = 0.0
-    exchange_prune_score_min: float = 0.0
-    exchange_residual_dominance_tol: float = 1.0e-8
-    exchange_cost_dominance_tol: float = 1.0e-8
     patch_utility_delta_weight: float = 1.0
-    patch_utility_refit_weight: float = 0.0
-    patch_utility_velocity_weight: float = 1.0
-    patch_utility_threshold: float = 0.0
     cost_model: str = AP_APPEND_COST_MODEL_PAPER_I_PROXY_V1
-    cost_required_for_decisions: bool = False
     cost_normalization_mode: str = "family_robust_v1"
     append_cost_alpha: float = 1.0
     append_cost_lambda_2q: float = 0.05
@@ -269,7 +217,6 @@ class SupportPatchControllerConfig:
     # Safety valve only; the comparator's algorithmic stopping conditions
     # are its threshold and the absence of an improving candidate.
     avqds_max_appends_per_checkpoint: int | None = None
-    exchange_cost_alpha: float = 1.0
     eps_loss: float = 1.0e-14
     allow_incomplete_candidate_pool: bool = False
     protect_drive_aligned_atoms: bool = True
@@ -278,23 +225,9 @@ class SupportPatchControllerConfig:
 
     def __post_init__(self) -> None:
         for name in (
-            "max_append_batch_size",
-            "append_rung_set_cap",
-            "append_prefilter_size",
-            "max_prune_batch_size",
-            "prune_rung_set_cap",
-            "prune_prefilter_size",
             "prune_history_window",
-            "prune_persistence_required",
             "prune_cooldown_steps",
             "min_runtime_parameter_count",
-            "prune_projection_rounds",
-            "prune_shadow_horizon_steps",
-            "prune_patch_smoothness_cooldown_max_steps",
-            "max_prune_commits",
-            "max_exchange_append_branches",
-            "max_exchange_prune_branches",
-            "max_exchange_pair_count",
         ):
             if int(getattr(self, name)) < 0:
                 raise ValueError(f"{name} must be non-negative.")
@@ -334,27 +267,11 @@ class SupportPatchControllerConfig:
                 "(None disables the certification conditioning gate)."
             )
         for name in (
-            "append_gain_threshold",
-            "append_batch_score_threshold",
-            "append_min_time",
             "residual_ratio_threshold",
             "prune_history_lambda",
-            "prune_atom_history_fraction",
-            "prune_projection_trust_radius",
-            "prune_projection_regularization",
             "prune_ray_distance_tol",
-            "prune_differential_miss_tol",
-            "prune_shadow_score_tol",
             "prune_patch_smoothness_eta_max",
-            "prune_patch_smoothness_severity_scale",
-            "exchange_residual_dominance_tol",
-            "exchange_cost_dominance_tol",
-            "exchange_append_score_min",
-            "exchange_prune_score_min",
             "patch_utility_delta_weight",
-            "patch_utility_refit_weight",
-            "patch_utility_velocity_weight",
-            "patch_utility_threshold",
             "append_cost_alpha",
             "append_cost_lambda_2q",
             "append_cost_lambda_d",
@@ -365,26 +282,14 @@ class SupportPatchControllerConfig:
             "prune_cost_alpha",
             "prune_condition_lambda_kappa_rel",
             "prune_condition_lambda_kappa_dam",
-            "exchange_cost_alpha",
             "eps_loss",
         ):
             value = float(getattr(self, name))
             if not np.isfinite(value) or value < 0.0:
                 raise ValueError(f"{name} must be finite and non-negative.")
         normalize_append_occurrence_policy(self.append_occurrence_policy)
-        if float(self.prune_atom_history_fraction) > 1.0:
-            raise ValueError("prune_atom_history_fraction must be <= 1.")
-        if bool(self.prune_patch_smoothness_enabled):
-            if float(self.prune_patch_smoothness_eta_max) <= 0.0:
-                raise ValueError("prune_patch_smoothness_eta_max must be positive.")
-            if float(self.prune_patch_smoothness_severity_scale) <= 0.0:
-                raise ValueError("prune_patch_smoothness_severity_scale must be positive.")
-        prune_persistence_mode = str(self.prune_persistence_mode).strip().lower()
-        if prune_persistence_mode not in PRUNE_PERSISTENCE_MODES:
-            raise ValueError(
-                "prune_persistence_mode must be one of "
-                f"{sorted(PRUNE_PERSISTENCE_MODES)!r}."
-            )
+        if float(self.prune_patch_smoothness_eta_max) <= 0.0:
+            raise ValueError("prune_patch_smoothness_eta_max must be positive.")
         prune_target_policy = str(
             self.prune_appended_origin_target_policy
         ).strip().lower()
@@ -397,34 +302,20 @@ class SupportPatchControllerConfig:
             raise ValueError("AP support-patch decisions must not use reference trajectories.")
         if bool(self.uses_future_exact_forecast_for_decision):
             raise ValueError("AP support-patch decisions must not use future exact forecasts.")
-        if str(self.append_ladder_mode).strip().lower() == "combinatorial":
-            AppendCostSettings.from_config(self)
-            if bool(self.prune_enabled):
-                PruneCostSettings.from_config(self)
+        AppendCostSettings.from_config(self)
 
     def to_json_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "controller_profile": str(self.controller_profile),
             "parameterization_mode_default": str(self.parameterization_mode_default),
-            "exchange_enabled": bool(self.exchange_enabled),
-            "branch_scoring_enabled": bool(self.branch_scoring_enabled),
             "support_patch_scoring_workers": int(self.support_patch_scoring_workers),
-            "prune_enabled": bool(self.prune_enabled),
-            "prune_commit_enabled": bool(self.prune_commit_enabled),
-            "append_ladder_mode": str(self.append_ladder_mode),
+            "deletion_enabled": bool(self.deletion_enabled),
             "append_occurrence_policy": str(self.append_occurrence_policy),
-            "max_append_batch_size": int(self.max_append_batch_size),
-            "append_rung_set_cap": int(self.append_rung_set_cap),
-            "append_prefilter_size": int(self.append_prefilter_size),
-            "append_prefilter_policy": str(self.append_prefilter_policy),
-            "append_gain_threshold": float(self.append_gain_threshold),
-            "append_batch_score_threshold": float(self.append_batch_score_threshold),
             "append_schur_max_condition_number": (
                 None
                 if self.append_schur_max_condition_number is None
                 else float(self.append_schur_max_condition_number)
             ),
-            "append_min_time": float(self.append_min_time),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
             "avqds_delta_theta_max": (
                 None
@@ -432,7 +323,6 @@ class SupportPatchControllerConfig:
                 else float(self.avqds_delta_theta_max)
             ),
             "debt_policy": str(self.debt_policy),
-            "debt_ranking": bool(self.debt_ranking),
             "insertion_gate_mode": str(self.insertion_gate_mode),
             "insertion_l2_cut": float(self.insertion_l2_cut),
             "max_insertion_rounds_per_checkpoint": int(
@@ -459,54 +349,19 @@ class SupportPatchControllerConfig:
                 if self.max_joint_patch_evaluations is None
                 else int(self.max_joint_patch_evaluations)
             ),
-            "max_prune_batch_size": int(self.max_prune_batch_size),
-            "prune_rung_set_cap": int(self.prune_rung_set_cap),
-            "prune_prefilter_size": int(self.prune_prefilter_size),
             "prune_history_window": int(self.prune_history_window),
             "prune_history_lambda": float(self.prune_history_lambda),
-            "prune_persistence_required": int(self.prune_persistence_required),
-            "prune_persistence_mode": str(self.prune_persistence_mode),
-            "prune_atom_history_fraction": float(self.prune_atom_history_fraction),
             "prune_appended_origin_target_policy": str(
                 self.prune_appended_origin_target_policy
             ),
             "prune_cooldown_steps": int(self.prune_cooldown_steps),
             "min_runtime_parameter_count": int(self.min_runtime_parameter_count),
-            "prune_projection_enabled": bool(self.prune_projection_enabled),
-            "prune_projection_rounds": int(self.prune_projection_rounds),
-            "prune_projection_trust_radius": float(self.prune_projection_trust_radius),
-            "prune_projection_regularization": float(self.prune_projection_regularization),
             "prune_ray_distance_tol": float(self.prune_ray_distance_tol),
-            "prune_differential_miss_tol": float(self.prune_differential_miss_tol),
-            "prune_shadow_enabled": bool(self.prune_shadow_enabled),
-            "prune_shadow_horizon_steps": int(self.prune_shadow_horizon_steps),
-            "prune_shadow_score_tol": float(self.prune_shadow_score_tol),
-            "prune_patch_smoothness_enabled": bool(
-                self.prune_patch_smoothness_enabled
-            ),
             "prune_patch_smoothness_eta_max": float(
                 self.prune_patch_smoothness_eta_max
             ),
-            "prune_patch_smoothness_cooldown_max_steps": int(
-                self.prune_patch_smoothness_cooldown_max_steps
-            ),
-            "prune_patch_smoothness_severity_scale": float(
-                self.prune_patch_smoothness_severity_scale
-            ),
-            "max_prune_commits": int(self.max_prune_commits),
-            "max_exchange_append_branches": int(self.max_exchange_append_branches),
-            "max_exchange_prune_branches": int(self.max_exchange_prune_branches),
-            "max_exchange_pair_count": int(self.max_exchange_pair_count),
-            "exchange_append_score_min": float(self.exchange_append_score_min),
-            "exchange_prune_score_min": float(self.exchange_prune_score_min),
-            "exchange_residual_dominance_tol": float(self.exchange_residual_dominance_tol),
-            "exchange_cost_dominance_tol": float(self.exchange_cost_dominance_tol),
             "patch_utility_delta_weight": float(self.patch_utility_delta_weight),
-            "patch_utility_refit_weight": float(self.patch_utility_refit_weight),
-            "patch_utility_velocity_weight": float(self.patch_utility_velocity_weight),
-            "patch_utility_threshold": float(self.patch_utility_threshold),
             "cost_model": str(self.cost_model),
-            "cost_required_for_decisions": bool(self.cost_required_for_decisions),
             "cost_normalization_mode": str(self.cost_normalization_mode),
             "append_cost_alpha": float(self.append_cost_alpha),
             "append_cost_lambda_2q": float(self.append_cost_lambda_2q),
@@ -551,7 +406,6 @@ class SupportPatchControllerConfig:
                 if self.max_certification_attempts_per_deletion_branch is None
                 else int(self.max_certification_attempts_per_deletion_branch)
             ),
-            "exchange_cost_alpha": float(self.exchange_cost_alpha),
             "eps_loss": float(self.eps_loss),
             "allow_incomplete_candidate_pool": bool(self.allow_incomplete_candidate_pool),
             "protect_drive_aligned_atoms": bool(self.protect_drive_aligned_atoms),
@@ -560,6 +414,10 @@ class SupportPatchControllerConfig:
                 self.uses_future_exact_forecast_for_decision
             ),
         }
+        payload["generalized_exchange"] = (
+            APGeneralizedExchangeConfig.from_route_config(self).to_json_dict()
+        )
+        return payload
 
 
 @dataclass(frozen=True)
@@ -571,7 +429,6 @@ class AppendControllerConfig:
     max_total_prunes: int = 0
     append_gain_threshold: float = 1.0e-10
     append_min_time: float = 0.0
-    prune_loss_threshold: float = 0.0
     residual_ratio_threshold: float = DEFAULT_APPEND_RESIDUAL_RATIO_THRESHOLD
     min_logical_parameter_count: int = 1
     allow_incomplete_candidate_pool: bool = True
@@ -588,7 +445,6 @@ class AppendControllerConfig:
         for name, value in (
             ("append_gain_threshold", self.append_gain_threshold),
             ("append_min_time", self.append_min_time),
-            ("prune_loss_threshold", self.prune_loss_threshold),
             ("residual_ratio_threshold", self.residual_ratio_threshold),
         ):
             if not np.isfinite(float(value)) or float(value) < 0.0:
@@ -601,36 +457,25 @@ class AppendControllerConfig:
             "max_total_prunes": int(self.max_total_prunes),
             "append_gain_threshold": float(self.append_gain_threshold),
             "append_min_time": float(self.append_min_time),
-            "prune_loss_threshold": float(self.prune_loss_threshold),
             "residual_ratio_threshold": float(self.residual_ratio_threshold),
             "min_logical_parameter_count": int(self.min_logical_parameter_count),
             "allow_incomplete_candidate_pool": bool(self.allow_incomplete_candidate_pool),
         }
 
     def to_support_patch_config(self) -> SupportPatchControllerConfig:
-        """Map legacy append settings onto the schema-stable support-patch config."""
+        """Map the legacy append API onto restrictions of generalized exchange."""
 
         return SupportPatchControllerConfig(
             controller_profile=LEGACY_APPEND_CONTROLLER_PROFILE_V1,
-            exchange_enabled=False,
-            branch_scoring_enabled=False,
-            prune_enabled=bool(int(self.max_prune_candidates) > 0),
-            prune_commit_enabled=bool(int(self.max_total_prunes) > 0),
-            append_ladder_mode="legacy_singleton",
+            deletion_enabled=bool(
+                int(self.max_prune_candidates) > 0
+                and int(self.max_total_prunes) > 0
+            ),
             append_occurrence_policy=APPEND_OCCURRENCE_POLICY_UNIQUE_SUPPORT,
-            max_append_batch_size=1,
-            append_rung_set_cap=int(self.max_append_candidates),
-            append_prefilter_size=int(self.max_append_candidates),
-            append_prefilter_policy=APPEND_BATCH_SELECTION_POLICY_V1,
-            append_gain_threshold=float(self.append_gain_threshold),
-            append_batch_score_threshold=float(self.append_gain_threshold),
-            append_min_time=float(self.append_min_time),
+            max_insertion_batch_size=1,
+            max_structural_pool_size=int(self.max_append_candidates),
             residual_ratio_threshold=float(self.residual_ratio_threshold),
-            max_prune_batch_size=1 if int(self.max_prune_candidates) > 0 else 0,
-            prune_rung_set_cap=int(self.max_prune_candidates),
-            prune_prefilter_size=int(self.max_prune_candidates),
             min_runtime_parameter_count=int(self.min_logical_parameter_count),
-            cost_required_for_decisions=False,
             allow_incomplete_candidate_pool=bool(self.allow_incomplete_candidate_pool),
         )
 
@@ -752,7 +597,7 @@ class PatchBatchEvaluation:
 
 @dataclass(frozen=True)
 class AdaptiveTrajectoryPoint:
-    """One recorded append-first AP-McLachlan time point."""
+    """One recorded generalized-exchange AP-McLachlan time point."""
 
     index: int
     time: float
@@ -764,6 +609,7 @@ class AdaptiveTrajectoryPoint:
     fixed_step: FixedMcLachlanStep
     patch_decision: PatchDecision
     integration_to_next: IntegrationStep | None = None
+    parameter_stepping_to_next: Mapping[str, Any] | None = None
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -779,6 +625,11 @@ class AdaptiveTrajectoryPoint:
                 None
                 if self.integration_to_next is None
                 else self.integration_to_next.to_json_dict()
+            ),
+            "parameter_stepping_to_next": (
+                None
+                if self.parameter_stepping_to_next is None
+                else _json_safe(dict(self.parameter_stepping_to_next))
             ),
         }
 
@@ -803,46 +654,6 @@ class _LocalSubdivisionRequest:
 
 
 @dataclass
-class _PruneSmoothnessDeferredRecord:
-    """Stored noncommitted prune batch that failed smoothness only."""
-
-    candidate_key: str
-    atom_ids: tuple[str, ...]
-    removed_runtime_indices: tuple[int, ...]
-    first_deferred_index: int
-    last_deferred_index: int
-    attempt_count: int
-    cooldown_until_index: int
-    last_eta: float | None
-    last_severity: float | None
-    eta_history: list[tuple[int, float]] = field(default_factory=list)
-    severity_history: list[tuple[int, float]] = field(default_factory=list)
-
-    def to_metadata(self) -> dict[str, Any]:
-        return {
-            "prune_patch_smoothness_deferred_key": str(self.candidate_key),
-            "prune_patch_smoothness_deferred_atom_ids": list(self.atom_ids),
-            "prune_patch_smoothness_deferred_removed_runtime_indices": [
-                int(i) for i in self.removed_runtime_indices
-            ],
-            "prune_patch_smoothness_first_deferred_index": int(
-                self.first_deferred_index
-            ),
-            "prune_patch_smoothness_last_deferred_index": int(
-                self.last_deferred_index
-            ),
-            "prune_patch_smoothness_attempt_count": int(self.attempt_count),
-            "prune_patch_smoothness_cooldown_until_index": int(
-                self.cooldown_until_index
-            ),
-            "prune_patch_smoothness_last_eta": _finite_or_none(self.last_eta),
-            "prune_patch_smoothness_last_severity": _finite_or_none(
-                self.last_severity
-            ),
-        }
-
-
-@dataclass
 class _PruneControllerRuntimeState:
     """Mutable active-prune state for one trajectory run."""
 
@@ -851,13 +662,7 @@ class _PruneControllerRuntimeState:
     conditioning_history: dict[str, list[tuple[int, float]]] = field(
         default_factory=dict
     )
-    atom_seen_history: dict[str, list[int]] = field(default_factory=dict)
-    eligible_streak: dict[str, int] = field(default_factory=dict)
-    last_seen_index: dict[str, int] = field(default_factory=dict)
     cooldown_until_index: dict[str, int] = field(default_factory=dict)
-    smoothness_deferred: dict[str, _PruneSmoothnessDeferredRecord] = field(
-        default_factory=dict
-    )
     accepted_commit_count: int = 0
     # McLachlan error-bound integral accumulated since the last accepted
     # structural edit, and the checkpoint time it was last advanced to.
@@ -897,15 +702,9 @@ class _PruneControllerRuntimeState:
         self.accumulated_drift = 0.0
         self.loss_history.clear()
         self.conditioning_history.clear()
-        self.atom_seen_history.clear()
-        self.eligible_streak.clear()
-        self.last_seen_index.clear()
         self.cooldown_until_index.clear()
-        self.smoothness_deferred.clear()
         self.last_support_transition_metadata = {
             "prune_history_transition": "full_clear",
-            "prune_atom_history_preserved_count": 0,
-            "prune_atom_history_dropped_count": 0,
             "prune_geometry_history_cleared_due_to_support_change": True,
         }
 
@@ -923,43 +722,26 @@ class _PruneControllerRuntimeState:
         active_atom_ids = {
             str(atom.atom_id) for atom in active_atoms if str(atom.atom_id) != ""
         }
-        active_history_ids = set(active_atom_ids)
-        active_history_ids.update(
-            _prune_persistence_atom_id(atom) for atom in active_atoms
-        )
-        before_atom_keys = set(self.atom_seen_history)
         before_cooldown_keys = set(self.cooldown_until_index)
-        self.atom_seen_history = {
-            str(key): list(values)
-            for key, values in self.atom_seen_history.items()
-            if str(key) in active_history_ids
-        }
         self.cooldown_until_index = {
             str(key): int(value)
             for key, value in self.cooldown_until_index.items()
             if str(key) in active_atom_ids
         }
-        dropped = len(before_atom_keys - set(self.atom_seen_history))
-
         self.loss_history.clear()
         self.conditioning_history.clear()
-        self.eligible_streak.clear()
-        self.last_seen_index.clear()
-        self.smoothness_deferred.clear()
         self.support_identity_hash = _support_identity_hash(new_state)
         transition = (
-            "append_preserved_atom_history"
+            "append_cleared_geometry_history"
             if str(patch_kind) == PATCH_APPEND
-            else "delete_preserved_surviving_atom_history"
+            else "delete_cleared_geometry_history"
             if str(patch_kind) == PATCH_DELETE
-            else "exchange_preserved_surviving_atom_history"
+            else "exchange_cleared_geometry_history"
             if str(patch_kind) == PATCH_EXCHANGE
-            else "support_change_preserved_atom_history"
+            else "support_change_cleared_geometry_history"
         )
         metadata = {
             "prune_history_transition": transition,
-            "prune_atom_history_preserved_count": int(len(self.atom_seen_history)),
-            "prune_atom_history_dropped_count": int(dropped),
             "prune_geometry_history_cleared_due_to_support_change": True,
             "prune_cooldown_preserved_count": int(len(self.cooldown_until_index)),
             "prune_cooldown_dropped_count": int(
@@ -1033,8 +815,13 @@ def _decision_from_exchange_selection(
 ]:
     """Map an exchange selection onto the trajectory's PatchDecision contract."""
 
+    candidate_count = int(
+        (payload.get("work_guard") or {}).get(
+            "scored_count", selection.structural_scored_count
+        )
+    )
     scored_count = int(
-        (payload.get("work_guard") or {}).get("scored_count", len(selection.attempts))
+        payload.get("structural_scored_count", selection.structural_scored_count)
     )
     metadata = dict(payload)
     if selection.committed is None or selection.certification is None:
@@ -1042,7 +829,7 @@ def _decision_from_exchange_selection(
             PatchDecision(
                 patch_kind=PATCH_NO_EDIT,
                 accepted=False,
-                candidate_count=scored_count,
+                candidate_count=candidate_count,
                 scored_count=scored_count,
                 reason=str(selection.stop_reason),
                 metadata=metadata,
@@ -1058,12 +845,12 @@ def _decision_from_exchange_selection(
         PatchDecision(
             patch_kind=_EXCHANGE_KIND_TO_PATCH[str(selection.kind)],
             accepted=True,
-            candidate_count=scored_count,
+            candidate_count=candidate_count,
             scored_count=scored_count,
             selected_label=(
                 ",".join(a for a, _p in committed.inserted_selection) or None
             ),
-            reason=f"accepted_deletion_conditioned_{selection.kind}",
+            reason=f"accepted_generalized_exchange_{selection.kind}",
             metadata=metadata,
         ),
         certification.state,
@@ -1086,7 +873,7 @@ def run_append_mclachlan_trajectory(
     metadata: Mapping[str, Any] | None = None,
     progress_callback: Callable[[Mapping[str, Any]], None] | None = None,
 ) -> AppendMclachlanTrajectory:
-    """Propagate with an append-only support-patch controller."""
+    """Propagate with the generalized-exchange support controller."""
 
     time_grid = _time_grid(times)
     current_state = state
@@ -1097,15 +884,14 @@ def run_append_mclachlan_trajectory(
     previous_accepted_theta_dot: np.ndarray | None = None
     append_min_time = _append_min_time(
         controller_config=controller_config,
-        support_patch_config=support_patch_config,
     )
     prune_runtime_state = _PruneControllerRuntimeState()
-    # The deletion-conditioned exchange selector is the single current route;
+    # Generalized exchange is the single current route;
     # a missing support-patch config resolves to its typed defaults.
     effective_support_config = (
         support_patch_config
         if support_patch_config is not None
-        else SupportPatchControllerConfig(append_ladder_mode="combinatorial")
+        else SupportPatchControllerConfig()
     )
 
     def _commit_patch_decision() -> None:
@@ -1194,6 +980,7 @@ def run_append_mclachlan_trajectory(
         )
         committed_in_round_loop = False
 
+        parameter_stepping_to_next: Mapping[str, Any] | None = None
         if index + 1 < len(time_grid):
             if float(time_value) + 1.0e-15 < append_min_time:
                 decision = PatchDecision(
@@ -1204,52 +991,23 @@ def run_append_mclachlan_trajectory(
                     reason="append_before_min_time",
                 )
             else:
-                # Measurement economics: insertion candidates require new
-                # quantum measurements, so they are considered only while the
-                # structural-repair predicate is active (residual at or above
-                # threshold).  Pure deletions are row/column selections of the
-                # already-paid geometry — measurement-free — and are considered
-                # at every checkpoint.
-                accumulated_drift = prune_runtime_state.advance_accumulated_drift(
+                # The exchange operation owns face admissibility. We only
+                # advance its accumulated-drift input before asking it to
+                # select; no insertion/deletion branch is reconstructed here.
+                prune_runtime_state.advance_accumulated_drift(
                     time=float(time_value),
                     residual_sq=float(fixed_step.residual_sq),
                 )
-                drift_threshold = getattr(
-                    effective_support_config,
-                    "escalation_accumulated_drift_threshold",
-                    None,
+                exchange_config = APGeneralizedExchangeConfig.from_route_config(
+                    effective_support_config
                 )
-                residual_escalates = float(fixed_step.residual_ratio) >= float(
-                    effective_support_config.residual_ratio_threshold
-                )
-                drift_escalates = (
-                    drift_threshold is not None
-                    and accumulated_drift >= float(drift_threshold)
-                )
-                # Either predicate opens insertion enumeration: the residual
-                # ratio catches a checkpoint that is locally hard, the drift
-                # integral catches a trajectory that has quietly banked error
-                # while every individual checkpoint looked easy.
                 gate_mode = str(
-                    getattr(
-                        effective_support_config,
-                        "insertion_gate_mode",
-                        "residual_ratio",
-                    )
+                    exchange_config.eligibility.insertion_gate_mode
                 ).strip().lower()
-                l2_cut = float(
-                    getattr(effective_support_config, "insertion_l2_cut", 1.0e-3)
-                )
+                l2_cut = float(exchange_config.score.l2_cut)
                 checkpoint_l2 = mclachlan_distance_squared(
                     evaluation, inverse_policy=decision_inverse_policy
                 )
-                if gate_mode == "mclachlan_l2":
-                    # AVQDS append condition: absolute McLachlan distance.
-                    insertions_active = bool(checkpoint_l2 > l2_cut)
-                else:
-                    insertions_active = bool(
-                        residual_escalates or drift_escalates
-                    )
                 if str(
                     getattr(effective_support_config, "dynamics_policy", "exchange")
                 ).strip().lower() == "avqds":
@@ -1272,67 +1030,21 @@ def run_append_mclachlan_trajectory(
                         solve_repair_config=solve_repair_config,
                     )
                 else:
-                    # AVQDS's append condition is greedy WITHIN one checkpoint:
-                    # keep inserting until the McLachlan distance falls below
-                    # the cut or no candidate improves it.  Under the historical
-                    # residual gate this collapses to exactly one round, so the
-                    # default path is unchanged.
+                    # Generalized exchange repeats within an L2-gated
+                    # checkpoint until the debt is paid or no admissible patch
+                    # reduces it. Face admissibility and debt ranking remain
+                    # wholly inside the exchange operation below.
                     max_rounds = (
-                        int(
-                            effective_support_config.max_insertion_rounds_per_checkpoint
-                        )
+                        int(exchange_config.search.rounds_per_checkpoint)
                         if gate_mode == "mclachlan_l2"
                         else 1
                     )
                     insertion_rounds = 0
                     round_labels: list[str] = []
 
-                    # Deletions stay eligible under accuracy debt.  Removing a
-                    # near-degenerate coordinate relieves conditioning and can
-                    # reduce the McLachlan distance, so barring deletion while
-                    # L^2 is high forbids exactly the repair that a badly
-                    # conditioned ansatz needs.  What must be prevented is the
-                    # inversion -- a deletion always improves the cost-weighted
-                    # score, so an unguarded greedy loop sheds coordinates while
-                    # L^2 climbs (measured: 26 -> 19 parameters as L^2 went
-                    # 4.5e-4 -> 2.2e-1).  The guard is therefore on the
-                    # *outcome*, applied below before any commit under debt:
-                    # a patch that does not reduce L^2 is refused.
-                    # Deletions are eligible under debt, but a deletion that
-                    # ranks top on the cost-weighted score and does not reduce
-                    # L^2 must not consume the checkpoint.  `deletions_offered`
-                    # is cleared for a retry so the round falls back to
-                    # insertion-only rather than stalling: measured without the
-                    # retry, one such deletion left the checkpoint doing nothing
-                    # at all while L^2 ran from 5.7e-3 to 3.4e-1 and the support
-                    # sat at 18 coordinates.
-                    _debt_policy = str(
-                        getattr(
-                            effective_support_config, "debt_policy",
-                            "insertion_only",
-                        )
-                    )
-                    in_debt = gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut
-                    # Under debt the objective is drift capture, not cost.
-                    round_support_config = (
-                        replace(effective_support_config, debt_ranking=True)
-                        if (_debt_policy == "drift_ranked" and in_debt)
-                        else effective_support_config
-                    )
-                    deletions_offered = (
-                        _debt_policy in {"any_improving", "drift_ranked"}
-                        or gate_mode != "mclachlan_l2"
-                        or checkpoint_l2 <= l2_cut
-                    )
-
-                    def _round_prune_atoms(state_arg, **kwargs):
-                        if not deletions_offered:
-                            return ()
-                        return _active_prune_atoms(state_arg, **kwargs)
-
                     for _round in range(max_rounds + 1):
                         with phase(PHASE_UNIFIED_SELECT):
-                            selection, selection_payload = select_deletion_conditioned_patch(
+                            selection, selection_payload = select_generalized_exchange_patch(
                                 state=current_state,
                                 hamiltonian=hamiltonian,
                                 theta_runtime=theta_current,
@@ -1340,16 +1052,10 @@ def run_append_mclachlan_trajectory(
                                 base_evaluation=evaluation,
                                 base_step=fixed_step,
                                 inverse_policy=decision_inverse_policy,
-                                support_config=round_support_config,
+                                support_config=effective_support_config,
                                 runtime_state=prune_runtime_state,
                                 time_index=int(index),
-                                active_prune_atoms=_round_prune_atoms,
                                 solve_repair_config=solve_repair_config,
-                                insertions_enabled=insertions_active,
-                                escalation_override=(
-                                    gate_mode == "mclachlan_l2"
-                                    and insertions_active
-                                ),
                             )
                         (
                             decision,
@@ -1371,29 +1077,6 @@ def run_append_mclachlan_trajectory(
                         ):
                             break
                         l2_before_round = checkpoint_l2
-                        if gate_mode == "mclachlan_l2" and checkpoint_l2 > l2_cut:
-                            # Under debt the admissible patches are exactly the
-                            # ones that pay the debt down, whichever kind they
-                            # are.  Evaluating the materialized candidate costs
-                            # nothing extra: the selector already built it.
-                            l2_candidate = mclachlan_distance_squared(
-                                maybe_eval, inverse_policy=decision_inverse_policy
-                            )
-                            if l2_candidate >= checkpoint_l2:
-                                if deletions_offered and str(
-                                    decision.patch_kind
-                                ) in {PATCH_DELETE, PATCH_EXCHANGE}:
-                                    # Retry this same checkpoint with removal
-                                    # withdrawn, so an unhelpful deletion costs
-                                    # one attempt rather than the whole step.
-                                    deletions_offered = False
-                                    continue
-                                decision = replace(
-                                    decision,
-                                    accepted=False,
-                                    reason="refused_non_improving_patch_under_l2_debt",
-                                )
-                                break
                         _commit_patch_decision()
                         committed_in_round_loop = True
                         insertion_rounds += 1
@@ -1412,7 +1095,6 @@ def run_append_mclachlan_trajectory(
                         # to 20 while L^2 went from 4.5e-4 to 1.3e-3.
                         if checkpoint_l2 >= l2_before_round:
                             break
-                        insertions_active = True
                     if gate_mode == "mclachlan_l2":
                         decision = replace(
                             decision,
@@ -1488,7 +1170,7 @@ def run_append_mclachlan_trajectory(
                     stepping.theta_next, dtype=float
                 ).reshape(-1)
                 integration = None
-                avqds_stepping_record = stepping.to_json_dict()
+                parameter_stepping_to_next = stepping.to_json_dict()
             else:
                 with phase(PHASE_INTEGRATE):
                     integration = _integrate_interval_with_repair(
@@ -1519,6 +1201,7 @@ def run_append_mclachlan_trajectory(
             fixed_step=fixed_step,
             patch_decision=decision,
             integration_to_next=integration,
+            parameter_stepping_to_next=parameter_stepping_to_next,
         )
         points.append(point)
         if progress_callback is not None:
@@ -1535,8 +1218,8 @@ def run_append_mclachlan_trajectory(
         support_patch_config=support_patch_config,
         solve_repair_config=solve_repair_config,
         metadata={
-            "trajectory_kind": "deletion_conditioned_exchange_support_patch",
-            "selection_policy": EXCHANGE_SELECTION_POLICY_V1,
+            "trajectory_kind": "generalized_exchange_support_patch",
+            "selection_policy": GENERALIZED_EXCHANGE_SELECTION_POLICY_V2,
             "uses_reference_for_decision": False,
             "uses_exact_reference_for_decision": False,
             "uses_future_exact_forecast_for_decision": False,
@@ -1723,15 +1406,21 @@ def _integrate_interval_with_repair(
     force_local_subdivision_request: _LocalSubdivisionRequest | None = None,
 ) -> IntegrationStep:
     theta0 = np.asarray(theta_runtime, dtype=float).reshape(-1)
+    attempted_substep_count = 0
+    rhs_evaluation_count = 0
 
     def try_interval(
         local_theta: np.ndarray,
         local_t: float,
         local_dt: float,
-    ) -> tuple[IntegrationStep, tuple[FixedMcLachlanStep, ...], float]:
+    ) -> tuple[IntegrationStep, tuple[FixedMcLachlanStep, ...]]:
+        nonlocal attempted_substep_count, rhs_evaluation_count
+        attempted_substep_count += 1
         fixed_steps: list[FixedMcLachlanStep] = []
 
         def theta_dot_rhs(theta_value: np.ndarray, time_value: float) -> np.ndarray:
+            nonlocal rhs_evaluation_count
+            rhs_evaluation_count += 1
             evaluation = evaluate_mclachlan_geometry(
                 state=state,
                 hamiltonian=hamiltonian,
@@ -1754,40 +1443,32 @@ def _integrate_interval_with_repair(
             rhs=theta_dot_rhs,
             method=str(integrator_method),
         )
-        prospective_motion = _prospective_state_motion_l2_step(
-            state=state,
-            theta_start=local_theta,
-            theta_trial=step.theta_next,
-        )
-        return step, tuple(fixed_steps), float(prospective_motion)
+        # Integration acceptance deliberately uses only diagnostics acquired
+        # with the McLachlan right-hand-side evaluations above.  Do not prepare
+        # the start and trial states for a realized-overlap guard here: that
+        # would add a QPU measurement path to every attempted interval/substep.
+        return step, tuple(fixed_steps)
 
     full_step_candidate: IntegrationStep | None = None
     fixed_steps_candidate: tuple[FixedMcLachlanStep, ...] = ()
-    full_prospective_motion: float | None = None
     first_reason: str | None = None
     requested_min_depth = 1
     requested_severity: float | None = None
     try:
-        full_step, fixed_steps, prospective_motion = try_interval(
+        full_step, fixed_steps = try_interval(
             theta0,
             float(time),
             float(dt),
         )
         full_step_candidate = full_step
         fixed_steps_candidate = fixed_steps
-        full_prospective_motion = float(prospective_motion)
         inferred_request = _local_subdivision_request_from_steps(
             fixed_steps,
-            solve_repair_config=solve_repair_config,
-        )
-        prospective_request = _prospective_state_motion_subdivision_request(
-            prospective_motion,
             solve_repair_config=solve_repair_config,
         )
         active_request = _strongest_local_subdivision_request(
             force_local_subdivision_request,
             inferred_request,
-            prospective_request,
         )
         first_reason = (
             None if active_request is None else str(active_request.reason)
@@ -1803,21 +1484,22 @@ def _integrate_interval_with_repair(
             )
         )
         if not subdivision_requested:
-            return integration_step_with_metadata(
+            accepted = integration_step_with_metadata(
                 full_step,
                 local_subdivision_applied=False,
                 local_subdivision_depth=0,
                 local_substep_count=1,
                 local_subdivision_reason=None,
-                repair_summary=_repair_summary_with_prospective_state_motion(
-                    _repair_summary_from_steps(fixed_steps),
-                    initial_motion=prospective_motion,
-                    accepted_motions=(prospective_motion,),
-                    solve_repair_config=solve_repair_config,
-                ),
+                repair_summary=_repair_summary_from_steps(fixed_steps),
+            )
+            return _integration_step_with_attempt_telemetry(
+                accepted,
+                attempted_substep_count=attempted_substep_count,
+                accepted_substep_count=1,
+                rhs_evaluation_count=rhs_evaluation_count,
             )
         if not bool(solve_repair_config.local_subdivision_enabled):
-            return integration_step_with_metadata(
+            accepted = integration_step_with_metadata(
                 full_step,
                 local_subdivision_applied=False,
                 local_subdivision_depth=0,
@@ -1825,16 +1507,17 @@ def _integrate_interval_with_repair(
                 local_subdivision_reason=(
                     f"solve_repair_local_subdivision_disabled:{first_reason}"
                 ),
-                repair_summary=_repair_summary_with_prospective_state_motion(
-                    _repair_summary_with_request(
-                        fixed_steps,
-                        min_depth=requested_min_depth,
-                        severity=requested_severity,
-                    ),
-                    initial_motion=prospective_motion,
-                    accepted_motions=(prospective_motion,),
-                    solve_repair_config=solve_repair_config,
+                repair_summary=_repair_summary_with_request(
+                    fixed_steps,
+                    min_depth=requested_min_depth,
+                    severity=requested_severity,
                 ),
+            )
+            return _integration_step_with_attempt_telemetry(
+                accepted,
+                attempted_substep_count=attempted_substep_count,
+                accepted_substep_count=1,
+                rhs_evaluation_count=rhs_evaluation_count,
             )
     except SolveRepairUnsupportedError as exc:
         if (
@@ -1846,11 +1529,7 @@ def _integrate_interval_with_repair(
 
     if full_step_candidate is None:
         try:
-            (
-                full_step_candidate,
-                fixed_steps_candidate,
-                full_prospective_motion,
-            ) = try_interval(
+            full_step_candidate, fixed_steps_candidate = try_interval(
                 theta0,
                 float(time),
                 float(dt),
@@ -1858,27 +1537,27 @@ def _integrate_interval_with_repair(
         except SolveRepairUnsupportedError:
             full_step_candidate = None
             fixed_steps_candidate = ()
-            full_prospective_motion = None
     if first_reason is None:
         first_reason = "state_motion_step_above_max"
 
     if full_step_candidate is not None and not bool(solve_repair_config.local_subdivision_enabled):
-        return integration_step_with_metadata(
+        accepted = integration_step_with_metadata(
             full_step_candidate,
             local_subdivision_applied=False,
             local_subdivision_depth=0,
             local_substep_count=1,
             local_subdivision_reason=f"solve_repair_local_subdivision_disabled:{first_reason}",
-            repair_summary=_repair_summary_with_prospective_state_motion(
-                _repair_summary_with_request(
-                    fixed_steps_candidate,
-                    min_depth=requested_min_depth,
-                    severity=requested_severity,
-                ),
-                initial_motion=full_prospective_motion,
-                accepted_motions=(full_prospective_motion,),
-                solve_repair_config=solve_repair_config,
+            repair_summary=_repair_summary_with_request(
+                fixed_steps_candidate,
+                min_depth=requested_min_depth,
+                severity=requested_severity,
             ),
+        )
+        return _integration_step_with_attempt_telemetry(
+            accepted,
+            attempted_substep_count=attempted_substep_count,
+            accepted_substep_count=1,
+            rhs_evaluation_count=rhs_evaluation_count,
         )
     factor = int(solve_repair_config.local_subdivision_factor)
     max_depth = int(solve_repair_config.max_local_subdivisions)
@@ -1894,32 +1573,21 @@ def _integrate_interval_with_repair(
         local_t = float(time)
         substeps: list[IntegrationStep] = []
         fixed_steps_all: list[FixedMcLachlanStep] = []
-        prospective_motions: list[float] = []
-        prospective_motion_failed = False
         try:
             for _ in range(substep_count):
-                substep, fixed_steps, prospective_motion = try_interval(
+                substep, fixed_steps = try_interval(
                     local_theta,
                     local_t,
                     sub_dt,
                 )
                 substeps.append(substep)
                 fixed_steps_all.extend(fixed_steps)
-                prospective_motions.append(float(prospective_motion))
-                if _prospective_state_motion_above_limit(
-                    prospective_motion,
-                    solve_repair_config=solve_repair_config,
-                ):
-                    prospective_motion_failed = True
-                    break
                 local_theta = np.asarray(substep.theta_next, dtype=float).reshape(-1)
                 local_t += sub_dt
         except SolveRepairUnsupportedError as exc:
             last_error = exc
             if not bool(exc.reducible_by_subdivision):
                 break
-            continue
-        if prospective_motion_failed:
             continue
         if _fixed_steps_request_local_subdivision(
             fixed_steps_all,
@@ -1938,19 +1606,19 @@ def _integrate_interval_with_repair(
                 min_depth=start_depth,
                 severity=requested_severity,
             ),
-            repair_summary=_repair_summary_with_prospective_state_motion(
-                _repair_summary_with_request(
-                    fixed_steps_all,
-                    min_depth=start_depth,
-                    severity=requested_severity,
-                ),
-                initial_motion=full_prospective_motion,
-                accepted_motions=prospective_motions,
-                solve_repair_config=solve_repair_config,
+            repair_summary=_repair_summary_with_request(
+                fixed_steps_all,
+                min_depth=start_depth,
+                severity=requested_severity,
             ),
+            attempted_substep_count=attempted_substep_count,
+            rejected_substep_count=max(
+                0, attempted_substep_count - len(substeps)
+            ),
+            rhs_evaluation_count=rhs_evaluation_count,
         )
     if full_step_candidate is not None:
-        return integration_step_with_metadata(
+        accepted = integration_step_with_metadata(
             full_step_candidate,
             local_subdivision_applied=False,
             local_subdivision_depth=0,
@@ -1958,12 +1626,13 @@ def _integrate_interval_with_repair(
             local_subdivision_reason=(
                 f"solve_repair_local_subdivision_not_cured:{first_reason}"
             ),
-            repair_summary=_repair_summary_with_prospective_state_motion(
-                _repair_summary_from_steps(fixed_steps_candidate),
-                initial_motion=full_prospective_motion,
-                accepted_motions=(full_prospective_motion,),
-                solve_repair_config=solve_repair_config,
-            ),
+            repair_summary=_repair_summary_from_steps(fixed_steps_candidate),
+        )
+        return _integration_step_with_attempt_telemetry(
+            accepted,
+            attempted_substep_count=attempted_substep_count,
+            accepted_substep_count=1,
+            rhs_evaluation_count=rhs_evaluation_count,
         )
     if last_error is not None:
         raise last_error
@@ -1975,74 +1644,36 @@ def _integrate_interval_with_repair(
     )
 
 
-def _prospective_state_motion_l2_step(
+def _integration_step_with_attempt_telemetry(
+    step: IntegrationStep,
     *,
-    state: APMcLachlanState,
-    theta_start: np.ndarray | Sequence[float],
-    theta_trial: np.ndarray | Sequence[float],
-) -> float:
-    """Ray distance of the realized finite ANZATS update."""
+    attempted_substep_count: int,
+    accepted_substep_count: int,
+    rhs_evaluation_count: int,
+) -> IntegrationStep:
+    """Attach total attempted work while preserving the accepted step."""
 
-    theta0 = np.asarray(theta_start, dtype=float).reshape(-1)
-    theta1 = np.asarray(theta_trial, dtype=float).reshape(-1)
-    if theta0.shape != theta1.shape:
-        raise ValueError(
-            "prospective state-motion theta shapes do not match: "
-            f"{theta0.shape} vs {theta1.shape}"
-        )
-    if not np.all(np.isfinite(theta0)) or not np.all(np.isfinite(theta1)):
-        raise ValueError("prospective state-motion theta values must be finite")
-    psi0 = np.asarray(state.prepare_state(theta0), dtype=complex).reshape(-1)
-    psi1 = np.asarray(state.prepare_state(theta1), dtype=complex).reshape(-1)
-    norm0 = float(np.linalg.norm(psi0))
-    norm1 = float(np.linalg.norm(psi1))
-    if not np.isfinite(norm0) or not np.isfinite(norm1) or norm0 <= 0.0 or norm1 <= 0.0:
-        raise ValueError("prospective state-motion preparation produced an invalid state")
-    psi0 = psi0 / norm0
-    psi1 = psi1 / norm1
-    overlap = complex(np.vdot(psi0, psi1))
-    motion = float(np.linalg.norm(psi1 - overlap * psi0))
-    if not np.isfinite(motion):
-        raise ValueError("prospective state-motion ray distance is non-finite")
-    return motion
-
-
-def _prospective_state_motion_above_limit(
-    motion: float,
-    *,
-    solve_repair_config: SolveRepairConfig,
-) -> bool:
-    if not bool(solve_repair_config.enabled):
-        return False
-    limit = solve_repair_config.state_motion_l2_step_max
-    if limit is None:
-        return False
-    motion_f = float(motion)
-    limit_f = float(limit)
-    if not np.isfinite(motion_f) or not np.isfinite(limit_f) or limit_f <= 0.0:
-        return False
-    return bool(motion_f > limit_f)
-
-
-def _prospective_state_motion_subdivision_request(
-    motion: float,
-    *,
-    solve_repair_config: SolveRepairConfig,
-) -> _LocalSubdivisionRequest | None:
-    if not _prospective_state_motion_above_limit(
-        motion,
-        solve_repair_config=solve_repair_config,
-    ):
-        return None
-    limit = float(solve_repair_config.state_motion_l2_step_max)
-    severity = float(motion) / limit
-    return _LocalSubdivisionRequest(
-        reason="prospective_state_motion_step_above_max",
-        severity=float(severity),
-        min_depth=_local_subdivision_depth_from_severity(
-            severity,
-            solve_repair_config=solve_repair_config,
+    return IntegrationStep(
+        theta_next=np.asarray(step.theta_next, dtype=float).reshape(-1),
+        theta_dot=np.asarray(step.theta_dot, dtype=float).reshape(-1),
+        method=str(step.method),
+        t=float(step.t),
+        dt=float(step.dt),
+        rhs_evaluation_count=int(rhs_evaluation_count),
+        attempted_substep_count=int(attempted_substep_count),
+        rejected_substep_count=max(
+            0, int(attempted_substep_count) - int(accepted_substep_count)
         ),
+        accepted_rhs_evaluation_count=(
+            int(step.rhs_evaluation_count)
+            if step.accepted_rhs_evaluation_count is None
+            else int(step.accepted_rhs_evaluation_count)
+        ),
+        local_subdivision_applied=bool(step.local_subdivision_applied),
+        local_subdivision_depth=int(step.local_subdivision_depth),
+        local_substep_count=int(step.local_substep_count),
+        local_subdivision_reason=step.local_subdivision_reason,
+        repair_summary=dict(step.repair_summary or {}),
     )
 
 
@@ -2056,52 +1687,6 @@ def _strongest_local_subdivision_request(
         available,
         key=lambda request: (float(request.severity), int(request.min_depth)),
     )
-
-
-def _repair_summary_with_prospective_state_motion(
-    summary: Mapping[str, Any],
-    *,
-    initial_motion: float | None,
-    accepted_motions: Sequence[float | None],
-    solve_repair_config: SolveRepairConfig,
-) -> dict[str, Any]:
-    payload = dict(summary)
-    initial = (
-        None
-        if initial_motion is None or not np.isfinite(float(initial_motion))
-        else float(initial_motion)
-    )
-    accepted = [
-        float(value)
-        for value in accepted_motions
-        if value is not None and np.isfinite(float(value))
-    ]
-    limit = solve_repair_config.state_motion_l2_step_max
-    limit_f = (
-        None
-        if limit is None or not np.isfinite(float(limit))
-        else float(limit)
-    )
-    above = bool(
-        initial is not None
-        and limit_f is not None
-        and limit_f > 0.0
-        and initial > limit_f
-    )
-    payload.update(
-        {
-            "prospective_state_motion_l2_step_initial": initial,
-            "max_prospective_state_motion_l2_step": (
-                None if not accepted else float(max(accepted))
-            ),
-            "prospective_state_motion_l2_step_max": limit_f,
-            "prospective_state_motion_above_max": above,
-            "prospective_state_motion_triggered": bool(
-                solve_repair_config.enabled and above
-            ),
-        }
-    )
-    return payload
 
 
 def _fixed_steps_request_local_subdivision(
@@ -2354,10 +1939,7 @@ def _repair_summary_from_steps(
 def _append_min_time(
     *,
     controller_config: AppendControllerConfig,
-    support_patch_config: SupportPatchControllerConfig | None,
 ) -> float:
-    if support_patch_config is not None:
-        return float(support_patch_config.append_min_time)
     return float(controller_config.append_min_time)
 
 
@@ -2621,63 +2203,23 @@ def _active_prune_atoms(
     runtime_state: _PruneControllerRuntimeState,
     time_index: int,
 ) -> tuple[ActiveSupportAtom, ...]:
-    out: list[ActiveSupportAtom] = []
-    target_policy = str(
-        support_config.prune_appended_origin_target_policy
-    ).strip().lower()
-    appended_labels = appended_origin_atom_labels(state)
-    active_atoms = tuple(active_support_atoms(state, theta_runtime))
-    appended_base_counts: dict[str, int] = {}
-    for atom in active_atoms:
-        if str(atom.atom_label) not in appended_labels:
-            continue
-        base_atom_id = str(
-            dict(atom.metadata or {}).get("base_atom_id", atom.atom_id)
-        )
-        appended_base_counts[base_atom_id] = int(
-            appended_base_counts.get(base_atom_id, 0) + 1
-        )
-    for atom in active_atoms:
-        if (
-            target_policy
-            in {PRUNE_TARGET_APPENDED_ONLY, PRUNE_TARGET_REDUNDANT_APPENDED_ONLY}
-            and str(atom.atom_label) not in appended_labels
-        ):
-            continue
-        if target_policy == PRUNE_TARGET_REDUNDANT_APPENDED_ONLY:
-            base_atom_id = str(
-                dict(atom.metadata or {}).get("base_atom_id", atom.atom_id)
-            )
-            if int(appended_base_counts.get(base_atom_id, 0)) <= 1:
-                continue
-        if bool(support_config.protect_drive_aligned_atoms) and _is_drive_aligned_atom(atom):
-            continue
-        if int(state.runtime_parameter_count) - int(atom.runtime_count) < int(
-            support_config.min_runtime_parameter_count
-        ):
-            continue
-        cooldown_until = runtime_state.cooldown_until_index.get(str(atom.atom_id))
-        if cooldown_until is not None and int(time_index) < int(cooldown_until):
-            continue
-        out.append(atom)
-    return tuple(out)
+    """Compatibility name for tests and legacy diagnostics.
 
+    Production exchange obtains the same domain through the deep-module
+    adapter and no longer injects this callback into the selector.
+    """
 
-def _is_drive_aligned_atom(atom: ActiveSupportAtom | SupportAtom) -> bool:
-    text = " ".join(
-        (
-            str(atom.atom_id),
-            str(atom.atom_label),
-            str(atom.parent_label),
-        )
-    ).lower()
-    return "drive_aligned" in text
-
-
-def _prune_persistence_atom_id(atom: ActiveSupportAtom) -> str:
-    metadata = dict(atom.metadata or {})
-    base_atom_id = str(metadata.get("base_atom_id", "")).strip()
-    return base_atom_id if base_atom_id else str(atom.atom_id)
+    return eligible_deletion_atoms(
+        state,
+        theta_runtime=theta_runtime,
+        eligibility_config=(
+            APGeneralizedExchangeConfig.from_route_config(
+                support_config
+            ).eligibility
+        ),
+        runtime_state=runtime_state,
+        time_index=int(time_index),
+    )
 
 
 def _cooldown_prune_atoms(
@@ -2791,12 +2333,6 @@ def _progress_payload_from_point(point: AdaptiveTrajectoryPoint) -> dict[str, An
         "patch_prune_history_transition": decision_metadata.get(
             "prune_history_transition"
         ),
-        "patch_prune_atom_history_preserved_count": decision_metadata.get(
-            "prune_atom_history_preserved_count"
-        ),
-        "patch_prune_atom_history_dropped_count": decision_metadata.get(
-            "prune_atom_history_dropped_count"
-        ),
         "patch_prune_geometry_history_cleared_due_to_support_change": (
             decision_metadata.get(
                 "prune_geometry_history_cleared_due_to_support_change"
@@ -2843,8 +2379,6 @@ __all__ = [
     "APPEND_MACRO_SCOUT_SCORE_MODE_PARENT_LINEAR_RESIDUAL_V1",
     "APPEND_MACRO_SCOUT_SCORE_MODES",
     "APPEND_BATCH_SELECTION_POLICY_V1",
-    "APPEND_LADDER_PREFILTER_POLICY_V1",
-    "APPEND_LADDER_SELECTION_POLICY_V1",
     "AppendControllerConfig",
     "AppendMclachlanTrajectory",
     "AdaptiveTrajectoryPoint",

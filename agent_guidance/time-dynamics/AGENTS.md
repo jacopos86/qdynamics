@@ -7,14 +7,14 @@ invariants and paper policy remain governed by root `AGENTS.md`,
 
 ## Route identity
 
-The single current support-patch route is the **deletion-conditioned exchange
-selector** (`paper_ii_deletion_conditioned_exchange_v1`), specified in
-`prompt-exports/paper_ii_noiseless_conditional_exchange_implementation_spec.md`
-(mathematics plus the appended code-level section). At each checkpoint it
-enumerates complete deletion-cardinality rungs and positioned zero-angle
-insertions on one frozen ray, scores realized captured drift weighted by
-Paper-I proxy hardware cost, and materializes/refits only ranked finalists
-through hard commit gates. The former append-ladder, prune-ladder, unified,
+The single current support-patch route is **generalized exchange**
+(`paper_ii_generalized_exchange_v2`). Its paper-owned language is defined in
+`agent_guidance/time-dynamics/CONTEXT.md`. At each checkpoint it
+enumerates measurement-free-permitted deletion-cardinality rungs and
+positioned zero-angle insertions on one frozen ray, scores realized captured
+drift weighted by Paper-I proxy hardware cost, and materializes/refits only
+ranked finalists through hard commit gates. The former append-ladder,
+prune-ladder, unified,
 and legacy selectors were deleted 2026-08-18 (git history preserves them);
 "checkpoint controller" remains a legacy compatibility surface, never the
 route identity.
@@ -25,20 +25,23 @@ Selector stack (bottom-up; each layer only imports below itself):
 
 | Module | Contract |
 |---|---|
+| `../generalized_exchange.py` | Ansatz-independent mathematics: the patch pair `(D,I)`, admissible faces, debt ordering, and realized-L2 acceptance/fallback |
+| `exchange_config.py` | AP adapter settings partitioned into score, eligibility, certification, and search-budget objects |
 | `commutation.py` | Block-swap certificates and singleton insertion cuts; algebra delegated to `pipelines.static_adapt.commutation_metadata` (single source both lanes share, parity-tested against Paper I) |
 | `insertion_words.py` | Immutable `(W, W_D)` plan words, deletion erasure, whole-word commutation quotient (lex-least trace normal form; inserted tokens sort before survivors — load-bearing) |
 | `deletion_family.py` | Complete deletion rungs and the joint-work guard (admits whole families only; the sole computational cap) |
+| `deletion_permission.py` | Measurement-free set permission: accumulated effective-angle ray upper bound plus normalized reverse-Schur deletion loss; memoized decision and run telemetry |
 | `structural_cache.py` | Checkpoint-local frozen-ray geometry: positioned tangents in one batched pass, deletion-independent cross/Gram/force blocks, memoized candidate solves |
 | `exchange_structural.py` | Family enumeration (singleton level, rungs, priorities, frontiers), the scalar score `U_ins + U_del + w·δ`, deterministic ordering |
 | `exchange_certification.py` | Finalist materialization (delete → remapped-cut insert), optional refit hook, hard gates (ray/smoothness are deletion-containing checks; every finalist gets finite/conditioning) |
 | `exchange_selector.py` | Selection loop: every guard-admitted deletion rung is scored with the d0 singletons before the first certification pass (deletions always compete on score); frontiers are escalation-gated; certify one at a time, commit atomically |
-| `exchange_integration.py` | Route adapter: atoms/cuts/costs/labels/gates from route objects → selector; `PatchDecision` payload back |
+| `exchange_integration.py` | AP realization adapter: ansatz/generator atoms, cuts, costs, labels, geometry, and certification oracles → pure generalized-exchange domain and selector |
 
 Route core:
 
 | Module | Contract |
 |---|---|
-| `adaptive_trajectory.py` | Trajectory loop, typed configs, decision types, deletion feasibility gates, prune runtime state, ordered parallel map (~2.3k lines) |
+| `adaptive_trajectory.py` | Trajectory loop, route transport config, decision types, cooldown/history runtime state, ordered parallel map |
 | `state.py` | AP state build/append/delete/**insert-at-cut** materialization with parity checks |
 | `geometry_eval.py`, `geometry.py`, `inverse.py` | Frozen-ray geometry, realized metrics, supported solve. `McLachlanSolve.captured_drift = 2fᵀθ̇ − θ̇ᵀKθ̇` is the scoring authority; `gamma` is legacy telemetry |
 | `fixed_step.py`, `integrators.py` | Propagation solve with repair, integration |
@@ -54,11 +57,13 @@ Seeds: `pipelines/time_dynamics/fixed_vqe_conditioning.py` +
 
 ## Runner and settings
 
-`pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py` (84 flags
-after the 2026-08-18 purge). Selector-specific settings, all typed on
-`SupportPatchControllerConfig` and recorded in run provenance:
+`pipelines/time_dynamics/runners/ap_append_from_adapt_artifact.py` remains the
+compatibility-named runner. Live selector settings are partitioned by
+`APGeneralizedExchangeConfig` and recorded in run provenance:
 
-- `--max-insertion-batch-size` (None → falls back to `--max-append-batch-size`)
+- `--max-insertion-batch-size` (zero closes the insertion face)
+- `--no-exchange-deletions` (insert-face ablation only; deletions are on for
+  the operating route)
 - `--interaction-frontier-widths` (comma ints; None → `2,4,8,…`)
 - `--structural-score-floor` — τ_score; the floor, not certification, excludes
   numerical-noise candidates
@@ -66,7 +71,7 @@ after the 2026-08-18 purge). Selector-specific settings, all typed on
   families only; `None` is for small systems and oracles
 - `--max-certification-attempts-per-level` — certification work cap: bounds
   finalist materializations per level (`None` = unbounded). Needed whenever
-  gates can reject broadly — e.g. on a converged ray `||b||^2 ~ 0` makes the
+  gates can reject broadly — e.g. on a near-stationary ray `||b||^2 ~ 0` makes the
   smoothness denominator vanish, every deletion-containing finalist fails,
   and an unbounded level grinds through every ranked candidate at one full
   state materialization each
@@ -74,12 +79,16 @@ after the 2026-08-18 purge). Selector-specific settings, all typed on
 Certification thresholds reuse `--prune-ray-distance-tol`,
 `--prune-patch-smoothness-eta-max`, `--append-schur-max-condition-number`.
 
-**Measurement economics** (`--residual-ratio-threshold`): insertion
-candidates require new quantum measurements, so they are enumerated only at
-checkpoints whose residual ratio meets the threshold. Pure deletions are
-row/column selections of the already-paid frozen-ray geometry —
-measurement-free — and are considered at every checkpoint (prune-only mode,
-`insertions_enabled: false` in the decision payload).
+**Measurement economics**: insertion candidates require new quantum
+measurements, so the Paper-II factorial campaign opens insertion faces only
+while the absolute McLachlan distance satisfies (L_k^2>\tau_{L^2}). Deletion
+sets are first screened using only already-paid checkpoint information: the
+effective rotation angles bound finite ray motion, and the reverse-Schur
+quadratic bounds frozen-support captured-drift loss. Only permitted sets enter
+structural scoring; only ranked finalists reach candidate-state materialization
+and the temporarily retained overlap/velocity validation gates. Within the
+open patch family, a pure deletion is an empty insertion set and a pure
+insertion is an empty deletion set; they are not separate algorithmic routes.
 
 Deletion-utility hooks (all recorded in provenance):
 
@@ -87,10 +96,10 @@ Deletion-utility hooks (all recorded in provenance):
   off) weight the log10 condition-number relief/damage of the deletion branch
   versus the base support, read from solve metadata the enumeration already
   paid for (no extra eigendecompositions).
-- **History** — `--prune-history-lambda` (default 1) weights a windowed-mean
+- **History** — `--prune-history-lambda` (default 0) weights a windowed-mean
   prior (`--prune-history-window`) of previously attempted deletion losses,
   recorded per stable runtime coordinate label on the prune runtime state.
-- **Certification refit** — `--certification-refit` (default off) runs a
+- **Certification refit** — `--certification-refit` (default on) runs a
   bounded L-BFGS-B trust-region refit (`--certification-refit-trust-radius`,
   `--certification-refit-max-iterations`) of each materialized finalist's
   angles toward the frozen checkpoint ray before the hard gates; pure
@@ -119,15 +128,20 @@ reproduced the defect.
 
 Current registry contents:
 
-- **Numerics** (never arm-dependent): rk4, solve repair at the `minimal`
-  profile, state-motion cap 1e-2, kink cap 5e-3, **local subdivision budget
-  10**, certification refit on at trust radius 0.6.
+- **Numerics** (never method-dependent): the initial factorial campaign fixes
+  Euler and ridge `1e-6`; the general Paper-II accuracy default remains RK4
+  with ridge `1e-7` for non-factorial work.
+- **Time-step controllers** (crossed with both methods): tangent-state motion
+  `1e-2`, parameter motion `5e-3`, and their composition. The state/composed
+  controllers use subdivision budget **10**. No realized trial-state overlap
+  is prepared or measured.
 - **Structure**: candidate pool cap 128 (above the 125-word deduplicated pool,
   so it does not bind), **conditioning gate off**, guards 50000 / 12 / 2, and
   insertion batch 1.
-- **Arms**: `exchange`, `append_only`, `avqds` (comparator, uncapped).
-- **Insertion gates**: `residual_1e-4` (this route's normalized gate) and
-  `mclachlan_l2_1e-3` (the published AVQDS append condition).
+- **Algorithmic methods in the factorial campaign**: `exchange` and `avqds`.
+  `append_only` remains an ablation, not a third primary method.
+- **Insertion gates**: the primary campaign uses the McLachlan-
+  (L^2) gate and varies its cut offline per run configuration.
 
 ### Why the two repaired guards read as they do
 
@@ -177,16 +191,21 @@ in the artifacts flagged it.
 
 ## Campaign specification
 
-`pipelines/time_dynamics/campaign.py` declares a run matrix as the product of
-`SeedSpec` x `DriveSpec` x `HorizonSpec` x `PolicyArm`, resolving each cell to
-a runner argv with canonical numerics, the four computational guards, and
-locked seed provenance (sha256 per seed, binary-aligned nph enforced at
-construction). Arms: `exchange_arm(ray_tol)`, `append_only_arm()`,
-`avqds_arm(l2_cut)` (flagged `is_comparator`). `write_campaign_manifest`
-records every cell. It owns no scientific defaults - physics comes from the
-seed/drive, structure from the arm - and never searches artifact trees.
-Golden-run parity locks in `test/test_ap_mclachlan_route_parity.py` pin the
-route's decisions and energies across refactors.
+`pipelines/time_dynamics/campaign.py` exposes a scientific campaign interface:
+seed × algorithmic method × time-step controller × drive × horizon × activation
+cut. Every cell resolves through `paper_ii_runs.build_run`; campaign code never
+hand-spells scientific runner flags. Preparation binds seed hashes, parses all
+commands with the live runner, and emits `PREPARED_NOT_SUBMITTED`.
+
+The primary declaration is
+`pipelines/time_dynamics/campaigns/paper_ii_factorial_euler_v1.py`: two methods
+(`exchange`, `avqds`) × three controllers across six drives, Euler/ridge
+`1e-6`, with prior-informed threshold worklists. Old frontier results choose
+initial cuts only and never fill new cells. After execution,
+`audit_completed_campaign` checks run locks, exact-reference reporting
+separation, step-work telemetry, and hash-bound terminal FakeMarrakesh costs.
+The terminology contract is
+`MATH/paper_facing/paper_II_dynamics/run_configuration_contract.md`.
 
 ## Operating configuration vs configuration surface
 
@@ -202,12 +221,12 @@ knob matters.
 
 ## Canonical numerics (2026-08-18 sweep)
 
-For accurate trajectories always run `--integrator rk4 --solve-repair
---solve-repair-state-motion-l2-step-max 1.0e-2 --solve-repair-kink-eta-max
-5.0e-3`. Measured on the stress seed (append-only, dt=0.04, exact
-reference): Euler+default caps 1.6e-2 energy error, rk4 alone 1.1e-2,
-rk4+tight caps 1.3e-3. The runner's Euler default is a fast-diagnostic
-setting, not the accuracy configuration. Deletion gates: ray tolerance
+The initial two-method × three-controller factorial campaign deliberately uses
+Euler with ridge `1e-6` for every configuration, isolating controller and
+structural-rule effects. After the full Euler matrix is selected, repeat the
+same six configurations under RK4 as a consistency check; do not mix Euler and
+RK4 within one factorial comparison. Outside that declared campaign, RK4 is
+the general accuracy default. Deletion gates: ray tolerance
 5e-2 admits cumulative structural damage over long horizons (44 certified
 deletions -> 0.19 drift); 2e-3 or tighter for trajectory work. Class-tuned
 controller-era settings live in

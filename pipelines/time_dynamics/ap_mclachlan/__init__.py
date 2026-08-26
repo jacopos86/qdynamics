@@ -8,14 +8,6 @@ from typing import Any
 
 _LAZY_EXPORTS = {
     "APMcLachlanState": ("state", "APMcLachlanState"),
-    "APPEND_LADDER_PREFILTER_POLICY_V1": (
-        "adaptive_trajectory",
-        "APPEND_LADDER_PREFILTER_POLICY_V1",
-    ),
-    "APPEND_LADDER_SELECTION_POLICY_V1": (
-        "adaptive_trajectory",
-        "APPEND_LADDER_SELECTION_POLICY_V1",
-    ),
     "AP_PRUNE_RANK_SCORE_KIND_V1": (
         "prune_cost",
         "AP_PRUNE_RANK_SCORE_KIND_V1",
@@ -31,14 +23,6 @@ _LAZY_EXPORTS = {
     "McLachlanGeometry": ("geometry", "McLachlanGeometry"),
     "McLachlanInversePolicy": ("inverse", "McLachlanInversePolicy"),
     "PatchActionProposal": ("support_decision", "PatchActionProposal"),
-    "PRUNE_LADDER_PREFILTER_POLICY_V1": (
-        "adaptive_trajectory",
-        "PRUNE_LADDER_PREFILTER_POLICY_V1",
-    ),
-    "PRUNE_LADDER_SELECTION_POLICY_V1": (
-        "adaptive_trajectory",
-        "PRUNE_LADDER_SELECTION_POLICY_V1",
-    ),
     "PruneCostSettings": ("prune_cost", "PruneCostSettings"),
     "RungDiagnostics": ("support_decision", "RungDiagnostics"),
     "SolveGuardReport": ("fixed_step", "SolveGuardReport"),

@@ -18,13 +18,10 @@ import os
 
 from pipelines.time_dynamics.campaign import (
     CampaignSpec,
-    DriveSpec,
-    HorizonSpec,
     SeedSpec,
-    append_only_arm,
-    avqds_arm,
-    exchange_arm,
+    uniform_threshold_plan,
 )
+from pipelines.time_dynamics import paper_ii_runs as runs
 
 LEDGER = "chtc/generic_time_dynamics_table/input/paper_ii_seed_tracks_seed_ledger_v2.json"
 
@@ -94,23 +91,30 @@ SEEDS = (REDUNDANT,) + _ledger_seeds()
 
 # Two drive conditions: a fast weak drive and a slow strong one. A claim that
 # holds under only one drive is a claim about that drive.
-DRIVES = (
-    DriveSpec(drive_id="fastweak", enabled=True, amplitude=0.6, omega=3.0),
-    DriveSpec(drive_id="slowstrong", enabled=True, amplitude=1.2, omega=1.0),
-)
+DRIVE_IDS = ("fastweak", "slowstrong")
 
 # t=20 at the dt=0.04 grid the shorter runs used, so accuracy is comparable
 # across horizons rather than confounded by step size.
-HORIZONS = (HorizonSpec(horizon_id="t20", t_final=20.0, num_times=501),)
+HORIZON_IDS = ("t20",)
 
-ARMS = (append_only_arm(), exchange_arm(2.0e-3), avqds_arm(1.0e-3))
+METHOD_IDS = ("append_only", "exchange", "avqds")
+CONTROLLER_IDS = ("state_motion_1e-2",)
+THRESHOLD_PLAN = uniform_threshold_plan(
+    method_ids=METHOD_IDS,
+    controller_ids=CONTROLLER_IDS,
+    drive_ids=DRIVE_IDS,
+    thresholds=(1.0e-3,),
+)
 
 SPEC = CampaignSpec(
     campaign_id="paper_ii_production_v2",
     seeds=SEEDS,
-    drives=DRIVES,
-    horizons=HORIZONS,
-    arms=ARMS,
+    method_ids=METHOD_IDS,
+    controller_ids=CONTROLLER_IDS,
+    drive_ids=DRIVE_IDS,
+    horizon_ids=HORIZON_IDS,
+    threshold_plan=THRESHOLD_PLAN,
+    numerics_id=runs.SHARED_NUMERICS.numerics_id,
     output_root="raw_outputs",
 )
 
@@ -121,7 +125,7 @@ if __name__ == "__main__":
     written = write_chtc_package(
         SPEC, "chtc/paper_ii_production_v2", max_runtime_seconds=86400
     )
-    print(f"seeds: {len(SEEDS)}  drives: {len(DRIVES)}  arms: {len(ARMS)}")
+    print(f"seeds: {len(SEEDS)}  drives: {len(DRIVE_IDS)}  methods: {len(METHOD_IDS)}")
     print(f"cells: {SPEC.cell_count()}")
-    for name, path in written.items():
+    for name, path in written.to_json_dict().items():
         print(f"  {name:10s} {path}")

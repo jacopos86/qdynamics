@@ -25,6 +25,9 @@ class IntegrationStep:
     t: float
     dt: float
     rhs_evaluation_count: int
+    attempted_substep_count: int = 1
+    rejected_substep_count: int = 0
+    accepted_rhs_evaluation_count: int | None = None
     local_subdivision_applied: bool = False
     local_subdivision_depth: int = 0
     local_substep_count: int = 1
@@ -37,6 +40,13 @@ class IntegrationStep:
             "t": float(self.t),
             "dt": float(self.dt),
             "rhs_evaluation_count": int(self.rhs_evaluation_count),
+            "accepted_rhs_evaluation_count": int(
+                self.rhs_evaluation_count
+                if self.accepted_rhs_evaluation_count is None
+                else self.accepted_rhs_evaluation_count
+            ),
+            "attempted_substep_count": int(self.attempted_substep_count),
+            "rejected_substep_count": int(self.rejected_substep_count),
             "theta_dot": [float(x) for x in self.theta_dot.tolist()],
             "theta_next": [float(x) for x in self.theta_next.tolist()],
             "local_subdivision_applied": bool(self.local_subdivision_applied),
@@ -123,6 +133,13 @@ def integration_step_with_metadata(
         t=float(step.t),
         dt=float(step.dt),
         rhs_evaluation_count=int(step.rhs_evaluation_count),
+        attempted_substep_count=int(step.attempted_substep_count),
+        rejected_substep_count=int(step.rejected_substep_count),
+        accepted_rhs_evaluation_count=(
+            int(step.rhs_evaluation_count)
+            if step.accepted_rhs_evaluation_count is None
+            else int(step.accepted_rhs_evaluation_count)
+        ),
         local_subdivision_applied=bool(local_subdivision_applied),
         local_subdivision_depth=int(local_subdivision_depth),
         local_substep_count=int(local_substep_count),
@@ -141,6 +158,9 @@ def aggregate_integration_substeps(
     depth: int,
     reason: str,
     repair_summary: Mapping[str, Any] | None = None,
+    attempted_substep_count: int | None = None,
+    rejected_substep_count: int = 0,
+    rhs_evaluation_count: int | None = None,
 ) -> IntegrationStep:
     """Collapse a sequence of local substeps into one interval record."""
 
@@ -151,13 +171,25 @@ def aggregate_integration_substeps(
     theta_next = np.asarray(steps[-1].theta_next, dtype=float).reshape(-1)
     h = float(dt)
     theta_dot = np.zeros_like(theta_next, dtype=float) if h == 0.0 else (theta_next - theta0) / h
+    accepted_rhs = int(sum(int(step.rhs_evaluation_count) for step in steps))
     return IntegrationStep(
         theta_next=theta_next,
         theta_dot=np.asarray(theta_dot, dtype=float).reshape(-1),
         method=str(method).lower(),
         t=float(t),
         dt=h,
-        rhs_evaluation_count=int(sum(int(step.rhs_evaluation_count) for step in steps)),
+        rhs_evaluation_count=(
+            accepted_rhs
+            if rhs_evaluation_count is None
+            else int(rhs_evaluation_count)
+        ),
+        attempted_substep_count=(
+            int(len(steps))
+            if attempted_substep_count is None
+            else int(attempted_substep_count)
+        ),
+        rejected_substep_count=int(rejected_substep_count),
+        accepted_rhs_evaluation_count=accepted_rhs,
         local_subdivision_applied=True,
         local_subdivision_depth=int(depth),
         local_substep_count=int(len(steps)),

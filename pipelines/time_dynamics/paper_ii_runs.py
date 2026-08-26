@@ -33,6 +33,7 @@ than a six-hour cluster job.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Mapping, Sequence
 
 RUNNER_MODULE = "pipelines.time_dynamics.runners.ap_append_from_adapt_artifact"
@@ -68,28 +69,45 @@ class Numerics:
         )
 
 
-# Euler is the shared integrator: it is what AVQDS specifies, it is cheaper per
-# step, and with either step-control law below the step size rather than the
-# integrator order is what sets the error. Tikhonov xi=1e-6 matches the value
-# AVQDS states, so the regularization is not a hidden difference either.
-SHARED_NUMERICS = Numerics(
+# Euler remains available as an integrator ablation, but it is not the
+# Paper-II default: the six-drive ablation found a material accuracy difference
+# even when the step guard was satisfied.
+EULER_NUMERICS = Numerics(
     numerics_id="euler_ridge1e-7",
-    note="Shared inner method: Euler, ridge 1e-7, no extra damping.",
+    note="Euler ablation: ridge 1e-7, no extra damping.",
+)
+
+EULER_RIDGE1E6_NUMERICS = Numerics(
+    numerics_id="euler_ridge1e-6",
+    ridge_lambda=1.0e-6,
+    note=(
+        "Paper-II factorial campaign numerics: Euler and Tikhonov ridge "
+        "xi=1e-6, shared by both structural methods and all three step "
+        "controllers."
+    ),
 )
 
 RK4_NUMERICS = Numerics(
     numerics_id="rk4_ridge1e-7",
     integrator="rk4",
     note=(
-        "Higher-order integrator, retained as an ablation of the integrator "
-        "itself. Measured 2026-08-18 with loose step control: Euler 1.6e-2 "
-        "against rk4 1.3e-3, so the integrator matters when the step is not "
-        "controlled; both step-control laws below are meant to remove that."
+        "Canonical Paper-II inner method: RK4, ridge 1e-7, no extra damping. "
+        "The integrator ablation shows that order remains accuracy-relevant."
     ),
 )
 
+# Published AVQDS owns this numerical convention.  It is intentionally not the
+# shared Paper-II default: a method-level reproduction and a structural-rule
+# ablation answer different questions and must remain separately named.
+AVQDS_PUBLISHED_NUMERICS = EULER_RIDGE1E6_NUMERICS
+
+# Backwards-compatible name used by campaign builders.  "Shared" now means the
+# canonical shared-stack comparison numerics, which are RK4.
+SHARED_NUMERICS = RK4_NUMERICS
+
 NUMERICS: Mapping[str, Numerics] = {
-    n.numerics_id: n for n in (SHARED_NUMERICS, RK4_NUMERICS)
+    n.numerics_id: n
+    for n in (EULER_NUMERICS, EULER_RIDGE1E6_NUMERICS, RK4_NUMERICS)
 }
 
 
@@ -105,13 +123,15 @@ class StepControl:
 
     control_id: str
     flags: tuple[str, ...]
+    required_integrator: str | None = None
     note: str = ""
 
 
 DELTA_THETA_CONTROL = StepControl(
     control_id="delta_theta_5e-3",
     flags=("--avqds-delta-theta-max", "5.0e-3", "--no-solve-repair"),
-    note="AVQDS control law, at the source's own value.",
+    required_integrator="euler",
+    note="Published AVQDS Euler control law, at the source's own value.",
 )
 
 STATE_MOTION_CONTROL = StepControl(
@@ -130,8 +150,25 @@ STATE_MOTION_CONTROL = StepControl(
     ),
 )
 
+COMPOSED_STATE_PARAMETER_CONTROL = StepControl(
+    control_id="state_motion_1e-2_plus_parameter_5e-3",
+    flags=(
+        *STATE_MOTION_CONTROL.flags,
+        "--solve-repair-parameter-step-max", "5.0e-3",
+    ),
+    note=(
+        "Composed controller with both the tangent-state and maximum "
+        "single-parameter step bounds active."
+    ),
+)
+
 STEP_CONTROLS: Mapping[str, StepControl] = {
-    c.control_id: c for c in (DELTA_THETA_CONTROL, STATE_MOTION_CONTROL)
+    c.control_id: c
+    for c in (
+        DELTA_THETA_CONTROL,
+        STATE_MOTION_CONTROL,
+        COMPOSED_STATE_PARAMETER_CONTROL,
+    )
 }
 
 # Structural settings shared by every arm. The pool cap sits above the 125-word
@@ -157,16 +194,19 @@ class Arm:
     arm_id: str
     flags: tuple[str, ...]
     is_comparator: bool = False
-    # An arm that reproduces a published method owns its own numerics; the
-    # shared canonical block is then omitted rather than emitted and silently
-    # overridden by flag ordering.
-    owns_numerics: bool = False
+    required_numerics_id: str | None = None
+    required_step_control_id: str | None = None
     note: str = ""
 
 
 EXCHANGE = Arm(
     arm_id="exchange",
-    flags=("--prune-target-policy", "all_active", "--prune-ray-distance-tol", "2.0e-3"),
+    flags=(
+        "--debt-policy", "drift_ranked",
+        "--prune-history-lambda", "0.0",
+        "--prune-target-policy", "all_active",
+        "--prune-ray-distance-tol", "2.0e-3",
+    ),
     note=(
         "The paper's route: deletions and positioned insertions compete as one "
         "atomic patch. Ray tolerance 2e-3 rather than the 5e-2 default, which "
@@ -176,8 +216,11 @@ EXCHANGE = Arm(
 
 APPEND_ONLY = Arm(
     arm_id="append_only",
-    flags=("--prune-target-policy", "appended_only", "--prune-cooldown-steps", "1000000"),
-    note="Growth-only ablation of the same route; isolates what pruning buys.",
+    flags=("--no-exchange-deletions", "--debt-policy", "insertion_only"),
+    note=(
+        "Insert-face restriction of generalized exchange; isolates what the "
+        "deletion component buys without invoking another selector."
+    ),
 )
 
 AVQDS = Arm(
@@ -210,6 +253,8 @@ AVQDS_PUBLISHED = Arm(
         "--no-certification-refit",
     ),
     is_comparator=True,
+    required_numerics_id=AVQDS_PUBLISHED_NUMERICS.numerics_id,
+    required_step_control_id=DELTA_THETA_CONTROL.control_id,
     note=(
         "Yao et al. with the paper's own numerics: Euler, Tikhonov xi=1e-6, "
         "and the published parameter-controlled step (delta_theta_max=5e-3). "
@@ -318,6 +363,7 @@ HORIZONS: Mapping[str, Horizon] = {
     for h in (
         Horizon("smoke", 0.5, 13),
         Horizon("t2", 2.0, 51),
+        Horizon("t5", 5.0, 126),
         Horizon("t10", 10.0, 251),
         Horizon("t20", 20.0, 501),
     )
@@ -339,19 +385,71 @@ class RunCommand:
     regime_id: str = "unregistered"
     numerics: "Numerics" = SHARED_NUMERICS
     step_control: "StepControl" = STATE_MOTION_CONTROL
+    activation_cut: float | None = None
+
+    def __post_init__(self) -> None:
+        required_numerics = self.arm.required_numerics_id
+        if required_numerics is not None and self.numerics.numerics_id != required_numerics:
+            raise ValueError(
+                f"arm {self.arm.arm_id!r} requires numerics {required_numerics!r}; "
+                f"got {self.numerics.numerics_id!r}"
+            )
+        required_control = self.arm.required_step_control_id
+        if required_control is not None and self.step_control.control_id != required_control:
+            raise ValueError(
+                f"arm {self.arm.arm_id!r} requires step control {required_control!r}; "
+                f"got {self.step_control.control_id!r}"
+            )
+        required_integrator = self.step_control.required_integrator
+        if (
+            required_integrator is not None
+            and self.numerics.integrator != required_integrator
+        ):
+            raise ValueError(
+                f"step control {self.step_control.control_id!r} requires integrator "
+                f"{required_integrator!r}; got {self.numerics.integrator!r}"
+            )
+        if self.activation_cut is not None and (
+            not math.isfinite(float(self.activation_cut))
+            or float(self.activation_cut) <= 0.0
+        ):
+            raise ValueError("activation_cut must be finite and positive")
 
     @property
     def run_id(self) -> str:
-        return (
+        base = (
             f"{self.regime_id}_{self.drive.drive_id}_{self.horizon.horizon_id}"
             f"_{self.arm.arm_id}_{self.gate.gate_id}"
             f"_{self.numerics.numerics_id}_{self.step_control.control_id}"
         )
+        if self.activation_cut is None:
+            return base
+        return f"{base}_cut{float(self.activation_cut):.12g}"
+
+    def _replace_activation_cut(self, flags: tuple[str, ...]) -> tuple[str, ...]:
+        """Materialize the one per-cell accuracy-search variable once."""
+
+        if self.activation_cut is None:
+            return flags
+        flag = "--avqds-l2-cut" if self.arm.is_comparator else "--insertion-l2-cut"
+        values = list(flags)
+        if flag not in values:
+            raise ValueError(
+                f"{self.arm.arm_id!r} / {self.gate.gate_id!r} has no {flag} to vary"
+            )
+        values[values.index(flag) + 1] = repr(float(self.activation_cut))
+        return tuple(values)
 
     def argv(self) -> tuple[str, ...]:
         # AVQDS carries its own append condition; layering this route's
         # insertion gate on top would misrepresent the comparator.
         gate_flags = () if self.arm.is_comparator else self.gate.flags
+        arm_flags = self.arm.flags
+        if self.activation_cut is not None:
+            if self.arm.is_comparator:
+                arm_flags = self._replace_activation_cut(arm_flags)
+            else:
+                gate_flags = self._replace_activation_cut(gate_flags)
         return (
             "--artifact-json", str(self.seed_path),
             *self.horizon.flags,
@@ -360,7 +458,7 @@ class RunCommand:
             *self.step_control.flags,
             *PRODUCTION_STRUCTURE,
             *gate_flags,
-            *self.arm.flags,
+            *arm_flags,
             *PROGRESS,
             *self.extra_flags,
             "--output-json", str(self.output_json),
@@ -380,9 +478,10 @@ def build_run(
     seed_path: str | None = None,
     regime: str | None = None,
     gate: str = MCLACHLAN_L2_GATE.gate_id,
-    numerics: str = SHARED_NUMERICS.numerics_id,
-    step_control: str = STATE_MOTION_CONTROL.control_id,
+    numerics: str | None = None,
+    step_control: str | None = None,
     extra_flags: Sequence[str] = (),
+    activation_cut: float | None = None,
     require_seed: bool = False,
 ) -> RunCommand:
     """Compose one run from registered parts, rejecting unknown names.
@@ -404,23 +503,54 @@ def build_run(
         raise KeyError(f"unknown drive {drive!r}; known: {sorted(DRIVES)}")
     if horizon not in HORIZONS:
         raise KeyError(f"unknown horizon {horizon!r}; known: {sorted(HORIZONS)}")
-    if numerics not in NUMERICS:
-        raise KeyError(f"unknown numerics {numerics!r}; known: {sorted(NUMERICS)}")
+    selected_arm = ARMS[arm]
+    if selected_arm.required_step_control_id is not None:
+        if (
+            step_control is not None
+            and step_control != selected_arm.required_step_control_id
+        ):
+            raise ValueError(
+                f"arm {arm!r} fixes step_control to "
+                f"{selected_arm.required_step_control_id!r}"
+            )
+        step_control = selected_arm.required_step_control_id
+    elif step_control is None:
+        step_control = STATE_MOTION_CONTROL.control_id
     if step_control not in STEP_CONTROLS:
         raise KeyError(
             f"unknown step_control {step_control!r}; known: {sorted(STEP_CONTROLS)}"
         )
+    selected_control = STEP_CONTROLS[step_control]
+
+    if selected_arm.required_numerics_id is not None:
+        if numerics is not None and numerics != selected_arm.required_numerics_id:
+            raise ValueError(
+                f"arm {arm!r} fixes numerics to "
+                f"{selected_arm.required_numerics_id!r}"
+            )
+        numerics = selected_arm.required_numerics_id
+    elif numerics is None:
+        numerics = (
+            EULER_NUMERICS.numerics_id
+            if selected_control.required_integrator == "euler"
+            else SHARED_NUMERICS.numerics_id
+        )
+    if numerics not in NUMERICS:
+        raise KeyError(f"unknown numerics {numerics!r}; known: {sorted(NUMERICS)}")
     return RunCommand(
         seed_path=str(seed_path),
         regime_id=str(regime) if regime is not None else "unregistered",
-        arm=ARMS[arm],
+        arm=selected_arm,
         gate=GATES[gate],
         drive=DRIVES[drive],
         horizon=HORIZONS[horizon],
         numerics=NUMERICS[numerics],
-        step_control=STEP_CONTROLS[step_control],
+        step_control=selected_control,
         output_json=str(output_json),
         extra_flags=tuple(str(f) for f in extra_flags),
+        activation_cut=(
+            None if activation_cut is None else float(activation_cut)
+        ),
     )
 
 
@@ -580,9 +710,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     show.add_argument("--regime", default="hh_snake_nph1")
     show.add_argument("--arm", default="exchange")
     show.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
-    show.add_argument("--numerics", default=SHARED_NUMERICS.numerics_id)
+    show.add_argument("--numerics", default=None)
     show.add_argument(
-        "--step-control", default=STATE_MOTION_CONTROL.control_id
+        "--step-control", default=None
     )
     show.add_argument("--drive", default="fastweak")
     show.add_argument("--horizon", default="t10")
@@ -594,8 +724,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     params.add_argument("--regime", default="hh_snake_nph1")
     params.add_argument("--arm", default="exchange")
     params.add_argument("--gate", default=MCLACHLAN_L2_GATE.gate_id)
-    params.add_argument("--numerics", default=SHARED_NUMERICS.numerics_id)
-    params.add_argument("--step-control", default=STATE_MOTION_CONTROL.control_id)
+    params.add_argument("--numerics", default=None)
+    params.add_argument("--step-control", default=None)
     params.add_argument("--drive", default="fastweak")
     params.add_argument("--horizon", default="t10")
     params.add_argument("--changed-only", action="store_true",
@@ -675,8 +805,11 @@ if __name__ == "__main__":
 
 __all__ = [
     "ARMS", "AVQDS", "AVQDS_PUBLISHED", "APPEND_ONLY", "DELTA_THETA_CONTROL",
-    "DRIVES", "EXCHANGE", "NUMERICS", "Numerics", "SHARED_NUMERICS",
-    "STATE_MOTION_CONTROL", "STEP_CONTROLS", "StepControl",
+    "AVQDS_PUBLISHED_NUMERICS", "COMPOSED_STATE_PARAMETER_CONTROL",
+    "DRIVES", "EULER_NUMERICS", "EULER_RIDGE1E6_NUMERICS", "EXCHANGE",
+    "NUMERICS", "Numerics",
+    "RK4_NUMERICS", "SHARED_NUMERICS", "STATE_MOTION_CONTROL",
+    "STEP_CONTROLS", "StepControl",
     "GATES", "HH_SNAKE_NPH1", "HORIZONS", "REGIMES", "Regime",
     "SeedNotBuiltError", "available_regimes", "resolve_regime", "MCLACHLAN_L2_GATE",
     "PRODUCTION_STRUCTURE", "RESIDUAL_GATE", "Arm", "Drive", "Horizon",
