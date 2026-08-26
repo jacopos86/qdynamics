@@ -167,6 +167,10 @@ PHASE3_ZERO_CENTERED_SIGNED_FACTOR_CONSUMER_SEMANTIC_VERSION = (
 
 @dataclass(frozen=True)
 class FullScoreConfig:
+    # Exact-horizon routes admit the ranked champion alone at saturation,
+    # even when its tangent adds no retained metric rank.  Multi-member
+    # subsets retain the ordinary joint rank gate.
+    batch_empty_feasible_forced_fallback: bool = False
     z_alpha: float = 0.0
     lambda_H: float = 1e-6
     rho: float = 0.25
@@ -9966,6 +9970,7 @@ class _BatchFullGeometryWorkspace:
         PHASE3_CANDIDATE_GAIN_JOINT_TOTAL_V1
     )
     _active_only_gain_baseline_cache: dict[str, Any] | None = None
+    forced_rank_gate_waiver_size_one: bool = False
 
     def _active_only_gain_baseline(self) -> dict[str, Any]:
         """Solve the candidate-independent active model once per workspace."""
@@ -11297,8 +11302,14 @@ class _BatchFullGeometryWorkspace:
                 ordinary_feasible = False
                 ordinary_reason = str(ordinary_solve_result.reason)
             elif ordinary_batch_metric_rank_increment < batch_count:
-                ordinary_feasible = False
-                ordinary_reason = "rank_gate"
+                if int(batch_count) == 1 and bool(
+                    self.forced_rank_gate_waiver_size_one
+                ):
+                    ordinary_feasible = True
+                    ordinary_reason = "forced_rank_gate_waiver_size_one"
+                else:
+                    ordinary_feasible = False
+                    ordinary_reason = "rank_gate"
             elif (
                 ordinary_retained_condition is not None
                 and ordinary_retained_condition
@@ -11402,7 +11413,10 @@ class _BatchFullGeometryWorkspace:
             }
             self._subset_cache[key] = dict(summary)
             return summary
-        if batch_metric_rank_increment < batch_count:
+        if batch_metric_rank_increment < batch_count and not (
+            int(batch_count) == 1
+            and bool(self.forced_rank_gate_waiver_size_one)
+        ):
             summary = {
                 "subset_workspace_indices": [int(value) for value in key],
                 "selected_labels": selected_labels,
@@ -16155,6 +16169,9 @@ def _build_material_window_singleton_workspace(
         "workspace_build_mode": "exact_material_window_singleton_v1",
     }
     return _BatchFullGeometryWorkspace(
+        forced_rank_gate_waiver_size_one=bool(
+            getattr(cfg, "batch_empty_feasible_forced_fallback", False)
+        ),
         records=copied,
         record_index={_batch_record_identity_key(copied[0]): 0},
         ansatz_depth=int(len(selected)),
@@ -16763,6 +16780,9 @@ def _build_batch_full_geometry_workspace(
         matrices=(G_AA, G_AB, G_BB, H_AA, H_AB, H_BB, g_A, g_B),
     )
     workspace = _BatchFullGeometryWorkspace(
+        forced_rank_gate_waiver_size_one=bool(
+            getattr(cfg, "batch_empty_feasible_forced_fallback", False)
+        ),
         records=copied,
         record_index={
             _batch_record_identity_key(record): int(index)

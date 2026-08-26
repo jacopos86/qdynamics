@@ -4531,6 +4531,132 @@ def test_full_ansatz_context_suppresses_candidate_redundant_with_ansatz() -> Non
     assert len(batch_only) == 1
 
 
+def test_forced_horizon_batch_waives_rank_gate_only_for_singleton() -> None:
+    psi_ref = np.asarray([1.0, 0.0], dtype=complex)
+    selected = [_term("x")]
+    theta = np.asarray([0.0], dtype=float)
+    psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
+    base_cfg = FullScoreConfig(
+        z_alpha=0.0,
+        rho=0.5,
+        batch_target_size=1,
+        batch_size_cap=1,
+        batch_search_pool_size=0,
+        batch_search_population_mode="ranked_child_phase2_v1",
+        batch_search_feasibility_policy="joint_subset_gate_v1",
+        batch_geometry_mode="full_residual_gram_hessian_v1",
+        batch_joint_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+        batch_joint_linear_solve_policy=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+        ),
+    )
+    candidate, h_compiled = _full_record(
+        label="x",
+        candidate_label="duplicate-x",
+        candidate_pool_index=0,
+        gradient_signed=0.5,
+        psi_state=psi_state,
+        selected_ops=[],
+        theta=[],
+        refit_window_indices=[],
+        full_cfg=base_cfg,
+        simple_cfg=SimpleScoreConfig(z_alpha=0.0),
+    )
+    common = dict(
+        ranked_records=[candidate],
+        selected_ops=selected,
+        theta=theta,
+        psi_ref=psi_ref,
+        psi_state=psi_state,
+        h_compiled=h_compiled,
+        novelty_oracle=OrderedInsertionGeometryOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+
+    ordinary, ordinary_summary = (
+        scoring_mod.combinatorial_reduced_plane_batch_proposals(
+            cfg=base_cfg,
+            **common,
+        )
+    )
+    forced, forced_summary = (
+        scoring_mod.combinatorial_reduced_plane_batch_proposals(
+            cfg=replace(
+                base_cfg,
+                batch_empty_feasible_forced_fallback=True,
+            ),
+            **common,
+        )
+    )
+
+    assert ordinary == []
+    assert ordinary_summary["rank_gate_rejection_count"] == 1
+    assert len(forced) == 1, forced_summary
+    assert forced[0].records[0]["feature"].candidate_label == "duplicate-x"
+    assert forced_summary["subset_counts_feasible"] == {"1": 1}
+
+
+def test_forced_horizon_batch_keeps_rank_gate_for_multimember_subset() -> None:
+    psi_ref = np.asarray([1.0, 0.0], dtype=complex)
+    selected = [_term("x"), _term("y")]
+    theta = np.asarray([0.0, 0.0], dtype=float)
+    psi_state = CompiledAnsatzExecutor(selected).prepare_state(theta, psi_ref)
+    cfg = FullScoreConfig(
+        batch_empty_feasible_forced_fallback=True,
+        z_alpha=0.0,
+        rho=0.5,
+        batch_target_size=2,
+        batch_size_cap=2,
+        batch_search_pool_size=0,
+        batch_search_population_mode="ranked_child_phase2_v1",
+        batch_search_feasibility_policy="joint_subset_gate_v1",
+        batch_geometry_mode="full_residual_gram_hessian_v1",
+        batch_joint_context_mode=BATCH_JOINT_CONTEXT_FULL_ANSATZ_V1,
+        batch_joint_linear_solve_policy=(
+            JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_WHITENED_EIGH_V1
+        ),
+    )
+    records = []
+    h_compiled = None
+    for index, label in enumerate(("x", "y")):
+        record, compiled = _full_record(
+            label=label,
+            candidate_label=f"duplicate-{label}",
+            candidate_pool_index=index,
+            gradient_signed=0.5 - 0.1 * index,
+            psi_state=psi_state,
+            selected_ops=[],
+            theta=[],
+            refit_window_indices=[],
+            full_cfg=cfg,
+            simple_cfg=SimpleScoreConfig(z_alpha=0.0),
+        )
+        records.append(record)
+        h_compiled = compiled
+
+    proposals, summary = scoring_mod.combinatorial_reduced_plane_batch_proposals(
+        ranked_records=records,
+        cfg=cfg,
+        selected_ops=selected,
+        theta=theta,
+        psi_ref=psi_ref,
+        psi_state=psi_state,
+        h_compiled=h_compiled,
+        novelty_oracle=OrderedInsertionGeometryOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+
+    assert proposals
+    assert len(proposals[0].records) == 1
+    assert summary["subset_counts_evaluated"]["2"] >= 1
+    assert "2" not in summary["subset_counts_feasible"]
+    assert summary["rank_gate_rejection_count"] >= 1
+
+
 def test_joint_ansatz_relaxation_matches_direct_combined_solve() -> None:
     psi_ref = np.asarray([1.0, 0.0], dtype=complex)
     selected = [_term("x")]

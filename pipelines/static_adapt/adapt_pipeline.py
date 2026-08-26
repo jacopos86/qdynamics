@@ -27795,6 +27795,13 @@ def _default_no_prune_lane_runtime(
             "The authenticated route declares an unknown Phase-III "
             "no-positive policy."
         )
+    phase2_score = replace(
+        phase2_score,
+        batch_empty_feasible_forced_fallback=(
+            phase3_no_positive_policy
+            == ADAPTIVE_PHASE3_NO_POSITIVE_POLICY_FORCED_ADMISSION_V1
+        ),
+    )
     raw_shortlist_minimums = route_execution.get(
         "ra_phase_shortlist_minimums", {}
     )
