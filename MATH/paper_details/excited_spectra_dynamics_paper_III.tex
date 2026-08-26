@@ -1043,7 +1043,7 @@ no root-beaming/tracking guard & \placeholder{...} & \placeholder{...} & \placeh
 \subsection{Excited-state results}
 
 \structlabel{Comparison method}
-All comparisons use one construction.  Every method draws candidates from an identical record alphabet, grows its subspace one record at a time to a fixed dimension cap, and is scored at each step against exact sector-restricted references on the same six-excitation window.  The resource required to reach an accuracy target is read off that growth trace,
+All comparisons use one construction.  Every method grows its subspace one direction at a time to a fixed dimension cap and is scored at each step against exact sector-restricted references on the same six-excitation window.  The candidate sets differ by method family, and the difference is load bearing.  Record-based methods---ours and the ordering controls---draw every candidate from an \emph{identical} fixed alphabet: each is the image $O_i\ket{\psi_0}$ of a pool record, so their comparison is of acquisition rules at fixed expressive reach.  The synthesized-basis methods are not so confined: quantum-Davidson growth builds each new direction from the preconditioned residual and real-time Krylov from time evolution, so neither is restricted to the alphabet and both can reach directions no record supplies.  That asymmetry favors them on reachability and costs them on resources, and both effects appear below: where our alphabet spans the window we resolve it an order of magnitude more cheaply, and where it does not they resolve windows we cannot.  The resource required to reach an accuracy target is read off that growth trace,
 \begin{equation}
 K^\star(\eps_E)=\min\Bigl\{K:\ \max_{\nu\le 6}|\Delta E_\nu|\le\eps_E\Bigr\},
 \label{eq:qse_kstar}
