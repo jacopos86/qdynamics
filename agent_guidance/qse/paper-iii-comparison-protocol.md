@@ -186,3 +186,17 @@ with failure states).
 `pipelines/exact_bench/paper_iii_matched_accuracy_campaign.py` builds the
 cells; `build_paper_iii_tex_fragments.py` renders them. A manuscript
 comparison table not generated from that campaign's JSON is not evidence.
+
+## Methods text must describe the implementation (2026-08-26)
+
+The manuscript carried a three-phase staged-shortlist architecture that the
+production selector never ran: `geometry_selected` scores every admissible
+candidate every round in one pass. That discrepancy stood because the phase
+text was written as a design and the code was built separately. It is now
+resolved -- the methods section describes the one-pass rule.
+
+Standing rule: **a methods claim about the algorithm must be checkable against
+`pipelines/qse_spectra/record_selection.py`.** In particular, do not claim
+selection-time measurement savings from staging unless a staged screen is
+actually implemented. The reported estimator advantage comes from SUPPORT SIZE
+(fewer records -> fewer pencil elements), not from shortlisting.
