@@ -3418,6 +3418,88 @@ theirs lost, because everything of mine was already committed.
 prohibited list as `git add -A` under the multi-agent isolation invariant. Use a
 throwaway `git worktree add --detach <rev>` for baselines instead.
 
+## 6bl. Pool selection landed; the CLI retarget target is measured, not assumed
+
+### Pool selection (done, merged)
+
+The RA route is no longer pinned to `full_meta`. `MacroCandidateAdapter`,
+`SinglePauliWordCandidateAdapter` and `GlobalSinglePauliWordCandidateAdapter`
+gained a `pool_key` field; `None` keeps the canonical identity bit-for-bit (the
+parity gate proves it). An explicit key is validated fail-closed against
+`problem.admissible_pool_keys` in `pools._parent_pool_spec`, threads through the
+parent/executable/guarded/staged builders, and lands in both pool receipts and
+the route contract's `execution_settings["adapt_pool"]`.
+
+Measured: a bounded `pareto_lean_l2` macro run executes with **11 parents against
+full_meta's 102**, holds the variational bound and descent, and carries a
+**different protocol sha256**. Named L3/pure-Hubbard/H2O applications reject
+overrides as source-locked.
+
+**Two defects surfaced by threading it**, both the worklog's own theme:
+
+1. **A diverging duplicate derivation.** `adapt_pipeline` resolved
+   `parameterization_mode` twice: once in the setup core with the pool-level
+   sector-audit flag, and again in the session builder with
+   `sector_contract_requires_logical_shared=False` hard-coded. The
+   `hh`+`full_meta` name allowlist in
+   `_resolve_selected_parameterization_mode` masked the divergence on the
+   canonical route; any pool with grouped generators would have run
+   `per_pauli_term` and then died in the fixed-count sector auditor. The session
+   now reads `core.parameterization_mode`. One derivation, not two.
+2. **An unconditional stamp.** The runtime attached the canonical Paper-I
+   summary to *every* `ra_adapt` append-only run, so a validated ablation
+   identity completed its trajectory and then died inside
+   `paper_i_run_summary._validate_canonical_identity`. The summary now attaches
+   only to canonical pool identities (`full_meta`,
+   `full_meta_derivative_resolved_v2`); an ablation completes without one.
+
+### CLI retirement, Stage A (done, merged)
+
+`adapt_pipeline.main()` already raises, so the CLI feeds nothing. Deleted the
+four surfaces with **no caller anywhere**, production or test:
+`ResolvedAdaptStopPolicy` + `_resolve_adapt_stop_policy` (95 lines),
+`ResolvedMainCLIConfig` + `_resolve_main_cli_configs` (221 lines), plus their
+three dead names in `adapt_pipeline`'s import block. `cli_config.py`
+3,721 -> 3,405.
+
+### Stage B: what the retarget must target — measured
+
+Stage B retires `_build_adapt_arg_parser` (~1,860 lines),
+`_ExplicitOptionTrackingArgumentParser`, `_build_run_hardcoded_adapt_vqe_kwargs`
+(512 lines) and `adapt_pipeline.parse_args`. Blast radius is **17 test modules**
+importing the parser, including `test_static_adapt_sr_route_profile.py` (53
+tests) and `test_static_adapt_resume_scaffold.py` (48).
+
+Those tests assert the fail-closed property that makes the settings system
+trustworthy: a route profile disagreeing with its contract must raise. **The
+obvious retarget target does not carry that property.** Measured directly:
+
+```
+_build_canonical_sr_snake_runtime_kwargs(... route_profile="paper_i_ra_adapt__bogus" ...)
+  -> returns a 287-key dict.  NO error.
+```
+
+The guarantee lives one gate later, at
+`adapt_pipeline._build_default_sr_controller_numerical_runtime`, and it
+discriminates correctly **only for a profile in its authorized digest set**:
+
+| input | result |
+|---|---|
+| agreeing profile + contract + sha256 | ACCEPTED |
+| `route_profile` drift | `ValueError` "requires the exact profile and digest gate" |
+| `route_contract_sha256` drift | `ValueError` (same) |
+
+Caveat that cost a measurement: `canonical_sr_snake_no_prune_symmetric_cost_v1_contract()`
+resolves to a profile **not** in the factory's allowlist, so it is rejected even
+when self-consistent. The discriminating fixture is
+`canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract()`
+(profile `supported_projected_generalized_source_metric_no_overlap_trust_full_response_symmetric_cost_no_prune_v1`).
+
+So the shared retarget helper must build kwargs with
+`_build_canonical_sr_snake_runtime_kwargs` and assert against
+`_build_default_sr_controller_numerical_runtime` — asserting on the kwargs dict
+alone would silently drop the fail-closed coverage the CLI tests currently give.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
