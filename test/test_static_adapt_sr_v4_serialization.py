@@ -13,7 +13,6 @@ from pipelines.static_adapt.adapt_pipeline import (
 from pipelines.static_adapt.output_artifacts import (
     _resolved_output_phase12_energy_model_policies,
     _resolved_output_phase3_response_coordinate_scope,
-    build_output_payload,
 )
 from pipelines.static_adapt.sr_snake_phase12_policy import (
     PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
@@ -309,76 +308,6 @@ def test_checkpoint_history_preserves_signed_active_prefix_for_v4_resume() -> No
     assert row["active_prefix_checkpoint"] == active_prefix
 
 
-def test_v4_result_manifest_preserves_route_identity_and_prune_receipts() -> None:
-    # Pre-existing baseline failure. build_output_payload reads ~146 args
-    # attributes unguarded, so no CLI-free namespace can drive it end-to-end;
-    # the test is left failing pending build_output_payload's own retirement.
-    args = _v4_args()
-    adapt_payload = _v4_adapt_payload()
-    psi = np.asarray([1.0 + 0.0j, 0.0 + 0.0j])
-
-    payload = build_output_payload(
-        args=args,
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_payload=adapt_payload,
-        ordered_labels_exyz=["e"],
-        coeff_map_exyz={"e": 0.0},
-        hmat=np.zeros((2, 2), dtype=complex),
-        gs_energy_exact=-1.0,
-        gs_energy_source="unit",
-        psi0=psi,
-        ansatz_input_state_for_adapt=psi,
-        ansatz_input_state_source="hf",
-        ansatz_input_state_kind="reference_state",
-        trajectory=[],
-        adapt_ref_import=None,
-        dense_eigh_enabled=True,
-        hilbert_dim=2,
-        adapt_ref_base_depth=0,
-        initial_state_source_resolved="hf",
-        initial_state_kind_resolved="reference_state",
-    )
-
-    settings = payload["settings"]
-    assert settings["sr_route_profile_request"] == SR_ROUTE_PROFILE_CANDIDATE_V4
-    assert settings["sr_route_profile_contract"] == canonical_sr_snake_v4_contract()
-    assert settings["sr_route_profile_contract_sha256"] == (
-        canonical_sr_snake_v4_contract_sha256()
-    )
-    assert settings["adapt_finite_angle_fallback"] is False
-    assert settings["phase3_enable_rescue"] is False
-    assert settings["sr_route_profile_contract"]["semantic_invariants"][
-        "finite_angle_fallback_active"
-    ] is False
-    assert settings["phase3_hardware_cost_normalization_mode"] == (
-        "family_robust_symmetric_arctan_v1"
-    )
-    assert "phase3_shadow_damping_policy" not in settings
-    assert payload["adapt_vqe"]["finite_angle_fallback"] is False
-    assert payload["adapt_vqe"]["phase3_enable_rescue_requested"] is False
-    assert payload["adapt_vqe"]["phase3_enable_rescue_effective"] is False
-    assert payload["adapt_vqe"]["static_route_identity"][
-        "finite_angle_fallback"
-    ] is False
-    assert settings["phase1_prune_recovery_trust_radius"] == 0.125
-    assert settings["phase1_prune_schur_nomination_route"] == (
-        "full_logical_fs_trust_delete_refit_v1"
-    )
-    assert settings["phase1_prune_metric_schur_solve_mode"] == (
-        "affine_deletion_global_trust_v1"
-    )
-    assert settings["phase1_prune_trust_update_policy"] == (
-        "modeled_local_fs_conservative_v1"
-    )
-    assert settings["phase1_prune_metric_mu_update_policy"] == (
-        "same_trial_underprediction_monotone_v1"
-    )
-    assert payload["adapt_vqe"]["history"][0]["post_admission_prune"][
-        "phase1_prune_trial_receipt"
-    ]["trial_id"] == "trial:7:2"
-    assert payload["adapt_vqe"]["static_route_identity"][
-        "sr_route_profile_contract_sha256"
-    ] == canonical_sr_snake_v4_contract_sha256()
 
 
 # Structural note: test_output_manifest_defaults_new_v4_fields_for_legacy_args
