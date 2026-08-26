@@ -1651,3 +1651,43 @@ def test_resume_contract_rejects_canonical_artifact_when_profile_is_off() -> Non
             _contract_payload(),
             expected_profile_request=SR_ROUTE_PROFILE_REQUEST_OFF,
         )
+
+
+def test_candidate_v4_identity_is_readable_but_not_execution_authority() -> None:
+    """The historical v4 identity remains readable but grants no execution.
+
+    The legacy executor that used to reject it is deleted, so the "no execution"
+    half is now enforced by the live controller runtime factory: v4 is not among
+    the authorized (profile, digest) pairs, so the factory's gate refuses it.
+    """
+
+    kwargs = _runtime_kwargs(
+        _candidate_v4_args(
+            "--problem",
+            "hh",
+            "--L",
+            "2",
+            "--u",
+            "0.25",
+            "--g-ep",
+            "0.353553390593",
+            "--n-ph-max",
+            "2",
+        )
+    )
+
+    assert kwargs["sr_route_profile_resolved"] == SR_ROUTE_PROFILE_CANDIDATE_V4
+    assert kwargs["sr_route_profile_contract"] == canonical_sr_snake_v4_contract()
+    assert kwargs["sr_route_profile_contract_sha256"] == (
+        canonical_sr_snake_v4_contract_sha256()
+    )
+
+    from pipelines.static_adapt.sr_snake.contracts import SRStopPolicy
+
+    with pytest.raises(ValueError, match="requires the exact"):
+        adapt_pipeline._build_default_sr_controller_numerical_runtime(
+            stop_policy=SRStopPolicy(
+                maximum_controller_rounds=int(kwargs["max_depth"]),
+            ),
+            executor_kwargs=kwargs,
+        )
