@@ -381,3 +381,277 @@ Empirically checked over 1,600 word pairs at $n=10$: **0 disagreements**, at
 
 Neither alters the fixed-count contract, the tolerance, or which generators are
 admitted.
+
+---
+
+# Appendix B — measured outcome of items (1)--(3) (2026-08-25)
+
+Implemented on branch `perf/sector-audit-memoization`, commit `a1ab4085`, in
+`pipelines/static_adapt/sector_invariants.py`:
+
+1. `audit_generator_sector_contract` memoized on the generator's exact Pauli
+   components + fixed-count groups + register width + tolerance;
+2. `_pauli_words_commute` computed from the binary-symplectic masks
+   (`CompiledPauliAction.flip_mask` / `.phase_mask`) instead of walking the word;
+3. `_canonical_pauli_word` memoized on its `str` path.
+
+Rows are copied out of the cache so `audit_candidate_pool_sector_contract` can
+still write `pool_index` into them. Non-`str` inputs to `_canonical_pauli_word`
+keep the original body, so the raised message is unchanged for every input type.
+
+## B.1 Wall clock
+
+Same canonical run as Section 1 (HH `L=2`, `n_ph_max=7`, HVA pool, SPSA, depth
+30), both states measured back-to-back in the same worktree:
+
+| State | Cold cache | Warm cache |
+|---|---:|---:|
+| Baseline (`603d30c0`) | 160.44 s | 94.60 s |
+| With items (1)--(3) (`a1ab4085`) | **79.19 s** | **79.23 s** |
+| Speedup | **2.03x** | **1.19x** |
+
+The change makes the phase-0 disk cache nearly irrelevant: cold and warm now
+land within 0.04 s of each other, because the work that cache was hiding is the
+work that is no longer repeated.
+
+## B.2 The audit itself
+
+| Metric | Baseline | After |
+|---|---:|---:|
+| `audit_generator_sector_contract` calls | 687 | 687 |
+| audits actually computed | 687 | **166** (76% served from cache) |
+| audit cumulative time | 30.11 s | **14.78 s** |
+| `sector_invariants` bucket (`tottime`) | 18.0 s | **8.8 s** |
+
+166 distinct audits remain because the pool is not perfectly invariant across
+depths; those are genuinely different generators, and the symplectic predicate
+is what halves their cost.
+
+## B.3 Correctness evidence
+
+- **Verdict parity**: 132 audit rows over six problem/pool combinations
+  (`L=2/4`, `n_ph_max=1/7`, fermionic and HVA pools), captured before the edit
+  and recomputed after — **bit-identical**, including every
+  `grouped_commutator_l1` / `max_component_commutator_l1` value, both branches
+  of `requires_logical_shared_parameterization`, and both branches of
+  `execution_preserves_fixed_counts`. Plus a 40x40 commute-table digest, equal.
+- **Energy**: all four timing runs returned `E = 5.876936059036121`, identical
+  to the last digit.
+- **Test suites**: 134 files (`test_ra_adapt_*`, `test_adapt_*`,
+  `test_static_adapt_*`, `test_h2o_linear_fd_correctness_audit`) run at both
+  states. Baseline `140 failed, 2064 passed, 10 skipped, 4 errors`; after
+  `140 failed, 2070 passed, 10 skipped, 4 errors`. The FAILED/ERROR sets are
+  **byte-identical (144 lines each, zero new, zero fixed)**; the +6 passes are
+  exactly the six regression tests added with the change. All 140 failures are
+  pre-existing and spread across 40+ unrelated files (`test_adapt_vqe_integration`
+  29, `test_ra_adapt_bundles` 14, `test_static_adapt_sr_snake_*` 22, ...).
+- **Impact analysis**: GitNexus rated all three edited symbols HIGH upstream
+  risk (`audit_generator_sector_contract` 18 impacted / 4 direct;
+  `_pauli_words_commute` 12 / 1; `_canonical_pauli_word` 8 / 3; zero affected
+  processes in every case). The verdict-parity capture above is the mitigation
+  that HIGH rating calls for.
+
+## B.4 Where the time goes now (warm, 78.5 s)
+
+|  Time |  Share | Bucket | vs baseline |
+|------:|-------:|---|---|
+| 23.5 s | 29.9% | builtins/C | 29.4 s |
+| 18.7 s | 23.8% | other repo python | 19.1 s |
+| 10.6 s | 13.4% | `deepcopy` | 10.4 s |
+| 10.4 s | 13.2% | Qiskit | 10.3 s |
+| 8.8 s | 11.2% | `sector_invariants` | **18.0 s** |
+| 5.7 s | 7.2% | statevector numerics | 5.7 s |
+
+The next two levers are unchanged and are items (5) and (6) of Section 4 —
+the candidate-record-cache `deepcopy` (13.4%) and the Qiskit cost-metric
+transpile (13.2%), ~26% combined. The statevector numerics are still 7.2%, so
+the Section 3 conclusion stands: PennyLane, PyTorch, and CUDA remain the wrong
+lever at `dim = 1024`.
+
+---
+
+# Appendix C — items (5) and (6) measured, and a correction to Section 4 (2026-08-25)
+
+Section 4 sized items (5) and (6) at ~14% and ~10% from the cProfile buckets.
+Both numbers were wrong, and the reason matters for how this document should be
+read.
+
+## C.1 cProfile inflates high-call-count functions
+
+`cProfile` adds per-call instrumentation overhead. Functions called millions of
+times are therefore reported far larger than their true wall-clock share. The
+baseline run made ~12.2M `deepcopy` calls, 11.2M `_canonical_pauli_word` calls,
+and 5.4M `_pauli_words_commute` calls, so every one of those was overstated.
+
+Measured directly, with wall-clock timers and no profiler attached:
+
+| Path | cProfile said | Wall clock |
+|---|---:|---:|
+| `_candidate_record_cache_get` (all 650 calls) | 14.05 s cum | **4.33 s** |
+
+A 3.2x overstatement. The Section 2 bucket table should be read as a **ranking**,
+not as a budget — its ordering held up (the sector audit really was the largest
+cost, and items (1)--(3) really did deliver 2.03x on wall clock), but its
+magnitudes for the high-call-count buckets are inflated.
+
+## C.2 Item (6), Qiskit transpile caching: not achievable
+
+Section 4 assumed "circuits repeat across candidates and depths". They do not.
+Instrumenting `compile_circuit_for_backend` over a full canonical run:
+
+| Metric | Value |
+|---|---:|
+| compile calls | 871 |
+| distinct circuits (full digest, angles included) | **871** |
+| distinct circuits (structure-only digest, angles ignored) | **871** |
+| achievable cache hit rate | **0.0%** |
+
+Every transpiled circuit is genuinely distinct, and not merely because the
+rotation angles differ: keying on structure alone and discarding all continuous
+parameter values still yields 871 distinct keys. This is inherent to ADAPT --
+the ansatz gains a generator every depth, and each screened candidate appends a
+different one, so no two circuits in a run share a structure.
+
+Two things follow. Memoization cannot help. And the only remaining ways to cut
+this ~13 s are to transpile *fewer* circuits (which candidates need Qiskit cost
+metrics at all) or to lower `optimization_level` (which changes the reported
+`N_2q` and depth). Both are scientific/reporting scope decisions about the cost
+model, not optimizations, and neither is taken here.
+
+For the record, the same instrumentation confirmed the metrics are angle-stable:
+across all 871 compiles, zero groups showed `(depth, N_2q, layout)` disagreeing
+for a fixed structure. That makes a structure-keyed cache *tempting*, but with 871
+distinct structures there is nothing for it to hit, so the question is moot.
+
+## C.3 Item (5), candidate-record `deepcopy`: partially recovered
+
+True cost 4.33 s (5.5% of the run), across 650 calls that were **all disk hits** --
+the memory cache was never read back within a run, because each key is fetched
+at most once.
+
+Both cache paths took two deep copies where one suffices, and that part is now
+fixed (`65c71785`):
+
+- **disk get**: the unpickled payload is reachable from nowhere else, so the
+  record handed to the caller is already private to them; only the long-lived
+  memory entry needs a copy of its own.
+- **put**: the copy taken to isolate the caller's record also serves the pickled
+  payload, because `pickle.dump` does not mutate what it serializes.
+
+Measured: 79.19 s / 79.23 s -> **78.67 s / 77.78 s**, energy identical at
+`5.876936059036121`. About 1.5%.
+
+**The remaining ~3 s is not safely recoverable.** Two routes were evaluated and
+rejected on evidence:
+
+1. *A specialized structural copier.* The records are ~58k immutable scalars,
+   ~4.7k containers, 399 `AnsatzTerm`, and no numpy arrays, nested at most 6
+   deep. A hand-written copier that returns immutables by reference and rebuilds
+   containers measured only **1.15x** over `copy.deepcopy` -- not worth the code.
+2. *Sharing `AnsatzTerm` by reference.* 46% of the remaining copy cost is the 399
+   `AnsatzTerm` deep copies, so this is where the prize is. `AnsatzTerm` is
+   `@dataclass(frozen=True)`, which looks safe -- but its `polynomial` field is a
+   `PauliPolynomial`, which is mutable (`add_term` appends), and
+   `return_polynomial()` hands out its **internal list by reference**. A consumer
+   mutating a shared cached generator would silently corrupt every later reader
+   of that cache key. Rejected: the ~9% is not worth a defect class that would
+   surface as wrong physics rather than as a crash.
+
+## C.4 Corrected outlook
+
+After `a1ab4085` + `65c71785` the canonical run is ~78 s, from 160 s cold /
+95 s warm. The remaining large buckets are Qiskit transpilation (~13 s,
+irreducible without a cost-model decision) and the candidate-record copy (~3 s,
+unsafe to remove further).
+
+There is no remaining large, safe, purely-mechanical win in this run. Section 3's
+conclusion is unchanged and is now the sharper one: at `dim = 1024` the
+statevector numerics are a single-digit percentage, so PennyLane, PyTorch, and
+CUDA remain the wrong lever -- and the bookkeeping that dominated has now largely
+been removed rather than accelerated.
+
+## C.5 Final regression state
+
+The 134-file suite (`test_ra_adapt_*`, `test_adapt_*`, `test_static_adapt_*`,
+`test_h2o_linear_fd_correctness_audit`) at all three states:
+
+| State | Result |
+|---|---|
+| Baseline `603d30c0` | 140 failed, 2064 passed, 10 skipped, 4 errors |
+| `a1ab4085` (items 1--3) | 140 failed, **2070** passed, 10 skipped, 4 errors |
+| `65c71785` (+ item 5) | 140 failed, **2072** passed, 10 skipped, 4 errors |
+
+The FAILED/ERROR sets are byte-identical at all three states (144 lines each;
+zero introduced, zero fixed). The +8 passes are exactly the eight regression
+tests added by this work: six for the sector-audit memoization and symplectic
+predicate, two for the candidate-cache independence guarantee.
+
+Net effect of the branch on the canonical HH `L=2`, `n_ph_max=7` run:
+**160.4 s cold / 94.6 s warm -> ~78 s**, energy unchanged at
+`5.876936059036121`.
+
+---
+
+# Appendix D — measurement-validity retraction (2026-08-25)
+
+**The wall-clock speedups quoted in Appendix B (2.03x cold / 1.19x warm) are not
+defensible and are retracted.** The correctness evidence is unaffected.
+
+## D.1 What went wrong
+
+Two independent problems, both mine:
+
+1. **Every timing in Appendices B and C was taken with `cProfile` attached.**
+   The same run measured without the profiler takes **40.8 s**, against the
+   "79 s" reported there. `cProfile` roughly doubles this workload, because it
+   instruments millions of small calls. The profiled numbers are therefore
+   measurements of a different, instrumented workload -- internally comparable
+   to each other, but not the runtime anyone cares about.
+
+2. **The machine was heavily oversubscribed throughout.** At the end of this
+   work `uptime` reported a load average of **25.00 on 8 cores**, with three
+   other agent sessions running Paper-I L4 production arms
+   (`paper_i_l4_prune_threshold_resume_to_k50_20260825`, tau = 1e-10, 1e-12,
+   1e-14) plus a fourth session running pytest. Unprofiled repeat timings under
+   that load were incoherent:
+
+   | State | pass 1 | pass 2 |
+   |---|---:|---:|
+   | Baseline | 95.09 s | 62.12 s |
+   | With the change | 56.19 s | 64.35 s |
+
+   The two `pass 2` values overlap, so this data cannot separate the states at
+   all. Run-to-run spread exceeds the effect being measured.
+
+I also violated the memory-budget contract's rule 5 ("One heavy job at a time,
+per machine -- not per session") by running three 27-minute pytest suites and
+several profiling runs while those production arms were in flight. That is a
+process failure independent of the numbers, and it may have perturbed the other
+sessions' runs as well as mine.
+
+## D.2 What still holds, and why
+
+The correctness and work-reduction evidence is **load-independent**, because it
+is counted or compared, not timed:
+
+- **Audits actually computed: 687 -> 166.** A count. The change provably performs
+  strictly less work; only how much wall clock that saves is unmeasured.
+- **Verdict parity**: 132 audit rows bit-identical, plus a 40x40 commute-table
+  digest.
+- **Energy**: `5.876936059036121` in every run at both states, profiled and not.
+- **Regression**: FAILED/ERROR set byte-identical across baseline, `a1ab4085`,
+  and `65c71785` (144 lines); +8 passes are exactly the 8 tests added.
+- The 7.5x and 12.3x micro-benchmarks were back-to-back A/B in one process, so
+  they are ratios under shared conditions -- the most robust timing here, though
+  still taken on a loaded machine.
+
+## D.3 What a defensible number would require
+
+Re-measure on a quiet machine or on CHTC: no profiler, no other agent workload,
+at least 5 interleaved repetitions per state, reporting medians and spread. Until
+that exists, the honest claim is **"provably less work, speedup unquantified"**,
+not a specific factor.
+
+The Section 3 conclusion does *not* depend on any of this. It rests on the
+`dim = 1024` register size and the per-call kernel benchmarks, and it is a
+statement about which lever to pull, not about how fast the run is.
