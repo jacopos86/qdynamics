@@ -190,6 +190,25 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
         seed_elements=seed,
         direction_resources=per_direction,
     )
+    from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
+
+    # Estimator queries for a synthesized-basis pencil. This arm's basis
+    # vectors are states, not O_i|psi0>, so its S/H elements are not Pauli-word
+    # products and cannot be QWC-grouped: each of the d(d+1)/2 independent
+    # elements needs an overlap estimation plus one per Hamiltonian Pauli term
+    # (Hadamard-test style, no grouping reuse). The convention is deliberately
+    # less favourable than the record arms' QWC cover and is declared as such.
+    ham_term_count = len(_polynomial_words(problem.hamiltonian))
+
+    def _adaptive_estimator(dimension: int) -> dict[str, Any]:
+        pairs = int(dimension) * (int(dimension) + 1) // 2
+        return {
+            "pair_count": pairs,
+            "queries": int(pairs * (1 + ham_term_count)),
+            "hamiltonian_pauli_terms": int(ham_term_count),
+            "convention": "synthesized_basis_pencil_no_qwc_reuse",
+        }
+
     refs = problem.references
     rows: list[dict[str, Any]] = []
     for it in audit["iterations"]:
@@ -210,6 +229,7 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
                 "d2q": float(res.get("c_hat_d", 0.0)),
                 "dc": float(res.get("c_hat_d", 0.0)) + float(res.get("c_hat_1q", 0.0)),
                 "root_energies": roots,
+                "estimator": _adaptive_estimator(int(it["dimension"])),
             }
         )
     return rows
@@ -225,7 +245,7 @@ def resolve_from_trace(
     ]
     if reaching:
         best = min(reaching, key=lambda r: float(r["n2q"]))
-        return {"status": STATUS_REACHED, "crossing": dict(best)}
+        return {"status": STATUS_REACHED, "crossing": dict(best)}  # carries row estimator if present
     finite = [r for r in rows if r.get("max_root_abs_error") is not None]
     terminal = min(finite, key=lambda r: float(r["max_root_abs_error"])) if finite else None
     return {
@@ -369,7 +389,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "cheapest_first": cheapest,
             "input_order": list(range(len(problem.basis))),
             "fixed_class": fixed_indices,
-        }  # adaptive_qse intentionally absent: it does not consume the alphabet
+        }  # adaptive_qse absent here: its estimator rides on its own trace rows
         for eps_e in ERROR_TARGET_LADDER:
             key = f"{eps_e:.0e}"
             for arm_key, cell in cells[key].items():
@@ -385,7 +405,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 if arm_key == "ours__every_k":
                     idx = _exchange(problem, idx)
-                cell["crossing"]["estimator"] = problem.estimator_cost(idx)
+                est = problem.estimator_cost(idx)
+                est["convention"] = "record_pencil_qwc_basis_cover"
+                est["queries"] = int(est["qwc_groups"])
+                cell["crossing"]["estimator"] = est
 
         regimes_payload[regime] = {
             "u": float(u), "g_ep": float(g_ep), "n_ph_max": int(n_ph_max),
