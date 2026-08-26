@@ -3,22 +3,22 @@
 % source: output/diagnostics/paper_iii_comparator_matrix_20260819_v1/comparator_matrix.json
 
 \begin{widetext}
-\inlinetablecaption{tab:qse_comparator_matrix}{Cross-family comparator matrix on identical Hamiltonians, sectors, and references: maximum error over the lowest six excitations at the arm's compiled two-qubit cost, written $|\Delta E|$ @ 2Q. The Krylov arm uses a seeded random sector kick overlapping every target state, exact propagation, best-matching-root scoring, and first-order-Trotter state-preparation costing --- every convention favoring Krylov. The residual-guided arm is adaptive subspace growth on the same record pool with a linear-independence admission check and no hardware-cost weighting, isolating what cost-weighted acquisition contributes. Daggers mark arms that exhausted the pool without meeting the residual stop.}
+\inlinetablecaption{tab:qse_comparator_matrix}{Cross-family comparator matrix on identical Hamiltonians, sectors, and references: maximum error over the lowest six excitations at the arm's compiled two-qubit cost, written $|\Delta E|$ @ 2Q. The Krylov arm uses a seeded random sector kick overlapping every target state, exact propagation, best-matching-root scoring, and first-order-Trotter state-preparation costing --- every convention favoring Krylov. Daggers mark arms that exhausted the pool without meeting the residual stop.}
 \begin{center}
 \scriptsize
 \begin{ruledtabular}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
-Case & fixed class & real-time Krylov & residual-guided & selected $+$ exchange \\
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccc@{}}
+Case & fixed class & real-time Krylov & selected $+$ exchange \\
 \colrule
-intermediate\_strong & $7.8\times10^{-1}$ @ 412 & $6.8\times10^{-1}$ @ 16632 & $8.8\times10^{-3}$ @ 85466$^\dagger$ & $1.2\times10^{-3}$ @ 61364$^\dagger$ \\
-intermediate\_weak & $7.3\times10^{-1}$ @ 104 & $2.8\times10^{-1}$ @ 3740 & $3.7\times10^{-6}$ @ 10844$^\dagger$ & $9.6\times10^{-8}$ @ 2392 \\
-peierls\_u8\_weak & $6.8\times10^{0}$ @ 76 & $2.7\times10^{-1}$ @ 6600 & $1.3\times10^{-9}$ @ 284$^\dagger$ & $5.8\times10^{-9}$ @ 214$^\dagger$ \\
-peierls\_weak\_strong & $5.3\times10^{0}$ @ 76 & $1.8\times10^{-1}$ @ 5500 & $3.1\times10^{-9}$ @ 254$^\dagger$ & $7.0\times10^{-10}$ @ 230 \\
-peierls\_weak\_weak & $2.0\times10^{0}$ @ 76 & $1.4\times10^{-1}$ @ 6600 & $2.0\times10^{-11}$ @ 258 & $1.5\times10^{-10}$ @ 188 \\
-strong\_strong\_u8 & $5.5\times10^{0}$ @ 412 & $3.3\times10^{0}$ @ 16632 & $1.3\times10^{-7}$ @ 25720 & $1.6\times10^{-7}$ @ 11270 \\
-strong\_weak\_u8 & $6.3\times10^{0}$ @ 104 & $3.2\times10^{-1}$ @ 4488 & $9.8\times10^{-9}$ @ 5052 & $1.4\times10^{-9}$ @ 1452 \\
-weak\_strong & $5.5\times10^{-1}$ @ 412 & $7.6\times10^{-1}$ @ 16632 & $9.5\times10^{-3}$ @ 86218$^\dagger$ & $5.4\times10^{-3}$ @ 45074$^\dagger$ \\
-weak\_weak & $2.2\times10^{-1}$ @ 104 & $1.3\times10^{-1}$ @ 4488 & $1.4\times10^{-6}$ @ 9754$^\dagger$ & $5.6\times10^{-8}$ @ 5026 \\
+intermediate\_strong & $7.8\times10^{-1}$ @ 412 & $6.8\times10^{-1}$ @ 16632 & $1.2\times10^{-3}$ @ 61364$^\dagger$ \\
+intermediate\_weak & $7.3\times10^{-1}$ @ 104 & $2.8\times10^{-1}$ @ 3740 & $9.6\times10^{-8}$ @ 2392 \\
+peierls\_u8\_weak & $6.8\times10^{0}$ @ 76 & $2.7\times10^{-1}$ @ 6600 & $5.8\times10^{-9}$ @ 214$^\dagger$ \\
+peierls\_weak\_strong & $5.3\times10^{0}$ @ 76 & $1.8\times10^{-1}$ @ 5500 & $7.0\times10^{-10}$ @ 230 \\
+peierls\_weak\_weak & $2.0\times10^{0}$ @ 76 & $1.4\times10^{-1}$ @ 6600 & $1.5\times10^{-10}$ @ 188 \\
+strong\_strong\_u8 & $5.5\times10^{0}$ @ 412 & $3.3\times10^{0}$ @ 16632 & $1.6\times10^{-7}$ @ 11270 \\
+strong\_weak\_u8 & $6.3\times10^{0}$ @ 104 & $3.2\times10^{-1}$ @ 4488 & $1.4\times10^{-9}$ @ 1452 \\
+weak\_strong & $5.5\times10^{-1}$ @ 412 & $7.6\times10^{-1}$ @ 16632 & $5.4\times10^{-3}$ @ 45074$^\dagger$ \\
+weak\_weak & $2.2\times10^{-1}$ @ 104 & $1.3\times10^{-1}$ @ 4488 & $5.6\times10^{-8}$ @ 5026 \\
 \end{tabular*}
 \end{ruledtabular}
 \end{center}
