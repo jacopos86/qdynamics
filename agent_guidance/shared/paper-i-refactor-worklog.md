@@ -3500,6 +3500,79 @@ So the shared retarget helper must build kwargs with
 `_build_default_sr_controller_numerical_runtime` — asserting on the kwargs dict
 alone would silently drop the fail-closed coverage the CLI tests currently give.
 
+## 6bm. Stage B complete — the CLI surface is retired
+
+Merged and pushed. `origin/paper-ii-exchange-selector` carries all of it.
+
+| file | session start | now |
+|---|---:|---:|
+| `adapt_pipeline.py` | 69,723 | 30,238 |
+| `cli_config.py` | 3,721 | 924 |
+| `output_artifacts.py` | 1,799 | 623 |
+| `test_adapt_vqe_integration.py` | 9,594 | 3,703 |
+| retirement-set failures | 13 | **0** |
+
+### What went
+
+- `_run_hardcoded_adapt_vqe` (39,386) — the legacy comparator engine, never on
+  the RA path.
+- `_build_adapt_arg_parser` (1,860) + `_ExplicitOptionTrackingArgumentParser` +
+  `_build_run_hardcoded_adapt_vqe_kwargs` (512) + `adapt_pipeline.parse_args`
+  (71), plus 88 import lines serving only them. `cli_config` dropped its
+  dependency on ten modules including `sr_snake_route_profile` and
+  `joint_linear_solve`; what remains is the live noise/oracle config layer.
+- `build_output_payload` (692) + `_write_pipeline_pdf` (315) +
+  `persist_output_artifacts` (67) + four private helpers.
+- The nine legacy bench comparator arms and `static_qeb_sq_lf_adapt`.
+- `phase3_shadow_damping_policy` — no runtime consumer after `af832630`,
+  surviving only as two settings entries and two strip-list mentions while
+  leaking a dead key into every flat kwargs.
+
+### The ordering trick that made it safe
+
+Edit the tests **while the retired surface still exists**, so the suite is green
+at every step; only then delete. Nineteen modules moved onto
+`test_support/route_contract_kwargs.py` before a single production line was cut.
+
+### The one non-obvious fact, measured not assumed
+
+`_build_canonical_sr_snake_runtime_kwargs` does **not** fail closed on a route
+profile disagreeing with its contract — it returns a 287-key dict. Retargeting
+the fail-closed assertions onto it would have left 29 tests passing while
+asserting nothing, and the settings-drift protection would have been silently
+gone. The guarantee lives at `_build_default_sr_controller_numerical_runtime`,
+and discriminates only for profiles in its authorized digest set. Hence
+`assert_route_binding_rejected` in the helper.
+
+### Two near-misses the safety rails caught
+
+1. The output-artifacts dead-closure marked the four `_resolved_output_*`
+   helpers dead; they are imported by three test modules. An explicit
+   `assert not (DEAD & LIVE)` refused the write. Nothing lost.
+2. The Paper-II `build_output_payload` in
+   `time_dynamics/runners/hh_from_adapt_artifact` is an unrelated homonym
+   reached dynamically through `HH_REALTIME_ADAPTER`. Verified before cutting.
+
+### Left deliberately
+
+- **16 pre-existing failures** in the facade / resolved-context / selection /
+  ra-facade suites. They predate this session, trace to the 2026-08-07
+  "Replace Snake snapshot with RA" era, and deserve their own baseline-first
+  pass rather than the tail of this one.
+- `normalize_sr_route_profile_namespace` and `_DEST_OPTION_STRINGS` go
+  production-dead with the CLI but are still in `__all__` and asserted by
+  `test_static_adapt_historical_route_identity.py:368-381`. Retire separately so
+  this change stays a pure surface removal.
+- `validate_sr_route_profile_runtime_settings` has **zero production callers**
+  (`adapt_pipeline.py:846` imports, never calls) while ~17 assertion sites rest
+  on it. Either wire it into `_build_canonical_sr_snake_runtime_kwargs` as a
+  post-condition — now a one-liner, since `expected_flat_settings` is exact —
+  or retire it deliberately.
+- **Coverage genuinely lost, stated rather than papered over:** after the CLI
+  dies, "runtime settings cannot disagree with the contract" holds *by
+  construction* at `adapt_pipeline.py:29785` with no runtime check behind it,
+  because the only per-setting validator has no production caller.
+
 ## 7. No fallbacks
 
 **Author's rule, 2026-08-24: no fallbacks.** A fallback silently substitutes a
