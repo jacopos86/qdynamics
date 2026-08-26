@@ -79,9 +79,19 @@ def _gap_figure(payload: dict[str, Any], out_pdf: Path) -> None:
                 label="exact (reference)" if slot == 0 else None, zorder=1)
 
         our = _ours_rung(rec)
+        adaptive = min(
+            (r for r in rec["rungs"]["adaptive_qse"] if r.get("root_energies")),
+            key=lambda r: (
+                r["max_root_abs_error"] is None,
+                r["max_root_abs_error"] or 0.0,
+            ),
+            default=None,
+        )
         series = [
             ("ours: selected + exchange", "#2673b8", "o",
              our.get("root_energies") if our else None),
+            ("benchmark: adaptive QSE", "#2f8f4e", "^",
+             adaptive.get("root_energies") if adaptive else None),
             ("benchmark: fixed class", "#c05020", "s",
              rec["rungs"]["fixed_class"][0].get("root_energies")),
         ]
@@ -126,6 +136,7 @@ def _gap_figure(payload: dict[str, Any], out_pdf: Path) -> None:
 
 _ARMS = (
     ("ours", "ours"),
+    ("adaptive_qse", "benchmark: adaptive QSE"),
     ("fixed_class", "fixed class"),
     ("cheapest_first", "cheapest-first"),
     ("input_order", "input-order"),
@@ -193,10 +204,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         r"\begin{document}",
         rf"\section*{{Matched-accuracy campaign: {_escape(payload.get('regime_set', '?'))}}}",
         r"{\footnotesize Protocol: \texttt{agent\_guidance/qse/paper-iii-comparison-protocol.md}.",
-        r"Identical record alphabet for every arm. Table cells give the deterministic",
+        r"Record-based arms use one identical alphabet; adaptive QSE synthesizes residual",
+        r"directions and consumes no record alphabet. Table cells give the deterministic",
         r"graph-span proxy $N_{2q}/D_{2q}/D_c$ at that arm's cheapest certified rung",
         r"(no transpiler routing randomness). \textit{unatt.} = unattainable with that",
-        r"manifold; \textit{n.r.} = not reached within the shared pool, terminal error shown.\par}",
+        r"manifold; \textit{n.r.} = not reached within the arm's declared cap, terminal error shown.\par}",
         r"\vspace{6pt}",
         r"\begin{center}\includegraphics[width=0.95\textwidth]{campaign_gaps.pdf}\end{center}",
         r"{\footnotesize",
