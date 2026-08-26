@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
 from pipelines.exact_bench import generic_static_adapt_variants as variants
 from pipelines.exact_bench.table_i_canonical_cases import (
     TABLE_I_PAPER_I_HH_COMPLETION_SAME_CUTOFF_PROFILE,
@@ -12,10 +10,7 @@ from pipelines.exact_bench.table_i_canonical_cases import (
 from pipelines.static_adapt.builders.shared_pauli_pool_contract import (
     SHARED_PAULI_POOL_MODE_GUARDED_SINGLETON_CHILDREN_ONLY_V1,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.sr_snake_route_profile import (
-    CANONICAL_SR_SNAKE_GUARDED_SINGLETON_POOL_V1_EXECUTION_SETTINGS,
-    CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS,
     SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1,
     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1,
     canonical_sr_snake_guarded_singleton_pool_v1_contract,
@@ -25,30 +20,33 @@ from pipelines.static_adapt.sr_snake_route_profile import (
 )
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
+from test_support.route_contract_kwargs import (
+    expected_flat_settings,
+    route_identity,
+    route_runtime_kwargs,
+)
 
 
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
+def _route_kwargs(profile_request: str) -> tuple[dict[str, object], dict[str, object]]:
+    """Resolve a profile alias and build the live flat runtime kwargs."""
 
-
-_RETIRED_PASSIVE_PROFILE_FIELDS = {
-    "phase_live_hysteresis_enabled",
-    "phase1_prune_stale_age",
-    "phase1_prune_stagnation_threshold",
-    "phase1_prune_small_theta_abs",
-    "phase1_prune_small_theta_relative",
-}
+    resolved, contract, contract_sha256 = route_identity(profile_request)
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=contract_sha256,
+        route_profile=resolved,
+        route_profile_request=profile_request,
+        maximum_controller_rounds=50,
+    )
+    return kwargs, contract
 
 
 def _assert_active_profile_settings(
-    args: SimpleNamespace,
-    settings: dict[str, object],
+    kwargs: dict[str, object],
+    contract: dict[str, object],
 ) -> None:
-    for field, expected in settings.items():
-        if field in _RETIRED_PASSIVE_PROFILE_FIELDS:
-            assert not hasattr(args, field), field
-        else:
-            assert getattr(args, field) == expected, field
+    for field, expected in expected_flat_settings(contract).items():
+        assert kwargs[field] == expected, field
 
 
 def _candidate(
@@ -202,39 +200,29 @@ def test_guarded_singleton_pool_excludes_identity_without_projection() -> None:
 
 
 def test_guarded_singleton_route_is_global_and_has_no_lanes() -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_guarded_singleton_pool_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+    resolved, contract, contract_sha256 = route_identity(
+        "sr_snake_guarded_singleton_pool_v1"
     )
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_guarded_singleton_pool_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
+    assert resolved == SR_ROUTE_PROFILE_GUARDED_SINGLETON_POOL_V1
+    assert contract == canonical_sr_snake_guarded_singleton_pool_v1_contract()
+    assert contract_sha256 == (
         canonical_sr_snake_guarded_singleton_pool_v1_contract_sha256()
     )
-    _assert_active_profile_settings(
-        args,
-        CANONICAL_SR_SNAKE_GUARDED_SINGLETON_POOL_V1_EXECUTION_SETTINGS,
-    )
-    assert args.adapt_max_depth == 50
-    assert args.static_lane_route == "algebraic"
-    assert args.phase3_selector_policy == "hardware_resolvable_v1"
-    assert args.phase3_runtime_split_mode == "off"
-    assert args.shared_pauli_pool_mode == (
+
+    kwargs, _contract = _route_kwargs("sr_snake_guarded_singleton_pool_v1")
+    assert kwargs["sr_route_profile_resolved"] == resolved
+    assert kwargs["sr_route_profile_contract"] == contract
+    assert kwargs["sr_route_profile_contract_sha256"] == contract_sha256
+    _assert_active_profile_settings(kwargs, contract)
+    assert kwargs["max_depth"] == 50
+    assert kwargs["static_lane_route"] == "algebraic"
+    assert kwargs["phase3_selector_policy"] == "hardware_resolvable_v1"
+    assert kwargs["phase3_runtime_split_mode"] == "off"
+    assert kwargs["shared_pauli_pool_mode"] == (
         SHARED_PAULI_POOL_MODE_GUARDED_SINGLETON_CHILDREN_ONLY_V1
     )
-    invariants = args.sr_route_profile_contract["semantic_invariants"]
+    invariants = contract["semantic_invariants"]
     assert invariants["shortlist_population_policy"] == (
         "single_global_population_v1"
     )
@@ -242,28 +230,10 @@ def test_guarded_singleton_route_is_global_and_has_no_lanes() -> None:
     assert invariants["algebraic_lanes_active"] is False
 
 
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--static-lane-route", "physical_operator_type"),
-        ("--phase3-selector-policy", "algebraic_nested_v1"),
-        ("--shared-pauli-pool-mode", "projected_singleton_children_only_v1"),
-    ],
-)
-def test_guarded_singleton_route_rejects_lane_or_projection_drift(
-    override: tuple[str, str],
-) -> None:
-    with pytest.raises(SystemExit) as exc_info:
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_guarded_singleton_pool_v1",
-                "--adapt-max-depth",
-                "50",
-                *override,
-            ]
-        )
-    assert exc_info.value.code == 2
+# Structural note: the CLI's per-setting override channel (and its parser.error
+# rejection of lane/projection drift against a locked route profile) has no live
+# counterpart -- the live builder writes execution settings straight from the
+# authenticated contract, so drift is impossible by construction.
 
 
 def test_completion_real_guarded_singleton_pool_hashes_nph3_and_nph7() -> None:
@@ -313,37 +283,27 @@ def test_completion_real_guarded_singleton_pool_hashes_nph3_and_nph7() -> None:
 
 
 def test_macro_only_route_retains_physical_lanes_and_never_builds_children() -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_macro_only_physical_lanes_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+    resolved, contract, contract_sha256 = route_identity(
+        "sr_snake_macro_only_physical_lanes_v1"
     )
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_macro_only_physical_lanes_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
+    assert resolved == SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_V1
+    assert contract == canonical_sr_snake_macro_only_physical_lanes_v1_contract()
+    assert contract_sha256 == (
         canonical_sr_snake_macro_only_physical_lanes_v1_contract_sha256()
     )
-    _assert_active_profile_settings(
-        args,
-        CANONICAL_SR_SNAKE_MACRO_ONLY_PHYSICAL_LANES_V1_EXECUTION_SETTINGS,
-    )
-    assert args.static_lane_route == "physical_operator_type"
-    assert args.physical_lane_shortlist_aggressiveness == 3
-    assert args.phase3_runtime_split_mode == "off"
-    assert args.adapt_child_pool_expansion_mode == "off"
-    assert args.shared_pauli_pool_mode == "off"
-    invariants = args.sr_route_profile_contract["semantic_invariants"]
+
+    kwargs, _contract = _route_kwargs("sr_snake_macro_only_physical_lanes_v1")
+    assert kwargs["sr_route_profile_resolved"] == resolved
+    assert kwargs["sr_route_profile_contract"] == contract
+    assert kwargs["sr_route_profile_contract_sha256"] == contract_sha256
+    _assert_active_profile_settings(kwargs, contract)
+    assert kwargs["static_lane_route"] == "physical_operator_type"
+    assert kwargs["physical_lane_shortlist_aggressiveness"] == 3
+    assert kwargs["phase3_runtime_split_mode"] == "off"
+    assert kwargs["adapt_child_pool_expansion_mode"] == "off"
+    assert kwargs["shared_pauli_pool_mode"] == "off"
+    invariants = contract["semantic_invariants"]
     assert invariants["candidate_representation"] == (
         "intact_logical_parent_generator_v1"
     )
@@ -352,25 +312,15 @@ def test_macro_only_route_retains_physical_lanes_and_never_builds_children() -> 
 
 
 def test_macro_only_one_sided_cost_route_changes_only_cost_normalization() -> None:
-    baseline = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_macro_only_physical_lanes_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+    _baseline_resolved, baseline_contract, _baseline_sha256 = route_identity(
+        "sr_snake_macro_only_physical_lanes_v1"
     )
-    ablation = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_macro_only_physical_lanes_one_sided_cost_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+    _ablation_resolved, ablation_contract, _ablation_sha256 = route_identity(
+        "sr_snake_macro_only_physical_lanes_one_sided_cost_v1"
     )
 
-    baseline_settings = dict(baseline.sr_route_profile_contract["execution_settings"])
-    ablation_settings = dict(ablation.sr_route_profile_contract["execution_settings"])
+    baseline_settings = dict(baseline_contract["execution_settings"])
+    ablation_settings = dict(ablation_contract["execution_settings"])
     assert baseline_settings.pop("phase3_hardware_cost_normalization_mode") == (
         "family_robust_symmetric_arctan_v1"
     )
@@ -378,35 +328,14 @@ def test_macro_only_one_sided_cost_route_changes_only_cost_normalization() -> No
         "family_robust_v1"
     )
     assert ablation_settings == baseline_settings
-    assert ablation.static_lane_route == "physical_operator_type"
-    assert ablation.phase3_runtime_split_mode == "off"
-    assert ablation.adapt_child_pool_expansion_mode == "off"
-    assert ablation.shared_pauli_pool_mode == "off"
 
-
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--static-lane-route", "algebraic"),
-        ("--phase3-runtime-split-mode", "shortlist_pauli_children_v1"),
-        ("--adapt-child-pool-expansion-mode", "pauli_children_v1"),
-        ("--shared-pauli-pool-mode", "guarded_singleton_children_only_v1"),
-    ],
-)
-def test_macro_only_route_rejects_child_or_lane_drift(
-    override: tuple[str, str],
-) -> None:
-    with pytest.raises(SystemExit) as exc_info:
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_macro_only_physical_lanes_v1",
-                "--adapt-max-depth",
-                "50",
-                *override,
-            ]
-        )
-    assert exc_info.value.code == 2
+    kwargs, _contract = _route_kwargs(
+        "sr_snake_macro_only_physical_lanes_one_sided_cost_v1"
+    )
+    assert kwargs["static_lane_route"] == "physical_operator_type"
+    assert kwargs["phase3_runtime_split_mode"] == "off"
+    assert kwargs["adapt_child_pool_expansion_mode"] == "off"
+    assert kwargs["shared_pauli_pool_mode"] == "off"
 
 
 def test_completion_real_macro_parent_pools_remain_intact_at_nph3_and_nph7() -> None:

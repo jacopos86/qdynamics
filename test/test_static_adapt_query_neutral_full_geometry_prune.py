@@ -17,7 +17,6 @@ from pipelines.scaffold.hh_continuation_pruning import (
 from pipelines.static_adapt.joint_linear_solve import (
     JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.query_neutral_full_geometry_prune import (
     PAPER_I_QUERY_NEUTRAL_PRUNE_ENERGY_GUARD_ABS_TOL,
     PAPER_I_QUERY_NEUTRAL_PRUNE_MODELED_ENERGY_CHANGE_MAX,
@@ -40,6 +39,11 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_contract_sha256,
     normalize_sr_route_profile_request,
     validate_sr_route_profile_runtime_settings,
+)
+from test_support.route_contract_kwargs import (
+    route_identity,
+    route_pruning,
+    route_runtime_kwargs,
 )
 
 
@@ -361,29 +365,33 @@ def test_query_neutral_route_alias_normalizes_to_distinct_route_identity():
     )
 
 
-def test_query_neutral_route_cli_and_runtime_contract_round_trip():
-    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-    args = parser.parse_args(
-        [
-            "--sr-route-profile",
-            SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_ALIAS_V1,
-            "--adapt-max-depth",
-            "50",
-        ]
+def test_query_neutral_route_alias_and_runtime_contract_round_trip():
+    resolved, contract, digest = route_identity(
+        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_ALIAS_V1
     )
-    contract = canonical_sr_snake_contract(
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
-    )
-    digest = canonical_sr_snake_contract_sha256(
+
+    assert resolved == (
         SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
     )
 
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_V1
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=(
+            SR_ROUTE_PROFILE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_FULL_GEOMETRY_QUERY_NEUTRAL_PRUNE_ALIAS_V1
+        ),
+        maximum_controller_rounds=50,
     )
-    assert args.phase1_prune_enabled is True
-    assert args.phase1_prune_recovery_trust_radius == pytest.approx(0.00390625)
-    assert args.phase3_response_coordinate_scope == (
+
+    # phase1_prune_* settings are extension-owned and live on the composed
+    # pruning extension, not in the flat kwargs.
+    pruning = route_pruning(kwargs)
+    assert pruning is not None
+    assert pruning["phase1_prune_recovery_trust_radius"] == pytest.approx(
+        0.00390625
+    )
+    assert kwargs["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
     runtime = dict(
@@ -391,7 +399,7 @@ def test_query_neutral_route_cli_and_runtime_contract_round_trip():
     )
     runtime["adapt_max_depth"] = 50
     assert validate_sr_route_profile_runtime_settings(
-        profile_request=args.sr_route_profile_resolved,
+        profile_request=resolved,
         contract=contract,
         contract_sha256=digest,
         runtime_settings=runtime,

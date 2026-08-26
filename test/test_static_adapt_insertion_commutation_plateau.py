@@ -16,7 +16,6 @@ from pipelines.static_adapt.adapt_pipeline import (
 from pipelines.static_adapt.builders.problem_registry import (
     resolve_problem_context,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.deferred_gram_fallback import (
     DEFERRED_GRAM_ALL_MODELS_INFEASIBLE_FALLBACK_V1,
 )
@@ -49,6 +48,8 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2,
     SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2,
 )
+from test_support.route_contract_kwargs import route_identity
+
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
 from src.quantum.vqe_latex_python_pairs import AnsatzTerm
@@ -68,21 +69,6 @@ ROUTE_REQUEST = "insertion_commutation_plateau_v2"
 ROUTE_DIGEST = (
     "aa669d7f0c3621d9ddf7f8595f96333c56b536c8fc79547607e76d8d91d4b6ff"
 )
-
-
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-def _route_args(request: str):
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            request,
-            "--adapt-max-depth",
-            "4",
-        ]
-    )
 
 
 def _term(label: str, *words: str) -> AnsatzTerm:
@@ -138,11 +124,13 @@ def _run_small_registered_route(
 
 
 def test_registered_profile_changes_only_the_parent_insertion_policy() -> None:
-    parent = _route_args(PARENT_REQUEST)
-    route = _route_args(ROUTE_REQUEST)
+    _parent_resolved, parent_contract, _parent_digest = route_identity(
+        PARENT_REQUEST
+    )
+    route_resolved, contract, route_digest = route_identity(ROUTE_REQUEST)
 
-    parent_settings = dict(parent.sr_route_profile_contract["execution_settings"])
-    route_settings = dict(route.sr_route_profile_contract["execution_settings"])
+    parent_settings = dict(parent_contract["execution_settings"])
+    route_settings = dict(contract["execution_settings"])
     assert parent_settings.pop("adapt_insertion_mode") == "append_only"
     assert (
         route_settings.pop("adapt_insertion_mode")
@@ -150,13 +138,12 @@ def test_registered_profile_changes_only_the_parent_insertion_policy() -> None:
     )
     assert route_settings == parent_settings
 
-    contract = route.sr_route_profile_contract
     invariants = contract["semantic_invariants"]
     lineage = contract["lineage_authority"]
-    assert route.sr_route_profile_resolved == (
+    assert route_resolved == (
         SR_ROUTE_PROFILE_INSERTION_COMMUTATION_PLATEAU_V2
     )
-    assert route.sr_route_profile_contract_sha256 == ROUTE_DIGEST
+    assert route_digest == ROUTE_DIGEST
     assert lineage["parent_route_profile"] == PARENT_PROFILE
     assert lineage["parent_contract_sha256"] == PARENT_DIGEST
     assert lineage["only_intended_parent_setting_changes"] == {
@@ -181,13 +168,15 @@ def test_registered_profile_changes_only_the_parent_insertion_policy() -> None:
 
 
 def test_macro_registered_profile_changes_only_page2_insertion_policy() -> None:
-    parent = _route_args("sr_snake_macro_only_physical_lanes_v1")
-    route = _route_args(
+    parent_resolved, parent_contract, parent_digest = route_identity(
+        "sr_snake_macro_only_physical_lanes_v1"
+    )
+    route_resolved, contract, _route_digest = route_identity(
         "sr_snake_macro_only_physical_lanes_insertion_commutation_plateau_v2"
     )
 
-    parent_settings = dict(parent.sr_route_profile_contract["execution_settings"])
-    route_settings = dict(route.sr_route_profile_contract["execution_settings"])
+    parent_settings = dict(parent_contract["execution_settings"])
+    route_settings = dict(contract["execution_settings"])
     assert parent_settings.pop("adapt_insertion_mode") == "append_only"
     assert (
         route_settings.pop("adapt_insertion_mode")
@@ -195,15 +184,14 @@ def test_macro_registered_profile_changes_only_page2_insertion_policy() -> None:
     )
     assert route_settings == parent_settings
 
-    contract = route.sr_route_profile_contract
-    assert route.sr_route_profile_resolved == (
+    assert route_resolved == (
         SR_ROUTE_PROFILE_MACRO_ONLY_PHYSICAL_LANES_INSERTION_COMMUTATION_PLATEAU_V2
     )
     assert contract["lineage_authority"]["parent_route_profile"] == (
-        parent.sr_route_profile_resolved
+        parent_resolved
     )
     assert contract["lineage_authority"]["parent_contract_sha256"] == (
-        parent.sr_route_profile_contract_sha256
+        parent_digest
     )
     assert contract["lineage_authority"]["only_intended_parent_setting_changes"] == {
         "adapt_insertion_mode": "insertion_commutation_plateau_v2"

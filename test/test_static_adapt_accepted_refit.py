@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import replace
-import inspect
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 import pipelines.static_adapt.ra_adapt.support as support_module
-import pipelines.static_adapt.adapt_pipeline as adapt_pipeline
 from pipelines.static_adapt.accepted_refit import (
     ACCEPTED_REFIT_CHART_SUPPORTED_FS_WHITENED_FIXED_V1,
     ACCEPTED_REFIT_SCOPE_FULL_ANSATZ_V1,
@@ -17,7 +14,6 @@ from pipelines.static_adapt.accepted_refit import (
     AcceptedRefitFixedChartReceipt,
     build_supported_fs_powell_chart,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.joint_linear_solve import (
     JointLinearSolveConfig,
     factor_supported_metric,
@@ -30,7 +26,6 @@ from pipelines.static_adapt.sr_snake_escape_controller import (
     SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1,
     SR_POWELL_COORDINATE_CHART_LOGICAL_SHARED_REDUCED_V1,
 )
-from pipelines.contracts.static_provenance import HH_FULL_META_CLASSIFIER_VERSION
 from src.quantum.ansatz_parameterization import project_runtime_theta_block_mean
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
 from src.quantum.compiled_polynomial import (
@@ -43,6 +38,10 @@ from src.quantum.vqe_latex_python_pairs import AnsatzTerm
 from src.quantum.hubbard_latex_python_pairs import (
     boson_qubits_per_site,
     build_hubbard_holstein_hamiltonian,
+)
+from test_support.route_contract_kwargs import (
+    route_identity,
+    route_runtime_kwargs,
 )
 
 
@@ -223,28 +222,27 @@ def test_accepted_refit_fixed_chart_receipt_binds_scope_maps_and_origin() -> Non
         replace(receipt, construction_hashes=tampered_hashes)
 
 
-def test_cli_exposes_primary_and_expanded_whitened_base_charts() -> None:
-    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-8)
-    defaults = parser.parse_args([])
-    expanded = parser.parse_args(
-        [
-            "--adapt-accepted-refit-scope",
-            "full_ansatz_v1",
-            "--adapt-accepted-refit-coordinate-chart",
-            "supported_fs_whitened_fixed_v1",
-            "--adapt-accepted-refit-base-chart-policy",
-            "expanded_runtime_projected_logical_v1",
-        ]
+def test_live_route_pins_expanded_whitened_accepted_refit_base_chart() -> None:
+    profile_request = (
+        "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1"
     )
+    resolved, contract, contract_sha256 = route_identity(profile_request)
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=contract_sha256,
+        route_profile=resolved,
+        route_profile_request=profile_request,
+    )
+    settings = contract["execution_settings"]
 
-    assert defaults.adapt_accepted_refit_base_chart_policy == (
-        SR_POWELL_COORDINATE_CHART_LOGICAL_SHARED_REDUCED_V1
-    )
-    assert expanded.adapt_accepted_refit_scope == "full_ansatz_v1"
-    assert expanded.adapt_accepted_refit_coordinate_chart == (
+    assert kwargs["adapt_accepted_refit_scope"] == "full_ansatz_v1"
+    assert kwargs["adapt_accepted_refit_coordinate_chart"] == (
         "supported_fs_whitened_fixed_v1"
     )
-    assert expanded.adapt_accepted_refit_base_chart_policy == (
+    assert kwargs["adapt_accepted_refit_base_chart_policy"] == (
+        settings["adapt_accepted_refit_base_chart_policy"]
+    )
+    assert kwargs["adapt_accepted_refit_base_chart_policy"] == (
         SR_POWELL_COORDINATE_CHART_EXPANDED_RUNTIME_PROJECTED_LOGICAL_V1
     )
 
@@ -381,23 +379,5 @@ def test_nonuniform_runtime_alias_cannot_define_fixed_logical_origin() -> None:
             manifold_id="accepted_refit_nonuniform_alias",
         )
 
-
-def _write_small_full_meta_filter(tmp_path: Path) -> Path:
-    path = tmp_path / "accepted_refit_full_meta_filter.json"
-    path.write_text(
-        json.dumps(
-            {
-                "keep_classes": ["uccsd_sing"],
-                "classifier_version": HH_FULL_META_CLASSIFIER_VERSION,
-                "source_pool": "full_meta",
-                "source_problem": "hh",
-                "source_num_sites": 2,
-                "source_n_ph_max": 2,
-            },
-            sort_keys=True,
-        ),
-        encoding="utf-8",
-    )
-    return path
 
 

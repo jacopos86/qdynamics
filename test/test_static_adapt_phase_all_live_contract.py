@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -14,7 +12,6 @@ from pipelines.scaffold.hh_continuation_stage_control import (
     StageController,
     StageControllerConfig,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_CONVENTIONAL_V3,
     canonical_sr_snake_v3_contract,
@@ -22,39 +19,22 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract,
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
 )
+from test_support.route_contract_kwargs import route_identity
 
 
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-@pytest.mark.parametrize(
-    "removed_option",
-    [
-        "--phase-live-hysteresis-enabled",
-        "--phase-live-hysteresis-disabled",
-        "--phase2-null-nrem-high-threshold",
-        "--phase2-live-nrem-low-threshold",
-        "--phase3-null-nrem-high-threshold",
-        "--phase3-live-nrem-low-threshold",
-        "--phase2-hysteresis-steps",
-        "--phase3-hysteresis-steps",
-    ],
-)
-def test_phase_live_runtime_options_are_retired(removed_option: str) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args([removed_option, "1"])
+# Structural note: the retired --phase-live/--phase*-hysteresis CLI flags were
+# asserted absent via the argparse surface; with the parser deleted the absence
+# holds by construction, and the passive, non-authoritative status of
+# phase_live_hysteresis_enabled is covered live by
+# test_historical_route_contract_digests_remain_byte_stable below.
 
 
 def test_current_conventional_alias_resolves_to_retained_v3() -> None:
-    args = _parser().parse_args(["--sr-route-profile", "sr_snake"])
+    resolved_profile, contract, contract_sha256 = route_identity("sr_snake")
 
-    assert args.sr_route_profile_resolved == SR_ROUTE_PROFILE_CONVENTIONAL_V3
-    assert not hasattr(args, "phase_live_hysteresis_enabled")
-    assert args.sr_route_profile_contract == canonical_sr_snake_v3_contract()
-    assert args.sr_route_profile_contract_sha256 == (
-        canonical_sr_snake_v3_contract_sha256()
-    )
+    assert resolved_profile == SR_ROUTE_PROFILE_CONVENTIONAL_V3
+    assert contract == canonical_sr_snake_v3_contract()
+    assert contract_sha256 == canonical_sr_snake_v3_contract_sha256()
 
 
 def test_stage_controller_snapshots_are_fixed_all_live() -> None:

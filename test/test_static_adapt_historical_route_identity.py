@@ -9,7 +9,6 @@ import pytest
 from pipelines.exact_bench import table_i_route_cutoff_audit
 from pipelines.exact_bench import table_i_routea_spsa_historical_pareto
 from pipelines.exact_bench import generic_static_benchmark
-from pipelines.static_adapt import cli_config
 from pipelines.static_adapt import historical_route_identity as historical
 from pipelines.static_adapt import sr_snake_escape_controller
 from pipelines.static_adapt import sr_snake_route_profile as historical_profiles
@@ -334,29 +333,49 @@ def test_retired_route_and_legacy_cli_owners_are_inert_and_unreachable() -> None
 
 
 def test_retired_route_controls_are_absent_from_the_canonical_parser() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    parser = cli_config._build_adapt_arg_parser(
-        adapt_gradient_parity_rtol=1.0e-8
+    # Structural note: the CLI parser is retired, so the retired flags
+    # (--static-route-id, --allow-legacy-static-route,
+    # --static-meta-feature-profile, --phase0-lane-quota-pressure,
+    # --phase0-algebraic-lane-mode, --algebraic-phase*-lane-*) are
+    # unreachable as user inputs by construction.  The live claim that
+    # survives: the physical lane-quota controls and the escape mode remain
+    # first-class runtime settings, while their algebraic counterparts and
+    # the legacy-route toggle never reach the flat runtime kwargs.  Note
+    # static_route_id / static_meta_feature_profile remain present in the
+    # kwargs as frozen keys of the canonical execution_settings; the
+    # guarantee is "not settable by any caller", not "absent".
+    from test_support.route_contract_kwargs import (
+        route_identity,
+        route_runtime_kwargs,
     )
-    retired = {
-        "--static-route-id",
-        "--allow-legacy-static-route",
-        "--static-meta-feature-profile",
-        "--phase0-lane-quota-pressure",
-        "--phase0-algebraic-lane-mode",
-        "--algebraic-phase1-lane-quota-pressure",
-        "--algebraic-phase2-lane-quota-pressure",
-        "--algebraic-phase2-lane-rel-threshold",
+
+    repo_root = Path(__file__).resolve().parents[1]
+    resolved, contract, contract_sha256 = route_identity("sr_snake_v4")
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=contract_sha256,
+        route_profile=resolved,
+        route_profile_request="sr_snake_v4",
+    )
+
+    retired_kwargs = {
+        "allow_legacy_static_route",
+        "phase0_lane_quota_pressure",
+        "phase0_algebraic_lane_mode",
+        "algebraic_phase1_lane_quota_pressure",
+        "algebraic_phase2_lane_quota_pressure",
+        "algebraic_phase2_lane_rel_threshold",
     }
-    retained = {
-        "--physical-phase1-lane-quota-pressure",
-        "--physical-phase2-lane-quota-pressure",
-        "--physical-phase2-lane-rel-threshold",
-        "--sr-escape-mode",
+    retained_kwargs = {
+        "physical_phase1_lane_quota_pressure",
+        "physical_phase2_lane_quota_pressure",
+        "physical_phase2_lane_rel_threshold",
+        "sr_escape_mode",
     }
 
-    assert retired.isdisjoint(parser._option_string_actions)
-    assert retained.issubset(parser._option_string_actions)
+    assert retired_kwargs.isdisjoint(kwargs)
+    assert retained_kwargs.issubset(kwargs)
+    assert kwargs["sr_escape_mode"] == sr_snake_escape_controller.SR_ESCAPE_DISABLED
     benchmark_runtime_source = (
         repo_root
         / "pipelines/exact_bench/static_benchmark_runtime.py"

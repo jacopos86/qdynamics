@@ -10,7 +10,6 @@ from pipelines.scaffold.hh_continuation_pruning import (
     recoverability_prune_ladder,
 )
 from pipelines.static_adapt import adapt_pipeline
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.sr_snake import RecoverabilityPruneReceipt
 
 
@@ -100,13 +99,9 @@ def _no_prune_kwargs() -> dict[str, Any]:
     }
 
 
-def test_cli_and_no_prune_receipt_exclude_retired_amplitude_surface() -> None:
-    args = _build_adapt_arg_parser(
-        adapt_gradient_parity_rtol=1.0e-7
-    ).parse_args([])
-    assert args.phase1_prune_policy == "recoverability_ladder_v1"
-    assert all(not hasattr(args, key) for key in RETIRED_PRUNE_KEYS)
-
+def test_no_prune_receipt_excludes_retired_amplitude_surface() -> None:
+    # Structural note: the retired CLI parser's absence of the RETIRED_PRUNE_KEYS
+    # dests holds by construction now that the argparse surface is removed.
     receipt = adapt_pipeline._default_no_prune_prune_summary_template(
         kwargs=_no_prune_kwargs(),
         parameterization_mode="logical_shared",

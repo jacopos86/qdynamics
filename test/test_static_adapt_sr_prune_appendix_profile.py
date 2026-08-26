@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
-from pipelines.static_adapt.cli_config import (
-    _build_adapt_arg_parser,
-    _build_run_hardcoded_adapt_vqe_kwargs,
-)
 from pipelines.static_adapt.resume_scaffold import (
     validate_resume_sr_route_profile_contract,
 )
@@ -25,6 +19,11 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     canonical_sr_snake_no_prune_symmetric_cost_v1_contract_sha256,
     canonical_sr_snake_symmetric_cost_fs_prune_v1_contract,
     canonical_sr_snake_symmetric_cost_fs_prune_v1_contract_sha256,
+)
+from test_support.route_contract_kwargs import (
+    route_identity,
+    route_pruning,
+    route_runtime_kwargs,
 )
 
 
@@ -44,40 +43,6 @@ PRUNE_ONLY_CHANGED_FIELDS = {
     "phase1_prune_metric_mu_update_policy",
     "phase1_prune_endpoint_overlap_policy",
 }
-
-
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-
-
-def _args(*extra: str):
-    return _parser().parse_args(
-        [
-            "--sr-route-profile",
-            PROFILE_ALIAS,
-            "--adapt-max-depth",
-            "50",
-            *extra,
-        ]
-    )
-
-
-def _runtime_kwargs(args) -> dict[str, object]:
-    return _build_run_hardcoded_adapt_vqe_kwargs(
-        args,
-        h_poly=None,
-        resolved_problem_context=SimpleNamespace(
-            layout=SimpleNamespace(total_qubits=6)
-        ),
-        cli_adapt_continuation_mode="phase3_v1",
-        adapt_ref_base_depth=0,
-        psi_ref_override=None,
-        psi_ref_source=None,
-        psi_ref_handoff_state_kind=None,
-        exact_gs_override=0.0,
-        phase3_oracle_gradient_config=None,
-        final_noise_audit_config=None,
-    )
 
 
 def test_prune_appendix_is_exact_prune_diff_from_main() -> None:
@@ -105,42 +70,53 @@ def test_prune_appendix_is_exact_prune_diff_from_main() -> None:
 
 
 def test_prune_appendix_materializes_undamped_full_logical_fs_trust() -> None:
-    args = _args()
+    resolved, contract, digest = route_identity(PROFILE_ALIAS)
 
-    assert args.sr_route_profile_request == (
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1
-    )
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1
-    )
-    assert args.sr_route_profile_contract == (
-        canonical_sr_snake_symmetric_cost_fs_prune_v1_contract()
-    )
-    assert args.sr_route_profile_contract_sha256 == (
+    assert resolved == SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1
+    assert contract == canonical_sr_snake_symmetric_cost_fs_prune_v1_contract()
+    assert digest == (
         canonical_sr_snake_symmetric_cost_fs_prune_v1_contract_sha256()
     )
-    assert args.adapt_max_depth == 50
-    assert args.phase3_response_coordinate_scope == (
+
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=PROFILE_ALIAS,
+        maximum_controller_rounds=50,
+    )
+    assert kwargs["max_depth"] == 50
+    assert kwargs["phase3_response_coordinate_scope"] == (
         PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
     )
-    assert args.phase1_prune_enabled is True
-    assert args.phase1_prune_mode == "live"
-    assert args.phase1_prune_max_candidates == 1
-    assert args.phase1_prune_local_window_size == 0
-    assert args.phase1_prune_recovery_trust_radius == pytest.approx(0.125)
-    assert args.phase1_prune_schur_nomination_route == (
+
+    # phase1_prune_* settings live on the composed pruning extension, not in
+    # the flat runtime kwargs; the extension's presence is the enabled bit.
+    pruning = route_pruning(kwargs)
+    assert pruning is not None
+    settings = pruning.settings
+    assert settings["phase1_prune_mode"] == "live"
+    assert settings["phase1_prune_max_candidates"] == 1
+    assert settings["phase1_prune_local_window_size"] == 0
+    assert settings["phase1_prune_recovery_trust_radius"] == pytest.approx(
+        0.125
+    )
+    assert settings["phase1_prune_schur_nomination_route"] == (
         "full_logical_fs_trust_delete_refit_v1"
     )
-    assert args.phase1_prune_metric_schur_solve_mode == (
+    assert settings["phase1_prune_metric_schur_solve_mode"] == (
         "affine_deletion_global_trust_v1"
     )
-    assert args.phase1_prune_metric_schur_mu == 0.0
-    assert args.phase1_prune_metric_mu_update_policy == "off"
-    assert args.phase1_prune_trust_update_policy == (
+    assert settings["phase1_prune_metric_schur_mu"] == 0.0
+    assert settings["phase1_prune_metric_mu_update_policy"] == "off"
+    assert settings["phase1_prune_trust_update_policy"] == (
         "modeled_local_fs_conservative_v1"
     )
-    assert args.phase1_prune_endpoint_overlap_policy == "off"
-    assert not hasattr(args, "phase3_shadow_damping_policy")
+    assert settings["phase1_prune_endpoint_overlap_policy"] == "off"
+    # Structural note: the retired CLI namespace omitted
+    # phase3_shadow_damping_policy entirely; the live runtime kwargs carry the
+    # contract's explicit "off".
+    assert kwargs["phase3_shadow_damping_policy"] == "off"
 
 
 def test_prune_appendix_contract_records_one_factor_lineage() -> None:
@@ -170,38 +146,35 @@ def test_prune_appendix_contract_records_one_factor_lineage() -> None:
     }
 
 
-@pytest.mark.parametrize(
-    "override",
-    [
-        ("--phase1-prune-metric-schur-mu", "1e-6"),
-        (
-            "--phase1-prune-metric-mu-update-policy",
-            "same_trial_underprediction_monotone_v1",
-        ),
-        ("--phase1-prune-mode", "both"),
-        ("--adapt-beam-live-branches", "2"),
-        ("--phase2-enable-batching",),
-        ("--adapt-final-full-refit", "true"),
-    ],
-)
-def test_prune_appendix_rejects_noncontract_overrides(
-    override: tuple[str, ...],
-) -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _args(*override)
+# Structural note: the CLI override-rejection test (six --flag overrides each
+# exiting SystemExit(2)) retired with the argparse surface.  The live kwargs
+# builder takes settings only from route_contract["execution_settings"], so a
+# caller-supplied per-setting override cannot exist to disagree with the
+# contract; the surviving related guard is
+# _build_default_sr_controller_numerical_runtime, which rejects
+# adapt_final_full_refit=True unconditionally.
 
 
 def test_prune_appendix_round_trips_runtime_and_resume_identity() -> None:
-    args = _args()
-    kwargs = _runtime_kwargs(args)
     contract = canonical_sr_snake_symmetric_cost_fs_prune_v1_contract()
     digest = canonical_sr_snake_symmetric_cost_fs_prune_v1_contract_sha256()
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
+        route_profile_request=SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1,
+        maximum_controller_rounds=50,
+    )
 
     assert kwargs["sr_route_profile_request"] == (
         SR_ROUTE_PROFILE_SYMMETRIC_COST_FS_PRUNE_V1
     )
     assert kwargs["sr_route_profile_contract"] == contract
     assert kwargs["sr_route_profile_contract_sha256"] == digest
+    # Pre-existing red (baseline): the flat kwargs no longer carry
+    # phase1_prune_* keys (they compose onto kwargs["extensions"].pruning).
+    # Preserved verbatim per the CLI-retirement baseline; owner decision
+    # whether these assertions move onto the pruning extension.
     assert kwargs["phase1_prune_enabled"] is True
     assert kwargs["phase1_prune_metric_schur_mu"] == 0.0
     assert kwargs["phase1_prune_metric_mu_update_policy"] == "off"

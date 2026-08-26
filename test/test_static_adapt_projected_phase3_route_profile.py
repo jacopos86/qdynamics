@@ -11,7 +11,6 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pipelines.static_adapt import adapt_pipeline
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.joint_linear_solve import (
     JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1,
 )
@@ -36,6 +35,7 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     normalize_sr_route_profile_request,
     validate_sr_route_profile_runtime_settings,
 )
+from test_support.route_contract_kwargs import route_identity, route_runtime_kwargs
 
 _RETIRED_RAW_SINGLETON_PROFILE = (
     "supported_projected_generalized_source_metric_no_overlap_trust_"
@@ -45,10 +45,6 @@ _RETIRED_RAW_SINGLETON_ALIAS = (
     "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_"
     "full_insertion_diagnostic_v1"
 )
-
-
-def _parser():
-    return _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
 
 
 def test_commutation_reduced_insertion_profile_is_registered_for_complete_runtime_handoff() -> None:
@@ -130,51 +126,48 @@ def test_projected_phase3_profile_keeps_phase2_and_whitened_accepted_refit() -> 
     )
 
 
-def test_projected_phase3_alias_cli_and_contract_round_trip() -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_no_prune_symmetric_cost_projected_phase3_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+def test_projected_phase3_alias_and_contract_round_trip() -> None:
+    resolved, contract, digest = route_identity(
+        "sr_snake_no_prune_symmetric_cost_projected_phase3_v1"
     )
-    contract = canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_v1_contract()
-    digest = canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_v1_contract_sha256()
 
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1
+    assert resolved == SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1
+    assert contract == (
+        canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_v1_contract()
     )
-    assert args.historical_singleton_coordinate_solve_policy == (
+    assert digest == (
+        canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_v1_contract_sha256()
+    )
+
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request="sr_snake_no_prune_symmetric_cost_projected_phase3_v1",
+        maximum_controller_rounds=50,
+    )
+    assert kwargs["historical_singleton_coordinate_solve_policy"] == (
         JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1
     )
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == digest
+    assert kwargs["max_depth"] == 50
+
     runtime = dict(
         CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_V1_EXECUTION_SETTINGS
     )
-    runtime.pop("phase_live_hysteresis_enabled", None)
     runtime["adapt_max_depth"] = 50
     assert validate_sr_route_profile_runtime_settings(
-        profile_request=args.sr_route_profile_resolved,
+        profile_request=resolved,
         contract=contract,
         contract_sha256=digest,
         runtime_settings=runtime,
     ) == contract
 
 
-def test_projected_phase3_profile_rejects_whitened_solver_override() -> None:
-    with pytest.raises(SystemExit, match="2"):
-        _parser().parse_args(
-            [
-                "--sr-route-profile",
-                "sr_snake_no_prune_symmetric_cost_projected_phase3_v1",
-                "--adapt-max-depth",
-                "50",
-                "--historical-singleton-coordinate-solve-policy",
-                "supported_metric_whitened_eigh_v1",
-            ]
-        )
+# Structural note: the CLI rejection test for a whitened-solver override was
+# retired with the argparse surface. The runtime kwargs builder writes
+# historical_singleton_coordinate_solve_policy only from the authenticated
+# contract's execution_settings, so runtime and contract cannot disagree by
+# construction; no per-flag override path remains to reject.
 
 
 def test_projected_no_overlap_profile_changes_only_trust_update_policy() -> None:
@@ -204,40 +197,44 @@ def test_projected_no_overlap_profile_changes_only_trust_update_policy() -> None
     assert invariants["endpoint_overlap_query_charge_required"] == 0
 
 
-def test_projected_no_overlap_alias_cli_and_contract_round_trip() -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1",
-            "--adapt-max-depth",
-            "50",
-        ]
+def test_projected_no_overlap_alias_and_contract_round_trip() -> None:
+    resolved, contract, digest = route_identity(
+        "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1"
     )
-    contract = (
+
+    assert resolved == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+    )
+    assert contract == (
         canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract()
     )
-    digest = (
+    assert digest == (
         canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1_contract_sha256()
     )
 
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=(
+            "sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_v1"
+        ),
+        maximum_controller_rounds=50,
     )
-    assert args.historical_singleton_coordinate_solve_policy == (
+    assert kwargs["historical_singleton_coordinate_solve_policy"] == (
         JOINT_LINEAR_SOLVE_SUPPORTED_METRIC_PROJECTED_GENERALIZED_TRUST_V1
     )
-    assert args.historical_singleton_trust_region_update_policy == (
+    assert kwargs["historical_singleton_trust_region_update_policy"] == (
         ROUTE_A_TRUST_REGION_SOURCE_METRIC_INVERSE_SQRT_NO_OVERLAP_V1
     )
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == digest
+    assert kwargs["max_depth"] == 50
+
     runtime = dict(
         CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_V1_EXECUTION_SETTINGS
     )
-    runtime.pop("phase_live_hysteresis_enabled", None)
     runtime["adapt_max_depth"] = 50
     assert validate_sr_route_profile_runtime_settings(
-        profile_request=args.sr_route_profile_resolved,
+        profile_request=resolved,
         contract=contract,
         contract_sha256=digest,
         runtime_settings=runtime,
@@ -263,37 +260,38 @@ def test_projected_no_overlap_commutation_route_changes_only_insertion() -> None
 
 
 def test_projected_no_overlap_commutation_alias_round_trip() -> None:
-    args = _parser().parse_args(
-        [
-            "--sr-route-profile",
-            (
-                "sr_snake_no_prune_symmetric_cost_projected_phase3_"
-                "no_overlap_trust_commutation_reduced_insertion_v1"
-            ),
-            "--adapt-max-depth",
-            "50",
-        ]
+    request = (
+        "sr_snake_no_prune_symmetric_cost_projected_phase3_"
+        "no_overlap_trust_commutation_reduced_insertion_v1"
     )
-    contract = (
+    resolved, contract, digest = route_identity(request)
+
+    assert resolved == (
+        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1
+    )
+    assert contract == (
         canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract()
     )
-    digest = (
+    assert digest == (
         canonical_sr_snake_no_prune_symmetric_cost_projected_phase3_no_overlap_trust_commutation_reduced_insertion_v1_contract_sha256()
     )
 
-    assert args.sr_route_profile_resolved == (
-        SR_ROUTE_PROFILE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1
+    kwargs = route_runtime_kwargs(
+        route_contract=contract,
+        route_contract_sha256=digest,
+        route_profile=resolved,
+        route_profile_request=request,
+        maximum_controller_rounds=50,
     )
-    assert args.adapt_insertion_mode == "full_commutation_reduced"
-    assert args.sr_route_profile_contract == contract
-    assert args.sr_route_profile_contract_sha256 == digest
+    assert kwargs["adapt_insertion_mode"] == "full_commutation_reduced"
+    assert kwargs["max_depth"] == 50
+
     runtime = dict(
         CANONICAL_SR_SNAKE_NO_PRUNE_SYMMETRIC_COST_PROJECTED_PHASE3_NO_OVERLAP_TRUST_COMMUTATION_REDUCED_INSERTION_V1_EXECUTION_SETTINGS
     )
-    runtime.pop("phase_live_hysteresis_enabled", None)
     runtime["adapt_max_depth"] = 50
     assert validate_sr_route_profile_runtime_settings(
-        profile_request=args.sr_route_profile_resolved,
+        profile_request=resolved,
         contract=contract,
         contract_sha256=digest,
         runtime_settings=runtime,

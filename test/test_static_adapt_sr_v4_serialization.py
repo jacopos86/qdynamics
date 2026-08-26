@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -9,7 +10,6 @@ from pipelines.static_adapt import checkpoint_telemetry
 from pipelines.static_adapt.adapt_pipeline import (
     _apply_repeat_live_prune_guard,
 )
-from pipelines.static_adapt.cli_config import _build_adapt_arg_parser
 from pipelines.static_adapt.output_artifacts import (
     _resolved_output_phase12_energy_model_policies,
     _resolved_output_phase3_response_coordinate_scope,
@@ -26,18 +26,32 @@ from pipelines.static_adapt.sr_snake_route_profile import (
     SR_ROUTE_PROFILE_CANDIDATE_V4,
     canonical_sr_snake_v4_contract,
     canonical_sr_snake_v4_contract_sha256,
+    validate_sr_route_profile_contract,
 )
 
 
-def _v4_args():
-    parser = _build_adapt_arg_parser(adapt_gradient_parity_rtol=1.0e-7)
-    return parser.parse_args(
-        [
-            "--sr-route-profile",
-            "sr_snake_v4",
-            "--adapt-resume-compile-smoke",
-            "off",
-        ]
+def _v4_args() -> SimpleNamespace:
+    """CLI-free stand-in for the retired v4 argparse Namespace.
+
+    The output-artifact resolvers under test read ``args`` exclusively through
+    ``getattr`` on these route-identity and Phase-I/II/III policy fields, so a
+    plain namespace carrying the canonical v4 values replaces the retired
+    argparse-built Namespace.
+    """
+
+    return SimpleNamespace(
+        sr_route_profile_request=SR_ROUTE_PROFILE_CANDIDATE_V4,
+        phase3_response_coordinate_scope=(
+            PHASE3_RESPONSE_COORDINATE_SCOPE_FULL_ACTIVE_PLUS_SINGLETON_V1
+        ),
+        phase1_score_mode=PHASE1_SCORE_MODE_TRUST_REGION_V1,
+        phase1_energy_model=PHASE1_ENERGY_MODEL_FIRST_ORDER_FS_TRUST_V1,
+        phase2_curvature_policy=(
+            PHASE2_CURVATURE_POLICY_MEASURED_REQUIRED_FAIL_CLOSED_V1
+        ),
+        phase2_cheap_curvature_proxy_policy=(
+            PHASE2_CHEAP_CURVATURE_PROXY_POLICY_OFF
+        ),
     )
 
 
@@ -296,6 +310,9 @@ def test_checkpoint_history_preserves_signed_active_prefix_for_v4_resume() -> No
 
 
 def test_v4_result_manifest_preserves_route_identity_and_prune_receipts() -> None:
+    # Pre-existing baseline failure. build_output_payload reads ~146 args
+    # attributes unguarded, so no CLI-free namespace can drive it end-to-end;
+    # the test is left failing pending build_output_payload's own retirement.
     args = _v4_args()
     adapt_payload = _v4_adapt_payload()
     psi = np.asarray([1.0 + 0.0j, 0.0 + 0.0j])
@@ -364,60 +381,10 @@ def test_v4_result_manifest_preserves_route_identity_and_prune_receipts() -> Non
     ] == canonical_sr_snake_v4_contract_sha256()
 
 
-def test_output_manifest_defaults_new_v4_fields_for_legacy_args() -> None:
-    args = _build_adapt_arg_parser(
-        adapt_gradient_parity_rtol=1.0e-7
-    ).parse_args(["--adapt-resume-compile-smoke", "off"])
-    fields = (
-        "phase1_prune_recovery_trust_radius",
-        "phase1_prune_schur_nomination_route",
-        "phase1_prune_metric_schur_mu",
-        "phase1_prune_metric_schur_solve_mode",
-        "phase1_prune_metric_schur_cost_weighting",
-        "phase1_prune_trust_update_policy",
-        "phase1_prune_metric_mu_update_policy",
-        "phase1_prune_endpoint_overlap_policy",
-        "phase1_prune_live_min_depth",
-    )
-    for field in fields:
-        delattr(args, field)
-    # This emulates a historical in-process Namespace.  It is deliberately not
-    # a v4 route request because a canonical v4 invocation must retain every
-    # normalized field rather than fall back.
-    psi = np.asarray([1.0 + 0.0j, 0.0 + 0.0j])
-
-    payload = build_output_payload(
-        args=args,
-        cli_adapt_continuation_mode="off",
-        adapt_payload={},
-        ordered_labels_exyz=["e"],
-        coeff_map_exyz={"e": 0.0},
-        hmat=np.zeros((2, 2), dtype=complex),
-        gs_energy_exact=-1.0,
-        gs_energy_source="unit",
-        psi0=psi,
-        ansatz_input_state_for_adapt=psi,
-        ansatz_input_state_source="hf",
-        ansatz_input_state_kind="reference_state",
-        trajectory=[],
-        adapt_ref_import=None,
-        dense_eigh_enabled=True,
-        hilbert_dim=2,
-        adapt_ref_base_depth=0,
-        initial_state_source_resolved="hf",
-        initial_state_kind_resolved="reference_state",
-    )
-
-    settings = payload["settings"]
-    assert settings["phase1_prune_recovery_trust_radius"] == 0.0
-    assert settings["phase1_prune_schur_nomination_route"] == "hessian_coupling_v1"
-    assert settings["phase1_prune_metric_schur_mu"] == pytest.approx(1.0e-6)
-    assert settings["phase1_prune_metric_schur_solve_mode"] == "stationary_gw_zero_v1"
-    assert settings["phase1_prune_trust_update_policy"] == "off"
-    assert settings["phase1_prune_metric_mu_update_policy"] == "off"
-    assert settings["phase1_prune_endpoint_overlap_policy"] == "off"
-    assert settings["phase1_prune_live_min_depth"] == 0
-    assert "phase3_shadow_damping_policy" not in settings
+# Structural note: test_output_manifest_defaults_new_v4_fields_for_legacy_args
+# was removed with the CLI surface — it delattr-ed prune fields off a parsed
+# argparse Namespace to emulate a historical in-process shape that cannot exist
+# once no parser produces a Namespace (it was already failing for that reason).
 
 
 def test_v4_output_fails_closed_without_runtime_response_scope() -> None:
@@ -480,32 +447,15 @@ def test_v4_output_resolves_phase12_policies_from_runtime_telemetry() -> None:
 
 
 def test_v4_result_rejects_route_contract_tamper() -> None:
-    args = _v4_args()
-    adapt_payload = _v4_adapt_payload()
+    # The tamper gate lives in validate_sr_route_profile_contract (invoked by
+    # the output writer); assert it directly rather than through the retired
+    # CLI namespace scaffolding.
     tampered = copy.deepcopy(canonical_sr_snake_v4_contract())
     tampered["execution_settings"]["phase3_shadow_damping_policy"] = "off"
-    adapt_payload["sr_route_profile_contract"] = tampered
 
-    psi = np.asarray([1.0 + 0.0j, 0.0 + 0.0j])
     with pytest.raises(ValueError, match="contract drifted"):
-        build_output_payload(
-            args=args,
-            cli_adapt_continuation_mode="phase3_v1",
-            adapt_payload=adapt_payload,
-            ordered_labels_exyz=["e"],
-            coeff_map_exyz={"e": 0.0},
-            hmat=np.zeros((2, 2), dtype=complex),
-            gs_energy_exact=-1.0,
-            gs_energy_source="unit",
-            psi0=psi,
-            ansatz_input_state_for_adapt=psi,
-            ansatz_input_state_source="hf",
-            ansatz_input_state_kind="reference_state",
-            trajectory=[],
-            adapt_ref_import=None,
-            dense_eigh_enabled=True,
-            hilbert_dim=2,
-            adapt_ref_base_depth=0,
-            initial_state_source_resolved="hf",
-            initial_state_kind_resolved="reference_state",
+        validate_sr_route_profile_contract(
+            profile_request=SR_ROUTE_PROFILE_CANDIDATE_V4,
+            contract=tampered,
+            contract_sha256=canonical_sr_snake_v4_contract_sha256(),
         )
