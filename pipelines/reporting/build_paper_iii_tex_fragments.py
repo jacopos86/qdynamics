@@ -345,46 +345,42 @@ _ABLATION_ORDER = (
 
 def build_ablation_fragment() -> str:
     payload = _load(ABLATION_JSON)
+    variants = [k for k in _ABLATION_LABELS if any(
+        k in rec["arms"] for rec in payload["regimes"].values())]
     lines = [_fragment_header([ABLATION_JSON])]
     lines.append(r"\begin{widetext}")
     lines.append(
         r"\inlinetablecaption{tab:qse_ablation_matrix}{Selection-score ablations "
         r"at the production residual stop $\varepsilon=10^{-3}$, so support size "
         r"$k$ is an output: a redundant term shows as equal accuracy at larger "
-        r"$k$, and a load-bearing term shows as failure to converge "
-        r"(\texttt{pool\_exhausted}). Entries are $k$, compiled two-qubit cost, "
-        r"and maximum error over the lowest six excitations; daggers mark runs "
-        r"that exhausted the pool without meeting the stop.}"
+        r"$k$, and a load-bearing term as failure to converge "
+        r"(\texttt{pool\_exhausted}). Entries are $k$ and the maximum error over "
+        r"the lowest six excitations; daggers mark runs that exhausted the pool "
+        r"without meeting the stop.}"
     )
     lines.append(r"\begin{center}")
     lines.append(r"\scriptsize")
     lines.append(r"\begin{ruledtabular}")
-    regimes = [r for r in _ABLATION_ORDER if r in payload["regimes"]]
-    lines.append(
-        r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l" + "c" * len(regimes) + r"@{}}"
-    )
-    lines.append(
-        "Variant & " + " & ".join(_escape(r) for r in regimes) + r" \\"
-    )
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l" + "c" * len(variants) + r"@{}}")
+    lines.append("Regime & " + " & ".join(
+        _ABLATION_LABELS[k].replace("no ", "no~") for k in variants) + r" \\")
     lines.append(r"\colrule")
-    for arm_key, arm_label in _ABLATION_LABELS.items():
+    for regime, rec in payload["regimes"].items():
         cells = []
-        for regime in regimes:
-            arm = payload["regimes"][regime]["arms"].get(arm_key)
+        for key in variants:
+            arm = rec["arms"].get(key)
             if arm is None:
                 cells.append("--")
                 continue
             mark = r"$^\dagger$" if arm.get("stop_reason") == "pool_exhausted" else ""
-            cells.append(
-                rf"{arm['support_size']}{mark} / {arm['total_2q']:.0f} / "
-                rf"{_sci(arm['max_root_abs_error'])}"
-            )
-        lines.append(f"{arm_label} & " + " & ".join(cells) + r" \\")
+            cells.append(rf"{arm['support_size']}{mark} / {_sci(arm['max_root_abs_error'])}")
+        lines.append(_escape(regime) + " & " + " & ".join(cells) + r" \\")
     lines.append(r"\end{tabular*}")
     lines.append(r"\end{ruledtabular}")
     lines.append(r"\end{center}")
     lines.append(r"\end{widetext}")
     return "\n".join(lines) + "\n"
+
 
 
 def main(argv: Sequence[str] | None = None) -> int:

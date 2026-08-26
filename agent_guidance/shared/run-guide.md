@@ -94,6 +94,29 @@ scientific choices into an ordinary request.
 
 ## Execution, monitoring, and repair
 
+### Status-completeness gate
+
+A bare request such as `status`, `status?`, `what is running?`, or `where are
+the runs?` inherits every execution backend used by the active authorized
+objective. Before answering, reconcile all applicable backends:
+
+```text
+local processes
+private remote-runner jobs
+CHTC queue/history and progress artifacts
+```
+
+Do not infer that no scientific work is active from an idle local process list
+or an idle remote runner when the objective has submitted CHTC work. Use the
+recorded cluster IDs from the submission receipt or conversation; do not rely
+only on `JobBatchName`, which may be absent. When an authenticated CHTC session
+already exists, use it automatically for a one-shot read-only scheduler check.
+If CHTC cannot be queried without a new login, say that prominently and report
+the local and remote-runner observations as partial status rather than saying
+that no jobs are active. A status request authorizes these read-only checks but
+does not authorize scheduler mutation, resubmission, cancellation, promotion,
+or cleanup.
+
 Do not interrupt a legitimate active run merely because it is heavy. Stop only
 for an explicit request covering that run, a wrong physics point, failed
 precondition, documented policy conflict, resource failure, debugging need, or

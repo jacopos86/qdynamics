@@ -1,0 +1,273 @@
+% ARCHIVED DESIGN — three-phase staged selection screen.
+% Removed from the manuscript 2026-08-26 because the production selector
+% (pipelines/qse_spectra/record_selection.py, mode geometry_selected) runs a
+% SINGLE PASS over all admissible candidates each round and never implemented
+% this staged shortlist. Preserved verbatim because the staged architecture may
+% be implemented later: its point is that Phase I screens many candidates on
+% cheap probe quantities so that the expensive Phase III pencil quantities are
+% only paid for a shortlist — i.e. a SELECTION-TIME estimator-query reduction,
+% which the current one-pass rule does not provide.
+% If implemented, restore this text and add measured selection-time query counts.
+
+\subsection{Acquisition objective and three-phase approximation}
+\label{sec:acquisition_objective}
+
+The retained set \(\Acal\) is selected by a greedy approximation to spectral-window utility.  For target roots \(\nu\in\Wcal_{\rm targ}\), define the supported metric projector
+\begin{equation}
+P_{\Acal,\tau}=\Phi_\Acal S_{\Acal,\tau}^+\Phi_\Acal^\dagger,
+\label{eq:qse_supported_projector_objective}
+\end{equation}
+and the acquisition utility
+\begin{equation}
+\begin{aligned}
+U(\Acal)
+={}&-
+\sum_{\nu\in\Wcal_{\rm targ}}
+w_\nu
+\left\|
+(I-P_{\Acal,\tau})(H_0-\varepsilon_\nu^{(\Acal)})
+\ket{\Psi_\nu^{(\Acal)}}
+\right\|^2
+\\
+&-\lambda_\kappa\log\kappa(S_{\Acal,\tau})
+-\lambda_C C(\Acal).
+\end{aligned}
+\label{eq:qse_acquisition_utility}
+\end{equation}
+Here the first term rewards closure of the spectral-window eigen-equation residual, the second term penalizes ill-conditioned overlap support, and the third term penalizes matrix-measurement and compiled-preparation cost.  The ideal one-record update would be
+\begin{equation}
+r_\ell^\star
+=
+\argmaxp_{r\notin\Acal_\ell}
+\frac{
+\widehat{\Delta U}(\Acal_\ell;r)
+}{
+1+\widehat C(r;\ell)
+}.
+\label{eq:qse_greedy_utility_update}
+\end{equation}
+Direct evaluation of Eq.~(\ref{eq:qse_greedy_utility_update}) for every candidate would require the expensive matrix elements that the selector is designed to avoid.  The implementation therefore uses a staged approximation.  Phase I performs a cheap probe-transition screen.  Phase II adds overlap-metric novelty and conditioning.  Phase III performs reduced-window residual and Ritz spectral reranking after measuring a smaller candidate set.  Throughout this acquisition section, \(\ell\) denotes the discrete QSE-basis growth index; physical time is reserved for the dynamics variable \(t\).
+
+\subsubsection{Phase I}
+\label{sec:phase1}
+
+Phase I scores the visibility factor of Eq.~(\ref{eq:qse_score_topdown}),
+\begin{equation}
+S_1(r;\ell)=\Delta_{\qse,1}(r;\ell),
+\label{eq:qse_phase1_score}
+\end{equation}
+before the hardware discount of Sec.~\ref{sec:cost_weighting} is applied.  Here $\Delta_{\qse,1}$ is a probe-transition gain within a Fubini-scaled trial radius.  The auxiliary scalar $\alpha$ is not a variational circuit parameter; it is the coefficient of a one-record trial displacement in the QSE basis,
+\begin{equation}
+\ket{\psi_0}\ \mapsto\ \ket{\psi_0}+\alpha\ket{\phi_r},
+\label{eq:qse_phase1_trial_displacement}
+\end{equation}
+used only to compare candidate records on a common state-space scale before full matrix completion.  Let $\rho_{\qse,1}(\ell)>0$ denote the Phase-I QSE trial radius, let $a=|\alpha|$ be the real trial amplitude, and define the raw metric norm $F_r=\braket{\phi_r}{\phi_r}$.  The one-record displacement is constrained by $a^2F_r\le \rho_{\qse,1}(\ell)^2$.  For probe observables $\Ocal_{\rm probe}$ and weights $w_O$, define the probe visibility
+\begin{equation}
+g_r=
+\left[
+\sum_{O\in\Ocal_{\rm probe}}w_O
+\left|
+\bra{\psi_0}O^\dagger\ket{\phi_r}
+\right|^2
+\right]^{1/2} .
+\label{eq:qse_probe_gain}
+\end{equation}  The closed-form trial amplitude and Phase-I gain are
+\begin{equation}
+\begin{aligned}
+a_r
+&=
+\begin{cases}
+\displaystyle
+\min\!\left\{
+\frac{\rho_{\qse,1}(\ell)}{\sqrt{F_r+\eps_F}},
+\frac{g_r}{\lambda_F(F_r+\eps_F)}
+\right\},&\lambda_F>0,\\[2ex]
+\displaystyle
+\frac{\rho_{\qse,1}(\ell)}{\sqrt{F_r+\eps_F}},&\lambda_F=0,
+\end{cases}
+\\
+\Delta_{\qse,1}(r;\ell)
+&=
+g_ra_r-\frac{\lambda_F}{2}(F_r+\eps_F)a_r^2 .
+\end{aligned}
+\label{eq:qse_phase1_gain}
+\end{equation}
+The meaning is parallel to trust-region energy gain in variational ADAPT: records that give strong observable-accessible displacement per unit state-space norm are preferred over records whose large coefficient scale merely reflects normalization artifacts, with the state-space metric language following the Fubini--Study geometry of quantum states and quantum natural-gradient methods \cite{ProvostVallee1980,Stokes2020QNG}.
+
+\subsubsection{Phase II}
+\label{sec:phase2}
+
+Phase II corrects the Phase I screen for nonorthogonal expressibility.  Let $\Acal_\ell$ denote the set of excitation records already admitted into the QSE basis at growth step $\ell$, and let $\Phi_{\Acal_\ell}=[\ket{\phi_a}]_{a\in\Acal_\ell}$.  Define
+\begin{equation}
+S_{\Acal_\ell}=(\braket{\phi_a}{\phi_b})_{a,b\in\Acal_\ell},
+\qquad
+s_r=(\braket{\phi_a}{\phi_r})_{a\in\Acal_\ell}.
+\label{eq:qse_overlap_parts}
+\end{equation}
+Equivalently, the overlap entries are
+$S_{ab}=\bra{\psi_0}\Omega_a^\dagger Q_{\mathfrak s,0}\Omega_b\ket{\psi_0}$,
+so $S_{\Acal_\ell}$ is the pullback of the sector-projective state metric onto the operator-generated excitation manifold.
+Let $S_{\ell,\tau}^{+}$ be the supported pseudoinverse of $S_{\Acal_\ell}$ after discarding metric eigenvalues below the support floor.  The metric projector onto the current nonorthogonal basis is
+\begin{equation}
+P_{\ell,\tau}
+=
+\Phi_{\Acal_\ell}S_{\ell,\tau}^{+}\Phi_{\Acal_\ell}^{\dagger},
+\qquad
+\ket{\bar\phi_r}=(I-P_{\ell,\tau})\ket{\phi_r}.
+\label{eq:qse_metric_projector}
+\end{equation}
+The metric novelty factor is the residual norm fraction
+\begin{equation}
+\mathcal N_2^{\qse}(r;\ell)
+=
+\left[
+\frac{\braket{\bar\phi_r}{\bar\phi_r}}
+{F_r+\eps_F}
+\right]_{[0,1]}
+=
+\left[
+1-\frac{s_r^\dagger S_{\ell,\tau}^{+}s_r}
+{F_r+\eps_F}
+\right]_{[0,1]} .
+\label{eq:qse_phase2_novelty}
+\end{equation}
+Here $[\,\cdot\,]_{[0,1]}$ denotes clipping to the interval $[0,1]$.  A ridge inverse may be used as a damped numerical approximation, but the intended geometric object is the supported metric projection.
+A cheap conditioning guard is built from the condition number of a matrix argument $A$,
+$\kappa(A):=\sigma_{\max}(A)/\sigma_{\min}(A)$, where $\sigma_{\max}(A)$ and $\sigma_{\min}(A)$ are the largest and smallest retained singular values.  In the guard below, $\kappa$ is evaluated on the $\tau_S$-supported subspace after discarding singular values below the support floor $\tau_S$:
+\begin{equation}
+\Gamma_{\kappa,2}(r;\ell)=
+\mathbf 1\!\left[
+\kappa\!\left(
+\begin{bmatrix}
+S_{\Acal_\ell}&s_r\\
+s_r^\dagger&\braket{\phi_r}{\phi_r}
+\end{bmatrix}_{\tau_S}
+\right)
+\le\kappa_{\max,2}
+\right],
+\label{eq:qse_phase2_condition_guard}
+\end{equation}
+and the Phase II score is
+\begin{equation}
+S_2(r;\ell)=
+\Gamma_{\kappa,2}(r;\ell)
+\frac{\Delta_{\qse,1}(r;\ell)\mathcal N_2^{\qse}(r;\ell)}
+{1+K_2(r;\ell)}.
+\label{eq:qse_phase2_score}
+\end{equation}
+
+\subsubsection{Phase III}
+\label{sec:phase3}
+
+Phase III performs reduced-window spectral reranking.  Let $\Acal_\ell$ be the current retained excitation-record set, let
+$M_{\Acal_\ell}:=(\bra{\phi_a}H_0\ket{\phi_b})_{a,b\in\Acal_\ell}$ be the projected Hamiltonian matrix, and let $c^{(\nu)}=(c_a^{(\nu)})_{a\in\Acal_\ell}$ be the coefficient vector for QSE root $\nu$.  The projected generalized eigenproblem on $\Acal_\ell$ is
+\begin{equation}
+M_{\Acal_\ell}c^{(\nu)}=\varepsilon_\nu S_{\Acal_\ell}c^{(\nu)},
+\qquad
+(c^{(\mu)})^\dagger S_{\Acal_\ell}c^{(\nu)}=\delta_{\mu\nu}.
+\label{eq:qse_phase3_gep}
+\end{equation}
+The current root is
+\begin{equation}
+\ket{\Psi_\nu^{(\ell)}}=
+\sum_{a\in\Acal_\ell}c_a^{(\nu)}\ket{\phi_a}.
+\label{eq:qse_current_root}
+\end{equation}
+Using the same supported metric projector $P_{\ell,\tau}$, the projected eigen-equation residual is
+\begin{equation}
+\ket{R_\nu^{(\ell)}}=
+(I-P_{\ell,\tau})(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}}.
+\label{eq:qse_eigen_residual}
+\end{equation}
+For candidate $r$, keep the same residualized vector $\ket{\bar\phi_r}=(I-P_{\ell,\tau})\ket{\phi_r}$ and define its normalized reduced direction
+\begin{equation}
+F_r^\perp=\braket{\bar\phi_r}{\bar\phi_r},
+\qquad
+\ket{u_r}=\frac{\ket{\bar\phi_r}}{\sqrt{F_r^\perp+\lambda_S}}.
+\label{eq:qse_reduced_candidate_direction}
+\end{equation}
+A denominator-free, noise-stable residual-capture diagnostic is
+\begin{equation}
+\begin{aligned}
+C_\nu^{\rm res}(r;\ell)
+&=
+\frac{
+|\bra{u_r}R_\nu^{(\ell)}\rangle|^2
+}{
+(\braket{R_\nu^{(\ell)}}{R_\nu^{(\ell)}}+\eps_R)
+}.
+\end{aligned}
+\label{eq:qse_residual_capture}
+\end{equation}
+The residual-capture term is the root-preserving part of Phase III.  Two further quantities were evaluated as additional score terms and removed from the production rule because they did not improve selection: the exact two-level Ritz gain obtained by adjoining a candidate direction to the current Ritz vector, and an explicit overlap-conditioning penalty, whose role the metric-novelty term already fills.  As a secondary, window-restricted Ritz diagnostic, compute the exact two-dimensional update in the span of the current Ritz vector and \(\ket{u_r}\).  Define
+\begin{equation}
+\eta_{\nu r}
+=
+\bra{u_r}(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}},
+\qquad
+\delta_{\nu r}
+=
+\bra{u_r}(H_0-\varepsilon_\nu)\ket{u_r}.
+\label{eq:qse_ritz_parts}
+\end{equation}
+The shifted two-dimensional Hamiltonian block is
+\begin{equation}
+\begin{pmatrix}
+0&\eta_{\nu r}^{*}\\
+\eta_{\nu r}&\delta_{\nu r}
+\end{pmatrix},
+\end{equation}
+which gives the positive root-window Ritz improvement
+\begin{equation}
+G_\nu^{2\times2}(r;\ell)
+=
+\frac{
+\sqrt{\delta_{\nu r}^{2}+4|\eta_{\nu r}|^2}
+-\delta_{\nu r}
+}{2}.
+\label{eq:qse_ritz_gain}
+\end{equation}
+For large positive \(\delta_{\nu r}\) this reduces to the usual perturbative denominator form, while remaining finite when the candidate is not perturbatively separated.  The term is used inside the root-tracked target window rather than as an unrestricted ground-state lowering criterion.  The Phase III target-window gain mixes residual capture and Ritz energy improvement using nonnegative weights $\alpha_R$ and $\alpha_E$:
+\begin{equation}
+\begin{aligned}
+\Delta_{\qse,3}(r;\ell)
+&=
+\sum_{\nu\in\Wcal_{\rm targ}(\ell)}
+w_\nu
+\Bigl[
+\alpha_R C_\nu^{\rm res}(r;\ell)
+\\
+&\hspace{7em}
++\alpha_E G_\nu^{2\times2}(r;\ell)
+\Bigr].
+\end{aligned}
+\label{eq:qse_phase3_gain}
+\end{equation}
+The authoritative record score is
+\begin{equation}
+S_3(r;\ell)=
+\frac{
+\Delta_{\qse,3}(r;\ell)\mathcal N_2^{\qse}(r;\ell)
+}{
+1+K_3(r;\ell)
+}.
+\label{eq:qse_phase3_score}
+\end{equation}
+A record is admitted when \(S_3\) clears the live threshold, the metric rank increases, and root tracking remains stable over the retained spectral window:
+\begin{equation}
+\begin{aligned}
+\operatorname{Admit}^{\qse}_\ell(r)=1
+\iff{}&
+S_3(r;\ell)\ge\tau_3(\ell)
+\\
+&\wedge\
+\rank(S_{\Acal_\ell\cup\{r\},\tau})
+>
+\rank(S_{\Acal_\ell,\tau})
+\\
+&\wedge\
+\Gamma_{\rm root}(r;\ell)=1 .
+\end{aligned}
+\label{eq:qse_admit}
+\end{equation}
+

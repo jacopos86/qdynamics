@@ -136,7 +136,13 @@ def trace_arm(
 
     rows: list[dict[str, Any]] = []
     cap = min(int(k_max), len(order))
-    for k in range(stride, cap + 1, stride):
+    # The terminal prefix must always be evaluated: an order whose length is
+    # not a multiple of the stride would otherwise drop its final record, and
+    # that record is often the one completing the retained rank.
+    steps = sorted({*range(stride, cap + 1, stride), cap})
+    for k in steps:
+        if k <= 0:
+            continue
         prefix = [int(i) for i in order[:k]]
         if exchange_policy == "every_k":
             prefix = _exchange(problem, prefix)
@@ -238,6 +244,99 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     return rows
 
 
+def trace_krylov(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
+    """Growth trace for real-time Krylov, scored on the same references.
+
+    States exp(-i H k dt) from a seeded random sector kick orthogonal to the
+    reference (the exact reference has an identically zero Hamiltonian
+    residual, so a residual kick is unusable). Per dimension the pencil is
+    solved with the shared cutoff and each target root is scored by its
+    best-matching pencil root -- the Krylov-favouring convention. State
+    preparation is charged one first-order Trotter step of H per interval,
+    the same costing the adaptive method uses.
+    """
+
+    from pipelines.qse_spectra.compiled_costs import (
+        ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        annotate_basis_with_compiled_costs,
+        resolve_cost_weights_preset,
+    )
+    from pipelines.qse_spectra.core import polynomial_basis_element
+    from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
+
+    step = annotate_basis_with_compiled_costs(
+        [polynomial_basis_element(problem.hamiltonian, name="first_order_trotter_step")],
+        num_qubits=problem.num_qubits,
+        oracle_kind=ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
+    )[0].estimate
+    ham_terms = len(_polynomial_words(problem.hamiltonian))
+
+    dim = 1 << int(problem.num_qubits)
+    dense = np.zeros((dim, dim), dtype=complex)
+    from pipelines.exact_bench.paper_iii_qse_regime_frontier_sweep import _dense_hamiltonian
+
+    dense = _dense_hamiltonian(problem.hamiltonian, dim)
+    energies, vectors = np.linalg.eigh(dense)
+    ground = np.asarray(problem.ground, dtype=complex)
+    rng = np.random.default_rng(20260826)
+    support = np.abs(ground) > 0.0
+    source = np.zeros_like(ground)
+    n = int(support.sum())
+    source[support] = rng.normal(size=n) + 1j * rng.normal(size=n)
+    source = source - complex(np.vdot(ground, source)) * ground
+    norm = float(np.linalg.norm(source))
+    if norm <= 1.0e-14:
+        return []
+    amplitudes = vectors.conj().T @ (source / norm)
+    refs = problem.references
+
+    best: dict[int, dict[str, Any]] = {}
+    for dt in (0.25, 0.5):
+        states = [
+            vectors @ (np.exp(-1j * energies * float(dt) * k) * amplitudes)
+            for k in range(int(k_max) + 1)
+        ]
+        for d in range(2, int(k_max) + 1):
+            block = states[:d]
+            S = np.array([[np.vdot(a, b) for b in block] for a in block])
+            M = np.array([[np.vdot(a, dense @ b) for b in block] for a in block])
+            S = 0.5 * (S + S.conj().T)
+            M = 0.5 * (M + M.conj().T)
+            w, U = np.linalg.eigh(S)
+            keep = w > 1.0e-12 * float(max(w.max(), 0.0))
+            if int(keep.sum()) < 1:
+                continue
+            X = U[:, keep] / np.sqrt(w[keep])
+            red = X.conj().T @ M @ X
+            roots = np.sort(np.linalg.eigvalsh(0.5 * (red + red.conj().T)))
+            err = max(float(np.min(np.abs(roots - float(r)))) for r in refs)
+            steps_charged = d * (d - 1) // 2
+            pairs = d * (d + 1) // 2
+            row = {
+                "k": int(d),
+                "support_size": int(d),
+                "exchanged": False,
+                "retained_rank": int(keep.sum()),
+                "max_root_abs_error": err,
+                "n2q": float(step.c_hat_2q) * steps_charged,
+                "d2q": float(step.c_hat_d) * steps_charged,
+                "dc": (float(step.c_hat_d) + float(step.c_hat_1q)) * steps_charged,
+                "dt": float(dt),
+                "estimator": {
+                    "pair_count": pairs,
+                    "queries": int(pairs * (1 + ham_terms)),
+                    "hamiltonian_pauli_terms": int(ham_terms),
+                    "convention": "synthesized_basis_pencil_no_qwc_reuse",
+                },
+            }
+            prev = best.get(d)
+            if prev is None or err < prev["max_root_abs_error"]:
+                best[d] = row
+    del dense
+    return [best[d] for d in sorted(best)]
+
+
 def resolve_from_trace(
     rows: Sequence[dict[str, Any]], eps_e: float, *, extendable: bool
 ) -> dict[str, Any]:
@@ -263,6 +362,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--regime-set", choices=sorted(REGIME_SETS), default="hubbard_l2")
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument("--k-max", type=int, default=60)
+    parser.add_argument(
+        "--krylov-k-max", type=int, default=40,
+        help="Krylov dimension cap. Krylov needs larger dimension than a record "
+             "basis to resolve an interior window; capping it low cripples the "
+             "benchmark rather than measuring it.",
+    )
     parser.add_argument(
         "--exchange-policy", choices=("crossing", "every_k", "both"), default="every_k"
     )
@@ -354,6 +459,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         if best_ad:
             print(f"   {'adaptive_qse':<22} terminal {best_ad['max_root_abs_error']:.1e} "
                   f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
+
+        arms["krylov"] = {
+            "trace": trace_krylov(problem, k_max=int(args.krylov_k_max)),
+            "note": "external benchmark; different construction family, does not consume the alphabet",
+        }
+        best_kr = min(
+            (r for r in arms["krylov"]["trace"] if r["max_root_abs_error"] is not None),
+            key=lambda r: r["max_root_abs_error"], default=None,
+        )
+        if best_kr:
+            print(f"   {'krylov':<22} terminal {best_kr['max_root_abs_error']:.1e} "
+                  f"@k={best_kr['k']} N2q={best_kr['n2q']:.0f}", flush=True)
 
         f_err, f_rank = _window_error(problem, fixed_indices)
         arms["fixed_class"] = {
