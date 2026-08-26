@@ -31,8 +31,12 @@ class Psi4Input(AbstractInput):
         self.basis_set_file = None
         # output
         self.optimized_coordinate_file = None
+        self.optimize_geometry = True
         # basis set
         self.basis_set = None
+        # optional output controls
+        self.write_vibration = False
+        self.write_eph = False
         # calculation parameters
         self.psi4_calc_parameters = {
             "scf_type": None,
@@ -52,10 +56,14 @@ class Psi4Input(AbstractInput):
         self.coordinate_file = self._data.get("coordinate_file")
         # optimized coordinate file
         self.optimized_coordinate_file = self._data.get("optimized_coordinate_file")
+        self.optimize_geometry = self._data.get("optimize_geometry", True)
         # basis set file
         self.basis_set_file = self._data.get("basis_set_file")
         # basis set
         self.basis_set = self._data.get("basis_set")
+        # optional output controls
+        self.write_vibration = self._data.get("write_vibration", False)
+        self.write_eph = self._data.get("write_eph", False)
         # calculations parameters
         calc_parameters = self._data.get("psi4_calc_parameters")
         self.psi4_calc_parameters["scf_type"] = calc_parameters.get("scf_type")

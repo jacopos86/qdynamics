@@ -1,6 +1,27 @@
 import logging
 import numpy as np
 from pyscf import eph
+from pyscf.data.nist import AMU2AU, MP_ME
+
+
+# PySCF EPH treats atom masses reported in amu as though multiplying by the
+# proton/electron mass ratio converted them to electron masses.  A uniform
+# mass rescaling leaves mode eigenvectors unchanged, so omega and the
+# zero-point-normalized coupling can be converted back to the standard amu
+# convention exactly.
+EPH_FREQUENCY_SCALE = np.sqrt(MP_ME / AMU2AU)
+EPH_COUPLING_SCALE = np.sqrt(EPH_FREQUENCY_SCALE)
+
+
+def pyscf_eph_cutoff(cutoff_frequency):
+    """Return the raw PySCF cutoff corresponding to an amu-scale cutoff."""
+    return float(cutoff_frequency) / EPH_FREQUENCY_SCALE
+
+
+def standardize_pyscf_eph(eph_mat, omega):
+    """Convert raw PySCF EPH matrices and frequencies to the amu convention."""
+    return (np.asarray(eph_mat) * EPH_COUPLING_SCALE,
+            np.asarray(omega) * EPH_FREQUENCY_SCALE)
 
 """
 electron_phonon_solver.py
@@ -71,9 +92,12 @@ class ElectronPhononSolver:
         mf = self.driver.mf
         log.info("Computing electron-phonon coupling matrix elements ...")
         myeph = eph.EPH(mf,
-                        cutoff_frequency=self.cutoff_frequency,
+                        cutoff_frequency=pyscf_eph_cutoff(
+                            self.cutoff_frequency),
                         keep_imag_frequency=self.keep_imag_frequency)
         self.eph_mat, self.omega = myeph.kernel(mo_rep=mo_rep)
+        self.eph_mat, self.omega = standardize_pyscf_eph(
+            self.eph_mat, self.omega)
         self.mo_rep = mo_rep
         basis = 'MO' if mo_rep else 'AO'
         log.info(f"eph couplings: {self.eph_mat.shape} ({basis} basis), "
