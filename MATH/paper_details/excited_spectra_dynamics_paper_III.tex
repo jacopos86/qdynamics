@@ -272,12 +272,11 @@ whose four ingredients are
 \item $C^{\rm res}$, \emph{residual capture}: the fraction of the targeted roots' eigen-equation residual that the record's direction absorbs (Sec.~\ref{sec:phase3});
 \item $T$, \emph{probe-transition visibility}: the largest overlap of the record's direction with the normalized images of the target observables (Sec.~\ref{sec:phase1}).
 \end{itemize}
-The ranked quantity is this utility discounted by the record's incremental compiled hardware cost and penalized for conditioning,
+The ranked quantity is this utility discounted by the record's incremental compiled hardware cost,
 \begin{equation}
 \Scal(r;\ell)
 =
-\frac{\Ucal(r;\ell)}{\left[\max\!\left(\widehat C(r;\ell),C_{\rm floor}\right)\right]^{\alpha}}
--\lambda_\kappa\left(1-\Ncal_2^{\qse}(r;\ell)\right),
+\frac{\Ucal(r;\ell)}{\left[\max\!\left(\widehat C(r;\ell),C_{\rm floor}\right)\right]^{\alpha}},
 \label{eq:qse_score_ranked}
 \end{equation}
 with the cost model deferred to Sec.~\ref{sec:cost_weighting}.  The ingredients enter additively rather than as a product, so a record strong in one coordinate can still be admitted when another is weak; the veto behavior that a product would impose is instead supplied by the metric-novelty floor, below which a candidate is rejected outright as unrepresentable.  Each term is load bearing: Sec.~\ref{sec:ablations} shows that removing any one of metric novelty, residual capture, or the cost discount prevents convergence in most regimes.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}; the cost term is deferred to Sec.~\ref{sec:cost_weighting} so that the geometry is defined independently of the hardware model.
