@@ -546,15 +546,7 @@ class StaticQSECampaign:
     def cell_actions(self, cell: StaticQSECellKey) -> dict[str, StaticQSEAction]:
         """The cell's full stage graph, dependency ids resolved in topo order."""
 
-        actions: dict[str, StaticQSEAction] = {}
-        for stage in STAGE_ORDER:
-            deps = tuple(
-                actions[dep_stage].action_id for dep_stage in STAGE_DEPENDENCIES[stage]
-            )
-            actions[stage] = StaticQSEAction(
-                cell=cell, stage=stage, dependency_action_ids=deps
-            )
-        return actions
+        return build_cell_actions(cell)
 
     def all_actions(self) -> tuple[StaticQSEAction, ...]:
         """Every declared action, deterministically ordered.
@@ -604,6 +596,73 @@ class StaticQSECampaign:
         return {
             stage: self.action_status(ledger, actions[stage]) for stage in STAGE_ORDER
         }
+
+
+def build_cell_actions(cell: StaticQSECellKey) -> dict[str, StaticQSEAction]:
+    """One cell's full stage graph, dependency ids resolved in topo order."""
+
+    actions: dict[str, StaticQSEAction] = {}
+    for stage in STAGE_ORDER:
+        deps = tuple(
+            actions[dep_stage].action_id for dep_stage in STAGE_DEPENDENCIES[stage]
+        )
+        actions[stage] = StaticQSEAction(
+            cell=cell, stage=stage, dependency_action_ids=deps
+        )
+    return actions
+
+
+# --- payload deserializers --------------------------------------------------
+
+
+def physics_key_from_payload(payload: Mapping[str, Any]) -> StaticQSEPhysicsKey:
+    if payload.get("schema") != "static_qse_physics_key_v1":
+        raise StaticCampaignError(
+            f"unexpected physics-key schema {payload.get('schema')!r}."
+        )
+    parameters = payload.get("parameters")
+    if not isinstance(parameters, Mapping):
+        raise StaticCampaignError("physics-key payload requires a parameters mapping.")
+    return StaticQSEPhysicsKey(
+        model_family=str(payload["model_family"]),
+        case_id=str(payload["case_id"]),
+        parameters=tuple(sorted((str(k), float(v)) for k, v in parameters.items())),
+        register_layout=str(payload["register_layout"]),
+        sector=str(payload["sector"]),
+        cutoff_kind=str(payload["cutoff_kind"]),
+        cutoff_value=int(payload["cutoff_value"]),
+    )
+
+
+def cell_key_from_payload(payload: Mapping[str, Any]) -> StaticQSECellKey:
+    if payload.get("schema") != "static_qse_cell_key_v1":
+        raise StaticCampaignError(
+            f"unexpected cell-key schema {payload.get('schema')!r}."
+        )
+    return StaticQSECellKey(
+        physics=physics_key_from_payload(payload["physics"]),
+        ground_state_artifact_id=str(payload["ground_state_artifact_id"]),
+        method_id=str(payload["method_id"]),
+        target_roots=tuple(int(r) for r in payload["target_roots"]),
+        dimension_cap=int(payload["dimension_cap"]),
+        pool_policy_digest=str(payload["pool_policy_digest"]),
+        spectral_request_digest=str(payload["spectral_request_digest"]),
+        resource_policy_id=str(payload["resource_policy_id"]),
+    )
+
+
+def action_from_payload(payload: Mapping[str, Any]) -> StaticQSEAction:
+    if payload.get("schema") != "static_qse_action_v1":
+        raise StaticCampaignError(
+            f"unexpected action schema {payload.get('schema')!r}."
+        )
+    return StaticQSEAction(
+        cell=cell_key_from_payload(payload["cell"]),
+        stage=str(payload["stage"]),
+        dependency_action_ids=tuple(
+            str(x) for x in payload.get("dependency_action_ids", [])
+        ),
+    )
 
 
 # --- declared matrices ------------------------------------------------------
@@ -763,11 +822,15 @@ __all__ = [
     "StaticQSECellKey",
     "StaticQSELedger",
     "StaticQSEPhysicsKey",
+    "action_from_payload",
+    "build_cell_actions",
     "canonical_digest",
     "canonical_json",
+    "cell_key_from_payload",
     "declare_hh_matrix",
     "declare_siam_matrix",
     "hh_physics_key",
     "normalize_method_id",
+    "physics_key_from_payload",
     "siam_physics_key_typed",
 ]

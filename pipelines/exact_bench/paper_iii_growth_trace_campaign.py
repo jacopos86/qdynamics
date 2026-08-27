@@ -591,6 +591,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regime-set", choices=sorted(REGIME_SETS), default="hubbard_l2")
+    parser.add_argument("--regimes", default=None, help="Comma-separated regime filter within the set.")
     parser.add_argument("--stride", type=int, default=2)
     parser.add_argument(
         "--k-max",
@@ -618,7 +619,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     regimes_payload: dict[str, Any] = {}
 
+    wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
     for regime, u, g_ep, n_ph_max in REGIME_SETS[str(args.regime_set)]:
+        if wanted is not None and regime not in wanted:
+            continue
         problem = load_problem(
             regime=regime, u=u, g_ep=g_ep, n_ph_max=n_ph_max, target_roots=_TARGET_ROOTS
         )
