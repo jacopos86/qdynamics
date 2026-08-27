@@ -248,6 +248,13 @@ def test_geometry_residual_stop_terminates_before_budget() -> None:
     assert result.geometry_stop is not None
     assert result.geometry_stop["stop_reason"] == "residual_converged"
     assert result.geometry_stop["final_max_target_residual_norm"] < 1.0e-8
+    trace = result.geometry_stop["round_trace"]
+    assert [row["selected_count_before"] for row in trace] == [0, 1]
+    assert trace[0]["selected_original_index"] == 0
+    assert trace[1]["selected_original_index"] is None
+    assert trace[1]["retained_frame_size"] == 1
+    assert trace[1]["window_pressure"] is False
+    assert trace[1]["window_closed"] is True
     payload = static_record_selection_payload(result)
     assert payload["geometry_stop"]["stop_reason"] == "residual_converged"
     with pytest.raises(ValueError, match="geometry_residual_stop"):

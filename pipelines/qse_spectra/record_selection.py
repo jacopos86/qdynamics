@@ -466,7 +466,7 @@ def _geometry_select(
         int(c.original_basis_index): c for c in eligible_candidates
     }
 
-    def _round_residual_hats() -> tuple[list[np.ndarray], float | None, int]:
+    def _round_residual_hats() -> tuple[list[np.ndarray], float | None, int, float | None]:
         """Return (residual hats, max target-root residual norm, frame size).
 
         The max residual norm over the lowest min(R, frame) Ritz roots is the
@@ -504,6 +504,7 @@ def _geometry_select(
     stop_reason = "budget_reached"
     last_max_residual: float | None = None
     pending_convergence = False
+    round_trace: list[dict[str, Any]] = []
     while pool and len(selected) < int(config.max_records):
         round_residuals, last_max_residual, frame_size, window_top = _round_residual_hats()
         pending_convergence = (
@@ -587,9 +588,58 @@ def _geometry_select(
                 continue
             round_scores[index] = float(score)
 
+        window_margin = (
+            float(config.geometry_residual_stop)
+            if config.geometry_residual_stop is not None
+            else 0.0
+        )
+        window_pressure = bool(
+            frame_size >= int(config.geometry_target_roots)
+            and window_top is not None
+            and any(
+                round_thetas.get(idx) is not None
+                and float(round_thetas[idx]) < float(window_top) + window_margin
+                for idx in round_scores
+            )
+        )
+        round_row: dict[str, Any] = {
+            "round": len(round_trace) + 1,
+            "selected_count_before": len(selected),
+            "retained_frame_size": int(frame_size),
+            "max_target_residual_norm": last_max_residual,
+            "window_top": window_top,
+            "window_margin": float(window_margin),
+            "window_pressure": bool(window_pressure),
+            "window_closed": bool(
+                frame_size >= int(config.geometry_target_roots)
+                and not window_pressure
+            ),
+            "novel_candidate_count": len(round_scores),
+            "max_candidate_metric_novelty": (
+                max(
+                    float(geometry_rows[idx]["metric_novelty_fraction"])
+                    for idx in round_scores
+                )
+                if round_scores
+                else None
+            ),
+            "max_candidate_residual_capture": (
+                max(
+                    float(geometry_rows[idx]["residual_capture"])
+                    for idx in round_scores
+                )
+                if round_scores
+                else None
+            ),
+            "selected_original_index": None,
+            "selected_score": None,
+            "selected_metric_novelty": None,
+            "selected_residual_capture": None,
+        }
         if not round_scores:
             # An exhausted pool with pending residual convergence satisfies
             # both conditions: no remaining pressure, residuals below eps.
+            round_trace.append(round_row)
             stop_reason = "residual_converged" if pending_convergence else "pool_exhausted"
             break
         if pending_convergence:
@@ -602,16 +652,24 @@ def _geometry_select(
             # current R-th Ritz value, i.e. it could still introduce a new
             # state inside the window. Pure novelty above the window is not
             # pressure.
-            margin = float(config.geometry_residual_stop)
-            window_pressure = window_top is not None and any(
-                round_thetas.get(idx) is not None
-                and float(round_thetas[idx]) < float(window_top) + margin
-                for idx in round_scores
-            )
             if not window_pressure:
+                round_trace.append(round_row)
                 stop_reason = "residual_converged"
                 break
         best_index = min(round_scores, key=lambda idx: (-round_scores[idx], idx))
+        round_row.update(
+            {
+                "selected_original_index": int(best_index),
+                "selected_score": float(round_scores[best_index]),
+                "selected_metric_novelty": float(
+                    geometry_rows[best_index]["metric_novelty_fraction"]
+                ),
+                "selected_residual_capture": float(
+                    geometry_rows[best_index]["residual_capture"]
+                ),
+            }
+        )
+        round_trace.append(round_row)
         selected.append(pool.pop(best_index))
         accepted_images.append(images[best_index])
         _rebuild_retained_frame()
@@ -629,6 +687,7 @@ def _geometry_select(
             if config.geometry_residual_stop is not None
             else None
         ),
+        "round_trace": tuple(round_trace),
     }
     return selected, floor_rejected, geometry_rows, scores, stop_info
 
