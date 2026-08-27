@@ -297,7 +297,8 @@ def _compile_pdf(
     if not built.is_file():
         raise PaperIIIQSEResultsReportError(f"LaTeX reported success but {built} is missing.")
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(built, pdf_path)
+    if built.resolve() != Path(pdf_path).resolve():
+        shutil.copy2(built, pdf_path)
     return "compiled", log
 
 
