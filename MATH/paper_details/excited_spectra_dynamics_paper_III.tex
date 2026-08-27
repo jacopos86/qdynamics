@@ -31,7 +31,6 @@
 \newcommand{\Ocal}{\mathcal{O}}
 \newcommand{\Ecal}{\mathcal{E}}
 \newcommand{\Acal}{\mathcal{A}}
-\newcommand{\Scal}{\mathcal{S}}
 \newcommand{\Ncal}{\mathcal{N}}
 \newcommand{\Fcal}{\mathcal{F}}
 \newcommand{\Ccal}{\mathcal{C}}
@@ -255,56 +254,91 @@ F_r
 \subsection{Selection score}
 
 \structlabel{Selection score}
-Before defining the ingredients, we separate the local geometric surrogate from the ranked score.  For a candidate excitation record $r$ at growth round $\ell$, define
+Let $\mathcal R_0$ be the initial eligible record alphabet and
+$\mathcal R_\ell\subseteq\mathcal R_0$ the candidates remaining at growth
+round $\ell$.  For $r\in\mathcal R_\ell$, define the local acquisition gain
+and the ranked score by
 \begin{align}
-G_{\rm geo}(r;\ell)
+\Delta_\ell(r)
 &=
 w_{\Ncal}\,\Ncal^{\qse}(r;\ell)
-+w_{R}\,C^{\rm res}(r;\ell),
++w_{R}\,\chi_\ell^{\rm res}(r),
 \label{eq:qse_geometric_surrogate}\\
-\Scal(r;\ell)
+S_\ell(r)
 &=
-\frac{G_{\rm geo}(r;\ell)}
-{\left[\max\!\left(\widehat K(r;\ell),K_{\rm floor}\right)\right]^{\alpha}}.
+\frac{\Delta_\ell(r)}{K_\ell(r)}.
 \label{eq:qse_score_topdown}
 \end{align}
 The two geometric ingredients are
 \begin{itemize}
 \item $\Ncal^{\qse}$, \emph{metric novelty}: the Schur-complement residual fraction of the record's image after projection onto the retained support, so a direction already expressible by the current basis scores zero;
-\item $C^{\rm res}$, \emph{residual capture}: the fraction of the targeted roots' eigen-equation residual that the record's direction absorbs.
+\item $\chi_\ell^{\rm res}$, \emph{residual capture}: the largest normalized amplitude with which the record's retained-frame-orthogonal direction overlaps a targeted eigen-equation residual.
 \end{itemize}
-Here $C^{\rm res}$ denotes capture, not cost; cost is denoted by $K$ throughout.  The local surrogate $G_{\rm geo}$ enters additively, so a record strong in one geometric coordinate can still be admitted when the other is weak.  The veto behavior that a product would impose is instead supplied by the metric-novelty floor, below which a candidate is rejected outright as unrepresentable.  The denominator of Eq.~(\ref{eq:qse_score_topdown}) applies the hardware discount exactly once; its cost model is deferred to Sec.~\ref{sec:cost_weighting}.  Section~\ref{sec:ablations} shows that removing metric novelty, residual capture, or that single cost discount prevents convergence in most regimes.  Two conventions are load bearing throughout.  First, novelty and gain are always evaluated against the \emph{numerically retained} support $P_{\Acal,\tau}$ of Eq.~(\ref{eq:qse_supported_projector_objective}), never the exact span of accepted images: acquisition and diagonalization must share one stabilization cutoff $\tau$, or the selector will score as redundant a direction that the stabilized pencil has discarded and cannot represent.  Second, every score is discounted by the incremental compiled-hardware cost of the record, following the acquisition principle of the companion papers \cite{PaperI,PaperII}.
-
-The distinction between utility and score is therefore explicit.  The support-level utility $U(\Acal)$ below is the ideal global objective; $G_{\rm geo}(r;\ell)$ is the cheap local geometric surrogate for a candidate's marginal residual closure; and $\Scal(r;\ell)$ is the final cost-discounted ranking score used by the selector.  Section~\ref{sec:acquisition_objective} defines the ideal utility and the two implemented geometric quantities; Sec.~\ref{sec:cost_weighting} defines the cost coordinate; Sec.~\ref{sec:stopping_rule} gives the stopping rule that makes support size an output rather than a budget; and Sec.~\ref{sec:exchange_maintenance} gives the certified exchange move that maintains an already-selected support.
+Here $\Delta_\ell$ is a local gain surrogate, $K_\ell>0$ is the single
+compiled-cost factor defined in Sec.~\ref{sec:cost_weighting}, and $S_\ell$ is
+the quantity actually ranked.  The two gain terms enter additively, so a
+record strong in one geometric coordinate can still be admitted when the
+other is weak.  A separate metric-novelty floor rejects unrepresentable
+candidates.  Novelty and residual capture are evaluated against the
+\emph{numerically retained} support, never the exact span of accepted images:
+acquisition and diagonalization share one cutoff $\tau$.  The score applies
+the compiled-cost discount exactly once, following the acquisition principle
+of Refs.~\cite{PaperI,PaperII}.
 
 \subsection{Acquisition rule}
 \label{sec:acquisition_objective}
 
-\structlabel{Acquisition rule}
-The retained set $\Acal$ is grown greedily by a single-pass rule: at each round every remaining admissible candidate is scored, the best is admitted, and the round repeats.  There is no staged shortlist---the two geometric quantities of Eq.~(\ref{eq:qse_score_topdown}) are evaluated for every candidate in every round, and both are obtained from the same objects the pencil already needs.  We state the objective the rule approximates, then the two quantities as implemented.
-
-For target roots $\nu\in\Wcal_{\rm targ}$, define the supported metric projector
-\begin{equation}
-P_{\Acal,\tau}=\Phi_\Acal S_{\Acal,\tau}^+\Phi_\Acal^\dagger,
-\label{eq:qse_supported_projector_objective}
-\end{equation}
-and the acquisition utility
+\structlabel{Ideal objective and implemented rule}
+The ideal support-selection problem is combinatorial.  For target roots
+$\nu\in\Wcal_{\rm targ}$, let $P_\Acal$ be the exact orthogonal projector
+onto $\Vcal_{\Acal,\mathfrak s}=\spanop\{\ket{\phi_a}:a\in\Acal\}$.  The
+ideal support objective is
 \begin{equation}
 \begin{aligned}
-U(\Acal)
+J_\lambda(\Acal)
 ={}&-
 \sum_{\nu\in\Wcal_{\rm targ}}
 w_\nu
 \left\|
-(I-P_{\Acal,\tau})(H_0-\varepsilon_\nu^{(\Acal)})
+(I-P_{\Acal})(H_0-\varepsilon_\nu^{(\Acal)})
 \ket{\Psi_\nu^{(\Acal)}}
 \right\|^2
 \\
 &-\lambda_K K(\Acal).
 \end{aligned}
-\label{eq:qse_acquisition_utility}
+\label{eq:qse_ideal_objective}
 \end{equation}
-The first term rewards closure of the spectral-window eigen-equation residual and the second penalizes total support cost.  This global utility is not evaluated by the operating selector.  Direct greedy maximization of Eq.~(\ref{eq:qse_acquisition_utility}) would require the very matrix elements the selector is meant to avoid, so each candidate is ranked instead by the local score in Eq.~(\ref{eq:qse_score_topdown}), computed against the current \emph{retained} frame.
+The corresponding ideal set is
+\begin{equation}
+\Acal_{\rm ideal}
+\in
+\argmaxp_{\Acal\subseteq\mathcal R_0}J_\lambda(\Acal).
+\label{eq:qse_ideal_set_problem}
+\end{equation}
+The first term rewards closure of the spectral-window eigen-equation residual
+and the second penalizes total support cost.  The implementation neither
+enumerates subsets nor evaluates $J_\lambda$ or its exact marginal gains.
+Instead, Eq.~(\ref{eq:qse_geometric_surrogate}) is the declared
+measurement-compatible surrogate for local spectral benefit, and the greedy
+update is
+\begin{equation}
+\begin{aligned}
+r_\ell^\star
+&\in
+\argmaxp_{\substack{r\in\mathcal R_\ell\\
+\Ncal^{\qse}(r;\ell)\ge\tau_{\Ncal}}}
+S_\ell(r),
+\\
+\Acal_{\ell+1}&=\Acal_\ell\cup\{r_\ell^\star\},
+\qquad
+\mathcal R_{\ell+1}=\mathcal R_\ell\setminus\{r_\ell^\star\}.
+\end{aligned}
+\label{eq:qse_greedy_update}
+\end{equation}
+Thus $J_\lambda$ states the ideal global tradeoff, whereas $\Delta_\ell$ and
+$S_\ell=\Delta_\ell/K_\ell$ define the implemented greedy approximation.
+Every remaining eligible record is evaluated in every round; there is no
+staged shortlist.
 
 \structlabel{Metric novelty}
 Let $\Acal_\ell$ be the records admitted so far, with overlap matrix and cross-overlap
@@ -316,19 +350,21 @@ s_r=(\braket{\phi_a}{\phi_r})_{a\in\Acal_\ell}.
 \end{equation}
 Equivalently $S_{ab}=\bra{\psi_0}\Omega_a^\dagger Q_{\mathfrak s,0}\Omega_b\ket{\psi_0}$, so $S_{\Acal_\ell}$ is the pullback of the sector-projective state metric onto the operator-generated manifold.  Writing $P_{\ell,\tau}$ for the projector onto the numerically retained principal directions of $S_{\Acal_\ell}$ under the solver's cutoff $\tau$, the residualized candidate image and its normalized direction are
 \begin{equation}
-\ket{\bar\phi_r}=(I-P_{\ell,\tau})\ket{\phi_r},
-\qquad
-F_r^\perp=\braket{\bar\phi_r}{\bar\phi_r},
-\qquad
-\ket{u_r}=\frac{\ket{\bar\phi_r}}{\sqrt{F_r^\perp+\lambda_S}},
+\begin{aligned}
+\ket{\bar\phi_r}&=(I-P_{\ell,\tau})\ket{\phi_r},
+&
+F_r^\perp&=\braket{\bar\phi_r}{\bar\phi_r},
+\\
+\ket{u_r}&=\frac{\ket{\bar\phi_r}}{\sqrt{F_r^\perp}}.
+\end{aligned}
 \label{eq:qse_reduced_candidate_direction}
 \end{equation}
 and the metric novelty is the Schur-complement residual fraction
 \begin{equation}
-\Ncal^{\qse}(r;\ell)=\frac{F_r^\perp}{\braket{\phi_r}{\phi_r}+\eps_F}\in[0,1].
+\Ncal^{\qse}(r;\ell)=\frac{F_r^\perp}{\braket{\phi_r}{\phi_r}}\in[0,1].
 \label{eq:qse_phase2_novelty}
 \end{equation}
-The projection in Eq.~(\ref{eq:qse_reduced_candidate_direction}) is applied twice (reorthogonalized Gram--Schmidt): a single pass lets numerical noise from near-dependent accepted directions masquerade as zero novelty and permanently exclude records that still carry rank.  Candidates with $\Ncal^{\qse}$ below a hard floor are rejected outright as unrepresentable rather than merely ranked low.
+Zero-image records are assigned zero novelty.  Equation~(\ref{eq:qse_reduced_candidate_direction}) is evaluated only for $F_r^\perp>0$; the hard floor $\tau_{\Ncal}>0$ rejects zero and numerically unrepresentable directions.  The projection is applied twice (reorthogonalized Gram--Schmidt): a single pass lets roundoff from near-dependent accepted directions masquerade as zero novelty and permanently exclude records that still carry retained rank.
 
 \structlabel{Residual capture}
 Let $M_{\Acal_\ell}=(\bra{\phi_a}H_0\ket{\phi_b})_{a,b\in\Acal_\ell}$ and let $c^{(\nu)}$ solve the projected problem
@@ -345,13 +381,13 @@ with current root $\ket{\Psi_\nu^{(\ell)}}=\sum_{a\in\Acal_\ell}c_a^{(\nu)}\ket{
 \end{equation}
 and residual capture is the fraction of that residual the candidate direction absorbs, maximized over the targeted roots:
 \begin{equation}
-C^{\rm res}(r;\ell)
+\chi_\ell^{\rm res}(r)
 =
-\max_{\nu\le R}
-\frac{|\braket{u_r}{R_\nu^{(\ell)}}|^2}{\braket{R_\nu^{(\ell)}}{R_\nu^{(\ell)}}+\eps_R}.
+\max_{\substack{\nu\le R\\\|R_\nu^{(\ell)}\|>0}}
+\frac{|\braket{u_r}{R_\nu^{(\ell)}}|}{\|R_\nu^{(\ell)}\|}.
 \label{eq:qse_residual_capture}
 \end{equation}
-Because $\ket{u_r}$ is already orthogonal to the retained support, $\braket{u_r}{R_\nu^{(\ell)}}=\bra{u_r}(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}}$, so residual capture needs only one additional application of $H_0$ per candidate.
+The value is defined as zero when every targeted residual vanishes.  Because $\ket{u_r}$ is already orthogonal to the retained support, $\braket{u_r}{R_\nu^{(\ell)}}=\bra{u_r}(H_0-\varepsilon_\nu)\ket{\Psi_\nu^{(\ell)}}$, so residual capture needs only one additional application of $H_0$ per candidate.
 
 \structlabel{Scope of this rule}
 Two quantities that a staged screen would use are deliberately absent from the production rule: a probe-transition visibility term and an explicit two-level Ritz gain.  Both were implemented, evaluated, and removed because they did not improve selection (Sec.~\ref{sec:ablations}).  The rule therefore evaluates two geometric quantities per candidate per round and nothing else.
@@ -361,29 +397,29 @@ Two quantities that a staged screen would use are deliberately absent from the p
 \label{sec:cost_weighting}
 
 \structlabel{Hardware-cost weighting}
-Equation~(\ref{eq:qse_score_topdown}) already discounts the geometric surrogate by incremental compiled-hardware cost exactly once, following the acquisition principle established for ansatz construction \cite{PaperI} and for structural patches in checkpoint dynamics \cite{PaperII}.  Write $K(r;\ell)$ for the raw incremental cost, let $\mathcal R_{\rm elig}$ be the eligible record alphabet, and define
+Equation~(\ref{eq:qse_score_topdown}) discounts the local gain by incremental
+compiled-hardware cost exactly once.  Write $K_\ell^{\rm raw}(r)$ for the raw
+incremental cost and define the positive cost factor
 \begin{equation}
-K_{\max}=\max\!\left\{1,\max_{q\in\mathcal R_{\rm elig}}K(q;\ell)\right\},
-\qquad
-\widehat K(r;\ell)=\frac{K(r;\ell)}{K_{\max}}.
+K_\ell(r)
+=
+\max\!\left(
+K_{\rm floor},
+\frac{K_\ell^{\rm raw}(r)}
+{\max\!\left\{1,\max_{q\in\mathcal R_0}K_\ell^{\rm raw}(q)\right\}}
+\right).
 \label{eq:qse_cost_normalization}
 \end{equation}
-Thus $\widehat K\in[0,1]$ and Eq.~(\ref{eq:qse_score_topdown}) is the final ranked quantity; no second cost penalty is applied.  The bounded floor $K_{\rm floor}$ is not cosmetic: without it, records whose compiled cost rounds to zero acquire unbounded score and crowd out spectrally useful directions.  We use $\alpha=1$ and $K_{\rm floor}=0.05$ throughout; $\alpha=2$ is too greedy at small support in the strong-coupling regimes.
+Thus the implemented ranking law is exactly $S_\ell=\Delta_\ell/K_\ell$;
+no second cost penalty is applied.  The floor prevents a zero-cost estimate
+from producing an unbounded score.  The reported selector fixes
+$K_{\rm floor}=0.05$.
 
-For this paper the cost coordinate is the \emph{compiled two-qubit gate count} of the record's measurement circuit under the Paper-I oracle, the \texttt{two\_qubit\_only\_v1} scalarization of the component ledger, evaluated either analytically from the backend graph span or by full transpilation; the two agree to Spearman $0.9999$ and select identical supports.  The remaining components of the Paper-I ledger, and the separately reported matrix-measurement work, enter the resource accounting rather than the acquisition score:
-The cost proxy includes incremental overlap/Hamiltonian matrix elements, new Pauli groups, conditioning risk, and optional compiled preparation cost for controlled-overlap or Hadamard-test implementations; Pauli grouping and measurement-reuse considerations enter this proxy as resource estimates rather than as spectral evidence \cite{Verteletskyi2020MeasurementGrouping}:
-\begin{equation}
-\begin{aligned}
-K_1(r;\ell)
-&=
-w_S\widehat K_S(r)+w_M\widehat K_M(r)
-+w_{\obs}\widehat K_{\obs}(r)\\
-&\quad
-+w_\kappa\widehat K_\kappa(r)
-+w_{\twq}\widehat K_{\twq}(r;\ell).
-\end{aligned}
-\label{eq:qse_cost_proxy}
-\end{equation}
+For the reported selector, $K_\ell^{\rm raw}$ is the compiled two-qubit gate
+count of the record's measurement circuit.  The analytic hardware-graph
+estimate and full transpilation give Spearman correlation $0.9999$ and select
+identical supports.  Other circuit coordinates and matrix-measurement work are
+reported as separate resource axes and never enter $S_\ell$.
 The reported matrix-measurement proxy is tracked separately from the normalized score penalty,
 \begin{equation}
 S_{\rm mat}^{\rm proxy}
@@ -395,17 +431,7 @@ N_{\rm group}
 \#\mathcal G_{\rm meas},
 \label{eq:qse_reported_measurement_proxy}
 \end{equation}
-where \(\mathcal G_{\rm meas}\) is the grouped-observable set used for all required overlap, Hamiltonian, transition, and probe matrix elements, and \(N_g\) is the allocated shot count for group \(g\).  Tables report \(M_{\rm eff}=\rank(S_\tau)\), \(\kappa(S_\tau)\), \(N_{\rm group}\), and \(S_{\rm mat}^{\rm proxy}\) whenever the corresponding artifacts are available.
-The weights are nonnegative controller weights, and the hatted quantities are dimensionless normalized resource or risk predictors.  The term $\widehat K_S(r)$ estimates the additional grouped measurements needed for overlap entries involving $\phi_r$; $\widehat K_M(r)$ estimates the additional grouped measurements needed for projected Hamiltonian entries; $\widehat K_{\obs}(r)$ estimates additional observable or transition-matrix groups for the probe set; $\widehat K_\kappa(r)$ estimates numerical conditioning risk from adding a nearly dependent basis direction; and $\widehat K_{\twq}(r;\ell)$ estimates the incremental compiled two-qubit or controlled-preparation burden of measuring record $r$ at growth step $\ell$.  These are acquisition costs, not evidence that the candidate is physically unimportant.  If $\Acal_\ell$ denotes the current admitted record set, then a cheap Hamiltonian-matrix measurement proxy is
-\begin{equation}
-\widehat K_M(r)\propto
-\sum_{a\in\Acal_\ell}
-\#\operatorname{groups}\left[
-\Omega_a^\dagger Q_{\mathfrak s,0}H_0Q_{\mathfrak s,0}\Omega_r
-\right],
-\label{eq:qse_matrix_cost_proxy}
-\end{equation}
-with the analogous expression for $\widehat K_S$ obtained by replacing $H_0$ with $I$, and the analogous expression for $\widehat K_{\obs}$ obtained by replacing $H_0$ with the measured probe or observable $O$.
+where \(\mathcal G_{\rm meas}\) is the grouped-observable set used for all required overlap, Hamiltonian, transition, and probe matrix elements, and \(N_g\) is the allocated shot count for group \(g\).  Tables report \(d_{\rm eff}=\rank(S_\tau)\), \(\kappa(S_\tau)\), \(N_{\rm group}\), and \(S_{\rm mat}^{\rm proxy}\) whenever the corresponding artifacts are available.
 
 
 \subsection{Stopping rule: residual convergence and window closure}
@@ -493,43 +519,7 @@ Three properties distinguish this from pruning followed by regrowth.  The deleti
 
 Only the patch algebra and atomic event map are inherited from Paper II.  Its realized captured-drift objective and ray- and velocity-continuity gates are dynamics-specific and are not transplanted here; Paper III replaces them by the Ky Fan objective and QSE overlap-metric guards above.  The implementation evaluated here restricts $|B_m^{\ominus}|\le 1$ and $|B_m^{\oplus}|\le 1$, so every nondegenerate patch is a one-record-for-one-record exchange.  Pure deletion is enabled as a degenerate patch; pure insertion is implemented but disabled in the reported growth trace.  Multi-record exchanges are not evaluated here.
 
-\subsection{Batching, root-beaming, and root tracking}
-
-The Phase III results produce a ranked record set
-\begin{equation}
-\Rset_3(\ell)=\{r:S_3(r;\ell)\ge\tau_3(\ell)\}.
-\label{eq:qse_phase3_record_set}
-\end{equation}
-Batching is allowed when records are sector-compatible, measurement-reusable, and metric-independent.  Write
-$R_{rr'}:=|\braket{\bar\phi_r}{\bar\phi_{r'}}|/
-\sqrt{(F_r+\eps_F)(F_{r'}+\eps_F)}$ for the normalized residual cross-overlap:
-\begin{equation}
-\begin{aligned}
-\Gamma_{\rm batch}^{\qse}(B;\ell)=1
-\iff{}&
-\mathbf 1[\mathfrak s_r=\mathfrak s_{r'}\ \forall r,r'\in B]
-\\
-&\times
-\mathbf 1[
-R_{rr'}\le\tau_{\rm cross}\ \forall r\ne r']
-\\
-&\times
-\mathbf 1[\widehat K_{\rm meas}(B)\le \tau_{\rm meas}^{B}(\ell)]
-\\
-&\times
-\mathbf 1[\kappa(S_{\Acal_\ell\cup B,\tau})\le\kappa_{\max}] .
-\end{aligned}
-\label{eq:qse_batch_gate}
-\end{equation}
-Degenerate record frontiers are handled by root-beaming: run several near-degenerate record additions for $j_{\rm beam}$ QSE-growth steps, match roots by overlap, and retain the branch minimizing a Pareto objective,
-\begin{equation}
-J_{\rm beam}
-=
-\epsilon_{\rm spec}
-+\lambda_\kappa\log\kappa(S)
-+\lambda_M M_{\rm eff}.
-\label{eq:qse_beam_objective}
-\end{equation}
+\subsection{Root tracking}
 
 Root tracking across coupling, cutoff, drive, and record-growth sweeps uses global assignment on the metric-overlap matrix rather than independent maxima.  If $c_\nu^{(\ell)}$ and $c_\mu^{(\ell+1)}$ are coefficient vectors in two successive bases, padded into the union basis where necessary, define
 \begin{equation}
@@ -569,10 +559,11 @@ c_\nu&=By_\nu,
 \end{aligned}
 \label{eq:qse_whitened_gep}
 \end{equation}
-so that \(c_\nu^\dagger S c_\nu=1\).  If a ridge map
-\(B_\lambda=V_{\mathcal I_S(\tau)}\diag((s_i+\lambda_S)^{-1/2})\) is used for damping, the resulting Ritz vector is renormalized by
-\(c_\nu=B_\lambda y_\nu/\sqrt{y_\nu^\dagger B_\lambda^\dagger S B_\lambda y_\nu}\).
-This shared support defines the retained dimension $M_{\rm eff}=|\mathcal I_S(\tau)|$ and the supported condition estimate reported in the results and enforced by the exchange guards.  It is therefore part of the acquisition method rather than a result diagnostic.  Matrix construction, Rayleigh--Ritz interlacing, coordinate-invariance checks, and eigengap sensitivity are standard numerical details collected in Appendix~\ref{app:qse_measurement_details}.
+so that \(c_\nu^\dagger S c_\nu=1\).  This shared support defines the
+retained dimension $d_{\rm eff}=|\mathcal I_S(\tau)|$ and the supported
+condition estimate reported in the results and enforced by the exchange
+guards.  Matrix construction and standard Galerkin checks are collected in
+Appendix~\ref{app:qse_measurement_details}.
 
 \subsection{Transition observables and spectral functions}
 
@@ -659,7 +650,7 @@ which detects whether the selected basis is pressing against the highest retaine
 
 \subsection{Iteration-dependent excitation selection and generator ablation}
 
-The growth variable $\ell$ denotes QSE-basis acquisition step, not physical time.  The weightings of novelty, cost, and spectral gain change over the useful-runway coordinate.  Early growth rewards alphabet diversity and metric novelty; late growth rewards root-window residual reduction and transition-strength accuracy.  The live shortlist contracts as $M=|\Acal_\ell|$ grows because each new record increases matrix-measurement cost approximately linearly against all retained records.
+The growth variable $\ell$ denotes QSE-basis acquisition step, not physical time, and $n_\ell=|\Acal_\ell|$ is the active record-support size.  Each new record increases matrix-measurement cost approximately linearly against all retained records.
 
 A record becomes eligible for generator ablation after a maturity interval.  Let $x_a^{(\nu)}$ denote the metric participation of record $a$ in root $\nu$,
 \begin{equation}
@@ -927,7 +918,7 @@ The locked production comparison over the four-regime Cartesian grid---same-cuto
 \scriptsize
 \begin{ruledtabular}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.18\textwidth}p{0.27\textwidth}cccccccc@{}}
-Regime $(U/t,\lambda)$ & Method & $\overline{|\Delta\omega|}_{\rm same}$ & $\overline{|\Delta\omega|}_{4}$ & $1-\overline{F}_{\rm root}$ & $\epsilon_T$ & $\epsilon_{\rm spec}$ & $M_{\rm eff}$ & $\kappa(S)$ & $S_{\rm mat}^{\rm proxy}$ \\
+Regime $(U/t,\lambda)$ & Method & $\overline{|\Delta\omega|}_{\rm same}$ & $\overline{|\Delta\omega|}_{4}$ & $1-\overline{F}_{\rm root}$ & $\epsilon_T$ & $\epsilon_{\rm spec}$ & $d_{\rm eff}$ & $\kappa(S)$ & $S_{\rm mat}^{\rm proxy}$ \\
 \colrule
 weak--weak $(0.25,0.25)$ & same-cutoff ED reference & 0 & \placeholder{...} & -- & 0 & 0 & -- & -- & --\\
 weak--weak $(0.25,0.25)$ & regular mixed Fullmeta QSE & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...} & \placeholder{...}\\
@@ -975,10 +966,10 @@ no root-beaming/tracking guard & \placeholder{...} & \placeholder{...} & \placeh
 \structlabel{Comparison method}
 All comparisons use one construction.  Every method grows its subspace one direction at a time to a fixed dimension cap and is scored at each step against exact sector-restricted references on the same six-excitation window.  The candidate sets differ by method family, and the difference is load bearing.  Record-based methods---ours and the ordering controls---draw every candidate from an \emph{identical} fixed alphabet: each is the image $O_i\ket{\psi_0}$ of a pool record, so their comparison is of acquisition rules at fixed expressive reach.  The synthesized-basis methods are not so confined: quantum-Davidson growth builds each new direction from the preconditioned residual and real-time Krylov from time evolution, so neither is restricted to the alphabet and both can reach directions no record supplies.  That asymmetry favors them on reachability and costs them on resources, and both effects appear below: where our alphabet spans the window we resolve it an order of magnitude more cheaply, and where it does not they resolve windows we cannot.  The resource required to reach an accuracy target is read off that growth trace,
 \begin{equation}
-K^\star(\eps_E)=\min\Bigl\{K:\ \max_{\nu\le 6}|\Delta E_\nu|\le\eps_E\Bigr\},
+K_x^\star(\eps_E)=\min\Bigl\{K_x:\ \max_{\nu\le 6}|\Delta E_\nu|\le\eps_E\Bigr\},
 \label{eq:qse_kstar}
 \end{equation}
-so no method's own stopping rule enters the comparison; our residual stop is reported as a marker on the trace rather than as the mechanism of comparison.  Resources are reported on four axes that are never conflated: the compiled two-qubit gate count $N_{2q}$, the two-qubit depth $D_{2q}$, the total circuit depth $D_c$---all three from a deterministic graph-span proxy, so no transpiler routing randomness enters---and the matrix-measurement estimator queries needed to build the projected pencil.  Alphabet identity is checkable rather than assumed: each run records an ordered digest of the record pool, since equal pool sizes do not prove equal pools.
+where $x$ labels the reported resource axis.  No method's own stopping rule enters the comparison; our residual stop is reported as a marker on the trace rather than as the mechanism of comparison.  Resources are reported on four axes that are never conflated: the compiled two-qubit gate count $N_{2q}$, the two-qubit depth $D_{2q}$, the total circuit depth $D_c$---all three from a deterministic graph-span proxy, so no transpiler routing randomness enters---and the matrix-measurement estimator queries needed to build the projected pencil.  Alphabet identity is checkable rather than assumed: each run records an ordered digest of the record pool, since equal pool sizes do not prove equal pools.
 
 \structlabel{Methods compared}
 Three methods and one baseline are evaluated on identical Hamiltonians, sectors, and references.  \emph{Ours} is the cost-weighted geometric acquisition of Sec.~\ref{sec:acquisition_objective} with certified exchange maintenance.  \emph{Adaptive QSE} is standard quantum-Davidson subspace growth: each new direction is synthesized from the preconditioned residual of a target root rather than selected from the alphabet, and it carries no hardware-cost term.  \emph{Real-time Krylov} builds its subspace from time-evolved states of a seeded sector kick---a different construction family that likewise does not consume the alphabet---under conventions chosen to favor it, including best-matching-root scoring.  The \emph{standard QSE} baseline is the complete linear-response class: the physically obvious operator set, used whole and without adaptation.
@@ -992,7 +983,7 @@ The certified transaction is active in the completed $n_{\rm ph}^{\max}=1$ diagn
 \scriptsize
 \begin{ruledtabular}
 \begin{tabular}{lrrrrr}
-Regime & $k$ & rounds & commits & $1\leftrightarrow 1$ & delete only \\
+Regime & $n$ & rounds & commits & $1\leftrightarrow 1$ & delete only \\
 \colrule
 weak--weak & 15 & 2 & 1 & 1 & 0 \\
 intermediate--weak & 16 & 4 & 3 & 3 & 0 \\
@@ -1020,7 +1011,7 @@ Figure~\ref{fig:qse_growth_gaps} shows the resolved gaps $\omega_\nu=E_\nu-E_0$ 
 \end{figure}
 
 \structlabel{Resources at fixed accuracy}
-The tables below give $K^\star(\eps_E)$ for each method at three accuracy targets in the four reported axes, at both phonon cutoffs.  Three readings matter.  First, the non-adaptive baseline reaches no target in any regime: its failure is one of representation, not of budget, so no resource ratio against it is meaningful.  Second, among the methods that do resolve the window, cost-weighted selection reaches each target with roughly an order of magnitude fewer compiled two-qubit gates than quantum-Davidson growth and one to two orders fewer than the Krylov construction, with a comparable reduction in estimator queries.  That reduction follows from support size: the projected pencil requires $k(k+1)/2$ elements of both the overlap and the Hamiltonian, so a method certifying the same window from fewer records pays proportionately less to build it.  We claim no reduction in selection-time measurement, because the acquisition rule of Sec.~\ref{sec:acquisition_objective} scores every admissible candidate each round rather than screening a shortlist.  Third, the advantage is bounded by the record alphabet.  At $n_{\rm ph}=3$ the selected manifold does not reach the tightest target in the weak--strong and intermediate--strong regimes, stalling near $10^{-2}$, while quantum-Davidson growth reaches it there.  The reason is structural rather than a matter of budget: our candidates are images of a fixed record alphabet under one reference, whereas the Davidson construction synthesizes each new direction from the residual itself and is therefore not confined to that alphabet.  Where the alphabet spans the window we are an order of magnitude cheaper; where it does not, no acquisition rule over that alphabet can close the gap, and enriching the pool---not reweighting the score---is the remedy.
+The tables below give $K_x^\star(\eps_E)$ for each method at three accuracy targets in the four reported axes, at both phonon cutoffs.  Three readings matter.  First, the non-adaptive baseline reaches no target in any regime: its failure is one of representation, not of budget, so no resource ratio against it is meaningful.  Second, among the methods that do resolve the window, cost-weighted selection reaches each target with roughly an order of magnitude fewer compiled two-qubit gates than quantum-Davidson growth and one to two orders fewer than the Krylov construction, with a comparable reduction in estimator queries.  That reduction follows from support size: the projected pencil requires $n(n+1)/2$ elements of both the overlap and the Hamiltonian, so a method certifying the same window from fewer records pays proportionately less to build it.  We claim no reduction in selection-time measurement, because the acquisition rule of Sec.~\ref{sec:acquisition_objective} scores every admissible candidate each round rather than screening a shortlist.  Third, the advantage is bounded by the record alphabet.  At $n_{\rm ph}=3$ the selected manifold does not reach the tightest target in the weak--strong and intermediate--strong regimes, stalling near $10^{-2}$, while quantum-Davidson growth reaches it there.  The reason is structural rather than a matter of budget: our candidates are images of a fixed record alphabet under one reference, whereas the Davidson construction synthesizes each new direction from the residual itself and is therefore not confined to that alphabet.  Where the alphabet spans the window we are an order of magnitude cheaper; where it does not, no acquisition rule over that alphabet can close the gap, and enriching the pool---not reweighting the score---is the remedy.
 
 \input{generated/paper_iii_growth_cost_tables_nph1}
 
@@ -1028,7 +1019,7 @@ The tables below give $K^\star(\eps_E)$ for each method at three accuracy target
 
 \label{sec:ablations}
 \structlabel{Score-term ablations}
-Table~\ref{tab:qse_ablation_matrix} disables one ingredient of the production score at a time, at the production stop so that support size is an output: a redundant term then shows as equal accuracy at larger $k$, and a load-bearing term as failure to converge at all.  Both terms are load bearing, and in the same way: removing either the metric-novelty weight or the residual-capture term roughly doubles the converged support, multiplies compiled cost several-fold, and in most regimes prevents convergence outright, the run instead exhausting its pool at an error one to two orders of magnitude worse than the anchor.  The metric-novelty result differs from the companion ansatz-construction setting, where an analogous novelty term did not improve selection and was removed \cite{PaperI}.  Both settings invert a metric---the Fubini--Study metric of the variational manifold there, the overlap Gram matrix of the nonorthogonal excitation basis here---so the difference is not the presence of a metric but what happens to a redundant admission.  In ansatz construction the angles are re-optimized after every insertion, so a redundant generator is variationally absorbed and costs only depth.  In subspace expansion there is no such re-optimization: the basis is the answer, its retained rank fixes which spectral directions exist at all, and a direction the stabilized pencil cannot represent consumes measurement budget while contributing nothing to the window.
+Table~\ref{tab:qse_ablation_matrix} disables one ingredient of the production score at a time, at the production stop so that support size is an output: a redundant term then shows as equal accuracy at larger $n$, and a load-bearing term as failure to converge at all.  Both terms are load bearing, and in the same way: removing either the metric-novelty weight or the residual-capture term roughly doubles the converged support, multiplies compiled cost several-fold, and in most regimes prevents convergence outright, the run instead exhausting its pool at an error one to two orders of magnitude worse than the anchor.  The metric-novelty result differs from the companion ansatz-construction setting, where an analogous novelty term did not improve selection and was removed \cite{PaperI}.  Both settings invert a metric---the Fubini--Study metric of the variational manifold there, the overlap Gram matrix of the nonorthogonal excitation basis here---so the difference is not the presence of a metric but what happens to a redundant admission.  In ansatz construction the angles are re-optimized after every insertion, so a redundant generator is variationally absorbed and costs only depth.  In subspace expansion there is no such re-optimization: the basis is the answer, its retained rank fixes which spectral directions exist at all, and a direction the stabilized pencil cannot represent consumes measurement budget while contributing nothing to the window.
 
 The metric-novelty \emph{floor} plays a distinct role from its weight.  Removing the floor while keeping the weight still converges, but at a systematically larger support, because candidates whose retained-frame-orthogonal component is numerically zero are admitted, consume budget, and contribute no representable direction.  The weight ranks useful directions; the floor excludes unrepresentable ones.
 
@@ -1341,10 +1332,12 @@ If frozen-subspace propagation has large escape residual, dynamically enlarge th
 |\bra{\bar\phi_r}
 [H(t_k)-\expval{H(t_k)}]\ket{\Psi(t_k)}|^2
 }{
-\braket{\bar\phi_r}{\bar\phi_r}+\lambda_S
+\braket{\bar\phi_r}{\bar\phi_r}
 }.
 \label{eq:app_qse_dyn_gain}
 \end{equation}
+Only records with nonzero retained-frame-orthogonal norm are eligible for this
+score.
 Let $\mathcal N_{2,k}^{\qse-\dyn}(r)$ denote the same supported metric-residual novelty as Eq.~(\ref{eq:qse_phase2_novelty}), but evaluated against the current dynamic QSE basis at checkpoint $t_k$.
 \begin{equation}
 \begin{aligned}

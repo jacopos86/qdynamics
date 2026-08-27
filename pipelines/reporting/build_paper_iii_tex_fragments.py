@@ -265,7 +265,7 @@ def build_driven_dynamics_fragment() -> str:
     lines.append(r"\begin{ruledtabular}")
     lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}")
     lines.append(
-        r"Regime & $k$ & $\omega^\ast$ & flux $t{=}0$ & max flux & "
+        r"Regime & $n$ & $\omega^\ast$ & flux $t{=}0$ & max flux & "
         r"min $|\langle\Psi_{\rm ex}|\Psi\rangle|^2$ & exact response (ptp) \\"
     )
     lines.append(r"\colrule")
@@ -290,6 +290,7 @@ def build_driven_dynamics_fragment() -> str:
 def build_adaptive_dynamics_fragment() -> str:
     payload = _load(ADAPTIVE_JSON)
     lines = [_fragment_header([ADAPTIVE_JSON])]
+    lines.append(r"\begin{widetext}")
     lines.append(
         r"\inlinetablecaption{tab:qse_adaptive_diag}{Frozen versus adaptive "
         r"QSE propagation at each regime's worst-escape drive frequency. "
@@ -301,7 +302,7 @@ def build_adaptive_dynamics_fragment() -> str:
     lines.append(r"\begin{center}")
     lines.append(r"\scriptsize")
     lines.append(r"\begin{ruledtabular}")
-    lines.append(r"\begin{tabular}{lccccc}")
+    lines.append(r"\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccc@{}}")
     lines.append(
         r"Regime & $\omega^\ast$ & min fid.\ (frozen) & min fid.\ (adaptive) & "
         r"records added & added 2Q \\"
@@ -316,16 +317,17 @@ def build_adaptive_dynamics_fragment() -> str:
             rf"{adaptive['growth_event_count']} & "
             rf"{record['arms']['adaptive']['added_2q_total']:.0f} \\"
         )
-    lines.append(r"\end{tabular}")
+    lines.append(r"\end{tabular*}")
     lines.append(r"\end{ruledtabular}")
     lines.append(r"\end{center}")
+    lines.append(r"\end{widetext}")
     return "\n".join(lines) + "\n"
 
 
 
-# Only the terms of the production three-term score are ablated; the Ritz
-# window gain and the explicit conditioning penalty were evaluated and
-# removed, so arms disabling them coincide with the anchor by construction.
+# Only the two gain terms and the cost discount in the production score are
+# ablated; the Ritz window gain and explicit conditioning penalty were
+# evaluated and removed, so arms disabling them coincide with the anchor.
 _ABLATION_LABELS = {
     "full": "production score (anchor)",
     "no_novelty_weight": "no metric-novelty weight",
@@ -352,9 +354,9 @@ def build_ablation_fragment() -> str:
     lines.append(
         r"\inlinetablecaption{tab:qse_ablation_matrix}{Selection-score ablations "
         r"at the production residual stop $\varepsilon=10^{-3}$, so support size "
-        r"$k$ is an output: a redundant term shows as equal accuracy at larger "
-        r"$k$, and a load-bearing term as failure to converge "
-        r"(\texttt{pool\_exhausted}). Entries are $k$ and the maximum error over "
+        r"$n$ is an output: a redundant term shows as equal accuracy at larger "
+        r"$n$, and a load-bearing term as failure to converge "
+        r"(\texttt{pool\_exhausted}). Entries are $n$ and the maximum error over "
         r"the lowest six excitations; daggers mark runs that exhausted the pool "
         r"without meeting the stop.}"
     )
