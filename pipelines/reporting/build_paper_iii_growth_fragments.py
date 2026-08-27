@@ -7,7 +7,7 @@ cost cell carries all four axes -- N2q, D2q, Dc, and estimator queries -- per
 the protocol's mandatory-reporting rule.
 
 Methods, named as methods (never "arms"):
-  ours                      -- cost-weighted geometric selection + certified exchange
+  cost-weighted QSE         -- operator selection + exchange, then Davidson if exhausted
   adaptive QSE (Davidson)   -- external benchmark, residual-synthesized directions
   real-time Krylov          -- external benchmark, different construction family
   standard QSE (fixed class)-- non-adaptive baseline, complete linear-response class
@@ -29,12 +29,12 @@ if str(REPO_ROOT) not in sys.path:
 
 DEFAULT_CAMPAIGN = (
     REPO_ROOT
-    / "output/diagnostics/paper_iii_growth_trace_20260826_v1/growth_trace_nph1.json"
+    / "output/diagnostics/paper_iii_record_first_adaptive_qse_v2/growth_trace_nph1.json"
 )
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "MATH/paper_details/generated"
 
 METHODS = (
-    ("ours__every_k", "ours"),
+    ("record_first_adaptive_qse", "cost-weighted QSE"),
     ("adaptive_qse", "adaptive QSE"),
     ("krylov", "real-time Krylov"),
     ("fixed_class", "standard QSE"),
@@ -77,7 +77,7 @@ def _gap_figure(payload: dict[str, Any], out_pdf: Path) -> None:
     )
     ylim = exact_max * 1.32
     style = {
-        "ours__every_k": ("ours", "#2673b8", "o"),
+        "record_first_adaptive_qse": ("cost-weighted QSE", "#2673b8", "o"),
         "adaptive_qse": ("adaptive QSE", "#2f8f4e", "^"),
         "krylov": ("real-time Krylov", "#8a5fc0", "d"),
         "fixed_class": ("standard QSE", "#c05020", "s"),
@@ -191,9 +191,10 @@ def build_cost_tables(payload: dict[str, Any], source: Path, *, suffix: str = ""
         lines.append(
             rf"\inlinetablecaption{{tab:qse_growth{suffix}_{eps.replace('-', 'm').replace('.', '')}}}"
             rf"{{{tier} Resources required to resolve the lowest six excitations to "
-            rf"{'$\\varepsilon_E=' + _sci(float(eps))[1:-1] + '$' if len(group) == 1 else 'each of $\\varepsilon_E \\in \\{' + ', '.join(_sci(float(e))[1:-1] for e in group) + '\\}$ (the certified subspace is the same for all of them)'}, on an identical record alphabet with "
-            r"every method grown one record at a time (no method's stopping rule enters the "
-            r"comparison). Cells give the deterministic graph-span proxy $N_{2q}/D_{2q}/D_c$ "
+            rf"{'$\\varepsilon_E=' + _sci(float(eps))[1:-1] + '$' if len(group) == 1 else 'each of $\\varepsilon_E \\in \\{' + ', '.join(_sci(float(e))[1:-1] for e in group) + '\\}$ (the certified subspace is the same for all of them)'}, for identical Hamiltonians, references, target roots, and dimension caps. "
+            r"Each method grows one direction at a time; the cost-weighted method hands its "
+            r"exchange-maintained operator set to residual synthesis only after pool exhaustion. "
+            r"Cells give the deterministic graph-span proxy $N_{2q}/D_{2q}/D_c$ "
             r"and, in brackets, the matrix-measurement estimator queries. "
             r"\textit{unatt.}\ marks a manifold that cannot reach the target at any budget; "
             r"\textit{n.r.}\ marks a method that did not reach it within its dimension cap, "

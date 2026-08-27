@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Growth-trace campaign: the locked Paper III comparison method.
+"""Growth-trace campaign for record-first adaptive QSE and its comparators.
 
 Implements section 1 of `agent_guidance/qse/paper-iii-comparison-protocol.md`.
-Every method grows the subspace one record at a time to a fixed cap; at each
-step k the tuple (k, N2q, D2q, Dc, max_{nu<=R}|Delta E_nu|) is recorded. The
-comparison is read off the trace:
+Every method grows its subspace one direction at a time to a fixed cap; at
+each step k the tuple (k, N2q, D2q, Dc,
+max_{nu in mathcal R}|Delta E_nu|) is recorded.
+The comparison is read off the trace:
 
-    C*(eps_E) = min{cost over trace : max|Delta E| <= eps_E}
+    K*(eps_E) = min{cost over trace : max|Delta E| <= eps_E}
 
 so no method's own stopping rule enters the comparison (the Paper-I
 fixed-iteration convention). Our residual stop is reported as a marker on the
@@ -21,9 +22,11 @@ becomes canonical:
 - ``every_k``   (policy B) -- exchange applied at every recorded step,
   producing a fully exchanged trace. Expensive; may compress earlier.
 
-Arms: ``ours`` (geometric acquisition order), ``cheapest_first``,
-``input_order``, and ``fixed_class`` (complete, single point -- it is a class,
-not a growth process).
+The canonical method first acquires and exchange-maintains inexpensive records.
+It stops when the record residual converges; if the admissible alphabet is
+exhausted first, it preserves the maintained support and continues with
+Davidson residual synthesis.  Fixed-alphabet acquisition is retained as the
+``record_only`` ablation.
 
 Statevector diagnostics; never feeds controller decisions.
 """
@@ -67,13 +70,14 @@ from pipelines.qse_spectra.record_selection import (
 
 DEFAULT_OUTPUT = (
     REPO_ROOT
-    / "output/diagnostics/paper_iii_growth_trace_20260826_v1/growth_trace.json"
+    / "output/diagnostics/paper_iii_record_first_adaptive_qse_v2/growth_trace.json"
 )
 _Q0_POLICY = QSEBasisVectorPolicy(
     reference_projection="q0", basis_vector_normalization="raw_projected"
 )
 _TARGET_ROOTS = 6
 RESIDUAL_MARKER = 1.0e-3
+DEFAULT_DIMENSION_CAP = 64
 
 
 def _mixed_resource_triple(
@@ -219,7 +223,7 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
         # The benchmark returns the lowest N Ritz values INCLUDING the ground
         # root, so request R+1 and compare the excitations root_energies[1:].
         target_roots=_TARGET_ROOTS + 1,
-        eps_residual=1.0e-14,      # effectively run to the cap; the trace supplies C*
+        eps_residual=1.0e-14,      # effectively run to the cap; the trace supplies K*
         max_dimension=int(k_max),
         seed_elements=seed,
         direction_resources=per_direction,
@@ -292,7 +296,7 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     return rows
 
 
-def trace_hybrid(
+def trace_record_first_adaptive_qse(
     problem: Any,
     order: Sequence[int],
     *,
@@ -300,20 +304,20 @@ def trace_hybrid(
     stride: int,
     record_stop: Mapping[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Record acquisition with escalation to residual synthesis when the
-    alphabet stops helping.
+    """Run canonical record-first growth with a Davidson completeness fallback.
 
     Phase A buys cheap alphabet directions under the production rule. The
-    trigger is the production selector's terminal receipt, which includes its
-    residual and pool-relative window-pressure checks.  Phase B then hands the
-    actual exchange-maintained support to residual synthesis as seed elements.
+    production selector's terminal receipt determines the transition: a
+    converged record residual terminates the method, while genuine alphabet
+    exhaustion hands the actual exchange-maintained support to residual
+    synthesis as seed elements.  Exact reference errors annotate the trace but
+    never control the handoff.
 
     Returns the concatenated trace and a provenance record of the trigger.
     """
 
     stop_receipt = dict(record_stop)
     stop_reason = str(stop_receipt.get("stop_reason", ""))
-    terminal_reasons = {"residual_converged", "pool_exhausted"}
     record_cap = len(order)
     phase_a_cap = min(int(k_max), int(record_cap))
     rows = trace_arm(
@@ -323,24 +327,37 @@ def trace_hybrid(
         k_max=phase_a_cap,
         exchange_policy="every_k",
     )
+    for row in rows:
+        row.setdefault("phase", "records")
     if record_cap > int(k_max):
         return rows, {
+            "method_id": "record_first_adaptive_qse_v2",
             "fired": False,
             "reason": "record_stop_beyond_dimension_cap",
             "trigger_source": "record_selector_terminal_receipt",
             "record_stop": stop_receipt,
         }
-    if stop_reason not in terminal_reasons:
+    if not rows:
         return rows, {
+            "method_id": "record_first_adaptive_qse_v2",
             "fired": False,
-            "reason": "record_acquisition_not_terminal",
+            "reason": "empty_record_support",
             "trigger_source": "record_selector_terminal_receipt",
             "record_stop": stop_receipt,
         }
-    if not rows:
+    if stop_reason == "residual_converged":
         return rows, {
+            "method_id": "record_first_adaptive_qse_v2",
             "fired": False,
-            "reason": "empty_record_support",
+            "reason": "record_residual_converged",
+            "trigger_source": "record_selector_terminal_receipt",
+            "record_stop": stop_receipt,
+        }
+    if stop_reason != "pool_exhausted":
+        return rows, {
+            "method_id": "record_first_adaptive_qse_v2",
+            "fired": False,
+            "reason": "record_acquisition_not_terminal",
             "trigger_source": "record_selector_terminal_receipt",
             "record_stop": stop_receipt,
         }
@@ -417,16 +434,15 @@ def trace_hybrid(
             "d2q": resources["d2q"],
             "dc": resources["dc"],
             "synthesized_direction_count": synthesized_direction_count,
+            "costing_convention": "record_support_plus_trotterized_residual_directions_v2",
             "root_energies": roots,
             "estimator": {
                 "pair_count": pairs,
                 "queries": int(pairs * (1 + ham_terms)),
                 "hamiltonian_pauli_terms": int(ham_terms),
-                "convention": "hybrid_pencil_no_qwc_reuse_after_escalation",
+                "convention": "record_first_adaptive_pencil_no_qwc_reuse_after_handoff",
             },
         })
-    for r in phase_a:
-        r.setdefault("phase", "records")
     terminal_root_energies = [float(value) for value in audit["root_energies"][1:]]
     terminal_window_error = (
         max(
@@ -437,7 +453,9 @@ def trace_hybrid(
         else None
     )
     return phase_a + phase_b, {
+        "method_id": "record_first_adaptive_qse_v2",
         "fired": True,
+        "reason": "record_pool_exhausted",
         "trigger_k": int(base["k"]),
         "trigger_source": "record_selector_terminal_receipt",
         "phase_a_error": None if phase_a_error is None else float(phase_a_error),
@@ -574,7 +592,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--regime-set", choices=sorted(REGIME_SETS), default="hubbard_l2")
     parser.add_argument("--stride", type=int, default=2)
-    parser.add_argument("--k-max", type=int, default=60)
+    parser.add_argument(
+        "--k-max",
+        type=int,
+        default=DEFAULT_DIMENSION_CAP,
+        help=(
+            "Common subspace-dimension cap. The default reaches the largest "
+            "observed record-exhaustion receipt and leaves room for residual completion."
+        ),
+    )
     parser.add_argument(
         "--krylov-k-max", type=int, default=40,
         help="Krylov dimension cap. Krylov needs larger dimension than a record "
@@ -639,13 +665,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         arms: dict[str, Any] = {}
         for policy in policies:
             for arm, order in (
-                ("ours", our_order),
+                ("record_only", our_order),
                 ("cheapest_first", cheapest),
                 ("input_order", list(range(len(problem.basis)))),
             ):
-                # exchange is our maintenance step; benchmarks are not exchanged
-                pol = policy if arm == "ours" else "none"
-                key = f"{arm}__{policy}" if arm == "ours" else arm
+                # Exchange belongs to the record selector; controls are not exchanged.
+                pol = policy if arm == "record_only" else "none"
+                key = f"{arm}__{policy}" if arm == "record_only" else arm
                 if key in arms:
                     continue
                 rows = trace_arm(
@@ -676,23 +702,34 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"   {'adaptive_qse':<22} terminal {best_ad['max_root_abs_error']:.1e} "
                   f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
 
-        hybrid_rows, hybrid_info = trace_hybrid(
+        record_first_rows, handoff_info = trace_record_first_adaptive_qse(
             problem,
             [int(index) for index in marker.selected_original_indices],
             k_max=int(args.k_max),
             stride=int(args.stride),
             record_stop=marker.geometry_stop or {"stop_reason": "missing"},
         )
-        arms["hybrid"] = {"trace": hybrid_rows, "trigger": hybrid_info,
-                          "note": "records until the alphabet stalls, then residual synthesis"}
-        best_hy = min(
-            (r for r in hybrid_rows if r["max_root_abs_error"] is not None),
+        arms["record_first_adaptive_qse"] = {
+            "trace": record_first_rows,
+            "trigger": handoff_info,
+            "role": "canonical_method",
+            "note": (
+                "exchange-maintained records until residual convergence or alphabet "
+                "exhaustion; exhaustion preserves the support and starts residual synthesis"
+            ),
+        }
+        best_record_first = min(
+            (r for r in record_first_rows if r["max_root_abs_error"] is not None),
             key=lambda r: r["max_root_abs_error"], default=None,
         )
-        if best_hy:
-            print(f"   {'hybrid':<22} terminal {best_hy['max_root_abs_error']:.1e} "
-                  f"@k={best_hy['k']} N2q={best_hy['n2q']:.0f} "
-                  f"(trigger {hybrid_info.get('trigger_k')})", flush=True)
+        if best_record_first:
+            print(
+                f"   {'record_first_adaptive':<22} "
+                f"terminal {best_record_first['max_root_abs_error']:.1e} "
+                f"@k={best_record_first['k']} N2q={best_record_first['n2q']:.0f} "
+                f"(handoff {handoff_info.get('trigger_k')})",
+                flush=True,
+            )
 
         arms["krylov"] = {
             "trace": trace_krylov(problem, k_max=int(args.krylov_k_max)),
@@ -723,13 +760,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             key = f"{eps_e:.0e}"
             cells[key] = {}
             for arm_key, arm in arms.items():
+                extendable = arm_key in {
+                    "record_first_adaptive_qse",
+                    "adaptive_qse",
+                    "krylov",
+                }
                 cells[key][arm_key] = resolve_from_trace(
-                    arm["trace"], eps_e, extendable=(arm_key != "fixed_class")
+                    arm["trace"], eps_e, extendable=extendable
                 )
         # Policy A: exchange only the prefix that first crosses each target.
         for eps_e in ERROR_TARGET_LADDER:
             key = f"{eps_e:.0e}"
-            cell = cells[key].get("ours__crossing")
+            cell = cells[key].get("record_only__crossing")
             if cell and cell.get("status") == STATUS_REACHED:
                 k = int(cell["crossing"]["k"])
                 compressed = _exchange(problem, our_order[:k])
@@ -738,8 +780,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         # Estimator work (axis 4) at every crossing point -- protocol section 3
         # mandates all four axes in a reported cell.
         supports = {
-            "ours__crossing": our_order,
-            "ours__every_k": our_order,
+            "record_only__crossing": our_order,
+            "record_only__every_k": our_order,
             "cheapest_first": cheapest,
             "input_order": list(range(len(problem.basis))),
             "fixed_class": fixed_indices,
@@ -749,6 +791,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             for arm_key, cell in cells[key].items():
                 if cell.get("status") != STATUS_REACHED:
                     continue
+                if cell["crossing"].get("estimator") is not None:
+                    continue
+                support_indices = cell["crossing"].get("support_indices")
+                if support_indices is not None:
+                    idx = [int(index) for index in support_indices]
+                    est = problem.estimator_cost(idx)
+                    est["convention"] = "record_pencil_qwc_basis_cover"
+                    est["queries"] = int(est["qwc_groups"])
+                    cell["crossing"]["estimator"] = est
+                    continue
                 order_src = supports.get(arm_key)
                 if order_src is None:
                     continue
@@ -757,7 +809,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     list(order_src) if arm_key == "fixed_class"
                     else list(order_src[:k])
                 )
-                if arm_key == "ours__every_k":
+                if arm_key == "record_only__every_k":
                     idx = _exchange(problem, idx)
                 est = problem.estimator_cost(idx)
                 est["convention"] = "record_pencil_qwc_basis_cover"
@@ -777,7 +829,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
 
     payload = {
-        "schema_version": "paper_iii_growth_trace_campaign_v1",
+        "schema_version": "paper_iii_record_first_adaptive_qse_campaign_v2",
         "protocol": "agent_guidance/qse/paper-iii-comparison-protocol.md#1",
         "policy": "diagnostic_only_growth_trace_campaign",
         "controller_boundary": {
@@ -786,8 +838,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "post_run_diagnostic_only": True,
         },
         "convention": (
-            "every method grows one record at a time to a fixed cap; C*(eps_E) is read "
-            "off the trace, so no method's stopping rule enters the comparison"
+            "every method grows one direction at a time to a fixed cap; the canonical "
+            "method uses the record-selector receipt only to stop or hand off, while "
+            "K*(eps_E) is read from the completed trace"
         ),
         "regime_set": str(args.regime_set),
         "k_max": int(args.k_max),

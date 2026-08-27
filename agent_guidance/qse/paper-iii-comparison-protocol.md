@@ -1,9 +1,11 @@
 # Paper III — comparison protocol
 
 How every reported comparison in this lane is constructed. The short version:
-**methods are compared at fixed spectral accuracy on an identical record
-alphabet, and resources are reported on three separate axes**. If a number in
-the manuscript cannot be traced to a cell built this way, it is not evidence.
+**methods are compared at fixed spectral accuracy on identical physics, while
+record-based phases share one record alphabet and synthesized-direction methods
+declare their different construction family; resources are reported on four
+separate axes**. If a number in the manuscript cannot be traced to a cell built
+this way, it is not evidence.
 
 This is the Paper III analog of
 `agent_guidance/time-dynamics/paper-ii-comparison-protocol.md` and inherits
@@ -14,42 +16,58 @@ failure states named rather than hidden.
 
 ## 1. Growth traces, not stopping rules (LOCKED, user 2026-08-26)
 
-Every method grows the subspace one record at a time to a fixed cap and
+Every method grows the subspace one direction at a time to a fixed cap and
 records, at each step k, the tuple
 
-    (k, N2q, D2q, Dc, max_{nu<=R} |Delta E_nu|).
+    (k, N2q, D2q, Dc, max_{nu in mathcal R} |Delta E_nu|).
 
 The comparison is then read off the trace:
 
-    C*(eps_E) = min{ cost over the trace : max_{nu<=R} |Delta E_nu| <= eps_E }.
+    K*(eps_E) = min{ cost over the trace : max_{nu in mathcal R} |Delta E_nu| <= eps_E }.
 
-**No method's own stopping rule enters the comparison.** This is the Paper-I
-convention (run all arms to a fixed iteration count rather than letting each
-halt on its own epsilon/gradient plateau), imported here because a stopping
-rule that overshoots the target silently inflates that method's reported cost:
-our residual stop is conservative by ~1e4-1e5 in energy, so it can only emit
-subspaces far more accurate than a loose target asks for, making C*(eps_E)
-flat while trace-based competitors scale.
+**No method's own stopping rule chooses the fixed-accuracy crossing.** The
+record-selector receipt still determines the canonical method's phase
+transition: `residual_converged` terminates record-first cost-weighted QSE,
+whereas `pool_exhausted` preserves the exchange-maintained support and starts
+Davidson residual synthesis. The reported K*(eps_E) is then read from the
+resulting trace rather than from that internal stopping event.
 
-The residual stop is still reported, as a MARKER on the trace ("where this
-method would have halted"), never as the comparison mechanism.
+The residual stop, pool-exhaustion receipt, handoff support, and adaptive stop
+are all recorded. Exact-reference error is diagnostic and never controls a
+stop or handoff.
 
-## 1b. Where exchange enters (policy, under evaluation)
+## 1b. Where exchange enters (LOCKED)
 
-Certified exchange is post-hoc compression of a finished basis, so it can be
-applied either at the crossing point only (policy A) or at every recorded k
-(policy B). Both are implemented; the cheap Hubbard tier decides which becomes
-canonical. Until that decision, every artifact records which policy produced
-each cell.
+Certified exchange is applied at every recorded support in the canonical
+growth trace. The crossing-only variant remains a diagnostic policy. If record
+growth exhausts the alphabet, residual synthesis is seeded from the actual
+exchange-maintained terminal support, not from the unmaintained acquisition
+order.
+
+## 1c. Canonical completeness fallback (LOCKED, user 2026-08-27)
+
+The production construction is `record_first_adaptive_qse_v2`:
+
+1. acquire records with the two-term Delta/K score and certified exchange;
+2. stop if the target-root record residual converges;
+3. on `pool_exhausted`, preserve the maintained support and synthesize
+   preconditioned Davidson residual directions;
+4. stop residual synthesis at its declared residual target or dimension cap.
+
+The fixed-alphabet selector is retained as `record_only` and is an ablation,
+not the complete method. Retuning the record score after pool exhaustion is
+forbidden: no score over a fixed exhausted alphabet can create a missing
+direction.
 
 ## 2. The native protocol: fixed accuracy, compare resources
 
-The production method takes an accuracy specification as INPUT (the residual
-stop) and returns a support and its resource bill as OUTPUT. Its native
+The production method takes a residual specification and dimension cap as
+inputs and returns a support plus any synthesized continuation and their
+resource bill as output. Its native
 comparison is therefore
 
-    C*(eps_E) = minimum resource at which a method's certified output
-                reaches max_{nu<=R} |Delta E_nu| <= eps_E,
+    K*(eps_E) = minimum cost at which a method's certified output
+                reaches max_{nu in mathcal R} |Delta E_nu| <= eps_E,
 
 evaluated per regime over a declared error-target ladder
 eps_E in {1e-2, 1e-4, 1e-6}. Two failure states, always reported, never
@@ -58,11 +76,11 @@ blanked:
 - `UNATTAINABLE_WITH_MANIFOLD` — the arm's alphabet/class cannot reach eps_E
   at any budget (e.g. the complete fixed class on a window it does not span).
   No resource ratio may be quoted against this cell.
-- `NOT_REACHED_WITHIN_POOL` — an adaptive arm exhausted the shared pool
-  before reaching eps_E. Report the terminal error and cost.
+- `NOT_REACHED_WITHIN_POOL` — an extendable construction did not reach eps_E
+  within its declared dimension cap. Report the terminal error and cost.
 
 Fixed-cost and fixed-iteration readings may be *derived* from the same traces
-for presentation, but the primary claim axis is C*(eps_E). Prefix-path
+for presentation, but the primary claim axis is K*(eps_E). Prefix-path
 ("anytime") readings of the production method are NOT evidence: the method
 emits certified endpoints, not orderings (established 2026-08-19 after a
 mis-benchmark; do not repeat it).
@@ -71,8 +89,8 @@ mis-benchmark; do not repeat it).
 
 | axis | what is locked |
 |---|---|
-| Physics | Hamiltonian, sector, exact sector-restricted references, R=6 window |
-| Alphabet | **identical record pool for every record-based arm** (user directive 2026-08-19); per-arm private alphabets are invalid |
+| Physics | Hamiltonian, sector, exact sector-restricted references, `mathcal R = {1, ..., 6}` window |
+| Alphabet | **identical record pool for every record-based phase** (user directive 2026-08-19); direct Davidson, Krylov, and the canonical fallback synthesize directions outside it and must declare that asymmetry |
 | Pencil | q0 projection, raw_projected normalization, shared overlap cutoff |
 | Cost model | two_qubit_only_v1, graph-span oracle (transpile cross-check reported separately) |
 | Selection knobs | production two-term score; arms may differ ONLY in their declared acquisition rule |
@@ -91,8 +109,13 @@ result is not a depth result and neither is a shot result.
 Axes 1-3 come from `PaperIIIProblem.resource_triple`; axis 4 from
 `estimator_cost`. Tables may abbreviate as `n2q/d2q/dc` plus a separate
 estimator column, but a cell that omits an axis is not evidence. Estimator
-work is evaluated at crossing points (where C* is read off), not at every
+work is evaluated at crossing points (where K* is read off), not at every
 trace step, for cost reasons; the artifact records which.
+
+For adaptive constructions, admitted record seeds retain their actual compiled
+record costs. Only residual-synthesized directions are charged as synthesized
+Hamiltonian directions. Charging every seed as a Trotterized residual step is
+invalid and supersedes the original v1 resource ratios.
 
 ## 4. Comparator admissibility
 
@@ -100,6 +123,8 @@ trace step, for cost reasons; the artifact records which.
   construction, cited to it. Configurations of our own selector are
   ABLATIONS: they appear in `tab:qse_ablation_matrix` only, never as
   comparator columns (no self-comparison; user directive 2026-08-19).
+- `record_only` is the explicit fixed-alphabet ablation of canonical
+  record-first cost-weighted QSE.
 - Ablations whose outcome is already established (e.g. cost term on/off) are
   not re-reported as comparisons.
 - Non-record methods (real-time Krylov) do not consume the alphabet; they are
@@ -113,7 +138,7 @@ ingredient disabled per arm, support size as an output. Verdicts, per
 ingredient, over the regime set:
 
 - `NECESSARY` — removal prevents certification (pool_exhausted) OR degrades
-  C*(eps_E) by more than the declared margin (2x cost or 10x error) in at
+  K*(eps_E) by more than the declared margin (2x cost or 10x error) in at
   least one non-pool-limited regime;
 - `UNNECESSARY` — outputs bit-identical or within margin in every
   non-pool-limited regime; the ingredient is then REMOVED from the production
@@ -178,14 +203,16 @@ reference per run is a protocol violation.
 
 Principal displays are physics: the excitation-gap ladder per method
 (Fig. gap) and the accuracy--cost frontier. Matched-error curves are not
-principal panels; matched-accuracy results are TABULAR (C*(eps_E) cells
+principal panels; matched-accuracy results are TABULAR (K*(eps_E) cells
 with failure states).
 
 ## 8. Coded entry point
 
-`pipelines/exact_bench/paper_iii_matched_accuracy_campaign.py` builds the
-cells; `build_paper_iii_tex_fragments.py` renders them. A manuscript
-comparison table not generated from that campaign's JSON is not evidence.
+`pipelines/exact_bench/paper_iii_growth_trace_campaign.py` builds the current
+fixed-accuracy cells;
+`pipelines/reporting/build_paper_iii_growth_fragments.py` renders them. A
+manuscript comparison table not generated from that campaign's JSON is not
+evidence.
 
 ## Methods text must describe the implementation (2026-08-26)
 
@@ -195,8 +222,10 @@ candidate every round in one pass. That discrepancy stood because the phase
 text was written as a design and the code was built separately. It is now
 resolved -- the methods section describes the one-pass rule.
 
-Standing rule: **a methods claim about the algorithm must be checkable against
-`pipelines/qse_spectra/record_selection.py`.** In particular, do not claim
-selection-time measurement savings from staging unless a staged screen is
-actually implemented. The reported estimator advantage comes from SUPPORT SIZE
-(fewer records -> fewer pencil elements), not from shortlisting.
+Standing rule: **a methods claim about record acquisition must be checkable
+against `pipelines/qse_spectra/record_selection.py`, and a claim about the
+completeness fallback against
+`pipelines/qse_spectra/adaptive_qse_benchmark.py`.** In particular, do not
+claim selection-time measurement savings from staging unless a staged screen
+is actually implemented. The reported estimator advantage comes from support
+size (fewer directions imply fewer pencil elements), not from shortlisting.
