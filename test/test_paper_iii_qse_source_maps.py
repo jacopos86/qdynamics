@@ -478,3 +478,99 @@ def test_audit_fails_on_controller_boundary_violation(tmp_path: Path) -> None:
 
     with pytest.raises(PaperIIIQSESourceMapError, match="controller_boundary_violation"):
         validate_paper_iii_qse_source_map(source_map, base_dir=tmp_path)
+
+
+# --- static-QSE campaign roles ---------------------------------------------
+
+
+def _static_campaign_files(tmp_path: Path) -> tuple[Path, Path, Path]:
+    from pipelines.qse_spectra.static_campaign import (
+        DEFAULT_TARGET_ROOTS,
+        GroundStateArtifactRef,
+        StaticQSECampaign,
+        StaticQSECellKey,
+        StaticQSELedger,
+        hh_physics_key,
+    )
+    from pipelines.reporting.paper_iii_static_results_contract import (
+        build_static_results_contract,
+        write_static_results_contract,
+    )
+
+    artifact = GroundStateArtifactRef(
+        provider_id="provider::weak_weak_nph1",
+        manifest_path="states/weak_weak_nph1.json",
+        manifest_sha256="ab" * 32,
+        state_key="initial_state",
+        state_payload_sha256="cd" * 32,
+        num_qubits=8,
+        sector="half_filled_11",
+        energy=-1.25,
+        source_revision="e6b2c2ca",
+        achieved_settings_digest="ef" * 32,
+    )
+    cell = StaticQSECellKey(
+        physics=hh_physics_key("weak_weak", 0.25, 0.353553390593, 1),
+        ground_state_artifact_id=artifact.artifact_id,
+        method_id="record_first_adaptive_qse",
+        target_roots=DEFAULT_TARGET_ROOTS,
+        dimension_cap=64,
+        pool_policy_digest="pool" * 6,
+        spectral_request_digest="spec" * 6,
+        resource_policy_id="graph_span_two_qubit_only_v1_plus_pencil_estimator_v1",
+    )
+    campaign = StaticQSECampaign(campaign_id="map_test", cells=(cell,))
+    ledger = StaticQSELedger()
+    campaign_json = _write_json(tmp_path / "campaign.json", campaign.payload())
+    ledger_json = tmp_path / "ledger.json"
+    ledger.save(ledger_json)
+    contract = build_static_results_contract(campaign, ledger)
+    contract_json = tmp_path / "contract.json"
+    write_static_results_contract(contract, contract_json)
+    return campaign_json, ledger_json, contract_json
+
+
+def test_static_campaign_roles_are_first_class_sources(tmp_path: Path) -> None:
+    from pipelines.qse_spectra.source_maps import (
+        ROLE_STATIC_QSE_CAMPAIGN,
+        ROLE_STATIC_QSE_LEDGER,
+        ROLE_STATIC_QSE_RESULTS_CONTRACT,
+        static_campaign_source_specs,
+    )
+
+    campaign_json, ledger_json, contract_json = _static_campaign_files(tmp_path)
+    specs = static_campaign_source_specs(
+        campaign_json=campaign_json,
+        ledger_json=ledger_json,
+        results_contract_json=contract_json,
+    )
+    source_map = build_paper_iii_qse_source_map(
+        specs, source_root=tmp_path, map_id="static_roles"
+    )
+    roles = {record["source_map_role"] for record in source_map["sources"]}
+    assert roles == {
+        ROLE_STATIC_QSE_CAMPAIGN,
+        ROLE_STATIC_QSE_LEDGER,
+        ROLE_STATIC_QSE_RESULTS_CONTRACT,
+    }
+    by_role = {r["source_map_role"]: r for r in source_map["sources"]}
+    assert by_role[ROLE_STATIC_QSE_CAMPAIGN]["regime_or_case"] == "map_test"
+    assert by_role[ROLE_STATIC_QSE_LEDGER]["regime_or_case"] == "attempts:0"
+    assert by_role[ROLE_STATIC_QSE_CAMPAIGN]["approval_status"] == "declaration"
+    report = validate_paper_iii_qse_source_map(source_map, base_dir=tmp_path)
+    assert report["ok"] is True
+
+
+def test_static_role_schema_drift_fails_the_audit(tmp_path: Path) -> None:
+    from pipelines.qse_spectra.source_maps import static_campaign_source_specs
+
+    campaign_json, ledger_json, _contract = _static_campaign_files(tmp_path)
+    specs = static_campaign_source_specs(
+        campaign_json=campaign_json, ledger_json=ledger_json
+    )
+    source_map = build_paper_iii_qse_source_map(specs, source_root=tmp_path)
+    payload = json.loads(ledger_json.read_text())
+    payload["schema_version"] = "paper_iii_static_qse_ledger_v999"
+    _write_json(ledger_json, payload)
+    with pytest.raises(PaperIIIQSESourceMapError):
+        validate_paper_iii_qse_source_map(source_map, base_dir=tmp_path)

@@ -473,3 +473,163 @@ def test_main_records_actual_cli_arguments(tmp_path: Path, monkeypatch: Any) -> 
     tex = config.output_tex.read_text(encoding="utf-8")
     report_block = _machine_block(tex, "PAPER_III_QSE_RESULTS_REPORT")
     assert "--no-compile" in report_block["command_line"]
+
+
+# --- static results-contract rendering -------------------------------------
+
+
+def _static_contract_setup(tmp_path: Path):
+    from pipelines.qse_spectra.source_maps import static_campaign_source_specs
+    from pipelines.qse_spectra.source_maps import (
+        build_paper_iii_qse_source_map,
+        write_paper_iii_qse_source_map,
+    )
+    from pipelines.qse_spectra.static_campaign import (
+        DEFAULT_TARGET_ROOTS,
+        GroundStateArtifactRef,
+        NotPlannedCell,
+        StaticQSEAttempt,
+        StaticQSECampaign,
+        StaticQSECellKey,
+        StaticQSELedger,
+        hh_physics_key,
+    )
+    from pipelines.reporting.paper_iii_static_results_contract import (
+        build_static_results_contract,
+        write_static_results_contract,
+    )
+
+    artifact = GroundStateArtifactRef(
+        provider_id="provider::weak_weak_nph1",
+        manifest_path="states/weak_weak_nph1.json",
+        manifest_sha256="ab" * 32,
+        state_key="initial_state",
+        state_payload_sha256="cd" * 32,
+        num_qubits=8,
+        sector="half_filled_11",
+        energy=-1.25,
+        source_revision="e6b2c2ca",
+        achieved_settings_digest="ef" * 32,
+    )
+    cell = StaticQSECellKey(
+        physics=hh_physics_key("weak_weak", 0.25, 0.353553390593, 1),
+        ground_state_artifact_id=artifact.artifact_id,
+        method_id="record_first_adaptive_qse",
+        target_roots=DEFAULT_TARGET_ROOTS,
+        dimension_cap=64,
+        pool_policy_digest="pool" * 6,
+        spectral_request_digest="spec" * 6,
+        resource_policy_id="graph_span_two_qubit_only_v1_plus_pencil_estimator_v1",
+    )
+    campaign = StaticQSECampaign(
+        campaign_id="pdf_test",
+        cells=(cell,),
+        not_planned=(
+            NotPlannedCell(
+                physics=hh_physics_key("weak_weak", 0.25, 0.353553390593, 1),
+                method_id="fixed_linear_response_qse",
+                reason="no declared class",
+            ),
+        ),
+    )
+    ledger = StaticQSELedger()
+    actions = campaign.cell_actions(cell)
+    ledger.append(
+        StaticQSEAttempt.from_mappings(
+            action_id=actions["ground_state_import"].action_id,
+            achieved_config={"stage": "ground_state_import"},
+            source_revision="deadbeef",
+            input_digests={},
+            output_digests={"ground_state_import.json": "11" * 32},
+            payload_paths=["x/ground_state_import.json"],
+            disposition="completed",
+        )
+    )
+    campaign_json = _write_json(tmp_path / "campaign.json", campaign.payload())
+    ledger_json = tmp_path / "ledger.json"
+    ledger.save(ledger_json)
+    contract = build_static_results_contract(campaign, ledger)
+    contract_json = tmp_path / "contract.json"
+    write_static_results_contract(contract, contract_json)
+    specs = static_campaign_source_specs(
+        campaign_json=campaign_json,
+        ledger_json=ledger_json,
+        results_contract_json=contract_json,
+    )
+    source_map = build_paper_iii_qse_source_map(
+        specs, source_root=tmp_path, map_id="static_pdf_test"
+    )
+    map_json = tmp_path / "static_source_map.json"
+    write_paper_iii_qse_source_map(source_map, map_json)
+    return campaign, ledger, contract, contract_json, map_json
+
+
+def test_contract_driven_report_renders_full_matrix_with_statuses(tmp_path: Path) -> None:
+    campaign, ledger, contract, contract_json, map_json = _static_contract_setup(tmp_path)
+    config = PaperIIIQSEResultsReportConfig(
+        source_map_jsons=(map_json,),
+        base_dir=tmp_path,
+        output_tex=tmp_path / "out/report.tex",
+        output_pdf=tmp_path / "out/report.pdf",
+        report_manifest_json=tmp_path / "out/report.manifest.json",
+        audit_json=tmp_path / "out/report.audit.json",
+        run_manifest_json=tmp_path / "out/run_manifest.json",
+        command_log_md=tmp_path / "out/command_log.md",
+        compile_mode="skip",
+        static_contract_json=contract_json,
+    )
+    manifest = build_paper_iii_qse_results_report(config, command=["test"])
+    tex = (tmp_path / "out/report.tex").read_text(encoding="utf-8")
+    assert "Declared static-QSE matrix" in tex
+    assert "gate\\_pending" in tex
+    assert "not\\_planned" in tex
+    # Contract-driven rendering never rediscovers runs newest-first.
+    assert "PAPER_III_QSE_RESULT_SECTION" not in tex
+    assert "PAPER_III_STATIC_QSE_MATRIX" in tex
+
+    block = manifest["static_results_contract"]
+    assert block["campaign_digest"] == campaign.digest()
+    assert block["ledger_digest"] == ledger.digest()
+    assert block["contract_sha256"]
+    assert block["status_counts"]["not_planned"] == 1
+
+
+def test_legacy_source_map_path_is_retained_without_contract(tmp_path: Path) -> None:
+    _campaign, _ledger, _contract, _contract_json, map_json = _static_contract_setup(tmp_path)
+    config = PaperIIIQSEResultsReportConfig(
+        source_map_jsons=(map_json,),
+        base_dir=tmp_path,
+        output_tex=tmp_path / "legacy/report.tex",
+        output_pdf=tmp_path / "legacy/report.pdf",
+        report_manifest_json=tmp_path / "legacy/report.manifest.json",
+        audit_json=tmp_path / "legacy/report.audit.json",
+        run_manifest_json=tmp_path / "legacy/run_manifest.json",
+        command_log_md=tmp_path / "legacy/command_log.md",
+        compile_mode="skip",
+    )
+    manifest = build_paper_iii_qse_results_report(config, command=["test"])
+    tex = (tmp_path / "legacy/report.tex").read_text(encoding="utf-8")
+    assert "PAPER_III_QSE_RESULT_SECTION" in tex
+    assert "Declared static-QSE matrix" not in tex
+    assert "static_results_contract" not in manifest
+
+
+def test_tampered_contract_fails_the_report_build(tmp_path: Path) -> None:
+    _campaign, _ledger, _contract, contract_json, map_json = _static_contract_setup(tmp_path)
+    payload = json.loads(contract_json.read_text())
+    payload["rows"][0]["cell_status"] = "victorious"
+    _write_json(contract_json, payload)
+    config = PaperIIIQSEResultsReportConfig(
+        source_map_jsons=(map_json,),
+        base_dir=tmp_path,
+        output_tex=tmp_path / "bad/report.tex",
+        output_pdf=tmp_path / "bad/report.pdf",
+        report_manifest_json=tmp_path / "bad/report.manifest.json",
+        audit_json=tmp_path / "bad/report.audit.json",
+        run_manifest_json=tmp_path / "bad/run_manifest.json",
+        command_log_md=tmp_path / "bad/command_log.md",
+        compile_mode="skip",
+        static_contract_json=contract_json,
+    )
+    with pytest.raises(Exception):
+        build_paper_iii_qse_results_report(config, command=["test"])

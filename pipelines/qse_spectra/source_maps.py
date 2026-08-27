@@ -29,6 +29,18 @@ from typing import Any, Mapping, Sequence
 PAPER_III_QSE_SOURCE_MAP_SCHEMA_VERSION = "paper_iii_qse_source_map_v1"
 PAPER_III_QSE_SOURCE_MAP_AUDIT_SCHEMA_VERSION = "paper_iii_qse_source_map_audit_v1"
 
+# First-class roles for the typed static-QSE campaign: the declared campaign,
+# its admitted attempt ledger, and the projected results contract are source
+# artifacts in their own right, hashed and audited like any other evidence.
+ROLE_STATIC_QSE_CAMPAIGN = "static_qse_campaign"
+ROLE_STATIC_QSE_LEDGER = "static_qse_ledger"
+ROLE_STATIC_QSE_RESULTS_CONTRACT = "static_qse_results_contract"
+_STATIC_ROLE_SCHEMAS = {
+    ROLE_STATIC_QSE_CAMPAIGN: "paper_iii_static_qse_campaign_v1",
+    ROLE_STATIC_QSE_LEDGER: "paper_iii_static_qse_ledger_v1",
+    ROLE_STATIC_QSE_RESULTS_CONTRACT: "paper_iii_static_qse_results_contract_v1",
+}
+
 _BOUNDARY_REQUIRED_SECTIONS = (
     "static_record_selection",
     "paper_iii_contract",
@@ -190,7 +202,79 @@ def _evaluate_production_gates(payload: Mapping[str, Any]) -> list[dict[str, str
     return problems
 
 
+def static_campaign_source_specs(
+    *,
+    campaign_json: Any,
+    ledger_json: Any,
+    results_contract_json: Any | None = None,
+) -> list[PaperIIIQSESourceSpec]:
+    """Source specs binding a declared static campaign and its ledger.
+
+    The results PDF's manifest must hash both the campaign declaration and
+    the admitted-attempt ledger; the projected results contract joins when it
+    has been written. Schema versions are pinned so drift fails the audit.
+    """
+
+    specs = [
+        PaperIIIQSESourceSpec(
+            role=ROLE_STATIC_QSE_CAMPAIGN,
+            path=campaign_json,
+            expected_schema_version=_STATIC_ROLE_SCHEMAS[ROLE_STATIC_QSE_CAMPAIGN],
+        ),
+        PaperIIIQSESourceSpec(
+            role=ROLE_STATIC_QSE_LEDGER,
+            path=ledger_json,
+            expected_schema_version=_STATIC_ROLE_SCHEMAS[ROLE_STATIC_QSE_LEDGER],
+        ),
+    ]
+    if results_contract_json is not None:
+        specs.append(
+            PaperIIIQSESourceSpec(
+                role=ROLE_STATIC_QSE_RESULTS_CONTRACT,
+                path=results_contract_json,
+                expected_schema_version=_STATIC_ROLE_SCHEMAS[
+                    ROLE_STATIC_QSE_RESULTS_CONTRACT
+                ],
+            )
+        )
+    return specs
+
+
+def _static_campaign_provenance(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Provenance for the typed static-campaign artifacts, else ``None``."""
+
+    schema = payload.get("schema_version")
+    if schema == _STATIC_ROLE_SCHEMAS[ROLE_STATIC_QSE_CAMPAIGN]:
+        return {
+            "run_class": "static_qse_campaign_declaration",
+            "compatibility_tier": None,
+            "method_id": "static_qse_campaign",
+            "regime_or_case": _first_string(payload.get("campaign_id")),
+            "approval_status": "declaration",
+        }
+    if schema == _STATIC_ROLE_SCHEMAS[ROLE_STATIC_QSE_LEDGER]:
+        return {
+            "run_class": "static_qse_attempt_ledger",
+            "compatibility_tier": None,
+            "method_id": "static_qse_ledger",
+            "regime_or_case": f"attempts:{int(payload.get('attempt_count') or 0)}",
+            "approval_status": "admitted_attempts",
+        }
+    if schema == _STATIC_ROLE_SCHEMAS[ROLE_STATIC_QSE_RESULTS_CONTRACT]:
+        return {
+            "run_class": "static_qse_results_contract",
+            "compatibility_tier": None,
+            "method_id": "static_qse_results_contract",
+            "regime_or_case": _first_string(payload.get("campaign_id")),
+            "approval_status": "projected_matrix",
+        }
+    return None
+
+
 def _extract_provenance(payload: Mapping[str, Any]) -> dict[str, Any]:
+    static = _static_campaign_provenance(payload)
+    if static is not None:
+        return static
     contract = _mapping_or_empty(payload.get("paper_iii_contract"))
     row = _first_row(payload)
     selection = _mapping_or_empty(payload.get("static_record_selection"))

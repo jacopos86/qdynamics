@@ -89,6 +89,11 @@ class PaperIIIQSEResultsReportConfig:
     command_log_md: Path = DEFAULT_COMMAND_LOG_MD
     compile_mode: str = COMPILE_AUTO
     extra_metadata: Mapping[str, Any] = field(default_factory=dict)
+    # When a verified static-results contract is supplied the report renders
+    # the full declared matrix from it (values plus honest status
+    # placeholders) instead of rediscovering runs newest-first; the legacy
+    # source-map path stays available for existing evidence.
+    static_contract_json: Path | None = None
 
     def __post_init__(self) -> None:
         if not tuple(self.source_map_jsons):
@@ -199,6 +204,58 @@ def _source_sections(source: Mapping[str, Any], payload: Mapping[str, Any]) -> l
     return lines
 
 
+def _static_matrix_sections(contract: Any, contract_sha: str) -> list[str]:
+    """Render the full declared static-QSE matrix from a verified contract."""
+
+    lines: list[str] = []
+    lines.append(
+        _machine_block(
+            "PAPER_III_STATIC_QSE_MATRIX",
+            {
+                "schema_version": str(contract.payload.get("schema_version")),
+                "campaign_id": contract.payload.get("campaign_id"),
+                "campaign_digest": contract.campaign_digest,
+                "ledger_digest": contract.ledger_digest,
+                "contract_sha256": contract_sha,
+                "status_counts": contract.payload.get("status_counts"),
+            },
+        )
+    )
+    lines.append(r"\section*{Declared static-QSE matrix}")
+    lines.append(
+        "Every declared cell appears below with its honest status: values come "
+        "from admitted ledger attempts; \\emph{pending} means no completed "
+        "attempt exists; \\emph{gate\\_pending} means a verified numerical "
+        "artifact awaits classification; \\emph{candidate} rows keep their "
+        "numerical payloads despite a failed gate; \\emph{not\\_planned} slots "
+        "are intentionally unscheduled."
+    )
+    lines.append(rf"\noindent Campaign digest: \texttt{{{_escape(contract.campaign_digest[:16])}}}\dots; "
+                 rf"ledger digest: \texttt{{{_escape(contract.ledger_digest[:16])}}}\dots")
+    lines.append(r"\begin{center}")
+    lines.append(r"\begin{tabular}{l l l l l}")
+    lines.append(r"\hline")
+    lines.append(r"case & cutoff & method & status & detail \\")
+    lines.append(r"\hline")
+    for row in contract.rows:
+        detail = ""
+        if row.get("cell_status") == "candidate" and row.get("failed_gates"):
+            detail = "gates: " + ", ".join(row["failed_gates"])
+        elif row.get("row_kind") == "not_planned_slot":
+            detail = str(row.get("not_planned_reason") or "")[:60]
+        lines.append(
+            rf"{_escape(row['case_id'])} & "
+            rf"{_escape(row['cutoff_kind'])}={int(row['cutoff_value'])} & "
+            rf"{_escape(row['method_id'])} & "
+            rf"{_escape(row['cell_status'])} & {_escape(detail)} \\"
+        )
+    lines.append(r"\hline")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\end{center}")
+    lines.append("")
+    return lines
+
+
 def _resolve_compile(
     config: PaperIIIQSEResultsReportConfig,
 ) -> tuple[str, str | None]:
@@ -294,6 +351,17 @@ def build_paper_iii_qse_results_report(
                 }
             )
 
+    static_contract = None
+    static_contract_sha = None
+    if config.static_contract_json is not None:
+        from pipelines.reporting.paper_iii_static_results_contract import (
+            load_static_results_contract,
+        )
+
+        contract_path = Path(config.static_contract_json)
+        static_contract = load_static_results_contract(contract_path)
+        static_contract_sha = sha256_file(contract_path)
+
     audited_sources.sort(key=lambda item: str(item.get("generated_utc") or ""), reverse=True)
     role_counts: dict[str, int] = {}
     for source in audited_sources:
@@ -328,20 +396,29 @@ def build_paper_iii_qse_results_report(
         "by this report; promotion requires explicit user approval outside the builder."
     )
     tex_lines.append("")
-    for source in audited_sources:
-        section_block = {
-            "schema_version": REPORT_SCHEMA_VERSION,
-            "source": {
-                key: value for key, value in source.items() if key != "_payload"
-            },
-            "source_map": {
-                "map_id": source.get("map_id"),
-                "sha256": source.get("source_map_sha256"),
-            },
-        }
-        tex_lines.append(_machine_block("PAPER_III_QSE_RESULT_SECTION", section_block))
-        tex_lines.extend(_source_sections(source, source["_payload"]))
-        tex_lines.append("")
+    if static_contract is not None:
+        # Contract-driven rendering: the declared matrix is the report body;
+        # runs are never rediscovered newest-first from the source payloads.
+        tex_lines.extend(
+            _static_matrix_sections(static_contract, str(static_contract_sha))
+        )
+    else:
+        for source in audited_sources:
+            section_block = {
+                "schema_version": REPORT_SCHEMA_VERSION,
+                "source": {
+                    key: value for key, value in source.items() if key != "_payload"
+                },
+                "source_map": {
+                    "map_id": source.get("map_id"),
+                    "sha256": source.get("source_map_sha256"),
+                },
+            }
+            tex_lines.append(
+                _machine_block("PAPER_III_QSE_RESULT_SECTION", section_block)
+            )
+            tex_lines.extend(_source_sections(source, source["_payload"]))
+            tex_lines.append("")
 
     tex_lines.append(r"\clearpage")
     tex_lines.append(r"\section*{PARAMETER / PROVENANCE MANIFEST}")
@@ -394,6 +471,16 @@ def build_paper_iii_qse_results_report(
             "source_count": len(audited_sources),
         },
     }
+    if static_contract is not None:
+        manifest["static_results_contract"] = {
+            "path": str(config.static_contract_json),
+            "contract_sha256": str(static_contract_sha),
+            "campaign_digest": static_contract.campaign_digest,
+            "ledger_digest": static_contract.ledger_digest,
+            "status_counts": dict(
+                static_contract.payload.get("status_counts") or {}
+            ),
+        }
     _write_json(config.report_manifest_json, manifest)
 
     audit = {
@@ -444,6 +531,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-manifest-json", type=Path, default=DEFAULT_RUN_MANIFEST_JSON)
     parser.add_argument("--command-log-md", type=Path, default=DEFAULT_COMMAND_LOG_MD)
     parser.add_argument(
+        "--static-contract-json",
+        type=Path,
+        default=None,
+        help=(
+            "Verified static-results contract; when supplied the report renders "
+            "the declared matrix instead of newest-first source sections."
+        ),
+    )
+    parser.add_argument(
         "--compile-mode", choices=list(_COMPILE_MODES), default=COMPILE_AUTO
     )
     parser.add_argument(
@@ -468,6 +564,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         run_manifest_json=args.run_manifest_json,
         command_log_md=args.command_log_md,
         compile_mode=compile_mode,
+        static_contract_json=args.static_contract_json,
     )
     command = [Path(sys.argv[0]).name, *raw_argv] if argv is None else list(raw_argv)
     build_paper_iii_qse_results_report(config, command=command)
