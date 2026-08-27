@@ -34,7 +34,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
@@ -117,6 +117,7 @@ def _row(problem: Any, indices: Sequence[int], k: int, *, exchanged: bool) -> di
     return {
         "k": int(k),
         "support_size": len(indices),
+        "support_indices": [int(index) for index in indices],
         "exchanged": bool(exchanged),
         "retained_rank": rank,
         "max_root_abs_error": err,
@@ -242,6 +243,170 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def trace_hybrid(
+    problem: Any,
+    order: Sequence[int],
+    *,
+    k_max: int,
+    stride: int,
+    record_stop: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Record acquisition with escalation to residual synthesis when the
+    alphabet stops helping.
+
+    Phase A buys cheap alphabet directions under the production rule. The
+    trigger is the production selector's terminal receipt, which includes its
+    residual and pool-relative window-pressure checks.  Phase B then hands the
+    actual exchange-maintained support to residual synthesis as seed elements.
+
+    Returns the concatenated trace and a provenance record of the trigger.
+    """
+
+    stop_receipt = dict(record_stop)
+    stop_reason = str(stop_receipt.get("stop_reason", ""))
+    terminal_reasons = {"residual_converged", "pool_exhausted"}
+    record_cap = len(order)
+    phase_a_cap = min(int(k_max), int(record_cap))
+    rows = trace_arm(
+        problem,
+        order,
+        stride=stride,
+        k_max=phase_a_cap,
+        exchange_policy="every_k",
+    )
+    if record_cap > int(k_max):
+        return rows, {
+            "fired": False,
+            "reason": "record_stop_beyond_dimension_cap",
+            "trigger_source": "record_selector_terminal_receipt",
+            "record_stop": stop_receipt,
+        }
+    if stop_reason not in terminal_reasons:
+        return rows, {
+            "fired": False,
+            "reason": "record_acquisition_not_terminal",
+            "trigger_source": "record_selector_terminal_receipt",
+            "record_stop": stop_receipt,
+        }
+    if not rows:
+        return rows, {
+            "fired": False,
+            "reason": "empty_record_support",
+            "trigger_source": "record_selector_terminal_receipt",
+            "record_stop": stop_receipt,
+        }
+
+    phase_a = list(rows)
+    base = phase_a[-1]
+    phase_a_error = base.get("max_root_abs_error")
+    phase_a_support_indices = [int(index) for index in base["support_indices"]]
+    seed_indices = list(phase_a_support_indices)
+    seed = [problem.basis[index] for index in seed_indices]
+
+    from pipelines.qse_spectra.compiled_costs import (
+        ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        annotate_basis_with_compiled_costs,
+        resolve_cost_weights_preset,
+    )
+    from pipelines.qse_spectra.core import polynomial_basis_element
+    from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
+
+    est = annotate_basis_with_compiled_costs(
+        [polynomial_basis_element(problem.hamiltonian, name="first_order_trotter_step")],
+        num_qubits=problem.num_qubits,
+        oracle_kind=ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
+        cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
+    )[0].estimate
+    per_direction = {
+        "n2q": float(est.c_hat_2q),
+        "d2q": float(est.c_hat_d),
+        "dc": float(est.c_hat_d) + float(est.c_hat_1q),
+    }
+    ham_terms = len(_polynomial_words(problem.hamiltonian))
+
+    audit = run_adaptive_qse_benchmark(
+        problem.hamiltonian,
+        problem.ground,
+        target_roots=_TARGET_ROOTS + 1,
+        eps_residual=1.0e-14,
+        max_dimension=int(k_max),
+        seed_elements=seed,
+        direction_resources=per_direction,
+    )
+    admitted_seed_count = int(audit["seed_policy"]["admitted_seed_direction_count"])
+    initial_adaptive_dimension = 1 + admitted_seed_count
+    phase_a_resources = {
+        resource: float(base[resource]) for resource in ("n2q", "d2q", "dc")
+    }
+    refs = problem.references
+    phase_b: list[dict[str, Any]] = []
+    for it in audit["iterations"]:
+        roots = list((it.get("root_energies") or [])[1:])
+        err = (
+            max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
+            if len(roots) >= len(refs) else None
+        )
+        d = int(it["dimension"])
+        if d <= initial_adaptive_dimension:
+            continue                      # seed re-solve, already in phase A
+        synthesized_direction_count = d - initial_adaptive_dimension
+        synthesized_resources = {
+            resource: float(per_direction[resource]) * synthesized_direction_count
+            for resource in ("n2q", "d2q", "dc")
+        }
+        pairs = d * (d + 1) // 2
+        phase_b.append({
+            "k": d,
+            "support_size": d,
+            "exchanged": False,
+            "phase": "synthesis",
+            "retained_rank": int(it["retained_rank"]),
+            "max_root_abs_error": err,
+            # phase-A record cost is already paid; synthesis adds on top
+            "n2q": phase_a_resources["n2q"] + synthesized_resources["n2q"],
+            "d2q": phase_a_resources["d2q"] + synthesized_resources["d2q"],
+            "dc": phase_a_resources["dc"] + synthesized_resources["dc"],
+            "synthesized_direction_count": synthesized_direction_count,
+            "root_energies": roots,
+            "estimator": {
+                "pair_count": pairs,
+                "queries": int(pairs * (1 + ham_terms)),
+                "hamiltonian_pauli_terms": int(ham_terms),
+                "convention": "hybrid_pencil_no_qwc_reuse_after_escalation",
+            },
+        })
+    for r in phase_a:
+        r.setdefault("phase", "records")
+    terminal_root_energies = [float(value) for value in audit["root_energies"][1:]]
+    terminal_window_error = (
+        max(
+            abs(float(terminal_root_energies[root]) - float(reference))
+            for root, reference in enumerate(refs)
+        )
+        if len(terminal_root_energies) >= len(refs)
+        else None
+    )
+    return phase_a + phase_b, {
+        "fired": True,
+        "trigger_k": int(base["k"]),
+        "trigger_source": "record_selector_terminal_receipt",
+        "phase_a_error": None if phase_a_error is None else float(phase_a_error),
+        "phase_a_n2q": float(base["n2q"]),
+        "phase_a_support_indices": phase_a_support_indices,
+        "seed_indices": seed_indices,
+        "seed_size": len(seed),
+        "admitted_seed_direction_count": admitted_seed_count,
+        "initial_adaptive_dimension": initial_adaptive_dimension,
+        "phase_a_resources": phase_a_resources,
+        "per_synthesized_direction": dict(per_direction),
+        "adaptive_stop_reason": str(audit["stop_reason"]),
+        "residual_stop_is_window_completeness_certificate": False,
+        "terminal_root_energies": terminal_root_energies,
+        "terminal_window_error": terminal_window_error,
+        "record_stop": stop_receipt,
+    }
 
 
 def trace_krylov(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
@@ -459,6 +624,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         if best_ad:
             print(f"   {'adaptive_qse':<22} terminal {best_ad['max_root_abs_error']:.1e} "
                   f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
+
+        hybrid_rows, hybrid_info = trace_hybrid(
+            problem,
+            [int(index) for index in marker.selected_original_indices],
+            k_max=int(args.k_max),
+            stride=int(args.stride),
+            record_stop=marker.geometry_stop or {"stop_reason": "missing"},
+        )
+        arms["hybrid"] = {"trace": hybrid_rows, "trigger": hybrid_info,
+                          "note": "records until the alphabet stalls, then residual synthesis"}
+        best_hy = min(
+            (r for r in hybrid_rows if r["max_root_abs_error"] is not None),
+            key=lambda r: r["max_root_abs_error"], default=None,
+        )
+        if best_hy:
+            print(f"   {'hybrid':<22} terminal {best_hy['max_root_abs_error']:.1e} "
+                  f"@k={best_hy['k']} N2q={best_hy['n2q']:.0f} "
+                  f"(trigger {hybrid_info.get('trigger_k')})", flush=True)
 
         arms["krylov"] = {
             "trace": trace_krylov(problem, k_max=int(args.krylov_k_max)),
