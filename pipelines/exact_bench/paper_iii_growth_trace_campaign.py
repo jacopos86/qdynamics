@@ -76,6 +76,30 @@ _TARGET_ROOTS = 6
 RESIDUAL_MARKER = 1.0e-3
 
 
+def _mixed_resource_triple(
+    *,
+    seed_resources: Mapping[str, float],
+    per_synthesized_direction: Mapping[str, float],
+    synthesized_direction_count: int,
+) -> dict[str, float]:
+    """Combine record-seed cost with residual-synthesis cost.
+
+    Adaptive QSE starts from declared operator records but only its later
+    Davidson corrections are synthesized directions.  Keeping those two
+    contributions separate prevents charging a cheap seed record as a full
+    Hamiltonian-evolution step.
+    """
+
+    count = int(synthesized_direction_count)
+    if count < 0:
+        raise ValueError("synthesized_direction_count must be non-negative.")
+    return {
+        resource: float(seed_resources[resource])
+        + count * float(per_synthesized_direction[resource])
+        for resource in ("n2q", "d2q", "dc")
+    }
+
+
 def _window_error(problem: Any, indices: Sequence[int]) -> tuple[float | None, int]:
     try:
         result = compute_qse_spectra(
@@ -162,13 +186,14 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     convention, not from `problem.resource_triple`.
     """
 
-    seed = [
-        problem.basis[i] for i, e in enumerate(problem.basis)
+    seed_indices = [
+        i for i, e in enumerate(problem.basis)
         if _element_family(e.name) in _LINEAR_RESPONSE_FAMILIES
     ]
-    # Charge each synthesized direction as one first-order Trotter step of H,
-    # the same convention the Krylov arm uses (handoff spec). Charging a pool
-    # record instead is wrong: record 0 is the identity and costs nothing.
+    seed = [problem.basis[i] for i in seed_indices]
+    # Residual corrections are charged as one first-order Trotter step of H,
+    # matching Krylov.  The declared seed is different: those directions are
+    # literal pool records and retain their record-specific compiled costs.
     from pipelines.qse_spectra.compiled_costs import (
         ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
         annotate_basis_with_compiled_costs,
@@ -199,6 +224,15 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
         seed_elements=seed,
         direction_resources=per_direction,
     )
+    seed_rows = list(audit["seed_policy"]["seed_rows"])
+    admitted_seed_indices = [
+        int(index)
+        for index, row in zip(seed_indices, seed_rows)
+        if bool(row["admitted"])
+    ]
+    admitted_seed_count = len(admitted_seed_indices)
+    initial_adaptive_dimension = 1 + admitted_seed_count
+    seed_resources = problem.resource_triple(admitted_seed_indices)
     from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
 
     # Estimator queries for a synthesized-basis pencil. This arm's basis
@@ -227,19 +261,32 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
             max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
             if len(roots) >= len(refs) else None
         )
-        res = it.get("resources") or {}
+        dimension = int(it["dimension"])
+        synthesized_direction_count = max(
+            0, dimension - int(initial_adaptive_dimension)
+        )
+        res = _mixed_resource_triple(
+            seed_resources=seed_resources,
+            per_synthesized_direction=per_direction,
+            synthesized_direction_count=synthesized_direction_count,
+        )
         rows.append(
             {
-                "k": int(it["dimension"]),
-                "support_size": int(it["dimension"]),
+                "k": dimension,
+                "support_size": dimension,
                 "exchanged": False,
                 "retained_rank": int(it["retained_rank"]),
                 "max_root_abs_error": err,
-                "n2q": float(res.get("n2q", 0.0)),
-                "d2q": float(res.get("d2q", 0.0)),
-                "dc": float(res.get("dc", 0.0)),
+                "n2q": float(res["n2q"]),
+                "d2q": float(res["d2q"]),
+                "dc": float(res["dc"]),
+                "seed_record_count": int(admitted_seed_count),
+                "seed_record_resources": dict(seed_resources),
+                "synthesized_direction_count": int(synthesized_direction_count),
+                "per_synthesized_direction": dict(per_direction),
+                "costing_convention": "record_seed_plus_trotterized_residual_directions_v1",
                 "root_energies": roots,
-                "estimator": _adaptive_estimator(int(it["dimension"])),
+                "estimator": _adaptive_estimator(dimension),
             }
         )
     return rows
@@ -352,10 +399,11 @@ def trace_hybrid(
         if d <= initial_adaptive_dimension:
             continue                      # seed re-solve, already in phase A
         synthesized_direction_count = d - initial_adaptive_dimension
-        synthesized_resources = {
-            resource: float(per_direction[resource]) * synthesized_direction_count
-            for resource in ("n2q", "d2q", "dc")
-        }
+        resources = _mixed_resource_triple(
+            seed_resources=phase_a_resources,
+            per_synthesized_direction=per_direction,
+            synthesized_direction_count=synthesized_direction_count,
+        )
         pairs = d * (d + 1) // 2
         phase_b.append({
             "k": d,
@@ -365,9 +413,9 @@ def trace_hybrid(
             "retained_rank": int(it["retained_rank"]),
             "max_root_abs_error": err,
             # phase-A record cost is already paid; synthesis adds on top
-            "n2q": phase_a_resources["n2q"] + synthesized_resources["n2q"],
-            "d2q": phase_a_resources["d2q"] + synthesized_resources["d2q"],
-            "dc": phase_a_resources["dc"] + synthesized_resources["dc"],
+            "n2q": resources["n2q"],
+            "d2q": resources["d2q"],
+            "dc": resources["dc"],
             "synthesized_direction_count": synthesized_direction_count,
             "root_energies": roots,
             "estimator": {
@@ -615,7 +663,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         arms["adaptive_qse"] = {
             "trace": trace_adaptive_qse(problem, k_max=int(args.k_max)),
-            "note": "external benchmark; synthesizes directions, does not consume the alphabet",
+            "note": (
+                "external benchmark; starts from the declared fixed record seed, "
+                "then synthesizes residual directions outside the alphabet"
+            ),
         }
         best_ad = min(
             (r for r in arms["adaptive_qse"]["trace"] if r["max_root_abs_error"] is not None),

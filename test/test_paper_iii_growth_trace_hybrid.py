@@ -2,17 +2,86 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
 
-from pipelines.exact_bench.paper_iii_growth_trace_campaign import trace_hybrid
-from pipelines.qse_spectra.core import QSEBasisVectorPolicy
+from pipelines.exact_bench import paper_iii_growth_trace_campaign as growth_campaign
+from pipelines.exact_bench.paper_iii_growth_trace_campaign import (
+    _mixed_resource_triple,
+    trace_hybrid,
+)
+from pipelines.qse_spectra.core import (
+    QSEBasisVectorPolicy,
+    pauli_string_basis_element,
+)
 from pipelines.qse_spectra.paper_iii_problem import load_problem
 from pipelines.qse_spectra.record_selection import (
     StaticRecordSelectionConfig,
     select_static_qse_records,
 )
+from src.quantum.pauli_polynomial_class import PauliPolynomial
+from src.quantum.qubitization_module import PauliTerm
+
+
+def test_adaptive_resource_accounting_separates_record_seed_from_synthesis() -> None:
+    resources = _mixed_resource_triple(
+        seed_resources={"n2q": 11.0, "d2q": 13.0, "dc": 17.0},
+        per_synthesized_direction={"n2q": 5.0, "d2q": 7.0, "dc": 9.0},
+        synthesized_direction_count=3,
+    )
+
+    assert resources == {"n2q": 26.0, "d2q": 34.0, "dc": 44.0}
+
+
+def test_adaptive_trace_charges_seed_as_records_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    hamiltonian = PauliPolynomial("JW")
+    hamiltonian.add_term(PauliTerm(4, ps="eeez", pc=1.0))
+    basis = (
+        pauli_string_basis_element("IIII", nq=4, name="identity"),
+        pauli_string_basis_element("IIIX", nq=4, name="hh_phonon::x"),
+    )
+
+    def resource_triple(indices: list[int]) -> dict[str, float]:
+        return {
+            "n2q": 11.0 * len(indices),
+            "d2q": 13.0 * len(indices),
+            "dc": 17.0 * len(indices),
+        }
+
+    problem = SimpleNamespace(
+        basis=basis,
+        hamiltonian=hamiltonian,
+        ground=np.eye(1, 16, 0, dtype=complex).reshape(-1),
+        num_qubits=4,
+        references=(1.0, 2.0, 3.0, 4.0, 5.0, 6.0),
+        resource_triple=resource_triple,
+    )
+
+    def fake_adaptive(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        roots = [0.0, *problem.references]
+        return {
+            "seed_policy": {
+                "seed_rows": [{"admitted": False}, {"admitted": True}],
+            },
+            "iterations": [
+                {"dimension": 2, "retained_rank": 2, "root_energies": roots},
+                {"dimension": 4, "retained_rank": 4, "root_energies": roots},
+            ],
+        }
+
+    monkeypatch.setattr(
+        growth_campaign, "run_adaptive_qse_benchmark", fake_adaptive
+    )
+    rows = growth_campaign.trace_adaptive_qse(problem, k_max=4)
+
+    assert rows[0]["seed_record_count"] == 1
+    assert rows[0]["synthesized_direction_count"] == 0
+    assert rows[0]["n2q"] == 11.0
+    assert rows[1]["synthesized_direction_count"] == 2
+    assert rows[1]["n2q"] == 11.0 + 2 * rows[1]["per_synthesized_direction"]["n2q"]
 
 
 @pytest.fixture(scope="module")
