@@ -35,6 +35,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
+from pipelines.qse_spectra.switch_policy import (
+    CANONICAL_METHOD_POLICY,
+    MethodPolicy,
+)
+
 STATIC_CAMPAIGN_SCHEMA_VERSION = "paper_iii_static_qse_campaign_v1"
 STATIC_LEDGER_SCHEMA_VERSION = "paper_iii_static_qse_ledger_v1"
 STATIC_ATTEMPT_SCHEMA_VERSION = "paper_iii_static_qse_attempt_v1"
@@ -257,12 +262,23 @@ class StaticQSECellKey:
     pool_policy_digest: str
     spectral_request_digest: str
     resource_policy_id: str
+    # The online switch rule is part of the identity: changing when the
+    # method escalates to residual synthesis declares new cells rather than
+    # reinterpreting admitted evidence under a rule it never ran.
+    method_policy: MethodPolicy = CANONICAL_METHOD_POLICY
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "method_id", normalize_method_id(self.method_id))
         forbidden = {"record_phase", "davidson_phase", "phase"}
         if str(self.method_id).lower() in forbidden:  # pragma: no cover - typed guard
             raise StaticCampaignError("internal phases are not method identities.")
+        if self.method_id in PUBLIC_METHODS and not self.method_policy.is_canonical:
+            raise StaticCampaignError(
+                f"public method {self.method_id!r} must run the canonical "
+                f"exhaustion-only switch policy; trigger "
+                f"{self.method_policy.switch_trigger!r} is an ablation until the "
+                "canonical policy itself is changed."
+            )
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -275,6 +291,8 @@ class StaticQSECellKey:
             "pool_policy_digest": str(self.pool_policy_digest),
             "spectral_request_digest": str(self.spectral_request_digest),
             "resource_policy_id": str(self.resource_policy_id),
+            "method_policy": self.method_policy.payload(),
+            "method_policy_digest": self.method_policy.digest(),
         }
 
     def digest(self) -> str:
@@ -648,6 +666,11 @@ def cell_key_from_payload(payload: Mapping[str, Any]) -> StaticQSECellKey:
         pool_policy_digest=str(payload["pool_policy_digest"]),
         spectral_request_digest=str(payload["spectral_request_digest"]),
         resource_policy_id=str(payload["resource_policy_id"]),
+        method_policy=(
+            MethodPolicy.from_mapping(payload["method_policy"])
+            if isinstance(payload.get("method_policy"), Mapping)
+            else CANONICAL_METHOD_POLICY
+        ),
     )
 
 
@@ -785,6 +808,7 @@ def declare_siam_matrix(
 
 __all__ = [
     "ABLATION_METHODS",
+    "CANONICAL_METHOD_POLICY",
     "AdmissionResult",
     "DEFAULT_DIMENSION_CAPS",
     "DEFAULT_RESOURCE_POLICY_ID",
@@ -796,6 +820,7 @@ __all__ = [
     "METHOD_FIXED_CLASS",
     "METHOD_KRYLOV",
     "METHOD_RECORD_FIRST",
+    "MethodPolicy",
     "NotPlannedCell",
     "PUBLIC_METHODS",
     "STAGE_DEPENDENCIES",

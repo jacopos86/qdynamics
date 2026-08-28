@@ -69,10 +69,29 @@ across replay.
   through `pipelines.qse_spectra.io.load_state_json`.
 - `StaticQSECellKey`: physics + ground-state artifact id + public method id
   + target set + dimension cap + pool-policy digest + spectral-request
-  digest + resource-policy id. **No accuracy target in the identity** (one
-  trace is read post-run at `eps_E in {1e-2, 1e-4, 1e-6}`); **no internal
-  phase in the identity** (record phase and Davidson phase are stages of
-  one construction).
+  digest + resource-policy id + **method-policy digest** (the online switch
+  rule). **No accuracy target in the identity** (one trace is read post-run
+  at `eps_E in {1e-2, 1e-4, 1e-6}`); **no internal phase in the identity**
+  (record phase and Davidson phase are stages of one construction).
+- `MethodPolicy` (`pipelines/qse_spectra/switch_policy.py`): the declared
+  online switch rule. Canonical is `pool_exhausted_only` with no
+  parameters. `window_residual_stall` (parameters `stall_rounds`,
+  `improvement_ratio`) escalates earlier and is **ablation-only**: a public
+  method id carrying a non-canonical policy is refused at construction.
+  Changing the switch rule therefore declares *new cells* instead of
+  reinterpreting admitted evidence under a rule it never ran; promoting a
+  trigger means changing `CANONICAL_METHOD_POLICY`, which re-digests the
+  public cells by design.
+
+  **Switch-input boundary (load-bearing):** a trigger predicate reads only
+  the selector's online round trace (`max_target_residual_norm`,
+  `selected_score`, `window_pressure`, novelty/capture). Exact spectra and
+  any window error computed against them are post-run qualification data.
+  `assert_online_only_receipt` enforces this structurally by refusing any
+  receipt key outside the declared online vocabulary. The stall rule
+  compares against a *running best*, not the previous round, because the
+  online residual is not monotone (observed on SIAM `N_b=2`: round 5
+  `0.531` rises to round 6 `0.717`).
 - `StaticQSEAction`: cell + stage + dependency action ids.
 - `StaticQSEAttempt`: achieved configuration, source/input/output digests,
   payload references, process disposition, optional qualification.
@@ -227,6 +246,8 @@ ingested as legacy evidence, not rerun.
 
 ## Implementation surfaces
 
+- `pipelines/qse_spectra/switch_policy.py` -- declared online switch
+  policy, its triggers, and the online-only input guard.
 - `pipelines/qse_spectra/static_campaign.py` -- identities, stage graph,
   statuses, planner, append-only ledger, declared matrices.
 - `pipelines/qse_spectra/static_campaign_artifacts.py` -- result envelope,

@@ -295,3 +295,91 @@ def test_wrong_spectral_digest_fails_closed(tmp_path: Path) -> None:
     (action_dir / "ACTION.json").write_text(json.dumps(action_file))
     with pytest.raises(StaticQSECellError, match="spectral request digest"):
         run_action(action_dir / "ACTION.json", action_dir)
+
+
+# --- declared switch policy -------------------------------------------------
+
+
+def _early_switch_cell(policy) -> StaticQSECellKey:
+    key = siam_physics_key("siam_nb2_fixture")
+    return StaticQSECellKey(
+        physics=siam_physics_key_typed("siam_nb2_fixture"),
+        ground_state_artifact_id=_diagnostic_artifact_ref("siam_nb2_fixture").artifact_id,
+        method_id="early_switch",
+        target_roots=DEFAULT_TARGET_ROOTS,
+        dimension_cap=64,
+        pool_policy_digest=ordered_pool_digest(build_siam_pool_elements(key)),
+        spectral_request_digest=canonical_digest(_SPECTRAL_REQUEST),
+        resource_policy_id="graph_span_two_qubit_only_v1_plus_pencil_estimator_v1",
+        method_policy=policy,
+    )
+
+
+def test_early_switch_is_a_declared_cell_not_a_code_edit(
+    tmp_path: Path, executed_chain: dict
+) -> None:
+    """A threshold trigger runs as its own cell and switches earlier."""
+
+    from pipelines.qse_spectra.switch_policy import window_residual_stall_policy
+
+    policy = window_residual_stall_policy(stall_rounds=2, improvement_ratio=0.5)
+    cell = _early_switch_cell(policy)
+    campaign = StaticQSECampaign(campaign_id="early_switch_probe", cells=(cell,))
+    package = build_local_package(
+        campaign,
+        campaign.all_actions(),
+        package_root=tmp_path,
+        cell_contexts={cell.digest(): _context()},
+    )
+    actions = campaign.cell_actions(cell)
+    for stage in (STAGE_GROUND_STATE_IMPORT, STAGE_STATIC_QSE_TRACE):
+        action_dir = package.action_dir(actions[stage])
+        run_action(action_dir / "ACTION.json", action_dir)
+
+    payload = json.loads(
+        (package.action_dir(actions[STAGE_STATIC_QSE_TRACE]) / "static_qse_trace.json").read_text()
+    )
+    decision = payload["trigger"]["switch_decision"]
+    assert decision["switch_trigger"] == "window_residual_stall"
+    assert decision["fired"] is True
+    assert decision["policy_digest"] == policy.digest()
+    assert decision["inputs_are_online_only"] is True
+    assert decision["uses_exact_reference_for_decision"] is False
+    # The record phase was truncated at the declared trigger point, and the
+    # substituted stop reason is labelled rather than disguised.
+    assert len(payload["selection_receipt"]["acquisition_order"]) == decision["handoff_k"]
+    assert payload["trigger"]["record_stop"]["synthesized_by_switch_policy"] is True
+    assert payload["trigger"]["record_stop"]["underlying_stop_reason"] == "residual_converged"
+
+    # The canonical twin from the module fixture ran the same physics and did
+    # not switch: the ablation is a genuinely different declared run.
+    canonical_cell = executed_chain["cell"]
+    canonical_payload = json.loads(
+        (
+            executed_chain["package"].action_dir(
+                executed_chain["campaign"].cell_actions(canonical_cell)[STAGE_STATIC_QSE_TRACE]
+            )
+            / "static_qse_trace.json"
+        ).read_text()
+    )
+    assert canonical_payload["trigger"]["switch_decision"]["fired"] is False
+    assert canonical_cell.digest() != cell.digest()
+    assert len(canonical_payload["selection_receipt"]["acquisition_order"]) > decision["handoff_k"]
+
+
+def test_canonical_cell_switch_decision_is_recorded_but_inert(
+    executed_chain: dict,
+) -> None:
+    package = executed_chain["package"]
+    campaign = executed_chain["campaign"]
+    cell = executed_chain["cell"]
+    payload = json.loads(
+        (
+            package.action_dir(campaign.cell_actions(cell)[STAGE_STATIC_QSE_TRACE])
+            / "static_qse_trace.json"
+        ).read_text()
+    )
+    decision = payload["trigger"]["switch_decision"]
+    assert decision["switch_trigger"] == "pool_exhausted_only"
+    assert decision["handoff_k"] is None
+    assert cell.method_policy.is_canonical is True

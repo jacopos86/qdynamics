@@ -60,6 +60,9 @@ from pipelines.qse_spectra.static_campaign_artifacts import (
 )
 
 TRACE_SCHEMA_VERSION = "paper_iii_static_qse_trace_v1"
+# Declared ablation: the same construction under a non-canonical switch
+# policy. It is never a public method id.
+METHOD_EARLY_SWITCH = "early_switch"
 _CONTROLLER_BOUNDARY = {
     "feeds_controller_decisions": False,
     "controller_usable": False,
@@ -416,11 +419,12 @@ def _stage_static_qse_trace(
     trigger: dict[str, Any] | None = None
     selection_receipt: dict[str, Any] | None = None
 
-    if method == METHOD_RECORD_FIRST:
+    if method in (METHOD_RECORD_FIRST, METHOD_EARLY_SWITCH):
         from pipelines.qse_spectra.record_selection import (
             StaticRecordSelectionConfig,
             select_static_qse_records,
         )
+        from pipelines.qse_spectra.switch_policy import resolve_switch_point
 
         marker = select_static_qse_records(
             problem.basis,
@@ -437,16 +441,38 @@ def _stage_static_qse_trace(
             compiled_costs=problem.costs,
         )
         order = [int(i) for i in marker.selected_original_indices]
+        receipt = dict(marker.geometry_stop or {"stop_reason": "missing"})
+        # The switch decision reads the selector's online round trace only;
+        # resolve_switch_point refuses any non-online receipt key, so exact
+        # references cannot reach it.
+        decision = resolve_switch_point(
+            cell.method_policy, receipt, record_count=len(order)
+        )
+        handoff_k = decision.get("handoff_k")
+        if handoff_k is None:
+            record_stop = receipt
+        else:
+            # An early trigger buys only the first handoff_k records and
+            # hands that maintained support to residual synthesis. The
+            # substituted stop reason is labelled, never disguised.
+            order = order[: int(handoff_k)]
+            record_stop = {
+                "stop_reason": "pool_exhausted",
+                "synthesized_by_switch_policy": True,
+                "underlying_stop_reason": str(receipt.get("stop_reason", "")),
+                "switch_trigger": str(decision["switch_trigger"]),
+            }
         rows, trigger = growth.trace_record_first_adaptive_qse(
             problem,
             order,
             k_max=cap,
             stride=stride,
-            record_stop=dict(marker.geometry_stop or {"stop_reason": "missing"}),
+            record_stop=record_stop,
         )
+        trigger = {**trigger, "switch_decision": decision}
         selection_receipt = {
             "acquisition_order": order,
-            "record_stop": dict(marker.geometry_stop or {}),
+            "record_stop": receipt,
             "residual_marker": float(growth.RESIDUAL_MARKER),
         }
     elif method == METHOD_DIRECT_DAVIDSON:
