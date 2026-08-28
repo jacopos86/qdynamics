@@ -85,13 +85,13 @@ deficits at machine precision; spectral functions nonnegative.
 Artifacts (local, gitignored diagnostics under
 `output/diagnostics/paper_iii_static_qse_smoke_20260827_v1/`):
 
-- `campaign.json` sha256 `1c482054367e8b24...`
-- `ledger.json` sha256 `d03770b548b4e5ce...` (15 admitted attempts)
+- `campaign.json` sha256 `046dda95a9941b34...`
+- `ledger.json` sha256 `fc4eb5443a6aa49f...` (15 admitted attempts)
 - `results_contract.json` sha256
-  `d099c35f3f7b3929084e7aa18ce94be91e82ecc4d24feb33d21c49e99519ed7f`
-- `static_source_map.json` sha256 `bfb6c6c20ce27676...`
+  `f386f1816e5e1df8b6a939aa6c27aac74bbb2ec782589827db84936bfd034dfd`
+- `static_source_map.json` sha256 `6c5c259a56d106e9...`
 - `report/paper_iii_static_qse_smoke.pdf` — compiled; manifest hashes the
-  campaign digest `c3664b54a4f2452c...` and ledger digest `484a3bec59757d15...`
+  campaign digest `70fe258872f8c709...` and ledger digest `55fb3d19cb2724b3...`
 - `package/` — 22 declared actions (ACTION.json + result envelopes + payloads)
 
 ## Settled policies preserved
@@ -133,3 +133,33 @@ Artifacts (local, gitignored diagnostics under
   record support (direct Davidson, Krylov) complete their trace stage but
   their product stages are not yet implemented — they stay honestly
   `pending` in the contract rather than being faked.
+
+## Addendum 2026-08-27: switch policy became part of the cell identity
+
+Commit `paper-iii: make the record-to-Davidson switch a declared cell identity`.
+
+The escalation rule was hard-coded, so changing it (the author's stated
+intent: a threshold-based switch to adaptive growth) would have produced
+cells with unchanged ids but changed behavior -- the ledger would have
+hard-conflicted instead of letting old and new evidence coexist.
+`MethodPolicy` now carries the trigger and its parameters and digests into
+`StaticQSECellKey`. Canonical `pool_exhausted_only` is enforced for public
+method ids; `window_residual_stall(stall_rounds, improvement_ratio)` runs as
+an `early_switch` ablation cell. Trigger predicates read only the selector's
+online round trace, structurally guarded by `assert_online_only_receipt`.
+
+Because this changes the cell payload, **every digest above was regenerated**;
+the smoke was re-run and the recorded digests are the post-change ones. No
+production evidence existed, so nothing was invalidated.
+
+Observed on the real SIAM `N_b=2` receipt: canonical does not fire
+(`residual_converged` at 8 records), while `stall(2, 0.5)` hands off at 4
+records and `stall(1, 0.9)` at 5 -- the escalation experiment is now a
+declared run rather than a code edit. The online residual is **not
+monotone** there (round 5 `0.531` rises to round 6 `0.717`), so the stall
+rule compares against a running best rather than the previous round.
+
+nph1 lock re-verified after the change: 93/93 prefix supports recomputed,
+48/48 stored rows bit-identical, and `record_selection.py`,
+`exchange_maintenance.py`, `core.py`, and the growth-trace campaign remain
+untouched.
