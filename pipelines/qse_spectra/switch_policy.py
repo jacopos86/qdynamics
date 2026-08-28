@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Declared online switch policy for the record-first QSE construction.
+"""Declared completion policy for selected-QSE construction routes.
 
-The record phase hands off to Davidson residual synthesis under a **declared**
-rule, not a hard-coded one. The rule is part of the cell identity
+Canonical selected QSE terminates inside its fixed record pool.  Any handoff
+to Davidson residual synthesis is a **declared noncanonical route**, not a
+hard-coded fallback. The rule is part of the cell identity
 (:class:`MethodPolicy`), so changing when the method escalates declares new
 cells instead of silently reinterpreting admitted evidence.
 
-Two triggers exist:
+Three policies exist:
 
-``pool_exhausted_only`` (canonical)
+``fixed_pool_terminal`` (canonical)
+    Never hand off. Pool exhaustion or missing target-window certification is
+    reported by the selected-QSE completion receipt.
+
+``pool_exhausted_only`` (future explicit hybrid)
     Hand off only when the record selector's terminal receipt reports
-    ``pool_exhausted``. This is the settled canonical policy.
+    ``pool_exhausted``. It is retained only as the completion seam for a
+    separately declared selected-QSE-to-Davidson hybrid.
 
 ``window_residual_stall`` (ablation only)
     Hand off earlier, when the selector's **online** target-residual norm
@@ -33,11 +39,17 @@ import math
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
+TRIGGER_FIXED_POOL_TERMINAL = "fixed_pool_terminal"
 TRIGGER_POOL_EXHAUSTED = "pool_exhausted_only"
 TRIGGER_WINDOW_RESIDUAL_STALL = "window_residual_stall"
-TRIGGERS = (TRIGGER_POOL_EXHAUSTED, TRIGGER_WINDOW_RESIDUAL_STALL)
+TRIGGERS = (
+    TRIGGER_FIXED_POOL_TERMINAL,
+    TRIGGER_POOL_EXHAUSTED,
+    TRIGGER_WINDOW_RESIDUAL_STALL,
+)
 
 _TRIGGER_REQUIRED_PARAMETERS: dict[str, frozenset[str]] = {
+    TRIGGER_FIXED_POOL_TERMINAL: frozenset(),
     TRIGGER_POOL_EXHAUSTED: frozenset(),
     TRIGGER_WINDOW_RESIDUAL_STALL: frozenset({"stall_rounds", "improvement_ratio"}),
 }
@@ -82,7 +94,7 @@ class SwitchPolicyError(ValueError):
 class MethodPolicy:
     """The online decision rule one cell is run under."""
 
-    switch_trigger: str = TRIGGER_POOL_EXHAUSTED
+    switch_trigger: str = TRIGGER_FIXED_POOL_TERMINAL
     parameters: tuple[tuple[str, float], ...] = ()
 
     def __post_init__(self) -> None:
@@ -116,11 +128,17 @@ class MethodPolicy:
 
     @staticmethod
     def from_mapping(payload: Mapping[str, Any]) -> "MethodPolicy":
-        parameters = payload.get("parameters") or {}
+        if payload.get("schema") != "static_qse_method_policy_v1":
+            raise SwitchPolicyError(
+                f"unexpected switch-policy schema {payload.get('schema')!r}."
+            )
+        if "switch_trigger" not in payload:
+            raise SwitchPolicyError("switch-policy payload requires switch_trigger.")
+        parameters = payload.get("parameters")
         if not isinstance(parameters, Mapping):
             raise SwitchPolicyError("switch-policy parameters must be a mapping.")
         return MethodPolicy(
-            switch_trigger=str(payload.get("switch_trigger", TRIGGER_POOL_EXHAUSTED)),
+            switch_trigger=str(payload["switch_trigger"]),
             parameters=tuple(sorted((str(k), float(v)) for k, v in parameters.items())),
         )
 
@@ -140,7 +158,7 @@ class MethodPolicy:
         return self == CANONICAL_METHOD_POLICY
 
 
-CANONICAL_METHOD_POLICY = MethodPolicy(switch_trigger=TRIGGER_POOL_EXHAUSTED)
+CANONICAL_METHOD_POLICY = MethodPolicy(switch_trigger=TRIGGER_FIXED_POOL_TERMINAL)
 
 
 def window_residual_stall_policy(
@@ -191,9 +209,9 @@ def resolve_switch_point(
 ) -> dict[str, Any]:
     """Decide whether, and after how many records, the handoff fires.
 
-    Returns a typed decision record. ``handoff_k`` is ``None`` for the
-    canonical policy (the maintained terminal support is the seed) and an
-    integer record count for an early trigger.
+    Returns a typed decision record. The canonical fixed-pool policy always
+    returns ``fired=False``. Explicit hybrid policies return ``handoff_k=None``
+    for the maintained terminal support or an integer for an early trigger.
     """
 
     assert_online_only_receipt(record_stop)
@@ -206,6 +224,14 @@ def resolve_switch_point(
         "uses_exact_reference_for_decision": False,
         "record_stop_reason": stop_reason,
     }
+
+    if trigger == TRIGGER_FIXED_POOL_TERMINAL:
+        return {
+            **base,
+            "fired": False,
+            "handoff_k": None,
+            "reason": "fixed_pool_route_never_hands_off",
+        }
 
     if trigger == TRIGGER_POOL_EXHAUSTED:
         fired = stop_reason == "pool_exhausted"
@@ -280,6 +306,7 @@ __all__ = [
     "MethodPolicy",
     "SwitchPolicyError",
     "TRIGGERS",
+    "TRIGGER_FIXED_POOL_TERMINAL",
     "TRIGGER_POOL_EXHAUSTED",
     "TRIGGER_WINDOW_RESIDUAL_STALL",
     "assert_online_only_receipt",

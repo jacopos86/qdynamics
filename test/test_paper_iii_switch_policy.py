@@ -6,6 +6,7 @@ import pytest
 
 from pipelines.qse_spectra.switch_policy import (
     CANONICAL_METHOD_POLICY,
+    TRIGGER_FIXED_POOL_TERMINAL,
     TRIGGER_POOL_EXHAUSTED,
     TRIGGER_WINDOW_RESIDUAL_STALL,
     MethodPolicy,
@@ -59,8 +60,8 @@ def _receipt(residuals: list[float], *, stop_reason: str = "budget_reached") -> 
 # --- policy typing ----------------------------------------------------------
 
 
-def test_canonical_policy_is_exhaustion_only_with_no_parameters() -> None:
-    assert CANONICAL_METHOD_POLICY.switch_trigger == TRIGGER_POOL_EXHAUSTED
+def test_canonical_policy_is_fixed_pool_terminal_with_no_parameters() -> None:
+    assert CANONICAL_METHOD_POLICY.switch_trigger == TRIGGER_FIXED_POOL_TERMINAL
     assert CANONICAL_METHOD_POLICY.parameters == ()
     assert CANONICAL_METHOD_POLICY.is_canonical is True
     assert MethodPolicy().digest() == CANONICAL_METHOD_POLICY.digest()
@@ -152,15 +153,15 @@ def test_non_online_round_keys_are_refused() -> None:
 # --- canonical trigger ------------------------------------------------------
 
 
-def test_canonical_trigger_fires_only_on_pool_exhaustion() -> None:
+def test_canonical_policy_never_hands_off_on_pool_exhaustion() -> None:
     exhausted = resolve_switch_point(
         CANONICAL_METHOD_POLICY,
         _receipt([1.0, 0.5], stop_reason="pool_exhausted"),
         record_count=2,
     )
-    assert exhausted["fired"] is True
+    assert exhausted["fired"] is False
     assert exhausted["handoff_k"] is None
-    assert exhausted["reason"] == "record_pool_exhausted"
+    assert exhausted["reason"] == "fixed_pool_route_never_hands_off"
 
     converged = resolve_switch_point(
         CANONICAL_METHOD_POLICY,
@@ -171,9 +172,23 @@ def test_canonical_trigger_fires_only_on_pool_exhaustion() -> None:
     assert converged["handoff_k"] is None
 
 
+def test_exhaustion_handoff_is_a_distinct_noncanonical_policy() -> None:
+    policy = MethodPolicy(switch_trigger=TRIGGER_POOL_EXHAUSTED)
+    assert policy.is_canonical is False
+
+    exhausted = resolve_switch_point(
+        policy,
+        _receipt([1.0, 0.5], stop_reason="pool_exhausted"),
+        record_count=2,
+    )
+
+    assert exhausted["fired"] is True
+    assert exhausted["reason"] == "record_pool_exhausted"
+
+
 def test_canonical_trigger_ignores_a_stalled_residual() -> None:
-    # Flat residuals would trip the stall rule; the canonical policy must not
-    # switch on them, because exhaustion-only remains canonical.
+    # Flat residuals would trip the stall rule; fixed-pool canonical policy
+    # must still terminate without changing construction family.
     decision = resolve_switch_point(
         CANONICAL_METHOD_POLICY, _receipt([1.0, 1.0, 1.0, 1.0]), record_count=4
     )

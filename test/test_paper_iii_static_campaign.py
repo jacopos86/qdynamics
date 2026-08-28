@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from pipelines.qse_spectra.static_campaign import (
+    CONSTRUCTION_DIRECT_DAVIDSON,
+    CONSTRUCTION_SELECTED_QSE_FIXED_POOL,
     DEFAULT_TARGET_ROOTS,
     GroundStateArtifactRef,
     HH_REGIMES,
@@ -26,8 +30,10 @@ from pipelines.qse_spectra.static_campaign import (
     StaticCampaignError,
     StaticQSEAttempt,
     StaticQSECampaign,
+    action_from_payload,
     StaticQSECellKey,
     StaticQSELedger,
+    cell_key_from_payload,
     declare_hh_matrix,
     declare_siam_matrix,
     hh_physics_key,
@@ -100,16 +106,64 @@ def test_action_ids_differ_by_stage_and_cell() -> None:
     assert len(set(ids)) == len(ids) == 2 * len(STAGE_ORDER)
 
 
-def test_legacy_v2_alias_normalizes_at_ingestion() -> None:
-    assert normalize_method_id("record_first_adaptive_qse_v2") == METHOD_RECORD_FIRST
-    cell = _cell("record_first_adaptive_qse_v2")
-    assert cell.method_id == METHOD_RECORD_FIRST
-    assert cell.digest() == _cell(METHOD_RECORD_FIRST).digest()
+def test_old_hybrid_id_cannot_normalize_to_fixed_pool_selected_qse() -> None:
+    with pytest.raises(StaticCampaignError, match="quarantined"):
+        normalize_method_id("record_first_adaptive_qse_v2")
+
+
+def test_construction_policy_is_explicit_identity_and_method_locked() -> None:
+    selected = _cell(METHOD_RECORD_FIRST)
+    direct = _cell(METHOD_DIRECT_DAVIDSON)
+
+    assert selected.construction_policy_id == CONSTRUCTION_SELECTED_QSE_FIXED_POOL
+    assert direct.construction_policy_id == CONSTRUCTION_DIRECT_DAVIDSON
+    assert selected.digest() != direct.digest()
+    tampered = direct.payload()
+    tampered["construction_policy_id"] = CONSTRUCTION_SELECTED_QSE_FIXED_POOL
+    with pytest.raises(StaticCampaignError, match="construction_policy_id"):
+        cell_key_from_payload(tampered)
 
 
 def test_unknown_method_fails_closed() -> None:
     with pytest.raises(StaticCampaignError, match="unknown method"):
         normalize_method_id("record_first_adaptive_qse_v3")
+
+
+def test_v1_cell_action_and_malformed_method_policy_fail_closed() -> None:
+    cell_payload = _cell().payload()
+    cell_payload["schema"] = "static_qse_cell_key_v1"
+    with pytest.raises(StaticCampaignError, match="cell-key schema"):
+        cell_key_from_payload(cell_payload)
+
+    action_payload = StaticQSECampaign(
+        campaign_id="c", cells=(_cell(),)
+    ).all_actions()[0].payload()
+    action_payload["schema"] = "static_qse_action_v1"
+    with pytest.raises(StaticCampaignError, match="action schema"):
+        action_from_payload(action_payload)
+
+    missing_policy = _cell().payload()
+    missing_policy["method_policy"] = {}
+    with pytest.raises((StaticCampaignError, ValueError), match="switch-policy schema"):
+        cell_key_from_payload(missing_policy)
+
+
+def test_ledger_v2_rejects_nested_v1_attempt(tmp_path) -> None:
+    action = StaticQSECampaign(campaign_id="c", cells=(_cell(),)).all_actions()[0]
+    attempt = _completed_attempt(action.action_id).payload()
+    attempt["schema"] = "paper_iii_static_qse_attempt_v1"
+    path = tmp_path / "ledger.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "paper_iii_static_qse_ledger_v2",
+                "attempt_count": 1,
+                "attempts": [attempt],
+            }
+        )
+    )
+    with pytest.raises(StaticCampaignError, match="attempt.*schema"):
+        StaticQSELedger.load(path)
 
 
 def test_accuracy_targets_do_not_multiply_actions() -> None:

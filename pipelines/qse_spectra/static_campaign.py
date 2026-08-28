@@ -33,6 +33,7 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
 from pipelines.qse_spectra.switch_policy import (
@@ -40,9 +41,9 @@ from pipelines.qse_spectra.switch_policy import (
     MethodPolicy,
 )
 
-STATIC_CAMPAIGN_SCHEMA_VERSION = "paper_iii_static_qse_campaign_v1"
-STATIC_LEDGER_SCHEMA_VERSION = "paper_iii_static_qse_ledger_v1"
-STATIC_ATTEMPT_SCHEMA_VERSION = "paper_iii_static_qse_attempt_v1"
+STATIC_CAMPAIGN_SCHEMA_VERSION = "paper_iii_static_qse_campaign_v2"
+STATIC_LEDGER_SCHEMA_VERSION = "paper_iii_static_qse_ledger_v2"
+STATIC_ATTEMPT_SCHEMA_VERSION = "paper_iii_static_qse_attempt_v2"
 
 # --- status vocabulary ------------------------------------------------------
 
@@ -67,14 +68,40 @@ PUBLIC_METHODS = (
 )
 ABLATION_METHODS = ("record_only", "early_switch")
 
-# Existing artifacts carrying the historical id are accepted through an
-# ingestion alias and normalized; no public v2/v3 algorithm exists.
+# Unambiguous historical shorthands remain ingestion aliases.  The former
+# ``record_first_adaptive_qse_v2`` id is deliberately absent: it named a
+# selected-QSE-to-Davidson hybrid and must never normalize onto fixed-pool
+# selected QSE.
 _METHOD_ALIASES = {
-    "record_first_adaptive_qse_v2": METHOD_RECORD_FIRST,
     "adaptive_qse": METHOD_DIRECT_DAVIDSON,
     "krylov": METHOD_KRYLOV,
     "fixed_class": METHOD_FIXED_CLASS,
 }
+_QUARANTINED_METHOD_IDS = {
+    "record_first_adaptive_qse_v2": "legacy selected-QSE-to-Davidson hybrid",
+}
+
+# Construction policies are scientific method identity, not incidental run
+# settings.  A policy change must update this map and therefore produces new
+# cell/action digests instead of reinterpreting an append-only ledger entry.
+CONSTRUCTION_SELECTED_QSE_FIXED_POOL = "selected_qse_fixed_pool_v1"
+CONSTRUCTION_DIRECT_DAVIDSON = (
+    "direct_davidson_fixed_lr_plus_r_plus_1_low_diagonal_sector_v1"
+)
+CONSTRUCTION_REAL_TIME_KRYLOV = "real_time_krylov_first_order_trotter_v1"
+CONSTRUCTION_FIXED_LINEAR_RESPONSE = "fixed_linear_response_complete_class_v1"
+CONSTRUCTION_RECORD_ONLY_ABLATION = "selected_qse_record_only_ablation_v1"
+CONSTRUCTION_SELECTED_QSE_DAVIDSON_HYBRID = (
+    "selected_qse_then_davidson_explicit_ablation_v1"
+)
+DEFAULT_CONSTRUCTION_POLICY_IDS = MappingProxyType({
+    METHOD_RECORD_FIRST: CONSTRUCTION_SELECTED_QSE_FIXED_POOL,
+    METHOD_DIRECT_DAVIDSON: CONSTRUCTION_DIRECT_DAVIDSON,
+    METHOD_KRYLOV: CONSTRUCTION_REAL_TIME_KRYLOV,
+    METHOD_FIXED_CLASS: CONSTRUCTION_FIXED_LINEAR_RESPONSE,
+    "record_only": CONSTRUCTION_RECORD_ONLY_ABLATION,
+    "early_switch": CONSTRUCTION_SELECTED_QSE_DAVIDSON_HYBRID,
+})
 
 # --- stage graph ------------------------------------------------------------
 
@@ -144,6 +171,12 @@ def normalize_method_id(method_id: str) -> str:
     """Normalize legacy/ingestion aliases onto the stable public method ids."""
 
     raw = str(method_id).strip()
+    if raw in _QUARANTINED_METHOD_IDS:
+        raise StaticCampaignError(
+            f"method id {raw!r} is quarantined as "
+            f"{_QUARANTINED_METHOD_IDS[raw]}; it cannot be ingested as a "
+            "canonical fixed-pool selected-QSE cell."
+        )
     normalized = _METHOD_ALIASES.get(raw, raw)
     if normalized not in PUBLIC_METHODS and normalized not in ABLATION_METHODS:
         raise StaticCampaignError(
@@ -262,6 +295,7 @@ class StaticQSECellKey:
     pool_policy_digest: str
     spectral_request_digest: str
     resource_policy_id: str
+    construction_policy_id: str = field(init=False)
     # The online switch rule is part of the identity: changing when the
     # method escalates to residual synthesis declares new cells rather than
     # reinterpreting admitted evidence under a rule it never ran.
@@ -269,6 +303,8 @@ class StaticQSECellKey:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "method_id", normalize_method_id(self.method_id))
+        expected_construction = DEFAULT_CONSTRUCTION_POLICY_IDS[self.method_id]
+        object.__setattr__(self, "construction_policy_id", expected_construction)
         forbidden = {"record_phase", "davidson_phase", "phase"}
         if str(self.method_id).lower() in forbidden:  # pragma: no cover - typed guard
             raise StaticCampaignError("internal phases are not method identities.")
@@ -282,7 +318,7 @@ class StaticQSECellKey:
 
     def payload(self) -> dict[str, Any]:
         return {
-            "schema": "static_qse_cell_key_v1",
+            "schema": "static_qse_cell_key_v2",
             "physics": self.physics.payload(),
             "ground_state_artifact_id": str(self.ground_state_artifact_id),
             "method_id": str(self.method_id),
@@ -291,6 +327,7 @@ class StaticQSECellKey:
             "pool_policy_digest": str(self.pool_policy_digest),
             "spectral_request_digest": str(self.spectral_request_digest),
             "resource_policy_id": str(self.resource_policy_id),
+            "construction_policy_id": str(self.construction_policy_id),
             "method_policy": self.method_policy.payload(),
             "method_policy_digest": self.method_policy.digest(),
         }
@@ -315,7 +352,7 @@ class StaticQSEAction:
 
     def payload(self) -> dict[str, Any]:
         return {
-            "schema": "static_qse_action_v1",
+            "schema": "static_qse_action_v2",
             "cell": self.cell.payload(),
             "stage": str(self.stage),
             "dependency_action_ids": list(self.dependency_action_ids),
@@ -519,6 +556,10 @@ class StaticQSELedger:
             )
         ledger = StaticQSELedger()
         for record in payload.get("attempts", []):
+            if not isinstance(record, Mapping) or record.get("schema") != STATIC_ATTEMPT_SCHEMA_VERSION:
+                raise StaticCampaignError(
+                    "ledger contains an attempt with an unexpected schema."
+                )
             ledger.append(
                 StaticQSEAttempt.from_mappings(
                     action_id=record["action_id"],
@@ -653,29 +694,42 @@ def physics_key_from_payload(payload: Mapping[str, Any]) -> StaticQSEPhysicsKey:
 
 
 def cell_key_from_payload(payload: Mapping[str, Any]) -> StaticQSECellKey:
-    if payload.get("schema") != "static_qse_cell_key_v1":
+    if payload.get("schema") != "static_qse_cell_key_v2":
         raise StaticCampaignError(
             f"unexpected cell-key schema {payload.get('schema')!r}."
+        )
+    raw_method_policy = payload.get("method_policy")
+    if not isinstance(raw_method_policy, Mapping):
+        raise StaticCampaignError("cell-key payload requires method_policy.")
+    method_policy = MethodPolicy.from_mapping(raw_method_policy)
+    declared_policy_digest = str(payload.get("method_policy_digest") or "")
+    if declared_policy_digest != method_policy.digest():
+        raise StaticCampaignError(
+            "cell-key method_policy_digest does not match method_policy."
+        )
+    method_id = str(payload["method_id"])
+    normalized_method = normalize_method_id(method_id)
+    declared_construction = str(payload.get("construction_policy_id") or "")
+    expected_construction = DEFAULT_CONSTRUCTION_POLICY_IDS[normalized_method]
+    if declared_construction != expected_construction:
+        raise StaticCampaignError(
+            "cell-key construction_policy_id does not match the declared method."
         )
     return StaticQSECellKey(
         physics=physics_key_from_payload(payload["physics"]),
         ground_state_artifact_id=str(payload["ground_state_artifact_id"]),
-        method_id=str(payload["method_id"]),
+        method_id=method_id,
         target_roots=tuple(int(r) for r in payload["target_roots"]),
         dimension_cap=int(payload["dimension_cap"]),
         pool_policy_digest=str(payload["pool_policy_digest"]),
         spectral_request_digest=str(payload["spectral_request_digest"]),
         resource_policy_id=str(payload["resource_policy_id"]),
-        method_policy=(
-            MethodPolicy.from_mapping(payload["method_policy"])
-            if isinstance(payload.get("method_policy"), Mapping)
-            else CANONICAL_METHOD_POLICY
-        ),
+        method_policy=method_policy,
     )
 
 
 def action_from_payload(payload: Mapping[str, Any]) -> StaticQSEAction:
-    if payload.get("schema") != "static_qse_action_v1":
+    if payload.get("schema") != "static_qse_action_v2":
         raise StaticCampaignError(
             f"unexpected action schema {payload.get('schema')!r}."
         )
@@ -809,8 +863,15 @@ def declare_siam_matrix(
 __all__ = [
     "ABLATION_METHODS",
     "CANONICAL_METHOD_POLICY",
+    "CONSTRUCTION_DIRECT_DAVIDSON",
+    "CONSTRUCTION_FIXED_LINEAR_RESPONSE",
+    "CONSTRUCTION_REAL_TIME_KRYLOV",
+    "CONSTRUCTION_RECORD_ONLY_ABLATION",
+    "CONSTRUCTION_SELECTED_QSE_DAVIDSON_HYBRID",
+    "CONSTRUCTION_SELECTED_QSE_FIXED_POOL",
     "AdmissionResult",
     "DEFAULT_DIMENSION_CAPS",
+    "DEFAULT_CONSTRUCTION_POLICY_IDS",
     "DEFAULT_RESOURCE_POLICY_ID",
     "DEFAULT_TARGET_ROOTS",
     "GroundStateArtifactRef",

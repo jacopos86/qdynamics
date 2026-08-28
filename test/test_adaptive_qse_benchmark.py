@@ -87,6 +87,37 @@ def test_seed_directions_use_q0_projection_and_direction_cost() -> None:
     assert result["resources"] == {"n2q": 5.0, "d2q": 7.0, "dc": 11.0}
 
 
+def test_mixed_seed_resources_are_charged_per_admitted_direction() -> None:
+    hamiltonian = np.diag([0.0, 1.0, 2.0, 3.0])
+    prepared = np.asarray([1.0, 0.0, 0.0, 0.0], dtype=complex)
+    seeds = (
+        np.asarray([0.0, 1.0, 0.0, 0.0], dtype=complex),
+        np.asarray([0.0, 0.0, 1.0, 0.0], dtype=complex),
+    )
+
+    result = run_adaptive_qse_benchmark(
+        hamiltonian,
+        prepared,
+        target_roots=3,
+        eps_residual=1.0e-12,
+        max_dimension=3,
+        seed_elements=seeds,
+        seed_direction_resources=(
+            {"n2q": 5.0, "d2q": 7.0, "dc": 11.0},
+            {"n2q": 0.0, "d2q": 0.0, "dc": 2.0},
+        ),
+        direction_resources={"n2q": 101.0, "d2q": 103.0, "dc": 107.0},
+    )
+
+    assert result["resources"] == {"n2q": 5.0, "d2q": 7.0, "dc": 13.0}
+    assert result["seed_policy"]["resource_policy"] == "per_declared_seed"
+    assert result["seed_policy"]["seed_rows"][1]["resources_charged"] == {
+        "n2q": 0.0,
+        "d2q": 0.0,
+        "dc": 2.0,
+    }
+
+
 def test_pauli_polynomial_uses_compiled_action_and_exact_diagonal() -> None:
     hamiltonian = PauliPolynomial("JW")
     for label, coefficient in (("ze", 0.7), ("ez", -0.2), ("xx", 0.4)):

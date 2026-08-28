@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from pipelines.qse_spectra.method_completion import STATUS_POOL_EXHAUSTED
 from pipelines.qse_spectra.static_campaign import (
     DEFAULT_TARGET_ROOTS,
     GroundStateArtifactRef,
@@ -142,6 +143,7 @@ def test_failed_gates_stay_candidate_with_payloads_visible() -> None:
             qualification = {
                 "status": STATUS_CANDIDATE,
                 "failed_gates": ["sum_rule_deficit_gate"],
+                "algorithm_terminal_status": STATUS_POOL_EXHAUSTED,
             }
         ledger.append(_attempt(actions[stage].action_id, qualification=qualification))
 
@@ -153,10 +155,38 @@ def test_failed_gates_stay_candidate_with_payloads_visible() -> None:
     )
     assert row["cell_status"] == STATUS_CANDIDATE
     assert row["failed_gates"] == ["sum_rule_deficit_gate"]
+    assert row["algorithm_terminal_status"] == STATUS_POOL_EXHAUSTED
+    assert contract.payload["algorithm_terminal_status_counts"] == {
+        STATUS_POOL_EXHAUSTED: 1
+    }
     assert row["payload_paths"]  # numerical values stay referenced
 
 
 def test_qualified_cell_rolls_up_qualified() -> None:
+    campaign = _campaign()
+    cell = campaign.cells[0]
+    actions = campaign.cell_actions(cell)
+    ledger = StaticQSELedger()
+    for stage in STAGE_ORDER:
+        qualification = (
+            {
+                "status": STATUS_QUALIFIED,
+                "failed_gates": [],
+                "algorithm_terminal_status": STATUS_POOL_EXHAUSTED,
+            }
+            if stage == STAGE_QUALIFICATION
+            else None
+        )
+        ledger.append(_attempt(actions[stage].action_id, qualification=qualification))
+    contract = build_static_results_contract(campaign, ledger)
+    row = next(
+        r for r in contract.rows
+        if r.get("row_kind") == "planned_cell" and r["cell_digest"] == cell.digest()
+    )
+    assert row["cell_status"] == STATUS_QUALIFIED
+
+
+def test_completed_selected_cell_without_terminal_status_fails_closed() -> None:
     campaign = _campaign()
     cell = campaign.cells[0]
     actions = campaign.cell_actions(cell)
@@ -168,12 +198,10 @@ def test_qualified_cell_rolls_up_qualified() -> None:
             else None
         )
         ledger.append(_attempt(actions[stage].action_id, qualification=qualification))
+
     contract = build_static_results_contract(campaign, ledger)
-    row = next(
-        r for r in contract.rows
-        if r.get("row_kind") == "planned_cell" and r["cell_digest"] == cell.digest()
-    )
-    assert row["cell_status"] == STATUS_QUALIFIED
+    with pytest.raises(StaticCampaignError, match="missing.*terminal status"):
+        validate_static_results_contract(contract)
 
 
 def test_contract_round_trips_and_pins_both_digests(tmp_path: Path) -> None:

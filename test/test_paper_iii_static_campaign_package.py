@@ -159,3 +159,32 @@ def test_manifest_digest_drift_is_detected(tmp_path: Path) -> None:
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(StaticCampaignError, match="manifest digest drift"):
         load_local_package(campaign, root)
+
+
+def test_v1_package_and_action_file_are_rejected(tmp_path: Path) -> None:
+    cell = _cell()
+    campaign = StaticQSECampaign(campaign_id="c", cells=(cell,))
+    root = tmp_path / "package"
+    package = build_local_package(
+        campaign,
+        campaign.all_actions(),
+        package_root=root,
+        cell_contexts={cell.digest(): _context()},
+    )
+    manifest_path = root / PACKAGE_MANIFEST_FILENAME
+    original_manifest = json.loads(manifest_path.read_text())
+
+    old_manifest = dict(original_manifest)
+    old_manifest["schema_version"] = "paper_iii_static_qse_package_v1"
+    manifest_path.write_text(json.dumps(old_manifest))
+    with pytest.raises(StaticCampaignError, match="package schema"):
+        load_local_package(campaign, root)
+
+    manifest_path.write_text(json.dumps(original_manifest))
+    action = package.actions[0]
+    action_path = root / action.action_id / ACTION_FILENAME
+    action_payload = json.loads(action_path.read_text())
+    action_payload["schema_version"] = "paper_iii_static_qse_action_file_v1"
+    action_path.write_text(json.dumps(action_payload))
+    with pytest.raises(StaticCampaignError, match="action-file schema"):
+        load_local_package(campaign, root)

@@ -19,7 +19,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from pipelines.qse_spectra.method_completion import SELECTED_QSE_TERMINAL_STATUSES
 from pipelines.qse_spectra.static_campaign import (
+    METHOD_RECORD_FIRST,
     STAGE_ORDER,
     STAGE_QUALIFICATION,
     STATUS_CANDIDATE,
@@ -31,9 +33,10 @@ from pipelines.qse_spectra.static_campaign import (
     StaticQSECampaign,
     StaticQSELedger,
     canonical_digest,
+    cell_key_from_payload,
 )
 
-STATIC_RESULTS_CONTRACT_SCHEMA_VERSION = "paper_iii_static_qse_results_contract_v1"
+STATIC_RESULTS_CONTRACT_SCHEMA_VERSION = "paper_iii_static_qse_results_contract_v2"
 
 _CELL_STATUSES = (
     STATUS_QUALIFIED,
@@ -79,6 +82,7 @@ class VerifiedManuscriptRow:
     cell_status: str
     stage_statuses: tuple[tuple[str, str], ...]
     failed_gates: tuple[str, ...]
+    algorithm_terminal_status: str | None
     payload_paths: tuple[str, ...]
     not_planned_reason: str | None
 
@@ -104,6 +108,7 @@ def build_static_results_contract(
         stage_statuses = campaign.cell_stage_statuses(ledger, cell)
         stages: dict[str, Any] = {}
         failed_gates: list[str] = []
+        algorithm_terminal_status: str | None = None
         payload_paths: list[str] = []
         for stage in STAGE_ORDER:
             action = actions[stage]
@@ -125,6 +130,9 @@ def build_static_results_contract(
                     gates = qualification.get("failed_gates")
                     if isinstance(gates, (list, tuple)):
                         failed_gates.extend(str(g) for g in gates)
+                    terminal = qualification.get("algorithm_terminal_status")
+                    if terminal is not None:
+                        algorithm_terminal_status = str(terminal)
             stages[stage] = stage_record
         rows.append(
             {
@@ -140,6 +148,7 @@ def build_static_results_contract(
                 "stage_statuses": dict(stage_statuses),
                 "stages": stages,
                 "failed_gates": sorted(set(failed_gates)),
+                "algorithm_terminal_status": algorithm_terminal_status,
                 "payload_paths": payload_paths,
             }
         )
@@ -154,14 +163,22 @@ def build_static_results_contract(
                 "cutoff_value": int(slot.physics.cutoff_value),
                 "method_id": str(slot.method_id),
                 "cell_status": STATUS_NOT_PLANNED,
+                "algorithm_terminal_status": None,
                 "not_planned_reason": str(slot.reason),
             }
         )
 
     status_counts: dict[str, int] = {}
+    algorithm_terminal_status_counts: dict[str, int] = {}
     for row in rows:
         status = str(row["cell_status"])
         status_counts[status] = status_counts.get(status, 0) + 1
+        terminal = row.get("algorithm_terminal_status")
+        if terminal is not None:
+            terminal_key = str(terminal)
+            algorithm_terminal_status_counts[terminal_key] = (
+                algorithm_terminal_status_counts.get(terminal_key, 0) + 1
+            )
 
     payload = {
         "schema_version": STATIC_RESULTS_CONTRACT_SCHEMA_VERSION,
@@ -172,6 +189,7 @@ def build_static_results_contract(
         "planned_cell_count": len(campaign.cells),
         "not_planned_count": len(campaign.not_planned),
         "status_counts": status_counts,
+        "algorithm_terminal_status_counts": algorithm_terminal_status_counts,
         "rows": rows,
         "controller_boundary": {
             "feeds_controller_decisions": False,
@@ -213,6 +231,28 @@ def validate_static_results_contract(contract: StaticResultsContract) -> None:
             continue
         if status not in _CELL_STATUSES:
             raise StaticCampaignError(f"unknown cell status {status!r}.")
+        cell_payload = row.get("cell")
+        if not isinstance(cell_payload, Mapping):
+            raise StaticCampaignError(f"planned cell {digest} is missing its cell payload.")
+        restored_cell = cell_key_from_payload(cell_payload)
+        if restored_cell.digest() != digest:
+            raise StaticCampaignError(
+                f"planned cell {digest} does not match its embedded cell payload."
+            )
+        terminal = row.get("algorithm_terminal_status")
+        if (
+            str(row.get("method_id")) == METHOD_RECORD_FIRST
+            and status in (STATUS_QUALIFIED, STATUS_CANDIDATE)
+            and terminal is None
+        ):
+            raise StaticCampaignError(
+                f"completed selected-QSE cell {digest} is missing its algorithm "
+                "terminal status."
+            )
+        if terminal is not None and str(terminal) not in SELECTED_QSE_TERMINAL_STATUSES:
+            raise StaticCampaignError(
+                f"cell {digest} has unknown algorithm terminal status {terminal!r}."
+            )
         stage_statuses = row.get("stage_statuses")
         if not isinstance(stage_statuses, Mapping) or set(stage_statuses) != set(
             STAGE_ORDER
@@ -254,6 +294,11 @@ def manuscript_rows_from_static_results_contract(
                     sorted((str(k), str(v)) for k, v in (row.get("stage_statuses") or {}).items())
                 ),
                 failed_gates=tuple(str(g) for g in row.get("failed_gates", ())),
+                algorithm_terminal_status=(
+                    None
+                    if row.get("algorithm_terminal_status") is None
+                    else str(row["algorithm_terminal_status"])
+                ),
                 payload_paths=tuple(str(p) for p in row.get("payload_paths", ())),
                 not_planned_reason=(
                     str(row["not_planned_reason"])

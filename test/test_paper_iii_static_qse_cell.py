@@ -11,6 +11,11 @@ from pipelines.exact_bench.paper_iii_static_qse_cell import (
     StaticQSECellError,
     run_action,
 )
+from pipelines.qse_spectra.method_completion import (
+    STATUS_POOL_EXHAUSTED,
+    STATUS_TARGET_WINDOW_CERTIFIED,
+    STATUS_TARGET_WINDOW_NOT_CERTIFIED,
+)
 from pipelines.qse_spectra.siam_static_adapter import (
     build_siam_pool_elements,
     exact_sector_ground_fixture,
@@ -139,6 +144,14 @@ def test_chain_completes_every_stage(executed_chain: dict) -> None:
     assert executed_chain["executed_order"][-1] == STAGE_QUALIFICATION
     assert executed_chain["campaign"].next_actions(executed_chain["ledger"]) == ()
 
+    qualification = executed_chain["campaign"].cell_actions(
+        executed_chain["cell"]
+    )[STAGE_QUALIFICATION]
+    payload = json.loads(
+        (executed_chain["package"].action_dir(qualification) / "qualification.json").read_text()
+    )
+    assert payload["schema_version"] == "paper_iii_static_qse_qualification_v2"
+
 
 def test_ground_state_import_is_labeled_diagnostic(executed_chain: dict) -> None:
     package = executed_chain["package"]
@@ -168,17 +181,16 @@ def test_trace_respects_the_online_policy_boundaries(executed_chain: dict) -> No
     # carries only the acquisition order and the record-stop reason.
     receipt = payload["selection_receipt"]
     assert set(receipt) == {"acquisition_order", "record_stop", "residual_marker"}
-    trigger = payload["trigger"]
-    # Davidson may start only on genuine pool exhaustion.
-    if trigger and trigger.get("fired"):
-        assert trigger["reason"] == "record_pool_exhausted"
-        assert trigger["trigger_source"] == "record_selector_terminal_receipt"
-    else:
-        assert trigger["reason"] in {
-            "record_residual_converged",
-            "record_acquisition_not_terminal",
-            "record_stop_beyond_dimension_cap",
-        }
+    assert payload["trigger"] is None
+    completion = payload["algorithm_completion"]
+    assert payload["terminal_status"] == completion["terminal_status"]
+    assert completion["terminal_status"] in {
+        STATUS_TARGET_WINDOW_CERTIFIED,
+        STATUS_POOL_EXHAUSTED,
+        STATUS_TARGET_WINDOW_NOT_CERTIFIED,
+    }
+    assert completion["davidson_invoked"] is False
+    assert {row["phase"] for row in payload["rows"]} == {"records"}
     assert payload["controller_boundary"]["feeds_controller_decisions"] is False
 
 
@@ -254,6 +266,11 @@ def test_qualification_is_typed_and_classifies(executed_chain: dict) -> None:
         "spectral_negativity_gate",
     }
     assert payload["selection"]["pool_digest"] == cell.pool_policy_digest
+    assert payload["algorithm_completion"]["terminal_status"] in {
+        STATUS_TARGET_WINDOW_CERTIFIED,
+        STATUS_POOL_EXHAUSTED,
+        STATUS_TARGET_WINDOW_NOT_CERTIFIED,
+    }
     assert payload["resources"] is not None
     attempt = ledger.completed(action.action_id)
     assert attempt is not None
@@ -362,12 +379,13 @@ def test_early_switch_is_a_declared_cell_not_a_code_edit(
             / "static_qse_trace.json"
         ).read_text()
     )
-    assert canonical_payload["trigger"]["switch_decision"]["fired"] is False
+    assert canonical_payload["trigger"] is None
+    assert canonical_payload["algorithm_completion"]["davidson_invoked"] is False
     assert canonical_cell.digest() != cell.digest()
     assert len(canonical_payload["selection_receipt"]["acquisition_order"]) > decision["handoff_k"]
 
 
-def test_canonical_cell_switch_decision_is_recorded_but_inert(
+def test_canonical_cell_records_fixed_pool_completion_not_a_switch(
     executed_chain: dict,
 ) -> None:
     package = executed_chain["package"]
@@ -379,7 +397,8 @@ def test_canonical_cell_switch_decision_is_recorded_but_inert(
             / "static_qse_trace.json"
         ).read_text()
     )
-    decision = payload["trigger"]["switch_decision"]
-    assert decision["switch_trigger"] == "pool_exhausted_only"
-    assert decision["handoff_k"] is None
+    assert payload["trigger"] is None
+    completion = payload["algorithm_completion"]
+    assert completion["completion_route"] == "selected_qse_fixed_pool"
+    assert completion["davidson_invoked"] is False
     assert cell.method_policy.is_canonical is True

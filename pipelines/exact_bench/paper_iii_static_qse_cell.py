@@ -11,10 +11,10 @@ payload plus a self-describing result envelope (action id, achieved
 configuration, input/output digests, source revision, payload paths,
 disposition, telemetry). All scientific work is delegated to the existing
 implementations: the production record selector, certified exchange,
-Davidson residual completion, the shared HH problem provider, the SIAM
+the separately declared Davidson comparator, the shared HH problem provider, the SIAM
 static adapter, and the Green-function/spectral/resource modules. Nothing
 here redefines the online policy: exact references qualify and report; they
-never select a record, trigger the Davidson fallback, or stop a phase.
+never select a record or stop an online method.
 """
 
 from __future__ import annotations
@@ -58,8 +58,10 @@ from pipelines.qse_spectra.static_campaign_artifacts import (
     sha256_file,
     write_result_envelope,
 )
+from pipelines.qse_spectra.static_campaign_package import ACTION_FILE_SCHEMA_VERSION
+from pipelines.qse_spectra.method_completion import STATUS_TARGET_WINDOW_CERTIFIED
 
-TRACE_SCHEMA_VERSION = "paper_iii_static_qse_trace_v1"
+TRACE_SCHEMA_VERSION = "paper_iii_static_qse_trace_v2"
 # Declared ablation: the same construction under a non-canonical switch
 # policy. It is never a public method id.
 METHOD_EARLY_SWITCH = "early_switch"
@@ -418,6 +420,7 @@ def _stage_static_qse_trace(
     stride = int(context.get("trace", {}).get("stride", 2))
     trigger: dict[str, Any] | None = None
     selection_receipt: dict[str, Any] | None = None
+    algorithm_completion: dict[str, Any] | None = None
 
     if method in (METHOD_RECORD_FIRST, METHOD_EARLY_SWITCH):
         from pipelines.qse_spectra.record_selection import (
@@ -442,41 +445,52 @@ def _stage_static_qse_trace(
         )
         order = [int(i) for i in marker.selected_original_indices]
         receipt = dict(marker.geometry_stop or {"stop_reason": "missing"})
-        # The switch decision reads the selector's online round trace only;
-        # resolve_switch_point refuses any non-online receipt key, so exact
-        # references cannot reach it.
-        decision = resolve_switch_point(
-            cell.method_policy, receipt, record_count=len(order)
-        )
-        handoff_k = decision.get("handoff_k")
-        if handoff_k is None:
-            record_stop = receipt
+        if method == METHOD_RECORD_FIRST:
+            rows, algorithm_completion = growth.trace_selected_qse_fixed_pool(
+                problem,
+                order,
+                k_max=cap,
+                stride=stride,
+                record_stop=receipt,
+                target_root_count=len(cell.target_roots),
+            )
         else:
-            # An early trigger buys only the first handoff_k records and
-            # hands that maintained support to residual synthesis. The
-            # substituted stop reason is labelled, never disguised.
-            order = order[: int(handoff_k)]
-            record_stop = {
-                "stop_reason": "pool_exhausted",
-                "synthesized_by_switch_policy": True,
-                "underlying_stop_reason": str(receipt.get("stop_reason", "")),
-                "switch_trigger": str(decision["switch_trigger"]),
-            }
-        rows, trigger = growth.trace_record_first_adaptive_qse(
-            problem,
-            order,
-            k_max=cap,
-            stride=stride,
-            record_stop=record_stop,
-        )
-        trigger = {**trigger, "switch_decision": decision}
+            # This remains an explicitly declared ablation route.  It never
+            # shares the canonical selected-QSE method identity.
+            decision = resolve_switch_point(
+                cell.method_policy, receipt, record_count=len(order)
+            )
+            handoff_k = decision.get("handoff_k")
+            if handoff_k is None:
+                record_stop = receipt
+            else:
+                order = order[: int(handoff_k)]
+                record_stop = {
+                    "stop_reason": "pool_exhausted",
+                    "synthesized_by_switch_policy": True,
+                    "underlying_stop_reason": str(receipt.get("stop_reason", "")),
+                    "switch_trigger": str(decision["switch_trigger"]),
+                }
+            rows, trigger = growth.trace_selected_qse_davidson_hybrid(
+                problem,
+                order,
+                k_max=cap,
+                stride=stride,
+                record_stop=record_stop,
+                target_root_count=len(cell.target_roots),
+            )
+            trigger = {**trigger, "switch_decision": decision}
         selection_receipt = {
             "acquisition_order": order,
             "record_stop": receipt,
             "residual_marker": float(growth.RESIDUAL_MARKER),
         }
     elif method == METHOD_DIRECT_DAVIDSON:
-        rows = growth.trace_adaptive_qse(problem, k_max=cap)
+        rows = growth.trace_adaptive_qse(
+            problem,
+            k_max=cap,
+            target_root_count=len(cell.target_roots),
+        )
     elif method == METHOD_KRYLOV:
         rows = growth.trace_krylov(problem, k_max=cap)
     elif method == METHOD_FIXED_CLASS:
@@ -504,12 +518,19 @@ def _stage_static_qse_trace(
         "method_id": method,
         "rows": _json_safe(rows),
         "trigger": _json_safe(trigger),
+        "algorithm_completion": _json_safe(algorithm_completion),
+        "terminal_status": (
+            None
+            if algorithm_completion is None
+            else str(algorithm_completion["terminal_status"])
+        ),
         "selection_receipt": _json_safe(selection_receipt),
         "terminal_support_indices": terminal_support,
         "shared_problem_receipt": _json_safe(problem.arm_receipt()),
         "pool_digest": str(problem.pool_digest),
         "target_roots": [int(r) for r in cell.target_roots],
         "dimension_cap": cap,
+        "construction_policy_id": str(cell.construction_policy_id),
         "stride": stride,
         "reference_ground_energy": float(problem.ground_energy),
         "reference_excitations": [float(x) for x in problem.references],
@@ -522,6 +543,7 @@ def _stage_static_qse_trace(
         "dimension_cap": cap,
         "stride": stride,
         "pool_digest": str(problem.pool_digest),
+        "construction_policy_id": str(cell.construction_policy_id),
     }
     return payload, inputs, settings
 
@@ -775,7 +797,12 @@ def _stage_qualification(
         for row in rows
         if row.get("max_root_abs_error") is not None
     ]
-    terminal_window_error = min(finite_errors) if finite_errors else None
+    terminal_window_error = (
+        None
+        if not rows or rows[-1].get("max_root_abs_error") is None
+        else float(rows[-1]["max_root_abs_error"])
+    )
+    best_attained_window_error = min(finite_errors) if finite_errors else None
     max_residual = (
         max(float(x) for x in result.generalized_residual_norms)
         if result.generalized_residual_norms
@@ -808,13 +835,24 @@ def _stage_qualification(
         failed.append("spectral_negativity_gate")
     if condition is not None and float(condition) > gates["overlap_condition_gate"]:
         failed.append("overlap_condition_gate")
+    algorithm_completion = trace_payload.get("algorithm_completion")
+    if (
+        trace_payload.get("method_id") == METHOD_RECORD_FIRST
+        and (
+            not isinstance(algorithm_completion, Mapping)
+            or algorithm_completion.get("terminal_status")
+            != STATUS_TARGET_WINDOW_CERTIFIED
+        )
+    ):
+        failed.append("algorithm_completion_gate")
 
     status = STATUS_QUALIFIED if not failed else STATUS_CANDIDATE
     record = {
-        "schema_version": "paper_iii_static_qse_qualification_v1",
+        "schema_version": "paper_iii_static_qse_qualification_v2",
         "status": status,
         "failed_gates": failed,
         "gates": gates,
+        "algorithm_completion": _json_safe(algorithm_completion),
         "ground_state": {
             "ground_source": ground_payload.get("ground_source"),
             "diagnostic_only": ground_payload.get("diagnostic_only"),
@@ -841,6 +879,7 @@ def _stage_qualification(
                 float(x) for x in result.generalized_residual_norms
             ],
             "terminal_window_error": terminal_window_error,
+            "best_attained_window_error": best_attained_window_error,
             "reference_excitations": trace_payload.get("reference_excitations"),
         },
         "transitions": {
@@ -900,7 +939,7 @@ def run_action(action_json: Path, output_dir: Path) -> dict[str, Any]:
 
     started = time.time()
     action_file = json.loads(Path(action_json).read_text(encoding="utf-8"))
-    if action_file.get("schema_version") != "paper_iii_static_qse_action_file_v1":
+    if action_file.get("schema_version") != ACTION_FILE_SCHEMA_VERSION:
         raise StaticQSECellError(
             f"unknown action-file schema {action_file.get('schema_version')!r}."
         )
@@ -948,6 +987,11 @@ def run_action(action_json: Path, output_dir: Path) -> dict[str, Any]:
         envelope["qualification"] = {
             "status": str(payload["status"]),
             "failed_gates": list(payload["failed_gates"]),
+            "algorithm_terminal_status": (
+                None
+                if payload.get("algorithm_completion") is None
+                else payload["algorithm_completion"].get("terminal_status")
+            ),
         }
     write_result_envelope(envelope, out_dir)
     return envelope

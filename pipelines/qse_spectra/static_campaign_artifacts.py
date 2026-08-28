@@ -24,10 +24,11 @@ from pipelines.qse_spectra.static_campaign import (
     StaticQSEAction,
     StaticQSEAttempt,
     StaticQSELedger,
+    action_from_payload,
     normalize_method_id,
 )
 
-RESULT_ENVELOPE_SCHEMA_VERSION = "paper_iii_static_qse_result_envelope_v1"
+RESULT_ENVELOPE_SCHEMA_VERSION = "paper_iii_static_qse_result_envelope_v2"
 RESULT_ENVELOPE_FILENAME = "result_envelope.json"
 
 
@@ -128,6 +129,19 @@ def verify_achieved_action(
             f"envelope action id {envelope.get('action_id')!r} does not match "
             f"planned action {action.action_id}."
         )
+    try:
+        embedded_action = action_from_payload(envelope.get("action") or {})
+    except StaticCampaignError as exc:
+        raise StaticCampaignArtifactError(
+            f"result envelope carries an invalid embedded action: {exc}"
+        ) from exc
+    if (
+        embedded_action.action_id != action.action_id
+        or embedded_action.payload() != action.payload()
+    ):
+        raise StaticCampaignArtifactError(
+            "result envelope's embedded action does not match the planned action."
+        )
 
     achieved = envelope.get("achieved")
     if not isinstance(achieved, Mapping):
@@ -140,7 +154,12 @@ def verify_achieved_action(
         raise StaticCampaignArtifactError(
             "achieved cell digest does not match the planned cell identity."
         )
-    achieved_method = normalize_method_id(str(achieved.get("method_id")))
+    try:
+        achieved_method = normalize_method_id(str(achieved.get("method_id")))
+    except StaticCampaignError as exc:
+        raise StaticCampaignArtifactError(
+            f"achieved method identity is invalid: {exc}"
+        ) from exc
     if achieved_method != normalize_method_id(action.cell.method_id):
         raise StaticCampaignArtifactError(
             f"achieved method {achieved.get('method_id')!r} normalizes to "

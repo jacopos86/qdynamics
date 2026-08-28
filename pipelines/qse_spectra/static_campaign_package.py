@@ -28,11 +28,12 @@ from pipelines.qse_spectra.static_campaign import (
     StaticCampaignError,
     StaticQSEAction,
     StaticQSECampaign,
+    action_from_payload,
     canonical_digest,
 )
 
-PACKAGE_SCHEMA_VERSION = "paper_iii_static_qse_package_v1"
-ACTION_FILE_SCHEMA_VERSION = "paper_iii_static_qse_action_file_v1"
+PACKAGE_SCHEMA_VERSION = "paper_iii_static_qse_package_v2"
+ACTION_FILE_SCHEMA_VERSION = "paper_iii_static_qse_action_file_v2"
 ACTION_FILENAME = "ACTION.json"
 PACKAGE_MANIFEST_FILENAME = "package_manifest.json"
 
@@ -217,6 +218,25 @@ def load_local_package(
             raise StaticCampaignError(
                 f"package lists action {action_id} not declared by the campaign."
             )
+        action_path = root / action_id / ACTION_FILENAME
+        if not action_path.is_file():
+            raise StaticCampaignError(f"missing action file at {action_path}.")
+        action_file = json.loads(action_path.read_text(encoding="utf-8"))
+        if action_file.get("schema_version") != ACTION_FILE_SCHEMA_VERSION:
+            raise StaticCampaignError(
+                f"action-file schema mismatch: {action_file.get('schema_version')!r}."
+            )
+        restored = action_from_payload(action_file.get("action") or {})
+        if restored.action_id != action.action_id or restored.payload() != action.payload():
+            raise StaticCampaignError(
+                f"action file for {action_id} does not match the declared action."
+            )
+        if str(action_file.get("action_id")) != action.action_id:
+            raise StaticCampaignError(f"action file id mismatch for {action_id}.")
+        if canonical_digest(action_file.get("context") or {}) != str(
+            entry.get("context_digest")
+        ):
+            raise StaticCampaignError(f"action context digest drift for {action_id}.")
         actions.append(action)
     return StaticQSEPackage(
         package_root=root,

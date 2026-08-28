@@ -22,11 +22,11 @@ becomes canonical:
 - ``every_k``   (policy B) -- exchange applied at every recorded step,
   producing a fully exchanged trace. Expensive; may compress earlier.
 
-The canonical method first acquires and exchange-maintains inexpensive records.
-It stops when the record residual converges; if the admissible alphabet is
-exhausted first, it preserves the maintained support and continues with
-Davidson residual synthesis.  Fixed-alphabet acquisition is retained as the
-``record_only`` ablation.
+The canonical method acquires and exchange-maintains inexpensive records from
+a fixed pool. It terminates with an explicit online status when the target
+window is certified, the pool is exhausted, or the dimension cap prevents a
+certificate. Davidson remains a separate comparator; the optional two-stage
+hybrid exists only behind an explicit function and is not run by this campaign.
 
 Statevector diagnostics; never feeds controller decisions.
 """
@@ -62,6 +62,16 @@ from pipelines.qse_spectra.exchange_maintenance import (
     run_qse_exchange_maintenance,
 )
 from pipelines.qse_spectra.adaptive_qse_benchmark import run_adaptive_qse_benchmark
+from pipelines.qse_spectra.davidson_initialization import (
+    ORIGIN_COMPUTATIONAL_PROBE,
+    ORIGIN_FIXED_RECORD,
+    build_direct_davidson_start,
+)
+from pipelines.qse_spectra.method_completion import (
+    ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+    certify_fixed_pool_support,
+    classify_selected_qse_completion,
+)
 from pipelines.qse_spectra.paper_iii_problem import load_problem
 from pipelines.qse_spectra.record_selection import (
     StaticRecordSelectionConfig,
@@ -70,7 +80,7 @@ from pipelines.qse_spectra.record_selection import (
 
 DEFAULT_OUTPUT = (
     REPO_ROOT
-    / "output/diagnostics/paper_iii_record_first_adaptive_qse_v2/growth_trace.json"
+    / "output/diagnostics/paper_iii_selected_qse_fixed_pool_v1/growth_trace.json"
 )
 _Q0_POLICY = QSEBasisVectorPolicy(
     reference_projection="q0", basis_vector_normalization="raw_projected"
@@ -191,7 +201,12 @@ def trace_arm(
     return rows
 
 
-def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
+def trace_adaptive_qse(
+    problem: Any,
+    *,
+    k_max: int,
+    target_root_count: int = _TARGET_ROOTS,
+) -> list[dict[str, Any]]:
     """Growth trace for the external adaptive-QSE (quantum Davidson) arm.
 
     Grown to the same dimension cap as every other arm and scored on the same
@@ -200,11 +215,29 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     convention, not from `problem.resource_triple`.
     """
 
+    roots_requested = int(target_root_count)
+    if roots_requested <= 0:
+        raise ValueError("target_root_count must be positive.")
     seed_indices = [
         i for i, e in enumerate(problem.basis)
         if _element_family(e.name) in _LINEAR_RESPONSE_FAMILIES
     ]
-    seed = [problem.basis[i] for i in seed_indices]
+    start = build_direct_davidson_start(
+        problem,
+        target_root_count=roots_requested,
+        fixed_record_indices=seed_indices,
+    )
+    declared_initial_dimension = 1 + len(start.seed_directions)
+    if int(k_max) < declared_initial_dimension:
+        raise ValueError(
+            "DAVIDSON_INITIALIZATION_CAP_INSUFFICIENT: dimension cap "
+            f"{int(k_max)} cannot evaluate the declared initialization block "
+            f"of dimension at most {declared_initial_dimension}."
+        )
+    seed = [direction.payload for direction in start.seed_directions]
+    seed_direction_resources = [
+        dict(direction.resources) for direction in start.seed_directions
+    ]
     # Residual corrections are charged as one first-order Trotter step of H,
     # matching Krylov.  The declared seed is different: those directions are
     # literal pool records and retain their record-specific compiled costs.
@@ -232,21 +265,56 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
         problem.ground,
         # The benchmark returns the lowest N Ritz values INCLUDING the ground
         # root, so request R+1 and compare the excitations root_energies[1:].
-        target_roots=_TARGET_ROOTS + 1,
+        target_roots=roots_requested + 1,
         eps_residual=1.0e-14,      # effectively run to the cap; the trace supplies K*
         max_dimension=int(k_max),
         seed_elements=seed,
+        seed_direction_resources=seed_direction_resources,
         direction_resources=per_direction,
     )
     seed_rows = list(audit["seed_policy"]["seed_rows"])
-    admitted_seed_indices = [
-        int(index)
-        for index, row in zip(seed_indices, seed_rows)
+    evaluated_directions = tuple(start.seed_directions[: len(seed_rows)])
+    admitted_directions = [
+        direction
+        for direction, row in zip(evaluated_directions, seed_rows)
         if bool(row["admitted"])
     ]
-    admitted_seed_count = len(admitted_seed_indices)
+    admitted_seed_count = len(admitted_directions)
     initial_adaptive_dimension = 1 + admitted_seed_count
-    seed_resources = problem.resource_triple(admitted_seed_indices)
+    seed_resources = {
+        resource: float(
+            sum(float(direction.resources[resource]) for direction in admitted_directions)
+        )
+        for resource in ("n2q", "d2q", "dc")
+    }
+    seed_resources_by_origin = {
+        origin: {
+            resource: float(
+                sum(
+                    float(direction.resources[resource])
+                    for direction in admitted_directions
+                    if direction.origin == origin
+                )
+            )
+            for resource in ("n2q", "d2q", "dc")
+        }
+        for origin in (ORIGIN_FIXED_RECORD, ORIGIN_COMPUTATIONAL_PROBE)
+    }
+    initialization_receipt = {
+        **dict(start.receipt),
+        "declared_seed_direction_count": len(start.seed_directions),
+        "evaluated_seed_direction_count": len(seed_rows),
+        "admitted_seed_direction_count": admitted_seed_count,
+        "admitted_fixed_record_count": sum(
+            direction.origin == ORIGIN_FIXED_RECORD for direction in admitted_directions
+        ),
+        "admitted_computational_probe_count": sum(
+            direction.origin == ORIGIN_COMPUTATIONAL_PROBE
+            for direction in admitted_directions
+        ),
+        "admitted_seed_labels": [direction.label for direction in admitted_directions],
+        "admitted_seed_resources_by_origin": seed_resources_by_origin,
+    }
     from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
 
     # Estimator queries for a synthesized-basis pencil. This arm's basis
@@ -295,11 +363,22 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
                 "n2q": float(res["n2q"]),
                 "d2q": float(res["d2q"]),
                 "dc": float(res["dc"]),
-                "seed_record_count": int(admitted_seed_count),
-                "seed_record_resources": dict(seed_resources),
+                "seed_direction_count": int(admitted_seed_count),
+                "seed_record_count": int(
+                    initialization_receipt["admitted_fixed_record_count"]
+                ),
+                "seed_fixed_record_count": int(
+                    initialization_receipt["admitted_fixed_record_count"]
+                ),
+                "seed_computational_probe_count": int(
+                    initialization_receipt["admitted_computational_probe_count"]
+                ),
+                "seed_resources": dict(seed_resources),
+                "seed_resources_by_origin": dict(seed_resources_by_origin),
+                "initialization_receipt": dict(initialization_receipt),
                 "synthesized_direction_count": int(synthesized_direction_count),
                 "per_synthesized_direction": dict(per_direction),
-                "costing_convention": "record_seed_plus_trotterized_residual_directions_v1",
+                "costing_convention": "robust_mixed_seed_plus_trotterized_residual_directions_v2",
                 "per_root_abs_error": per_root,
                 "root_match_convention": "index_matched_ascending",
                 "root_energies": roots,
@@ -309,15 +388,71 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     return rows
 
 
-def trace_record_first_adaptive_qse(
+def trace_selected_qse_fixed_pool(
     problem: Any,
     order: Sequence[int],
     *,
     k_max: int,
     stride: int,
     record_stop: Mapping[str, Any],
+    target_root_count: int = _TARGET_ROOTS,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Run canonical record-first growth with a Davidson completeness fallback.
+    """Run canonical selected QSE without an implicit completion solver.
+
+    The production selector supplies ``order`` and its online terminal receipt;
+    certified exchange is applied to every recorded prefix.  Pool exhaustion,
+    a dimension cap, or an incomplete window certificate ends this route with
+    a structured status.  Davidson is intentionally absent from this function.
+    """
+
+    record_cap = len(order)
+    rows = trace_arm(
+        problem,
+        order,
+        stride=int(stride),
+        k_max=min(int(k_max), int(record_cap)),
+        exchange_policy="every_k",
+    )
+    for row in rows:
+        row.setdefault("phase", "records")
+    support_certificate = None
+    if rows:
+        support_certificate = certify_fixed_pool_support(
+            problem.basis,
+            rows[-1]["support_indices"],
+            hamiltonian=problem.hamiltonian,
+            prepared_state=problem.ground,
+            basis_vector_policy=_Q0_POLICY,
+            target_root_count=int(target_root_count),
+            residual_stop_threshold=float(
+                record_stop.get("residual_stop_threshold") or RESIDUAL_MARKER
+            ),
+        )
+    completion = classify_selected_qse_completion(
+        dict(record_stop),
+        trace_terminal_record_count=(0 if not rows else int(rows[-1]["k"])),
+        selector_terminal_record_count=int(record_cap),
+        target_root_count=int(target_root_count),
+        trace_reached_selector_terminal=bool(rows) and int(record_cap) <= int(k_max),
+        terminal_support_certificate=support_certificate,
+    )
+    return rows, {
+        "method_id": "record_first_adaptive_qse",
+        **completion,
+        "record_stop": dict(record_stop),
+    }
+
+
+def trace_selected_qse_davidson_hybrid(
+    problem: Any,
+    order: Sequence[int],
+    *,
+    k_max: int,
+    stride: int,
+    record_stop: Mapping[str, Any],
+    target_root_count: int = _TARGET_ROOTS,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Run the explicit selected-QSE-to-Davidson hybrid route.
 
     Phase A buys cheap alphabet directions under the production rule. The
     production selector's terminal receipt determines the transition: a
@@ -326,7 +461,9 @@ def trace_record_first_adaptive_qse(
     synthesis as seed elements.  Exact reference errors annotate the trace but
     never control the handoff.
 
-    Returns the concatenated trace and a provenance record of the trigger.
+    This function is intentionally not called by canonical selected QSE. It is
+    retained as the future separately declared route whose receipt charges the
+    selected-record stage and every synthesized Davidson direction.
     """
 
     stop_receipt = dict(record_stop)
@@ -344,7 +481,9 @@ def trace_record_first_adaptive_qse(
         row.setdefault("phase", "records")
     if record_cap > int(k_max):
         return rows, {
-            "method_id": "record_first_adaptive_qse_v2",
+            "method_id": "selected_qse_davidson_hybrid",
+            "completion_route": ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+            "davidson_invoked": False,
             "fired": False,
             "reason": "record_stop_beyond_dimension_cap",
             "trigger_source": "record_selector_terminal_receipt",
@@ -352,7 +491,9 @@ def trace_record_first_adaptive_qse(
         }
     if not rows:
         return rows, {
-            "method_id": "record_first_adaptive_qse_v2",
+            "method_id": "selected_qse_davidson_hybrid",
+            "completion_route": ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+            "davidson_invoked": False,
             "fired": False,
             "reason": "empty_record_support",
             "trigger_source": "record_selector_terminal_receipt",
@@ -360,7 +501,9 @@ def trace_record_first_adaptive_qse(
         }
     if stop_reason == "residual_converged":
         return rows, {
-            "method_id": "record_first_adaptive_qse_v2",
+            "method_id": "selected_qse_davidson_hybrid",
+            "completion_route": ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+            "davidson_invoked": False,
             "fired": False,
             "reason": "record_residual_converged",
             "trigger_source": "record_selector_terminal_receipt",
@@ -368,7 +511,9 @@ def trace_record_first_adaptive_qse(
         }
     if stop_reason != "pool_exhausted":
         return rows, {
-            "method_id": "record_first_adaptive_qse_v2",
+            "method_id": "selected_qse_davidson_hybrid",
+            "completion_route": ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+            "davidson_invoked": False,
             "fired": False,
             "reason": "record_acquisition_not_terminal",
             "trigger_source": "record_selector_terminal_receipt",
@@ -381,6 +526,11 @@ def trace_record_first_adaptive_qse(
     phase_a_support_indices = [int(index) for index in base["support_indices"]]
     seed_indices = list(phase_a_support_indices)
     seed = [problem.basis[index] for index in seed_indices]
+    if 1 + len(seed) > int(k_max):
+        raise ValueError(
+            "DAVIDSON_INITIALIZATION_CAP_INSUFFICIENT: hybrid phase-A support "
+            "plus the reference exceeds the declared hybrid dimension cap."
+        )
 
     from pipelines.qse_spectra.compiled_costs import (
         ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
@@ -406,7 +556,7 @@ def trace_record_first_adaptive_qse(
     audit = run_adaptive_qse_benchmark(
         problem.hamiltonian,
         problem.ground,
-        target_roots=_TARGET_ROOTS + 1,
+        target_roots=int(target_root_count) + 1,
         eps_residual=1.0e-14,
         max_dimension=int(k_max),
         seed_elements=seed,
@@ -469,7 +619,9 @@ def trace_record_first_adaptive_qse(
         else None
     )
     return phase_a + phase_b, {
-        "method_id": "record_first_adaptive_qse_v2",
+        "method_id": "selected_qse_davidson_hybrid",
+        "completion_route": ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
+        "davidson_invoked": True,
         "fired": True,
         "reason": "record_pool_exhausted",
         "trigger_k": int(base["k"]),
@@ -637,6 +789,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         else (args.exchange_policy,)
     )
     regimes_payload: dict[str, Any] = {}
+    terminal_status_counts: dict[str, int] = {}
 
     wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
     for regime, u, g_ep, n_ph_max in REGIME_SETS[str(args.regime_set)]:
@@ -725,20 +878,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"   {'adaptive_qse':<22} terminal {best_ad['max_root_abs_error']:.1e} "
                   f"@k={best_ad['k']} N2q={best_ad['n2q']:.0f}", flush=True)
 
-        record_first_rows, handoff_info = trace_record_first_adaptive_qse(
+        record_first_rows, completion_info = trace_selected_qse_fixed_pool(
             problem,
             [int(index) for index in marker.selected_original_indices],
             k_max=int(args.k_max),
             stride=int(args.stride),
             record_stop=marker.geometry_stop or {"stop_reason": "missing"},
+            target_root_count=_TARGET_ROOTS,
+        )
+        terminal_status = str(completion_info["terminal_status"])
+        terminal_status_counts[terminal_status] = (
+            terminal_status_counts.get(terminal_status, 0) + 1
         )
         arms["record_first_adaptive_qse"] = {
             "trace": record_first_rows,
-            "trigger": handoff_info,
+            "algorithm_completion": completion_info,
             "role": "canonical_method",
             "note": (
-                "exchange-maintained records until residual convergence or alphabet "
-                "exhaustion; exhaustion preserves the support and starts residual synthesis"
+                "fixed-pool exchange-maintained selected QSE; target-window "
+                "certification, pool exhaustion, or the dimension cap terminates the route"
             ),
         }
         best_record_first = min(
@@ -750,7 +908,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 f"   {'record_first_adaptive':<22} "
                 f"terminal {best_record_first['max_root_abs_error']:.1e} "
                 f"@k={best_record_first['k']} N2q={best_record_first['n2q']:.0f} "
-                f"(handoff {handoff_info.get('trigger_k')})",
+                f"({terminal_status})",
                 flush=True,
             )
 
@@ -854,7 +1012,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
 
     payload = {
-        "schema_version": "paper_iii_record_first_adaptive_qse_campaign_v2",
+        "schema_version": "paper_iii_selected_qse_fixed_pool_campaign_v1",
         "protocol": "agent_guidance/qse/paper-iii-comparison-protocol.md#1",
         "policy": "diagnostic_only_growth_trace_campaign",
         "controller_boundary": {
@@ -864,7 +1022,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         },
         "convention": (
             "every method grows one direction at a time to a fixed cap; the canonical "
-            "method uses the record-selector receipt only to stop or hand off, while "
+            "selected-QSE method terminates from its online record-selector receipt and "
+            "never invokes Davidson, while "
             "K*(eps_E) is read from the completed trace"
         ),
         "regime_set": str(args.regime_set),
@@ -873,6 +1032,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "exchange_policies": list(policies),
         "error_target_ladder": [float(x) for x in ERROR_TARGET_LADDER],
         "target_roots": _TARGET_ROOTS,
+        "terminal_status_counts": terminal_status_counts,
+        "fixed_pool_cell_count": len(regimes_payload),
+        "fixed_pool_uncertified_count": sum(
+            count
+            for status, count in terminal_status_counts.items()
+            if status != "TARGET_WINDOW_CERTIFIED"
+        ),
         "regimes": regimes_payload,
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)

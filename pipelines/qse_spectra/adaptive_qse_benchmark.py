@@ -35,7 +35,7 @@ from src.quantum.compiled_polynomial import (
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 
 
-ADAPTIVE_QSE_BENCHMARK_SCHEMA_VERSION = "adaptive_qse_benchmark_v1"
+ADAPTIVE_QSE_BENCHMARK_SCHEMA_VERSION = "adaptive_qse_benchmark_v2"
 STOP_RESIDUAL_CONVERGED = "RESIDUAL_CONVERGED"
 STOP_MAX_DIMENSION = "MAX_DIMENSION"
 STOP_POOL_EXHAUSTED_EQUIVALENT = "POOL_EXHAUSTED_EQUIVALENT"
@@ -208,6 +208,32 @@ def _hamiltonian_operator(
     raise TypeError("hamiltonian must be a dense numpy array or PauliPolynomial.")
 
 
+def hamiltonian_diagonal(
+    hamiltonian: Any,
+    *,
+    num_qubits: int,
+    qse_config: QSEPruningConfig | None = None,
+) -> np.ndarray:
+    """Return a validated computational-basis Hamiltonian diagonal.
+
+    Davidson initialization and its diagonal preconditioner share this one
+    representation path.  The operation uses only the declared Hamiltonian;
+    it does not diagonalize it or inspect exact reference roots.
+    """
+
+    nq = int(num_qubits)
+    if nq <= 0:
+        raise ValueError("num_qubits must be positive.")
+    cfg = qse_config if qse_config is not None else QSEPruningConfig()
+    _apply, diagonal, _representation = _hamiltonian_operator(
+        hamiltonian,
+        dim=1 << nq,
+        nq=nq,
+        config=cfg,
+    )
+    return np.asarray(diagonal, dtype=float)
+
+
 def _seed_action(
     seed: Any,
     prepared_state: np.ndarray,
@@ -301,6 +327,7 @@ def run_adaptive_qse_benchmark(
     eps_residual: float,
     max_dimension: int,
     seed_elements: Sequence[Any] = (),
+    seed_direction_resources: Sequence[Mapping[str, Any]] | None = None,
     denominator_floor: float = 1.0e-8,
     independence_floor: float = 1.0e-12,
     qse_config: QSEPruningConfig | None = None,
@@ -310,8 +337,10 @@ def run_adaptive_qse_benchmark(
     """Run standard adaptive QSE/quantum Davidson and return an audit dict.
 
     ``prepared_state`` is the free reference seed.  Every admitted declared
-    seed image and every residual-synthesized correction is charged once under
-    ``direction_resources``; the reference itself is not charged.
+    seed image is charged by its matching ``seed_direction_resources`` entry
+    when supplied (otherwise by ``direction_resources``); every synthesized
+    correction is charged by ``direction_resources``.  The reference itself
+    is not charged.
     """
 
     roots_requested = int(target_roots)
@@ -342,11 +371,25 @@ def run_adaptive_qse_benchmark(
     reference_energy = float(reference_energy_complex.real)
 
     per_direction = _resource_triple(direction_resources)
+    declared_seeds = tuple(seed_elements)
+    if seed_direction_resources is None:
+        per_seed_resources = tuple(dict(per_direction) for _seed in declared_seeds)
+        seed_resource_policy = "uniform_direction_resources"
+    else:
+        if len(seed_direction_resources) != len(declared_seeds):
+            raise ValueError(
+                "seed_direction_resources must contain one resource triple per "
+                "declared seed element."
+            )
+        per_seed_resources = tuple(
+            _resource_triple(resources) for resources in seed_direction_resources
+        )
+        seed_resource_policy = "per_declared_seed"
     frame: list[np.ndarray] = [np.asarray(psi, dtype=complex)]
     h_frame: list[np.ndarray] = [np.asarray(h_psi, dtype=complex)]
     charged_directions = 0
+    charged_resources = {"n2q": 0.0, "d2q": 0.0, "dc": 0.0}
     seed_rows: list[dict[str, Any]] = []
-    declared_seeds = tuple(seed_elements)
     for seed_index, seed in enumerate(declared_seeds):
         if len(frame) >= dimension_cap:
             break
@@ -359,6 +402,11 @@ def run_adaptive_qse_benchmark(
             independence_floor=float(independence_floor),
         )
         accepted = admitted is not None
+        resources_charged = (
+            dict(per_seed_resources[seed_index])
+            if accepted
+            else {"n2q": 0.0, "d2q": 0.0, "dc": 0.0}
+        )
         seed_rows.append(
             {
                 "seed_index": int(seed_index),
@@ -366,12 +414,15 @@ def run_adaptive_qse_benchmark(
                 "q0_projected_norm": float(np.linalg.norm(q0_projected)),
                 "novelty_fraction": float(novelty),
                 "admitted": bool(accepted),
+                "resources_charged": resources_charged,
             }
         )
         if admitted is not None:
             frame.append(admitted)
             h_frame.append(apply_h(admitted))
             charged_directions += 1
+            for resource, value in resources_charged.items():
+                charged_resources[resource] += float(value)
 
     iterations: list[dict[str, Any]] = []
     preceding_admission: dict[str, Any] | None = None
@@ -403,7 +454,7 @@ def run_adaptive_qse_benchmark(
             residual_norms.append(float(np.linalg.norm(residual)))
         max_residual = max(residual_norms, default=float("inf"))
         final_residuals = residual_norms
-        resources = _scaled_resources(per_direction, charged_directions)
+        resources = dict(charged_resources)
         iterations.append(
             {
                 "iteration": int(len(iterations)),
@@ -469,18 +520,20 @@ def run_adaptive_qse_benchmark(
         frame.append(accepted_direction)
         h_frame.append(apply_h(accepted_direction))
         charged_directions += 1
+        for resource, value in per_direction.items():
+            charged_resources[resource] += float(value)
         preceding_admission = accepted_metadata
 
     if stop_reason not in _STOP_REASONS:
         raise RuntimeError(f"unexpected adaptive-QSE stop reason {stop_reason!r}.")
     if final_result is None:
         raise RuntimeError("adaptive-QSE solve produced no iterations.")
-    final_resources = _scaled_resources(per_direction, charged_directions)
+    final_resources = dict(charged_resources)
     return {
         "schema_version": ADAPTIVE_QSE_BENCHMARK_SCHEMA_VERSION,
         "method": "standard_adaptive_qse_quantum_davidson",
-        "construction_family": "residual_synthesized_no_record_alphabet",
-        "record_alphabet_consumed": False,
+        "construction_family": "residual_synthesized_after_declared_seed_frame",
+        "record_alphabet_consumed_for_growth": False,
         "hamiltonian_representation": str(hamiltonian_representation),
         "config": {
             "target_roots": int(roots_requested),
@@ -501,10 +554,12 @@ def run_adaptive_qse_benchmark(
             "evaluated_seed_set_size": int(len(seed_rows)),
             "admitted_seed_direction_count": int(sum(row["admitted"] for row in seed_rows)),
             "seed_rows": seed_rows,
+            "resource_policy": seed_resource_policy,
         },
         "costing": {
             "convention": convention,
-            "per_admitted_direction": dict(per_direction),
+            "per_admitted_synthesized_direction": dict(per_direction),
+            "seed_resource_policy": seed_resource_policy,
             "charged_direction_count": int(charged_directions),
             "resources": final_resources,
         },
@@ -529,6 +584,7 @@ __all__ = [
     "STOP_POOL_EXHAUSTED_EQUIVALENT",
     "STOP_RESIDUAL_CONVERGED",
     "guarded_davidson_correction",
+    "hamiltonian_diagonal",
     "orthogonalize_adaptive_direction",
     "run_adaptive_qse_benchmark",
 ]

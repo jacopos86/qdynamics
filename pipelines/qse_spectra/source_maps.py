@@ -36,9 +36,9 @@ ROLE_STATIC_QSE_CAMPAIGN = "static_qse_campaign"
 ROLE_STATIC_QSE_LEDGER = "static_qse_ledger"
 ROLE_STATIC_QSE_RESULTS_CONTRACT = "static_qse_results_contract"
 _STATIC_ROLE_SCHEMAS = {
-    ROLE_STATIC_QSE_CAMPAIGN: "paper_iii_static_qse_campaign_v1",
-    ROLE_STATIC_QSE_LEDGER: "paper_iii_static_qse_ledger_v1",
-    ROLE_STATIC_QSE_RESULTS_CONTRACT: "paper_iii_static_qse_results_contract_v1",
+    ROLE_STATIC_QSE_CAMPAIGN: "paper_iii_static_qse_campaign_v2",
+    ROLE_STATIC_QSE_LEDGER: "paper_iii_static_qse_ledger_v2",
+    ROLE_STATIC_QSE_RESULTS_CONTRACT: "paper_iii_static_qse_results_contract_v2",
 }
 
 _BOUNDARY_REQUIRED_SECTIONS = (

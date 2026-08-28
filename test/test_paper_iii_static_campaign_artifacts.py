@@ -98,11 +98,28 @@ def test_round_trip_verification(tmp_path: Path) -> None:
     assert dict(attempt.achieved_config)["cell_digest"] == action.cell.digest()
 
 
-def test_alias_method_in_achieved_config_normalizes(tmp_path: Path) -> None:
+def test_old_hybrid_method_in_achieved_config_fails_closed(tmp_path: Path) -> None:
     action = _action()
     _produce(action, tmp_path, method_label="record_first_adaptive_qse_v2")
-    attempt = verify_achieved_action(action, tmp_path)
-    assert dict(attempt.achieved_config)["method_id"] == METHOD_RECORD_FIRST
+    with pytest.raises(StaticCampaignArtifactError, match="quarantined"):
+        verify_achieved_action(action, tmp_path)
+
+
+def test_v1_envelope_and_tampered_embedded_action_fail_closed(tmp_path: Path) -> None:
+    action = _action()
+    out_dir = _produce(action, tmp_path)
+    envelope_path = out_dir / RESULT_ENVELOPE_FILENAME
+    envelope = json.loads(envelope_path.read_text())
+    envelope["schema_version"] = "paper_iii_static_qse_result_envelope_v1"
+    envelope_path.write_text(json.dumps(envelope))
+    with pytest.raises(StaticCampaignArtifactError, match="envelope schema"):
+        verify_achieved_action(action, tmp_path)
+
+    envelope["schema_version"] = "paper_iii_static_qse_result_envelope_v2"
+    envelope["action"]["stage"] = "static_qse_trace"
+    envelope_path.write_text(json.dumps(envelope))
+    with pytest.raises(StaticCampaignArtifactError, match="embedded action"):
+        verify_achieved_action(action, tmp_path)
 
 
 def test_output_digest_drift_fails_closed(tmp_path: Path) -> None:
