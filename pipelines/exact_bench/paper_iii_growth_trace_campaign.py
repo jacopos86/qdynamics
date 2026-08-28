@@ -61,13 +61,19 @@ from pipelines.qse_spectra.exchange_maintenance import (
     QSEExchangeConfig,
     run_qse_exchange_maintenance,
 )
-from pipelines.qse_spectra.adaptive_qse_benchmark import run_adaptive_qse_benchmark
+from pipelines.qse_spectra.adaptive_qse_benchmark import (
+    STOP_MAX_DIMENSION,
+    STOP_POOL_EXHAUSTED_EQUIVALENT,
+    STOP_RESIDUAL_CONVERGED,
+    run_adaptive_qse_benchmark,
+)
 from pipelines.qse_spectra.davidson_initialization import (
     ORIGIN_COMPUTATIONAL_PROBE,
     ORIGIN_FIXED_RECORD,
     build_direct_davidson_start,
 )
 from pipelines.qse_spectra.method_completion import (
+    ROUTE_DIRECT_DAVIDSON,
     ROUTE_SELECTED_QSE_DAVIDSON_HYBRID,
     certify_fixed_pool_support,
     classify_selected_qse_completion,
@@ -116,7 +122,7 @@ def _mixed_resource_triple(
 
 def _window_error(
     problem: Any, indices: Sequence[int]
-) -> tuple[float | None, int, list[float] | None]:
+) -> tuple[float | None, int, list[float] | None, list[float]]:
     """Max window error, retained rank, and the per-target-root errors.
 
     ``per_root`` is additive reporting data: it lets a post-run reading score
@@ -133,13 +139,14 @@ def _window_error(
             basis_vector_policy=_Q0_POLICY,
         )
     except ValueError:
-        return None, 0, None
+        return None, 0, None, []
     energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
     refs = problem.references
+    roots = [float(value) for value in energies[: len(refs)]]
     if energies.size < len(refs):
-        return None, int(result.retained_rank), None
+        return None, int(result.retained_rank), None, roots
     per_root = [abs(float(energies[r]) - float(ref)) for r, ref in enumerate(refs)]
-    return max(per_root), int(result.retained_rank), per_root
+    return max(per_root), int(result.retained_rank), per_root, roots
 
 
 def _exchange(problem: Any, indices: Sequence[int]) -> list[int]:
@@ -158,7 +165,7 @@ def _exchange(problem: Any, indices: Sequence[int]) -> list[int]:
 
 
 def _row(problem: Any, indices: Sequence[int], k: int, *, exchanged: bool) -> dict[str, Any]:
-    err, rank, per_root = _window_error(problem, indices)
+    err, rank, per_root, roots = _window_error(problem, indices)
     res = problem.resource_triple(indices)
     return {
         "k": int(k),
@@ -169,6 +176,7 @@ def _row(problem: Any, indices: Sequence[int], k: int, *, exchanged: bool) -> di
         "max_root_abs_error": err,
         "per_root_abs_error": per_root,
         "root_match_convention": "index_matched_ascending",
+        "root_energies": roots,
         **res,
     }
 
@@ -201,12 +209,13 @@ def trace_arm(
     return rows
 
 
-def trace_adaptive_qse(
+def _trace_direct_davidson(
     problem: Any,
     *,
     k_max: int,
     target_root_count: int = _TARGET_ROOTS,
-) -> list[dict[str, Any]]:
+    require_completion_metadata: bool,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Growth trace for the external adaptive-QSE (quantum Davidson) arm.
 
     Grown to the same dimension cap as every other arm and scored on the same
@@ -385,6 +394,68 @@ def trace_adaptive_qse(
                 "estimator": _adaptive_estimator(dimension),
             }
         )
+    if not require_completion_metadata and "stop_reason" not in audit:
+        # The legacy row-only API predates terminal receipts.  Keeping that API
+        # tolerant lets older test doubles continue to exercise its costing
+        # semantics, while the campaign-facing API below remains fail-closed.
+        return rows, {}
+    native_stop_reason = str(audit["stop_reason"])
+    terminal_status = {
+        STOP_RESIDUAL_CONVERGED: "DAVIDSON_RESIDUAL_CERTIFIED",
+        STOP_MAX_DIMENSION: "DAVIDSON_DIMENSION_CAP_REACHED",
+        STOP_POOL_EXHAUSTED_EQUIVALENT: "DAVIDSON_NO_NOVEL_CORRECTION",
+    }[native_stop_reason]
+    completion = {
+        "schema_version": "paper_iii_direct_davidson_completion_v1",
+        "method_id": "direct_davidson_qse",
+        "completion_route": ROUTE_DIRECT_DAVIDSON,
+        "davidson_invoked": True,
+        "online_only": True,
+        "terminal_status": terminal_status,
+        "native_stop_reason": native_stop_reason,
+        "target_root_count": roots_requested,
+        "residual_stop_threshold": float(audit["config"]["eps_residual"]),
+        "terminal_dimension": int(audit["terminal_dimension"]),
+        "terminal_retained_rank": int(audit["terminal_retained_rank"]),
+        "target_window_complete": bool(audit["target_window_complete"]),
+        "root_residual_norms": [float(value) for value in audit["root_residual_norms"]],
+        "max_root_residual": float(audit["max_root_residual"]),
+        "initialization_receipt": initialization_receipt,
+        "costing": dict(audit["costing"]),
+    }
+    return rows, completion
+
+
+def trace_direct_davidson_with_completion(
+    problem: Any,
+    *,
+    k_max: int,
+    target_root_count: int = _TARGET_ROOTS,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Return direct-Davidson trace rows and its required terminal receipt."""
+
+    return _trace_direct_davidson(
+        problem,
+        k_max=k_max,
+        target_root_count=target_root_count,
+        require_completion_metadata=True,
+    )
+
+
+def trace_adaptive_qse(
+    problem: Any,
+    *,
+    k_max: int,
+    target_root_count: int = _TARGET_ROOTS,
+) -> list[dict[str, Any]]:
+    """Compatibility wrapper returning only the direct-Davidson trace rows."""
+
+    rows, _completion = _trace_direct_davidson(
+        problem,
+        k_max=k_max,
+        target_root_count=target_root_count,
+        require_completion_metadata=False,
+    )
     return rows
 
 
@@ -924,7 +995,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"   {'krylov':<22} terminal {best_kr['max_root_abs_error']:.1e} "
                   f"@k={best_kr['k']} N2q={best_kr['n2q']:.0f}", flush=True)
 
-        f_err, f_rank, f_per_root = _window_error(problem, fixed_indices)
+        f_err, f_rank, f_per_root, _f_roots = _window_error(problem, fixed_indices)
         arms["fixed_class"] = {
             "trace": [
                 {
