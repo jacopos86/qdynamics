@@ -45,12 +45,16 @@ GEOMETRY_SCORE_NORMALIZED_ANGULAR = "normalized_angular"
 GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN = "raw_overlap_2x2"
 GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN = "residualized_2x2"
 GEOMETRY_SCORE_FULL_PENCIL_KY_FAN = "full_pencil_ky_fan"
+GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST = (
+    "residualized_2x2_then_ky_fan"
+)
 GEOMETRY_SCORE_MODES = frozenset(
     {
         GEOMETRY_SCORE_NORMALIZED_ANGULAR,
         GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
         GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
         GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+        GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
     }
 )
 
@@ -68,6 +72,8 @@ class StaticRecordSelectionConfig:
     geometry_target_roots: int = 6
     geometry_score_mode: str = GEOMETRY_SCORE_NORMALIZED_ANGULAR
     geometry_additive_novelty_reward: bool = True
+    geometry_require_supported_image: bool = False
+    geometry_ky_fan_shortlist_size: int | None = None
     geometry_metric_novelty_weight: float = 0.25
     geometry_residual_weight: float = 1.0
     geometry_cost_weight: float = 1.0
@@ -99,6 +105,22 @@ class StaticRecordSelectionConfig:
             )
         if not isinstance(self.geometry_additive_novelty_reward, bool):
             raise ValueError("geometry_additive_novelty_reward must be boolean.")
+        if not isinstance(self.geometry_require_supported_image, bool):
+            raise ValueError("geometry_require_supported_image must be boolean.")
+        if (
+            str(self.geometry_score_mode)
+            == GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST
+        ):
+            _validate_int(
+                self.geometry_ky_fan_shortlist_size,
+                name="geometry_ky_fan_shortlist_size",
+                min_value=1,
+            )
+        elif self.geometry_ky_fan_shortlist_size is not None:
+            raise ValueError(
+                "geometry_ky_fan_shortlist_size is only valid for the "
+                "residualized_2x2_then_ky_fan score mode."
+            )
         for field_name in _GEOMETRY_WEIGHT_FIELDS:
             value = float(getattr(self, field_name))
             if not math.isfinite(value) or value < 0.0:
@@ -406,7 +428,14 @@ def _geometry_select(
     basis_vector_policy: Any,
     transition_observables: Sequence[Any],
     compiled_costs: tuple[float, ...] | None = None,
-) -> tuple[list["StaticRecordCandidate"], set[int], dict[int, dict[str, Any]], dict[int, float]]:
+) -> tuple[
+    list["StaticRecordCandidate"],
+    set[int],
+    set[int],
+    dict[int, dict[str, Any]],
+    dict[int, float],
+    dict[str, Any],
+]:
     """Greedy geometry-scored selection over pre-QSE candidate images.
 
     For each candidate image ``w_i``, two-pass Gram--Schmidt against the
@@ -414,9 +443,10 @@ def _geometry_select(
     novelty fraction is always an admissibility floor and may additionally
     enter the utility as a reward. ``geometry_score_mode`` supplies the
     spectral coordinate: normalized residual angle, a raw-candidate 2x2 Ritz
-    gain, a residualized 2x2 Ritz gain, or the full proposed-pencil Ky Fan
-    gain. Energy-valued gains are normalized by one common round-local scale
-    only when combining them with the dimensionless novelty reward.
+    gain, a residualized 2x2 Ritz gain, the full proposed-pencil Ky Fan gain,
+    or residualized 2x2 screening followed by Ky Fan reranking of a declared
+    shortlist. Energy-valued gains are normalized by one common round-local
+    scale only when combining them with the dimensionless novelty reward.
 
     With a compiled-cost discount the selection rule is ``utility / K^alpha``;
     otherwise the configured cost coordinate is subtracted from utility.
@@ -529,6 +559,7 @@ def _geometry_select(
             accepted_units.append(unit_vec)
             accepted_h_units.append(h_unit)
     floor_rejected: set[int] = set()
+    supported_image_rejected: set[int] = set()
     geometry_rows: dict[int, dict[str, Any]] = {}
     scores: dict[int, float] = {}
     pool: dict[int, StaticRecordCandidate] = {
@@ -620,7 +651,12 @@ def _geometry_select(
         for index, candidate in list(pool.items()):
             w = images[index]
             w_norm_sq = float(np.vdot(w, w).real)
-            if w_norm_sq > 0.0:
+            supported_image_admissible = bool(
+                w_norm_sq > float(cfg.overlap_absolute_cutoff)
+            )
+            if w_norm_sq > 0.0 and (
+                supported_image_admissible or not config.geometry_require_supported_image
+            ):
                 projected = w.copy()
                 # Two projection passes (reorthogonalized Gram-Schmidt):
                 # a single pass lets numerical noise from near-dependent
@@ -663,6 +699,8 @@ def _geometry_select(
 
             cost_norm = _cost_value(candidate) / max_cost
             round_features[index] = {
+                "supported_image_norm_sq": float(w_norm_sq),
+                "supported_image_admissible": bool(supported_image_admissible),
                 "novelty": float(novelty),
                 "residual_capture": float(residual_capture),
                 "cost_norm": float(cost_norm),
@@ -673,6 +711,7 @@ def _geometry_select(
             elif score_mode in {
                 GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
                 GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+                GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
             }:
                 spectral_raw = 0.0
                 if p_norm_sq > 0.0:
@@ -718,11 +757,92 @@ def _geometry_select(
                     f"Geometry score mode {score_mode!r} is not implemented by this selector."
                 )
             round_spectral_raw[index] = float(spectral_raw)
-            if novelty < float(config.geometry_min_metric_novelty):
+            if config.geometry_require_supported_image and not supported_image_admissible:
+                supported_image_rejected.add(index)
+                del pool[index]
+            elif novelty < float(config.geometry_min_metric_novelty):
                 floor_rejected.add(index)
                 del pool[index]
 
-        if str(config.geometry_score_mode) == GEOMETRY_SCORE_FULL_PENCIL_KY_FAN and pool:
+        score_mode = str(config.geometry_score_mode)
+
+        def _score_from_raw(
+            index: int,
+            spectral_raw: float,
+            spectral_scale: float,
+        ) -> tuple[float, float, float]:
+            features = round_features[index]
+            if score_mode == GEOMETRY_SCORE_NORMALIZED_ANGULAR:
+                spectral_normalized = float(spectral_raw)
+            else:
+                spectral_normalized = (
+                    float(spectral_raw) / float(spectral_scale)
+                    if spectral_scale > 0.0
+                    else 0.0
+                )
+            novelty_reward = (
+                float(config.geometry_metric_novelty_weight)
+                * float(features["novelty"])
+                if config.geometry_additive_novelty_reward
+                else 0.0
+            )
+            utility = (
+                novelty_reward
+                + float(config.geometry_residual_weight) * spectral_normalized
+            )
+            cost_norm = float(features["cost_norm"])
+            if config.geometry_cost_discount_alpha is not None:
+                alpha = float(config.geometry_cost_discount_alpha)
+                clamped = max(float(config.geometry_cost_discount_floor), cost_norm)
+                score = utility / (clamped**alpha)
+            else:
+                score = utility - float(config.geometry_cost_weight) * cost_norm
+            return float(spectral_normalized), float(novelty_reward), float(score)
+
+        surrogate_scale = max(
+            (float(round_spectral_raw[index]) for index in pool),
+            default=0.0,
+        )
+        shortlist_indices: tuple[int, ...] = ()
+        full_pencil_indices: tuple[int, ...] = ()
+        if score_mode == GEOMETRY_SCORE_FULL_PENCIL_KY_FAN:
+            full_pencil_indices = tuple(pool)
+        elif score_mode == GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST:
+            surrogate_scores = {
+                index: _score_from_raw(
+                    index,
+                    float(round_spectral_raw[index]),
+                    float(surrogate_scale),
+                )[2]
+                for index in pool
+            }
+            shortlist_cap = min(
+                int(config.geometry_ky_fan_shortlist_size or 0), len(pool)
+            )
+            shortlist_indices = tuple(
+                sorted(
+                    pool,
+                    key=lambda index: (-float(surrogate_scores[index]), int(index)),
+                )[:shortlist_cap]
+            )
+            full_pencil_indices = shortlist_indices
+            shortlist_set = set(shortlist_indices)
+            for index in round_features:
+                round_score_diagnostics.setdefault(index, {}).update(
+                    {
+                        "ky_fan_shortlisted": bool(index in shortlist_set),
+                        "shortlist_surrogate_score_raw": float(
+                            round_spectral_raw[index]
+                        ),
+                        "shortlist_surrogate_selection_score": (
+                            float(surrogate_scores[index])
+                            if index in surrogate_scores
+                            else None
+                        ),
+                    }
+                )
+
+        if full_pencil_indices:
             target_count = int(config.geometry_target_roots)
             current_count = len(accepted_units)
             current_eigenvalues = (
@@ -731,7 +851,7 @@ def _geometry_select(
                 else np.asarray([], dtype=float)
             )
             rank_filling_ceiling = max(float(round_thetas[index]) for index in pool)
-            for index in pool:
+            for index in full_pencil_indices:
                 proposed = np.empty((current_count + 1, current_count + 1), dtype=complex)
                 if current_count:
                     proposed[:current_count, :current_count] = spectral_state.retained_pencil
@@ -759,18 +879,25 @@ def _geometry_select(
                     bootstrap = False
                 gain = max(0.0, current_objective - proposed_objective)
                 round_spectral_raw[index] = float(gain)
-                round_score_diagnostics[index] = {
-                    "ky_fan_bootstrap": bool(bootstrap),
-                    "rank_filling_ceiling": (
-                        float(rank_filling_ceiling) if bootstrap else None
-                    ),
-                    "current_ky_fan_objective": float(current_objective),
-                    "proposed_ky_fan_objective": float(proposed_objective),
-                    "proposed_retained_rank": int(current_count + 1),
-                }
+                round_score_diagnostics.setdefault(index, {}).update(
+                    {
+                        "ky_fan_bootstrap": bool(bootstrap),
+                        "rank_filling_ceiling": (
+                            float(rank_filling_ceiling) if bootstrap else None
+                        ),
+                        "current_ky_fan_objective": float(current_objective),
+                        "proposed_ky_fan_objective": float(proposed_objective),
+                        "proposed_retained_rank": int(current_count + 1),
+                    }
+                )
 
+        selection_indices = (
+            set(shortlist_indices)
+            if score_mode == GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST
+            else set(pool)
+        )
         positive_scale = max(
-            (float(round_spectral_raw[index]) for index in pool),
+            (float(round_spectral_raw[index]) for index in selection_indices),
             default=0.0,
         )
         for index, features in round_features.items():
@@ -778,26 +905,21 @@ def _geometry_select(
             residual_capture = float(features["residual_capture"])
             cost_norm = float(features["cost_norm"])
             spectral_raw = float(round_spectral_raw[index])
-            if str(config.geometry_score_mode) == GEOMETRY_SCORE_NORMALIZED_ANGULAR:
-                spectral_normalized = spectral_raw
-            else:
-                spectral_normalized = spectral_raw / positive_scale if positive_scale > 0.0 else 0.0
-            novelty_reward = (
-                float(config.geometry_metric_novelty_weight) * novelty
-                if config.geometry_additive_novelty_reward
-                else 0.0
+            scale = (
+                surrogate_scale
+                if score_mode
+                == GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST
+                and index not in selection_indices
+                else positive_scale
             )
-            utility = novelty_reward + float(config.geometry_residual_weight) * spectral_normalized
-            if config.geometry_cost_discount_alpha is not None:
-                alpha = float(config.geometry_cost_discount_alpha)
-                # Clamp the discount denominator: an unbounded 1/cost blows up
-                # for zero-compiled-cost candidates and lets cheap junk crowd
-                # out the excitation window at larger pools.
-                clamped = max(float(config.geometry_cost_discount_floor), cost_norm)
-                score = utility / (clamped ** alpha)
-            else:
-                score = utility - float(config.geometry_cost_weight) * cost_norm
+            spectral_normalized, novelty_reward, score = _score_from_raw(
+                index,
+                spectral_raw,
+                float(scale),
+            )
             geometry_rows[index] = {
+                "supported_image_norm_sq": float(features["supported_image_norm_sq"]),
+                "supported_image_admissible": bool(features["supported_image_admissible"]),
                 "metric_novelty_fraction": float(novelty),
                 "additive_novelty_reward": float(novelty_reward),
                 "residual_capture": float(residual_capture),
@@ -809,7 +931,7 @@ def _geometry_select(
                 **round_score_diagnostics.get(index, {}),
             }
             scores[index] = float(score)
-            if index in pool:
+            if index in selection_indices:
                 round_scores[index] = float(score)
 
         window_margin = (
@@ -823,9 +945,14 @@ def _geometry_select(
             and any(
                 round_thetas.get(idx) is not None
                 and float(round_thetas[idx]) < float(window_top) + window_margin
-                for idx in round_scores
+                for idx in pool
             )
         )
+        two_dimensional_modes = {
+            GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
+            GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+            GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
+        }
         round_row: dict[str, Any] = {
             "round": len(round_trace) + 1,
             "selected_count_before": len(selected),
@@ -838,21 +965,45 @@ def _geometry_select(
                 frame_size >= int(config.geometry_target_roots)
                 and not window_pressure
             ),
-            "novel_candidate_count": len(round_scores),
+            "novel_candidate_count": len(pool),
+            "selection_candidate_count": len(round_scores),
+            "screening": {
+                "admissible_candidate_count": len(pool),
+                "angular_residual_overlap_evaluations": (
+                    len(pool) * len(round_residuals)
+                    if score_mode == GEOMETRY_SCORE_NORMALIZED_ANGULAR
+                    else 0
+                ),
+                "two_dimensional_pencil_evaluations": (
+                    len(pool) * len(spectral_state.target_states)
+                    if score_mode in two_dimensional_modes
+                    else 0
+                ),
+                "full_proposed_pencil_evaluations": len(full_pencil_indices),
+                "full_proposed_hamiltonian_row_elements": (
+                    len(full_pencil_indices) * (len(accepted_units) + 1)
+                ),
+                "ky_fan_shortlist_size_requested": (
+                    int(config.geometry_ky_fan_shortlist_size)
+                    if config.geometry_ky_fan_shortlist_size is not None
+                    else None
+                ),
+                "ky_fan_shortlist_size_realized": len(shortlist_indices),
+            },
             "max_candidate_metric_novelty": (
                 max(
                     float(geometry_rows[idx]["metric_novelty_fraction"])
-                    for idx in round_scores
+                    for idx in pool
                 )
-                if round_scores
+                if pool
                 else None
             ),
             "max_candidate_residual_capture": (
                 max(
                     float(geometry_rows[idx]["residual_capture"])
-                    for idx in round_scores
+                    for idx in pool
                 )
-                if round_scores
+                if pool
                 else None
             ),
             "selected_original_index": None,
@@ -913,7 +1064,14 @@ def _geometry_select(
         ),
         "round_trace": tuple(round_trace),
     }
-    return selected, floor_rejected, geometry_rows, scores, stop_info
+    return (
+        selected,
+        floor_rejected,
+        supported_image_rejected,
+        geometry_rows,
+        scores,
+        stop_info,
+    )
 
 
 def select_static_qse_records(
@@ -971,12 +1129,14 @@ def select_static_qse_records(
         if not hard_reasons_by_index[int(candidate.original_basis_index)]
     )
     geometry_floor_rejected: set[int] = set()
+    geometry_supported_image_rejected: set[int] = set()
     geometry_rows: dict[int, dict[str, Any]] = {}
     geometry_scores: dict[int, float] = {}
     if str(config.mode) == "geometry_selected":
         (
             selected_list,
             geometry_floor_rejected,
+            geometry_supported_image_rejected,
             geometry_rows,
             geometry_scores,
             geometry_stop_info,
@@ -1025,7 +1185,9 @@ def select_static_qse_records(
         selected = selected_basis_index is not None
         reasons = list(hard_reasons)
         if eligible and not selected:
-            if original_index in geometry_floor_rejected:
+            if original_index in geometry_supported_image_rejected:
+                reasons.append("supported_image_floor")
+            elif original_index in geometry_floor_rejected:
                 reasons.append("metric_novelty_floor")
             else:
                 reasons.append("rank_limit")
@@ -1273,6 +1435,7 @@ __all__ = [
     "GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN",
     "GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN",
     "GEOMETRY_SCORE_FULL_PENCIL_KY_FAN",
+    "GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST",
     "GEOMETRY_SCORE_MODES",
     "StaticRecordSelectionConfig",
     "StaticRecordCandidate",

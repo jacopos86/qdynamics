@@ -16,6 +16,7 @@ from pipelines.exact_bench.paper_iii_qse_score_ablation import (
     factorial_score_profiles,
     run_factorial_score_ablation,
     run_factorial_score_ablation_campaign,
+    shortlist_score_profiles,
 )
 from pipelines.qse_spectra.core import computational_basis_state, pauli_string_basis_element
 from src.quantum.pauli_polynomial_class import PauliPolynomial
@@ -33,7 +34,29 @@ def test_factorial_profiles_cross_four_scores_with_novelty_reward_on_and_off() -
     assert all(profile.selector_config.max_records == 11 for profile in profiles)
     assert all(profile.selector_config.geometry_target_roots == 3 for profile in profiles)
     assert all(profile.selector_config.geometry_min_metric_novelty == 1.0e-12 for profile in profiles)
+    assert all(profile.selector_config.geometry_require_supported_image for profile in profiles)
     assert all(profile.selector_config.geometry_cost_discount_alpha == 1.0 for profile in profiles)
+
+
+def test_shortlist_profiles_vary_only_the_number_of_full_pencil_candidates() -> None:
+    profiles = shortlist_score_profiles(
+        shortlist_sizes=(2, 4, 8),
+        max_records=11,
+        target_root_count=3,
+    )
+
+    assert [profile.profile_id for profile in profiles] == [
+        "residualized_2x2_then_ky_fan__shortlist_2",
+        "residualized_2x2_then_ky_fan__shortlist_4",
+        "residualized_2x2_then_ky_fan__shortlist_8",
+    ]
+    assert [profile.selector_config.geometry_ky_fan_shortlist_size for profile in profiles] == [
+        2,
+        4,
+        8,
+    ]
+    assert all(not profile.additive_novelty_reward for profile in profiles)
+    assert all(profile.selector_config.geometry_require_supported_image for profile in profiles)
 
 
 def _tiny_problem() -> SimpleNamespace:
@@ -118,6 +141,49 @@ def test_factorial_runner_reports_every_prefix_before_and_after_exchange() -> No
         assert first["post_exchange"]["matching_to_pre_exchange"] is not None
 
 
+def test_runner_reports_shortlist_quality_and_full_pencil_screening_work() -> None:
+    payload = run_factorial_score_ablation(
+        _tiny_problem(),
+        k_max=2,
+        target_root_count=1,
+        exchange_max_rounds=1,
+        shortlist_sizes=(1, 2),
+    )
+
+    assert payload["profile_count"] == 8
+    assert payload["shortlist_profile_count"] == 2
+    assert sorted(payload["shortlist_profiles"]) == [
+        "residualized_2x2_then_ky_fan__shortlist_1",
+        "residualized_2x2_then_ky_fan__shortlist_2",
+    ]
+    size_one = payload["shortlist_profiles"][
+        "residualized_2x2_then_ky_fan__shortlist_1"
+    ]
+    size_two = payload["shortlist_profiles"][
+        "residualized_2x2_then_ky_fan__shortlist_2"
+    ]
+    assert size_one["trace"][0]["selector_round"]["screening"] == {
+        "admissible_candidate_count": 2,
+        "angular_residual_overlap_evaluations": 0,
+        "two_dimensional_pencil_evaluations": 2,
+        "full_proposed_pencil_evaluations": 1,
+        "full_proposed_hamiltonian_row_elements": 1,
+        "ky_fan_shortlist_size_requested": 1,
+        "ky_fan_shortlist_size_realized": 1,
+    }
+    assert size_two["trace"][0]["selector_round"]["screening"][
+        "full_proposed_pencil_evaluations"
+    ] == 2
+    assert size_one["selection_screening_totals"] == {
+        "selection_round_count": 2,
+        "admissible_candidate_count": 3,
+        "angular_residual_overlap_evaluations": 0,
+        "two_dimensional_pencil_evaluations": 3,
+        "full_proposed_pencil_evaluations": 2,
+        "full_proposed_hamiltonian_row_elements": 3,
+    }
+
+
 def test_campaign_runner_collects_complete_factorials_without_changing_the_cells() -> None:
     payload = run_factorial_score_ablation_campaign(
         [_tiny_problem()],
@@ -134,6 +200,7 @@ def test_campaign_runner_collects_complete_factorials_without_changing_the_cells
         "k_max": 2,
         "target_root_count": 1,
         "exchange_max_rounds": 2,
+        "shortlist_sizes": [],
     }
     assert len(payload["cases"]) == 1
     assert payload["cases"][0]["profile_count"] == 8

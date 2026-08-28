@@ -5,6 +5,9 @@ The diagnostic crosses four spectral scores with the additive novelty reward
 enabled and disabled. The full-frame novelty floor remains enabled in every
 cell. Every growth prefix is solved both before and after a separately
 certified exchange attempt so exchange cannot conceal acquisition behavior.
+Optional profiles screen with the residualized 2x2 score and rerank a declared
+shortlist by the full Ky Fan objective. Screening work remains a vector of
+counts rather than being folded into an unsupported scalar cost conversion.
 
 Statevector diagnostics only; never feeds controller decisions.
 """
@@ -37,6 +40,7 @@ from pipelines.qse_spectra.record_selection import (
     GEOMETRY_SCORE_NORMALIZED_ANGULAR,
     GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
     GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+    GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
     StaticRecordSelectionConfig,
     select_static_qse_records,
     static_record_selection_payload,
@@ -92,11 +96,51 @@ def factorial_score_profiles(
                         geometry_target_roots=int(target_root_count),
                         geometry_score_mode=str(score_mode),
                         geometry_additive_novelty_reward=bool(reward),
+                        geometry_require_supported_image=True,
                         geometry_min_metric_novelty=1.0e-12,
                         geometry_cost_discount_alpha=1.0,
                     ),
                 )
             )
+    return tuple(profiles)
+
+
+def shortlist_score_profiles(
+    *,
+    shortlist_sizes: Sequence[int],
+    max_records: int,
+    target_root_count: int,
+) -> tuple[ScoreAblationProfile, ...]:
+    """Return residualized-screen/full-pencil-rerank profiles."""
+
+    profiles: list[ScoreAblationProfile] = []
+    for shortlist_size in shortlist_sizes:
+        size = int(shortlist_size)
+        if size < 1:
+            raise ValueError("shortlist sizes must be positive")
+        profiles.append(
+            ScoreAblationProfile(
+                profile_id=(
+                    "residualized_2x2_then_ky_fan"
+                    f"__shortlist_{size}"
+                ),
+                score_mode=GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
+                additive_novelty_reward=False,
+                selector_config=StaticRecordSelectionConfig(
+                    mode="geometry_selected",
+                    max_records=int(max_records),
+                    geometry_target_roots=int(target_root_count),
+                    geometry_score_mode=(
+                        GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST
+                    ),
+                    geometry_additive_novelty_reward=False,
+                    geometry_require_supported_image=True,
+                    geometry_ky_fan_shortlist_size=size,
+                    geometry_min_metric_novelty=1.0e-12,
+                    geometry_cost_discount_alpha=1.0,
+                ),
+            )
+        )
     return tuple(profiles)
 
 
@@ -252,8 +296,9 @@ def run_factorial_score_ablation(
     k_max: int,
     target_root_count: int = _TARGET_ROOTS,
     exchange_max_rounds: int = 4,
+    shortlist_sizes: Sequence[int] = (),
 ) -> dict[str, Any]:
-    """Run all eight selector cells and score every prefix before/after exchange."""
+    """Run the eight-cell factorial plus optional shortlist profiles."""
 
     cap = min(int(k_max), len(problem.basis))
     if cap < 1:
@@ -262,9 +307,16 @@ def run_factorial_score_ablation(
         raise ValueError("target_root_count must be positive.")
     compiled_hamiltonian = compile_polynomial_action(problem.hamiltonian)
     profiles_payload: dict[str, Any] = {}
-    for profile in factorial_score_profiles(
+    shortlist_payload: dict[str, Any] = {}
+    factorial_profiles = factorial_score_profiles(
         max_records=len(problem.basis), target_root_count=int(target_root_count)
-    ):
+    )
+    shortlist_profiles = shortlist_score_profiles(
+        shortlist_sizes=shortlist_sizes,
+        max_records=len(problem.basis),
+        target_root_count=int(target_root_count),
+    )
+    for profile in (*factorial_profiles, *shortlist_profiles):
         selection = select_static_qse_records(
             problem.basis,
             config=profile.selector_config,
@@ -279,6 +331,17 @@ def run_factorial_score_ablation(
             int(row["original_basis_index"]): row for row in selection.candidate_decisions
         }
         trace: list[dict[str, Any]] = []
+        screening_count_fields = (
+            "admissible_candidate_count",
+            "angular_residual_overlap_evaluations",
+            "two_dimensional_pencil_evaluations",
+            "full_proposed_pencil_evaluations",
+            "full_proposed_hamiltonian_row_elements",
+        )
+        screening_totals = {
+            "selection_round_count": 0,
+            **{field: 0 for field in screening_count_fields},
+        }
         previous_pre_states = np.empty((len(problem.ground), 0), dtype=complex)
         for growth_round, selected_index in enumerate(order[:cap], start=1):
             pre_indices = order[:growth_round]
@@ -339,6 +402,11 @@ def run_factorial_score_ablation(
                 if growth_round - 1 < len(selector_rounds)
                 else None
             )
+            if selector_round is not None:
+                screening = dict(selector_round.get("screening") or {})
+                screening_totals["selection_round_count"] += 1
+                for field in screening_count_fields:
+                    screening_totals[field] += int(screening.get(field, 0))
             trace.append(
                 {
                     "growth_round": int(growth_round),
@@ -349,12 +417,13 @@ def run_factorial_score_ablation(
                         "geometry": dict(decisions[int(selected_index)].get("geometry") or {}),
                     },
                     "selector_round": selector_round,
+                    "selection_screening_cumulative": dict(screening_totals),
                     "pre_exchange": pre,
                     "exchange": exchange,
                     "post_exchange": post,
                 }
             )
-        profiles_payload[profile.profile_id] = {
+        profile_payload = {
             "score_mode": profile.score_mode,
             "additive_novelty_reward": profile.additive_novelty_reward,
             "novelty_floor": float(profile.selector_config.geometry_min_metric_novelty),
@@ -363,9 +432,14 @@ def run_factorial_score_ablation(
             ],
             "selection_order": order,
             "selector_stop": dict(selection.geometry_stop or {}),
+            "selection_screening_totals": dict(screening_totals),
             "growth_rounds": [int(row["growth_round"]) for row in trace],
             "trace": trace,
         }
+        if profile in shortlist_profiles:
+            shortlist_payload[profile.profile_id] = profile_payload
+        else:
+            profiles_payload[profile.profile_id] = profile_payload
     references = [float(value) for value in problem.references[: int(target_root_count)]]
     exact_boundary_gap = (
         float(problem.references[int(target_root_count)] - problem.references[int(target_root_count) - 1])
@@ -395,12 +469,17 @@ def run_factorial_score_ablation(
         "growth_rounds": sorted(
             {
                 int(row["growth_round"])
-                for profile_payload in profiles_payload.values()
+                for profile_payload in (
+                    *profiles_payload.values(),
+                    *shortlist_payload.values(),
+                )
                 for row in profile_payload["trace"]
             }
         ),
         "profile_count": len(profiles_payload),
         "profiles": profiles_payload,
+        "shortlist_profile_count": len(shortlist_payload),
+        "shortlist_profiles": shortlist_payload,
     }
 
 
@@ -410,6 +489,7 @@ def run_factorial_score_ablation_campaign(
     k_max: int,
     target_root_count: int = _TARGET_ROOTS,
     exchange_max_rounds: int = 4,
+    shortlist_sizes: Sequence[int] = (),
     regime_set: str = "custom",
 ) -> dict[str, Any]:
     """Run the locked factorial for an already materialized problem sequence."""
@@ -420,6 +500,7 @@ def run_factorial_score_ablation_campaign(
             k_max=int(k_max),
             target_root_count=int(target_root_count),
             exchange_max_rounds=int(exchange_max_rounds),
+            shortlist_sizes=tuple(int(value) for value in shortlist_sizes),
         )
         for problem in problems
     ]
@@ -431,6 +512,7 @@ def run_factorial_score_ablation_campaign(
             "k_max": int(k_max),
             "target_root_count": int(target_root_count),
             "exchange_max_rounds": int(exchange_max_rounds),
+            "shortlist_sizes": [int(value) for value in shortlist_sizes],
         },
         "case_count": len(cases),
         "cases": cases,
@@ -449,6 +531,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--k-max", type=int, default=8)
     parser.add_argument("--target-root-count", type=int, default=_TARGET_ROOTS)
     parser.add_argument("--exchange-max-rounds", type=int, default=4)
+    parser.add_argument(
+        "--shortlist-sizes",
+        default="2,4,8",
+        help="Comma-separated residualized-2x2 shortlist sizes; empty disables them.",
+    )
     args = parser.parse_args(argv)
 
     wanted = (
@@ -463,6 +550,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     ]
     if not specs:
         parser.error("the regime filter selected no cases")
+    try:
+        shortlist_sizes = tuple(
+            int(token.strip())
+            for token in str(args.shortlist_sizes).split(",")
+            if token.strip()
+        )
+    except ValueError:
+        parser.error("--shortlist-sizes must be a comma-separated list of integers")
+    if any(value < 1 for value in shortlist_sizes):
+        parser.error("--shortlist-sizes entries must be positive")
     problems: list[PaperIIIProblem] = []
     for regime, u, g_ep, n_ph_max in specs:
         problem = load_problem(
@@ -475,7 +572,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         problems.append(problem)
         print(
             f"== {regime} (nph{n_ph_max}, pool={len(problem.basis)}) "
-            f"factorial=8 k_max={args.k_max}",
+            f"factorial=8 shortlist={list(shortlist_sizes)} k_max={args.k_max}",
             flush=True,
         )
 
@@ -484,6 +581,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         k_max=int(args.k_max),
         target_root_count=int(args.target_root_count),
         exchange_max_rounds=int(args.exchange_max_rounds),
+        shortlist_sizes=shortlist_sizes,
         regime_set=str(args.regime_set),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)

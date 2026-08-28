@@ -21,6 +21,7 @@ from pipelines.qse_spectra.record_selection import (
     GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
     GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
     GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+    GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
     GEOMETRY_SCORE_NORMALIZED_ANGULAR,
     StaticRecordSelectionConfig,
     extract_static_record_candidate,
@@ -215,6 +216,34 @@ def test_disabling_additive_novelty_reward_preserves_the_novelty_floor() -> None
     assert on_score - off_score == pytest.approx(0.25)
 
 
+def test_supported_image_admissibility_rejects_roundoff_directions_at_the_solver_floor() -> None:
+    nearly_projected_out = polynomial_basis_element(
+        _poly(1, [("e", 1.0), ("x", 1.0e-8)]),
+        name="roundoff_direction",
+    )
+    supported = pauli_string_basis_element("x", nq=1, name="supported_direction")
+
+    result = select_static_qse_records(
+        [nearly_projected_out, supported],
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_target_roots=1,
+            geometry_score_mode=GEOMETRY_SCORE_NORMALIZED_ANGULAR,
+            geometry_require_supported_image=True,
+        ),
+        hamiltonian=_poly(1, [("z", 1.0)]),
+        prepared_state=computational_basis_state(1, "0"),
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+    )
+
+    assert result.selected_original_indices == (1,)
+    assert "supported_image_floor" in result.candidate_decisions[0]["rejection_reasons"]
+
+
 @pytest.mark.parametrize(
     "score_mode",
     [
@@ -303,6 +332,56 @@ def test_full_pencil_ky_fan_oracle_uses_a_common_rank_filling_ceiling() -> None:
     assert low_geometry["ky_fan_bootstrap"] is True
     assert low_geometry["spectral_score_raw"] == pytest.approx(high - low)
     assert high_geometry["spectral_score_raw"] == pytest.approx(0.0)
+
+
+def test_residualized_shortlist_matches_full_ky_fan_when_it_covers_the_pool() -> None:
+    hamiltonian = _poly(
+        2,
+        [("ee", 5.5), ("ze", -0.5), ("ez", -5.0)],
+    )
+    basis = [
+        pauli_string_basis_element("xe", nq=2, name="low_rayleigh"),
+        pauli_string_basis_element("ex", nq=2, name="high_rayleigh"),
+    ]
+    context = {
+        "hamiltonian": hamiltonian,
+        "prepared_state": computational_basis_state(2, "00"),
+        "basis_vector_policy": QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        "compiled_costs": (1.0, 1.0),
+    }
+    common = dict(
+        mode="geometry_selected",
+        max_records=2,
+        geometry_target_roots=1,
+        geometry_additive_novelty_reward=False,
+        geometry_cost_discount_alpha=1.0,
+        geometry_require_supported_image=True,
+    )
+    oracle = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            **common,
+            geometry_score_mode=GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+        ),
+        **context,
+    )
+    shortlist = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            **common,
+            geometry_score_mode=GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN_KY_FAN_SHORTLIST,
+            geometry_ky_fan_shortlist_size=2,
+        ),
+        **context,
+    )
+
+    assert shortlist.selected_original_indices == oracle.selected_original_indices
+    rounds = shortlist.geometry_stop["round_trace"]
+    assert [row["screening"]["full_proposed_pencil_evaluations"] for row in rounds] == [2, 1]
+    assert [row["screening"]["two_dimensional_pencil_evaluations"] for row in rounds] == [2, 1]
 
 
 def test_pauli_string_and_polynomial_feature_extraction() -> None:
