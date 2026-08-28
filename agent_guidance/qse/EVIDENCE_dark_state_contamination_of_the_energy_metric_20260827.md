@@ -100,3 +100,96 @@ only two of six, at 18--33% extra `N2q`.
 Reproduce: `pipelines/qse_spectra/paper_iii_problem.py` provider plus
 `compute_qse_spectra` with transition observables over exchange-maintained
 prefixes; no new machinery required.
+
+---
+
+# Fix: declared window readings, and the fairness check that qualifies it
+
+Added 2026-08-27 after the author's objection that a systematic
+self-overcharge is a reporting defect, not an acceptable conservatism.
+
+## What was built
+
+`pipelines/qse_spectra/target_window.py` makes the reading of the target
+window an explicit declaration with two options, both applied post-run to the
+same completed trace (like `eps_E`, and for the same reason -- one run, many
+readings):
+
+- `all_roots` -- every target root. The historical default.
+- `weight_carrying` -- only roots the **declared observable set** connects to
+  the reference state.
+
+`per_root_abs_error` is now recorded by every method in
+`paper_iii_growth_trace_campaign.py` (previously only direct Davidson and the
+record-first synthesis rows carried per-root data, so a subset reading was not
+even expressible). Each method keeps its own declared root-matching
+convention: `index_matched_ascending` for the pencil methods,
+`best_matching_pencil_root` for Krylov. Additive only -- `max_root_abs_error`
+is untouched and the `nph1` support lock re-verified 93/93 recomputed, 48/48
+stored rows bit-identical.
+
+Two guarantees are enforced in code, because "score only the roots that
+matter" is one bad assumption away from cherry-picking:
+
+1. `resolve_target_window` derives visibility from the exact reference states
+   and the declared observables **only**. It never sees a method id, a trace,
+   or an error value. Choosing roots because they converged first would be
+   cherry-picking; choosing them because no declared instrument can see the
+   others is what defining a measured window means.
+2. `assert_shared_window` refuses to report methods scored against different
+   windows.
+
+## Fairness check -- the result that qualifies the fix
+
+`eps_E = 1e-6`, all six `n_ph_max=1` regimes, all four public methods, both
+readings, identical windows across methods. `N2q` at the crossing:
+
+| regime | dark roots | method | all_roots | weight_carrying |
+|---|---|---|---:|---:|
+| weak_weak | 3, 5 | record-first | 32 | **24** |
+| | | direct Davidson | 176 | 176 |
+| | | real-time Krylov | 3420 | 3420 |
+| strong_weak_u8 | 3, 4, 5 | record-first | 26 | **20** |
+| | | direct Davidson | 176 | 176 |
+| | | real-time Krylov | 2400 | 2400 |
+| other four regimes | 2--3 | *every method* | unchanged | unchanged |
+
+Summary: record-first moves in 2 of 6 regimes (1.30x--1.33x overstatement
+removed); direct Davidson, real-time Krylov, and the fixed class are
+**unchanged in all six**. Our advantage in the two affected regimes widens
+from 5.5x to 7.3x (`weak_weak`) and 6.8x to 8.8x (`strong_weak_u8`).
+
+**Read this honestly: a metric change that moves only the authors' method is
+exactly the pattern a referee is trained to distrust.** The asymmetry does
+have a structural cause -- record acquisition buys discrete pool elements and
+converges roots at uneven rates, so it passes through a state where every
+bright root is exact and a dark one is not, whereas residual-driven methods
+(Davidson, Krylov) drive the whole window down together and have no such
+state. But a legitimate mechanism and a suspicious pattern are not mutually
+exclusive, and the burden is on us.
+
+## Recommendation
+
+Report **both readings**, with `all_roots` as the primary headline number.
+
+- The primary stays observable-independent and referee-proof, and we still
+  win on it.
+- The secondary shows what the method costs to reach a spectroscopically
+  complete answer, which is the quantity a spectroscopy claim is about.
+- Publishing both discloses the metric sensitivity instead of quietly picking
+  the favourable reading, which is the only defensible way to use a reading
+  that helps one method.
+
+Cleaner long-term alternative, if the author is willing to change what the
+paper targets: redefine the target set `mathcal_R` itself as the excitations
+the declared observables probe. Then there is one metric, no dual reporting,
+and no sensitivity to disclose -- but `mathcal_R = {6 lowest excited states}`
+is already stated in the manuscript, so this is a specification change, not a
+reporting change.
+
+## Still blocking either route
+
+The observable set remains undeclared. The runs above use two arbitrary pool
+operators as probes, and the dark sets differ by regime (`[3,5]`, `[3,4,5]`,
+`[2,5]`), so the specific 1.30x--1.33x figures move with that choice. The
+mechanism is established; the numbers are not yet paper-grade.

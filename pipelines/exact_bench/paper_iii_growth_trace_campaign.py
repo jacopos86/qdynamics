@@ -104,7 +104,17 @@ def _mixed_resource_triple(
     }
 
 
-def _window_error(problem: Any, indices: Sequence[int]) -> tuple[float | None, int]:
+def _window_error(
+    problem: Any, indices: Sequence[int]
+) -> tuple[float | None, int, list[float] | None]:
+    """Max window error, retained rank, and the per-target-root errors.
+
+    ``per_root`` is additive reporting data: it lets a post-run reading score
+    a declared subset of the target window (see
+    ``pipelines/qse_spectra/target_window.py``) without rerunning anything.
+    ``max_root_abs_error`` keeps its exact previous meaning.
+    """
+
     try:
         result = compute_qse_spectra(
             problem.hamiltonian,
@@ -113,15 +123,13 @@ def _window_error(problem: Any, indices: Sequence[int]) -> tuple[float | None, i
             basis_vector_policy=_Q0_POLICY,
         )
     except ValueError:
-        return None, 0
+        return None, 0, None
     energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
     refs = problem.references
     if energies.size < len(refs):
-        return None, int(result.retained_rank)
-    return (
-        max(abs(float(energies[r]) - float(ref)) for r, ref in enumerate(refs)),
-        int(result.retained_rank),
-    )
+        return None, int(result.retained_rank), None
+    per_root = [abs(float(energies[r]) - float(ref)) for r, ref in enumerate(refs)]
+    return max(per_root), int(result.retained_rank), per_root
 
 
 def _exchange(problem: Any, indices: Sequence[int]) -> list[int]:
@@ -140,7 +148,7 @@ def _exchange(problem: Any, indices: Sequence[int]) -> list[int]:
 
 
 def _row(problem: Any, indices: Sequence[int], k: int, *, exchanged: bool) -> dict[str, Any]:
-    err, rank = _window_error(problem, indices)
+    err, rank, per_root = _window_error(problem, indices)
     res = problem.resource_triple(indices)
     return {
         "k": int(k),
@@ -149,6 +157,8 @@ def _row(problem: Any, indices: Sequence[int], k: int, *, exchanged: bool) -> di
         "exchanged": bool(exchanged),
         "retained_rank": rank,
         "max_root_abs_error": err,
+        "per_root_abs_error": per_root,
+        "root_match_convention": "index_matched_ascending",
         **res,
     }
 
@@ -261,10 +271,11 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
     for it in audit["iterations"]:
         all_roots = it.get("root_energies") or []
         roots = list(all_roots[1:])          # drop the ground root
-        err = (
-            max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
+        per_root = (
+            [abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs)]
             if len(roots) >= len(refs) else None
         )
+        err = max(per_root) if per_root is not None else None
         dimension = int(it["dimension"])
         synthesized_direction_count = max(
             0, dimension - int(initial_adaptive_dimension)
@@ -289,6 +300,8 @@ def trace_adaptive_qse(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
                 "synthesized_direction_count": int(synthesized_direction_count),
                 "per_synthesized_direction": dict(per_direction),
                 "costing_convention": "record_seed_plus_trotterized_residual_directions_v1",
+                "per_root_abs_error": per_root,
+                "root_match_convention": "index_matched_ascending",
                 "root_energies": roots,
                 "estimator": _adaptive_estimator(dimension),
             }
@@ -408,10 +421,11 @@ def trace_record_first_adaptive_qse(
     phase_b: list[dict[str, Any]] = []
     for it in audit["iterations"]:
         roots = list((it.get("root_energies") or [])[1:])
-        err = (
-            max(abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs))
+        per_root = (
+            [abs(float(roots[r]) - float(ref)) for r, ref in enumerate(refs)]
             if len(roots) >= len(refs) else None
         )
+        err = max(per_root) if per_root is not None else None
         d = int(it["dimension"])
         if d <= initial_adaptive_dimension:
             continue                      # seed re-solve, already in phase A
@@ -429,6 +443,8 @@ def trace_record_first_adaptive_qse(
             "phase": "synthesis",
             "retained_rank": int(it["retained_rank"]),
             "max_root_abs_error": err,
+            "per_root_abs_error": per_root,
+            "root_match_convention": "index_matched_ascending",
             # phase-A record cost is already paid; synthesis adds on top
             "n2q": resources["n2q"],
             "d2q": resources["d2q"],
@@ -541,7 +557,8 @@ def trace_krylov(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
             X = U[:, keep] / np.sqrt(w[keep])
             red = X.conj().T @ M @ X
             roots = np.sort(np.linalg.eigvalsh(0.5 * (red + red.conj().T)))
-            err = max(float(np.min(np.abs(roots - float(r)))) for r in refs)
+            per_root = [float(np.min(np.abs(roots - float(r)))) for r in refs]
+            err = max(per_root)
             steps_charged = d * (d - 1) // 2
             pairs = d * (d + 1) // 2
             row = {
@@ -550,6 +567,8 @@ def trace_krylov(problem: Any, *, k_max: int) -> list[dict[str, Any]]:
                 "exchanged": False,
                 "retained_rank": int(keep.sum()),
                 "max_root_abs_error": err,
+                "per_root_abs_error": per_root,
+                "root_match_convention": "best_matching_pencil_root",
                 "n2q": float(step.c_hat_2q) * steps_charged,
                 "d2q": float(step.c_hat_d) * steps_charged,
                 "dc": (float(step.c_hat_d) + float(step.c_hat_1q)) * steps_charged,
@@ -747,13 +766,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"   {'krylov':<22} terminal {best_kr['max_root_abs_error']:.1e} "
                   f"@k={best_kr['k']} N2q={best_kr['n2q']:.0f}", flush=True)
 
-        f_err, f_rank = _window_error(problem, fixed_indices)
+        f_err, f_rank, f_per_root = _window_error(problem, fixed_indices)
         arms["fixed_class"] = {
             "trace": [
                 {
                     "k": len(fixed_indices), "support_size": len(fixed_indices),
                     "exchanged": False, "retained_rank": f_rank,
                     "max_root_abs_error": f_err,
+                    "per_root_abs_error": f_per_root,
+                    "root_match_convention": "index_matched_ascending",
                     **problem.resource_triple(fixed_indices),
                 }
             ]
