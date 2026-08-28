@@ -18,7 +18,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping, Protocol, Sequence
 
 from pipelines.qse_spectra.static_campaign import (
     CONSTRUCTION_DIRECT_DAVIDSON,
@@ -47,6 +47,7 @@ MATCHED_EVIDENCE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_evidence_v1"
 DECISION_SCHEMA_VERSION = "paper_iii_selected_vs_direct_decision_v1"
 STATUS_SCHEMA_VERSION = "paper_iii_selected_vs_direct_status_v1"
 SOURCE_LOCK_SCHEMA_VERSION = "paper_iii_selected_vs_direct_source_lock_v1"
+CASE_RESULT_SCHEMA_VERSION = "paper_iii_selected_vs_direct_case_result_v1"
 
 SELECTED_STATUS_CERTIFIED = "TARGET_WINDOW_CERTIFIED"
 SELECTED_STATUS_POOL_EXHAUSTED = "POOL_EXHAUSTED"
@@ -76,6 +77,8 @@ RECOMMEND_UNRESOLVED = "UNRESOLVED"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _SOURCE_PATHS = (
     "pipelines/exact_bench/paper_iii_growth_trace_campaign.py",
+    "pipelines/exact_bench/paper_iii_selected_vs_direct_case.py",
+    "pipelines/exact_bench/paper_iii_selected_vs_direct_collect.py",
     "pipelines/qse_spectra/adaptive_qse_benchmark.py",
     "pipelines/qse_spectra/davidson_initialization.py",
     "pipelines/qse_spectra/exchange_maintenance.py",
@@ -1005,6 +1008,212 @@ def ensure_selected_vs_direct_hh_campaign(
         return snapshot
 
 
+def _case_for_key(profile: MatchedHHProfile, case_key: str) -> MatchedHHCase:
+    matches = [case for case in profile.cases if case.case_key == str(case_key)]
+    if len(matches) != 1:
+        raise MatchedRouteAcquisitionError(
+            f"CASE_IDENTITY_MISMATCH: unknown locked case {case_key!r}."
+        )
+    return matches[0]
+
+
+def _validate_case_result(
+    payload: Mapping[str, Any],
+    *,
+    profile: MatchedHHProfile,
+    expected_case: MatchedHHCase | None = None,
+) -> tuple[MatchedHHCase, dict[str, dict[str, Any]], dict[str, Any], str]:
+    bundle = dict(payload)
+    if bundle.get("schema_version") != CASE_RESULT_SCHEMA_VERSION:
+        raise MatchedRouteAcquisitionError("case-result schema mismatch.")
+    if bundle.get("profile") != profile.payload():
+        raise MatchedRouteAcquisitionError("PROFILE_DRIFT: case-result profile mismatch.")
+    profile_digest = profile.digest()
+    if bundle.get("profile_digest") != profile_digest:
+        raise MatchedRouteAcquisitionError("PROFILE_DRIFT: case-result digest mismatch.")
+    case_payload = bundle.get("case")
+    if not isinstance(case_payload, Mapping):
+        raise MatchedRouteAcquisitionError("case result lacks case identity.")
+    case = _case_for_key(profile, str(case_payload.get("case_key", "")))
+    if dict(case_payload) != case.payload() or (
+        expected_case is not None and case != expected_case
+    ):
+        raise MatchedRouteAcquisitionError("CASE_IDENTITY_MISMATCH: case payload drift.")
+    source_lock = bundle.get("source_lock")
+    if not isinstance(source_lock, Mapping):
+        raise MatchedRouteAcquisitionError("case result lacks a source lock.")
+    restored_source_lock = dict(source_lock)
+    if restored_source_lock.get("schema_version") != SOURCE_LOCK_SCHEMA_VERSION:
+        raise MatchedRouteAcquisitionError(
+            "SOURCE_LOCK_MISMATCH: case source-lock schema drift."
+        )
+    source_lock_digest = _canonical_digest(restored_source_lock)
+    if bundle.get("source_lock_digest") != source_lock_digest:
+        raise MatchedRouteAcquisitionError("SOURCE_LOCK_MISMATCH: case digest drift.")
+    routes = bundle.get("routes")
+    if not isinstance(routes, Mapping) or set(routes) != set(profile.methods):
+        raise MatchedRouteAcquisitionError(
+            "METHOD_SET_VIOLATION: case result must contain both locked routes."
+        )
+    artifacts: dict[str, dict[str, Any]] = {}
+    for method_id in profile.methods:
+        raw_artifact = routes.get(method_id)
+        if not isinstance(raw_artifact, Mapping):
+            raise MatchedRouteAcquisitionError("case result route must be a mapping.")
+        artifacts[method_id] = _validate_route_artifact(
+            raw_artifact,
+            case=case,
+            method_id=method_id,
+            profile=profile,
+            profile_digest=profile_digest,
+            source_lock_digest=source_lock_digest,
+        )
+    return case, artifacts, restored_source_lock, source_lock_digest
+
+
+def acquire_selected_vs_direct_hh_case(
+    case_key: str,
+    output_json: Path,
+    *,
+    executor: MatchedRouteExecutor | None = None,
+) -> dict[str, Any]:
+    """Acquire both locked routes for one HH case as one resumable result."""
+
+    profile = locked_hh_profile()
+    case = _case_for_key(profile, case_key)
+    path = Path(output_json)
+    if path.is_file():
+        existing = _read_json(path)
+        _validate_case_result(existing, profile=profile, expected_case=case)
+        current = _current_source_lock()
+        if existing["source_lock"].get("relevant_path_sha256") != current.get(
+            "relevant_path_sha256"
+        ):
+            raise MatchedRouteAcquisitionError(
+                "SOURCE_LOCK_MISMATCH: existing case result uses different source."
+            )
+        return existing
+    source_lock = _current_source_lock()
+    source_lock_digest = _canonical_digest(source_lock)
+    profile_digest = profile.digest()
+    route_executor: MatchedRouteExecutor = (
+        LocalScientificRouteExecutor() if executor is None else executor
+    )
+    routes: dict[str, dict[str, Any]] = {}
+    for method_id in profile.methods:
+        result = route_executor.execute(case, method_id, profile)
+        artifact = _build_route_artifact(
+            case=case,
+            method_id=method_id,
+            profile=profile,
+            profile_digest=profile_digest,
+            source_lock_digest=source_lock_digest,
+            result=result,
+        )
+        routes[method_id] = _validate_route_artifact(
+            artifact,
+            case=case,
+            method_id=method_id,
+            profile=profile,
+            profile_digest=profile_digest,
+            source_lock_digest=source_lock_digest,
+        )
+    bundle = {
+        "schema_version": CASE_RESULT_SCHEMA_VERSION,
+        "profile": profile.payload(),
+        "profile_digest": profile_digest,
+        "source_lock": source_lock,
+        "source_lock_digest": source_lock_digest,
+        "case": case.payload(),
+        "routes": routes,
+    }
+    _validate_case_result(bundle, profile=profile, expected_case=case)
+    _atomic_write_json(path, bundle)
+    return bundle
+
+
+def collect_selected_vs_direct_hh_cases(
+    case_result_paths: Sequence[Path],
+    output_root: Path,
+) -> MatchedCampaignSnapshot:
+    """Validate and collect the complete 12-case distributed campaign."""
+
+    profile = locked_hh_profile()
+    expected_keys = {case.case_key for case in profile.cases}
+    bundles: dict[str, dict[str, Any]] = {}
+    artifacts: dict[str, dict[str, Any]] = {}
+    common_source_lock: dict[str, Any] | None = None
+    common_source_lock_digest: str | None = None
+    for path in case_result_paths:
+        bundle = _read_json(Path(path))
+        case, case_artifacts, source_lock, source_lock_digest = _validate_case_result(
+            bundle,
+            profile=profile,
+        )
+        if case.case_key in bundles:
+            raise MatchedRouteAcquisitionError(
+                f"CASE_IDENTITY_MISMATCH: duplicate case {case.case_key}."
+            )
+        if common_source_lock is None:
+            common_source_lock = source_lock
+            common_source_lock_digest = source_lock_digest
+        elif source_lock != common_source_lock:
+            raise MatchedRouteAcquisitionError(
+                "SOURCE_LOCK_MISMATCH: case results were built from different sources."
+            )
+        bundles[case.case_key] = bundle
+        for method_id, artifact in case_artifacts.items():
+            artifacts[_route_key(case, method_id)] = artifact
+    missing = sorted(expected_keys - set(bundles))
+    extra = sorted(set(bundles) - expected_keys)
+    if missing or extra or len(case_result_paths) != len(profile.cases):
+        raise MatchedRouteAcquisitionError(
+            "CASE_MATRIX_INCOMPLETE: expected exactly the 12 locked cases; "
+            f"missing={missing}, extra={extra}."
+        )
+    assert common_source_lock is not None
+    assert common_source_lock_digest is not None
+    current = _current_source_lock()
+    if current.get("relevant_path_sha256") != common_source_lock.get(
+        "relevant_path_sha256"
+    ):
+        raise MatchedRouteAcquisitionError(
+            "SOURCE_LOCK_MISMATCH: collector source differs from case workers."
+        )
+    root = Path(output_root)
+    root.mkdir(parents=True, exist_ok=True)
+    with _workspace_lock(root):
+        _materialize_profile(root, profile)
+        source_path = root / "source_lock.json"
+        if source_path.is_file() and _read_json(source_path) != common_source_lock:
+            raise MatchedRouteAcquisitionError(
+                "SOURCE_LOCK_MISMATCH: collection output already has another lock."
+            )
+        if not source_path.is_file():
+            _atomic_write_json(source_path, common_source_lock)
+        for case_key, bundle in bundles.items():
+            _atomic_write_json(root / "cases" / f"{case_key}.json", bundle)
+        evidence, decision = _build_matched_evidence(
+            profile=profile,
+            profile_digest=profile.digest(),
+            source_lock_digest=common_source_lock_digest,
+            artifacts=artifacts,
+        )
+        _atomic_write_json(root / "matched_routes.json", evidence)
+        _atomic_write_json(root / "decision.json", decision)
+        _atomic_write_text(root / "decision.md", _decision_markdown(decision))
+        snapshot = _snapshot(
+            output_root=root,
+            profile_digest=profile.digest(),
+            source_lock_digest=common_source_lock_digest,
+            completed=artifacts,
+            total=len(profile.cases) * len(profile.methods),
+            complete=True,
+        )
+        _atomic_write_json(root / "status.json", snapshot.payload())
+        return snapshot
+
+
 class LocalScientificRouteExecutor:
     """Default in-process adapter for the two locked scientific routes."""
 
@@ -1120,6 +1329,7 @@ class LocalScientificRouteExecutor:
 __all__ = [
     "AUDIT_STATUS_NOT_REACHED",
     "AUDIT_STATUS_REACHED",
+    "CASE_RESULT_SCHEMA_VERSION",
     "DECISION_SCHEMA_VERSION",
     "DIRECT_TERMINAL_STATUSES",
     "DIRECT_STATUS_DIMENSION_CAP_REACHED",
@@ -1150,6 +1360,8 @@ __all__ = [
     "SELECTED_STATUS_WINDOW_NOT_CERTIFIED",
     "SOURCE_LOCK_SCHEMA_VERSION",
     "STATUS_SCHEMA_VERSION",
+    "acquire_selected_vs_direct_hh_case",
+    "collect_selected_vs_direct_hh_cases",
     "ensure_selected_vs_direct_hh_campaign",
     "locked_hh_profile",
 ]

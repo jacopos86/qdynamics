@@ -1,0 +1,27 @@
+universe = vanilla
+executable = chtc/paper_iii_selected_vs_direct_hh_20260828_v1/run_case_apptainer.sh
+arguments = $(case_key)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+transfer_executable = True
+preserve_relative_paths = True
+transfer_input_files = pipelines, src, chtc/paper_iii_selected_vs_direct_hh_20260828_v1/run_case.sh, chtc/time_dynamics_optuna/image.sif
+transfer_output_files = case_result.json
+transfer_output_remaps = "case_result.json = chtc/paper_iii_selected_vs_direct_hh_20260828_v1/case_results/$(case_key).json"
+stream_output = False
+stream_error = False
+
+requirements = TARGET.HasSIF
+request_cpus = 1
+request_memory = 4GB
+request_disk = 8GB
++MaxRuntime = 43200
++JobBatchName = "paper-iii-selected-vs-direct-hh-20260828-v1"
+
+log = chtc/paper_iii_selected_vs_direct_hh_20260828_v1/logs/$(Cluster).log
+output = chtc/paper_iii_selected_vs_direct_hh_20260828_v1/logs/$(Cluster).$(Process).out
+error = chtc/paper_iii_selected_vs_direct_hh_20260828_v1/logs/$(Cluster).$(Process).err
+notification = Never
+
+queue case_key from chtc/paper_iii_selected_vs_direct_hh_20260828_v1/input/cases.txt

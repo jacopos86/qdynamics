@@ -19,6 +19,8 @@ from pipelines.qse_spectra.matched_route_acquisition import (
     RouteExecutionResult,
     SELECTED_STATUS_CERTIFIED,
     SELECTED_STATUS_POOL_EXHAUSTED,
+    acquire_selected_vs_direct_hh_case,
+    collect_selected_vs_direct_hh_cases,
     ensure_selected_vs_direct_hh_campaign,
     locked_hh_profile,
 )
@@ -294,3 +296,87 @@ def test_pool_exhaustion_is_completed_evidence_not_pending_or_fallback(
         for row in decision["rows"]
     )
     assert decision["hybrid_enabled"] is False
+
+
+def test_case_worker_and_collector_reproduce_the_locked_campaign(
+    tmp_path: Path,
+) -> None:
+    executor = _LiteralExecutor()
+    profile = locked_hh_profile()
+    case_paths: list[Path] = []
+    for case in profile.cases:
+        path = tmp_path / "case_results" / f"{case.case_key}.json"
+        acquire_selected_vs_direct_hh_case(
+            case.case_key,
+            path,
+            executor=executor,
+        )
+        case_paths.append(path)
+
+    first_bytes = case_paths[0].read_bytes()
+    acquire_selected_vs_direct_hh_case(
+        profile.cases[0].case_key,
+        case_paths[0],
+        executor=executor,
+    )
+    assert len(executor.calls) == 24
+    assert case_paths[0].read_bytes() == first_bytes
+
+    snapshot = collect_selected_vs_direct_hh_cases(
+        case_paths,
+        tmp_path / "campaign_result",
+    )
+
+    assert len(executor.calls) == 24
+    assert snapshot.execution_status == "COMPLETE"
+    assert snapshot.completed_route_count == 24
+    decision = json.loads((tmp_path / "campaign_result" / "decision.json").read_text())
+    assert decision["route_recommendation_counts"] == {"SELECTED_QSE": 36}
+    assert decision["hybrid_enabled"] is False
+
+
+def test_collector_fails_closed_on_an_incomplete_case_matrix(tmp_path: Path) -> None:
+    profile = locked_hh_profile()
+    first_case = profile.cases[0]
+    path = tmp_path / f"{first_case.case_key}.json"
+    acquire_selected_vs_direct_hh_case(
+        first_case.case_key,
+        path,
+        executor=_LiteralExecutor(),
+    )
+
+    with pytest.raises(MatchedRouteAcquisitionError, match="CASE_MATRIX_INCOMPLETE"):
+        collect_selected_vs_direct_hh_cases([path], tmp_path / "campaign_result")
+
+
+@pytest.mark.parametrize(
+    ("module", "required_flags"),
+    (
+        (
+            "pipelines.exact_bench.paper_iii_selected_vs_direct_case",
+            ("--case-key", "--output-json"),
+        ),
+        (
+            "pipelines.exact_bench.paper_iii_selected_vs_direct_collect",
+            ("--case-results-dir", "--output-root"),
+        ),
+    ),
+)
+def test_distributed_clis_expose_only_locked_acquisition_inputs(
+    module: str,
+    required_flags: tuple[str, ...],
+) -> None:
+    proc = subprocess.run(
+        [sys.executable, "-m", module, "--help"],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert proc.returncode == 0
+    help_text = proc.stdout.lower()
+    assert all(flag in help_text for flag in required_flags)
+    assert "--method" not in help_text
+    assert "--hybrid" not in help_text
+    assert "--fallback" not in help_text

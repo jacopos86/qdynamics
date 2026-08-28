@@ -1,0 +1,12 @@
+weak_weak_nph1
+intermediate_weak_nph1
+strong_weak_u8_nph1
+weak_strong_nph1
+intermediate_strong_nph1
+strong_strong_u8_nph1
+weak_weak_nph3
+intermediate_weak_nph3
+strong_weak_u8_nph3
+weak_strong_nph3
+intermediate_strong_nph3
+strong_strong_u8_nph3
