@@ -193,3 +193,75 @@ The observable set remains undeclared. The runs above use two arbitrary pool
 operators as probes, and the dark sets differ by regime (`[3,5]`, `[3,4,5]`,
 `[2,5]`), so the specific 1.30x--1.33x figures move with that choice. The
 mechanism is established; the numbers are not yet paper-grade.
+
+---
+
+# CORRECTION: rerun with the *declared* observables reverses the conclusion
+
+Added 2026-08-27. The fairness table above used two arbitrary pool operators
+as probes. **That was the wrong observable set**, and it produced a wrong
+conclusion ("only our method moves").
+
+Paper III already has a declared neutral-response observable pair, used for
+the C1 "and transition strengths" evidence:
+`site0_density` and `site0_displacement`, built by
+`pipelines/qse_spectra/hh_response_observables.py` and consumed by
+`pipelines/exact_bench/paper_iii_qse_transition_strengths.py`.
+
+Consistency check that the machinery is right: with the declared observables,
+target root 0 comes out **dark in exactly the two `u=8` regimes** — matching
+the independently recorded fact that the `u=8` first excitation is the sector
+spin triplet, annihilated by staggered density.
+
+## `N2q` at `eps_E = 1e-6`, declared observables, six `nph1` regimes
+
+| regime | dark roots | ours all / weight | Davidson all / weight | Krylov all / weight |
+|---|---|---:|---:|---:|
+| weak_weak | 2,3,5 | 32 / 24 | 176 / **96** | 3420 / 3420 |
+| intermediate_weak | 2,3,4,5 | 26 / 26 | 156 / **56** | 3060 / **1820** |
+| strong_weak_u8 | 0,3,4,5 | 26 / 20 | 176 / **56** | 2400 / 2400 |
+| weak_strong | 2,3,5 | 28 / 28 | 176 / **56** | 3060 / 3060 |
+| intermediate_strong | 2,3,4,5 | 34 / 18 | 156 / **56** | 2400 / **1560** |
+| strong_strong_u8 | 0,3,4,5 | 38 / 38 | 176 / **56** | 2400 / 2400 |
+
+**Every method moves, and the comparators move more.** Our advantage over
+direct Davidson under the two readings:
+
+| regime | all_roots | weight_carrying |
+|---|---:|---:|
+| weak_weak | 5.5x | 4.0x |
+| intermediate_weak | 6.0x | 2.2x |
+| strong_weak_u8 | 6.8x | 2.8x |
+| weak_strong | 6.3x | 2.0x |
+| intermediate_strong | 4.6x | 3.1x |
+| strong_strong_u8 | 4.6x | 1.5x |
+
+The spectroscopically honest reading **shrinks our margin from 4.6--6.8x to
+1.5--4.0x.** Davidson spends most of its budget resolving roots that carry no
+weight for the declared observables; charge it only for the visible ones and
+it gets much cheaper, faster than we do.
+
+## Revised recommendation
+
+**Keep `all_roots` as the headline — and not because it flatters us.**
+
+1. C1 claims "low-lying Ritz **roots** and transition strengths". The roots
+   claim covers all six, dark ones included; they are part of what the paper
+   says it resolves, so charging for them is correct, not an overcharge.
+2. It is observable-independent, so the headline does not move if the
+   declared observable pair is ever revised.
+3. The `weight_carrying` reading is a *different and weaker* claim for us. It
+   is legitimate and should be **reported as a disclosed sensitivity**, never
+   swapped in as the headline.
+
+**The one thing that would be indefensible** is a mixed reading: scoring our
+method on visible roots while scoring comparators on all of them. The
+`assert_shared_window` guard exists to make that impossible to do by accident.
+
+## What this retracts
+
+The earlier section's claim that the correction is worth a
+"1.30x--1.33x overstatement removed" in our favour, with comparators
+unchanged, is **withdrawn**: it was an artifact of the arbitrary probe set.
+The machinery and both guarantees stand; only the numbers and the direction
+of the conclusion change.
