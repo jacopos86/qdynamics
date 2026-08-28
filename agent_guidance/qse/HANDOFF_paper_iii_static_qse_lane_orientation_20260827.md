@@ -11,12 +11,12 @@ current world. Do not start from them cold; two predate changes below.
 |---|---|---|
 | `paper-iii-static-results-acquisition-contract.md` | binding operating contract for the pipeline | current |
 | `IMPLEMENTATION_REPORT_static_qse_results_pipeline_20260827.md` | what was built, digests, what was left unrun | current |
-| `EVIDENCE_dark_state_contamination_of_the_energy_metric_20260827.md` | metric finding (read before touching `C*(eps_E)`) | current |
+| `EVIDENCE_dark_state_contamination_of_the_energy_metric_20260827.md` | metric finding + declared window readings (read before touching `C*(eps_E)`) | current; **read its final CORRECTION section, which reverses the middle one** |
 | `HANDOFF_record_selection_refactor_20260826.md` | Increment queue for the selector refactor | **still open, now has a new constraint — see §4** |
 | `BUGREPORT_hybrid_seed_ceiling_20260826.md` | seeded-Davidson error ceiling | **still open, untouched** |
 | `BUGREPORT_adaptive_qse_root_indexing_20260826.md` | items 1–3 resolved; item 2 (`hubbard_u8` dim-7 stall) open | **partially open** |
 | `paper-iii-comparison-protocol.md` | growth-trace comparison protocol | current |
-| `paper-iii-novelty-claims-boundary-20260818.md` | claims boundary (A-CASE/DA-CASE exclusion is FINAL) | current |
+| `paper-iii-novelty-claims-boundary-20260818.md` | claims boundary (A-CASE/DA-CASE exclusion is FINAL) | **two entries stale — see §7** |
 
 ---
 
@@ -54,11 +54,19 @@ peak) from a **dark** one (nothing connects; invisible to any measurement).
 Two to three of the six target roots are dark, and in two of six regimes a
 dark root is the last to converge and therefore sets the reported cost.
 
-The bias is **self-penalizing** — it charges our method for resolving
-invisible states — so published wins are conservative and nothing needs
-retracting. Full numbers in the evidence doc. This is a "know this", not a
-"fix this", and **no increment below acts on it**; the decision it raises is
-the author's, listed in §6.
+`pipelines/qse_spectra/target_window.py` now makes this an explicit
+declaration: the same trace can be read over `all_roots` or over the
+`weight_carrying` subset, with visibility derived from the declared
+observable set only and `assert_shared_window` refusing to score methods
+against different windows.
+
+Measured with Paper III's **declared** observables (`site0_density`,
+`site0_displacement`), the weight-carrying reading *reduces* our margin
+over direct Davidson from 4.6--6.8x to 1.5--4.0x, because Davidson spends
+most of its budget on invisible roots and gets much cheaper when they are
+not charged. The recommendation is therefore to keep `all_roots` as the
+headline and report `weight_carrying` as a disclosed sensitivity. **No
+increment below acts on this**; it is the author's call, listed in §6.
 
 ---
 
@@ -68,8 +76,8 @@ the author's, listed in §6.
 |---|---|
 | Checkout | `/Users/jakestrobel/local_repos/Holstein_test_fullclone_3` — **not** the `~/Documents/Holstein_implementation` iCloud mirror |
 | Branch | `paper-ii-exchange-selector` — **work directly on it; do NOT create a branch or worktree** (overrides the contract default). Several agents commit here daily. |
-| Commit | `4152de3a` — verify with `git rev-parse --short HEAD` before starting |
-| Test baseline | command in §3 → **161 passed**. Repo-wide collection has ~55 pre-existing `docs.*` import errors unrelated to this lane; ignore them. |
+| Commit | `d1030fa2` — verify with `git rev-parse --short HEAD` before starting |
+| Test baseline | command in §3 → **174 passed**. Repo-wide collection has ~55 pre-existing `docs.*` import errors unrelated to this lane; ignore them. |
 | Behaviour lock | `nph1` selected supports must stay bit-identical — verification command in §3 |
 | Upstream | The branch has **no remote-tracking upstream**, so `git pull --rebase` has nothing to rebase onto and aborts on the shared tree's unrelated dirty files. Commit at increment boundaries with explicit paths; **never `git add -A`**, never `git stash`. |
 
@@ -90,6 +98,7 @@ the author's, listed in §6.
   makes the matched-alphabet claim checkable.
 - `pipelines/qse_spectra/static_campaign*.py`,
   `pipelines/qse_spectra/switch_policy.py`,
+  `pipelines/qse_spectra/target_window.py`,
   `pipelines/qse_spectra/siam_static_adapter.py`,
   `pipelines/exact_bench/paper_iii_static_qse_cell.py`,
   `pipelines/reporting/paper_iii_static_results_contract.py` — authored this
@@ -112,14 +121,15 @@ cd /Users/jakestrobel/local_repos/Holstein_test_fullclone_3
 python -m pytest test/test_qse_record_selection.py test/test_qse_compiled_cost_selection.py \
   test/test_qse_spectra_core.py test/test_qse_exchange_maintenance.py \
   test/test_paper_iii_problem_provider.py test/test_adaptive_qse_benchmark.py \
-  test/test_paper_iii_switch_policy.py test/test_paper_iii_static_campaign.py \
+  test/test_paper_iii_switch_policy.py test/test_paper_iii_target_window.py \
+  test/test_paper_iii_static_campaign.py \
   test/test_paper_iii_static_campaign_artifacts.py test/test_paper_iii_static_campaign_package.py \
   test/test_paper_iii_static_qse_cell.py test/test_paper_iii_static_results_contract.py \
   test/test_paper_iii_siam_static_adapter.py test/test_paper_iii_growth_trace_hybrid.py \
   test/test_paper_iii_qse_source_maps.py test/test_paper_iii_qse_results_pdf.py -q
 ```
 
-Expected: `161 passed`.
+Expected: `174 passed`.
 
 The `nph1` support lock — the acceptance test for any selector change:
 
@@ -164,6 +174,8 @@ Consequences for your refactor:
   can claim its switch is reference-free.
 - `test/test_paper_iii_static_qse_cell.py` catches this: it runs the real
   selector receipt through `resolve_switch_point`. It is in the §3 baseline.
+
+A second, weaker coupling exists but is **not yours**: `pipelines/qse_spectra/target_window.py` reads `per_root_abs_error` from growth-trace rows. Those come from `compute_qse_spectra` eigenvalues in `paper_iii_growth_trace_campaign.py`, not from the selector, so the refactor cannot disturb it. Noted so you do not go looking.
 
 Fields currently relied on: `stop_reason`, `final_max_target_residual_norm`,
 `residual_converged_pending`, `residual_stop_threshold`, `round_trace`; and
@@ -273,6 +285,16 @@ on effort**. Do not start them:
   measuring it (this already happened once and produced a false result).
 - Another agent's broad `git add` can sweep your uncommitted work into their
   commit. Commit at increment boundaries with explicit paths.
+- **`paper-iii-novelty-claims-boundary-20260818.md` has two stale entries.**
+  It states "Paper III has NO independent adaptive comparator" — untrue
+  since the quantum-Davidson benchmark landed
+  (`pipelines/qse_spectra/adaptive_qse_benchmark.py`, now the public
+  `direct_davidson_qse`) — and its evidence inventory still centres
+  nph7 / Peierls / L=3 rather than the current nph1+nph3 tiers. Its
+  *verdicts and never-claim lists remain authoritative*; only the
+  comparator-set and evidence-inventory sections are out of date. Do not
+  act on those two sections, and do not edit the doc — claims text is the
+  author's.
 - The nph1 baseline JSON records `k_max=60, stride=2`; the current default cap
   is 64. Compare supports per `k`, not by row position.
 
