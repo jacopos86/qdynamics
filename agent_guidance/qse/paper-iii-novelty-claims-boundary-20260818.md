@@ -6,6 +6,14 @@ It distills two deep-research novelty audits (search cutoff 2026-08-17/18) and
 is the authoritative boundary between claimable and conceded territory. It is
 lane-scoped guidance: agents not working on Paper III have no reason to load it.
 
+**Currency (updated 2026-08-27).** All verdicts, never-claim lists,
+claimable sentences, standing obligations, the A-CASE/DA-CASE exclusion,
+and the score-ablation findings are unchanged and authoritative. Two
+sections were factually overtaken by later work and are amended in place:
+the comparator set (an independent adaptive comparator now exists) and the
+evidence inventory (the paper-facing tier moved to nph1+nph3 growth
+traces). Amendments are marked `UPDATE 2026-08-27`; nothing was deleted.
+
 ## Verdicts (final, post-audit-v2)
 
 | Claim | Verdict | Most damaging prior work |
@@ -105,6 +113,33 @@ are implementation validation, never novelty.
    re-verify their publication status.
 
 ## Evidence inventory (statevector diagnostics, committed drivers)
+
+**UPDATE 2026-08-27 — current paper-facing tier.** The inventory below is
+retained as the 2026-08-18/19 record and its runs are real, but the
+paper-facing comparison has since moved to the growth-trace protocol
+(`paper-iii-comparison-protocol.md`) on the cheap tiers, where every method
+is grown to a fixed cap and `C*(eps_E)` is read post-run:
+
+- `output/diagnostics/paper_iii_record_first_adaptive_qse_v2/growth_trace_nph1.json`
+  and `growth_trace_nph3.json` (plus the cap-64 refresh and consolidated
+  canonical records) — six regimes x `n_ph_max in {1,3}` x four public
+  methods, four resource axes each. Summarized in
+  `EVIDENCE_record_first_adaptive_qse_v2_20260827.md`.
+- `EVIDENCE_dark_state_contamination_of_the_energy_metric_20260827.md` —
+  how `C*(eps_E)` should be read, and the declared-observable measurement
+  showing the weight-carrying reading *narrows* our margin (4.6--6.8x ->
+  1.5--4.0x). Read its final CORRECTION section; it reverses the middle one.
+- Typed acquisition pipeline for future runs:
+  `paper-iii-static-results-acquisition-contract.md` and
+  `IMPLEMENTATION_REPORT_static_qse_results_pipeline_20260827.md`.
+
+nph7, Peierls--Hubbard, and L=3 evidence below is **not** part of the
+current tier. Claims resting on it (Peierls generality, L=3 conditioning)
+are unsupported by the current tables until those tiers are re-run under
+the growth-trace protocol — the manuscript abstract and conclusion still
+assert them and are known stale on that point.
+
+### Historical inventory (as of 2026-08-19)
 
 - Frontier arms + oracle cross-check:
   `output/diagnostics/paper_iii_cost_frontier_arms_20260818_v1/` (graph-span),
@@ -370,9 +405,21 @@ art and NOT quantum Davidson.** It is our own rule with the cost
 discount off — an internal ablation isolating the cost term. Never
 describe it as a competing method or as QDavidson (which synthesizes a
 preconditioned residual vector rather than selecting from a fixed
-operator alphabet). Paper III therefore has NO independent adaptive
-comparator; the only external comparators are the fixed linear-response
-class and real-time Krylov.
+operator alphabet). At the time of writing, Paper III therefore had NO
+independent adaptive comparator.
+
+**UPDATE 2026-08-27 — that gap is closed.** An independent adaptive
+comparator now exists: `pipelines/qse_spectra/adaptive_qse_benchmark.py`,
+public method id `direct_davidson_qse`. It follows the published
+quantum-Davidson construction (`Tkachenko2024QDavidson`) — after a declared
+seed frame every new direction is synthesized from a preconditioned Ritz
+residual — and is therefore literature-derived, satisfying design rule 3
+below, not configured out of our selector. It solves its projected pencil
+through the same `solve_qse_generalized_eigenproblem`, so overlap
+stabilization and retained-support semantics match the record path. The
+2026-08-19 correction above still stands in full: `residual_guided_adaptive`
+was and remains our own ablation, and must never be described as QDavidson
+or shown as a comparator column.
 - fixed class and Krylov fail every case (1e-1..1e0);
 - residual-guided is 3-5 orders better than those (adaptive growth IS
   the right family - say so);
@@ -401,5 +448,24 @@ resource concession.
    faithfully to their published construction — not configured out of
    our own selector.
 
-Current external comparators: fixed linear-response class, real-time
-Krylov. There is NO independent adaptive comparator in the paper.
+**Current external comparators (UPDATE 2026-08-27).** Three, all
+literature-derived and all grown to a declared cap under the growth-trace
+protocol:
+
+| public method id | construction | alphabet |
+|---|---|---|
+| `fixed_linear_response_qse` | complete fixed linear-response class, non-adaptive | shares the ordered record pool |
+| `direct_davidson_qse` | preconditioned-residual synthesis (`Tkachenko2024QDavidson`) | synthesizes outside the pool |
+| `real_time_krylov` | time-evolved seeded sector kick | synthesizes outside the pool |
+
+Ours is `record_first_adaptive_qse`. `record_only` and `early_switch` are
+ablations and never comparator columns.
+
+Design rule 2 (equal alphabets) is satisfied *within* the record-based
+family — record-first and the fixed class carry the same `pool_digest`,
+checkable from the shared provider's arm receipt. Davidson and Krylov
+synthesize directions outside that alphabet, which is a **declared
+construction asymmetry**, not a violation: it favours them on reachability
+and charges them on resources, and the manuscript states it explicitly. Do
+not silently equalize it away, and do not present it as an equal-alphabet
+comparison.

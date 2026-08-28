@@ -16,7 +16,7 @@ current world. Do not start from them cold; two predate changes below.
 | `BUGREPORT_hybrid_seed_ceiling_20260826.md` | seeded-Davidson error ceiling | **still open, untouched** |
 | `BUGREPORT_adaptive_qse_root_indexing_20260826.md` | items 1–3 resolved; item 2 (`hubbard_u8` dim-7 stall) open | **partially open** |
 | `paper-iii-comparison-protocol.md` | growth-trace comparison protocol | current |
-| `paper-iii-novelty-claims-boundary-20260818.md` | claims boundary (A-CASE/DA-CASE exclusion is FINAL) | **two entries stale — see §7** |
+| `paper-iii-novelty-claims-boundary-20260818.md` | claims boundary (A-CASE/DA-CASE exclusion is FINAL) | current — comparator set and evidence inventory amended 2026-08-27 |
 
 ---
 
@@ -285,16 +285,15 @@ on effort**. Do not start them:
   measuring it (this already happened once and produced a false result).
 - Another agent's broad `git add` can sweep your uncommitted work into their
   commit. Commit at increment boundaries with explicit paths.
-- **`paper-iii-novelty-claims-boundary-20260818.md` has two stale entries.**
-  It states "Paper III has NO independent adaptive comparator" — untrue
-  since the quantum-Davidson benchmark landed
-  (`pipelines/qse_spectra/adaptive_qse_benchmark.py`, now the public
-  `direct_davidson_qse`) — and its evidence inventory still centres
-  nph7 / Peierls / L=3 rather than the current nph1+nph3 tiers. Its
-  *verdicts and never-claim lists remain authoritative*; only the
-  comparator-set and evidence-inventory sections are out of date. Do not
-  act on those two sections, and do not edit the doc — claims text is the
-  author's.
+- `paper-iii-novelty-claims-boundary-20260818.md` was amended 2026-08-27
+  (comparator set; evidence-inventory currency) and is now accurate. Its
+  verdicts, never-claim lists, and the A-CASE/DA-CASE exclusion are
+  authoritative and were not touched. **Do not edit it** — claims text is
+  the author's. Two things it now records that bear on execution: the
+  independent adaptive comparator is `direct_davidson_qse`
+  (`adaptive_qse_benchmark.py`, the module Increment 2 debugs), and the
+  Davidson/Krylov alphabet asymmetry is *declared*, not a defect to
+  equalize away.
 - The nph1 baseline JSON records `k_max=60, stride=2`; the current default cap
   is 64. Compare supports per `k`, not by row position.
 
