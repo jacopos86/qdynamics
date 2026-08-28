@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
-"""Score-term ablations for the Paper III QSE acquisition rule.
+"""Factorial score ablation for the Paper-III QSE acquisition rule.
 
-Each arm disables one ingredient of the selection score and reruns the
-full residual-stop selection, so support size is an output and a
-redundant term shows up as "same accuracy, more records" rather than as
-a change in a fixed-budget error. Arms:
+The diagnostic crosses four spectral scores with the additive novelty reward
+enabled and disabled. The full-frame novelty floor remains enabled in every
+cell. Every growth prefix is solved both before and after a separately
+certified exchange attempt so exchange cannot conceal acquisition behavior.
 
-- ``full``                -- production anchor;
-- ``no_novelty_weight``   -- metric-novelty weight zero, hard floor kept;
-- ``no_novelty_floor``    -- hard floor zero, weight kept;
-- ``no_residual``         -- residual-capture weight zero;
-- ``no_ritz``             -- Ritz-gain weight zero;
-- ``no_condition``        -- conditioning penalty zero (the QSE analog of a
-  trust region);
-- ``no_cost_discount``    -- geometric score only, no hardware discount.
-
-Reported per arm: support size at convergence, stop reason, compiled 2Q,
-overlap condition estimate, and per-root errors over the lowest six
-excitations against exact sector-restricted references.
-
-Statevector diagnostics; never feeds controller decisions.
+Statevector diagnostics only; never feeds controller decisions.
 """
 
 from __future__ import annotations
@@ -27,170 +14,481 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from pipelines.exact_bench.paper_iii_qse_paper_i_convention_sweep import (
-    PAPER_I_REGIMES,
-    _build_regime_pool,
-    _num_qubits,
-)
-from pipelines.exact_bench.paper_iii_qse_regime_frontier_sweep import (
-    _dense_hamiltonian,
-    _sector_spectrum,
-)
-from pipelines.qse_spectra.compiled_costs import (
-    ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
-    annotate_basis_with_compiled_costs,
-    resolve_cost_weights_preset,
-)
+from pipelines.exact_bench.paper_iii_matched_accuracy_campaign import REGIME_SETS
 from pipelines.qse_spectra.core import QSEBasisVectorPolicy, compute_qse_spectra
+from pipelines.qse_spectra.exchange_maintenance import (
+    QSEExchangeConfig,
+    exchange_maintenance_payload,
+    run_qse_exchange_maintenance,
+)
 from pipelines.qse_spectra.record_selection import (
+    GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+    GEOMETRY_SCORE_NORMALIZED_ANGULAR,
+    GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
+    GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
     StaticRecordSelectionConfig,
     select_static_qse_records,
+    static_record_selection_payload,
+)
+from pipelines.qse_spectra.paper_iii_problem import PaperIIIProblem, load_problem
+from src.quantum.compiled_polynomial import (
+    apply_compiled_polynomial,
+    compile_polynomial_action,
 )
 
 DEFAULT_OUTPUT = (
     REPO_ROOT
-    / "output/diagnostics/paper_iii_score_ablation_20260819_v1/score_ablation.json"
+    / "output/diagnostics/paper_iii_score_factorial_20260828_v1/score_factorial.json"
 )
 _Q0_POLICY = QSEBasisVectorPolicy(
     reference_projection="q0", basis_vector_normalization="raw_projected"
 )
 _TARGET_ROOTS = 6
 
-_ARMS: dict[str, dict[str, Any]] = {
-    "full": {},
-    "no_novelty_weight": {"geometry_metric_novelty_weight": 0.0},
-    "no_novelty_floor": {"geometry_min_metric_novelty": 0.0},
-    "no_residual": {"geometry_residual_weight": 0.0},
-    "no_cost_discount": {"geometry_cost_discount_alpha": None},
-}
+FACTORIAL_SCORE_MODES = (
+    GEOMETRY_SCORE_NORMALIZED_ANGULAR,
+    GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
+    GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+    GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+)
 
 
+@dataclass(frozen=True)
+class ScoreAblationProfile:
+    profile_id: str
+    score_mode: str
+    additive_novelty_reward: bool
+    selector_config: StaticRecordSelectionConfig
 
 
+def factorial_score_profiles(
+    *, max_records: int, target_root_count: int
+) -> tuple[ScoreAblationProfile, ...]:
+    """Return the locked four-by-two selector factorial."""
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--regimes", default=None)
-    parser.add_argument("--residual-stop", type=float, default=1.0e-3)
-    parser.add_argument("--mode", choices=("ablation",), default="ablation")
-    args = parser.parse_args(argv)
-
-    wanted = None if args.regimes is None else {t.strip() for t in str(args.regimes).split(",")}
-    regimes_payload: dict[str, Any] = {}
-
-    for regime, u, g_ep, n_ph_max in PAPER_I_REGIMES:
-        if wanted is not None and regime not in wanted:
-            continue
-        nq = _num_qubits(n_ph_max)
-        hamiltonian, basis, _meta = _build_regime_pool(u=u, g_ep=g_ep, n_ph_max=n_ph_max)
-        dense = _dense_hamiltonian(hamiltonian, 1 << nq)
-        ground, spectrum = _sector_spectrum(dense, count=_TARGET_ROOTS + 1)
-        del dense
-        references = spectrum[1 : _TARGET_ROOTS + 1]
-
-        cost_rows = annotate_basis_with_compiled_costs(
-            basis,
-            num_qubits=nq,
-            oracle_kind=ORACLE_KIND_MARRAKESH_GRAPH_SPAN,
-            cost_weights=resolve_cost_weights_preset("two_qubit_only_v1"),
-        )
-        costs = tuple(row.scalarized_canonical_cost for row in cost_rows)
-
-        base = StaticRecordSelectionConfig(
-            mode="geometry_selected",
-            max_records=len(basis),
-            geometry_target_roots=_TARGET_ROOTS,
-            geometry_cost_discount_alpha=1.0,
-            geometry_residual_stop=float(args.residual_stop),
-        )
-
-        print(f"\n== {regime} (u={u}, g={g_ep:.4f}, nph{n_ph_max}) pool={len(basis)}", flush=True)
-        arms_payload: dict[str, Any] = {}
-        arm_set = _ARMS
-        for arm_name, overrides in arm_set.items():
-            config = replace(base, **overrides) if overrides else base
-            selection = select_static_qse_records(
-                basis,
-                config=config,
-                hamiltonian=hamiltonian,
-                prepared_state=ground,
-                basis_vector_policy=_Q0_POLICY,
-                compiled_costs=costs,
+    profiles: list[ScoreAblationProfile] = []
+    for score_mode in FACTORIAL_SCORE_MODES:
+        for reward in (True, False):
+            reward_label = "on" if reward else "off"
+            profiles.append(
+                ScoreAblationProfile(
+                    profile_id=f"{score_mode}__novelty_reward_{reward_label}",
+                    score_mode=str(score_mode),
+                    additive_novelty_reward=bool(reward),
+                    selector_config=StaticRecordSelectionConfig(
+                        mode="geometry_selected",
+                        max_records=int(max_records),
+                        geometry_target_roots=int(target_root_count),
+                        geometry_score_mode=str(score_mode),
+                        geometry_additive_novelty_reward=bool(reward),
+                        geometry_min_metric_novelty=1.0e-12,
+                        geometry_cost_discount_alpha=1.0,
+                    ),
+                )
             )
-            indices = list(selection.selected_original_indices)
-            result = compute_qse_spectra(
-                hamiltonian,
-                ground,
-                tuple(basis[int(i)] for i in indices),
-                basis_vector_policy=_Q0_POLICY,
-            )
-            energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
-            errors = [
-                abs(float(energies[r]) - float(ref)) if r < energies.size else None
-                for r, ref in enumerate(references)
-            ]
-            finite = [e for e in errors if e is not None]
-            condition = result.overlap_condition_estimate
-            stop = selection.geometry_stop or {}
-            arms_payload[arm_name] = {
-                "overrides": {k: v for k, v in overrides.items()},
-                "support_size": len(indices),
-                "retained_rank": int(result.retained_rank),
-                "stop_reason": stop.get("stop_reason"),
-                "total_2q": float(sum(costs[int(i)] for i in indices)),
-                "overlap_condition_estimate": (
-                    float(condition) if condition is not None else None
-                ),
-                "root_abs_errors": errors,
-                "max_root_abs_error": max(finite) if finite else None,
-                "selected_original_indices": [int(i) for i in indices],
+    return tuple(profiles)
+
+
+def _ritz_states(result: Any, *, target_root_count: int) -> np.ndarray:
+    vectors = tuple(result.matrices.basis_matrix_vectors)
+    if not vectors:
+        return np.empty((int(result.matrices.hilbert_dim), 0), dtype=complex)
+    basis_matrix = np.column_stack(
+        [np.asarray(vector, dtype=complex).reshape(-1) for vector in vectors]
+    )
+    count = min(int(target_root_count), int(result.eigenvectors_basis.shape[1]))
+    states = basis_matrix @ np.asarray(result.eigenvectors_basis[:, :count], dtype=complex)
+    for column in range(states.shape[1]):
+        norm = float(np.linalg.norm(states[:, column]))
+        if norm > 0.0:
+            states[:, column] /= norm
+    return states
+
+
+def _state_matching(previous: np.ndarray, current: np.ndarray) -> dict[str, Any] | None:
+    if previous.shape[1] == 0 or current.shape[1] == 0:
+        return None
+    amplitudes = previous.conj().T @ current
+    overlap_squared = np.abs(amplitudes) ** 2
+    previous_rows, current_cols = linear_sum_assignment(-overlap_squared)
+    singular_values = np.linalg.svd(amplitudes, compute_uv=False)
+    return {
+        "policy": "maximum_metric_overlap_assignment",
+        "assignments": [
+            {
+                "previous_root": int(row),
+                "current_root": int(col),
+                "overlap_squared": float(overlap_squared[row, col]),
             }
-            print(
-                f"  {arm_name:<20} k={len(indices):<4} @{arms_payload[arm_name]['total_2q']:.0f}2Q "
-                f"stop={str(stop.get('stop_reason')):<18} "
-                f"maxerr={arms_payload[arm_name]['max_root_abs_error']:.1e} "
-                f"cond={arms_payload[arm_name]['overlap_condition_estimate']:.1e}",
-                flush=True,
-            )
+            for row, col in zip(previous_rows, current_cols)
+        ],
+        "principal_cosines": [float(value) for value in singular_values],
+        "minimum_principal_cosine": (
+            float(np.min(singular_values)) if singular_values.size else None
+        ),
+    }
 
-        regimes_payload[regime] = {
-            "u": float(u),
-            "g_ep": float(g_ep),
-            "n_ph_max": int(n_ph_max),
-            "pool_size": len(basis),
-            "reference_ground_energy": float(spectrum[0]),
-            "reference_excitations": references,
-            "arms": arms_payload,
+
+def _support_reading(
+    problem: Any,
+    indices: Sequence[int],
+    *,
+    target_root_count: int,
+    compiled_hamiltonian: Any,
+) -> tuple[dict[str, Any], np.ndarray]:
+    support = [int(index) for index in indices]
+    names = [str(problem.basis[index].name) for index in support]
+    references = [float(value) for value in problem.references[: int(target_root_count)]]
+    base: dict[str, Any] = {
+        "selected_support": {"indices": support, "names": names},
+        "support_size": len(support),
+        **problem.resource_triple(support),
+        "estimator_cost": dict(problem.estimator_cost(support)),
+    }
+    try:
+        result = compute_qse_spectra(
+            problem.hamiltonian,
+            problem.ground,
+            tuple(problem.basis[index] for index in support),
+            basis_vector_policy=_Q0_POLICY,
+        )
+    except ValueError as exc:
+        return {
+            **base,
+            "solve_status": "SOLVE_FAILED",
+            "solve_error": str(exc),
+            "target_window_status": "TARGET_WINDOW_NOT_RESOLVED",
+            "retained_rank": 0,
+            "root_energies": [],
+            "root_abs_errors": [None for _ in references],
+            "available_max_root_abs_error": None,
+            "max_root_abs_error": None,
+            "ky_fan_sum": None,
+            "ky_fan_abs_error": None,
+            "target_root_energy": None,
+            "gap_to_next_root": None,
+            "generalized_residual_norms": [],
+            "physical_residual_norms": [],
+            "overlap_condition_estimate": None,
+            "matching_to_previous": None,
+        }, np.empty((len(problem.ground), 0), dtype=complex)
+
+    energies = np.asarray(result.eigenvalues, dtype=float).reshape(-1)
+    target_count = int(target_root_count)
+    target_energies = [float(value) for value in energies[:target_count]]
+    errors = [
+        abs(float(energies[root]) - references[root]) if root < energies.size else None
+        for root in range(len(references))
+    ]
+    available_errors = [float(value) for value in errors if value is not None]
+    target_window_resolved = energies.size >= target_count
+    states = _ritz_states(result, target_root_count=target_count)
+    physical_residuals: list[float] = []
+    for root in range(states.shape[1]):
+        state = states[:, root]
+        residual = apply_compiled_polynomial(state, compiled_hamiltonian) - float(
+            energies[root]
+        ) * state
+        physical_residuals.append(float(np.linalg.norm(residual)))
+    ky_fan_sum = (
+        float(np.sum(energies[:target_count])) if energies.size >= target_count else None
+    )
+    reference_ky_fan = float(sum(references))
+    target_root_energy = (
+        float(energies[target_count - 1]) if energies.size >= target_count else None
+    )
+    gap_to_next = (
+        float(energies[target_count] - energies[target_count - 1])
+        if energies.size > target_count
+        else None
+    )
+    condition = result.overlap_condition_estimate
+    return {
+        **base,
+        "solve_status": "SOLVED",
+        "target_window_status": (
+            "TARGET_WINDOW_RESOLVED"
+            if target_window_resolved
+            else "TARGET_WINDOW_NOT_RESOLVED"
+        ),
+        "retained_rank": int(result.retained_rank),
+        "root_energies": target_energies,
+        "root_abs_errors": errors,
+        "available_max_root_abs_error": (
+            max(available_errors) if available_errors else None
+        ),
+        "max_root_abs_error": (
+            max(available_errors) if target_window_resolved and available_errors else None
+        ),
+        "ky_fan_sum": ky_fan_sum,
+        "ky_fan_abs_error": (
+            abs(float(ky_fan_sum) - reference_ky_fan) if ky_fan_sum is not None else None
+        ),
+        "target_root_energy": target_root_energy,
+        "gap_to_next_root": gap_to_next,
+        "generalized_residual_norms": [
+            float(value) for value in result.generalized_residual_norms[:target_count]
+        ],
+        "physical_residual_norms": physical_residuals,
+        "overlap_condition_estimate": float(condition) if condition is not None else None,
+        "matching_to_previous": None,
+    }, states
+
+
+def run_factorial_score_ablation(
+    problem: Any,
+    *,
+    k_max: int,
+    target_root_count: int = _TARGET_ROOTS,
+    exchange_max_rounds: int = 4,
+) -> dict[str, Any]:
+    """Run all eight selector cells and score every prefix before/after exchange."""
+
+    cap = min(int(k_max), len(problem.basis))
+    if cap < 1:
+        raise ValueError("k_max must admit at least one growth round.")
+    if int(target_root_count) < 1:
+        raise ValueError("target_root_count must be positive.")
+    compiled_hamiltonian = compile_polynomial_action(problem.hamiltonian)
+    profiles_payload: dict[str, Any] = {}
+    for profile in factorial_score_profiles(
+        max_records=len(problem.basis), target_root_count=int(target_root_count)
+    ):
+        selection = select_static_qse_records(
+            problem.basis,
+            config=profile.selector_config,
+            hamiltonian=problem.hamiltonian,
+            prepared_state=problem.ground,
+            basis_vector_policy=_Q0_POLICY,
+            compiled_costs=problem.costs,
+        )
+        order = [int(index) for index in selection.selected_original_indices]
+        selector_rounds = list((selection.geometry_stop or {}).get("round_trace") or ())
+        decisions = {
+            int(row["original_basis_index"]): row for row in selection.candidate_decisions
         }
-
-    payload = {
-        "schema_version": "paper_iii_qse_score_ablation_v1",
-        "mode": str(args.mode),
-        "policy": "diagnostic_only_score_term_ablation",
+        trace: list[dict[str, Any]] = []
+        previous_pre_states = np.empty((len(problem.ground), 0), dtype=complex)
+        for growth_round, selected_index in enumerate(order[:cap], start=1):
+            pre_indices = order[:growth_round]
+            pre, pre_states = _support_reading(
+                problem,
+                pre_indices,
+                target_root_count=int(target_root_count),
+                compiled_hamiltonian=compiled_hamiltonian,
+            )
+            pre["matching_to_previous"] = _state_matching(previous_pre_states, pre_states)
+            previous_pre_states = pre_states
+            try:
+                exchange_result = run_qse_exchange_maintenance(
+                    problem.basis,
+                    pre_indices,
+                    problem.costs,
+                    hamiltonian=problem.hamiltonian,
+                    prepared_state=problem.ground,
+                    basis_vector_policy=_Q0_POLICY,
+                    config=QSEExchangeConfig(
+                        max_rounds=int(exchange_max_rounds),
+                        target_root_count=int(target_root_count),
+                        insertion_shortlist_size=min(8, len(problem.basis)),
+                    ),
+                )
+                post_indices = [int(index) for index in exchange_result.final_indices]
+                exchange_full = exchange_maintenance_payload(exchange_result)
+                exchange = {
+                    "status": "COMPLETED",
+                    "committed_patch_count": int(exchange_full["committed_patch_count"]),
+                    "initial": dict(exchange_full["initial"]),
+                    "final": dict(exchange_full["final"]),
+                    "round_count": len(exchange_result.rounds),
+                    "committed_patches": [
+                        dict(row["committed_patch"])
+                        for row in exchange_result.rounds
+                        if row["committed_patch"] is not None
+                    ],
+                }
+            except ValueError as exc:
+                post_indices = list(pre_indices)
+                exchange = {
+                    "status": "EXCHANGE_FAILED",
+                    "error": str(exc),
+                    "committed_patch_count": 0,
+                    "round_count": 0,
+                    "committed_patches": [],
+                }
+            post, post_states = _support_reading(
+                problem,
+                post_indices,
+                target_root_count=int(target_root_count),
+                compiled_hamiltonian=compiled_hamiltonian,
+            )
+            post["matching_to_pre_exchange"] = _state_matching(pre_states, post_states)
+            selector_round = (
+                dict(selector_rounds[growth_round - 1])
+                if growth_round - 1 < len(selector_rounds)
+                else None
+            )
+            trace.append(
+                {
+                    "growth_round": int(growth_round),
+                    "selected_record": {
+                        "index": int(selected_index),
+                        "name": str(problem.basis[int(selected_index)].name),
+                        "score": decisions[int(selected_index)].get("selection_score"),
+                        "geometry": dict(decisions[int(selected_index)].get("geometry") or {}),
+                    },
+                    "selector_round": selector_round,
+                    "pre_exchange": pre,
+                    "exchange": exchange,
+                    "post_exchange": post,
+                }
+            )
+        profiles_payload[profile.profile_id] = {
+            "score_mode": profile.score_mode,
+            "additive_novelty_reward": profile.additive_novelty_reward,
+            "novelty_floor": float(profile.selector_config.geometry_min_metric_novelty),
+            "selection_config": static_record_selection_payload(selection)[
+                "selection_config"
+            ],
+            "selection_order": order,
+            "selector_stop": dict(selection.geometry_stop or {}),
+            "growth_rounds": [int(row["growth_round"]) for row in trace],
+            "trace": trace,
+        }
+    references = [float(value) for value in problem.references[: int(target_root_count)]]
+    exact_boundary_gap = (
+        float(problem.references[int(target_root_count)] - problem.references[int(target_root_count) - 1])
+        if len(problem.references) > int(target_root_count)
+        else None
+    )
+    return {
+        "schema_version": "paper_iii_qse_score_factorial_v2",
+        "policy": "diagnostic_only_selector_identity_factorial",
         "controller_boundary": {
             "feeds_controller_decisions": False,
             "controller_usable": False,
             "post_run_diagnostic_only": True,
         },
-        "target_roots": _TARGET_ROOTS,
-        "residual_stop": float(args.residual_stop),
-        "convention": "support size is an output; all arms use the same eps-stop",
-        "regimes": regimes_payload,
+        "problem": {
+            "regime": str(problem.regime),
+            "n_ph_max": int(problem.n_ph_max),
+            "pool_digest": str(problem.pool_digest),
+            "reference_key": str(problem.reference_key),
+            "pool_size": len(problem.basis),
+        },
+        "target_root_count": int(target_root_count),
+        "reference_root_energies": references,
+        "reference_ky_fan_sum": float(sum(references)),
+        "reference_gap_R_to_R_plus_1": exact_boundary_gap,
+        "requested_growth_cap": int(cap),
+        "growth_rounds": sorted(
+            {
+                int(row["growth_round"])
+                for profile_payload in profiles_payload.values()
+                for row in profile_payload["trace"]
+            }
+        ),
+        "profile_count": len(profiles_payload),
+        "profiles": profiles_payload,
     }
+
+
+def run_factorial_score_ablation_campaign(
+    problems: Sequence[PaperIIIProblem],
+    *,
+    k_max: int,
+    target_root_count: int = _TARGET_ROOTS,
+    exchange_max_rounds: int = 4,
+    regime_set: str = "custom",
+) -> dict[str, Any]:
+    """Run the locked factorial for an already materialized problem sequence."""
+
+    cases = [
+        run_factorial_score_ablation(
+            problem,
+            k_max=int(k_max),
+            target_root_count=int(target_root_count),
+            exchange_max_rounds=int(exchange_max_rounds),
+        )
+        for problem in problems
+    ]
+    return {
+        "schema_version": "paper_iii_qse_score_factorial_campaign_v1",
+        "policy": "diagnostic_only_selector_identity_factorial",
+        "regime_set": str(regime_set),
+        "settings": {
+            "k_max": int(k_max),
+            "target_root_count": int(target_root_count),
+            "exchange_max_rounds": int(exchange_max_rounds),
+        },
+        "case_count": len(cases),
+        "cases": cases,
+    }
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--regime-set", choices=sorted(REGIME_SETS), default="nph1")
+    parser.add_argument(
+        "--regimes",
+        default=None,
+        help="Comma-separated regime filter within the selected cheap-tier set.",
+    )
+    parser.add_argument("--k-max", type=int, default=8)
+    parser.add_argument("--target-root-count", type=int, default=_TARGET_ROOTS)
+    parser.add_argument("--exchange-max-rounds", type=int, default=4)
+    args = parser.parse_args(argv)
+
+    wanted = (
+        None
+        if args.regimes is None
+        else {token.strip() for token in str(args.regimes).split(",") if token.strip()}
+    )
+    specs = [
+        spec
+        for spec in REGIME_SETS[str(args.regime_set)]
+        if wanted is None or str(spec[0]) in wanted
+    ]
+    if not specs:
+        parser.error("the regime filter selected no cases")
+    problems: list[PaperIIIProblem] = []
+    for regime, u, g_ep, n_ph_max in specs:
+        problem = load_problem(
+            regime=str(regime),
+            u=float(u),
+            g_ep=float(g_ep),
+            n_ph_max=int(n_ph_max),
+            target_roots=int(args.target_root_count),
+        )
+        problems.append(problem)
+        print(
+            f"== {regime} (nph{n_ph_max}, pool={len(problem.basis)}) "
+            f"factorial=8 k_max={args.k_max}",
+            flush=True,
+        )
+
+    payload = run_factorial_score_ablation_campaign(
+        problems,
+        k_max=int(args.k_max),
+        target_root_count=int(args.target_root_count),
+        exchange_max_rounds=int(args.exchange_max_rounds),
+        regime_set=str(args.regime_set),
+    )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"\noutput_json: {args.output_json}", flush=True)
+    print(f"output_json: {args.output_json}", flush=True)
     return 0
 
 

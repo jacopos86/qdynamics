@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
@@ -17,6 +18,10 @@ from pipelines.qse_spectra.core import (
     polynomial_basis_element,
 )
 from pipelines.qse_spectra.record_selection import (
+    GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+    GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
+    GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+    GEOMETRY_SCORE_NORMALIZED_ANGULAR,
     StaticRecordSelectionConfig,
     extract_static_record_candidate,
     finalize_static_record_selection_payload,
@@ -111,6 +116,193 @@ def test_geometry_selected_qse_admits_metric_residual_direction() -> None:
     rejected = {row["original_basis_index"]: row["rejection_reasons"] for row in payload["rejected_records"]}
     assert rejected[0] == ["metric_novelty_floor"]
     assert rejected[1] == ["metric_novelty_floor"]
+
+
+def test_geometry_score_interface_defaults_to_the_locked_angular_selector() -> None:
+    hamiltonian = _poly(1, [("z", 1.0), ("x", 0.5)])
+    psi = computational_basis_state(1, "0")
+    basis = [
+        pauli_string_basis_element("X", nq=1, name="flip"),
+        pauli_string_basis_element("Y", nq=1, name="phase_flip"),
+    ]
+    context = {
+        "hamiltonian": hamiltonian,
+        "prepared_state": psi,
+        "basis_vector_policy": QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        "compiled_costs": (1.0, 1.0),
+    }
+
+    implicit = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(mode="geometry_selected", max_records=2),
+        **context,
+    )
+    explicit = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=2,
+            geometry_score_mode=GEOMETRY_SCORE_NORMALIZED_ANGULAR,
+            geometry_additive_novelty_reward=True,
+        ),
+        **context,
+    )
+
+    assert explicit.selected_original_indices == implicit.selected_original_indices
+    assert explicit.geometry_stop == implicit.geometry_stop
+    assert explicit.config.geometry_min_metric_novelty == pytest.approx(1.0e-12)
+
+    with pytest.raises(ValueError, match="geometry_score_mode"):
+        StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_score_mode="not-a-score",
+        )
+    with pytest.raises(ValueError, match="geometry_additive_novelty_reward"):
+        StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_additive_novelty_reward=1,
+        )
+
+
+def test_disabling_additive_novelty_reward_preserves_the_novelty_floor() -> None:
+    hamiltonian = _poly(1, [("z", 1.0), ("x", 0.5)])
+    psi = computational_basis_state(1, "0")
+    basis = [
+        pauli_string_basis_element("I", nq=1, name="dependent"),
+        pauli_string_basis_element("X", nq=1, name="novel"),
+    ]
+    context = {
+        "hamiltonian": hamiltonian,
+        "prepared_state": psi,
+        "basis_vector_policy": QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        "compiled_costs": (1.0, 1.0),
+    }
+    with_reward = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_additive_novelty_reward=True,
+        ),
+        **context,
+    )
+    without_reward = select_static_qse_records(
+        basis,
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_additive_novelty_reward=False,
+        ),
+        **context,
+    )
+
+    assert without_reward.selected_original_indices == (1,)
+    rejected = {
+        int(row["original_basis_index"]): list(row["rejection_reasons"])
+        for row in static_record_selection_payload(without_reward)["rejected_records"]
+    }
+    assert rejected[0] == ["metric_novelty_floor"]
+    on_score = with_reward.candidate_decisions[1]["selection_score"]
+    off_score = without_reward.candidate_decisions[1]["selection_score"]
+    assert on_score - off_score == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize(
+    "score_mode",
+    [
+        GEOMETRY_SCORE_RAW_OVERLAP_RITZ_GAIN,
+        GEOMETRY_SCORE_RESIDUALIZED_RITZ_GAIN,
+    ],
+)
+def test_two_dimensional_ritz_scores_report_the_predicted_energy_gain(
+    score_mode: str,
+) -> None:
+    # In {|0>, |1>}, H = [[0, g], [g, d]].  Both the overlap-aware raw
+    # pencil and the full-frame-residualized pencil therefore predict the
+    # literal lowering (sqrt(d^2 + 4g^2) - d) / 2.
+    d = 4.0
+    g = 0.5
+    hamiltonian = _poly(
+        1,
+        [("e", d / 2.0), ("z", -d / 2.0), ("x", g)],
+    )
+    result = select_static_qse_records(
+        [pauli_string_basis_element("X", nq=1, name="candidate")],
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_target_roots=1,
+            geometry_score_mode=score_mode,
+            geometry_additive_novelty_reward=False,
+            geometry_cost_discount_alpha=1.0,
+        ),
+        hamiltonian=hamiltonian,
+        prepared_state=computational_basis_state(1, "0"),
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        compiled_costs=(1.0,),
+    )
+
+    expected = (math.sqrt(d * d + 4.0 * g * g) - d) / 2.0
+    geometry = result.candidate_decisions[0]["geometry"]
+    assert geometry["score_mode"] == score_mode
+    assert geometry["spectral_score_raw"] == pytest.approx(expected)
+    assert geometry["spectral_score_normalized"] == pytest.approx(1.0)
+
+
+def test_full_pencil_ky_fan_oracle_uses_a_common_rank_filling_ceiling() -> None:
+    # Before the retained frame reaches R, every novel singleton raises its
+    # rank by one.  Padding missing roots by the same round-local ceiling makes
+    # the full proposed-pencil comparison select the lower Rayleigh direction
+    # without using exact-reference data.
+    low = 1.0
+    high = 10.0
+    hamiltonian = _poly(
+        2,
+        [
+            ("ee", (low + high) / 2.0),
+            ("ze", -low / 2.0),
+            ("ez", -high / 2.0),
+        ],
+    )
+    result = select_static_qse_records(
+        [
+            pauli_string_basis_element("xe", nq=2, name="low_rayleigh"),
+            pauli_string_basis_element("ex", nq=2, name="high_rayleigh"),
+        ],
+        config=StaticRecordSelectionConfig(
+            mode="geometry_selected",
+            max_records=1,
+            geometry_target_roots=1,
+            geometry_score_mode=GEOMETRY_SCORE_FULL_PENCIL_KY_FAN,
+            geometry_additive_novelty_reward=False,
+            geometry_cost_discount_alpha=1.0,
+        ),
+        hamiltonian=hamiltonian,
+        prepared_state=computational_basis_state(2, "00"),
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        compiled_costs=(1.0, 1.0),
+    )
+
+    assert result.selected_original_indices == (0,)
+    low_geometry = result.candidate_decisions[0]["geometry"]
+    high_geometry = result.candidate_decisions[1]["geometry"]
+    assert low_geometry["ky_fan_bootstrap"] is True
+    assert low_geometry["spectral_score_raw"] == pytest.approx(high - low)
+    assert high_geometry["spectral_score_raw"] == pytest.approx(0.0)
 
 
 def test_pauli_string_and_polynomial_feature_extraction() -> None:
