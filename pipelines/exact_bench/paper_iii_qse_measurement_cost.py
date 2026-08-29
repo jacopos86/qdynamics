@@ -104,20 +104,38 @@ def _polynomial_words(polynomial: Any) -> tuple[str, ...]:
 def _qwc_cover(words: Sequence[str], *, nq: int) -> int:
     """Greedy qubit-wise-commuting basis cover; returns the group count."""
 
-    groups: list[list[str]] = []
+    # Preserve the historical first-compatible greedy cover exactly, but use
+    # Python integers as group-membership bitsets.  The former implementation
+    # scanned every existing basis string for every word, which becomes
+    # quadratic at the dense nph3 word catalog and made a reporting diagnostic
+    # take tens of minutes.  ``unset[position]`` contains groups whose basis is
+    # still identity at that qubit; ``letters[letter][position]`` contains the
+    # groups already fixed to that Pauli.  Their union is precisely the set of
+    # groups compatible with one nonidentity letter.
+    width = int(nq)
+    unset = [0 for _ in range(width)]
+    letters = {letter: [0 for _ in range(width)] for letter in "xyz"}
+    group_count = 0
     for word in sorted(words, key=lambda w: (-sum(c != "e" for c in w), w)):
-        placed = False
-        for basis in groups:
-            if all(b == "e" or c == "e" or b == c for b, c in zip(basis[0], word)):
-                merged = [
-                    c if b == "e" else b for b, c in zip(basis[0], word)
-                ]
-                basis[0] = "".join(merged)
-                placed = True
+        compatible = (1 << group_count) - 1
+        for position, letter in enumerate(word):
+            if letter == "e":
+                continue
+            compatible &= unset[position] | letters[letter][position]
+            if compatible == 0:
                 break
-        if not placed:
-            groups.append([word])
-    return len(groups)
+        if compatible:
+            group_bit = compatible & -compatible
+        else:
+            group_bit = 1 << group_count
+            group_count += 1
+            for position in range(width):
+                unset[position] |= group_bit
+        for position, letter in enumerate(word):
+            if letter != "e" and unset[position] & group_bit:
+                unset[position] &= ~group_bit
+                letters[letter][position] |= group_bit
+    return int(group_count)
 
 
 def _support_cost(

@@ -382,6 +382,12 @@ def test_residualized_shortlist_matches_full_ky_fan_when_it_covers_the_pool() ->
     rounds = shortlist.geometry_stop["round_trace"]
     assert [row["screening"]["full_proposed_pencil_evaluations"] for row in rounds] == [2, 1]
     assert [row["screening"]["two_dimensional_pencil_evaluations"] for row in rounds] == [2, 1]
+    assert rounds[0]["screening"]["admissible_candidate_original_indices"] == [0, 1]
+    assert rounds[0]["screening"]["two_dimensional_candidate_original_indices"] == [0, 1]
+    assert rounds[0]["screening"]["full_proposed_pencil_candidate_original_indices"] == [0, 1]
+    assert rounds[1]["screening"]["admissible_candidate_original_indices"] == [1]
+    assert rounds[1]["screening"]["two_dimensional_candidate_original_indices"] == [1]
+    assert rounds[1]["screening"]["full_proposed_pencil_candidate_original_indices"] == [1]
 
 
 def test_pauli_string_and_polynomial_feature_extraction() -> None:

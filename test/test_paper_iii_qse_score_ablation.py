@@ -164,9 +164,12 @@ def test_runner_reports_shortlist_quality_and_full_pencil_screening_work() -> No
     ]
     assert size_one["trace"][0]["selector_round"]["screening"] == {
         "admissible_candidate_count": 2,
+        "admissible_candidate_original_indices": [0, 1],
         "angular_residual_overlap_evaluations": 0,
         "two_dimensional_pencil_evaluations": 2,
+        "two_dimensional_candidate_original_indices": [0, 1],
         "full_proposed_pencil_evaluations": 1,
+        "full_proposed_pencil_candidate_original_indices": [0],
         "full_proposed_hamiltonian_row_elements": 1,
         "ky_fan_shortlist_size_requested": 1,
         "ky_fan_shortlist_size_realized": 1,
@@ -182,6 +185,30 @@ def test_runner_reports_shortlist_quality_and_full_pencil_screening_work() -> No
         "full_proposed_pencil_evaluations": 2,
         "full_proposed_hamiltonian_row_elements": 3,
     }
+
+    first_work = size_one["trace"][0]["selection_acquisition_work"]
+    assert first_work["retained_pencil"]["pair_count"] == 0
+    assert first_work["residualized_2x2_screen"] == {
+        "candidate_original_indices": [0, 1],
+        "candidate_count": 2,
+        "candidate_compiled_K_sum": 3.0,
+        "pair_count": 2,
+        "naive_terms": 8,
+        "distinct_words": 3,
+        "qwc_groups": 1,
+    }
+    assert first_work["ky_fan_rerank"]["raw_candidate_rows"][
+        "candidate_original_indices"
+    ] == [0]
+    assert first_work["ky_fan_rerank"]["incremental_after_current_round_reuse"] == {
+        "distinct_words": 0,
+        "qwc_groups": 0,
+    }
+    assert first_work["total_with_current_round_reuse"]["distinct_words"] == 3
+    assert first_work["total_with_current_round_reuse"]["qwc_groups"] == 1
+    assert size_one["selection_acquisition_totals"]["total_with_cross_round_reuse"][
+        "distinct_words"
+    ] >= 3
 
 
 def test_campaign_runner_collects_complete_factorials_without_changing_the_cells() -> None:
@@ -205,6 +232,64 @@ def test_campaign_runner_collects_complete_factorials_without_changing_the_cells
     assert len(payload["cases"]) == 1
     assert payload["cases"][0]["profile_count"] == 8
     assert payload["cases"][0]["problem"]["regime"] == "tiny"
+
+
+def test_method_lock_campaign_uses_R_and_2R_and_prefers_the_smallest_qualified_profile() -> None:
+    payload = run_factorial_score_ablation_campaign(
+        [_tiny_problem()],
+        k_max=2,
+        target_root_count=1,
+        exchange_max_rounds=1,
+        regime_set="test",
+        method_lock=True,
+    )
+
+    assert payload["settings"]["shortlist_sizes"] == [1, 2]
+    assert payload["settings"]["method_lock"] is True
+    lock = payload["method_lock"]
+    assert lock["schema_version"] == "paper_iii_qse_method_lock_v1"
+    assert lock["oracle_profile_id"] == "full_pencil_ky_fan__novelty_reward_off"
+    assert lock["error_tolerances"] == [1.0e-2, 1.0e-4]
+    assert lock["max_growth_round_lag"] == 1
+    assert lock["recommendation"] == {
+        "status": "SHORTLIST_PROFILE_QUALIFIED",
+        "profile_id": "residualized_2x2_then_ky_fan__shortlist_1",
+        "shortlist_size": 1,
+        "rule": "prefer_m_equals_R_then_m_equals_2R",
+    }
+    assert lock["method_identity_recommendation"] == {
+        "status": "FULL_PENCIL_KY_FAN_PREFERRED",
+        "profile_id": "full_pencil_ky_fan__novelty_reward_off",
+        "reason": "SHORTLIST_HAS_NO_CANDIDATE_ROW_ACQUISITION_ADVANTAGE",
+        "shortlist_profile_id": "residualized_2x2_then_ky_fan__shortlist_1",
+    }
+    comparisons = lock["candidates"][
+        "residualized_2x2_then_ky_fan__shortlist_1"
+    ]["comparisons"]
+    assert comparisons
+    assert all(row["qualified"] for row in comparisons)
+    assert all(row["evidence_stage"] == "pre_exchange" for row in comparisons)
+
+
+def test_runner_can_validate_only_the_locked_method_identity_profile() -> None:
+    profile_id = "full_pencil_ky_fan__novelty_reward_off"
+    campaign = run_factorial_score_ablation_campaign(
+        [_tiny_problem()],
+        k_max=2,
+        target_root_count=1,
+        exchange_max_rounds=1,
+        shortlist_sizes=(2, 4, 8),
+        regime_set="test",
+        profile_ids=(profile_id,),
+    )
+    payload = campaign["cases"][0]
+
+    assert campaign["settings"]["shortlist_sizes"] == []
+    assert campaign["settings"]["profile_ids"] == [profile_id]
+    assert payload["profile_count"] == 1
+    assert list(payload["profiles"]) == [profile_id]
+    assert payload["shortlist_profile_count"] == 0
+    assert payload["shortlist_profiles"] == {}
 
 
 def test_incomplete_prefix_does_not_report_a_partial_window_as_max_root_error() -> None:

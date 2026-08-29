@@ -76,12 +76,28 @@ _ONLINE_ROUND_KEYS = frozenset(
         "window_pressure",
         "window_closed",
         "novel_candidate_count",
+        "selection_candidate_count",
+        "screening",
         "max_candidate_metric_novelty",
         "max_candidate_residual_capture",
         "selected_original_index",
         "selected_score",
         "selected_metric_novelty",
         "selected_residual_capture",
+    }
+)
+_ONLINE_SCREENING_KEYS = frozenset(
+    {
+        "admissible_candidate_count",
+        "admissible_candidate_original_indices",
+        "angular_residual_overlap_evaluations",
+        "two_dimensional_pencil_evaluations",
+        "two_dimensional_candidate_original_indices",
+        "full_proposed_pencil_evaluations",
+        "full_proposed_pencil_candidate_original_indices",
+        "full_proposed_hamiltonian_row_elements",
+        "ky_fan_shortlist_size_requested",
+        "ky_fan_shortlist_size_realized",
     }
 )
 
@@ -199,6 +215,20 @@ def assert_online_only_receipt(record_stop: Mapping[str, Any]) -> None:
             raise SwitchPolicyError(
                 f"round_trace[{index}] carries non-online keys {extra}."
             )
+        screening = row.get("screening")
+        if screening is not None:
+            if not isinstance(screening, Mapping):
+                raise SwitchPolicyError(
+                    f"round_trace[{index}].screening is not a mapping."
+                )
+            screening_extra = sorted(
+                set(map(str, screening)) - _ONLINE_SCREENING_KEYS
+            )
+            if screening_extra:
+                raise SwitchPolicyError(
+                    f"round_trace[{index}] carries non-online screening keys "
+                    f"{screening_extra}."
+                )
 
 
 def resolve_switch_point(

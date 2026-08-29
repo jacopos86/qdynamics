@@ -969,6 +969,9 @@ def _geometry_select(
             "selection_candidate_count": len(round_scores),
             "screening": {
                 "admissible_candidate_count": len(pool),
+                "admissible_candidate_original_indices": [
+                    int(index) for index in pool
+                ],
                 "angular_residual_overlap_evaluations": (
                     len(pool) * len(round_residuals)
                     if score_mode == GEOMETRY_SCORE_NORMALIZED_ANGULAR
@@ -979,7 +982,15 @@ def _geometry_select(
                     if score_mode in two_dimensional_modes
                     else 0
                 ),
+                "two_dimensional_candidate_original_indices": (
+                    [int(index) for index in pool]
+                    if score_mode in two_dimensional_modes
+                    else []
+                ),
                 "full_proposed_pencil_evaluations": len(full_pencil_indices),
+                "full_proposed_pencil_candidate_original_indices": [
+                    int(index) for index in full_pencil_indices
+                ],
                 "full_proposed_hamiltonian_row_elements": (
                     len(full_pencil_indices) * (len(accepted_units) + 1)
                 ),

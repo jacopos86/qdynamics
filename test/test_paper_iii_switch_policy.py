@@ -150,6 +150,34 @@ def test_non_online_round_keys_are_refused() -> None:
         assert_online_only_receipt(receipt)
 
 
+def test_online_screening_telemetry_is_accepted_but_nested_exact_keys_are_refused() -> None:
+    receipt = _receipt([1.0])
+    rows = list(receipt["round_trace"])
+    rows[0] = {
+        **rows[0],
+        "selection_candidate_count": 2,
+        "screening": {
+            "admissible_candidate_count": 2,
+            "admissible_candidate_original_indices": [3, 5],
+            "angular_residual_overlap_evaluations": 0,
+            "two_dimensional_pencil_evaluations": 2,
+            "two_dimensional_candidate_original_indices": [3, 5],
+            "full_proposed_pencil_evaluations": 1,
+            "full_proposed_pencil_candidate_original_indices": [3],
+            "full_proposed_hamiltonian_row_elements": 1,
+            "ky_fan_shortlist_size_requested": 1,
+            "ky_fan_shortlist_size_realized": 1,
+        },
+    }
+    receipt["round_trace"] = tuple(rows)
+
+    assert_online_only_receipt(receipt)
+
+    rows[0]["screening"]["max_root_abs_error"] = 1.0e-8
+    with pytest.raises(SwitchPolicyError, match="non-online screening keys"):
+        assert_online_only_receipt(receipt)
+
+
 # --- canonical trigger ------------------------------------------------------
 
 
