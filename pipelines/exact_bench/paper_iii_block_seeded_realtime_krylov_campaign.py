@@ -27,6 +27,7 @@ from pipelines.exact_bench.paper_iii_seeded_realtime_krylov_campaign import (
     TARGET_ROOTS,
     _all_case_ids,
     _append_window_audit,
+    _exact_sector_eigensystem,
     _git_revision,
     _load_case,
     _problem_receipt,
@@ -112,6 +113,53 @@ def _threshold_crossings(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return crossings
 
 
+def _post_run_source_coverage_audit(
+    problem: Any, run: Any
+) -> dict[str, Any]:
+    """Measure exact-root support of the fixed probes strictly after the run."""
+
+    exact_values, exact_vectors, _restricted_h = _exact_sector_eigensystem(
+        problem, run.sector_indices
+    )
+    sector_positions = {
+        int(full_index): int(position)
+        for position, full_index in enumerate(run.sector_indices)
+    }
+    labels = tuple(str(label) for label in run.source_receipt["admitted_seed_labels"])
+    source_indices = tuple(int(label.rsplit("::", 1)[1]) for label in labels)
+    source_positions = tuple(sector_positions[index] for index in source_indices)
+    excited_vectors = np.asarray(
+        exact_vectors[:, 1 : TARGET_ROOTS + 2], dtype=complex
+    )
+    weights = np.sum(
+        np.abs(excited_vectors[list(source_positions), :]) ** 2, axis=0
+    )
+    zero_floor = 1.0e-20
+    return {
+        "status": "EVALUATED",
+        "post_run_only": True,
+        "used_by_online_route": False,
+        "declared_source_computational_indices": list(source_indices),
+        "root_range": "six_targets_plus_R_plus_1",
+        "exact_excited_energies": [
+            float(value) for value in exact_values[1 : TARGET_ROOTS + 2]
+        ],
+        "source_block_overlap_weight_by_root": [
+            float(value) for value in weights
+        ],
+        "zero_weight_floor": zero_floor,
+        "target_root_indices_below_zero_weight_floor": [
+            int(index)
+            for index, value in enumerate(weights[:TARGET_ROOTS], start=1)
+            if float(value) < zero_floor
+        ],
+        "degeneracy_qualification": (
+            "individual eigenvector weights are basis-dependent inside an exact "
+            "degenerate eigenspace"
+        ),
+    }
+
+
 def _run_case(case_id: str, *, include_qiskit: bool) -> dict[str, Any]:
     family, problem, k_max = _load_case(case_id)
     started = time.monotonic()
@@ -174,6 +222,9 @@ def _run_case(case_id: str, *, include_qiskit: bool) -> dict[str, Any]:
         },
         "static_spectral_audit": _static_spectral_audit(
             problem, family, run, energy_trace
+        ),
+        "post_run_source_coverage_audit": _post_run_source_coverage_audit(
+            problem, run
         ),
         "elapsed_seconds": float(time.monotonic() - started),
     }

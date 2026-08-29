@@ -114,3 +114,7 @@ def test_single_case_campaign_records_static_audit_and_source_costs(
     assert case["reference_boundary"]["exact_excited_roots_available_to_online_route"] is False
     assert case["resource_receipt"]["source_preparation_cost_included"] is True
     assert case["static_spectral_audit"]["status"] == "EVALUATED"
+    coverage = case["post_run_source_coverage_audit"]
+    assert coverage["post_run_only"] is True
+    assert coverage["used_by_online_route"] is False
+    assert len(coverage["source_block_overlap_weight_by_root"]) == 7
