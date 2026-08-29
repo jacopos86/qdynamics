@@ -32,6 +32,7 @@ Reporting/diagnostic use only; nothing here feeds controller decisions.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,12 +41,15 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from src.quantum.siam_model import (
+    DOWN,
     DEFAULT_HOPPING,
     QUENCHED_HYBRIDIZATION,
     SIAMLayout,
+    UP,
     build_initial_state,
     build_siam_hamiltonian,
     embed_sector_vector,
+    number_operator,
     sector_indices,
     sector_vector,
 )
@@ -54,9 +58,18 @@ from src.quantum.siam_pool import build_siam_pool
 SIAM_STATIC_ADAPTER_SCHEMA_VERSION = "paper_iii_siam_static_adapter_v1"
 SIAM_SOURCE_COMMIT = "da7b26f3cd13d262407e6f373c449dedb2eb65c2"
 SIAM_MODEL_FAMILY = "siam_finite_box"
+SIAM_POOL_PHYSICAL_V1 = "siam_physical_v1"
+SIAM_POOL_GENERALIZED_SD_COMPLETION_V1 = (
+    "siam_physical_plus_generalized_singles_paired_doubles_v1"
+)
+_SIAM_POOL_POLICIES = (
+    SIAM_POOL_PHYSICAL_V1,
+    SIAM_POOL_GENERALIZED_SD_COMPLETION_V1,
+)
 
 GROUND_SOURCE_IMPORTED = "imported_interacting_ground_state_artifact"
 GROUND_SOURCE_DIAGNOSTIC = "exact_sector_diagnostic_fixture"
+GROUND_SOURCE_EXACT_BENCHMARK = "exact_sector_benchmark_seed"
 
 _SECTOR_LEAK_TOLERANCE = 1.0e-10
 _QUENCH_SEED_OVERLAP_REJECT = 1.0 - 1.0e-9
@@ -155,13 +168,23 @@ def build_siam_hamiltonian_for_key(key: SIAMPhysicsKey):
     )
 
 
-def build_siam_pool_elements(key: SIAMPhysicsKey) -> tuple[Any, ...]:
+def build_siam_pool_elements(
+    key: SIAMPhysicsKey,
+    *,
+    pool_policy_id: str = SIAM_POOL_PHYSICAL_V1,
+) -> tuple[Any, ...]:
     """The deterministic logical pool as Paper III QSE basis elements."""
 
     from pipelines.qse_spectra.core import polynomial_basis_element
 
+    policy = str(pool_policy_id)
+    if policy not in _SIAM_POOL_POLICIES:
+        raise SIAMStaticAdapterError(
+            f"unknown SIAM pool policy {policy!r}; expected one of "
+            f"{list(_SIAM_POOL_POLICIES)!r}."
+        )
     blocks = build_siam_pool(int(key.n_bath))
-    elements = tuple(
+    elements = list(
         polynomial_basis_element(
             block.operator,
             name=f"siam::{block.family}::{block.label}",
@@ -173,6 +196,73 @@ def build_siam_pool_elements(key: SIAMPhysicsKey) -> tuple[Any, ...]:
         )
         for block in blocks
     )
+    if policy == SIAM_POOL_GENERALIZED_SD_COMPLETION_V1:
+        from src.quantum.siam_pool import current_quadrature, hopping_quadrature
+
+        layout = SIAMLayout(int(key.n_bath))
+        pairs_by_spin: dict[str, list[tuple[int, int, Any, Any]]] = {}
+        for spin in (UP, DOWN):
+            modes = [layout.impurity(spin)] + [
+                layout.bath(site, spin) for site in range(1, int(key.n_bath) + 1)
+            ]
+            for mode in modes:
+                elements.append(
+                    polynomial_basis_element(
+                        number_operator(layout, mode),
+                        name=f"siam::N1::{spin}::{mode}",
+                        metadata={"family": "N1", "completion_policy": policy},
+                    )
+                )
+            pairs: list[tuple[int, int, Any, Any]] = []
+            for left, right in itertools.combinations(modes, 2):
+                hop = hopping_quadrature(layout, left, right)
+                current = current_quadrature(layout, left, right)
+                pairs.append((left, right, hop, current))
+                elements.extend(
+                    (
+                        polynomial_basis_element(
+                            hop,
+                            name=f"siam::K1::{spin}::{left}_{right}",
+                            metadata={"family": "K1", "completion_policy": policy},
+                        ),
+                        polynomial_basis_element(
+                            current,
+                            name=f"siam::J1::{spin}::{left}_{right}",
+                            metadata={"family": "J1", "completion_policy": policy},
+                        ),
+                    )
+                )
+            pairs_by_spin[spin] = pairs
+        for up_index, (_ul, _ur, up_hop, up_current) in enumerate(
+            pairs_by_spin[UP]
+        ):
+            for down_index, (_dl, _dr, down_hop, down_current) in enumerate(
+                pairs_by_spin[DOWN]
+            ):
+                elements.append(
+                    polynomial_basis_element(
+                        up_hop * down_hop,
+                        name=f"siam::KK2::{up_index}::{down_index}",
+                        metadata={"family": "KK2", "completion_policy": policy},
+                    )
+                )
+                if up_index == down_index:
+                    for family, polynomial in (
+                        ("KJ2", up_hop * down_current),
+                        ("JK2", up_current * down_hop),
+                        ("JJ2", up_current * down_current),
+                    ):
+                        elements.append(
+                            polynomial_basis_element(
+                                polynomial,
+                                name=f"siam::{family}::{up_index}",
+                                metadata={
+                                    "family": family,
+                                    "completion_policy": policy,
+                                },
+                            )
+                        )
+    elements = tuple(elements)
     names = [str(element.name) for element in elements]
     if len(set(names)) != len(names):  # pragma: no cover - pool labels are unique
         raise SIAMStaticAdapterError("SIAM pool element names are not unique.")
@@ -334,6 +424,31 @@ def exact_sector_ground_fixture(key: SIAMPhysicsKey) -> tuple[np.ndarray, dict[s
     return ground, provenance
 
 
+def exact_sector_ground_benchmark(
+    key: SIAMPhysicsKey,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Exact interacting seed for a paper-facing QSE-isolation benchmark.
+
+    This is the same benchmark boundary used by the Hubbard--Holstein matrix:
+    exact preparation removes ground-state optimizer error from the comparison,
+    while every selected support, stopping decision, and certification remains
+    independent of the exact excited-state references.
+    """
+
+    ground, energies = siam_sector_spectrum(key, count=1)
+    provenance = {
+        "ground_source": GROUND_SOURCE_EXACT_BENCHMARK,
+        "diagnostic_only": False,
+        "paper_facing": True,
+        "benchmark_scope": "isolates_static_qse",
+        "uses_exact_excited_state_information_online": False,
+        "state_payload_sha256": state_payload_sha256(ground),
+        "physics_digest": key.digest(),
+        "ground_energy": float(energies[0]),
+    }
+    return ground, provenance
+
+
 # ---------------------------------------------------------------------------
 # Assembled static problem
 # ---------------------------------------------------------------------------
@@ -352,6 +467,7 @@ class SIAMStaticProblem:
     ground_provenance: dict[str, Any]
     spectrum: tuple[float, ...]
     pool_digest: str
+    pool_policy_id: str
 
     @property
     def num_qubits(self) -> int:
@@ -371,12 +487,54 @@ class SIAMStaticProblem:
         one = float(sum(self.resources[int(i)]["c_hat_1q"] for i in indices))
         return {"n2q": n2q, "d2q": d2q, "dc": d2q + one}
 
+    def estimator_cost(self, indices: Sequence[int]) -> dict[str, int]:
+        """QWC measurement-setting count for the selected SIAM pencil."""
+
+        from pipelines.exact_bench.paper_iii_qse_measurement_cost import (
+            _element_words,
+            _polynomial_words,
+            _qwc_cover,
+            _word_product,
+        )
+
+        nq = int(self.num_qubits)
+        ordered = [int(index) for index in indices]
+        ham_words = _polynomial_words(self.hamiltonian)
+        words = {
+            index: _element_words(self.basis[index], nq=nq) for index in ordered
+        }
+        overlap: set[str] = set()
+        hamiltonian_words: set[str] = set()
+        naive = 0
+        for position, left in enumerate(ordered):
+            for right in ordered[position:]:
+                products = {
+                    _word_product(a, b) for a in words[left] for b in words[right]
+                }
+                overlap |= products
+                naive += len(products)
+                h_products = {
+                    _word_product(product, h)
+                    for product in products
+                    for h in ham_words
+                }
+                hamiltonian_words |= h_products
+                naive += len(h_products)
+        all_words = overlap | hamiltonian_words
+        return {
+            "pair_count": len(ordered) * (len(ordered) + 1) // 2,
+            "naive_terms": int(naive),
+            "distinct_words": len(all_words),
+            "qwc_groups": _qwc_cover(sorted(all_words), nq=nq),
+        }
+
     def arm_receipt(self) -> dict[str, Any]:
         return {
             "model_family": SIAM_MODEL_FAMILY,
             "case_id": str(self.key.case_id),
             "physics_digest": self.key.digest(),
             "pool_digest": self.pool_digest,
+            "pool_policy_id": str(self.pool_policy_id),
             "pool_size": len(self.basis),
             "num_qubits": int(self.key.n_qubits),
             "ground_source": str(self.ground_provenance.get("ground_source")),
@@ -391,6 +549,8 @@ def load_siam_problem(
     *,
     ground_state_manifest: Path | None = None,
     allow_exact_diagnostic_fixture: bool = False,
+    allow_exact_benchmark_seed: bool = False,
+    pool_policy_id: str = SIAM_POOL_PHYSICAL_V1,
     target_roots: int = 6,
 ) -> SIAMStaticProblem:
     """Assemble one SIAM static-spectroscopy problem.
@@ -408,10 +568,24 @@ def load_siam_problem(
     from pipelines.qse_spectra.paper_iii_problem import assert_uniform_granularity
 
     key = siam_physics_key(case_id)
+    choices = sum(
+        (
+            ground_state_manifest is not None,
+            bool(allow_exact_diagnostic_fixture),
+            bool(allow_exact_benchmark_seed),
+        )
+    )
+    if choices > 1:
+        raise SIAMStaticAdapterError(
+            "ground-state artifact, diagnostic fixture, and exact benchmark "
+            "seed are mutually exclusive."
+        )
     if ground_state_manifest is not None:
         ground, ground_provenance = load_imported_ground_state(
             key, Path(ground_state_manifest)
         )
+    elif allow_exact_benchmark_seed:
+        ground, ground_provenance = exact_sector_ground_benchmark(key)
     elif allow_exact_diagnostic_fixture:
         ground, ground_provenance = exact_sector_ground_fixture(key)
     else:
@@ -422,7 +596,7 @@ def load_siam_problem(
         )
 
     hamiltonian = build_siam_hamiltonian_for_key(key)
-    basis = build_siam_pool_elements(key)
+    basis = build_siam_pool_elements(key, pool_policy_id=str(pool_policy_id))
     assert_uniform_granularity(basis)
 
     rows = annotate_basis_with_compiled_costs(
@@ -455,6 +629,7 @@ def load_siam_problem(
         ground_provenance=dict(ground_provenance),
         spectrum=spectrum,
         pool_digest=ordered_pool_digest(basis),
+        pool_policy_id=str(pool_policy_id),
     )
 
 
@@ -609,17 +784,21 @@ def graph_span_compiled_cost_receipt(
 
 __all__ = [
     "GROUND_SOURCE_DIAGNOSTIC",
+    "GROUND_SOURCE_EXACT_BENCHMARK",
     "GROUND_SOURCE_IMPORTED",
     "SIAMPhysicsKey",
     "SIAMStaticAdapterError",
     "SIAMStaticProblem",
     "SIAM_MODEL_FAMILY",
+    "SIAM_POOL_GENERALIZED_SD_COMPLETION_V1",
+    "SIAM_POOL_PHYSICAL_V1",
     "SIAM_SOURCE_COMMIT",
     "SIAM_STATIC_ADAPTER_SCHEMA_VERSION",
     "build_siam_hamiltonian_for_key",
     "build_siam_pool_elements",
     "declared_siam_cases",
     "exact_sector_ground_fixture",
+    "exact_sector_ground_benchmark",
     "graph_span_compiled_cost_receipt",
     "load_imported_ground_state",
     "load_siam_problem",

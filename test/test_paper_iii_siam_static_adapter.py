@@ -9,8 +9,11 @@ import numpy as np
 import pytest
 
 from pipelines.qse_spectra.siam_static_adapter import (
+    GROUND_SOURCE_EXACT_BENCHMARK,
     GROUND_SOURCE_DIAGNOSTIC,
     GROUND_SOURCE_IMPORTED,
+    SIAM_POOL_GENERALIZED_SD_COMPLETION_V1,
+    SIAM_POOL_PHYSICAL_V1,
     SIAMStaticAdapterError,
     build_siam_hamiltonian_for_key,
     build_siam_pool_elements,
@@ -83,6 +86,26 @@ def test_pool_elements_are_deterministic_and_labeled() -> None:
     )
     families = {str((e.metadata or {}).get("family")) for e in elements}
     assert families == {"K", "J", "Qd", "A", "X", "P"}
+
+
+def test_generalized_completion_pool_is_declared_and_deterministic() -> None:
+    key = siam_physics_key("siam_nb4_pilot")
+    physical = build_siam_pool_elements(key)
+    completed = build_siam_pool_elements(
+        key, pool_policy_id=SIAM_POOL_GENERALIZED_SD_COMPLETION_V1
+    )
+    assert len(physical) == 24
+    assert len(completed) == 204
+    assert tuple(element.name for element in completed[: len(physical)]) == tuple(
+        element.name for element in physical
+    )
+    assert ordered_pool_digest(completed) == ordered_pool_digest(
+        build_siam_pool_elements(
+            key, pool_policy_id=SIAM_POOL_GENERALIZED_SD_COMPLETION_V1
+        )
+    )
+    with pytest.raises(SIAMStaticAdapterError, match="unknown SIAM pool policy"):
+        build_siam_pool_elements(key, pool_policy_id="undeclared_pool")
 
 
 def test_spectroscopy_hamiltonian_is_the_interacting_one() -> None:
@@ -179,6 +202,57 @@ def test_problem_assembly_from_diagnostic_fixture() -> None:
     triple = problem.resource_triple([0, 1])
     assert set(triple) == {"n2q", "d2q", "dc"}
     assert triple["dc"] >= triple["d2q"]
+
+
+def test_problem_assembly_from_exact_benchmark_seed_is_paper_facing() -> None:
+    problem = load_siam_problem(
+        "siam_nb2_fixture", allow_exact_benchmark_seed=True, target_roots=6
+    )
+    receipt = problem.arm_receipt()
+    assert receipt["ground_source"] == GROUND_SOURCE_EXACT_BENCHMARK
+    assert receipt["diagnostic_only"] is False
+    assert problem.ground_provenance["paper_facing"] is True
+    assert problem.ground_provenance["benchmark_scope"] == "isolates_static_qse"
+    estimator = problem.estimator_cost([0, 1])
+    assert estimator["pair_count"] == 3
+    assert estimator["qwc_groups"] > 0
+
+
+def test_nb4_completion_pool_spans_the_six_root_window() -> None:
+    from pipelines.qse_spectra.core import QSEBasisVectorPolicy, compute_qse_spectra
+
+    problem = load_siam_problem(
+        "siam_nb4_pilot",
+        allow_exact_benchmark_seed=True,
+        pool_policy_id=SIAM_POOL_GENERALIZED_SD_COMPLETION_V1,
+        target_roots=6,
+    )
+    result = compute_qse_spectra(
+        problem.hamiltonian,
+        problem.ground,
+        problem.basis,
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0", basis_vector_normalization="raw_projected"
+        ),
+    )
+    errors = np.abs(
+        np.asarray(result.eigenvalues[:6]) - np.asarray(problem.references)
+    )
+    assert problem.pool_policy_id == SIAM_POOL_GENERALIZED_SD_COMPLETION_V1
+    assert problem.arm_receipt()["pool_policy_id"] == (
+        SIAM_POOL_GENERALIZED_SD_COMPLETION_V1
+    )
+    assert int(result.retained_rank) >= 90
+    assert float(np.max(errors)) < 1.0e-6
+
+
+def test_exact_benchmark_and_diagnostic_seed_flags_are_mutually_exclusive() -> None:
+    with pytest.raises(SIAMStaticAdapterError, match="mutually exclusive"):
+        load_siam_problem(
+            "siam_nb2_fixture",
+            allow_exact_benchmark_seed=True,
+            allow_exact_diagnostic_fixture=True,
+        )
 
 
 def test_cost_receipt_with_injected_compiled_counts() -> None:
