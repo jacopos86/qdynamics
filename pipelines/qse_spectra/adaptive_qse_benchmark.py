@@ -333,6 +333,7 @@ def run_adaptive_qse_benchmark(
     qse_config: QSEPruningConfig | None = None,
     direction_resources: Mapping[str, Any] | None = None,
     costing_convention: str = DEFAULT_COSTING_CONVENTION,
+    return_final_ritz_vectors: bool = False,
 ) -> dict[str, Any]:
     """Run standard adaptive QSE/quantum Davidson and return an audit dict.
 
@@ -529,7 +530,7 @@ def run_adaptive_qse_benchmark(
     if final_result is None:
         raise RuntimeError("adaptive-QSE solve produced no iterations.")
     final_resources = dict(charged_resources)
-    return {
+    payload = {
         "schema_version": ADAPTIVE_QSE_BENCHMARK_SCHEMA_VERSION,
         "method": "standard_adaptive_qse_quantum_davidson",
         "construction_family": "residual_synthesized_after_declared_seed_frame",
@@ -575,6 +576,9 @@ def run_adaptive_qse_benchmark(
         "resources": final_resources,
         "stop_reason": str(stop_reason),
     }
+    if return_final_ritz_vectors:
+        payload["final_ritz_vectors"] = np.asarray(ritz_vectors, dtype=complex)
+    return payload
 
 
 __all__ = [

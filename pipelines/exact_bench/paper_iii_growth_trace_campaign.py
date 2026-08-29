@@ -215,6 +215,7 @@ def _trace_direct_davidson(
     k_max: int,
     target_root_count: int = _TARGET_ROOTS,
     require_completion_metadata: bool,
+    include_terminal_ritz_vectors: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Growth trace for the external adaptive-QSE (quantum Davidson) arm.
 
@@ -269,6 +270,9 @@ def _trace_direct_davidson(
         "d2q": float(est.c_hat_d),
         "dc": float(est.c_hat_d) + float(est.c_hat_1q),
     }
+    adaptive_kwargs: dict[str, Any] = {}
+    if include_terminal_ritz_vectors:
+        adaptive_kwargs["return_final_ritz_vectors"] = True
     audit = run_adaptive_qse_benchmark(
         problem.hamiltonian,
         problem.ground,
@@ -280,6 +284,7 @@ def _trace_direct_davidson(
         seed_elements=seed,
         seed_direction_resources=seed_direction_resources,
         direction_resources=per_direction,
+        **adaptive_kwargs,
     )
     seed_rows = list(audit["seed_policy"]["seed_rows"])
     evaluated_directions = tuple(start.seed_directions[: len(seed_rows)])
@@ -423,6 +428,10 @@ def _trace_direct_davidson(
         "initialization_receipt": initialization_receipt,
         "costing": dict(audit["costing"]),
     }
+    if include_terminal_ritz_vectors:
+        completion["terminal_ritz_vectors"] = np.asarray(
+            audit["final_ritz_vectors"], dtype=complex
+        )
     return rows, completion
 
 
@@ -431,6 +440,7 @@ def trace_direct_davidson_with_completion(
     *,
     k_max: int,
     target_root_count: int = _TARGET_ROOTS,
+    include_terminal_ritz_vectors: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Return direct-Davidson trace rows and its required terminal receipt."""
 
@@ -439,6 +449,7 @@ def trace_direct_davidson_with_completion(
         k_max=k_max,
         target_root_count=target_root_count,
         require_completion_metadata=True,
+        include_terminal_ritz_vectors=include_terminal_ritz_vectors,
     )
 
 

@@ -35,6 +35,29 @@ def test_random_hermitian_converges_to_exact_lowest_roots() -> None:
     assert result["iterations"][-1]["max_root_residual"] <= 1.0e-11
 
 
+def test_terminal_ritz_vectors_are_opt_in_and_match_reported_roots() -> None:
+    hamiltonian = np.diag([0.0, 1.0, 2.0, 3.0])
+    prepared = np.ones(4, dtype=complex) / 2.0
+    result = run_adaptive_qse_benchmark(
+        hamiltonian,
+        prepared,
+        target_roots=2,
+        eps_residual=1.0e-12,
+        max_dimension=4,
+        return_final_ritz_vectors=True,
+    )
+    vectors = np.asarray(result["final_ritz_vectors"], dtype=complex)
+    assert vectors.shape[0] == 4
+    assert vectors.shape[1] >= len(result["root_energies"])
+    assert vectors.conj().T @ vectors == pytest.approx(
+        np.eye(vectors.shape[1]), abs=1.0e-11
+    )
+    for root, energy in enumerate(result["root_energies"]):
+        assert float(np.vdot(vectors[:, root], hamiltonian @ vectors[:, root]).real) == pytest.approx(
+            float(energy), abs=1.0e-11
+        )
+
+
 def test_preconditioner_guard_is_finite_at_zero_denominator() -> None:
     diagonal = np.asarray([0.0, 1.0, 2.0])
     residual = np.asarray([1.0 + 2.0j, -3.0, 4.0])
