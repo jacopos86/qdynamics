@@ -178,6 +178,57 @@ def _threshold_crossings(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def _threshold_crossings_with_offline_costs(
+    problem: Any,
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    include_qiskit: bool,
+    direct: bool,
+) -> dict[str, Any]:
+    """Attach estimator and Qiskit coordinates at every matched-error rung."""
+
+    crossings = _threshold_crossings(rows)
+    record_compile_cache: dict[tuple[int, ...], dict[str, Any]] = {}
+    direct_compile_cache: dict[int, dict[str, Any]] = {}
+    for crossing in crossings.values():
+        if crossing["status"] != "REACHED":
+            continue
+        row = next(
+            trace_row
+            for trace_row in rows
+            if int(trace_row["k"]) == int(crossing["k"])
+        )
+        if direct:
+            estimator = dict(row["estimator"])
+            if include_qiskit:
+                count = int(row["synthesized_direction_count"])
+                if count not in direct_compile_cache:
+                    direct_compile_cache[count] = _direct_qiskit_cost(problem, row)
+                qiskit = dict(direct_compile_cache[count])
+            else:
+                qiskit = {"status": "NOT_REQUESTED"}
+        else:
+            support = tuple(int(index) for index in row["support_indices"])
+            estimator = dict(problem.estimator_cost(support))
+            estimator["queries"] = int(estimator["qwc_groups"])
+            estimator["convention"] = "record_pencil_qwc_basis_cover"
+            if include_qiskit:
+                if support not in record_compile_cache:
+                    record_compile_cache[support] = _record_qiskit_cost(
+                        problem, support
+                    )
+                qiskit = {
+                    key: value
+                    for key, value in record_compile_cache[support].items()
+                    if key != "records"
+                }
+            else:
+                qiskit = {"status": "NOT_REQUESTED"}
+        crossing["estimator"] = estimator
+        crossing["qiskit_compiled"] = qiskit
+    return crossings
+
+
 def _structural_compile_elements(elements: Sequence[Any]) -> tuple[Any, ...]:
     """Real-coefficient Pauli-product surrogates for structural compilation.
 
@@ -596,7 +647,12 @@ def _run_case(
                 "selection": _compact_selection_receipt(selection),
                 "completion": selected_completion,
                 "trace": selected_rows,
-                "threshold_crossings": _threshold_crossings(selected_rows),
+                "threshold_crossings": _threshold_crossings_with_offline_costs(
+                    problem,
+                    selected_rows,
+                    include_qiskit=include_qiskit,
+                    direct=False,
+                ),
                 "terminal_support_indices": selected_support,
                 "resources": _resource_payload(
                     problem,
@@ -612,7 +668,12 @@ def _run_case(
                 "method_id": "direct_davidson_qse",
                 "completion": direct_completion,
                 "trace": direct_rows,
-                "threshold_crossings": _threshold_crossings(direct_rows),
+                "threshold_crossings": _threshold_crossings_with_offline_costs(
+                    problem,
+                    direct_rows,
+                    include_qiskit=include_qiskit,
+                    direct=True,
+                ),
                 "resources": _resource_payload(
                     problem,
                     direct_terminal,
@@ -632,7 +693,12 @@ def _run_case(
                     "terminal_support_size": len(fixed_indices),
                 },
                 "trace": fixed_rows,
-                "threshold_crossings": _threshold_crossings(fixed_rows),
+                "threshold_crossings": _threshold_crossings_with_offline_costs(
+                    problem,
+                    fixed_rows,
+                    include_qiskit=include_qiskit,
+                    direct=False,
+                ),
                 "terminal_support_indices": fixed_indices,
                 "resources": _resource_payload(
                     problem,

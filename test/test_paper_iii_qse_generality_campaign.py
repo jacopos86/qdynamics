@@ -54,6 +54,14 @@ def test_one_case_campaign_uses_locked_routes_and_emits_resource_axes() -> None:
         assert route["resources"]["qiskit_compiled"]["status"] == "NOT_REQUESTED"
         assert route["resources"]["estimator"]["queries"] > 0
         assert route["static_spectral_audit"]["status"] == "EVALUATED"
+        reached = [
+            crossing
+            for crossing in route["threshold_crossings"].values()
+            if crossing["status"] == "REACHED"
+        ]
+        for crossing in reached:
+            assert crossing["estimator"]["queries"] > 0
+            assert crossing["qiskit_compiled"]["status"] == "NOT_REQUESTED"
     assert "terminal_ritz_vectors" not in case["routes"]["direct_davidson"]["completion"]
 
 
