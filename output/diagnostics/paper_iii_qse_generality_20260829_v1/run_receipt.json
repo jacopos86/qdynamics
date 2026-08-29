@@ -1,0 +1,13 @@
+{
+  "campaign_id": "paper_iii_qse_generality_20260829_v1",
+  "case_ids": [
+    "peierls_weak_weak",
+    "peierls_weak_strong",
+    "peierls_u8_weak",
+    "siam_nb4_pilot"
+  ],
+  "output_json": "output/diagnostics/paper_iii_qse_generality_20260829_v1/generality_evidence.json",
+  "output_sha256": "50572d7cdb4bdc003e44329d2e689f975f76ce1099aa075b8fb43820ffd230ef",
+  "schema_version": "paper_iii_qse_generality_run_receipt_v1",
+  "source_revision": "7245d26eabb0435fe42bd2742e9e33c91a70f3f3"
+}
