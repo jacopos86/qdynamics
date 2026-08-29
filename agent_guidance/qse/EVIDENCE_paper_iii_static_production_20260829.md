@@ -1,5 +1,11 @@
 # Paper III static-QSE production evidence — 2026-08-29
 
+> **Superseded historical snapshot.** The current numerical authority is
+> `agent_guidance/qse/EVIDENCE_paper_iii_static_source_anchor_20260829.md` and
+> `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/`.
+> The three-page hashes below are retained only as provenance for the earlier
+> Hubbard--Holstein-only report.
+
 ## Status
 
 The static and frequency-domain Paper III result package is complete for the
