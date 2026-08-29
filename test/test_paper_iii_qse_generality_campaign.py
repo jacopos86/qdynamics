@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from pipelines.exact_bench.paper_iii_qse_generality_campaign import run_campaign
+from pipelines.exact_bench.paper_iii_qse_generality_campaign import (
+    _spectral_comparison,
+    run_campaign,
+)
 from pipelines.qse_spectra.peierls_static_adapter import (
     PEIERLS_POOL_POLICY_ID,
     PeierlsStaticAdapterError,
@@ -52,3 +55,15 @@ def test_one_case_campaign_uses_locked_routes_and_emits_resource_axes() -> None:
         assert route["resources"]["estimator"]["queries"] > 0
         assert route["static_spectral_audit"]["status"] == "EVALUATED"
     assert "terminal_ritz_vectors" not in case["routes"]["direct_davidson"]["completion"]
+
+
+def test_zero_reference_spectrum_is_not_ratio_normalized() -> None:
+    comparison = _spectral_comparison(
+        exact_energies=[1.0],
+        exact_strengths=[0.0],
+        approximate_energies=[1.0],
+        approximate_strengths=[0.25],
+    )
+    assert comparison["comparison_status"] == "ZERO_REFERENCE_WEIGHT"
+    assert comparison["normalized_l1_error"] is None
+    assert comparison["absolute_l1_error"] > 0.0

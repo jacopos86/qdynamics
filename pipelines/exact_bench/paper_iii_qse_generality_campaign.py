@@ -362,16 +362,25 @@ def _spectral_comparison(
     approximate = _broadened_spectrum(
         omega, approximate_energies, approximate_strengths
     )
-    normalization = max(float(np.trapezoid(np.abs(exact), omega)), 1.0e-15)
+    reference_weight = float(np.trapezoid(np.abs(exact), omega))
+    absolute_l1_error = float(np.trapezoid(np.abs(approximate - exact), omega))
+    normalized_l1_error = (
+        None if reference_weight <= 1.0e-12 else absolute_l1_error / reference_weight
+    )
     return {
+        "comparison_status": (
+            "ZERO_REFERENCE_WEIGHT"
+            if normalized_l1_error is None
+            else "NORMALIZED_L1_EVALUATED"
+        ),
         "kernel": "lorentzian",
         "eta": SPECTRAL_ETA,
         "grid_points": SPECTRAL_GRID_POINTS,
         "omega_min": 0.0,
         "omega_max": float(upper),
-        "normalized_l1_error": float(
-            np.trapezoid(np.abs(approximate - exact), omega) / normalization
-        ),
+        "absolute_l1_error": absolute_l1_error,
+        "normalized_l1_error": normalized_l1_error,
+        "integrated_absolute_reference_weight": reference_weight,
         "integrated_exact_weight": float(np.trapezoid(exact, omega)),
         "integrated_approximate_weight": float(np.trapezoid(approximate, omega)),
     }
