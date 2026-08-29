@@ -180,7 +180,13 @@ def test_trace_respects_the_online_policy_boundaries(executed_chain: dict) -> No
     # Exact data is absent from online-selection inputs: the selector receipt
     # carries only the acquisition order and the record-stop reason.
     receipt = payload["selection_receipt"]
-    assert set(receipt) == {"acquisition_order", "record_stop", "residual_marker"}
+    assert set(receipt) == {
+        "acquisition_order",
+        "record_stop",
+        "residual_marker",
+        "selector_policy_id",
+    }
+    assert receipt["selector_policy_id"].startswith("full_pencil_ky_fan")
     assert payload["trigger"] is None
     completion = payload["algorithm_completion"]
     assert payload["terminal_status"] == completion["terminal_status"]

@@ -84,7 +84,9 @@ _QUARANTINED_METHOD_IDS = {
 # Construction policies are scientific method identity, not incidental run
 # settings.  A policy change must update this map and therefore produces new
 # cell/action digests instead of reinterpreting an append-only ledger entry.
-CONSTRUCTION_SELECTED_QSE_FIXED_POOL = "selected_qse_fixed_pool_v1"
+CONSTRUCTION_SELECTED_QSE_FIXED_POOL = (
+    "selected_qse_fixed_pool_full_pencil_ky_fan_v2"
+)
 CONSTRUCTION_DIRECT_DAVIDSON = (
     "direct_davidson_fixed_lr_plus_r_plus_1_low_diagonal_sector_v1"
 )

@@ -60,6 +60,10 @@ from pipelines.qse_spectra.static_campaign_artifacts import (
 )
 from pipelines.qse_spectra.static_campaign_package import ACTION_FILE_SCHEMA_VERSION
 from pipelines.qse_spectra.method_completion import STATUS_TARGET_WINDOW_CERTIFIED
+from pipelines.qse_spectra.selection_policy import (
+    PAPER_III_LOCKED_SELECTOR_POLICY_ID,
+    locked_paper_iii_selection_config,
+)
 
 TRACE_SCHEMA_VERSION = "paper_iii_static_qse_trace_v2"
 # Declared ablation: the same construction under a non-canonical switch
@@ -423,20 +427,15 @@ def _stage_static_qse_trace(
     algorithm_completion: dict[str, Any] | None = None
 
     if method in (METHOD_RECORD_FIRST, METHOD_EARLY_SWITCH):
-        from pipelines.qse_spectra.record_selection import (
-            StaticRecordSelectionConfig,
-            select_static_qse_records,
-        )
+        from pipelines.qse_spectra.record_selection import select_static_qse_records
         from pipelines.qse_spectra.switch_policy import resolve_switch_point
 
         marker = select_static_qse_records(
             problem.basis,
-            config=StaticRecordSelectionConfig(
-                mode="geometry_selected",
+            config=locked_paper_iii_selection_config(
                 max_records=len(problem.basis),
-                geometry_target_roots=len(cell.target_roots),
-                geometry_cost_discount_alpha=1.0,
-                geometry_residual_stop=growth.RESIDUAL_MARKER,
+                target_root_count=len(cell.target_roots),
+                residual_stop=growth.RESIDUAL_MARKER,
             ),
             hamiltonian=problem.hamiltonian,
             prepared_state=problem.ground,
@@ -484,6 +483,7 @@ def _stage_static_qse_trace(
             "acquisition_order": order,
             "record_stop": receipt,
             "residual_marker": float(growth.RESIDUAL_MARKER),
+            "selector_policy_id": PAPER_III_LOCKED_SELECTOR_POLICY_ID,
         }
     elif method == METHOD_DIRECT_DAVIDSON:
         rows = growth.trace_adaptive_qse(
@@ -531,6 +531,11 @@ def _stage_static_qse_trace(
         "target_roots": [int(r) for r in cell.target_roots],
         "dimension_cap": cap,
         "construction_policy_id": str(cell.construction_policy_id),
+        "selector_policy_id": (
+            PAPER_III_LOCKED_SELECTOR_POLICY_ID
+            if method in (METHOD_RECORD_FIRST, METHOD_EARLY_SWITCH)
+            else None
+        ),
         "stride": stride,
         "reference_ground_energy": float(problem.ground_energy),
         "reference_excitations": [float(x) for x in problem.references],
@@ -544,6 +549,11 @@ def _stage_static_qse_trace(
         "stride": stride,
         "pool_digest": str(problem.pool_digest),
         "construction_policy_id": str(cell.construction_policy_id),
+        "selector_policy_id": (
+            PAPER_III_LOCKED_SELECTOR_POLICY_ID
+            if method in (METHOD_RECORD_FIRST, METHOD_EARLY_SWITCH)
+            else None
+        ),
     }
     return payload, inputs, settings
 

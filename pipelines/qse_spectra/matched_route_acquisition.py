@@ -28,6 +28,10 @@ from pipelines.qse_spectra.static_campaign import (
     METHOD_DIRECT_DAVIDSON as _METHOD_DIRECT_DAVIDSON,
     METHOD_RECORD_FIRST,
 )
+from pipelines.qse_spectra.selection_policy import (
+    PAPER_III_LOCKED_SELECTOR_POLICY_ID,
+    locked_paper_iii_selection_config,
+)
 
 
 PROFILE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_profile_v1"
@@ -86,6 +90,7 @@ _SOURCE_PATHS = (
     "pipelines/qse_spectra/method_completion.py",
     "pipelines/qse_spectra/paper_iii_problem.py",
     "pipelines/qse_spectra/record_selection.py",
+    "pipelines/qse_spectra/selection_policy.py",
 )
 _ONLINE_FORBIDDEN_KEYS = {
     "max_root_abs_error",
@@ -192,6 +197,7 @@ class MatchedHHProfile:
     trace_stride: int
     error_targets: tuple[float, ...]
     resource_policy_id: str
+    selector_policy_id: str
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -208,6 +214,7 @@ class MatchedHHProfile:
             "trace_stride": int(self.trace_stride),
             "error_targets": [float(target) for target in self.error_targets],
             "resource_policy_id": str(self.resource_policy_id),
+            "selector_policy_id": str(self.selector_policy_id),
             "primary_cost_axis": "n2q",
             "controller_boundary": {
                 "exact_audit_is_post_run_only": True,
@@ -237,7 +244,7 @@ def locked_hh_profile() -> MatchedHHProfile:
         for regime, u, g_ep in HH_REGIMES
     )
     return MatchedHHProfile(
-        profile_id="paper_iii_selected_vs_direct_hh_20260828_v1",
+        profile_id="paper_iii_selected_vs_direct_hh_20260828_v2",
         cases=cases,
         methods=LOCKED_METHODS,
         target_roots=tuple(range(1, 7)),
@@ -247,6 +254,7 @@ def locked_hh_profile() -> MatchedHHProfile:
         resource_policy_id=(
             "graph_span_two_qubit_only_v1_plus_pencil_estimator_v1"
         ),
+        selector_policy_id=PAPER_III_LOCKED_SELECTOR_POLICY_ID,
     )
 
 
@@ -594,6 +602,7 @@ def _build_route_artifact(
         "dimension_cap": int(profile.dimension_cap),
         "trace_stride": int(profile.trace_stride),
         "resource_policy_id": str(profile.resource_policy_id),
+        "selector_policy_id": str(profile.selector_policy_id),
         "pool_digest": str(result.pool_digest),
         "rows": online_rows,
         "completion": completion,
@@ -675,6 +684,8 @@ def _validate_route_artifact(
         raise MatchedRouteAcquisitionError("route construction-policy drift.")
     if online.get("target_roots") != list(profile.target_roots):
         raise MatchedRouteAcquisitionError("PAIR_IDENTITY_MISMATCH: target-root drift.")
+    if online.get("selector_policy_id") != profile.selector_policy_id:
+        raise MatchedRouteAcquisitionError("PAIR_IDENTITY_MISMATCH: selector-policy drift.")
     rows = _validate_online_rows(online.get("rows"), method_id=method_id)
     completion = online.get("completion")
     if not isinstance(completion, Mapping) or not bool(completion.get("online_only")):
@@ -1280,19 +1291,14 @@ class LocalScientificRouteExecutor:
         problem = self._problem(case, profile)
         started = time.monotonic()
         if method_id == METHOD_SELECTED_QSE:
-            from pipelines.qse_spectra.record_selection import (
-                StaticRecordSelectionConfig,
-                select_static_qse_records,
-            )
+            from pipelines.qse_spectra.record_selection import select_static_qse_records
 
             marker = select_static_qse_records(
                 problem.basis,
-                config=StaticRecordSelectionConfig(
-                    mode="geometry_selected",
+                config=locked_paper_iii_selection_config(
                     max_records=len(problem.basis),
-                    geometry_target_roots=len(profile.target_roots),
-                    geometry_cost_discount_alpha=1.0,
-                    geometry_residual_stop=float(growth.RESIDUAL_MARKER),
+                    target_root_count=len(profile.target_roots),
+                    residual_stop=float(growth.RESIDUAL_MARKER),
                 ),
                 hamiltonian=problem.hamiltonian,
                 prepared_state=problem.ground,

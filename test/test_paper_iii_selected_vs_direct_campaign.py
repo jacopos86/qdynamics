@@ -112,6 +112,7 @@ def test_locked_profile_declares_only_selected_and_direct_over_twelve_cases() ->
     assert profile.target_roots == tuple(range(1, 7))
     assert profile.dimension_cap == 64
     assert profile.trace_stride == 2
+    assert profile.selector_policy_id.startswith("full_pencil_ky_fan")
     assert "hybrid" not in profile.canonical_json().lower()
     assert profile.payload()["controller_boundary"]["implicit_fallback_enabled"] is False
 
