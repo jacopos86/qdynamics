@@ -1,0 +1,9 @@
+{
+  "all_1e_minus_6_reached": false,
+  "artifact": "output/diagnostics/paper_iii_seeded_realtime_krylov_matrix_20260829_v1/matrix.json",
+  "campaign_id": "paper_iii_seeded_realtime_krylov_matrix_20260829_v1",
+  "case_count": 16,
+  "qksd_status": "IMPLEMENTATION_PENDING",
+  "schema_version": "paper_iii_seeded_realtime_krylov_matrix_v1_receipt",
+  "sha256": "efccf7a58aca4b44ee4da9f8853306a559d3df6d3404898689bd1d70340af98c"
+}
