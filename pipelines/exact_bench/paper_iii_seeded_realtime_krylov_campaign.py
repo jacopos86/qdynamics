@@ -243,8 +243,37 @@ def _append_window_audit(
     for raw in rows:
         row = dict(raw)
         roots = np.asarray(row["pencil_root_energies"], dtype=float)
+        if row["target_window_status"] != "ONE_TO_ONE_MATCHED":
+            row.update(
+                {
+                    "r_plus_1_pencil_root_index": None,
+                    "r_plus_1_root_energy": None,
+                    "r_to_r_plus_1_gap": None,
+                    "exact_r_to_r_plus_1_gap": exact_gap,
+                }
+            )
+            out.append(row)
+            continue
+        used = {int(index) for index in row["matched_pencil_root_indices"]}
+        available = [index for index in range(len(roots)) if index not in used]
+        if not available:
+            row.update(
+                {
+                    "r_plus_1_pencil_root_index": None,
+                    "r_plus_1_root_energy": None,
+                    "r_to_r_plus_1_gap": None,
+                    "exact_r_to_r_plus_1_gap": exact_gap,
+                }
+            )
+            out.append(row)
+            continue
         r_plus_1_index = int(
-            np.argmin(np.abs(roots - float(references[TARGET_ROOTS])))
+            min(
+                available,
+                key=lambda index: abs(
+                    float(roots[index]) - float(references[TARGET_ROOTS])
+                ),
+            )
         )
         r_plus_1 = float(roots[r_plus_1_index])
         row.update(
@@ -266,7 +295,8 @@ def _threshold_crossings(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             (
                 row
                 for row in rows
-                if float(row["max_root_abs_error"]) <= float(target)
+                if row["max_root_abs_error"] is not None
+                and float(row["max_root_abs_error"]) <= float(target)
             ),
             None,
         )
@@ -345,7 +375,7 @@ def _static_spectral_audit(
     return {
         "status": "EVALUATED",
         "post_run_only": True,
-        "root_matching": "best_matching_pencil_root_per_target",
+        "root_matching": "minimum_total_abs_energy_hungarian_one_to_one",
         "matched_root_overlap_squared": [
             float(overlap_matrix[index, index]) for index in range(TARGET_ROOTS)
         ],
@@ -478,6 +508,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "matched_error_thresholds": list(ERROR_TARGETS),
             "online_exact_reference_use": False,
             "exact_audit_stage": "strictly_post_run",
+            "root_matching": "minimum_total_abs_energy_hungarian_one_to_one",
             "K": "aggregate_graph_span_n2q",
             "qiskit_cost": "aggregate_FakeMarrakesh_transpiled_hamiltonian_steps",
             "estimator_queries": "all_independent_S_and_H_pencil_elements_no_qwc_reuse",

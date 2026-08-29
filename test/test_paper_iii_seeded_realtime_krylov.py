@@ -70,12 +70,41 @@ def test_fixed_dt_reproduces_established_hh_six_root_crossing() -> None:
         config=SeededRealtimeKrylovConfig(k_max=19, include_qiskit=False),
     )
     audited = audit_krylov_energies(run, problem.references)
-    crossing = next(row for row in audited if row["max_root_abs_error"] <= 1.0e-6)
+    crossing = next(
+        row
+        for row in audited
+        if row["max_root_abs_error"] is not None
+        and row["max_root_abs_error"] <= 1.0e-6
+    )
 
     assert crossing["k"] == 19
     assert crossing["retained_rank"] == 14
     assert crossing["K"] == 3420.0
     assert crossing["max_root_abs_error"] < 5.0e-7
+    assert len(set(crossing["matched_pencil_root_indices"])) == 6
+    assert crossing["root_match_convention"].endswith("hungarian_one_to_one")
+
+
+def test_one_to_one_audit_does_not_reuse_a_ritz_root_for_a_degeneracy() -> None:
+    problem = load_problem(
+        regime="intermediate_weak",
+        u=1.25,
+        g_ep=0.353553390593,
+        n_ph_max=1,
+        target_roots=7,
+    )
+    run = run_seeded_realtime_krylov(
+        _ReferenceGuard(problem),
+        config=SeededRealtimeKrylovConfig(k_max=30, include_qiskit=False),
+    )
+    audited = audit_krylov_energies(run, problem.references)
+    supported = [row for row in audited if row["max_root_abs_error"] is not None]
+
+    assert supported
+    assert min(row["max_root_abs_error"] for row in supported) > 0.2
+    assert all(
+        len(set(row["matched_pencil_root_indices"])) == 6 for row in supported
+    )
 
 
 def test_single_case_campaign_keeps_qksd_pending(tmp_path: Path) -> None:

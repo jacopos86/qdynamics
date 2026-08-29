@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 from scipy.sparse.linalg import expm_multiply
 
 from pipelines.exact_bench.paper_iii_qse_measurement_cost import _polynomial_words
@@ -339,7 +340,7 @@ def run_seeded_realtime_krylov(
 def audit_krylov_energies(
     run: SeededRealtimeKrylovRun, exact_references: Sequence[float]
 ) -> tuple[dict[str, Any], ...]:
-    """Attach best-matching target-root errors after the online run completes."""
+    """Attach one-to-one target-root errors after the online run completes."""
 
     references = np.asarray(tuple(float(value) for value in exact_references), dtype=float)
     target_count = int(run.policy_receipt["target_root_count"])
@@ -352,13 +353,36 @@ def audit_krylov_energies(
     for raw in run.trace:
         row = dict(raw)
         roots = np.asarray(row["pencil_root_energies"], dtype=float)
-        indices = [int(np.argmin(np.abs(roots - reference))) for reference in references]
+        if roots.size < target_count:
+            row.update(
+                {
+                    "post_run_exact_audit": True,
+                    "target_window_status": "INSUFFICIENT_RETAINED_RANK",
+                    "root_match_convention": "minimum_total_abs_energy_hungarian_one_to_one",
+                    "matched_pencil_root_indices": [],
+                    "matched_root_energies": [],
+                    "per_root_abs_error": [],
+                    "max_root_abs_error": None,
+                    "rth_root_energy": None,
+                }
+            )
+            audited.append(row)
+            continue
+        target_indices, pencil_indices = linear_sum_assignment(
+            np.abs(references[:, None] - roots[None, :])
+        )
+        assignment = {
+            int(target): int(pencil)
+            for target, pencil in zip(target_indices, pencil_indices)
+        }
+        indices = [assignment[target] for target in range(target_count)]
         matched = np.asarray([roots[index] for index in indices], dtype=float)
         errors = np.abs(matched - references)
         row.update(
             {
                 "post_run_exact_audit": True,
-                "root_match_convention": "best_matching_pencil_root_per_target",
+                "target_window_status": "ONE_TO_ONE_MATCHED",
+                "root_match_convention": "minimum_total_abs_energy_hungarian_one_to_one",
                 "matched_pencil_root_indices": indices,
                 "matched_root_energies": [float(value) for value in matched],
                 "per_root_abs_error": [float(value) for value in errors],
