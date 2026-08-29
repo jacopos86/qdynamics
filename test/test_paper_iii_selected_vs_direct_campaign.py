@@ -21,6 +21,8 @@ from pipelines.qse_spectra.matched_route_acquisition import (
     SELECTED_STATUS_POOL_EXHAUSTED,
     acquire_selected_vs_direct_hh_case,
     collect_selected_vs_direct_hh_cases,
+    declared_hh_pool_ablation_profiles,
+    ensure_hh_pool_profile_ablation_campaign,
     ensure_selected_vs_direct_hh_campaign,
     locked_hh_profile,
 )
@@ -82,6 +84,7 @@ class _LiteralExecutor:
             ),
             reference_excitations=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
             pool_digest="ab" * 32,
+            pool_policy_id=profile.selected_pool_policy_id if selected else "hh_full_meta_macro_v1",
             elapsed_seconds=0.01,
         )
 
@@ -98,6 +101,7 @@ def _replace_result(
         audit_rows=result.audit_rows,
         reference_excitations=result.reference_excitations,
         pool_digest=result.pool_digest,
+        pool_policy_id=result.pool_policy_id,
         elapsed_seconds=result.elapsed_seconds,
     )
 
@@ -113,6 +117,7 @@ def test_locked_profile_declares_only_selected_and_direct_over_twelve_cases() ->
     assert profile.dimension_cap == 64
     assert profile.trace_stride == 2
     assert profile.selector_policy_id.startswith("full_pencil_ky_fan")
+    assert profile.selected_pool_policy_id == "hh_full_meta_macro_v1"
     assert "hybrid" not in profile.canonical_json().lower()
     assert profile.payload()["controller_boundary"]["implicit_fallback_enabled"] is False
 
@@ -139,6 +144,33 @@ def test_one_command_completes_and_exact_replay_resumes_without_rerun(
     assert (output_root / "matched_routes.json").read_bytes() == first_matched
     decision = json.loads((output_root / "decision.json").read_text())
     assert decision["route_recommendation_counts"] == {"SELECTED_QSE": 36}
+
+
+def test_declared_pool_campaign_reuses_the_matched_route_pipeline(
+    tmp_path: Path,
+) -> None:
+    profiles = declared_hh_pool_ablation_profiles()
+    assert [profile.selected_pool_policy_id for profile in profiles] == [
+        "hh_full_meta_macro_v1",
+        "hh_full_meta_plus_encoded_boson_pauli_completion_v1",
+    ]
+    executor = _LiteralExecutor()
+    root = tmp_path / "pool_profiles"
+
+    first = ensure_hh_pool_profile_ablation_campaign(root, executor=executor)
+    assert len(executor.calls) == 48
+    assert first["controller_boundary"]["implicit_fallback_enabled"] is False
+    assert first["controller_boundary"]["hybrid_enabled"] is False
+    assert first["lock_gate"]["coverage_qualified_pool_policy_ids"] == [
+        "hh_full_meta_macro_v1",
+        "hh_full_meta_plus_encoded_boson_pauli_completion_v1",
+    ]
+    first_bytes = (root / "pool_profile_ablation.json").read_bytes()
+
+    second = ensure_hh_pool_profile_ablation_campaign(root, executor=executor)
+    assert len(executor.calls) == 48
+    assert second == first
+    assert (root / "pool_profile_ablation.json").read_bytes() == first_bytes
 
 
 def test_local_executor_keeps_online_completion_separate_from_exact_audit() -> None:

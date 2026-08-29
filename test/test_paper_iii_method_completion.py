@@ -18,6 +18,7 @@ from pipelines.qse_spectra.core import (
     QSEBasisVectorPolicy,
     pauli_string_basis_element,
 )
+from pipelines.qse_spectra.paper_iii_problem import load_problem
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
 
@@ -182,3 +183,30 @@ def test_support_certificate_uses_only_actual_support_and_fixed_pool() -> None:
     assert certificate["max_target_residual_norm"] == pytest.approx(0.0)
     assert certificate["uses_exact_reference"] is False
     assert certificate["online_only"] is True
+
+
+def test_q0_identity_roundoff_cannot_create_false_window_pressure() -> None:
+    problem = load_problem(
+        regime="intermediate_weak",
+        u=1.25,
+        g_ep=0.353553390593,
+        n_ph_max=1,
+        target_roots=6,
+    )
+    support = [28, 31, 10, 11, 20, 21, 59, 22, 93, 12, 29, 1, 2, 8, 92]
+    certificate = certify_fixed_pool_support(
+        problem.basis,
+        support,
+        hamiltonian=problem.hamiltonian,
+        prepared_state=problem.ground,
+        basis_vector_policy=QSEBasisVectorPolicy(
+            reference_projection="q0",
+            basis_vector_normalization="raw_projected",
+        ),
+        target_root_count=6,
+        residual_stop_threshold=1.0e-3,
+    )
+
+    assert 0 not in certificate["threatening_candidate_indices"]
+    assert certificate["window_closed"] is True
+    assert certificate["target_window_certified"] is True

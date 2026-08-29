@@ -125,15 +125,33 @@ class _ProblemView:
 
 def _load_hh_problem(context: Mapping[str, Any], *, target_roots: int) -> Any:
     from pipelines.qse_spectra.paper_iii_problem import load_problem
+    from pipelines.qse_spectra.pool_profiles import (
+        HH_POOL_BASE_MACRO_V1,
+        apply_hh_pool_policy,
+    )
 
     spec = context["problem"]
-    return load_problem(
+    base = load_problem(
         regime=str(spec["regime"]),
         u=float(spec["u"]),
         g_ep=float(spec["g_ep"]),
         n_ph_max=int(spec["n_ph_max"]),
         target_roots=int(target_roots),
     )
+    return apply_hh_pool_policy(
+        base,
+        str(spec.get("pool_policy_id", HH_POOL_BASE_MACRO_V1)),
+    )
+
+
+def _pool_policy_id(context: Mapping[str, Any]) -> str | None:
+    spec = context["problem"]
+    if str(spec.get("kind")) == "hh":
+        from pipelines.qse_spectra.pool_profiles import HH_POOL_BASE_MACRO_V1
+
+        return str(spec.get("pool_policy_id", HH_POOL_BASE_MACRO_V1))
+    value = spec.get("pool_policy_id")
+    return None if value is None else str(value)
 
 
 def _load_siam_problem(context: Mapping[str, Any], *, target_roots: int) -> Any:
@@ -528,6 +546,7 @@ def _stage_static_qse_trace(
         "terminal_support_indices": terminal_support,
         "shared_problem_receipt": _json_safe(problem.arm_receipt()),
         "pool_digest": str(problem.pool_digest),
+        "pool_policy_id": _pool_policy_id(context),
         "target_roots": [int(r) for r in cell.target_roots],
         "dimension_cap": cap,
         "construction_policy_id": str(cell.construction_policy_id),
@@ -548,6 +567,7 @@ def _stage_static_qse_trace(
         "dimension_cap": cap,
         "stride": stride,
         "pool_digest": str(problem.pool_digest),
+        "pool_policy_id": _pool_policy_id(context),
         "construction_policy_id": str(cell.construction_policy_id),
         "selector_policy_id": (
             PAPER_III_LOCKED_SELECTOR_POLICY_ID

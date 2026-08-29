@@ -174,7 +174,11 @@ def certify_fixed_pool_support(
             )
         )
         norm_sq = float(np.vdot(image, image).real)
-        if norm_sq <= 0.0:
+        # Match the selector's supported-image admissibility exactly. Under
+        # Q0 projection the identity image is mathematically zero, but a
+        # literal ``> 0`` test resurrects normalization roundoff as a novel
+        # low-energy direction and falsely reopens the target window.
+        if norm_sq <= float(cfg.overlap_absolute_cutoff):
             continue
         projected = image.copy()
         # Must survive verbatim: two-pass reorthogonalized Gram-Schmidt.

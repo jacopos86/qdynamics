@@ -16,7 +16,7 @@ import os
 import subprocess
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -32,9 +32,14 @@ from pipelines.qse_spectra.selection_policy import (
     PAPER_III_LOCKED_SELECTOR_POLICY_ID,
     locked_paper_iii_selection_config,
 )
+from pipelines.qse_spectra.pool_profiles import (
+    HH_POOL_BASE_MACRO_V1,
+    HH_POOL_ENCODED_BOSON_COMPLETION_V1,
+    apply_hh_pool_policy,
+)
 
 
-PROFILE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_profile_v1"
+PROFILE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_profile_v2"
 METHOD_SELECTED_QSE = METHOD_RECORD_FIRST
 METHOD_DIRECT_DAVIDSON = _METHOD_DIRECT_DAVIDSON
 LOCKED_METHODS = (METHOD_SELECTED_QSE, METHOD_DIRECT_DAVIDSON)
@@ -44,14 +49,16 @@ LOCKED_CONSTRUCTION_POLICIES = {
 }
 LOCKED_ERROR_TARGETS = (1.0e-2, 1.0e-4, 1.0e-6)
 
-ROUTE_ARTIFACT_SCHEMA_VERSION = "paper_iii_matched_route_artifact_v1"
-ONLINE_RECEIPT_SCHEMA_VERSION = "paper_iii_matched_online_route_v1"
+ROUTE_ARTIFACT_SCHEMA_VERSION = "paper_iii_matched_route_artifact_v2"
+ONLINE_RECEIPT_SCHEMA_VERSION = "paper_iii_matched_online_route_v2"
 EXACT_AUDIT_SCHEMA_VERSION = "paper_iii_matched_post_run_exact_audit_v1"
-MATCHED_EVIDENCE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_evidence_v1"
-DECISION_SCHEMA_VERSION = "paper_iii_selected_vs_direct_decision_v1"
+MATCHED_EVIDENCE_SCHEMA_VERSION = "paper_iii_selected_vs_direct_evidence_v2"
+DECISION_SCHEMA_VERSION = "paper_iii_selected_vs_direct_decision_v2"
 STATUS_SCHEMA_VERSION = "paper_iii_selected_vs_direct_status_v1"
 SOURCE_LOCK_SCHEMA_VERSION = "paper_iii_selected_vs_direct_source_lock_v1"
-CASE_RESULT_SCHEMA_VERSION = "paper_iii_selected_vs_direct_case_result_v1"
+CASE_RESULT_SCHEMA_VERSION = "paper_iii_selected_vs_direct_case_result_v2"
+POOL_ABLATION_SCHEMA_VERSION = "paper_iii_hh_pool_profile_ablation_v1"
+POOL_ABLATION_LOCK_TARGET = 1.0e-4
 
 SELECTED_STATUS_CERTIFIED = "TARGET_WINDOW_CERTIFIED"
 SELECTED_STATUS_POOL_EXHAUSTED = "POOL_EXHAUSTED"
@@ -83,12 +90,14 @@ _SOURCE_PATHS = (
     "pipelines/exact_bench/paper_iii_growth_trace_campaign.py",
     "pipelines/exact_bench/paper_iii_selected_vs_direct_case.py",
     "pipelines/exact_bench/paper_iii_selected_vs_direct_collect.py",
+    "pipelines/exact_bench/paper_iii_pool_profile_campaign.py",
     "pipelines/qse_spectra/adaptive_qse_benchmark.py",
     "pipelines/qse_spectra/davidson_initialization.py",
     "pipelines/qse_spectra/exchange_maintenance.py",
     "pipelines/qse_spectra/matched_route_acquisition.py",
     "pipelines/qse_spectra/method_completion.py",
     "pipelines/qse_spectra/paper_iii_problem.py",
+    "pipelines/qse_spectra/pool_profiles.py",
     "pipelines/qse_spectra/record_selection.py",
     "pipelines/qse_spectra/selection_policy.py",
 )
@@ -115,6 +124,7 @@ class RouteExecutionResult:
     audit_rows: tuple[Mapping[str, Any], ...]
     reference_excitations: tuple[float, ...]
     pool_digest: str
+    pool_policy_id: str
     elapsed_seconds: float
 
 
@@ -198,6 +208,7 @@ class MatchedHHProfile:
     error_targets: tuple[float, ...]
     resource_policy_id: str
     selector_policy_id: str
+    selected_pool_policy_id: str
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -215,6 +226,7 @@ class MatchedHHProfile:
             "error_targets": [float(target) for target in self.error_targets],
             "resource_policy_id": str(self.resource_policy_id),
             "selector_policy_id": str(self.selector_policy_id),
+            "selected_pool_policy_id": str(self.selected_pool_policy_id),
             "primary_cost_axis": "n2q",
             "controller_boundary": {
                 "exact_audit_is_post_run_only": True,
@@ -255,7 +267,23 @@ def locked_hh_profile() -> MatchedHHProfile:
             "graph_span_two_qubit_only_v1_plus_pencil_estimator_v1"
         ),
         selector_policy_id=PAPER_III_LOCKED_SELECTOR_POLICY_ID,
+        selected_pool_policy_id=HH_POOL_BASE_MACRO_V1,
     )
+
+
+def declared_hh_pool_ablation_profiles() -> tuple[MatchedHHProfile, ...]:
+    """Return the two fixed-pool profiles admitted to the pool experiment."""
+
+    base = locked_hh_profile()
+    completion = replace(
+        base,
+        profile_id=(
+            "paper_iii_selected_vs_direct_hh_"
+            "encoded_boson_completion_20260828_v1"
+        ),
+        selected_pool_policy_id=HH_POOL_ENCODED_BOSON_COMPLETION_V1,
+    )
+    return base, completion
 
 
 def _sha256_file(path: Path) -> str:
@@ -604,6 +632,7 @@ def _build_route_artifact(
         "resource_policy_id": str(profile.resource_policy_id),
         "selector_policy_id": str(profile.selector_policy_id),
         "pool_digest": str(result.pool_digest),
+        "pool_policy_id": str(result.pool_policy_id),
         "rows": online_rows,
         "completion": completion,
         "online_only": True,
@@ -686,6 +715,13 @@ def _validate_route_artifact(
         raise MatchedRouteAcquisitionError("PAIR_IDENTITY_MISMATCH: target-root drift.")
     if online.get("selector_policy_id") != profile.selector_policy_id:
         raise MatchedRouteAcquisitionError("PAIR_IDENTITY_MISMATCH: selector-policy drift.")
+    expected_pool_policy = (
+        profile.selected_pool_policy_id
+        if method_id == METHOD_SELECTED_QSE
+        else HH_POOL_BASE_MACRO_V1
+    )
+    if online.get("pool_policy_id") != expected_pool_policy:
+        raise MatchedRouteAcquisitionError("PAIR_IDENTITY_MISMATCH: pool-policy drift.")
     rows = _validate_online_rows(online.get("rows"), method_id=method_id)
     completion = online.get("completion")
     if not isinstance(completion, Mapping) or not bool(completion.get("online_only")):
@@ -752,6 +788,8 @@ def _route_summary(artifact: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "method_id": str(artifact["method_id"]),
         "construction_policy_id": str(online["construction_policy_id"]),
+        "pool_policy_id": str(online["pool_policy_id"]),
+        "pool_digest": str(online["pool_digest"]),
         "algorithm_status": str(online["completion"]["terminal_status"]),
         "terminal_k": int(terminal["k"]),
         "terminal_n2q": float(terminal["n2q"]),
@@ -891,11 +929,12 @@ def _snapshot(
     completed: Mapping[str, Mapping[str, Any]],
     total: int,
     complete: bool,
+    profile: MatchedHHProfile,
 ) -> MatchedCampaignSnapshot:
     all_keys = [
         _route_key(case, method)
-        for case in locked_hh_profile().cases
-        for method in locked_hh_profile().methods
+        for case in profile.cases
+        for method in profile.methods
     ]
     pending = tuple(key for key in all_keys if key not in completed)
     return MatchedCampaignSnapshot(
@@ -916,6 +955,7 @@ def ensure_selected_vs_direct_hh_campaign(
     output_root: Path,
     *,
     executor: MatchedRouteExecutor | None = None,
+    _profile: MatchedHHProfile | None = None,
 ) -> MatchedCampaignSnapshot:
     """Ensure the locked 24-route HH comparison exists and is validated.
 
@@ -926,7 +966,7 @@ def ensure_selected_vs_direct_hh_campaign(
 
     root = Path(output_root)
     root.mkdir(parents=True, exist_ok=True)
-    profile = locked_hh_profile()
+    profile = locked_hh_profile() if _profile is None else _profile
     route_executor: MatchedRouteExecutor = (
         LocalScientificRouteExecutor() if executor is None else executor
     )
@@ -977,6 +1017,7 @@ def ensure_selected_vs_direct_hh_campaign(
                             completed=artifacts,
                             total=total,
                             complete=False,
+                            profile=profile,
                         ).payload()
                         partial["attention"] = {
                             "route_key": key,
@@ -995,6 +1036,7 @@ def ensure_selected_vs_direct_hh_campaign(
                         completed=artifacts,
                         total=total,
                         complete=False,
+                        profile=profile,
                     ).payload(),
                 )
 
@@ -1014,9 +1056,206 @@ def ensure_selected_vs_direct_hh_campaign(
             completed=artifacts,
             total=total,
             complete=True,
+            profile=profile,
         )
         _atomic_write_json(root / "status.json", snapshot.payload())
         return snapshot
+
+
+def _pool_ablation_markdown(payload: Mapping[str, Any]) -> str:
+    lines = [
+        "# Paper-III fixed-pool profile ablation",
+        "",
+        "Post-run evidence only. Exact errors choose no records and trigger no route.",
+        "",
+        "| pool policy | certified cells | target crossings | beats direct | coverage |",
+        "|---|---:|---:|---:|---|",
+    ]
+    for policy_id, row in payload["lock_gate"]["profiles"].items():
+        lines.append(
+            "| {policy} | {certified}/{total} | {crossings}/{total} | "
+            "{beats}/{comparable} | {coverage} |".format(
+                policy=policy_id,
+                certified=int(row["certified_case_count"]),
+                crossings=int(row["target_reached_case_count"]),
+                beats=int(row["selected_not_more_expensive_case_count"]),
+                comparable=int(row["comparable_case_count"]),
+                total=int(row["case_count"]),
+                coverage="yes" if row["coverage_qualified"] else "no",
+            )
+        )
+    lines.extend(
+        [
+            "",
+            f"Lock target: `{float(payload['lock_gate']['error_target']):.0e}`.",
+            "",
+            "No selected-QSE-to-Davidson fallback is present in either profile.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def ensure_hh_pool_profile_ablation_campaign(
+    output_root: Path,
+    *,
+    executor: MatchedRouteExecutor | None = None,
+) -> dict[str, Any]:
+    """Run and aggregate the declared base/completion pool experiment.
+
+    Each arm is executed by the same resumable matched-route machinery as the
+    results campaign. The exact-error comparison is written only after every
+    online route artifact has been sealed and validated.
+    """
+
+    root = Path(output_root)
+    root.mkdir(parents=True, exist_ok=True)
+    route_executor: MatchedRouteExecutor = (
+        LocalScientificRouteExecutor() if executor is None else executor
+    )
+    profile_rows: dict[str, dict[str, Any]] = {}
+    source_lock_digests: set[str] = set()
+    for profile in declared_hh_pool_ablation_profiles():
+        policy_id = str(profile.selected_pool_policy_id)
+        profile_root = root / "profiles" / policy_id
+        snapshot = ensure_selected_vs_direct_hh_campaign(
+            profile_root,
+            executor=route_executor,
+            _profile=profile,
+        )
+        evidence = _read_json(profile_root / "matched_routes.json")
+        decision = _read_json(profile_root / "decision.json")
+        source_lock_digests.add(str(snapshot.source_lock_digest))
+        profile_rows[policy_id] = {
+            "profile": profile.payload(),
+            "profile_digest": profile.digest(),
+            "source_lock_digest": str(snapshot.source_lock_digest),
+            "matched_evidence_path": str(profile_root / "matched_routes.json"),
+            "decision_path": str(profile_root / "decision.json"),
+            "evidence": evidence,
+            "decision": decision,
+        }
+    if len(source_lock_digests) != 1:
+        raise MatchedRouteAcquisitionError(
+            "SOURCE_LOCK_MISMATCH: pool profiles used different source locks."
+        )
+
+    case_rows: list[dict[str, Any]] = []
+    gate_profiles: dict[str, dict[str, Any]] = {}
+    for policy_id, profile_row in profile_rows.items():
+        evidence_rows = list(profile_row["evidence"]["rows"])
+        certified = 0
+        reached = 0
+        comparable = 0
+        not_more_expensive = 0
+        cost_ratios: list[float] = []
+        for row in evidence_rows:
+            selected = dict(row["selected_qse"])
+            direct = dict(row["direct_davidson"])
+            if selected["algorithm_status"] == SELECTED_STATUS_CERTIFIED:
+                certified += 1
+            selected_crossing = next(
+                crossing
+                for crossing in selected["crossings"]
+                if float(crossing["error_target"]) == POOL_ABLATION_LOCK_TARGET
+            )
+            direct_crossing = next(
+                crossing
+                for crossing in direct["crossings"]
+                if float(crossing["error_target"]) == POOL_ABLATION_LOCK_TARGET
+            )
+            if selected_crossing["status"] == AUDIT_STATUS_REACHED:
+                reached += 1
+            if (
+                selected_crossing["status"] == AUDIT_STATUS_REACHED
+                and direct_crossing["status"] == AUDIT_STATUS_REACHED
+            ):
+                comparable += 1
+                selected_n2q = float(selected_crossing["n2q"])
+                direct_n2q = float(direct_crossing["n2q"])
+                if selected_n2q <= direct_n2q:
+                    not_more_expensive += 1
+                if direct_n2q > 0.0:
+                    cost_ratios.append(selected_n2q / direct_n2q)
+        case_count = len(evidence_rows)
+        gate_profiles[policy_id] = {
+            "case_count": case_count,
+            "certified_case_count": certified,
+            "target_reached_case_count": reached,
+            "comparable_case_count": comparable,
+            "selected_not_more_expensive_case_count": not_more_expensive,
+            "max_selected_to_direct_n2q_ratio": (
+                max(cost_ratios) if cost_ratios else None
+            ),
+            "coverage_qualified": certified == case_count and reached == case_count,
+        }
+
+    base_policy = HH_POOL_BASE_MACRO_V1
+    base_rows = {
+        row["case"]["case_key"]: row
+        for row in profile_rows[base_policy]["evidence"]["rows"]
+    }
+    for case in locked_hh_profile().cases:
+        per_policy: dict[str, Any] = {}
+        for policy_id, profile_row in profile_rows.items():
+            row = next(
+                candidate
+                for candidate in profile_row["evidence"]["rows"]
+                if candidate["case"]["case_key"] == case.case_key
+            )
+            per_policy[policy_id] = row["selected_qse"]
+        case_rows.append(
+            {
+                "case": case.payload(),
+                "selected_qse_by_pool_policy": per_policy,
+                "direct_davidson": base_rows[case.case_key]["direct_davidson"],
+            }
+        )
+
+    eligible = sorted(
+        policy_id
+        for policy_id, row in gate_profiles.items()
+        if bool(row["coverage_qualified"])
+    )
+    payload = {
+        "schema_version": POOL_ABLATION_SCHEMA_VERSION,
+        "source_lock_digest": next(iter(source_lock_digests)),
+        "selector_policy_id": PAPER_III_LOCKED_SELECTOR_POLICY_ID,
+        "pool_policy_ids": list(profile_rows),
+        "profiles": {
+            policy_id: {
+                key: value
+                for key, value in profile_row.items()
+                if key not in {"evidence", "decision"}
+            }
+            for policy_id, profile_row in profile_rows.items()
+        },
+        "rows": case_rows,
+        "lock_gate": {
+            "error_target": POOL_ABLATION_LOCK_TARGET,
+            "profiles": gate_profiles,
+            "coverage_qualified_pool_policy_ids": eligible,
+            "post_run_only": True,
+        },
+        "controller_boundary": {
+            "exact_audit_feeds_online_decisions": False,
+            "implicit_fallback_enabled": False,
+            "hybrid_enabled": False,
+        },
+    }
+    _atomic_write_json(root / "pool_profile_ablation.json", payload)
+    _atomic_write_text(root / "pool_profile_ablation.md", _pool_ablation_markdown(payload))
+    _atomic_write_json(
+        root / "status.json",
+        {
+            "schema_version": "paper_iii_hh_pool_profile_ablation_status_v1",
+            "execution_status": "COMPLETE",
+            "profile_count": len(profile_rows),
+            "case_count": len(case_rows),
+            "artifact_path": str(root / "pool_profile_ablation.json"),
+        },
+    )
+    return payload
 
 
 def _case_for_key(profile: MatchedHHProfile, case_key: str) -> MatchedHHCase:
@@ -1220,6 +1459,7 @@ def collect_selected_vs_direct_hh_cases(
             completed=artifacts,
             total=len(profile.cases) * len(profile.methods),
             complete=True,
+            profile=profile,
         )
         _atomic_write_json(root / "status.json", snapshot.payload())
         return snapshot
@@ -1229,24 +1469,35 @@ class LocalScientificRouteExecutor:
     """Default in-process adapter for the two locked scientific routes."""
 
     def __init__(self) -> None:
-        self._cached_case_key: str | None = None
-        self._cached_problem: Any = None
+        self._cached_problems: dict[tuple[str, str], Any] = {}
 
-    def _problem(self, case: MatchedHHCase, profile: MatchedHHProfile) -> Any:
-        if self._cached_case_key == case.case_key and self._cached_problem is not None:
-            return self._cached_problem
+    def _problem(
+        self,
+        case: MatchedHHCase,
+        profile: MatchedHHProfile,
+        method_id: str,
+    ) -> tuple[Any, str]:
+        pool_policy_id = (
+            profile.selected_pool_policy_id
+            if method_id == METHOD_SELECTED_QSE
+            else HH_POOL_BASE_MACRO_V1
+        )
+        cache_key = (case.case_key, pool_policy_id)
+        cached = self._cached_problems.get(cache_key)
+        if cached is not None:
+            return cached, pool_policy_id
         from pipelines.qse_spectra.paper_iii_problem import load_problem
 
-        problem = load_problem(
+        base_problem = load_problem(
             regime=case.regime,
             u=case.u,
             g_ep=case.g_ep,
             n_ph_max=case.n_ph_max,
             target_roots=len(profile.target_roots),
         )
-        self._cached_case_key = case.case_key
-        self._cached_problem = problem
-        return problem
+        problem = apply_hh_pool_policy(base_problem, pool_policy_id)
+        self._cached_problems[cache_key] = problem
+        return problem, pool_policy_id
 
     @staticmethod
     def _split_rows(problem: Any, rows: list[dict[str, Any]]) -> tuple[
@@ -1288,7 +1539,7 @@ class LocalScientificRouteExecutor:
             )
         from pipelines.exact_bench import paper_iii_growth_trace_campaign as growth
 
-        problem = self._problem(case, profile)
+        problem, pool_policy_id = self._problem(case, profile, method_id)
         started = time.monotonic()
         if method_id == METHOD_SELECTED_QSE:
             from pipelines.qse_spectra.record_selection import select_static_qse_records
@@ -1328,6 +1579,7 @@ class LocalScientificRouteExecutor:
             audit_rows=audit_rows,
             reference_excitations=tuple(float(value) for value in problem.references),
             pool_digest=str(problem.pool_digest),
+            pool_policy_id=pool_policy_id,
             elapsed_seconds=float(time.monotonic() - started),
         )
 
@@ -1355,6 +1607,8 @@ __all__ = [
     "MatchedRouteAcquisitionError",
     "MatchedRouteExecutor",
     "ONLINE_RECEIPT_SCHEMA_VERSION",
+    "POOL_ABLATION_LOCK_TARGET",
+    "POOL_ABLATION_SCHEMA_VERSION",
     "PROFILE_SCHEMA_VERSION",
     "RECOMMEND_DIRECT",
     "RECOMMEND_SELECTED",
@@ -1368,6 +1622,8 @@ __all__ = [
     "STATUS_SCHEMA_VERSION",
     "acquire_selected_vs_direct_hh_case",
     "collect_selected_vs_direct_hh_cases",
+    "declared_hh_pool_ablation_profiles",
+    "ensure_hh_pool_profile_ablation_campaign",
     "ensure_selected_vs_direct_hh_campaign",
     "locked_hh_profile",
 ]
