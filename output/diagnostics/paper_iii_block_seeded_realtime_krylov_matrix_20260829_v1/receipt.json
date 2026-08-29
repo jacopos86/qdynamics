@@ -1,0 +1,8 @@
+{
+  "all_1e_minus_6_reached": false,
+  "artifact": "output/diagnostics/paper_iii_block_seeded_realtime_krylov_matrix_20260829_v1/matrix.json",
+  "campaign_id": "paper_iii_block_seeded_realtime_krylov_matrix_20260829_v1",
+  "case_count": 16,
+  "schema_version": "paper_iii_block_seeded_realtime_krylov_matrix_v1_receipt",
+  "sha256": "93fd614d3214f5f4948962a822d980b7be726f5d7045dd48a96084a1ffae370b"
+}
