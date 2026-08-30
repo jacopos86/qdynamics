@@ -33,7 +33,9 @@ silently replace source-anchor values with legacy generated fragments.
 OS-QSE evaluates the full supported generalized pencil for each admissible
 candidate. Its acquisition signal is the proposed-pencil Ky--Fan gain
 `Delta` divided by normalized graph-span cost `K`; novelty is an admissibility
-floor only. The production route preserves:
+floor only. Gain normalization is round-local, while the cost normalization is
+fixed once from the initially eligible pool and does not change as candidates
+are consumed. The production route preserves:
 
 - double Gram--Schmidt residualization against the retained frame;
 - supported-overlap truncation and retained-rank checks;
@@ -158,21 +160,23 @@ tracked builder and this evidence record are the reproducible contract.
 
 | Artifact | SHA-256 |
 |---|---|
-| `pipelines/reporting/build_paper_iii_static_resource_enriched_pdf.py` | `c2a83ef42017b64c3a9fc4e9250540297e7b4ef92132b90c07ee18d6538667cd` |
-| `test/test_paper_iii_static_resource_enriched_pdf.py` | `86f1aa9b779171cc765cde4f60d7a187584672abbf7c90270b218f82af47a925` |
-| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/paper_iii_static_qse_source_anchor.tex` | `6d96af66fa49aef6387ead638698bfe4566df047036ae87e270911139d3560a7` |
-| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/paper_iii_static_qse_source_anchor.pdf` | `b6f37efa76409308850db9bcf8bd27b1d819391bc44f9ee04ef7e5a105005c4b` |
-| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/manifest.json` | `e7f1967b9035d03677135f4594fa0c433cf987532cfc888dee2e496e4abe43b6` |
+| `pipelines/reporting/build_paper_iii_static_resource_enriched_pdf.py` | `ab510461e0ea29e2f8f1c9b6b39a6adbd396658b0d969f92440e680b5eeed0c4` |
+| `test/test_paper_iii_static_resource_enriched_pdf.py` | `329035f25c43ca4aa86dd1c55d703880ebb81e59188e15530303eeef15ff5424` |
+| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/paper_iii_static_qse_source_anchor.tex` | `2275e65b45678669457a8b1d3710e88c47d249ca8d390328e6cb9226de5ba713` |
+| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/paper_iii_static_qse_source_anchor.pdf` | `4a9d1224785484d34e448617a486bb912d61da7a93d76272cf77da9853e841a4` |
+| `output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/manifest.json` | `d7c274fd3e7387034a8227dc9d92cdba13a55d54037609dca0874864db3b74a7` |
 
-Two consecutive builds reproduced every output hash byte for byte. The PDF was
-rendered to PNG at 110 dpi and inspected page by page. It has 13 letter-sized
-pages with no clipped tables, overlapping text, broken glyphs, or missing
-figures.
+The manifest records source revision `d1717ccdb11fbbda4548f9ada4065f5c9e170cf2`.
+The LaTeX invocation records a stable temporary-directory placeholder rather
+than the random execution path. Two consecutive controlled builds at that
+revision reproduced every output hash byte for byte. The PDF was rendered to
+PNG at 110 dpi and inspected page by page. It has 13 letter-sized pages with no
+clipped tables, overlapping text, broken glyphs, or missing figures.
 
 ## Verification
 
-- Source-anchor contract tests: 3 passed.
-- Paper-III LaTeX/status contract: passed.
+- Source-anchor contract test module: 5 passed.
+- Focused Paper-III reporting guard: 1 passed.
 - Two consecutive direct report builds: passed with identical output hashes.
 - PDF: 13 pages, page-by-page visual inspection passed.
 - Repository-wide reporting import-latency test: seven unrelated pre-existing
