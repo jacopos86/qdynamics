@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+import os as _os
 from functools import lru_cache
 
 import numpy as np
@@ -80,6 +81,37 @@ def _phase_prefactor(action: CompiledPauliAction) -> complex:
     ]
 
 
+_SIGN_TABLE_CACHE_MAX_NQ = int(
+    _os.environ.get("STATIC_ADAPT_PAULI_SIGN_CACHE_MAX_NQ", "12")
+)
+_SIGN_TABLE_CACHE_MAX_ENTRIES = int(
+    _os.environ.get("STATIC_ADAPT_PAULI_SIGN_CACHE_MAX_ENTRIES", "1024")
+)
+_SIGN_TABLE_CACHE: dict[tuple[int, int], np.ndarray] = {}
+
+
+def _phase_signs_basis_cached(nq: int, phase_mask: int) -> np.ndarray | None:
+    """Sign table over the identity basis, memoized per ``(nq, phase_mask)``.
+
+    Valid only for the identity basis ordering, which is how every full-space
+    apply calls it: the sign at position ``i`` depends on ``i & phase_mask``
+    alone.  Distinct phase masks are far fewer than distinct Pauli words, so
+    this collapses the per-word table rebuild that dominates wide registers.
+    """
+
+    if int(phase_mask) == 0:
+        return None
+    key = (int(nq), int(phase_mask))
+    cached = _SIGN_TABLE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    signs = _phase_signs(_basis_indices(int(nq)), int(phase_mask))
+    signs.flags.writeable = False
+    if len(_SIGN_TABLE_CACHE) < _SIGN_TABLE_CACHE_MAX_ENTRIES:
+        _SIGN_TABLE_CACHE[key] = signs
+    return signs
+
+
 def _phase_signs(indices: np.ndarray, phase_mask: int) -> np.ndarray | None:
     if int(phase_mask) == 0:
         return None
@@ -115,6 +147,17 @@ def _build_permutation_and_signs(
     )
     if source_indices is not indices:
         source_indices.flags.writeable = False
+    if int(nq) <= _SIGN_TABLE_CACHE_MAX_NQ:
+        # parity((i ^ flip) & phase) == parity(i & phase) ^ parity(flip & phase),
+        # so the flipped table is the basis table times a constant sign.
+        table = _phase_signs_basis_cached(int(nq), int(phase_mask))
+        if table is None:
+            return source_indices, None
+        if (int(flip_mask) & int(phase_mask)).bit_count() & 1:
+            signs = np.negative(table)
+            signs.flags.writeable = False
+            return source_indices, signs
+        return source_indices, table
     signs = _phase_signs(source_indices, int(phase_mask))
     if signs is not None:
         signs.flags.writeable = False
