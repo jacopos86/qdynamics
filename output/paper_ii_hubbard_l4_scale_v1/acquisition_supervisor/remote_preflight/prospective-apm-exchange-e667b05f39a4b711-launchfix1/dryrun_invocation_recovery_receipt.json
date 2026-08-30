@@ -1,0 +1,35 @@
+{
+  "corrected_invocation": {
+    "condor_dry_run_returncode": 0,
+    "dry_run_ad": {
+      "bytes": 4754,
+      "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/remote_preflight/prospective-apm-exchange-e667b05f39a4b711-launchfix1/dryrun.ad",
+      "sha256": "756ec380fd518c78175447d2dbafdac20dd21c12950173f4ee45277ce6e42ddd"
+    },
+    "working_directory": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_launchfix1_58c00b94_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00_launchfix1"
+  },
+  "failed_invocation": {
+    "classification": "wrong_working_directory_before_ad_materialization",
+    "dry_run_ad_partial": {
+      "bytes": 1,
+      "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_launchfix1_58c00b94_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00_launchfix1/output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/next_apm_prefix_launchfix1_58c00b94/package/dryrun.ad.failed_wrong_cwd_attempt_20260830T204706Z",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    "stderr": {
+      "bytes": 232,
+      "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_launchfix1_58c00b94_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00_launchfix1/output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/next_apm_prefix_launchfix1_58c00b94/package/dryrun.stderr.failed_wrong_cwd_attempt_20260830T204706Z",
+      "sha256": "7abee66f40e1149d21e4309777330b4fb294650af897036e382689290651e387"
+    },
+    "stdout": {
+      "bytes": 14,
+      "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_launchfix1_58c00b94_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00_launchfix1/output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/next_apm_prefix_launchfix1_58c00b94/package/dryrun.stdout.failed_wrong_cwd_attempt_20260830T204706Z",
+      "sha256": "e1f4bb550d6bae4d71d15ff1c998ce83a3732637a87e3cd2eac429c4f9feb479"
+    }
+  },
+  "recorded_at_utc": "2026-08-30T21:00:00Z",
+  "remote_failure_evidence_preserved": true,
+  "scheduler_contacted": false,
+  "scheduler_mutation_performed": false,
+  "schema": "paper_ii_hubbard_apm_dryrun_invocation_recovery_v1",
+  "status": "RECOVERED_CORRECTED_DRY_RUN_PASSED"
+}

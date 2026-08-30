@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "archive_gzip_and_tar_integrity": true,
+    "archive_member_count": 18,
+    "calibration_audit": "pass",
+    "generated_launch_bash_syntax": "pass",
+    "generated_runtime_bash_syntax": "pass",
+    "nested_bash_lc_argument_regression": "pass",
+    "qiskit_compilation_requested": false,
+    "scientific_request_sha256_unchanged": "e667b05f39a4b711cb1ca5f3444244f6d3edad8854628c9fc663844b1c629681"
+  },
+  "preflight_sha256": "282830e6396267331c6e7a9d104f20dbbd7c8dabac5e820e42b0ba385ce10f3b",
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-30T20:47:06.977Z",
+  "recovery_of_unit": "prospective-apm-exchange-e667b05f39a4b711",
+  "schema": "paper_ii_hubbard_apm_operational_recovery_local_preflight_v1",
+  "status": "pass",
+  "submission_permitted": false,
+  "unit_id": "prospective-apm-exchange-e667b05f39a4b711-launchfix1"
+}

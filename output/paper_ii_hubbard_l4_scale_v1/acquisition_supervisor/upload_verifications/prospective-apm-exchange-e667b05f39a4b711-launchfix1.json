@@ -1,0 +1,39 @@
+{
+  "action_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::exchange::t5::r00::cut1em02::binde875c098ccaa9943",
+  "execution_request_sha256": "e667b05f39a4b711cb1ca5f3444244f6d3edad8854628c9fc663844b1c629681",
+  "finalization": {
+    "atomic_part_to_final_rename": true,
+    "exact_full_sha256_match": true,
+    "exact_full_size_match": true,
+    "gzip_verified": true,
+    "tar_verified": true
+  },
+  "local_upload_bundle": {
+    "bytes": 626840,
+    "path": "output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/next_apm_prefix_launchfix1_58c00b94/remote_upload/hubbard_apm_r00_launchfix1_58c00b94_upload.tar.gz",
+    "sha256": "d50e3defdbc76fc0b239ecf2078602a61058c499b8124d055706a6b1c9fd6267"
+  },
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-30T20:47:06.977Z",
+  "recovery_of_unit": "prospective-apm-exchange-e667b05f39a4b711",
+  "remote_raw_evidence_policy": "preserve",
+  "remote_upload_bundle": {
+    "bytes": 626840,
+    "path": "/home/jsstrobel/hubbard_apm_r00_launchfix1_58c00b94_upload.tar.gz",
+    "regular_non_symlink": true,
+    "sha256": "d50e3defdbc76fc0b239ecf2078602a61058c499b8124d055706a6b1c9fd6267"
+  },
+  "remote_workdir": {
+    "atomic_part_to_final_publish": true,
+    "path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_launchfix1_58c00b94_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00_launchfix1"
+  },
+  "runtime_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "scheduler_query_performed": false,
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_hubbard_apm_operational_recovery_upload_verification_v1",
+  "source_dependency_sha256": "da056abce6f9c15d3352ad08a06baa78964e31b338df74c83d1d8bf39429db76",
+  "status": "verified",
+  "submission_permitted": false,
+  "unit_id": "prospective-apm-exchange-e667b05f39a4b711-launchfix1",
+  "upload_verification_sha256": "7e2ad84638cd39d9564ca929f1affaa56cc7d6b6e42506004baff8ef76467612"
+}

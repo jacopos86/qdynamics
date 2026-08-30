@@ -1,0 +1,36 @@
+{
+  "final_remote_binding": {
+    "bytes": 385714,
+    "remote_path": "/home/jsstrobel/paperii_combined_cycle_20260830_204706_plan.json",
+    "sha256": "e7df7c945faf80420f5b2977a04ce9812d1e86999bd0d0dd3423e12202f528a0"
+  },
+  "interrupted_parts": [
+    {
+      "bytes": 5,
+      "disposition": "quarantined_unproved_prefix",
+      "quarantine_path": "/home/jsstrobel/paperii_combined_cycle_20260830_204706_plan.json.part.quarantine_session41145",
+      "sha256": "3f7171839d49b99306a9cfe99b4dcc815680048bab813e49527b7238a06f60a8"
+    },
+    {
+      "bytes": 3071,
+      "disposition": "quarantined_failed_unwrapped_tty_transfer",
+      "quarantine_path": "/home/jsstrobel/paperii_combined_cycle_20260830_204706_plan.json.part.quarantine_tmuxfull",
+      "sha256": "3fc7ff0b0d12c598cd1927c8ece15bf716ac5396191c1682d19f799365e8a7dd"
+    },
+    {
+      "bytes": 3071,
+      "disposition": "quarantined_failed_unwrapped_tty_transfer",
+      "quarantine_path": "/home/jsstrobel/paperii_combined_cycle_20260830_204706_plan.json.part.quarantine_tmuxcanonical",
+      "sha256": "3fc7ff0b0d12c598cd1927c8ece15bf716ac5396191c1682d19f799365e8a7dd"
+    }
+  ],
+  "local_binding": {
+    "bytes": 385714,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_204706/capture_plan.json",
+    "sha256": "e7df7c945faf80420f5b2977a04ce9812d1e86999bd0d0dd3423e12202f528a0"
+  },
+  "receipt_sha256": "ca07efea8a404ba114cde57ae8244cd03e5172143e806d43f3cf204fde06fb38",
+  "remote_raw_evidence_preserved": true,
+  "schema": "paper_ii_capture_plan_transfer_recovery_receipt_v1",
+  "status": "verified_complete_atomic_finalization"
+}
