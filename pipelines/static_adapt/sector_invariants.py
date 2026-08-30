@@ -11,7 +11,11 @@ angles.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
+import os as _os_env
+import pathlib
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
@@ -284,9 +288,84 @@ def _pauli_words_commute(left: str, right: str) -> bool:
 #: register width, and the tolerance -- none of which change across ADAPT
 #: iterations -- so an invariant pool is audited once instead of once per
 #: (candidate, depth).
-_GENERATOR_AUDIT_CACHE_MAX_ENTRIES = 4096
+_GENERATOR_AUDIT_CACHE_MAX_ENTRIES = int(
+    _os_env.environ.get("STATIC_ADAPT_SECTOR_AUDIT_MEMO_MAX", "262144")
+)
 
 _generator_audit_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
+
+# Optional disk persistence. The audit verdict is a pure function of the exact
+# cache key (generator Pauli components, fixed-count groups, register width,
+# tolerance), so a disk hit returns the value the uncached audit would produce.
+# Enable with STATIC_ADAPT_SECTOR_AUDIT_CACHE=disk plus
+# STATIC_ADAPT_SECTOR_AUDIT_CACHE_DIR. Child generators exposed during a run
+# are new operators, so an in-process memo alone is refilled from scratch on
+# every launch and every resume.
+_SECTOR_AUDIT_DISK_SCHEMA = "sector_audit_disk_row_v1"
+
+
+def _sector_audit_disk_dir():
+    if (
+        _os_env.environ.get("STATIC_ADAPT_SECTOR_AUDIT_CACHE", "")
+        .strip()
+        .lower()
+        != "disk"
+    ):
+        return None
+    raw = _os_env.environ.get("STATIC_ADAPT_SECTOR_AUDIT_CACHE_DIR", "").strip()
+    if not raw:
+        return None
+    path = pathlib.Path(raw)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _sector_audit_disk_path(cache_key):
+    directory = _sector_audit_disk_dir()
+    if directory is None:
+        return None
+    digest = hashlib.sha256(
+        (_SECTOR_AUDIT_DISK_SCHEMA + "\x1f" + repr(cache_key)).encode("utf-8")
+    ).hexdigest()
+    return directory / f"{digest}.json"
+
+
+def _sector_audit_disk_load(cache_key):
+    path = _sector_audit_disk_path(cache_key)
+    if path is None or not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema") != _SECTOR_AUDIT_DISK_SCHEMA
+    ):
+        return None
+    row = payload.get("row")
+    return row if isinstance(row, dict) else None
+
+
+def _sector_audit_disk_store(cache_key, row):
+    path = _sector_audit_disk_path(cache_key)
+    if path is None:
+        return
+    tmp = path.with_suffix(".tmp." + str(_os_env.getpid()))
+    try:
+        tmp.write_text(
+            json.dumps(
+                {"schema": _SECTOR_AUDIT_DISK_SCHEMA, "row": row},
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        tmp.replace(path)
+    except OSError:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _generator_audit_cache_key(
@@ -357,12 +436,24 @@ def audit_generator_sector_contract(
         cached = _generator_audit_cache.get(cache_key)
         if cached is not None:
             return _copy_generator_audit_row(cached)
+        disk_row = _sector_audit_disk_load(cache_key)
+        if disk_row is not None:
+            if len(_generator_audit_cache) < _GENERATOR_AUDIT_CACHE_MAX_ENTRIES:
+                _generator_audit_cache[cache_key] = _copy_generator_audit_row(
+                    disk_row
+                )
+            return _copy_generator_audit_row(disk_row)
     row = _audit_generator_sector_contract_uncached(
         term,
         groups=groups,
         total_qubits=total_qubits,
         tolerance=tolerance,
     )
+    if cache_key is not None:
+        # Canonicalize through JSON so a disk hit and a fresh computation are
+        # byte-identical in every downstream receipt.
+        row = json.loads(json.dumps(row))
+        _sector_audit_disk_store(cache_key, row)
     if (
         cache_key is not None
         and len(_generator_audit_cache) < _GENERATOR_AUDIT_CACHE_MAX_ENTRIES
@@ -381,6 +472,79 @@ def clear_sector_invariant_caches() -> None:
     _generator_audit_cache.clear()
     _canonical_pauli_word_text.cache_clear()
     _pauli_word_symplectic_masks.cache_clear()
+
+
+def _noncommuting_component_pairs(
+    components: Sequence[Any],
+    nonzero_component_indices: Sequence[int],
+) -> tuple[int, list[list[int]]]:
+    """Count anticommuting component pairs via the symplectic form.
+
+    Two Pauli words commute iff
+    ``popcount(x_i & z_j) XOR popcount(x_j & z_i) == 0``.  Building each word's
+    ``(x, z)`` masks once and evaluating that form over the whole pair matrix
+    in numpy yields the identical verdict as the pairwise scan it replaces, at
+    O(k^2) machine ops rather than O(k^2) Python calls.  The reported sample
+    preserves ascending ``(left, right)`` order.
+    """
+
+    count = int(len(nonzero_component_indices))
+    if count < 2:
+        return 0, []
+    x_masks: list[int] = []
+    z_masks: list[int] = []
+    for index in nonzero_component_indices:
+        word = _canonical_pauli_word(str(components[int(index)].pw2strng()))
+        x_mask, z_mask = _pauli_word_symplectic_masks(word)
+        x_masks.append(int(x_mask))
+        z_masks.append(int(z_mask))
+
+    if max(
+        (int(value).bit_length() for value in (*x_masks, *z_masks)),
+        default=0,
+    ) > 63:
+        # Exact Python integers beyond machine width.
+        noncommuting = 0
+        sample: list[list[int]] = []
+        for left_offset in range(count):
+            for right_offset in range(left_offset + 1, count):
+                parity = (
+                    (x_masks[left_offset] & z_masks[right_offset]).bit_count()
+                    + (x_masks[right_offset] & z_masks[left_offset]).bit_count()
+                ) % 2
+                if parity:
+                    noncommuting += 1
+                    if len(sample) < 64:
+                        sample.append(
+                            [
+                                int(nonzero_component_indices[left_offset]),
+                                int(nonzero_component_indices[right_offset]),
+                            ]
+                        )
+        return noncommuting, sample
+
+    x_arr = np.array(x_masks, dtype=np.uint64)
+    z_arr = np.array(z_masks, dtype=np.uint64)
+    parity = (
+        np.bitwise_count(np.bitwise_and(x_arr[:, None], z_arr[None, :]))
+        + np.bitwise_count(np.bitwise_and(x_arr[None, :], z_arr[:, None]))
+    ) & np.uint8(1)
+    anticommuting = np.logical_and(
+        parity.astype(bool),
+        np.triu(np.ones((count, count), dtype=bool), k=1),
+    )
+    noncommuting = int(np.count_nonzero(anticommuting))
+    sample = []
+    if noncommuting:
+        rows, cols = np.nonzero(anticommuting)
+        for row, col in zip(rows[:64].tolist(), cols[:64].tolist()):
+            sample.append(
+                [
+                    int(nonzero_component_indices[int(row)]),
+                    int(nonzero_component_indices[int(col)]),
+                ]
+            )
+    return noncommuting, sample
 
 
 def _audit_generator_sector_contract_uncached(
@@ -439,18 +603,10 @@ def _audit_generator_sector_contract_uncached(
     pairwise_component_pair_count = (
         len(nonzero_component_indices) * (len(nonzero_component_indices) - 1) // 2
     )
-    noncommuting_component_pair_count = 0
-    noncommuting_component_pairs_sample: list[list[int]] = []
-    for left_offset, left_index in enumerate(nonzero_component_indices):
-        left_word = str(components[left_index].pw2strng())
-        for right_index in nonzero_component_indices[left_offset + 1 :]:
-            right_word = str(components[right_index].pw2strng())
-            if not _pauli_words_commute(left_word, right_word):
-                noncommuting_component_pair_count += 1
-                if len(noncommuting_component_pairs_sample) < 64:
-                    noncommuting_component_pairs_sample.append(
-                        [int(left_index), int(right_index)]
-                    )
+    (
+        noncommuting_component_pair_count,
+        noncommuting_component_pairs_sample,
+    ) = _noncommuting_component_pairs(components, nonzero_component_indices)
     all_nonzero_components_mutually_commute = bool(
         noncommuting_component_pair_count == 0
     )
