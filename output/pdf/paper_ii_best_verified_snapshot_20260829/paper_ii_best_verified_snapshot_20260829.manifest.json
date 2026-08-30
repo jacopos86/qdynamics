@@ -1,0 +1,72 @@
+{
+  "schema": "paper_ii_best_verified_snapshot_manifest_v1",
+  "generated_at_utc": "2026-08-30T05:07:10Z",
+  "publication_state": "provisional_best_verified_so_far_not_manuscript_promoted",
+  "shared_checkout": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3",
+  "branch_at_build_start": "paper-ii-exchange-selector",
+  "head_at_build_start": "88955d47e49ccda42f5ac5ccfdbcc7b9191b5431",
+  "source_evidence_revision": "d5590449",
+  "artifacts": {
+    "bundle_pdf": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829/paper_ii_best_verified_snapshot_20260829.pdf",
+      "sha256": "05488bd9b88dbc94decc568157cd884bbb3dab8a7c6b1d8141c3603f787eeed1",
+      "bytes": 1451487,
+      "pages": 18
+    },
+    "cover_pdf": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829/paper_ii_best_verified_snapshot_20260829_cover.pdf",
+      "sha256": "abc9d626dd8ec1bf5569c70b1c0c3def9d53f28c8abe19ccffe1569a4deb0f20",
+      "pages": 3
+    },
+    "latex_source": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829/paper_ii_best_verified_snapshot_20260829.tex",
+      "sha256": "3ac7612ca0e63550bcc9117b46a436b517de8d660082092a4e71e795f5e53492"
+    },
+    "source_map": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829/paper_ii_best_verified_snapshot_20260829.source_map.json",
+      "sha256": "04633e2422dba871aedc51b12900b3f0769f2f6c11cb2436a4c18458f328319b"
+    }
+  },
+  "page_map": [
+    {
+      "pages": "1-3",
+      "content": "new provisional audit and best-verified-results cover"
+    },
+    {
+      "pages": "4-17",
+      "content": "unchanged canonical 14-page staged campaign report",
+      "source_sha256": "e0fdcef1aec522d4d3bfd54e9563842e8847f4608975a389946a60b010644929"
+    },
+    {
+      "pages": "18",
+      "content": "unchanged SIAM r06 results sheet",
+      "source_sha256": "5ca8ceeedc57a4bb72b9e1aef38825a4427f3162de0946deb72207999896f18c"
+    }
+  ],
+  "validation": {
+    "latexmk_exit": 0,
+    "latex_errors": 0,
+    "overfull_box_warnings": 0,
+    "cover_page_count": 3,
+    "bundle_page_count": 18,
+    "canonical_campaign_append_text_comparison": "exact_match",
+    "siam_append_text_comparison": "exact_match",
+    "json_parse": "pass",
+    "placeholder_and_tool_token_scan": "pass",
+    "visual_inspection": {
+      "status": "PASS",
+      "scope": "all 18 pages rendered; pages 1-3 inspected at full-page resolution and pages 1-18 inspected in three contact sheets",
+      "findings": "no overlap, clipping, accidental blank page, or unreadable reader-facing panel"
+    }
+  },
+  "headline_claims": {
+    "qualified_t20_matched_pairs": 4,
+    "best_individual_t20_mean_infidelity": 1.1744524910612474e-7,
+    "best_individual_t20_status": "unpaired_not_cost_comparable",
+    "best_matched_pair_t20_mean_infidelity": 6.004119580489241e-7,
+    "prospective_hh_t5_mean_infidelity": 1.6580924499256416e-5,
+    "prospective_hh_t5_status": "individually_qualified_pair_pending",
+    "hubbard_l4_qualified_results": 0,
+    "siam_qualified_matched_pairs": 0
+  }
+}

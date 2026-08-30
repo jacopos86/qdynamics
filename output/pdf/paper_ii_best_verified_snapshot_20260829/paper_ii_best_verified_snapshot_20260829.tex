@@ -1,0 +1,228 @@
+\documentclass[9pt,letterpaper,landscape]{article}
+\usepackage[margin=0.46in,headsep=8pt,footskip=18pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+
+\definecolor{navy}{HTML}{17324D}
+\definecolor{blue}{HTML}{2C6E9B}
+\definecolor{pale}{HTML}{EDF4F8}
+\definecolor{green}{HTML}{1B6A4A}
+\definecolor{greenpale}{HTML}{E8F5EE}
+\definecolor{amber}{HTML}{8A5A00}
+\definecolor{amberpale}{HTML}{FFF4D6}
+\definecolor{red}{HTML}{8B2E2E}
+\definecolor{gray}{HTML}{5A6570}
+\definecolor{line}{HTML}{B7C4CF}
+
+\hypersetup{colorlinks=true,urlcolor=blue,linkcolor=navy,pdfauthor={Holstein implementation project},pdftitle={Paper II: Best verified results available so far}}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\footnotesize\color{gray}Paper II / evidence snapshot}
+\rhead{\footnotesize\color{gray}As of 2026-08-30 03:44 UTC}
+\cfoot{\footnotesize\color{gray}\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlist[itemize]{leftmargin=13pt,itemsep=1.5pt,topsep=2pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcommand{\good}[1]{\textcolor{green}{\textbf{#1}}}
+\newcommand{\pending}[1]{\textcolor{amber}{\textbf{#1}}}
+\newcommand{\statusbox}[2]{\colorbox{#1}{\parbox{0.965\linewidth}{\strut #2\strut}}}
+\newcommand{\sci}[2]{#1\!\times\!10^{#2}}
+
+\begin{document}
+
+{\LARGE\bfseries\color{navy} Paper II: best verified results available so far}\hfill
+{\large\color{gray}Provisional evidence snapshot}
+
+\statusbox{amberpale}{\textcolor{amber}{\textbf{NOT MANUSCRIPT-PROMOTED.}} This is a durable lower-bound snapshot of completed, exact-scored evidence. Live lanes remain unfinished; no missing result is interpreted as a failure or a zero.}
+
+\vspace{3pt}
+\begin{minipage}[t]{0.48\linewidth}
+{\large\bfseries\color{navy}What is already secured}
+
+\statusbox{greenpale}{\textbf{Four full-horizon Hubbard--Holstein matched-accuracy pairs reach \(t=20\).} Across those pairs, mean infidelity is \(6.37\times10^{-6}\)--\(1.12\times10^{-5}\) for APM/exchange and \(6.00\times10^{-7}\)--\(2.08\times10^{-6}\) for AVQDS. A separate completed AVQDS arm reaches \(1.174\times10^{-7}\), but has no qualified APM mate.}
+
+\begin{tabularx}{\linewidth}{@{}>{\bfseries}p{0.34\linewidth}Y@{}}
+\toprule
+Best individual \(t=20\) mean infidelity & \(1.174\times10^{-7}\), AVQDS, strong/fast parameter motion; \textbf{unpaired} \\
+Best within a qualified matched pair & \(6.004\times10^{-7}\), AVQDS, fast/weak parameter-motion pair \\
+Best observed \(t=20\) APM mean infidelity & \(6.370\times10^{-6}\), weak/slow parameter-motion pair \\
+Matched-pair coverage & 4 qualified pairs / 8 method arms, all reproduced on page 2 \\
+Observed logical-cost pattern & Within these four retained pairs, APM's recorded graph tuple and \(N_\theta\) are componentwise smaller than AVQDS's \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+{\bfseries Interpretation boundary.} These are observed, exact-referenced trajectories under the recorded response-normalized matched-accuracy contract. They establish an accuracy floor and a reproducible resource trend for the completed pairs; they do not establish universal method superiority or completion of the 39-cell prospective matrix.
+
+\vspace{4pt}
+{\large\bfseries\color{navy}Evidence semantics}
+\begin{itemize}
+  \item Accuracy quantities are physical errors against exact references; exact evolution is reporting-only.
+  \item The resource tuple is \((\widehat C_{2q},\widehat C_D,\widehat C_{1q},N_\theta)\), a routing-independent logical/graph proxy.
+  \item Qiskit compilation is excluded from this prospective campaign; implementation-parity evidence is therefore \textbf{OUT OF SCOPE}, not missing success evidence.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.50\linewidth}
+{\large\bfseries\color{navy}First-page evidence manifest}
+
+\rowcolors{2}{pale}{white}
+\begin{tabularx}{\linewidth}{@{}p{0.22\linewidth}C{0.14\linewidth}C{0.18\linewidth}Y@{}}
+\toprule
+Evidence block & Rows & Audit / state & Scientific status \\
+\midrule
+Canonical HH staged ledger & 345 & \good{PASS} & 4 qualified \(t=20\) matched pairs; 15 qualified and 21 pending method arms overall \\
+Prospective HH & 1 scored & \good{BOUND} & AVQDS \(t=5\) individually qualified; comparison/cost claim pending APM mate \\
+SIAM \(N_b=4\) pilot & 2 scored & \good{BOUND} & numerical candidates only; no individually qualified matched pair yet \\
+Live prospective lanes & 3 states & \pending{OPEN} & Hubbard RUNNING; HH APM PREFLIGHT\_ONLY; SIAM r07 SUBMITTED \\
+\bottomrule
+\end{tabularx}
+\rowcolors{2}{}{}
+
+\vspace{5pt}
+{\bfseries Canonical HH cluster set (31):}\par
+{\ttfamily\tiny
+9697391, 9698201, 9698247, 9698264, 9701941, 9703334, 9703747, 9703851, 9705193, 9707629, 9708157, 9708462, 9708981, 9709593, 9709600, 9709707, 9709708, 9709713, 9709723, 9709731, 9709741, 9709744, 9709745, 9709750, 9709763, 9709772, 9709886, 9709947, 9709982, 9712867, 9713112.}
+
+\vspace{4pt}
+{\bfseries Current prospective identities:}\par
+HH completed: \texttt{9715119.0}. Hubbard running at the last combined scheduler capture: \texttt{9714499.0}, \texttt{9714501.0}. SIAM scored: \texttt{9714484.0}, \texttt{9715147.0}; r07 submitted exactly once as \texttt{9715270} after that capture.
+
+\vspace{4pt}
+{\bfseries Durable sources:}\par
+Canonical report PDF SHA-256: {\ttfamily\tiny e0fdcef1aec522d4d3bfd54e9563842e8847f4608975a389946a60b010644929}.\\
+Canonical report JSON SHA-256: {\ttfamily\tiny 6461dc8255fb68276932bd2c7856aa43d856c0300d3f199b2e5d95305f5c8da9}.\\
+Latest combined capture SHA-256: {\ttfamily\tiny 64deab5ede574db7f29188913ea2fb7ed938669d068351cd06a96f3875a2476e}.
+
+\vspace{4pt}
+Full file hashes, source paths, claim bindings, and caveats are retained in the adjacent source-map and manifest JSON files. The canonical 14-page campaign report and one-page SIAM r06 report are appended unchanged after this three-page cover.
+\end{minipage}
+
+\newpage
+{\LARGE\bfseries\color{navy} Completed full-horizon HH evidence: four matched \(t=20\) pairs}
+
+{\small The table reproduces the eight method arms identified by the canonical report as four qualified response-normalized matched-accuracy pairs. Errors are time-mean absolute errors against the exact reference. \(\mathcal B\) is the recorded aggregate normalized accuracy burden; it is an accuracy quantity, not a hardware cost.}
+
+\vspace{3pt}
+\rowcolors{2}{pale}{white}
+\begin{tabular}{@{}p{1.16in}p{1.08in}p{0.72in}C{0.78in}C{0.78in}C{0.78in}C{0.78in}C{0.58in}C{1.32in}@{}}
+\toprule
+Regime & Pair definition & Method & Mean infidelity & Mean \(|\Delta E|\) & Mean \(|\Delta D|\) & Mean \(|\Delta C|\) & \(\mathcal B\) & Logical tuple \\
+\midrule
+weak / slow & parameter motion & AVQDS & \(2.084\!\times\!10^{-6}\) & \(1.471\!\times\!10^{-4}\) & \(1.362\!\times\!10^{-4}\) & \(7.953\!\times\!10^{-4}\) & 1.421 & \((5214,5476,9281,945)\) \\
+weak / slow & parameter motion & APM/exch. & \(6.370\!\times\!10^{-6}\) & \(8.593\!\times\!10^{-5}\) & \(2.157\!\times\!10^{-4}\) & \(4.281\!\times\!10^{-4}\) & 1.233 & \((172,254,365,53)\) \\
+weak / slow & state + parameter & AVQDS & \(1.200\!\times\!10^{-6}\) & \(1.040\!\times\!10^{-4}\) & \(9.707\!\times\!10^{-5}\) & \(5.793\!\times\!10^{-4}\) & 1.009 & \((5130,5390,9048,926)\) \\
+weak / slow & state + parameter & APM/exch. & \(6.395\!\times\!10^{-6}\) & \(1.040\!\times\!10^{-4}\) & \(1.903\!\times\!10^{-4}\) & \(3.892\!\times\!10^{-4}\) & 1.232 & \((178,248,395,53)\) \\
+weak / slow & state motion & AVQDS & \(1.603\!\times\!10^{-6}\) & \(1.506\!\times\!10^{-4}\) & \(1.447\!\times\!10^{-4}\) & \(7.919\!\times\!10^{-4}\) & 1.461 & \((1908,2074,3642,370)\) \\
+weak / slow & state motion & APM/exch. & \(7.360\!\times\!10^{-6}\) & \(1.328\!\times\!10^{-4}\) & \(1.228\!\times\!10^{-4}\) & \(8.193\!\times\!10^{-4}\) & 1.303 & \((182,256,388,54)\) \\
+fast / weak & parameter motion & AVQDS & \(6.004\!\times\!10^{-7}\) & \(4.242\!\times\!10^{-4}\) & \(1.182\!\times\!10^{-4}\) & \(3.856\!\times\!10^{-4}\) & 0.062 & \((170,238,371,61)\) \\
+fast / weak & parameter motion & APM/exch. & \(1.121\!\times\!10^{-5}\) & \(5.605\!\times\!10^{-4}\) & \(1.914\!\times\!10^{-4}\) & \(4.872\!\times\!10^{-4}\) & 0.107 & \((96,144,246,40)\) \\
+\bottomrule
+\end{tabular}
+\rowcolors{2}{}{}
+
+\vspace{8pt}
+\begin{minipage}[t]{0.49\linewidth}
+{\large\bfseries\color{navy}Accuracy floor}
+\begin{itemize}
+  \item The completed matched-pair evidence is already in the \(10^{-6}\)--\(10^{-5}\) mean-infidelity range; the best completed individual arm reaches \(1.174\times10^{-7}\).
+  \item The corresponding mean absolute observable errors shown here are in the \(10^{-5}\)--\(10^{-4}\) range for energy/doublon and the \(10^{-4}\) range for the displayed charge-imbalance response.
+  \item The best mean infidelity is not used as a stand-alone winner: matched response burden and the retained observable caps remain part of qualification.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+{\large\bfseries\color{navy}Resource observation}
+\begin{itemize}
+  \item For every completed pair above, APM/exchange records fewer logical one- and two-qubit graph operations, lower logical depth proxy, and fewer terminal independent parameters.
+  \item This is a routing-independent proxy comparison. No Qiskit compilation, backend routing, shot cost, or hardware-noise claim is made here.
+  \item Final manuscript attribution remains contingent on the prospective fixed-code matched-pair campaign and its pre-submit audit.
+\end{itemize}
+\end{minipage}
+
+\vspace{4pt}
+\statusbox{amberpale}{\textbf{Best individual accuracy record (not a cost comparison):} strong/fast AVQDS parameter-motion, cluster \texttt{9698264}, mean infidelity \(1.1744525\times10^{-7}\), \(N_\theta=62\), graph tuple \((182,256,386)\). Its run SHA-256 is {\ttfamily\scriptsize e00618453d30fad48854eae7a462ab229bfa528f808efea97dbbbed7056ca540}. It is deliberately excluded from the four matched rows above because no qualified APM mate exists.}
+
+\vfill
+{\footnotesize\color{gray}Source: canonical 345-record Paper-II staged campaign report. The complete report, including every evaluated row, safeguards, pending arms, definitions, and plots, begins on page 4 of this bundle.}
+
+\newpage
+{\LARGE\bfseries\color{navy} Prospective evidence and the live boundary}
+
+{\large\bfseries\color{navy}New exact-scored trajectories}
+
+\small
+\rowcolors{2}{pale}{white}
+\begin{tabularx}{\linewidth}{@{}p{1.72in}p{1.42in}C{0.62in}C{0.76in}C{1.00in}C{0.64in}Y@{}}
+\toprule
+Benchmark & Method & Horizon & Cluster & Mean infidelity & \(\mathcal B\) & Status \\
+\midrule
+HH \(N_{ph}=1\), crossover/midres & AVQDS, cut \(10^{-2}\) & \(t=5\) & 9715119 & \(1.658\times10^{-5}\) & 0.1119 & \good{QUALIFIED}; APM mate pending, so no cost comparison \\
+SIAM \(N_b=4\) & AVQDS, r02 cut \(10^{-3}\) & \(t=1\) & 9714484 & \(2.602\times10^{-5}\) & 0.4380 & CANDIDATE; broad guard passes, individual target fails \\
+SIAM \(N_b=4\) & APM/exchange, r06 cut \(10^{-5}\) & \(t=1\) & 9715147 & \(2.237\times10^{-6}\) & 1.5954 & REJECTED PAIR; broad response guard fails \\
+\bottomrule
+\end{tabularx}
+\rowcolors{2}{}{}
+\normalsize
+
+\vspace{6pt}
+\begin{minipage}[t]{0.56\linewidth}
+{\large\bfseries\color{navy}Verified detail}
+
+{\bfseries HH \(t=5\):} mean \(|\Delta E|=3.315\times10^{-3}\), mean doublon error \(9.671\times10^{-4}\), mean maximum site-occupation error \(1.894\times10^{-3}\), and logical tuple \((270,486,617,221)\). Exact source, seed, and source epoch are digest-bound; Qiskit compilation was not performed.
+
+{\bfseries SIAM gate detail:} AVQDS's worst primitive response-normalized mean error is 0.07938; APM r06's is 0.31897 in the small-response \(C_3\) channel. Their mean \(|\Delta E|\) values are \(5.145\times10^{-4}\) and \(4.036\times10^{-4}\). The pair is accuracy-confounded and rejected; r07 is the pure planner's next APM rung.
+
+\vspace{4pt}
+\statusbox{greenpale}{\textbf{Security statement.} If every open lane stopped today, this bundle would still retain four complete HH \(t=20\) matched pairs, the unpaired \(1.174\times10^{-7}\) HH accuracy record, and one independently qualified prospective HH \(t=5\) trajectory, all with exact-reference accuracy and source hashes.}
+
+\vspace{5pt}
+{\large\bfseries\color{navy}What this PDF does not claim}
+\begin{itemize}
+  \item It is not the final Paper-II table or 39-cell manuscript result set.
+  \item It declares no SIAM winner and infers no threshold monotonicity.
+  \item It reports no Qiskit-compiled, routed, shot, or hardware cost.
+  \item It does not reopen the superseded adaptive FS-radius experiment.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
+{\large\bfseries\color{navy}Open work is explicit}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.28\linewidth}p{0.27\linewidth}Y@{}}
+\toprule
+Lane & Typed state & Consequence \\
+\midrule
+HH APM mate & \pending{PREFLIGHT} & dry-run only; no result \\
+Hubbard L4 & \pending{RUNNING} & 9714499/9714501; no score yet \\
+SIAM r07 & \pending{SUBMITTED} & 9715270; result pending \\
+Full matrix & \pending{INCOMPLETE} & final promotion not claimed \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\vspace{7pt}
+{\large\bfseries\color{navy}Audit anchors}
+\begin{itemize}
+  \item canonical campaign: \good{PASS}, 345 immutable rows;
+  \item prospective HH: exact/seed/source identities joined and score digest verified;
+  \item SIAM: exact source epoch and 101-point grid digest bound;
+  \item latest combined scheduler capture: 2026-08-30 03:44:09 UTC;
+  \item source evidence revision: \texttt{d5590449}.
+\end{itemize}
+\end{minipage}
+
+\vfill
+\statusbox{pale}{\textbf{Reader map.} Pages 4--17 are the unchanged 14-page canonical campaign report. Page 18 is the unchanged SIAM r06 results sheet. The adjacent JSON sidecars bind every source and every headline claim to a SHA-256 digest.}
+
+\end{document}

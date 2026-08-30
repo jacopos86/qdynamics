@@ -1,0 +1,144 @@
+{
+  "schema": "paper_ii_best_verified_snapshot_source_map_v1",
+  "publication_state": "provisional_best_verified_so_far_not_manuscript_promoted",
+  "as_of_utc": "2026-08-30T03:44:09Z",
+  "source_evidence_revision": "d5590449",
+  "shared_checkout_branch_at_build_start": "paper-ii-exchange-selector",
+  "accuracy_semantics": "physical errors against exact reporting-only references under the response-normalized matched-accuracy contract",
+  "resource_semantics": {
+    "tuple_order": [
+      "C_hat_2q",
+      "C_hat_D",
+      "C_hat_1q",
+      "N_theta"
+    ],
+    "kind": "routing-independent logical_graph_proxy",
+    "qiskit_compilation": "excluded_not_performed"
+  },
+  "sources": [
+    {
+      "id": "canonical_campaign_pdf",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/pdf/paper_ii_staged_accuracy_campaign/paper_ii_staged_report.pdf",
+      "sha256": "e0fdcef1aec522d4d3bfd54e9563842e8847f4608975a389946a60b010644929",
+      "page_count": 14,
+      "role": "unchanged_appendix_pages_4_through_17"
+    },
+    {
+      "id": "canonical_campaign_json",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/pdf/paper_ii_staged_accuracy_campaign/paper_ii_staged_report.json",
+      "sha256": "6461dc8255fb68276932bd2c7856aa43d856c0300d3f199b2e5d95305f5c8da9",
+      "ledger_row_count": 345,
+      "ledger_sha256": "918ad67ca9adf1a20082d4f0db436d7757be3f9718e2c42a8ac35cb848ffb963",
+      "audit_status": "PASS",
+      "t20_qualified_matched_pairs": 4
+    },
+    {
+      "id": "prospective_hh_avqds_t5_score",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/score/metrics.json",
+      "sha256": "206070543c9b0f0f44457c190bd1806e722d9d3ad98aa25c561187f02eff48e2",
+      "internal_score_metrics_sha256": "44043630abfbfc9832021d049a74fbcd1087d9094d4325b7d019d55a2ad15e09",
+      "cluster_process": "9715119.0",
+      "status": "individually_qualified_comparison_guard_eligible_cost_comparison_not_admissible"
+    },
+    {
+      "id": "siam_avqds_r02_score",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/score.json",
+      "sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+      "internal_score_sha256": "bbf209426949ee7ca5023ced464642d6c73af7ac582b91511af3a4ce78169c29",
+      "cluster_process": "9714484.0",
+      "status": "candidate_broad_guard_individual_target_not_passed"
+    },
+    {
+      "id": "siam_apm_r06_score",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715147/increments/proc0/evaluated/score.json",
+      "sha256": "25414cc6bb79650f4c6abc88db93b53c7b3e7b301432c563eab11e1879a6f2e7",
+      "internal_score_sha256": "1c6e009fb938b90257919c70b3441c44764582253e2e3fa14802709509588de1",
+      "cluster_process": "9715147.0",
+      "status": "candidate_outside_broad_guard_individual_target_not_passed"
+    },
+    {
+      "id": "siam_r06_results_pdf",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9715147.pdf",
+      "sha256": "5ca8ceeedc57a4bb72b9e1aef38825a4427f3162de0946deb72207999896f18c",
+      "page_count": 1,
+      "role": "unchanged_appendix_page_18"
+    },
+    {
+      "id": "latest_combined_scheduler_capture",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260829_224321/combined_snapshot.json",
+      "sha256": "64deab5ede574db7f29188913ea2fb7ed938669d068351cd06a96f3875a2476e",
+      "logical_sha256": "ec2698b5b7793bc4cb14c0ecc34a478d10a7b235c81c465d3f55716e7412415c",
+      "captured_at_utc": "2026-08-30T03:44:09Z",
+      "scope": [
+        "9715119.0",
+        "9714499.0",
+        "9714501.0",
+        "9715147.0",
+        "SIAM_r07_exact_intent",
+        "HH_APM_exact_intent"
+      ]
+    },
+    {
+      "id": "siam_r07_submission_receipt",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/submissions/cluster_9715270/submission_receipt.json",
+      "sha256": "1b03fb860fa37e98711703ba32f87471709082e387620c9a4eb291c778da79be",
+      "cluster": "9715270",
+      "status": "submitted_exactly_once_no_post_submit_scheduler_capture"
+    }
+  ],
+  "canonical_hh_cluster_ids": [
+    9697391,
+    9698201,
+    9698247,
+    9698264,
+    9701941,
+    9703334,
+    9703747,
+    9703851,
+    9705193,
+    9707629,
+    9708157,
+    9708462,
+    9708981,
+    9709593,
+    9709600,
+    9709707,
+    9709708,
+    9709713,
+    9709723,
+    9709731,
+    9709741,
+    9709744,
+    9709745,
+    9709750,
+    9709763,
+    9709772,
+    9709886,
+    9709947,
+    9709982,
+    9712867,
+    9713112
+  ],
+  "best_completed_individual_accuracy_record": {
+    "benchmark": "Hubbard_Holstein_strongfast_parameter_motion",
+    "method": "AVQDS",
+    "cluster": 9698264,
+    "mean_infidelity": 1.1744524910612474e-7,
+    "terminal_independent_parameter_count": 62,
+    "routing_independent_graph_tuple": [
+      182,
+      256,
+      386
+    ],
+    "run_sha256": "e00618453d30fad48854eae7a462ab229bfa528f808efea97dbbbed7056ca540",
+    "comparison_status": "unpaired_not_admissible_for_cost_comparison"
+  },
+  "explicit_gaps": [
+    "HH_APM_mate_PREFLIGHT_ONLY_no_result",
+    "Hubbard_L4_clusters_9714499_0_and_9714501_0_RUNNING_at_latest_capture",
+    "SIAM_current_pair_REJECTED_ACCURACY_CONFOUNDED",
+    "SIAM_r07_cluster_9715270_SUBMITTED_no_result",
+    "prospective_39_cell_matrix_INCOMPLETE",
+    "Qiskit_compilation_OUT_OF_SCOPE"
+  ]
+}
