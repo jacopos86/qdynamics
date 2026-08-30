@@ -1,0 +1,95 @@
+{
+  "bridge_sha256": "b5da94ed9eb2ce922eee56b6f7b96cb40445e44395aa3c7b3c1cdcdc732b8aa7",
+  "derivations": {
+    "acquisition_unit_id": "package_manifest.package_id",
+    "intent_sha256": "sha256(submission_intent bytes)",
+    "job_batch_name": "submit_descriptor.+JobBatchName",
+    "paper_ii_action_id": "submission_intent.scientific_identity.action_id",
+    "paper_ii_execution_request_sha256": "sha256(canonical execution_request)",
+    "recorded_at": "submission_intent.created_at_utc"
+  },
+  "evidence_bindings": {
+    "action": {
+      "bytes": 189850,
+      "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/action.json",
+      "sha256": "5ac1c473f470cd88c70c3fcd855256ffe033148a78bdbf9e67b6c06f16db703b"
+    },
+    "manifest": {
+      "bytes": 4275,
+      "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/manifest.json",
+      "sha256": "a23dfa8624fb6f3506e6f4762e66ee8a1d50a740445c47ec3daf7d4381b582ed"
+    },
+    "remote_upload_receipt": {
+      "bytes": 3649,
+      "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/remote_upload_receipt.json",
+      "sha256": "4a4bd1dbd53140eeee8c093d84b8e1853e3697b5f0f35d3ee15e0987bc11890c"
+    },
+    "submit": {
+      "bytes": 1317,
+      "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/submit.sub",
+      "sha256": "b1fcd645d553c70dd98431efb60e7100ef1f51c2ebf95d88c5c720a0fd2439ed"
+    }
+  },
+  "execution_request": {
+    "evidence_bindings": {
+      "action": {
+        "bytes": 189850,
+        "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/action.json",
+        "sha256": "5ac1c473f470cd88c70c3fcd855256ffe033148a78bdbf9e67b6c06f16db703b"
+      },
+      "manifest": {
+        "bytes": 4275,
+        "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/manifest.json",
+        "sha256": "a23dfa8624fb6f3506e6f4762e66ee8a1d50a740445c47ec3daf7d4381b582ed"
+      },
+      "remote_upload_receipt": {
+        "bytes": 3649,
+        "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/remote_upload_receipt.json",
+        "sha256": "4a4bd1dbd53140eeee8c093d84b8e1853e3697b5f0f35d3ee15e0987bc11890c"
+      },
+      "submit": {
+        "bytes": 1317,
+        "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/submit.sub",
+        "sha256": "b1fcd645d553c70dd98431efb60e7100ef1f51c2ebf95d88c5c720a0fd2439ed"
+      }
+    },
+    "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung7",
+    "package_id": "siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830",
+    "qiskit_compilation_requested": false,
+    "remote_output_path": "raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/run.json",
+    "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+    "schema": "siam_nb4_generic_reconciliation_execution_request_v1",
+    "scientific_identity": {
+      "action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+      "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+    },
+    "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3"
+  },
+  "execution_request_sha256": "856e2c0f0adf19257905581eb6b7e02a412db8363d75c45b66c55ca30e122b40",
+  "generic_reconciliation_intent": {
+    "acquisition_unit_id": "siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830",
+    "intent_sha256": "38578533395bb635fcbc18b3f60e246df40fc56b6a73b66b4ac17055d3cc838d",
+    "job_batch_name": "siam-nb4-screen-t0-t1-101-exchange-rung7",
+    "paper_ii_action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+    "paper_ii_execution_request_sha256": "856e2c0f0adf19257905581eb6b7e02a412db8363d75c45b66c55ca30e122b40",
+    "recorded_at": "2026-08-30T01:31:43Z"
+  },
+  "generic_reconciliation_intent_identity_sha256": "24e5435abb52b660c0ca0fec3a5ed991b1673a509fad8acae9910cb6389ddc0a",
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_generic_intent_bridge_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_submission_intent": {
+    "bytes": 1654,
+    "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/submission_intent.json",
+    "sha256": "38578533395bb635fcbc18b3f60e246df40fc56b6a73b66b4ac17055d3cc838d"
+  }
+}

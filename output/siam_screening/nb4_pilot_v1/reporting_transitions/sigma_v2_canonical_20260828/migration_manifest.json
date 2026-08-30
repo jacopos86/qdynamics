@@ -1,0 +1,355 @@
+{
+  "checks": {
+    "all_admitted_inputs_bound_by_increment_receipts": true,
+    "all_classifications_unchanged": true,
+    "all_primitive_metrics_unchanged": true,
+    "legacy_v1_receipts_verified_by_file_and_bound_artifact_hashes": true,
+    "no_raw_trajectory_rerun": true,
+    "old_artifacts_retained": true,
+    "production_validator_not_weakened": true,
+    "quarantined_input_count": 1,
+    "verified_transition_count": 7
+  },
+  "exact_reference_v2": {
+    "continuation_slice_view": {
+      "bytes": 10076,
+      "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_slice_t1_t5_sigma_v2_receipt.json",
+      "receipt_sha256": "1616ad5411af37667b35a611120a67afbbd23f6acbe178497cb64cfc64bcf466",
+      "sha256": "e232687e0e96f733bf04d7d3b8b3ae9eb759c6746e953b5d76178335a7fce9a0"
+    },
+    "data": {
+      "bytes": 626319,
+      "path": "output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/reference.npz",
+      "sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26"
+    },
+    "key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+    "manifest": {
+      "bytes": 9762,
+      "path": "output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/manifest.json",
+      "sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386"
+    },
+    "point_count": 501,
+    "prefix_view": {
+      "bytes": 5860,
+      "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_prefix_t0_t1_sigma_v2_receipt.json",
+      "receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f",
+      "sha256": "ee2b45eed58e6d9d1674534f94a0c3af26d0cff9dd18c1f29aeac4b1c64f168e"
+    },
+    "single_full_horizon_npz_reused_by_all_arms": true
+  },
+  "excluded_quarantined_evidence": [
+    {
+      "blocked_receipt": {
+        "bytes": 2007,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9710362/proc0/incremental_refresh_blocked.json",
+        "receipt_sha256": "031a0e49ba29fca79aa71ed7de51c9bd914ab836b5a49f82bcead4fa35b2c720",
+        "sha256": "a0ed4401f2fc9fcb769fc886d771808119f0ff1a82478683ac83a7f2e9938edb"
+      },
+      "canonical_use_authorized": false,
+      "label": "cluster_9710362_proc0",
+      "orphan_replacement_from_superseded_broad_glob": {
+        "bytes": 138444,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_20260828/rescored/cluster_9710362_proc0/replacement_score_v3.json",
+        "score_sha256": "5edfd113d15d757a0a6d795c8151c3d27442c743ed89adcff9840a5b4f4f5a30",
+        "sha256": "eb0e1c364e0e12471c83e48272063cc04cd40ac3c6b71ce5db9e57045117816b"
+      },
+      "quarantined_score": {
+        "bytes": 122155,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9710362/proc0/evaluated/score.json",
+        "score_sha256": "b5b80c92ddf97ba58846ceb9703ce499c00c5ad9f46b5565435871c42077a36d",
+        "sha256": "4b90855c9957eeca13b9b25059d5146276371e192548ea652dc3040d3ef387eb"
+      },
+      "reason": "no_positive_increment_receipt_and_failed_worker_receipt",
+      "report_disposition": "quarantined_diagnostic_not_canonical_candidate",
+      "worker_receipt_status": "FAILED"
+    }
+  ],
+  "generated_at_utc": "2026-08-28T10:22:56.152508Z",
+  "migration_count": 7,
+  "migration_sha256": "f497171a00dfc854cd8e3c20eb77e520302e68593a7c70707c61496e3a4e259a",
+  "migrations": [
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 4765,
+        "integrity_role": "legacy_file_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712800/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v1",
+        "sha256": "d2739bb33a7bf0c964ca0858a4f828f48de5e017739fd9eedb1bac8d0689d22b"
+      },
+      "label": "cluster_9712800_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 5533566,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712800/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_v3_source_39cd411e_20260827/siam-nb4-avqds-screen-r00-cut1em03/run.json",
+        "sha256": "2df57efe2dabe79b0a9f1ad1acfa517ec516b4d26565e404df87541a1ffe7acc"
+      },
+      "replacement_score": {
+        "bytes": 138515,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712800_proc0/replacement_score_v3.json",
+        "score_sha256": "5486d4d99581f6eaded2917e2bacc9535326c644481370a5d3c9fb8e338a1e68",
+        "sha256": "b1c422defbea153324e611e8fcc54a525ddb2fab115e1f9795654e698dd8d8fb"
+      },
+      "superseded_score": {
+        "bytes": 122347,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712800/increments/proc0/evaluated/score.json",
+        "score_sha256": "5b9fac149871a3bd00b82a0336133e891b1e3e4b024a557f875050e78239fee1",
+        "sha256": "323ec44fc4625ae87f31b150187fe398cf65792e5f77332073a7485654e2700a"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712800_proc0/transition_receipt.json",
+        "sha256": "fdcf5f5fc4101d710f55aff81f998075023cbe4854bc9d36abcce4e79ec43d08",
+        "transition_sha256": "2997f85a0859634f54ed56de6ccf86ed23163bd7a905513bfa9062a46fa8042a"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 4751,
+        "integrity_role": "legacy_file_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712866/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v1",
+        "sha256": "c53038be589573e43d4405a6e5584308ead01b32ad838310a0178ac70d504035"
+      },
+      "label": "cluster_9712866_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 5783371,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712866/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_v3_source_ebdf7ca5_20260827/siam-nb4-full_apm-screen-r00-cut1em03/run.json",
+        "sha256": "0b0ca1403d2ec53587ec32c1aa3a912e18f12023eb34a6c6900661dfa9dad1ba"
+      },
+      "replacement_score": {
+        "bytes": 138601,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712866_proc0/replacement_score_v3.json",
+        "score_sha256": "8fa9db079d259312a10b8095d7f910af5ec6b6a126926e3e65d9634ff4620d1b",
+        "sha256": "d2e1805f18296a3c6e3d05a63fd9862e18fa5d0ae0899e4b3333fb7a6520328e"
+      },
+      "superseded_score": {
+        "bytes": 122379,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712866/increments/proc0/evaluated/score.json",
+        "score_sha256": "ea3bb4725f0a8a0e09a24ac4c3a7b549f16856b3a0f8a44aba91cac9355c05ff",
+        "sha256": "db1ad4e78c804e781bf59087388f22d7189090e367301509ecc8f44b29c59e79"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712866_proc0/transition_receipt.json",
+        "sha256": "ac5b453c1f7634516d9c0cf0b3273b866469633cbfeeedd3ef5009612ff1141a",
+        "transition_sha256": "327f067ee14cb6f5475b18f133559ce10f01f4742cd10bb53c2c71725df83a01"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 5062,
+        "integrity_role": "legacy_file_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712884/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v1",
+        "sha256": "4692166208c64009ea0a2e6a3e19b94ce33803cda70f4dcfbf490de02337ab10"
+      },
+      "label": "cluster_9712884_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 5533665,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712884/increments/proc0/extracted/raw_outputs/siam_nb4_avqds_screen_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-avqds-screen-r00-cut1em03/run.json",
+        "sha256": "c6a3c10ef5e4495b9e5a3c2ba28b2a87447ed4744b3053063ed33131b9d2599e"
+      },
+      "replacement_score": {
+        "bytes": 138526,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712884_proc0/replacement_score_v3.json",
+        "score_sha256": "fe5557926c5f4baf1541d48c4d163039452a7d23f0f87c8a4cc69d2ba0832555",
+        "sha256": "b462d76ac45a705a924ff46592e0c26788ce2dc59205010c7f27f9d3d3986106"
+      },
+      "superseded_score": {
+        "bytes": 122369,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712884/increments/proc0/evaluated/score.json",
+        "score_sha256": "36005fa52f0bdf121686ed064568d259f25aaca88bbed1b9b5a18445ca4d944c",
+        "sha256": "5f36b9be8235b55dc1c399fe2b4496f403e965e7ec736e7ff73e5e193d16653d"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712884_proc0/transition_receipt.json",
+        "sha256": "cbdc2089059ce7a473b15a9d7e1d4f50d1fd00a4484e5538e707ae84d97fa35b",
+        "transition_sha256": "225a3f3102350f92399c320e7cd9061eb4f665c4c22a0b5cd9421949f6a9939a"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 5163,
+        "integrity_role": "legacy_file_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712885/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v1",
+        "sha256": "bf807bdb3622314abacd5c97421fc6210aabdc125f7552648b84b519b85abd91"
+      },
+      "label": "cluster_9712885_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 5783470,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712885/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-full_apm-screen-r00-cut1em03/run.json",
+        "sha256": "009aa3b6e8dbea151f1c04b529f5e09b0f2d615995b70296000d961642769904"
+      },
+      "replacement_score": {
+        "bytes": 138612,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712885_proc0/replacement_score_v3.json",
+        "score_sha256": "9a720d0ca99177b96d3c19fd4633a29538c489cd7657ceb1e6332f83fcf8a3ff",
+        "sha256": "260f1065b7be68a026c801a7c6789b3acf9d8b2cc30cc45405bca76a7203270f"
+      },
+      "superseded_score": {
+        "bytes": 122401,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712885/increments/proc0/evaluated/score.json",
+        "score_sha256": "a95a6234bff3eb9aa686f8d5496161b677f6ff2081b2a23152aafa8763ad8d78",
+        "sha256": "87abcfeefa35511f9db61f70e177df7ed90e0fa7b370a37ab2e6844d265ccb90"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712885_proc0/transition_receipt.json",
+        "sha256": "d6874707106eddff5183d6a052dbcb4b4aad120bfd6f3cb4ae53653f5b8d2efe",
+        "transition_sha256": "7cb6aa598e05e8905968ddbdc82117da905b083e4a0e07adcdbe04e11de18d34"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 7941,
+        "increment_receipt_sha256": "c01fea33c45738138f02bf8f91053161f9b3c820661dd659e8869fa7316a22ae",
+        "integrity_role": "self_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712894/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v2",
+        "sha256": "ded7817bab7cfab68ba6b3b4f19024f3375c040e74042c18cd15749f740a74cf"
+      },
+      "label": "cluster_9712894_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 29333471,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712894/increments/proc0/evaluated/stitched_t0_t5_run.json",
+        "sha256": "1deb46387f0c43450974538dbd332fb9e4589d00e9555c86746c2457dc6ecfd1"
+      },
+      "replacement_score": {
+        "bytes": 643652,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712894_proc0/replacement_score_v3.json",
+        "score_sha256": "318787b9def2198c30636acac759591cbfb8feb46e3d6eae119fe1512d828532",
+        "sha256": "7581e0b6ada038277ff4b0923014672165ffd0d10869ed36c2059067a507b7d3"
+      },
+      "superseded_score": {
+        "bytes": 561726,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712894/increments/proc0/evaluated/score.json",
+        "score_sha256": "abf59b6683322009dd9dc2520ff28a3169031275bdeb93f031910ec20d55a710",
+        "sha256": "28b1a1fdee33767cf9c26fbecacf265262b00290b30153a47d1e61db40796b35"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712894_proc0/transition_receipt.json",
+        "sha256": "7887133044895715035932842a87d15e49d4b5087cbfe93b684f841812a75ee4",
+        "transition_sha256": "6b17a37a02ac909ba3958133e08a89751a8ea1f7d155ecf74231cc543afa4248"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 5177,
+        "integrity_role": "legacy_file_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712895/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v1",
+        "sha256": "f35168b87d9dc376251a46c742897f918c9532c9be86517f1ed8aab5326dcad5"
+      },
+      "label": "cluster_9712895_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 5887516,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712895/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r01_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-full_apm-screen-r01-cut3em04/run.json",
+        "sha256": "8acc49125ffa661636d415813253e271bbae18c2ddfe79c36bae153df38bc302"
+      },
+      "replacement_score": {
+        "bytes": 138688,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712895_proc0/replacement_score_v3.json",
+        "score_sha256": "45db8bb9be80084c8a8ad2b7f4e3dcbdfb6265f1e226ee9adf1cc6ef50b4907a",
+        "sha256": "684716b8f49e71c7261ad2b53a335b86f1d93e0e83c46a436595a7944dfb6fee"
+      },
+      "superseded_score": {
+        "bytes": 122417,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712895/increments/proc0/evaluated/score.json",
+        "score_sha256": "fb10a002e7fea497dba3118ed0577ef232aa2fce647b241b40e9af1fbea36636",
+        "sha256": "a7844d47b4b6c25b0ce401e29089b60090640f5fc68acdbe588904ceada8bcb3"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712895_proc0/transition_receipt.json",
+        "sha256": "64aba7cee0e8e592cc6dbdbb642fbfe1ab36678a03af8913ed16fc330ed8f3d5",
+        "transition_sha256": "7c712ba6732642d2c11b732d78f1697903b63f374ab9e1d85df3fedbda284ce6"
+      }
+    },
+    {
+      "canonical_use_authorized": true,
+      "classification_unchanged": true,
+      "increment_receipt": {
+        "bytes": 7622,
+        "increment_receipt_sha256": "3a4d0c7e82ba6fe7bf83281c0ef812b153145f76458f924338b620508ec006a6",
+        "integrity_role": "self_digest_and_bound_artifact_hashes",
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712906/increments/proc0/evidence/increment_receipt.json",
+        "schema": "siam_nb4_increment_receipt_v2",
+        "sha256": "f916ac2ecae45769a36bc63a4a1004a4b70bdedad0aa211a34ab27e87b39a6b1"
+      },
+      "label": "cluster_9712906_proc0",
+      "primitive_metrics_unchanged": true,
+      "raw_run": {
+        "bytes": 6372757,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712906/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r02_rebaseline_v4_source_4e5eba53_20260828/siam-nb4-full_apm-screen-r02-cut1em04/run.json",
+        "sha256": "4106a9da6ea42d52bfdeef85a8f4363678aa6d8d1c0eca1bffda9f204a04258e"
+      },
+      "replacement_score": {
+        "bytes": 138766,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712906_proc0/replacement_score_v3.json",
+        "score_sha256": "3cd171395c594310323770bcaba2d7849b264715d2a76b13e6f9842d0c2084dd",
+        "sha256": "c277b93333c44e94462902b7785bf2fb0e060bfd9ac582eb39b5870d1418d7b7"
+      },
+      "superseded_score": {
+        "bytes": 122460,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9712906/increments/proc0/evaluated/score.json",
+        "score_sha256": "66ff374b90c63e38517d326ab858b015bb1ee5440535340b52951e84bc0cee57",
+        "sha256": "362059aa4b750389645d7a3e022bd55a5132f211e570c18065f00bb558c83b7d"
+      },
+      "trajectory_rerun_required": false,
+      "transition_receipt": {
+        "bytes": 1016,
+        "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/rescored/cluster_9712906_proc0/transition_receipt.json",
+        "sha256": "3d80475f5c1940e2aa3f75ef62ab7adbc42b23aece689922f6a2747647c2fff8",
+        "transition_sha256": "76372c8489de54002f3677a5466158cef07033d0d8303142f7e593be216ab349"
+      }
+    }
+  ],
+  "primitive_gate_policy_changed": false,
+  "qiskit_compilation": {
+    "performed": false,
+    "required": false,
+    "resource_basis": "logical_shared_N_theta_and_deterministic_graph_span_proxy_only"
+  },
+  "raw_trajectory_reruns": 0,
+  "reporting_source_revision": "74da516646798e2243934bed89d8f65ccd6543d4",
+  "schema": "siam_sigma_v2_canonical_migration_manifest_v1",
+  "seed": {
+    "bytes": 2055,
+    "path": "output/siam_screening/nb4_pilot_v1/seed/siam_nb4_u1p5_v2.json",
+    "sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+  },
+  "selection_rule": "positive_digest_valid_increment_receipt_only",
+  "supersedes": {
+    "bytes": 16772,
+    "migration_sha256": "099c9a4b4d1b7f3de171b9a1514f12f506529c49e61215e4a987e101a9377923",
+    "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_20260828/migration_manifest.json",
+    "sha256": "e07b23632ef7336252215c4e7fb3dea514728a8cf57f55b938572b5ed6fd78df"
+  },
+  "transition_role": "offline_reporting_semantics_correction"
+}

@@ -1,0 +1,20 @@
+{
+  "artifact": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/seeds/l4__u4__half_filled/seed.json",
+    "sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63"
+  },
+  "energy_error": 5.364792612372327e-07,
+  "exact_energy": -1.9531453086845585,
+  "exact_state_infidelity": 3.152493122104971e-07,
+  "initializer": "generator_derived_fixed_structure_vqe_v1",
+  "optimizer_execution_id": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f::vqe4",
+  "optimizer_seed": 1293143593,
+  "restarts": 4,
+  "schema": "paper_ii_seed_qualification_receipt_v1",
+  "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+  "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6",
+  "seed_receipt_sha256": "eab1c84708dde5ae4b70107001e49c7cb21f02085102cc1d6840938340226c62",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "variational_energy": -1.9531447722052973,
+  "work_order_sha256": "01684fa2979fd44455a598306b0a62ce1c496817db3c849173407ef4469382a3"
+}

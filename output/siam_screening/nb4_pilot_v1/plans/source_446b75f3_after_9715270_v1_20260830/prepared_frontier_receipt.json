@@ -1,0 +1,58 @@
+{
+  "archive": {
+    "bytes": 1035685,
+    "path": "chtc/siam_nb4_source_446b75f3_frontier9715270_upload_20260830.tar.gz",
+    "sha256": "bd7bcb6b5da065f611f386668ff749c9e2872160f8377a8f0c5ad14bf4a52340"
+  },
+  "generated_at_utc": "2026-08-30T18:21:59.750120Z",
+  "plan": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/ladder_plan.json",
+  "plan_sha256": "4e1b3e102c982c3360dd6c25f6fa6a8982c0a757659a88e96e05499fa023d126",
+  "prepared_actions": [
+    {
+      "action": {
+        "action_id": "siam-nb4-full_apm-continue-r07-cut3em06",
+        "activation_cut": 3.33333333333e-06,
+        "arm": "full_apm",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 7,
+        "qiskit_compilation_requested": false,
+        "reason": "Resume the valid full_apm screen at the same method-owned cut through T=5.",
+        "resume_from_action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+        "segment": "continue_t1_t5_401"
+      },
+      "action_json": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/input/action.json",
+      "action_json_sha256": "2a44a36e71a7988ff0d420984cd324bc170e8d5a6a856e8db6ca739d49f0c181",
+      "checks": {
+        "complete_logical_pool": true,
+        "exact_reference_blind": true,
+        "portable_seed_schema": true,
+        "qiskit_compilation_requested": false,
+        "record_statevectors": true,
+        "resume_input_present": true,
+        "source_locked": true,
+        "source_rebaseline_evidence_present": false,
+        "unique_output": true
+      },
+      "expected_output": "raw_outputs/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-continue-r07-cut3em06/run.json",
+      "manifest": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/input/manifest.json",
+      "manifest_sha256": "c188c655bfebeea7b34dc2e4fefc81ae45b46cb11f414f914c4eef536edaa01f",
+      "package": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830",
+      "source_epoch": {
+        "schema": "siam_source_epoch_contract_v1",
+        "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+        "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+        "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+      },
+      "submit": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submit.sub",
+      "submit_sha256": "74a5ef96294fa167e5fe6ea0bda940873da1f65e3b7756767a866a80bcf13aa3"
+    }
+  ],
+  "qiskit_compilation_requested": false,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "schema": "siam_nb4_prepared_frontier_v1",
+  "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "PREPARED",
+  "submissions": []
+}

@@ -1,0 +1,138 @@
+{
+  "checks": {
+    "canonical_coarsest_rung": true,
+    "comparator_first": true,
+    "exact_reference_blind": true,
+    "new_source_epoch": true,
+    "qiskit_compilation_requested": false
+  },
+  "generated_at_utc": "2026-08-29T02:37:12+00:00",
+  "planner": {
+    "activation_cut_ladder_contract": {
+      "canonical_sha256": "89621f3e81ee93fe1b7596f73db5007df1687dccf744e1d5d6bc6aad7da1b683",
+      "canonical_values": [
+        0.01,
+        0.00333333333333,
+        0.001,
+        0.000333333333333,
+        0.0001,
+        3.33333333333e-05,
+        1e-05,
+        3.33333333333e-06,
+        1e-06,
+        3.33333333333e-07,
+        1e-07
+      ],
+      "legacy_compatibility": {
+        "immutable_action_aliases": {
+          "r00_cut1e-3": {
+            "activation_cut": 0.001,
+            "canonical_index": 2,
+            "legacy_index": 0,
+            "relabel": false
+          }
+        },
+        "noncanonical_cut_semantics": "readable_historical_evidence_without_canonical_action_coverage",
+        "schema": "siam_nb4_activation_cut_ladder_legacy_v1",
+        "sha256": "b01d3a64508b77e4fd690385bbd725d723ba997124eec5678ce07d54c4bdb1c7",
+        "values": [
+          0.001,
+          0.0003,
+          0.0001,
+          3e-05,
+          1e-05,
+          3e-06,
+          1e-06,
+          3e-07,
+          1e-07
+        ]
+      },
+      "schema": "siam_nb4_activation_cut_ladder_v2"
+    },
+    "blocked": false,
+    "candidate_action_ids": [],
+    "complete": false,
+    "cost_comparison_admissible": false,
+    "dispositions": [
+      {
+        "activation_cut": null,
+        "arm": "full_apm",
+        "disposition": "comparator_first_blocked",
+        "reason": "Full APM remains closed until AVQDS has one proof-valid broad-safe screen.",
+        "segment": null,
+        "subject_id": "full_apm_lane"
+      },
+      {
+        "activation_cut": 0.01,
+        "arm": "avqds",
+        "disposition": "scheduled",
+        "reason": "Run the comparator-first AVQDS screen at the canonical coarsest rung.",
+        "segment": "screen_t0_t1_101",
+        "subject_id": "siam-nb4-avqds-screen-r00-cut1em02"
+      }
+    ],
+    "next_actions": [
+      {
+        "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+        "activation_cut": 0.01,
+        "arm": "avqds",
+        "exact_reference_blind": true,
+        "kind": "run",
+        "ladder_index": 0,
+        "qiskit_compilation_requested": false,
+        "reason": "Run the comparator-first AVQDS screen at the canonical coarsest rung.",
+        "resume_from_action_id": null,
+        "segment": "screen_t0_t1_101"
+      }
+    ],
+    "phase": "avqds_screening",
+    "recorded_safeguard_ids": [],
+    "schema": "siam_nb4_comparator_first_ladder_plan_v1",
+    "selected_full_horizon_action_ids": {}
+  },
+  "planner_history_scope": "new_corrected_source_epoch_empty_history",
+  "planner_receipt_sha256": "ab43028134593a4bae7ac0f161b0052d69385e3b64051130d8f8679d7a038ad1",
+  "predecessor": {
+    "closure_receipts": [
+      {
+        "bytes": 896,
+        "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/closure_to_siam-nb4-source-446b75f3edc235404bf9_avqds_screen.json",
+        "sha256": "2510e6dcc2f2e74cb06d834318cbd416c683d8bd444fea6a060e4705b6503c48"
+      },
+      {
+        "bytes": 899,
+        "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/closure_to_siam-nb4-source-446b75f3edc235404bf9_avqds_continuation.json",
+        "sha256": "37bfa6467e1e3edc5cff100fc639697c5015cb70def41e6ae5e5d27b34e1bfa3"
+      },
+      {
+        "bytes": 901,
+        "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-ba50339c15ffe1aa6507/closure_to_siam-nb4-source-446b75f3edc235404bf9_full_apm_screen.json",
+        "sha256": "defc6f175ed35c01c28f4b438504de363ce7701f7c3dd45de73187a9b8f04f67"
+      }
+    ],
+    "retained_role": "historical_measurements_from_superseded_pre_fix_exchange_source",
+    "source_epoch_id": "siam-nb4-source-ba50339c15ffe1aa6507"
+  },
+  "rebaseline_reason": "Committed family cost normalization and complete-ranked-finalist fallback correction; old-source APM evidence remains diagnostic-only.",
+  "schema": "siam_nb4_source_epoch_planner_receipt_v1",
+  "selected_action": {
+    "action_id": "siam-nb4-avqds-screen-r00-cut1em02",
+    "activation_cut": 0.01,
+    "arm": "avqds",
+    "exact_reference_blind": true,
+    "kind": "run",
+    "ladder_index": 0,
+    "qiskit_compilation_requested": false,
+    "reason": "Run the comparator-first AVQDS screen at the canonical coarsest rung.",
+    "resume_from_action_id": null,
+    "segment": "screen_t0_t1_101"
+  },
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+    "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+    "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+  },
+  "source_tree_file_count": 667,
+  "status": "EXACT_ACTION_AUTHORIZED_FOR_PACKAGE_PREPARATION"
+}

@@ -1,0 +1,19 @@
+{
+  "archive_bytes": 1021835,
+  "archive_sha256": "16bc79c1f03947a8b09d76dbbe563997bc134ab14a305a6e58a2f59c8374a856",
+  "finalization_intent": {
+    "path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/siam_cluster_9715270_proc0_delta_20260830.tar.gz.transfer_finalization_intent.json",
+    "sha256": "296fecb290c1d0d0cf5f61f2e1964bd9569687a4642f6e9b72e1a8ba918f4569"
+  },
+  "gzip_integrity": true,
+  "local_final_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/siam_cluster_9715270_proc0_delta_20260830.tar.gz",
+  "receipt_sha256": "7a376cf8acaf6dad44a0c7c7467fd1d46cf896d00af6e34b218ae362ef259dea",
+  "recorded_at": "2026-08-30T12:17:13.501940-05:00",
+  "recovered_after_atomic_rename": false,
+  "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715270/proc0/siam_nb4_full_apm_r07_9715270_proc0.tar.gz",
+  "remote_preservation_required": true,
+  "schema": "guarded_archive_transfer_finalization_v1",
+  "status": "verified_and_finalized",
+  "tar_integrity": true,
+  "tar_member_count": 2
+}

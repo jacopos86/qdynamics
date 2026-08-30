@@ -1,0 +1,87 @@
+{
+  "action_id": "build_exact_reference::paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow::9d2bb25e884c056b",
+  "data_sha256": "1896a094e6045dc0d89cfb71cfef83e9f3ddf6a1279906cc62aea5258bccd319",
+  "exact_manifest_sha256": "0ff8b445635efba6eaee4398cc09f323559bf710c61c474ab56a905eeba6cf95",
+  "execution_request_sha256": "770401ecc1a3a2114e707242b3e5aa079c50700c19a33d6375db3e0bf6fae736",
+  "materialized_reference_key": "43c093b5d5f4f1d89cdd93f9f010a2ab15281b82e93759e66d5a0e24fd55a798",
+  "propagation_policy": {
+    "energy_sampling": "instantaneous_hamiltonian_at_checkpoint",
+    "executor_source_files": {
+      "pipelines/time_dynamics/prospective_exact_reference_worker.py": "0bb989c680f556480e269a48eec326a20a7f6b8c4ae091c336a69c18fc06cb3f",
+      "pipelines/time_dynamics/runners/build_prospective_exact_reference.py": "6f3724e3643d118556ad350157ffec2a21fbbe3cdcd663d951a29792046db85a"
+    },
+    "executor_source_files_sha256": "faeabd876c1715c6fc2bbccfc4d6032ad0df2b44bb8a547dae1a4346e775e920",
+    "implementation": "exponential_midpoint_magnus2_order2",
+    "microsteps_per_ordered_grid_interval": 1,
+    "propagation_policy_sha256": "b737997dcf286fa4863f2e6c39c75307ae0d6475d3fb85d807a302a73339a86d",
+    "propagator": "paper_ii_exact_driven_reference_v1",
+    "qiskit_compilation": false,
+    "schema": "paper_ii_exact_reference_propagation_policy_v1",
+    "source_composition": "source_epoch_plus_digest_bound_executor_overlay_v1",
+    "state_normalization_check_abs_tol": 1e-10,
+    "time_sampling": "midpoint"
+  },
+  "qiskit_compilation_used": false,
+  "reference_contract": {
+    "cell_id": "hubbard__l4__u4__weakslow",
+    "drive": {
+      "amplitude": 0.3,
+      "drive_id": "weakslow",
+      "include_identity": false,
+      "omega": 1.0,
+      "operator": "staggered_site_density",
+      "pattern": "staggered",
+      "phi": 0.0,
+      "t0": 0.0,
+      "tbar": 1.0,
+      "time_sampling": "midpoint"
+    },
+    "grid": {
+      "construction": "ordered_uniform_index_times_step",
+      "ordered_prefix_sha256": "e338bd7fb0d4a3852ff07d79de1fcad106138426c5b7c33cc37be5eaee64bfe7",
+      "ordered_times_sha256": "35929928d4199b1e48f3af166e40092299f855fa592341b0253df28523f64f7b",
+      "points": 501,
+      "prefix_points": 126,
+      "prefix_stop": 5.0,
+      "start": 0.0,
+      "step": 0.04,
+      "stop": 20.0
+    },
+    "lane_id": "paper_ii_hubbard_l4_scale_v1",
+    "model": "hubbard",
+    "observable_schema": "paper_ii_hubbard_energy_doublon_site_occupation_statevector_v1",
+    "physical": {
+      "U_over_t": 4.0,
+      "boundary": "open",
+      "lattice_sites": 4,
+      "n_down": 2,
+      "n_up": 2,
+      "ordering": "blocked",
+      "t_hop": 1.0
+    },
+    "propagator": "paper_ii_exact_driven_reference_v1",
+    "reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow",
+    "reference_identity_sha256": "20719ac7f89c7f12da2ea09edb452e4144eacdae00cf619a0236b2859bf199a7",
+    "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+    "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6"
+  },
+  "reporting_only": true,
+  "response_scales": {
+    "t20": {
+      "doublon_rms_excursion": 0.0024576909745404898,
+      "energy_rms_excursion": 0.0021581346610665387,
+      "max_site_occupation_rms_excursion": 0.009036223109391532
+    },
+    "t5": {
+      "doublon_rms_excursion": 0.002653583017210418,
+      "energy_rms_excursion": 0.002171699379570789,
+      "max_site_occupation_rms_excursion": 0.01333104989176238
+    }
+  },
+  "response_scales_sha256": "79e04d88e80f7d0b5d4a908efba05646c34530c9cd6f72c0cff59a7fa16df0ad",
+  "schema": "paper_ii_exact_reference_manifest_v1",
+  "seed_artifact_sha256": "0d26126cb1568b051bc2d33178b6b0c3a5e2481667308e5df4c85ac59a4daf63",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "work_order_sha256": "bf2d15b0bbd86fc38522f1a4ad49df2d26b2821f566e5f9c9d1f38e20806baca",
+  "worker_schema": "paper_ii_exact_reference_worker_v1"
+}

@@ -1,0 +1,250 @@
+{
+  "arrays": {
+    "energy": {
+      "dtype": "<f8",
+      "sha256": "5aa4f8f21711b699df78c9c2a79c8b5ec87e4e45d6e07fa69b26991212bb58e1",
+      "shape": [
+        101
+      ]
+    },
+    "observable__C_1": {
+      "dtype": "<f8",
+      "sha256": "70a7e7e0df772875349fd13e3740fbede104aaff69bb11263f9e44667293faf1",
+      "shape": [
+        101
+      ]
+    },
+    "observable__C_2": {
+      "dtype": "<f8",
+      "sha256": "940fca5f8c71cd0d5aaa6e4ee1a81dca8844cc252791bb5cd40a99181b9976a6",
+      "shape": [
+        101
+      ]
+    },
+    "observable__C_3": {
+      "dtype": "<f8",
+      "sha256": "38386c5f6a4a76d52686b039c689e41830973e853f5a156df4b88d658d7429fb",
+      "shape": [
+        101
+      ]
+    },
+    "observable__C_4": {
+      "dtype": "<f8",
+      "sha256": "2ac44fb6cf4066514a322026d7796b722673937465c56ffb919e81e74e69ac91",
+      "shape": [
+        101
+      ]
+    },
+    "observable__D_d": {
+      "dtype": "<f8",
+      "sha256": "ad77ba59e7b8c343bf968e61900a7021deafaf592ac72f21ad16e465724be701",
+      "shape": [
+        101
+      ]
+    },
+    "observable__I_d": {
+      "dtype": "<f8",
+      "sha256": "a1cb3c0e30e73d08cf12c85d4d679c4d3f4af7fe9a7390f02b1fcf4dd415c94f",
+      "shape": [
+        101
+      ]
+    },
+    "observable__N_d": {
+      "dtype": "<f8",
+      "sha256": "213cfc48a58b70d66ab4c6fc0c984960078a00abcde167f9f06587653de09541",
+      "shape": [
+        101
+      ]
+    },
+    "observable__S_d2": {
+      "dtype": "<f8",
+      "sha256": "113cd7930e52da730853e5e218ccf8ac743b05e8234a289a37a2b94fd734b011",
+      "shape": [
+        101
+      ]
+    },
+    "observable__Sigma_1": {
+      "dtype": "<f8",
+      "sha256": "d9a3023211ae5e99b9d87005626b11fa21fb3965ab2386ca2835e9a3072afd5a",
+      "shape": [
+        101
+      ]
+    },
+    "observable__Sigma_2": {
+      "dtype": "<f8",
+      "sha256": "66c346f1a086c7efdeb0078fb3e1ac549e79bcaafc25630ba84803391ac1c6c4",
+      "shape": [
+        101
+      ]
+    },
+    "observable__Sigma_3": {
+      "dtype": "<f8",
+      "sha256": "6f3a273cf4bfa87645ee1c3273d9f2f49048479f382cd48ed1166f189984480c",
+      "shape": [
+        101
+      ]
+    },
+    "observable__Sigma_4": {
+      "dtype": "<f8",
+      "sha256": "27ccc8029afe334e94f72fa4ade969f0861779e27e64e2b310ac68c9de192932",
+      "shape": [
+        101
+      ]
+    },
+    "observable__m_d": {
+      "dtype": "<f8",
+      "sha256": "48d4662c1a5e22e765581307c6a4a348f4f771f17a8b1276c69f6a8bf8383611",
+      "shape": [
+        101
+      ]
+    },
+    "state_imag": {
+      "dtype": "<f8",
+      "sha256": "460af76538ffd0772b4b9d5325b76e39df48f4b02bfb6b27e2ac7372682470bc",
+      "shape": [
+        101,
+        100
+      ]
+    },
+    "state_real": {
+      "dtype": "<f8",
+      "sha256": "62f92b71aaea8dc2866dd95d893645b9ef377152c56e2c45c02543c434ea4bec",
+      "shape": [
+        101,
+        100
+      ]
+    },
+    "time": {
+      "dtype": "<f8",
+      "sha256": "6564afb2efbe9fa9eaef3f9b9b33a7d5142792e26e2fcb80238552120145361f",
+      "shape": [
+        101
+      ]
+    }
+  },
+  "materialized_data_file": null,
+  "prefix": {
+    "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+    "point_count": 101,
+    "t_final": 1.0,
+    "t_initial": 0.0,
+    "times": [
+      0.0,
+      0.01,
+      0.02,
+      0.03,
+      0.04,
+      0.05,
+      0.06,
+      0.07,
+      0.08,
+      0.09,
+      0.1,
+      0.11,
+      0.12,
+      0.13,
+      0.14,
+      0.15,
+      0.16,
+      0.17,
+      0.18,
+      0.19,
+      0.2,
+      0.21,
+      0.22,
+      0.23,
+      0.24,
+      0.25,
+      0.26,
+      0.27,
+      0.28,
+      0.29,
+      0.3,
+      0.31,
+      0.32,
+      0.33,
+      0.34,
+      0.35000000000000003,
+      0.36,
+      0.37,
+      0.38,
+      0.39,
+      0.4,
+      0.41000000000000003,
+      0.42,
+      0.43,
+      0.44,
+      0.45,
+      0.46,
+      0.47000000000000003,
+      0.48,
+      0.49,
+      0.5,
+      0.51,
+      0.52,
+      0.53,
+      0.54,
+      0.55,
+      0.56,
+      0.5700000000000001,
+      0.58,
+      0.59,
+      0.6,
+      0.61,
+      0.62,
+      0.63,
+      0.64,
+      0.65,
+      0.66,
+      0.67,
+      0.68,
+      0.6900000000000001,
+      0.7000000000000001,
+      0.71,
+      0.72,
+      0.73,
+      0.74,
+      0.75,
+      0.76,
+      0.77,
+      0.78,
+      0.79,
+      0.8,
+      0.81,
+      0.8200000000000001,
+      0.8300000000000001,
+      0.84,
+      0.85,
+      0.86,
+      0.87,
+      0.88,
+      0.89,
+      0.9,
+      0.91,
+      0.92,
+      0.93,
+      0.9400000000000001,
+      0.9500000000000001,
+      0.96,
+      0.97,
+      0.98,
+      0.99,
+      1.0
+    ]
+  },
+  "receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f",
+  "reporting_only": true,
+  "schema": "siam_exact_reference_prefix_view_v2",
+  "source": {
+    "data_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/reference.npz",
+    "data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+    "full_grid_sha256": "5b1cbe5e283ed64dd612fdb5e5c6e75301378b49752b03b675753cb18dfbb797",
+    "full_point_count": 501,
+    "manifest_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/exact_references/bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a/manifest.json",
+    "manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+    "observable_schema": "siam_screening_observables_v2",
+    "reference_key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+    "reference_schema": "siam_exact_sector_reference_v2",
+    "reference_store_schema": "siam_exact_reference_store_v2"
+  }
+}

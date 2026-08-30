@@ -1,0 +1,113 @@
+{
+  "bindings": {
+    "completion_receipt": {
+      "bytes": 211294,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/action_receipt.json",
+      "schema": "siam_nb4_chtc_action_receipt_v4",
+      "sha256": "8919265b94a7493f9e550331c0d8d7b17a7b60230400aa748cbbe0db327adc61"
+    },
+    "ladder_plan": {
+      "bytes": 14934,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/ladder_plan.json",
+      "schema": "siam_nb4_comparator_first_ladder_plan_v1",
+      "sha256": "4e1b3e102c982c3360dd6c25f6fa6a8982c0a757659a88e96e05499fa023d126"
+    },
+    "offline_score": {
+      "bytes": 138567,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evaluated/score.json",
+      "schema": "siam_offline_accuracy_score_v3",
+      "sha256": "00510cc54033fa64328b88a335ef90b1ca9705e725ffd093cc2374d5767297ad"
+    },
+    "prepared_frontier_receipt": {
+      "bytes": 2917,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/prepared_frontier_receipt.json",
+      "schema": "siam_nb4_prepared_frontier_v1",
+      "sha256": "855394b6f85551fa578b976fb20d93f96d2e926a2b6d27be47b6c762234ffcd2"
+    },
+    "raw_completion_receipt": {
+      "bytes": 211294,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/action_receipt.json",
+      "schema": "siam_nb4_chtc_action_receipt_v4",
+      "sha256": "8919265b94a7493f9e550331c0d8d7b17a7b60230400aa748cbbe0db327adc61"
+    },
+    "raw_trajectory": {
+      "bytes": 6157408,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/run.json",
+      "sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8"
+    },
+    "report_pdf": {
+      "bytes": 3006,
+      "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9715270.pdf",
+      "sha256": "daf1c1edccf64445fb908e04674c8867463587461b98372c5f1de530726c3ae3"
+    },
+    "report_receipt": {
+      "bytes": 638,
+      "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9715270_receipt.json",
+      "schema": "siam_results_pdf_receipt_v2",
+      "sha256": "efedceabc63e0f711e57505cd92a2c4b1dcf4edb3183f5c91fc62b33ab1a93f9"
+    },
+    "result_receipt": {
+      "bytes": 8701,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/increment_receipt_post_prepare.json",
+      "schema": "siam_nb4_increment_receipt_v2",
+      "sha256": "7afc31ad6d3ed9ea39d77724db7b78a0f676e0ad7210fef70ec443de081dfdda"
+    },
+    "results_promotion": {
+      "bytes": 14136,
+      "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9715270/promotion.json",
+      "schema": "siam_results_promotion_v2",
+      "sha256": "6472da085afaa473ed4a9fb979cc48a49a82c1c093a2b6954c31e19aa8e7cf6a"
+    },
+    "scored_trajectory": {
+      "bytes": 6157408,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/run.json",
+      "sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8"
+    },
+    "source_epoch_receipt": {
+      "bytes": 5065,
+      "path": "output/siam_screening/nb4_pilot_v1/source_epochs/siam-nb4-source-446b75f3edc235404bf9/planner_receipt.json",
+      "schema": "siam_nb4_source_epoch_planner_receipt_v1",
+      "sha256": "799b2fcca700484f7cd24c1c7c4b6006fdabd0b8e5e728bd775444f3023f7d2a"
+    }
+  },
+  "campaign_id": "siam_nb4_pilot_v1",
+  "deterministic": true,
+  "provenance_policy": {
+    "current_authority": "direct_regular_file_sha256",
+    "historical_mutable_backlink_exclusions": [],
+    "source_epoch_receipt_planner_snapshot_authoritative": false,
+    "source_epoch_receipt_planner_snapshot_reason": "the receipt freezes epoch creation; current ladder_plan is the frontier"
+  },
+  "schema": "siam_nb4_stable_scientific_state_v1",
+  "scientific_state_sha256": "55e089016bb03d3016070a8544d863f5d4bd3dc98935e5f66add5be907c6374b",
+  "source_epoch": {
+    "schema": "siam_source_epoch_contract_v1",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
+    "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+    "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66"
+  },
+  "state": {
+    "blocked": false,
+    "complete": false,
+    "cost_comparison_admissible": false,
+    "frontier_status": "PREPARED",
+    "latest_ingested_action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+    "latest_ingested_cluster_id": 9715270,
+    "latest_ingested_evidence_mode": "screen",
+    "latest_ingested_promotion_slot": "full_apm",
+    "latest_ingested_status": "INGESTED_RESULTS_REFRESHED_FULL_APM_R07_CONTINUATION_FRONTIER_PREPARED_NOT_SUBMITTED",
+    "next_action_ids": [
+      "siam-nb4-full_apm-continue-r07-cut3em06"
+    ],
+    "pair_classification": "rejected_accuracy_confounded_pair",
+    "phase": "full_horizon",
+    "raw_trajectory_sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8",
+    "result_counts": {
+      "candidate": 2,
+      "pending": 0,
+      "qualified": 0
+    },
+    "submitted_cluster_ids": [],
+    "trajectory_sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8"
+  }
+}

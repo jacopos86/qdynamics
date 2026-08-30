@@ -1,0 +1,26 @@
+{
+  "acquisition_unit_id": "prospective-apm-exchange-e667b05f39a4b711",
+  "action_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::exchange::t5::r00::cut1em02::binde875c098ccaa9943",
+  "base_source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "composite_source_identity_sha256": "947e84f0587230596294701895ab9b2b972710ba7152ed2153ffadf9d1ecc02a",
+  "execution_request_sha256": "e667b05f39a4b711cb1ca5f3444244f6d3edad8854628c9fc663844b1c629681",
+  "executor_overlay_identity_sha256": "bc97cd4dd92c45b8bc092b997d4d450f86541a0b8dccf29ff0b4b753ea80f233",
+  "executor_overlay_revision": "fab1c488de19772dc3e74c337118953be0a731b1",
+  "first_reconciliation_outcome": "indeterminate",
+  "intent_first": {
+    "first_snapshot_outcome": "indeterminate",
+    "found_recovers_without_resubmission": true,
+    "indeterminate_blocks_submission": true,
+    "later_submission_requires_reconciliation": "verified_absent",
+    "submission_intent_required_before_scheduler_contact": true
+  },
+  "job_batch_name": "paper-ii-apm-paper-ii-hubbard-l4-scale-v1-e667b05f39a4b711",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "production_submission_enabled": false,
+  "scheduler_contacted": false,
+  "scheduler_submission_authorized": false,
+  "schema": "paper_ii_apm_exchange_submission_intent_template_v1",
+  "status": "template_not_submitted",
+  "submission_intent_template_sha256": "63e7ec540d8670187196d89a372d56fff3fb92a481e2a7f95b46e45d2eaaf176",
+  "work_order_sha256": "0d039db286fb89c3d5217c8aaa1fde1602ec127c99fd5ab45df3884eb42aa9f8"
+}

@@ -1,0 +1,221 @@
+{
+  "accuracy_policy": {
+    "absolute_doublon_error_ceiling": 0.005,
+    "absolute_energy_error_ceiling": 0.01,
+    "absolute_safety_components": [
+      "mean_abs_energy_error",
+      "mean_abs_doublon_error",
+      "mean_max_abs_site_occupation_error"
+    ],
+    "absolute_site_occupation_error_ceiling": 0.005,
+    "aggregate_burden": "rms_q_components",
+    "comparison_guard_components": "all_target_normalized_q_including_fidelity",
+    "component_normalization": "target_normalized_q",
+    "infidelity_ceiling": 0.0001,
+    "infidelity_role": "target_normalized_component_with_broad_guard_not_absolute_safety",
+    "matched_accuracy_factor": 2.0,
+    "matched_component_deadband": 0.1,
+    "matched_policy_version": 2,
+    "mode": "response_normalized_matched_pair",
+    "pair_admission": "both arms inside the comparison guard, aggregate q burdens matched within the declared factor, and every deadbanded q component matched within that factor",
+    "require_infidelity": true,
+    "response_relative_guard": 0.15,
+    "response_relative_target": 0.05,
+    "response_scale_floor": 1e-12,
+    "response_scales": {
+      "weakslow": {
+        "t20": {
+          "doublon_rms_excursion": 0.0024576909745404898,
+          "energy_rms_excursion": 0.0021581346610665387,
+          "max_site_occupation_rms_excursion": 0.009036223109391532
+        },
+        "t5": {
+          "doublon_rms_excursion": 0.002653583017210418,
+          "energy_rms_excursion": 0.002171699379570789,
+          "max_site_occupation_rms_excursion": 0.01333104989176238
+        }
+      }
+    }
+  },
+  "accuracy_policy_sha256": "8dd2943bb020c29c9c17529878af7f64192ca13776a20246d14544b13c76bfa5",
+  "activation_cut": 0.01,
+  "attempt": 0,
+  "bindings_sha256": "e875c098ccaa9943637c11d9a764a1c3cdc856dc16593be724193924a49b628c",
+  "canonical_costs": {
+    "graph_snapshot": {
+      "backend_name": "FakeMarrakesh",
+      "num_qubits": 156,
+      "schema": "fake_marrakesh_undirected_graph_v1",
+      "source": "frozen_fake_marrakesh_conf_marrakesh_v1",
+      "undirected_coupling_edge_count": 176,
+      "undirected_coupling_edges_sha256": "234fb1b6afe2d36a595dcb245317b542350e1bdb88f428cad98a3a60328c798b"
+    },
+    "logical_coordinates": {
+      "accepted_integration_steps": 15504,
+      "terminal_independent_parameter_count": 227
+    },
+    "logical_graph_cost_sha256": "aba153fa5de223c137f58bd5c60ca0972284c6b90be36a6aec8bef97d9b4bd61",
+    "qiskit_compilation": {
+      "performed": false,
+      "required": false,
+      "role": "excluded_from_canonical_campaign_cost"
+    },
+    "resource_source_schema": "terminal_logical_graph_resources_v1",
+    "resource_source_sha256": "3f5f90e97e11e12f82ac108471e2439887d04110cd1d1a69cf5153e025984053",
+    "routing_independent_graph_tuple": {
+      "named": {
+        "C_hat_1q": 20048,
+        "C_hat_2q": 10224,
+        "C_hat_d": 15584,
+        "N_theta": 227
+      },
+      "order": [
+        "C_hat_2q",
+        "C_hat_d",
+        "C_hat_1q",
+        "N_theta"
+      ],
+      "values": [
+        10224,
+        15584,
+        20048,
+        227
+      ]
+    },
+    "schema": "paper_ii_prospective_logical_graph_cost_v1",
+    "trajectory_sha256": "d9744705b921c6bcafd5bbcdd09e1afe7bb28778310521d58d8af792216cfde0"
+  },
+  "cell_id": "hubbard__l4__u4__weakslow",
+  "exact_data_sha256": "1896a094e6045dc0d89cfb71cfef83e9f3ddf6a1279906cc62aea5258bccd319",
+  "exact_manifest_sha256": "04f81eb448ac89606f676e4007bcc56e4facde8526875d529e039906687b14dc",
+  "exact_reference_id": "paper_ii_hubbard_l4_scale_v1::reference::hubbard__l4__u4__weakslow",
+  "exact_reference_identity_sha256": "20719ac7f89c7f12da2ea09edb452e4144eacdae00cf619a0236b2859bf199a7",
+  "exact_reference_receipt_sha256": "dc826d8943c052bdc3641f6bddc287160231f15da82ffb6aaa1b99a01eb094ef",
+  "execution_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::avqds::t5::r00::cut1em02::binde875c098ccaa9943::attempt0::mem8g",
+  "horizon": "t5",
+  "max_pointwise_errors": {
+    "max_abs_doublon_error": 7.954120266995268e-05,
+    "max_abs_energy_error": 7.779579044697726e-05,
+    "max_abs_site_occupation_error": 0.0002348606430633282,
+    "max_infidelity": 1.7716071532003497e-07
+  },
+  "method": "avqds",
+  "metrics": {
+    "mean_abs_doublon_error": 2.2534667349991824e-05,
+    "mean_abs_energy_error": 4.575043346757361e-05,
+    "mean_infidelity": 7.190939171368492e-08,
+    "mean_max_abs_site_occupation_error": 9.618930809749775e-05
+  },
+  "monotonicity_inference_used": false,
+  "planner_sequence": 0,
+  "qiskit_compilation_used": false,
+  "raw_completion_receipt": {
+    "path": "output/prospective_bootstrap/hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/avqds_prefix_6cee01ebddc648e9/completion_receipt.json",
+    "sha256": "853b05df7ba4edb6d41eeb8d5c307fe8ea0539155f1a9157197fe57ffb1bda3e"
+  },
+  "raw_completion_receipt_sha256": "853b05df7ba4edb6d41eeb8d5c307fe8ea0539155f1a9157197fe57ffb1bda3e",
+  "raw_trajectory_segments": [
+    {
+      "path": "output/prospective_bootstrap/hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/avqds_prefix_6cee01ebddc648e9/run.json",
+      "sha256": "d9744705b921c6bcafd5bbcdd09e1afe7bb28778310521d58d8af792216cfde0"
+    }
+  ],
+  "report_values": {
+    "accepted_steps": 15504,
+    "comparison_guard_eligible": true,
+    "cost_comparison_admissible": false,
+    "individual_qualified": true,
+    "max_abs_doublon_error": 7.954120266995268e-05,
+    "max_abs_energy_error": 7.779579044697726e-05,
+    "max_abs_site_occupation_error": 0.0002348606430633282,
+    "max_infidelity": 1.7716071532003497e-07,
+    "mean_abs_doublon_error": 2.2534667349991824e-05,
+    "mean_abs_energy_error": 4.575043346757361e-05,
+    "mean_infidelity": 7.190939171368492e-08,
+    "mean_max_abs_site_occupation_error": 9.618930809749775e-05,
+    "routing_independent_graph_tuple": [
+      10224,
+      15584,
+      20048,
+      227
+    ],
+    "terminal_n_theta": 227
+  },
+  "requested_memory_gib": 8,
+  "response_normalized_evaluation": {
+    "accuracy_band": "response_target",
+    "aggregate_accuracy_burden": 0.2383242445901512,
+    "comparison_guard_eligible": true,
+    "fidelity_component": {
+      "cap_pass": true,
+      "infidelity_ceiling": 0.0001,
+      "mean_infidelity": 7.190939171368492e-08,
+      "target_normalized_q": 0.0007190939171368492
+    },
+    "individual_qualified": true,
+    "observable_components": {
+      "mean_abs_doublon_error": {
+        "absolute_cap_pass": true,
+        "absolute_ceiling": 0.005,
+        "exact_response_scale": 0.002653583017210418,
+        "mean_absolute_error": 2.2534667349991824e-05,
+        "response_normalized_mean_absolute_error": 0.008492165952162829,
+        "response_relative_target": 0.05,
+        "target_normalized_q": 0.16984331904325656,
+        "target_pass": true
+      },
+      "mean_abs_energy_error": {
+        "absolute_cap_pass": true,
+        "absolute_ceiling": 0.01,
+        "exact_response_scale": 0.002171699379570789,
+        "mean_absolute_error": 4.575043346757361e-05,
+        "response_normalized_mean_absolute_error": 0.021066651258433225,
+        "response_relative_target": 0.05,
+        "target_normalized_q": 0.4213330251686645,
+        "target_pass": true
+      },
+      "mean_max_abs_site_occupation_error": {
+        "absolute_cap_pass": true,
+        "absolute_ceiling": 0.005,
+        "exact_response_scale": 0.01333104989176238,
+        "mean_absolute_error": 9.618930809749775e-05,
+        "response_normalized_mean_absolute_error": 0.007215433808925713,
+        "response_relative_target": 0.05,
+        "target_normalized_q": 0.14430867617851426,
+        "target_pass": true
+      }
+    },
+    "pair_matching": {
+      "bidirectional_ladder_authority": "pipelines.time_dynamics.prospective_scientific_planner",
+      "component_deadband": 0.1,
+      "cost_comparison_admissible": false,
+      "matched_accuracy_factor": 2.0,
+      "monotonicity_inference_used": false,
+      "requires_same_cell_seed_source_epoch_horizon": true,
+      "state": "not_evaluated_single_arm"
+    },
+    "target_normalized_q_components": {
+      "mean_abs_doublon_error": 0.16984331904325656,
+      "mean_abs_energy_error": 0.4213330251686645,
+      "mean_infidelity": 0.0007190939171368492,
+      "mean_max_abs_site_occupation_error": 0.14430867617851426
+    }
+  },
+  "resume_from_action_id": null,
+  "resume_run_receipt_sha256": null,
+  "resume_run_sha256": null,
+  "run_receipt_sha256": "63212fb46414f15b917382907244dd7a1689254c5a58879c7e0c87fe8a727f84",
+  "run_sha256": "d9744705b921c6bcafd5bbcdd09e1afe7bb28778310521d58d8af792216cfde0",
+  "schema": "paper_ii_exact_scored_metrics_v1",
+  "scientific_action_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::avqds::t5::r00::cut1em02::binde875c098ccaa9943",
+  "scientific_pair_qualification": null,
+  "score_action_id": "score::prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::avqds::t5::r00::cut1em02::binde875c098ccaa9943",
+  "score_execution_request_sha256": "a69a60269447d2af36326a9904b292a8f51dfac080a9bd698ee5bdca2fb3a597",
+  "score_metrics_sha256": "9210ee8420fbf7871dab093ec15a3fe91fb19d077d881522ea1fa0e8bbc6f059",
+  "score_planner_sequence": 1,
+  "scoring_worker_schema": "paper_ii_prospective_trajectory_scoring_worker_v1",
+  "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+  "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6",
+  "seed_receipt_sha256": "b9e34d07f819acc885e93e3e7fbdcb4a8315a69244e5ef25466dc3ff7bbcf1c3",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235"
+}

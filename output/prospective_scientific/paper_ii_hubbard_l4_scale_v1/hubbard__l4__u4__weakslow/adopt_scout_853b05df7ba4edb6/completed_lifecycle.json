@@ -1,0 +1,43 @@
+{
+  "accuracy_policy_sha256": "8dd2943bb020c29c9c17529878af7f64192ca13776a20246d14544b13c76bfa5",
+  "action_registry": {
+    "path": "output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/action_registry.json",
+    "sha256": "4f1513f2aad5eadb52d3851041a34b35ba6658481b3d07d22bb2d3ad54fdd0af"
+  },
+  "activation_cut": 0.01,
+  "attempt": 0,
+  "bindings_sha256": "e875c098ccaa9943637c11d9a764a1c3cdc856dc16593be724193924a49b628c",
+  "cell_id": "hubbard__l4__u4__weakslow",
+  "exact_reference_receipt_sha256": "dc826d8943c052bdc3641f6bddc287160231f15da82ffb6aaa1b99a01eb094ef",
+  "execution_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::avqds::t5::r00::cut1em02::binde875c098ccaa9943::attempt0::mem8g",
+  "execution_request_sha256": "27f9e1fb07a945102516e08764a5dee1776d77d534c209c136b0aca3bcf8bce0",
+  "failure_evidence": null,
+  "failure_kind": null,
+  "failure_reason": "",
+  "horizon": "t5",
+  "method": "avqds",
+  "observed_peak_gib": null,
+  "planner_sequence": 0,
+  "previous_receipt": {
+    "path": "output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/submitted_lifecycle.json",
+    "sha256": "7582b34b8c2f09b1777636eebcdd81844aa551c3605d3dedcc5d6130424ee203"
+  },
+  "requested_memory_gib": 8,
+  "resume_from_action_id": null,
+  "resume_run_receipt_sha256": null,
+  "resume_run_sha256": null,
+  "run": {
+    "path": "output/prospective_bootstrap/hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/avqds_prefix_6cee01ebddc648e9/run.json",
+    "sha256": "d9744705b921c6bcafd5bbcdd09e1afe7bb28778310521d58d8af792216cfde0"
+  },
+  "run_lifecycle_receipt_sha256": "28859a318f68fd9791930069b45a951f291c4f62729e83b59510a99c90971764",
+  "schema": "paper_ii_run_lifecycle_receipt_v1",
+  "scientific_action_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::avqds::t5::r00::cut1em02::binde875c098ccaa9943",
+  "seed_receipt_sha256": "b9e34d07f819acc885e93e3e7fbdcb4a8315a69244e5ef25466dc3ff7bbcf1c3",
+  "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+  "state": "completed",
+  "state_evidence": {
+    "path": "output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/completed_evidence.json",
+    "sha256": "05598735491fafca4935a82e5cbc52e3cc7d348c008f0f5887b4b5ddf345a493"
+  }
+}

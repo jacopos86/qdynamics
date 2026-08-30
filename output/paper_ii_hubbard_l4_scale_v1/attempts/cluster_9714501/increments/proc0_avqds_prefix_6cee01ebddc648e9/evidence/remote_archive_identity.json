@@ -1,0 +1,51 @@
+{
+  "archive_bytes": 2382512,
+  "archive_identity_sha256": "46946f76c45ee38b6dedbef2aa28dafde71de33ce43de950ca55bd200053d64c",
+  "archive_sha256": "a51089d211d8fff360c17fad171f80691a3589971b80a4e699a4b359b1679462",
+  "gzip_integrity": true,
+  "members": {
+    "BASE_SOURCE_VERIFIED_BEFORE_OVERLAY": {
+      "bytes": 60,
+      "sha256": "e6561c50eb5418c1c1325d13be84d2e8fd0dc95fa725f08864c9dee8ff714cea",
+      "type": "regular"
+    },
+    "REMOTE_RAW_PRESERVED": {
+      "bytes": 53,
+      "sha256": "22ae8ce6b29c3c910417e4d87b0d98bdd2655fa4749b30a75b6f2afcea5f9046",
+      "type": "regular"
+    },
+    "completion_receipt.json": {
+      "bytes": 1999,
+      "sha256": "853b05df7ba4edb6d41eeb8d5c307fe8ea0539155f1a9157197fe57ffb1bda3e",
+      "type": "regular"
+    },
+    "executor_overlay_identity.json": {
+      "bytes": 1692,
+      "sha256": "1456648fcc4658c892f8bcb1f63f301c2f406feb879bb67562e492b5097aa437",
+      "type": "regular"
+    },
+    "run.json": {
+      "bytes": 10510320,
+      "sha256": "d9744705b921c6bcafd5bbcdd09e1afe7bb28778310521d58d8af792216cfde0",
+      "type": "regular"
+    },
+    "worker_stderr.log": {
+      "bytes": 36572,
+      "sha256": "e0b32403e27fc0cf69a0582b1fea58d0d582929620c3214dfd383cbcfce13275",
+      "type": "regular"
+    },
+    "worker_stdout.json": {
+      "bytes": 604,
+      "sha256": "b11a3699fa411f95d7990f54469f7e1aaad1ecab05f69d88cc1aac6b6d3c8912",
+      "type": "regular"
+    }
+  },
+  "promotion_plan_sha256": "d4a02a528404f486c29192f98f97abadb29eaedb29b071a28f2ee68d32d139a0",
+  "remote_cleanup_performed": false,
+  "remote_path": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_scientific_513d75fc_20260829/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/avqds_scout/transfer_archives/prospective_results/paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e92ac6.tar.gz",
+  "remote_raw_preserved": true,
+  "schema": "paper_ii_prospective_result_archive_identity_v1",
+  "source_raw_subtree": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_scientific_513d75fc_20260829/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/avqds_scout/raw_outputs/paper_ii_avqds/paper-ii-hubbard-l4-scale-v1-6cee01ebddc648e92ac6",
+  "tar_integrity": true,
+  "tar_member_count": 7
+}

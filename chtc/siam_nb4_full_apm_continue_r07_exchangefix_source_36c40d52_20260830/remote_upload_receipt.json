@@ -1,0 +1,87 @@
+{
+  "archive": {
+    "atomic_rename_verified": true,
+    "bytes": 1035685,
+    "gzip_integrity": true,
+    "member_count": 13,
+    "path": "chtc/siam_nb4_source_446b75f3_frontier9715270_upload_20260830.tar.gz",
+    "remote_bytes": 1035685,
+    "remote_path": "/home/jsstrobel/siam_nb4_source_446b75f3_frontier9715270_upload_20260830.tar.gz",
+    "remote_sha256": "bd7bcb6b5da065f611f386668ff749c9e2872160f8377a8f0c5ad14bf4a52340",
+    "sha256": "bd7bcb6b5da065f611f386668ff749c9e2872160f8377a8f0c5ad14bf4a52340",
+    "tar_integrity": true,
+    "transferred_through_part": true
+  },
+  "bindings": {
+    "action": {
+      "bytes": 191833,
+      "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/input/action.json",
+      "sha256": "2a44a36e71a7988ff0d420984cd324bc170e8d5a6a856e8db6ca739d49f0c181"
+    },
+    "manifest": {
+      "bytes": 4810,
+      "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/input/manifest.json",
+      "sha256": "c188c655bfebeea7b34dc2e4fefc81ae45b46cb11f414f914c4eef536edaa01f"
+    },
+    "submit": {
+      "bytes": 1339,
+      "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submit.sub",
+      "sha256": "74a5ef96294fa167e5fe6ea0bda940873da1f65e3b7756767a866a80bcf13aa3"
+    }
+  },
+  "checks": {
+    "condor_dry_run_passed": true,
+    "local_package_manifest_verified": true,
+    "local_source_epoch_control_plane_verified": true,
+    "local_source_tree_contract_verified": true,
+    "local_submit_lifecycle_verified": true,
+    "qiskit_compilation_requested": false,
+    "quota_checked": true,
+    "remote_archive_digest_verified": true,
+    "remote_image_digest_verified": true,
+    "remote_output_path_absent": true,
+    "remote_package_file_digests_verified": true,
+    "remote_source_archive_digest_verified": true,
+    "remote_source_tree_contract_verified": true,
+    "submission_autopilot_absent": true
+  },
+  "condor_dry_run": {
+    "bytes": 3022,
+    "path": "/home/jsstrobel/.paper_ii_siam_cont_r07_bd7bcb6b_dryrun",
+    "returncode": 0,
+    "sha256": "648f3320deaa828fb917b5f051a65703cb412de9914a4bef4f236719c7caa503",
+    "stdout": "Dry-Run job(s).\n1 job(s) dry-run to cluster 1.\n"
+  },
+  "image": {
+    "bytes": 216371200,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/chtc/time_dynamics_optuna/image.sif",
+    "sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f"
+  },
+  "qiskit_compilation_requested": false,
+  "recorded_at_utc": "2026-08-30T18:25:13.448250Z",
+  "remote_raw_evidence_preserved": true,
+  "remote_workspace": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828",
+  "scheduler_reconciliation": {
+    "required_next_state": "verified_absent",
+    "state": "indeterminate",
+    "submission_permitted": false
+  },
+  "schema": "siam_nb4_remote_upload_receipt_v1",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-continue-r07-cut3em06",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "source_archive": {
+    "bytes": 5539814,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/siam_nb4_source_446b75f3_r00_upload_20260828.tar.gz",
+    "sha256": "a6f1f8d0ff2b5d5c4514a2df0872fe3aca41b7ce2ca416512517baac9fd83988"
+  },
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "source_tree_files_sha256": "2acc890278b388ace3f09ca989ea73f5a286b0c47ad062f563f53beb48946d66",
+  "status": "REMOTE_PACKAGE_VERIFIED_AWAITING_RECONCILIATION_NOT_SUBMITTED",
+  "warnings": [
+    "Remote source-archive tar validation passed while GNU tar reported preserved LIBARCHIVE xattr metadata.",
+    "Remote quota at preflight was 39009M of 40960M soft quota (51200M hard limit); no additional payload is submitted here.",
+    "Raw remote preflight capture preserved at chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/remote_preflight_capture.json with SHA-256 fe62e1be9e67412d738ec8728d97312f9f285e9647f7956c41d71da6d5b9a298."
+  ]
+}

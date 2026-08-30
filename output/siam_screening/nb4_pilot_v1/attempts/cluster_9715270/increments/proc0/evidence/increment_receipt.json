@@ -1,0 +1,172 @@
+{
+  "action": {
+    "bytes": 189850,
+    "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/action.json",
+    "sha256": "5ac1c473f470cd88c70c3fcd855256ffe033148a78bdbf9e67b6c06f16db703b"
+  },
+  "action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+  "archive": {
+    "archive_remote_identity_reverified_after_transfer": false,
+    "bytes": 1021835,
+    "fetched_through_single_part_path": true,
+    "finalization_receipt": {
+      "bytes": 1247,
+      "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/siam_cluster_9715270_proc0_delta_20260830.tar.gz.transfer_finalization_receipt.json",
+      "sha256": "87753d7b2d12b41aaaddf92f13feeb5b107523977483b9d8703015f450966c5e"
+    },
+    "gzip_integrity_passed": true,
+    "member_count": 2,
+    "normalized_local_archive": true,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/siam_cluster_9715270_proc0_delta_20260830.tar.gz",
+    "preserved_quarantine": [
+      {
+        "bytes": 1022010,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/quarantine/siam_cluster_9715270_proc0_delta_20260830.tar.gz.prefixed_inventory_attempt_20260830T171529Z",
+        "sha256": "f3c2502c14c246a76a846bfbe21bd309a0587f2e3def7ccda8f4765f894e97ad"
+      },
+      {
+        "bytes": 32256,
+        "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/quarantine/siam_cluster_9715270_proc0_delta_20260830.tar.gz.part.invalid_base64_stream_attempt_20260830T1650Z",
+        "sha256": "4dff7535ad0eb460bff6c1277dff60798c5a46ebf8a9540b7c7255062429f5c1"
+      }
+    ],
+    "remote_archive_identity_available": false,
+    "remote_path": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828/incremental_exports/cluster_9715270/proc0/siam_nb4_full_apm_r07_9715270_proc0.tar.gz",
+    "remote_raw_evidence_preserved": true,
+    "sha256": "16bc79c1f03947a8b09d76dbbe563997bc134ab14a305a6e58a2f59c8374a856",
+    "tar_integrity_passed": true,
+    "verified_remote_and_local": false
+  },
+  "cluster_id": 9715270,
+  "completion_receipt": {
+    "bytes": 211294,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/action_receipt.json",
+    "sha256": "8919265b94a7493f9e550331c0d8d7b17a7b60230400aa748cbbe0db327adc61"
+  },
+  "evidence_role": "corrected_source_full_apm_screen_r07_inside_broad_guard_but_outside_individual_target_triggers_same_cut_full_horizon",
+  "exact_reference": {
+    "full_horizon_slice": {
+      "bytes": 10076,
+      "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_slice_t1_t5_sigma_v2_receipt.json",
+      "sha256": "e232687e0e96f733bf04d7d3b8b3ae9eb759c6746e953b5d76178335a7fce9a0"
+    },
+    "prefix_view": {
+      "bytes": 5860,
+      "path": "output/siam_screening/nb4_pilot_v1/reporting_transitions/sigma_v2_canonical_20260828/exact_prefix_t0_t1_sigma_v2_receipt.json",
+      "sha256": "ee2b45eed58e6d9d1674534f94a0c3af26d0cff9dd18c1f29aeac4b1c64f168e"
+    },
+    "reporting_only": true,
+    "reused_without_rebuild": true
+  },
+  "generated_at_utc": "2026-08-30T16:41:06.821239938Z",
+  "next_frontier": {
+    "next_action_ids": [
+      "siam-nb4-full_apm-continue-r07-cut3em06"
+    ],
+    "plan": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/ladder_plan.json",
+    "plan_sha256": "4e1b3e102c982c3360dd6c25f6fa6a8982c0a757659a88e96e05499fa023d126",
+    "prepared_frontier_receipt": null,
+    "state": "PLANNED_NOT_PREPARED",
+    "submitted_clusters": []
+  },
+  "package_manifest": {
+    "bytes": 4275,
+    "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/input/manifest.json",
+    "sha256": "a23dfa8624fb6f3506e6f4762e66ee8a1d50a740445c47ec3daf7d4381b582ed"
+  },
+  "process_id": 0,
+  "qiskit_compilation": {
+    "performed": false,
+    "required": false,
+    "resource_basis": "logical_shared_N_theta_and_deterministic_graph_span_proxy_only"
+  },
+  "resources": {
+    "accepted_integration_steps": 25600,
+    "bytes": 4591,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evaluated/terminal_resources.json",
+    "resource_sha256": "21f4b65955a818de737f879ac8ec620c30e5fdabaade032ff4f2d50e2fcdb053",
+    "sha256": "91df64884c9d57466fd18f68e510cca0726d1bafec8616d82700685a89e10f35",
+    "terminal_resource_tuple": {
+      "C_hat_1q": 1814.0,
+      "C_hat_2q": 1408.0,
+      "C_hat_d": 2144.0,
+      "N_theta": 37
+    }
+  },
+  "results": {
+    "counts": {
+      "candidate": 2,
+      "pending": 0,
+      "qualified": 0
+    },
+    "latex": {
+      "bytes": 839,
+      "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9715270/table.tex",
+      "sha256": "9dc7cf49fa409dbd2893d5e2e8321a331571432c5874d088e37e46249d5747b6"
+    },
+    "pdf": {
+      "bytes": 3006,
+      "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9715270.pdf",
+      "sha256": "daf1c1edccf64445fb908e04674c8867463587461b98372c5f1de530726c3ae3"
+    },
+    "pdf_receipt": {
+      "bytes": 638,
+      "path": "output/pdf/siam_nb4_screening_benchmark/siam_nb4_screening_results_cluster9715270_receipt.json",
+      "sha256": "efedceabc63e0f711e57505cd92a2c4b1dcf4edb3183f5c91fc62b33ab1a93f9"
+    },
+    "promotion": {
+      "bytes": 14136,
+      "path": "output/siam_screening/nb4_pilot_v1/results/cluster_9715270/promotion.json",
+      "sha256": "6472da085afaa473ed4a9fb979cc48a49a82c1c093a2b6954c31e19aa8e7cf6a"
+    },
+    "routine_layout_visual_inspection_required": false,
+    "visual_inspection_completed": false
+  },
+  "run": {
+    "bytes": 6157408,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/extracted/raw_outputs/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-screen-r07-cut3em06/run.json",
+    "sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8"
+  },
+  "scheduler": {
+    "exit_code": 0,
+    "job_status": 4,
+    "resident_set_size_kib": 333256,
+    "snapshot_file_sha256": "f84ca615147669e592bb55b69c79cdd7e9dde61dde43b7d55877c951f02a0ce3",
+    "snapshot_path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_164106/combined_snapshot.json",
+    "snapshot_sha256": "4c6a99191e969e9d240a3082e112b77f0218cf770248cc01ecca63e419d6adfc"
+  },
+  "schema": "siam_nb4_increment_receipt_v2",
+  "score": {
+    "aggregate_accuracy_burden": 0.2881775438910691,
+    "broad_response_guard_pass": true,
+    "bytes": 138567,
+    "classification": "candidate_broad_guard",
+    "individual_target_pass": false,
+    "max_primitive_response_normalized_error": 0.053306910299345985,
+    "mean_infidelity": 2.6729784163639228e-06,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evaluated/score.json",
+    "score_sha256": "825a7b6e85918d1e74813a485d425d1c7451bde4ea78114b1e468c2d696ffaf9",
+    "sha256": "00510cc54033fa64328b88a335ef90b1ca9705e725ffd093cc2374d5767297ad"
+  },
+  "source_epoch": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "INGESTED_RESULTS_REFRESHED_FULL_APM_R07_CONTINUATION_PLANNED_NOT_PREPARED",
+  "submission_receipt": {
+    "bytes": 2987,
+    "path": "chtc/siam_nb4_full_apm_screen_r07_exchangefix_source_36c40d52_20260830/submission_receipt.json",
+    "sha256": "1b03fb860fa37e98711703ba32f87471709082e387620c9a4eb291c778da79be"
+  },
+  "verification": {
+    "archive_remote_identity_reverified_after_transfer": false,
+    "completion_contract_validated": true,
+    "exact_reference_reporting_only": true,
+    "ram_guard_limit_mb": 8000,
+    "remote_raw_evidence_preserved": true,
+    "scheduler_disposition_files_verified": 5
+  },
+  "warnings_carried": [
+    "canonical archive was normalized locally from the exact remote payload; no independent remote-identity receipt was produced",
+    "the original prefixed archive and interrupted invalid stream remain quarantined without overwrite",
+    "the next full-horizon action is planned but has no package, intent, or submission"
+  ]
+}

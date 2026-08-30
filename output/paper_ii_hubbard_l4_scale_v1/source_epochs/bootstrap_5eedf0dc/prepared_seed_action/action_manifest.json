@@ -1,0 +1,50 @@
+{
+  "action_count": 1,
+  "action_id": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+  "artifact_path": "output/paper_ii_hubbard_l4_scale_v1/seeds/l4__u4__half_filled/seed.json",
+  "execution_authorized": false,
+  "execution_id": "build_seed::paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled::3f5f01b25de75f9f",
+  "execution_request_sha256": "ee58df1fb13e9669f90c7751a9543393ac23265fb2304c89ac6ff5f945124abd",
+  "lane_id": "paper_ii_hubbard_l4_scale_v1",
+  "manifest_sha256": "7432606ae55764028610d7bca6ca34438dfecd819c048066151bd5d1ea93645b",
+  "matrix_binding": {
+    "expanded_semantic_sha256": "173fa1798406f224bacf223dd73073a7a03b00b5f36675bae355c0ccf766fbaf",
+    "matrix_id": "paper_ii_parallel_benchmarks_20260828",
+    "payload_sha256": "aaab5e8c025870f972d9170acec8820ecd0092a0ca3e9c48ae39401b282aa4ed",
+    "raw_sha256": "147b26d9c47621c1eeeba27896624025d1621f36ea084d2e0c163bc3f39979f2",
+    "registry_sha256": "227a8c539513618980940896abc74167599a0e79846b21d955ef826d9fdff7f4"
+  },
+  "optimizer_seed": 1293143593,
+  "production_submission_enabled": false,
+  "qiskit_compilation_requested": false,
+  "request": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/prepared_seed_action/execution_request.json",
+    "sha256": "f0629e19371a04ad5784ab712e8d3c9382ec9b4f4f71a92b33a87fec24de9a2f"
+  },
+  "schema": "paper_ii_hubbard_l4_seed_activation_manifest_v1",
+  "seed_id": "paper_ii_hubbard_l4_scale_v1::seed::l4__u4__half_filled",
+  "seed_identity_sha256": "fbb6d7b539177031970bae02769583ae168fe2900c7887578cd606d0aa86e2a6",
+  "source_epoch": {
+    "lane_id": "paper_ii_hubbard_l4_scale_v1",
+    "source_archive_sha256": "ff04cbcf89363d9c4c0e1f72d8866657a9cfa9981ee14582b6dbeedaf70cd512",
+    "source_epoch_id": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+    "source_epoch_identity_sha256": "1324fc47d82e7bd488d4479b3f8a1905eac909454a5382decd595a5689fb5235",
+    "source_revision": "5eedf0dc546cb8379b2a12f609d5eef8eaf3540b"
+  },
+  "source_epoch_receipt": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/source_epoch_receipt.json",
+    "sha256": "cc65dda01379cf8a6125eec1e082acb40e6b1121ad70d98c3e293d62e24efe96"
+  },
+  "source_tree_manifest": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/source_tree_manifest.json",
+    "sha256": "a4addfe3a6397f8abe65cefafd9810ddeb1b58f8d206c0672f31e4feedc86eb3"
+  },
+  "source_tree_sha256": "4ad1a8fc220589a9a1a46073ca253da2cc6af39843eed9a5957afdeb1ae6a90c",
+  "status": "PREPARED_NOT_EXECUTED",
+  "vqe_executed": false,
+  "work_order": {
+    "path": "output/paper_ii_hubbard_l4_scale_v1/source_epochs/bootstrap_5eedf0dc/prepared_seed_action/seed_work_order.json",
+    "sha256": "8f9641ca2f2c78427e8c2eeb957d4504a27fca1fd2e9fd5e8af01ae1f853687f",
+    "work_order_sha256": "01684fa2979fd44455a598306b0a62ce1c496817db3c849173407ef4469382a3"
+  }
+}
