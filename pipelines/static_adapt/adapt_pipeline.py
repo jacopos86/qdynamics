@@ -19022,6 +19022,85 @@ class _DefaultNoPruneNumericalSession:
                 version = str(raw_version)
         return f"{version}_probe" if probe else version
 
+    def _prewarm_phase1_base_metrics(
+        self,
+        pending: "_DefaultNoPrunePendingSelection",
+    ) -> None:
+        """Fill the per-round base-metric memo concurrently.
+
+        Each shortlisted candidate's metric is an independent pure function of
+        the frozen round state and the candidate term, so workers compute
+        disjoint entries with thread-local compile caches and results merge in
+        shortlist order.  Values are identical to the serial path.
+        """
+
+        workers = max(1, int(self.context.parallel_gradient_workers))
+        jobs: list[tuple[int, str]] = []
+        seen: set[str] = set()
+        for pool_index in pending.shortlist:
+            label = str(self.context.pool[int(pool_index)].label)
+            if label in seen or label in pending.phase3_base_metric_cache:
+                continue
+            seen.add(label)
+            jobs.append((int(pool_index), label))
+        if workers < 2 or len(jobs) < 2:
+            return
+        psi = np.asarray(pending.psi_current, dtype=complex)
+
+        def _one(job: tuple[int, str]) -> tuple[str, float]:
+            index, label = job
+            return label, float(
+                raw_f_metric_from_state(
+                    psi_state=psi,
+                    candidate_label=label,
+                    candidate_term=self.context.pool[index],
+                    compiled_cache={},
+                    pauli_action_cache={},
+                )
+            )
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            for label, metric in executor.map(_one, jobs):
+                pending.phase3_base_metric_cache[label] = float(metric)
+
+    def _prewarm_phase1_candidate_states(
+        self,
+        pending: "_DefaultNoPrunePendingSelection",
+    ) -> dict[int, float]:
+        """Compute the phase-I candidate self-metric floats concurrently.
+
+        Each value is a pure function of the frozen round state and one
+        compiled pool entry, identical to the serial expression in the
+        position loop.  The estimator-ledger record for each miss still runs
+        serially inside that loop, so accounting order is unchanged.
+        """
+
+        workers = max(1, int(self.context.parallel_gradient_workers))
+        jobs = [
+            int(pool_index)
+            for pool_index in pending.shortlist
+            if int(pool_index) not in pending.candidate_metric_cache
+        ]
+        if workers < 2 or len(jobs) < 2:
+            return {}
+        psi = np.asarray(pending.psi_current, dtype=complex)
+
+        def _one(index: int) -> tuple[int, float]:
+            candidate_state = _apply_compiled_polynomial(
+                psi,
+                self.context.compiled_pool[index],
+            )
+            mean = complex(np.vdot(psi, candidate_state))
+            centered = candidate_state - mean * psi
+            return index, float(
+                max(0.0, np.real(np.vdot(centered, centered)))
+            )
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            return {
+                index: value for index, value in executor.map(_one, jobs)
+            }
+
     def _evaluate_default_append_phase1_positions(
         self,
         pending: _DefaultNoPrunePendingSelection,
@@ -19035,6 +19114,10 @@ class _DefaultNoPruneNumericalSession:
         theta_logical = np.asarray(
             pending.theta_logical_current,
             dtype=float,
+        )
+        self._prewarm_phase1_base_metrics(pending)
+        staged_candidate_metrics = self._prewarm_phase1_candidate_states(
+            pending
         )
         for pool_index in pending.shortlist:
             index = int(pool_index)
@@ -19155,27 +19238,33 @@ class _DefaultNoPruneNumericalSession:
                 precompiled_action=self.context.compiled_pool[index],
             )
             if index not in pending.candidate_metric_cache:
-                candidate_state = _apply_compiled_polynomial(
-                    np.asarray(pending.psi_current, dtype=complex),
-                    self.context.compiled_pool[index],
-                )
-                mean = complex(
-                    np.vdot(pending.psi_current, candidate_state)
-                )
-                centered = (
-                    candidate_state
-                    - mean
-                    * np.asarray(
-                        pending.psi_current,
-                        dtype=complex,
+                staged_metric = staged_candidate_metrics.get(index)
+                if staged_metric is not None:
+                    pending.candidate_metric_cache[index] = float(
+                        staged_metric
                     )
-                )
-                pending.candidate_metric_cache[index] = float(
-                    max(
-                        0.0,
-                        np.real(np.vdot(centered, centered)),
+                else:
+                    candidate_state = _apply_compiled_polynomial(
+                        np.asarray(pending.psi_current, dtype=complex),
+                        self.context.compiled_pool[index],
                     )
-                )
+                    mean = complex(
+                        np.vdot(pending.psi_current, candidate_state)
+                    )
+                    centered = (
+                        candidate_state
+                        - mean
+                        * np.asarray(
+                            pending.psi_current,
+                            dtype=complex,
+                        )
+                    )
+                    pending.candidate_metric_cache[index] = float(
+                        max(
+                            0.0,
+                            np.real(np.vdot(centered, centered)),
+                        )
+                    )
                 self.estimator_service._record_candidate_self_metric_primitive(
                     state=np.asarray(
                         pending.psi_current,
