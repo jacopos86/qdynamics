@@ -19,10 +19,10 @@
       "sha256": "00510cc54033fa64328b88a335ef90b1ca9705e725ffd093cc2374d5767297ad"
     },
     "prepared_frontier_receipt": {
-      "bytes": 2917,
-      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/prepared_frontier_receipt.json",
+      "bytes": 3662,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/submitted_frontier_receipt.json",
       "schema": "siam_nb4_prepared_frontier_v1",
-      "sha256": "855394b6f85551fa578b976fb20d93f96d2e926a2b6d27be47b6c762234ffcd2"
+      "sha256": "77c78584986cbcc37be95176fa13a1d1b0a46832f37245420889ca18dd9f8ff6"
     },
     "raw_completion_receipt": {
       "bytes": 211294,
@@ -96,7 +96,7 @@
       "qualified": 0
     }
   },
-  "report_contract_sha256": "870c272c7a7a813be007c85668410e2beec02e7b8156e4f2b1f644200e2153b6",
+  "report_contract_sha256": "f50a9c0e7383e802c9c576427c90e24ab715fa2e88063a947c2c44676cd5e4d5",
   "schema": "siam_nb4_stable_report_contract_v1",
   "source_epoch": {
     "schema": "siam_source_epoch_contract_v1",

@@ -1,0 +1,20 @@
+[
+{
+  "ClusterId": 9714499,
+  "DiskUsage_RAW": 234112,
+  "EnteredCurrentStatus": 1788021383,
+  "JobBatchName": "paper-ii-avqds-paper-ii-hubbard-l4-scale-v1-723ca605d932a39b",
+  "JobStatus": 2,
+  "MemoryUsage": "\/Expr(((ResidentSetSize + 1023) / 1024))\/",
+  "PaperIIActionId": "screen_avqds::hubbard__l4__u4__strongfast::846103092412db33",
+  "PaperIIExecutionRequestSha256": "723ca605d932a39b85814befc8673cc0dd97268a9eaf6a2d2ae040fbbfdfa3b1",
+  "PaperIILaneId": "paper_ii_hubbard_l4_scale_v1",
+  "PaperIISourceEpochId": "paper-ii-hubbard-l4-scale-v1-source-5eedf0dc546c-4ad1a8fc2205",
+  "ProcId": 0,
+  "QDate": 1788021356,
+  "RequestCpus": 1,
+  "RequestDisk": 8388608,
+  "RequestMemory": 16384,
+  "ResidentSetSize_RAW": 1237048
+}
+]

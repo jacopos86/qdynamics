@@ -1,0 +1,85 @@
+{
+  "first_exact_intent_snapshot": {
+    "bytes": 290779,
+    "captured_at": "2026-08-30T19:16:46.935469075Z",
+    "captured_at_unix_ns": 1788117406936547351,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_191444/combined_snapshot.json",
+    "sha256": "0a0d2cd857c7124602b9a05ffb0eba75b347609b6548f7739fe387bc46b06bd8",
+    "snapshot_sha256": "e28add2daf7ad2c26ff739e2cf6f50ec0a9b1217170c0018a059a61fffabea9e",
+    "status": "indeterminate"
+  },
+  "generic_intent_bridge": {
+    "bridge_sha256": "035cd6442ad3dbbb94bb5b40b5cb3bf84a6c3afe5fdf7c7566aa5f78c497ef31",
+    "bytes": 4736,
+    "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submission_intent_bridge.json",
+    "sha256": "6084602e5c871fd7e8681b909a42e421794c3f4aa19027ef14a13322030db68d"
+  },
+  "intent_identity_sha256": "542f043f3604fdb21f0a225a431173e57345cf65104dd05de805cedc0a8589a7",
+  "job_batch_name": "siam-nb4-continue-t1-t5-401-exchange-rung7",
+  "receipt_sha256": "d8ea92b3f044b2ad9748cac24ae3b9553ad8828a03ae89a59c8f1b7e7120c7df",
+  "remote_output_path": {
+    "bound_upload_preflight_state": "verified_absent",
+    "immediate_recheck_performed_before_submit": true,
+    "immediate_recheck_result": "absent",
+    "path": "raw_outputs/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-continue-r07-cut3em06/run.json",
+    "recheck_argv": [
+      "test",
+      "!",
+      "-e",
+      "raw_outputs/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/siam-nb4-full_apm-continue-r07-cut3em06/run.json"
+    ]
+  },
+  "remote_submit": {
+    "argv": [
+      "condor_submit",
+      "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submit.sub"
+    ],
+    "working_directory": "/home/jsstrobel/Holstein_siam_nb4_source_446b75f3_20260828"
+  },
+  "schema": "siam_nb4_submission_reconciliation_v2",
+  "scientific_identity": {
+    "action_id": "siam-nb4-full_apm-continue-r07-cut3em06",
+    "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9"
+  },
+  "state": "verified_absent",
+  "submission_intent": {
+    "bytes": 1675,
+    "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submission_intent.json",
+    "sha256": "deac0dec02e3031414a7188658ab6a28778c86efe30137b8a1ca5b64552311f2"
+  },
+  "submission_permitted": true,
+  "verified_absent_snapshot": {
+    "absence_proof": {
+      "intent_identity_sha256": "542f043f3604fdb21f0a225a431173e57345cf65104dd05de805cedc0a8589a7",
+      "prior_captured_at": "2026-08-30T19:16:46.935469075Z",
+      "prior_captured_at_unix_ns": 1788117406936547351,
+      "prior_snapshot_sha256": "e28add2daf7ad2c26ff739e2cf6f50ec0a9b1217170c0018a059a61fffabea9e",
+      "prior_snapshot_status": "indeterminate",
+      "schema": "paper_ii_intent_first_absence_proof_v1"
+    },
+    "bytes": 296210,
+    "captured_at": "2026-08-30T20:11:49.797567Z",
+    "captured_at_unix_ns": 1788120709797947864,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/combined_snapshot.json",
+    "query_evidence": {
+      "history": {
+        "bytes": 51468,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/raw/history.json",
+        "returncode": 0,
+        "row_count": 65,
+        "sha256": "0752212b55ad5dcdc43fec2f17a21a9272ee7c56f5a7b62702dba540f63c385d",
+        "stdout_sha256": "0752212b55ad5dcdc43fec2f17a21a9272ee7c56f5a7b62702dba540f63c385d"
+      },
+      "queue": {
+        "bytes": 733,
+        "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/raw/queue.json",
+        "returncode": 0,
+        "row_count": 1,
+        "sha256": "e6d91bab1f9ec0b523ca0306ebb8c8c0b9fac85c932aba22a8d7cc697b272d40",
+        "stdout_sha256": "e6d91bab1f9ec0b523ca0306ebb8c8c0b9fac85c932aba22a8d7cc697b272d40"
+      }
+    },
+    "sha256": "c9b4a2530a3c2a85e866b971f3023e50d48ca589f785c786eec8832c85680f96",
+    "snapshot_sha256": "78d018038185ade2bb4fcc7dbfb0df894a85a29fcab3e607b98701d6ab8ec1ed"
+  }
+}

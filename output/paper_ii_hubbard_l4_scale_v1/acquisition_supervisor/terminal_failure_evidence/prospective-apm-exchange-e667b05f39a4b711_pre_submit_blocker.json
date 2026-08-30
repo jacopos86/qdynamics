@@ -1,0 +1,60 @@
+{
+  "action_id": "prospective::paper_ii_hubbard_l4_scale_v1::hubbard__l4__u4__weakslow::exchange::t5::r00::cut1em02::binde875c098ccaa9943",
+  "batch_id": "paper-ii-apm-paper-ii-hubbard-l4-scale-v1-e667b05f39a4b711",
+  "classification": "operational_pre_submit_blocker",
+  "detected_at_utc": "2026-08-30T20:16:00Z",
+  "execution_request_sha256": "e667b05f39a4b711cb1ca5f3444244f6d3edad8854628c9fc663844b1c629681",
+  "failure": {
+    "cause": "The nested bash -lc source-receipt validation encloses the Python command and its path literals in conflicting single quotes, so the generated command cannot preserve the Python string literals.",
+    "executor_started": false,
+    "kind": "nested_shell_quoting",
+    "location": "run_apm_exchange.sh:42",
+    "scientific_failure": false
+  },
+  "frozen_scientific_identity": {
+    "action_preserved": true,
+    "execution_request_preserved": true,
+    "qiskit_compilation_requested": false,
+    "source_epoch_preserved": true,
+    "work_order_preserved": true
+  },
+  "intent": {
+    "file_sha256": "ddf007c693c12be4fc101274546c9e0238f2dac983931db0563696d2a01d42a3",
+    "identity_sha256": "02390a1a7d43438adf0e62b8e93d198f157f9828dde40b623a3f027806b71ac1",
+    "logical_sha256": "9f64669a8a144bb26fa7fcc2c3b9e42dcb37f30da731ff74a6812ca3423e30b7",
+    "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/submission_intents/prospective-apm-exchange-e667b05f39a4b711.json"
+  },
+  "next_action": {
+    "batch_suffix": "launchfix1",
+    "instruction": "Build a versioned operational recovery package that changes only wrapper quoting, execute the generated nested command in a regression test, upload and dry-run it in a new workdirectory, then record a new first-view indeterminate intent before any submission.",
+    "overwrite_original_package": false,
+    "submit_original_unit": false
+  },
+  "package": {
+    "bytes": 626873,
+    "path": "output/prospective_scientific/paper_ii_hubbard_l4_scale_v1/hubbard__l4__u4__weakslow/adopt_scout_853b05df7ba4edb6/next_apm_prefix_fab1c488/package/apm_exchange_action.tar.gz",
+    "sha256": "0143b668890ab21dc933426778b846e6b5e4609219eb5f340fc3be99c03cb74f"
+  },
+  "reconciliation": {
+    "combined_snapshot": {
+      "file_sha256": "c9b4a2530a3c2a85e866b971f3023e50d48ca589f785c786eec8832c85680f96",
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/combined_snapshot.json",
+      "snapshot_sha256": "78d018038185ade2bb4fcc7dbfb0df894a85a29fcab3e607b98701d6ab8ec1ed"
+    },
+    "match_count": 0,
+    "status": "verified_absent"
+  },
+  "remote_preflight": {
+    "dry_run_result": {
+      "logical_sha256": "5c18381b6230b20887e6afc509243927b80058a39d47734cf5c7d793d4a2ea3e",
+      "path": "output/paper_ii_hubbard_l4_scale_v1/acquisition_supervisor/dry_run_results/prospective-apm-exchange-e667b05f39a4b711.json",
+      "sha256": "a0d64400074ce2c13c67c18cc6e7e86ac2c3adb795f1bae6bcdab4d79aaf3b6d",
+      "status": "pass"
+    },
+    "remote_workdir": "/home/jsstrobel/Holstein_paper_ii_prospective_hubbard_apm_fab1c488_20260830/paper_ii_hubbard_l4_scale_v1/20719ac7f89c7f12/apm_exchange_r00"
+  },
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_apm_exchange_pre_submit_blocker_v1",
+  "submission_permitted": false,
+  "unit_id": "prospective-apm-exchange-e667b05f39a4b711"
+}

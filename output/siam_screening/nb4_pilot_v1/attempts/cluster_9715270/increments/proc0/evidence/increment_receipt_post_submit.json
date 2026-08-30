@@ -1,0 +1,61 @@
+{
+  "action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
+  "cluster_id": 9715270,
+  "generated_at_utc": "2026-08-30T20:18:01Z",
+  "next_frontier": {
+    "action_ids": [
+      "siam-nb4-full_apm-continue-r07-cut3em06"
+    ],
+    "cluster_ids": [
+      9716077
+    ],
+    "state": "SUBMITTED"
+  },
+  "prior_increment_receipt": {
+    "bytes": 8701,
+    "path": "output/siam_screening/nb4_pilot_v1/attempts/cluster_9715270/increments/proc0/evidence/increment_receipt_post_prepare.json",
+    "sha256": "7afc31ad6d3ed9ea39d77724db7b78a0f676e0ad7210fef70ec443de081dfdda"
+  },
+  "qiskit_compilation_performed": false,
+  "scheduler": {
+    "combined_snapshot": {
+      "bytes": 296210,
+      "file_sha256": "c9b4a2530a3c2a85e866b971f3023e50d48ca589f785c786eec8832c85680f96",
+      "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/combined_snapshot.json",
+      "snapshot_sha256": "78d018038185ade2bb4fcc7dbfb0df894a85a29fcab3e607b98701d6ab8ec1ed"
+    },
+    "post_submit_query_performed": false,
+    "submission_performed_exactly_once": true
+  },
+  "schema": "siam_nb4_increment_submission_transition_v1",
+  "source_epoch": "siam-nb4-source-446b75f3edc235404bf9",
+  "source_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "status": "INGESTED_RESULTS_REFRESHED_FULL_APM_R07_CONTINUATION_FRONTIER_SUBMITTED",
+  "submission_transition": {
+    "cluster_id": 9716077,
+    "prepared_frontier_receipt": {
+      "bytes": 2917,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/prepared_frontier_receipt.json",
+      "sha256": "855394b6f85551fa578b976fb20d93f96d2e926a2b6d27be47b6c762234ffcd2"
+    },
+    "reconciliation_receipt": {
+      "bytes": 4100,
+      "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submission_reconciliation_verified_absent.json",
+      "sha256": "68bac5c82b3802259acaecb2403d78eae8f584cdba7ce223906919856eadab3d"
+    },
+    "submission_receipt": {
+      "bytes": 3324,
+      "path": "chtc/siam_nb4_full_apm_continue_r07_exchangefix_source_36c40d52_20260830/submission_receipt.json",
+      "sha256": "e3c5efc49187fe9607d6b67abe52c803da113ceec0196d78aa27676f03e6c224"
+    },
+    "submitted_frontier_receipt": {
+      "bytes": 3662,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/submitted_frontier_receipt.json",
+      "sha256": "77c78584986cbcc37be95176fa13a1d1b0a46832f37245420889ca18dd9f8ff6"
+    }
+  },
+  "warnings_carried": [
+    "canonical cluster 9715270 archive provenance warnings remain unchanged from increment_receipt_post_prepare.json",
+    "cluster 9716077 state is intentionally not queried until the next heartbeat"
+  ]
+}

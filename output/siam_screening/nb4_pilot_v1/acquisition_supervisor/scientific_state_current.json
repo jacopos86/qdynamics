@@ -19,10 +19,10 @@
       "sha256": "00510cc54033fa64328b88a335ef90b1ca9705e725ffd093cc2374d5767297ad"
     },
     "prepared_frontier_receipt": {
-      "bytes": 2917,
-      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/prepared_frontier_receipt.json",
+      "bytes": 3662,
+      "path": "output/siam_screening/nb4_pilot_v1/plans/source_446b75f3_after_9715270_v1_20260830/submitted_frontier_receipt.json",
       "schema": "siam_nb4_prepared_frontier_v1",
-      "sha256": "855394b6f85551fa578b976fb20d93f96d2e926a2b6d27be47b6c762234ffcd2"
+      "sha256": "77c78584986cbcc37be95176fa13a1d1b0a46832f37245420889ca18dd9f8ff6"
     },
     "raw_completion_receipt": {
       "bytes": 211294,
@@ -79,7 +79,7 @@
     "source_epoch_receipt_planner_snapshot_reason": "the receipt freezes epoch creation; current ladder_plan is the frontier"
   },
   "schema": "siam_nb4_stable_scientific_state_v1",
-  "scientific_state_sha256": "55e089016bb03d3016070a8544d863f5d4bd3dc98935e5f66add5be907c6374b",
+  "scientific_state_sha256": "fc5aad93a0484b7c5ccc61144ab648579ef86118accc2ee4b094839ae5eac7c8",
   "source_epoch": {
     "schema": "siam_source_epoch_contract_v1",
     "source_epoch_id": "siam-nb4-source-446b75f3edc235404bf9",
@@ -90,12 +90,12 @@
     "blocked": false,
     "complete": false,
     "cost_comparison_admissible": false,
-    "frontier_status": "PREPARED",
+    "frontier_status": "SUBMITTED",
     "latest_ingested_action_id": "siam-nb4-full_apm-screen-r07-cut3em06",
     "latest_ingested_cluster_id": 9715270,
     "latest_ingested_evidence_mode": "screen",
     "latest_ingested_promotion_slot": "full_apm",
-    "latest_ingested_status": "INGESTED_RESULTS_REFRESHED_FULL_APM_R07_CONTINUATION_FRONTIER_PREPARED_NOT_SUBMITTED",
+    "latest_ingested_status": "INGESTED_RESULTS_REFRESHED_FULL_APM_R07_CONTINUATION_FRONTIER_SUBMITTED",
     "next_action_ids": [
       "siam-nb4-full_apm-continue-r07-cut3em06"
     ],
@@ -107,7 +107,9 @@
       "pending": 0,
       "qualified": 0
     },
-    "submitted_cluster_ids": [],
+    "submitted_cluster_ids": [
+      9716077
+    ],
     "trajectory_sha256": "8e91ed87625094b17a9a6a033cbad8ee379b96d836aa56da133661bd29cdf0b8"
   }
 }
