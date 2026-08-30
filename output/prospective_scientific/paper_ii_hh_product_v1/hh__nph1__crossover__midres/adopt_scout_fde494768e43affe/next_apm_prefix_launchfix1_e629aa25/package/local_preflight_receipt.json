@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "archive_gzip_and_tar_integrity": true,
+    "archive_member_count": 18,
+    "generated_launch_bash_syntax": "pass",
+    "generated_runtime_bash_syntax": "pass",
+    "nested_bash_lc_argument_regression": "pass",
+    "qiskit_compilation_requested": false,
+    "scientific_request_sha256_unchanged": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7"
+  },
+  "preflight_sha256": "e19a8adbb28bf2c53e46807ea2ffd673e17adeb13a7d6b90befaba132597be4d",
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-30T19:39:06.650000+00:00",
+  "retry_of_cluster": 9715900,
+  "schema": "paper_ii_apm_exchange_operational_recovery_local_preflight_v1",
+  "status": "pass",
+  "submission_permitted": false,
+  "unit_id": "prospective-apm-exchange-488646822fcf40e8-launchfix1"
+}

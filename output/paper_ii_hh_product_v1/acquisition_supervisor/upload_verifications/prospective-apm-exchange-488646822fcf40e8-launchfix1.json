@@ -1,0 +1,39 @@
+{
+  "action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+  "finalization": {
+    "atomic_part_to_final_rename": true,
+    "exact_full_sha256_match": true,
+    "exact_full_size_match": true,
+    "gzip_verified": true,
+    "tar_verified": true
+  },
+  "local_upload_bundle": {
+    "bytes": 631044,
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_launchfix1_e629aa25/remote_upload/hh_apm_r00_launchfix1_e629aa25_upload.tar.gz",
+    "sha256": "be746b982fa50f79bd71a2047f27f54f9a49f5835e8a83b14f14011090e9cf14"
+  },
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-30T19:39:06.650000+00:00",
+  "remote_raw_evidence_policy": "preserve",
+  "remote_upload_bundle": {
+    "bytes": 631044,
+    "path": "/home/jsstrobel/hh_apm_r00_launchfix1_e629aa25_upload.tar.gz",
+    "regular_non_symlink": true,
+    "sha256": "be746b982fa50f79bd71a2047f27f54f9a49f5835e8a83b14f14011090e9cf14"
+  },
+  "remote_workdir": {
+    "atomic_part_to_final_publish": true,
+    "path": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_apm_launchfix1_e629aa25_20260830/paper_ii_hh_product_v1/9538dcdaabac2cb5/apm_exchange_r00_launchfix1"
+  },
+  "retry_of_cluster": 9715900,
+  "runtime_image_sha256": "fa5c4ea89a19ad2fa4c264f3bce65d9e83b86b91618ed97dfc80ee7be401239f",
+  "scheduler_query_performed": false,
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_apm_exchange_operational_recovery_upload_verification_v1",
+  "source_dependency_sha256": "ac0013920058b2df466a920d8943da263aa11a7db0f8e807a333cd07ebf982dc",
+  "status": "verified",
+  "submission_permitted": false,
+  "unit_id": "prospective-apm-exchange-488646822fcf40e8-launchfix1",
+  "upload_verification_sha256": "9fa546ba4202943641b4918aa3dd74bd13227c06d8c8b0b6b9c35bfdec6769c6"
+}

@@ -1,0 +1,35 @@
+{
+  "attempt_archive": {
+    "bytes": 1335,
+    "remote_path": "/home/jsstrobel/paperii_combined_cycle_20260830_195110_raw.tar.gz",
+    "sha256": "7091d1541fd5471c5ee257812c11bfcf8b14ffb976c82dc9676744471151be57"
+  },
+  "capture_completed_at": "2026-08-30T19:51:48.679172057Z",
+  "capture_failure_receipt_sha256": "2c3e8142dd5ec505057340a58a9fcb1291602c11ec6d83f096cc6028d0fcf833",
+  "capture_plan": {
+    "intent_count": 84,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_195110/capture_plan.json",
+    "sha256": "87271d9befaf645e8184a47cfa662b8a08178cb1e4580d5644d453dc542f624e"
+  },
+  "capture_started_at": "2026-08-30T19:51:48.657705515Z",
+  "failure_class": "combined_capture_shell_invocation_quoting",
+  "failure_detail": "The generated @sh line was presented to the remote shell as one quoted executable. condor_q therefore returned command-not-found and the condor_history line was rejected by the shell parser; neither Condor binary returned scheduler data.",
+  "history_returncode": 2,
+  "latest_valid_snapshot_unchanged": {
+    "file_sha256": "0a0d2cd857c7124602b9a05ffb0eba75b347609b6548f7739fe387bc46b06bd8",
+    "logical_sha256": "e28add2daf7ad2c26ff739e2cf6f50ec0a9b1217170c0018a059a61fffabea9e",
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_191444/combined_snapshot.json"
+  },
+  "no_second_capture_attempt_this_heartbeat": true,
+  "queue_returncode": 127,
+  "reconciliation_disposition": {
+    "hh_launchfix": "indeterminate_first_view_pending",
+    "hubbard_apm": "indeterminate_unchanged",
+    "siam_r07_continuation": "indeterminate_unchanged",
+    "submission_permitted": false
+  },
+  "retry_same_heartbeat_performed": false,
+  "scheduler_snapshot_created": false,
+  "schema": "paper_ii_combined_scheduler_capture_failure_receipt_v1",
+  "status": "blocked_invalid_capture_invocation"
+}

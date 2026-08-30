@@ -1,0 +1,22 @@
+{
+  "bridge_sha256": "69f296336891cd12b73b46839ec84b50eda18aa7a4a1a96289007d5a0eaad89d",
+  "first_reconciliation_outcome": "indeterminate",
+  "generic_reconciliation_intent": {
+    "acquisition_unit_id": "prospective-apm-exchange-488646822fcf40e8-launchfix1",
+    "intent_sha256": "b6cc164cc9aa3c42028b6adb8dae15023fde672e08522482b9dd3fdec4488518",
+    "job_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8-launchfix1",
+    "paper_ii_action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+    "paper_ii_execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+    "recorded_at": "2026-08-30T19:39:06.650000+00:00"
+  },
+  "production_submission_enabled": false,
+  "retry_of_cluster": 9715900,
+  "scheduler_contacted": false,
+  "schema": "paper_ii_apm_exchange_operational_recovery_intent_bridge_v1",
+  "source_submission_intent": {
+    "intent_sha256": "b6cc164cc9aa3c42028b6adb8dae15023fde672e08522482b9dd3fdec4488518",
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/submission_intents/prospective-apm-exchange-488646822fcf40e8-launchfix1.json",
+    "sha256": "c641be8f5f6c5418b611fda7854b3a0c1ab3d389f649e10e3f4d938c5ca3d9de"
+  },
+  "submission_permitted": false
+}

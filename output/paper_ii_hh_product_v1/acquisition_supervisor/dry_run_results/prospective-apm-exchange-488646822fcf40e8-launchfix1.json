@@ -1,0 +1,45 @@
+{
+  "action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "dry_run_ad": {
+    "bytes": 4609,
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/remote_preflight/prospective-apm-exchange-488646822fcf40e8-launchfix1/dryrun.ad",
+    "sha256": "b7fdbffcf88cc84c52eb3d4f5c29be90ecd250240aaa6ae3b3332e37c71d1bf0"
+  },
+  "dry_run_result_sha256": "54e1a501779a314e5c6b756403c9bffb8fc12512a209aa8f59389b6f7e12d758",
+  "execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+  "lifecycle_validation": {
+    "performed_before_condor_dry_run": true,
+    "status": "pass",
+    "validator_sha256": "4eb17bd7cd7e70a83244c4718fd0dfd9c82a28c5e86f4bec15f68a7d2f7390c0"
+  },
+  "production_submission_enabled": false,
+  "recorded_at": "2026-08-30T19:39:06.650000+00:00",
+  "retry_of_cluster": 9715900,
+  "returncode": 0,
+  "scheduler_query_performed": false,
+  "scheduler_submission_performed": false,
+  "schema": "paper_ii_apm_exchange_operational_recovery_condor_dry_run_result_v1",
+  "single_dry_run_invocation": true,
+  "status": "pass",
+  "stderr": {
+    "bytes": 0,
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/remote_preflight/prospective-apm-exchange-488646822fcf40e8-launchfix1/dryrun.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 47,
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/remote_preflight/prospective-apm-exchange-488646822fcf40e8-launchfix1/dryrun.stdout",
+    "sha256": "a40749b0dcc3f78c1f1ddd38db6b11eaea11fe8b2dc815b30ac9e87385f7a5c8"
+  },
+  "submission_reconciliation": {
+    "reason": "first_snapshot_pending_for_exact_recovery_intent",
+    "status": "indeterminate",
+    "submission_permitted": false
+  },
+  "submit_descriptor": {
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_launchfix1_e629aa25/package/submit.sub",
+    "sha256": "6c2c0070e68e8c7796881791f4091820a972050096106e8598e9cec98fd69e25"
+  },
+  "unit_id": "prospective-apm-exchange-488646822fcf40e8-launchfix1",
+  "working_directory": "/home/jsstrobel/Holstein_paper_ii_prospective_hh_apm_launchfix1_e629aa25_20260830/paper_ii_hh_product_v1/9538dcdaabac2cb5/apm_exchange_r00_launchfix1"
+}

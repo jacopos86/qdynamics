@@ -1,0 +1,38 @@
+{
+  "action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+  "operational_change": "shell_quote_source_receipt_validation_only",
+  "original_action_package_sha256": "95e896cc117c4376a193afff092655fdb47f564f98e91753d747bdb2c1e00006",
+  "original_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8",
+  "original_failure_receipt": {
+    "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/terminal_failure_evidence/cluster_9715900/failure_receipt.json",
+    "sha256": "e5730875d4792929cd564870215f81e2386ebcc2b06e5fb6631fbe0d609db439"
+  },
+  "original_unit_id": "prospective-apm-exchange-488646822fcf40e8",
+  "production_submission_enabled": false,
+  "qiskit_compilation_requested": false,
+  "recorded_at": "2026-08-30T19:39:06.650000+00:00",
+  "recovery_action_package": {
+    "bytes": 631254,
+    "member_count": 18,
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_launchfix1_e629aa25/package/apm_exchange_action.tar.gz",
+    "sha256": "92dd1a2761a27f865c04c538472644ee82cf816974b580b62f1b7f7eb87116b5"
+  },
+  "recovery_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8-launchfix1",
+  "recovery_manifest_sha256": "e885775f27d637272b6d18a8d68936a05f7c9e02f44fcb2f95e47e6c58ff293f",
+  "recovery_unit_id": "prospective-apm-exchange-488646822fcf40e8-launchfix1",
+  "retry_of_cluster": 9715900,
+  "runtime_dependencies": [
+    "output/paper_ii_hh_product_v1/bootstrap/activation_267516ea/shared/source_267516ea_runtime.tar.gz",
+    "chtc/time_dynamics_optuna/image.sif"
+  ],
+  "schema": "paper_ii_apm_operational_launch_recovery_v1",
+  "scientific_payload_unchanged": true,
+  "source_epoch_id": "paper-ii-hh-product-v1-source-267516eab3b3-ecc181dd4bce",
+  "status": "prepared_local_only",
+  "submission_permitted": false,
+  "submit_descriptor": {
+    "path": "output/prospective_scientific/paper_ii_hh_product_v1/hh__nph1__crossover__midres/adopt_scout_fde494768e43affe/next_apm_prefix_launchfix1_e629aa25/package/submit.sub",
+    "sha256": "6c2c0070e68e8c7796881791f4091820a972050096106e8598e9cec98fd69e25"
+  }
+}
