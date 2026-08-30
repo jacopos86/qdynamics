@@ -1,0 +1,39 @@
+{
+  "attempt_archive": {
+    "bytes": 7745,
+    "remote_path": "/home/jsstrobel/paperii_combined_cycle_20260830_213807_raw.tar.gz",
+    "remote_raw_evidence_preserved": true,
+    "sha256": "ce67129877a2bb1c731503a811c351e4530f843b7bef3d7b3ad8752f66925e73"
+  },
+  "capture_completed_at": "2026-08-30T21:41:05.703725Z",
+  "capture_failure_receipt_sha256": "dc99ff022a1a1791671df61be5fc8fa5582145547fcdc65b71c6e9c8a277c849",
+  "capture_plan": {
+    "intent_count": 85,
+    "reused_committed_path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_204706/capture_plan.json",
+    "sha256": "e7df7c945faf80420f5b2977a04ce9812d1e86999bd0d0dd3423e12202f528a0"
+  },
+  "capture_started_at": "2026-08-30T21:40:50.074331Z",
+  "failure_class": "condor_queue_schedd_fetch_failure",
+  "failure_detail": "The exact safe argv-preserving runner invoked condor_q once and condor_history once. condor_q returned 1 with the same access-point schedd ad-fetch failure and no queue payload; condor_history returned 0. The incomplete pair is not a valid scheduler snapshot and cannot advance reconciliation.",
+  "history_payload_sha256": "0752212b55ad5dcdc43fec2f17a21a9272ee7c56f5a7b62702dba540f63c385d",
+  "history_returncode": 0,
+  "latest_valid_snapshot_unchanged": {
+    "file_sha256": "c9b4a2530a3c2a85e866b971f3023e50d48ca589f785c786eec8832c85680f96",
+    "logical_sha256": "78d018038185ade2bb4fcc7dbfb0df894a85a29fcab3e607b98701d6ab8ec1ed",
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_200936/combined_snapshot.json"
+  },
+  "no_second_capture_attempt_this_heartbeat": true,
+  "queue_payload_bytes": 0,
+  "queue_returncode": 1,
+  "queue_stderr_sha256": "2c7fa683abd3ea4e97dcbf33b38d615d12ea7ae16a5948cf9a5e04a9b268f4cc",
+  "reconciliation_disposition": {
+    "hh_launchfix": "indeterminate_unchanged",
+    "hubbard_apm_launchfix1": "indeterminate_first_view_pending",
+    "siam_r07_continuation": "submitted_cluster_9716077_state_unconfirmed",
+    "submission_permitted": false
+  },
+  "retry_same_heartbeat_performed": false,
+  "scheduler_snapshot_created": false,
+  "schema": "paper_ii_combined_scheduler_capture_failure_receipt_v1",
+  "status": "blocked_incomplete_scheduler_capture"
+}
