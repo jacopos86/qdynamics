@@ -26,6 +26,7 @@ from pipelines.static_adapt.ra_adapt.engine import (
     run_ra_adapt,
 )
 from pipelines.static_adapt.sr_snake.contracts import (
+    AppendOnlyInsertion,
     BeamOff,
     CheckpointObservation,
     EstimatorLedgerObservation,
@@ -42,6 +43,24 @@ from pipelines.static_adapt.sr_snake.contracts import (
 from src.quantum.chemistry.vibronic_h2o_linear_fd import (
     load_cached_production_vibronic_h2o_linear_fd_fixture,
 )
+
+
+H2O_INSERTION_PLATEAU = "plateau_commutation"
+H2O_INSERTION_APPEND_ONLY = "append_only"
+_H2O_INSERTION_POLICIES = {
+    H2O_INSERTION_PLATEAU: PlateauCommutationInsertion,
+    H2O_INSERTION_APPEND_ONLY: AppendOnlyInsertion,
+}
+
+
+def _insertion_policy(name: str):
+    try:
+        return _H2O_INSERTION_POLICIES[str(name)]()
+    except KeyError:
+        raise ValueError(
+            f"Unknown H2O insertion policy {name!r}; expected one of "
+            f"{sorted(_H2O_INSERTION_POLICIES)}."
+        ) from None
 
 
 DEFAULT_GRADIENT_TOLERANCE = 5.0e-7
@@ -117,6 +136,9 @@ def build_h2o_ra_request(
     candidate_representation: str = (
         H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK
     ),
+    insertion: str = H2O_INSERTION_PLATEAU,
+    checkpoint_history_tail: int = 100,
+    estimator_ledger: bool = True,
 ) -> RAAdaptRequest:
     exact_energy = float(problem.exact_target.resolve_energy())
     exact_source = ExactEDSourceReceipt.from_problem(
@@ -127,7 +149,7 @@ def build_h2o_ra_request(
         adapter=_candidate_adapter(candidate_representation),
         method=SRMethodPolicy(
             admission=SingletonAdmission(),
-            insertion=PlateauCommutationInsertion(),
+            insertion=_insertion_policy(insertion),
             pruning=PruningOff(),
             beam=BeamOff(),
         ),
@@ -149,10 +171,14 @@ def build_h2o_ra_request(
             checkpoint=CheckpointObservation(
                 path=output_dir / "current.json",
                 every_controller_rounds=1,
-                keep_history_tail=100,
+                keep_history_tail=int(checkpoint_history_tail),
             ),
-            estimator_ledger=EstimatorLedgerObservation(
-                path=output_dir / "estimator_call_ledger.json"
+            estimator_ledger=(
+                EstimatorLedgerObservation(
+                    path=output_dir / "estimator_call_ledger.json"
+                )
+                if estimator_ledger
+                else None
             ),
         ),
     )
@@ -187,6 +213,26 @@ def main() -> None:
         ),
         default=H2O_CANDIDATE_MODE_SECTOR_COMPLETE_PAULI_BLOCK,
     )
+    parser.add_argument(
+        "--insertion",
+        choices=tuple(_H2O_INSERTION_POLICIES),
+        default=H2O_INSERTION_PLATEAU,
+        help="Insertion policy; the H2O route contract declares append_only.",
+    )
+    parser.add_argument(
+        "--checkpoint-history-tail",
+        type=int,
+        default=100,
+        help=(
+            "Controller rounds of checkpoint history retained. 1 keeps "
+            "resumability while dropping accumulated past records."
+        ),
+    )
+    parser.add_argument(
+        "--no-estimator-ledger",
+        action="store_true",
+        help="Disable estimator-call ledger accounting.",
+    )
     args = parser.parse_args()
 
     fixture = args.fixture.expanduser().resolve()
@@ -211,6 +257,9 @@ def main() -> None:
             args.exact_confirmation_controller_rounds
         ),
         candidate_representation=args.candidate_representation,
+        insertion=args.insertion,
+        checkpoint_history_tail=args.checkpoint_history_tail,
+        estimator_ledger=not args.no_estimator_ledger,
     )
     protocol = build_resolved_ra_protocol(problem, request)
     _write_json(output_dir / "protocol.json", protocol.to_dict())

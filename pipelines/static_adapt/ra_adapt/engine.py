@@ -527,14 +527,14 @@ def _h2o_application_active(
         isinstance(request.method.admission, SingletonAdmission)
         and isinstance(
             request.method.insertion,
-            PlateauCommutationInsertion,
+            (PlateauCommutationInsertion, AppendOnlyInsertion),
         )
         and isinstance(request.method.pruning, PruningOff)
         and isinstance(request.method.beam, BeamOff)
     ):
         raise ValueError(
             "The H2O RA application is locked to singleton admission, "
-            "plateau insertion, pruning off, and beam off."
+            "plateau or append-only insertion, pruning off, and beam off."
         )
     return True
 
@@ -1434,8 +1434,14 @@ def _repaired_route_contract(
         parent_execution = dict(
             policy_parent_contract.get("execution_settings", {})
         )
+        # Honor the requested insertion policy. This previously forced
+        # plateau unconditionally, contradicting the H2O route contract's own
+        # adapt_insertion_mode=append_only and making append-only unreachable
+        # from the application entry point.
         parent_execution["adapt_insertion_mode"] = (
-            "insertion_commutation_plateau_v1"
+            "append_only"
+            if isinstance(request.method.insertion, AppendOnlyInsertion)
+            else "insertion_commutation_plateau_v1"
         )
         policy_parent_contract["execution_settings"] = parent_execution
     elif representation == CANDIDATE_REPRESENTATION_MACRO:

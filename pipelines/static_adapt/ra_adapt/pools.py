@@ -278,6 +278,31 @@ def _require_paper_i_problem(problem: ResolvedProblemContext) -> None:
         )
 
 
+def _per_mode_levels(mode_cutoffs: Sequence[int]) -> tuple[int, ...]:
+    """Oscillator level counts per mode."""
+
+    return tuple(int(value) + 1 for value in mode_cutoffs)
+
+
+def _per_mode_qubit_total(mode_cutoffs: Sequence[int]) -> int:
+    """Binary boson-register width summed over modes.
+
+    Each mode's level count must be a power of two so its register is exactly
+    filled and carries no unphysical padding codeword; that is the encoding
+    invariant behind child_padding_policy=full_binary_code_space_v1. The
+    cutoffs need NOT be equal across modes -- water's modes are not
+    symmetry-equivalent (A1, A1, B2), and the sector-block construction groups
+    Pauli words by X/Y flip support per mode, which differing register widths
+    do not affect. Requiring equality forced (7,7,7)/21 qubits when the
+    converged model is (3,7,3)/19 qubits.
+    """
+
+    return sum(
+        max(0, (levels - 1).bit_length())
+        for levels in _per_mode_levels(mode_cutoffs)
+    )
+
+
 def require_h2o_symmetry_complete_problem(
     problem: ResolvedProblemContext,
 ) -> None:
@@ -301,16 +326,23 @@ def require_h2o_symmetry_complete_problem(
         or tuple(int(value) for value in problem.sector.num_particles)
         != (4, 4)
         or str(problem.request.boson_encoding).strip().lower() != "binary"
-        or level_count < 1
-        or bool(level_count & (level_count - 1))
-        or mode_cutoffs != (n_ph_max, n_ph_max, n_ph_max)
+        or len(mode_cutoffs) != 3
+        or any(levels < 1 for levels in _per_mode_levels(mode_cutoffs))
+        or any(
+            bool(levels & (levels - 1))
+            for levels in _per_mode_levels(mode_cutoffs)
+        )
+        or n_ph_max != max(mode_cutoffs)
         or int(problem.layout.fermion_qubits) != 12
-        or int(problem.layout.boson_qubits) != 3 * qubits_per_mode
-        or int(problem.layout.total_qubits) != 12 + 3 * qubits_per_mode
+        or int(problem.layout.boson_qubits)
+        != _per_mode_qubit_total(mode_cutoffs)
+        or int(problem.layout.total_qubits)
+        != 12 + _per_mode_qubit_total(mode_cutoffs)
     ):
         raise ValueError(
             "The H2O RA application requires the three-mode CAS(8e,6o), "
-            "(4 alpha, 4 beta), equal-cutoff full-binary linear-FD problem."
+            "(4 alpha, 4 beta), full-binary linear-FD problem with each "
+            "mode cutoff one less than a power of two."
         )
 
 
