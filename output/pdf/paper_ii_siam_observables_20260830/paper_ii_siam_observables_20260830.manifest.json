@@ -1,0 +1,99 @@
+{
+  "schema": "paper_ii_siam_observables_manifest_v1",
+  "generated_at_utc": "2026-08-30T07:03:28Z",
+  "publication_state": "diagnostic_screening_evidence_not_manuscript_promoted",
+  "shared_checkout": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3",
+  "branch_at_build_start": "paper-ii-exchange-selector",
+  "head_at_build_start": "f8ea20b11b66b70a9ecbe165cc2553ae542059a2",
+  "source_evidence_revision": "d55904498125ca087ee8541772410f66c50a92b7",
+  "artifacts": {
+    "pdf": {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_observables_snapshot_20260830.pdf",
+      "sha256": "9809dd0cac04d635e135ab45834626b7fac50f5ca0a2f57f84c0b082e68c724b",
+      "bytes": 1290323,
+      "pages": 3,
+      "page_size": "letter_landscape"
+    },
+    "latex_source": {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_observables_snapshot_20260830.tex",
+      "sha256": "d03664c13ef4c455a0482fdbc8383fdff1c6895e2af7ea6bf96cf04e1ec5e5e8",
+      "bytes": 3472
+    },
+    "plot_builder": {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/build_siam_observable_plots.py",
+      "sha256": "592a637e5d880ea29f50344bd791f475e1a230afff5bf69d70f1280132fc560b",
+      "bytes": 17613
+    },
+    "plot_audit": {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_observable_plot_audit.json",
+      "sha256": "440917f0b1b9d9925aa8a56c6d4b649ee328ee8aa03440bbfd1036d2b88f7013",
+      "bytes": 4150,
+      "status": "PASS_DIAGNOSTIC_COMPARISON_IDENTITY"
+    },
+    "source_map": {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/paper_ii_siam_observables_20260830.source_map.json",
+      "sha256": "aa5d786f7ae1123d152dbcd2eec36fe5e63d2ba082e4e5bd62d43eb3e82baa47",
+      "bytes": 5728
+    },
+    "figures": [
+      {
+        "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_primitive_observables.png",
+        "sha256": "169eceee904906311f6f656b54a278ad3b646c935ddca182b4c030e9e33c6a8c",
+        "bytes": 472473
+      },
+      {
+        "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_primitive_absolute_errors.png",
+        "sha256": "9d61510f6e30df1b0239fc70c1ed055f3d62c42d71f7f211a3cb5fa2b5f0c534",
+        "bytes": 406526
+      },
+      {
+        "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_derived_and_accuracy.png",
+        "sha256": "0cb1b4188f4f46cad3745ab9cdd757eecd83c04577a73c4393b6bbe0befe46ec",
+        "bytes": 395343
+      }
+    ],
+    "locked_score_inputs": [
+      {
+        "path": "output/pdf/paper_ii_siam_observables_20260830/sources/siam_avqds_cluster9714484_score.json",
+        "sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+        "bytes": 138528
+      },
+      {
+        "path": "output/pdf/paper_ii_siam_observables_20260830/sources/siam_apm_cluster9715147_score.json",
+        "sha256": "25414cc6bb79650f4c6abc88db93b53c7b3e7b301432c563eab11e1879a6f2e7",
+        "bytes": 138729
+      }
+    ]
+  },
+  "validation": {
+    "source_file_sha256_checks": "pass",
+    "source_json_parse": "pass",
+    "shared_grid_seed_reference_physics_and_comparison_checks": "pass",
+    "series_finite_and_length_checks": "pass",
+    "sigma_v2_exact_and_observed_identity_checks": "pass_for_both_methods",
+    "builder_py_compile": "pass",
+    "deterministic_builder_replay": "exact_hash_match_for_audit_and_all_three_figures",
+    "latexmk_exit": 0,
+    "latex_errors": 0,
+    "latex_warnings": 0,
+    "overfull_box_warnings": 0,
+    "pdf_page_count": 3,
+    "placeholder_and_tool_token_scan": "pass",
+    "visual_inspection": {
+      "status": "PASS",
+      "scope": "all three pages rendered with Poppler at 150 dpi and inspected at full-page resolution",
+      "findings": "no overlap, clipping, accidental blank page, unreadable label, or ambiguous method identity"
+    }
+  },
+  "scientific_summary": {
+    "pair_verdict": "rejected_accuracy_confounded_pair",
+    "qualified_matched_pairs": 0,
+    "cost_comparison_admissible": false,
+    "avqds_mean_infidelity": 0.00002602334712589172,
+    "full_apm_mean_infidelity": 0.000002236774473381261,
+    "avqds_maximum_primitive_response_normalized_error": 0.07938284801357574,
+    "full_apm_maximum_primitive_response_normalized_error": 0.31897287525692714,
+    "full_apm_broad_guard_failure_channel": "C_3",
+    "interpretation": "Most primitive and derived trajectories track the shared exact prefix closely, but the small-response C_3 channel prevents an accuracy-matched pair claim."
+  }
+}

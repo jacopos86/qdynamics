@@ -1,0 +1,132 @@
+{
+  "schema": "paper_ii_siam_observables_source_map_v1",
+  "publication_state": "diagnostic_screening_evidence_not_manuscript_promoted",
+  "generated_at_utc": "2026-08-30T07:03:28Z",
+  "source_evidence_revision": "d55904498125ca087ee8541772410f66c50a92b7",
+  "run_code_revision": "36c40d522a4c5fb4daa57234fbc85e82b692e8a3",
+  "row_count": 2,
+  "scientific_pair_status": "rejected_accuracy_confounded_pair",
+  "qualified_matched_pairs": 0,
+  "cost_comparison_admissible": false,
+  "exact_reference_role": "reporting_only_not_used_by_controllers",
+  "qiskit_compilation": "not_performed_not_in_scope",
+  "physical_system": {
+    "model": "finite_box_SIAM_hybridization_quench",
+    "bath_orbitals": 4,
+    "interaction_u": 1.5,
+    "hopping": 1.0,
+    "hybridization_initial": 0.0,
+    "hybridization_final": "1/sqrt(2)",
+    "particle_sector": {
+      "n_up": 3,
+      "n_down": 2
+    }
+  },
+  "grid": {
+    "point_count_per_row": 101,
+    "initial_time": 0.0,
+    "terminal_time": 1.0,
+    "time_step": 0.01,
+    "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5"
+  },
+  "shared_identities": {
+    "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9",
+    "physics_fingerprint": "85e77ed89323e3d05358641b018bd00469665d02519cf02cfbebabeb305b4884",
+    "comparison_fingerprint": "0e7ba1968f7724012caac1a561050975388e63eed1b4f20cd6ba2624e5a1be77",
+    "post_quench_hamiltonian_sha256": "f34c82a0109af455f744ba90071cebb2906712c15f42831f5db9a387adfe2a63",
+    "exact_reference_key": "bc163af8966979b1f0abd8becf2d0b0b6d3360a0b85f87b2dc5ad2dc859f552a",
+    "exact_reference_data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+    "exact_reference_manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+    "exact_prefix_receipt_sha256": "ece032679a6c2b4a1637e7888b3ef5135ea8cdb908f1c4bbf6a503627eec762f"
+  },
+  "sources": [
+    {
+      "method": "AVQDS",
+      "structural_policy": "avqds",
+      "cluster_process": "9714484.0",
+      "cut": 0.001,
+      "copied_path": "sources/siam_avqds_cluster9714484_score.json",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9714484/increments/proc0/evaluated/score.json",
+      "file_sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614",
+      "internal_score_sha256": "bbf209426949ee7ca5023ced464642d6c73af7ac582b91511af3a4ce78169c29",
+      "run_sha256": "6d2b3da6e4d2a152dded8de66d7b4d166565c335a80597165be893f81b5179ce",
+      "classification": "candidate_broad_guard",
+      "individual_target_pass": false,
+      "broad_response_guard_pass": true,
+      "mean_infidelity": 0.00002602334712589172,
+      "aggregate_accuracy_burden": 0.43804059219139563,
+      "maximum_primitive_response_normalized_error": 0.07938284801357574
+    },
+    {
+      "method": "Full APM",
+      "structural_policy": "exchange",
+      "cluster_process": "9715147.0",
+      "cut": 0.00001,
+      "copied_path": "sources/siam_apm_cluster9715147_score.json",
+      "original_path": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3.worktrees/codex-paper-ii-search-profiles-20260824/output/siam_screening/nb4_pilot_v1/attempts/cluster_9715147/increments/proc0/evaluated/score.json",
+      "file_sha256": "25414cc6bb79650f4c6abc88db93b53c7b3e7b301432c563eab11e1879a6f2e7",
+      "internal_score_sha256": "1c6e009fb938b90257919c70b3441c44764582253e2e3fa14802709509588de1",
+      "run_sha256": "135abca4a117ff44283944507bbc78617275b02658c6f3f3a928d68e88aaa292",
+      "classification": "candidate_outside_broad_guard",
+      "individual_target_pass": false,
+      "broad_response_guard_pass": false,
+      "mean_infidelity": 0.000002236774473381261,
+      "aggregate_accuracy_burden": 1.5953970773805795,
+      "maximum_primitive_response_normalized_error": 0.31897287525692714
+    }
+  ],
+  "observable_contract": {
+    "primitive_series": [
+      "m_d",
+      "D_d",
+      "C_1",
+      "C_2",
+      "C_3",
+      "C_4"
+    ],
+    "derived_series": [
+      "Sigma_1",
+      "Sigma_2",
+      "Sigma_3",
+      "Sigma_4"
+    ],
+    "sigma_definition": "Sigma_r=<S_d^2>+sum_{j=1}^r C_j",
+    "spin_square_definition": "<S_d^2>=3/4*(N_d-2*D_d)",
+    "c_j_definition": "<S_d dot S_j> including transverse exchange",
+    "accuracy_series": [
+      "absolute_energy_error",
+      "state_infidelity"
+    ]
+  },
+  "verification": {
+    "plot_audit_status": "PASS_DIAGNOSTIC_COMPARISON_IDENTITY",
+    "same_grid_seed_physics_comparison_reference_and_exact_arrays": true,
+    "stored_sigma_v2_identities": "pass_for_exact_and_observed_arrays_of_both_rows",
+    "finite_series_length_checks": "pass",
+    "completion_contract_and_stable_binding": "validated_by_source_increment_receipts",
+    "manuscript_promotion": "not_requested_not_performed"
+  },
+  "page_map": [
+    {
+      "page": 1,
+      "content": "source manifest and primitive observable trajectories"
+    },
+    {
+      "page": 2,
+      "content": "primitive observable absolute errors"
+    },
+    {
+      "page": 3,
+      "content": "Sigma-v2 derived observables, physical energy error, and state infidelity"
+    }
+  ],
+  "interpretation_caveats": [
+    "diagnostic_screening_evidence_only",
+    "both_methods_fail_the_individual_primitive_response_target",
+    "current_pair_rejected_as_accuracy_confounded",
+    "Full_APM_C3_normalized_error_is_amplified_by_a_small_exact_response_scale",
+    "no_cost_winner_or_method_superiority_claim",
+    "deterministic_single_trajectories_no_uncertainty_bands",
+    "matched_method_scores_stop_at_t_1_do_not_extend_to_t_5"
+  ]
+}

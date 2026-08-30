@@ -1,0 +1,107 @@
+{
+  "comparability_checks": {
+    "avqds_exact_S_d2_identity": true,
+    "avqds_exact_Sigma_1_v2_identity": true,
+    "avqds_exact_Sigma_2_v2_identity": true,
+    "avqds_exact_Sigma_3_v2_identity": true,
+    "avqds_exact_Sigma_4_v2_identity": true,
+    "avqds_observed_S_d2_identity": true,
+    "avqds_observed_Sigma_1_v2_identity": true,
+    "avqds_observed_Sigma_2_v2_identity": true,
+    "avqds_observed_Sigma_3_v2_identity": true,
+    "avqds_observed_Sigma_4_v2_identity": true,
+    "exact_reference_reporting_only": true,
+    "full_apm_exact_S_d2_identity": true,
+    "full_apm_exact_Sigma_1_v2_identity": true,
+    "full_apm_exact_Sigma_2_v2_identity": true,
+    "full_apm_exact_Sigma_3_v2_identity": true,
+    "full_apm_exact_Sigma_4_v2_identity": true,
+    "full_apm_observed_S_d2_identity": true,
+    "full_apm_observed_Sigma_1_v2_identity": true,
+    "full_apm_observed_Sigma_2_v2_identity": true,
+    "full_apm_observed_Sigma_3_v2_identity": true,
+    "full_apm_observed_Sigma_4_v2_identity": true,
+    "shared_accuracy_policy": true,
+    "shared_comparison_fingerprint": true,
+    "shared_exact_energy_series": true,
+    "shared_exact_observable_series": true,
+    "shared_observable_contract": true,
+    "shared_physics_fingerprint": true,
+    "shared_reference": true,
+    "shared_seed_sha256": true,
+    "shared_time_grid": true,
+    "shared_time_grid_digest": true
+  },
+  "exact_reference_role": "reporting_only",
+  "figures": {
+    "derived_and_accuracy": {
+      "bytes": 395343,
+      "path": "siam_nb4_derived_and_accuracy.png",
+      "sha256": "0cb1b4188f4f46cad3745ab9cdd757eecd83c04577a73c4393b6bbe0befe46ec"
+    },
+    "primitive_absolute_errors": {
+      "bytes": 406526,
+      "path": "siam_nb4_primitive_absolute_errors.png",
+      "sha256": "9d61510f6e30df1b0239fc70c1ed055f3d62c42d71f7f211a3cb5fa2b5f0c534"
+    },
+    "primitive_observables": {
+      "bytes": 472473,
+      "path": "siam_nb4_primitive_observables.png",
+      "sha256": "169eceee904906311f6f656b54a278ad3b646c935ddca182b4c030e9e33c6a8c"
+    }
+  },
+  "grid": {
+    "initial_time": 0.0,
+    "ordered_values_sha256": "b28098a0e33e3d857665d879266ca0ff60a4c06de8555e6bffe22d07d27b6ae5",
+    "point_count": 101,
+    "terminal_time": 1.0
+  },
+  "plotted_series": {
+    "accuracy": [
+      "absolute_energy_error",
+      "infidelity"
+    ],
+    "derived": [
+      "Sigma_1",
+      "Sigma_2",
+      "Sigma_3",
+      "Sigma_4"
+    ],
+    "primitive": [
+      "C_1",
+      "C_2",
+      "C_3",
+      "C_4",
+      "D_d",
+      "m_d"
+    ]
+  },
+  "qiskit_compilation": "not_performed_not_in_scope",
+  "schema": "siam_nb4_observable_plot_audit_v1",
+  "scientific_pair_status": "REJECTED_ACCURACY_CONFOUNDED",
+  "shared_identities": {
+    "comparison_fingerprint": "0e7ba1968f7724012caac1a561050975388e63eed1b4f20cd6ba2624e5a1be77",
+    "exact_reference_data_sha256": "4f75736d81eeb62f1b171a7c278824f68b012260efebed8a036ec61caf8b1d26",
+    "exact_reference_manifest_sha256": "5586dbae4c0575711a9bca0e311f095e7814d3ce68a4d431ca9484bf46f61386",
+    "physics_fingerprint": "85e77ed89323e3d05358641b018bd00469665d02519cf02cfbebabeb305b4884",
+    "seed_sha256": "5752bc1e4bf20a52ecdd3ea262cd7265f01d48dbdd7151679ebb8a742bdb24b9"
+  },
+  "source_evidence_revision": "d55904498125ca087ee8541772410f66c50a92b7",
+  "source_files": {
+    "apm": {
+      "classification": "candidate_outside_broad_guard",
+      "path": "sources/siam_apm_cluster9715147_score.json",
+      "run_sha256": "135abca4a117ff44283944507bbc78617275b02658c6f3f3a928d68e88aaa292",
+      "score_sha256": "1c6e009fb938b90257919c70b3441c44764582253e2e3fa14802709509588de1",
+      "sha256": "25414cc6bb79650f4c6abc88db93b53c7b3e7b301432c563eab11e1879a6f2e7"
+    },
+    "avqds": {
+      "classification": "candidate_broad_guard",
+      "path": "sources/siam_avqds_cluster9714484_score.json",
+      "run_sha256": "6d2b3da6e4d2a152dded8de66d7b4d166565c335a80597165be893f81b5179ce",
+      "score_sha256": "bbf209426949ee7ca5023ced464642d6c73af7ac582b91511af3a4ce78169c29",
+      "sha256": "8c6125f7eb9cfd41b13fba9f46eb10a097b3d12d0596317048f1c7d661035614"
+    }
+  },
+  "status": "PASS_DIAGNOSTIC_COMPARISON_IDENTITY"
+}

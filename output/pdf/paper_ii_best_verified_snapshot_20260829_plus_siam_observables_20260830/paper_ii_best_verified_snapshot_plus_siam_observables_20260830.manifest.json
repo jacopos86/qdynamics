@@ -1,0 +1,67 @@
+{
+  "schema": "paper_ii_best_verified_snapshot_derivative_manifest_v1",
+  "generated_at_utc": "2026-08-30T07:03:28Z",
+  "publication_state": "provisional_best_verified_so_far_plus_diagnostic_siam_observables_not_manuscript_promoted",
+  "shared_checkout": "/Users/jakestrobel/local_repos/Holstein_test_fullclone_3",
+  "branch_at_build_start": "paper-ii-exchange-selector",
+  "head_at_build_start": "f8ea20b11b66b70a9ecbe165cc2553ae542059a2",
+  "construction": "pdfunite_of_two_hash_locked_source_pdfs",
+  "artifacts": {
+    "bundle_pdf": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829_plus_siam_observables_20260830/paper_ii_best_verified_snapshot_plus_siam_observables_20260830.pdf",
+      "sha256": "478d803741639955ceed08f0e3b68b7495fe15970148b6fb16735578f565903f",
+      "bytes": 2754853,
+      "pages": 21,
+      "page_size": "letter_landscape"
+    },
+    "source_map": {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829_plus_siam_observables_20260830/paper_ii_best_verified_snapshot_plus_siam_observables_20260830.source_map.json",
+      "sha256": "7d1b932f37de8a13b54f83314435bdfce062f8df3a36725f7375be1260a261b8",
+      "bytes": 2491
+    }
+  },
+  "inputs": [
+    {
+      "path": "output/pdf/paper_ii_best_verified_snapshot_20260829/paper_ii_best_verified_snapshot_20260829.pdf",
+      "sha256": "05488bd9b88dbc94decc568157cd884bbb3dab8a7c6b1d8141c3603f787eeed1",
+      "pages": 18,
+      "status": "sealed_parent_preserved"
+    },
+    {
+      "path": "output/pdf/paper_ii_siam_observables_20260830/siam_nb4_observables_snapshot_20260830.pdf",
+      "sha256": "9809dd0cac04d635e135ab45834626b7fac50f5ca0a2f57f84c0b082e68c724b",
+      "pages": 3,
+      "status": "latex_built_and_visually_verified"
+    }
+  ],
+  "page_map": [
+    {
+      "pages": "1-18",
+      "content": "sealed best-verified-results snapshot, unchanged"
+    },
+    {
+      "pages": "19-21",
+      "content": "new SIAM observable screening plots"
+    }
+  ],
+  "validation": {
+    "pdfunite_exit": 0,
+    "bundle_page_count": 21,
+    "parent_pdf_sha256_unchanged": true,
+    "inherited_pages_1_through_18_pixel_comparison": "exact_match_at_90_dpi",
+    "appended_pages_19_through_21_pixel_comparison": "exact_match_to_standalone_at_90_dpi",
+    "source_map_json_parse": "pass",
+    "placeholder_and_tool_token_scan": "pass",
+    "visual_inspection": {
+      "status": "PASS",
+      "scope": "new pages 19-21 inspected at full-page resolution; inherited pages rely on prior 18-page inspection plus exact pixel comparison",
+      "findings": "no overlap, clipping, accidental blank page, unreadable label, or provenance ambiguity"
+    }
+  },
+  "scientific_boundary": {
+    "siam_pair_verdict": "rejected_accuracy_confounded_pair",
+    "siam_qualified_matched_pairs": 0,
+    "siam_cost_comparison_admissible": false,
+    "manuscript_promotion": "not_requested_not_performed"
+  }
+}
