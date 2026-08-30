@@ -1,0 +1,57 @@
+{
+  "acquisition_unit_id": "prospective-apm-exchange-488646822fcf40e8",
+  "cluster_id": 9715900,
+  "combined_snapshot": {
+    "bytes": 290779,
+    "path": "output/time_dynamics_acquisition/prospective_combined_snapshots/cycle_20260830_191444/combined_snapshot.json",
+    "sha256": "0a0d2cd857c7124602b9a05ffb0eba75b347609b6548f7739fe387bc46b06bd8"
+  },
+  "failure_class": "operational_package_wrapper_shell_quoting",
+  "failure_signature": "SourceEpochReceipt.load path and repository_root lost Python string quoting inside nested bash -lc",
+  "job_batch_name": "paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8",
+  "lane_id": "paper_ii_hh_product_v1",
+  "logs": {
+    "err": {
+      "bytes": 497,
+      "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/terminal_failure_evidence/cluster_9715900/paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8.9715900.0.err",
+      "sha256": "a8b1bdc3434fdf5dcc9ce482d722200e5a1d10ff09bdeecbdee3179b04f0cb6e"
+    },
+    "log": {
+      "bytes": 2250,
+      "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/terminal_failure_evidence/cluster_9715900/paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8.9715900.0.log",
+      "sha256": "722be8db8580f744976a7c6b424a05adced4cfe8788bba2a3ec2aa162d61c9d2"
+    },
+    "out": {
+      "bytes": 0,
+      "path": "output/paper_ii_hh_product_v1/acquisition_supervisor/terminal_failure_evidence/cluster_9715900/paper-ii-apm-paper-ii-hh-product-v1-488646822fcf40e8.9715900.0.out",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "paper_ii_action_id": "prospective::paper_ii_hh_product_v1::hh__nph1__crossover__midres::exchange::t5::r00::cut1em02::bind155d3f310b1211c2",
+  "paper_ii_execution_request_sha256": "488646822fcf40e8d2563b62553c56c86d3007af756667e0e6c3e89708b20dc7",
+  "planner_evidence_changed": false,
+  "proc_id": 0,
+  "raw_output_inventory": [],
+  "receipt_sha256": "11a77ce9a9cac17c91b9d79f02a743155baf19fc0f1d335518ef62a20bb6a746",
+  "recorded_at": "2026-08-30T19:16:46.935469075Z",
+  "remote_archive": {
+    "bytes": 1151,
+    "gzip_verified": true,
+    "path": "/home/jsstrobel/hh_apm_9715900_failure_logs_20260830.tar.gz",
+    "remote_state": "preserved",
+    "sha256": "689a151cca525b3ea06674490e523a42098904c6a71b967c27b268f8f89612b8",
+    "tar_verified": true
+  },
+  "required_next_action": "prepare a corrected versioned operational package and first-snapshot intent; never resubmit the found identity",
+  "scheduler": {
+    "exit_code": 1,
+    "hold_reason": null,
+    "job_status": 4,
+    "request_memory_mib": 8192,
+    "resident_set_size_kib": 0
+  },
+  "schema": "paper_ii_apm_exchange_operational_failure_receipt_v1",
+  "scientific_failure_recorded": false,
+  "scientific_run_started": false,
+  "submission_retry_permitted": false
+}

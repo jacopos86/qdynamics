@@ -1,0 +1,4 @@
+  File "<string>", line 1
+    from pipelines.time_dynamics.prospective_execution_bindings import SourceEpochReceipt; SourceEpochReceipt.load(output/paper_ii_hh_product_v1/source_epochs/seedfix_267516ea/source_epoch_receipt.json, repository_root=.)
+                                                                                                                                                                                                                           ^
+SyntaxError: invalid syntax
