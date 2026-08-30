@@ -216,3 +216,15 @@ def test_first_crossing_uses_declared_sequence_not_minimum_cost() -> None:
     assert receipt["sequence_index"] == 1
     assert receipt["audit"]["k"] == 10
     assert "max_root_abs_error" not in route["online_receipt"]["rows"][1]
+
+
+def test_source_anchor_methods_text_uses_fixed_pool_cost_scale() -> None:
+    source = Path(report.__file__).read_text(encoding="utf-8")
+    assert "cost scale\nis fixed once from the initially eligible pool" in source
+    assert "normalized by their respective round maxima" not in source
+
+
+def test_source_anchor_manifest_normalizes_temporary_latex_directory() -> None:
+    source = Path(report.__file__).read_text(encoding="utf-8")
+    assert '"-outdir=<temporary-build-directory>"' in source
+    assert '"command": [str(part) for part in command]' not in source

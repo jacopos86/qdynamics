@@ -1,0 +1,1996 @@
+% Canonical static Paper-III manuscript. Numerical authority:
+% output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/
+% This file is intentionally expansive. Pruning is an authorial pass, not a
+% condition of the evidence build.
+\documentclass[
+  reprint,
+  amsmath,
+  amssymb,
+  aps,
+  pra,
+  nofootinbib,
+  superscriptaddress,
+  floatfix
+]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\raggedbottom
+
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\spanop}{\operatorname{span}}
+\newcommand{\cond}{\operatorname{cond}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\OSQSE}{\mathrm{OS\mbox{-}QSE}}
+\newcommand{\DQ}{\mathrm{DQ}}
+\newcommand{\RTK}{\mathrm{RTK}}
+\newcommand{\mathcalR}{\mathcal{R}}
+\newcommand{\score}{\mathcal{S}}
+\newcommand{\phmax}{n_{\mathrm{ph,max}}}
+\newcommand{\nph}{n_{\mathrm{ph}}}
+\newcommand{\sourceanchor}{\textit{static-QSE numerical source anchor}}
+\newcommand{\inlinetablecaption}[2]{%
+  \refstepcounter{table}\label{#1}%
+  \noindent\textsc{Table~\thetable.} #2\par\vspace{0.6ex}%
+}
+\newcommand{\inlinefigurecaption}[2]{%
+  \refstepcounter{figure}\label{#1}%
+  \noindent\textsc{Figure~\thefigure.} #2\par\vspace{0.6ex}%
+}
+\pdfinfoomitdate=1
+\pdfsuppressptexinfo=15
+
+\begin{document}
+
+\title{Cost-Weighted Operator-Selected Quantum Subspace Expansion for Static Spectra of Correlated Fermion--Boson Systems}
+
+\author{Jake Strobel}
+\author{Jason Simoni}
+\affiliation{University of Wisconsin--Madison, Madison, Wisconsin 53706, USA}
+
+\date{August 29, 2026}
+
+\begin{abstract}
+We introduce cost-weighted operator-selected quantum subspace expansion
+(OS-QSE) for constructing low-energy spectral windows of correlated
+fermion--boson Hamiltonians.  Candidate records are evaluated by the decrease
+of the full proposed supported-pencil Ky--Fan sum, divided by a clamped,
+fixed-pool-normalized graph-span cost, while overlap novelty acts only as an
+admissibility floor.
+Atomic singleton exchanges maintain the admitted support under recomputed
+spectral, cost, retained-rank, and conditioning guards.  Exact-seed noiseless
+benchmarks comprise twelve Hubbard--Holstein dimers at two phonon cutoffs,
+three Peierls--Hubbard regimes, and a ten-qubit finite-box single-impurity
+Anderson model.  OS-QSE reaches a six-root maximum energy error of $10^{-6}$
+in all sixteen cases without residual-synthesis continuation.  At each
+route's first threshold crossing, its summed two-qubit circuit-structure
+annotation is smaller than that of independently initialized direct quantum
+Davidson.  Fixed-policy single-seed and six-probe block real-time-Krylov
+comparators reach ten and eleven of the sixteen target windows,
+respectively; their complementary failures expose initialization-dependent
+spectral support and are never combined into a post-hoc oracle route.  A
+controlled Hubbard--Holstein pool ablation repairs two six-root coverage
+failures at the $10^{-4}$ target when encoded-boson completion records are
+added.  Static density,
+displacement, double-occupancy, and magnetization spectra independently test
+transition structure.  We distinguish online graph-span cost, post-run
+circuit-structure annotations, and route-specific logical estimator queries;
+finite-shot, total-work, approximate-seed, and time-dynamics claims remain
+outside the benchmark.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Low-energy spectra organize the response of interacting quantum systems.  A
+ground-state approximation alone does not identify which excited directions
+carry a density peak, a phonon sideband, a bond response, or an impurity
+fluctuation.  In mixed fermion--boson problems this difficulty is amplified:
+electronic rearrangements, bosonic quanta, and correlation-dressed products
+can all be required within the same narrow energy window.  Hubbard and
+Holstein models provide canonical electronic and electron--phonon limits
+\cite{Hubbard1963,Holstein1959}; Peierls or Su--Schrieffer--Heeger coupling
+moves the boson from a site-energy channel to a bond channel
+\cite{SuSchriefferHeeger1979}; and finite-bath impurity models supply a
+distinct test in which local interaction competes with hybridization and bath
+kinetics.  These examples are small enough for exact retrospective audits yet
+rich enough to make a fixed response alphabet nontrivial.
+
+Quantum subspace expansion (QSE) replaces preparation of each excited state
+by measurement of a projected Hamiltonian and overlap pencil in a family of
+operator-generated states \cite{McClean2017QSE,Colless2018QSE}.  The same
+matrix viewpoint underlies generalized QSE, virtual subspaces, quantum
+Krylov diagonalization, Green-function constructions, and several
+equation-of-motion approaches
+\cite{Urbanek2020VQSE,Yoshioka2022GQSE,CortesGray2022QKSD,
+Motta2024SubspaceReview,Jamet2022GreenQSE,Ollitrault2020qEOM}.  It is most
+attractive when a physically structured manifold is much smaller than the
+encoded Hilbert space.  Its central design question is consequently not how
+to solve a generalized eigenproblem---that part is standard---but which
+operator images should be paid for and retained.
+
+The obvious complete-class strategy measures every record in a chosen
+response family.  This can miss the target window if the family is not
+expressive, and it can be unnecessarily expensive if the family is broad.
+Conversely, residual-synthesizing eigensolvers such as quantum Davidson can
+generate directions outside a fixed operator pool, but their synthesized
+actions may be costly and their discrete growth can overshoot a requested
+accuracy \cite{Tkachenko2024QDavidson}.  Quantum Krylov constructions move
+the design choice into a source state or source block and a sequence of
+Hamiltonian evolutions.  Their formal span can be large while remaining
+blind to an eigenvector having zero source overlap.  These routes are not
+ordered universally; each exposes a different balance between physical
+structure, spectral coverage, and construction cost.
+
+OS-QSE addresses this balance as a cost-weighted spectral-manifold
+construction problem.  The ideal objective is the least-cost support that
+resolves a specified set of roots.  The online implementation cannot use the
+exact roots, so it greedily evaluates the actual supported pencil proposed by
+each admissible record and computes its multi-root Ky--Fan gain.  Novelty is
+kept as a floor, not a competing utility.  The score is therefore aligned
+with the six-root target rather than with a one-root angular residual proxy.
+The selected support may subsequently undergo an atomic delete--insert
+transaction, but only after the complete patched pencil passes the declared
+spectral, cost, rank, and conditioning tests.
+
+This paper makes four bounded contributions.  First, it states the static
+spectral-window task and a production selector that uses full proposed-pencil
+Ky--Fan gain per cost.  Second, it defines an explicit encoded-boson
+completion for the Hubbard--Holstein pool and demonstrates where the
+additional directions repair coverage.  Third, it compares OS-QSE with
+independently initialized Davidson, complete fixed-class QSE, and two fixed
+real-time-Krylov policies under separate structural resource coordinates.
+Fourth, it evaluates transition spectra as an independent test of the
+selected states.  The numerical evidence supports the proposed method across
+the declared sixteen-case benchmark; it does not establish superiority over
+all Krylov or variational excited-state methods, lower shot complexity, or
+lower end-to-end runtime.
+
+Notation is kept continuous with the companion construction papers
+\cite{PaperI,PaperII}: $r\in\mathcal R$ labels requested roots,
+$\mathcal B$ is the admitted support, $\Delta$ is the full-pencil proposal gain,
+$K$ is the declared construction-cost coordinate, and $\score$ is the
+gain-per-cost acquisition score (with the implementation's explicit
+normalizations and cost floor).  The delete--insert pair
+$(\mathcal B^-,\mathcal B^+)$ likewise retains the Paper-II atomic-patch
+meaning.  Roman $S$ is reserved below for the QSE overlap matrix, preventing
+the score and metric from being conflated.
+
+The present article is static and frequency-domain.  Real-time propagation,
+frozen-QSE dynamics, and McLachlan refinement are intentionally deferred to a
+separate study.  Time evolution appears here only as the state-construction
+primitive of the two real-time-Krylov comparators.  This separation keeps the
+method claim tied to the evidence actually acquired.
+
+\section{Spectral task and benchmark families}
+\label{sec:benchmark_task}
+
+\subsection{Target sector and seed convention}
+
+Let $H_0$ be a finite encoded Hamiltonian and let $\mathcal H_{\mathfrak s}$
+be a conserved particle-number sector.  We target
+\begin{equation}
+  \mathcalR=\{1,\ldots,R\},\qquad R=6,
+  \label{eq:target_set_intro}
+\end{equation}
+where $r$ labels the six lowest excited roots in that sector.  Every
+production route accepts a prepared-state interface.  For the benchmark,
+however, the supplied seed $\ket{\psi_0}$ is the exact ground state of the
+same finite Hamiltonian, sector, and bosonic cutoff.  This choice isolates
+excited-manifold construction from ground-state preparation.  It is not
+evidence for approximate-seed robustness, and its preparation cost is
+excluded consistently from the construction comparisons.
+
+Exact excited energies and eigenvectors are separated from the online route.
+They are loaded only after a trace is complete, for one-to-one root
+assignment where needed, threshold crossings, source-coverage audits, and
+plots.  Thus exact ground-state information is an explicit benchmark input,
+whereas exact excited-state information is retrospective.
+
+\subsection{Hubbard--Holstein dimer}
+\label{sec:hh_model}
+
+The main matrix uses a two-site, spinful Hubbard--Holstein Hamiltonian with
+open boundary conditions,
+\begin{align}
+ H_{\mathrm{HH}}
+ =&-t\sum_{\sigma}
+ \left(c_{1\sigma}^{\dagger}c_{2\sigma}
+ +c_{2\sigma}^{\dagger}c_{1\sigma}\right)
+ +U\sum_{i=1}^{2}n_{i\uparrow}n_{i\downarrow}
+ \nonumber\\
+ &+\omega_0\sum_{i=1}^{2}\left(b_i^{\dagger}b_i+\frac12\right)
+ +g\sum_{i=1}^{2}(b_i+b_i^{\dagger})(n_i-1) .
+ \label{eq:hh_hamiltonian}
+\end{align}
+We set $t=\omega_0=1$, use the $(N_\uparrow,N_\downarrow)=(1,1)$
+sector, and encode each local phonon register in binary.  The electronic
+interaction is $U\in\{0.25,1.25,8\}$ and the electron--phonon coupling is
+$g\in\{0.353553390593,0.790569415042\}$.  Their Cartesian product defines
+six regimes.  The cutoffs $\phmax=1$ and $3$ require six and eight qubits,
+respectively; their fixed-particle sector dimensions are 16 and 64.  The
+Cartesian matrix gives twelve benchmark cells.  These are same-cutoff
+algorithmic tests; two cutoffs do not constitute a physical convergence
+study toward an untruncated oscillator.
+
+\subsection{Peierls--Hubbard dimer}
+\label{sec:peierls_model}
+
+The second family places a single encoded bond phonon on the hopping channel,
+\begin{align}
+ H_{\mathrm P}
+ =&-t\,T+gX_bT
+ +U\sum_{i=1}^{2}n_{i\uparrow}n_{i\downarrow}
+ +\omega_0\left(b^{\dagger}b+\frac12\right),
+ \label{eq:peierls_hamiltonian}\\
+ T=&\sum_\sigma
+ \left(c_{1\sigma}^{\dagger}c_{2\sigma}
+ +c_{2\sigma}^{\dagger}c_{1\sigma}\right),
+ \qquad X_b=b+b^{\dagger}.
+\end{align}
+Here $t=\omega_0=1$, $\phmax=3$, and the sector is again $(1,1)$.
+The three cases are $(U,g)=(0.25,0.353553390593)$,
+$(0.25,0.790569415042)$, and $(8,0.353553390593)$.  The blocked fermion
+register plus the two-qubit bond-phonon register uses six qubits; the target
+sector has dimension $16$.
+
+\subsection{Finite-box single-impurity Anderson model}
+\label{sec:siam_model}
+
+The transfer matrix is completed by the particle--hole-symmetric finite-box
+single-impurity Anderson model (SIAM),
+\begin{align}
+ H_{\mathrm{SIAM}}=&-t_b\sum_{j=1}^{N_b-1}\sum_\sigma
+ \left(c_{j\sigma}^{\dagger}c_{j+1,\sigma}+\mathrm{H.c.}\right)
+ \nonumber\\
+ &+U\left(n_{d\uparrow}-\frac12\right)
+       \left(n_{d\downarrow}-\frac12\right)
+ \nonumber\\
+ &-V\sum_\sigma
+ \left(d_\sigma^{\dagger}c_{1\sigma}+\mathrm{H.c.}\right).
+ \label{eq:siam_hamiltonian}
+\end{align}
+We use $N_b=4$, $t_b=1$, $U=1.5$, and $V=1/\sqrt2$.  Spin-blocked
+Jordan--Wigner order gives ten qubits.  The sector
+$(N_\uparrow,N_\downarrow)=(3,2)$ has dimension
+\begin{equation}
+ \dim\mathcal H_{(3,2)}=\binom{5}{3}\binom{5}{2}=100.
+ \label{eq:siam_sector_dimension}
+\end{equation}
+This is one finite-box transfer example,
+not a scaling study and not a thermodynamic Kondo-cloud claim.
+
+\begin{widetext}
+\inlinetablecaption{tab:benchmark_inventory}{Benchmark inventory.  Every
+cell targets the six lowest excited roots in the exact-seed sector.  Pool
+sizes refer to the production ordered pools, and exact excited states enter
+only post-run audits.}
+\begin{center}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.18\textwidth}p{0.28\textwidth}p{0.15\textwidth}p{0.13\textwidth}p{0.18\textwidth}@{}}
+\toprule
+Family & cases & encoded register & pool size & seed used here \\
+\midrule
+Hubbard--Holstein dimer & six $(U,g)$ regimes at $\phmax=1,3$ & 6 or 8 qubits & 169 or 1403 & exact same-sector ground state \\
+Peierls--Hubbard dimer & weak--weak, weak--strong, and $U=8$--weak & 6 qubits; sector dimension 16 & 53 & exact same-sector ground state \\
+finite-box SIAM & $N_b=4$, $U=1.5$, $V=1/\sqrt2$ & 10 qubits; sector dimension 100 & 204 & exact same-sector ground state \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+\section{Static spectral-window construction}
+\label{sec:static_method}
+
+\subsection{Projected record images and the QSE pencil}
+\label{sec:qse_pencil}
+
+Let $\Pi_{\mathfrak s}$ project onto the declared conserved sector and define
+\begin{equation}
+ Q_{\mathfrak s,0}=\Pi_{\mathfrak s}-\ket{\psi_0}\!\bra{\psi_0}.
+ \label{eq:q0_projector}
+\end{equation}
+The implemented pools preserve the sector, so explicit application reduces
+to the equivalent reference projection $Q_0=I-\ket{\psi_0}\bra{\psi_0}$.
+For an exact seed, a bare power of the Hamiltonian contributes nothing:
+\begin{equation}
+ Q_{\mathfrak s,0}H_0^k\ket{\psi_0}=0,
+ \qquad k\geq0.
+ \label{eq:ground_power_vanishes}
+\end{equation}
+Hamiltonian-power directions are therefore not advertised as a populated
+production family.  A nontrivial Krylov route requires a source outside the
+ground-state ray, as specified in Sec.~\ref{sec:comparators}.
+
+Let
+\begin{equation}
+ \mathcal P=\{\Omega_A:A=1,\ldots,N_{\mathcal P}\}
+ \label{eq:declared_pool}
+\end{equation}
+be an ordered deterministic pool, and let $\mathcal B\subseteq\mathcal P$ be
+an admitted support.  Its raw projected record images are
+\begin{equation}
+ \ket{\phi_A}=Q_{\mathfrak s,0}\Omega_A\ket{\psi_0},
+ \qquad A\in\mathcal B.
+ \label{eq:record_image}
+\end{equation}
+Define the column map $\Phi_{\mathcal B}e_A=\ket{\phi_A}$ and matrices
+\begin{equation}
+ S_{\mathcal B}=\Phi_{\mathcal B}^{\dagger}\Phi_{\mathcal B},
+ \qquad
+ M_{\mathcal B}=\Phi_{\mathcal B}^{\dagger}H_0\Phi_{\mathcal B}.
+ \label{eq:qse_matrices}
+\end{equation}
+The QSE roots and states satisfy
+\begin{align}
+ M_{\mathcal B}c_r
+ &=\varepsilon_r(\mathcal B)S_{\mathcal B}c_r,
+ &c_r^{\dagger}S_{\mathcal B}c_s&=\delta_{rs},
+ \label{eq:qse_gep}\\
+ \ket{\Psi_r(\mathcal B)}
+ &=\Phi_{\mathcal B}c_r
+ =\sum_{A\in\mathcal B}(c_r)_A\ket{\phi_A}.
+ \label{eq:qse_ritz_state}
+\end{align}
+This is part of the method, not a result.  The main text retains the physical
+pencil because it defines both acquisition and all comparators; numerical
+whitening details are expanded below and in Appendix~\ref{app:supported_solve}.
+Roman $S_{\mathcal B}$ denotes the overlap matrix, whereas calligraphic
+$\score_\ell(A)$ will denote the acquisition score.
+
+\subsection{Supported-overlap solution}
+\label{sec:supported_overlap}
+
+The solved subspace is the numerically supported image of
+$\Phi_{\mathcal B}$ rather than the formal span of every supplied record.  Let
+\begin{equation}
+ S_{\mathcal B}=U\,\operatorname{diag}(s_1,\ldots,s_{|\mathcal B|})U^\dagger,
+ \qquad s_{\max}=\max_i s_i,
+ \label{eq:overlap_eigendecomposition}
+\end{equation}
+and retain
+\begin{equation}
+ \mathcal I_{\mathcal B,\tau}
+ =\left\{i:s_i>\max(\tau_{\rm abs},\tau_{\rm rel}s_{\max})\right\}.
+ \label{eq:overlap_support}
+\end{equation}
+For OS-QSE, direct Davidson, and fixed QSE,
+$\tau_{\rm abs}=10^{-12}$ and $\tau_{\rm rel}=10^{-10}$.  The whitening map
+and ordinary Hermitian problem are
+\begin{align}
+ X_{\mathcal B,\tau}
+ &=U_{\mathcal I}\operatorname{diag}
+   \bigl(s_i^{-1/2}:i\in\mathcal I\bigr),
+ \label{eq:supported_whitening}\\
+ \widetilde M_{\mathcal B}
+ &=X_{\mathcal B,\tau}^{\dagger}
+   M_{\mathcal B}X_{\mathcal B,\tau},
+ \nonumber\\
+ \widetilde M_{\mathcal B}y_r&=\varepsilon_r y_r,
+ &c_r&=X_{\mathcal B,\tau}y_r.
+ \label{eq:supported_eigenproblem}
+\end{align}
+The retained rank is
+\begin{equation}
+ q(\mathcal B)=|\mathcal I_{\mathcal B,\tau}|.
+ \label{eq:retained_rank}
+\end{equation}
+No ridge-shifted pencil is used.  Small overlap directions are removed, and
+all claims attach to this supported subspace.  This avoids adding a numerical
+parameter that would change the variational problem while preserving the
+stability protection that the nonorthogonal solve actually requires
+\cite{Epperly2022QSD,Lee2024SamplingQKSD,Getelina2024HardwareNoiseQSE}.
+
+\subsection{Explicit operator pools}
+\label{sec:operator_pools}
+
+A ``completion pool'' is an explicit construction, not a proof of
+full-sector completeness.  The relevant object is the image set
+\begin{equation}
+ \mathcal W(\mathcal P,\psi_0)
+ =\{Q_{\mathfrak s,0}\Omega_A\ket{\psi_0}:A\in\mathcal P\}.
+ \label{eq:pool_image_set}
+\end{equation}
+Distinct records can become identical or vanish after acting on a particular
+seed.
+
+For Hubbard--Holstein, the production pool concatenates the original
+physical macro-record pool with an encoded-boson Pauli completion.  If $n_b$
+is the number of boson qubits, define
+\begin{align}
+ \mathcal P_b^{\rm enc}
+ &=\{I,X,Y,Z\}^{\otimes n_b}
+   \setminus\{I^{\otimes n_b}\},
+ \nonumber\\
+ \mathcal Z_f&=\{I,Z_1,Z_2,Z_3,Z_4\},
+ \label{eq:hh_completion_factors}\\
+ \mathcal P_{\rm comp}^{\rm HH}
+ &=\{P_b\otimes Z_f:\
+     P_b\in\mathcal P_b^{\rm enc},\
+     Z_f\in\mathcal Z_f\},
+ \label{eq:hh_completion_pool}\\
+ \mathcal P_{\rm HH}
+ &=\mathcal P_{\rm macro}^{\rm HH}\mathbin{\Vert}
+   \mathcal P_{\rm comp}^{\rm HH}.
+ \label{eq:hh_production_pool}
+\end{align}
+The symbol $\Vert$ denotes ordered concatenation, so the macro pool remains
+an unchanged prefix.  The completion is arbitrary on the encoded boson
+register but uses only identity or one-body $Z$ factors on the four fermion
+qubits and therefore does not flip their occupation sector.  It contributes
+75 records at $\phmax=1$ and 1275 at $\phmax=3$, giving total pool sizes
+169 and 1403.  It is a boson-complete Pauli factor under a deliberately
+restricted fermion factor set, not a complete operator basis on the sector.
+
+The Peierls pool is a fixed 53-record macro collection containing
+number-conserving fermion hopping, current, and double-excitation records;
+bond displacement, momentum, and number records; and their declared mixed
+products.  The SIAM calculation uses a 204-record pool formed from physical
+impurity/bath blocks together with generalized number, hopping, current, and
+paired spin-up--spin-down products.  Appendix~\ref{app:pools} records the
+families and their role more fully.  Each route within a comparison receives
+the same Hamiltonian and an immutable ordered pool digest.
+
+\subsection{Ideal minimum-cost support}
+\label{sec:ideal_construction}
+
+Let the additive structural cost of a support be
+\begin{equation}
+ K(\mathcal B)=\sum_{A\in\mathcal B}K(A),
+ \label{eq:support_cost}
+\end{equation}
+where $K(A)$ is the deterministic Marrakesh graph-span two-qubit coordinate
+of record $A$.  The ideal task is
+\begin{equation}
+ \mathcal B^\star(\epsilon_E)\in
+ \argmin_{\mathcal B\subseteq\mathcal P}K(\mathcal B)
+ \label{eq:ideal_support_argmin}
+\end{equation}
+subject to
+\begin{equation}
+ q(\mathcal B)\geq R,
+ \qquad
+ \max_{r\in\mathcalR}
+ |\varepsilon_r(\mathcal B)-\varepsilon_r^\star|\leq\epsilon_E.
+ \label{eq:ideal_support_constraints}
+\end{equation}
+This combinatorial statement is useful even though the implementation is
+greedy: it specifies the intended method identity.  It is not available
+online because the exact energies $\varepsilon_r^\star$ are withheld.
+
+For a supported space $V$ with dimension at least $R$, define the Ky--Fan
+functional
+\begin{equation}
+ \mathcal F_{\mathcalR}(V)
+ =\sum_{r\in\mathcalR}\varepsilon_r(V)
+ =\min_{\substack{Y^\dagger Y=I_R\\\operatorname{Ran}Y\subseteq V}}
+ \Tr(Y^\dagger H_0Y).
+ \label{eq:ky_fan_variational}
+\end{equation}
+The selector evaluates the decrease of this variational functional under a
+one-record expansion.  Each proposed-pencil gain is exact for that proposed
+supported subspace, but greedy acquisition is not claimed to solve
+Eq.~\eqref{eq:ideal_support_argmin} globally.
+
+\subsection{Retained-frame novelty and admissibility}
+\label{sec:retained_novelty}
+
+At acquisition round $\ell$, let $\mathcal B_\ell$ be the admitted support
+and let
+\begin{equation}
+ V_{\ell,\tau}
+ =\spanop\{\ket{v_1^{(\ell)}},\ldots,\ket{v_{q_\ell}^{(\ell)}}\},
+ \qquad
+ P_{\ell,\tau}=\sum_{j=1}^{q_\ell}
+ \ket{v_j^{(\ell)}}\!\bra{v_j^{(\ell)}}
+ \label{eq:retained_frame}
+\end{equation}
+be the orthonormal frame reconstructed from the retained overlap directions.
+Novelty is measured against this frame, not the exact algebraic span of all
+admitted images.  A vector discarded by the QSE cutoff must not count as
+represented during later acquisition.
+
+For an unused record $A$, write
+\begin{equation}
+ \ket{w_A}=Q_{\mathfrak s,0}\Omega_A\ket{\psi_0},
+ \qquad
+ \ket{\widetilde u_{\ell A}}=(I-P_{\ell,\tau})\ket{w_A}.
+ \label{eq:candidate_residualization}
+\end{equation}
+The second operation is evaluated by two complete Gram--Schmidt projection
+passes against the retained frame.  The second pass is not cosmetic: a
+single pass allowed near-dependent numerical residue to be mistaken for zero
+novelty in an earlier implementation.  Define
+\begin{equation}
+ N_\ell(A)=
+ \frac{\|\widetilde u_{\ell A}\|^2}{\|w_A\|^2}.
+ \label{eq:novelty_fraction}
+\end{equation}
+A record is admissible only if
+\begin{equation}
+ \|w_A\|^2>\tau_{\rm abs},
+ \qquad N_\ell(A)\geq\tau_N,
+ \qquad \tau_N=10^{-12}.
+ \label{eq:candidate_admissibility}
+\end{equation}
+For an admissible record, the genuinely new direction is
+\begin{equation}
+ \ket{u_{\ell A}}=
+ \frac{\ket{\widetilde u_{\ell A}}}{\|\widetilde u_{\ell A}\|}.
+ \label{eq:normalized_novel_direction}
+\end{equation}
+Novelty is an admissibility floor only.  The production score contains no
+additive novelty reward.
+
+\subsection{Full proposed-pencil Ky--Fan gain}
+\label{sec:full_pencil_gain}
+
+In the retained orthonormal frame define
+\begin{equation}
+ \widehat M_\ell=
+ \left[\bra{v_i^{(\ell)}}H_0\ket{v_j^{(\ell)}}\right]_{i,j=1}^{q_\ell}.
+ \label{eq:retained_hamiltonian}
+\end{equation}
+For every admissible candidate, the implementation computes the complete new
+Hamiltonian row and diagonal,
+\begin{equation}
+ g_{\ell A,j}=\bra{v_j^{(\ell)}}H_0\ket{u_{\ell A}},
+ \qquad
+ h_{11,\ell}(A)=\bra{u_{\ell A}}H_0\ket{u_{\ell A}},
+ \label{eq:candidate_hamiltonian_row}
+\end{equation}
+and solves
+\begin{equation}
+ \widehat M_{\ell,A}^{+}=
+ \begin{pmatrix}
+   \widehat M_\ell & g_{\ell A}\\
+   g_{\ell A}^{\dagger} & h_{11,\ell}(A)
+ \end{pmatrix}.
+ \label{eq:full_proposed_pencil}
+\end{equation}
+Ranking therefore uses the candidate's complete interaction with the
+retained frame.  It is neither the cosine of a residual angle nor an isolated
+$2\times2$ lowest-root surrogate.
+
+Before $R$ supported roots exist, the ordinary $R$-root sum has missing
+entries.  The startup rule first computes a common round-local ceiling
+\begin{equation}
+ \Lambda_\ell=\max_{A\in\mathcal A_\ell}h_{11,\ell}(A),
+ \label{eq:rank_filling_ceiling}
+\end{equation}
+where $\mathcal A_\ell$ is the admissible unused set.  For a supported space
+$V$ of dimension $q$, define
+\begin{equation}
+ \widetilde{\mathcal F}_{\mathcalR}^{(\ell)}(V)
+ =\sum_{r=1}^{\min(R,q)}\varepsilon_r(V)
+ +(R-q)_+\Lambda_\ell.
+ \label{eq:padded_ky_fan}
+\end{equation}
+The same $\Lambda_\ell$ is used for the current support and every proposal in
+the round.  It encourages rank creation without exact spectral information.
+Once $q\geq R$, Eq.~\eqref{eq:padded_ky_fan} becomes the ordinary Ky--Fan
+sum.  The nonnegative proposal gain is
+\begin{equation}
+ \Delta_\ell(A)=\left[
+ \widetilde{\mathcal F}_{\mathcalR}^{(\ell)}(V_{\ell,\tau})
+ -\widetilde{\mathcal F}_{\mathcalR}^{(\ell)}
+ \bigl(V_{\ell,\tau}+\spanop\{\ket{u_{\ell A}}\}\bigr)
+ \right]_+.
+ \label{eq:proposed_pencil_gain}
+\end{equation}
+The candidate diagonal $h_{11}$ also enters the stopping rule below.  Removing
+it after eliminating a separate Ritz-gain expression would silently change
+the online window test.
+
+\subsection{Cost-weighted acquisition score}
+\label{sec:acquisition_score}
+
+Let $\mathcal A_0$ be the initially eligible pool after structural filters.
+The cost scale is fixed once,
+\begin{align}
+ K_0&=\max_{A\in\mathcal A_0}K(A),
+ \nonumber\\
+ K_{\max}&=\begin{cases}
+ K_0,&K_0>0,\\
+ 1,&K_0=0,
+ \end{cases}
+ &\overline K(A)&=\frac{K(A)}{K_{\max}}.
+ \label{eq:fixed_cost_normalization}
+\end{align}
+It is not recomputed as the unused pool shrinks.  By contrast, the gain scale
+is round-local,
+\begin{align}
+ \Delta_\ell^{\max}
+ &=\max_{A\in\mathcal A_\ell}\Delta_\ell(A),
+ \nonumber\\
+ \overline\Delta_\ell(A)=
+ \begin{cases}
+ \Delta_\ell(A)/\Delta_\ell^{\max},&\Delta_\ell^{\max}>0,\\
+ 0,&\Delta_\ell^{\max}=0.
+ \end{cases}
+ \label{eq:round_gain_normalization}
+\end{align}
+The production score is
+\begin{equation}
+ \score_\ell(A)=
+ \frac{\overline\Delta_\ell(A)}
+ {\max\{\kappa_K,\overline K(A)\}^{\alpha_K}},
+ \qquad \alpha_K=1,\quad\kappa_K=0.05.
+ \label{eq:production_score}
+\end{equation}
+Away from the cost floor this has the ordering of $\Delta_\ell(A)/K(A)$.
+The floor bounds the discount assigned to zero-cost or exceptionally cheap
+records and prevents division by zero; it is not a ridge in the QSE pencil.
+The largest-score record is admitted, with the original pool index breaking
+exact ties.  The retained frame is rebuilt from all admitted raw images
+before the next round.  Residual angle, transition visibility, and additive
+novelty utility do not enter Eq.~\eqref{eq:production_score}.
+
+It is useful to distinguish score from utility.  In earlier generic selector
+code, a spectral utility could be combined additively with novelty and then
+discounted by cost.  Under the locked production policy, the additive
+novelty term is zero and the spectral utility is simply the normalized
+full-pencil gain.  The final ranking quantity is the cost-weighted score
+$\score_\ell$.  Thus there is no additional unpublished utility controlling
+the reported route.
+
+\subsection{Pool-relative online stopping and statuses}
+\label{sec:online_stopping}
+
+For the lowest $\min(R,q_\ell)$ retained Ritz pairs, define
+\begin{align}
+ \ket{R_r^{(\ell)}}=
+ Q_{\mathfrak s,0}(H_0-\varepsilon_r^{(\ell)})
+ \ket{\Psi_r^{(\ell)}},
+ \nonumber\\
+ \rho_\ell=\max_{r\leq\min(R,q_\ell)}\|R_r^{(\ell)}\|.
+ \label{eq:target_residual}
+\end{align}
+Residual convergence alone is insufficient.  A subspace can contain $R$
+exact eigenvectors and have zero residual while remaining blind to a lower
+state outside it.  The selector therefore asks whether a remaining novel
+pool direction can threaten the top of the requested window.  For
+$q_\ell\geq R$, define
+\begin{equation}
+ \mathcal T_\ell=\left\{
+ A\in\mathcal A_\ell:
+ h_{11,\ell}(A)<\varepsilon_R^{(\ell)}+\epsilon_{\rm res}
+ \right\},
+ \qquad \epsilon_{\rm res}=10^{-3}.
+ \label{eq:window_pressure_set}
+\end{equation}
+Online acquisition stops successfully only when
+\begin{equation}
+ q_\ell\geq R,
+ \qquad \rho_\ell<\epsilon_{\rm res},
+ \qquad \mathcal T_\ell=\varnothing.
+ \label{eq:online_stop}
+\end{equation}
+This is a pool-relative certificate: no remaining admissible image in the
+declared pool threatens the retained window under the diagonal test.  It is
+not a proof of completeness in the full sector or in an unenumerated family.
+After maintenance, the terminal support is solved again and the same
+conditions are reevaluated.  The route returns a structured status,
+\begin{equation}
+ \begin{aligned}
+ &\texttt{TARGET\_WINDOW\_CERTIFIED},\qquad
+  \texttt{POOL\_EXHAUSTED},\\
+ &\texttt{TARGET\_WINDOW\_NOT\_CERTIFIED}.
+ \end{aligned}
+ \label{eq:terminal_statuses}
+\end{equation}
+No status silently invokes Davidson or another eigensolver.
+
+\subsection{Atomic singleton exchange}
+\label{sec:atomic_exchange}
+
+The maintenance stage adopts the same joint patch object and notation used in
+the companion Paper-II exchange construction \cite{PaperII}.  A transaction is
+\begin{equation}
+ \mathcal X=(\mathcal B^-,\mathcal B^+),
+ \qquad
+ \mathcal B'=(\mathcal B\setminus\mathcal B^-)\cup\mathcal B^+.
+ \label{eq:exchange_patch}
+\end{equation}
+The production scope is an atomic singleton swap
+$|\mathcal B^-|=|\mathcal B^+|=1$, together with the degenerate pure-deletion
+case $|\mathcal B^-|=1$, $|\mathcal B^+|=0$.  Pure insertion is disabled.
+This is genuine joint $1\leftrightarrow1$ exchange: deletion and insertion are
+evaluated as one support.  It does not claim higher-cardinality deletion
+ladders.
+
+Shortlists limit how many patches receive a full solve but never certify a
+patch.  Deletion candidates combine small target-root coefficient magnitude
+and high record cost.  Insertion candidates use a novelty/residual-capture
+pre-screen.  That pre-screen belongs only to maintenance; it is not the
+acquisition score in Eq.~\eqref{eq:production_score}.  For every proposed
+patch, the complete supported QSE pencil on $\mathcal B'$ is rebuilt.
+
+Let
+\begin{align}
+ m&=\min\{R,q(\mathcal B),q(\mathcal B')\},\\
+ \delta\mathcal F&=\sum_{r=1}^{m}
+ \bigl[\varepsilon_r(\mathcal B')-\varepsilon_r(\mathcal B)\bigr],
+ &\delta K&=K(\mathcal B')-K(\mathcal B).
+ \label{eq:exchange_deltas}
+\end{align}
+With $\tau_{\mathcal F}=10^{-9}$ and
+$\eta_{\mathcal F}=10^{-10}$, the spectral--cost gate is
+\begin{equation}
+ \bigl(\delta\mathcal F\leq\tau_{\mathcal F}\ \wedge\ \delta K<0\bigr)
+ \ \vee\
+ \bigl(\delta\mathcal F<-\eta_{\mathcal F}\ \wedge\ \delta K\leq0\bigr).
+ \label{eq:exchange_dominance}
+\end{equation}
+The candidate must also preserve retained rank and may not increase the
+supported overlap condition estimate by more than a factor of ten.  A failed
+solve or guard rejects the entire patch.  Among admissible patches, the route
+orders lexicographically by $(\delta\mathcal F,\delta K,$ enumeration index$)$
+and commits exactly one.  Rejection leaves the support bit-identical; no
+delete occurs before its paired insertion has passed.
+
+The word ``certified'' is attached to this transaction only.  It means that
+the recomputed supported pencil satisfies the declared objective, cost, rank,
+and conditioning inequalities.  It does not certify every exact root error,
+transition amplitude, global minimum-cost support, or completeness outside
+the pool.  Current evidence records evaluated exchange locations but not a
+current-policy accepted-patch ledger, so exchange is treated below as a
+maintenance capability rather than an established cause of the aggregate
+savings.
+
+\section{Comparator constructions}
+\label{sec:comparators}
+
+\subsection{Independently initialized direct quantum Davidson}
+\label{sec:direct_davidson}
+
+Direct quantum Davidson (DQ) is a separate route, not a completion stage of
+OS-QSE.  Its starting frame attempts a route-specific linear-response-family
+warm start: 10 records for Hubbard--Holstein at $\phmax=1$, 18 at
+$\phmax=3$, one for Peierls--Hubbard, and none for SIAM.  It additionally
+attempts $R+1=7$ computational-basis probes from the target sector.  The
+probes are ordered deterministically by $(H_{ii},i)$, using the Hamiltonian
+diagonal and basis index but no exact excited-state information.  Each seed
+image is reference-projected, residualized by two Gram--Schmidt passes, and
+admitted only when independent; an attempted warm-start record is therefore
+not necessarily an admitted direction.
+
+At each iteration DQ solves the same supported Ritz problem.  For the root
+with largest unresolved residual, it forms the diagonal-preconditioned
+correction
+\begin{align}
+ \ket{t_r}=D_\delta(\varepsilon_r)^{-1}\ket{R_r},
+ \nonumber\\
+ [D_\delta(\varepsilon_r)]_{ii}
+ &=\operatorname{sgn}_{+}(H_{ii}-\varepsilon_r)
+ \nonumber\\[-0.5ex]
+ &\quad\times\max\{|H_{ii}-\varepsilon_r|,10^{-8}\}.
+ \label{eq:davidson_correction}
+\end{align}
+Here $\operatorname{sgn}_{+}(x)=-1$ for $x<0$ and $+1$ for $x\geq0$,
+so an exactly zero denominator receives the positive $10^{-8}$ floor.
+Roots are attempted in descending residual norm until one correction survives
+double reorthogonalization and the $10^{-12}$ independence floor.  The route
+requests the ground root and six excited roots, uses a native residual
+threshold $10^{-14}$, and otherwise ends at its declared cap or when no novel
+correction exists.  The paper-facing crossing can occur before native
+termination.  Initial record directions retain their record costs; each
+synthesized residual direction is charged as one declared first-order
+Hamiltonian step.
+
+\subsection{Single-seed real-time Krylov}
+\label{sec:single_rtk}
+
+The single-seed RTK comparator constructs a deterministic complex source in
+the target sector.  With pseudorandom coefficients fixed before the matrix,
+\begin{align}
+ \ket{\widetilde\chi}
+ &=Q_{\mathfrak s,0}\sum_z(\xi_z+\ii\eta_z)\ket{z},
+ \nonumber\\
+ \ket{\chi}&=\frac{\ket{\widetilde\chi}}
+ {\|\widetilde\chi\|},
+ \label{eq:single_rtk_source}
+\end{align}
+and
+\begin{align}
+ \ket{\chi_k}&=e^{-\ii k\Delta tH_0}\ket{\chi},
+ \qquad k=0,\ldots,d-1,
+ \nonumber\\
+ V_d^{\RTK}&=\spanop\{\ket{\chi_0},\ldots,\ket{\chi_{d-1}}\},
+ \qquad \Delta t=0.5.
+ \label{eq:single_rtk_space}
+\end{align}
+The time-state overlap is truncated at relative cutoff $10^{-12}$.  The
+dimension cap is 100 for Hubbard--Holstein and SIAM and 40 for Peierls.
+Every Krylov-state preparation is charged; the common source-state
+preparation is excluded under the declared boundary.
+
+\subsection{Six-probe block real-time Krylov}
+\label{sec:block_rtk}
+
+The block route takes the first six independent directions from the
+lowest-diagonal target-sector computational probes.  Let them be
+$\{\ket{\chi_j}\}_{j=1}^{6}$.  Define the propagated block states by
+\begin{align}
+ \ket{\chi_{j,k}}
+ &=e^{-\ii k\Delta tH_0}\ket{\chi_j},
+ \qquad
+ \substack{j=1,\ldots,6,\\ k=0,\ldots,m-1},
+ \nonumber\\[-0.5ex]
+ V_m^{\rm block}
+ &=\spanop\left(
+ \{\ket{\psi_0}\}\cup
+ \{\ket{\chi_{j,k}}\}_{j,k}
+ \right),
+ \qquad \Delta t=0.5.
+ \label{eq:block_rtk_space}
+\end{align}
+The block size, time step, and diagonal ordering are fixed before any exact
+audit.  Every source preparation per shell and every required Hamiltonian
+action is charged.  Single-seed and block RTK are distinct algorithms; their
+success sets are never unioned into a case-wise oracle comparator.
+
+\subsection{Complete fixed-class QSE}
+\label{sec:fixed_qse}
+
+The fixed baseline solves the supported generalized pencil once on the
+complete declared nonadaptive response class.  It performs no selection,
+growth, exchange, or residual synthesis.  Hubbard--Holstein uses the
+conventional linear-response class; Peierls and SIAM use their corresponding
+fixed classes.  A retained rank below six or an error above the target is a
+failed outcome, even if the manifold is inexpensive or reproduces one bright
+response channel.
+
+\subsection{Comparator scope beyond the numerical matrix}
+
+Variational quantum deflation, subspace-search VQE, multistate contracted VQE,
+and qEOM/q-sc-EOM offer important alternative excited-state architectures
+\cite{Higgott2019VQD,Nakanishi2019SSVQE,Parrish2019MCVQE,
+Ollitrault2020qEOM,AsthanaKumar2023QScEOM}.  They remain literature
+comparators here because the repository does not contain matched,
+resource-audited implementations under the present task.  Hamiltonian-power
+QKSD is likewise implementation-pending; the RTK routes above must not be
+renamed as QKSD.  No numerical superiority claim is made against an
+unimplemented method.
+
+\section{Observables, matching, and resource coordinates}
+\label{sec:evaluation}
+
+\subsection{Retrospective root assignment and first crossings}
+
+OS-QSE, DQ, and fixed-class QSE report their ordered lowest supported roots.
+The RTK routes receive a one-to-one Hungarian assignment to exact target roots
+only after their online traces are complete \cite{Kuhn1955Hungarian}.  The
+assignment cannot select a source, timestep, block, online stopping point, or
+support.
+
+Let $n$ index the prefixes in one route's declared growth order.  For energy
+tolerance $\epsilon_E$, the reported prefix is
+\begin{equation}
+ \begin{aligned}
+ n_x^\star(\epsilon_E)=\min\biggl\{n:\;&q_x(n)\geq R,\\[-0.4ex]
+ &\max_{r\in\mathcalR}
+ |\varepsilon_{x,r}(n)-\varepsilon_r^\star|\leq\epsilon_E
+ \biggr\}.
+ \end{aligned}
+ \label{eq:first_crossing}
+\end{equation}
+Every error and resource coordinate is taken at the same prefix,
+\begin{equation}
+ K_x^\star(\epsilon_E)=K_x\!\left(n_x^\star(\epsilon_E)\right).
+ \label{eq:crossing_cost}
+\end{equation}
+This is a post-run benchmark diagnostic and is distinct from the online
+statuses in Eq.~\eqref{eq:terminal_statuses}.  A route that does not cross
+retains its terminal error and charged expenditure but receives no successful
+crossing cost.
+
+The earliest-prefix rule is intentionally not a minimum-resource rule.  When
+exchange changes the support cost, a later successful prefix can be cheaper
+than the first successful prefix.  Three Hubbard--Holstein selected entries
+change relative to a legacy minimum-$K$ summary, as shown in
+Table~\ref{tab:crossing_reconciliation}.
+
+\begin{widetext}
+\inlinetablecaption{tab:crossing_reconciliation}{Reconciliation of the only
+three entries for which a later minimum-$K$ successful support differs from
+the publication first prefix.  Entries are admitted dimension $k$ and
+graph-span cost $K$.}
+\begin{center}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccc@{}}
+\toprule
+Case & route & target & later minimum-$K$ support & publication first prefix & first-prefix error \\
+\midrule
+weak--strong, $\nph=1$ & OS-QSE & $10^{-4}$ & $k=15$, $K=24$ & $k=14$, $K=26$ & $1.33\times10^{-15}$ \\
+weak--strong, $\nph=1$ & OS-QSE & $10^{-6}$ & $k=15$, $K=24$ & $k=14$, $K=26$ & $1.33\times10^{-15}$ \\
+weak--strong, $\nph=3$ & OS-QSE & $10^{-4}$ & $k=46$, $K=428$ & $k=42$, $K=484$ & $7.55\times10^{-5}$ \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+\subsection{Transition amplitudes and broadened spectra}
+\label{sec:transition_spectra}
+
+For a probe observable $O$, the transition amplitude and strength of a QSE
+root are
+\begin{equation}
+ t_r^O=\bra{\Psi_r}O\ket{\psi_0},
+ \qquad I_r^O=|t_r^O|^2.
+ \label{eq:transition_strength}
+\end{equation}
+For route $x$, let $m_x=\min(R,q_x)$ be the number of available roots used in
+its response audit.  The zero-temperature broadened response is
+\begin{align}
+ A_{O,x}(\omega)
+ &=\sum_{r=1}^{m_x}I_{x,r}^O
+ L_\eta\!\left(\omega-(\varepsilon_r-E_0)\right),
+ \nonumber\\
+ L_\eta(x)&=\frac{1}{\pi}\frac{\eta}{x^2+\eta^2}.
+ \label{eq:broadened_spectrum}
+\end{align}
+The retrospective exact spectrum is truncated to the same $m_x$ assigned
+roots.  Every successful OS-QSE, DQ, and RTK audit has $m_x=R=6$; the
+rank-five fixed Peierls manifold necessarily gives a five-root response audit
+and remains a failed route for the six-root energy task.  All spectra use
+$\eta=0.05$, 801 grid points, and trapezoidal integration.  The
+Hubbard--Holstein grid is
+$[0,\max(1,\omega_6^\star+6\eta)]$ and uses
+\begin{equation}
+ \delta_{L^1}(A)=
+ \frac{\int|A(\omega)-A^\star(\omega)|\,d\omega}
+ {\max\{\int|A^\star(\omega)|\,d\omega,10^{-15}\}},
+ \label{eq:hh_spectral_error}
+\end{equation}
+with transition strengths below $10^{-8}$ treated as dark.  Peierls, SIAM,
+and RTK postprocessing extends the upper limit to the largest exact or
+approximate pole plus $0.5$ and leaves the normalized error undefined when
+the exact integrated weight is at most $10^{-12}$.  The two policies are not
+pooled into one cross-family statistic.  Every present spectrum is evaluated
+on the terminal manifold, not at the first energy crossing.
+
+\subsection{Three distinct resource coordinates}
+\label{sec:resource_boundary}
+
+The online coordinate $K$ is a deterministic Marrakesh graph-span
+two-qubit count on the surviving or admitted support.  It is additive by
+construction and enters Eq.~\eqref{eq:production_score}.  It is not a letter
+for a state, overlap matrix, or universal circuit cost; $C$ is deliberately
+not used for this quantity so the notation matches the companion papers.
+
+Post-run Qiskit values use FakeMarrakesh, optimization level 1, and transpiler
+seed 7.  They are sums of independently transpiled direction or action
+annotations.  Nonzero Pauli words are preserved while complex coefficients
+are replaced by their magnitudes for structural compilation.  The resulting
+$N_{2q}$ and summed $D_{2q}$ are circuit-structure annotations.  In
+particular, summed depth is not the depth of one executable
+linear-combination, state-preparation, or measurement circuit.
+
+Logical estimator queries form a third coordinate.  OS-QSE and fixed QSE use
+a qubit-wise-commuting record-pencil cover, whereas DQ and RTK use their
+declared ungrouped synthesized-basis accounting.  These counts describe the
+implemented route ledgers.  They are not shots, and no finite-shot allocation
+model is applied.
+
+Finally, compact support is not cumulative acquisition work.  Candidate
+screening, rejected proposals, rejected exchange patches, measurement reuse,
+source-state preparation, and transition-observable measurements are not
+converted into a single common work currency.  We report the available
+screening ledger explicitly rather than hiding it, but the main claim remains
+about surviving structure under declared coordinates.
+
+\section{Static spectral benchmarks}
+\label{sec:static_results}
+
+\subsection{Overall coverage}
+
+Table~\ref{tab:coverage_summary} gives the first high-level result.  OS-QSE
+and independently initialized DQ reach every six-root $10^{-6}$ target.
+Single-seed RTK and block RTK are incomplete under their fixed source
+policies, while the complete fixed classes fail the six-root task in all
+sixteen cases.  The fixed manifolds remain scientifically useful response
+baselines; their failure is task-specific rather than a claim of universal
+inferiority.
+
+\begin{table}[t]
+\caption{Six-root $10^{-6}$ coverage under fixed route definitions.  RTK
+success sets are complementary and are not unioned into a method.}
+\label{tab:coverage_summary}
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Route & HH (12) & transfer (4) & total (16) \\
+\midrule
+OS-QSE & 12 & 4 & 16 \\
+direct quantum Davidson & 12 & 4 & 16 \\
+single-seed RTK & 6 & 4 & 10 \\
+six-probe block RTK & 8 & 3 & 11 \\
+complete fixed class & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Systematic Hubbard--Holstein results}
+\label{sec:hh_static_results}
+
+OS-QSE reaches the six-root $10^{-6}$ target in all twelve
+Hubbard--Holstein cells.  DQ also reaches all twelve, while the complete LR-QSE
+manifold reaches none and single-seed RTK reaches six.  No OS-QSE result uses
+an internal Davidson continuation.
+
+At $10^{-6}$, OS-QSE has smaller $K$ than DQ in all twelve cells.  Its
+post-run Qiskit two-qubit annotation and declared logical-query ledger are
+also smaller in all twelve.  For $\phmax=1$, OS-QSE crosses with
+$K=14$--$28$, versus $56$--$76$ for DQ.  For $\phmax=3$, it crosses with
+$K=218$--$526$, versus $308$--$1396$.  The advantage persists at the larger
+cutoff but is not uniform in magnitude.
+
+The looser $10^{-4}$ target exposes the dependence on threshold and growth
+granularity.  OS-QSE has no larger $K$ in ten of twelve cells, no larger
+Qiskit $N_{2q}$ in eleven, and no larger declared query count in all twelve.
+The $K$ exceptions are intermediate--weak $\phmax=3$, where the crossings are
+$242$ and $240$, and weak--weak $\phmax=3$, where they are $242$ and $172$.
+Only the latter remains an exception under the Qiskit annotation.  These
+reversals are retained because they prevent a tolerance-independent claim.
+
+Several $\phmax=1$ DQ routes cross only after overshooting to numerical
+precision, whereas OS-QSE ranges from numerical precision to
+$6.55\times10^{-7}$.  In the $\phmax=3$ matrix, both routes more commonly
+cross in the $10^{-7}$--$10^{-6}$ range.  The comparison is threshold matched,
+but not every cost difference can be attributed to candidate ordering alone;
+the discrete dimension at which a route first records success also matters.
+
+\begin{widetext}
+\inlinetablecaption{tab:hh_first_crossings}{Hubbard--Holstein graph-span cost
+$K$ at the first $10^{-6}$ six-root crossing.  For single-seed RTK, NR shows
+terminal error and terminal charged cost at its declared cap.  Complete
+LR-QSE values are terminal and unattainable for the target.}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+Case & OS-QSE & direct quantum Davidson & single-seed RTK & complete LR-QSE \\
+\midrule
+intermediate--strong, $\nph=1$ & 28 & 56 & NR: $1.9\times10^{-1}$ @ 99,000 & U: $1.3$ @ 56 \\
+intermediate--weak, $\nph=1$ & 28 & 56 & NR: $2.4\times10^{-1}$ @ 99,000 & U: $1.2$ @ 56 \\
+strong--strong, $\nph=1$ & 20 & 76 & NR: $5.2\times10^{-1}$ @ 99,000 & U: $7.5$ @ 56 \\
+strong--weak, $\nph=1$ & 14 & 76 & NR: $5.3\times10^{-1}$ @ 99,000 & U: $7.8$ @ 56 \\
+weak--strong, $\nph=1$ & 26 & 76 & 3,420 & U: $3.1\times10^{-1}$ @ 56 \\
+weak--weak, $\nph=1$ & 24 & 76 & 3,420 & U: $6.3\times10^{-1}$ @ 56 \\
+intermediate--strong, $\nph=3$ & 440 & 1,192 & 108,528 & U: $6.8\times10^{-1}$ @ 104 \\
+intermediate--weak, $\nph=3$ & 260 & 376 & 112,404 & U: $7.3\times10^{-1}$ @ 104 \\
+strong--strong, $\nph=3$ & 286 & 308 & NR: $4.8\times10^{-1}$ @ 336,600 & U: $5.5$ @ 104 \\
+strong--weak, $\nph=3$ & 218 & 308 & NR: $5.2\times10^{-1}$ @ 336,600 & U: $6.3$ @ 104 \\
+weak--strong, $\nph=3$ & 526 & 1,396 & 104,720 & U: $4.6\times10^{-1}$ @ 104 \\
+weak--weak, $\nph=3$ & 382 & 512 & 120,360 & U: $2.2\times10^{-1}$ @ 104 \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+The terminal supported ranks equal the admitted sizes in eleven cells.  The
+intermediate--weak $\phmax=3$ route retains rank 28 from support 29, showing
+that overlap truncation is active without preventing the window.  Terminal
+maximum errors remain below $2.5\times10^{-7}$ throughout the $\phmax=3$
+matrix and are smaller at $\phmax=1$.  These terminal facts are not substituted
+for the first-crossing quantities in Table~\ref{tab:hh_first_crossings}.
+
+\subsection{Structural resource comparison}
+\label{sec:resource_results}
+
+At the $10^{-6}$ first crossing, OS-QSE has smaller summed Qiskit $N_{2q}$
+than DQ in every Hubbard--Holstein cell and every transfer case.  The SIAM
+comparison is especially clear: OS-QSE is slightly more accurate while using
+less than one third of the DQ two-qubit annotation.  Appendix
+\ref{app:resource_tables} gives the full $N_{2q}/D_{2q}$ and query matrices.
+
+The acquisition ledger makes the accounting boundary concrete.  Across the
+twelve Hubbard--Holstein traces, OS-QSE records 325,682 full proposed-pencil
+evaluations and 6,752,551 proposed Hamiltonian row elements.  These are real
+screening operations but are not charged into the final-support $K$ or Qiskit
+columns.  A smaller final manifold can therefore coexist with significant
+upstream search.  The present evidence supports compact construction under
+the declared support coordinates, not lower cumulative measurement work.
+
+\subsection{Transfer to Peierls--Hubbard and SIAM}
+\label{sec:transfer_results}
+
+OS-QSE reaches the $10^{-6}$ window in all three Peierls cases and the
+ten-qubit SIAM case; DQ also reaches all four.  In the Peierls cases, OS-QSE
+crosses with $K=154$--$202$ and Qiskit annotations $195$--$244$, compared
+with DQ $K=300$--$400$ and annotations $417$--$556$.  The OS-QSE logical
+query count is 225 in each case, versus 2340 for DQ.  The fixed Peierls class
+retains rank five and therefore cannot represent six roots.
+
+The Peierls DQ results overshoot to approximately numerical precision, while
+OS-QSE errors range from $1.32\times10^{-9}$ to $5.99\times10^{-8}$.  The
+cost result is valid at the matched threshold, but DQ's coarser growth and
+overshoot confound a purely selector-based attribution.
+
+The SIAM cell provides the most accuracy-balanced transfer comparison.
+OS-QSE reaches error $5.07\times10^{-7}$ with admitted dimension 64 and
+retained rank 44.  DQ reaches error $9.60\times10^{-7}$ at dimension and rank
+71.  Their Qiskit annotations are 622 and 2142, and their query counts are
+4666 and 46,008.  Because OS-QSE is slightly more accurate, this difference
+cannot be explained by a looser achieved tolerance.  The $64/44$
+support-to-rank reduction also demonstrates active overlap truncation in the
+largest encoded example.  One cell remains a transfer demonstration rather
+than systematic SIAM generality.
+
+\begin{widetext}
+\inlinetablecaption{tab:transfer_results}{Peierls--Hubbard and SIAM results at
+the first six-root $10^{-6}$ crossing.  Resource cells are graph-span $K$;
+Qiskit $N_{2q}/D_{2q}$ [logical estimator queries].}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccc@{}}
+\toprule
+Case & route & support/rank & achieved error & $K$ & Qiskit $N_{2q}/D_{2q}$ [queries] \\
+\midrule
+Peierls weak--weak & OS-QSE & $15/15$ & $1.32\times10^{-9}$ & 186 & $195/195$ [225] \\
+ & DQ & $12/12$ & $1.55\times10^{-15}$ & 400 & $556/500$ [2340] \\
+Peierls weak--strong & OS-QSE & $15/15$ & $5.99\times10^{-8}$ & 202 & $244/228$ [225] \\
+ & DQ & $12/12$ & $1.55\times10^{-15}$ & 300 & $417/375$ [2340] \\
+Peierls $U=8$--weak & OS-QSE & $12/12$ & $2.78\times10^{-9}$ & 154 & $229/195$ [225] \\
+ & DQ & $12/12$ & $3.11\times10^{-15}$ & 300 & $417/375$ [2340] \\
+SIAM $N_b=4$ & OS-QSE & $64/44$ & $5.07\times10^{-7}$ & 622 & $622/622$ [4666] \\
+ & DQ & $71/71$ & $9.60\times10^{-7}$ & 2142 & $2142/1386$ [46,008] \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+\begin{widetext}
+\begin{center}
+\includegraphics[width=0.94\textwidth]{../../output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/generality_six_root_bands.png}
+\end{center}
+\inlinefigurecaption{fig:generality_bands}{Exact and approximate six-root
+bands for the Peierls--Hubbard and SIAM transfer cases.  The visibly
+overlapping successful bands should be read with the explicit error and cost
+values in Table~\ref{tab:transfer_results}; overlap on the plot is not a
+resource comparison.}
+\end{widetext}
+
+\subsection{Krylov initialization controls target-window coverage}
+\label{sec:krylov_results}
+
+The two RTK routes use the same timestep and one-to-one post-run assignment,
+but different source subspaces and charging rules.  Single-seed RTK reaches
+ten of sixteen windows: six Hubbard--Holstein cells, all three Peierls cases,
+and SIAM.  Its Hubbard--Holstein successes split as two of six at $\phmax=1$
+and four of six at $\phmax=3$.  Every failure remains visible at its terminal
+cap.
+
+Six-probe block RTK reaches eleven of sixteen: all six Hubbard--Holstein
+$\phmax=1$ cells, two of six $\phmax=3$ cells, two of three Peierls cases,
+and SIAM.  It repairs four single-seed $\phmax=1$ failures and two strong
+$\phmax=3$ failures, while losing four windows reached by the single source.
+Five cases are reached by both.  Their retrospective union covers all
+sixteen, but that union is not a declared algorithm and is never used in a
+resource column.
+
+A post-run source-coverage audit explains all five block failures.  In each,
+at least one target root has squared projection below $10^{-20}$ onto the
+fixed six-probe source block.  The missing target is $r=6$ for Peierls
+weak--weak, $r=5$ for intermediate--strong and intermediate--weak
+$\phmax=3$, and $r=4$ for weak--strong and weak--weak $\phmax=3$.  A longer
+time sequence from the same source block cannot create an eigendirection
+absent from that block's spectral support.  Inside an exactly degenerate
+eigenspace, individual eigenvector weights are basis dependent; the audit is
+therefore interpreted as represented subspace weight, not an invariant label
+on an arbitrary eigenvector.
+
+\begin{table*}[t]
+\caption{Fixed-policy RTK coverage at the
+$10^{-6}$ task.  S and B denote single-seed and block success; a dash denotes
+failure within the declared cap.  The final column gives the target index
+whose block-source weight is below $10^{-20}$ when applicable.}
+\label{tab:krylov_coverage}
+\begin{center}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+Family/case group & single RTK & block RTK & both & missing block target \\
+\midrule
+HH $\phmax=1$, weak--weak / weak--strong & S & B & yes & --- \\
+HH $\phmax=1$, remaining four regimes & --- & B & no & --- \\
+HH $\phmax=3$, strong--weak / strong--strong & --- & B & no & --- \\
+HH $\phmax=3$, intermediate--weak / intermediate--strong & S & --- & no & $r=5$ \\
+HH $\phmax=3$, weak--weak / weak--strong & S & --- & no & $r=4$ \\
+Peierls weak--strong / $U=8$--weak & S & B & yes & --- \\
+Peierls weak--weak & S & --- & no & $r=6$ \\
+SIAM $N_b=4$ & S & B & yes & --- \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{table*}
+
+These results make initialization part of the Krylov method definition.  They
+do not show that Krylov methods in general fail.  A larger deterministic
+block, an adaptive source, or Hamiltonian-power QKSD from a non-eigenstate
+source could change both coverage and cost and would be a separately named,
+separately charged route.
+
+\subsection{Pool expressivity under the current selector}
+\label{sec:pool_ablation_results}
+
+The pool-profile ablation holds the selector, exact seed, overlap cutoff,
+dimension cap, stopping rule, and no-fallback boundary fixed.  At the
+$10^{-4}$ target, the base physical-macro pool reaches ten of twelve
+Hubbard--Holstein cells, whereas encoded-boson completion reaches all twelve.
+The repaired cases are weak--strong and intermediate--strong at
+$\phmax=3$.  Their completion-pool first crossings occur at $K=484$ and
+$428$; the base pool terminates with errors $1.8\times10^{-2}$ and
+$1.2\times10^{-2}$ despite much larger terminal expenditure.
+
+Completion-family records appear in every terminal support produced from the
+enlarged pool, with counts ranging from three to thirty-six.  The new family
+is exercised rather than dormant.  Among the ten cells already solved by the
+base pool, the resource effect is not monotone: completion lowers $K$ in some,
+leaves it unchanged in others, and raises it in several.  The pool repairs
+missing directions and changes the candidate set on which economic selection
+acts; it is not a universal cost discount.
+
+\begin{table}[t]
+\caption{Controlled Hubbard--Holstein pool-profile result at the six-root
+$10^{-4}$ target.  All other route ingredients are fixed.}
+\label{tab:pool_ablation_results}
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Pool & reached & coverage \\
+\midrule
+physical macro pool & 10/12 & two $\phmax=3$ failures \\
+\shortstack[l]{macro + encoded-boson\\completion} & 12/12 & all cells \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This ablation establishes that the completion repairs two failures under the
+current selector.  It does not decompose the total OS-QSE advantage into
+independent pool and selection fractions.  A complete same-completion-pool
+QSE control, or another matched same-pool selection control, is required for
+that stronger causal attribution.
+
+\subsection{Static spectra independently audit the selected states}
+\label{sec:static_spectra_results}
+
+Worst-root energy and observable response probe different properties.  For
+the twelve Hubbard--Holstein cells, density and displacement channels give a
+median normalized spectral $L^1$ error $1.73\times10^{-9}$ for OS-QSE and a
+maximum $2.00\times10^{-5}$.  Complete LR-QSE gives median
+$3.61\times10^{-3}$ and maximum $1.22\times10^{1}$.  In the two completion
+stress cases, the selected broadened peaks and weights track the exact
+response precisely where the base physical pool misses the six-root window.
+
+The converse is equally informative.  Complete LR-QSE reproduces the reported
+spectra to numerical precision in weak--strong and weak--weak $\phmax=1$
+despite failing the six-root energy task.  A root with negligible transition
+weight can dominate the worst-root error while barely affecting a chosen
+spectrum.  Root-window coverage and response recovery are therefore
+complementary diagnostics, not substitutes.
+
+\begin{widetext}
+\begin{center}
+\includegraphics[width=0.94\textwidth]{../../output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/static_hard_case_spectra.png}
+\end{center}
+\inlinefigurecaption{fig:stress_spectra}{Exact, OS-QSE, and complete LR-QSE
+density and displacement spectra in the two Hubbard--Holstein
+completion-pool stress cells.  Every curve is evaluated on the terminal
+manifold; first-crossing costs are not assigned to these terminal spectra.}
+\end{widetext}
+
+\begin{widetext}
+\begin{center}
+\includegraphics[width=0.94\textwidth]{../../output/pdf/paper_iii_static_qse_source_anchor_20260829_v2/static_spectral_errors.png}
+\end{center}
+\inlinefigurecaption{fig:spectral_errors}{Normalized terminal broadened-spectrum
+errors for site-0 density and phonon displacement across the twelve
+Hubbard--Holstein cells.  Bright-spectrum recovery can occur even when a
+six-root energy target is missed, which is why both diagnostics are retained.}
+\end{widetext}
+
+For Peierls--Hubbard, OS-QSE normalized errors range from
+$4.1\times10^{-14}$ to $4.8\times10^{-12}$ in bond displacement and from
+$3.5\times10^{-10}$ to $5.9\times10^{-9}$ in site density where the exact
+reference has nonzero weight.  The $U=8$ weak-bond density reference has
+numerically zero integrated weight, so its normalized error is undefined.
+For SIAM, selected double-occupancy and magnetization errors are
+$5.0\times10^{-7}$ and $5.2\times10^{-7}$.  DQ and successful single-seed
+RTK also reproduce these transfer spectra accurately; fixed classes retain
+visible response errors.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What the benchmark establishes}
+
+Under the declared six-root task, exact same-cutoff seed convention, pools,
+and resource definitions, OS-QSE constructs a successful window in all
+sixteen cases.  At the route-local $10^{-6}$ crossing, its graph-span cost,
+Qiskit two-qubit structural annotation, and declared query count are each
+smaller than DQ in all sixteen.  Hubbard--Holstein supplies the systematic
+coupling/cutoff matrix, while Peierls and SIAM test transfer across different
+interaction structures and encodings.
+
+The strongest inference is task specific.  Full proposed-pencil Ky--Fan gain
+evaluates the quantity optimized by the six-root benchmark, while $K$ biases
+growth toward economical directions.  The SIAM result is especially
+informative because OS-QSE is slightly more accurate than DQ at the charged
+prefix.  The aggregate evidence is therefore consistent with the intended
+cost-weighted acquisition mechanism.
+
+``Consistent'' remains important.  DQ overshoots in several cells.  The
+completion pool changes both expressivity and the choices presented to the
+selector.  Exchange exists as a guarded maintenance operation, but the
+current source anchor counts evaluated locations rather than accepted
+patches.  The data support the complete declared OS-QSE route; they do not
+yet assign a numerical percentage of its savings to cost discounting, pool
+completion, or exchange.
+
+\subsection{Why energy windows and response spectra must both remain}
+
+Worst-root error asks whether every requested Ritz value is represented.
+A response spectrum weights roots by a particular observable.  OS-QSE is
+accurate under both diagnostics for the tested channels, but the LR-QSE
+exceptions show they are not equivalent.  A fixed class can be inadequate
+for the six-root window yet accurate for a bright response when its missing
+roots are dark.  Conversely, six accurate energies do not prove every
+transition amplitude, especially near a degeneracy or for an untested probe.
+The conclusion is therefore restricted to the declared window and density,
+displacement, double-occupancy, and magnetization channels.
+
+\subsection{What the Krylov comparison says}
+
+The single- and block-source matrices identify source coverage as
+load-bearing.  Their complementary failures and the five zero-weight audits
+show that increasing the number of time samples cannot repair a direction
+absent from the fixed source subspace.  A new source block could repair it,
+but that changes the algorithm and must carry its own preparation cost.
+Accordingly, the evidence establishes complete OS-QSE coverage and lower
+declared structural costs relative to the two implemented RTK policies; it
+does not establish superiority over Krylov methods as a class.
+
+\subsection{Expressivity and economy are coupled}
+
+The base-pool failures show that economic selection cannot recover a direction
+that is absent from the candidate images.  The nonmonotone cost changes after
+completion show the converse: a larger pool does not automatically make a
+successful cell cheaper.  The observed route relies on a coupled design in
+which the pool exposes mixed fermion--boson directions and the selector chooses
+within that set.  A same-completion-pool exhaustive control remains the clean
+way to separate those two effects.
+
+\subsection{Structural resources are not total work}
+
+The structural claim is intentionally narrower than an end-to-end hardware
+claim.  No table includes a complete measurement schedule, shot allocation,
+state preparation for an arbitrary linear combination, mitigation, or
+wall-clock runtime.  Route-specific query conventions cannot be converted
+into a universal shot statement.  The large candidate-screening ledger shows
+why final-support compactness and total construction effort must not be
+conflated.  A future cumulative ledger should charge screened and rejected
+records, accepted and rejected patches, reused matrix elements, and observable
+measurements separately.
+
+\subsection{Limitations and remaining mechanism tests}
+\label{sec:limitations}
+
+The exact ground-state seed isolates the excited-state problem but does not
+demonstrate integration with an approximate variational ground state.  The
+bosonic comparisons are same-cutoff and do not establish physical cutoff
+convergence.  Finite-shot sampling, mitigation, uncertainty propagation,
+runtime, and time dynamics are outside scope.  The single SIAM instance is a
+transfer case, not a scaling law.
+
+Three mechanism ledgers remain open.  A current-policy cost-discount-off
+ablation is needed to isolate the marginal role of $K$.  An exchange-off
+ablation and accepted-patch receipt are needed before exchange can be called a
+demonstrated source of savings.  A common cumulative acquisition-work ledger
+is needed before structural compactness can imply lower total construction
+work.  These tests should hold the pool, seed, supported-overlap cutoff,
+stopping rule, and dimension cap fixed.
+
+QKSD remains implementation-pending.  qEOM/q-sc-EOM, VQD, and SSVQE remain
+related-work methods rather than matched numerical comparators.  These
+absences bound the claims but do not invalidate the sixteen-case comparison
+among the implemented routes.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Cost-weighted full-pencil operator selection constructs accurate six-root QSE
+manifolds across the tested Hubbard--Holstein, Peierls--Hubbard, and SIAM
+problems.  The selected route reaches all sixteen $10^{-6}$ windows without an
+implicit method change and has lower declared structural cost than
+independently initialized DQ at the matched crossings.  Transition spectra
+show that the resulting manifolds also recover the audited response channels.
+The pool and Krylov controls reveal the common mechanism behind the failures:
+the target window can only be recovered when the declared candidate or source
+subspace exposes its spectral directions.  The remaining work concerns causal
+decomposition and cumulative accounting, not repair of the demonstrated
+static six-root result.
+
+\appendix
+
+\section{Operator-pool construction and image semantics}
+\label{app:pools}
+
+The pool is versioned as an ordered list because ordering resolves exact score
+ties and makes deterministic replay meaningful.  Every record also has a
+post-seed image.  A family can be algebraically rich yet contribute no novel
+direction to a particular seed; conversely, one low-cost Pauli record can
+expose a direction absent from a physically named macro family.
+
+\subsection{Hubbard--Holstein macro prefix}
+
+The physical macro prefix contains identity, lifted number-conserving
+fermionic single and double directions, site-phonon ladder/displacement and
+momentum structures, hopping/current layers, density differences, and mixed
+fermion--phonon products.  Records remain at macro granularity: a polynomial
+is not silently split into Pauli children during selection.  This is necessary
+because $K(A)$ is attached to a record, and mixing macro records with
+pre-split children would make ``one admission'' an inconsistent resource
+object.
+
+The encoded completion in Eq.~\eqref{eq:hh_completion_pool} appends all
+nonidentity boson Pauli words times five sector-preserving fermion factors.
+For $n_b=2$ boson qubits, for example, the completion count is
+$5(4^2-1)=75$; for $n_b=4$, it is $5(4^4-1)=1275$.  The counts explain the
+production pool sizes exactly.  Completion records are not interpreted as
+separate physical excitations.  Their purpose is to make the finite encoded
+boson algebra visible to the selector while retaining a restricted fermion
+factor.
+
+\subsection{Peierls and SIAM pools}
+
+The Peierls pool adapts the physical macro idea to a bond-coupled phonon.  In
+addition to fermionic hopping/current and double directions, it contains
+$X_b$, its conjugate momentum, phonon number and powers, and products such as
+$TX_b$ and current--momentum directions.  Its fixed class contains the
+identity, fermionic singles, and bond-phonon ladder directions; its retained
+rank five in the reported cases is below the six-root task.
+
+The SIAM pool starts from local impurity/bath physical blocks and adds
+generalized number, hopping, and current quadratures within each spin block.
+Paired products join one spin-up and one spin-down factor.  The construction
+preserves the $(3,2)$ sector.  The selected support of 64 records retaining
+rank 44 demonstrates why pool size, support size, and supported dimension
+must be reported separately.
+
+\subsection{Seed dependence}
+
+Equation~\eqref{eq:ground_power_vanishes} is a useful warning against generic
+pool catalogues.  A bare $H_0^k$ record acting on an exact eigenstate is
+annihilated by $Q_{\mathfrak s,0}$.  Likewise, a tangent-derived family is
+undefined without a source circuit whose tangent is specified.  We therefore
+describe the populated benchmark pools rather than every family that generic
+framework code could support.
+
+\section{Supported-pencil geometry and stability}
+\label{app:supported_solve}
+
+\subsection{Coordinate invariance}
+
+The matrices in Eq.~\eqref{eq:qse_matrices} depend on the coordinates chosen
+inside the same record image.  If $T$ is nonsingular and
+$\Phi_{\mathcal B}\mapsto\Phi_{\mathcal B}T$, then
+\begin{equation}
+ S_{\mathcal B}\mapsto T^\dagger S_{\mathcal B}T,
+ \qquad
+ M_{\mathcal B}\mapsto T^\dagger M_{\mathcal B}T.
+ \label{eq:pencil_congruence}
+\end{equation}
+The generalized Ritz values are unchanged when the same supported-subspace
+convention is applied.  The implementation uses this invariance as a
+basis-change sanity check.  A record label is therefore not itself a physical
+state; only its image and the supported span matter.
+
+\subsection{Why truncation replaces a ridge}
+
+A ridge would solve a different pencil, for example
+$M c=\varepsilon(S+\lambda I)c$, and make the reported roots depend on an
+extra deformation.  Supported truncation instead declares that overlap
+directions below Eq.~\eqref{eq:overlap_support} are not numerically retained.
+In the retained coordinates, $S$ becomes the identity and the Hermitian
+Rayleigh--Ritz problem is explicit.
+
+For an isolated retained Ritz pair, the usual residual relation gives the
+scale
+\begin{equation}
+ \sin\angle(\Psi_r,\Psi_r^\star)
+ \lesssim
+ \frac{\|R_r\|}{\operatorname{gap}_r},
+ \label{eq:residual_gap_scale}
+\end{equation}
+where the denominator is the nearest relevant spectral separation.  Small
+overlap eigenvalues amplify perturbations before this residual is formed;
+small spectral gaps amplify eigenvector rotation after it is formed.  These
+are separate numerical risks.  Near an exact degeneracy, individual
+eigenvectors are not invariant, so principal angles and subspace transition
+weight are the appropriate diagnostics \cite{DavisKahan1970}.
+
+\subsection{Nested growth and interlacing}
+
+Before exchange and support truncation, append-only growth gives
+$V_{\ell}\subseteq V_{\ell+1}$.  Exact Hermitian Rayleigh--Ritz values then
+interlace,
+\begin{equation}
+ \varepsilon_j^{(\ell+1)}
+ \leq\varepsilon_j^{(\ell)}
+ \leq\varepsilon_{j+d}^{(\ell+1)},
+ \qquad
+ d=\dim V_{\ell+1}-\dim V_\ell.
+ \label{eq:ritz_interlacing}
+\end{equation}
+An apparent regression can therefore arise from a changed retained support,
+root rematching, a changed sector, or finite numerical error rather than from
+exact nested Ritz growth.  This is why rank, overlap support, and one-to-one
+matching accompany every benchmark trace.
+
+\section{Production selector in operational order}
+\label{app:selector_contract}
+
+The equations in the main text can be summarized by the following operational
+contract.  It is included to make the manuscript reconstructible without
+turning implementation branches into scientific notation.
+
+\begin{enumerate}
+\item Construct the ordered pool, per-record $K(A)$, projected raw images,
+and immutable pool digest.  Apply the absolute supported-image and structural
+filters.  Fix $K_{\max}$ over this initial eligible set.
+\item Rebuild the orthonormal retained frame from the current selected raw
+images using the same relative overlap cutoff as the final QSE solve.
+\item For every unused record, perform two projection passes against the
+retained frame, compute $N_\ell(A)$, and remove candidates below the novelty
+floor.
+\item Apply $H_0$ to every admissible normalized new direction.  Retain the
+full Hamiltonian row and $h_{11,\ell}(A)$.
+\item If fewer than six supported directions exist, compute the common
+rank-filling ceiling $\Lambda_\ell$.  Solve every full proposed matrix in
+Eq.~\eqref{eq:full_proposed_pencil} and evaluate $\Delta_\ell(A)$.
+\item Normalize gains within the round, divide by the fixed normalized cost
+with floor $0.05$, and admit the maximum-$\score_\ell$ record.  Break exact
+ties by original pool index.
+\item Once six roots exist, evaluate the maximum full-space residual and the
+$h_{11}$ window-pressure set.  Stop only when both tests pass.
+\item At declared maintenance locations, evaluate atomic singleton patches.
+Rejected patches leave the current support unchanged.  Re-solve and repeat
+the residual/window certificate on the terminal support.
+\item Emit one structured terminal status.  Never change to Davidson inside
+the route.
+\end{enumerate}
+
+Three implementation details are scientifically load-bearing.  The
+Gram--Schmidt pass is repeated.  Novelty is measured against the retained
+frame rather than the exact span.  The candidate $h_{11}$ values survive
+through the stopping test.  Removing any of these changes the selected trace
+or can create false convergence.
+
+\section{Exchange scope and relation to broader add--remove methods}
+\label{app:exchange_scope}
+
+Restarted and thick-restart Krylov methods, selected-configuration methods,
+and QSE pruning already establish that a useful diagonalization support need
+not grow monotonically \cite{WuSimon2000ThickRestart,Sorensen1992IRA}.  The
+specific object used here is a measured nonorthogonal operator-pencil
+transaction with a cost gate.  Its residual distinction is atomicity: a
+delete and insert are scored jointly after re-solving the patched pencil.
+
+The present cardinality is deliberately narrow.  It enumerates singleton
+deletions crossed with singleton insertions, plus pure singleton deletions.
+A general exchange hierarchy could enumerate complete deletion rungs and
+multi-record insertions.  Nothing in the current results demonstrates those
+higher-cardinality moves.  Conversely, the singleton restriction does not
+reduce the implemented operation to prune-then-append: a joint patch can pass
+even when its two halves would not be favorable as sequential independent
+moves.
+
+The current numerical authority stores the number of acquisition prefixes at
+which exchange maintenance was evaluated.  It does not yet provide a
+current-policy aggregate of accepted joint patches.  Older accepted-patch
+counts from a different selector policy are not imported.  Accordingly,
+exchange is part of the production route and its safety contract, but the
+paper does not attribute the observed resource advantage to exchange without
+the planned exchange-off ablation.
+
+\section{Detailed structural resource tables}
+\label{app:resource_tables}
+
+\begin{table*}[t]
+\caption{Post-run structural annotations at the
+$10^{-6}$ first crossing.  Numeric cells are Qiskit $N_{2q}/D_{2q}$
+[logical queries].  NR cells show terminal-cap resources; fixed LR-QSE is
+shown at its complete terminal manifold.}
+\label{tab:qiskit_1em6}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+Case & OS-QSE & direct quantum Davidson & single-seed RTK & complete LR-QSE \\
+\midrule
+intermediate--strong, $\nph=1$ & $28/28$ [76] & $56/56$ [2448] & NR: $143{,}550/118{,}800$ [90,900] & $56/56$ [121] \\
+intermediate--weak, $\nph=1$ & $28/28$ [115] & $56/56$ [2448] & NR: $143{,}550/118{,}800$ [90,900] & $56/56$ [121] \\
+strong--strong, $\nph=1$ & $20/20$ [84] & $85/80$ [2448] & NR: $143{,}550/118{,}800$ [90,900] & $56/56$ [121] \\
+strong--weak, $\nph=1$ & $14/14$ [28] & $85/80$ [2448] & NR: $143{,}550/118{,}800$ [90,900] & $56/56$ [121] \\
+weak--strong, $\nph=1$ & $26/24$ [73] & $85/80$ [2448] & $4959/4104$ [3420] & $56/56$ [121] \\
+weak--weak, $\nph=1$ & $24/24$ [126] & $85/80$ [2448] & $4959/4104$ [3420] & $56/56$ [121] \\
+intermediate--strong, $\nph=3$ & $461/448$ [1905] & $2248/1192$ [28,896] & $213{,}864/108{,}528$ [52,896] & $104/104$ [845] \\
+intermediate--weak, $\nph=3$ & $281/272$ [1398] & $640/376$ [13,920] & $221{,}502/112{,}404$ [54,752] & $104/104$ [845] \\
+strong--strong, $\nph=3$ & $307/298$ [1542] & $506/308$ [13,920] & NR: $663{,}300/336{,}600$ [161,600] & $104/104$ [845] \\
+strong--weak, $\nph=3$ & $239/236$ [1377] & $506/308$ [13,920] & NR: $663{,}300/336{,}600$ [161,600] & $104/104$ [845] \\
+weak--strong, $\nph=3$ & $574/545$ [2001] & $2650/1396$ [33,120] & $206{,}360/104{,}720$ [51,072] & $104/104$ [845] \\
+weak--weak, $\nph=3$ & $421/393$ [1767] & $908/512$ [16,896] & $237{,}180/120{,}360$ [58,560] & $104/104$ [845] \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{table*}
+
+\begin{widetext}
+\inlinetablecaption{tab:screening_work}{Recorded Hubbard--Holstein OS-QSE
+acquisition activity.  Proposed-pencil evaluations and Hamiltonian row
+elements are online screening work; terminal $K$ describes the surviving
+support and excludes that screening.  Exchange rungs are evaluated locations,
+not accepted-patch counts.}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrr@{}}
+\toprule
+Case & rounds & proposed pencils & row elements & terminal support & terminal $K$ & exchange rungs \\
+\midrule
+intermediate--strong, $\nph=1$ & 16 & 1,949 & 13,091 & 15 & 28 & 8 \\
+intermediate--weak, $\nph=1$ & 16 & 1,948 & 13,087 & 15 & 28 & 8 \\
+strong--strong, $\nph=1$ & 15 & 2,115 & 15,364 & 14 & 20 & 7 \\
+strong--weak, $\nph=1$ & 15 & 2,115 & 15,364 & 14 & 24 & 7 \\
+weak--strong, $\nph=1$ & 16 & 2,142 & 15,553 & 15 & 24 & 8 \\
+weak--weak, $\nph=1$ & 16 & 2,092 & 14,889 & 15 & 26 & 8 \\
+intermediate--strong, $\nph=3$ & 55 & 74,652 & 2,063,994 & 54 & 452 & 27 \\
+intermediate--weak, $\nph=3$ & 30 & 41,423 & 636,892 & 29 & 278 & 15 \\
+strong--strong, $\nph=3$ & 32 & 43,970 & 720,432 & 31 & 304 & 16 \\
+strong--weak, $\nph=3$ & 24 & 33,166 & 412,504 & 23 & 262 & 12 \\
+weak--strong, $\nph=3$ & 55 & 74,621 & 2,062,802 & 54 & 534 & 27 \\
+weak--weak, $\nph=3$ & 33 & 45,489 & 768,579 & 32 & 394 & 16 \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+The first table demonstrates that $K$, Qiskit annotation, and query count are
+not interchangeable.  The second shows why a final-support resource claim
+cannot silently become a total-work claim.  These distinctions remain even
+when all coordinates numerically favor the same route at a threshold.
+
+\section{Complete block-Krylov matrix and source audit}
+\label{app:block_krylov}
+
+\begin{widetext}
+\inlinetablecaption{tab:block_krylov_resources}{Six-probe block-RTK at the
+first $10^{-6}$ crossing or terminal cap.  Shape is admitted $k$/retained
+rank.  Qiskit is aggregate $N_{2q}/D_{2q}$ over independently prepared block
+states.}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\toprule
+Case & status & shape & max error & $K$ & Qiskit $N_{2q}/D_{2q}$ & queries \\
+\midrule
+intermediate--strong, $\nph=1$ & R & $25/14$ & $1.14\times10^{-13}$ & 720 & $1044/864$ & 5850 \\
+intermediate--strong, $\nph=3$ & NR & $97/43$ & $3.71\times10^{-1}$ & 48,960 & $96{,}480/48{,}960$ & 152,096 \\
+intermediate--weak, $\nph=1$ & R & $25/14$ & $9.00\times10^{-13}$ & 720 & $1044/864$ & 5850 \\
+intermediate--weak, $\nph=3$ & NR & $97/41$ & $4.94\times10^{-1}$ & 48,960 & $96{,}480/48{,}960$ & 152,096 \\
+strong--strong, $\nph=1$ & R & $25/14$ & $6.41\times10^{-11}$ & 720 & $1044/864$ & 5850 \\
+strong--strong, $\nph=3$ & R & $85/42$ & $7.61\times10^{-7}$ & 37,128 & $73{,}164/37{,}128$ & 116,960 \\
+strong--weak, $\nph=1$ & R & $25/14$ & $1.02\times10^{-9}$ & 720 & $1044/864$ & 5850 \\
+strong--weak, $\nph=3$ & R & $91/39$ & $4.14\times10^{-7}$ & 42,840 & $84{,}420/42{,}840$ & 133,952 \\
+weak--strong, $\nph=1$ & R & $19/13$ & $3.33\times10^{-14}$ & 360 & $522/432$ & 3420 \\
+weak--strong, $\nph=3$ & NR & $97/42$ & $5.69\times10^{-1}$ & 48,960 & $96{,}480/48{,}960$ & 152,096 \\
+weak--weak, $\nph=1$ & R & $19/13$ & $2.80\times10^{-12}$ & 360 & $522/432$ & 3420 \\
+weak--weak, $\nph=3$ & NR & $97/41$ & $2.16\times10^{-1}$ & 48,960 & $96{,}480/48{,}960$ & 152,096 \\
+Peierls $U=8$--weak & R & $19/11$ & $1.47\times10^{-14}$ & 1800 & $2502/2250$ & 5700 \\
+Peierls weak--strong & R & $19/11$ & $1.39\times10^{-15}$ & 1800 & $2502/2250$ & 5700 \\
+Peierls weak--weak & NR & $37/11$ & $3.81\times10^{-1}$ & 9000 & $12{,}510/11{,}250$ & 21,090 \\
+SIAM $N_b=4$ & R & $97/88$ & $7.90\times10^{-7}$ & 24,480 & $24{,}480/15{,}840$ & 85,554 \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+\begin{center}
+\begin{minipage}{\columnwidth}
+\inlinetablecaption{tab:block_source_failures}{Post-run source coverage for
+all block-RTK failures.}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Case & absent target & source weight & terminal error \\
+\midrule
+Peierls weak--weak & $r=6$ & $2.7\times10^{-29}$ & $3.81\times10^{-1}$ \\
+intermediate--strong, $\nph=3$ & $r=5$ & $1.7\times10^{-26}$ & $3.71\times10^{-1}$ \\
+intermediate--weak, $\nph=3$ & $r=5$ & $4.0\times10^{-30}$ & $4.94\times10^{-1}$ \\
+weak--strong, $\nph=3$ & $r=4$ & $2.1\times10^{-29}$ & $5.69\times10^{-1}$ \\
+weak--weak, $\nph=3$ & $r=4$ & $1.1\times10^{-30}$ & $2.16\times10^{-1}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{minipage}
+\end{center}
+
+\clearpage
+\section{Pool-profile evidence in full}
+\label{app:pool_ablation}
+
+\begin{widetext}
+\inlinetablecaption{tab:pool_ablation_full}{Current-selector pool comparison at
+the first $10^{-4}$ crossing.  R gives crossing dimension $k$, graph-span
+$K$, and achieved error; NR gives terminal error and $K$.  The final column
+counts completion-family records in the completion-pool terminal support.}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccc@{}}
+\toprule
+Case & physical macro pool & completion pool & completion records \\
+\midrule
+weak--weak, $\nph=1$ & R: $k=12$, $K=18$, $5.3\times10^{-5}$ & R: $k=12$, $K=18$, $5.3\times10^{-5}$ & 4 \\
+intermediate--weak, $\nph=1$ & R: $k=12$, $K=52$, $9.7\times10^{-5}$ & R: $k=12$, $K=26$, $6.1\times10^{-5}$ & 5 \\
+strong--weak, $\nph=1$ & R: $k=10$, $K=10$, $1.9\times10^{-5}$ & R: $k=10$, $K=14$, $6.5\times10^{-7}$ & 4 \\
+weak--strong, $\nph=1$ & R: $k=13$, $K=16$, $3.4\times10^{-14}$ & R: $k=14$, $K=26$, $1.3\times10^{-15}$ & 7 \\
+intermediate--strong, $\nph=1$ & R: $k=14$, $K=72$, $2.2\times10^{-5}$ & R: $k=14$, $K=26$, $6.3\times10^{-6}$ & 7 \\
+strong--strong, $\nph=1$ & R: $k=12$, $K=18$, $1.7\times10^{-5}$ & R: $k=10$, $K=12$, $1.7\times10^{-5}$ & 3 \\
+weak--weak, $\nph=3$ & R: $k=14$, $K=226$, $3.1\times10^{-5}$ & R: $k=14$, $K=242$, $5.3\times10^{-5}$ & 13 \\
+intermediate--weak, $\nph=3$ & R: $k=14$, $K=968$, $1.1\times10^{-5}$ & R: $k=18$, $K=242$, $8.4\times10^{-6}$ & 16 \\
+strong--weak, $\nph=3$ & R: $k=10$, $K=160$, $4.9\times10^{-6}$ & R: $k=10$, $K=160$, $4.9\times10^{-6}$ & 11 \\
+weak--strong, $\nph=3$ & NR: $1.8\times10^{-2}$ at $K=4630$ & R: $k=42$, $K=484$, $7.5\times10^{-5}$ & 35 \\
+intermediate--strong, $\nph=3$ & NR: $1.2\times10^{-2}$ at $K=7418$ & R: $k=50$, $K=428$, $6.0\times10^{-6}$ & 36 \\
+strong--strong, $\nph=3$ & R: $k=12$, $K=216$, $3.8\times10^{-5}$ & R: $k=12$, $K=216$, $3.8\times10^{-5}$ & 18 \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+The two repaired cells also show why a terminal failure must retain its
+expenditure.  Their base-pool costs are not successful alternatives at the
+target.  Conversely, the completion pool is not uniformly economical in the
+ten jointly successful cells.  These observations are part of the mechanism
+claim, not merely supplementary bookkeeping.
+
+\section{Terminal manifolds and channelwise spectral audits}
+\label{app:spectral_tables}
+
+\begin{widetext}
+\inlinetablecaption{tab:terminal_hh}{Terminal Hubbard--Holstein OS-QSE
+manifolds.  The response columns are the mean normalized $L^1$ error over
+site-0 density and phonon displacement for OS-QSE and complete LR-QSE.}
+\begin{center}
+\scriptsize
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\toprule
+Case & support/rank & terminal $K$ & Qiskit $N_{2q}/D$ [queries] & max root error & OS-QSE $L^1$ & LR-QSE $L^1$ \\
+\midrule
+intermediate--strong, $\nph=1$ & $15/15$ & 28 & $28/28$ [76] & $4.00\times10^{-15}$ & $1.56\times10^{-14}$ & $1.16$ \\
+intermediate--weak, $\nph=1$ & $15/15$ & 28 & $28/28$ [115] & $1.17\times10^{-13}$ & $3.15\times10^{-14}$ & $6.10$ \\
+strong--strong, $\nph=1$ & $14/14$ & 20 & $20/20$ [84] & $1.66\times10^{-8}$ & $4.01\times10^{-14}$ & $8.40\times10^{-2}$ \\
+strong--weak, $\nph=1$ & $14/14$ & 24 & $24/24$ [89] & $8.26\times10^{-10}$ & $3.98\times10^{-13}$ & $4.62\times10^{-1}$ \\
+weak--strong, $\nph=1$ & $15/15$ & 24 & $24/24$ [73] & $1.40\times10^{-14}$ & $1.26\times10^{-14}$ & $1.20\times10^{-14}$ \\
+weak--weak, $\nph=1$ & $15/15$ & 26 & $26/26$ [128] & $4.12\times10^{-15}$ & $2.08\times10^{-14}$ & $1.57\times10^{-14}$ \\
+intermediate--strong, $\nph=3$ & $54/54$ & 452 & $473/460$ [1905] & $1.17\times10^{-7}$ & $3.18\times10^{-7}$ & $2.71\times10^{-3}$ \\
+intermediate--weak, $\nph=3$ & $29/28$ & 278 & $299/290$ [1476] & $1.07\times10^{-7}$ & $1.34\times10^{-6}$ & $2.37\times10^{-1}$ \\
+strong--strong, $\nph=3$ & $31/31$ & 304 & $325/316$ [1617] & $1.05\times10^{-7}$ & $1.04\times10^{-5}$ & $1.36\times10^{-5}$ \\
+strong--weak, $\nph=3$ & $23/23$ & 262 & $283/274$ [1452] & $1.22\times10^{-7}$ & $1.88\times10^{-7}$ & $4.43\times10^{-1}$ \\
+weak--strong, $\nph=3$ & $54/54$ & 534 & $582/551$ [2001] & $2.31\times10^{-8}$ & $8.36\times10^{-8}$ & $2.20\times10^{-1}$ \\
+weak--weak, $\nph=3$ & $32/32$ & 394 & $436/404$ [1777] & $2.45\times10^{-7}$ & $1.77\times10^{-6}$ & $2.58$ \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{widetext}
+
+\begin{table*}[t]
+\caption{Terminal normalized spectral $L^1$
+errors for transfer probes.  The Peierls entries are bond displacement/site-0
+density; SIAM entries are double occupancy/magnetization.  ``--'' denotes a
+zero-reference-weight channel for which normalized error is undefined.}
+\label{tab:transfer_spectra}
+\begin{center}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+Case & OS-QSE & direct Davidson & single RTK & complete fixed class \\
+\midrule
+Peierls weak--weak & $1.3\times10^{-13}/5.9\times10^{-9}$ & $3.0\times10^{-15}/1.5\times10^{-14}$ & $6.1\times10^{-15}/7.7\times10^{-15}$ & $2.1\times10^{-2}/2.3$ \\
+Peierls weak--strong & $4.8\times10^{-12}/3.5\times10^{-10}$ & $1.2\times10^{-14}/1.2\times10^{-14}$ & $1.8\times10^{-13}/2.7\times10^{-13}$ & $2.9\times10^{-1}/5.2$ \\
+Peierls $U=8$--weak & $4.1\times10^{-14}$/-- & $5.9\times10^{-15}$/-- & $2.5\times10^{-14}$/-- & $5.6\times10^{-3}$/-- \\
+SIAM $N_b=4$ & $5.0\times10^{-7}/5.2\times10^{-7}$ & $4.4\times10^{-14}/2.7\times10^{-14}$ & $5.6\times10^{-7}/1.1\times10^{-7}$ & $7.5\times10^{-2}/1.0\times10^{-1}$ \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\end{table*}
+
+These tables also document that the spectra are terminal audits.  A future
+first-crossing spectral study would be a distinct analysis and would need to
+charge observable data at that prefix rather than borrowing terminal curves.
+
+\section{Evidence authority, determinism, and data boundary}
+\label{app:evidence}
+
+The numerical authority for this draft is the thirteen-page
+\sourceanchor, generated from immutable route JSONs and receipts by the
+tracked source-anchor builder.  Its
+publication-crossing reconstruction, complete resource matrices, failure
+statuses, exact-reference identity checks, and spectral conventions supersede
+legacy generated manuscript fragments.  The source-anchor PDF SHA-256 at this
+revision is
+\begin{quote}
+\small\ttfamily
+4a9d1224785484d34e448617a486bb9\\
+12d61da7a93d76272cf77da9853e841a4.
+\end{quote}
+Two consecutive builds reproduce the PDF byte for byte.  All four
+Peierls/SIAM OS-QSE cases also replay with identical selected supports, stop
+reasons, and final selector residuals.  The Hubbard--Holstein production
+traces retain ordered support indices and online receipt digests.
+
+The source anchor is primarily a numerical contract.  This manuscript is the
+scientific framing: it derives the method, explains the comparison boundary,
+interprets mechanisms, and states limitations.  Where a numerical value in a
+legacy table disagrees with the source anchor, the source anchor controls.
+Where prose about the selector disagrees with the locked code, the code-level
+policy and its tests control and the anchor must be regenerated.  This rule
+was applied to the fixed initial-pool cost normalization in
+Eq.~\eqref{eq:fixed_cost_normalization}.
+
+The current repository evidence intentionally leaves several entries open:
+cost-discount-off, exchange-off with accepted-patch ledger, common cumulative
+acquisition work, Hamiltonian-power QKSD, approximate-seed robustness, and
+physical bosonic-cutoff convergence.  An absent entry is not imputed from a
+nearby route, and a failed route is not dropped from a denominator.
+
+\begin{thebibliography}{99}
+
+\bibitem{PaperI}
+J. Strobel and J. Simoni,
+``Geometric and resource-aware adaptive ansatz construction for fermion--boson Hamiltonian systems,''
+companion paper (Paper I of this series).
+
+\bibitem{PaperII}
+J. Strobel and J. Simoni,
+``Append--prune McLachlan dynamics,''
+companion paper (Paper II of this series).
+
+\bibitem{Hubbard1963}
+J. Hubbard,
+``Electron correlations in narrow energy bands,''
+Proc. R. Soc. A \textbf{276}, 238--257 (1963).
+
+\bibitem{Holstein1959}
+T. Holstein,
+``Studies of polaron motion: Parts I and II,''
+Ann. Phys. \textbf{8}, 325--342 and 343--389 (1959).
+
+\bibitem{SuSchriefferHeeger1979}
+W. P. Su, J. R. Schrieffer, and A. J. Heeger,
+``Solitons in polyacetylene,''
+Phys. Rev. Lett. \textbf{42}, 1698--1701 (1979).
+
+\bibitem{McClean2017QSE}
+J. R. McClean, M. E. Kimchi-Schwartz, J. Carter, and W. A. de Jong,
+``Hybrid quantum-classical hierarchy for mitigation of decoherence and determination of excited states,''
+Phys. Rev. A \textbf{95}, 042308 (2017).
+
+\bibitem{Colless2018QSE}
+J. I. Colless \textit{et al.},
+``Computation of molecular spectra on a quantum processor with an error-resilient algorithm,''
+Phys. Rev. X \textbf{8}, 011021 (2018).
+
+\bibitem{Urbanek2020VQSE}
+M. Urbanek, D. Camps, R. Van Beeumen, and W. A. de Jong,
+``Chemistry on quantum computers with virtual quantum subspace expansion,''
+J. Chem. Theory Comput. \textbf{16}, 5425--5431 (2020).
+
+\bibitem{Yoshioka2022GQSE}
+N. Yoshioka, H. Hakoshima, Y. Matsuzaki, Y. Tokunaga, Y. Suzuki, and S. Endo,
+``Generalized quantum subspace expansion,''
+Phys. Rev. Lett. \textbf{129}, 020502 (2022).
+
+\bibitem{CortesGray2022QKSD}
+C. L. Cortes and S. K. Gray,
+``Quantum Krylov subspace algorithms for ground- and excited-state energy estimation,''
+Phys. Rev. A \textbf{105}, 022417 (2022).
+
+\bibitem{Motta2024SubspaceReview}
+M. Motta \textit{et al.},
+``Subspace methods for electronic structure simulations on quantum computers,''
+Electron. Struct. \textbf{6}, 013001 (2024).
+
+\bibitem{Jamet2022GreenQSE}
+F. Jamet, A. Agarwal, and I. Rungger,
+``Quantum subspace expansion algorithm for Green's functions,''
+arXiv:2205.00094 (2022).
+
+\bibitem{Ollitrault2020qEOM}
+P. J. Ollitrault \textit{et al.},
+``Quantum equation of motion for computing molecular excitation energies on a noisy quantum processor,''
+Phys. Rev. Research \textbf{2}, 043140 (2020).
+
+\bibitem{Tkachenko2024QDavidson}
+N. V. Tkachenko \textit{et al.},
+``Quantum Davidson algorithm for excited states,''
+Quantum Sci. Technol. \textbf{9}, 035012 (2024).
+
+\bibitem{Epperly2022QSD}
+E. N. Epperly, L. Lin, and Y. Nakatsukasa,
+``A theory of quantum subspace diagonalization,''
+SIAM J. Matrix Anal. Appl. \textbf{43}, 1263--1290 (2022).
+
+\bibitem{Lee2024SamplingQKSD}
+G. Lee, D. Lee, and J. Huh,
+``Sampling error analysis in quantum Krylov subspace diagonalization,''
+Quantum \textbf{8}, 1477 (2024).
+
+\bibitem{Getelina2024HardwareNoiseQSE}
+J. C. Getelina, P. Sharma, T. Iadecola, P. P. Orth, and Y.-X. Yao,
+``Quantum subspace expansion in the presence of hardware noise,''
+APL Quantum \textbf{1}, 036127 (2024).
+
+\bibitem{Kuhn1955Hungarian}
+H. W. Kuhn,
+``The Hungarian method for the assignment problem,''
+Naval Res. Logist. Q. \textbf{2}, 83--97 (1955).
+
+\bibitem{Higgott2019VQD}
+O. Higgott, D. Wang, and S. Brierley,
+``Variational quantum computation of excited states,''
+Quantum \textbf{3}, 156 (2019).
+
+\bibitem{Nakanishi2019SSVQE}
+K. M. Nakanishi, K. Mitarai, and K. Fujii,
+``Subspace-search variational quantum eigensolver for excited states,''
+Phys. Rev. Research \textbf{1}, 033062 (2019).
+
+\bibitem{Parrish2019MCVQE}
+R. M. Parrish \textit{et al.},
+``Quantum computation of electronic transitions using a variational quantum eigensolver,''
+Phys. Rev. Lett. \textbf{122}, 230401 (2019).
+
+\bibitem{AsthanaKumar2023QScEOM}
+A. Asthana \textit{et al.},
+``Quantum self-consistent equation-of-motion method for computing molecular excitation energies, ionization potentials, and electron affinities on a quantum computer,''
+Chem. Sci. \textbf{14}, 2405--2418 (2023).
+
+\bibitem{DavisKahan1970}
+C. Davis and W. M. Kahan,
+``The rotation of eigenvectors by a perturbation. III,''
+SIAM J. Numer. Anal. \textbf{7}, 1--46 (1970).
+
+\bibitem{WuSimon2000ThickRestart}
+K. Wu and H. Simon,
+``Thick-restart Lanczos method for large symmetric eigenvalue problems,''
+SIAM J. Matrix Anal. Appl. \textbf{22}, 602--616 (2000).
+
+\bibitem{Sorensen1992IRA}
+D. C. Sorensen,
+``Implicit application of polynomial filters in a $k$-step Arnoldi method,''
+SIAM J. Matrix Anal. Appl. \textbf{13}, 357--385 (1992).
+
+\end{thebibliography}
+
+\end{document}

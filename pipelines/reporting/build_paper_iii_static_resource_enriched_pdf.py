@@ -2143,14 +2143,16 @@ Before $R$ supported roots exist, missing terms in the proposed objective are
 padded by one common round-local ceiling, $\max_A h_{11}(A)$.  This startup
 rule rewards rank creation without injecting exact spectral information.
 
-Within each round, positive gains and incremental graph-span costs are
-normalized by their respective round maxima.  With
-$\overline\Delta_\ell(A)=\Delta_\ell(A)/\max_{A'}\Delta_\ell(A')$ and
-$\overline K_\ell(A)=K_\ell(A)/\max_{A'}K_\ell(A')$, the production score is
+Positive gains are normalized by the current round maximum.  The cost scale
+is fixed once from the initially eligible pool, so it does not drift as the
+unused set shrinks.  With
+$\overline\Delta_\ell(A)=\Delta_\ell(A)/\max_{A'\in\mathcal A_\ell}\Delta_\ell(A')$,
+$K_{\max}=\max_{A'\in\mathcal A_0}K(A')$ (or $1$ when that maximum is zero),
+and $\overline K(A)=K(A)/K_{\max}$, the production score is
 \[
  \mathcal S_\ell(A)=
  \frac{\overline\Delta_\ell(A)}
- {\max(0.05,\overline K_\ell(A))}.
+ {\max(0.05,\overline K(A))}.
 \]
 Away from the declared cost floor this orders candidates by gain per cost.
 Novelty is not an additive reward: it is an admissibility floor of $10^{-12}$
@@ -2822,7 +2824,17 @@ def _compile_latex(tex_path: Path, pdf_path: Path) -> dict[str, Any]:
         shutil.copy2(built_pdf, pdf_path)
     return {
         "engine": "latexmk/pdflatex",
-        "command": [str(part) for part in command],
+        # The executed command uses a fresh TemporaryDirectory on every run.
+        # Record the invocation contract rather than that ephemeral path so the
+        # machine-readable authority is byte reproducible at a fixed revision.
+        "command": [
+            str(latexmk),
+            "-pdf",
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-outdir=<temporary-build-directory>",
+            str(tex_path.resolve()),
+        ],
         "log_path": str(log_path),
         "status": "compiled",
     }
